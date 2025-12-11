@@ -1,0 +1,86 @@
+<%- include('partials/header') %>
+
+<section class="max-w-7xl mx-auto py-12">
+    <h2 class="text-4xl md:text-6xl text-center mb-16 text-gold">DISCOGRAPHY</h2>
+    
+    <!-- Featured Album -->
+    <div class="flex flex-col md:flex-row items-center gap-12 mb-20 glass-card p-8 rounded-xl">
+        <div class="w-full md:w-1/2 aspect-square bg-gradient-to-br from-gray-800 to-black relative group overflow-hidden border-2 border-[#D4AF37] rounded-lg shadow-2xl">
+            <!-- Placeholder for Album Art -->
+            <div class="absolute inset-0 flex items-center justify-center">
+                 <svg width="150" height="150" viewBox="0 0 100 100">
+                     <circle cx="50" cy="50" r="45" stroke="#D4AF37" stroke-width="2" fill="none"/>
+                     <path d="M35 30 L75 50 L35 70 Z" fill="#D4AF37"/>
+                 </svg>
+            </div>
+            <div class="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                <button class="text-white text-6xl hover:scale-110 transition-transform"><i class="fas fa-play-circle"></i></button>
+            </div>
+        </div>
+        <div class="w-full md:w-1/2 space-y-6">
+            <span class="text-[#20B2AA] tracking-widest text-sm font-bold uppercase">Latest Release</span>
+            <h3 class="text-5xl font-bold font-serif text-white">THE CAPTAIN'S ORDERS</h3>
+            <p class="text-gray-400 leading-relaxed">
+                A symphonic blend of psychedelic rock and orchestral grandeur. Featuring the hit singles "Eye of the Storm" and "Uniformed Chaos".
+            </p>
+            <div class="space-y-3 pt-4">
+                <div class="flex items-center justify-between border-b border-gray-700 pb-2 hover:bg-white/5 px-2 transition-colors cursor-pointer">
+                    <span class="text-gray-300">01. Initiation</span>
+                    <span class="text-gray-500">3:42</span>
+                </div>
+                <div class="flex items-center justify-between border-b border-gray-700 pb-2 hover:bg-white/5 px-2 transition-colors cursor-pointer">
+                    <span class="text-[#D4AF37] font-bold">02. The Decree (Focus Track)</span>
+                    <span class="text-[#D4AF37]">4:15</span>
+                </div>
+                <div class="flex items-center justify-between border-b border-gray-700 pb-2 hover:bg-white/5 px-2 transition-colors cursor-pointer">
+                    <span class="text-gray-300">03. Dove's Flight</span>
+                    <span class="text-gray-500">2:58</span>
+                </div>
+            </div>
+            <div class="pt-6 flex gap-4">
+                <button class="bg-[#1DB954] text-black px-6 py-2 rounded-full font-bold hover:bg-[#1ed760] transition-colors flex items-center gap-2">
+                    <i class="fab fa-spotify"></i> Spotify
+                </button>
+                <button class="bg-black border border-white text-white px-6 py-2 rounded-full font-bold hover:bg-white hover:text-black transition-colors flex items-center gap-2">
+                    <i class="fab fa-apple"></i> Apple Music
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Older Releases Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <!-- Album 2 -->
+        <div class="glass-card p-4 rounded-lg group">
+            <div class="aspect-square bg-gray-900 mb-4 relative overflow-hidden rounded border border-gray-700">
+                <div class="absolute inset-0 flex items-center justify-center text-gray-700">
+                    <i class="fas fa-compact-disc text-6xl"></i>
+                </div>
+            </div>
+            <h4 class="text-xl font-bold text-white mb-1">Golden Era</h4>
+            <p class="text-sm text-gray-400">2023 • EP</p>
+        </div>
+        <!-- Album 3 -->
+        <div class="glass-card p-4 rounded-lg group">
+            <div class="aspect-square bg-gray-900 mb-4 relative overflow-hidden rounded border border-gray-700">
+                <div class="absolute inset-0 flex items-center justify-center text-gray-700">
+                    <i class="fas fa-compact-disc text-6xl"></i>
+                </div>
+            </div>
+            <h4 class="text-xl font-bold text-white mb-1">Prism Vision</h4>
+            <p class="text-sm text-gray-400">2022 • LP</p>
+        </div>
+        <!-- Album 4 -->
+        <div class="glass-card p-4 rounded-lg group">
+            <div class="aspect-square bg-gray-900 mb-4 relative overflow-hidden rounded border border-gray-700">
+                <div class="absolute inset-0 flex items-center justify-center text-gray-700">
+                    <i class="fas fa-compact-disc text-6xl"></i>
+                </div>
+            </div>
+            <h4 class="text-xl font-bold text-white mb-1">First Command</h4>
+            <p class="text-sm text-gray-400">2021 • Single</p>
+        </div>
+    </div>
+</section>
+
+<%- include('partials/footer') %>

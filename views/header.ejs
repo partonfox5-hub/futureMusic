@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Captain's Frequency</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Raleway:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --gold-primary: #D4AF37;
+            --gold-light: #F4C430;
+            --gold-dark: #AA8C2C;
+            --void-black: #050505;
+            --eye-teal: #20B2AA;
+        }
+
+        body {
+            font-family: 'Raleway', sans-serif;
+            background-color: var(--void-black);
+            color: #fff;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        h1, h2, h3, .brand-font {
+            font-family: 'Cinzel', serif;
+        }
+
+        /* The Psychedelic Background Animation */
+        .psych-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: -1;
+            background: 
+                radial-gradient(circle at 50% 50%, rgba(0,0,0,0.8), rgba(0,0,0,0.95)),
+                conic-gradient(from 0deg, #ff0000, #ff8a00, #ffe500, #008026, #004dff, #760188, #ff0000);
+            background-size: 200% 200%;
+            filter: blur(40px);
+            opacity: 0.4;
+            animation: spin-psychedelic 20s linear infinite;
+        }
+
+        @keyframes spin-psychedelic {
+            0% { transform: scale(1.5) rotate(0deg); }
+            50% { transform: scale(1.8) rotate(180deg); }
+            100% { transform: scale(1.5) rotate(360deg); }
+        }
+
+        /* Gold Metallic Effect Text */
+        .text-gold {
+            background: linear-gradient(to bottom, var(--gold-light), var(--gold-primary), var(--gold-dark));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .border-gold {
+            border-color: var(--gold-primary);
+            box-shadow: 0 0 15px rgba(212, 175, 55, 0.3);
+        }
+
+        .btn-gold {
+            background: linear-gradient(45deg, var(--gold-dark), var(--gold-primary));
+            color: black;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn-gold:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 20px var(--gold-primary);
+        }
+        
+        .btn-outline {
+            border: 1px solid var(--gold-primary);
+            color: var(--gold-primary);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-outline:hover {
+            background: rgba(212, 175, 55, 0.1);
+            color: #fff;
+        }
+
+        /* Nav & Scroll */
+        .nav-link:hover { color: var(--gold-primary); }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--void-black); }
+        ::-webkit-scrollbar-thumb { background: var(--gold-dark); border-radius: 4px; }
+
+        /* Card Hover Effects */
+        .glass-card {
+            background: rgba(10, 10, 10, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(212, 175, 55, 0.2);
+            transition: all 0.4s ease;
+        }
+        .glass-card:hover {
+            border-color: var(--gold-primary);
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        
+        /* Eye Animation */
+        .eye-iris { animation: lookAround 5s infinite; transform-origin: center; }
+        @keyframes lookAround {
+            0%, 100% { transform: translate(0,0); }
+            25% { transform: translate(2px, 0); }
+            50% { transform: translate(0, 2px); }
+            75% { transform: translate(-2px, -1px); }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Background -->
+    <div class="psych-bg"></div>
+
+    <!-- Navigation -->
+    <nav class="fixed w-full z-50 bg-black/90 border-b border-yellow-700/50 backdrop-blur-md">
+        <div class="container mx-auto px-6 py-4">
+            <div class="flex justify-between items-center">
+                <!-- Logo Area -->
+                <a href="/" class="flex items-center space-x-3 cursor-pointer no-underline">
+                    <svg width="40" height="40" viewBox="0 0 100 100" class="drop-shadow-lg">
+                        <circle cx="50" cy="50" r="48" fill="black" stroke="#D4AF37" stroke-width="4"/>
+                        <path d="M50 10 L85 85 L15 85 Z" fill="none" stroke="#D4AF37" stroke-width="3"/>
+                        <path d="M50 25 L75 80 L25 80 Z" fill="none" stroke="#D4AF37" stroke-width="1"/>
+                        <g transform="translate(50, 60)">
+                            <ellipse rx="15" ry="8" fill="none" stroke="#D4AF37" stroke-width="2"/>
+                            <circle cx="0" cy="0" r="4" fill="#20B2AA" class="eye-iris"/>
+                        </g>
+                    </svg>
+                    <span class="text-xl font-bold tracking-widest text-gold brand-font hidden sm:block">MYSTIC ONE</span>
+                </a>
+
+                <!-- Desktop Menu -->
+                <div class="hidden md:flex space-x-8">
+                    <a href="/" class="nav-link text-gray-300 font-semibold tracking-wider uppercase text-sm">Home</a>
+                    <a href="/music" class="nav-link text-gray-300 font-semibold tracking-wider uppercase text-sm">Music</a>
+                    <a href="/projects" class="nav-link text-gray-300 font-semibold tracking-wider uppercase text-sm">Projects</a>
+                    <a href="/about" class="nav-link text-gray-300 font-semibold tracking-wider uppercase text-sm">About</a>
+                    <a href="/contact" class="px-4 py-2 border border-[#D4AF37] text-[#D4AF37] hover:bg-[#D4AF37] hover:text-black transition-all text-sm uppercase font-bold rounded-sm">Contact</a>
+                </div>
+
+                <!-- Mobile Menu Button -->
+                <button class="md:hidden text-[#D4AF37]" onclick="document.getElementById('mobile-menu').classList.toggle('hidden')">
+                    <i class="fas fa-bars text-2xl"></i>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Mobile Menu Dropdown -->
+        <div id="mobile-menu" class="hidden md:hidden bg-black border-t border-yellow-700/30">
+            <div class="flex flex-col p-4 space-y-4 text-center">
+                <a href="/" class="text-gray-300 hover:text-[#D4AF37]">HOME</a>
+                <a href="/music" class="text-gray-300 hover:text-[#D4AF37]">MUSIC</a>
+                <a href="/projects" class="text-gray-300 hover:text-[#D4AF37]">PROJECTS</a>
+                <a href="/about" class="text-gray-300 hover:text-[#D4AF37]">ABOUT</a>
+                <a href="/contact" class="text-[#D4AF37]">CONTACT</a>
+            </div>
+        </div>
+    </nav>
+    
+    <main class="flex-grow pt-24 px-4 sm:px-6 relative z-10">
