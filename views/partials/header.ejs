@@ -3,171 +3,293 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Captain's Frequency</title>
+    <!-- ADDED: Favicon Link -->
+    <link rel="icon" type="image/svg+xml" href="/images/favicon.svg">
+    
+    <title><%= typeof title !== 'undefined' ? title : 'Shine More Online' %></title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Raleway:wght@300;400;600&display=swap" rel="stylesheet">
+    <!-- NEW FONTS: Montserrat (Headings) + Inter (Body) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
+    
     <style>
         :root {
-            --gold-primary: #D4AF37;
-            --gold-light: #F4C430;
-            --gold-dark: #AA8C2C;
-            --void-black: #050505;
-            --eye-teal: #20B2AA;
+            /* Brighter Royal Blue Palette */
+            --navy-base: #052c65; /* Vibrant Royal Blue */
+            --navy-light: #0b3d87; /* Lighter Royal Highlight */
+            
+            /* Brighter, more metallic gold */
+            --gold-accent: #FFD700; 
+            --gold-dark: #D4AF37;
+            --gold-glow: rgba(255, 215, 0, 0.25);
+            
+            --text-main: #e0e7ff;
+            --text-heading: #ffffff;
         }
 
         body {
-            font-family: 'Raleway', sans-serif;
-            background-color: var(--void-black);
-            color: #fff;
+            font-family: 'Inter', sans-serif;
+            background-color: var(--navy-base);
+            color: var(--text-main);
             overflow-x: hidden;
             display: flex;
             flex-direction: column;
             min-height: 100vh;
+            line-height: 1.6;
         }
 
-        h1, h2, h3, .brand-font {
-            font-family: 'Cinzel', serif;
+        h1, h2, h3, h4, h5, .heading-font {
+            font-family: 'Montserrat', sans-serif;
+            color: var(--text-heading);
+            font-weight: 700;
         }
 
-        /* The Psychedelic Background Animation */
-        .psych-bg {
+        /* Ambient Mesh Gradient Background (Adjusted for Royal Blue) */
+        .bg-mesh {
             position: fixed;
             top: 0;
             left: 0;
-            width: 100vw;
-            height: 100vh;
-            z-index: -1;
+            width: 100%;
+            height: 100%;
             background: 
-                radial-gradient(circle at 50% 50%, rgba(0,0,0,0.8), rgba(0,0,0,0.95)),
-                conic-gradient(from 0deg, #ff0000, #ff8a00, #ffe500, #008026, #004dff, #760188, #ff0000);
-            background-size: 200% 200%;
-            filter: blur(40px);
-            opacity: 0.4;
-            animation: spin-psychedelic 20s linear infinite;
+                radial-gradient(at 0% 0%, rgba(255, 215, 0, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(11, 61, 135, 0.5) 0px, transparent 50%);
+            z-index: -1;
+            pointer-events: none;
         }
 
-        @keyframes spin-psychedelic {
-            0% { transform: scale(1.5) rotate(0deg); }
-            50% { transform: scale(1.8) rotate(180deg); }
-            100% { transform: scale(1.5) rotate(360deg); }
+        /* --- LOGO STYLING --- */
+        .sun-spin {
+            animation: spin 60s linear infinite; /* Slower spin for majesty */
+            transform-origin: center;
+        }
+        @keyframes spin { 
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); } 
         }
 
-        /* Gold Metallic Effect Text */
-        .text-gold {
-            background: linear-gradient(to bottom, var(--gold-light), var(--gold-primary), var(--gold-dark));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            text-shadow: 0px 2px 4px rgba(0,0,0,0.5);
-        }
-
-        .border-gold {
-            border-color: var(--gold-primary);
-            box-shadow: 0 0 15px rgba(212, 175, 55, 0.3);
-        }
-
-        .btn-gold {
-            background: linear-gradient(45deg, var(--gold-dark), var(--gold-primary));
-            color: black;
-            font-weight: bold;
+        /* --- NEW NAV STYLING --- */
+        .nav-link {
+            position: relative;
+            padding: 0.5rem 0;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 0.85rem;
+            font-weight: 600;
+            letter-spacing: 0.05em;
             text-transform: uppercase;
-            letter-spacing: 2px;
+            color: var(--text-main);
+            transition: color 0.3s ease;
+        }
+
+        /* Stronger Hover Effect: Bottom Border Expansion + Glow */
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            bottom: 0;
+            left: 0;
+            background-color: var(--gold-accent);
+            transition: width 0.3s ease;
+            box-shadow: 0 0 10px var(--gold-accent);
+        }
+
+        .nav-link:hover {
+            color: var(--gold-accent);
+        }
+
+        .nav-link:hover::after {
+            width: 100%;
+        }
+
+        /* Keep the button you liked */
+        .btn-gold {
+            background: transparent;
+            color: var(--gold-accent);
+            border: 1px solid var(--gold-accent);
+            padding: 0.75rem 2rem;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
             transition: all 0.3s ease;
             position: relative;
             overflow: hidden;
-            border: none;
-            cursor: pointer;
+            z-index: 1;
+        }
+
+        .btn-gold::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 0%;
+            height: 100%;
+            background-color: var(--gold-accent);
+            transition: width 0.3s cubic-bezier(0.19, 1, 0.22, 1);
+            z-index: -1;
+        }
+
+        .btn-gold:hover::before {
+            width: 100%;
         }
 
         .btn-gold:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 0 20px var(--gold-primary);
+            color: var(--navy-base);
         }
-        
-        .btn-outline {
-            border: 1px solid var(--gold-primary);
-            color: var(--gold-primary);
+
+        /* Utility: Section Titles */
+        .section-title {
+            position: relative;
+            display: inline-block;
+            margin-bottom: 2rem;
+            font-size: 0.9rem;
+            color: var(--gold-accent);
             text-transform: uppercase;
-            letter-spacing: 2px;
-            transition: all 0.3s ease;
+            letter-spacing: 0.2em;
+            font-family: 'Montserrat', sans-serif;
         }
-        
-        .btn-outline:hover {
-            background: rgba(212, 175, 55, 0.1);
-            color: #fff;
+        .section-title::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            right: -60px;
+            width: 40px;
+            height: 1px;
+            background-color: var(--gold-accent);
+            opacity: 0.5;
         }
 
-        /* Nav & Scroll */
-        .nav-link:hover { color: var(--gold-primary); }
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: var(--void-black); }
-        ::-webkit-scrollbar-thumb { background: var(--gold-dark); border-radius: 4px; }
-
-        /* Card Hover Effects */
-        .glass-card {
-            background: rgba(10, 10, 10, 0.8);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(212, 175, 55, 0.2);
-            transition: all 0.4s ease;
+        /* Inputs */
+        input, textarea, select {
+            background: var(--navy-light) !important;
+            border: 1px solid #233554 !important;
+            color: var(--text-heading) !important;
+            font-family: 'Inter', sans-serif;
         }
-        .glass-card:hover {
-            border-color: var(--gold-primary);
-            transform: translateY(-5px);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-        }
-        
-        /* Eye Animation */
-        .eye-iris { animation: lookAround 5s infinite; transform-origin: center; }
-        @keyframes lookAround {
-            0%, 100% { transform: translate(0,0); }
-            25% { transform: translate(2px, 0); }
-            50% { transform: translate(0, 2px); }
-            75% { transform: translate(-2px, -1px); }
+        input:focus, textarea:focus {
+            border-color: var(--gold-accent) !important;
+            outline: none;
+            box-shadow: 0 0 0 2px var(--gold-glow);
         }
     </style>
 </head>
 <body>
+    <div class="bg-mesh"></div>
 
-    <!-- Background -->
-    <div class="psych-bg"></div>
+    <nav class="fixed w-full z-50 bg-[#052c65]/95 backdrop-blur-md border-b border-[#0b3d87]">
+        <div class="container mx-auto px-6 h-24 flex justify-between items-center">
+            <!-- New Logo: Majestic Severe Sun (Engraving Style) -->
+            <a href="/" class="flex items-center gap-4 group">
+                <svg width="68" height="68" viewBox="0 0 100 100" class="sun-spin filter drop-shadow-[0_0_8px_rgba(0,0,0,0.5)]">
+                    <defs>
+                        <!-- Richer, darker gold gradient for severity -->
+                        <linearGradient id="majesticGold" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style="stop-color:#FDB931;stop-opacity:1" /> <!-- Metallic Gold -->
+                            <stop offset="50%" style="stop-color:#D4AF37;stop-opacity:1" /> <!-- Standard Gold -->
+                            <stop offset="100%" style="stop-color:#996515;stop-opacity:1" /> <!-- Bronze/Dark -->
+                        </linearGradient>
+                    </defs>
 
-    <!-- Navigation -->
-    <nav class="fixed w-full z-50 bg-black/90 border-b border-yellow-700/50 backdrop-blur-md">
-        <div class="container mx-auto px-6 py-4">
-            <div class="flex justify-between items-center">
-<!-- Logo Area -->
-<a href="/" class="flex items-center space-x-3 cursor-pointer no-underline">
-    <!-- 1. Use img tag. 2. Remove '/public' from path. 3. Add height/width classes -->
-    <img src="/images/logo.png" alt="Logo" class="h-10 w-auto"> 
-    <span class="text-xl font-bold tracking-widest text-gold brand-font hidden sm:block">MYSTIC ONE</span>
-</a>
+                    <g transform="translate(50,50)">
+                        <!-- 1. The Rays -->
+                        <!-- Needles (Sharp, long, thin) -->
+                        <g fill="url(#majesticGold)" stroke="#785c18" stroke-width="0.3">
+                            <polygon points="0,-48 2,-25 0,-20 -2,-25" />
+                            <polygon points="0,-48 2,-25 0,-20 -2,-25" transform="rotate(22.5)" opacity="0.6" />
+                            <polygon points="0,-48 2,-25 0,-20 -2,-25" transform="rotate(45)" />
+                            <polygon points="0,-48 2,-25 0,-20 -2,-25" transform="rotate(67.5)" opacity="0.6"/>
+                            <polygon points="0,-48 2,-25 0,-20 -2,-25" transform="rotate(90)" />
+                            <polygon points="0,-48 2,-25 0,-20 -2,-25" transform="rotate(112.5)" opacity="0.6"/>
+                            <polygon points="0,-48 2,-25 0,-20 -2,-25" transform="rotate(135)" />
+                            <polygon points="0,-48 2,-25 0,-20 -2,-25" transform="rotate(157.5)" opacity="0.6"/>
+                            <polygon points="0,-48 2,-25 0,-20 -2,-25" transform="rotate(180)" />
+                            <polygon points="0,-48 2,-25 0,-20 -2,-25" transform="rotate(202.5)" opacity="0.6"/>
+                            <polygon points="0,-48 2,-25 0,-20 -2,-25" transform="rotate(225)" />
+                            <polygon points="0,-48 2,-25 0,-20 -2,-25" transform="rotate(247.5)" opacity="0.6"/>
+                            <polygon points="0,-48 2,-25 0,-20 -2,-25" transform="rotate(270)" />
+                            <polygon points="0,-48 2,-25 0,-20 -2,-25" transform="rotate(292.5)" opacity="0.6"/>
+                            <polygon points="0,-48 2,-25 0,-20 -2,-25" transform="rotate(315)" />
+                            <polygon points="0,-48 2,-25 0,-20 -2,-25" transform="rotate(337.5)" opacity="0.6"/>
+                        </g>
 
-                <!-- Desktop Menu -->
-                <div class="hidden md:flex space-x-8">
-                    <a href="/" class="nav-link text-gray-300 font-semibold tracking-wider uppercase text-sm">Home</a>
-                    <a href="/music" class="nav-link text-gray-300 font-semibold tracking-wider uppercase text-sm">Music</a>
-                    <a href="/projects" class="nav-link text-gray-300 font-semibold tracking-wider uppercase text-sm">Projects</a>
-                    <a href="/about" class="nav-link text-gray-300 font-semibold tracking-wider uppercase text-sm">About</a>
-                    <a href="/contact" class="px-4 py-2 border border-[#D4AF37] text-[#D4AF37] hover:bg-[#D4AF37] hover:text-black transition-all text-sm uppercase font-bold rounded-sm">Contact</a>
+                        <!-- Flames (Wavy, interspersed) -->
+                        <g fill="none" stroke="url(#majesticGold)" stroke-width="1.5">
+                            <path d="M0 -22 Q3 -30 0 -40" transform="rotate(11.25)" />
+                            <path d="M0 -22 Q-3 -30 0 -40" transform="rotate(33.75)" />
+                            <path d="M0 -22 Q3 -30 0 -40" transform="rotate(56.25)" />
+                            <path d="M0 -22 Q-3 -30 0 -40" transform="rotate(78.75)" />
+                            <path d="M0 -22 Q3 -30 0 -40" transform="rotate(101.25)" />
+                            <path d="M0 -22 Q-3 -30 0 -40" transform="rotate(123.75)" />
+                            <path d="M0 -22 Q3 -30 0 -40" transform="rotate(146.25)" />
+                            <path d="M0 -22 Q-3 -30 0 -40" transform="rotate(168.75)" />
+                            <path d="M0 -22 Q3 -30 0 -40" transform="rotate(191.25)" />
+                            <path d="M0 -22 Q-3 -30 0 -40" transform="rotate(213.75)" />
+                            <path d="M0 -22 Q3 -30 0 -40" transform="rotate(236.25)" />
+                            <path d="M0 -22 Q-3 -30 0 -40" transform="rotate(258.75)" />
+                            <path d="M0 -22 Q3 -30 0 -40" transform="rotate(281.25)" />
+                            <path d="M0 -22 Q-3 -30 0 -40" transform="rotate(303.75)" />
+                            <path d="M0 -22 Q3 -30 0 -40" transform="rotate(326.25)" />
+                            <path d="M0 -22 Q-3 -30 0 -40" transform="rotate(348.75)" />
+                        </g>
+
+                        <!-- The Face Disc -->
+                        <circle cx="0" cy="0" r="20" fill="url(#majesticGold)" stroke="#785c18" stroke-width="0.8"/>
+                        
+                        <!-- Somber Face Features -->
+                        <g fill="#785c18">
+                            <!-- Heavy Eyelids (Somber Look) -->
+                            <path d="M-9 -4 Q-5 -7 -1 -4 L-1 -3 Q-5 -6 -9 -3 Z" />
+                            <path d="M9 -4 Q5 -7 1 -4 L1 -3 Q5 -6 9 -3 Z" />
+                            
+                            <!-- Eyes (Sharp Almonds) -->
+                            <circle cx="-5" cy="-1.5" r="1.2" fill="#3d2e0c" />
+                            <circle cx="5" cy="-1.5" r="1.2" fill="#3d2e0c" />
+
+                            <!-- Nose (Straight, Long, Stern) -->
+                            <path d="M0 -4 L-1.5 8 L1.5 8 L0 -4 Z" opacity="0.3"/> 
+                            <path d="M0 -4 L0 8" fill="none" stroke="#785c18" stroke-width="0.5" />
+                            <path d="M-2.5 8 Q0 10 2.5 8" fill="none" stroke="#785c18" stroke-width="0.8" />
+
+                            <!-- Mouth (Straight line, slightly downturned corners, Majestic/Severe) -->
+                            <path d="M-5 14 Q0 13.5 5 14" fill="none" stroke="#785c18" stroke-width="1" stroke-linecap="round" />
+                            <!-- Lower Lip Shadow -->
+                            <path d="M-2 15 Q0 16 2 15" fill="none" stroke="#785c18" stroke-width="0.5" opacity="0.5"/>
+                            
+                            <!-- Cheeks (Hollowed/Contoured) -->
+                            <path d="M-12 5 Q-14 10 -10 15" fill="none" stroke="#785c18" stroke-width="0.3" opacity="0.4"/>
+                            <path d="M12 5 Q14 10 10 15" fill="none" stroke="#785c18" stroke-width="0.3" opacity="0.4"/>
+                        </g>
+                    </g>
+                </svg>
+                <div class="flex flex-col">
+                    <span class="text-xl font-extrabold text-white tracking-tight leading-none group-hover:text-[#FFD700] transition-colors font-serif">SHINE MORE</span>
+                    <span class="text-[0.6rem] uppercase tracking-[0.2em] text-[#a5b4fc]">Online</span>
                 </div>
+            </a>
 
-                <!-- Mobile Menu Button -->
-                <button class="md:hidden text-[#D4AF37]" onclick="document.getElementById('mobile-menu').classList.toggle('hidden')">
-                    <i class="fas fa-bars text-2xl"></i>
-                </button>
+            <!-- Desktop Nav -->
+            <div class="hidden md:flex items-center space-x-10">
+                <a href="/" class="nav-link">Overview</a>
+                <a href="/services" class="nav-link">Expertise</a>
+                <a href="/portfolio" class="nav-link">Case Studies</a>
+                <a href="/about" class="nav-link">Agency</a>
+                <a href="/contact" class="btn-gold text-xs py-3 px-8 ml-4">Start Project</a>
             </div>
+
+            <!-- Mobile Toggle -->
+            <button class="md:hidden text-[#FFD700] text-2xl" onclick="document.getElementById('mobile-menu').classList.toggle('hidden')">
+                <i class="fas fa-bars"></i>
+            </button>
         </div>
         
-        <!-- Mobile Menu Dropdown -->
-        <div id="mobile-menu" class="hidden md:hidden bg-black border-t border-yellow-700/30">
-            <div class="flex flex-col p-4 space-y-4 text-center">
-                <a href="/" class="text-gray-300 hover:text-[#D4AF37]">HOME</a>
-                <a href="/music" class="text-gray-300 hover:text-[#D4AF37]">MUSIC</a>
-                <a href="/projects" class="text-gray-300 hover:text-[#D4AF37]">PROJECTS</a>
-                <a href="/about" class="text-gray-300 hover:text-[#D4AF37]">ABOUT</a>
-                <a href="/contact" class="text-[#D4AF37]">CONTACT</a>
-            </div>
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="hidden md:hidden bg-[#052c65] border-t border-[#0b3d87] p-6 space-y-6 text-center">
+            <a href="/" class="block text-white font-bold hover:text-[#FFD700]">OVERVIEW</a>
+            <a href="/services" class="block text-white font-bold hover:text-[#FFD700]">EXPERTISE</a>
+            <a href="/portfolio" class="block text-white font-bold hover:text-[#FFD700]">CASE STUDIES</a>
+            <a href="/contact" class="block text-[#FFD700] font-bold">START PROJECT</a>
         </div>
     </nav>
-    
-    <main class="flex-grow pt-24 px-4 sm:px-6 relative z-10">
+
+    <main class="flex-grow pt-24">
