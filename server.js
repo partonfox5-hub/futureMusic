@@ -11,7 +11,30 @@ const songsData = require('./songs.json');
 // Serve static files from the public directory (images, css, etc.)
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Load song data
+const songsData = require('./merged_songs.json'); 
 
+// ... existing routes ...
+
+// NEW: Dynamic Song Detail Route
+app.get('/song/:id', (req, res) => {
+    const songId = req.params.id;
+    
+    // Find the song in the array
+    const song = songsData.find(s => {
+        // Check YouTube ID
+        if (s.youtube_info && s.youtube_info.video_id === songId) return true;
+        // Check Spotify ID
+        if (s.spotify_id === songId) return true;
+        return false;
+    });
+
+    if (song) {
+        res.render('song', { song: song });
+    } else {
+        res.status(404).send('Song not found');
+    }
+});
 // Routes
 app.get('/', (req, res) => {
     res.render('index', { title: 'Home' });
