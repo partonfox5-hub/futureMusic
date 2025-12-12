@@ -1,0 +1,118 @@
+<%- include('partials/header') %>
+
+<% 
+    // Helper to determine the best ID and Image to use
+    const hasVideo = song.youtube_info && song.youtube_info.video_id;
+    const songId = hasVideo ? song.youtube_info.video_id : song.spotify_id;
+    const thumbnail = hasVideo 
+        ? `https://img.youtube.com/vi/${song.youtube_info.video_id}/maxresdefault.jpg` 
+        : '/images/default-album-art.jpg'; // Fallback image path
+%>
+
+<section class="min-h-screen bg-black text-white pt-32 pb-20 px-4 relative overflow-hidden">
+    
+    <!-- Background Blur Effect -->
+    <div class="absolute inset-0 z-0 opacity-20 pointer-events-none">
+        <div class="absolute inset-0 bg-cover bg-center blur-[100px] scale-110" style="background-image: url('<%= thumbnail %>');"></div>
+    </div>
+
+    <div class="max-w-6xl mx-auto relative z-10 grid grid-cols-1 lg:grid-cols-3 gap-12">
+        
+        <!-- Left Column: Visual Media -->
+        <div class="lg:col-span-2 space-y-8">
+            <div class="w-full aspect-video bg-black rounded-xl overflow-hidden shadow-[0_0_50px_rgba(212,175,55,0.2)] border border-[#D4AF37]/30 group">
+                <% if (hasVideo) { %>
+                    <!-- YouTube Embed -->
+                    <iframe 
+                        width="100%" 
+                        height="100%" 
+                        src="https://www.youtube.com/embed/<%= song.youtube_info.video_id %>?autoplay=0&rel=0" 
+                        title="<%= song.name %>" 
+                        frameborder="0" 
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                        allowfullscreen
+                        class="w-full h-full"
+                    ></iframe>
+                <% } else { %>
+                    <!-- Fallback if no video -->
+                    <div class="w-full h-full flex flex-col items-center justify-center bg-gray-900 text-[#D4AF37]">
+                        <i class="fas fa-compact-disc text-8xl animate-spin-slow" style="animation-duration: 10s;"></i>
+                        <p class="mt-4 text-gray-500 uppercase tracking-widest">Audio Only</p>
+                    </div>
+                <% } %>
+            </div>
+
+            <!-- Mobile: Title appears below video on small screens, sidebar on large -->
+            <div class="lg:hidden">
+                <h1 class="text-3xl md:text-4xl font-black text-white brand-font mb-2"><%= song.name %></h1>
+                <p class="text-[#D4AF37] text-lg uppercase tracking-wider font-bold mb-6"><%= song.album || 'Single Release' %></p>
+            </div>
+
+            <!-- Description / Lyrics Area -->
+            <div class="glass-card p-8 rounded-xl border-t border-[#D4AF37]/30">
+                <h3 class="text-xl text-[#D4AF37] mb-4 border-b border-gray-700 pb-2 uppercase tracking-widest flex items-center gap-2">
+                    <i class="fas fa-align-left"></i> Transmission Data
+                </h3>
+                <div class="prose prose-invert max-w-none text-gray-300 leading-relaxed whitespace-pre-wrap">
+                    <%= (song.youtube_info && song.youtube_info.description) ? song.youtube_info.description : "No transmission data available for this frequency." %>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Details & Actions -->
+        <div class="lg:col-span-1 space-y-8">
+            
+            <!-- Metadata Card -->
+            <div class="sticky top-32">
+                <div class="glass-card p-6 rounded-xl border border-white/10 shadow-2xl">
+                    <div class="hidden lg:block mb-8">
+                        <h1 class="text-4xl font-black text-white brand-font mb-2 leading-tight"><%= song.name %></h1>
+                        <p class="text-[#D4AF37] text-lg uppercase tracking-wider font-bold"><%= song.album || 'Single Release' %></p>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="space-y-4">
+                        <% if (song.spotify_link) { %>
+                            <a href="<%= song.spotify_link %>" target="_blank" class="block w-full bg-[#1DB954] text-black font-bold py-4 rounded-lg hover:bg-[#1ed760] hover:scale-[1.02] transition-all duration-300 flex items-center justify-center gap-3 shadow-lg">
+                                <i class="fab fa-spotify text-xl"></i> Listen on Spotify
+                            </a>
+                        <% } %>
+                        
+                        <% if (song.youtube_info) { %>
+                            <a href="<%= song.youtube_info.video_url %>" target="_blank" class="block w-full bg-[#FF0000] text-white font-bold py-4 rounded-lg hover:bg-[#ff3333] hover:scale-[1.02] transition-all duration-300 flex items-center justify-center gap-3 shadow-lg">
+                                <i class="fab fa-youtube text-xl"></i> Watch on YouTube
+                            </a>
+                        <% } %>
+
+                        <div class="h-px bg-gray-700 my-6"></div>
+
+                        <button class="w-full bg-white text-black font-bold py-4 rounded-lg hover:bg-[#D4AF37] transition-colors duration-300 flex items-center justify-center gap-2 shadow-lg add-to-cart-btn group" data-song-id="<%= songId %>">
+                            <i class="fas fa-cart-plus group-hover:animate-bounce"></i> Add to Downloads
+                        </button>
+                    </div>
+
+                    <!-- Additional Info -->
+                    <div class="mt-8 pt-6 border-t border-gray-700/50 text-sm text-gray-500 space-y-2">
+                        <div class="flex justify-between">
+                            <span>Format</span>
+                            <span class="text-gray-300">Digital / Stream</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Released</span>
+                            <!-- Uses published_at if available, otherwise just Year -->
+                            <span class="text-gray-300"><%= (song.youtube_info && song.youtube_info.published_at) ? new Date(song.youtube_info.published_at).toLocaleDateString() : '2025' %></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-8 text-center">
+                    <a href="/music" class="text-gray-400 hover:text-[#D4AF37] transition-colors text-sm uppercase tracking-widest flex items-center justify-center gap-2">
+                        <i class="fas fa-arrow-left"></i> Return to Discography
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<%- include('partials/footer') %>

@@ -7,10 +7,10 @@
     <div class="relative w-full max-w-7xl h-[60vh] md:h-[70vh]">
         
         <!-- 1. The Final Scene (TOP/APEX) -->
-        <a href="/music?song=Cem7RZsb7Rw" class="absolute left-1/2 -translate-x-1/2 top-0 w-[80%] max-w-md featured-card z-30 group" style="transition: transform 0.5s;">
+        <!-- Link points to specific song ID -->
+        <a href="/song/Cem7RZsb7Rw" class="absolute left-1/2 -translate-x-1/2 top-0 w-[80%] max-w-md featured-card z-30 group" style="transition: transform 0.5s;">
             <div class="glass-card p-4 rounded-xl border-4 border-[#F4C430] hover:border-[#D4AF37] transition-all duration-300 shadow-2xl">
                 <div class="relative aspect-square">
-                    <!-- YouTube Thumbnail for The Final Scene (Cem7RZsb7Rw) -->
                     <img 
                         src="https://img.youtube.com/vi/Cem7RZsb7Rw/hqdefault.jpg" 
                         alt="The Final Scene thumbnail" 
@@ -28,10 +28,9 @@
         </a>
 
         <!-- 2. Mission Assignment (BOTTOM LEFT) -->
-        <a href="/music?song=CTNTYm3llds" class="absolute left-[10%] bottom-0 w-[40%] max-w-[300px] featured-card z-20 group" style="transition: transform 0.5s;">
+        <a href="/song/CTNTYm3llds" class="absolute left-[10%] bottom-0 w-[40%] max-w-[300px] featured-card z-20 group" style="transition: transform 0.5s;">
             <div class="glass-card p-3 rounded-xl border-2 border-white/20 hover:border-[#D4AF37] transition-all duration-300 shadow-xl">
                 <div class="relative aspect-square">
-                    <!-- YouTube Thumbnail for Mission Assignment (CTNTYm3llds) -->
                     <img 
                         src="https://img.youtube.com/vi/CTNTYm3llds/hqdefault.jpg" 
                         alt="Mission Assignment thumbnail" 
@@ -48,10 +47,9 @@
         </a>
 
         <!-- 3. Hide and Lie (BOTTOM RIGHT) -->
-        <a href="/music?song=bXgeFfDlmwU" class="absolute right-[10%] bottom-0 w-[40%] max-w-[300px] featured-card z-20 group" style="transition: transform 0.5s;">
+        <a href="/song/bXgeFfDlmwU" class="absolute right-[10%] bottom-0 w-[40%] max-w-[300px] featured-card z-20 group" style="transition: transform 0.5s;">
             <div class="glass-card p-3 rounded-xl border-2 border-white/20 hover:border-[#D4AF37] transition-all duration-300 shadow-xl">
                 <div class="relative aspect-square">
-                    <!-- YouTube Thumbnail for Hide and Lie (bXgeFfDlmwU) -->
                     <img 
                         src="https://img.youtube.com/vi/bXgeFfDlmwU/hqdefault.jpg" 
                         alt="Hide and Lie thumbnail" 
@@ -67,21 +65,17 @@
             </div>
         </a>
 
-        <!-- Visual Pyramid Effect (Faint line to connect the points) -->
+        <!-- Visual Pyramid Effect Lines -->
         <div class="hidden md:block absolute inset-0 pointer-events-none z-10">
              <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" class="opacity-10">
-                 <!-- Line from Top to Bottom Left -->
                  <line x1="50" y1="5" x2="20" y2="95" stroke="#D4AF37" stroke-width="1" stroke-dasharray="5, 5" />
-                 <!-- Line from Top to Bottom Right -->
                  <line x1="50" y1="5" x2="80" y2="95" stroke="#D4AF37" stroke-width="1" stroke-dasharray="5, 5" />
-                 <!-- Line connecting Bottom Left and Right -->
                  <line x1="20" y1="95" x2="80" y2="95" stroke="#D4AF37" stroke-width="1" stroke-dasharray="5, 5" />
              </svg>
         </div>
 
     </div>
 </section>
-<!-- END NEW FEATURED RELEASES -->
 
 <section class="max-w-7xl mx-auto py-12">
     <!-- Divider -->
@@ -93,11 +87,14 @@
 
     <!-- Dynamic Song Grid -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        <% songs.forEach(function(song) { %>
+        <% songs.forEach(function(song) { 
+            // Logic to get the ID for the link
+            const songId = (song.youtube_info && song.youtube_info.video_id) ? song.youtube_info.video_id : song.spotify_id;
+        %>
             <div class="glass-card flex flex-col h-full rounded-xl overflow-hidden group hover:border-[#D4AF37]/50 transition-colors duration-300 border border-white/10">
                 
-                <!-- Card Image Area -->
-                <div class="relative w-full aspect-video bg-gray-900 overflow-hidden">
+                <!-- Card Image Area (Clickable Link) -->
+                <a href="/song/<%= songId %>" class="relative w-full aspect-video bg-gray-900 overflow-hidden block">
                     <% if (song.youtube_info && song.youtube_info.video_id) { %>
                         <!-- YouTube Thumbnail -->
                         <img 
@@ -106,20 +103,23 @@
                             class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         >
                         <!-- Play Overlay -->
-                        <a href="<%= song.youtube_info.video_url %>" target="_blank" class="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                            <i class="fab fa-youtube text-red-600 text-5xl drop-shadow-lg"></i>
-                        </a>
+                        <div class="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                            <i class="fas fa-expand text-white text-5xl drop-shadow-lg"></i>
+                        </div>
                     <% } else { %>
                         <!-- Fallback SVG for songs without YouTube video -->
                         <div class="w-full h-full flex items-center justify-center bg-gradient-to-b from-gray-800 to-gray-900">
                             <i class="fas fa-music text-gray-700 text-6xl group-hover:text-[#D4AF37] transition-colors duration-300"></i>
                         </div>
                     <% } %>
-                </div>
+                </a>
 
                 <!-- Card Content -->
                 <div class="p-6 flex flex-col flex-grow">
-                    <h4 class="text-xl font-bold text-white mb-2 line-clamp-2 min-h-[3.5rem]"><%= song.name %></h4>
+                    <!-- Title Link -->
+                    <a href="/song/<%= songId %>" class="hover:text-[#D4AF37] transition-colors">
+                        <h4 class="text-xl font-bold text-white mb-2 line-clamp-2 min-h-[3.5rem]"><%= song.name %></h4>
+                    </a>
                     
                     <% if (song.album) { %>
                         <p class="text-sm text-[#D4AF37] mb-4 font-medium tracking-wider uppercase"><%= song.album %></p>
@@ -133,27 +133,18 @@
                             <%= song.youtube_info.description %>
                         </p>
                     <% } else { %>
-                        <div class="flex-grow"></div> <!-- Spacer if no description -->
+                        <div class="flex-grow"></div>
                     <% } %>
 
                     <!-- Action Area -->
                     <div class="mt-auto space-y-4">
-                        <!-- Links Row -->
-                        <div class="flex gap-3 justify-center">
-                            <% if (song.spotify_link) { %>
-                                <a href="<%= song.spotify_link %>" target="_blank" class="flex-1 bg-[#1DB954]/10 border border-[#1DB954]/50 text-[#1DB954] hover:bg-[#1DB954] hover:text-white py-2 rounded-lg text-center transition-all duration-300 flex items-center justify-center gap-2">
-                                    <i class="fab fa-spotify"></i> <span class="text-sm font-bold">Spotify</span>
-                                </a>
-                            <% } %>
-                            <% if (song.youtube_info) { %>
-                                <a href="<%= song.youtube_info.video_url %>" target="_blank" class="flex-1 bg-[#FF0000]/10 border border-[#FF0000]/50 text-[#FF0000] hover:bg-[#FF0000] hover:text-white py-2 rounded-lg text-center transition-all duration-300 flex items-center justify-center gap-2">
-                                    <i class="fab fa-youtube"></i> <span class="text-sm font-bold">Watch</span>
-                                </a>
-                            <% } %>
-                        </div>
+                        <!-- New View Details Button (Primary Action) -->
+                        <a href="/song/<%= songId %>" class="block w-full text-center border border-[#D4AF37] text-[#D4AF37] hover:bg-[#D4AF37] hover:text-black font-bold py-2 rounded-lg transition-all duration-300 uppercase tracking-wider text-sm">
+                            View Transmission
+                        </a>
 
                         <!-- Add to Downloads Button -->
-                        <button class="w-full bg-white text-black font-bold py-3 rounded-lg hover:bg-[#D4AF37] transition-colors duration-300 flex items-center justify-center gap-2 shadow-lg add-to-cart-btn" data-song-id="<%= song.spotify_id || song.youtube_info?.video_id %>">
+                        <button class="w-full bg-white text-black font-bold py-3 rounded-lg hover:bg-[#D4AF37] transition-colors duration-300 flex items-center justify-center gap-2 shadow-lg add-to-cart-btn" data-song-id="<%= songId %>">
                             <i class="fas fa-cart-plus"></i> Add to Downloads
                         </button>
                     </div>
