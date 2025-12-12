@@ -1,81 +1,89 @@
 <%- include('partials/header') %>
 
-<section class="max-w-7xl mx-auto py-12">
-    <h2 class="text-4xl md:text-6xl text-center mb-16 text-gold">DISCOGRAPHY</h2>
-    
-    <!-- NEW: Featured Releases Triangle Layout (Replaces old Featured Album) -->
-    <div class="relative w-full min-h-[80vh] flex flex-col items-center justify-center mb-20 p-4">
-        <h3 class="text-5xl font-extrabold text-white mb-12 text-center tracking-wider">LATEST PROPAGANDA</h3>
+<!-- NEW: Full-Screen Featured Releases Pyramid Layout -->
+<section class="min-h-screen w-full flex flex-col items-center justify-center bg-black py-12 px-4 relative overflow-hidden">
+    <h2 class="text-4xl md:text-6xl text-center mb-16 text-gold brand-font z-20">LATEST TRANSMISSION</h2>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 w-full max-w-6xl">
-
-            <!-- Featured Song 1 (Top / Center) - The Final Scene -->
-            <div class="lg:col-span-3 flex justify-center order-1 mb-8">
-                <a href="/music?song=Cem7RZsb7Rw" class="featured-card w-full max-w-lg relative group overflow-hidden glass-card p-4 rounded-xl border-2 border-[#D4AF37]/80 hover:border-[#D4AF37] transition-all duration-300 shadow-2xl">
-                    <div class="relative aspect-video">
-                        <img 
-                            src="https://img.youtube.com/vi/Cem7RZsb7Rw/hqdefault.jpg" 
-                            alt="The Final Scene thumbnail" 
-                            class="w-full h-full object-cover rounded-lg"
-                        >
-                        <div class="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                            <i class="fas fa-play text-white text-5xl"></i>
-                        </div>
+    <div class="relative w-full max-w-7xl h-[60vh] md:h-[70vh]">
+        
+        <!-- 1. The Final Scene (TOP/APEX) -->
+        <a href="/music?song=Cem7RZsb7Rw" class="absolute left-1/2 -translate-x-1/2 top-0 w-[80%] max-w-md featured-card z-30 group" style="transition: transform 0.5s;">
+            <div class="glass-card p-4 rounded-xl border-4 border-[#F4C430] hover:border-[#D4AF37] transition-all duration-300 shadow-2xl">
+                <div class="relative aspect-square">
+                    <!-- YouTube Thumbnail for The Final Scene (Cem7RZsb7Rw) -->
+                    <img 
+                        src="https://img.youtube.com/vi/Cem7RZsb7Rw/hqdefault.jpg" 
+                        alt="The Final Scene thumbnail" 
+                        class="w-full h-full object-cover rounded-lg group-hover:scale-[1.02] transition-transform duration-500"
+                    >
+                    <div class="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        <i class="fas fa-play text-white text-6xl drop-shadow-lg"></i>
                     </div>
-                    <div class="mt-4 text-center">
-                        <p class="text-xl font-bold text-white">THE FINAL SCENE</p>
-                        <p class="text-sm text-[#D4AF37] uppercase tracking-wider">Latest Release</p>
-                    </div>
-                </a>
+                </div>
+                <div class="mt-4 text-center">
+                    <p class="text-2xl font-black text-white brand-font">THE FINAL SCENE</p>
+                    <p class="text-sm text-[#D4AF37] uppercase tracking-widest">APEX</p>
+                </div>
             </div>
+        </a>
 
-            <!-- Featured Song 2 (Bottom Left) - Mission Assignment -->
-            <div class="order-2 lg:col-span-1">
-                <a href="/music?song=CTNTYm3llds" class="featured-card w-full relative group overflow-hidden glass-card p-4 rounded-xl border border-white/20 hover:border-[#D4AF37] transition-all duration-300">
-                    <div class="relative aspect-video">
-                        <img 
-                            src="https://img.youtube.com/vi/CTNTYm3llds/hqdefault.jpg" 
-                            alt="Mission Assignment thumbnail" 
-                            class="w-full h-full object-cover rounded-lg"
-                        >
-                        <div class="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                            <i class="fas fa-play text-white text-3xl"></i>
-                        </div>
+        <!-- 2. Mission Assignment (BOTTOM LEFT) -->
+        <a href="/music?song=CTNTYm3llds" class="absolute left-[10%] bottom-0 w-[40%] max-w-[300px] featured-card z-20 group" style="transition: transform 0.5s;">
+            <div class="glass-card p-3 rounded-xl border-2 border-white/20 hover:border-[#D4AF37] transition-all duration-300 shadow-xl">
+                <div class="relative aspect-square">
+                    <!-- YouTube Thumbnail for Mission Assignment (CTNTYm3llds) -->
+                    <img 
+                        src="https://img.youtube.com/vi/CTNTYm3llds/hqdefault.jpg" 
+                        alt="Mission Assignment thumbnail" 
+                        class="w-full h-full object-cover rounded-lg group-hover:scale-[1.05] transition-transform duration-500"
+                    >
+                    <div class="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        <i class="fas fa-play text-white text-4xl"></i>
                     </div>
-                    <div class="mt-3 text-center">
-                        <p class="text-lg font-bold text-white">MISSION ASSIGNMENT</p>
-                    </div>
-                </a>
+                </div>
+                <div class="mt-3 text-center">
+                    <p class="text-xl font-bold text-white">MISSION ASSIGNMENT</p>
+                </div>
             </div>
+        </a>
 
-            <!-- Empty Space (for the visual triangle gap) -->
-            <div class="hidden lg:block order-3 lg:col-span-1">
-                <!-- Empty for centering the triangle -->
-            </div>
-
-
-            <!-- Featured Song 3 (Bottom Right) - Hide and Lie -->
-            <div class="order-4 lg:col-span-1">
-                <a href="/music?song=bXgeFfDlmwU" class="featured-card w-full relative group overflow-hidden glass-card p-4 rounded-xl border border-white/20 hover:border-[#D4AF37] transition-all duration-300">
-                    <div class="relative aspect-video">
-                        <img 
-                            src="https://img.youtube.com/vi/bXgeFfDlmwU/hqdefault.jpg" 
-                            alt="Hide and Lie thumbnail" 
-                            class="w-full h-full object-cover rounded-lg"
-                        >
-                        <div class="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                            <i class="fas fa-play text-white text-3xl"></i>
-                        </div>
+        <!-- 3. Hide and Lie (BOTTOM RIGHT) -->
+        <a href="/music?song=bXgeFfDlmwU" class="absolute right-[10%] bottom-0 w-[40%] max-w-[300px] featured-card z-20 group" style="transition: transform 0.5s;">
+            <div class="glass-card p-3 rounded-xl border-2 border-white/20 hover:border-[#D4AF37] transition-all duration-300 shadow-xl">
+                <div class="relative aspect-square">
+                    <!-- YouTube Thumbnail for Hide and Lie (bXgeFfDlmwU) -->
+                    <img 
+                        src="https://img.youtube.com/vi/bXgeFfDlmwU/hqdefault.jpg" 
+                        alt="Hide and Lie thumbnail" 
+                        class="w-full h-full object-cover rounded-lg group-hover:scale-[1.05] transition-transform duration-500"
+                    >
+                    <div class="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        <i class="fas fa-play text-white text-4xl"></i>
                     </div>
-                    <div class="mt-3 text-center">
-                        <p class="text-lg font-bold text-white">HIDE AND LIE</p>
-                    </div>
-                </a>
+                </div>
+                <div class="mt-3 text-center">
+                    <p class="text-xl font-bold text-white">HIDE AND LIE</p>
+                </div>
             </div>
+        </a>
+
+        <!-- Visual Pyramid Effect (Faint line to connect the points) -->
+        <div class="hidden md:block absolute inset-0 pointer-events-none z-10">
+             <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" class="opacity-10">
+                 <!-- Line from Top to Bottom Left -->
+                 <line x1="50" y1="5" x2="20" y2="95" stroke="#D4AF37" stroke-width="1" stroke-dasharray="5, 5" />
+                 <!-- Line from Top to Bottom Right -->
+                 <line x1="50" y1="5" x2="80" y2="95" stroke="#D4AF37" stroke-width="1" stroke-dasharray="5, 5" />
+                 <!-- Line connecting Bottom Left and Right -->
+                 <line x1="20" y1="95" x2="80" y2="95" stroke="#D4AF37" stroke-width="1" stroke-dasharray="5, 5" />
+             </svg>
         </div>
-    </div>
-    <!-- END NEW FEATURED RELEASES -->
 
+    </div>
+</section>
+<!-- END NEW FEATURED RELEASES -->
+
+<section class="max-w-7xl mx-auto py-12">
     <!-- Divider -->
     <div class="flex items-center justify-center mb-16">
         <div class="h-px bg-gradient-to-r from-transparent via-[#D4AF37] to-transparent w-full max-w-2xl"></div>

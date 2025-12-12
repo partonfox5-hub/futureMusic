@@ -4,11 +4,18 @@
 <section class="min-h-[85vh] flex flex-col items-center justify-center text-center">
     <div class="max-w-4xl mx-auto">
         <div class="mb-8 relative inline-block">
-            <!-- Somber Ancient Sun: Darker gold, slow pulse instead of bounce -->
-            <div class="absolute -top-12 -right-12 text-[#B8860B] animate-pulse" style="animation-duration: 6s;">
-                <i class="fas fa-sun text-5xl drop-shadow-[0_0_15px_rgba(184,134,11,0.4)]"></i>
+            <!-- NEW: Somber Sun (Centered, Overlapping Text) -->
+            <div class="absolute inset-x-0 -top-12 flex justify-center text-[#B8860B] animate-pulse" style="animation-duration: 6s; z-index: -1;">
+                <!-- Using fa-sun which is a round sun, applying custom style to position it better -->
+                <i class="fas fa-sun text-[10rem] drop-shadow-[0_0_20px_rgba(184,134,11,0.6)]" style="
+                    /* Slightly adjust position to overlap the title */
+                    transform: translateY(20px);
+                    /* Use a solid, pointier sun icon (fas fa-sun is the best default fit) */
+                    font-size: 8rem; 
+                "></i>
             </div>
-            <h1 class="text-6xl md:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-b from-[#F4C430] to-[#AA8C2C] drop-shadow-2xl mb-4">
+            
+            <h1 class="text-6xl md:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-b from-[#F4C430] to-[#AA8C2C] drop-shadow-2xl mb-4 relative z-10">
                 THINK FREELY
             </h1>
             <h2 class="text-2xl md:text-4xl text-white font-light tracking-[0.5em] mb-8">AS ONE AND THE SAME</h2>

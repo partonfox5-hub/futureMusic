@@ -103,6 +103,9 @@
 
         /* Nav & Scroll */
         .nav-link:hover { color: var(--gold-primary); }
+        /* ADDED: Ensure nav links have consistent vertical spacing (padding) to match the button */
+        .nav-link { padding: 8px 0; } 
+        
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: var(--void-black); }
         ::-webkit-scrollbar-thumb { background: var(--gold-dark); border-radius: 4px; }
@@ -146,11 +149,13 @@
                 </a>
 
                 <!-- Desktop Menu -->
-                <div class="hidden md:flex space-x-8">
+                <!-- ADDED items-center to ensure vertical alignment of links and button -->
+                <div class="hidden md:flex space-x-8 items-center">
                     <a href="/" class="nav-link text-gray-300 font-semibold tracking-wider uppercase text-sm">Home</a>
                     <a href="/music" class="nav-link text-gray-300 font-semibold tracking-wider uppercase text-sm">Music</a>
                     <a href="/projects" class="nav-link text-gray-300 font-semibold tracking-wider uppercase text-sm">Projects</a>
                     <a href="/about" class="nav-link text-gray-300 font-semibold tracking-wider uppercase text-sm">About</a>
+                    <!-- Button needs no change, its explicit padding handles its height -->
                     <a href="/contact" class="px-4 py-2 border border-[#D4AF37] text-[#D4AF37] hover:bg-[#D4AF37] hover:text-black transition-all text-sm uppercase font-bold rounded-sm">Contact</a>
                 </div>
 
