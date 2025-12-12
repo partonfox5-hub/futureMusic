@@ -135,10 +135,12 @@
     <nav class="fixed w-full z-50 bg-black/90 border-b border-yellow-700/50 backdrop-blur-md">
         <div class="container mx-auto px-6 py-4">
             <div class="flex justify-between items-center">
-                <!-- Logo Area -->
-                <a href="/public/images/logo.png" class="flex items-center space-x-3 cursor-pointer no-underline">
-                    <span class="text-xl font-bold tracking-widest text-gold brand-font hidden sm:block">MYSTIC ONE</span>
-                </a>
+<!-- Logo Area -->
+<a href="/" class="flex items-center space-x-3 cursor-pointer no-underline">
+    <!-- 1. Use img tag. 2. Remove '/public' from path. 3. Add height/width classes -->
+    <img src="/images/logo.png" alt="Logo" class="h-10 w-auto"> 
+    <span class="text-xl font-bold tracking-widest text-gold brand-font hidden sm:block">MYSTIC ONE</span>
+</a>
 
                 <!-- Desktop Menu -->
                 <div class="hidden md:flex space-x-8">
