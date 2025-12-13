@@ -106,8 +106,19 @@
                         <div class="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                             <i class="fas fa-expand text-white text-5xl drop-shadow-lg"></i>
                         </div>
+                    <% } else if (song.spotify_image) { %>
+                        <!-- Spotify Album Art -->
+                        <img 
+                            src="<%= song.spotify_image %>" 
+                            alt="<%= song.name %> album art" 
+                            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        >
+                        <!-- Note Overlay -->
+                        <div class="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                            <i class="fas fa-music text-white text-5xl drop-shadow-lg"></i>
+                        </div>
                     <% } else { %>
-                        <!-- Fallback SVG for songs without YouTube video -->
+                        <!-- Fallback SVG for songs without any image -->
                         <div class="w-full h-full flex items-center justify-center bg-gradient-to-b from-gray-800 to-gray-900">
                             <i class="fas fa-music text-gray-700 text-6xl group-hover:text-[#D4AF37] transition-colors duration-300"></i>
                         </div>
