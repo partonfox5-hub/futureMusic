@@ -12,10 +12,10 @@ app.use(express.static(path.join(__dirname, 'public')));
 // SAFELY Load song data to prevent crash on deploy if file is missing
 let songsData = [];
 try {
-    // Try to load the merged songs data
-    songsData = require('./merged_songs.json');
+    // UPDATED: Now loading 'songs.json' as requested
+    songsData = require('./songs.json');
 } catch (error) {
-    console.error('CRITICAL: merged_songs.json not found! The app will start but music data is empty.');
+    console.error('CRITICAL: songs.json not found! The app will start but music data is empty.');
     // Keep songsData as empty array [] so the app doesn't crash
 }
 
@@ -30,7 +30,7 @@ app.get('/song/:id', (req, res) => {
     
     // Find the song in the array
     const song = songsData.find(s => {
-        // Check YouTube ID
+        // Check YouTube ID (if available)
         if (s.youtube_info && s.youtube_info.video_id === songId) return true;
         // Check Spotify ID
         if (s.spotify_id === songId) return true;
@@ -46,8 +46,14 @@ app.get('/song/:id', (req, res) => {
 
 // Music Page Route
 app.get('/music', (req, res) => {
+    // Check if a specific song is requested via query param (e.g. /music?song=XYZ)
+    // and redirect to the new dedicated page
+    if (req.query.song) {
+        return res.redirect(`/song/${req.query.song}`);
+    }
+
     res.render('music', { 
-        songs: songsData // <--- This 'songs' key must match the EJS variable
+        songs: songsData // Pass the loaded data to the view
     });
 });
 
