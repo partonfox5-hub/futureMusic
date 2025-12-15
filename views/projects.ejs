@@ -1,69 +1,123 @@
 <%- include('partials/header') %>
 
-<section class="max-w-7xl mx-auto py-12">
-    <h2 class="text-4xl md:text-6xl text-center mb-16 text-gold">VISUAL ARCHIVE</h2>
+<section class="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+    <h2 class="text-4xl md:text-6xl text-center mb-16 text-gold">PROJECT ARCHIVE</h2>
     
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-12">
-        <!-- Project 1 -->
-        <div class="glass-card rounded-xl overflow-hidden">
-            <div class="h-64 bg-gray-800 relative">
-                <!-- Placeholder -->
-                <div class="absolute inset-0 flex items-center justify-center text-gray-600 bg-black">
-                    <i class="fas fa-video text-4xl"></i>
+    <div class="flex flex-col gap-16">
+
+        <div class="glass-card rounded-xl overflow-hidden shadow-2xl border border-gray-700">
+            <div class="flex flex-col lg:flex-row">
+                <div class="w-full lg:w-2/3 h-[500px] bg-gray-900 relative">
+                    <iframe 
+                        src="https://mobile-game-853337900822.us-central1.run.app/" 
+                        class="absolute inset-0 w-full h-full"
+                        title="Color Contagion Game"
+                        frameborder="0"
+                        allowfullscreen>
+                    </iframe>
                 </div>
-            </div>
-            <div class="p-8">
-                <h3 class="text-2xl font-bold text-[#D4AF37] mb-2 font-serif">THE SWIRL EFFECT</h3>
-                <p class="text-gray-400 mb-4 text-sm">MUSIC VIDEO / ART DIRECTION</p>
-                <p class="text-gray-300 leading-relaxed mb-6">
-                    A fully immersive visual experience created for the lead single. Utilizing analog liquid light show techniques combined with modern digital compositing.
-                </p>
-                <a href="#" class="text-[#20B2AA] hover:text-white uppercase text-sm font-bold tracking-wider">Watch Video &rarr;</a>
+                
+                <div class="w-full lg:w-1/3 p-8 flex flex-col justify-center bg-gray-800/50">
+                    <h3 class="text-3xl font-bold text-[#D4AF37] mb-4 font-serif">COLOR CONTAGION</h3>
+                    <p class="text-[#20B2AA] mb-4 text-sm tracking-wider uppercase">Browser-Based Tactical Simulation</p>
+                    
+                    <div class="text-gray-300 leading-relaxed mb-8">
+                        <p>
+                            [Bio section for Color Contagion. Please add your description here regarding the game mechanics, the concept of spreading color, and the HTML5 Canvas technology used.]
+                        </p>
+                    </div>
+
+                    <a href="https://mobile-game-853337900822.us-central1.run.app/" target="_blank" class="inline-block bg-[#D4AF37] text-black px-6 py-3 rounded font-bold hover:bg-white transition-colors text-center">
+                        Play Full Screen &rarr;
+                    </a>
+                </div>
             </div>
         </div>
 
-        <!-- Project 2 -->
-        <div class="glass-card rounded-xl overflow-hidden">
-            <div class="h-64 bg-gray-800 relative">
-                <div class="absolute inset-0 flex items-center justify-center text-gray-600 bg-black">
-                    <i class="fas fa-tshirt text-4xl"></i>
+        <div class="glass-card rounded-xl overflow-hidden border border-gray-700">
+            <div class="grid grid-cols-1 md:grid-cols-2">
+                <div class="relative h-96 bg-black carousel-container">
+                    <img src="/images/album1.jpg" alt="Cavalcade of Disparity" class="carousel-slide absolute inset-0 w-full h-full object-cover opacity-100 transition-opacity duration-1000">
+                    <img src="/images/album2.jpg" alt="New Game" class="carousel-slide absolute inset-0 w-full h-full object-cover opacity-0 transition-opacity duration-1000">
+                    <img src="/images/album3.jpg" alt="The Last Testament" class="carousel-slide absolute inset-0 w-full h-full object-cover opacity-0 transition-opacity duration-1000">
                 </div>
-            </div>
-            <div class="p-8">
-                <h3 class="text-2xl font-bold text-[#D4AF37] mb-2 font-serif">UNIFORM COLLECTION</h3>
-                <p class="text-gray-400 mb-4 text-sm">MERCHANDISE / APPAREL</p>
-                <p class="text-gray-300 leading-relaxed mb-6">
-                    A limited run of military-inspired streetwear featuring the Mystic One eye emblem. Gold embroidery on high-quality organic cotton.
-                </p>
-                <a href="#" class="text-[#20B2AA] hover:text-white uppercase text-sm font-bold tracking-wider">View Shop &rarr;</a>
+
+                <div class="p-8 flex flex-col justify-center">
+                    <h3 class="text-2xl font-bold text-[#D4AF37] mb-2 font-serif">MASHUP TRILOGY</h3>
+                    <p class="text-gray-400 mb-6 text-sm">Cavalcade of Disparity (CD) | New Game | The Last Testament</p>
+                    
+                    <div class="text-gray-300 leading-relaxed mb-6">
+                        <p>
+                           [Bio section for the Mashup Trilogy. Add details here about the musical concepts, the progression between the three albums, and the inspiration behind the series.]
+                        </p>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- Project 3: Color Contagion Game -->
-        <div class="glass-card rounded-xl overflow-hidden md:col-span-2 lg:col-span-1">
-            <div class="h-80 bg-gray-900 relative border-b border-gray-700">
-                <!-- Game Iframe -->
-                <iframe 
-                    src="https://mobile-game-853337900822.us-central1.run.app/" 
-                    class="absolute inset-0 w-full h-full"
-                    title="Color Contagion Game"
-                    frameborder="0"
-                    allowfullscreen>
-                </iframe>
-            </div>
-            <div class="p-8">
-                <h3 class="text-2xl font-bold text-[#D4AF37] mb-2 font-serif">COLOR CONTAGION</h3>
-                <p class="text-gray-400 mb-4 text-sm">INTERACTIVE / HTML5 GAME</p>
-                <p class="text-gray-300 leading-relaxed mb-6">
-                    A browser-based tactical simulation. Spread your color, upgrade your abilities, and conquer the monochrome city in this interactive experience.
-                </p>
-                <div class="flex gap-4">
-                    <a href="https://mobile-game-853337900822.us-central1.run.app/" target="_blank" class="text-[#20B2AA] hover:text-white uppercase text-sm font-bold tracking-wider">Play Full Screen &rarr;</a>
+        <div class="glass-card rounded-xl overflow-hidden border border-gray-700">
+            <div class="grid grid-cols-1 md:grid-cols-2">
+                <div class="p-8 flex flex-col justify-center order-2 md:order-1">
+                    <h3 class="text-2xl font-bold text-[#D4AF37] mb-2 font-serif">AI CONCEPTUAL ART</h3>
+                    <p class="text-gray-400 mb-6 text-sm">GENERATIVE IMAGERY & VIDEO</p>
+                    
+                    <div class="text-gray-300 leading-relaxed mb-6">
+                         <p>
+                           [Bio section for your AI Work. Describe your process, the tools used, and the artistic themes explored in your generative pieces.]
+                        </p>
+                    </div>
+                </div>
+
+                <div class="relative h-96 bg-black carousel-container order-1 md:order-2">
+                    <img src="/images/ai1.jpg" alt="AI Art 1" class="carousel-slide absolute inset-0 w-full h-full object-cover opacity-100 transition-opacity duration-1000">
+                    <img src="/images/ai2.jpg" alt="AI Art 2" class="carousel-slide absolute inset-0 w-full h-full object-cover opacity-0 transition-opacity duration-1000">
+                    <img src="/images/ai3.jpg" alt="AI Art 3" class="carousel-slide absolute inset-0 w-full h-full object-cover opacity-0 transition-opacity duration-1000">
                 </div>
             </div>
+        </div>
+
+        <div class="glass-card rounded-xl p-8 border border-gray-700 text-center">
+            <h3 class="text-2xl font-bold text-[#D4AF37] mb-2 font-serif">LATEST ALBUM STREAM</h3>
+            <p class="text-gray-400 mb-8 text-sm">LISTEN ON YOUTUBE</p>
+            
+            <div class="max-w-3xl mx-auto mb-8 text-gray-300">
+                 <p>
+                    [Bio section for the latest album. Describe the genre, specific tracks to look out for, and the overall mood of this release.]
+                </p>
+            </div>
+
+            <a href="https://www.youtube.com/playlist?list=PLtcPmGq9to5gLNaGPGIUT_VOkvPCA3UPA" target="_blank" class="inline-flex items-center gap-2 text-[#20B2AA] hover:text-white uppercase text-sm font-bold tracking-wider border border-[#20B2AA] hover:bg-[#20B2AA] hover:border-transparent px-6 py-3 rounded transition-all">
+                <i class="fab fa-youtube text-lg"></i> Listen to Full Playlist
+            </a>
         </div>
 
     </div>
 </section>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const carousels = document.querySelectorAll('.carousel-container');
+        
+        carousels.forEach(container => {
+            const slides = container.querySelectorAll('.carousel-slide');
+            if (slides.length < 2) return; // Don't cycle if only 1 image
+            
+            let currentIndex = 0;
+            
+            setInterval(() => {
+                // Hide current
+                slides[currentIndex].classList.remove('opacity-100');
+                slides[currentIndex].classList.add('opacity-0');
+                
+                // Calculate next
+                currentIndex = (currentIndex + 1) % slides.length;
+                
+                // Show next
+                slides[currentIndex].classList.remove('opacity-0');
+                slides[currentIndex].classList.add('opacity-100');
+            }, 4000); // Rotates every 4 seconds
+        });
+    });
+</script>
 
 <%- include('partials/footer') %>
