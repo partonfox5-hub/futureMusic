@@ -1,32 +1,45 @@
 <%- include('partials/header') %>
 
+<!-- HERO SECTION -->
 <section id="hero-section" class="min-h-[85vh] flex flex-col items-center justify-center text-center relative overflow-hidden perspective-1000 bg-gray-900">
     
+    <!-- PARTICLE CANVAS BACKGROUND -->
     <canvas id="gold-particle-canvas" class="absolute inset-0 w-full h-full z-0 pointer-events-none"></canvas>
 
-    <div class="max-w-4xl mx-auto relative z-10 pointer-events-auto">
-        <div class="mb-8 relative inline-block">
-            <div class="absolute inset-x-0 -top-32 flex justify-center text-[#B8860B] animate-pulse" style="animation-duration: 6s;">
-                <i class="fas fa-sun text-[10rem] drop-shadow-[0_0_20px_rgba(184,134,11,0.6)]" style="font-size: 8rem;"></i>
-            </div>
+    <!-- MAIN CONTENT CONTAINER -->
+    <div class="max-w-6xl mx-auto relative z-10 pointer-events-auto px-4">
+        
+        <!-- TITLE BLOCK: Logo + Text -->
+        <div class="mb-12 flex flex-col md:flex-row items-center justify-center gap-8 md:gap-12">
             
-            <h1 class="text-6xl md:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-b from-[#F4C430] to-[#AA8C2C] drop-shadow-2xl mb-4 relative z-10">
-                THINK FREELY
-            </h1>
-            <h2 class="text-2xl md:text-4xl text-white font-light tracking-[0.5em] mb-8">AS ONE AND THE SAME</h2>
+            <!-- LOGO (Left of text) -->
+            <div class="flex-shrink-0">
+                <img src="/images/logo.png" alt="Logo" class="w-32 md:w-48 h-auto object-contain drop-shadow-[0_0_20px_rgba(212,175,55,0.4)] hover:scale-105 transition-transform duration-500">
+            </div>
+
+            <!-- TEXT (Right of logo) -->
+            <div class="text-center md:text-left">
+                <h1 class="text-6xl md:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-b from-[#F4C430] to-[#AA8C2C] drop-shadow-2xl mb-2 leading-tight">
+                    THINK FREELY
+                </h1>
+                <h2 class="text-xl md:text-3xl text-white font-light tracking-[0.5em]">AS ONE AND THE SAME</h2>
+            </div>
         </div>
         
-        <p class="text-gray-300 text-lg md:text-xl max-w-2xl mx-auto mb-12 leading-relaxed drop-shadow-md bg-black/20 backdrop-blur-sm rounded-lg p-4">
-            Wordplay into the embrace of richer mindhood and such things as that 
-        </p>
+        <!-- SUBTEXT & BUTTONS -->
+        <div class="flex flex-col items-center">
+            <p class="text-gray-300 text-lg md:text-xl max-w-2xl mx-auto mb-12 leading-relaxed drop-shadow-md bg-black/20 backdrop-blur-sm rounded-lg p-4">
+                Wordplay into the embrace of richer mindhood and such things as that 
+            </p>
 
-        <div class="flex flex-col sm:flex-row gap-6 justify-center">
-            <a href="/music" class="btn-gold px-8 py-4 text-lg rounded-sm shadow-lg inline-block">
-                Stream Now
-            </a>
-            <a href="/projects" class="btn-outline px-8 py-4 text-lg rounded-sm inline-block">
-                View Works
-            </a>
+            <div class="flex flex-col sm:flex-row gap-6 justify-center">
+                <a href="/music" class="btn-gold px-8 py-4 text-lg rounded-sm shadow-lg inline-block transition-transform hover:-translate-y-1">
+                    Stream Now
+                </a>
+                <a href="/projects" class="btn-outline px-8 py-4 text-lg rounded-sm inline-block transition-transform hover:-translate-y-1">
+                    View Works
+                </a>
+            </div>
         </div>
     </div>
     
@@ -35,8 +48,11 @@
     </div>
 </section>
 
+<!-- EXTENDED SECTIONS -->
+
+<!-- 1. MUSIC SYNOPSIS -->
 <section class="py-20 border-t border-yellow-900/30">
-    <div class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+    <div class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 items-center px-4">
         <div class="order-2 md:order-1">
             <div class="relative w-full aspect-video bg-gray-900 rounded-lg border border-[#D4AF37]/50 overflow-hidden flex items-center justify-center group">
                 <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-20"></div>
@@ -62,8 +78,9 @@
     </div>
 </section>
 
+<!-- 2. PROJECTS SYNOPSIS -->
 <section class="py-20 border-t border-yellow-900/30 bg-black/40">
-    <div class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+    <div class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 items-center px-4">
         <div class="space-y-6">
             <h2 class="text-4xl text-gold">VISUAL PROPAGANDA</h2>
             <p class="text-gray-300 leading-loose text-lg">
@@ -88,8 +105,9 @@
     </div>
 </section>
 
+<!-- 3. CAPITALISM / MERCH SYNOPSIS -->
 <section class="py-20 border-t border-yellow-900/30">
-    <div class="max-w-4xl mx-auto text-center">
+    <div class="max-w-4xl mx-auto text-center px-4">
         <div class="mb-6">
             <i class="fas fa-coins text-5xl text-[#D4AF37] mb-4"></i>
             <h2 class="text-4xl text-gold">CAPITALISM & CONTROL</h2>
@@ -152,8 +170,10 @@
         window.addEventListener('resize', resize);
 
         function resize() {
-            width = canvas.width = canvas.parentElement.offsetWidth;
-            height = canvas.height = canvas.parentElement.offsetHeight;
+            if(canvas.parentElement) {
+                width = canvas.width = canvas.parentElement.offsetWidth;
+                height = canvas.height = canvas.parentElement.offsetHeight;
+            }
         }
 
         class Particle {
@@ -238,7 +258,9 @@
             requestAnimationFrame(animate);
         }
 
-        // Start
+        // Wait for load to ensure parent dimensions are available
+        window.addEventListener('load', init);
+        // Fallback init in case load already fired
         init();
     })();
 </script>
