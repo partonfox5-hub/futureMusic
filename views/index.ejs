@@ -1,8 +1,31 @@
 <%- include('partials/header') %>
 
 <!-- HERO SECTION -->
-<section class="min-h-[85vh] flex flex-col items-center justify-center text-center">
-    <div class="max-w-4xl mx-auto">
+<!-- Added relative and overflow-hidden to contain the background elements -->
+<section id="hero-section" class="min-h-[85vh] flex flex-col items-center justify-center text-center relative overflow-hidden perspective-1000">
+    
+    <!-- PARALLAX BACKGROUND IMAGES -->
+    <!-- These sit at z-0, behind the z-10 content -->
+    <div class="absolute inset-0 w-full h-full pointer-events-none z-0 overflow-hidden">
+        <!-- Image 1: Left Side (Stairs) -->
+        <!-- "Way in the background" achieved via opacity-30 and scale-75 -->
+        <div class="parallax-layer absolute top-1/4 -left-12 md:left-20 opacity-30 grayscale hover:grayscale-0 transition-all duration-700" data-speed="-0.02">
+            <div class="transform -rotate-6 p-2 bg-gray-900 shadow-2xl border border-[#D4AF37]/30">
+                <img src="/images/Screenshot 2025-12-14 220503.jpg" alt="Background Art 1" class="w-64 md:w-96 h-auto block opacity-80 mix-blend-screen">
+            </div>
+        </div>
+
+        <!-- Image 2: Right Side (City/Game) -->
+        <div class="parallax-layer absolute bottom-1/4 -right-12 md:right-20 opacity-30 grayscale hover:grayscale-0 transition-all duration-700" data-speed="0.03">
+            <div class="transform rotate-3 p-2 bg-gray-900 shadow-2xl border border-[#D4AF37]/30">
+                <img src="/images/Screenshot 2025-12-14 220350.jpg" alt="Background Art 2" class="w-64 md:w-80 h-auto block opacity-80 mix-blend-screen">
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN CONTENT CONTAINER -->
+    <!-- z-10 ensures this sits ON TOP of the images -->
+    <div class="max-w-4xl mx-auto relative z-10">
         <div class="mb-8 relative inline-block">
             <!-- UPDATED: Sun raised higher above text (-top-32) and removed downward transform -->
             <div class="absolute inset-x-0 -top-32 flex justify-center text-[#B8860B] animate-pulse" style="animation-duration: 6s;">
@@ -17,7 +40,7 @@
             <h2 class="text-2xl md:text-4xl text-white font-light tracking-[0.5em] mb-8">AS ONE AND THE SAME</h2>
         </div>
         
-        <p class="text-gray-300 text-lg md:text-xl max-w-2xl mx-auto mb-12 leading-relaxed">
+        <p class="text-gray-300 text-lg md:text-xl max-w-2xl mx-auto mb-12 leading-relaxed drop-shadow-md bg-black/20 backdrop-blur-sm rounded-lg p-4">
             Wordplay into the embrace of richer mindhood and such things as that 
         </p>
 
@@ -31,7 +54,7 @@
         </div>
     </div>
     
-    <div class="absolute bottom-8 animate-pulse text-[#D4AF37]">
+    <div class="absolute bottom-8 animate-pulse text-[#D4AF37] z-10">
         <i class="fas fa-chevron-down text-3xl"></i>
     </div>
 </section>
@@ -131,5 +154,30 @@
         </button>
     </div>
 </section>
+
+<script>
+    // Parallax Effect Script
+    document.addEventListener('mousemove', (e) => {
+        const layers = document.querySelectorAll('.parallax-layer');
+        
+        const mouseX = e.clientX;
+        const mouseY = e.clientY;
+        
+        // Calculate center of screen
+        const centerX = window.innerWidth / 2;
+        const centerY = window.innerHeight / 2;
+        
+        layers.forEach(layer => {
+            const speed = layer.getAttribute('data-speed');
+            
+            // Calculate distance from center
+            const x = (mouseX - centerX) * speed;
+            const y = (mouseY - centerY) * speed;
+            
+            // Apply transformation
+            layer.style.transform = `translateX(${x}px) translateY(${y}px)`;
+        });
+    });
+</script>
 
 <%- include('partials/footer') %>
