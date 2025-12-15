@@ -1,37 +1,13 @@
 <%- include('partials/header') %>
 
-<!-- HERO SECTION -->
-<!-- Added relative and overflow-hidden to contain the background elements -->
-<section id="hero-section" class="min-h-[85vh] flex flex-col items-center justify-center text-center relative overflow-hidden perspective-1000">
+<section id="hero-section" class="min-h-[85vh] flex flex-col items-center justify-center text-center relative overflow-hidden perspective-1000 bg-gray-900">
     
-    <!-- PARALLAX BACKGROUND IMAGES -->
-    <!-- These sit at z-0, behind the z-10 content -->
-    <div class="absolute inset-0 w-full h-full pointer-events-none z-0 overflow-hidden">
-        <!-- Image 1: Left Side (Stairs) -->
-        <!-- "Way in the background" achieved via opacity-30 and scale-75 -->
-        <div class="parallax-layer absolute top-1/4 -left-12 md:left-20 opacity-30 grayscale hover:grayscale-0 transition-all duration-700" data-speed="-0.02">
-            <div class="transform -rotate-6 p-2 bg-gray-900 shadow-2xl border border-[#D4AF37]/30">
-                <img src="/images/Screenshot 2025-12-14 220503.jpg" alt="Background Art 1" class="w-64 md:w-96 h-auto block opacity-80 mix-blend-screen">
-            </div>
-        </div>
+    <canvas id="gold-particle-canvas" class="absolute inset-0 w-full h-full z-0 pointer-events-none"></canvas>
 
-        <!-- Image 2: Right Side (City/Game) -->
-        <div class="parallax-layer absolute bottom-1/4 -right-12 md:right-20 opacity-30 grayscale hover:grayscale-0 transition-all duration-700" data-speed="0.03">
-            <div class="transform rotate-3 p-2 bg-gray-900 shadow-2xl border border-[#D4AF37]/30">
-                <img src="/images/Screenshot 2025-12-14 220350.jpg" alt="Background Art 2" class="w-64 md:w-80 h-auto block opacity-80 mix-blend-screen">
-            </div>
-        </div>
-    </div>
-
-    <!-- MAIN CONTENT CONTAINER -->
-    <!-- z-10 ensures this sits ON TOP of the images -->
-    <div class="max-w-4xl mx-auto relative z-10">
+    <div class="max-w-4xl mx-auto relative z-10 pointer-events-auto">
         <div class="mb-8 relative inline-block">
-            <!-- UPDATED: Sun raised higher above text (-top-32) and removed downward transform -->
             <div class="absolute inset-x-0 -top-32 flex justify-center text-[#B8860B] animate-pulse" style="animation-duration: 6s;">
-                <i class="fas fa-sun text-[10rem] drop-shadow-[0_0_20px_rgba(184,134,11,0.6)]" style="
-                    font-size: 8rem; 
-                "></i>
+                <i class="fas fa-sun text-[10rem] drop-shadow-[0_0_20px_rgba(184,134,11,0.6)]" style="font-size: 8rem;"></i>
             </div>
             
             <h1 class="text-6xl md:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-b from-[#F4C430] to-[#AA8C2C] drop-shadow-2xl mb-4 relative z-10">
@@ -59,14 +35,10 @@
     </div>
 </section>
 
-<!-- EXTENDED SECTIONS -->
-
-<!-- 1. MUSIC SYNOPSIS -->
 <section class="py-20 border-t border-yellow-900/30">
     <div class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
         <div class="order-2 md:order-1">
             <div class="relative w-full aspect-video bg-gray-900 rounded-lg border border-[#D4AF37]/50 overflow-hidden flex items-center justify-center group">
-                <!-- Abstract visual representation of sound -->
                 <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-20"></div>
                 <i class="fas fa-broadcast-tower text-6xl text-[#D4AF37] group-hover:scale-125 transition-transform duration-500"></i>
             </div>
@@ -74,7 +46,7 @@
         <div class="order-1 md:order-2 space-y-6">
             <h2 class="text-4xl text-gold">AUDITORY COMMANDS</h2>
             <p class="text-gray-300 leading-loose text-lg">
-                Our sonic output is not merely "music"—it is a structured frequency designed to reorder the subconscious. 
+                Our sonic output is not merely "music"—it is a structured frequency designed to reorder the subconscious.
                 Drawing from the raw energy of psychedelic rock and the disciplined structure of orchestral composition, 
                 we create a soundscape where chaos and control coexist.
             </p>
@@ -90,14 +62,14 @@
     </div>
 </section>
 
-<!-- 2. PROJECTS SYNOPSIS -->
 <section class="py-20 border-t border-yellow-900/30 bg-black/40">
     <div class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
         <div class="space-y-6">
             <h2 class="text-4xl text-gold">VISUAL PROPAGANDA</h2>
             <p class="text-gray-300 leading-loose text-lg">
-                The message must be seen to be believed. Our visual archives document the aesthetic 
-                of the new order. From liquid light shows that mimic the melting of reality to 
+                The message must be seen to be believed.
+                Our visual archives document the aesthetic of the new order.
+                From liquid light shows that mimic the melting of reality to 
                 the stark, authoritarian lines of our uniform collection.
             </p>
             <p class="text-gray-400">
@@ -116,7 +88,6 @@
     </div>
 </section>
 
-<!-- 3. CAPITALISM / MERCH SYNOPSIS -->
 <section class="py-20 border-t border-yellow-900/30">
     <div class="max-w-4xl mx-auto text-center">
         <div class="mb-6">
@@ -125,9 +96,9 @@
         </div>
         
         <p class="text-gray-300 leading-loose text-lg mb-8">
-            We exist within the system to dismantle it—or perhaps, to perfect it. 
+            We exist within the system to dismantle it—or perhaps, to perfect it.
             In this transactional reality, your support fuels the machine. 
-            We offer tangible assets: uniforms, physical media, and artifacts of the Mystic One. 
+            We offer tangible assets: uniforms, physical media, and artifacts of the Mystic One.
             Exchange your currency for compliance. 
         </p>
 
@@ -156,28 +127,120 @@
 </section>
 
 <script>
-    // Parallax Effect Script
-    document.addEventListener('mousemove', (e) => {
-        const layers = document.querySelectorAll('.parallax-layer');
+    // --- GOLDEN PARTICLE NETWORK SYSTEM ---
+    (function() {
+        const canvas = document.getElementById('gold-particle-canvas');
+        const ctx = canvas.getContext('2d');
         
-        const mouseX = e.clientX;
-        const mouseY = e.clientY;
+        let width, height;
+        let particles = [];
         
-        // Calculate center of screen
-        const centerX = window.innerWidth / 2;
-        const centerY = window.innerHeight / 2;
+        // Configuration
+        const particleCount = 100; // Adjust for density
+        const connectionDistance = 150; // Distance to draw lines
+        const mouseDistance = 200; // Mouse interaction radius
+
+        // Mouse tracking
+        let mouse = { x: null, y: null };
         
-        layers.forEach(layer => {
-            const speed = layer.getAttribute('data-speed');
-            
-            // Calculate distance from center
-            const x = (mouseX - centerX) * speed;
-            const y = (mouseY - centerY) * speed;
-            
-            // Apply transformation
-            layer.style.transform = `translateX(${x}px) translateY(${y}px)`;
+        window.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            mouse.x = e.clientX - rect.left;
+            mouse.y = e.clientY - rect.top;
         });
-    });
+
+        window.addEventListener('resize', resize);
+
+        function resize() {
+            width = canvas.width = canvas.parentElement.offsetWidth;
+            height = canvas.height = canvas.parentElement.offsetHeight;
+        }
+
+        class Particle {
+            constructor() {
+                this.x = Math.random() * width;
+                this.y = Math.random() * height;
+                this.vx = (Math.random() - 0.5) * 0.5; // Slow horizontal drift
+                this.vy = (Math.random() - 0.5) * 0.5; // Slow vertical drift
+                this.size = Math.random() * 2 + 1; // Size variance
+                // Gold color palette variations
+                const alpha = Math.random() * 0.5 + 0.2;
+                this.color = `rgba(212, 175, 55, ${alpha})`; 
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+
+                // Bounce off edges
+                if (this.x < 0 || this.x > width) this.vx *= -1;
+                if (this.y < 0 || this.y > height) this.vy *= -1;
+
+                // Mouse Interaction (Push away slightly)
+                if (mouse.x != null) {
+                    let dx = mouse.x - this.x;
+                    let dy = mouse.y - this.y;
+                    let distance = Math.sqrt(dx*dx + dy*dy);
+                    if (distance < mouseDistance) {
+                        const forceDirectionX = dx / distance;
+                        const forceDirectionY = dy / distance;
+                        const force = (mouseDistance - distance) / mouseDistance;
+                        const directionX = forceDirectionX * force * 1; // Push strength
+                        const directionY = forceDirectionY * force * 1;
+                        this.x -= directionX;
+                        this.y -= directionY;
+                    }
+                }
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+            }
+        }
+
+        function init() {
+            resize();
+            particles = [];
+            for (let i = 0; i < particleCount; i++) {
+                particles.push(new Particle());
+            }
+            animate();
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, width, height);
+            
+            for (let i = 0; i < particles.length; i++) {
+                particles[i].update();
+                particles[i].draw();
+
+                // Draw connections
+                for (let j = i; j < particles.length; j++) {
+                    let dx = particles[i].x - particles[j].x;
+                    let dy = particles[i].y - particles[j].y;
+                    let distance = Math.sqrt(dx * dx + dy * dy);
+
+                    if (distance < connectionDistance) {
+                        ctx.beginPath();
+                        // Opacity based on distance (closer = clearer)
+                        let opacity = 1 - (distance / connectionDistance);
+                        ctx.strokeStyle = `rgba(212, 175, 55, ${opacity * 0.4})`; 
+                        ctx.lineWidth = 1;
+                        ctx.moveTo(particles[i].x, particles[i].y);
+                        ctx.lineTo(particles[j].x, particles[j].y);
+                        ctx.stroke();
+                    }
+                }
+            }
+            requestAnimationFrame(animate);
+        }
+
+        // Start
+        init();
+    })();
 </script>
 
 <%- include('partials/footer') %>
