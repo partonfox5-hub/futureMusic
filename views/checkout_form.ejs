@@ -1,0 +1,94 @@
+<%- include('partials/header') %>
+
+<section class="max-w-2xl mx-auto py-12 px-4 min-h-[70vh]">
+    <h1 class="text-4xl text-gold brand-font mb-8 text-center">Secure Checkout</h1>
+    
+    <div class="glass-card p-8 rounded-xl border border-gray-700">
+        <p class="text-gray-400 mb-6 text-center text-sm">Please provide your details to establish a secure link for this transaction.</p>
+
+        <form id="details-form" class="space-y-6">
+            <div>
+                <label class="block text-[#D4AF37] mb-2 font-bold text-sm uppercase tracking-wider">Full Name</label>
+                <input type="text" id="fullName" required 
+                    class="w-full bg-black/50 border border-gray-600 rounded p-3 text-white focus:border-[#D4AF37] outline-none transition-colors">
+            </div>
+            
+            <div>
+                <label class="block text-[#D4AF37] mb-2 font-bold text-sm uppercase tracking-wider">Email Address</label>
+                <input type="email" id="email" required 
+                    class="w-full bg-black/50 border border-gray-600 rounded p-3 text-white focus:border-[#D4AF37] outline-none transition-colors">
+            </div>
+
+            <div>
+                <label class="block text-[#D4AF37] mb-2 font-bold text-sm uppercase tracking-wider">Phone Number</label>
+                <input type="tel" id="phone" required 
+                    class="w-full bg-black/50 border border-gray-600 rounded p-3 text-white focus:border-[#D4AF37] outline-none transition-colors">
+            </div>
+
+            <div>
+                <label class="block text-[#D4AF37] mb-2 font-bold text-sm uppercase tracking-wider">Create Password</label>
+                <input type="password" id="password" required placeholder="For tracking your order"
+                    class="w-full bg-black/50 border border-gray-600 rounded p-3 text-white focus:border-[#D4AF37] outline-none transition-colors">
+            </div>
+
+            <button type="submit" class="w-full btn-gold py-4 text-xl font-bold mt-6">
+                CONTINUE TO PAYMENT
+            </button>
+        </form>
+        
+        <p id="error-msg" class="text-red-500 mt-4 text-center hidden bg-red-900/20 p-3 rounded border border-red-500/50"></p>
+    </div>
+</section>
+
+<script>
+    // Initialize Stripe (Publishable Key)
+    // Note: Replace with your actual Publishable Key
+    const stripe = Stripe('pk_test_YOUR_PUBLISHABLE_KEY_HERE'); 
+
+    document.getElementById('details-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = e.target.querySelector('button');
+        const originalText = btn.innerText;
+        
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> PROCESSING...';
+        btn.disabled = true;
+        btn.classList.add('opacity-50', 'cursor-not-allowed');
+
+        const formData = {
+            sessionId: localStorage.getItem('session_id'), // Assuming store.js saves this
+            fullName: document.getElementById('fullName').value,
+            email: document.getElementById('email').value,
+            phone: document.getElementById('phone').value,
+            password: document.getElementById('password').value
+        };
+
+        try {
+            const response = await fetch('/initiate-checkout', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData)
+            });
+
+            const session = await response.json();
+
+            if (session.error) {
+                throw new Error(session.error);
+            }
+
+            // Redirect to Stripe
+            const result = await stripe.redirectToCheckout({ sessionId: session.id });
+            if (result.error) throw new Error(result.error.message);
+
+        } catch (err) {
+            console.error(err);
+            const errorMsg = document.getElementById('error-msg');
+            errorMsg.textContent = "Error: " + err.message;
+            errorMsg.classList.remove('hidden');
+            
+            btn.innerText = originalText;
+            btn.disabled = false;
+            btn.classList.remove('opacity-50', 'cursor-not-allowed');
+        }
+    });
+</script>
+<%- include('partials/footer') %>

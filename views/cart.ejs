@@ -15,16 +15,23 @@
             <span id="cart-total" class="text-3xl text-[#D4AF37] font-bold">$0.00</span>
         </div>
         <button id="checkout-btn" class="w-full btn-gold py-4 text-xl">
-            INITIATE TRANSFER via STRIPE
+            PROCEED TO CHECKOUT
         </button>
     </div>
 </section>
 
 <script src="/js/store.js"></script>
 <script>
-    // Render Cart on Load
     document.addEventListener('DOMContentLoaded', () => {
         window.renderCartPage();
+
+        // Redirect to secure checkout form instead of direct Stripe call
+        const checkoutBtn = document.getElementById('checkout-btn');
+        if (checkoutBtn) {
+            checkoutBtn.addEventListener('click', () => {
+                window.location.href = '/checkout';
+            });
+        }
     });
 </script>
 
