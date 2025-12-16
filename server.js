@@ -17,16 +17,14 @@ app.set('views', path.join(__dirname, 'views'));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // --- STRIPE INIT (SAFE MODE) ---
-// Only initialize Stripe if the key is present
 let stripe;
 if (process.env.STRIPE_SECRET_KEY) {
     stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 } else {
-    console.warn("⚠️ WARNING: STRIPE_SECRET_KEY is missing. Checkout features will be disabled.");
+    console.warn("⚠️ WARNING: STRIPE_SECRET_KEY is missing. Checkout will fail, but server will start.");
 }
 
 // --- DATABASE CONNECTION (SAFE MODE) ---
-// Only initialize DB if credentials are present
 let pool;
 if (process.env.DB_USER && process.env.DB_NAME) {
     const dbConfig = {
@@ -42,7 +40,7 @@ if (process.env.DB_USER && process.env.DB_NAME) {
     }
     pool = new Pool(dbConfig);
 } else {
-    console.warn("⚠️ WARNING: DB_USER or DB_NAME missing. Rights Inquiry features will be disabled.");
+    console.warn("⚠️ WARNING: Database credentials missing. Rights Inquiry will fail, but server will start.");
 }
 
 // --- STORAGE CONNECTION ---
@@ -59,7 +57,7 @@ try {
 // --- HELPER FUNCTIONS ---
 
 async function generateSignedUrl(filename) {
-    if (!process.env.GCS_BUCKET_NAME) return "#"; // Fail gracefully if no bucket
+    if (!process.env.GCS_BUCKET_NAME) return "#";
     
     const options = {
         version: 'v4',
@@ -107,9 +105,8 @@ app.get('/song/:id', (req, res) => {
     }
 });
 
-// 3. NEW PAGES
+// 3. NEW PAGES (These require the view files below)
 app.get('/merch', (req, res) => {
-    // Mock merch data
     const merchItems = [
         { id: 'm1', name: 'Standard Uniform', price: 45.00, image: '/images/merch-shirt.jpg', description: 'Standard issue poly-blend.' },
         { id: 'm2', name: 'Vinyl Protocol', price: 30.00, image: '/images/merch-vinyl.jpg', description: 'High fidelity audio storage.' },
@@ -130,7 +127,7 @@ app.get('/cart', (req, res) => {
 
 // Handle Rights Inquiry
 app.post('/api/inquiry', async (req, res) => {
-    if (!pool) return res.status(503).json({ error: 'Database unavailable (Check server logs)' });
+    if (!pool) return res.status(503).json({ error: 'Database unavailable' });
 
     const { songId, rightsType, duration, usage, estimatedCost, contactEmail } = req.body;
     if (!contactEmail || !songId) return res.status(400).json({ error: 'Missing required fields' });
