@@ -106,6 +106,8 @@ if (DB_CONFIG.user && DB_CONFIG.database) {
 
     // Cloud SQL Logic
     if (DB_CONFIG.connectionName) {
+        // NOTE: The 'host' for Cloud SQL on Cloud Run is a Unix socket path.
+        // It looks like /cloudsql/PROJECT:REGION:INSTANCE
         dbConfig.host = `/cloudsql/${DB_CONFIG.connectionName}`;
     } else {
         dbConfig.host = '127.0.0.1';
@@ -124,6 +126,20 @@ if (DB_CONFIG.user && DB_CONFIG.database) {
     pool.connect((err, client, release) => {
         if (err) {
             console.error("❌ INITIAL CONNECTION FAILED:", err.message);
+            
+            // --- DIAGNOSTIC HELP FOR CLOUD RUN ---
+            if ((err.code === 'ENOENT' || err.code === 'ENOTDIR') && dbConfig.host.includes('/cloudsql/')) {
+                 console.error("\n🚨 CLOUD RUN CONFIGURATION ERROR 🚨");
+                 console.error("The app cannot find the Cloud SQL socket at: " + dbConfig.host);
+                 console.error("FIX: You must add the Cloud SQL connection to your Cloud Run service.");
+                 console.error("   1. Go to Google Cloud Console -> Cloud Run");
+                 console.error("   2. Click 'Edit & Deploy New Revision'");
+                 console.error("   3. Go to 'Container, Networking, Security' -> 'Settings' tab");
+                 console.error("   4. Scroll to 'Cloud SQL connections' and click 'Add Connection'");
+                 console.error("   5. Select: " + DB_CONFIG.connectionName);
+                 console.error("   6. Redeploy.\n");
+            }
+
             dbConnectionStatus = "FAILED";
             dbErrorDetail = err.message;
             // IMPORTANT: We set pool to null so logic knows to use fallback
