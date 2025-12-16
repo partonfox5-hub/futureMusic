@@ -30,18 +30,18 @@ const memoryCarts = {};
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// FORCE PERMISSIVE CSP HEADER
-// This overrides any default strict security headers causing the font/script blocks
+// --- SECURITY: PERMISSIVE CSP (FIX FOR TAILWIND/FONTS) ---
+// Explicitly allowing the required domains to fix the 'font-src' and 'script-src' errors
 app.use((req, res, next) => {
     res.setHeader(
         "Content-Security-Policy",
         "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; " +
-        "script-src * 'unsafe-inline' 'unsafe-eval'; " +
-        "connect-src * 'unsafe-inline'; " +
+        "script-src * 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://js.stripe.com https://m.stripe.network; " +
+        "style-src * 'unsafe-inline' https://fonts.googleapis.com; " +
+        "font-src * 'unsafe-inline' data: blob: https://fonts.gstatic.com; " +
         "img-src * data: blob:; " +
-        "frame-src *; " +
-        "style-src * 'unsafe-inline'; " +
-        "font-src * data: blob:;"
+        "frame-src * https://js.stripe.com https://hooks.stripe.com; " +
+        "connect-src * https://api.stripe.com;"
     );
     next();
 });
@@ -50,7 +50,7 @@ app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// --- STRIPE INIT (SAFE MODE) ---
+// --- STRIPE INIT ---
 let stripe;
 if (process.env.STRIPE_SECRET_KEY) {
     try {
@@ -60,7 +60,7 @@ if (process.env.STRIPE_SECRET_KEY) {
     }
 }
 
-// --- DATABASE CONNECTION (SAFE MODE) ---
+// --- DATABASE CONNECTION ---
 let pool;
 if (process.env.DB_USER && process.env.DB_NAME) {
     const dbConfig = {
@@ -81,16 +81,6 @@ if (process.env.DB_USER && process.env.DB_NAME) {
 
 // --- HELPER FUNCTIONS ---
 
-async function generateSignedUrl(filename) {
-    // Mock URL if no bucket configured
-    if (!process.env.GCS_BUCKET_NAME) return `https://storage.googleapis.com/mock-bucket/${filename}`;
-    
-    // ... existing GCS logic ...
-    const storage = new Storage();
-    // (omitted for brevity, keep your existing logic here if needed)
-    return "#"; 
-}
-
 // Helper to look up product (DB or Fallback)
 async function getProductBySku(sku) {
     if (pool) {
@@ -103,7 +93,6 @@ async function getProductBySku(sku) {
     if (merch) return merch;
 
     // Fallback: Check Songs (songs.json)
-    // Map song ID to a product structure
     const song = songsData.find(s => 
         (s.youtube_info && s.youtube_info.video_id === sku) || 
         s.spotify_id === sku
@@ -158,7 +147,6 @@ app.get('/merch', async (req, res) => {
             const result = await pool.query("SELECT * FROM products WHERE type = 'merch' ORDER BY created_at DESC");
             res.render('merch', { merch: result.rows, title: 'Merch' });
         } else {
-            // Fallback
             res.render('merch', { merch: mockMerchItems, title: 'Merch (Offline)' });
         }
     } catch (err) {
@@ -188,7 +176,8 @@ app.get('/merch/:id', async (req, res) => {
     }
 });
 
-// 4. OTHER STORE PAGES
+// 4. CHECKOUT & CART PAGES
+
 app.get('/rights', (req, res) => {
     res.render('rights', { songs: songsData, title: 'Purchase Rights' });
 });
@@ -197,14 +186,108 @@ app.get('/cart', (req, res) => {
     res.render('cart', { title: 'Your Inventory' });
 });
 
-// 5. API & CART HANDLERS
+// --- NEW SECURE CHECKOUT FLOW ---
 
-// Add Item to Cart
+// Step 1: Show User Info Form
+app.get('/checkout', (req, res) => {
+    res.render('checkout_form', { title: 'Secure Checkout' });
+});
+
+// Step 2: Handle Form Submission & Create Session
+app.post('/initiate-checkout', async (req, res) => {
+    const { sessionId, email, fullName, phone, password } = req.body;
+
+    if (!pool) return res.status(500).json({ error: "DB Offline - Cannot process secure orders." });
+
+    try {
+        // A. CREATE OR FETCH USER
+        let userId;
+        const userCheck = await pool.query("SELECT id FROM users WHERE email = $1", [email]);
+        
+        if (userCheck.rows.length > 0) {
+            userId = userCheck.rows[0].id;
+        } else {
+            // Note: In a real app, hash this password with bcrypt before saving!
+            const newUser = await pool.query(
+                "INSERT INTO users (email, full_name, phone, password_hash) VALUES ($1, $2, $3, $4) RETURNING id",
+                [email, fullName, phone, password] 
+            );
+            userId = newUser.rows[0].id;
+        }
+
+        // B. SECURE PRICE CALCULATION (DB LOOKUP)
+        // We do NOT trust prices sent from the frontend.
+        const cartQuery = `
+            SELECT ci.quantity, p.name, p.price, p.sku, p.type, p.image_url
+            FROM cart_items ci
+            JOIN products p ON ci.product_sku = p.sku
+            WHERE ci.session_id = $1
+        `;
+        const cartResult = await pool.query(cartQuery, [sessionId]);
+        const cartItems = cartResult.rows;
+
+        if (cartItems.length === 0) return res.status(400).json({ error: "Cart is empty" });
+
+        // C. DETERMINE SHIPPING REQUIREMENT
+        const hasPhysicalItems = cartItems.some(item => item.type === 'merch');
+
+        // D. PREPARE STRIPE LINE ITEMS
+        const lineItems = cartItems.map(item => ({
+            price_data: {
+                currency: 'usd',
+                product_data: {
+                    name: item.name,
+                    metadata: { sku: item.sku, type: item.type },
+                    images: item.image_url ? [`${DOMAIN}${item.image_url}`] : [],
+                },
+                unit_amount: Math.round(Number(item.price) * 100),
+            },
+            quantity: item.quantity,
+        }));
+
+        // E. CREATE STRIPE SESSION
+        const sessionConfig = {
+            payment_method_types: ['card'],
+            customer_email: email, // Pre-fill email in Stripe
+            line_items: lineItems,
+            mode: 'payment',
+            success_url: `${DOMAIN}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
+            cancel_url: `${DOMAIN}/cart`,
+            metadata: {
+                userId: userId.toString(), 
+                custom_session_id: sessionId
+            }
+        };
+
+        // Enable shipping address collection if physical items exist
+        if (hasPhysicalItems) {
+            sessionConfig.shipping_address_collection = {
+                allowed_countries: ['US', 'CA', 'GB'], // Add your shipping countries
+            };
+        }
+
+        const session = await stripe.checkout.sessions.create(sessionConfig);
+
+        // F. RECORD INTENT IN DB
+        await pool.query(
+            "INSERT INTO orders (user_id, stripe_session_id, total_amount, payment_status) VALUES ($1, $2, $3, 'pending')",
+            [userId, session.id, (session.amount_total / 100)]
+        );
+
+        res.json({ id: session.id });
+
+    } catch (err) {
+        console.error("Checkout Error:", err);
+        res.status(500).json({ error: "Checkout initialization failed: " + err.message });
+    }
+});
+
+// 5. API CART HANDLERS
+
 app.post('/api/cart', async (req, res) => {
     const { sessionId, sku, quantity } = req.body;
     if (!sessionId || !sku) return res.status(400).json({ error: 'Missing session or SKU' });
 
-    // --- DB MODE ---
     if (pool) {
         try {
             await pool.query(
@@ -233,10 +316,8 @@ app.post('/api/cart', async (req, res) => {
             console.error('DB Cart Error:', err);
             return res.status(500).json({ error: 'Database error' });
         }
-    } 
-    
-    // --- FALLBACK MEMORY MODE ---
-    else {
+    } else {
+        // Fallback
         if (!memoryCarts[sessionId]) memoryCarts[sessionId] = [];
         const cart = memoryCarts[sessionId];
         const existingItem = cart.find(i => i.sku === sku);
@@ -244,10 +325,8 @@ app.post('/api/cart', async (req, res) => {
         if (existingItem) {
             existingItem.quantity += (quantity || 1);
         } else {
-            // We need to look up product details to store enough info for the cart
             const product = await getProductBySku(sku);
             if (!product) return res.status(404).json({ error: 'Product/Song not found' });
-            
             cart.push({
                 sku: sku,
                 quantity: quantity || 1,
@@ -261,11 +340,8 @@ app.post('/api/cart', async (req, res) => {
     }
 });
 
-// Get Cart Items
 app.get('/api/cart/:sessionId', async (req, res) => {
     const { sessionId } = req.params;
-
-    // --- DB MODE ---
     if (pool) {
         try {
             const query = `
@@ -280,19 +356,14 @@ app.get('/api/cart/:sessionId', async (req, res) => {
             console.error('Cart Fetch Error:', err);
             res.status(500).json({ error: 'Failed to load cart' });
         }
-    }
-    
-    // --- FALLBACK MEMORY MODE ---
-    else {
+    } else {
         const items = memoryCarts[sessionId] || [];
         res.json({ items: items });
     }
 });
 
-// Remove Item from Cart
 app.delete('/api/cart', async (req, res) => {
     const { sessionId, sku } = req.body;
-
     if (pool) {
         try {
             await pool.query("DELETE FROM cart_items WHERE session_id = $1 AND product_sku = $2", [sessionId, sku]);
@@ -308,81 +379,6 @@ app.delete('/api/cart', async (req, res) => {
     }
 });
 
-// Handle Rights Inquiry
-app.post('/api/inquiry', async (req, res) => {
-    // Just log it in fallback mode
-    if (!pool) {
-        console.log("Inquiry received (DB Offline):", req.body);
-        return res.json({ success: true, message: 'Inquiry received (Simulation Mode).' });
-    }
-    // ... DB implementation ...
-});
-
-// Handle Stripe Checkout
-app.post('/create-checkout-session', async (req, res) => {
-    const { sessionId } = req.body;
-    if (!stripe) return res.status(503).json({ error: 'Payment system offline' });
-
-    let cartItems = [];
-
-    // Get Items
-    if (pool) {
-        const query = `
-            SELECT ci.quantity, p.name, p.price, p.sku, p.type
-            FROM cart_items ci
-            JOIN products p ON ci.product_sku = p.sku
-            WHERE ci.session_id = $1
-        `;
-        const result = await pool.query(query, [sessionId]);
-        cartItems = result.rows;
-    } else {
-        cartItems = memoryCarts[sessionId] || [];
-    }
-
-    if (cartItems.length === 0) return res.status(400).json({ error: 'Cart is empty' });
-
-    const lineItems = cartItems.map(item => {
-        return {
-            price_data: {
-                currency: 'usd',
-                product_data: {
-                    name: item.name,
-                    metadata: { sku: item.sku, type: item.type }
-                },
-                unit_amount: Math.round(Number(item.price) * 100),
-            },
-            quantity: item.quantity,
-        };
-    });
-
-    try {
-        const session = await stripe.checkout.sessions.create({
-            payment_method_types: ['card'],
-            line_items: lineItems,
-            mode: 'payment',
-            success_url: `${DOMAIN}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
-            cancel_url: `${DOMAIN}/cart`,
-        });
-        res.json({ id: session.id });
-    } catch (error) {
-        console.error("Stripe Error:", error);
-        res.status(500).json({ error: error.message });
-    }
-});
-// FORCE PERMISSIVE CSP HEADER
-app.use((req, res, next) => {
-    res.setHeader(
-        "Content-Security-Policy",
-        "default-src 'self' https://*.stripe.com; " +
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.stripe.com https://js.stripe.com; " +
-        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
-        "font-src 'self' https://fonts.gstatic.com data:; " +
-        "img-src 'self' data: blob: https://*.stripe.com https://*.googleapis.com https://img.youtube.com https://placehold.co; " +
-        "frame-src 'self' https://*.stripe.com https://js.stripe.com; " +
-        "connect-src 'self' https://*.stripe.com;"
-    );
-    next();
-});
 // 404 CATCH-ALL
 app.use((req, res, next) => {
     res.status(404).render('404', { title: 'Signal Lost' });
