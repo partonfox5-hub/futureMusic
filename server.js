@@ -64,6 +64,7 @@ if (process.env.STRIPE_SECRET_KEY) {
 
 // --- DATABASE CONNECTION DIAGNOSTICS ---
 let pool;
+let globalDbInitError = null; // Store init error to send to browser header
 
 console.log("==========================================");
 console.log("--- STARTING DATABASE DIAGNOSTICS ---");
@@ -92,6 +93,7 @@ if (process.env.DB_USER && process.env.DB_NAME) {
     // Global Error Listener for the Pool (catches idle client errors)
     pool.on('error', (err, client) => {
         console.error('❌ UNEXPECTED DATABASE ERROR (Idle Client):', err);
+        globalDbInitError = err.message;
     });
 
     // Initial Connection Test
@@ -102,6 +104,7 @@ if (process.env.DB_USER && process.env.DB_NAME) {
             console.error("Message:", err.message);
             console.error("Full Error:", err);
             // We set pool to null so the app knows it's offline
+            globalDbInitError = err.message || err.code;
             pool = null; 
         } else {
             console.log("✅ SUCCESS: Initial Connection to PostgreSQL established.");
@@ -110,10 +113,20 @@ if (process.env.DB_USER && process.env.DB_NAME) {
     });
 
 } else {
+    globalDbInitError = "Env Vars Missing";
     console.warn("⚠️ DATABASE CONFIG MISSING: Environment variables not set. Check your app.yaml or .env file.");
 }
 
 // --- HELPER FUNCTIONS ---
+
+// Helper to safely set headers without crashing on invalid chars
+function setDebugHeader(res, name, value) {
+    if (value) {
+        // Remove newlines and non-ascii to prevent header splitting attacks
+        const safeValue = String(value).replace(/[^\x20-\x7E]/g, '');
+        res.setHeader(name, safeValue);
+    }
+}
 
 async function getProductBySku(sku) {
     // 1. Try DB
@@ -181,6 +194,8 @@ app.get('/merch', async (req, res) => {
     console.log(`\n--- REQUEST: /merch ---`);
     try {
         if (pool) {
+            setDebugHeader(res, 'X-Debug-DB-Status', 'Active');
+            
             console.log("Status: DB Pool Active. Executing query...");
             // Use LOWER(type) to handle Case Sensitivity (e.g. 'Merch' vs 'merch')
             const query = "SELECT * FROM products WHERE LOWER(type) = 'merch' ORDER BY created_at DESC";
@@ -189,20 +204,25 @@ app.get('/merch', async (req, res) => {
             const result = await pool.query(query);
             console.log(`DB Response: Found ${result.rows.length} rows.`);
 
+            setDebugHeader(res, 'X-Debug-Query-Count', result.rows.length);
+
             if (result.rows.length === 0) {
-                console.warn("⚠️ WARNING: Query returned 0 products. Possible reasons:");
-                console.warn("   1. Table 'products' is empty.");
-                console.warn("   2. Column 'type' does not contain 'merch' (or any case variation).");
-                console.warn("   3. Permissions issue reading the table.");
+                setDebugHeader(res, 'X-Debug-Warning', 'Query returned 0 products. Check casing of "merch" in DB type column.');
+                console.warn("⚠️ WARNING: Query returned 0 products.");
             }
 
             res.render('merch', { merch: result.rows, title: 'Merch' });
         } else {
+            setDebugHeader(res, 'X-Debug-DB-Status', 'Offline');
+            if (globalDbInitError) {
+                setDebugHeader(res, 'X-Debug-DB-Error', globalDbInitError);
+            }
+            
             console.warn("Status: DB Pool Inactive. Using FALLBACK data.");
-            // FALLBACK: If DB is offline, render the mock items so page isn't empty
             res.render('merch', { merch: mockMerchItems, title: 'Merch (Offline)' });
         }
     } catch (err) {
+        setDebugHeader(res, 'X-Debug-Route-Error', err.message);
         console.error("❌ ROUTE ERROR (/merch):");
         console.error("Message:", err.message);
         console.error("Stack:", err.stack);
@@ -223,11 +243,14 @@ app.get('/merch/:id', async (req, res) => {
             product = result.rows[0];
 
             if (product) {
+                setDebugHeader(res, 'X-Debug-Product-Found', 'Yes');
                 console.log(`✅ Found product: ${product.name} (ID: ${product.id})`);
             } else {
+                setDebugHeader(res, 'X-Debug-Product-Found', 'No');
                 console.warn(`❌ Product NOT found in DB for param: ${req.params.id}`);
             }
         } else {
+            setDebugHeader(res, 'X-Debug-DB-Status', 'Offline');
             console.log("Status: DB Pool Inactive. Checking Mock Data...");
             product = mockMerchItems.find(m => m.id === req.params.id || m.sku === req.params.id);
         }
@@ -238,6 +261,7 @@ app.get('/merch/:id', async (req, res) => {
             res.status(404).render('404', { title: 'Product Not Found' });
         }
     } catch (err) {
+        setDebugHeader(res, 'X-Debug-Route-Error', err.message);
         console.error(`❌ ROUTE ERROR (/merch/${req.params.id}):`, err);
         res.status(500).render('404', { title: 'Error' });
     }
@@ -265,6 +289,7 @@ app.post('/initiate-checkout', async (req, res) => {
     const { sessionId, email, fullName, phone, password } = req.body;
 
     if (!pool) {
+        setDebugHeader(res, 'X-Debug-Error', 'DB Offline');
         console.error("Checkout Blocked: Database connection pool is undefined or failed to initialize.");
         return res.status(500).json({ error: "DB Offline - Cannot process secure orders." });
     }
@@ -337,6 +362,7 @@ app.post('/initiate-checkout', async (req, res) => {
         res.json({ id: session.id });
 
     } catch (err) {
+        setDebugHeader(res, 'X-Debug-Checkout-Error', err.message);
         console.error("Checkout / DB Error:", err);
         res.status(500).json({ error: "Checkout failed: " + err.message });
     }
@@ -394,6 +420,7 @@ app.post('/api/cart', async (req, res) => {
             }
             return res.json({ success: true });
         } catch (err) {
+            setDebugHeader(res, 'X-Debug-Cart-Error', err.message);
             console.error('DB Cart Error:', err);
             return res.status(500).json({ error: 'Database error' });
         }
@@ -433,6 +460,7 @@ app.get('/api/cart/:sessionId', async (req, res) => {
             const result = await pool.query(query, [sessionId]);
             res.json({ items: result.rows });
         } catch (err) {
+            setDebugHeader(res, 'X-Debug-Cart-Load-Error', err.message);
             res.status(500).json({ error: 'Failed to load cart' });
         }
     } else {
