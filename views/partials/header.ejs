@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" type="image/png" href="/images/logo.png">
 
+     <!-- Content Security Policy: Added to fix font loading errors -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' * data: blob: 'unsafe-inline' 'unsafe-eval'; script-src 'self' * 'unsafe-inline' 'unsafe-eval'; connect-src 'self' * 'unsafe-inline'; img-src 'self' * data: blob:; frame-src *; style-src 'self' * 'unsafe-inline'; font-src 'self' * data:;">
+
     <title><%= typeof title !== 'undefined' ? title : "The Captain's Frequency" %></title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://js.stripe.com/v3/"></script> <!-- Stripe JS -->
