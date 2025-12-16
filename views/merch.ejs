@@ -23,12 +23,12 @@
                     
                     <div class="grid grid-cols-2 gap-3">
                         <!-- View Details Button -->
-                        <a href="/merch/<%= item.id %>" class="btn-outline text-center py-3 text-xs font-bold rounded">
+                        <a href="/merch/<%= item.id %>" class="btn-outline text-center py-3 text-xs font-bold rounded hover:bg-[#D4AF37]/10 transition-colors">
                             DETAILS
                         </a>
 
                         <!-- Quick Add Button -->
-                        <button class="btn-gold py-3 text-xs font-bold add-to-cart-btn" 
+                        <button class="btn-gold py-3 text-xs font-bold add-to-cart-btn hover:scale-105 transition-transform" 
                             data-id="<%= item.id %>" 
                             data-name="<%= item.name %>" 
                             data-price="<%= item.price %>"
@@ -42,5 +42,6 @@
     </div>
 </section>
 
+<!-- Ensure Store Logic is loaded at the end of body -->
 <script src="/js/store.js"></script>
 <%- include('partials/footer') %>

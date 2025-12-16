@@ -1,16 +1,14 @@
-// --- SHOPPING CART LOGIC ---
-
 const Cart = {
     get: () => JSON.parse(localStorage.getItem('captain_cart')) || [],
     set: (cart) => localStorage.setItem('captain_cart', JSON.stringify(cart)),
     
     add: (item) => {
         const cart = Cart.get();
-        // Check if item exists (simple logic: allow duplicates for merch, unique for digital?)
-        // For simplicity, we just push. In a real app, handle quantities.
         cart.push(item);
         Cart.set(cart);
         Cart.updateBadge();
+        
+        // Visual Feedback
         alert(`${item.name} added to manifest.`);
     },
 
@@ -18,7 +16,7 @@ const Cart = {
         const cart = Cart.get();
         cart.splice(index, 1);
         Cart.set(cart);
-        window.renderCartPage(); // Re-render if on cart page
+        if (window.renderCartPage) window.renderCartPage(); 
         Cart.updateBadge();
     },
 
@@ -37,132 +35,31 @@ const Cart = {
     }
 };
 
-// --- GLOBAL EVENT LISTENERS ---
-
 document.addEventListener('DOMContentLoaded', () => {
     Cart.updateBadge();
 
-    // Handle "Add to Cart" clicks globally
+    // Global listener for dynamic buttons
     document.body.addEventListener('click', (e) => {
-        if (e.target.closest('.add-to-cart-btn')) {
-            const btn = e.target.closest('.add-to-cart-btn');
-            const item = {
-                id: btn.dataset.songId || btn.dataset.id,
-                name: btn.dataset.name || (btn.dataset.songId ? `Digital Download: ${btn.dataset.songId}` : 'Unknown Item'),
-                price: parseFloat(btn.dataset.price) || 0.99,
-                type: btn.dataset.type || 'digital'
-            };
+        // Find closest button with class 'add-to-cart-btn'
+        const btn = e.target.closest('.add-to-cart-btn');
+        
+        if (btn) {
+            e.preventDefault(); // Prevent navigation if it's inside an <a> tag
             
-            // If it's a song button from music page, we might need to fetch the name from the DOM or just use ID
-            // Simple fix: Assuming logic handles name injection or we use ID.
+            const item = {
+                id: btn.dataset.id || btn.dataset.songId, // Support both ID types
+                name: btn.dataset.name,
+                price: parseFloat(btn.dataset.price),
+                type: btn.dataset.type
+            };
+
+            // Basic validation
+            if(!item.id || !item.name) {
+                console.error("Missing item data:", item);
+                return;
+            }
+            
             Cart.add(item);
         }
     });
-
-    // Handle Rights Form Submission
-    const rightsForm = document.getElementById('rights-form');
-    if (rightsForm) {
-        rightsForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const formData = {
-                songId: document.getElementById('song-select').value,
-                rightsType: document.getElementById('rights-type').options[document.getElementById('rights-type').selectedIndex].text,
-                duration: document.getElementById('duration').options[document.getElementById('duration').selectedIndex].text,
-                usage: document.getElementById('usage').value,
-                estimatedCost: document.getElementById('total-cost').innerText.replace('$', ''),
-                contactEmail: document.getElementById('contact-email').value
-            };
-
-            try {
-                const res = await fetch('/api/inquiry', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(formData)
-                });
-                const data = await res.json();
-                const msgDiv = document.getElementById('form-message');
-                msgDiv.innerText = data.message || 'Error sending inquiry.';
-                msgDiv.classList.remove('hidden');
-                msgDiv.className = data.success ? 'mt-4 text-center text-[#20B2AA]' : 'mt-4 text-center text-red-500';
-            } catch (err) {
-                console.error(err);
-            }
-        });
-    }
-
-    // Handle Checkout Button
-    const checkoutBtn = document.getElementById('checkout-btn');
-    if (checkoutBtn) {
-        checkoutBtn.addEventListener('click', async () => {
-            const cart = Cart.get();
-            if (cart.length === 0) return;
-
-            const stripe = Stripe('YOUR_PUBLIC_STRIPE_KEY_HERE'); // Replace with your public key
-
-            checkoutBtn.innerText = 'Processing...';
-            checkoutBtn.disabled = true;
-
-            try {
-                const response = await fetch('/create-checkout-session', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ items: cart }),
-                });
-
-                const session = await response.json();
-                if (session.error) throw new Error(session.error);
-
-                // Redirect to Stripe
-                const result = await stripe.redirectToCheckout({ sessionId: session.id });
-                if (result.error) alert(result.error.message);
-
-            } catch (err) {
-                console.error('Checkout Error:', err);
-                alert('Connection failed.');
-                checkoutBtn.innerText = 'INITIATE TRANSFER';
-                checkoutBtn.disabled = false;
-            }
-        });
-    }
 });
-
-// --- RENDER FUNCTION (Attached to window for global access) ---
-window.renderCartPage = function() {
-    const container = document.getElementById('cart-container');
-    const summary = document.getElementById('cart-summary');
-    const totalEl = document.getElementById('cart-total');
-    
-    if (!container) return;
-
-    const cart = Cart.get();
-    container.innerHTML = '';
-
-    if (cart.length === 0) {
-        container.innerHTML = '<p class="text-gray-500 text-center py-12">Your manifest is empty.</p>';
-        summary.classList.add('hidden');
-        return;
-    }
-
-    let total = 0;
-    cart.forEach((item, index) => {
-        total += item.price;
-        const div = document.createElement('div');
-        div.className = 'glass-card p-4 rounded flex justify-between items-center';
-        div.innerHTML = `
-            <div>
-                <h4 class="font-bold text-white">${item.name}</h4>
-                <p class="text-xs text-[#20B2AA] uppercase">${item.type}</p>
-            </div>
-            <div class="flex items-center gap-6">
-                <span class="text-[#D4AF37]">$${item.price.toFixed(2)}</span>
-                <button onclick="Cart.remove(${index})" class="text-red-500 hover:text-red-400">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </div>
-        `;
-        container.appendChild(div);
-    });
-
-    totalEl.innerText = '$' + total.toFixed(2);
-    summary.classList.remove('hidden');
-};

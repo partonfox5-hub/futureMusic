@@ -7,7 +7,6 @@
     <div class="relative w-full max-w-7xl h-[60vh] md:h-[70vh]">
         
         <!-- 1. The Final Scene (TOP/APEX) -->
-        <!-- Link points to specific song ID -->
         <a href="/song/Cem7RZsb7Rw" class="absolute left-1/2 -translate-x-1/2 top-0 w-[80%] max-w-md featured-card z-30 group" style="transition: transform 0.5s;">
             <div class="glass-card p-4 rounded-xl border-4 border-[#F4C430] hover:border-[#D4AF37] transition-all duration-300 shadow-2xl">
                 <div class="relative aspect-square">
@@ -66,7 +65,6 @@
     
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
         <% songs.forEach(function(song) { 
-            // Determine best ID and Image
             const hasVideo = song.youtube_info && song.youtube_info.video_id;
             const songId = hasVideo ? song.youtube_info.video_id : song.spotify_id;
             const thumbnail = hasVideo 
@@ -75,11 +73,8 @@
         %>
             <div class="glass-card bg-black/40 rounded-xl overflow-hidden hover:bg-black/60 transition-all duration-300 group flex flex-col h-full border border-transparent hover:border-[#D4AF37]/30">
                 
-                <!-- Thumbnail -->
                 <div class="relative aspect-video bg-black">
                     <img src="<%= thumbnail %>" alt="<%= song.name %>" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity duration-300">
-                    
-                    <!-- Play Overlay -->
                     <a href="/song/<%= songId %>" class="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-transparent transition-colors">
                         <div class="w-12 h-12 rounded-full bg-[#D4AF37]/90 flex items-center justify-center scale-75 group-hover:scale-100 opacity-0 group-hover:opacity-100 transition-all duration-300 shadow-[0_0_20px_rgba(212,175,55,0.6)]">
                             <i class="fas fa-play text-black ml-1"></i>
@@ -96,7 +91,6 @@
                         <p class="text-[#20B2AA] text-xs uppercase tracking-wider mb-3"><%= song.album %></p>
                     <% } %>
 
-                    <!-- Description (Optional, clamped) -->
                     <% if (song.youtube_info && song.youtube_info.description) { %>
                         <p class="text-gray-400 text-sm line-clamp-2 mb-6 flex-grow">
                             <%= song.youtube_info.description %>
@@ -105,15 +99,12 @@
                         <div class="flex-grow"></div>
                     <% } %>
 
-                    <!-- Action Area -->
                     <div class="mt-auto space-y-4">
-                        <!-- View Details Button -->
                         <a href="/song/<%= songId %>" class="block w-full text-center border border-[#D4AF37] text-[#D4AF37] hover:bg-[#D4AF37] hover:text-black font-bold py-2 rounded-lg transition-all duration-300 uppercase tracking-wider text-sm">
                             View Transmission
                         </a>
 
-                        <!-- Add to Downloads Button -->
-                        <!-- ADDED data attributes for cart logic -->
+                        <!-- UPDATED BUTTON -->
                         <button class="w-full bg-white text-black font-bold py-3 rounded-lg hover:bg-[#D4AF37] transition-colors duration-300 flex items-center justify-center gap-2 shadow-lg add-to-cart-btn" 
                             data-id="<%= songId %>" 
                             data-name="<%= song.name %>" 
@@ -128,7 +119,5 @@
     </div>
 </section>
 
-<!-- Include Store Logic for Cart functionality -->
 <script src="/js/store.js"></script>
-
 <%- include('partials/footer') %>
