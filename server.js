@@ -65,10 +65,13 @@ if (process.env.STRIPE_SECRET_KEY) {
 // --- DATABASE CONNECTION DIAGNOSTICS ---
 let pool;
 
-console.log("--- DATABASE CONNECTION DIAGNOSTICS ---");
-console.log("DB_USER:", process.env.DB_USER ? "Set" : "Missing");
-console.log("DB_NAME:", process.env.DB_NAME ? "Set" : "Missing");
-console.log("INSTANCE_CONNECTION_NAME:", process.env.INSTANCE_CONNECTION_NAME ? process.env.INSTANCE_CONNECTION_NAME : "Missing (Using Localhost)");
+console.log("==========================================");
+console.log("--- STARTING DATABASE DIAGNOSTICS ---");
+console.log("Timestamp:", new Date().toISOString());
+console.log("DB_USER:", process.env.DB_USER ? `[${process.env.DB_USER}]` : "MISSING");
+console.log("DB_NAME:", process.env.DB_NAME ? `[${process.env.DB_NAME}]` : "MISSING");
+console.log("INSTANCE_CONNECTION_NAME:", process.env.INSTANCE_CONNECTION_NAME ? `[${process.env.INSTANCE_CONNECTION_NAME}]` : "MISSING (Using Localhost)");
+console.log("==========================================");
 
 if (process.env.DB_USER && process.env.DB_NAME) {
     const dbConfig = {
@@ -86,14 +89,22 @@ if (process.env.DB_USER && process.env.DB_NAME) {
 
     pool = new Pool(dbConfig);
 
-    // Test Connection Immediately
+    // Global Error Listener for the Pool (catches idle client errors)
+    pool.on('error', (err, client) => {
+        console.error('❌ UNEXPECTED DATABASE ERROR (Idle Client):', err);
+    });
+
+    // Initial Connection Test
     pool.connect((err, client, release) => {
         if (err) {
-            console.error("❌ CRITICAL DATABASE ERROR:", err.message);
+            console.error("❌ CRITICAL INITIAL CONNECTION FAILURE:");
+            console.error("Code:", err.code);
+            console.error("Message:", err.message);
+            console.error("Full Error:", err);
             // We set pool to null so the app knows it's offline
             pool = null; 
         } else {
-            console.log("✅ SUCCESS: Connected to PostgreSQL Database.");
+            console.log("✅ SUCCESS: Initial Connection to PostgreSQL established.");
             release();
         }
     });
@@ -167,32 +178,57 @@ app.get('/song/:id', (req, res) => {
 
 // 3. MERCH PAGES
 app.get('/merch', async (req, res) => {
+    console.log(`\n--- REQUEST: /merch ---`);
     try {
         if (pool) {
-            // FIX: Use LOWER(type) to handle Case Sensitivity (e.g. 'Merch' vs 'merch')
-            const result = await pool.query("SELECT * FROM products WHERE LOWER(type) = 'merch' ORDER BY created_at DESC");
+            console.log("Status: DB Pool Active. Executing query...");
+            // Use LOWER(type) to handle Case Sensitivity (e.g. 'Merch' vs 'merch')
+            const query = "SELECT * FROM products WHERE LOWER(type) = 'merch' ORDER BY created_at DESC";
+            console.log(`Query: ${query}`);
+
+            const result = await pool.query(query);
+            console.log(`DB Response: Found ${result.rows.length} rows.`);
+
+            if (result.rows.length === 0) {
+                console.warn("⚠️ WARNING: Query returned 0 products. Possible reasons:");
+                console.warn("   1. Table 'products' is empty.");
+                console.warn("   2. Column 'type' does not contain 'merch' (or any case variation).");
+                console.warn("   3. Permissions issue reading the table.");
+            }
+
             res.render('merch', { merch: result.rows, title: 'Merch' });
         } else {
+            console.warn("Status: DB Pool Inactive. Using FALLBACK data.");
             // FALLBACK: If DB is offline, render the mock items so page isn't empty
             res.render('merch', { merch: mockMerchItems, title: 'Merch (Offline)' });
         }
     } catch (err) {
-        console.error("Merch Error:", err);
+        console.error("❌ ROUTE ERROR (/merch):");
+        console.error("Message:", err.message);
+        console.error("Stack:", err.stack);
         res.render('merch', { merch: mockMerchItems, title: 'Merch (Fallback)' });
     }
 });
 
 app.get('/merch/:id', async (req, res) => {
+    console.log(`\n--- REQUEST: /merch/${req.params.id} ---`);
     try {
         let product;
         if (pool) {
             // FIX: Cast ID to TEXT to prevent crash when checking against string SKUs (e.g., 'm1')
-            const result = await pool.query(
-                "SELECT * FROM products WHERE CAST(id AS TEXT) = $1 OR sku = $1", 
-                [req.params.id]
-            );
+            const query = "SELECT * FROM products WHERE CAST(id AS TEXT) = $1 OR sku = $1";
+            console.log(`Query: ${query} [${req.params.id}]`);
+            
+            const result = await pool.query(query, [req.params.id]);
             product = result.rows[0];
+
+            if (product) {
+                console.log(`✅ Found product: ${product.name} (ID: ${product.id})`);
+            } else {
+                console.warn(`❌ Product NOT found in DB for param: ${req.params.id}`);
+            }
         } else {
+            console.log("Status: DB Pool Inactive. Checking Mock Data...");
             product = mockMerchItems.find(m => m.id === req.params.id || m.sku === req.params.id);
         }
         
@@ -202,7 +238,7 @@ app.get('/merch/:id', async (req, res) => {
             res.status(404).render('404', { title: 'Product Not Found' });
         }
     } catch (err) {
-        console.error("Product Page Error:", err);
+        console.error(`❌ ROUTE ERROR (/merch/${req.params.id}):`, err);
         res.status(500).render('404', { title: 'Error' });
     }
 });
