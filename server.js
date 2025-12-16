@@ -19,7 +19,11 @@ app.use(express.static(path.join(__dirname, 'public')));
 // --- STRIPE INIT (SAFE MODE) ---
 let stripe;
 if (process.env.STRIPE_SECRET_KEY) {
-    stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+    try {
+        stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+    } catch (e) {
+        console.warn("⚠️ WARNING: Failed to initialize Stripe with provided key.", e.message);
+    }
 } else {
     console.warn("⚠️ WARNING: STRIPE_SECRET_KEY is missing. Checkout will fail, but server will start.");
 }
@@ -53,6 +57,13 @@ try {
 } catch (error) {
     console.error('CRITICAL: songs.json not found!');
 }
+
+// Mock Merch Data (Shared)
+const merchItems = [
+    { id: 'm1', name: 'Standard Uniform', price: 45.00, image: '/images/merch-shirt.jpg', description: 'Standard issue poly-blend. Designed for optimal conformity and durability in all sectors.' },
+    { id: 'm2', name: 'Vinyl Protocol', price: 30.00, image: '/images/merch-vinyl.jpg', description: 'High fidelity audio storage. Contains the complete auditory instructions for the current era.' },
+    { id: 'm3', name: 'Neural Patch', price: 10.00, image: '/images/merch-sticker.jpg', description: 'Adhesive emblem. Mark your possessions or yourself as property of the collective.' }
+];
 
 // --- HELPER FUNCTIONS ---
 
@@ -105,16 +116,21 @@ app.get('/song/:id', (req, res) => {
     }
 });
 
-// 3. NEW PAGES (These require the view files below)
+// 3. MERCH PAGES
 app.get('/merch', (req, res) => {
-    const merchItems = [
-        { id: 'm1', name: 'Standard Uniform', price: 45.00, image: '/images/merch-shirt.jpg', description: 'Standard issue poly-blend.' },
-        { id: 'm2', name: 'Vinyl Protocol', price: 30.00, image: '/images/merch-vinyl.jpg', description: 'High fidelity audio storage.' },
-        { id: 'm3', name: 'Neural Patch', price: 10.00, image: '/images/merch-sticker.jpg', description: 'Adhesive emblem.' }
-    ];
     res.render('merch', { merch: merchItems, title: 'Merch' });
 });
 
+app.get('/merch/:id', (req, res) => {
+    const item = merchItems.find(m => m.id === req.params.id);
+    if (item) {
+        res.render('product', { product: item, title: item.name });
+    } else {
+        res.status(404).render('404', { title: 'Product Not Found' });
+    }
+});
+
+// 4. OTHER STORE PAGES
 app.get('/rights', (req, res) => {
     res.render('rights', { songs: songsData, title: 'Purchase Rights' });
 });
@@ -123,7 +139,7 @@ app.get('/cart', (req, res) => {
     res.render('cart', { title: 'Your Inventory' });
 });
 
-// 4. API & FORM HANDLERS
+// 5. API & FORM HANDLERS
 
 // Handle Rights Inquiry
 app.post('/api/inquiry', async (req, res) => {
@@ -164,7 +180,7 @@ app.post('/api/inquiry', async (req, res) => {
 
 // Handle Stripe Checkout
 app.post('/create-checkout-session', async (req, res) => {
-    if (!stripe) return res.status(503).json({ error: 'Payment system offline (Key missing)' });
+    if (!stripe) return res.status(503).json({ error: 'Payment system offline (Key missing or invalid)' });
 
     const cartItems = req.body.items;
     const lineItems = cartItems.map(item => {

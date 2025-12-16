@@ -20,74 +20,63 @@
         
         <!-- Left Column: Visual Media -->
         <div class="lg:col-span-2 space-y-8">
-            <div class="w-full aspect-video bg-black rounded-xl overflow-hidden shadow-[0_0_50px_rgba(212,175,55,0.2)] border border-[#D4AF37]/30 group">
+            <div class="w-full aspect-video bg-black rounded-xl overflow-hidden shadow-[0_0_50px_rgba(212,175,55,0.2)] border border-gray-800">
                 <% if (hasVideo) { %>
-                    <!-- YouTube Embed -->
                     <iframe 
-                        width="100%" 
-                        height="100%" 
-                        src="https://www.youtube.com/embed/<%= song.youtube_info.video_id %>?autoplay=0&rel=0" 
-                        title="<%= song.name %>" 
+                        class="w-full h-full" 
+                        src="https://www.youtube.com/embed/<%= songId %>?autoplay=1&mute=0" 
+                        title="YouTube video player" 
                         frameborder="0" 
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                        allowfullscreen
-                        class="w-full h-full"
-                    ></iframe>
-                <% } else { %>
-                    <!-- Fallback if no video -->
-                    <div class="w-full h-full flex flex-col items-center justify-center bg-gray-900 text-[#D4AF37]">
-                        <i class="fas fa-compact-disc text-8xl animate-spin-slow" style="animation-duration: 10s;"></i>
-                        <p class="mt-4 text-gray-500 uppercase tracking-widest">Audio Only</p>
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                        allowfullscreen>
+                    </iframe>
+                <% } else if (song.spotify_link) { %>
+                    <div class="w-full h-full flex flex-col items-center justify-center p-8 bg-gradient-to-br from-gray-900 to-black">
+                        <img src="/images/default-album-art.jpg" class="w-48 h-48 rounded shadow-lg mb-6 opacity-50">
+                        <a href="<%= song.spotify_link %>" target="_blank" class="text-[#1DB954] hover:text-white transition-colors text-2xl font-bold flex items-center gap-3">
+                            <i class="fab fa-spotify text-4xl"></i> Listen on Spotify
+                        </a>
                     </div>
                 <% } %>
             </div>
-
-            <!-- Mobile: Title appears below video on small screens, sidebar on large -->
-            <div class="lg:hidden">
-                <h1 class="text-3xl md:text-4xl font-black text-white brand-font mb-2"><%= song.name %></h1>
-                <p class="text-[#D4AF37] text-lg uppercase tracking-wider font-bold mb-6"><%= song.album || 'Single Release' %></p>
-            </div>
-
-            <!-- Description / Lyrics Area -->
-            <div class="glass-card p-8 rounded-xl border-t border-[#D4AF37]/30">
-                <h3 class="text-xl text-[#D4AF37] mb-4 border-b border-gray-700 pb-2 uppercase tracking-widest flex items-center gap-2">
-                    <i class="fas fa-align-left"></i> Transmission Data
-                </h3>
-                <div class="prose prose-invert max-w-none text-gray-300 leading-relaxed whitespace-pre-wrap">
-                    <%= (song.youtube_info && song.youtube_info.description) ? song.youtube_info.description : "No transmission data available for this frequency." %>
-                </div>
-            </div>
         </div>
 
-        <!-- Right Column: Details & Actions -->
-        <div class="lg:col-span-1 space-y-8">
-            
-            <!-- Metadata Card -->
-            <div class="sticky top-32">
-                <div class="glass-card p-6 rounded-xl border border-white/10 shadow-2xl">
-                    <div class="hidden lg:block mb-8">
-                        <h1 class="text-4xl font-black text-white brand-font mb-2 leading-tight"><%= song.name %></h1>
-                        <p class="text-[#D4AF37] text-lg uppercase tracking-wider font-bold"><%= song.album || 'Single Release' %></p>
-                    </div>
+        <!-- Right Column: Info & Actions -->
+        <div class="lg:col-span-1">
+            <div class="glass-card p-8 rounded-xl border border-gray-800 sticky top-32">
+                <h1 class="text-3xl md:text-4xl font-black text-[#D4AF37] mb-2 leading-tight brand-font"><%= song.name %></h1>
+                
+                <% if (song.album) { %>
+                    <h2 class="text-xl text-[#20B2AA] uppercase tracking-widest mb-6 font-light"><%= song.album %></h2>
+                <% } %>
 
-                    <!-- Action Buttons -->
-                    <div class="space-y-4">
-                        <% if (song.spotify_link) { %>
-                            <a href="<%= song.spotify_link %>" target="_blank" class="block w-full bg-[#1DB954] text-black font-bold py-4 rounded-lg hover:bg-[#1ed760] hover:scale-[1.02] transition-all duration-300 flex items-center justify-center gap-3 shadow-lg">
-                                <i class="fab fa-spotify text-xl"></i> Listen on Spotify
-                            </a>
-                        <% } %>
-                        
-                        <% if (song.youtube_info) { %>
-                            <a href="<%= song.youtube_info.video_url %>" target="_blank" class="block w-full bg-[#FF0000] text-white font-bold py-4 rounded-lg hover:bg-[#ff3333] hover:scale-[1.02] transition-all duration-300 flex items-center justify-center gap-3 shadow-lg">
-                                <i class="fab fa-youtube text-xl"></i> Watch on YouTube
-                            </a>
-                        <% } %>
+                <div class="prose prose-invert max-w-none text-gray-400 mb-8 text-sm leading-relaxed">
+                    <% if (song.youtube_info && song.youtube_info.description) { %>
+                        <!-- Converting newlines to breaks for display -->
+                        <%- song.youtube_info.description.replace(/\n/g, '<br>') %>
+                    <% } else { %>
+                        <p class="italic opacity-50">No transmission data available.</p>
+                    <% } %>
+                </div>
 
-                        <div class="h-px bg-gray-700 my-6"></div>
+                <!-- Action Buttons -->
+                <div class="space-y-4">
+                    <% if (song.spotify_link) { %>
+                        <a href="<%= song.spotify_link %>" target="_blank" class="flex items-center justify-center w-full py-4 bg-[#1DB954] hover:bg-[#1ed760] text-black font-bold rounded transition-all duration-300 shadow-lg group">
+                            <i class="fab fa-spotify text-xl mr-3 group-hover:scale-110 transition-transform"></i> 
+                            Stream on Spotify
+                        </a>
+                    <% } %>
 
-                        <button class="w-full bg-white text-black font-bold py-4 rounded-lg hover:bg-[#D4AF37] transition-colors duration-300 flex items-center justify-center gap-2 shadow-lg add-to-cart-btn group" data-song-id="<%= songId %>">
-                            <i class="fas fa-cart-plus group-hover:animate-bounce"></i> Add to Downloads
+                    <div class="grid grid-cols-1 gap-4 pt-4 border-t border-gray-800">
+                        <!-- Add to Downloads Button -->
+                        <!-- ADDED data attributes for cart logic -->
+                        <button class="w-full bg-white hover:bg-[#D4AF37] text-black font-bold py-4 rounded transition-all duration-300 shadow-[0_0_20px_rgba(255,255,255,0.2)] hover:shadow-[0_0_30px_rgba(212,175,55,0.4)] flex items-center justify-center gap-2 group add-to-cart-btn"
+                            data-id="<%= songId %>" 
+                            data-name="<%= song.name %>" 
+                            data-price="0.99" 
+                            data-type="digital">
+                            <i class="fas fa-cart-plus group-hover:animate-bounce"></i> Add to Downloads ($0.99)
                         </button>
                     </div>
 
@@ -114,5 +103,8 @@
         </div>
     </div>
 </section>
+
+<!-- Include Store Logic for Cart functionality -->
+<script src="/js/store.js"></script>
 
 <%- include('partials/footer') %>
