@@ -5,7 +5,7 @@ const fs = require('fs');
 const http = require('http'); 
 const bodyParser = require('body-parser');
 const { Storage } = require('@google-cloud/storage');
-const { Pool } = require('pg');
+const mysql = require('mysql2/promise'); // <-- Switched to MySQL2 for promise support
 
 // Try loading .env if available
 try { require('dotenv').config(); } catch (e) { /* dotenv not installed */ }
@@ -114,6 +114,10 @@ if (DB_CONFIG.user && DB_CONFIG.database) {
         user: DB_CONFIG.user,
         password: DB_CONFIG.password,
         database: DB_CONFIG.database,
+        // Set pool size for MySQL2
+        waitForConnections: true,
+        connectionLimit: 10,
+        queueLimit: 0
     };
 
     // LOGIC: Choose Connection Method
@@ -121,37 +125,45 @@ if (DB_CONFIG.user && DB_CONFIG.database) {
     if (bypassHost) {
         mode = 'TCP BYPASS';
         dbConfig.host = bypassHost;
-        dbConfig.port = 5432;
-        dbConfig.ssl = { rejectUnauthorized: false }; 
+        dbConfig.port = 3306; // MySQL default port
+        // Note: MySQL2 does not use the `ssl: { rejectUnauthorized: false }` format like pg
+        // SSL must be handled separately if required, but usually not needed for internal Cloud Run TCP access.
     } else if (cleanConnectionName) {
         mode = 'UNIX SOCKET';
-        dbConfig.host = `/cloudsql/${cleanConnectionName}`;
+        // For MySQL, the connection name IS the socket path
+        dbConfig.socketPath = `/cloudsql/${cleanConnectionName}`;
+        delete dbConfig.host; // Remove host when using socketPath
+    } else {
+        dbConfig.host = '127.0.0.1';
     }
 
-    console.log(`🔌 MODE: ${mode}. Connecting to ${dbConfig.host}...`);
+    console.log(`🔌 MODE: ${mode}. Attempting connection...`);
 
-    pool = new Pool(dbConfig);
+    // Use a function to manage the pool creation and testing
+    async function initializeDbPool() {
+        try {
+            // Create the pool instance
+            pool = mysql.createPool(dbConfig);
 
-    pool.on('error', (err, client) => {
-        console.error('❌ DB POOL ERROR:', err);
-        dbConnectionStatus = "ERROR";
-        dbErrorDetail = err.message;
-    });
-
-    pool.connect((err, client, release) => {
-        if (err) {
-            console.error("❌ CONNECTION FAILED:", err.message);
+            // Attempt a connection test query
+            const [rows] = await pool.query('SELECT 1 + 1 AS solution');
+            if (rows && rows[0].solution === 2) {
+                console.log("✅ DB CONNECTED SUCCESSFULLY (MySQL)");
+                dbConnectionStatus = "CONNECTED";
+            } else {
+                throw new Error("Failed validation query.");
+            }
+        } catch (err) {
+            console.error("❌ INITIAL CONNECTION FAILED:", err.message);
             
-            // --- DIAGNOSTICS (Updated for robustness) ---
+            // --- DIAGNOSTICS ---
             let socketDiagnostic = "";
             
             if (mode === 'UNIX SOCKET') {
                 try {
-                    // Check if /cloudsql folder exists
                     if (!fs.existsSync('/cloudsql')) {
                         socketDiagnostic = "The /cloudsql folder does NOT exist. Cloud Run Connection setting is missing.";
                     } else {
-                        // Check contents of /cloudsql folder
                         const contents = fs.readdirSync('/cloudsql');
                         if (contents.length === 0) {
                             socketDiagnostic = "The /cloudsql folder is EMPTY. The Google Cloud Proxy failed to start. (Check IAM/API)";
@@ -160,34 +172,45 @@ if (DB_CONFIG.user && DB_CONFIG.database) {
                         }
                     }
                 } catch (fsErr) {
-                    // Catch permissions errors when reading the folder
                     socketDiagnostic = "Could not read /cloudsql due to permissions/error: " + fsErr.message;
                 }
             } else if (mode === 'TCP BYPASS') {
-                socketDiagnostic = "TCP Connection Failed. Ensure Public IP is enabled and the DB_HOST IP is correct.";
+                socketDiagnostic = "TCP Connection Failed. Ensure Public IP is enabled and the DB_HOST IP is correct, or check DB credentials.";
             }
 
             console.error("🕵️ REPORT:", socketDiagnostic);
             dbConnectionStatus = "FAILED";
             dbErrorDetail = `${err.message} || ${socketDiagnostic}`;
             pool = null; 
-        } else {
-            console.log("✅ DB CONNECTED SUCCESSFULLY");
-            dbConnectionStatus = "CONNECTED";
-            release();
         }
-    });
+    }
+    
+    // Call the async initialization function
+    initializeDbPool();
 
 } else {
     dbConnectionStatus = "CONFIG_MISSING";
     dbErrorDetail = "Environment variables (DB_USER, DB_NAME) are missing.";
 }
 
+// --- HELPER FUNCTION FOR MYSQL QUERYING ---
+// Helper to manage pool connections and release automatically
+async function query(sql, params) {
+    if (!pool) throw new Error("Database connection is not available.");
+    
+    // Note: MySQL2 promise-based pool uses execute for prepared statements, query for simple
+    const [rows] = await pool.execute(sql, params); 
+    return { rows };
+}
+
+
 // --- HELPER FUNCTIONS ---
+
 async function getProductBySku(sku) {
     if (pool) {
         try {
-            const res = await pool.query("SELECT * FROM products WHERE sku = $1", [sku]);
+            // Use the new query helper
+            const res = await query("SELECT * FROM products WHERE sku = ?", [sku]);
             if (res.rows.length > 0) return res.rows[0];
         } catch (e) { console.error("DB Error:", e); }
     }
@@ -225,7 +248,8 @@ app.get('/song/:id', (req, res) => {
 app.get('/merch', async (req, res) => {
     try {
         if (pool) {
-            const result = await pool.query("SELECT * FROM products WHERE LOWER(type) = 'merch' ORDER BY created_at DESC");
+            // Use MySQL syntax: ? for parameters
+            const result = await query("SELECT * FROM products WHERE LOWER(type) = 'merch' ORDER BY created_at DESC"); 
             if (result.rows.length === 0) {
                 res.render('merch', { merch: mockMerchItems, title: 'Merch (DB Empty)', debugError: "Database connected, but 0 products found.", dbStatus: "CONNECTED (EMPTY)" });
             } else {
@@ -243,8 +267,8 @@ app.get('/merch/:id', async (req, res) => {
     try {
         let product;
         if (pool) {
-            const query = "SELECT * FROM products WHERE CAST(id AS TEXT) = $1 OR sku = $1";
-            const result = await pool.query(query, [req.params.id]);
+            const querySql = "SELECT * FROM products WHERE CAST(id AS CHAR) = ? OR sku = ?";
+            const result = await query(querySql, [req.params.id, req.params.id]);
             product = result.rows[0];
         } else {
             product = mockMerchItems.find(m => m.id === req.params.id || m.sku === req.params.id);
@@ -259,7 +283,7 @@ app.get('/merch/:id', async (req, res) => {
 app.get('/rights', (req, res) => res.render('rights', { songs: songsData, title: 'Purchase Rights' }));
 app.get('/rights/confirmation', (req, res) => res.render('rights_confirmation', { title: 'Inquiry Received' }));
 app.get('/cart', (req, res) => res.render('cart', { title: 'Your Inventory' }));
-app.get('/checkout', (req, res) => res.render('checkout_form', { title: 'Secure Checkout' });
+app.get('/checkout', (req, res) => res.render('checkout_form', { title: 'Secure Checkout' }));
 
 app.post('/initiate-checkout', async (req, res) => {
     const { sessionId, email, fullName, phone, password } = req.body;
@@ -267,16 +291,26 @@ app.post('/initiate-checkout', async (req, res) => {
 
     try {
         let userId;
-        const userCheck = await pool.query("SELECT id FROM users WHERE email = $1", [email]);
+        const userCheck = await query("SELECT id FROM users WHERE email = ?", [email]);
         if (userCheck.rows.length > 0) {
             userId = userCheck.rows[0].id;
         } else {
-            const newUser = await pool.query("INSERT INTO users (email, full_name, phone, password_hash) VALUES ($1, $2, $3, $4) RETURNING id", [email, fullName, phone, password]);
-            userId = newUser.rows[0].id;
+            const newUser = await query(
+                "INSERT INTO users (email, full_name, phone, password_hash) VALUES (?, ?, ?, ?) RETURNING id", 
+                [email, fullName, phone, password]
+            );
+            // MySQL returns insertId/results, not RETURNING clause (Postgres)
+            // Assuming users table has an auto-increment ID
+            userId = newUser.insertId || newUser.rows[0].id;
         }
         
-        const cartQuery = `SELECT ci.quantity, p.name, p.price, p.sku, p.type, p.image_url FROM cart_items ci JOIN products p ON ci.product_sku = p.sku WHERE ci.session_id = $1`;
-        const cartResult = await pool.query(cartQuery, [sessionId]);
+        const cartQuery = `
+            SELECT ci.quantity, p.name, p.price, p.sku, p.type, p.image_url
+            FROM cart_items ci
+            JOIN products p ON ci.product_sku = p.sku
+            WHERE ci.session_id = ?
+        `;
+        const cartResult = await query(cartQuery, [sessionId]);
         const cartItems = cartResult.rows;
 
         if (cartItems.length === 0) return res.status(400).json({ error: "Cart is empty" });
@@ -309,7 +343,7 @@ app.post('/initiate-checkout', async (req, res) => {
         if (hasPhysicalItems) sessionConfig.shipping_address_collection = { allowed_countries: ['US', 'CA', 'GB'] };
 
         const session = await stripe.checkout.sessions.create(sessionConfig);
-        await pool.query("INSERT INTO orders (user_id, stripe_session_id, total_amount, payment_status) VALUES ($1, $2, $3, 'pending')", [userId, session.id, (session.amount_total / 100)]);
+        await query("INSERT INTO orders (user_id, stripe_session_id, total_amount, payment_status) VALUES (?, ?, ?, 'pending')", [userId, session.id, (session.amount_total / 100)]);
         res.json({ id: session.id });
 
     } catch (err) {
@@ -322,7 +356,7 @@ app.post('/api/inquiry', async (req, res) => {
     const { songId, licenseType, duration, usage, email, cost } = req.body;
     if (pool) {
         try {
-            await pool.query("INSERT INTO rights_inquiries (song_id, license_type, duration, usage_details, contact_email, estimated_cost) VALUES ($1, $2, $3, $4, $5, $6)", [songId, licenseType, duration, usage, email, cost]);
+            await query("INSERT INTO rights_inquiries (song_id, license_type, duration, usage_details, contact_email, estimated_cost) VALUES (?, ?, ?, ?, ?, ?)", [songId, licenseType, duration, usage, email, cost]);
             res.json({ success: true });
         } catch (err) { res.status(500).json({ error: 'Failed to save inquiry.' }); }
     } else {
@@ -336,15 +370,18 @@ app.post('/api/cart', async (req, res) => {
 
     if (pool) {
         try {
-            await pool.query("INSERT INTO carts (session_id, updated_at) VALUES ($1, NOW()) ON CONFLICT (session_id) DO UPDATE SET updated_at = NOW()", [sessionId]);
-            const existingItem = await pool.query("SELECT * FROM cart_items WHERE session_id = $1 AND product_sku = $2", [sessionId, sku]);
+            // MySQL does not have ON CONFLICT DO UPDATE. We use INSERT IGNORE and then UPDATE.
+            await query("INSERT INTO carts (session_id, updated_at) VALUES (?, NOW()) ON DUPLICATE KEY UPDATE updated_at = NOW()", [sessionId]);
+            
+            const existingItem = await query("SELECT * FROM cart_items WHERE session_id = ? AND product_sku = ?", [sessionId, sku]);
+            
             if (existingItem.rows.length > 0) {
-                await pool.query("UPDATE cart_items SET quantity = quantity + $1 WHERE id = $2", [quantity || 1, existingItem.rows[0].id]);
+                await query("UPDATE cart_items SET quantity = quantity + ? WHERE id = ?", [quantity || 1, existingItem.rows[0].id]);
             } else {
-                await pool.query("INSERT INTO cart_items (session_id, product_sku, quantity) VALUES ($1, $2, $3)", [sessionId, sku, quantity || 1]);
+                await query("INSERT INTO cart_items (session_id, product_sku, quantity) VALUES (?, ?, ?)", [sessionId, sku, quantity || 1]);
             }
             return res.json({ success: true });
-        } catch (err) { return res.status(500).json({ error: 'Database error' }); }
+        } catch (err) { return res.status(500).json({ error: 'Database error: ' + err.message }); }
     } else {
         if (!memoryCarts[sessionId]) memoryCarts[sessionId] = [];
         const cart = memoryCarts[sessionId];
@@ -363,8 +400,8 @@ app.get('/api/cart/:sessionId', async (req, res) => {
     const { sessionId } = req.params;
     if (pool) {
         try {
-            const query = "SELECT ci.id as item_id, ci.quantity, p.* FROM cart_items ci JOIN products p ON ci.product_sku = p.sku WHERE ci.session_id = $1 ORDER BY ci.added_at DESC";
-            const result = await pool.query(query, [sessionId]);
+            const querySql = "SELECT ci.id as item_id, ci.quantity, p.* FROM cart_items ci JOIN products p ON ci.product_sku = p.sku WHERE ci.session_id = ? ORDER BY ci.added_at DESC";
+            const result = await query(querySql, [sessionId]);
             res.json({ items: result.rows });
         } catch (err) { res.status(500).json({ error: 'Failed to load cart' }); }
     } else {
@@ -377,7 +414,7 @@ app.delete('/api/cart', async (req, res) => {
     const { sessionId, sku } = req.body;
     if (pool) {
         try {
-            await pool.query("DELETE FROM cart_items WHERE session_id = $1 AND product_sku = $2", [sessionId, sku]);
+            await query("DELETE FROM cart_items WHERE session_id = ? AND product_sku = ?", [sessionId, sku]);
             res.json({ success: true });
         } catch (err) { res.status(500).json({ error: 'Database error' }); }
     } else {
