@@ -31,8 +31,6 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 // --- SECURITY: FORCE-OVERRIDE CSP ---
-// The error "font-src 'none'" implies a strict default is hidden somewhere (likely platform default or helmet).
-// We aggressively remove previous headers before setting our permissive one.
 app.use((req, res, next) => {
     res.removeHeader("Content-Security-Policy");
     res.removeHeader("X-Content-Security-Policy");
@@ -64,10 +62,9 @@ if (process.env.STRIPE_SECRET_KEY) {
     }
 }
 
-// --- DATABASE CONNECTION DEBUGGING ---
+// --- DATABASE CONNECTION DIAGNOSTICS ---
 let pool;
 
-// 1. Log Environment Variables (Masking sensitive data)
 console.log("--- DATABASE CONNECTION DIAGNOSTICS ---");
 console.log("DB_USER:", process.env.DB_USER ? "Set" : "Missing");
 console.log("DB_NAME:", process.env.DB_NAME ? "Set" : "Missing");
@@ -89,11 +86,10 @@ if (process.env.DB_USER && process.env.DB_NAME) {
 
     pool = new Pool(dbConfig);
 
-    // 2. Test Connection Immediately
+    // Test Connection Immediately
     pool.connect((err, client, release) => {
         if (err) {
             console.error("❌ CRITICAL DATABASE ERROR:", err.message);
-            console.error("Full Error Details:", err);
             // We set pool to null so the app knows it's offline
             pool = null; 
         } else {
@@ -173,7 +169,8 @@ app.get('/song/:id', (req, res) => {
 app.get('/merch', async (req, res) => {
     try {
         if (pool) {
-            const result = await pool.query("SELECT * FROM products WHERE type = 'merch' ORDER BY created_at DESC");
+            // FIX: Use LOWER(type) to handle Case Sensitivity (e.g. 'Merch' vs 'merch')
+            const result = await pool.query("SELECT * FROM products WHERE LOWER(type) = 'merch' ORDER BY created_at DESC");
             res.render('merch', { merch: result.rows, title: 'Merch' });
         } else {
             // FALLBACK: If DB is offline, render the mock items so page isn't empty
@@ -181,7 +178,6 @@ app.get('/merch', async (req, res) => {
         }
     } catch (err) {
         console.error("Merch Error:", err);
-        // Even if DB errors, try to render mock items
         res.render('merch', { merch: mockMerchItems, title: 'Merch (Fallback)' });
     }
 });
@@ -190,7 +186,11 @@ app.get('/merch/:id', async (req, res) => {
     try {
         let product;
         if (pool) {
-            const result = await pool.query("SELECT * FROM products WHERE id = $1 OR sku = $1", [req.params.id]);
+            // FIX: Cast ID to TEXT to prevent crash when checking against string SKUs (e.g., 'm1')
+            const result = await pool.query(
+                "SELECT * FROM products WHERE CAST(id AS TEXT) = $1 OR sku = $1", 
+                [req.params.id]
+            );
             product = result.rows[0];
         } else {
             product = mockMerchItems.find(m => m.id === req.params.id || m.sku === req.params.id);
@@ -202,6 +202,7 @@ app.get('/merch/:id', async (req, res) => {
             res.status(404).render('404', { title: 'Product Not Found' });
         }
     } catch (err) {
+        console.error("Product Page Error:", err);
         res.status(500).render('404', { title: 'Error' });
     }
 });
@@ -224,12 +225,9 @@ app.get('/checkout', (req, res) => {
     res.render('checkout_form', { title: 'Secure Checkout' });
 });
 
-// --- UPDATED SECURE CHECKOUT ---
-// Note: We deliberately throw an error if DB is missing, as requested, to debug connection issues.
 app.post('/initiate-checkout', async (req, res) => {
     const { sessionId, email, fullName, phone, password } = req.body;
 
-    // Explicit Check: Stop here if DB is not connected
     if (!pool) {
         console.error("Checkout Blocked: Database connection pool is undefined or failed to initialize.");
         return res.status(500).json({ error: "DB Offline - Cannot process secure orders." });
@@ -237,7 +235,6 @@ app.post('/initiate-checkout', async (req, res) => {
 
     try {
         let userId;
-        // Find/Create User
         const userCheck = await pool.query("SELECT id FROM users WHERE email = $1", [email]);
         if (userCheck.rows.length > 0) {
             userId = userCheck.rows[0].id;
@@ -249,7 +246,6 @@ app.post('/initiate-checkout', async (req, res) => {
             userId = newUser.rows[0].id;
         }
         
-        // Get Cart
         const cartQuery = `
             SELECT ci.quantity, p.name, p.price, p.sku, p.type, p.image_url
             FROM cart_items ci
@@ -261,7 +257,6 @@ app.post('/initiate-checkout', async (req, res) => {
 
         if (cartItems.length === 0) return res.status(400).json({ error: "Cart is empty" });
 
-        // --- CREATE STRIPE SESSION ---
         const hasPhysicalItems = cartItems.some(item => item.type === 'merch');
         
         const lineItems = cartItems.map(item => ({
@@ -298,7 +293,6 @@ app.post('/initiate-checkout', async (req, res) => {
 
         const session = await stripe.checkout.sessions.create(sessionConfig);
 
-        // Record Order
         await pool.query(
             "INSERT INTO orders (user_id, stripe_session_id, total_amount, payment_status) VALUES ($1, $2, $3, 'pending')",
             [userId, session.id, (session.amount_total / 100)]
