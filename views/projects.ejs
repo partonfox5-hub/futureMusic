@@ -47,17 +47,20 @@
             </div>
         </div>
 
-        <!-- SECTION 2: MASHUP ALBUM TRILOGY (Carousel) -->
+        <!-- SECTION 2: MASHUP ALBUM TRILOGY (Bouncing Image) -->
         <div class="glass-card rounded-xl overflow-hidden border border-gray-700">
             <div class="grid grid-cols-1 md:grid-cols-2">
-                <!-- Image Carousel -->
-                <div class="relative h-96 bg-black carousel-container">
-                    <!-- Slide 1 -->
-                    <img src="/images/album1.jpg" alt="Cavalcade of Disparity" class="carousel-slide absolute inset-0 w-full h-full object-cover opacity-100 transition-opacity duration-1000">
-                    <!-- Slide 2 -->
-                    <img src="/images/album2.jpg" alt="New Game" class="carousel-slide absolute inset-0 w-full h-full object-cover opacity-0 transition-opacity duration-1000">
-                    <!-- Slide 3 -->
-                    <img src="/images/album3.jpg" alt="The Last Testament" class="carousel-slide absolute inset-0 w-full h-full object-cover opacity-0 transition-opacity duration-1000">
+                <!-- Bouncing Image Container -->
+                <div id="mashup-container" class="relative h-96 bg-black overflow-hidden border-b md:border-b-0 md:border-r border-gray-700">
+                    <img 
+                        id="bouncing-mashup" 
+                        src="/images/mashup.png" 
+                        alt="Mashup Trilogy" 
+                        class="absolute w-32 h-32 rounded-full object-cover shadow-2xl border-2 border-[#D4AF37] z-10"
+                        style="will-change: transform;"
+                    >
+                    <!-- Optional: Subtle grid background for the container -->
+                    <div class="absolute inset-0 opacity-20" style="background-image: radial-gradient(#333 1px, transparent 1px); background-size: 20px 20px;"></div>
                 </div>
 
                 <!-- Album Bio -->
@@ -113,30 +116,77 @@
     </div>
 </section>
 
-<!-- Simple Script for Auto-Rotating Carousels -->
+<!-- Script for Bouncing Image -->
 <script>
     document.addEventListener('DOMContentLoaded', () => {
-        const carousels = document.querySelectorAll('.carousel-container');
-        
-        carousels.forEach(container => {
-            const slides = container.querySelectorAll('.carousel-slide');
-            if (slides.length < 2) return; // Don't cycle if only 1 image
-            
-            let currentIndex = 0;
-            
-            setInterval(() => {
-                // Hide current
-                slides[currentIndex].classList.remove('opacity-100');
-                slides[currentIndex].classList.add('opacity-0');
-                
-                // Calculate next
-                currentIndex = (currentIndex + 1) % slides.length;
-                
-                // Show next
-                slides[currentIndex].classList.remove('opacity-0');
-                slides[currentIndex].classList.add('opacity-100');
-            }, 4000); // Rotates every 4 seconds
-        });
+        const container = document.getElementById('mashup-container');
+        const ball = document.getElementById('bouncing-mashup');
+
+        if (container && ball) {
+            let x = 0;
+            let y = 0;
+            let dx = 1.5; // Horizontal speed (slow)
+            let dy = 1.5; // Vertical speed (slow)
+            let animationId;
+
+            // Start in the middle
+            function initPosition() {
+                const containerRect = container.getBoundingClientRect();
+                const ballRect = ball.getBoundingClientRect();
+                x = (containerRect.width - ballRect.width) / 2;
+                y = (containerRect.height - ballRect.height) / 2;
+            }
+
+            function animate() {
+                const containerRect = container.getBoundingClientRect();
+                const ballRect = ball.getBoundingClientRect();
+
+                // Update Position
+                x += dx;
+                y += dy;
+
+                // Check Horizontal Boundaries
+                if (x + ballRect.width >= containerRect.width) {
+                    x = containerRect.width - ballRect.width; // Clamp
+                    dx = -dx;
+                } else if (x <= 0) {
+                    x = 0; // Clamp
+                    dx = -dx;
+                }
+
+                // Check Vertical Boundaries
+                if (y + ballRect.height >= containerRect.height) {
+                    y = containerRect.height - ballRect.height; // Clamp
+                    dy = -dy;
+                } else if (y <= 0) {
+                    y = 0; // Clamp
+                    dy = -dy;
+                }
+
+                // Apply transform
+                ball.style.transform = `translate(${x}px, ${y}px)`;
+
+                animationId = requestAnimationFrame(animate);
+            }
+
+            // Initialize and start
+            // Wait for image to load to get correct dimensions, or just start if cached
+            if (ball.complete) {
+                initPosition();
+                animate();
+            } else {
+                ball.onload = () => {
+                    initPosition();
+                    animate();
+                };
+            }
+
+            // Handle Resize
+            window.addEventListener('resize', () => {
+                // Optional: Reset to center on resize to prevent getting stuck
+                initPosition();
+            });
+        }
     });
 </script>
 
