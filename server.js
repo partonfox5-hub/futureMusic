@@ -28,7 +28,7 @@ if (process.env.STRIPE_SECRET_KEY) {
     console.warn("⚠️ WARNING: STRIPE_SECRET_KEY is missing. Checkout will fail, but server will start.");
 }
 
-// --- DATABASE CONNECTION (SAFE MODE) ---
+// --- DATABASE CONNECTION ---
 let pool;
 if (process.env.DB_USER && process.env.DB_NAME) {
     const dbConfig = {
@@ -36,7 +36,6 @@ if (process.env.DB_USER && process.env.DB_NAME) {
         password: process.env.DB_PASSWORD,
         database: process.env.DB_NAME,
     };
-    // Cloud Run uses Unix socket, Local uses TCP
     if (process.env.INSTANCE_CONNECTION_NAME) {
         dbConfig.host = `/cloudsql/${process.env.INSTANCE_CONNECTION_NAME}`;
     } else {
@@ -44,7 +43,7 @@ if (process.env.DB_USER && process.env.DB_NAME) {
     }
     pool = new Pool(dbConfig);
 } else {
-    console.warn("⚠️ WARNING: Database credentials missing. Rights Inquiry will fail, but server will start.");
+    console.warn("⚠️ WARNING: Database credentials missing. Store functionality will be limited.");
 }
 
 // --- STORAGE CONNECTION ---
@@ -57,13 +56,6 @@ try {
 } catch (error) {
     console.error('CRITICAL: songs.json not found!');
 }
-
-// Mock Merch Data (Shared)
-const merchItems = [
-    { id: 'm1', name: 'Standard Uniform', price: 45.00, image: '/images/merch-shirt.jpg', description: 'Standard issue poly-blend. Designed for optimal conformity and durability in all sectors.' },
-    { id: 'm2', name: 'Vinyl Protocol', price: 30.00, image: '/images/merch-vinyl.jpg', description: 'High fidelity audio storage. Contains the complete auditory instructions for the current era.' },
-    { id: 'm3', name: 'Neural Patch', price: 10.00, image: '/images/merch-sticker.jpg', description: 'Adhesive emblem. Mark your possessions or yourself as property of the collective.' }
-];
 
 // --- HELPER FUNCTIONS ---
 
@@ -97,9 +89,10 @@ app.get('/about', (req, res) => res.render('about', { title: 'About' }));
 app.get('/contact', (req, res) => res.render('contact', { title: 'Contact' }));
 
 // 2. MUSIC PAGES
+// (Kept as requested: Populating from songs.json)
 app.get('/music', (req, res) => {
     if (req.query.song) return res.redirect(`/song/${req.query.song}`);
-    res.render('music', { songs: songsData });
+    res.render('music', { songs: songsData, title: 'Music' });
 });
 
 app.get('/song/:id', (req, res) => {
@@ -110,23 +103,42 @@ app.get('/song/:id', (req, res) => {
         return false;
     });
     if (song) {
-        res.render('song', { song: song });
+        res.render('song', { song: song, title: song.name });
     } else {
         res.status(404).render('404', { title: 'Signal Lost' });
     }
 });
 
 // 3. MERCH PAGES
-app.get('/merch', (req, res) => {
-    res.render('merch', { merch: merchItems, title: 'Merch' });
+// (Updated: Populating from Database)
+app.get('/merch', async (req, res) => {
+    try {
+        if (!pool) throw new Error("Database not connected");
+        
+        // Fetch only physical merch items
+        const result = await pool.query("SELECT * FROM products WHERE type = 'merch' ORDER BY created_at DESC");
+        
+        res.render('merch', { merch: result.rows, title: 'Merch' });
+    } catch (err) {
+        console.error("Merch DB Error:", err);
+        res.render('merch', { merch: [], title: 'Merch (Offline)' });
+    }
 });
 
-app.get('/merch/:id', (req, res) => {
-    const item = merchItems.find(m => m.id === req.params.id);
-    if (item) {
-        res.render('product', { product: item, title: item.name });
-    } else {
-        res.status(404).render('404', { title: 'Product Not Found' });
+app.get('/merch/:id', async (req, res) => {
+    try {
+        if (!pool) throw new Error("Database not connected");
+
+        const result = await pool.query("SELECT * FROM products WHERE id = $1", [req.params.id]);
+        
+        if (result.rows.length > 0) {
+            res.render('product', { product: result.rows[0], title: result.rows[0].name });
+        } else {
+            res.status(404).render('404', { title: 'Product Not Found' });
+        }
+    } catch (err) {
+        console.error("Product DB Error:", err);
+        res.status(500).render('404', { title: 'Error' });
     }
 });
 
@@ -139,72 +151,155 @@ app.get('/cart', (req, res) => {
     res.render('cart', { title: 'Your Inventory' });
 });
 
-// 5. API & FORM HANDLERS
+// 5. API & CART HANDLERS
+
+// Add Item to Cart (Persistent Session)
+app.post('/api/cart', async (req, res) => {
+    const { sessionId, sku, quantity } = req.body;
+    
+    if (!pool) return res.status(503).json({ error: 'Database unavailable' });
+    if (!sessionId || !sku) return res.status(400).json({ error: 'Missing session or SKU' });
+
+    try {
+        // 1. Ensure Cart Exists
+        await pool.query(
+            `INSERT INTO carts (session_id, updated_at) 
+             VALUES ($1, NOW()) 
+             ON CONFLICT (session_id) DO UPDATE SET updated_at = NOW()`,
+            [sessionId]
+        );
+
+        // 2. Add/Update Item in Cart
+        // Logic: Check if exists, if so update quantity, else insert
+        // Note: Using a simple check-then-insert/update logic for compatibility
+        const existingItem = await pool.query(
+            "SELECT * FROM cart_items WHERE session_id = $1 AND product_sku = $2",
+            [sessionId, sku]
+        );
+
+        if (existingItem.rows.length > 0) {
+            await pool.query(
+                "UPDATE cart_items SET quantity = quantity + $1 WHERE id = $2",
+                [quantity || 1, existingItem.rows[0].id]
+            );
+        } else {
+            await pool.query(
+                "INSERT INTO cart_items (session_id, product_sku, quantity) VALUES ($1, $2, $3)",
+                [sessionId, sku, quantity || 1]
+            );
+        }
+
+        res.json({ success: true });
+    } catch (err) {
+        console.error('Cart Add Error:', err);
+        res.status(500).json({ error: 'Failed to update cart' });
+    }
+});
+
+// Get Cart Items
+app.get('/api/cart/:sessionId', async (req, res) => {
+    const { sessionId } = req.params;
+    if (!pool) return res.json({ items: [] });
+
+    try {
+        // Join cart_items with products to get details
+        const query = `
+            SELECT ci.id as item_id, ci.quantity, p.* FROM cart_items ci
+            JOIN products p ON ci.product_sku = p.sku
+            WHERE ci.session_id = $1
+            ORDER BY ci.added_at DESC
+        `;
+        const result = await pool.query(query, [sessionId]);
+        res.json({ items: result.rows });
+    } catch (err) {
+        console.error('Cart Fetch Error:', err);
+        res.status(500).json({ error: 'Failed to load cart' });
+    }
+});
+
+// Remove Item from Cart
+app.delete('/api/cart', async (req, res) => {
+    const { sessionId, sku } = req.body;
+    if (!pool) return res.status(503).json({ error: 'Database unavailable' });
+
+    try {
+        await pool.query(
+            "DELETE FROM cart_items WHERE session_id = $1 AND product_sku = $2",
+            [sessionId, sku]
+        );
+        res.json({ success: true });
+    } catch (err) {
+        console.error('Cart Remove Error:', err);
+        res.status(500).json({ error: 'Failed to remove item' });
+    }
+});
 
 // Handle Rights Inquiry
 app.post('/api/inquiry', async (req, res) => {
     if (!pool) return res.status(503).json({ error: 'Database unavailable' });
 
     const { songId, rightsType, duration, usage, estimatedCost, contactEmail } = req.body;
-    if (!contactEmail || !songId) return res.status(400).json({ error: 'Missing required fields' });
-
+    
     try {
-        const createTableQuery = `
-            CREATE TABLE IF NOT EXISTS rights_inquiries (
-                id SERIAL PRIMARY KEY,
-                song_id VARCHAR(255),
-                rights_type VARCHAR(50),
-                duration VARCHAR(50),
-                usage_details TEXT,
-                estimated_cost NUMERIC,
-                contact_email VARCHAR(255),
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-        `;
-        await pool.query(createTableQuery);
-
         const insertQuery = `
             INSERT INTO rights_inquiries (song_id, rights_type, duration, usage_details, estimated_cost, contact_email)
             VALUES ($1, $2, $3, $4, $5, $6)
-            RETURNING id;
         `;
-        const values = [songId, rightsType, duration, usage, estimatedCost, contactEmail];
-        const result = await pool.query(insertQuery, values);
-
+        await pool.query(insertQuery, [songId, rightsType, duration, usage, estimatedCost, contactEmail]);
         res.json({ success: true, message: 'Inquiry received. The machine will contact you.' });
     } catch (err) {
-        console.error('Database Error:', err);
+        console.error('Inquiry Error:', err);
         res.status(500).json({ error: 'Database connection failed' });
     }
 });
 
 // Handle Stripe Checkout
 app.post('/create-checkout-session', async (req, res) => {
-    if (!stripe) return res.status(503).json({ error: 'Payment system offline (Key missing or invalid)' });
-
-    const cartItems = req.body.items;
-    const lineItems = cartItems.map(item => {
-        return {
-            price_data: {
-                currency: 'usd',
-                product_data: {
-                    name: item.name,
-                    metadata: { id: item.id, type: item.type }
-                },
-                unit_amount: Math.round(item.price * 100),
-            },
-            quantity: 1,
-        };
-    });
+    const { sessionId } = req.body;
+    
+    if (!stripe) return res.status(503).json({ error: 'Payment system offline' });
+    if (!sessionId) return res.status(400).json({ error: 'Session ID required' });
 
     try {
+        // 1. Fetch items from DB to ensure prices are correct (Security)
+        const query = `
+            SELECT ci.quantity, p.name, p.price, p.sku, p.type
+            FROM cart_items ci
+            JOIN products p ON ci.product_sku = p.sku
+            WHERE ci.session_id = $1
+        `;
+        const cartResult = await pool.query(query, [sessionId]);
+        const cartItems = cartResult.rows;
+
+        if (cartItems.length === 0) {
+            return res.status(400).json({ error: 'Cart is empty' });
+        }
+
+        const lineItems = cartItems.map(item => {
+            return {
+                price_data: {
+                    currency: 'usd',
+                    product_data: {
+                        name: item.name,
+                        metadata: { sku: item.sku, type: item.type }
+                    },
+                    unit_amount: Math.round(Number(item.price) * 100), // Ensure price is number
+                },
+                quantity: item.quantity,
+            };
+        });
+
         const session = await stripe.checkout.sessions.create({
             payment_method_types: ['card'],
             line_items: lineItems,
             mode: 'payment',
             success_url: `${DOMAIN}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
             cancel_url: `${DOMAIN}/cart`,
+            metadata: {
+                app_session_id: sessionId
+            }
         });
+
         res.json({ id: session.id });
     } catch (error) {
         console.error("Stripe Error:", error);
@@ -214,12 +309,14 @@ app.post('/create-checkout-session', async (req, res) => {
 
 app.get('/checkout/success', async (req, res) => {
     const session_id = req.query.session_id;
+    // Optional: Clear cart in DB here based on session_id
     res.render('success', { title: 'Transaction Complete', sessionId: session_id });
 });
 
 app.post('/api/get-downloads', async (req, res) => {
     const { songIds } = req.body; 
     const links = [];
+    // Note: songIds here are typically YouTube IDs based on the schema mapping
     for (const id of songIds) {
         const filename = `${id}.mp3`; 
         const url = await generateSignedUrl(filename);
