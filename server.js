@@ -4,7 +4,6 @@ const path = require('path');
 const bodyParser = require('body-parser');
 const { Storage } = require('@google-cloud/storage');
 const { Pool } = require('pg');
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 // --- CONFIGURATION ---
 const BUCKET_NAME = process.env.GCS_BUCKET_NAME || 'your-song-bucket-name';
@@ -17,25 +16,36 @@ app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// --- DATABASE CONNECTION (Cloud SQL) ---
-// Note: Ensure you have the 'pg' package installed: npm install pg
-const dbConfig = {
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-};
-
-// If running on Cloud Run, use the Unix socket. Otherwise (local), use TCP.
-if (process.env.INSTANCE_CONNECTION_NAME) {
-    dbConfig.host = `/cloudsql/${process.env.INSTANCE_CONNECTION_NAME}`;
+// --- STRIPE INIT (SAFE MODE) ---
+// Only initialize Stripe if the key is present
+let stripe;
+if (process.env.STRIPE_SECRET_KEY) {
+    stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 } else {
-    dbConfig.host = '127.0.0.1'; // Localhost for testing
+    console.warn("⚠️ WARNING: STRIPE_SECRET_KEY is missing. Checkout features will be disabled.");
 }
 
-const pool = new Pool(dbConfig);
+// --- DATABASE CONNECTION (SAFE MODE) ---
+// Only initialize DB if credentials are present
+let pool;
+if (process.env.DB_USER && process.env.DB_NAME) {
+    const dbConfig = {
+        user: process.env.DB_USER,
+        password: process.env.DB_PASSWORD,
+        database: process.env.DB_NAME,
+    };
+    // Cloud Run uses Unix socket, Local uses TCP
+    if (process.env.INSTANCE_CONNECTION_NAME) {
+        dbConfig.host = `/cloudsql/${process.env.INSTANCE_CONNECTION_NAME}`;
+    } else {
+        dbConfig.host = '127.0.0.1';
+    }
+    pool = new Pool(dbConfig);
+} else {
+    console.warn("⚠️ WARNING: DB_USER or DB_NAME missing. Rights Inquiry features will be disabled.");
+}
 
 // --- STORAGE CONNECTION ---
-// Note: Ensure you have the storage package: npm install @google-cloud/storage
 const storage = new Storage();
 
 // --- DATA LOADING ---
@@ -48,16 +58,15 @@ try {
 
 // --- HELPER FUNCTIONS ---
 
-// Generate a Signed URL for a song file
 async function generateSignedUrl(filename) {
+    if (!process.env.GCS_BUCKET_NAME) return "#"; // Fail gracefully if no bucket
+    
     const options = {
         version: 'v4',
         action: 'read',
-        expires: Date.now() + 15 * 60 * 1000, // 15 minutes
+        expires: Date.now() + 15 * 60 * 1000, 
     };
 
-    // Assumes files are named by their Spotify ID or Video ID in the bucket
-    // e.g., "5ODkke4UjAMVbN1tQckssx.mp3"
     try {
         const [url] = await storage
             .bucket(BUCKET_NAME)
@@ -65,14 +74,14 @@ async function generateSignedUrl(filename) {
             .getSignedUrl(options);
         return url;
     } catch (err) {
-        console.error("Error generating signed URL:", err);
+        console.error("Error generating signed URL:", err.message);
         return null;
     }
 }
 
 // --- ROUTES ---
 
-// 1. HOME & BASIC PAGES
+// 1. BASIC PAGES
 app.get('/', (req, res) => res.render('index', { title: 'Home' }));
 app.get('/projects', (req, res) => res.render('projects', { title: 'Projects' }));
 app.get('/about', (req, res) => res.render('about', { title: 'About' }));
@@ -94,13 +103,13 @@ app.get('/song/:id', (req, res) => {
     if (song) {
         res.render('song', { song: song });
     } else {
-        res.status(404).send('Song not found');
+        res.status(404).render('404', { title: 'Signal Lost' });
     }
 });
 
 // 3. NEW PAGES
 app.get('/merch', (req, res) => {
-    // Mock merch data - in production, this could come from a DB
+    // Mock merch data
     const merchItems = [
         { id: 'm1', name: 'Standard Uniform', price: 45.00, image: '/images/merch-shirt.jpg', description: 'Standard issue poly-blend.' },
         { id: 'm2', name: 'Vinyl Protocol', price: 30.00, image: '/images/merch-vinyl.jpg', description: 'High fidelity audio storage.' },
@@ -119,17 +128,14 @@ app.get('/cart', (req, res) => {
 
 // 4. API & FORM HANDLERS
 
-// Handle Rights Inquiry (Cloud SQL)
+// Handle Rights Inquiry
 app.post('/api/inquiry', async (req, res) => {
-    const { songId, rightsType, duration, usage, estimatedCost, contactEmail } = req.body;
+    if (!pool) return res.status(503).json({ error: 'Database unavailable (Check server logs)' });
 
-    // Simple validation
-    if (!contactEmail || !songId) {
-        return res.status(400).json({ error: 'Missing required fields' });
-    }
+    const { songId, rightsType, duration, usage, estimatedCost, contactEmail } = req.body;
+    if (!contactEmail || !songId) return res.status(400).json({ error: 'Missing required fields' });
 
     try {
-        // Create table if it doesn't exist (Move this to a migration script in production)
         const createTableQuery = `
             CREATE TABLE IF NOT EXISTS rights_inquiries (
                 id SERIAL PRIMARY KEY,
@@ -144,7 +150,6 @@ app.post('/api/inquiry', async (req, res) => {
         `;
         await pool.query(createTableQuery);
 
-        // Insert Inquiry
         const insertQuery = `
             INSERT INTO rights_inquiries (song_id, rights_type, duration, usage_details, estimated_cost, contact_email)
             VALUES ($1, $2, $3, $4, $5, $6)
@@ -153,31 +158,27 @@ app.post('/api/inquiry', async (req, res) => {
         const values = [songId, rightsType, duration, usage, estimatedCost, contactEmail];
         const result = await pool.query(insertQuery, values);
 
-        console.log(`Inquiry created with ID: ${result.rows[0].id}`);
         res.json({ success: true, message: 'Inquiry received. The machine will contact you.' });
-
     } catch (err) {
         console.error('Database Error:', err);
         res.status(500).json({ error: 'Database connection failed' });
     }
 });
 
-// Handle Stripe Checkout Creation
+// Handle Stripe Checkout
 app.post('/create-checkout-session', async (req, res) => {
-    const cartItems = req.body.items; // Array of { id, type, name, price }
+    if (!stripe) return res.status(503).json({ error: 'Payment system offline (Key missing)' });
 
+    const cartItems = req.body.items;
     const lineItems = cartItems.map(item => {
         return {
             price_data: {
                 currency: 'usd',
                 product_data: {
                     name: item.name,
-                    metadata: {
-                        id: item.id,
-                        type: item.type // 'digital' or 'merch'
-                    }
+                    metadata: { id: item.id, type: item.type }
                 },
-                unit_amount: Math.round(item.price * 100), // Stripe expects cents
+                unit_amount: Math.round(item.price * 100),
             },
             quantity: 1,
         };
@@ -191,7 +192,6 @@ app.post('/create-checkout-session', async (req, res) => {
             success_url: `${DOMAIN}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
             cancel_url: `${DOMAIN}/cart`,
         });
-
         res.json({ id: session.id });
     } catch (error) {
         console.error("Stripe Error:", error);
@@ -199,35 +199,25 @@ app.post('/create-checkout-session', async (req, res) => {
     }
 });
 
-// Checkout Success Page
 app.get('/checkout/success', async (req, res) => {
     const session_id = req.query.session_id;
-    // In a real app, verify the session with Stripe here:
-    // const session = await stripe.checkout.sessions.retrieve(session_id);
-
-    // For now, render success page. 
-    // The frontend will call /api/download-links if digital items were bought.
     res.render('success', { title: 'Transaction Complete', sessionId: session_id });
 });
 
-// Get Download Links (Post-Purchase)
-// NOTE: securely verifying purchases requires webhooks. 
-// For this simple version, we will generate links based on requested IDs.
-// IN PRODUCTION: Validate 'session_id' to ensure these items were actually paid for.
 app.post('/api/get-downloads', async (req, res) => {
     const { songIds } = req.body; 
     const links = [];
-
     for (const id of songIds) {
-        // Assuming files are stored as ID.mp3
         const filename = `${id}.mp3`; 
         const url = await generateSignedUrl(filename);
-        if (url) {
-            links.push({ id, url });
-        }
+        if (url) links.push({ id, url });
     }
-
     res.json({ links });
+});
+
+// 404 CATCH-ALL
+app.use((req, res, next) => {
+    res.status(404).render('404', { title: 'Signal Lost' });
 });
 
 const PORT = process.env.PORT || 8080;

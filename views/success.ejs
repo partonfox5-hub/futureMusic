@@ -1,0 +1,70 @@
+<%- include('partials/header') %>
+
+<section class="min-h-[70vh] flex flex-col items-center justify-center text-center px-4">
+    <div class="glass-card p-12 rounded-xl border border-[#20B2AA]/50 max-w-2xl w-full">
+        <i class="fas fa-check-circle text-6xl text-[#20B2AA] mb-6 animate-bounce"></i>
+        
+        <h1 class="text-4xl text-white brand-font mb-4">Transaction Complete</h1>
+        <p class="text-gray-400 mb-8">
+            The exchange has been verified. Your assets are being prepared for transmission.
+        </p>
+
+        <!-- Container for download links if any -->
+        <div id="downloads-section" class="hidden mb-8 text-left bg-black/40 p-6 rounded">
+            <h3 class="text-[#D4AF37] font-bold mb-4 uppercase tracking-widest border-b border-gray-700 pb-2">Digital Downlink</h3>
+            <ul id="download-list" class="space-y-3"></ul>
+        </div>
+
+        <a href="/" class="btn-gold px-8 py-3 text-lg rounded-sm inline-block">
+            Return to Base
+        </a>
+    </div>
+</section>
+
+<script src="/js/store.js"></script>
+<script>
+    // Automatically clear cart and fetch downloads on load
+    document.addEventListener('DOMContentLoaded', async () => {
+        // 1. Get items from local storage cart to know what to ask for
+        const cart = Cart.get();
+        const digitalItems = cart.filter(item => item.type === 'digital');
+
+        if (digitalItems.length > 0) {
+            const songIds = digitalItems.map(item => item.id);
+            
+            try {
+                const response = await fetch('/api/get-downloads', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ songIds })
+                });
+                
+                const data = await response.json();
+                
+                if (data.links && data.links.length > 0) {
+                    const list = document.getElementById('download-list');
+                    const section = document.getElementById('downloads-section');
+                    
+                    data.links.forEach(link => {
+                        const li = document.createElement('li');
+                        li.innerHTML = `
+                            <a href="${link.url}" target="_blank" class="flex items-center text-white hover:text-[#20B2AA] transition-colors">
+                                <i class="fas fa-download mr-3"></i>
+                                <span>Download ID: ${link.id}</span>
+                            </a>
+                        `;
+                        list.appendChild(li);
+                    });
+                    section.classList.remove('hidden');
+                }
+            } catch (err) {
+                console.error("Error fetching downloads:", err);
+            }
+        }
+
+        // 2. Clear the cart
+        Cart.clear();
+    });
+</script>
+
+<%- include('partials/footer') %>
