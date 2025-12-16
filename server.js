@@ -34,7 +34,6 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 // --- DIAGNOSTIC: IDENTITY CHECK (Run on Startup) ---
-// This prints the EXACT email Cloud Run is using to the logs.
 const options = {
     hostname: 'metadata.google.internal',
     port: 80,
@@ -118,21 +117,18 @@ if (DB_CONFIG.user && DB_CONFIG.database) {
     };
 
     // LOGIC: Choose Connection Method
+    let mode = 'Localhost';
     if (bypassHost) {
-        // METHOD A: DIRECT TCP (Bypass the broken socket)
-        console.log(`🔌 MODE: TCP BYPASS. Connecting to ${bypassHost}...`);
+        mode = 'TCP BYPASS';
         dbConfig.host = bypassHost;
         dbConfig.port = 5432;
-        // Note: For public IP connections without SSL certs, this might be needed.
-        // Ideally, you should use the socket, but since the socket is broken, we try this.
         dbConfig.ssl = { rejectUnauthorized: false }; 
     } else if (cleanConnectionName) {
-        // METHOD B: UNIX SOCKET (Standard)
-        console.log(`🔌 MODE: UNIX SOCKET. Connecting to /cloudsql/${cleanConnectionName}...`);
+        mode = 'UNIX SOCKET';
         dbConfig.host = `/cloudsql/${cleanConnectionName}`;
-    } else {
-        dbConfig.host = '127.0.0.1';
     }
+
+    console.log(`🔌 MODE: ${mode}. Connecting to ${dbConfig.host}...`);
 
     pool = new Pool(dbConfig);
 
@@ -146,28 +142,29 @@ if (DB_CONFIG.user && DB_CONFIG.database) {
         if (err) {
             console.error("❌ CONNECTION FAILED:", err.message);
             
-            // --- DIAGNOSTICS ---
+            // --- DIAGNOSTICS (Updated for robustness) ---
             let socketDiagnostic = "";
             
-            if (dbConfig.host.startsWith('/cloudsql')) {
-                // Diagnose Socket Failure
+            if (mode === 'UNIX SOCKET') {
                 try {
-                    if (fs.existsSync('/cloudsql')) {
+                    // Check if /cloudsql folder exists
+                    if (!fs.existsSync('/cloudsql')) {
+                        socketDiagnostic = "The /cloudsql folder does NOT exist. Cloud Run Connection setting is missing.";
+                    } else {
+                        // Check contents of /cloudsql folder
                         const contents = fs.readdirSync('/cloudsql');
                         if (contents.length === 0) {
-                            socketDiagnostic = "The /cloudsql folder is EMPTY. The Google Cloud Proxy failed to start.";
+                            socketDiagnostic = "The /cloudsql folder is EMPTY. The Google Cloud Proxy failed to start. (Check IAM/API)";
                         } else {
                             socketDiagnostic = `The /cloudsql folder contains: [${contents.join(', ')}]. We looked for: [${cleanConnectionName}]`;
                         }
-                    } else {
-                        socketDiagnostic = "The /cloudsql folder does NOT exist. Connection settings missing in Cloud Run.";
                     }
                 } catch (fsErr) {
-                    socketDiagnostic = "Could not read /cloudsql: " + fsErr.message;
+                    // Catch permissions errors when reading the folder
+                    socketDiagnostic = "Could not read /cloudsql due to permissions/error: " + fsErr.message;
                 }
-            } else {
-                // Diagnose TCP Failure
-                socketDiagnostic = "TCP Connection Failed. Ensure 'Public IP' is enabled on Cloud SQL and '0.0.0.0/0' is temporarily authorized.";
+            } else if (mode === 'TCP BYPASS') {
+                socketDiagnostic = "TCP Connection Failed. Ensure Public IP is enabled and the DB_HOST IP is correct.";
             }
 
             console.error("🕵️ REPORT:", socketDiagnostic);
