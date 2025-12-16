@@ -176,10 +176,14 @@ app.get('/merch/:id', async (req, res) => {
     }
 });
 
-// 4. CHECKOUT & CART PAGES
+// 4. CHECKOUT & RIGHTS PAGES
 
 app.get('/rights', (req, res) => {
     res.render('rights', { songs: songsData, title: 'Purchase Rights' });
+});
+
+app.get('/rights/confirmation', (req, res) => {
+    res.render('rights_confirmation', { title: 'Inquiry Received' });
 });
 
 app.get('/cart', (req, res) => {
@@ -188,26 +192,23 @@ app.get('/cart', (req, res) => {
 
 // --- NEW SECURE CHECKOUT FLOW ---
 
-// Step 1: Show User Info Form
 app.get('/checkout', (req, res) => {
     res.render('checkout_form', { title: 'Secure Checkout' });
 });
 
-// Step 2: Handle Form Submission & Create Session
 app.post('/initiate-checkout', async (req, res) => {
+    // ... existing checkout logic ...
     const { sessionId, email, fullName, phone, password } = req.body;
 
     if (!pool) return res.status(500).json({ error: "DB Offline - Cannot process secure orders." });
 
     try {
-        // A. CREATE OR FETCH USER
         let userId;
         const userCheck = await pool.query("SELECT id FROM users WHERE email = $1", [email]);
         
         if (userCheck.rows.length > 0) {
             userId = userCheck.rows[0].id;
         } else {
-            // Note: In a real app, hash this password with bcrypt before saving!
             const newUser = await pool.query(
                 "INSERT INTO users (email, full_name, phone, password_hash) VALUES ($1, $2, $3, $4) RETURNING id",
                 [email, fullName, phone, password] 
@@ -215,8 +216,6 @@ app.post('/initiate-checkout', async (req, res) => {
             userId = newUser.rows[0].id;
         }
 
-        // B. SECURE PRICE CALCULATION (DB LOOKUP)
-        // We do NOT trust prices sent from the frontend.
         const cartQuery = `
             SELECT ci.quantity, p.name, p.price, p.sku, p.type, p.image_url
             FROM cart_items ci
@@ -228,10 +227,8 @@ app.post('/initiate-checkout', async (req, res) => {
 
         if (cartItems.length === 0) return res.status(400).json({ error: "Cart is empty" });
 
-        // C. DETERMINE SHIPPING REQUIREMENT
         const hasPhysicalItems = cartItems.some(item => item.type === 'merch');
 
-        // D. PREPARE STRIPE LINE ITEMS
         const lineItems = cartItems.map(item => ({
             price_data: {
                 currency: 'usd',
@@ -245,10 +242,9 @@ app.post('/initiate-checkout', async (req, res) => {
             quantity: item.quantity,
         }));
 
-        // E. CREATE STRIPE SESSION
         const sessionConfig = {
             payment_method_types: ['card'],
-            customer_email: email, // Pre-fill email in Stripe
+            customer_email: email,
             line_items: lineItems,
             mode: 'payment',
             success_url: `${DOMAIN}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
@@ -259,16 +255,14 @@ app.post('/initiate-checkout', async (req, res) => {
             }
         };
 
-        // Enable shipping address collection if physical items exist
         if (hasPhysicalItems) {
             sessionConfig.shipping_address_collection = {
-                allowed_countries: ['US', 'CA', 'GB'], // Add your shipping countries
+                allowed_countries: ['US', 'CA', 'GB'],
             };
         }
 
         const session = await stripe.checkout.sessions.create(sessionConfig);
 
-        // F. RECORD INTENT IN DB
         await pool.query(
             "INSERT INTO orders (user_id, stripe_session_id, total_amount, payment_status) VALUES ($1, $2, $3, 'pending')",
             [userId, session.id, (session.amount_total / 100)]
@@ -282,7 +276,30 @@ app.post('/initiate-checkout', async (req, res) => {
     }
 });
 
-// 5. API CART HANDLERS
+// 5. API HANDLERS
+
+// Handle Rights Inquiry
+app.post('/api/inquiry', async (req, res) => {
+    const { songId, licenseType, duration, usage, email, cost } = req.body;
+
+    if (pool) {
+        try {
+            await pool.query(
+                `INSERT INTO rights_inquiries 
+                (song_id, license_type, duration, usage_details, contact_email, estimated_cost) 
+                VALUES ($1, $2, $3, $4, $5, $6)`,
+                [songId, licenseType, duration, usage, email, cost]
+            );
+            res.json({ success: true });
+        } catch (err) {
+            console.error('Inquiry DB Error:', err);
+            res.status(500).json({ error: 'Failed to save inquiry.' });
+        }
+    } else {
+        console.log("Inquiry received (DB Offline):", req.body);
+        res.json({ success: true, message: 'Inquiry received (Simulation Mode).' });
+    }
+});
 
 app.post('/api/cart', async (req, res) => {
     const { sessionId, sku, quantity } = req.body;
@@ -317,7 +334,6 @@ app.post('/api/cart', async (req, res) => {
             return res.status(500).json({ error: 'Database error' });
         }
     } else {
-        // Fallback
         if (!memoryCarts[sessionId]) memoryCarts[sessionId] = [];
         const cart = memoryCarts[sessionId];
         const existingItem = cart.find(i => i.sku === sku);
