@@ -1,6 +1,7 @@
 const express = require('express');
 const app = express();
 const path = require('path');
+const fs = require('fs'); // Added for diagnostics
 const bodyParser = require('body-parser');
 const { Storage } = require('@google-cloud/storage');
 const { Pool } = require('pg');
@@ -34,7 +35,6 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 // --- AGGRESSIVE CACHE KILLING ---
-// This ensures you ALWAYS get a fresh page with the latest errors
 app.disable('etag');
 app.disable('view cache');
 app.use((req, res, next) => {
@@ -46,7 +46,6 @@ app.use((req, res, next) => {
 });
 
 // --- CSP OVERRIDE ---
-// Making this very permissive so you don't get distracted by font errors
 app.use((req, res, next) => {
     res.removeHeader("Content-Security-Policy");
     res.removeHeader("X-Content-Security-Policy");
@@ -82,12 +81,15 @@ let pool;
 let dbConnectionStatus = "PENDING";
 let dbErrorDetail = null;
 
-// *** UPDATE CREDENTIALS HERE IF ENV VARS ARE MISSING ***
+// Clean inputs to avoid whitespace traps
+const rawConnectionName = process.env.INSTANCE_CONNECTION_NAME || '';
+const cleanConnectionName = rawConnectionName.trim();
+
 const DB_CONFIG = {
-    user: process.env.DB_USER || '',           // e.g., 'postgres'
-    password: process.env.DB_PASSWORD || '',   // e.g., 'password123'
-    database: process.env.DB_NAME || '',       // e.g., 'futuremusic_db'
-    connectionName: process.env.INSTANCE_CONNECTION_NAME // Optional: for Cloud SQL
+    user: process.env.DB_USER || '',           
+    password: process.env.DB_PASSWORD || '',   
+    database: process.env.DB_NAME || '',       
+    connectionName: cleanConnectionName 
 };
 
 // Log config status (masked)
@@ -95,7 +97,7 @@ console.log("--- DB CONFIG CHECK ---");
 console.log("User:", DB_CONFIG.user ? "SET" : "MISSING");
 console.log("Pass:", DB_CONFIG.password ? "SET" : "MISSING");
 console.log("DB Name:", DB_CONFIG.database ? "SET" : "MISSING");
-console.log("Cloud SQL:", DB_CONFIG.connectionName || "None");
+console.log("Cloud SQL Target:", DB_CONFIG.connectionName || "None");
 
 if (DB_CONFIG.user && DB_CONFIG.database) {
     const dbConfig = {
@@ -106,8 +108,6 @@ if (DB_CONFIG.user && DB_CONFIG.database) {
 
     // Cloud SQL Logic
     if (DB_CONFIG.connectionName) {
-        // NOTE: The 'host' for Cloud SQL on Cloud Run is a Unix socket path.
-        // It looks like /cloudsql/PROJECT:REGION:INSTANCE
         dbConfig.host = `/cloudsql/${DB_CONFIG.connectionName}`;
     } else {
         dbConfig.host = '127.0.0.1';
@@ -115,34 +115,42 @@ if (DB_CONFIG.user && DB_CONFIG.database) {
 
     pool = new Pool(dbConfig);
 
-    // Global Pool Error Handler
     pool.on('error', (err, client) => {
         console.error('❌ DB POOL ERROR:', err);
         dbConnectionStatus = "ERROR";
         dbErrorDetail = err.message;
     });
 
-    // Immediate Connection Test
     pool.connect((err, client, release) => {
         if (err) {
             console.error("❌ INITIAL CONNECTION FAILED:", err.message);
             
-            // --- DIAGNOSTIC HELP FOR CLOUD RUN ---
-            if ((err.code === 'ENOENT' || err.code === 'ENOTDIR') && dbConfig.host.includes('/cloudsql/')) {
-                 console.error("\n🚨 CLOUD RUN CONFIGURATION ERROR 🚨");
-                 console.error("The app cannot find the Cloud SQL socket at: " + dbConfig.host);
-                 console.error("FIX: You must add the Cloud SQL connection to your Cloud Run service.");
-                 console.error("   1. Go to Google Cloud Console -> Cloud Run");
-                 console.error("   2. Click 'Edit & Deploy New Revision'");
-                 console.error("   3. Go to 'Container, Networking, Security' -> 'Settings' tab");
-                 console.error("   4. Scroll to 'Cloud SQL connections' and click 'Add Connection'");
-                 console.error("   5. Select: " + DB_CONFIG.connectionName);
-                 console.error("   6. Redeploy.\n");
+            // --- ENHANCED DIAGNOSTICS ---
+            // If we can't connect, look at the file system to see what IS there.
+            let socketDiagnostic = "";
+            if (dbConfig.host.startsWith('/cloudsql')) {
+                try {
+                    if (fs.existsSync('/cloudsql')) {
+                        const contents = fs.readdirSync('/cloudsql');
+                        if (contents.length === 0) {
+                            socketDiagnostic = "The /cloudsql folder is EMPTY. The proxy failed to start. (Check Permissions/API)";
+                        } else {
+                            socketDiagnostic = `The /cloudsql folder contains: [${contents.join(', ')}]. We looked for: [${DB_CONFIG.connectionName}]`;
+                        }
+                    } else {
+                        socketDiagnostic = "The /cloudsql folder does NOT exist. Cloud Run Connection setting is missing.";
+                    }
+                } catch (fsErr) {
+                    socketDiagnostic = "Could not read /cloudsql: " + fsErr.message;
+                }
             }
 
+            console.error("🕵️ DIAGNOSTIC REPORT:", socketDiagnostic);
+            
+            // Update the status for the UI
             dbConnectionStatus = "FAILED";
-            dbErrorDetail = err.message;
-            // IMPORTANT: We set pool to null so logic knows to use fallback
+            dbErrorDetail = `${err.message} || DIAGNOSTIC: ${socketDiagnostic}`;
+            
             pool = null; 
         } else {
             console.log("✅ DB CONNECTED SUCCESSFULLY");
@@ -227,7 +235,6 @@ app.get('/merch', async (req, res) => {
             const result = await pool.query("SELECT * FROM products WHERE LOWER(type) = 'merch' ORDER BY created_at DESC");
             
             if (result.rows.length === 0) {
-                // DB is Connected but Empty -> Show On-Screen Error
                 res.render('merch', { 
                     merch: mockMerchItems, 
                     title: 'Merch (DB Empty)',
@@ -235,7 +242,6 @@ app.get('/merch', async (req, res) => {
                     dbStatus: "CONNECTED (EMPTY)"
                 });
             } else {
-                // SUCCESS
                 res.render('merch', { 
                     merch: result.rows, 
                     title: 'Merch',
@@ -252,7 +258,6 @@ app.get('/merch', async (req, res) => {
             });
         }
     } catch (err) {
-        // Crash Recovery
         res.render('merch', { 
             merch: mockMerchItems, 
             title: 'Merch (Crash)',
