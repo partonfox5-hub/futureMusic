@@ -2,6 +2,7 @@ const express = require('express');
 const app = express();
 const path = require('path');
 const fs = require('fs'); // Added for diagnostics
+const http = require('http'); // Added for Metadata Identity Check
 const bodyParser = require('body-parser');
 const { Storage } = require('@google-cloud/storage');
 const { Pool } = require('pg');
@@ -199,6 +200,38 @@ async function getProductBySku(sku) {
 }
 
 // --- ROUTES ---
+
+// 0. DIAGNOSTIC IDENTITY ROUTE (New)
+app.get('/debug-auth', (req, res) => {
+    const options = {
+        hostname: 'metadata.google.internal',
+        port: 80,
+        path: '/computeMetadata/v1/instance/service-accounts/default/email',
+        method: 'GET',
+        headers: { 'Metadata-Flavor': 'Google' }
+    };
+
+    const reqAuth = http.request(options, (resAuth) => {
+        let data = '';
+        resAuth.on('data', (chunk) => data += chunk);
+        resAuth.on('end', () => {
+            res.send(`
+                <h1>Identity Diagnostic</h1>
+                <p>This Cloud Run Service is running as:</p>
+                <code style="background: #eee; padding: 5px; font-size: 1.2em;">${data}</code>
+                <br><br>
+                <p><strong>ACTION:</strong> Go to IAM & Admin in Google Cloud Console. Ensure THIS exact email address has the <strong>Cloud SQL Client</strong> role.</p>
+            `);
+        });
+    });
+
+    reqAuth.on('error', (e) => {
+        res.send(`<h1>Identity Check Failed</h1><p>Could not reach Metadata Server: ${e.message}</p>`);
+    });
+
+    reqAuth.end();
+});
+
 
 // 1. BASIC PAGES
 app.get('/', (req, res) => res.render('index', { title: 'Home' }));
