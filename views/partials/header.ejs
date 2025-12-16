@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- Content Security Policy: Updated to be fully permissive for fonts and scripts -->
+    <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; script-src * 'unsafe-inline' 'unsafe-eval'; connect-src * 'unsafe-inline'; img-src * data: blob:; frame-src *; style-src * 'unsafe-inline'; font-src * data: blob:;">
+
     <link rel="icon" type="image/png" href="/images/logo.png">
 
-     <!-- Content Security Policy: Added to fix font loading errors -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' * data: blob: 'unsafe-inline' 'unsafe-eval'; script-src 'self' * 'unsafe-inline' 'unsafe-eval'; connect-src 'self' * 'unsafe-inline'; img-src 'self' * data: blob:; frame-src *; style-src 'self' * 'unsafe-inline'; font-src 'self' * data:;">
-
-    <title><%= typeof title !== 'undefined' ? title : "The Captain's Frequency" %></title>
+    <title><%= typeof title !== 'undefined' ? title : "Future Music Collective" %></title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://js.stripe.com/v3/"></script> <!-- Stripe JS -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
@@ -98,7 +99,7 @@
                     <!-- Placeholder Icon/Logo if image fails -->
                     <i class="fas fa-broadcast-tower text-3xl text-[#D4AF37] group-hover:text-white transition-colors"></i>
                     <span class="brand-font text-xl md:text-2xl font-bold tracking-widest text-white group-hover:text-[#D4AF37] transition-colors">
-                        THE CAPTAIN
+                        FUTURE MUSIC COLLECTIVE
                     </span>
                 </a>
 
