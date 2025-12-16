@@ -51,7 +51,7 @@
         <div class="glass-card rounded-xl overflow-hidden border border-gray-700">
             <div class="grid grid-cols-1 md:grid-cols-2">
                 <!-- Bouncing Image Container -->
-                <div id="mashup-container" class="relative h-96 bg-black overflow-hidden border-b md:border-b-0 md:border-r border-gray-700">
+                <div id="mashup-container" class="relative h-96 bg-black overflow-hidden border-b md:border-b-0 md:border-r border-gray-700 cursor-crosshair">
                     <img 
                         id="bouncing-mashup" 
                         src="/images/mashup.png" 
@@ -116,18 +116,22 @@
     </div>
 </section>
 
-<!-- Script for Bouncing Image -->
+<!-- Script for Interactive Bouncing Image -->
 <script>
     document.addEventListener('DOMContentLoaded', () => {
         const container = document.getElementById('mashup-container');
         const ball = document.getElementById('bouncing-mashup');
 
         if (container && ball) {
-            let x = 0;
-            let y = 0;
-            let dx = 1.5; // Horizontal speed (slow)
-            let dy = 1.5; // Vertical speed (slow)
-            let animationId;
+            let x = 0, y = 0;
+            let vx = 1.5, vy = 1.5; // Velocity
+            const friction = 0.94; // Slows down when not being pushed
+            const repulsionStrength = 0.8; 
+            const repulsionRadius = 150;
+            const maxSpeed = 8;
+            
+            let isHovering = false;
+            let mouseX = 0, mouseY = 0;
 
             // Start in the middle
             function initPosition() {
@@ -137,40 +141,109 @@
                 y = (containerRect.height - ballRect.height) / 2;
             }
 
+            // Mouse Interaction Listeners
+            container.addEventListener('mouseenter', () => {
+                isHovering = true;
+                // "Stop bouncing" effect
+                vx = 0; 
+                vy = 0;
+            });
+
+            container.addEventListener('mousemove', (e) => {
+                const rect = container.getBoundingClientRect();
+                mouseX = e.clientX - rect.left;
+                mouseY = e.clientY - rect.top;
+            });
+
+            container.addEventListener('mouseleave', () => {
+                isHovering = false;
+                // Resume bouncing in a random direction if stopped
+                const angle = Math.random() * Math.PI * 2;
+                vx = Math.cos(angle) * 1.5;
+                vy = Math.sin(angle) * 1.5;
+            });
+
             function animate() {
                 const containerRect = container.getBoundingClientRect();
                 const ballRect = ball.getBoundingClientRect();
+                const ballW = ballRect.width;
+                const ballH = ballRect.height;
+                const maxW = containerRect.width - ballW;
+                const maxH = containerRect.height - ballH;
 
-                // Update Position
-                x += dx;
-                y += dy;
+                if (isHovering) {
+                    // --- AVOIDANCE MODE ---
+                    
+                    // Apply Friction first
+                    vx *= friction;
+                    vy *= friction;
 
-                // Check Horizontal Boundaries
-                if (x + ballRect.width >= containerRect.width) {
-                    x = containerRect.width - ballRect.width; // Clamp
-                    dx = -dx;
-                } else if (x <= 0) {
-                    x = 0; // Clamp
-                    dx = -dx;
+                    // Calculate center of ball
+                    const cx = x + ballW / 2;
+                    const cy = y + ballH / 2;
+
+                    // Vector from mouse to ball center
+                    const dx = cx - mouseX;
+                    const dy = cy - mouseY;
+                    const dist = Math.sqrt(dx*dx + dy*dy);
+
+                    // If mouse is within range, push ball away
+                    if (dist < repulsionRadius) {
+                        const force = (repulsionRadius - dist) / repulsionRadius; // 0 to 1
+                        const angle = Math.atan2(dy, dx);
+                        
+                        vx += Math.cos(angle) * force * repulsionStrength;
+                        vy += Math.sin(angle) * force * repulsionStrength;
+                    }
+
+                    // Limit speed
+                    const currentSpeed = Math.sqrt(vx*vx + vy*vy);
+                    if (currentSpeed > maxSpeed) {
+                        vx = (vx / currentSpeed) * maxSpeed;
+                        vy = (vy / currentSpeed) * maxSpeed;
+                    }
+
+                    // Move
+                    x += vx;
+                    y += vy;
+
+                    // Wall Collisions (Stop at wall)
+                    if (x <= 0) { x = 0; vx = 0; }
+                    if (x >= maxW) { x = maxW; vx = 0; }
+                    if (y <= 0) { y = 0; vy = 0; }
+                    if (y >= maxH) { y = maxH; vy = 0; }
+
+                } else {
+                    // --- BOUNCE MODE ---
+                    x += vx;
+                    y += vy;
+
+                    // Bounce off walls
+                    if (x <= 0) { x = 0; vx = -vx; }
+                    if (x >= maxW) { x = maxW; vx = -vx; }
+                    if (y <= 0) { y = 0; vy = -vy; }
+                    if (y >= maxH) { y = maxH; vy = -vy; }
+
+                    // Maintain Constant Speed (approx 2.1 units/frame total)
+                    // If it slowed down too much during transition or float point errors
+                    const speed = Math.sqrt(vx*vx + vy*vy);
+                    const targetSpeed = 2.1; // roughly sqrt(1.5^2 + 1.5^2)
+                    
+                    if (speed < 0.1) {
+                         // kickstart if dead stopped
+                        vx = 1.5; vy = 1.5;
+                    } else if (Math.abs(speed - targetSpeed) > 0.1) {
+                        const scale = targetSpeed / speed;
+                        vx *= scale;
+                        vy *= scale;
+                    }
                 }
 
-                // Check Vertical Boundaries
-                if (y + ballRect.height >= containerRect.height) {
-                    y = containerRect.height - ballRect.height; // Clamp
-                    dy = -dy;
-                } else if (y <= 0) {
-                    y = 0; // Clamp
-                    dy = -dy;
-                }
-
-                // Apply transform
                 ball.style.transform = `translate(${x}px, ${y}px)`;
-
-                animationId = requestAnimationFrame(animate);
+                requestAnimationFrame(animate);
             }
 
-            // Initialize and start
-            // Wait for image to load to get correct dimensions, or just start if cached
+            // Init
             if (ball.complete) {
                 initPosition();
                 animate();
@@ -180,11 +253,14 @@
                     animate();
                 };
             }
-
+            
             // Handle Resize
             window.addEventListener('resize', () => {
-                // Optional: Reset to center on resize to prevent getting stuck
-                initPosition();
+                const containerRect = container.getBoundingClientRect();
+                const ballRect = ball.getBoundingClientRect();
+                // Ensure ball stays in bounds after resize
+                if (x > containerRect.width - ballRect.width) x = containerRect.width - ballRect.width;
+                if (y > containerRect.height - ballRect.height) y = containerRect.height - ballRect.height;
             });
         }
     });
