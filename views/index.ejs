@@ -1,10 +1,11 @@
 <%- include('partials/header') %>
 
 <!-- HERO SECTION -->
-<section id="hero-section" class="min-h-[85vh] flex flex-col items-center justify-center text-center relative overflow-hidden perspective-1000 bg-gray-900">
+<section id="hero-section" class="min-h-[85vh] flex flex-col items-center justify-center text-center relative overflow-hidden perspective-1000 bg-black">
     
-    <!-- PARTICLE CANVAS BACKGROUND -->
-    <canvas id="gold-particle-canvas" class="absolute inset-0 w-full h-full z-0 pointer-events-none"></canvas>
+    <!-- COSMIC CANVAS BACKGROUND -->
+    <!-- Changed bg-gray-900 to bg-black for better contrast with stars -->
+    <canvas id="cosmic-canvas" class="absolute inset-0 w-full h-full z-0 pointer-events-none"></canvas>
 
     <!-- MAIN CONTENT CONTAINER -->
     <div class="max-w-6xl mx-auto relative z-10 pointer-events-auto px-4">
@@ -28,7 +29,7 @@
         
         <!-- SUBTEXT & BUTTONS -->
         <div class="flex flex-col items-center">
-            <p class="text-gray-300 text-lg md:text-xl max-w-2xl mx-auto mb-12 leading-relaxed drop-shadow-md bg-black/20 backdrop-blur-sm rounded-lg p-4">
+            <p class="text-gray-300 text-lg md:text-xl max-w-2xl mx-auto mb-12 leading-relaxed drop-shadow-md bg-black/40 backdrop-blur-sm rounded-lg p-4 border border-white/5">
                 Wordplay into the embrace of richer mindhood and such things as that 
             </p>
 
@@ -127,30 +128,27 @@
                     <h4 class="font-bold text-gray-200">Vinyl</h4>
                 </div>
             </div>
-            <button class="inline-block mt-4 text-[#D4AF37] border-b border-[#D4AF37] pb-1 hover:text-white transition-colors" onclick="alert('Store module loading...')">
+            <a href="/merch" class="inline-block mt-4 text-[#D4AF37] border-b border-[#D4AF37] pb-1 hover:text-white transition-colors">
                 ENTER SHOP &rarr;
-            </button>
+            </a>
         </div>
     </div>
 </section>
 
 <script>
-    // --- GOLDEN PARTICLE NETWORK SYSTEM ---
+    // --- COSMIC VOID PARTICLE SYSTEM ---
     (function() {
-        const canvas = document.getElementById('gold-particle-canvas');
+        const canvas = document.getElementById('cosmic-canvas');
         const ctx = canvas.getContext('2d');
         
         let width, height;
-        let particles = [];
+        let stars = [];
+        let planets = [];
+        let shootingStar = null;
         
-        // Configuration
-        const particleCount = 100; // Adjust for density
-        const connectionDistance = 150; // Distance to draw lines
-        const mouseDistance = 200; // Mouse interaction radius
-
         // Mouse tracking
-        let mouse = { x: null, y: null };
-        
+        let mouse = { x: -9999, y: -9999 };
+
         window.addEventListener('mousemove', (e) => {
             const rect = canvas.getBoundingClientRect();
             mouse.x = e.clientX - rect.left;
@@ -163,95 +161,216 @@
             if(canvas.parentElement) {
                 width = canvas.width = canvas.parentElement.offsetWidth;
                 height = canvas.height = canvas.parentElement.offsetHeight;
+                initStars(); // Re-initialize stars on resize to fill new space
             }
         }
 
-        class Particle {
+        // --- CLASSES ---
+
+        class Star {
             constructor() {
                 this.x = Math.random() * width;
                 this.y = Math.random() * height;
-                this.vx = (Math.random() - 0.5) * 0.5; // Slow horizontal drift
-                this.vy = (Math.random() - 0.5) * 0.5; // Slow vertical drift
-                this.size = Math.random() * 2 + 1; // Size variance
-                // Gold color palette variations
-                const alpha = Math.random() * 0.5 + 0.2;
-                this.color = `rgba(212, 175, 55, ${alpha})`; 
+                this.size = Math.random() * 1.5; // Very small, distant stars
+                this.baseAlpha = Math.random() * 0.6 + 0.1; // Varied brightness
+                this.currentAlpha = this.baseAlpha;
+                
+                // Twinkle properties
+                this.twinkleSpeed = Math.random() * 0.05 + 0.02;
+                this.twinkleOffset = Math.random() * Math.PI * 2;
+                
+                // Color: Mostly white, rare chance of Gold or Cyan
+                const rand = Math.random();
+                if (rand > 0.95) this.color = '#D4AF37'; // Gold
+                else if (rand > 0.90) this.color = '#20B2AA'; // Eye Teal
+                else this.color = '#FFFFFF';
+            }
+
+            update(time) {
+                // Base Twinkle (Natural)
+                let oscillation = Math.sin(time * this.twinkleSpeed + this.twinkleOffset);
+                this.currentAlpha = this.baseAlpha + (oscillation * 0.1);
+
+                // Mouse Interaction (Active Twinkle)
+                const dx = this.x - mouse.x;
+                const dy = this.y - mouse.y;
+                const dist = Math.sqrt(dx*dx + dy*dy);
+                const interactionRange = 150;
+
+                if (dist < interactionRange) {
+                    // Normalize distance (0 to 1, 1 being closest)
+                    const intensity = 1 - (dist / interactionRange);
+                    // Increase brightness and flicker speed significantly near mouse
+                    this.currentAlpha += intensity * 0.8;
+                    // Add a jitter to position for "excited" state? No, keep it subtle.
+                    // Just purely alpha manipulation
+                }
+
+                // Clamp Alpha
+                if (this.currentAlpha < 0) this.currentAlpha = 0;
+                if (this.currentAlpha > 1) this.currentAlpha = 1;
+            }
+
+            draw() {
+                ctx.globalAlpha = this.currentAlpha;
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.globalAlpha = 1.0;
+            }
+        }
+
+        class Planet {
+            constructor() {
+                this.radius = Math.random() * 30 + 10; // 10 to 40px
+                this.x = Math.random() * width;
+                this.y = Math.random() * height;
+                this.color = Math.random() > 0.5 ? '#111' : '#0a0a0a'; // Very dark, barely visible
+                this.speedX = (Math.random() - 0.5) * 0.05; // Extremely slow parallax
+                this.speedY = (Math.random() - 0.5) * 0.05;
+                
+                // Rim light color
+                this.rimColor = Math.random() > 0.5 ? 'rgba(212, 175, 55, 0.1)' : 'rgba(32, 178, 170, 0.1)';
             }
 
             update() {
-                this.x += this.vx;
-                this.y += this.vy;
+                this.x += this.speedX;
+                this.y += this.speedY;
 
-                // Bounce off edges
-                if (this.x < 0 || this.x > width) this.vx *= -1;
-                if (this.y < 0 || this.y > height) this.vy *= -1;
+                // Wrap around screen
+                if (this.x > width + this.radius) this.x = -this.radius;
+                if (this.x < -this.radius) this.x = width + this.radius;
+                if (this.y > height + this.radius) this.y = -this.radius;
+                if (this.y < -this.radius) this.y = height + this.radius;
+            }
 
-                // Mouse Interaction (Push away slightly)
-                if (mouse.x != null) {
-                    let dx = mouse.x - this.x;
-                    let dy = mouse.y - this.y;
-                    let distance = Math.sqrt(dx*dx + dy*dy);
-                    if (distance < mouseDistance) {
-                        const forceDirectionX = dx / distance;
-                        const forceDirectionY = dy / distance;
-                        const force = (mouseDistance - distance) / mouseDistance;
-                        const directionX = forceDirectionX * force * 1; // Push strength
-                        const directionY = forceDirectionY * force * 1;
-                        this.x -= directionX;
-                        this.y -= directionY;
+            draw() {
+                // Draw Planet Body (Silhouette)
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+
+                // Draw Rim Light (Subtle atmosphere)
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.strokeStyle = this.rimColor;
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+        }
+
+        class ShootingStar {
+            constructor() {
+                this.reset();
+            }
+
+            reset() {
+                this.x = Math.random() * width;
+                this.y = Math.random() * height * 0.5; // Start in top half
+                this.len = Math.random() * 80 + 10;
+                this.speed = Math.random() * 10 + 6;
+                this.size = Math.random() * 1 + 0.1;
+                // Angle: Mostly falling down-right or down-left
+                this.angle = Math.PI / 4 + (Math.random() * 0.2); 
+                
+                this.waitTime = new Date().getTime() + Math.random() * 3000 + 1000;
+                this.active = false;
+            }
+
+            update() {
+                if (this.active) {
+                    this.x += this.speed * Math.cos(this.angle);
+                    this.y += this.speed * Math.sin(this.angle);
+                    
+                    // Reset if out of bounds
+                    if (this.x > width + this.len || this.y > height + this.len) {
+                        this.active = false;
+                        this.waitTime = new Date().getTime() + Math.random() * 5000; // Random delay before next one
+                    }
+                } else {
+                    if (new Date().getTime() > this.waitTime) {
+                        this.active = true;
+                        // Start slightly off screen
+                        this.x = Math.random() * width * 0.8; 
+                        this.y = -50; 
                     }
                 }
             }
 
             draw() {
+                if (!this.active) return;
+
+                const tailX = this.x - this.len * Math.cos(this.angle);
+                const tailY = this.y - this.len * Math.sin(this.angle);
+
+                const gradient = ctx.createLinearGradient(this.x, this.y, tailX, tailY);
+                gradient.addColorStop(0, "rgba(255, 255, 255, 1)");
+                gradient.addColorStop(1, "rgba(255, 255, 255, 0)");
+
+                ctx.lineWidth = this.size;
                 ctx.beginPath();
-                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-                ctx.fillStyle = this.color;
-                ctx.fill();
+                ctx.moveTo(this.x, this.y);
+                ctx.lineTo(tailX, tailY);
+                ctx.strokeStyle = gradient;
+                ctx.stroke();
+            }
+        }
+
+        // --- INITIALIZATION ---
+
+        function initStars() {
+            stars = [];
+            // Create a dense field
+            const starCount = Math.floor((width * height) / 3000); // Responsive density
+            for (let i = 0; i < starCount; i++) {
+                stars.push(new Star());
             }
         }
 
         function init() {
             resize();
-            particles = [];
-            for (let i = 0; i < particleCount; i++) {
-                particles.push(new Particle());
-            }
+            
+            // Create Planets (Background layer)
+            planets = [];
+            for(let i=0; i<3; i++) planets.push(new Planet());
+
+            // Create Shooting Star Controller
+            shootingStar = new ShootingStar();
+
             animate();
         }
 
         function animate() {
+            const time = Date.now() * 0.001;
+            
             ctx.clearRect(0, 0, width, height);
             
-            for (let i = 0; i < particles.length; i++) {
-                particles[i].update();
-                particles[i].draw();
+            // 1. Draw Planets (Behind stars)
+            planets.forEach(p => {
+                p.update();
+                p.draw();
+            });
 
-                // Draw connections
-                for (let j = i; j < particles.length; j++) {
-                    let dx = particles[i].x - particles[j].x;
-                    let dy = particles[i].y - particles[j].y;
-                    let distance = Math.sqrt(dx * dx + dy * dy);
+            // 2. Draw Stars
+            stars.forEach(star => {
+                star.update(time);
+                star.draw();
+            });
 
-                    if (distance < connectionDistance) {
-                        ctx.beginPath();
-                        // Opacity based on distance (closer = clearer)
-                        let opacity = 1 - (distance / connectionDistance);
-                        ctx.strokeStyle = `rgba(212, 175, 55, ${opacity * 0.4})`; 
-                        ctx.lineWidth = 1;
-                        ctx.moveTo(particles[i].x, particles[i].y);
-                        ctx.lineTo(particles[j].x, particles[j].y);
-                        ctx.stroke();
-                    }
-                }
+            // 3. Draw Shooting Star (Top layer)
+            if (shootingStar) {
+                shootingStar.update();
+                shootingStar.draw();
             }
+            
             requestAnimationFrame(animate);
         }
 
-        // Wait for load to ensure parent dimensions are available
         window.addEventListener('load', init);
-        // Fallback init in case load already fired
-        init();
+        // Fallback
+        setTimeout(init, 100);
     })();
 </script>
 
