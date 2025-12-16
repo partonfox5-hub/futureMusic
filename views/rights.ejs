@@ -27,10 +27,10 @@
                 <div>
                     <label class="block text-[#20B2AA] mb-2 uppercase tracking-wider font-bold">License Type</label>
                     <select id="rights-type" class="w-full bg-black/50 border border-gray-700 text-white p-3 rounded focus:border-[#D4AF37] outline-none">
-                        <option value="100">Standard Sync (Web/Social)</option>
-                        <option value="500">Commercial Broadcast</option>
-                        <option value="1000">Film/TV Feature</option>
-                        <option value="5000">Exclusive Ownership</option>
+                        <option value="250">Standard Sync (Web/Social)</option>
+                        <option value="1500">Commercial Broadcast</option>
+                        <option value="5000">Film/TV Feature</option>
+                        <option value="25000">Exclusive Ownership</option>
                     </select>
                 </div>
 
@@ -38,7 +38,8 @@
                 <div>
                     <label class="block text-[#20B2AA] mb-2 uppercase tracking-wider font-bold">Duration</label>
                     <select id="duration" class="w-full bg-black/50 border border-gray-700 text-white p-3 rounded focus:border-[#D4AF37] outline-none">
-                        <option value="1">1 Year</option>
+                        <option value="0.5">One Time Use</option>
+                        <option value="1" selected>1 Year</option>
                         <option value="2">2 Years</option>
                         <option value="5">5 Years</option>
                         <option value="99">Perpetuity</option>
@@ -84,7 +85,11 @@
     
     function calculate() {
         const base = parseInt(typeSelect.value);
-        const mult = parseInt(durSelect.value) === 99 ? 3 : parseInt(durSelect.value);
+        const rawDur = parseFloat(durSelect.value); // Changed to parseFloat to handle 0.5
+        
+        // If 99 (Perpetuity), use 5x multiplier (increased from 3x)
+        const mult = rawDur === 99 ? 5 : rawDur;
+        
         const total = base * mult;
         costDisplay.innerText = '$' + total.toFixed(2);
         return total.toFixed(2);
