@@ -1,0 +1,96 @@
+<%- include('partials/header') %>
+
+<section class="max-w-4xl mx-auto py-12">
+    <div class="text-center mb-12">
+        <h1 class="text-4xl md:text-5xl text-gold brand-font mb-4">Acquire Sonic Rights</h1>
+        <p class="text-gray-400">Calculate licensing costs for commercial use and submit your inquiry to the database.</p>
+    </div>
+
+    <div class="glass-card p-8 rounded-lg shadow-2xl border border-[#D4AF37]/30">
+        <form id="rights-form" class="space-y-6">
+            
+            <!-- Song Selection -->
+            <div>
+                <label class="block text-[#20B2AA] mb-2 uppercase tracking-wider font-bold">Select Transmission</label>
+                <select id="song-select" class="w-full bg-black/50 border border-gray-700 text-white p-3 rounded focus:border-[#D4AF37] outline-none">
+                    <option value="" disabled selected>-- Choose a Song --</option>
+                    <% songs.forEach(function(song) { 
+                        const id = (song.youtube_info && song.youtube_info.video_id) ? song.youtube_info.video_id : song.spotify_id;
+                    %>
+                        <option value="<%= id %>"><%= song.name %></option>
+                    <% }); %>
+                </select>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Rights Type -->
+                <div>
+                    <label class="block text-[#20B2AA] mb-2 uppercase tracking-wider font-bold">License Type</label>
+                    <select id="rights-type" class="w-full bg-black/50 border border-gray-700 text-white p-3 rounded focus:border-[#D4AF37] outline-none">
+                        <option value="100">Standard Sync (Web/Social)</option>
+                        <option value="500">Commercial Broadcast</option>
+                        <option value="1000">Film/TV Feature</option>
+                        <option value="5000">Exclusive Ownership</option>
+                    </select>
+                </div>
+
+                <!-- Duration -->
+                <div>
+                    <label class="block text-[#20B2AA] mb-2 uppercase tracking-wider font-bold">Duration</label>
+                    <select id="duration" class="w-full bg-black/50 border border-gray-700 text-white p-3 rounded focus:border-[#D4AF37] outline-none">
+                        <option value="1">1 Year</option>
+                        <option value="2">2 Years</option>
+                        <option value="5">5 Years</option>
+                        <option value="99">Perpetuity</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Usage Details -->
+            <div>
+                <label class="block text-[#20B2AA] mb-2 uppercase tracking-wider font-bold">Intended Usage Details</label>
+                <textarea id="usage" rows="3" class="w-full bg-black/50 border border-gray-700 text-white p-3 rounded focus:border-[#D4AF37] outline-none" placeholder="Describe how the asset will be utilized..."></textarea>
+            </div>
+
+            <!-- Email -->
+            <div>
+                <label class="block text-[#20B2AA] mb-2 uppercase tracking-wider font-bold">Contact Frequency (Email)</label>
+                <input type="email" id="contact-email" class="w-full bg-black/50 border border-gray-700 text-white p-3 rounded focus:border-[#D4AF37] outline-none" placeholder="you@example.com" required>
+            </div>
+
+            <!-- Live Calculator -->
+            <div class="border-t border-gray-700 pt-6 mt-6">
+                <div class="flex justify-between items-center text-2xl font-bold">
+                    <span class="text-gray-400">Estimated Cost:</span>
+                    <span id="total-cost" class="text-[#D4AF37]">$0.00</span>
+                </div>
+            </div>
+
+            <button type="submit" class="w-full btn-gold py-4 text-xl mt-4 shadow-[0_0_15px_rgba(212,175,55,0.4)]">
+                SUBMIT INQUIRY
+            </button>
+        </form>
+        <div id="form-message" class="mt-4 text-center hidden"></div>
+    </div>
+</section>
+
+<script src="/js/store.js"></script>
+<script>
+    // Specific logic for the calculator
+    const typeSelect = document.getElementById('rights-type');
+    const durSelect = document.getElementById('duration');
+    const costDisplay = document.getElementById('total-cost');
+    
+    function calculate() {
+        const base = parseInt(typeSelect.value);
+        const mult = parseInt(durSelect.value) === 99 ? 3 : parseInt(durSelect.value);
+        const total = base * mult;
+        costDisplay.innerText = '$' + total.toFixed(2);
+    }
+
+    typeSelect.addEventListener('change', calculate);
+    durSelect.addEventListener('change', calculate);
+    calculate(); // Init
+</script>
+
+<%- include('partials/footer') %>

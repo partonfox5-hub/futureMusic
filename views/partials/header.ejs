@@ -3,12 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    
-    <!-- ADDED: Favicon Link (Uses your logo.png) -->
     <link rel="icon" type="image/png" href="/images/logo.png">
 
-    <title>The Captain's Frequency</title>
+    <title><%= typeof title !== 'undefined' ? title : "The Captain's Frequency" %></title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://js.stripe.com/v3/"></script> <!-- Stripe JS -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Raleway:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
@@ -81,6 +80,8 @@
             overflow: hidden;
             border: none;
             cursor: pointer;
+            padding: 0.5rem 1.5rem;
+            border-radius: 0.25rem;
         }
 
         .btn-gold:hover {
@@ -102,9 +103,8 @@
         }
 
         /* Nav & Scroll */
+        .nav-link { padding: 8px 0; }
         .nav-link:hover { color: var(--gold-primary); }
-        /* ADDED: Ensure nav links have consistent vertical spacing (padding) to match the button */
-        .nav-link { padding: 8px 0; } 
         
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: var(--void-black); }
@@ -122,14 +122,23 @@
             transform: translateY(-5px);
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
-        
-        /* Eye Animation */
-        .eye-iris { animation: lookAround 5s infinite; transform-origin: center; }
-        @keyframes lookAround {
-            0%, 100% { transform: translate(0,0); }
-            25% { transform: translate(2px, 0); }
-            50% { transform: translate(0, 2px); }
-            75% { transform: translate(-2px, -1px); }
+
+        /* Cart Badge */
+        .cart-badge {
+            position: absolute;
+            top: -5px;
+            right: -10px;
+            background: var(--eye-teal);
+            color: black;
+            font-size: 0.7rem;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            box-shadow: 0 0 5px var(--eye-teal);
         }
     </style>
 </head>
@@ -138,41 +147,45 @@
     <!-- Background -->
     <div class="psych-bg"></div>
 
-    <!-- Navigation -->
     <nav class="fixed w-full z-50 bg-black/90 border-b border-yellow-700/50 backdrop-blur-md">
         <div class="container mx-auto px-6 py-4">
             <div class="flex justify-between items-center">
-                <!-- Logo Area (Corrected to be an image, not a link to a file) -->
                 <a href="/" class="flex items-center space-x-3 cursor-pointer no-underline">
-                    <img src="/images/logo.png" alt="Mystic One Logo" class="h-10 w-auto">
+                    <img src="/images/logo.png" alt="Logo" class="h-10 w-auto">
                     <span class="text-xl font-bold tracking-widest text-gold brand-font hidden sm:block">FUTURE MUSIC COLLECTIVE</span>
                 </a>
 
-                <!-- Desktop Menu -->
-                <!-- ADDED items-center to ensure vertical alignment of links and button -->
-                <div class="hidden md:flex space-x-8 items-center">
+                <div class="hidden md:flex space-x-6 items-center">
                     <a href="/" class="nav-link text-gray-300 font-semibold tracking-wider uppercase text-sm">Home</a>
                     <a href="/music" class="nav-link text-gray-300 font-semibold tracking-wider uppercase text-sm">Music</a>
+                    <a href="/rights" class="nav-link text-gray-300 font-semibold tracking-wider uppercase text-sm">Rights</a>
+                    <a href="/merch" class="nav-link text-gray-300 font-semibold tracking-wider uppercase text-sm">Merch</a>
                     <a href="/projects" class="nav-link text-gray-300 font-semibold tracking-wider uppercase text-sm">Projects</a>
                     <a href="/about" class="nav-link text-gray-300 font-semibold tracking-wider uppercase text-sm">About</a>
-                    <!-- Button needs no change, its explicit padding handles its height -->
-                    <a href="/contact" class="px-4 py-2 border border-[#D4AF37] text-[#D4AF37] hover:bg-[#D4AF37] hover:text-black transition-all text-sm uppercase font-bold rounded-sm">Contact</a>
+                    
+                    <!-- Cart Icon -->
+                    <a href="/cart" class="relative text-[#D4AF37] hover:text-white transition-colors ml-4">
+                        <i class="fas fa-shopping-cart text-xl"></i>
+                        <span id="cart-count" class="cart-badge hidden">0</span>
+                    </a>
+
+                    <a href="/contact" class="ml-4 px-4 py-2 border border-[#D4AF37] text-[#D4AF37] hover:bg-[#D4AF37] hover:text-black transition-all text-sm uppercase font-bold rounded-sm">Contact</a>
                 </div>
 
-                <!-- Mobile Menu Button -->
                 <button class="md:hidden text-[#D4AF37]" onclick="document.getElementById('mobile-menu').classList.toggle('hidden')">
                     <i class="fas fa-bars text-2xl"></i>
                 </button>
             </div>
         </div>
         
-        <!-- Mobile Menu Dropdown -->
         <div id="mobile-menu" class="hidden md:hidden bg-black border-t border-yellow-700/30">
             <div class="flex flex-col p-4 space-y-4 text-center">
                 <a href="/" class="text-gray-300 hover:text-[#D4AF37]">HOME</a>
                 <a href="/music" class="text-gray-300 hover:text-[#D4AF37]">MUSIC</a>
+                <a href="/rights" class="text-gray-300 hover:text-[#D4AF37]">RIGHTS</a>
+                <a href="/merch" class="text-gray-300 hover:text-[#D4AF37]">MERCH</a>
                 <a href="/projects" class="text-gray-300 hover:text-[#D4AF37]">PROJECTS</a>
-                <a href="/about" class="text-gray-300 hover:text-[#D4AF37]">ABOUT</a>
+                <a href="/cart" class="text-[#D4AF37]">CART</a>
                 <a href="/contact" class="text-[#D4AF37]">CONTACT</a>
             </div>
         </div>
