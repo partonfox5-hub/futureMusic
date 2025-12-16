@@ -1,6 +1,35 @@
 <%- include('partials/header') %>
 
 <section class="max-w-6xl mx-auto py-12 px-4">
+    
+    <!-- ON-SCREEN DEBUGGER (Visible if DB fails) -->
+    <% if (typeof debugError !== 'undefined' && debugError) { %>
+        <div class="bg-red-900/90 border border-red-500 text-white p-6 rounded-xl mb-12 shadow-2xl relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-1 h-full bg-red-500"></div>
+            <h3 class="text-xl font-bold mb-2 flex items-center gap-2">
+                <span>⚠️</span> SYSTEM DIAGNOSTIC: CONNECTION FAILURE
+            </h3>
+            <div class="space-y-2 font-mono text-sm opacity-90">
+                <p><strong class="text-red-300">STATUS:</strong> <%= typeof dbStatus !== 'undefined' ? dbStatus : 'UNKNOWN' %></p>
+                <p><strong class="text-red-300">ERROR:</strong> <%= debugError %></p>
+                <hr class="border-red-500/50 my-2">
+                <p class="text-xs italic">
+                    <% if (debugError.includes('password authentication')) { %>
+                        <strong>FIX:</strong> Your DB_PASSWORD is incorrect. Check your environment variables.
+                    <% } else if (debugError.includes('does not exist')) { %>
+                        <strong>FIX:</strong> Your DB_NAME is incorrect. Check your environment variables.
+                    <% } else if (debugError.includes('ENOENT')) { %>
+                        <strong>FIX:</strong> Cloud SQL Connection string is missing or Cloud SQL Auth Proxy is not running.
+                    <% } else if (typeof dbStatus !== 'undefined' && dbStatus === 'CONFIG_MISSING') { %>
+                        <strong>FIX:</strong> Environment variables (DB_USER, DB_NAME) are not set on the server.
+                    <% } else { %>
+                        <strong>FIX:</strong> Check server logs for full stack trace.
+                    <% } %>
+                </p>
+            </div>
+        </div>
+    <% } %>
+
     <h1 class="text-4xl md:text-6xl text-center mb-16 text-gold brand-font">Physical Assets</h1>
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">

@@ -5,6 +5,9 @@ const bodyParser = require('body-parser');
 const { Storage } = require('@google-cloud/storage');
 const { Pool } = require('pg');
 
+// Try loading .env if available (fixes local issues)
+try { require('dotenv').config(); } catch (e) { /* dotenv not installed */ }
+
 // --- CONFIGURATION ---
 const BUCKET_NAME = process.env.GCS_BUCKET_NAME || 'your-song-bucket-name';
 const DOMAIN = process.env.DOMAIN || 'http://localhost:8080';
@@ -30,7 +33,19 @@ const memoryCarts = {};
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// --- SECURITY: FORCE-OVERRIDE CSP ---
+// --- AGGRESSIVE CACHE KILLING ---
+// This ensures you ALWAYS get a fresh page with the latest errors
+app.disable('etag');
+app.disable('view cache');
+app.use((req, res, next) => {
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+    res.set('Surrogate-Control', 'no-store');
+    next();
+});
+
+// --- CSP OVERRIDE ---
 // Making this very permissive so you don't get distracted by font errors
 app.use((req, res, next) => {
     res.removeHeader("Content-Security-Policy");
@@ -67,38 +82,45 @@ let pool;
 let dbConnectionStatus = "PENDING";
 let dbErrorDetail = null;
 
-// 1. Capture Environment State
-const envStatus = {
-    User: process.env.DB_USER ? "Set" : "MISSING",
-    Pass: process.env.DB_PASSWORD ? "Set" : "MISSING",
-    Name: process.env.DB_NAME ? "Set" : "MISSING",
-    CloudSQL: process.env.INSTANCE_CONNECTION_NAME ? process.env.INSTANCE_CONNECTION_NAME : "Local/None"
+// *** UPDATE CREDENTIALS HERE IF ENV VARS ARE MISSING ***
+const DB_CONFIG = {
+    user: process.env.DB_USER || '',           // e.g., 'postgres'
+    password: process.env.DB_PASSWORD || '',   // e.g., 'password123'
+    database: process.env.DB_NAME || '',       // e.g., 'futuremusic_db'
+    connectionName: process.env.INSTANCE_CONNECTION_NAME // Optional: for Cloud SQL
 };
 
-if (process.env.DB_USER && process.env.DB_NAME) {
+// Log config status (masked)
+console.log("--- DB CONFIG CHECK ---");
+console.log("User:", DB_CONFIG.user ? "SET" : "MISSING");
+console.log("Pass:", DB_CONFIG.password ? "SET" : "MISSING");
+console.log("DB Name:", DB_CONFIG.database ? "SET" : "MISSING");
+console.log("Cloud SQL:", DB_CONFIG.connectionName || "None");
+
+if (DB_CONFIG.user && DB_CONFIG.database) {
     const dbConfig = {
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
+        user: DB_CONFIG.user,
+        password: DB_CONFIG.password,
+        database: DB_CONFIG.database,
     };
 
     // Cloud SQL Logic
-    if (process.env.INSTANCE_CONNECTION_NAME) {
-        dbConfig.host = `/cloudsql/${process.env.INSTANCE_CONNECTION_NAME}`;
+    if (DB_CONFIG.connectionName) {
+        dbConfig.host = `/cloudsql/${DB_CONFIG.connectionName}`;
     } else {
         dbConfig.host = '127.0.0.1';
     }
 
     pool = new Pool(dbConfig);
 
-    // 2. Global Pool Error Handler
+    // Global Pool Error Handler
     pool.on('error', (err, client) => {
         console.error('❌ DB POOL ERROR:', err);
         dbConnectionStatus = "ERROR";
         dbErrorDetail = err.message;
     });
 
-    // 3. Immediate Connection Test
+    // Immediate Connection Test
     pool.connect((err, client, release) => {
         if (err) {
             console.error("❌ INITIAL CONNECTION FAILED:", err.message);
@@ -115,36 +137,13 @@ if (process.env.DB_USER && process.env.DB_NAME) {
 
 } else {
     dbConnectionStatus = "CONFIG_MISSING";
-    dbErrorDetail = "Environment variables (DB_USER/DB_NAME) are not set.";
+    dbErrorDetail = "Environment variables (DB_USER, DB_NAME, etc) are missing.";
 }
 
 // --- HELPER FUNCTIONS ---
 
-function setDebugHeaders(res) {
-    // These headers will appear in your Browser Network Tab
-    const safeHeader = (val) => String(val).replace(/[^\x20-\x7E]/g, '').substring(0, 200);
-
-    res.setHeader('X-Debug-DB-Status', safeHeader(dbConnectionStatus));
-    
-    // Pass Env Check (Masked)
-    res.setHeader('X-Debug-Env-User', envStatus.User);
-    res.setHeader('X-Debug-Env-CloudSQL', safeHeader(envStatus.CloudSQL));
-
-    if (dbErrorDetail) {
-        res.setHeader('X-Debug-DB-Error', safeHeader(dbErrorDetail));
-        
-        // Suggest fixes based on common errors
-        if (dbErrorDetail.includes('ENOENT') && dbErrorDetail.includes('/cloudsql/')) {
-            res.setHeader('X-Debug-Suggestion', 'Cloud Run Service likely missing Cloud SQL connection setting.');
-        } else if (dbErrorDetail.includes('password authentication failed')) {
-            res.setHeader('X-Debug-Suggestion', 'Check DB_PASSWORD. It might be wrong.');
-        } else if (dbErrorDetail.includes('does not exist')) {
-            res.setHeader('X-Debug-Suggestion', 'Check DB_NAME. The database name is wrong.');
-        }
-    }
-}
-
 async function getProductBySku(sku) {
+    // 1. Try DB
     if (pool) {
         try {
             const res = await pool.query("SELECT * FROM products WHERE sku = $1", [sku]);
@@ -152,9 +151,11 @@ async function getProductBySku(sku) {
         } catch (e) { console.error("DB Error fetching product:", e); }
     }
     
+    // 2. Fallback: Check Merch
     const merch = mockMerchItems.find(m => m.sku === sku || m.id === sku);
     if (merch) return merch;
 
+    // 3. Fallback: Check Songs
     const song = songsData.find(s => 
         (s.youtube_info && s.youtube_info.video_id === sku) || 
         s.spotify_id === sku
@@ -202,39 +203,54 @@ app.get('/song/:id', (req, res) => {
     }
 });
 
-// 3. MERCH PAGES
+// 3. MERCH PAGES (With On-Screen Debugging)
 app.get('/merch', async (req, res) => {
-    setDebugHeaders(res); // <--- Inject debug info into headers
-
     try {
         if (pool) {
-            // Updated query to handle casing issues
+            // FIX 1: Use LOWER(type) to handle Case Sensitivity
             const result = await pool.query("SELECT * FROM products WHERE LOWER(type) = 'merch' ORDER BY created_at DESC");
             
             if (result.rows.length === 0) {
-                // If DB is empty, use Mock Data but warn in headers
-                res.setHeader('X-Debug-Warning', 'DB Connected but returned 0 items.');
-                res.render('merch', { merch: mockMerchItems, title: 'Merch (DB Empty)' });
+                // DB is Connected but Empty -> Show On-Screen Error
+                res.render('merch', { 
+                    merch: mockMerchItems, 
+                    title: 'Merch (DB Empty)',
+                    debugError: "Database connected, but 0 products found with type='merch'. Check your table data.",
+                    dbStatus: "CONNECTED (EMPTY)"
+                });
             } else {
-                res.render('merch', { merch: result.rows, title: 'Merch' });
+                // SUCCESS
+                res.render('merch', { 
+                    merch: result.rows, 
+                    title: 'Merch',
+                    debugError: null 
+                });
             }
         } else {
-            // DB is offline/failed -> Render Mock Data
-            res.render('merch', { merch: mockMerchItems, title: 'Merch (Offline Mode)' });
+            // DB is Offline/Failed -> Show On-Screen Error
+            res.render('merch', { 
+                merch: mockMerchItems, 
+                title: 'Merch (Offline Mode)',
+                debugError: dbErrorDetail || "Unknown Database Error", 
+                dbStatus: dbConnectionStatus
+            });
         }
     } catch (err) {
-        console.error("Route Error:", err);
-        res.setHeader('X-Debug-Route-Crash', err.message);
-        res.render('merch', { merch: mockMerchItems, title: 'Merch (Crash Fallback)' });
+        // Crash Recovery
+        res.render('merch', { 
+            merch: mockMerchItems, 
+            title: 'Merch (Crash)',
+            debugError: err.message,
+            dbStatus: "CRASHED"
+        });
     }
 });
 
 app.get('/merch/:id', async (req, res) => {
-    setDebugHeaders(res);
     try {
         let product;
         if (pool) {
-            // Corrected query to prevent integer crash
+            // FIX 2: Cast ID to TEXT to prevent crash with string SKUs
             const query = "SELECT * FROM products WHERE CAST(id AS TEXT) = $1 OR sku = $1";
             const result = await pool.query(query, [req.params.id]);
             product = result.rows[0];
@@ -248,7 +264,7 @@ app.get('/merch/:id', async (req, res) => {
             res.status(404).render('404', { title: 'Product Not Found' });
         }
     } catch (err) {
-        res.setHeader('X-Debug-Route-Crash', err.message);
+        console.error("Product Page Error:", err);
         res.status(500).render('404', { title: 'Error' });
     }
 });
@@ -272,11 +288,10 @@ app.get('/checkout', (req, res) => {
 });
 
 app.post('/initiate-checkout', async (req, res) => {
-    setDebugHeaders(res);
     const { sessionId, email, fullName, phone, password } = req.body;
 
     if (!pool) {
-        return res.status(500).json({ error: "DB Offline - Cannot process secure orders. Check X-Debug-DB-Error header." });
+        return res.status(500).json({ error: "DB Offline - Cannot process secure orders." });
     }
 
     try {
