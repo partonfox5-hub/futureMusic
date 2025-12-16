@@ -30,9 +30,13 @@ const memoryCarts = {};
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// --- SECURITY: ULTRA-PERMISSIVE CSP (Fixes Font/Script Blocking) ---
-// We are setting a very open policy to ensure external resources (Stripe, Tailwind, Google Fonts) load correctly.
+// --- SECURITY: FORCE-OVERRIDE CSP ---
+// The error "font-src 'none'" implies a strict default is hidden somewhere (likely platform default or helmet).
+// We aggressively remove previous headers before setting our permissive one.
 app.use((req, res, next) => {
+    res.removeHeader("Content-Security-Policy");
+    res.removeHeader("X-Content-Security-Policy");
+    
     res.setHeader(
         "Content-Security-Policy",
         "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; " +
