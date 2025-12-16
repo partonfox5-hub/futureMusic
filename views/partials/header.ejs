@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" type="image/png" href="/images/logo.png">
 
+     <!-- Content Security Policy: Added to fix font loading errors -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' * data: blob: 'unsafe-inline' 'unsafe-eval'; script-src 'self' * 'unsafe-inline' 'unsafe-eval'; connect-src 'self' * 'unsafe-inline'; img-src 'self' * data: blob:; frame-src *; style-src 'self' * 'unsafe-inline'; font-src 'self' * data:;">
+
     <title><%= typeof title !== 'undefined' ? title : "The Captain's Frequency" %></title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://js.stripe.com/v3/"></script> <!-- Stripe JS -->
@@ -22,51 +25,21 @@
         body {
             font-family: 'Raleway', sans-serif;
             background-color: var(--void-black);
-            color: #fff;
-            overflow-x: hidden;
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
+            color: white;
         }
 
-        h1, h2, h3, .brand-font {
+        .brand-font {
             font-family: 'Cinzel', serif;
         }
 
-        /* The Psychedelic Background Animation */
-        .psych-bg {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            z-index: -1;
-            background: 
-                radial-gradient(circle at 50% 50%, rgba(0,0,0,0.8), rgba(0,0,0,0.95)),
-                conic-gradient(from 0deg, #ff0000, #ff8a00, #ffe500, #008026, #004dff, #760188, #ff0000);
-            background-size: 200% 200%;
-            filter: blur(40px);
-            opacity: 0.4;
-            animation: spin-psychedelic 20s linear infinite;
-        }
-
-        @keyframes spin-psychedelic {
-            0% { transform: scale(1.5) rotate(0deg); }
-            50% { transform: scale(1.8) rotate(180deg); }
-            100% { transform: scale(1.5) rotate(360deg); }
-        }
-
-        /* Gold Metallic Effect Text */
-        .text-gold {
-            background: linear-gradient(to bottom, var(--gold-light), var(--gold-primary), var(--gold-dark));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            text-shadow: 0px 2px 4px rgba(0,0,0,0.5);
-        }
-
-        .border-gold {
-            border-color: var(--gold-primary);
-            box-shadow: 0 0 15px rgba(212, 175, 55, 0.3);
+        .text-gold { color: var(--gold-primary); }
+        .bg-gold { background-color: var(--gold-primary); }
+        
+        .glass-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(212, 175, 55, 0.1);
         }
 
         .btn-gold {
@@ -74,97 +47,75 @@
             color: black;
             font-weight: bold;
             text-transform: uppercase;
-            letter-spacing: 2px;
+            letter-spacing: 1px;
             transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-            border: none;
-            cursor: pointer;
-            padding: 0.5rem 1.5rem;
-            border-radius: 0.25rem;
-        }
-
-        .btn-gold:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 0 20px var(--gold-primary);
         }
         
+        .btn-gold:hover {
+            background: linear-gradient(45deg, var(--gold-primary), var(--gold-light));
+            transform: translateY(-2px);
+            box-shadow: 0 0 15px rgba(212, 175, 55, 0.4);
+        }
+
         .btn-outline {
             border: 1px solid var(--gold-primary);
             color: var(--gold-primary);
-            text-transform: uppercase;
-            letter-spacing: 2px;
             transition: all 0.3s ease;
         }
-        
+
         .btn-outline:hover {
-            background: rgba(212, 175, 55, 0.1);
-            color: #fff;
-        }
-
-        /* Nav & Scroll */
-        .nav-link { padding: 8px 0; }
-        .nav-link:hover { color: var(--gold-primary); }
-        
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: var(--void-black); }
-        ::-webkit-scrollbar-thumb { background: var(--gold-dark); border-radius: 4px; }
-
-        /* Card Hover Effects */
-        .glass-card {
-            background: rgba(10, 10, 10, 0.8);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(212, 175, 55, 0.2);
-            transition: all 0.4s ease;
-        }
-        .glass-card:hover {
-            border-color: var(--gold-primary);
-            transform: translateY(-5px);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            background: var(--gold-primary);
+            color: black;
         }
 
         /* Cart Badge */
         .cart-badge {
             position: absolute;
-            top: -5px;
-            right: -10px;
-            background: var(--eye-teal);
+            top: -8px;
+            right: -8px;
+            background-color: var(--eye-teal);
             color: black;
             font-size: 0.7rem;
-            border-radius: 50%;
+            font-weight: bold;
             width: 18px;
             height: 18px;
+            border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-weight: bold;
-            box-shadow: 0 0 5px var(--eye-teal);
         }
     </style>
 </head>
-<body>
+<body class="flex flex-col min-h-screen">
 
-    <!-- Background -->
-    <div class="psych-bg"></div>
-
-    <nav class="fixed w-full z-50 bg-black/90 border-b border-yellow-700/50 backdrop-blur-md">
-        <div class="container mx-auto px-6 py-4">
-            <div class="flex justify-between items-center">
-                <a href="/" class="flex items-center space-x-3 cursor-pointer no-underline">
-                    <img src="/images/logo.png" alt="Logo" class="h-10 w-auto">
-                    <span class="text-xl font-bold tracking-widest text-gold brand-font hidden sm:block">FUTURE MUSIC COLLECTIVE</span>
+    <!-- NAVIGATION -->
+    <nav class="fixed w-full z-50 transition-all duration-300 bg-black/90 backdrop-blur-md border-b border-yellow-700/30">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-20 items-center">
+                
+                <!-- Logo -->
+                <a href="/" class="flex items-center space-x-3 group">
+                    <!-- Placeholder Icon/Logo if image fails -->
+                    <i class="fas fa-broadcast-tower text-3xl text-[#D4AF37] group-hover:text-white transition-colors"></i>
+                    <span class="brand-font text-xl md:text-2xl font-bold tracking-widest text-white group-hover:text-[#D4AF37] transition-colors">
+                        THE CAPTAIN
+                    </span>
                 </a>
 
-                <div class="hidden md:flex space-x-6 items-center">
-                    <a href="/" class="nav-link text-gray-300 font-semibold tracking-wider uppercase text-sm">Home</a>
-                    <a href="/music" class="nav-link text-gray-300 font-semibold tracking-wider uppercase text-sm">Music</a>
-                    <a href="/rights" class="nav-link text-gray-300 font-semibold tracking-wider uppercase text-sm">Rights</a>
-                    <a href="/merch" class="nav-link text-gray-300 font-semibold tracking-wider uppercase text-sm">Merch</a>
-                    <a href="/projects" class="nav-link text-gray-300 font-semibold tracking-wider uppercase text-sm">Projects</a>
-                    <a href="/about" class="nav-link text-gray-300 font-semibold tracking-wider uppercase text-sm">About</a>
-                    
-                    <!-- Cart Icon -->
-                    <a href="/cart" class="relative text-[#D4AF37] hover:text-white transition-colors ml-4">
+                <!-- Desktop Menu -->
+                <div class="hidden md:flex items-center space-x-8">
+                    <a href="/" class="text-gray-300 hover:text-[#D4AF37] transition-colors text-sm uppercase font-bold tracking-widest">Home</a>
+                    <a href="/music" class="text-gray-300 hover:text-[#D4AF37] transition-colors text-sm uppercase font-bold tracking-widest">Music</a>
+                    <a href="/rights" class="text-gray-300 hover:text-[#D4AF37] transition-colors text-sm uppercase font-bold tracking-widest">Rights</a>
+                    <a href="/merch" class="text-gray-300 hover:text-[#D4AF37] transition-colors text-sm uppercase font-bold tracking-widest">Merch</a>
+                    <a href="/projects" class="text-gray-300 hover:text-[#D4AF37] transition-colors text-sm uppercase font-bold tracking-widest">Projects</a>
+                    <!-- NEW ADVOCACY LINK -->
+                    <a href="/advocacy" class="text-gray-300 hover:text-[#D4AF37] transition-colors text-sm uppercase font-bold tracking-widest">Advocacy</a>
+                </div>
+
+                <!-- Right Side: Cart & Contact -->
+                <div class="flex items-center space-x-6">
+                    <a href="/cart" class="relative text-gray-300 hover:text-[#D4AF37] transition-colors">
                         <i class="fas fa-shopping-cart text-xl"></i>
                         <span id="cart-count" class="cart-badge hidden">0</span>
                     </a>
@@ -185,10 +136,9 @@
                 <a href="/rights" class="text-gray-300 hover:text-[#D4AF37]">RIGHTS</a>
                 <a href="/merch" class="text-gray-300 hover:text-[#D4AF37]">MERCH</a>
                 <a href="/projects" class="text-gray-300 hover:text-[#D4AF37]">PROJECTS</a>
-                <a href="/cart" class="text-[#D4AF37]">CART</a>
-                <a href="/contact" class="text-[#D4AF37]">CONTACT</a>
+                <!-- NEW MOBILE ADVOCACY LINK -->
+                <a href="/advocacy" class="text-gray-300 hover:text-[#D4AF37]">ADVOCACY</a>
+                <a href="/contact" class="text-[#D4AF37] font-bold">CONTACT</a>
             </div>
         </div>
     </nav>
-    
-    <main class="flex-grow pt-24 px-4 sm:px-6 relative z-10">

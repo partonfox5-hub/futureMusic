@@ -324,6 +324,8 @@ app.post('/api/get-downloads', async (req, res) => {
     }
     res.json({ links });
 });
+app.get('/advocacy', (req, res) => res.render('advocacy', { title: 'The Platform' }));
+
 
 // 404 CATCH-ALL
 app.use((req, res, next) => {

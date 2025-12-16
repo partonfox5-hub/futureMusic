@@ -1,0 +1,86 @@
+<%- include('partials/header') %>
+
+<section class="min-h-screen bg-black text-white pt-32 pb-20 px-4 relative overflow-hidden">
+    
+    <!-- Decorative Background Element -->
+    <div class="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-full pointer-events-none opacity-20">
+        <div class="w-full h-[500px] bg-gradient-to-b from-[#D4AF37] to-transparent rounded-full blur-[120px]"></div>
+    </div>
+
+    <div class="max-w-4xl mx-auto relative z-10">
+        
+        <!-- Header -->
+        <div class="text-center mb-16">
+            <h1 class="text-5xl md:text-7xl font-black text-[#D4AF37] mb-6 brand-font tracking-tighter">THE PLATFORM</h1>
+            <p class="text-xl text-gray-400 max-w-2xl mx-auto leading-relaxed">
+                The frequency isn't just about sound; it's about structure. Here are the pillars of advocacy and the directives for the new era.
+            </p>
+        </div>
+
+        <!-- Agenda Grid -->
+        <div class="space-y-12">
+
+            <!-- Agenda Item 1 -->
+            <div class="glass-card p-8 md:p-12 rounded-xl border-l-4 border-[#D4AF37] hover:bg-white/5 transition-colors duration-500">
+                <div class="flex flex-col md:flex-row gap-6 items-start">
+                    <div class="bg-[#D4AF37]/10 p-4 rounded-full text-[#D4AF37]">
+                        <i class="fas fa-balance-scale text-3xl"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-3xl font-bold text-white mb-4 brand-font">Algorithmic Transparency</h2>
+                        <p class="text-gray-300 leading-relaxed text-lg">
+                            We advocate for the complete declassification of recommendation algorithms that govern artistic discovery. The machine must be audited. Creators deserve to know the logic behind the distribution of their work.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Agenda Item 2 -->
+            <div class="glass-card p-8 md:p-12 rounded-xl border-l-4 border-[#20B2AA] hover:bg-white/5 transition-colors duration-500">
+                <div class="flex flex-col md:flex-row gap-6 items-start">
+                    <div class="bg-[#20B2AA]/10 p-4 rounded-full text-[#20B2AA]">
+                        <i class="fas fa-hand-holding-dollar text-3xl"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-3xl font-bold text-white mb-4 brand-font">Sonic Sovereignty</h2>
+                        <p class="text-gray-300 leading-relaxed text-lg">
+                            Intellectual property rights must evolve. We propose a decentralized ledger for immediate, transparent royalty distribution, bypassing the gatekeepers who siphon value from the signal.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Agenda Item 3 -->
+            <div class="glass-card p-8 md:p-12 rounded-xl border-l-4 border-[#F4C430] hover:bg-white/5 transition-colors duration-500">
+                <div class="flex flex-col md:flex-row gap-6 items-start">
+                    <div class="bg-[#F4C430]/10 p-4 rounded-full text-[#F4C430]">
+                        <i class="fas fa-globe text-3xl"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-3xl font-bold text-white mb-4 brand-font">The Open Channel</h2>
+                        <p class="text-gray-300 leading-relaxed text-lg">
+                            Preserving the neutrality of the network is paramount. We stand against throttling, censorship, and prioritized data packets. The frequency must remain open for all transmitters.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Call to Action -->
+        <div class="mt-20 text-center">
+            <h3 class="text-2xl text-white font-bold mb-6">Align with the Movement</h3>
+            <div class="flex flex-col md:flex-row justify-center gap-4">
+                <a href="/contact" class="btn-gold px-8 py-4 rounded text-lg shadow-[0_0_20px_rgba(212,175,55,0.3)]">
+                    Join the Mailing List
+                </a>
+                <a href="/merch" class="btn-outline px-8 py-4 rounded text-lg">
+                    Wear the Badge
+                </a>
+            </div>
+        </div>
+
+    </div>
+</section>
+
+<%- include('partials/footer') %>
