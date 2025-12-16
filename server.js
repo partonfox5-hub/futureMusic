@@ -30,18 +30,18 @@ const memoryCarts = {};
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// --- SECURITY: PERMISSIVE CSP (FIX FOR TAILWIND/FONTS) ---
-// Explicitly allowing the required domains to fix the 'font-src' and 'script-src' errors
+// --- SECURITY: ULTRA-PERMISSIVE CSP (Fixes Font/Script Blocking) ---
+// We are setting a very open policy to ensure external resources (Stripe, Tailwind, Google Fonts) load correctly.
 app.use((req, res, next) => {
     res.setHeader(
         "Content-Security-Policy",
         "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; " +
-        "script-src * 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://js.stripe.com https://m.stripe.network; " +
-        "style-src * 'unsafe-inline' https://fonts.googleapis.com; " +
-        "font-src * 'unsafe-inline' data: blob: https://fonts.gstatic.com; " +
-        "img-src * data: blob:; " +
-        "frame-src * https://js.stripe.com https://hooks.stripe.com; " +
-        "connect-src * https://api.stripe.com;"
+        "script-src * 'unsafe-inline' 'unsafe-eval'; " + 
+        "style-src * 'unsafe-inline'; " +
+        "font-src * 'unsafe-inline' data: blob:; " +
+        "img-src * 'unsafe-inline' data: blob:; " +
+        "connect-src * 'unsafe-inline'; " +
+        "frame-src *;"
     );
     next();
 });
@@ -60,39 +60,64 @@ if (process.env.STRIPE_SECRET_KEY) {
     }
 }
 
-// --- DATABASE CONNECTION ---
+// --- DATABASE CONNECTION DEBUGGING ---
 let pool;
+
+// 1. Log Environment Variables (Masking sensitive data)
+console.log("--- DATABASE CONNECTION DIAGNOSTICS ---");
+console.log("DB_USER:", process.env.DB_USER ? "Set" : "Missing");
+console.log("DB_NAME:", process.env.DB_NAME ? "Set" : "Missing");
+console.log("INSTANCE_CONNECTION_NAME:", process.env.INSTANCE_CONNECTION_NAME ? process.env.INSTANCE_CONNECTION_NAME : "Missing (Using Localhost)");
+
 if (process.env.DB_USER && process.env.DB_NAME) {
     const dbConfig = {
         user: process.env.DB_USER,
         password: process.env.DB_PASSWORD,
         database: process.env.DB_NAME,
     };
+
+    // Google Cloud SQL specific configuration
     if (process.env.INSTANCE_CONNECTION_NAME) {
         dbConfig.host = `/cloudsql/${process.env.INSTANCE_CONNECTION_NAME}`;
     } else {
         dbConfig.host = '127.0.0.1';
     }
+
     pool = new Pool(dbConfig);
-    console.log("Connected to PostgreSQL Database.");
+
+    // 2. Test Connection Immediately
+    pool.connect((err, client, release) => {
+        if (err) {
+            console.error("❌ CRITICAL DATABASE ERROR:", err.message);
+            console.error("Full Error Details:", err);
+            // We set pool to null so the app knows it's offline
+            pool = null; 
+        } else {
+            console.log("✅ SUCCESS: Connected to PostgreSQL Database.");
+            release();
+        }
+    });
+
 } else {
-    console.warn("⚠️ DATABASE NOT CONNECTED: Running in FALLBACK MODE (In-Memory).");
+    console.warn("⚠️ DATABASE CONFIG MISSING: Environment variables not set. Check your app.yaml or .env file.");
 }
 
 // --- HELPER FUNCTIONS ---
 
-// Helper to look up product (DB or Fallback)
 async function getProductBySku(sku) {
+    // 1. Try DB
     if (pool) {
-        const res = await pool.query("SELECT * FROM products WHERE sku = $1", [sku]);
-        return res.rows[0];
+        try {
+            const res = await pool.query("SELECT * FROM products WHERE sku = $1", [sku]);
+            if (res.rows.length > 0) return res.rows[0];
+        } catch (e) { console.error("DB Error fetching product:", e); }
     }
     
-    // Fallback: Check Merch
+    // 2. Fallback: Check Merch
     const merch = mockMerchItems.find(m => m.sku === sku || m.id === sku);
     if (merch) return merch;
 
-    // Fallback: Check Songs (songs.json)
+    // 3. Fallback: Check Songs
     const song = songsData.find(s => 
         (s.youtube_info && s.youtube_info.video_id === sku) || 
         s.spotify_id === sku
@@ -147,11 +172,13 @@ app.get('/merch', async (req, res) => {
             const result = await pool.query("SELECT * FROM products WHERE type = 'merch' ORDER BY created_at DESC");
             res.render('merch', { merch: result.rows, title: 'Merch' });
         } else {
+            // FALLBACK: If DB is offline, render the mock items so page isn't empty
             res.render('merch', { merch: mockMerchItems, title: 'Merch (Offline)' });
         }
     } catch (err) {
         console.error("Merch Error:", err);
-        res.render('merch', { merch: [], title: 'Merch (Error)' });
+        // Even if DB errors, try to render mock items
+        res.render('merch', { merch: mockMerchItems, title: 'Merch (Fallback)' });
     }
 });
 
@@ -171,7 +198,6 @@ app.get('/merch/:id', async (req, res) => {
             res.status(404).render('404', { title: 'Product Not Found' });
         }
     } catch (err) {
-        console.error("Product DB Error:", err);
         res.status(500).render('404', { title: 'Error' });
     }
 });
@@ -190,22 +216,25 @@ app.get('/cart', (req, res) => {
     res.render('cart', { title: 'Your Inventory' });
 });
 
-// --- NEW SECURE CHECKOUT FLOW ---
-
 app.get('/checkout', (req, res) => {
     res.render('checkout_form', { title: 'Secure Checkout' });
 });
 
+// --- UPDATED SECURE CHECKOUT ---
+// Note: We deliberately throw an error if DB is missing, as requested, to debug connection issues.
 app.post('/initiate-checkout', async (req, res) => {
-    // ... existing checkout logic ...
     const { sessionId, email, fullName, phone, password } = req.body;
 
-    if (!pool) return res.status(500).json({ error: "DB Offline - Cannot process secure orders." });
+    // Explicit Check: Stop here if DB is not connected
+    if (!pool) {
+        console.error("Checkout Blocked: Database connection pool is undefined or failed to initialize.");
+        return res.status(500).json({ error: "DB Offline - Cannot process secure orders." });
+    }
 
     try {
         let userId;
+        // Find/Create User
         const userCheck = await pool.query("SELECT id FROM users WHERE email = $1", [email]);
-        
         if (userCheck.rows.length > 0) {
             userId = userCheck.rows[0].id;
         } else {
@@ -215,7 +244,8 @@ app.post('/initiate-checkout', async (req, res) => {
             );
             userId = newUser.rows[0].id;
         }
-
+        
+        // Get Cart
         const cartQuery = `
             SELECT ci.quantity, p.name, p.price, p.sku, p.type, p.image_url
             FROM cart_items ci
@@ -227,8 +257,9 @@ app.post('/initiate-checkout', async (req, res) => {
 
         if (cartItems.length === 0) return res.status(400).json({ error: "Cart is empty" });
 
+        // --- CREATE STRIPE SESSION ---
         const hasPhysicalItems = cartItems.some(item => item.type === 'merch');
-
+        
         const lineItems = cartItems.map(item => ({
             price_data: {
                 currency: 'usd',
@@ -263,6 +294,7 @@ app.post('/initiate-checkout', async (req, res) => {
 
         const session = await stripe.checkout.sessions.create(sessionConfig);
 
+        // Record Order
         await pool.query(
             "INSERT INTO orders (user_id, stripe_session_id, total_amount, payment_status) VALUES ($1, $2, $3, 'pending')",
             [userId, session.id, (session.amount_total / 100)]
@@ -271,14 +303,13 @@ app.post('/initiate-checkout', async (req, res) => {
         res.json({ id: session.id });
 
     } catch (err) {
-        console.error("Checkout Error:", err);
-        res.status(500).json({ error: "Checkout initialization failed: " + err.message });
+        console.error("Checkout / DB Error:", err);
+        res.status(500).json({ error: "Checkout failed: " + err.message });
     }
 });
 
 // 5. API HANDLERS
 
-// Handle Rights Inquiry
 app.post('/api/inquiry', async (req, res) => {
     const { songId, licenseType, duration, usage, email, cost } = req.body;
 
@@ -292,7 +323,6 @@ app.post('/api/inquiry', async (req, res) => {
             );
             res.json({ success: true });
         } catch (err) {
-            console.error('Inquiry DB Error:', err);
             res.status(500).json({ error: 'Failed to save inquiry.' });
         }
     } else {
@@ -369,7 +399,6 @@ app.get('/api/cart/:sessionId', async (req, res) => {
             const result = await pool.query(query, [sessionId]);
             res.json({ items: result.rows });
         } catch (err) {
-            console.error('Cart Fetch Error:', err);
             res.status(500).json({ error: 'Failed to load cart' });
         }
     } else {
