@@ -15,9 +15,12 @@
                 <label class="text-[10px] uppercase text-[#D4AF37] tracking-widest font-bold mb-1">Type</label>
                 <select name="type" onchange="this.form.submit()" class="bg-black/50 text-white text-sm border border-gray-600 rounded px-3 py-2 outline-none focus:border-[#D4AF37]">
                     <option value="all" <%= (!query.type || query.type === 'all') ? 'selected' : '' %>>All Classes</option>
-                    <option value="Apparel" <%= query.type === 'Apparel' ? 'selected' : '' %>>Apparel</option>
-                    <option value="Music" <%= query.type === 'Music' ? 'selected' : '' %>>Music (Physical)</option>
-                    <option value="Accessory" <%= query.type === 'Accessory' ? 'selected' : '' %>>Accessories</option>
+                    <option value="T-Shirts" <%= query.type === 'T-Shirts' ? 'selected' : '' %>>T-Shirts</option>
+                    <option value="Hoodies" <%= query.type === 'Hoodies' ? 'selected' : '' %>>Hoodies & Sweatshirts</option>
+                    <option value="Long Sleeves" <%= query.type === 'Long Sleeves' ? 'selected' : '' %>>Long Sleeves</option>
+                    <option value="Bottoms" <%= query.type === 'Bottoms' ? 'selected' : '' %>>Bottoms</option>
+                    <option value="Accessories" <%= query.type === 'Accessories' ? 'selected' : '' %>>Accessories</option>
+                    <option value="Apparel" <%= query.type === 'Apparel' ? 'selected' : '' %>>Other Apparel</option>
                 </select>
             </div>
 
@@ -61,10 +64,13 @@
                         </div>
 
                         <a href="/merch/<%= item.id %>" class="flex-grow">
-                            <h3 class="text-xl font-bold text-white mb-2 group-hover:text-[#D4AF37] transition-colors"><%= item.name %></h3>
+                            <!-- Clean Name: Automatically remove 'Copy of' from display -->
+                            <h3 class="text-xl font-bold text-white mb-2 group-hover:text-[#D4AF37] transition-colors">
+                                <%= item.name.replace(/^Copy of\s+/i, '') %>
+                            </h3>
                         </a>
                         
-                        <!-- Strip HTML tags for cleaner preview using regex replace -->
+                        <!-- Strip HTML tags for cleaner preview -->
                         <p class="text-gray-400 text-sm mb-6 line-clamp-2">
                             <%= item.description ? item.description.replace(/<[^>]*>?/gm, ' ') : '' %>
                         </p>
