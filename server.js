@@ -1,478 +1,474 @@
+require('dotenv').config(); // Load env vars if in local dev
 const express = require('express');
 const app = express();
 const path = require('path');
-const fs = require('fs'); 
-const http = require('http'); 
-const bodyParser = require('body-parser');
-const { Storage } = require('@google-cloud/storage');
-const mysql = require('mysql2/promise');
+const { Pool } = require('pg');
+const bcrypt = require('bcrypt');
+const session = require('express-session');
+const pgSession = require('connect-pg-simple')(session);
+const passport = require('passport');
+const GoogleStrategy = require('passport-google-oauth20').Strategy;
 
-// Try loading .env if available
-try { require('dotenv').config(); } catch (e) { /* dotenv not installed */ }
-
-// --- CONFIGURATION ---
-const BUCKET_NAME = process.env.GCS_BUCKET_NAME || 'your-song-bucket-name';
-
-// DOMAIN SETUP & SANITIZATION
-// Stripe requires absolute URLs (http:// or https://).
-let rawDomain = process.env.DOMAIN || 'http://localhost:8080';
-// Ensure protocol exists
-if (!rawDomain.startsWith('http://') && !rawDomain.startsWith('https://')) {
-    rawDomain = 'http://' + rawDomain;
-}
-// Remove trailing slash to prevent double slashes in generated URLs
-const DOMAIN = rawDomain.replace(/\/$/, '');
-
-console.log(`🌍 DOMAIN Configured as: ${DOMAIN}`);
-
-// --- DATA LOADING ---
-let songsData = [];
-try {
-    songsData = require('./songs.json');
-} catch (error) {
-    console.error('CRITICAL: songs.json not found!');
-}
-
-const mockMerchItems = [
-    { sku: 'm1', id: 'm1', name: 'Standard Uniform', price: 45.00, image_url: '/images/merch-shirt.jpg', description: 'Standard issue poly-blend.', type: 'merch', sizes: ['S', 'M', 'L'] },
-    { sku: 'm2', id: 'm2', name: 'Vinyl Protocol', price: 30.00, image_url: '/images/merch-vinyl.jpg', description: 'High fidelity audio storage.', type: 'merch', sizes: [] }
-];
-
-const memoryCarts = {};
-
-// --- MIDDLEWARE ---
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
-
-// --- DIAGNOSTIC: IDENTITY CHECK ---
-const options = {
-    hostname: 'metadata.google.internal',
-    port: 80,
-    path: '/computeMetadata/v1/instance/service-accounts/default/email',
-    method: 'GET',
-    headers: { 'Metadata-Flavor': 'Google' }
-};
-const reqAuth = http.request(options, (resAuth) => {
-    let data = '';
-    resAuth.on('data', (chunk) => data += chunk);
-    resAuth.on('end', () => {
-        console.log("🕵️ IDENTITY CHECK: This container is running as:", data.trim());
-    });
+// =================================================================
+// 1. DATABASE CONNECTION (PostgreSQL)
+// =================================================================
+// Configure these in your Google Cloud Run Environment Variables
+const pool = new Pool({
+    user: process.env.DB_USER || 'postgres',
+    host: process.env.DB_HOST || 'localhost',
+    database: process.env.DB_NAME || 'shinemore_db',
+    password: process.env.DB_PASSWORD || 'password',
+    port: process.env.DB_PORT || 5432,
+    // SSL is often required for Cloud SQL. Uncomment if needed:
+    // ssl: { rejectUnauthorized: false } 
 });
-reqAuth.on('error', (e) => console.log("🕵️ IDENTITY CHECK FAILED:", e.message));
-reqAuth.end();
 
+// =================================================================
+// 2. MIDDLEWARE & SECURITY
+// =================================================================
 
-// --- CACHE & CSP HEADERS ---
-app.disable('etag');
-app.disable('view cache');
+// Trust Proxy is REQUIRED for Google Cloud Run to handle secure cookies correctly
+app.set('trust proxy', 1);
+
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Secure Session Configuration
+app.use(session({
+    store: new pgSession({
+        pool: pool,
+        tableName: 'session',
+        createTableIfMissing: true // Ensures session table exists to prevent crashes
+    }),
+    secret: process.env.SESSION_SECRET || 'dev-secret-key-change-in-prod',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+        secure: process.env.NODE_ENV === 'production', // TRUE in production (HTTPS)
+        httpOnly: true, // Prevents XSS attacks on the cookie
+        sameSite: 'lax'
+    }
+}));
+
+// Initialize Passport
+app.use(passport.initialize());
+app.use(passport.session());
+
+// Passport Serialization
+passport.serializeUser((user, done) => {
+    done(null, user.id);
+});
+
+passport.deserializeUser(async (id, done) => {
+    try {
+        const result = await pool.query('SELECT * FROM users WHERE id = $1', [id]);
+        done(null, result.rows[0]);
+    } catch (err) {
+        done(err, null);
+    }
+});
+
+// Google Strategy
+passport.use(new GoogleStrategy({
+    clientID: process.env.GOOGLE_CLIENT_ID || 'mock_client_id',
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET || 'mock_client_secret',
+    callbackURL: "/auth/google/callback"
+  },
+  async function(accessToken, refreshToken, profile, cb) {
+    try {
+        // Check if user exists based on Google ID
+        let res = await pool.query('SELECT * FROM users WHERE google_id = $1', [profile.id]);
+        
+        if (res.rows.length > 0) {
+            return cb(null, res.rows[0]);
+        } else {
+            // Check if user exists based on Email (to merge accounts)
+            const email = profile.emails[0].value;
+            res = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+            
+            if (res.rows.length > 0) {
+                // Update existing user with Google ID
+                const user = res.rows[0];
+                await pool.query('UPDATE users SET google_id = $1 WHERE id = $2', [profile.id, user.id]);
+                return cb(null, user);
+            } else {
+                // Create New User from Google
+                const newUser = await pool.query(
+                    'INSERT INTO users (full_name, email, google_id) VALUES ($1, $2, $3) RETURNING *',
+                    [profile.displayName, email, profile.id]
+                );
+                return cb(null, newUser.rows[0]);
+            }
+        }
+    } catch (err) {
+        return cb(err, null);
+    }
+  }
+));
+
+// Make 'user' available to all EJS templates (Header, etc.)
 app.use((req, res, next) => {
-    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-    res.set('Pragma', 'no-cache');
-    res.set('Expires', '0');
-    res.set('Surrogate-Control', 'no-store');
-    
-    res.removeHeader("Content-Security-Policy");
-    res.removeHeader("X-Content-Security-Policy");
-    res.setHeader(
-        "Content-Security-Policy",
-        "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; " +
-        "script-src * 'unsafe-inline' 'unsafe-eval'; " + 
-        "style-src * 'unsafe-inline'; " +
-        "font-src * 'unsafe-inline' data: blob:; " +
-        "img-src * 'unsafe-inline' data: blob:; " +
-        "connect-src * 'unsafe-inline'; " +
-        "frame-src *;"
-    );
+    res.locals.user = req.user || null;
     next();
 });
 
+// View Engine
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
-app.use(express.static(path.join(__dirname, 'public')));
 
-// --- STRIPE ---
-let stripe;
-if (process.env.STRIPE_SECRET_KEY) {
-    try {
-        stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-    } catch (e) {
-        console.warn("⚠️ STRIPE WARNING:", e.message);
-    }
-} else {
-    console.warn("⚠️ STRIPE WARNING: STRIPE_SECRET_KEY is missing. Checkout will not work.");
-}
-
-// --- DATABASE CONNECTION ---
-let pool;
-let dbConnectionStatus = "PENDING";
-let dbErrorDetail = null;
-
-const cleanConnectionName = (process.env.INSTANCE_CONNECTION_NAME || '').trim();
-const bypassHost = (process.env.DB_HOST || '').trim();
-
-const DB_CONFIG = {
-    user: process.env.DB_USER || '',           
-    password: process.env.DB_PASSWORD || '',   
-    database: process.env.DB_NAME || '',       
+// Helper to await login (Prevents race conditions during redirect)
+const loginUser = (req, user) => {
+    return new Promise((resolve, reject) => {
+        req.login(user, (err) => {
+            if (err) return reject(err);
+            resolve();
+        });
+    });
 };
 
-console.log("--- DB CONFIG CHECK ---");
-console.log("User:", DB_CONFIG.user ? "SET" : "MISSING");
-console.log("Cloud SQL Target:", cleanConnectionName || "None");
-console.log("Bypass Host:", bypassHost || "None");
-
-if (DB_CONFIG.user && DB_CONFIG.database) {
-    const dbConfig = {
-        user: DB_CONFIG.user,
-        password: DB_CONFIG.password,
-        database: DB_CONFIG.database,
-        waitForConnections: true,
-        connectionLimit: 10,
-        queueLimit: 0
-    };
-
-    let mode = 'Localhost';
-    if (bypassHost) {
-        mode = 'TCP BYPASS';
-        dbConfig.host = bypassHost;
-        dbConfig.port = 3306; 
-    } else if (cleanConnectionName) {
-        mode = 'UNIX SOCKET';
-        dbConfig.socketPath = `/cloudsql/${cleanConnectionName}`;
-        delete dbConfig.host; 
-    } else {
-        dbConfig.host = '127.0.0.1';
+// =================================================================
+// 3. SERVICE DATA (Complete)
+// =================================================================
+const servicesData = {
+    'web-design': {
+        title: 'Website Design',
+        icon: 'fas fa-pencil-ruler',
+        tagline: 'UI/UX focused digital experiences that convert.',
+        description: 'We don’t just design websites; we architect user journeys. Our design process merges aesthetic excellence with behavioral psychology to create interfaces that are intuitive, accessible, and high-converting.',
+        features: ['Responsive & Adaptive Design', 'User Experience (UX) Auditing', 'Interactive Prototyping', 'Design Systems']
+    },
+    'web-infrastructure': {
+        title: 'Web Infrastructure',
+        icon: 'fas fa-server',
+        tagline: 'Scalable cloud architecture for 99.99% uptime.',
+        description: 'Your application is only as good as the server it runs on. We design resilient, auto-scaling cloud architectures on AWS and Google Cloud that handle traffic spikes without blinking.',
+        features: ['Cloud Migration', 'Serverless Architecture', 'CI/CD Pipelines', 'Load Balancing']
+    },
+    'web-branding': {
+        title: 'Web Branding',
+        icon: 'fas fa-palette',
+        tagline: 'Building cohesive, memorable digital identities.',
+        description: 'Your brand is more than a logo. We craft complete digital visual identities that resonate with your audience, ensuring consistency across web, mobile, and social platforms.',
+        features: ['Logo & Identity Design', 'Brand Guidelines', 'Visual Assets', 'Social Media Kits']
+    },
+    'advertising-brand': {
+        title: 'Advertising & Brand',
+        icon: 'fas fa-bullhorn',
+        tagline: 'Digital identity strategy and programmatic reach.',
+        description: 'In a crowded market, visibility is currency. We align your brand identity with data-driven advertising campaigns that target your ideal customer with surgical precision.',
+        features: ['Brand Identity Design', 'Programmatic Ad Buying', 'SEO & Content Strategy', 'Social Media Intelligence']
+    },
+    'mobile-app-development': {
+        title: 'Mobile App Development',
+        icon: 'fas fa-mobile-alt',
+        tagline: 'Native and Cross-platform iOS and Android solutions.',
+        description: 'Put your business in your customer’s pocket. We build performant, offline-capable mobile applications using React Native and Swift that feel seamless and native.',
+        features: ['iOS & Android Development', 'React Native / Flutter', 'App Store Optimization', 'Mobile Payment Integration']
+    },
+    'desktop-applications': {
+        title: 'Desktop Applications',
+        icon: 'fas fa-desktop',
+        tagline: 'High-performance software for Windows, macOS, and Linux.',
+        description: 'For power users and complex workflows, the browser isn’t always enough. We build robust desktop applications using Electron and C++ that leverage the full power of the hardware.',
+        features: ['Cross-Platform Development', 'Offline Functionality', 'Hardware Integration', 'Legacy System Modernization']
+    },
+    'vr-development': {
+        title: 'VR Development',
+        icon: 'fas fa-vr-cardboard',
+        tagline: 'Immersive experiences for training and simulation.',
+        description: 'Step into the next dimension of interaction. We build VR and AR applications for industrial training, architectural visualization, and immersive brand storytelling.',
+        features: ['Unity & Unreal Engine', '3D Modeling & Animation', 'Immersive Training Sims', 'WebXR Experiences']
+    },
+    'automation-consulting': {
+        title: 'Automation Consulting',
+        icon: 'fas fa-cogs',
+        tagline: 'Workflow optimization and AI agent integration.',
+        description: 'Stop wasting human potential on robotic tasks. We analyze your operational bottlenecks and deploy AI agents and script-based automations to recapture thousands of hours of productivity.',
+        features: ['Workflow Analysis', 'RPA (Robotic Process Automation)', 'Custom AI Agents', 'API Integration']
+    },
+    'business-software': {
+        title: 'Business Software Development',
+        icon: 'fas fa-briefcase',
+        tagline: 'Custom ERP, CRM, and internal tooling.',
+        description: 'Off-the-shelf software rarely fits perfectly. We build bespoke internal tools that map exactly to your unique business processes, eliminating workarounds and spreadsheet chaos.',
+        features: ['Custom CRM/ERP', 'Inventory Management', 'Employee Portals', 'Data Dashboards']
+    },
+    'cybersecurity': {
+        title: 'Cybersecurity',
+        icon: 'fas fa-shield-alt',
+        tagline: 'Enterprise-grade protection and compliance.',
+        description: 'Protect your assets and your reputation. We provide comprehensive security audits, penetration testing, and compliance implementation (SOC2, GDPR) to ensure your data stays yours.',
+        features: ['Penetration Testing', 'Security Audits', 'Compliance (SOC2/HIPAA)', 'Encryption Standards']
+    },
+    'data-analytics': {
+        title: 'Data Analytics',
+        icon: 'fas fa-chart-line',
+        tagline: 'Business Intelligence and Predictive Modeling.',
+        description: 'Turn raw data into actionable insights. We build data warehouses and visualization dashboards that help leadership make evidence-based decisions in real-time.',
+        features: ['Data Warehousing', 'PowerBI / Tableau', 'Predictive Modeling', 'ETL Pipelines']
+    },
+    'wcag-compliance': {
+        title: 'Accessibility (WCAG)',
+        icon: 'fas fa-universal-access',
+        tagline: 'Inclusive digital experiences for everyone.',
+        description: 'Ensure your digital products are accessible to all users, complying with WCAG 2.1 AA standards and ADA regulations. We audit, remediate, and monitor your platforms.',
+        features: ['Audit & Remediation', 'VPAT Creation', 'Screen Reader Testing', 'Compliance Monitoring']
     }
+};
 
-    console.log(`🔌 MODE: ${mode}. Attempting connection...`);
-
-    async function initializeDbPool() {
-        try {
-            pool = mysql.createPool(dbConfig);
-            const [rows] = await pool.query('SELECT 1 + 1 AS solution');
-            if (rows && rows[0].solution === 2) {
-                console.log("✅ DB CONNECTED SUCCESSFULLY (MySQL)");
-                dbConnectionStatus = "CONNECTED";
-            }
-        } catch (err) {
-            console.error("❌ INITIAL CONNECTION FAILED:", err.message);
-            let socketDiagnostic = "";
-            if (mode === 'UNIX SOCKET') {
-                try {
-                    if (!fs.existsSync('/cloudsql')) {
-                        socketDiagnostic = "The /cloudsql folder does NOT exist.";
-                    } else {
-                        const contents = fs.readdirSync('/cloudsql');
-                        if (contents.length === 0) {
-                            socketDiagnostic = "The /cloudsql folder is EMPTY. The Proxy failed to start.";
-                        } else {
-                            socketDiagnostic = `The /cloudsql folder contains: [${contents.join(', ')}].`;
-                        }
-                    }
-                } catch (fsErr) {
-                    socketDiagnostic = "Could not read /cloudsql: " + fsErr.message;
-                }
-            }
-            dbConnectionStatus = "FAILED";
-            dbErrorDetail = `${err.message} || ${socketDiagnostic}`;
-            pool = null; 
-        }
+// =================================================================
+// 4. LEGAL DATA STORE
+// =================================================================
+const legalDocs = {
+    'privacy': {
+        title: 'Privacy Policy',
+        date: 'Effective: January 1, 2025',
+        content: `Shine More Online ("we", "us", or "our") operates the website and provides software development services. This page informs you of our policies regarding the collection, use, and disclosure of personal data when you use our Service. We use your data to provide and improve the Service. By using the Service, you agree to the collection and use of information in accordance with this policy. We collect several different types of information for various purposes to provide and improve our Service to you, including Personal Data (Email, Name, Phone) and Usage Data. We maintain appropriate technical and organizational measures to protect your data.`
+    },
+    'terms': {
+        title: 'Terms of Service',
+        date: 'Effective: January 1, 2025',
+        content: `Please read these Terms of Service ("Terms", "Terms of Service") carefully before using the Shine More Online website. Your access to and use of the Service is conditioned on your acceptance of and compliance with these Terms. These Terms apply to all visitors, users, and others who access or use the Service. By accessing or using the Service you agree to be bound by these Terms. If you disagree with any part of the terms then you may not access the Service. Intellectual Property: The Service and its original content, features, and functionality are and will remain the exclusive property of Shine More Online and its licensors.`
+    },
+    'cookies': {
+        title: 'Cookie Policy',
+        date: 'Effective: January 1, 2025',
+        content: `We use cookies and similar tracking technologies to track the activity on our Service and hold certain information. Cookies are files with small amount of data which may include an anonymous unique identifier. You can instruct your browser to refuse all cookies or to indicate when a cookie is being sent. However, if you do not accept cookies, you may not be able to use some portions of our Service. Examples of Cookies we use: Session Cookies (to operate our Service), Preference Cookies (to remember your preferences), and Security Cookies.`
+    },
+    'sla': {
+        title: 'Service Level Agreement',
+        date: 'Effective: January 1, 2025',
+        content: `This Service Level Agreement (SLA) describes the levels of service that Shine More Online ("Provider") will provide to the Customer. 1. Uptime Commitment: For Managed Hosting clients, we guarantee a monthly uptime of 99.9%. 2. Response Times: Critical issues (System Down) will receive a response within 1 hour (24/7). High priority issues within 4 hours. Normal priority within 24 hours. 3. Maintenance: Scheduled maintenance will be communicated at least 48 hours in advance. Emergency maintenance may be performed at any time to ensure security and stability.`
+    },
+    'dpa': {
+        title: 'Data Processing Agreement',
+        date: 'Effective: January 1, 2025',
+        content: `This Data Processing Agreement ("DPA") reflects the parties' agreement with respect to the processing of personal data. Shine More Online acts as a Data Processor for the Client (Data Controller). We shall process Personal Data only on documented instructions from the Controller. We ensure that persons authorized to process the personal data have committed themselves to confidentiality or are under an appropriate statutory obligation of confidentiality.`
     }
-    initializeDbPool();
-} else {
-    dbConnectionStatus = "CONFIG_MISSING";
-    dbErrorDetail = "Environment variables missing.";
-}
+};
 
-// Helper to query DB
-async function query(sql, params) {
-    if (!pool) throw new Error("Database connection is not available.");
-    const [rows] = await pool.execute(sql, params); 
-    return { rows };
-}
-
-// --- HELPER FUNCTIONS ---
-
-async function getProductBySku(sku) {
-    if (pool) {
-        try {
-            const res = await query("SELECT * FROM products WHERE sku = ?", [sku]);
-            if (res.rows.length > 0) return res.rows[0];
-        } catch (e) { console.error("DB Error:", e); }
-    }
-    const merch = mockMerchItems.find(m => m.sku === sku || m.id === sku);
-    if (merch) return merch;
-    return null;
-}
-
-// --- ROUTES ---
-
-app.get('/', (req, res) => res.render('index', { title: 'Home' }));
-app.get('/projects', (req, res) => res.render('projects', { title: 'Projects' }));
-app.get('/about', (req, res) => res.render('about', { title: 'About' }));
-app.get('/contact', (req, res) => res.render('contact', { title: 'Contact' }));
-app.get('/advocacy', (req, res) => res.render('advocacy', { title: 'Advocacy' }));
-
-app.get('/music', (req, res) => {
-    if (req.query.song) return res.redirect(`/song/${req.query.song}`);
-    res.render('music', { songs: songsData, title: 'Music' });
-});
-
-app.get('/song/:id', (req, res) => {
-    const songId = req.params.id;
-    const song = songsData.find(s => {
-        if (s.youtube_info && s.youtube_info.video_id === songId) return true;
-        if (s.spotify_id === songId) return true;
-        return false;
-    });
-    if (song) res.render('song', { song: song, title: song.name });
-    else res.status(404).render('404', { title: 'Signal Lost' });
-});
-
-// --- ROBUST MERCH ROUTE ---
-app.get('/merch', async (req, res) => {
-    const { type, sort, maxPrice } = req.query;
-    const commonPayload = { query: req.query || {}, user: null, cartCount: 0 };
-
-    try {
-        if (pool) {
-            let sql = "SELECT * FROM products WHERE 1=1";
-            const params = [];
-            if (type && type !== 'all') { sql += " AND type = ?"; params.push(type); }
-            if (maxPrice) { sql += " AND price <= ?"; params.push(maxPrice); }
-            if (sort === 'price_asc') sql += " ORDER BY price ASC";
-            else if (sort === 'price_desc') sql += " ORDER BY price DESC";
-            else sql += " ORDER BY created_at DESC";
-
-            const result = await query(sql, params);
-            const products = result.rows.map(p => {
-                if (typeof p.sizes === 'string') { try { p.sizes = JSON.parse(p.sizes); } catch(e) { p.sizes = []; } }
-                else if (!p.sizes) { p.sizes = []; }
-                return p;
-            });
-
-            if (products.length === 0 && !type && !maxPrice) {
-                res.render('merch', { ...commonPayload, merch: mockMerchItems, title: 'Merch (DB Empty)', debugError: "Connected but no products found.", dbStatus: "CONNECTED (EMPTY)" });
-            } else {
-                res.render('merch', { ...commonPayload, merch: products, title: 'Merch', debugError: null });
-            }
-        } else {
-            let filtered = [...mockMerchItems];
-            if (type && type !== 'all') filtered = filtered.filter(p => p.type === type);
-            if (maxPrice) filtered = filtered.filter(p => p.price <= maxPrice);
-            if (sort === 'price_asc') filtered.sort((a,b) => a.price - b.price);
-            else if (sort === 'price_desc') filtered.sort((a,b) => b.price - a.price);
-
-            res.render('merch', { ...commonPayload, merch: filtered, title: 'Merch (Offline)', debugError: dbErrorDetail || "Unknown DB Error", dbStatus: dbConnectionStatus });
-        }
-    } catch (err) {
-        console.error("Merch Route Error:", err);
-        try {
-            res.render('merch', { ...commonPayload, merch: mockMerchItems, title: 'Merch (Crash)', debugError: err.message, dbStatus: "CRASHED" });
-        } catch (renderErr) {
-            res.status(500).send(`<h1>Critical Error</h1><p>${err.message}</p>`);
-        }
-    }
-});
-
-app.get('/merch/:id', async (req, res) => {
-    try {
-        let product;
-        if (pool) {
-            const querySql = "SELECT * FROM products WHERE CAST(id AS CHAR) = ? OR sku = ?";
-            const result = await query(querySql, [req.params.id, req.params.id]);
-            product = result.rows[0];
-            if (product && typeof product.sizes === 'string') { try { product.sizes = JSON.parse(product.sizes); } catch(e) { product.sizes = []; } }
-        } else {
-            product = mockMerchItems.find(m => m.id === req.params.id || m.sku === req.params.id);
-        }
-        if (product) res.render('product', { product: product, title: product.name });
-        else res.status(404).render('404', { title: 'Product Not Found' });
-    } catch (err) {
-        res.status(500).render('404', { title: 'Error' });
-    }
-});
-
-app.get('/rights', (req, res) => res.render('rights', { songs: songsData, title: 'Purchase Rights' }));
-app.get('/rights/confirmation', (req, res) => res.render('rights_confirmation', { title: 'Inquiry Received' }));
-app.get('/cart', (req, res) => res.render('cart', { title: 'Your Inventory' }));
-app.get('/checkout', (req, res) => res.render('checkout_form', { title: 'Secure Checkout' }));
-
-app.post('/initiate-checkout', async (req, res) => {
-    const { sessionId, email, fullName, phone, password } = req.body;
-    if (!pool) return res.status(500).json({ error: "DB Offline" });
-
-    if (!stripe) {
-        console.error("❌ Checkout blocked: Stripe is not configured.");
-        return res.status(503).json({ error: "Payment gateway is not configured (Missing STRIPE_SECRET_KEY)." });
-    }
-
-    try {
-        let userId;
-        const userCheck = await query("SELECT id FROM users WHERE email = ?", [email]);
-        if (userCheck.rows.length > 0) userId = userCheck.rows[0].id;
-        else {
-            const newUser = await query("INSERT INTO users (email, full_name, phone, password_hash) VALUES (?, ?, ?, ?)", [email, fullName, phone, password]);
-            userId = newUser.rows.insertId;
-        }
-        
-        const cartQuery = `
-            SELECT ci.quantity, ci.size, p.name, p.price, p.sku, p.type, p.image_url
-            FROM cart_items ci
-            JOIN products p ON ci.product_sku = p.sku
-            WHERE ci.session_id = ?
-        `;
-        const cartResult = await query(cartQuery, [sessionId]);
-        const cartItems = cartResult.rows;
-
-        if (cartItems.length === 0) return res.status(400).json({ error: "Cart is empty" });
-
-        const hasPhysicalItems = cartItems.some(item => item.type !== 'digital');
-        const lineItems = cartItems.map(item => {
-            let desc = item.type;
-            if (item.size) desc += ` | Size: ${item.size}`;
-            
-            // ROBUST IMAGE URL CONSTRUCTION
-            let itemImages = [];
-            if (item.image_url) {
-                // If it's already an absolute URL, use it.
-                if (item.image_url.startsWith('http')) {
-                    itemImages = [item.image_url];
-                } 
-                // If it's relative, prepend DOMAIN
-                else {
-                    itemImages = [`${DOMAIN}${item.image_url}`];
-                }
-            }
-
-            return {
-                price_data: {
-                    currency: 'usd',
-                    product_data: {
-                        name: item.name,
-                        description: desc, 
-                        metadata: { sku: item.sku, type: item.type, size: item.size },
-                        images: itemImages,
-                    },
-                    unit_amount: Math.round(Number(item.price) * 100),
-                },
-                quantity: item.quantity,
-            };
-        });
-
-        const sessionConfig = {
-            payment_method_types: ['card'],
-            customer_email: email,
-            line_items: lineItems,
-            mode: 'payment',
-            success_url: `${DOMAIN}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
-            cancel_url: `${DOMAIN}/cart`,
-            metadata: { userId: userId.toString(), custom_session_id: sessionId }
-        };
-
-        if (hasPhysicalItems) sessionConfig.shipping_address_collection = { allowed_countries: ['US', 'CA', 'GB'] };
-
-        // Debug Log
-        console.log(`🚀 Creating Stripe Session. Success URL: ${sessionConfig.success_url}`);
-
-        const session = await stripe.checkout.sessions.create(sessionConfig);
-        
-        await query("INSERT INTO orders (user_id, stripe_session_id, total_amount, payment_status) VALUES (?, ?, ?, 'pending')", [userId, session.id, (session.amount_total / 100)]);
-        res.json({ id: session.id });
-
-    } catch (err) {
-        console.error("Stripe Error:", err);
-        res.status(500).json({ error: "Checkout failed: " + err.message });
-    }
-});
-
-app.post('/api/cart', async (req, res) => {
-    const { sessionId, sku, quantity, size } = req.body;
-    if (!sessionId || !sku) return res.status(400).json({ error: 'Missing data' });
-    const storedSize = size || '';
-
-    if (pool) {
-        try {
-            await query("INSERT INTO carts (session_id, updated_at) VALUES (?, NOW()) ON DUPLICATE KEY UPDATE updated_at = NOW()", [sessionId]);
-            const existingItem = await query("SELECT id FROM cart_items WHERE session_id = ? AND product_sku = ? AND size = ?", [sessionId, sku, storedSize]);
-            if (existingItem.rows.length > 0) {
-                await query("UPDATE cart_items SET quantity = quantity + ? WHERE id = ?", [quantity || 1, existingItem.rows[0].id]);
-            } else {
-                await query("INSERT INTO cart_items (session_id, product_sku, quantity, size) VALUES (?, ?, ?, ?)", [sessionId, sku, quantity || 1, storedSize]);
-            }
-            return res.json({ success: true });
-        } catch (err) { return res.status(500).json({ error: 'Database error: ' + err.message }); }
-    } else {
-        if (!memoryCarts[sessionId]) memoryCarts[sessionId] = [];
-        const cart = memoryCarts[sessionId];
-        const existingItem = cart.find(i => i.sku === sku && i.size === storedSize);
-        if (existingItem) existingItem.quantity += (quantity || 1);
-        else {
-            const product = await getProductBySku(sku);
-            if (!product) return res.status(404).json({ error: 'Product not found' });
-            cart.push({ ...product, quantity: quantity || 1, size: storedSize });
-        }
-        return res.json({ success: true, mode: 'memory' });
-    }
-});
-
-app.get('/api/cart/:sessionId', async (req, res) => {
-    const { sessionId } = req.params;
-    if (pool) {
-        try {
-            const querySql = `
-                SELECT ci.id as item_id, ci.quantity, ci.size, p.* FROM cart_items ci 
-                JOIN products p ON ci.product_sku = p.sku 
-                WHERE ci.session_id = ? 
-                ORDER BY ci.added_at DESC
-            `;
-            const result = await query(querySql, [sessionId]);
-            res.json({ items: result.rows });
-        } catch (err) { res.status(500).json({ error: 'Failed to load cart' }); }
-    } else {
-        const items = memoryCarts[sessionId] || [];
-        res.json({ items: items });
-    }
-});
-
-app.delete('/api/cart', async (req, res) => {
-    const { sessionId, sku, size } = req.body;
-    const storedSize = size || '';
-    if (pool) {
-        try {
-            await query("DELETE FROM cart_items WHERE session_id = ? AND product_sku = ? AND size = ?", [sessionId, sku, storedSize]);
-            res.json({ success: true });
-        } catch (err) { res.status(500).json({ error: 'Database error' }); }
-    } else {
-        if (memoryCarts[sessionId]) memoryCarts[sessionId] = memoryCarts[sessionId].filter(i => !(i.sku === sku && i.size === storedSize));
-        res.json({ success: true });
-    }
-});
+// =================================================================
+// 5. ROUTES
+// =================================================================
 
 app.get('/', (req, res) => {
-    res.render('index', { 
-        title: 'Home',
-        featuredSong: songsData.find(s => s.youtube_info && s.youtube_info.video_id === 'Cem7RZsb7Rw'), 
-        featuredMerch: mockMerchItems[0] 
-    });
+    res.render('index', { title: 'Shine More | Technology Partners' });
 });
 
-app.get('/projects', (req, res) => res.render('projects', { title: 'Projects' }));
+app.get('/services', (req, res) => {
+    res.render('services', { title: 'Our Services' });
+});
 
-app.post('/api/inquiry', async (req, res) => {
-    const { songId, licenseType, duration, usage, email, cost } = req.body;
-    if (pool) {
-        try {
-            await query("INSERT INTO rights_inquiries (song_id, license_type, duration, usage_details, contact_email, estimated_cost) VALUES (?, ?, ?, ?, ?, ?)", [songId, licenseType, duration, usage, email, cost]);
-            res.json({ success: true });
-        } catch (err) { res.status(500).json({ error: 'Failed to save inquiry.' }); }
+// Dynamic Route for Individual Services
+app.get('/services/:slug', (req, res) => {
+    const service = servicesData[req.params.slug];
+    if (service) {
+        res.render('service-detail', { 
+            title: `${service.title} | Shine More`, 
+            service: service,
+            currentSlug: req.params.slug 
+        });
     } else {
-        res.json({ success: true, message: 'Inquiry received (Simulation Mode).' });
+        res.redirect('/services');
     }
 });
 
-app.use((req, res, next) => res.status(404).render('404', { title: 'Signal Lost' }));
+app.get('/portfolio', (req, res) => {
+    res.render('portfolio', { title: 'Case Studies' });
+});
 
+app.get('/about', (req, res) => {
+    res.render('about', { title: 'About Us' });
+});
+
+// --- NEW/UPDATED ROUTES ---
+
+app.get('/careers', (req, res) => {
+    res.render('careers', { title: 'Careers | Shine More' });
+});
+
+// Press now points to Blog template
+app.get('/press', (req, res) => {
+    res.render('blog', { title: 'Press & Insights | Shine More' });
+});
+
+// Status is generic
+app.get('/status', (req, res) => {
+    res.render('generic', { title: 'System Status', subtitle: 'All systems operational (99.99% Uptime).' });
+});
+
+// Support now uses the support template
+app.get('/support', (req, res) => {
+    res.render('support', { title: 'Support Portal | Shine More' });
+});
+
+// Legal Routes
+Object.keys(legalDocs).forEach(key => {
+    app.get(`/${key}`, (req, res) => {
+        res.render('legal', { doc: legalDocs[key], title: legalDocs[key].title });
+    });
+});
+
+// --- AUTH ROUTES ---
+
+app.get('/auth/google',
+  passport.authenticate('google', { scope: ['profile', 'email'] }));
+
+app.get('/auth/google/callback', 
+  passport.authenticate('google', { failureRedirect: '/login' }),
+  function(req, res) {
+    // Successful authentication, redirect dashboard.
+    res.redirect('/dashboard');
+  });
+
+// Login Page
+app.get('/login', (req, res) => {
+    if (req.user) return res.redirect('/dashboard');
+    res.render('login', { title: 'Login | Shine More' });
+});
+
+// Login Logic (Secure)
+app.post('/login', passport.authenticate('local', { 
+    successRedirect: '/dashboard',
+    failureRedirect: '/login?error=Invalid Credentials'
+}));
+
+// Dashboard (Protected Route)
+app.get('/dashboard', async (req, res) => {
+    if (!req.user) {
+        return res.redirect('/login');
+    }
+
+    try {
+        const userId = req.user.id;
+        
+        // Fetch Projects for this specific user from DB
+        const projectResult = await pool.query(
+            'SELECT * FROM projects WHERE user_id = $1 ORDER BY created_at DESC', 
+            [userId]
+        );
+
+        res.render('dashboard', { 
+            title: 'Dashboard | Shine More', 
+            user: req.user,
+            projects: projectResult.rows
+        });
+    } catch (err) {
+        console.error(err);
+        res.redirect('/');
+    }
+});
+
+// Logout
+app.get('/logout', (req, res, next) => {
+    req.logout((err) => {
+        if (err) { return next(err); }
+        res.redirect('/');
+    });
+});
+
+// --- CONTACT & PROJECT CREATION ROUTES ---
+
+app.get('/contact', (req, res) => {
+    res.render('contact', { title: 'Start Project | Shine More' });
+});
+
+// Handle New Project + Account Creation
+app.post('/contact', async (req, res) => {
+    const { fullName, email, password, phone, organization, projectType, serviceTier, projectDesc, features, enable2FA } = req.body;
+    
+    // SAFEGUARD: Ensure we have valid numbers to prevent SQL NaN errors
+    const baseCost = parseFloat(projectType) || 0;
+    const monthlyCost = parseFloat(serviceTier) || 0;
+    const estimatedDeposit = baseCost * 0.10;
+
+    // Convert features array to JSON for DB (Safe fallback)
+    const featuresJson = JSON.stringify(features || []);
+    
+    // Start a Transaction (All or Nothing)
+    const client = await pool.connect();
+    
+    try {
+        await client.query('BEGIN');
+
+        let userId;
+        let currentUser;
+
+        // 1. Check if logged in OR user exists
+        if (req.user) {
+            userId = req.user.id;
+            currentUser = req.user;
+        } else {
+            // Check for existing user by email
+            const userCheck = await client.query('SELECT * FROM users WHERE email = $1', [email]);
+            
+            if (userCheck.rows.length > 0) {
+                // User exists - ideally we force login here, but for this flow we associate
+                userId = userCheck.rows[0].id;
+                currentUser = userCheck.rows[0];
+            } else {
+                // Create New User
+                const saltRounds = 12; // Stronger hashing
+                // Fallback password if not provided (e.g. simple contact form usage)
+                const safePassword = password || 'tempPass' + Math.random().toString(36).slice(-8);
+                const hash = await bcrypt.hash(safePassword, saltRounds);
+                
+                // 2FA Secret generation (placeholder)
+                const twoFactorSecret = enable2FA ? 'MOCK_SECRET_KEY_123' : null;
+
+                const newUser = await client.query(
+                    `INSERT INTO users (full_name, email, password_hash, phone_number, organization, two_factor_secret) 
+                     VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+                    [fullName, email, hash, phone, organization, twoFactorSecret]
+                );
+                userId = newUser.rows[0].id;
+                currentUser = newUser.rows[0];
+                
+                // CRITICAL FIX: Manually log them in for this session using helper
+                // This awaits the login process to ensure session is saved before redirect
+                await loginUser(req, currentUser);
+            }
+        }
+
+        // 2. Create Project
+        const newProject = await client.query(
+            `INSERT INTO projects 
+            (user_id, project_type, service_tier, base_cost, monthly_cost, estimated_deposit, description, features_json) 
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
+            [userId, 'Custom Project', serviceTier, baseCost, monthlyCost, estimatedDeposit, projectDesc, featuresJson]
+        );
+
+        // 3. Create Transaction (Pending)
+        await client.query(
+            `INSERT INTO transactions (project_id, user_id, amount, status, payment_type)
+             VALUES ($1, $2, $3, 'pending', 'deposit')`,
+            [newProject.rows[0].id, userId, estimatedDeposit]
+        );
+
+        await client.query('COMMIT');
+
+        // Redirect to Stripe Checkout (Simulated)
+        // In real app: create Stripe Session here and redirect to session.url
+        res.redirect('/dashboard?status=deposit_pending');
+
+    } catch (e) {
+        await client.query('ROLLBACK');
+        console.error("CRITICAL ERROR IN /contact:", e);
+        res.status(500).send(`
+            <h1>Service Unavailable</h1>
+            <p>We encountered an error processing your request.</p>
+            <pre style="background:#eee; padding:10px;">Error Details: ${e.message}</pre>
+            <p><a href="/contact">Go Back</a></p>
+        `);
+    } finally {
+        client.release();
+    }
+});
+
+// 5. Port Configuration
 const PORT = process.env.PORT || 8080;
-app.listen(PORT, () => console.log(`Server is running on port ${PORT}`));
+app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+});

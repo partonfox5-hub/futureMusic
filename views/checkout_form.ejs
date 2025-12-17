@@ -42,8 +42,16 @@
 
 <script>
     // Initialize Stripe (Publishable Key)
-    // Note: Replace with your actual Publishable Key
-    const stripe = Stripe('pk_test_YOUR_PUBLISHABLE_KEY_HERE'); 
+    // FIXED: Use the key passed from the server to ensure it matches the backend mode (Test/Live)
+    const stripeKey = '<%= stripePublishableKey %>';
+    
+    if (!stripeKey) {
+        console.error("Stripe Publishable Key is missing from server configuration.");
+        document.getElementById('error-msg').textContent = "Configuration Error: Payment system unavailable.";
+        document.getElementById('error-msg').classList.remove('hidden');
+    }
+
+    const stripe = Stripe(stripeKey); 
 
     document.getElementById('details-form').addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -55,7 +63,6 @@
         btn.classList.add('opacity-50', 'cursor-not-allowed');
 
         const formData = {
-            // FIXED: Updated key to match store.js
             sessionId: localStorage.getItem('captain_session_id'), 
             fullName: document.getElementById('fullName').value,
             email: document.getElementById('email').value,
