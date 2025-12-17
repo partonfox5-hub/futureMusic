@@ -470,6 +470,18 @@ app.delete('/api/cart', async (req, res) => {
     }
 });
 
+// UPDATE: Pass data to index for potential dynamic usage, though we will hardcode specific features for style
+app.get('/', (req, res) => {
+    res.render('index', { 
+        title: 'Home',
+        // Pass first song/merch for meta tags or dynamic fallbacks if you want later
+        featuredSong: songsData.find(s => s.youtube_info && s.youtube_info.video_id === 'Cem7RZsb7Rw'), 
+        featuredMerch: mockMerchItems[0] 
+    });
+});
+
+app.get('/projects', (req, res) => res.render('projects', { title: 'Projects' }));
+
 app.post('/api/inquiry', async (req, res) => {
     const { songId, licenseType, duration, usage, email, cost } = req.body;
     if (pool) {
