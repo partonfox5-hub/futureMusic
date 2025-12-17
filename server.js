@@ -352,8 +352,11 @@ app.post('/initiate-checkout', async (req, res) => {
         const userCheck = await query("SELECT id FROM users WHERE email = ?", [email]);
         if (userCheck.rows.length > 0) userId = userCheck.rows[0].id;
         else {
-            const newUser = await query("INSERT INTO users (email, full_name, phone, password_hash) VALUES (?, ?, ?, ?) RETURNING id", [email, fullName, phone, password]);
-            userId = newUser.insertId || newUser.rows[0].id;
+            // FIXED: Removed 'RETURNING id' for MySQL compatibility
+            const newUser = await query("INSERT INTO users (email, full_name, phone, password_hash) VALUES (?, ?, ?, ?)", [email, fullName, phone, password]);
+            
+            // FIXED: Use standard MySQL insertId
+            userId = newUser.rows.insertId;
         }
         
         const cartQuery = `
