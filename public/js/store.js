@@ -10,11 +10,13 @@ const Store = {
     },
 
     // Add item to database cart
-    add: async (sku) => {
+    add: async (sku, size = null) => {
         const sessionId = Store.getSessionId();
+        
+        // Find button to update UI
+        // Note: For product page, we might pass the button element directly, but here we query
         const btn = document.querySelector(`button[data-id="${sku}"]`) || document.querySelector(`button[data-sku="${sku}"]`);
         
-        // Optimistic UI update (optional, adds feeling of speed)
         if(btn) {
             const originalText = btn.innerHTML;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ADDING...';
@@ -24,7 +26,7 @@ const Store = {
                 const response = await fetch('/api/cart', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ sessionId, sku, quantity: 1 })
+                    body: JSON.stringify({ sessionId, sku, quantity: 1, size: size })
                 });
 
                 if (!response.ok) throw new Error('Network response was not ok');
@@ -50,15 +52,14 @@ const Store = {
     },
 
     // Remove item from database cart
-    remove: async (sku) => {
+    remove: async (sku, size) => {
         const sessionId = Store.getSessionId();
         try {
             await fetch('/api/cart', {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ sessionId, sku })
+                body: JSON.stringify({ sessionId, sku, size: size || '' })
             });
-            // Re-render the cart page
             if (window.renderCartPage) window.renderCartPage();
             Store.refreshCartCount();
         } catch (error) {
@@ -90,31 +91,10 @@ const Store = {
     },
 
     checkout: async () => {
-        const sessionId = Store.getSessionId();
         const btn = document.getElementById('checkout-btn');
         if(btn) btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> PROCESSING...';
-
-        try {
-            const response = await fetch('/create-checkout-session', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ sessionId })
-            });
-            
-            const session = await response.json();
-            
-            if (session.error) {
-                alert(session.error);
-                if(btn) btn.innerHTML = 'INITIATE TRANSFER via STRIPE';
-                return;
-            }
-
-            const stripe = Stripe('your_publishable_key'); // Ideally injected via env var in template
-            stripe.redirectToCheckout({ sessionId: session.id });
-        } catch (err) {
-            console.error("Checkout Error:", err);
-            alert("Connection interrupted.");
-        }
+        // Redirect to checkout form
+        window.location.href = '/checkout';
     }
 };
 
@@ -144,18 +124,23 @@ window.renderCartPage = async () => {
     items.forEach(item => {
         const price = Number(item.price);
         total += price * item.quantity;
+        const sizeBadge = item.size ? `<span class="text-xs bg-gray-800 text-gray-300 px-2 py-1 rounded border border-gray-600 ml-2">${item.size}</span>` : '';
         
         html += `
             <div class="glass-card p-4 rounded flex items-center justify-between border border-gray-700">
                 <div class="flex items-center gap-4">
                     <img src="${item.image_url || '/images/default-album-art.jpg'}" class="w-16 h-16 object-cover rounded bg-gray-900">
                     <div>
-                        <h3 class="text-white font-bold">${item.name}</h3>
+                        <h3 class="text-white font-bold flex items-center">
+                            ${item.name} 
+                            ${sizeBadge}
+                        </h3>
                         <p class="text-sm text-[#D4AF37]">$${price.toFixed(2)}</p>
                     </div>
                 </div>
                 <div class="flex items-center gap-4">
-                    <button onclick="Store.remove('${item.sku}')" class="text-gray-500 hover:text-red-500 transition-colors">
+                    <span class="text-gray-500 text-sm">Qty: ${item.quantity}</span>
+                    <button onclick="Store.remove('${item.sku}', '${item.size || ''}')" class="text-gray-500 hover:text-red-500 transition-colors">
                         <i class="fas fa-trash"></i>
                     </button>
                 </div>
@@ -176,15 +161,14 @@ window.renderCartPage = async () => {
 document.addEventListener('DOMContentLoaded', () => {
     Store.refreshCartCount();
 
-    // Global listener for Add to Cart buttons
+    // Global listener for Add to Cart buttons (Quick Add)
     document.body.addEventListener('click', (e) => {
         const btn = e.target.closest('.add-to-cart-btn');
-        if (btn) {
+        // Only trigger if no custom listener attached (Product page has its own)
+        if (btn && !btn.id.includes('addToCartMain')) {
             e.preventDefault();
-            // We use dataset.id or dataset.sku. 
-            // NOTE: For songs, id is the video_id, which maps to the SKU in the DB products table.
             const sku = btn.dataset.id || btn.dataset.sku; 
-            if (sku) Store.add(sku);
+            if (sku) Store.add(sku); // Default add (no size)
         }
     });
 });

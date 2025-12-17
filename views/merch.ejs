@@ -1,81 +1,99 @@
 <%- include('partials/header') %>
 
-<section class="max-w-6xl mx-auto py-12 px-4">
+<section class="max-w-7xl mx-auto py-12 px-4">
     
-    <!-- ON-SCREEN DEBUGGER (Visible if DB fails) -->
-    <% if (typeof debugError !== 'undefined' && debugError) { %>
-        <div class="bg-red-900/90 border border-red-500 text-white p-6 rounded-xl mb-12 shadow-2xl relative overflow-hidden">
-            <div class="absolute top-0 left-0 w-1 h-full bg-red-500"></div>
-            <h3 class="text-xl font-bold mb-2 flex items-center gap-2">
-                <span>⚠️</span> SYSTEM DIAGNOSTIC: CONNECTION FAILURE
-            </h3>
-            <div class="space-y-2 font-mono text-sm opacity-90">
-                <p><strong class="text-red-300">STATUS:</strong> <%= typeof dbStatus !== 'undefined' ? dbStatus : 'UNKNOWN' %></p>
-                <p><strong class="text-red-300">ERROR:</strong> <%= debugError %></p>
-                <hr class="border-red-500/50 my-2">
-                <p class="text-xs italic">
-                    <% if (debugError.includes('password authentication')) { %>
-                        <strong>FIX:</strong> Your DB_PASSWORD is incorrect. Check your environment variables.
-                    <% } else if (debugError.includes('does not exist')) { %>
-                        <strong>FIX:</strong> Your DB_NAME is incorrect. Check your environment variables.
-                    <% } else if (debugError.includes('ENOENT')) { %>
-                        <strong>FIX:</strong> Cloud SQL Connection string is missing or Cloud SQL Auth Proxy is not running.
-                    <% } else if (typeof dbStatus !== 'undefined' && dbStatus === 'CONFIG_MISSING') { %>
-                        <strong>FIX:</strong> Environment variables (DB_USER, DB_NAME) are not set on the server.
-                    <% } else { %>
-                        <strong>FIX:</strong> Check server logs for full stack trace.
-                    <% } %>
-                </p>
+    <div class="flex flex-col md:flex-row justify-between items-end mb-8 gap-6">
+        <div>
+            <h1 class="text-4xl text-[#D4AF37] brand-font mb-2">Merch Protocol</h1>
+            <p class="text-gray-400 text-sm">Official equipment and artifacts.</p>
+        </div>
+
+        <!-- Filter & Sort Form -->
+        <form action="/merch" method="GET" class="glass-card p-4 rounded-lg flex flex-wrap gap-4 items-center border border-gray-700">
+            <!-- Filter Type -->
+            <div class="flex flex-col">
+                <label class="text-[10px] uppercase text-[#D4AF37] tracking-widest font-bold mb-1">Type</label>
+                <select name="type" onchange="this.form.submit()" class="bg-black/50 text-white text-sm border border-gray-600 rounded px-3 py-2 outline-none focus:border-[#D4AF37]">
+                    <option value="all" <%= (!query.type || query.type === 'all') ? 'selected' : '' %>>All Classes</option>
+                    <option value="Apparel" <%= query.type === 'Apparel' ? 'selected' : '' %>>Apparel</option>
+                    <option value="Music" <%= query.type === 'Music' ? 'selected' : '' %>>Music (Physical)</option>
+                    <option value="Accessory" <%= query.type === 'Accessory' ? 'selected' : '' %>>Accessories</option>
+                </select>
             </div>
+
+            <!-- Sort -->
+            <div class="flex flex-col">
+                <label class="text-[10px] uppercase text-[#D4AF37] tracking-widest font-bold mb-1">Sort</label>
+                <select name="sort" onchange="this.form.submit()" class="bg-black/50 text-white text-sm border border-gray-600 rounded px-3 py-2 outline-none focus:border-[#D4AF37]">
+                    <option value="newest" <%= query.sort === 'newest' ? 'selected' : '' %>>Newest First</option>
+                    <option value="price_asc" <%= query.sort === 'price_asc' ? 'selected' : '' %>>Price: Low to High</option>
+                    <option value="price_desc" <%= query.sort === 'price_desc' ? 'selected' : '' %>>Price: High to Low</option>
+                </select>
+            </div>
+        </form>
+    </div>
+
+    <!-- Error/Debug Display -->
+    <% if (typeof debugError !== 'undefined' && debugError) { %>
+        <div class="bg-red-900/90 border border-red-500 text-white p-4 rounded mb-8">
+            <h3 class="font-bold">⚠️ SYSTEM ERROR</h3>
+            <p class="font-mono text-sm"><%= debugError %></p>
         </div>
     <% } %>
 
-    <h1 class="text-4xl md:text-6xl text-center mb-16 text-gold brand-font">Physical Assets</h1>
-
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
-        <% if (merch && merch.length > 0) { %>
-            <% merch.forEach(function(item) { %>
-                <div class="glass-card rounded-xl overflow-hidden group flex flex-col h-full hover:border-[#D4AF37] transition-all duration-300">
-                    <!-- Image Container -->
-                    <a href="/merch/<%= item.id %>" class="relative h-64 bg-gray-900 overflow-hidden block">
-                        <img src="<%= item.image_url %>" onerror="this.src='https://placehold.co/400x400/111/D4AF37?text=NO+IMAGE'" alt="<%= item.name %>" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
-                        <div class="absolute top-4 right-4 bg-black/80 text-[#D4AF37] px-3 py-1 font-bold rounded border border-[#D4AF37]">
+    <!-- Product Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <% if (merch.length > 0) { %>
+            <% merch.forEach(item => { %>
+                <div class="glass-card rounded-xl overflow-hidden group hover:border-[#D4AF37]/50 transition-all duration-300 border border-gray-800 flex flex-col h-full">
+                    <!-- Image -->
+                    <div class="relative h-64 overflow-hidden">
+                        <img src="<%= item.image_url %>" alt="<%= item.name %>" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700">
+                        <div class="absolute top-2 right-2 bg-black/80 backdrop-blur text-[#D4AF37] text-xs font-bold px-3 py-1 rounded-full border border-[#D4AF37]/30">
                             $<%= Number(item.price).toFixed(2) %>
                         </div>
-                    </a>
+                    </div>
 
+                    <!-- Content -->
                     <div class="p-6 flex flex-col flex-grow">
-                        <a href="/merch/<%= item.id %>">
-                            <h3 class="text-2xl font-bold text-white mb-2 hover:text-[#D4AF37] transition-colors"><%= item.name %></h3>
+                        <div class="flex justify-between items-start mb-2">
+                            <span class="text-xs text-gray-500 uppercase tracking-widest"><%= item.type %></span>
+                        </div>
+
+                        <a href="/merch/<%= item.id %>" class="flex-grow">
+                            <h3 class="text-xl font-bold text-white mb-2 group-hover:text-[#D4AF37] transition-colors"><%= item.name %></h3>
                         </a>
                         
-                        <p class="text-gray-400 text-sm mb-6 flex-grow line-clamp-2"><%= item.description %></p>
+                        <p class="text-gray-400 text-sm mb-6 line-clamp-2"><%= item.description %></p>
                         
-                        <div class="grid grid-cols-2 gap-3">
-                            <!-- View Details -->
-                            <a href="/merch/<%= item.id %>" class="btn-outline text-center py-3 text-xs font-bold rounded hover:bg-[#D4AF37]/10 transition-colors">
-                                DETAILS
-                            </a>
-
-                            <!-- Quick Add (Uses SKU for Cart) -->
-                            <button class="btn-gold py-3 text-xs font-bold add-to-cart-btn hover:scale-105 transition-transform" 
-                                data-id="<%= item.sku %>" 
-                                data-name="<%= item.name %>"
-                                data-type="merch">
-                                QUICK ADD
-                            </button>
+                        <!-- Action Buttons -->
+                        <div class="mt-auto">
+                            <% if (item.sizes && item.sizes.length > 0) { %>
+                                <!-- Item has sizes: Must go to detail page -->
+                                <a href="/merch/<%= item.id %>" class="w-full block text-center btn-outline py-3 text-xs font-bold rounded hover:bg-[#D4AF37] hover:text-black transition-all">
+                                    SELECT OPTIONS
+                                </a>
+                            <% } else { %>
+                                <!-- No sizes: Can Quick Add -->
+                                <button class="w-full btn-gold py-3 text-xs font-bold add-to-cart-btn hover:scale-105 transition-transform" 
+                                    data-id="<%= item.sku %>" 
+                                    data-name="<%= item.name %>">
+                                    QUICK ADD
+                                </button>
+                            <% } %>
                         </div>
                     </div>
                 </div>
             <% }); %>
         <% } else { %>
-            <div class="col-span-full text-center py-12">
-                <p class="text-gray-400">Inventory currently offline. Please check back later.</p>
+            <div class="col-span-full text-center py-20 bg-gray-900/30 rounded-xl border border-dashed border-gray-700">
+                <i class="fas fa-box-open text-4xl text-gray-600 mb-4"></i>
+                <p class="text-gray-400">No artifacts found matching your filters.</p>
+                <a href="/merch" class="text-[#D4AF37] text-sm mt-2 hover:underline">Clear Filters</a>
             </div>
         <% } %>
     </div>
 </section>
 
-<!-- Store Logic loaded here -->
 <script src="/js/store.js"></script>
 <%- include('partials/footer') %>
