@@ -12,7 +12,18 @@ try { require('dotenv').config(); } catch (e) { /* dotenv not installed */ }
 
 // --- CONFIGURATION ---
 const BUCKET_NAME = process.env.GCS_BUCKET_NAME || 'your-song-bucket-name';
-const DOMAIN = process.env.DOMAIN || 'http://localhost:8080';
+
+// DOMAIN SETUP & SANITIZATION
+// Stripe requires absolute URLs (http:// or https://).
+let rawDomain = process.env.DOMAIN || 'http://localhost:8080';
+// Ensure protocol exists
+if (!rawDomain.startsWith('http://') && !rawDomain.startsWith('https://')) {
+    rawDomain = 'http://' + rawDomain;
+}
+// Remove trailing slash to prevent double slashes in generated URLs
+const DOMAIN = rawDomain.replace(/\/$/, '');
+
+console.log(`🌍 DOMAIN Configured as: ${DOMAIN}`);
 
 // --- DATA LOADING ---
 let songsData = [];
@@ -88,6 +99,8 @@ if (process.env.STRIPE_SECRET_KEY) {
     } catch (e) {
         console.warn("⚠️ STRIPE WARNING:", e.message);
     }
+} else {
+    console.warn("⚠️ STRIPE WARNING: STRIPE_SECRET_KEY is missing. Checkout will not work.");
 }
 
 // --- DATABASE CONNECTION ---
@@ -220,100 +233,45 @@ app.get('/song/:id', (req, res) => {
 // --- ROBUST MERCH ROUTE ---
 app.get('/merch', async (req, res) => {
     const { type, sort, maxPrice } = req.query;
-
-    // Define common variables needed by EJS templates (header, filters)
-    // This prevents "ReferenceError: query is not defined" in EJS
-    const commonPayload = { 
-        query: req.query || {}, 
-        user: null, 
-        cartCount: 0 
-    };
+    const commonPayload = { query: req.query || {}, user: null, cartCount: 0 };
 
     try {
         if (pool) {
             let sql = "SELECT * FROM products WHERE 1=1";
             const params = [];
-
-            if (type && type !== 'all') {
-                sql += " AND type = ?";
-                params.push(type);
-            }
-
-            if (maxPrice) {
-                sql += " AND price <= ?";
-                params.push(maxPrice);
-            }
-
-            // Simple Sort Logic
+            if (type && type !== 'all') { sql += " AND type = ?"; params.push(type); }
+            if (maxPrice) { sql += " AND price <= ?"; params.push(maxPrice); }
             if (sort === 'price_asc') sql += " ORDER BY price ASC";
             else if (sort === 'price_desc') sql += " ORDER BY price DESC";
-            else sql += " ORDER BY created_at DESC"; // Default
+            else sql += " ORDER BY created_at DESC";
 
             const result = await query(sql, params);
-            
-            // Format results for EJS
             const products = result.rows.map(p => {
-                // Parse JSON sizes safely
-                if (typeof p.sizes === 'string') {
-                    try { p.sizes = JSON.parse(p.sizes); } catch(e) { p.sizes = []; }
-                } else if (!p.sizes) {
-                    p.sizes = [];
-                }
+                if (typeof p.sizes === 'string') { try { p.sizes = JSON.parse(p.sizes); } catch(e) { p.sizes = []; } }
+                else if (!p.sizes) { p.sizes = []; }
                 return p;
             });
 
             if (products.length === 0 && !type && !maxPrice) {
-                res.render('merch', { 
-                    ...commonPayload, 
-                    merch: mockMerchItems, 
-                    title: 'Merch (DB Empty)', 
-                    debugError: "Connected but no products found.", 
-                    dbStatus: "CONNECTED (EMPTY)" 
-                });
+                res.render('merch', { ...commonPayload, merch: mockMerchItems, title: 'Merch (DB Empty)', debugError: "Connected but no products found.", dbStatus: "CONNECTED (EMPTY)" });
             } else {
-                res.render('merch', { 
-                    ...commonPayload, 
-                    merch: products, 
-                    title: 'Merch', 
-                    debugError: null 
-                });
+                res.render('merch', { ...commonPayload, merch: products, title: 'Merch', debugError: null });
             }
         } else {
-            // Offline Mode
             let filtered = [...mockMerchItems];
             if (type && type !== 'all') filtered = filtered.filter(p => p.type === type);
             if (maxPrice) filtered = filtered.filter(p => p.price <= maxPrice);
             if (sort === 'price_asc') filtered.sort((a,b) => a.price - b.price);
             else if (sort === 'price_desc') filtered.sort((a,b) => b.price - a.price);
 
-            res.render('merch', { 
-                ...commonPayload, 
-                merch: filtered, 
-                title: 'Merch (Offline)', 
-                debugError: dbErrorDetail || "Unknown DB Error", 
-                dbStatus: dbConnectionStatus 
-            });
+            res.render('merch', { ...commonPayload, merch: filtered, title: 'Merch (Offline)', debugError: dbErrorDetail || "Unknown DB Error", dbStatus: dbConnectionStatus });
         }
     } catch (err) {
-        // SAFETY NET: If the main render fails (e.g., EJS error or DB syntax error),
-        // we catch it here and try to render the error page.
         console.error("Merch Route Error:", err);
         try {
-            res.render('merch', { 
-                ...commonPayload, 
-                merch: mockMerchItems, 
-                title: 'Merch (Crash)', 
-                debugError: err.message, 
-                dbStatus: "CRASHED" 
-            });
+            res.render('merch', { ...commonPayload, merch: mockMerchItems, title: 'Merch (Crash)', debugError: err.message, dbStatus: "CRASHED" });
         } catch (renderErr) {
-            // If even the error page crashes (e.g. missing 'partials/header'), show raw text
-            res.status(500).send(`
-                <h1>Critical Error</h1>
-                <p>The application encountered an error it could not recover from.</p>
-                <p><strong>Original Error:</strong> ${err.message}</p>
-                <p><strong>Render Error:</strong> ${renderErr.message}</p>
-            `);
+            res.status(500).send(`<h1>Critical Error</h1><p>${err.message}</p>`);
         }
     }
 });
@@ -325,9 +283,7 @@ app.get('/merch/:id', async (req, res) => {
             const querySql = "SELECT * FROM products WHERE CAST(id AS CHAR) = ? OR sku = ?";
             const result = await query(querySql, [req.params.id, req.params.id]);
             product = result.rows[0];
-            if (product && typeof product.sizes === 'string') {
-                try { product.sizes = JSON.parse(product.sizes); } catch(e) { product.sizes = []; }
-            }
+            if (product && typeof product.sizes === 'string') { try { product.sizes = JSON.parse(product.sizes); } catch(e) { product.sizes = []; } }
         } else {
             product = mockMerchItems.find(m => m.id === req.params.id || m.sku === req.params.id);
         }
@@ -347,15 +303,17 @@ app.post('/initiate-checkout', async (req, res) => {
     const { sessionId, email, fullName, phone, password } = req.body;
     if (!pool) return res.status(500).json({ error: "DB Offline" });
 
+    if (!stripe) {
+        console.error("❌ Checkout blocked: Stripe is not configured.");
+        return res.status(503).json({ error: "Payment gateway is not configured (Missing STRIPE_SECRET_KEY)." });
+    }
+
     try {
         let userId;
         const userCheck = await query("SELECT id FROM users WHERE email = ?", [email]);
         if (userCheck.rows.length > 0) userId = userCheck.rows[0].id;
         else {
-            // FIXED: Removed 'RETURNING id' for MySQL compatibility
             const newUser = await query("INSERT INTO users (email, full_name, phone, password_hash) VALUES (?, ?, ?, ?)", [email, fullName, phone, password]);
-            
-            // FIXED: Use standard MySQL insertId
             userId = newUser.rows.insertId;
         }
         
@@ -374,6 +332,20 @@ app.post('/initiate-checkout', async (req, res) => {
         const lineItems = cartItems.map(item => {
             let desc = item.type;
             if (item.size) desc += ` | Size: ${item.size}`;
+            
+            // ROBUST IMAGE URL CONSTRUCTION
+            let itemImages = [];
+            if (item.image_url) {
+                // If it's already an absolute URL, use it.
+                if (item.image_url.startsWith('http')) {
+                    itemImages = [item.image_url];
+                } 
+                // If it's relative, prepend DOMAIN
+                else {
+                    itemImages = [`${DOMAIN}${item.image_url}`];
+                }
+            }
+
             return {
                 price_data: {
                     currency: 'usd',
@@ -381,7 +353,7 @@ app.post('/initiate-checkout', async (req, res) => {
                         name: item.name,
                         description: desc, 
                         metadata: { sku: item.sku, type: item.type, size: item.size },
-                        images: item.image_url ? [`${DOMAIN}${item.image_url}`] : [],
+                        images: itemImages,
                     },
                     unit_amount: Math.round(Number(item.price) * 100),
                 },
@@ -401,11 +373,16 @@ app.post('/initiate-checkout', async (req, res) => {
 
         if (hasPhysicalItems) sessionConfig.shipping_address_collection = { allowed_countries: ['US', 'CA', 'GB'] };
 
+        // Debug Log
+        console.log(`🚀 Creating Stripe Session. Success URL: ${sessionConfig.success_url}`);
+
         const session = await stripe.checkout.sessions.create(sessionConfig);
+        
         await query("INSERT INTO orders (user_id, stripe_session_id, total_amount, payment_status) VALUES (?, ?, ?, 'pending')", [userId, session.id, (session.amount_total / 100)]);
         res.json({ id: session.id });
 
     } catch (err) {
+        console.error("Stripe Error:", err);
         res.status(500).json({ error: "Checkout failed: " + err.message });
     }
 });
@@ -473,11 +450,9 @@ app.delete('/api/cart', async (req, res) => {
     }
 });
 
-// UPDATE: Pass data to index for potential dynamic usage, though we will hardcode specific features for style
 app.get('/', (req, res) => {
     res.render('index', { 
         title: 'Home',
-        // Pass first song/merch for meta tags or dynamic fallbacks if you want later
         featuredSong: songsData.find(s => s.youtube_info && s.youtube_info.video_id === 'Cem7RZsb7Rw'), 
         featuredMerch: mockMerchItems[0] 
     });
