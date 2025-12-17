@@ -1,23 +1,13 @@
 <%- include('partials/header') %>
 
-<!-- HERO SECTION -->
+<!-- HERO SECTION (UNCHANGED) -->
 <section id="hero-section" class="min-h-[85vh] flex flex-col items-center justify-center text-center relative overflow-hidden perspective-1000 bg-black">
-    
-    <!-- COSMIC CANVAS BACKGROUND -->
     <canvas id="cosmic-canvas" class="absolute inset-0 w-full h-full z-0 pointer-events-none"></canvas>
-
-    <!-- MAIN CONTENT CONTAINER -->
     <div class="max-w-6xl mx-auto relative z-10 pointer-events-auto px-4">
-        
-        <!-- TITLE BLOCK: Logo + Text -->
         <div class="mb-12 flex flex-col md:flex-row items-center justify-center gap-8 md:gap-12">
-            
-            <!-- LOGO (Left of text) -->
             <div class="flex-shrink-0">
                 <img src="/images/logo.png" alt="Logo" class="w-32 md:w-48 h-auto object-contain drop-shadow-[0_0_20px_rgba(212,175,55,0.4)] hover:scale-105 transition-transform duration-500">
             </div>
-
-            <!-- TEXT (Right of logo) -->
             <div class="text-center md:text-left">
                 <h1 class="text-6xl md:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-b from-[#F4C430] to-[#AA8C2C] drop-shadow-2xl mb-2 leading-tight">
                     THINK FREELY
@@ -25,13 +15,10 @@
                 <h2 class="text-xl md:text-3xl text-white font-light tracking-[0.5em]">AS ONE AND THE SAME</h2>
             </div>
         </div>
-        
-        <!-- SUBTEXT & BUTTONS -->
         <div class="flex flex-col items-center">
             <p class="text-gray-300 text-lg md:text-xl max-w-2xl mx-auto mb-12 leading-relaxed drop-shadow-md bg-black/40 backdrop-blur-sm rounded-lg p-4 border border-white/5">
                 Wordplay into the embrace of richer mindhood and such things as that 
             </p>
-
             <div class="flex flex-col sm:flex-row gap-6 justify-center">
                 <a href="/music" class="btn-gold px-8 py-4 text-lg rounded-sm shadow-lg inline-block transition-transform hover:-translate-y-1">
                     Stream Now
@@ -42,110 +29,148 @@
             </div>
         </div>
     </div>
-    
     <div class="absolute bottom-8 animate-pulse text-[#D4AF37] z-10">
         <i class="fas fa-chevron-down text-3xl"></i>
     </div>
 </section>
 
-<!-- EXTENDED SECTIONS -->
+<!-- EXTENDED SECTIONS: PROJECT SHOWCASE -->
 
-<!-- 1. MUSIC -->
-<section class="py-20 border-t border-yellow-900/30">
-    <div class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 items-center px-4">
-        <div class="order-2 md:order-1">
-            <div class="relative w-full aspect-video bg-gray-900 rounded-lg border border-[#D4AF37]/50 overflow-hidden flex items-center justify-center group">
-                <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-20"></div>
-                <i class="fas fa-music text-6xl text-[#D4AF37] group-hover:scale-125 transition-transform duration-500"></i>
-            </div>
+<!-- 1. MUSIC: The Final Scene -->
+<section class="py-24 border-t border-yellow-900/30 relative">
+    <div class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-16 items-center px-6">
+        
+        <!-- Image Content -->
+        <div class="order-2 md:order-1 relative group">
+            <div class="absolute -inset-1 bg-gradient-to-r from-[#D4AF37] to-[#AA8C2C] rounded-lg blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
+            <a href="/song/Cem7RZsb7Rw" class="relative block aspect-video rounded-lg overflow-hidden border border-[#D4AF37]/30 shadow-2xl">
+                <!-- Using High Res YouTube Thumbnail -->
+                <img src="https://img.youtube.com/vi/Cem7RZsb7Rw/maxresdefault.jpg" alt="The Final Scene" class="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700">
+                <div class="absolute inset-0 bg-black/40 group-hover:bg-transparent transition-colors duration-500 flex items-center justify-center">
+                    <div class="w-16 h-16 rounded-full bg-[#D4AF37]/90 flex items-center justify-center backdrop-blur-sm shadow-lg group-hover:scale-110 transition-transform">
+                        <i class="fas fa-play text-black text-xl ml-1"></i>
+                    </div>
+                </div>
+            </a>
         </div>
+
+        <!-- Text Content -->
         <div class="order-1 md:order-2 space-y-6">
-            <h2 class="text-4xl text-gold">MUSIC</h2>
-            <h3 class="text-xl text-[#20B2AA] tracking-widest uppercase">Auditory Commands</h3>
+            <h2 class="text-5xl text-gold brand-font">LATEST TRANSMISSION</h2>
+            <h3 class="text-xl text-[#20B2AA] tracking-widest uppercase font-bold">The Final Scene</h3>
             <p class="text-gray-300 leading-loose text-lg">
-                Structured frequencies designed to reorder the subconscious. Drawing from the raw energy of psychedelic rock and the disciplined structure of orchestral composition, we create a soundscape where chaos and control coexist.
+                A sonic exploration of end-times and new beginnings. "The Final Scene" combines orchestral density with raw lyrical introspection, setting the tone for the current era of the Collective.
             </p>
-            <ul class="space-y-2 text-gray-400">
-                <li><i class="fas fa-check text-[#20B2AA] mr-2"></i> The Mashup Trilogy</li>
-                <li><i class="fas fa-check text-[#20B2AA] mr-2"></i> Symphonic Arrangements</li>
-                <li><i class="fas fa-check text-[#20B2AA] mr-2"></i> Lyricism as Doctrine</li>
-            </ul>
-            <a href="/music" class="inline-block mt-4 text-[#D4AF37] border-b border-[#D4AF37] pb-1 hover:text-white transition-colors">
-                LISTEN NOW &rarr;
+            <div class="flex flex-col gap-3 pt-2">
+                <div class="flex items-center text-gray-400">
+                    <i class="fab fa-youtube text-[#D4AF37] w-8"></i>
+                    <span>Visualizer Available</span>
+                </div>
+                <div class="flex items-center text-gray-400">
+                    <i class="fas fa-file-audio text-[#D4AF37] w-8"></i>
+                    <span>High Fidelity Audio</span>
+                </div>
+            </div>
+            <a href="/music" class="inline-block mt-6 text-[#D4AF37] border-b border-[#D4AF37] pb-1 hover:text-white transition-colors uppercase tracking-wider text-sm font-bold">
+                Access Full Archives &rarr;
             </a>
         </div>
     </div>
 </section>
 
-<!-- 2. SOFTWARE -->
-<section class="py-20 border-t border-yellow-900/30 bg-black/40">
-    <div class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 items-center px-4">
+<!-- 2. SOFTWARE: Color Contagion -->
+<section class="py-24 border-t border-yellow-900/30 bg-white/5">
+    <div class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-16 items-center px-6">
+        
+        <!-- Text Content -->
         <div class="space-y-6">
-            <h2 class="text-4xl text-gold">SOFTWARE</h2>
-            <h3 class="text-xl text-[#20B2AA] tracking-widest uppercase">Digital Interventions</h3>
+            <h2 class="text-5xl text-gold brand-font">TACTICAL SIMULATIONS</h2>
+            <h3 class="text-xl text-[#20B2AA] tracking-widest uppercase font-bold">Color Contagion</h3>
             <p class="text-gray-300 leading-loose text-lg">
-                Interactive simulations and tactical applications. Experience <strong>Color Contagion</strong>, our browser-based simulation engine, and explore the digital tools we use to propagate the signal.
+                Our browser-based engine models the spread of influence through visual data. <strong>Color Contagion</strong> is not just a game; it is a study in dominance, territory, and algorithmic viral mechanics.
             </p>
-            <p class="text-gray-400">
-                <em>"Code is the language of the new reality."</em>
+            <p class="text-gray-400 italic border-l-2 border-[#20B2AA] pl-4">
+                "Code is the language of the new reality."
             </p>
-            <a href="/projects" class="inline-block mt-4 text-[#D4AF37] border-b border-[#D4AF37] pb-1 hover:text-white transition-colors">
-                RUN SIMULATIONS &rarr;
+            <a href="/projects" class="inline-block mt-6 text-[#D4AF37] border-b border-[#D4AF37] pb-1 hover:text-white transition-colors uppercase tracking-wider text-sm font-bold">
+                Run Simulation &rarr;
             </a>
         </div>
-        <div>
-            <div class="relative w-full aspect-video bg-gray-900 rounded-lg border border-[#D4AF37]/50 overflow-hidden flex items-center justify-center group">
-                <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/diagmonds-light.png')] opacity-20"></div>
-                <i class="fas fa-laptop-code text-6xl text-[#20B2AA] group-hover:text-[#D4AF37] transition-colors duration-700"></i>
-            </div>
+
+        <!-- Image Content -->
+        <div class="relative group">
+            <div class="absolute -inset-1 bg-gradient-to-r from-[#20B2AA] to-[#008080] rounded-lg blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
+            <a href="/projects" class="relative block aspect-video rounded-lg overflow-hidden border border-[#20B2AA]/30 shadow-2xl bg-gray-900">
+                <!-- Using Fallback Image from Projects Page -->
+                <img src="/images/FALLBACK_IMG.png" alt="Color Contagion Gameplay" class="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700 opacity-80 group-hover:opacity-100">
+                
+                <!-- Overlay Interface Elements -->
+                <div class="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black to-transparent">
+                    <div class="flex justify-between items-end">
+                        <span class="text-[#20B2AA] font-mono text-xs">STATUS: ONLINE</span>
+                        <i class="fas fa-gamepad text-2xl text-white"></i>
+                    </div>
+                </div>
+            </a>
         </div>
+
     </div>
 </section>
 
-<!-- 3. MERCH -->
-<section class="py-20 border-t border-yellow-900/30">
-    <div class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 items-center px-4">
-        <div class="order-2 md:order-1">
-            <div class="relative w-full aspect-video bg-gray-900 rounded-lg border border-[#D4AF37]/50 overflow-hidden flex items-center justify-center group">
-                <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-20"></div>
-                <i class="fas fa-tshirt text-6xl text-[#D4AF37] group-hover:rotate-12 transition-transform duration-500"></i>
-            </div>
+<!-- 3. MERCH: Standard Uniform -->
+<section class="py-24 border-t border-yellow-900/30">
+    <div class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-16 items-center px-6">
+        
+        <!-- Image Content -->
+        <div class="order-2 md:order-1 relative group">
+            <div class="absolute -inset-1 bg-gradient-to-r from-[#D4AF37] to-white rounded-lg blur opacity-10 group-hover:opacity-30 transition duration-1000"></div>
+            <a href="/merch" class="relative block aspect-square md:aspect-[4/3] rounded-lg overflow-hidden border border-gray-800 bg-[#111]">
+                <img src="/images/merch-shirt.jpg" alt="Standard Uniform" class="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700">
+                
+                <!-- Price Tag Overlay -->
+                <div class="absolute top-4 right-4 bg-black/80 backdrop-blur text-[#D4AF37] px-4 py-2 rounded border border-[#D4AF37] font-bold">
+                    $45.00
+                </div>
+            </a>
         </div>
+
+        <!-- Text Content -->
         <div class="order-1 md:order-2 space-y-6">
-            <h2 class="text-4xl text-gold">MERCH</h2>
-            <h3 class="text-xl text-[#20B2AA] tracking-widest uppercase">Physical Assets</h3>
+            <h2 class="text-5xl text-gold brand-font">PHYSICAL ARTIFACTS</h2>
+            <h3 class="text-xl text-[#20B2AA] tracking-widest uppercase font-bold">Standard Uniform</h3>
             <p class="text-gray-300 leading-loose text-lg">
-                Tangible artifacts for the devoted. Obtain the uniform, acquire physical media, and support the machine. In a transactional reality, we offer goods of the highest quality for your compliance.
+                Tangible proof of allegiance. High-quality poly-blend fabric engineered for comfort and signal broadcasting. Available in all standard sizes.
             </p>
-            <div class="grid grid-cols-2 gap-4">
-                <div class="glass-card p-4 rounded text-center border border-gray-700">
-                    <i class="fas fa-layer-group text-2xl mb-2 text-[#20B2AA]"></i>
-                    <h4 class="font-bold text-gray-200">Uniforms</h4>
+            
+            <div class="grid grid-cols-2 gap-4 my-4">
+                <div class="p-4 rounded border border-gray-800 bg-gray-900/50 text-center hover:border-[#D4AF37] transition-colors">
+                    <i class="fas fa-tshirt text-3xl text-gray-500 mb-2"></i>
+                    <h4 class="text-sm font-bold text-gray-300">APPAREL</h4>
                 </div>
-                <div class="glass-card p-4 rounded text-center border border-gray-700">
-                    <i class="fas fa-compact-disc text-2xl mb-2 text-[#20B2AA]"></i>
-                    <h4 class="font-bold text-gray-200">Vinyl</h4>
+                <div class="p-4 rounded border border-gray-800 bg-gray-900/50 text-center hover:border-[#D4AF37] transition-colors">
+                    <i class="fas fa-compact-disc text-3xl text-gray-500 mb-2"></i>
+                    <h4 class="text-sm font-bold text-gray-300">MEDIA</h4>
                 </div>
             </div>
-            <a href="/merch" class="inline-block mt-4 text-[#D4AF37] border-b border-[#D4AF37] pb-1 hover:text-white transition-colors">
-                ENTER SHOP &rarr;
+
+            <a href="/merch" class="inline-block mt-2 text-[#D4AF37] border-b border-[#D4AF37] pb-1 hover:text-white transition-colors uppercase tracking-wider text-sm font-bold">
+                Access Supply Drop &rarr;
             </a>
         </div>
     </div>
 </section>
 
+<!-- Cosmic Script (Unchanged) -->
 <script>
-    // --- COSMIC VOID PARTICLE SYSTEM (ENHANCED) ---
+    // ... [Previous Cosmic Canvas Script Content] ...
     (function() {
         const canvas = document.getElementById('cosmic-canvas');
         const ctx = canvas.getContext('2d');
-        
+        // ... (Keep existing script logic)
         let width, height;
         let stars = [];
         let planets = [];
         let shootingStar = null;
-        
-        // Mouse tracking
         let mouse = { x: -9999, y: -9999 };
 
         window.addEventListener('mousemove', (e) => {
@@ -160,119 +185,74 @@
             if(canvas.parentElement) {
                 width = canvas.width = canvas.parentElement.offsetWidth;
                 height = canvas.height = canvas.parentElement.offsetHeight;
-                initStars(); // Re-initialize stars on resize to fill new space
+                initStars(); 
             }
         }
-
-        // --- CLASSES ---
 
         class Star {
             constructor() {
                 this.x = Math.random() * width;
                 this.y = Math.random() * height;
-                this.size = Math.random() * 1.5 + 0.2; // Ranging from very tiny to visible
-                this.baseAlpha = Math.random() * 0.7 + 0.2; // Generally brighter
+                this.size = Math.random() * 1.5 + 0.2;
+                this.baseAlpha = Math.random() * 0.7 + 0.2;
                 this.currentAlpha = this.baseAlpha;
-                
-                // Twinkle properties - More variety in speed
                 this.twinkleSpeed = Math.random() * 1.5 + 0.5; 
                 this.twinkleOffset = Math.random() * Math.PI * 2;
-                
-                // Track interaction state
                 this.isHovered = false;
                 this.hoverColor = null;
-
-                // RICHER COLOR PALETTE
                 const rand = Math.random();
-                if (rand > 0.90) this.color = '#D4AF37';       // Gold
-                else if (rand > 0.80) this.color = '#F4C430';  // Light Gold
-                else if (rand > 0.75) this.color = '#20B2AA';  // Eye Teal
-                else if (rand > 0.70) this.color = '#E0F7FA';  // Cyan-ish White
-                else if (rand > 0.65) this.color = '#FFEBEE';  // Rose White
-                else this.color = '#FFFFFF';                   // Pure White
+                if (rand > 0.90) this.color = '#D4AF37';       
+                else if (rand > 0.80) this.color = '#F4C430';  
+                else if (rand > 0.75) this.color = '#20B2AA';  
+                else if (rand > 0.70) this.color = '#E0F7FA';  
+                else if (rand > 0.65) this.color = '#FFEBEE';  
+                else this.color = '#FFFFFF';                   
             }
-
             update(time) {
-                // Distance to mouse
                 const dx = this.x - mouse.x;
                 const dy = this.y - mouse.y;
                 const dist = Math.sqrt(dx*dx + dy*dy);
-                
-                // MODIFICATION: Reduced range (About 1/3rd of previous 250)
                 const interactionRange = 85; 
-
                 let speed = this.twinkleSpeed;
                 let alphaBoost = 0;
-
-                // MOUSE INTERACTION: Active Twinkle
                 if (dist < interactionRange) {
                     this.isHovered = true;
                     const intensity = 1 - (dist / interactionRange);
-                    
-                    // Stars near mouse twinkle furiously
-                    speed += intensity * 20; // Dramatic speed increase
-                    
-                    // Stars near mouse get significantly larger/brighter
+                    speed += intensity * 20;
                     alphaBoost = intensity * 0.8;
-
-                    // MODIFICATION: Random Color Shift
                     if (!this.hoverColor) {
                         const shiftRand = Math.random();
-                        if (shiftRand > 0.66) this.hoverColor = '#4D94FF';      // Electric Blue
-                        else if (shiftRand > 0.33) this.hoverColor = '#FF4D4D'; // Neon Red
-                        else this.hoverColor = '#FFFF00';                       // Bright Yellow
+                        if (shiftRand > 0.66) this.hoverColor = '#4D94FF';      
+                        else if (shiftRand > 0.33) this.hoverColor = '#FF4D4D'; 
+                        else this.hoverColor = '#FFFF00';                       
                     }
                 } else {
                     this.isHovered = false;
                     this.hoverColor = null;
                 }
-
-                // Calculate Twinkle
                 let oscillation = Math.sin(time * speed + this.twinkleOffset);
-                
-                // Apply twinkling to alpha
                 this.currentAlpha = this.baseAlpha + (oscillation * 0.15) + alphaBoost;
-
-                // Clamp Alpha
                 if (this.currentAlpha < 0) this.currentAlpha = 0;
                 if (this.currentAlpha > 1) this.currentAlpha = 1;
             }
-
             draw() {
                 const activeColor = (this.isHovered && this.hoverColor) ? this.hoverColor : this.color;
-                
                 ctx.globalAlpha = this.currentAlpha;
                 ctx.fillStyle = activeColor;
-                
-                // Draw Star Body
                 ctx.beginPath();
                 ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
                 ctx.fill();
-
-                // MODIFICATION: Light Rays (Diffraction Spikes)
                 if (this.isHovered) {
                     ctx.strokeStyle = activeColor;
-                    ctx.lineWidth = 0.5; // Very thin rays
-                    
-                    // Ray length proportional to brightness/size
+                    ctx.lineWidth = 0.5; 
                     const rayLength = this.size * 8 + (this.currentAlpha * 5); 
-
                     ctx.beginPath();
-                    // Horizontal Ray
                     ctx.moveTo(this.x - rayLength, this.y);
                     ctx.lineTo(this.x + rayLength, this.y);
-                    // Vertical Ray
                     ctx.moveTo(this.x, this.y - rayLength);
                     ctx.lineTo(this.x, this.y + rayLength);
                     ctx.stroke();
-
-                    // Optional center glow
-                    ctx.shadowBlur = 8;
-                    ctx.shadowColor = activeColor;
-                    ctx.fill();
-                    ctx.shadowBlur = 0;
                 }
-
                 ctx.globalAlpha = 1.0;
             }
         }
@@ -282,34 +262,24 @@
                 this.radius = Math.random() * 40 + 10; 
                 this.x = Math.random() * width;
                 this.y = Math.random() * height;
-                // Very subtle dark bodies blocking stars or slightly lighter than void
                 this.color = Math.random() > 0.5 ? '#0c0c0c' : '#080808'; 
                 this.speedX = (Math.random() - 0.5) * 0.05; 
                 this.speedY = (Math.random() - 0.5) * 0.05;
-                
-                // Rim light color
                 this.rimColor = Math.random() > 0.5 ? 'rgba(212, 175, 55, 0.05)' : 'rgba(32, 178, 170, 0.05)';
             }
-
             update() {
                 this.x += this.speedX;
                 this.y += this.speedY;
-
-                // Wrap around screen
                 if (this.x > width + this.radius) this.x = -this.radius;
                 if (this.x < -this.radius) this.x = width + this.radius;
                 if (this.y > height + this.radius) this.y = -this.radius;
                 if (this.y < -this.radius) this.y = height + this.radius;
             }
-
             draw() {
-                // Draw Planet Body (Silhouette)
                 ctx.beginPath();
                 ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
                 ctx.fillStyle = this.color;
                 ctx.fill();
-
-                // Draw Rim Light (Very Subtle)
                 ctx.beginPath();
                 ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
                 ctx.strokeStyle = this.rimColor;
@@ -319,30 +289,22 @@
         }
 
         class ShootingStar {
-            constructor() {
-                this.reset();
-            }
-
+            constructor() { this.reset(); }
             reset() {
                 this.x = Math.random() * width;
                 this.y = Math.random() * height * 0.5;
-                this.len = Math.random() * 100 + 50; // Longer tails
-                this.speed = Math.random() * 15 + 10; // Faster
+                this.len = Math.random() * 100 + 50; 
+                this.speed = Math.random() * 15 + 10; 
                 this.size = Math.random() * 1.5 + 0.5;
                 this.angle = Math.PI / 4 + (Math.random() * 0.2); 
-                
                 this.waitTime = new Date().getTime() + Math.random() * 3000 + 1000;
                 this.active = false;
-                
-                // Color variation for shooting star head
                 this.headColor = Math.random() > 0.5 ? '#FFFFFF' : '#D4AF37';
             }
-
             update() {
                 if (this.active) {
                     this.x += this.speed * Math.cos(this.angle);
                     this.y += this.speed * Math.sin(this.angle);
-                    
                     if (this.x > width + this.len || this.y > height + this.len) {
                         this.active = false;
                         this.waitTime = new Date().getTime() + Math.random() * 5000;
@@ -355,18 +317,14 @@
                     }
                 }
             }
-
             draw() {
                 if (!this.active) return;
-
                 const tailX = this.x - this.len * Math.cos(this.angle);
                 const tailY = this.y - this.len * Math.sin(this.angle);
-
                 const gradient = ctx.createLinearGradient(this.x, this.y, tailX, tailY);
                 gradient.addColorStop(0, "rgba(255, 255, 255, 1)");
                 gradient.addColorStop(0.1, this.headColor === '#D4AF37' ? "rgba(212, 175, 55, 0.8)" : "rgba(200, 240, 255, 0.8)");
                 gradient.addColorStop(1, "rgba(0, 0, 0, 0)");
-
                 ctx.lineWidth = this.size;
                 ctx.beginPath();
                 ctx.moveTo(this.x, this.y);
@@ -377,53 +335,26 @@
             }
         }
 
-        // --- INITIALIZATION ---
-
         function initStars() {
             stars = [];
-            // DENSE STAR FIELD
-            const starCount = Math.floor((width * height) / 800); // High density
-            for (let i = 0; i < starCount; i++) {
-                stars.push(new Star());
-            }
+            const starCount = Math.floor((width * height) / 800); 
+            for (let i = 0; i < starCount; i++) stars.push(new Star());
         }
 
         function init() {
             resize();
-            
-            // Create Planets
             planets = [];
             for(let i=0; i<4; i++) planets.push(new Planet());
-
-            // Create Shooting Star Controller
             shootingStar = new ShootingStar();
-
             animate();
         }
 
         function animate() {
             const time = Date.now() * 0.001;
-            
             ctx.clearRect(0, 0, width, height);
-            
-            // 1. Draw Planets (Behind stars)
-            planets.forEach(p => {
-                p.update();
-                p.draw();
-            });
-
-            // 2. Draw Stars
-            stars.forEach(star => {
-                star.update(time);
-                star.draw();
-            });
-
-            // 3. Draw Shooting Star (Top layer)
-            if (shootingStar) {
-                shootingStar.update();
-                shootingStar.draw();
-            }
-            
+            planets.forEach(p => { p.update(); p.draw(); });
+            stars.forEach(star => { star.update(time); star.draw(); });
+            if (shootingStar) { shootingStar.update(); shootingStar.draw(); }
             requestAnimationFrame(animate);
         }
 
