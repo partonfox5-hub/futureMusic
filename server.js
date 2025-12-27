@@ -15,12 +15,19 @@ const GoogleStrategy = require('passport-google-oauth20').Strategy;
 // Configure these in your Google Cloud Run Environment Variables
 const pool = new Pool({
     user: process.env.DB_USER || 'postgres',
-    host: process.env.DB_HOST || 'localhost',
+    host: process.env.DB_HOST || '35.245.190.221', // Your specific IP
     database: process.env.DB_NAME || 'shinemore_db',
     password: process.env.DB_PASSWORD || 'password',
     port: process.env.DB_PORT || 5432,
-    // SSL is often required for Cloud SQL. Uncomment if needed:
-    // ssl: { rejectUnauthorized: false } 
+    
+    // TIMEOUT SETTINGS
+    connectionTimeoutMillis: 5000, 
+    idleTimeoutMillis: 30000, 
+
+    // CRITICAL FIX FOR CLOUD SQL PUBLIC IP:
+    ssl: {
+        rejectUnauthorized: false // Allows self-signed certs (standard for Cloud SQL)
+    }
 });
 
 // --- TEST DB CONNECTION ---
