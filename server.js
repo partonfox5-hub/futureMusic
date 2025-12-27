@@ -1,5 +1,15 @@
 const express = require('express');
 const app = express();
+
+const path = require('path');
+const fs = require('fs'); 
+const http = require('http'); 
+const bodyParser = require('body-parser');
+const { Storage } = require('@google-cloud/storage');
+const mysql = require('mysql2/promise');
+const bcrypt = require('bcrypt');
+const session = require('express-session');
+
 // --- SESSION CONFIGURATION ---
 app.use(session({
     secret: process.env.SESSION_SECRET || 'dev_secret_key_123',
@@ -10,16 +20,6 @@ app.use(session({
         maxAge: 24 * 60 * 60 * 1000 // 24 hours
     }
 }));
-const path = require('path');
-const fs = require('fs'); 
-const http = require('http'); 
-const bodyParser = require('body-parser');
-const { Storage } = require('@google-cloud/storage');
-const mysql = require('mysql2/promise');
-const bcrypt = require('bcrypt');
-const session = require('express-session');
-
-
 // Try loading .env if available
 try { require('dotenv').config(); } catch (e) { /* dotenv not installed */ }
 
