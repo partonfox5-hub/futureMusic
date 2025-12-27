@@ -372,12 +372,12 @@ app.get('/about', (req, res) => res.render('about', { title: 'About' }));
 app.get('/contact', (req, res) => res.render('contact', { title: 'Contact' }));
 app.get('/advocacy', (req, res) => res.render('advocacy', { title: 'Advocacy' }));
 
-// ADDED: Account Page Route
-app.get('/account', requireAuth, async (req, res) => {
+
+
 // ADDED: Account Page Route
 app.get('/account', requireAuth, async (req, res) => {
     try {
-        // 1. Setup default safe data (so page loads even if DB fails)
+        // 1. Setup default safe data
         let user = { email: req.session.email, id: req.session.userId };
         let cartCount = 0;
 
@@ -400,21 +400,20 @@ app.get('/account', requireAuth, async (req, res) => {
             }
         }
         
-        // 3. Render Page with ALL required variables
-        console.log(`Rendering Account for: ${user.email}`); // Debug log
+        // 3. Render Page
         res.render('account', { 
             title: 'My Account',
             user: user,
             cartCount: cartCount,
-            query: req.query || {} // Header search bars often require this
+            query: req.query || {} 
         });
 
     } catch (err) {
         console.error("❌ Account Page Critical Error:", err);
-        // Show the actual error on screen for easier debugging
-        res.status(500).send(`<h1>Error loading account</h1><p>Check console for details.</p><pre>${err.stack}</pre>`);
+        res.status(500).send(`<h1>Error loading account</h1><p>${err.message}</p>`);
     }
 });
+
 
 
 
