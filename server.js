@@ -263,36 +263,43 @@ app.get('/login', (req, res) => {
 
 // 2. Handle Registration
 app.post('/register', async (req, res) => {
-    const { email, password, confirmPassword } = req.body;
-    
-    if (password !== confirmPassword) {
-        return res.send('<script>alert("Passwords do not match"); window.location.href="/login";</script>');
+    // 1. Only extract email and password (no username field needed from form)
+    const { email, password } = req.body;
+
+    // 2. Validate existence
+    if (!email || !password) {
+        return res.status(400).send('Please provide both an email and password.');
     }
 
-    try {
-        if (!pool) throw new Error("Database not connected");
-        
-        // Check if user exists
-        const [existing] = await pool.query("SELECT id FROM users WHERE email = ?", [email]);
-        if (existing.length > 0) {
-            return res.send('<script>alert("Email already exists"); window.location.href="/login";</script>');
+    if (pool) {
+        try {
+            // 3. Generate a username automatically from the email (e.g. "john" from "john@example.com")
+            // This satisfies the database requirement for a 'username' column.
+            const derivedUsername = email.split('@')[0];
+
+            // 4. Hash the password
+            const hashedPassword = await bcrypt.hash(password, 10);
+
+            // 5. Insert into DB using derivedUsername
+            await query(
+                "INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)", 
+                [derivedUsername, email, hashedPassword]
+            );
+            
+            // Success!
+            res.redirect('/login');
+        } catch (err) {
+            // 6. LOGGING: This will print the exact DB error to your terminal
+            console.error("Registration Error:", err);
+            
+            // Send a clear error to the screen so you aren't staring at a blank page
+            res.status(500).send(`Error registering user: ${err.message}`);
         }
-
-        // Hash password and save
-        const hashedPassword = await bcrypt.hash(password, 10);
-        await pool.query("INSERT INTO users (email, password) VALUES (?, ?)", [email, hashedPassword]);
-
-        // Auto-login after register
-        const [newUser] = await pool.query("SELECT id FROM users WHERE email = ?", [email]);
-        req.session.userId = newUser[0].id;
-        req.session.email = email;
-        
-        res.redirect('/account');
-    } catch (err) {
-        console.error(err);
-        res.status(500).send("Error registering user");
+    } else {
+        res.status(500).send('Database connection not established.');
     }
 });
+
 
 // 3. Handle Login
 app.post('/login', async (req, res) => {

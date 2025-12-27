@@ -46,10 +46,16 @@
         <!-- REGISTER FORM -->
         <form id="register-form" class="mt-8 space-y-6 hidden" action="/register" method="POST">
             <div class="rounded-md shadow-sm -space-y-px">
-                <div>
-                    <label for="reg-email" class="sr-only">Email address</label>
-                    <input id="reg-email" name="email" type="email" required class="appearance-none rounded-none relative block w-full px-3 py-3 border border-gray-700 bg-gray-900 text-white placeholder-gray-500 rounded-t-md focus:outline-none focus:ring-[#D4AF37] focus:border-[#D4AF37] focus:z-10 sm:text-sm" placeholder="Email address">
-                </div>
+
+            <div>
+                <label for="reg-email" class="sr-only">Email address</label>
+                <!-- UPDATED INPUT: Added type="email" and a strict pattern regex -->
+                <input id="reg-email" name="email" type="email" required 
+                    pattern="[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$"
+                    title="Please enter a valid email address (e.g., user@example.com)"
+                    class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-700 bg-gray-900 placeholder-gray-500 text-white focus:outline-none focus:ring-[#D4AF37] focus:border-[#D4AF37] focus:z-10 sm:text-sm" 
+                    placeholder="Email address">
+            </div>
                 <div>
                     <label for="reg-password" class="sr-only">Password</label>
                     <input id="reg-password" name="password" type="password" required class="appearance-none rounded-none relative block w-full px-3 py-3 border border-gray-700 bg-gray-900 text-white placeholder-gray-500 focus:outline-none focus:ring-[#D4AF37] focus:border-[#D4AF37] focus:z-10 sm:text-sm" placeholder="Password">
