@@ -242,16 +242,36 @@ const requireAuth = (req, res, next) => {
 // --- ROUTES ---
 app.get('/checkout-form', requireLogin, async (req, res) => {
     try {
-        // Fetch current user details to pre-fill the form
-        const [users] = await pool.query('SELECT * FROM users WHERE id = ?', [req.session.userId]);
-        
+        let user = {};
+
+        // Robust DB Fetch: Check if 'query' helper exists (from your snippets), otherwise use 'pool'
+        if (typeof query === 'function') {
+             const result = await query('SELECT * FROM users WHERE id = ?', [req.session.userId]);
+             // Handle if 'query' returns { rows: [...] } pattern
+             if (result.rows && result.rows.length > 0) {
+                 user = result.rows[0];
+             } else if (Array.isArray(result) && result.length > 0) {
+                 // Handle if 'query' returns raw array
+                 user = result[0];
+             }
+        } else if (typeof pool !== 'undefined') {
+             // Fallback to raw mysql2 pool
+             const [rows] = await pool.query('SELECT * FROM users WHERE id = ?', [req.session.userId]);
+             if (rows && rows.length > 0) user = rows[0];
+        }
+
         res.render('checkout_form', { 
             title: 'Secure Checkout',
-            user: users[0] || {} 
+            user: user || {} // Ensure 'user' is always an object so EJS doesn't crash
         });
+
     } catch (err) {
-        console.error("Error loading checkout:", err);
-        res.redirect('/cart');
+        console.error("Error loading checkout page:", err);
+        // If DB fails, still load the page with empty fields rather than crashing (500)
+        res.render('checkout_form', { 
+            title: 'Secure Checkout',
+            user: {} 
+        });
     }
 });
 // --- AUTH ROUTES ---
