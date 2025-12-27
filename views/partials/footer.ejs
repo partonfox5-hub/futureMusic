@@ -1,15 +1,74 @@
 </main>
 
-    <footer class="bg-black border-t border-gray-900 py-8 mt-auto relative z-10">
-        <div class="container mx-auto px-4 text-center">
-            <div class="flex items-center justify-center gap-2 mb-4 opacity-50">
-                 <svg width="20" height="20" viewBox="0 0 100 100">
-                     <circle cx="50" cy="50" r="45" stroke="#D4AF37" stroke-width="5" fill="none"/>
-                     <circle cx="50" cy="50" r="10" fill="#20B2AA"/>
-                 </svg>
-                 <span class="font-serif text-[#D4AF37]">MYSTIC ONE</span>
+    <!-- Footer with matching Gold/Black aesthetic and Glassmorphism -->
+    <footer class="bg-black/90 border-t border-yellow-700/50 backdrop-blur-md relative z-10 pt-16 pb-8 mt-auto">
+        <div class="container mx-auto px-6">
+            
+            <!-- Top Section: Grid Layout -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
+                
+                <!-- Column 1: Brand Identity -->
+                <div class="col-span-1">
+                    <a href="/" class="flex items-center space-x-3 cursor-pointer no-underline mb-6">
+                        <img src="/images/logo.png" alt="Logo" class="h-12 w-auto opacity-90 hover:opacity-100 transition-opacity">
+                    </a>
+                    <h3 class="text-xl font-bold tracking-widest text-gold brand-font mb-4">FUTURE MUSIC<br>COLLECTIVE</h3>
+                    <p class="text-gray-400 text-sm leading-relaxed font-light">
+                        Porpogating greater cultural frequencies. Join the collective and amplify the signal.
+                    </p>
+                </div>
+
+                <!-- Column 2: Explore -->
+                <div class="col-span-1">
+                    <h4 class="text-[#D4AF37] font-bold tracking-widest uppercase text-sm mb-6 border-b border-yellow-700/30 pb-2 inline-block">Explore</h4>
+                    <ul class="space-y-3">
+                        <li><a href="/music" class="text-gray-400 hover:text-[#D4AF37] transition-colors text-sm tracking-wider uppercase font-semibold">Music</a></li>
+                        <li><a href="/merch" class="text-gray-400 hover:text-[#D4AF37] transition-colors text-sm tracking-wider uppercase font-semibold">Merch</a></li>
+                        <li><a href="/projects" class="text-gray-400 hover:text-[#D4AF37] transition-colors text-sm tracking-wider uppercase font-semibold">Projects</a></li>
+                        <li><a href="/cart" class="text-gray-400 hover:text-[#D4AF37] transition-colors text-sm tracking-wider uppercase font-semibold">Cart</a></li>
+                    </ul>
+                </div>
+
+                <!-- Column 3: The Collective -->
+                <div class="col-span-1">
+                    <h4 class="text-[#D4AF37] font-bold tracking-widest uppercase text-sm mb-6 border-b border-yellow-700/30 pb-2 inline-block">The Collective</h4>
+                    <ul class="space-y-3">
+                        <li><a href="/about" class="text-gray-400 hover:text-[#D4AF37] transition-colors text-sm tracking-wider uppercase font-semibold">About Us</a></li>
+                        <li><a href="/rights" class="text-gray-400 hover:text-[#D4AF37] transition-colors text-sm tracking-wider uppercase font-semibold">Rights & Royalties</a></li>
+                        <li><a href="/advocacy" class="text-gray-400 hover:text-[#D4AF37] transition-colors text-sm tracking-wider uppercase font-semibold">Advocacy</a></li>
+                        <li><a href="/contact" class="text-gray-400 hover:text-[#D4AF37] transition-colors text-sm tracking-wider uppercase font-semibold">Contact</a></li>
+                    </ul>
+                </div>
+
+                <!-- Column 4: Connect -->
+                <div class="col-span-1">
+                    <h4 class="text-[#D4AF37] font-bold tracking-widest uppercase text-sm mb-6 border-b border-yellow-700/30 pb-2 inline-block">Connect</h4>
+                    <div class="flex space-x-5 mb-6">
+                        <a href="#" class="text-gray-400 hover:text-[#D4AF37] transition-all transform hover:-translate-y-1 text-xl"><i class="fab fa-instagram"></i></a>
+                        <a href="#" class="text-gray-400 hover:text-[#D4AF37] transition-all transform hover:-translate-y-1 text-xl"><i class="fab fa-twitter"></i></a>
+                        <a href="#" class="text-gray-400 hover:text-[#D4AF37] transition-all transform hover:-translate-y-1 text-xl"><i class="fab fa-spotify"></i></a>
+                        <a href="#" class="text-gray-400 hover:text-[#D4AF37] transition-all transform hover:-translate-y-1 text-xl"><i class="fab fa-discord"></i></a>
+                    </div>
+                    <a href="/contact" class="btn-outline px-6 py-2 inline-block text-xs font-bold rounded-sm hover:bg-[#D4AF37] hover:text-black">
+                        Get In Touch
+                    </a>
+                </div>
             </div>
-            <p class="text-gray-600 text-sm">&copy; 2025 The Captain's Frequency. All Rights Reserved.</p>
+
+            <!-- Bottom Section: Copyright & Signature -->
+            <div class="border-t border-yellow-700/20 pt-8 flex flex-col md:flex-row justify-between items-center">
+                <p class="text-gray-600 text-xs tracking-wider uppercase mb-4 md:mb-0">
+                    &copy; 2025 The Future Music Collective by Fox Parton
+                </p>
+                
+                <div class="flex items-center gap-2 opacity-60 hover:opacity-100 transition-opacity">
+                     <svg width="16" height="16" viewBox="0 0 100 100">
+                         <circle cx="50" cy="50" r="45" stroke="#D4AF37" stroke-width="5" fill="none"/>
+                         <circle cx="50" cy="50" r="10" fill="#20B2AA"/>
+                     </svg>
+                     <span class="font-serif text-[#D4AF37] text-xs tracking-widest">MUSIC FROM THE FUTURE</span>
+                </div>
+            </div>
         </div>
     </footer>
 </body>
