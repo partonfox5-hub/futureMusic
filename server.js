@@ -283,7 +283,7 @@ app.get('/login', (req, res) => {
 
 // 2. Handle Registration
 app.post('/register', async (req, res) => {
-    // 1. Only extract email and password (no username field needed from form)
+    // 1. Only extract email and password (we ignore the username field from the form)
     const { email, password } = req.body;
 
     // 2. Validate existence
@@ -293,17 +293,17 @@ app.post('/register', async (req, res) => {
 
     if (pool) {
         try {
-            // 3. Generate a username automatically from the email (e.g. "john" from "john@example.com")
-            // This satisfies the database requirement for a 'username' column.
-            const derivedUsername = email.split('@')[0];
+            // 3. DATABASE FIX: Use the email as the username
+            // This satisfies the database requirement for a 'username' column automatically.
+           
 
             // 4. Hash the password
             const hashedPassword = await bcrypt.hash(password, 10);
 
-            // 5. Insert into DB using derivedUsername
+// 5. Insert into DB (Using only email and password)
             await query(
-                "INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)", 
-                [derivedUsername, email, hashedPassword]
+                "INSERT INTO users (email, password_hash) VALUES (?, ?)", 
+                [email, hashedPassword]
             );
             
             // Success!
