@@ -654,7 +654,7 @@ app.get('/', (req, res) => {
 
 app.get('/projects', (req, res) => res.render('projects', { title: 'Projects' }));
 
-// --- NEW PRODUCT ROUTE: Handles metadata parsing for sizes ---
+// --- UPDATED PRODUCT ROUTE: Fixes JSON Parsing for Printify Metadata ---
 app.get('/merch/:sku', async (req, res) => {
     const sku = req.params.sku;
     try {
@@ -670,32 +670,44 @@ app.get('/merch/:sku', async (req, res) => {
         // Parsing Logic
         if (product.metadata) {
             try {
-                // 1. Safe JSON Parse
+                // 1. Safe JSON Parse (Handles strings and double-encoded strings)
                 let meta = product.metadata;
                 if (typeof meta === 'string') {
-                    // Clean potential double-escaped strings
-                    try { meta = JSON.parse(meta); } catch (e) { console.log('JSON parse error', e); }
+                    try { 
+                        meta = JSON.parse(meta); 
+                        // Sometimes double-encoded, try parsing again if it's still a string
+                        if (typeof meta === 'string') meta = JSON.parse(meta);
+                    } catch (e) { 
+                        console.log('JSON parse error', e); 
+                    }
                 }
 
                 // 2. Extract Variants
                 if (meta && meta.variants && Array.isArray(meta.variants)) {
-                    sizes = meta.variants
-                        .filter(v => v.is_enabled !== false) // Include unless explicitly disabled
-                        .map(v => {
-                            // Logic: "US 13 / Black" -> "US 13"
-                            if (!v.title) return null;
-                            const parts = v.title.split(' / '); 
-                            return parts[0].trim();
-                        })
-                        .filter(s => s); // Remove nulls
+                    // Filter based on your specific JSON structure
+                    const availableVariants = meta.variants.filter(v => {
+                        // STRICT CHECK: Must be both enabled and available
+                        // Change this line if you want to show disabled items
+                        return v.is_enabled === true && v.is_available === true;
+                    });
+
+                    // Map to titles (Sizes)
+                    sizes = availableVariants.map(v => {
+                        // Handle "L / Black" or just "L"
+                        if (!v.title) return null;
+                        return v.title.split(' / ')[0].trim();
+                    }).filter(s => s); // Remove nulls
                     
                     // 3. Unique Sizes only
                     sizes = [...new Set(sizes)];
                 }
             } catch (e) {
-                console.error("Metadata processing error:", e);
+                console.error("Metadata processing error for SKU " + sku, e);
             }
         }
+
+        // DEBUG: Uncomment this to see exactly what sizes are being found in your console
+        // console.log(`SKU: ${sku} | Found Sizes:`, sizes);
 
         res.render('product', { 
             title: product.name,
