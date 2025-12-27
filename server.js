@@ -301,13 +301,17 @@ app.post('/register', async (req, res) => {
             const hashedPassword = await bcrypt.hash(password, 10);
 
 // 5. Insert into DB (Using only email and password)
-            await query(
+            // 5. Insert into DB (Using only email and password)
+            const result = await query(
                 "INSERT INTO users (email, password_hash) VALUES (?, ?)", 
                 [email, hashedPassword]
             );
             
-            // Success!
-            res.redirect('/login');
+            // Success! Auto-login the user
+            req.session.userId = result.rows.insertId;
+            req.session.email = email;
+            res.redirect('/account');
+
         } catch (err) {
             // 6. LOGGING: This will print the exact DB error to your terminal
             console.error("Registration Error:", err);
@@ -335,7 +339,8 @@ app.post('/login', async (req, res) => {
         }
 
         const user = users[0];
-        const match = await bcrypt.compare(password, user.password);
+                const match = await bcrypt.compare(password, user.password_hash);
+
 
         if (match) {
             req.session.userId = user.id;
