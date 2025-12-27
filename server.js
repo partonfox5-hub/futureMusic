@@ -23,6 +23,22 @@ const pool = new Pool({
     // ssl: { rejectUnauthorized: false } 
 });
 
+// --- TEST DB CONNECTION ---
+pool.connect((err, client, release) => {
+    if (err) {
+        console.error('Error acquiring client', err.stack);
+    } else {
+        console.log('Database Connected Successfully');
+        client.query('SELECT NOW()', (err, result) => {
+            release();
+            if (err) {
+                return console.error('Error executing query', err.stack);
+            }
+            console.log('Database Time:', result.rows[0]);
+        });
+    }
+});
+
 // =================================================================
 // 2. MIDDLEWARE & SECURITY
 // =================================================================
@@ -254,7 +270,7 @@ const legalDocs = {
 // =================================================================
 
 app.get('/', (req, res) => {
-    res.render('index', { title: 'Shine More | Technology Partners' });
+    res.render('index', { title: 'New world | Better outcomes' });
 });
 
 app.get('/services', (req, res) => {
