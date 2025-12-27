@@ -488,11 +488,54 @@ app.get('/merch/:id', async (req, res) => {
             const querySql = "SELECT * FROM products WHERE CAST(id AS CHAR) = ? OR sku = ?";
             const result = await query(querySql, [req.params.id, req.params.id]);
             product = result.rows[0];
+            let sizes = [];
+
+if (product.metadata) {
+    try {
+        let meta = product.metadata;
+
+        // 1. Attempt to parse if it's a string
+        if (typeof meta === 'string') {
+            try { meta = JSON.parse(meta); } catch (e) { /* ignore first fail */ }
+        }
+        
+        // 2. CHECK FOR DOUBLE STRINGIFICATION (Common in CSV imports)
+        // If it is STILL a string after the first parse, parse it again.
+        if (typeof meta === 'string') {
+            try { meta = JSON.parse(meta); } catch (e) { console.error('Double parse failed:', e); }
+        }
+
+        // 3. Extract Variants
+        if (meta && meta.variants && Array.isArray(meta.variants)) {
+            sizes = meta.variants
+                .filter(v => v.is_available === true) // <--- CHANGED: Removed is_enabled check
+                .map(v => {
+                    if (!v.title) return null;
+                    // Handles "L / Black" -> "L" AND "Large" -> "Large"
+                    return v.title.split(' / ')[0].trim();
+                })
+                .filter(s => s); // Remove nulls
+            
+            // Deduplicate
+            sizes = [...new Set(sizes)];
+        }
+    } catch (e) {
+        console.error("Metadata error for SKU:", sku, e);
+    }
+}
+
+// DEBUG: Check your server console when you load the page to see if this array is populated
+console.log(`SKU: ${sku} | Extracted Sizes:`, sizes); 
             if (product && typeof product.sizes === 'string') { try { product.sizes = JSON.parse(product.sizes); } catch(e) { product.sizes = []; } }
+            if (sizes.length > 0) {
+    product.sizes = sizes;
+}
         } else {
             product = mockMerchItems.find(m => m.id === req.params.id || m.sku === req.params.id);
+            
         }
-        if (product) res.render('product', { product: product, title: product.name });
+        if (product && typeof product.sizes === 'string') { try { product.sizes = JSON.parse(product.sizes); } catch(e) { product.sizes = []; } }
+        if (product) res.render('product', { product: { ...product, sizes: product.sizes }, title: product.name });
         else res.status(404).render('404', { title: 'Product Not Found' });
     } catch (err) {
         res.status(500).render('404', { title: 'Error' });
@@ -683,67 +726,6 @@ app.get('/', (req, res) => {
 
 app.get('/projects', (req, res) => res.render('projects', { title: 'Projects' }));
 
-// --- UPDATED PRODUCT ROUTE: Fixes JSON Parsing for Printify Metadata ---
-// --- UPDATED PRODUCT ROUTE: Fixes Double-JSON Parsing & Filters ---
-app.get('/merch/:sku', async (req, res) => {
-    const sku = req.params.sku;
-    try {
-        const [rows] = await pool.query("SELECT * FROM products WHERE sku = ?", [sku]);
-        
-        if (rows.length === 0) {
-            return res.status(404).render('404', { title: 'Product Not Found' });
-        }
-        
-        const product = rows[0];
-        let sizes = [];
-
-        if (product.metadata) {
-            try {
-                let meta = product.metadata;
-
-                // 1. Attempt to parse if it's a string
-                if (typeof meta === 'string') {
-                    try { meta = JSON.parse(meta); } catch (e) { /* ignore first fail */ }
-                }
-                
-                // 2. CHECK FOR DOUBLE STRINGIFICATION (Common in CSV imports)
-                // If it is STILL a string after the first parse, parse it again.
-                if (typeof meta === 'string') {
-                    try { meta = JSON.parse(meta); } catch (e) { console.error('Double parse failed:', e); }
-                }
-
-                // 3. Extract Variants
-                if (meta && meta.variants && Array.isArray(meta.variants)) {
-                    sizes = meta.variants
-                        .filter(v => v.is_available === true) // <--- CHANGED: Removed is_enabled check
-                        .map(v => {
-                            if (!v.title) return null;
-                            // Handles "L / Black" -> "L" AND "Large" -> "Large"
-                            return v.title.split(' / ')[0].trim();
-                        })
-                        .filter(s => s); // Remove nulls
-                    
-                    // Deduplicate
-                    sizes = [...new Set(sizes)];
-                }
-            } catch (e) {
-                console.error("Metadata error for SKU:", sku, e);
-            }
-        }
-
-        // DEBUG: Check your server console when you load the page to see if this array is populated
-        console.log(`SKU: ${sku} | Extracted Sizes:`, sizes); 
-
-        res.render('product', { 
-            title: product.name,
-            product: { ...product, sizes: sizes } 
-        });
-
-    } catch (err) {
-        console.error(err);
-        res.status(500).send('Server Error');
-    }
-});
 
 app.post('/api/cart/add', async (req, res) => {
     const { sku, size } = req.body;
