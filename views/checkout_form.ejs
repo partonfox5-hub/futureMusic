@@ -4,60 +4,86 @@
     <h1 class="text-4xl text-gold brand-font mb-8 text-center">Secure Checkout</h1>
     
     <div class="glass-card p-8 rounded-xl border border-gray-700">
-        <p class="text-gray-400 mb-6 text-center text-sm">Please provide your details to establish a secure link for this transaction.</p>
+        <p class="text-gray-400 mb-6 text-center text-sm">Please confirm your shipping details to establish a secure link for this transaction.</p>
 
         <form id="details-form" class="space-y-6">
+            <!-- Personal Info -->
             <div>
                 <label class="block text-[#D4AF37] mb-2 font-bold text-sm uppercase tracking-wider">Full Name</label>
-                <input type="text" id="fullName" required 
+                <input type="text" id="fullName" required value="<%= user.full_name || '' %>"
                     class="w-full bg-black/50 border border-gray-600 rounded p-3 text-white focus:border-[#D4AF37] outline-none transition-colors">
             </div>
             
             <div>
                 <label class="block text-[#D4AF37] mb-2 font-bold text-sm uppercase tracking-wider">Email Address</label>
-                <input type="email" id="email" required 
+                <input type="email" id="email" required value="<%= user.email || '' %>"
                     class="w-full bg-black/50 border border-gray-600 rounded p-3 text-white focus:border-[#D4AF37] outline-none transition-colors">
             </div>
 
             <div>
                 <label class="block text-[#D4AF37] mb-2 font-bold text-sm uppercase tracking-wider">Phone Number</label>
-                <input type="tel" id="phone" required 
+                <input type="tel" id="phone" required value="<%= user.phone || '' %>"
                     class="w-full bg-black/50 border border-gray-600 rounded p-3 text-white focus:border-[#D4AF37] outline-none transition-colors">
+            </div>
+
+            <!-- Shipping Info -->
+            <div class="border-t border-gray-700 pt-6 mt-6">
+                <h3 class="text-xl text-gold brand-font mb-4">Shipping Destination</h3>
             </div>
 
             <div>
-                <label class="block text-[#D4AF37] mb-2 font-bold text-sm uppercase tracking-wider">Create Password</label>
-                <input type="password" id="password" required placeholder="For tracking your order"
+                <label class="block text-[#D4AF37] mb-2 font-bold text-sm uppercase tracking-wider">Street Address</label>
+                <input type="text" id="address" required value="<%= user.shipping_address || '' %>"
                     class="w-full bg-black/50 border border-gray-600 rounded p-3 text-white focus:border-[#D4AF37] outline-none transition-colors">
             </div>
 
-            <button type="submit" class="w-full btn-gold py-4 text-xl font-bold mt-6">
-                CONTINUE TO PAYMENT
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-[#D4AF37] mb-2 font-bold text-sm uppercase tracking-wider">City</label>
+                    <input type="text" id="city" required value="<%= user.shipping_city || '' %>"
+                        class="w-full bg-black/50 border border-gray-600 rounded p-3 text-white focus:border-[#D4AF37] outline-none transition-colors">
+                </div>
+                <div>
+                    <label class="block text-[#D4AF37] mb-2 font-bold text-sm uppercase tracking-wider">State/Province</label>
+                    <input type="text" id="state" required value="<%= user.shipping_state || '' %>"
+                        class="w-full bg-black/50 border border-gray-600 rounded p-3 text-white focus:border-[#D4AF37] outline-none transition-colors">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-[#D4AF37] mb-2 font-bold text-sm uppercase tracking-wider">Zip/Postal Code</label>
+                    <input type="text" id="zip" required value="<%= user.shipping_zip || '' %>"
+                        class="w-full bg-black/50 border border-gray-600 rounded p-3 text-white focus:border-[#D4AF37] outline-none transition-colors">
+                </div>
+                <div>
+                    <label class="block text-[#D4AF37] mb-2 font-bold text-sm uppercase tracking-wider">Country</label>
+                    <input type="text" id="country" required value="<%= user.shipping_country || '' %>"
+                        class="w-full bg-black/50 border border-gray-600 rounded p-3 text-white focus:border-[#D4AF37] outline-none transition-colors">
+                </div>
+            </div>
+
+            <div id="error-msg" class="hidden bg-red-900/50 border border-red-500 text-red-200 p-4 rounded text-center text-sm"></div>
+
+            <button type="submit" id="checkout-btn" class="w-full btn-gold py-4 text-xl font-bold mt-8 shadow-[0_0_15px_rgba(212,175,55,0.3)] hover:shadow-[0_0_25px_rgba(212,175,55,0.5)] transition-all">
+                PROCEED TO PAYMENT <i class="fas fa-lock ml-2"></i>
             </button>
         </form>
-        
-        <p id="error-msg" class="text-red-500 mt-4 text-center hidden bg-red-900/20 p-3 rounded border border-red-500/50"></p>
     </div>
 </section>
 
+<script src="https://js.stripe.com/v3/"></script>
 <script>
-    // Initialize Stripe (Publishable Key)
-    // FIXED: Use the key passed from the server to ensure it matches the backend mode (Test/Live)
-    const stripeKey = '<%= stripePublishableKey %>';
+    const stripe = Stripe('pk_test_51QZwb8LcwQZ0XmK0iOqKq2VjX0y2vX0y2vX0y2vX0y2vX0y2vX0y2vX0y2vX0y2v'); // Your Stripe Key
+
+    const form = document.getElementById('details-form');
     
-    if (!stripeKey) {
-        console.error("Stripe Publishable Key is missing from server configuration.");
-        document.getElementById('error-msg').textContent = "Configuration Error: Payment system unavailable.";
-        document.getElementById('error-msg').classList.remove('hidden');
-    }
-
-    const stripe = Stripe(stripeKey); 
-
-    document.getElementById('details-form').addEventListener('submit', async (e) => {
+    form.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const btn = e.target.querySelector('button');
+        const btn = document.getElementById('checkout-btn');
         const originalText = btn.innerText;
         
+        // Show loading state
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> PROCESSING...';
         btn.disabled = true;
         btn.classList.add('opacity-50', 'cursor-not-allowed');
@@ -67,7 +93,12 @@
             fullName: document.getElementById('fullName').value,
             email: document.getElementById('email').value,
             phone: document.getElementById('phone').value,
-            password: document.getElementById('password').value
+            // Shipping Fields
+            address: document.getElementById('address').value,
+            city: document.getElementById('city').value,
+            state: document.getElementById('state').value,
+            zip: document.getElementById('zip').value,
+            country: document.getElementById('country').value
         };
 
         try {

@@ -26,12 +26,13 @@
         window.renderCartPage();
 
         // Redirect to secure checkout form instead of direct Stripe call
-        const checkoutBtn = document.getElementById('checkout-btn');
-        if (checkoutBtn) {
-            checkoutBtn.addEventListener('click', () => {
-                window.location.href = '/checkout';
-            });
-        }
+const checkoutBtn = document.getElementById('checkout-btn');
+checkoutBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    // Simply navigate to the protected route. The server middleware we added will handle the redirect if not logged in.
+    window.location.href = '/checkout-form';
+});
+        
     });
 </script>
 

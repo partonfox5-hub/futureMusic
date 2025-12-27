@@ -20,6 +20,17 @@ app.use(session({
         maxAge: 24 * 60 * 60 * 1000 // 24 hours
     }
 }));
+
+// Add this middleware function to protect routes
+const requireLogin = (req, res, next) => {
+    if (req.session && req.session.userId) {
+        return next();
+    }
+    // Store the page they wanted to go to
+    req.session.returnTo = req.originalUrl;
+    res.redirect('/login');
+};
+
 // Try loading .env if available
 try { require('dotenv').config(); } catch (e) { /* dotenv not installed */ }
 
@@ -229,7 +240,20 @@ const requireAuth = (req, res, next) => {
 
 
 // --- ROUTES ---
-
+app.get('/checkout-form', requireLogin, async (req, res) => {
+    try {
+        // Fetch current user details to pre-fill the form
+        const [users] = await pool.query('SELECT * FROM users WHERE id = ?', [req.session.userId]);
+        
+        res.render('checkout_form', { 
+            title: 'Secure Checkout',
+            user: users[0] || {} 
+        });
+    } catch (err) {
+        console.error("Error loading checkout:", err);
+        res.redirect('/cart');
+    }
+});
 // --- AUTH ROUTES ---
 
 // 1. Show Login Page
@@ -289,7 +313,9 @@ app.post('/login', async (req, res) => {
         if (match) {
             req.session.userId = user.id;
             req.session.email = user.email;
-            res.redirect('/account');
+            const redirectUrl = req.session.returnTo || '/account';
+delete req.session.returnTo; // Clear it after use
+res.redirect(redirectUrl);
         } else {
             res.send('<script>alert("Invalid email or password"); window.location.href="/login";</script>');
         }
@@ -413,8 +439,17 @@ app.get('/checkout', (req, res) => res.render('checkout_form', {
 }));
 
 app.post('/initiate-checkout', async (req, res) => {
-    const { sessionId, email, fullName, phone, password } = req.body;
+    // 1. Destructure all fields (Note: password is removed, shipping fields added)
+    const { sessionId, fullName, email, phone, address, city, state, zip, country } = req.body;
+    const userId = req.session.userId;
+
+    // 2. Validation Checks
     if (!pool) return res.status(500).json({ error: "DB Offline" });
+    
+    // Enforce Login
+    if (!userId) {
+        return res.status(401).json({ error: 'User must be logged in' });
+    }
 
     if (!stripe) {
         console.error("❌ Checkout blocked: Stripe is not configured.");
@@ -422,14 +457,17 @@ app.post('/initiate-checkout', async (req, res) => {
     }
 
     try {
-        let userId;
-        const userCheck = await query("SELECT id FROM users WHERE email = ?", [email]);
-        if (userCheck.rows.length > 0) userId = userCheck.rows[0].id;
-        else {
-            const newUser = await query("INSERT INTO users (email, full_name, phone, password_hash) VALUES (?, ?, ?, ?)", [email, fullName, phone, password]);
-            userId = newUser.rows.insertId;
-        }
-        
+        // 3. Update User Profile with Shipping Data
+        // We update the existing logged-in user instead of creating a new one
+        await query(
+            `UPDATE users SET 
+             full_name = ?, phone = ?, 
+             shipping_address = ?, shipping_city = ?, shipping_state = ?, shipping_zip = ?, shipping_country = ?
+             WHERE id = ?`,
+            [fullName, phone, address, city, state, zip, country, userId]
+        );
+
+        // 4. Fetch Cart Items (Existing Logic)
         const cartQuery = `
             SELECT ci.quantity, ci.size, p.name, p.price, p.sku, p.type, p.image_url
             FROM cart_items ci
@@ -437,10 +475,11 @@ app.post('/initiate-checkout', async (req, res) => {
             WHERE ci.session_id = ?
         `;
         const cartResult = await query(cartQuery, [sessionId]);
-        const cartItems = cartResult.rows;
+        const cartItems = cartResult.rows || cartResult; // Handle if rows is direct array or property
 
-        if (cartItems.length === 0) return res.status(400).json({ error: "Cart is empty" });
+        if (!cartItems || cartItems.length === 0) return res.status(400).json({ error: "Cart is empty" });
 
+        // 5. Construct Line Items (Existing Logic)
         const hasPhysicalItems = cartItems.some(item => item.type !== 'digital');
         const lineItems = cartItems.map(item => {
             let desc = item.type;
@@ -449,13 +488,10 @@ app.post('/initiate-checkout', async (req, res) => {
             // ROBUST IMAGE URL CONSTRUCTION
             let itemImages = [];
             if (item.image_url) {
-                // If it's already an absolute URL, use it.
                 if (item.image_url.startsWith('http')) {
                     itemImages = [item.image_url];
-                } 
-                // If it's relative, prepend DOMAIN
-                else {
-                    itemImages = [`${DOMAIN}${item.image_url}`];
+                } else {
+                    itemImages = [`${process.env.DOMAIN || 'http://localhost:8080'}${item.image_url}`];
                 }
             }
 
@@ -474,31 +510,39 @@ app.post('/initiate-checkout', async (req, res) => {
             };
         });
 
+        // 6. Create Stripe Session
         const sessionConfig = {
             payment_method_types: ['card'],
-            customer_email: email,
+            customer_email: email, // Use email from form
             line_items: lineItems,
             mode: 'payment',
-            success_url: `${DOMAIN}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
-            cancel_url: `${DOMAIN}/cart`,
+            success_url: `${process.env.DOMAIN || 'http://localhost:8080'}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
+            cancel_url: `${process.env.DOMAIN || 'http://localhost:8080'}/cart`,
             metadata: { userId: userId.toString(), custom_session_id: sessionId }
         };
 
-        if (hasPhysicalItems) sessionConfig.shipping_address_collection = { allowed_countries: ['US', 'CA', 'GB'] };
+        if (hasPhysicalItems) {
+            sessionConfig.shipping_address_collection = { allowed_countries: ['US', 'CA', 'GB'] };
+        }
 
-        // Debug Log
-        console.log(`🚀 Creating Stripe Session. Success URL: ${sessionConfig.success_url}`);
+        console.log(`🚀 Creating Stripe Session.`);
 
         const session = await stripe.checkout.sessions.create(sessionConfig);
         
-        await query("INSERT INTO orders (user_id, stripe_session_id, total_amount, payment_status) VALUES (?, ?, ?, 'pending')", [userId, session.id, (session.amount_total / 100)]);
+        // 7. Record Order in DB
+        await query(
+            "INSERT INTO orders (user_id, stripe_session_id, total_amount, payment_status) VALUES (?, ?, ?, 'pending')", 
+            [userId, session.id, (session.amount_total / 100)]
+        );
+        
         res.json({ id: session.id });
 
     } catch (err) {
-        console.error("Stripe Error:", err);
+        console.error("Checkout Error:", err);
         res.status(500).json({ error: "Checkout failed: " + err.message });
     }
 });
+
 
 app.post('/api/cart', async (req, res) => {
     const { sessionId, sku, quantity, size } = req.body;
