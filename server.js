@@ -23,9 +23,10 @@ const pool = new Pool({
     connectionTimeoutMillis: 10000, // Fail if can't connect in 10s
     idleTimeoutMillis: 30000,       // Close idle connections
 
-    // UPDATED SSL LOGIC: 
-    // Only enable SSL if we are NOT using a Unix Socket (Cloud Run uses Sockets)
-    ssl: isSocketPath ? undefined : {
+    // AUTO-SSL CONFIGURATION:
+    // If DB_HOST starts with '/', we are using a Cloud SQL Socket (No SSL).
+    // Otherwise (localhost/TCP), we use SSL with rejectUnauthorized: false.
+    ssl: (process.env.DB_HOST && process.env.DB_HOST.startsWith('/')) ? undefined : {
         rejectUnauthorized: false
     }
 });
