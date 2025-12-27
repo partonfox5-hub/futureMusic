@@ -34,21 +34,17 @@
             </div>
 
             <!-- SIZE SELECTOR -->
-            <% if (product.sizes && product.sizes.length > 0) { %>
-                <div class="mb-8">
-                    <label class="block text-gray-400 text-sm uppercase tracking-wider mb-3">Select Size</label>
-                    <div class="flex flex-wrap gap-3" id="size-options">
-                        <% product.sizes.forEach((size, index) => { %>
-                            <label class="cursor-pointer">
-                                <input type="radio" name="selected_size" value="<%= size %>" class="peer sr-only" <%= index === 0 ? 'checked' : '' %>>
-                                <div class="px-6 py-3 border border-gray-600 rounded text-gray-300 peer-checked:bg-[#D4AF37] peer-checked:text-black peer-checked:border-[#D4AF37] hover:border-[#D4AF37] transition-all font-bold">
-                                    <%= size %>
-                                </div>
-                            </label>
-                        <% }); %>
-                    </div>
-                </div>
-            <% } %>
+<% if (product.sizes && product.sizes.length > 0) { %>
+    <% product.sizes.forEach((size, index) => { %>
+        <label class="cursor-pointer">
+            <!-- Logic: Add 'checked' attribute to the first item (index === 0) -->
+            <input type="radio" name="selected_size" value="<%= size %>" class="peer sr-only" <%= index === 0 ? 'checked' : '' %>>
+            <span class="block px-4 py-2 border border-gray-700 bg-black/50 text-gray-300 peer-checked:bg-[#D4AF37] peer-checked:text-black peer-checked:border-[#D4AF37] hover:border-[#D4AF37] transition-all text-sm font-bold uppercase">
+                <%= size %>
+            </span>
+        </label>
+    <% }); %>
+<% } %>
 
             <!-- Add to Cart Action -->
             <button class="w-full btn-gold py-4 text-xl font-bold shadow-[0_0_20px_rgba(212,175,55,0.3)] hover:shadow-[0_0_30px_rgba(212,175,55,0.5)] flex items-center justify-center gap-3 add-to-cart-btn"

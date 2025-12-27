@@ -654,15 +654,85 @@ app.get('/', (req, res) => {
 
 app.get('/projects', (req, res) => res.render('projects', { title: 'Projects' }));
 
-app.post('/api/inquiry', async (req, res) => {
-    const { songId, licenseType, duration, usage, email, cost } = req.body;
+// --- NEW PRODUCT ROUTE: Handles metadata parsing for sizes ---
+app.get('/merch/:sku', async (req, res) => {
+    const sku = req.params.sku;
+    try {
+        // 1. Fetch product from DB
+        const [rows] = await pool.query("SELECT * FROM products WHERE sku = ?", [sku]);
+        
+        if (rows.length === 0) {
+            return res.status(404).render('404', { title: 'Product Not Found' });
+        }
+        
+        const product = rows[0];
+        
+        // 2. Parse 'metadata' to find available sizes
+        let sizes = [];
+        if (product.metadata) {
+            try {
+                // Ensure metadata is an object (it is stored as a JSON string in your DB)
+                const meta = typeof product.metadata === 'string' ? JSON.parse(product.metadata) : product.metadata;
+                
+                // Check if variants exist (e.g., for physical items like shoes)
+                if (meta.variants && Array.isArray(meta.variants)) {
+                    // Filter for enabled/available items and extract unique sizes
+                    sizes = [...new Set(meta.variants
+                        .filter(v => v.is_enabled && v.is_available) // Only show available stock
+                        .map(v => {
+                            // Split "US 13 / Black sole" -> "US 13"
+                            return v.title.split(' / ')[0].trim();
+                        })
+                    )];
+                }
+            } catch (e) {
+                console.error("Error parsing product metadata for sizes:", e);
+            }
+        }
+
+        // 3. Render the page with the processed sizes
+        res.render('product', { 
+            title: product.name,
+            product: { ...product, sizes: sizes } 
+        });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Server Error');
+    }
+});
+
+app.post('/api/cart/add', async (req, res) => {
+    const { sku, size } = req.body;
+    const sessionId = req.sessionID;
+
+    if (!sku) return res.status(400).json({ error: 'SKU required' });
+
     if (pool) {
         try {
-            await query("INSERT INTO rights_inquiries (song_id, license_type, duration, usage_details, contact_email, estimated_cost) VALUES (?, ?, ?, ?, ?, ?)", [songId, licenseType, duration, usage, email, cost]);
+            // Check if this specific item (SKU + specific Size) is already in the cart
+            const [existing] = await pool.query(
+                "SELECT id FROM cart_items WHERE session_id = ? AND product_sku = ? AND size = ?", 
+                [sessionId, sku, size || '']
+            );
+
+            if (existing.length > 0) {
+                // Item exists, increment quantity
+                await pool.query("UPDATE cart_items SET quantity = quantity + 1 WHERE id = ?", [existing[0].id]);
+            } else {
+                // New item, insert with size
+                await pool.query(
+                    "INSERT INTO cart_items (session_id, product_sku, quantity, size) VALUES (?, ?, 1, ?)", 
+                    [sessionId, sku, size || '']
+                );
+            }
             res.json({ success: true });
-        } catch (err) { res.status(500).json({ error: 'Failed to save inquiry.' }); }
+        } catch (err) {
+            console.error(err);
+            res.status(500).json({ error: 'Database error' });
+        }
     } else {
-        res.json({ success: true, message: 'Inquiry received (Simulation Mode).' });
+        res.status(500).json({ error: 'Database not connected' });
     }
 });
 
