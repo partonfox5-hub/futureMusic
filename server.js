@@ -214,6 +214,16 @@ app.get('/about', (req, res) => res.render('about', { title: 'About' }));
 app.get('/contact', (req, res) => res.render('contact', { title: 'Contact' }));
 app.get('/advocacy', (req, res) => res.render('advocacy', { title: 'Advocacy' }));
 
+// ADDED: Account Page Route
+app.get('/account', (req, res) => {
+    res.render('account', { 
+        title: 'My Account',
+        // Placeholder user object since auth is not yet set up in this version
+        user: null 
+    });
+});
+
+
 app.get('/music', (req, res) => {
     if (req.query.song) return res.redirect(`/song/${req.query.song}`);
     res.render('music', { songs: songsData, title: 'Music' });
@@ -297,7 +307,10 @@ app.get('/merch/:id', async (req, res) => {
 app.get('/rights', (req, res) => res.render('rights', { songs: songsData, title: 'Purchase Rights' }));
 app.get('/rights/confirmation', (req, res) => res.render('rights_confirmation', { title: 'Inquiry Received' }));
 app.get('/cart', (req, res) => res.render('cart', { title: 'Your Inventory' }));
-app.get('/checkout', (req, res) => res.render('checkout_form', { title: 'Secure Checkout' }));
+app.get('/checkout', (req, res) => res.render('checkout_form', { 
+    title: 'Secure Checkout', 
+    stripePublishableKey: process.env.STRIPE_PUBLISHABLE_KEY 
+}));
 
 app.post('/initiate-checkout', async (req, res) => {
     const { sessionId, email, fullName, phone, password } = req.body;
