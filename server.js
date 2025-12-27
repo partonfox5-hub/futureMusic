@@ -23,25 +23,10 @@ const pool = new Pool({
     connectionTimeoutMillis: 10000, // Fail if can't connect in 10s
     idleTimeoutMillis: 30000,       // Close idle connections
 
-    // CRITICAL FIX: Enable SSL for Cloud SQL Public IP
-    ssl: {
-        rejectUnauthorized: false // Required for self-signed Cloud SQL certs
-    }
-});
-
-// TEST CONNECTION ON STARTUP
-pool.connect((err, client, release) => {
-    if (err) {
-        console.error('----------------------------------------');
-        console.error('⚠️ DATABASE CONNECTION FAILED');
-        console.error('Error Details:', err.message);
-        console.error('If ETIMEDOUT: Check "Authorized Networks" in Google Cloud Console.');
-        console.error('----------------------------------------');
-    } else {
-        console.log('----------------------------------------');
-        console.log('✅ DATABASE CONNECTED SUCCESSFULLY');
-        console.log('----------------------------------------');
-        release();
+    // UPDATED SSL LOGIC: 
+    // Only enable SSL if we are NOT using a Unix Socket (Cloud Run uses Sockets)
+    ssl: isSocketPath ? undefined : {
+        rejectUnauthorized: false
     }
 });
 
