@@ -244,14 +244,12 @@ app.get('/checkout-form', requireLogin, async (req, res) => {
     try {
         let user = {};
 
-        // Robust DB Fetch: Check if 'query' helper exists (from your snippets), otherwise use 'pool'
+        // Robust DB Fetch: Check if 'query' helper exists
         if (typeof query === 'function') {
              const result = await query('SELECT * FROM users WHERE id = ?', [req.session.userId]);
-             // Handle if 'query' returns { rows: [...] } pattern
              if (result.rows && result.rows.length > 0) {
                  user = result.rows[0];
              } else if (Array.isArray(result) && result.length > 0) {
-                 // Handle if 'query' returns raw array
                  user = result[0];
              }
         } else if (typeof pool !== 'undefined') {
@@ -262,15 +260,17 @@ app.get('/checkout-form', requireLogin, async (req, res) => {
 
         res.render('checkout_form', { 
             title: 'Secure Checkout',
-            user: user || {} // Ensure 'user' is always an object so EJS doesn't crash
+            user: user || {}, 
+            // We now pass the key here so the frontend doesn't need to hardcode it
+            stripePublishableKey: process.env.STRIPE_PUBLISHABLE_KEY 
         });
 
     } catch (err) {
         console.error("Error loading checkout page:", err);
-        // If DB fails, still load the page with empty fields rather than crashing (500)
         res.render('checkout_form', { 
             title: 'Secure Checkout',
-            user: {} 
+            user: {},
+            stripePublishableKey: process.env.STRIPE_PUBLISHABLE_KEY
         });
     }
 });
@@ -340,9 +340,12 @@ app.post('/login', async (req, res) => {
         if (match) {
             req.session.userId = user.id;
             req.session.email = user.email;
+            
+            // --- FIX START ---
             const redirectUrl = req.session.returnTo || '/account';
-delete req.session.returnTo; // Clear it after use
-res.redirect(redirectUrl);
+            delete req.session.returnTo; // Clear it after use
+            res.redirect(redirectUrl);
+            // --- FIX END ---
         } else {
             res.send('<script>alert("Invalid email or password"); window.location.href="/login";</script>');
         }
@@ -460,10 +463,7 @@ app.get('/merch/:id', async (req, res) => {
 app.get('/rights', (req, res) => res.render('rights', { songs: songsData, title: 'Purchase Rights' }));
 app.get('/rights/confirmation', (req, res) => res.render('rights_confirmation', { title: 'Inquiry Received' }));
 app.get('/cart', (req, res) => res.render('cart', { title: 'Your Inventory' }));
-app.get('/checkout', (req, res) => res.render('checkout_form', { 
-    title: 'Secure Checkout', 
-    stripePublishableKey: process.env.STRIPE_PUBLISHABLE_KEY 
-}));
+
 
 app.post('/initiate-checkout', async (req, res) => {
     // 1. Destructure all fields (Note: password is removed, shipping fields added)

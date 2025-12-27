@@ -74,7 +74,8 @@
 
 <script src="https://js.stripe.com/v3/"></script>
 <script>
-    const stripe = Stripe('pk_test_51QZwb8LcwQZ0XmK0iOqKq2VjX0y2vX0y2vX0y2vX0y2vX0y2vX0y2vX0y2vX0y2v'); // Your Stripe Key
+    const stripe = Stripe('<%= stripePublishableKey %>');
+
 
     const form = document.getElementById('details-form');
     
