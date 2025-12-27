@@ -375,6 +375,40 @@ app.get('/contact', (req, res) => {
     res.render('contact', { title: 'Start Project | Shine More' });
 });
 
+// --- MISSING HEADER/FOOTER ROUTES ---
+
+// Redirect /account to /dashboard
+app.get('/account', (req, res) => {
+    res.redirect('/dashboard');
+});
+
+// Map /projects to the existing portfolio page
+app.get('/projects', (req, res) => {
+    res.render('portfolio', { title: 'Our Projects' });
+});
+
+// Add routes for Music, Merch, Rights, Advocacy, Cart
+// Ensure you have music.ejs, merch.ejs, etc., or point these to 'generic'
+app.get('/music', (req, res) => {
+    res.render('music', { title: 'Music | Future Music Collective' });
+});
+
+app.get('/merch', (req, res) => {
+    res.render('merch', { title: 'Merch | Future Music Collective' });
+});
+
+app.get('/rights', (req, res) => {
+    res.render('rights', { title: 'Rights & Royalties' });
+});
+
+app.get('/advocacy', (req, res) => {
+    res.render('advocacy', { title: 'Advocacy' });
+});
+
+app.get('/cart', (req, res) => {
+    res.render('cart', { title: 'Your Cart' });
+});
+
 // Handle New Project + Account Creation
 app.post('/contact', async (req, res) => {
     const { fullName, email, password, phone, organization, projectType, serviceTier, projectDesc, features, enable2FA } = req.body;
@@ -465,6 +499,13 @@ app.post('/contact', async (req, res) => {
     } finally {
         client.release();
     }
+});
+
+// =================================================================
+// 6. 404 ERROR HANDLER (MUST BE LAST ROUTE)
+// =================================================================
+app.use((req, res, next) => {
+    res.status(404).render('404', { title: 'Page Not Found' });
 });
 
 // 5. Port Configuration
