@@ -375,18 +375,30 @@ app.get('/advocacy', (req, res) => res.render('advocacy', { title: 'Advocacy' })
 // ADDED: Account Page Route
 app.get('/account', requireAuth, async (req, res) => {
     try {
-        // Optional: Fetch user details if needed
-        // const [rows] = await pool.query("SELECT * FROM users WHERE id = ?", [req.session.userId]);
+        let user = { email: req.session.email, id: req.session.userId };
+        let cartCount = 0;
+
+        if (pool) {
+            // 1. Fetch User Details (Fixes missing profile data)
+            const [users] = await pool.query("SELECT * FROM users WHERE id = ?", [req.session.userId]);
+            if (users.length > 0) user = users[0];
+
+            // 2. Fetch Cart Count (Fixes the "Internal Server Error" crash)
+            const [cart] = await pool.query("SELECT SUM(quantity) as qty FROM cart_items WHERE session_id = ?", [req.sessionID]);
+            if (cart.length > 0 && cart[0].qty) cartCount = cart[0].qty;
+        }
         
         res.render('account', { 
             title: 'My Account',
-            user: { email: req.session.email, id: req.session.userId }
+            user: user,
+            cartCount: cartCount
         });
     } catch (err) {
         console.error("❌ Account Page Error:", err);
         res.status(500).send("Error loading account page: " + err.message);
     }
 });
+
 
 
 
