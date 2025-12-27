@@ -374,28 +374,45 @@ app.get('/advocacy', (req, res) => res.render('advocacy', { title: 'Advocacy' })
 
 // ADDED: Account Page Route
 app.get('/account', requireAuth, async (req, res) => {
+// ADDED: Account Page Route
+app.get('/account', requireAuth, async (req, res) => {
     try {
+        // 1. Setup default safe data (so page loads even if DB fails)
         let user = { email: req.session.email, id: req.session.userId };
         let cartCount = 0;
 
-        if (pool) {
-            // 1. Fetch User Details (Fixes missing profile data)
-            const [users] = await pool.query("SELECT * FROM users WHERE id = ?", [req.session.userId]);
-            if (users.length > 0) user = users[0];
+        // 2. Fetch Data if DB is connected
+        if (typeof query === 'function' && pool) {
+            try {
+                // Fetch User Profile
+                const userResult = await query("SELECT * FROM users WHERE id = ?", [req.session.userId]);
+                if (userResult.rows && userResult.rows.length > 0) {
+                    user = userResult.rows[0];
+                }
 
-            // 2. Fetch Cart Count (Fixes the "Internal Server Error" crash)
-            const [cart] = await pool.query("SELECT SUM(quantity) as qty FROM cart_items WHERE session_id = ?", [req.sessionID]);
-            if (cart.length > 0 && cart[0].qty) cartCount = cart[0].qty;
+                // Fetch Cart Count
+                const cartResult = await query("SELECT SUM(quantity) as qty FROM cart_items WHERE session_id = ?", [req.sessionID]);
+                if (cartResult.rows && cartResult.rows.length > 0) {
+                    cartCount = cartResult.rows[0].qty || 0;
+                }
+            } catch (dbErr) {
+                console.error("⚠️ Account DB Fetch Error (Non-Critical):", dbErr.message);
+            }
         }
         
+        // 3. Render Page with ALL required variables
+        console.log(`Rendering Account for: ${user.email}`); // Debug log
         res.render('account', { 
             title: 'My Account',
             user: user,
-            cartCount: cartCount
+            cartCount: cartCount,
+            query: req.query || {} // Header search bars often require this
         });
+
     } catch (err) {
-        console.error("❌ Account Page Error:", err);
-        res.status(500).send("Error loading account page: " + err.message);
+        console.error("❌ Account Page Critical Error:", err);
+        // Show the actual error on screen for easier debugging
+        res.status(500).send(`<h1>Error loading account</h1><p>Check console for details.</p><pre>${err.stack}</pre>`);
     }
 });
 
