@@ -374,13 +374,18 @@ app.get('/advocacy', (req, res) => res.render('advocacy', { title: 'Advocacy' })
 
 // ADDED: Account Page Route
 app.get('/account', requireAuth, async (req, res) => {
-    // Optional: Fetch user details if needed
-    // const [rows] = await pool.query("SELECT * FROM users WHERE id = ?", [req.session.userId]);
-    
-    res.render('account', { 
-        title: 'My Account',
-        user: { email: req.session.email, id: req.session.userId }
-    });
+    try {
+        // Optional: Fetch user details if needed
+        // const [rows] = await pool.query("SELECT * FROM users WHERE id = ?", [req.session.userId]);
+        
+        res.render('account', { 
+            title: 'My Account',
+            user: { email: req.session.email, id: req.session.userId }
+        });
+    } catch (err) {
+        console.error("❌ Account Page Error:", err);
+        res.status(500).send("Error loading account page: " + err.message);
+    }
 });
 
 
