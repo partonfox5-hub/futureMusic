@@ -45,7 +45,28 @@
         </label>
     <% }); %>
 <% } %>
-
+<!-- SIZE SELECTION UI -->
+            <% if (product.sizes && product.sizes.length > 0) { %>
+                <div class="mb-6">
+                    <h3 class="text-[#D4AF37] text-xs font-bold uppercase tracking-widest mb-3">Select Size</h3>
+                    <div class="flex flex-wrap gap-2" id="size-selector-container">
+                        <% product.sizes.forEach((size, i) => { %>
+                            <label class="cursor-pointer group">
+                                <input type="radio" name="selected_size" value="<%= size %>" class="peer sr-only">
+                                <span class="block px-4 py-3 border border-gray-700 bg-black/50 text-gray-400 
+                                             peer-checked:bg-[#D4AF37] peer-checked:text-black peer-checked:border-[#D4AF37] 
+                                             peer-checked:font-bold
+                                             group-hover:border-[#D4AF37]/50 
+                                             transition-all text-sm uppercase">
+                                    <%= size %>
+                                </span>
+                            </label>
+                        <% }); %>
+                    </div>
+                    <p id="size-error-msg" class="text-red-500 text-xs mt-2 hidden"><i class="fas fa-exclamation-circle"></i> Please select a size option.</p>
+                </div>
+            <% } %>
+            <!-- END SIZE SELECTION -->
             <!-- Add to Cart Action -->
             <button class="w-full btn-gold py-4 text-xl font-bold shadow-[0_0_20px_rgba(212,175,55,0.3)] hover:shadow-[0_0_30px_rgba(212,175,55,0.5)] flex items-center justify-center gap-3 add-to-cart-btn"
                 data-id="<%= product.sku %>"
@@ -65,26 +86,65 @@
 <script src="/js/store.js"></script>
 <script>
     // Custom logic to grab the selected size
-    document.getElementById('addToCartMain').addEventListener('click', (e) => {
-        e.stopPropagation(); // Stop global listener
+document.getElementById('addToCartMain').addEventListener('click', async (e) => {
+        e.stopPropagation();
         e.preventDefault();
 
         const btn = e.target.closest('button');
         const sku = btn.dataset.id;
         
-        // Find selected size
+        // 1. Check for Size
         let size = null;
-        const sizeInput = document.querySelector('input[name="selected_size"]:checked');
-        if (sizeInput) {
-            size = sizeInput.value;
-        } else if (document.querySelector('input[name="selected_size"]')) {
-            // Sizes exist but none selected (though we set default checked above)
-            alert("Please select a size.");
-            return;
+        const sizeOptions = document.querySelectorAll('input[name="selected_size"]');
+        const selectedOption = document.querySelector('input[name="selected_size"]:checked');
+
+        // VALIDATION: If sizes exist but none checked, STOP.
+        if (sizeOptions.length > 0) {
+            if (!selectedOption) {
+                // Show error message and shake animation
+                const errorMsg = document.getElementById('size-error-msg');
+                if(errorMsg) errorMsg.classList.remove('hidden');
+                
+                // Optional: Scroll to size selector
+                document.getElementById('size-selector-container').scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return; // <--- CRITICAL: Stops the function here
+            } else {
+                size = selectedOption.value;
+                // Hide error if previously shown
+                const errorMsg = document.getElementById('size-error-msg');
+                if(errorMsg) errorMsg.classList.add('hidden');
+            }
         }
 
-        // Call store with size
-        Store.add(sku, size);
+        // 2. Prepare Data
+        const payload = { sku, size };
+
+        // 3. Send to Server
+        try {
+            const res = await fetch('/api/cart/add', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            
+            if (data.success) {
+                // Visual Feedback
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-check"></i> ADDED';
+                btn.classList.add('bg-[#D4AF37]', 'text-black');
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.classList.remove('bg-[#D4AF37]', 'text-black');
+                    // Refresh cart count if you have a function for it
+                    if (window.updateCartCount) window.updateCartCount(); 
+                }, 2000);
+            } else {
+                alert('Error adding to manifest');
+            }
+        } catch (err) {
+            console.error(err);
+        }
     });
 </script>
 <%- include('partials/footer') %>

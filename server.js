@@ -658,7 +658,6 @@ app.get('/projects', (req, res) => res.render('projects', { title: 'Projects' })
 app.get('/merch/:sku', async (req, res) => {
     const sku = req.params.sku;
     try {
-        // 1. Fetch product from DB
         const [rows] = await pool.query("SELECT * FROM products WHERE sku = ?", [sku]);
         
         if (rows.length === 0) {
@@ -666,31 +665,38 @@ app.get('/merch/:sku', async (req, res) => {
         }
         
         const product = rows[0];
-        
-        // 2. Parse 'metadata' to find available sizes
         let sizes = [];
+
+        // Parsing Logic
         if (product.metadata) {
             try {
-                // Ensure metadata is an object (it is stored as a JSON string in your DB)
-                const meta = typeof product.metadata === 'string' ? JSON.parse(product.metadata) : product.metadata;
-                
-                // Check if variants exist (e.g., for physical items like shoes)
-                if (meta.variants && Array.isArray(meta.variants)) {
-                    // Filter for enabled/available items and extract unique sizes
-                    sizes = [...new Set(meta.variants
-                        .filter(v => v.is_enabled && v.is_available) // Only show available stock
+                // 1. Safe JSON Parse
+                let meta = product.metadata;
+                if (typeof meta === 'string') {
+                    // Clean potential double-escaped strings
+                    try { meta = JSON.parse(meta); } catch (e) { console.log('JSON parse error', e); }
+                }
+
+                // 2. Extract Variants
+                if (meta && meta.variants && Array.isArray(meta.variants)) {
+                    sizes = meta.variants
+                        .filter(v => v.is_enabled !== false) // Include unless explicitly disabled
                         .map(v => {
-                            // Split "US 13 / Black sole" -> "US 13"
-                            return v.title.split(' / ')[0].trim();
+                            // Logic: "US 13 / Black" -> "US 13"
+                            if (!v.title) return null;
+                            const parts = v.title.split(' / '); 
+                            return parts[0].trim();
                         })
-                    )];
+                        .filter(s => s); // Remove nulls
+                    
+                    // 3. Unique Sizes only
+                    sizes = [...new Set(sizes)];
                 }
             } catch (e) {
-                console.error("Error parsing product metadata for sizes:", e);
+                console.error("Metadata processing error:", e);
             }
         }
 
-        // 3. Render the page with the processed sizes
         res.render('product', { 
             title: product.name,
             product: { ...product, sizes: sizes } 
