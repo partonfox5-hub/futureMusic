@@ -12,21 +12,36 @@ const GoogleStrategy = require('passport-google-oauth20').Strategy;
 // =================================================================
 // 1. DATABASE CONNECTION (PostgreSQL)
 // =================================================================
-// Configure these in your Google Cloud Run Environment Variables
 const pool = new Pool({
-    user: process.env.DB_USER || 'postgres',
-    host: process.env.DB_HOST || '35.245.190.221', // Your specific IP
-    database: process.env.DB_NAME || 'shinemore_db',
-    password: process.env.DB_PASSWORD || 'password',
+    user: process.env.DB_USER,
+    host: process.env.DB_HOST, 
+    database: process.env.DB_NAME,
+    password: process.env.DB_PASSWORD,
     port: process.env.DB_PORT || 5432,
     
-    // TIMEOUT SETTINGS
-    connectionTimeoutMillis: 5000, 
-    idleTimeoutMillis: 30000, 
+    // TIMEOUT SETTINGS (Prevents hanging forever)
+    connectionTimeoutMillis: 10000, // Fail if can't connect in 10s
+    idleTimeoutMillis: 30000,       // Close idle connections
 
-    // CRITICAL FIX FOR CLOUD SQL PUBLIC IP:
+    // CRITICAL FIX: Enable SSL for Cloud SQL Public IP
     ssl: {
-        rejectUnauthorized: false // Allows self-signed certs (standard for Cloud SQL)
+        rejectUnauthorized: false // Required for self-signed Cloud SQL certs
+    }
+});
+
+// TEST CONNECTION ON STARTUP
+pool.connect((err, client, release) => {
+    if (err) {
+        console.error('----------------------------------------');
+        console.error('⚠️ DATABASE CONNECTION FAILED');
+        console.error('Error Details:', err.message);
+        console.error('If ETIMEDOUT: Check "Authorized Networks" in Google Cloud Console.');
+        console.error('----------------------------------------');
+    } else {
+        console.log('----------------------------------------');
+        console.log('✅ DATABASE CONNECTED SUCCESSFULLY');
+        console.log('----------------------------------------');
+        release();
     }
 });
 
@@ -86,9 +101,18 @@ passport.serializeUser((user, done) => {
 
 passport.deserializeUser(async (id, done) => {
     try {
-        const result = await pool.query('SELECT * FROM users WHERE id = $1', [id]);
-        done(null, result.rows[0]);
+        const client = await pool.connect();
+        try {
+            const result = await client.query('SELECT * FROM users WHERE id = $1', [id]);
+            if (result.rows.length === 0) {
+                return done(null, false); // User not found/Cookie invalid
+            }
+            done(null, result.rows[0]);
+        } finally {
+            client.release();
+        }
     } catch (err) {
+        console.error("Deserialize Error:", err);
         done(err, null);
     }
 });
@@ -360,27 +384,36 @@ app.post('/login', passport.authenticate('local', {
 
 // Dashboard (Protected Route)
 app.get('/dashboard', async (req, res) => {
-    if (!req.user) {
+    if (!req.user || !req.user.id) {
         return res.redirect('/login');
     }
 
     try {
         const userId = req.user.id;
-        
-        // Fetch Projects for this specific user from DB
-        const projectResult = await pool.query(
-            'SELECT * FROM projects WHERE user_id = $1 ORDER BY created_at DESC', 
-            [userId]
-        );
+        const client = await pool.connect();
+        try {
+            const projectResult = await client.query(
+                'SELECT * FROM projects WHERE user_id = $1 ORDER BY created_at DESC', 
+                [userId]
+            );
 
-        res.render('dashboard', { 
-            title: 'Dashboard | Shine More', 
-            user: req.user,
-            projects: projectResult.rows
-        });
+            res.render('dashboard', { 
+                title: 'Dashboard | Future Music', 
+                user: req.user,
+                projects: projectResult.rows
+            });
+        } finally {
+            client.release();
+        }
     } catch (err) {
-        console.error(err);
-        res.redirect('/');
+        console.error("Dashboard Error:", err);
+        // Render dashboard with empty projects instead of crashing
+        res.render('dashboard', { 
+            title: 'Dashboard', 
+            user: req.user, 
+            projects: [],
+            error: "Could not load projects." 
+        });
     }
 });
 
