@@ -389,16 +389,139 @@ app.get('/projects', (req, res) => {
 
 // Add routes for Music, Merch, Rights, Advocacy, Cart
 // Ensure you have music.ejs, merch.ejs, etc., or point these to 'generic'
-app.get('/music', (req, res) => {
-    res.render('music', { title: 'Music | Future Music Collective' });
+// 3. Music (Fetches 'digital' products from DB)
+app.get('/music', async (req, res) => {
+    try {
+        const result = await pool.query(
+            "SELECT * FROM products WHERE type = 'digital' ORDER BY created_at DESC"
+        );
+        
+        // Transform the DB rows to match what the template expects
+        // Your template expects 'youtube_info' inside the object, which is inside 'metadata' in your DB
+        const songs = result.rows.map(row => {
+            let metadata = {};
+            if (typeof row.metadata === 'string') {
+                try { metadata = JSON.parse(row.metadata); } catch(e) { console.error('Error parsing metadata', e); }
+            } else {
+                metadata = row.metadata || {};
+            }
+
+            return {
+                ...row,
+                youtube_info: metadata.youtube_info || {},
+                spotify_id: metadata.spotify_id || '',
+                album: metadata.album || ''
+            };
+        });
+
+        res.render('music', { 
+            title: 'Music | Future Music Collective',
+            songs: songs 
+        });
+    } catch (err) {
+        console.error("Error fetching music:", err);
+        res.status(500).send("Database Error: " + err.message);
+    }
 });
 
-app.get('/merch', (req, res) => {
-    res.render('merch', { title: 'Merch | Future Music Collective' });
+// 5. Merch (Fetches physical products)
+app.get('/merch', async (req, res) => {
+    try {
+        let queryStr = "SELECT * FROM products WHERE type != 'digital'";
+        const values = [];
+        
+        // Filter by Type (if selected)
+        if (req.query.type && req.query.type !== 'all') {
+            values.push(req.query.type);
+            queryStr += ` AND type = $${values.length}`;
+        }
+
+        // Sorting Logic
+        if (req.query.sort === 'price_asc') {
+            queryStr += " ORDER BY CAST(price AS DECIMAL) ASC";
+        } else if (req.query.sort === 'price_desc') {
+            queryStr += " ORDER BY CAST(price AS DECIMAL) DESC";
+        } else {
+            queryStr += " ORDER BY created_at DESC"; // Default: Newest first
+        }
+
+        const result = await pool.query(queryStr, values);
+
+        res.render('merch', { 
+            title: 'Merch | Future Music Collective',
+            merch: result.rows,
+            query: req.query,
+            debugError: null
+        });
+
+    } catch (err) {
+        console.error("Error fetching merch:", err);
+        // Render with empty list so page doesn't crash, but show error
+        res.render('merch', { 
+            title: 'Merch | Future Music Collective',
+            merch: [], 
+            query: req.query,
+            debugError: err.message 
+        });
+    }
 });
 
-app.get('/rights', (req, res) => {
-    res.render('rights', { title: 'Rights & Royalties' });
+
+// 4. Rights (Fetches songs for dropdown)
+app.get('/rights', async (req, res) => {
+    try {
+        // Reuse the same logic to get songs
+        const result = await pool.query(
+            "SELECT * FROM products WHERE type = 'digital' ORDER BY name ASC"
+        );
+        
+        const songs = result.rows.map(row => {
+            let metadata = {};
+            if (typeof row.metadata === 'string') {
+                try { metadata = JSON.parse(row.metadata); } catch(e) {}
+            } else {
+                metadata = row.metadata || {};
+            }
+            return {
+                ...row,
+                youtube_info: metadata.youtube_info || {},
+                spotify_id: metadata.spotify_id || ''
+            };
+        });
+
+        res.render('rights', { 
+            title: 'Rights & Royalties',
+            songs: songs
+        });
+    } catch (err) {
+        console.error("Error fetching songs for rights:", err);
+        res.status(500).send("Database Error");
+    }
+});
+
+app.get('/song/:id', async (req, res) => {
+    try {
+        // Search by SKU (which seems to hold your Video ID based on the JSON) or ID
+        const result = await pool.query(
+            "SELECT * FROM products WHERE sku = $1 OR id = $1", 
+            [req.params.id]
+        );
+
+        if (result.rows.length > 0) {
+            const song = result.rows[0];
+            // Parse metadata
+            let metadata = {};
+            try { metadata = JSON.parse(song.metadata); } catch(e) {}
+            song.youtube_info = metadata.youtube_info || {};
+            song.album = metadata.album || '';
+
+            res.render('song', { title: song.name, song: song });
+        } else {
+            res.status(404).render('404', { title: 'Song Not Found' });
+        }
+    } catch (err) {
+        res.status(500).send("Error: " + err.message);
+    }
 });
 
 app.get('/advocacy', (req, res) => {
