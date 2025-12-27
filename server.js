@@ -383,8 +383,15 @@ app.get('/account', (req, res) => {
 });
 
 // Map /projects to the existing portfolio page
+// 2. Projects Route
 app.get('/projects', (req, res) => {
-    res.render('portfolio', { title: 'Our Projects' });
+    // If you ever decide to load dynamic projects from DB, you would query here.
+    // For now, projects.ejs is static, so we just render it.
+    res.render('projects', { 
+        title: 'Project Archive | Future Music Collective',
+        // If projects.ejs DOES use a loop, uncomment the next line and pass an empty array to prevent crash
+        // projects: [] 
+    });
 });
 
 // Add routes for Music, Merch, Rights, Advocacy, Cart
