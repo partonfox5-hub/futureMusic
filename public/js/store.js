@@ -90,11 +90,11 @@ const Store = {
         }
     },
 
-    checkout: async () => {
+checkout: async () => {
         const btn = document.getElementById('checkout-btn');
         if(btn) btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> PROCESSING...';
         // Redirect to checkout form
-        window.location.href = '/checkout';
+        window.location.href = '/checkout-form';
     }
 };
 
