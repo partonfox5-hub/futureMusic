@@ -1,0 +1,103 @@
+<%- include('partials/header') %>
+
+<div class="min-h-screen bg-black flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md w-full space-y-8">
+        
+        <!-- Headers -->
+        <div class="text-center">
+            <h2 class="mt-6 text-3xl font-extrabold text-[#D4AF37] brand-font">
+                AUTHENTICATION
+            </h2>
+            <p class="mt-2 text-sm text-gray-400">
+                Access your digital transmissions
+            </p>
+        </div>
+
+        <!-- Toggle Switch -->
+        <div class="flex justify-center bg-gray-900 p-1 rounded-lg">
+            <button onclick="toggleForm('login')" id="tab-login" class="w-1/2 py-2 rounded-md text-sm font-medium transition-all duration-300 bg-[#D4AF37] text-black">
+                Sign In
+            </button>
+            <button onclick="toggleForm('register')" id="tab-register" class="w-1/2 py-2 rounded-md text-sm font-medium transition-all duration-300 text-gray-400 hover:text-white">
+                Register
+            </button>
+        </div>
+
+        <!-- LOGIN FORM -->
+        <form id="login-form" class="mt-8 space-y-6 block" action="/login" method="POST">
+            <div class="rounded-md shadow-sm -space-y-px">
+                <div>
+                    <label for="login-email" class="sr-only">Email address</label>
+                    <input id="login-email" name="email" type="email" required class="appearance-none rounded-none relative block w-full px-3 py-3 border border-gray-700 bg-gray-900 text-white placeholder-gray-500 rounded-t-md focus:outline-none focus:ring-[#D4AF37] focus:border-[#D4AF37] focus:z-10 sm:text-sm" placeholder="Email address">
+                </div>
+                <div>
+                    <label for="login-password" class="sr-only">Password</label>
+                    <input id="login-password" name="password" type="password" required class="appearance-none rounded-none relative block w-full px-3 py-3 border border-gray-700 bg-gray-900 text-white placeholder-gray-500 rounded-b-md focus:outline-none focus:ring-[#D4AF37] focus:border-[#D4AF37] focus:z-10 sm:text-sm" placeholder="Password">
+                </div>
+            </div>
+
+            <div>
+                <button type="submit" class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-black bg-[#D4AF37] hover:bg-white transition-colors duration-300">
+                    Sign In
+                </button>
+            </div>
+        </form>
+
+        <!-- REGISTER FORM -->
+        <form id="register-form" class="mt-8 space-y-6 hidden" action="/register" method="POST">
+            <div class="rounded-md shadow-sm -space-y-px">
+                <div>
+                    <label for="reg-email" class="sr-only">Email address</label>
+                    <input id="reg-email" name="email" type="email" required class="appearance-none rounded-none relative block w-full px-3 py-3 border border-gray-700 bg-gray-900 text-white placeholder-gray-500 rounded-t-md focus:outline-none focus:ring-[#D4AF37] focus:border-[#D4AF37] focus:z-10 sm:text-sm" placeholder="Email address">
+                </div>
+                <div>
+                    <label for="reg-password" class="sr-only">Password</label>
+                    <input id="reg-password" name="password" type="password" required class="appearance-none rounded-none relative block w-full px-3 py-3 border border-gray-700 bg-gray-900 text-white placeholder-gray-500 focus:outline-none focus:ring-[#D4AF37] focus:border-[#D4AF37] focus:z-10 sm:text-sm" placeholder="Password">
+                </div>
+                <div>
+                    <label for="reg-confirm" class="sr-only">Confirm Password</label>
+                    <input id="reg-confirm" name="confirmPassword" type="password" required class="appearance-none rounded-none relative block w-full px-3 py-3 border border-gray-700 bg-gray-900 text-white placeholder-gray-500 rounded-b-md focus:outline-none focus:ring-[#D4AF37] focus:border-[#D4AF37] focus:z-10 sm:text-sm" placeholder="Confirm Password">
+                </div>
+            </div>
+
+            <div>
+                <button type="submit" class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-black bg-white hover:bg-[#D4AF37] transition-colors duration-300">
+                    Create Account
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function toggleForm(type) {
+        const loginForm = document.getElementById('login-form');
+        const regForm = document.getElementById('register-form');
+        const loginBtn = document.getElementById('tab-login');
+        const regBtn = document.getElementById('tab-register');
+
+        if (type === 'login') {
+            loginForm.classList.remove('hidden');
+            loginForm.classList.add('block');
+            regForm.classList.add('hidden');
+            regForm.classList.remove('block');
+            
+            loginBtn.classList.add('bg-[#D4AF37]', 'text-black');
+            loginBtn.classList.remove('text-gray-400');
+            regBtn.classList.remove('bg-[#D4AF37]', 'text-black');
+            regBtn.classList.add('text-gray-400');
+        } else {
+            loginForm.classList.add('hidden');
+            loginForm.classList.remove('block');
+            regForm.classList.remove('hidden');
+            regForm.classList.add('block');
+
+            regBtn.classList.add('bg-[#D4AF37]', 'text-black');
+            regBtn.classList.remove('text-gray-400');
+            loginBtn.classList.remove('bg-[#D4AF37]', 'text-black');
+            loginBtn.classList.add('text-gray-400');
+        }
+    }
+</script>
+
+<%- include('partials/footer') %>

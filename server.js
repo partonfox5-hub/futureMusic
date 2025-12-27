@@ -1,11 +1,24 @@
 const express = require('express');
 const app = express();
+// --- SESSION CONFIGURATION ---
+app.use(session({
+    secret: process.env.SESSION_SECRET || 'dev_secret_key_123',
+    resave: false,
+    saveUninitialized: false,
+    cookie: { 
+        secure: false, // Set to true if using HTTPS
+        maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    }
+}));
 const path = require('path');
 const fs = require('fs'); 
 const http = require('http'); 
 const bodyParser = require('body-parser');
 const { Storage } = require('@google-cloud/storage');
 const mysql = require('mysql2/promise');
+const bcrypt = require('bcrypt');
+const session = require('express-session');
+
 
 // Try loading .env if available
 try { require('dotenv').config(); } catch (e) { /* dotenv not installed */ }
@@ -206,7 +219,91 @@ async function getProductBySku(sku) {
     return null;
 }
 
+// --- AUTH MIDDLEWARE ---
+const requireAuth = (req, res, next) => {
+    if (req.session && req.session.userId) {
+        return next();
+    }
+    return res.redirect('/login');
+};
+
+
 // --- ROUTES ---
+
+// --- AUTH ROUTES ---
+
+// 1. Show Login Page
+app.get('/login', (req, res) => {
+    res.render('login', { title: 'Login / Register' });
+});
+
+// 2. Handle Registration
+app.post('/register', async (req, res) => {
+    const { email, password, confirmPassword } = req.body;
+    
+    if (password !== confirmPassword) {
+        return res.send('<script>alert("Passwords do not match"); window.location.href="/login";</script>');
+    }
+
+    try {
+        if (!pool) throw new Error("Database not connected");
+        
+        // Check if user exists
+        const [existing] = await pool.query("SELECT id FROM users WHERE email = ?", [email]);
+        if (existing.length > 0) {
+            return res.send('<script>alert("Email already exists"); window.location.href="/login";</script>');
+        }
+
+        // Hash password and save
+        const hashedPassword = await bcrypt.hash(password, 10);
+        await pool.query("INSERT INTO users (email, password) VALUES (?, ?)", [email, hashedPassword]);
+
+        // Auto-login after register
+        const [newUser] = await pool.query("SELECT id FROM users WHERE email = ?", [email]);
+        req.session.userId = newUser[0].id;
+        req.session.email = email;
+        
+        res.redirect('/account');
+    } catch (err) {
+        console.error(err);
+        res.status(500).send("Error registering user");
+    }
+});
+
+// 3. Handle Login
+app.post('/login', async (req, res) => {
+    const { email, password } = req.body;
+    
+    try {
+        if (!pool) throw new Error("Database not connected");
+
+        const [users] = await pool.query("SELECT * FROM users WHERE email = ?", [email]);
+        
+        if (users.length === 0) {
+            return res.send('<script>alert("Invalid email or password"); window.location.href="/login";</script>');
+        }
+
+        const user = users[0];
+        const match = await bcrypt.compare(password, user.password);
+
+        if (match) {
+            req.session.userId = user.id;
+            req.session.email = user.email;
+            res.redirect('/account');
+        } else {
+            res.send('<script>alert("Invalid email or password"); window.location.href="/login";</script>');
+        }
+    } catch (err) {
+        console.error(err);
+        res.status(500).send("Login error");
+    }
+});
+
+// 4. Logout
+app.get('/logout', (req, res) => {
+    req.session.destroy();
+    res.redirect('/');
+});
 
 app.get('/', (req, res) => res.render('index', { title: 'Home' }));
 app.get('/projects', (req, res) => res.render('projects', { title: 'Projects' }));
@@ -215,13 +312,16 @@ app.get('/contact', (req, res) => res.render('contact', { title: 'Contact' }));
 app.get('/advocacy', (req, res) => res.render('advocacy', { title: 'Advocacy' }));
 
 // ADDED: Account Page Route
-app.get('/account', (req, res) => {
+app.get('/account', requireAuth, async (req, res) => {
+    // Optional: Fetch user details if needed
+    // const [rows] = await pool.query("SELECT * FROM users WHERE id = ?", [req.session.userId]);
+    
     res.render('account', { 
         title: 'My Account',
-        // Placeholder user object since auth is not yet set up in this version
-        user: null 
+        user: { email: req.session.email, id: req.session.userId }
     });
 });
+
 
 
 app.get('/music', (req, res) => {
