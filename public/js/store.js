@@ -1,10 +1,11 @@
 const Store = {
     // Generate or retrieve a persistent session ID
     getSessionId: () => {
-        let sid = localStorage.getItem('captain_session_id');
+        // CHANGED: Use 'sessionId' to match product.ejs and merch.ejs
+        let sid = localStorage.getItem('sessionId');
         if (!sid) {
             sid = crypto.randomUUID();
-            localStorage.setItem('captain_session_id', sid);
+            localStorage.setItem('sessionId', sid);
         }
         return sid;
     },
