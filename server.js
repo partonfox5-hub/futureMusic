@@ -797,8 +797,26 @@ app.post('/api/cart/add', async (req, res) => {
             console.error(err);
             res.status(500).json({ error: 'Database error' });
         }
-    } else {
-        res.status(500).json({ error: 'Database not connected' });
+} else {
+        // Fallback: Memory Cart (Fixes 500 error when DB is offline)
+        if (!memoryCarts[sessionId]) memoryCarts[sessionId] = [];
+        const cart = memoryCarts[sessionId];
+        
+        // Check if item exists in memory cart
+        const existingItem = cart.find(i => i.sku === sku && i.size === (size || ''));
+        
+        if (existingItem) {
+            existingItem.quantity += 1;
+        } else {
+            // Fetch product details for memory cart
+            const product = await getProductBySku(sku);
+            if (product) {
+                cart.push({ ...product, quantity: 1, size: size || '' });
+            } else {
+                return res.status(404).json({ error: 'Product not found' });
+            }
+        }
+        res.json({ success: true });
     }
 });
 

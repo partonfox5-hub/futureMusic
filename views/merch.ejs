@@ -76,6 +76,7 @@
                         </p>
                         
                         <!-- Action Buttons -->
+<!-- Action Buttons -->
                         <div class="mt-auto">
                             <% if (item.sizes && item.sizes.length > 0) { %>
                                 <!-- Item has sizes: Must go to detail page -->
@@ -105,4 +106,54 @@
 </section>
 
 <script src="/js/store.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Handle clicks for the new "Size Required" buttons
+        document.querySelectorAll('.quick-add-size-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                const sku = btn.dataset.id;
+                
+                // Find the associated select box
+                const selectBox = document.getElementById(`size-select-${sku}`);
+                const size = selectBox ? selectBox.value : null;
+
+                // Validation: Check if a size is actually selected
+                if (!size) {
+                    alert('Please select a size first.');
+                    selectBox.focus();
+                    selectBox.classList.add('border-red-500'); // Visual cue
+                    setTimeout(() => selectBox.classList.remove('border-red-500'), 2000);
+                    return;
+                }
+
+                // Send to Server
+                try {
+                    const res = await fetch('/api/cart/add', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ sku, size })
+                    });
+                    const data = await res.json();
+                    
+                    if (data.success) {
+                        // Success Feedback
+                        const originalText = btn.innerHTML;
+                        btn.innerHTML = 'ADDED';
+                        btn.classList.add('bg-white', 'text-black'); // Visual flash
+                        
+                        setTimeout(() => {
+                            btn.innerHTML = originalText;
+                            btn.classList.remove('bg-white', 'text-black');
+                        }, 2000);
+                    } else {
+                        alert('Error adding item.');
+                    }
+                } catch (err) {
+                    console.error('Add to cart failed:', err);
+                }
+            });
+        });
+    });
+</script>
 <%- include('partials/footer') %>
