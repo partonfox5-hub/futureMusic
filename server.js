@@ -783,7 +783,14 @@ app.post('/api/cart/add', async (req, res) => {
 
     if (pool) {
         try {
-            // Check if this specific item (SKU + specific Size) is already in the cart
+            // 1. CRITICAL FIX: Ensure session exists in 'carts' table first
+            // This prevents Foreign Key errors if 'cart_items' requires a valid session_id in 'carts'
+            await pool.query(
+                "INSERT INTO carts (session_id, updated_at) VALUES (?, NOW()) ON DUPLICATE KEY UPDATE updated_at = NOW()", 
+                [sessionId]
+            );
+
+            // 2. Check if this specific item (SKU + specific Size) is already in the cart
             const [existing] = await pool.query(
                 "SELECT id FROM cart_items WHERE session_id = ? AND product_sku = ? AND size = ?", 
                 [sessionId, sku, size || '']
@@ -793,14 +800,15 @@ app.post('/api/cart/add', async (req, res) => {
                 // Item exists, increment quantity
                 await pool.query("UPDATE cart_items SET quantity = quantity + 1 WHERE id = ?", [existing[0].id]);
             } else {
-                // New item, insert with size
+                // 3. CRITICAL FIX: Insert with 'added_at' timestamp
                 await pool.query(
-                    "INSERT INTO cart_items (session_id, product_sku, quantity, size) VALUES (?, ?, 1, ?)", 
+                    "INSERT INTO cart_items (session_id, product_sku, quantity, size, added_at) VALUES (?, ?, 1, ?, NOW())", 
                     [sessionId, sku, size || '']
                 );
             }
             res.json({ success: true });
-        }  catch (err) {
+
+        } catch (err) {
             // AUTO-FIX: If 'size' column is missing, add it automatically
             if (err.code === 'ER_BAD_FIELD_ERROR' && err.sqlMessage.includes("Unknown column 'size'")) {
                 console.log("⚠️ DB SCHEMA UPDATE: Adding missing 'size' column to cart_items...");
@@ -815,18 +823,16 @@ app.post('/api/cart/add', async (req, res) => {
             console.error("Cart Add Error:", err);
             res.status(500).json({ error: 'Database error: ' + err.message });
         }
-} else {
-        // Fallback: Memory Cart (Fixes 500 error when DB is offline)
+    } else {
+        // Fallback: Memory Cart
         if (!memoryCarts[sessionId]) memoryCarts[sessionId] = [];
         const cart = memoryCarts[sessionId];
         
-        // Check if item exists in memory cart
         const existingItem = cart.find(i => i.sku === sku && i.size === (size || ''));
         
         if (existingItem) {
             existingItem.quantity += 1;
         } else {
-            // Fetch product details for memory cart
             const product = await getProductBySku(sku);
             if (product) {
                 cart.push({ ...product, quantity: 1, size: size || '' });
@@ -835,6 +841,37 @@ app.post('/api/cart/add', async (req, res) => {
             }
         }
         res.json({ success: true });
+    }
+});
+
+// --- ADMIN REPAIR TOOL ---
+// Visit this URL once to fix your database data
+app.get('/admin/repair-data', async (req, res) => {
+    if (!pool) return res.send("DB Offline");
+    
+    try {
+        // 1. Give every product default sizes if they don't have any
+        // This will make your Dropdown Menus appear
+        const defaultSizes = JSON.stringify(["S", "M", "L", "XL", "2XL"]);
+        
+        const [updateResult] = await pool.query(
+            "UPDATE products SET sizes = ? WHERE sizes IS NULL OR sizes = '' OR sizes = '[]'", 
+            [defaultSizes]
+        );
+
+        // 2. Ensure cart_items has the size column (Double check)
+        try {
+            await pool.query("ALTER TABLE cart_items ADD COLUMN size VARCHAR(50) DEFAULT ''");
+        } catch (e) { /* Ignore if exists */ }
+
+        res.send(`
+            <h1>Repair Complete</h1>
+            <p>Updated ${updateResult.changedRows} products with default sizes.</p>
+            <p>Database schema verified.</p>
+            <a href="/merch" style="font-size: 20px; font-weight: bold; color: green;">GO TO MERCH PAGE NOW &rarr;</a>
+        `);
+    } catch (err) {
+        res.status(500).send("Error: " + err.message);
     }
 });
 
