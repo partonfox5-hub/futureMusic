@@ -406,15 +406,22 @@ app.get('/account', requireAuth, async (req, res) => {
         AND product_type = 'digital' 
         ORDER BY created_at DESC
     `, [req.session.userId]);
+
+
+        // 2. Fetch Physical Orders (everything else)
+    const [physicalOrders] = await pool.query(`
+        SELECT * FROM orders 
+        WHERE user_id = ? 
+        AND (product_type IS NULL OR product_type != 'digital') 
+        ORDER BY created_at DESC
+    `, [req.session.userId]);
         
         // 3. Render Page
 res.render('account', { 
     user: req.session.user,
-    digitalAssets: digitalAssets, // <--- Add this new variable
-            title: 'My Account',
-            cartCount: cartCount,
-            query: req.query || {} 
-        });
+    digitalAssets: digitalAssets,
+    physicalOrders: physicalOrders 
+});
 
     } catch (err) {
         console.error("❌ Account Page Critical Error:", err);
@@ -793,9 +800,20 @@ app.post('/api/cart/add', async (req, res) => {
                 );
             }
             res.json({ success: true });
-        } catch (err) {
-            console.error(err);
-            res.status(500).json({ error: 'Database error' });
+        }  catch (err) {
+            // AUTO-FIX: If 'size' column is missing, add it automatically
+            if (err.code === 'ER_BAD_FIELD_ERROR' && err.sqlMessage.includes("Unknown column 'size'")) {
+                console.log("⚠️ DB SCHEMA UPDATE: Adding missing 'size' column to cart_items...");
+                try {
+                    await pool.query("ALTER TABLE cart_items ADD COLUMN size VARCHAR(50) DEFAULT ''");
+                    return res.status(503).json({ error: 'System updated. Please click add again.' });
+                } catch (alterErr) {
+                    console.error("Failed to auto-fix DB:", alterErr);
+                }
+            }
+            
+            console.error("Cart Add Error:", err);
+            res.status(500).json({ error: 'Database error: ' + err.message });
         }
 } else {
         // Fallback: Memory Cart (Fixes 500 error when DB is offline)

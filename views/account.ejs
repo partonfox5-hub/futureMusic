@@ -21,100 +21,146 @@
             <div class="glass-card p-8 rounded-sm text-center relative overflow-hidden">
                 <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#D4AF37] to-transparent opacity-50"></div>
                 
-                <div class="w-24 h-24 mx-auto bg-black border-2 border-[#D4AF37] rounded-full flex items-center justify-center mb-4 shadow-[0_0_15px_rgba(212,175,55,0.3)]">
-                    <i class="fas fa-user-astronaut text-4xl text-[#D4AF37]"></i>
-                </div>
-                
-                <h2 class="text-xl text-white font-cinzel mb-1">Captain's Log</h2>
-                <p class="text-sm text-gray-500 mb-6">member since 2025</p>
-                
-                <div class="text-left space-y-4">
-                    <div class="group">
-                        <label class="text-xs text-[#D4AF37] uppercase tracking-widest block mb-1">Email Frequency</label>
-                        <div class="text-gray-300 font-mono text-sm">user@example.com</div>
-                    </div>
-                    <div class="group">
-                        <label class="text-xs text-[#D4AF37] uppercase tracking-widest block mb-1">Membership Tier</label>
-                        <div class="text-gray-300 font-mono text-sm flex items-center gap-2">
-                            <i class="fas fa-crown text-xs"></i> Mystic One
+                <div class="mb-6">
+                    <div class="w-24 h-24 rounded-full bg-black/50 border-2 border-[#D4AF37] mx-auto mb-4 flex items-center justify-center relative group overflow-hidden">
+                        <% if (user.avatar_url) { %>
+                           <img src="<%= user.avatar_url %>" class="w-full h-full object-cover">
+                        <% } else { %>
+                           <i class="fas fa-user-astronaut text-4xl text-gray-500 group-hover:text-[#D4AF37] transition-colors"></i>
+                        <% } %>
+                        <div class="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                            <i class="fas fa-camera text-white"></i>
                         </div>
                     </div>
+                    <h2 class="text-2xl text-white font-bold"><%= user.full_name || 'Anonymous User' %></h2>
+                    <p class="text-[#D4AF37] text-sm tracking-wider uppercase"><%= user.email %></p>
                 </div>
 
-                <button class="w-full mt-8 btn-outline py-2 text-xs font-bold hover:bg-[#D4AF37] hover:text-black">
-                    Edit Profile
-                </button>
+                <div class="bg-black/40 rounded p-4 mb-6 text-left space-y-3">
+                    <div class="flex justify-between border-b border-gray-800 pb-2">
+                        <span class="text-gray-500 text-xs uppercase">Frequency</span>
+                        <span class="text-gray-300 text-xs font-mono"><%= user.email %></span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-500 text-xs uppercase">Joined</span>
+                        <span class="text-gray-300 text-xs font-mono"><%= new Date(user.created_at).toLocaleDateString() %></span>
+                    </div>
+                </div>
+
+                <!-- New Sidebar Actions -->
+                <div class="mt-6 space-y-3">
+                    <div class="grid grid-cols-2 gap-2">
+                        <button class="text-xs border border-gray-600 hover:border-[#D4AF37] text-gray-400 hover:text-[#D4AF37] py-2 rounded transition-colors">
+                            Set New Email
+                        </button>
+                        <button class="text-xs border border-gray-600 hover:border-[#D4AF37] text-gray-400 hover:text-[#D4AF37] py-2 rounded transition-colors">
+                            Reset Password
+                        </button>
+                    </div>
+
+                    <!-- Private Bio Field -->
+                    <div class="mt-6 pt-6 border-t border-gray-800 text-left">
+                        <label class="text-[#D4AF37] text-xs uppercase tracking-widest font-bold mb-2 block">Private Link</label>
+                        <textarea 
+                            class="w-full bg-black/50 border border-gray-800 rounded p-3 text-sm text-gray-300 focus:border-[#D4AF37] outline-none h-32 resize-none"
+                            placeholder="Communicate directly with the sovereign now that you have demonstrated your loyalty..."></textarea>
+                        <button class="w-full mt-2 bg-[#D4AF37]/10 hover:bg-[#D4AF37]/20 text-[#D4AF37] text-xs py-2 rounded transition-colors">
+                            Transmit Message
+                        </button>
+                    </div>
+                </div>
+
             </div>
         </div>
 
-        <!-- Main Content Area -->
+        <!-- Main Content -->
         <div class="lg:col-span-2 space-y-8">
             
-            <!-- Recent Orders / Downloads -->
+            <!-- Digital Assets -->
             <div class="glass-card p-6 rounded-sm">
                 <h3 class="text-xl text-gold mb-6 border-b border-gray-800 pb-2 flex items-center gap-3">
-                    <i class="fas fa-compact-disc text-sm"></i> Digital Assets
+                    <i class="fas fa-broadcast-tower text-sm"></i> Digital Assets
                 </h3>
-
-                <div class="space-y-4">
-                <% if (typeof digitalAssets !== 'undefined' && digitalAssets.length > 0) { %>
-    <% digitalAssets.forEach(function(asset) { %>
-        <!-- Dynamic Asset Card -->
-        <div class="glass-card p-4 rounded border border-gray-800 hover:border-[#D4AF37] transition-all group relative overflow-hidden">
-            
-            <!-- Icon/Type Indicator -->
-            <div class="absolute top-2 right-2 text-gray-700 group-hover:text-[#D4AF37] transition-colors">
-                <i class="fas fa-microchip"></i>
-            </div>
-
-            <div class="flex flex-col h-full justify-between">
-                <div>
-                    <h4 class="text-gray-300 font-bold group-hover:text-white truncate">
-                        <%= asset.description ? asset.description.substring(0, 30) + '...' : 'Digital Item' %>
-                    </h4>
-                    <p class="text-xs text-gray-500 mt-1">
-                        Acquired: <%= new Date(asset.created_at).toLocaleDateString() %>
-                    </p>
-                    <% if(asset.size) { %>
-                        <span class="text-[10px] uppercase tracking-wider bg-gray-900 text-gray-400 px-2 py-1 rounded mt-2 inline-block">
-                            Format: <%= asset.size %>
-                        </span>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <% if (typeof digitalAssets !== 'undefined' && digitalAssets.length > 0) { %>
+                        <% digitalAssets.forEach(function(asset) { %>
+                            <!-- Dynamic Asset Card -->
+                            <div class="glass-card p-4 rounded border border-gray-800 hover:border-[#D4AF37] transition-all group relative overflow-hidden">
+                                
+                                <!-- Icon/Type Indicator -->
+                                <div class="absolute top-2 right-2 text-gray-700 group-hover:text-[#D4AF37] transition-colors">
+                                    <i class="fas fa-microchip"></i>
+                                </div>
+                    
+                                <div class="flex flex-col h-full justify-between">
+                                    <div>
+                                        <h4 class="text-gray-300 font-bold group-hover:text-white truncate">
+                                            <%= asset.description ? asset.description.substring(0, 30) + '...' : 'Digital Item' %>
+                                        </h4>
+                                        <p class="text-xs text-gray-500 mt-1">
+                                            Acquired: <%= new Date(asset.created_at).toLocaleDateString() %>
+                                        </p>
+                                        <% if(asset.size) { %>
+                                            <span class="text-[10px] uppercase tracking-wider bg-gray-900 text-gray-400 px-2 py-1 rounded mt-2 inline-block">
+                                                Format: <%= asset.size %>
+                                            </span>
+                                        <% } %>
+                                    </div>
+                    
+                                    <div class="mt-4 pt-4 border-t border-gray-800 flex justify-between items-center">
+                                        <span class="text-[#D4AF37] text-sm"><i class="fas fa-check-circle mr-1"></i> Active</span>
+                                        <button class="text-xs bg-[#D4AF37]/10 hover:bg-[#D4AF37]/20 text-[#D4AF37] px-3 py-1 rounded transition-colors">
+                                            Access
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        <% }); %>
+                    <% } else { %>
+                        <!-- Empty State -->
+                        <div class="col-span-full text-center py-8 text-gray-500">
+                            <i class="fas fa-wifi mb-2"></i>
+                            <p>No digital assets found in your inventory.</p>
+                        </div>
                     <% } %>
                 </div>
-
-                <div class="mt-4 pt-4 border-t border-gray-800 flex justify-between items-center">
-                    <span class="text-[#D4AF37] text-sm"><i class="fas fa-check-circle mr-1"></i> Active</span>
-                    <button class="text-xs bg-[#D4AF37]/10 hover:bg-[#D4AF37]/20 text-[#D4AF37] px-3 py-1 rounded transition-colors">
-                        Access
-                    </button>
-                </div>
-            </div>
-        </div>
-    <% }); %>
-<% } else { %>
-    <!-- Empty State -->
-    <div class="col-span-full text-center py-8 text-gray-500">
-        <i class="fas fa-wifi mb-2"></i>
-        <p>No digital assets found in your inventory.</p>
-    </div>
-<% } %>
-                </div>
             </div>
             
-             <!-- Settings / Preferences -->
+             <!-- Physical Order History -->
              <div class="glass-card p-6 rounded-sm">
                 <h3 class="text-xl text-gold mb-6 border-b border-gray-800 pb-2 flex items-center gap-3">
-                    <i class="fas fa-sliders-h text-sm"></i> Signal Settings
+                    <i class="fas fa-box-open text-sm"></i> Order History
                 </h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <button class="text-left bg-black/40 hover:bg-[#D4AF37]/10 border border-gray-800 hover:border-[#D4AF37] p-4 rounded transition-all group">
-                        <span class="block text-gray-300 group-hover:text-white font-bold mb-1">Payment Methods</span>
-                        <span class="block text-xs text-gray-600">Manage saved cards</span>
-                    </button>
-                    <button class="text-left bg-black/40 hover:bg-[#D4AF37]/10 border border-gray-800 hover:border-[#D4AF37] p-4 rounded transition-all group">
-                        <span class="block text-gray-300 group-hover:text-white font-bold mb-1">Order History</span>
-                        <span class="block text-xs text-gray-600">View past receipts</span>
-                    </button>
+                
+                <div class="space-y-4">
+                    <% if (typeof physicalOrders !== 'undefined' && physicalOrders.length > 0) { %>
+                        <% physicalOrders.forEach(function(order) { %>
+                            <div class="bg-black/40 border border-gray-800 p-4 rounded flex flex-col md:flex-row justify-between items-center gap-4 hover:border-gray-600 transition-colors">
+                                <div class="flex items-start gap-4">
+                                    <div class="text-[#D4AF37] pt-1"><i class="fas fa-cube"></i></div>
+                                    <div>
+                                        <h4 class="text-gray-300 font-bold"><%= order.description || 'Physical Item' %></h4>
+                                        <p class="text-xs text-gray-500">Order #<%= order.id %> • <%= new Date(order.created_at).toLocaleDateString() %></p>
+                                        <% if(order.size) { %>
+                                            <span class="text-xs text-gray-400 bg-gray-800 px-2 py-0.5 rounded ml-[-2px] mt-1 inline-block">Size: <%= order.size %></span>
+                                        <% } %>
+                                    </div>
+                                </div>
+                                <div class="text-right min-w-[100px]">
+                                    <span class="block text-[#D4AF37] font-mono">$<%= Number(order.amount).toFixed(2) %></span>
+                                    <span class="text-xs text-green-500 uppercase tracking-wider border border-green-900/30 bg-green-900/10 px-2 py-1 rounded mt-1 inline-block">
+                                        <%= order.status %>
+                                    </span>
+                                </div>
+                            </div>
+                        <% }); %>
+                    <% } else { %>
+                        <div class="text-center text-gray-500 py-8 border border-dashed border-gray-800 rounded">
+                            <i class="fas fa-box mb-2 opacity-50"></i>
+                            <p>No physical orders found.</p>
+                        </div>
+                    <% } %>
                 </div>
             </div>
 

@@ -77,14 +77,27 @@
                         
                         <!-- Action Buttons -->
 <!-- Action Buttons -->
+<!-- Action Buttons -->
                         <div class="mt-auto">
                             <% if (item.sizes && item.sizes.length > 0) { %>
-                                <!-- Item has sizes: Must go to detail page -->
-                                <a href="/merch/<%= item.id %>" class="w-full block text-center btn-outline py-3 text-xs font-bold rounded hover:bg-[#D4AF37] hover:text-black transition-all">
-                                    SELECT OPTIONS
-                                </a>
+                                <!-- Size Selector & Add Button -->
+                                <div class="flex flex-col gap-2">
+                                    <select class="w-full bg-black/50 text-white text-xs border border-gray-600 rounded px-2 py-3 outline-none focus:border-[#D4AF37] size-selector" 
+                                            id="size-select-<%= item.sku %>">
+                                        <option value="" disabled selected>Select Size</option>
+                                        <% item.sizes.forEach(size => { %>
+                                            <option value="<%= size %>"><%= size %></option>
+                                        <% }); %>
+                                    </select>
+                                    
+                                    <button class="w-full btn-gold py-3 text-xs font-bold hover:scale-105 transition-transform quick-add-size-btn" 
+                                        data-id="<%= item.sku %>" 
+                                        data-name="<%= item.name %>">
+                                        ADD TO CART
+                                    </button>
+                                </div>
                             <% } else { %>
-                                <!-- No sizes: Can Quick Add -->
+                                <!-- No sizes: Standard Quick Add -->
                                 <button class="w-full btn-gold py-3 text-xs font-bold add-to-cart-btn hover:scale-105 transition-transform" 
                                     data-id="<%= item.sku %>" 
                                     data-name="<%= item.name %>">
