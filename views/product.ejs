@@ -33,18 +33,6 @@
                 <%- product.description %>
             </div>
 
-            <!-- SIZE SELECTOR -->
-<% if (product.sizes && product.sizes.length > 0) { %>
-    <% product.sizes.forEach((size, index) => { %>
-        <label class="cursor-pointer">
-            <!-- Logic: Add 'checked' attribute to the first item (index === 0) -->
-            <input type="radio" name="selected_size" value="<%= size %>" class="peer sr-only" <%= index === 0 ? 'checked' : '' %>>
-            <span class="block px-4 py-2 border border-gray-700 bg-black/50 text-gray-300 peer-checked:bg-[#D4AF37] peer-checked:text-black peer-checked:border-[#D4AF37] hover:border-[#D4AF37] transition-all text-sm font-bold uppercase">
-                <%= size %>
-            </span>
-        </label>
-    <% }); %>
-<% } %>
 <!-- SIZE SELECTION UI -->
 <% if (product.sizes && product.sizes.length > 0) { %>
                 <div class="mb-6">
