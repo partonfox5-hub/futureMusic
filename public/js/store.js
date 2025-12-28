@@ -11,16 +11,14 @@ const Store = {
     },
 
     // Add item to database cart
-    add: async (sku, size = null, btnElement = null) => {
+    add: async (sku, size = null) => {
         const sessionId = Store.getSessionId();
         
         // Find button to update UI
-        // Priority: Passed element > Query by ID > Query by SKU
-        const btn = btnElement || document.querySelector(`button[data-id="${sku}"]`) || document.querySelector(`button[data-sku="${sku}"]`);
+        // We look for the button to show the loading spinner, but we DON'T require it to exist for the cart to work.
+        const btn = document.querySelector(`button[data-id="${sku}"]`) || document.querySelector(`button[data-sku="${sku}"]`);
         
         let originalText = '';
-
-        // UI: Set Loading State (Only if button exists)
         if(btn) {
             originalText = btn.innerHTML;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ADDING...';
@@ -28,7 +26,8 @@ const Store = {
         }
 
         try {
-            // DATA: Perform API Call (Runs regardless of button existence)
+            // DATA: Perform API Call
+            // This now runs OUTSIDE the if(btn) block, ensuring items are added even if the button selector fails
             const response = await fetch('/api/cart', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -37,7 +36,11 @@ const Store = {
 
             if (!response.ok) throw new Error('Network response was not ok');
 
-            // UI: Set Success State
+            // CRITICAL FIX: Update badge immediately after successful add
+            // We await this to ensure the DOM updates before we finish
+            await Store.refreshCartCount();
+
+            // UI: Set Success State (Only if button was found)
             if(btn) {
                 btn.innerHTML = '<i class="fas fa-check"></i> ADDED';
                 setTimeout(() => {
@@ -45,9 +48,6 @@ const Store = {
                     btn.disabled = false;
                 }, 2000);
             }
-
-            // CRITICAL FIX: Update badge ensures this runs even if button wasn't found
-            await Store.refreshCartCount();
 
         } catch (error) {
             console.error('Error adding to cart:', error);
@@ -83,7 +83,8 @@ const Store = {
     getCart: async () => {
         const sessionId = Store.getSessionId();
         try {
-            const res = await fetch(`/api/cart/${sessionId}`);
+            // Add timestamp to prevent caching
+            const res = await fetch(`/api/cart/${sessionId}?t=${Date.now()}`);
             const data = await res.json();
             return data.items || [];
         } catch (e) {
@@ -180,8 +181,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (btn && !btn.id.includes('addToCartMain')) {
             e.preventDefault();
             const sku = btn.dataset.id || btn.dataset.sku; 
-            // FIX: Pass the 'btn' element directly to Store.add so it doesn't have to search for it again
-            if (sku) Store.add(sku, null, btn); 
+            if (sku) Store.add(sku); // Default add (no size)
         }
     });
 });
