@@ -470,10 +470,44 @@ app.get('/merch', async (req, res) => {
             else if (sort === 'price_desc') sql += " ORDER BY price DESC";
             else sql += " ORDER BY created_at DESC";
 
-            const result = await query(sql, params);
+const result = await query(sql, params);
             const products = result.rows.map(p => {
+                // 1. Existing fallback for the basic 'sizes' column
                 if (typeof p.sizes === 'string') { try { p.sizes = JSON.parse(p.sizes); } catch(e) { p.sizes = []; } }
                 else if (!p.sizes) { p.sizes = []; }
+
+                // 2. NEW LOGIC: Extract "real" sizes from metadata variants
+                // This matches the logic currently used in your single product route
+                if (p.metadata) {
+                    try {
+                        let meta = p.metadata;
+                        // Handle potential double-stringification
+                        if (typeof meta === 'string') { try { meta = JSON.parse(meta); } catch (e) {} }
+                        if (typeof meta === 'string') { try { meta = JSON.parse(meta); } catch (e) {} }
+
+                        if (meta && meta.variants && Array.isArray(meta.variants)) {
+                            let extractedSizes = meta.variants
+                                .filter(v => v.is_available === true) // Only show available sizes
+                                .map(v => {
+                                    if (!v.title) return null;
+                                    // Cleans "L / Black" down to just "L"
+                                    return v.title.split(' / ')[0].trim();
+                                })
+                                .filter(s => s);
+                            
+                            // Deduplicate (remove duplicate 'L' entries)
+                            extractedSizes = [...new Set(extractedSizes)];
+
+                            // If we found valid variants, OVERRIDE the default sizes
+                            if (extractedSizes.length > 0) {
+                                p.sizes = extractedSizes;
+                            }
+                        }
+                    } catch (e) {
+                        console.error("Metadata error for product:", p.sku);
+                    }
+                }
+                
                 return p;
             });
 
