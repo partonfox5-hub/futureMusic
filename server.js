@@ -377,57 +377,63 @@ app.get('/advocacy', (req, res) => res.render('advocacy', { title: 'Advocacy' })
 // ADDED: Account Page Route
 app.get('/account', requireAuth, async (req, res) => {
     try {
-        // 1. Setup default safe data
-        let user = { email: req.session.email, id: req.session.userId };
-        let cartCount = 0;
+        // 1. Setup default safe data with fallback date to prevent Date() crashes
+        let user = { 
+            email: req.session.email, 
+            id: req.session.userId,
+            created_at: new Date() // Fallback date if DB fails
+        };
+        let digitalAssets = [];
+        let physicalOrders = [];
 
-        // 2. Fetch Data if DB is connected
-        if (typeof query === 'function' && pool) {
+        // 2. Check if DB is actually available before ANY queries
+        if (pool && typeof pool.query === 'function') {
             try {
                 // Fetch User Profile
-                const userResult = await query("SELECT * FROM users WHERE id = ?", [req.session.userId]);
-                if (userResult.rows && userResult.rows.length > 0) {
-                    user = userResult.rows[0];
+                // We use the raw pool.query for consistency here, or your helper if preferred
+                const [userRows] = await pool.query("SELECT * FROM users WHERE id = ?", [req.session.userId]);
+                if (userRows && userRows.length > 0) {
+                    user = userRows[0];
                 }
 
-                // Fetch Cart Count
-                const cartResult = await query("SELECT SUM(quantity) as qty FROM cart_items WHERE session_id = ?", [req.sessionID]);
-                if (cartResult.rows && cartResult.rows.length > 0) {
-                    cartCount = cartResult.rows[0].qty || 0;
-                }
+                // Fetch Digital Assets
+                const [dAssets] = await pool.query(`
+                    SELECT * FROM orders 
+                    WHERE user_id = ? 
+                    AND product_type = 'digital' 
+                    ORDER BY created_at DESC
+                `, [req.session.userId]);
+                digitalAssets = dAssets;
+
+                // Fetch Physical Orders
+                const [pOrders] = await pool.query(`
+                    SELECT * FROM orders 
+                    WHERE user_id = ? 
+                    AND (product_type IS NULL OR product_type != 'digital') 
+                    ORDER BY created_at DESC
+                `, [req.session.userId]);
+                physicalOrders = pOrders;
+
             } catch (dbErr) {
-                console.error("⚠️ Account DB Fetch Error (Non-Critical):", dbErr.message);
+                console.error("⚠️ Account DB Fetch Error:", dbErr.message);
+                // We continue rendering with whatever data we have (likely just session data)
             }
         }
 
-            const [digitalAssets] = await pool.query(`
-        SELECT * FROM orders 
-        WHERE user_id = ? 
-        AND product_type = 'digital' 
-        ORDER BY created_at DESC
-    `, [req.session.userId]);
-
-
-        // 2. Fetch Physical Orders (everything else)
-    const [physicalOrders] = await pool.query(`
-        SELECT * FROM orders 
-        WHERE user_id = ? 
-        AND (product_type IS NULL OR product_type != 'digital') 
-        ORDER BY created_at DESC
-    `, [req.session.userId]);
-        
         // 3. Render Page
-res.render('account', { 
-    user: req.session.user,
-    digitalAssets: digitalAssets,
-    physicalOrders: physicalOrders 
-});
+        // CRITICAL FIX: We pass 'user', NOT 'req.session.user' (which is undefined)
+        res.render('account', { 
+            user: user, 
+            digitalAssets: digitalAssets,
+            physicalOrders: physicalOrders 
+        });
 
     } catch (err) {
         console.error("❌ Account Page Critical Error:", err);
         res.status(500).send(`<h1>Error loading account</h1><p>${err.message}</p>`);
     }
 });
+
 
 
 
@@ -776,31 +782,33 @@ app.get('/projects', (req, res) => res.render('projects', { title: 'Projects' })
 
 
 app.post('/api/cart/add', async (req, res) => {
-    const { sku, size } = req.body;
-    const sessionId = req.sessionID;
+    // FIX: Accept sessionId from the browser (req.body) to match the frontend store.js
+    const { sku, size, sessionId: bodySessionId } = req.body;
+    
+    // Priority: 1. Browser's LocalStorage ID, 2. Server Cookie ID
+    const sessionId = bodySessionId || req.sessionID;
 
     if (!sku) return res.status(400).json({ error: 'SKU required' });
 
     if (pool) {
         try {
-            // 1. CRITICAL FIX: Ensure session exists in 'carts' table first
-            // This prevents Foreign Key errors if 'cart_items' requires a valid session_id in 'carts'
+            // 1. Ensure session exists in 'carts' table
             await pool.query(
                 "INSERT INTO carts (session_id, updated_at) VALUES (?, NOW()) ON DUPLICATE KEY UPDATE updated_at = NOW()", 
                 [sessionId]
             );
 
-            // 2. Check if this specific item (SKU + specific Size) is already in the cart
+            // 2. Check if this specific item (SKU + Size) is already in the cart
             const [existing] = await pool.query(
                 "SELECT id FROM cart_items WHERE session_id = ? AND product_sku = ? AND size = ?", 
                 [sessionId, sku, size || '']
             );
 
             if (existing.length > 0) {
-                // Item exists, increment quantity
+                // Update Quantity
                 await pool.query("UPDATE cart_items SET quantity = quantity + 1 WHERE id = ?", [existing[0].id]);
             } else {
-                // 3. CRITICAL FIX: Insert with 'added_at' timestamp
+                // Insert New Item (Include added_at timestamp)
                 await pool.query(
                     "INSERT INTO cart_items (session_id, product_sku, quantity, size, added_at) VALUES (?, ?, 1, ?, NOW())", 
                     [sessionId, sku, size || '']
@@ -809,36 +817,27 @@ app.post('/api/cart/add', async (req, res) => {
             res.json({ success: true });
 
         } catch (err) {
-            // AUTO-FIX: If 'size' column is missing, add it automatically
+            // Self-Healing for missing size column
             if (err.code === 'ER_BAD_FIELD_ERROR' && err.sqlMessage.includes("Unknown column 'size'")) {
-                console.log("⚠️ DB SCHEMA UPDATE: Adding missing 'size' column to cart_items...");
                 try {
                     await pool.query("ALTER TABLE cart_items ADD COLUMN size VARCHAR(50) DEFAULT ''");
-                    return res.status(503).json({ error: 'System updated. Please click add again.' });
-                } catch (alterErr) {
-                    console.error("Failed to auto-fix DB:", alterErr);
-                }
+                    return res.status(503).json({ error: 'System updated. Please try again.' });
+                } catch (alterErr) { console.error(alterErr); }
             }
-            
             console.error("Cart Add Error:", err);
             res.status(500).json({ error: 'Database error: ' + err.message });
         }
     } else {
-        // Fallback: Memory Cart
+        // Memory Cart Fallback
         if (!memoryCarts[sessionId]) memoryCarts[sessionId] = [];
         const cart = memoryCarts[sessionId];
-        
         const existingItem = cart.find(i => i.sku === sku && i.size === (size || ''));
         
         if (existingItem) {
             existingItem.quantity += 1;
         } else {
             const product = await getProductBySku(sku);
-            if (product) {
-                cart.push({ ...product, quantity: 1, size: size || '' });
-            } else {
-                return res.status(404).json({ error: 'Product not found' });
-            }
+            if (product) cart.push({ ...product, quantity: 1, size: size || '' });
         }
         res.json({ success: true });
     }

@@ -43,7 +43,13 @@
                     </div>
                     <div class="flex justify-between">
                         <span class="text-gray-500 text-xs uppercase">Joined</span>
-                        <span class="text-gray-300 text-xs font-mono"><%= new Date(user.created_at).toLocaleDateString() %></span>
+                        <span class="text-gray-300 text-xs font-mono">
+                            <% if (user.created_at) { %>
+                                <%= new Date(user.created_at).toLocaleDateString() %>
+                            <% } else { %>
+                                N/A
+                            <% } %>
+                        </span>
                     </div>
                 </div>
 

@@ -105,7 +105,8 @@ document.getElementById('addToCartMain').addEventListener('click', async (e) => 
         }
 
         // 2. Prepare Data
-        const payload = { sku, size };
+        const storeSessionId = localStorage.getItem('sessionId') || document.cookie.match(/connect.sid=([^;]+)/)?.[1];
+        const payload = { sku, size, sessionId: storeSessionId };
 
         // 3. Send to Server
         try {
