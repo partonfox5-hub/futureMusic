@@ -53,41 +53,51 @@
             <!-- Recent Orders / Downloads -->
             <div class="glass-card p-6 rounded-sm">
                 <h3 class="text-xl text-gold mb-6 border-b border-gray-800 pb-2 flex items-center gap-3">
-                    <i class="fas fa-compact-disc text-sm"></i> Digital Transmissions
+                    <i class="fas fa-compact-disc text-sm"></i> Digital Assets
                 </h3>
-                
+
                 <div class="space-y-4">
-                    <!-- Item 1 -->
-                    <div class="flex items-center justify-between bg-white/5 p-4 rounded border border-white/5 hover:border-[#D4AF37]/30 transition-colors">
-                        <div class="flex items-center gap-4">
-                            <div class="bg-black w-12 h-12 flex items-center justify-center text-[#20B2AA]">
-                                <i class="fas fa-music"></i>
-                            </div>
-                            <div>
-                                <h4 class="text-gray-200 font-bold text-sm">Neon Horizon EP</h4>
-                                <p class="text-xs text-gray-500">Purchased on Oct 24, 2025</p>
-                            </div>
-                        </div>
-                        <a href="#" class="text-[#D4AF37] hover:text-white text-sm uppercase tracking-wider text-xs font-bold">
-                            <i class="fas fa-download mr-1"></i> Download
-                        </a>
-                    </div>
-                    
-                    <!-- Item 2 -->
-                    <div class="flex items-center justify-between bg-white/5 p-4 rounded border border-white/5 hover:border-[#D4AF37]/30 transition-colors">
-                        <div class="flex items-center gap-4">
-                            <div class="bg-black w-12 h-12 flex items-center justify-center text-[#20B2AA]">
-                                <i class="fas fa-file-contract"></i>
-                            </div>
-                            <div>
-                                <h4 class="text-gray-200 font-bold text-sm">Commercial License #442</h4>
-                                <p class="text-xs text-gray-500">Standard Rights</p>
-                            </div>
-                        </div>
-                        <a href="#" class="text-[#D4AF37] hover:text-white text-sm uppercase tracking-wider text-xs font-bold">
-                            <i class="fas fa-eye mr-1"></i> View
-                        </a>
-                    </div>
+                <% if (typeof digitalAssets !== 'undefined' && digitalAssets.length > 0) { %>
+    <% digitalAssets.forEach(function(asset) { %>
+        <!-- Dynamic Asset Card -->
+        <div class="glass-card p-4 rounded border border-gray-800 hover:border-[#D4AF37] transition-all group relative overflow-hidden">
+            
+            <!-- Icon/Type Indicator -->
+            <div class="absolute top-2 right-2 text-gray-700 group-hover:text-[#D4AF37] transition-colors">
+                <i class="fas fa-microchip"></i>
+            </div>
+
+            <div class="flex flex-col h-full justify-between">
+                <div>
+                    <h4 class="text-gray-300 font-bold group-hover:text-white truncate">
+                        <%= asset.description ? asset.description.substring(0, 30) + '...' : 'Digital Item' %>
+                    </h4>
+                    <p class="text-xs text-gray-500 mt-1">
+                        Acquired: <%= new Date(asset.created_at).toLocaleDateString() %>
+                    </p>
+                    <% if(asset.size) { %>
+                        <span class="text-[10px] uppercase tracking-wider bg-gray-900 text-gray-400 px-2 py-1 rounded mt-2 inline-block">
+                            Format: <%= asset.size %>
+                        </span>
+                    <% } %>
+                </div>
+
+                <div class="mt-4 pt-4 border-t border-gray-800 flex justify-between items-center">
+                    <span class="text-[#D4AF37] text-sm"><i class="fas fa-check-circle mr-1"></i> Active</span>
+                    <button class="text-xs bg-[#D4AF37]/10 hover:bg-[#D4AF37]/20 text-[#D4AF37] px-3 py-1 rounded transition-colors">
+                        Access
+                    </button>
+                </div>
+            </div>
+        </div>
+    <% }); %>
+<% } else { %>
+    <!-- Empty State -->
+    <div class="col-span-full text-center py-8 text-gray-500">
+        <i class="fas fa-wifi mb-2"></i>
+        <p>No digital assets found in your inventory.</p>
+    </div>
+<% } %>
                 </div>
             </div>
             

@@ -399,11 +399,19 @@ app.get('/account', requireAuth, async (req, res) => {
                 console.error("⚠️ Account DB Fetch Error (Non-Critical):", dbErr.message);
             }
         }
+
+            const [digitalAssets] = await pool.query(`
+        SELECT * FROM orders 
+        WHERE user_id = ? 
+        AND product_type = 'digital' 
+        ORDER BY created_at DESC
+    `, [req.session.userId]);
         
         // 3. Render Page
-        res.render('account', { 
+res.render('account', { 
+    user: req.session.user,
+    digitalAssets: digitalAssets, // <--- Add this new variable
             title: 'My Account',
-            user: user,
             cartCount: cartCount,
             query: req.query || {} 
         });
@@ -487,7 +495,7 @@ app.get('/merch/:id', async (req, res) => {
             const querySql = "SELECT * FROM products WHERE CAST(id AS CHAR) = ? OR sku = ?";
             const result = await query(querySql, [req.params.id, req.params.id]);
             product = result.rows[0];
-            const sku = product ? product.sku || req.params.id : req.params.id;
+            const sku = product ? product.sku || req.params.id : req.params.id; 
             let sizes = [];
 
 if (product.metadata) {
@@ -639,10 +647,43 @@ app.post('/initiate-checkout', async (req, res) => {
         const session = await stripe.checkout.sessions.create(sessionConfig);
         
         // 7. Record Order in DB
-        await query(
-            "INSERT INTO orders (user_id, stripe_session_id, total_amount, payment_status) VALUES (?, ?, ?, 'pending')", 
-            [userId, session.id, (session.amount_total / 100)]
-        );
+// --- REPLACEMENT CODE START ---
+
+// 1. Fetch cart items WITH product details from your products table
+// We join cart_items with products to get the description and type
+const [itemsToOrder] = await pool.query(`
+    SELECT 
+        ci.*, 
+        p.type AS product_type, 
+        p.description 
+    FROM cart_items ci
+    JOIN products p ON ci.product_sku = p.sku
+    WHERE ci.session_id = ?
+`, [sessionId]); // Ensure 'sessionId' matches the variable name in your route (e.g., req.sessionID or session.id)
+
+// 2. Insert into orders with the new fields
+for (const item of itemsToOrder) {
+    await pool.query(`
+        INSERT INTO orders (
+            user_id, 
+            product_sku, 
+            amount, 
+            status, 
+            product_type,    
+            size,            
+            description,     
+            created_at
+        ) VALUES (?, ?, ?, 'paid', ?, ?, ?, NOW())
+    `, [
+        userId,              // Ensure 'userId' matches your variable (e.g., req.session.userId)
+        item.product_sku, 
+        item.price,          // Assumes price is in cart_items. If not, change to 'item.product_price' based on your schema
+        item.product_type,   // Maps to the new column
+        item.size,           // Maps to the new column (from cart)
+        item.description     // Maps to the new column
+    ]);
+}
+// --- REPLACEMENT CODE END ---
         
         res.json({ id: session.id });
 
