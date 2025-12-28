@@ -11,38 +11,49 @@ const Store = {
     },
 
     // Add item to database cart
-    add: async (sku, size = null) => {
+    add: async (sku, size = null, btnElement = null) => {
         const sessionId = Store.getSessionId();
         
         // Find button to update UI
-        // Note: For product page, we might pass the button element directly, but here we query
-        const btn = document.querySelector(`button[data-id="${sku}"]`) || document.querySelector(`button[data-sku="${sku}"]`);
+        // Priority: Passed element > Query by ID > Query by SKU
+        const btn = btnElement || document.querySelector(`button[data-id="${sku}"]`) || document.querySelector(`button[data-sku="${sku}"]`);
         
+        let originalText = '';
+
+        // UI: Set Loading State (Only if button exists)
         if(btn) {
-            const originalText = btn.innerHTML;
+            originalText = btn.innerHTML;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ADDING...';
             btn.disabled = true;
+        }
 
-            try {
-                const response = await fetch('/api/cart', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ sessionId, sku, quantity: 1, size: size })
-                });
+        try {
+            // DATA: Perform API Call (Runs regardless of button existence)
+            const response = await fetch('/api/cart', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sessionId, sku, quantity: 1, size: size })
+            });
 
-                if (!response.ok) throw new Error('Network response was not ok');
+            if (!response.ok) throw new Error('Network response was not ok');
 
+            // UI: Set Success State
+            if(btn) {
                 btn.innerHTML = '<i class="fas fa-check"></i> ADDED';
                 setTimeout(() => {
                     btn.innerHTML = originalText;
                     btn.disabled = false;
                 }, 2000);
+            }
 
-                // Update badge
-                Store.refreshCartCount();
+            // CRITICAL FIX: Update badge ensures this runs even if button wasn't found
+            await Store.refreshCartCount();
 
-            } catch (error) {
-                console.error('Error adding to cart:', error);
+        } catch (error) {
+            console.error('Error adding to cart:', error);
+            
+            // UI: Set Error State
+            if(btn) {
                 btn.innerHTML = 'ERROR';
                 setTimeout(() => {
                     btn.innerHTML = originalText;
@@ -91,7 +102,7 @@ const Store = {
         }
     },
 
-checkout: async () => {
+    checkout: async () => {
         const btn = document.getElementById('checkout-btn');
         if(btn) btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> PROCESSING...';
         // Redirect to checkout form
@@ -169,7 +180,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (btn && !btn.id.includes('addToCartMain')) {
             e.preventDefault();
             const sku = btn.dataset.id || btn.dataset.sku; 
-            if (sku) Store.add(sku); // Default add (no size)
+            // FIX: Pass the 'btn' element directly to Store.add so it doesn't have to search for it again
+            if (sku) Store.add(sku, null, btn); 
         }
     });
 });
