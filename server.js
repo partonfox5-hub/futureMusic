@@ -487,6 +487,7 @@ app.get('/merch/:id', async (req, res) => {
             const querySql = "SELECT * FROM products WHERE CAST(id AS CHAR) = ? OR sku = ?";
             const result = await query(querySql, [req.params.id, req.params.id]);
             product = result.rows[0];
+            const sku = product ? product.sku || req.params.id : req.params.id;
             let sizes = [];
 
 if (product.metadata) {
