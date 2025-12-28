@@ -5,8 +5,27 @@ app.set('trust proxy', 1); // Required for cross-domain cookies on GCloud
 const cors = require('cors');
 // Replace with your actual Game URL (e.g., https://colorization.web.app)
 // Leave as '*' for testing, but specify exact domain for production
+// Allow both the environment variable AND specific local/production URLs
+const allowedOrigins = [
+    process.env.GAME_URL,
+    'https://mobile-game-853337900822.us-central1.run.app', // Your Cloud Run Game URL
+    'http://localhost:8080', // Local testing
+    'http://127.0.0.1:8080'
+];
+
 app.use(cors({
-    origin: process.env.GAME_URL || 'https://mobile-game-853337900822.us-central1.run.app', 
+    origin: function (origin, callback) {
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.indexOf(origin) !== -1 || origin.includes('web.app') || origin.includes('firebaseapp.com')) {
+            callback(null, true);
+        } else {
+            // Optional: For debugging, you can uncomment the next line to allow ALL origins temporarily
+            // callback(null, true); 
+            console.log("Blocked by CORS:", origin);
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     credentials: true
 }));
 
