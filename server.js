@@ -744,23 +744,34 @@ app.post('/initiate-checkout', async (req, res) => {
             };
         });
 
-        // 6. Create Stripe Session
+// 1. Get the dynamic domain (This fixes the broken back link)
+        const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+        const host = req.get('host');
+        const domain = `${protocol}://${host}`;
+
+        // 2. Configure the Session
         const sessionConfig = {
             payment_method_types: ['card'],
-            customer_email: email, // Use email from form
+            customer_email: email, // Preserves the email from your form
             line_items: lineItems,
             mode: 'payment',
-            success_url: `${process.env.DOMAIN || 'http://localhost:8080'}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
-            cancel_url: `${process.env.DOMAIN || 'http://localhost:8080'}/cart`,
-            metadata: { userId: userId.toString(), custom_session_id: sessionId }
+            // CRITICAL: We use 'app_session_id' to match the success route logic we added
+            metadata: { 
+                app_session_id: sessionId,
+                userId: (typeof userId !== 'undefined' && userId) ? userId.toString() : null 
+            },
+            // Note: pointing to '/success' to match the new route we created
+            success_url: `${domain}/success?session_id={CHECKOUT_SESSION_ID}`, 
+            cancel_url: `${domain}/cart`, // Fixes the back button issue
         };
 
-        if (hasPhysicalItems) {
+        // 3. Preserve Shipping Address Collection if needed
+        if (typeof hasPhysicalItems !== 'undefined' && hasPhysicalItems) {
             sessionConfig.shipping_address_collection = { allowed_countries: ['US', 'CA', 'GB'] };
         }
 
-        console.log(`🚀 Creating Stripe Session.`);
-
+        // 4. Create the Session
+        console.log(`🚀 Creating Stripe Session for ${domain}`);
         const session = await stripe.checkout.sessions.create(sessionConfig);
         
         // 7. Record Order in DB
