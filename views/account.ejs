@@ -53,26 +53,65 @@
                     </div>
                 </div>
 
-                <!-- New Sidebar Actions -->
+                <!-- Account Actions (Dynamic) -->
                 <div class="mt-6 space-y-3">
-                    <div class="grid grid-cols-2 gap-2">
-                        <button class="text-xs border border-gray-600 hover:border-[#D4AF37] text-gray-400 hover:text-[#D4AF37] py-2 rounded transition-colors">
+                    <!-- Default Buttons -->
+                    <div id="actionButtons" class="grid grid-cols-2 gap-2">
+                        <button onclick="toggleForm('emailForm')" class="text-xs border border-gray-600 hover:border-[#D4AF37] text-gray-400 hover:text-[#D4AF37] py-2 rounded transition-colors">
                             Set New Email
                         </button>
-                        <button class="text-xs border border-gray-600 hover:border-[#D4AF37] text-gray-400 hover:text-[#D4AF37] py-2 rounded transition-colors">
+                        <button onclick="toggleForm('passwordForm')" class="text-xs border border-gray-600 hover:border-[#D4AF37] text-gray-400 hover:text-[#D4AF37] py-2 rounded transition-colors">
                             Reset Password
                         </button>
                     </div>
 
+                    <!-- Email Form (Hidden) -->
+                    <form id="emailForm" action="/account/update-email" method="POST" class="hidden bg-black/50 p-3 rounded border border-gray-800">
+                        <label class="block text-gray-500 text-[10px] uppercase mb-1">New Email Address</label>
+                        <input type="email" name="newEmail" required class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white text-xs mb-2 focus:border-[#D4AF37] outline-none">
+                        <div class="flex gap-2">
+                            <button type="submit" class="flex-1 bg-[#D4AF37] text-black text-xs font-bold py-1 rounded">Update</button>
+                            <button type="button" onclick="toggleForm('actionButtons')" class="flex-1 bg-gray-800 text-gray-400 text-xs py-1 rounded">Cancel</button>
+                        </div>
+                    </form>
+
+                    <!-- Password Form (Hidden) -->
+                    <form id="passwordForm" action="/account/update-password" method="POST" class="hidden bg-black/50 p-3 rounded border border-gray-800">
+                        <label class="block text-gray-500 text-[10px] uppercase mb-1">Current Password</label>
+                        <input type="password" name="currentPassword" required class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white text-xs mb-2 focus:border-[#D4AF37] outline-none">
+                        
+                        <label class="block text-gray-500 text-[10px] uppercase mb-1">New Password</label>
+                        <input type="password" name="newPassword" required class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white text-xs mb-2 focus:border-[#D4AF37] outline-none">
+                        
+                        <div class="flex gap-2">
+                            <button type="submit" class="flex-1 bg-[#D4AF37] text-black text-xs font-bold py-1 rounded">Update</button>
+                            <button type="button" onclick="toggleForm('actionButtons')" class="flex-1 bg-gray-800 text-gray-400 text-xs py-1 rounded">Cancel</button>
+                        </div>
+                    </form>
+
                     <!-- Private Bio Field -->
                     <div class="mt-6 pt-6 border-t border-gray-800 text-left">
                         <label class="text-[#D4AF37] text-xs uppercase tracking-widest font-bold mb-2 block">Private Link</label>
-                        <textarea 
-                            class="w-full bg-black/50 border border-gray-800 rounded p-3 text-sm text-gray-300 focus:border-[#D4AF37] outline-none h-32 resize-none"
-                            placeholder="Communicate directly with the sovereign now that you have demonstrated your loyalty..."></textarea>
-                        <button class="w-full mt-2 bg-[#D4AF37]/10 hover:bg-[#D4AF37]/20 text-[#D4AF37] text-xs py-2 rounded transition-colors">
-                            Transmit Message
-                        </button>
+                        
+                        <% if (user.private_message) { %>
+                            <!-- LOCKED STATE -->
+                            <textarea disabled class="w-full bg-black/80 border border-gray-900 rounded p-3 text-sm text-gray-500 cursor-not-allowed h-32 resize-none"><%= user.private_message %></textarea>
+                            <button disabled class="w-full mt-2 bg-gray-900 text-gray-600 text-xs py-2 rounded cursor-not-allowed">
+                                Message Transmitted (Locked)
+                            </button>
+                        <% } else { %>
+                            <!-- ACTIVE STATE -->
+                            <form action="/account/message" method="POST">
+                                <textarea 
+                                    name="message"
+                                    required
+                                    class="w-full bg-black/50 border border-gray-800 rounded p-3 text-sm text-gray-300 focus:border-[#D4AF37] outline-none h-32 resize-none"
+                                    placeholder="Communicate directly with the sovereign now that you have demonstrated your loyalty..."></textarea>
+                                <button type="submit" class="w-full mt-2 bg-[#D4AF37]/10 hover:bg-[#D4AF37]/20 text-[#D4AF37] text-xs py-2 rounded transition-colors">
+                                    Transmit Message (You only get one.)
+                                </button>
+                            </form>
+                        <% } %>
                     </div>
                 </div>
 
@@ -173,5 +212,22 @@
         </div>
     </div>
 </div>
+
+<!-- JavaScript for toggling forms -->
+<script>
+    function toggleForm(activeId) {
+        // IDs of all toggleable sections
+        const sections = ['actionButtons', 'emailForm', 'passwordForm'];
+        
+        sections.forEach(id => {
+            const el = document.getElementById(id);
+            if (id === activeId) {
+                el.classList.remove('hidden');
+            } else {
+                el.classList.add('hidden');
+            }
+        });
+    }
+</script>
 
 <%- include('partials/footer') %>

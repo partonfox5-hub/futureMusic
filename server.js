@@ -435,8 +435,78 @@ app.get('/account', requireAuth, async (req, res) => {
 });
 
 
+// --- NEW ACCOUNT ACTION ROUTES ---
 
+// Change Email
+app.post('/account/update-email', requireAuth, async (req, res) => {
+    const { newEmail } = req.body;
+    if (!newEmail) return res.redirect('/account');
+    
+    try {
+        if(pool) {
+            await pool.query("UPDATE users SET email = ? WHERE id = ?", [newEmail, req.session.userId]);
+            req.session.email = newEmail; // Update session
+        }
+        res.redirect('/account');
+    } catch (err) {
+        console.error("Update email error:", err);
+        res.status(500).send("Error updating email.");
+    }
+});
 
+// Reset (Change) Password
+app.post('/account/update-password', requireAuth, async (req, res) => {
+    const { currentPassword, newPassword } = req.body;
+    
+    try {
+        if (!pool) throw new Error("DB Offline");
+        
+        // 1. Fetch current user hash
+        const [users] = await pool.query("SELECT password_hash FROM users WHERE id = ?", [req.session.userId]);
+        if (users.length === 0) return res.redirect('/login');
+        
+        // 2. Compare old password
+        const match = await bcrypt.compare(currentPassword, users[0].password_hash);
+        if (!match) {
+            return res.send('<script>alert("Current password incorrect."); window.location.href="/account";</script>');
+        }
+        
+        // 3. Hash new password and update
+        const newHash = await bcrypt.hash(newPassword, 10);
+        await pool.query("UPDATE users SET password_hash = ? WHERE id = ?", [newHash, req.session.userId]);
+        
+        res.send('<script>alert("Password updated successfully."); window.location.href="/account";</script>');
+        
+    } catch (err) {
+        console.error("Update password error:", err);
+        res.status(500).send("Error updating password.");
+    }
+});
+
+// Transmit Private Message
+app.post('/account/message', requireAuth, async (req, res) => {
+    const { message } = req.body;
+    if (!message) return res.redirect('/account');
+
+    try {
+        if (!pool) throw new Error("DB Offline");
+
+        // 1. Check if user already has a message sent (extra security, though UI disables it too)
+        const [users] = await pool.query("SELECT private_message FROM users WHERE id = ?", [req.session.userId]);
+        if (users[0] && users[0].private_message) {
+             return res.send('<script>alert("You have already transmitted your one message."); window.location.href="/account";</script>');
+        }
+
+        // 2. Update
+        await pool.query("UPDATE users SET private_message = ? WHERE id = ?", [message, req.session.userId]);
+        
+        res.redirect('/account');
+
+    } catch (err) {
+        console.error("Message transmission error:", err);
+        res.status(500).send("Error transmitting message.");
+    }
+});
 
 
 app.get('/music', (req, res) => {
