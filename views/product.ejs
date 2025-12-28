@@ -105,13 +105,18 @@ document.getElementById('addToCartMain').addEventListener('click', async (e) => 
         }
 
         // 2. Prepare Data
-        const storeSessionId = localStorage.getItem('sessionId') || document.cookie.match(/connect.sid=([^;]+)/)?.[1];
+        let cookieSid = document.cookie.match(/connect.sid=([^;]+)/)?.[1];
+if (cookieSid) {
+    cookieSid = decodeURIComponent(cookieSid).split('.')[0].slice(2);
+}
+const storeSessionId = localStorage.getItem('sessionId') || cookieSid || '';
         const payload = { sku, size, sessionId: storeSessionId };
 
         // 3. Send to Server
         try {
             const res = await fetch('/api/cart/add', {
                 method: 'POST',
+                credentials: 'include',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
