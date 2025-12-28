@@ -1,6 +1,15 @@
 const express = require('express');
 const app = express();
 
+app.set('trust proxy', 1); // Required for cross-domain cookies on GCloud
+const cors = require('cors');
+// Replace with your actual Game URL (e.g., https://colorization.web.app)
+// Leave as '*' for testing, but specify exact domain for production
+app.use(cors({
+    origin: process.env.GAME_URL || 'https://mobile-game-853337900822.us-central1.run.app', 
+    credentials: true
+}));
+
 const path = require('path');
 const fs = require('fs'); 
 const http = require('http'); 
@@ -11,16 +20,17 @@ const bcrypt = require('bcrypt');
 const session = require('express-session');
 
 // --- SESSION CONFIGURATION ---
+// --- SESSION CONFIGURATION ---
 app.use(session({
     secret: process.env.SESSION_SECRET || 'dev_secret_key_123',
     resave: false,
     saveUninitialized: false,
     cookie: { 
-        secure: false, // Set to true if using HTTPS
-        maxAge: 24 * 60 * 60 * 1000 // 24 hours
+        secure: process.env.NODE_ENV === 'production', 
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+        maxAge: 24 * 60 * 60 * 1000 
     }
 }));
-
 // Add this middleware function to protect routes
 const requireLogin = (req, res, next) => {
     if (req.session && req.session.userId) {
@@ -987,6 +997,154 @@ app.get('/admin/repair-data', async (req, res) => {
     } catch (err) {
         res.status(500).send("Error: " + err.message);
     }
+});
+
+
+// --- GAME API ROUTES ---
+
+// Game Login (JSON response)
+app.post('/api/game/login', async (req, res) => {
+    const { email, password } = req.body; // Game sends 'username' as email
+    try {
+        if (!pool) throw new Error("DB Offline");
+        const [users] = await pool.query("SELECT * FROM users WHERE email = ?", [email]);
+        
+        if (users.length === 0) return res.json({ success: false, message: "User not found" });
+
+        const user = users[0];
+        const match = await bcrypt.compare(password, user.password_hash);
+
+        if (match) {
+            req.session.userId = user.id;
+            req.session.email = user.email;
+            req.session.save(); // Force save
+
+            // Fetch owned skins
+            const [skins] = await pool.query("SELECT skin_id FROM user_skins WHERE user_id = ?", [user.id]);
+            const ownedSkinIds = skins.map(s => s.skin_id);
+
+            res.json({ 
+                success: true, 
+                userId: user.id, 
+                username: user.email, 
+                ownedSkins: ownedSkinIds 
+            });
+        } else {
+            res.json({ success: false, message: "Invalid password" });
+        }
+    } catch (err) {
+        console.error(err);
+        res.json({ success: false, message: "Server error" });
+    }
+});
+
+// Game Register (JSON response)
+app.post('/api/game/register', async (req, res) => {
+    const { email, password } = req.body;
+    if (!email || !password) return res.json({ success: false, message: "Missing credentials" });
+
+    if (pool) {
+        try {
+            // Check if exists
+            const [existing] = await pool.query("SELECT id FROM users WHERE email = ?", [email]);
+            if (existing.length > 0) return res.json({ success: false, message: "Email already taken" });
+
+            const hashedPassword = await bcrypt.hash(password, 10);
+            const result = await query("INSERT INTO users (email, password_hash) VALUES (?, ?)", [email, hashedPassword]);
+            
+            req.session.userId = result.rows.insertId;
+            req.session.email = email;
+            req.session.save();
+
+            res.json({ 
+                success: true, 
+                user: { id: result.rows.insertId, username: email },
+                ownedSkins: []
+            });
+        } catch (err) {
+            console.error(err);
+            res.json({ success: false, message: "Registration failed" });
+        }
+    } else {
+        res.json({ success: false, message: "DB Offline" });
+    }
+});
+
+// Fetch Skins
+app.post('/api/game/get-skins', async (req, res) => {
+    const { userId } = req.body;
+    if(!pool) return res.json({ success: false });
+    try {
+        const [skins] = await pool.query("SELECT skin_id FROM user_skins WHERE user_id = ?", [userId]);
+        res.json({ success: true, ownedSkins: skins.map(s => s.skin_id) });
+    } catch(e) { res.json({ success: false }); }
+});
+
+// Create Stripe Checkout for Skins
+app.post('/api/game/purchase-skin', async (req, res) => {
+    const { skinId, skinName, userId } = req.body;
+    if (!userId) return res.json({ error: "Not logged in" });
+    if (!stripe) return res.json({ error: "Payments unavailable" });
+
+    try {
+        const session = await stripe.checkout.sessions.create({
+            payment_method_types: ['card'],
+            line_items: [{
+                price_data: {
+                    currency: 'usd',
+                    product_data: { name: skinName + " (Skin)" },
+                    unit_amount: 100, // $1.00 - Adjust based on your logic
+                },
+                quantity: 1,
+            }],
+            mode: 'payment',
+            metadata: { 
+                type: 'skin_purchase',
+                userId: userId,
+                skinId: skinId
+            },
+            // Redirect back to game
+            success_url: `${req.headers.origin}/?payment=success`, 
+            cancel_url: `${req.headers.origin}/`,
+        });
+        res.json({ url: session.url });
+    } catch (e) {
+        res.json({ error: e.message });
+    }
+});
+
+// Stripe Webhook (Or Success Handler) - Simple version for "success_url" verification
+// Note: In production, use webhooks. For now, we will add a verify endpoint called by the game.
+app.post('/api/game/verify-purchase', async (req, res) => {
+    // This is a simplified placeholder. Ideally, use Stripe Webhooks.
+    // For this implementation, we will trust the checkout flow has completed if the frontend calls this 
+    // immediately after returning from Stripe, but normally you verify the Session ID.
+    // However, to keep it simple per instructions, we rely on the DB insert.
+    // See Webhook implementation below for robust handling.
+});
+
+// Stripe Webhook Handler (Recommended)
+app.post('/webhook', express.raw({type: 'application/json'}), async (request, response) => {
+  const sig = request.headers['stripe-signature'];
+  let event;
+
+  try {
+    event = stripe.webhooks.constructEvent(request.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
+  } catch (err) {
+    return response.status(400).send(`Webhook Error: ${err.message}`);
+  }
+
+  if (event.type === 'checkout.session.completed') {
+    const session = event.data.object;
+    if(session.metadata && session.metadata.type === 'skin_purchase') {
+        if(pool) {
+            await pool.query("INSERT IGNORE INTO user_skins (user_id, skin_id) VALUES (?, ?)", 
+                [session.metadata.userId, session.metadata.skinId]);
+            console.log(`Skin ${session.metadata.skinId} unlocked for user ${session.metadata.userId}`);
+        }
+    }
+  }
+  response.json({received: true});
 });
 
 app.use((req, res, next) => res.status(404).render('404', { title: 'Signal Lost' }));
