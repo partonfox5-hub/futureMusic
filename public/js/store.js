@@ -27,16 +27,12 @@ window.Store = {
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ADDING...';
             btn.disabled = true;
         }
-
-        // --- OPTIMISTIC UPDATE START ---
-        // Immediately increment the counter so the user sees feedback instantly
         const badge = document.getElementById('cart-count');
         if (badge) {
             let currentCount = parseInt(badge.innerText) || 0;
             badge.innerText = currentCount + 1;
             badge.classList.remove('hidden');
         }
-        // --- OPTIMISTIC UPDATE END ---
 
         try {
             // 3. Perform API Call (Runs regardless of button existence)
@@ -208,6 +204,32 @@ window.renderCartPage = async () => {
 
 document.addEventListener('DOMContentLoaded', () => {
     Store.refreshCartCount();
+
+    // --- FIX: Bind Main Product Page Button ---
+    const mainBtn = document.getElementById('addToCartMain');
+    if (mainBtn) {
+        // Remove any inline onclick attributes that might cause conflicts (optional safety)
+        mainBtn.onclick = null; 
+
+        mainBtn.addEventListener('click', (e) => {
+            e.preventDefault(); // Stop the form from submitting normally
+            
+            // Attempt to find the size dropdown (commonly named 'size' or just the first select)
+            const sizeSelect = document.getElementById('size') || document.querySelector('select');
+            const size = sizeSelect ? sizeSelect.value : null;
+            
+            // Get SKU from the button's data attribute
+            const sku = mainBtn.dataset.id || mainBtn.dataset.sku;
+            
+            if (sku) {
+                Store.add(sku, size);
+            } else {
+                console.error("No SKU found on main button");
+            }
+        });
+    }
+    // ------------------------------------------
+
 
     // Global listener for Add to Cart buttons (Quick Add)
     document.body.addEventListener('click', (e) => {
