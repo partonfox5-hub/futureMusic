@@ -516,7 +516,7 @@ app.get('/account', requireAuth, async (req, res) => {
 
     // 3. Render Page
     // Since we initialized empty variables at the top, this will ALWAYS succeed.
-   try {
+    try {
         res.render('account', { 
             title: 'Command Center', 
             user: user, 
