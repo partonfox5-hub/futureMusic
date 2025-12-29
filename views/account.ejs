@@ -171,7 +171,42 @@
                     <% } %>
                 </div>
             </div>
-            
+            <!-- Game Skins Asset Collection -->
+            <div class="glass-card p-6 rounded-sm">
+                <h3 class="text-xl text-gold mb-6 border-b border-gray-800 pb-2 flex items-center gap-3">
+                    <i class="fas fa-mask text-sm"></i> Owned Skins
+                </h3>
+                
+                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    <% if (typeof gameSkins !== 'undefined' && gameSkins.length > 0) { %>
+                        <% gameSkins.forEach(function(skin) { %>
+                            <!-- Ornate Skin Card -->
+                            <div class="relative bg-black/40 p-3 rounded border transition-transform hover:scale-105" 
+                                 style="border-color: <%= skin.frame_color %>; border-width: 2px; box-shadow: 0 0 10px <%= skin.frame_color %>40;">
+                                
+                                <!-- Canvas for Drawing Skin -->
+                                <div class="w-full aspect-square bg-gray-900/50 rounded flex items-center justify-center overflow-hidden mb-2 relative">
+                                    <canvas id="skin-canvas-<%= skin.skin_id %>" width="100" height="100"></canvas>
+                                    <!-- Ornate Corner Accents (CSS generated) -->
+                                    <div class="absolute top-0 left-0 w-2 h-2 border-t-2 border-l-2" style="border-color: <%= skin.frame_color %>"></div>
+                                    <div class="absolute top-0 right-0 w-2 h-2 border-t-2 border-r-2" style="border-color: <%= skin.frame_color %>"></div>
+                                    <div class="absolute bottom-0 left-0 w-2 h-2 border-b-2 border-l-2" style="border-color: <%= skin.frame_color %>"></div>
+                                    <div class="absolute bottom-0 right-0 w-2 h-2 border-b-2 border-r-2" style="border-color: <%= skin.frame_color %>"></div>
+                                </div>
+
+                                <div class="text-center">
+                                    <h4 class="text-gray-200 font-bold text-xs uppercase tracking-wider truncate"><%= skin.skin_id.replace('_', ' ') %></h4>
+                                    <span class="text-[10px] text-gray-500">Asset ID: #<%= skin.id %></span>
+                                </div>
+                            </div>
+                        <% }); %>
+                    <% } else { %>
+                        <div class="col-span-full text-center py-8 text-gray-500">
+                            <p>No skins found in your collection.</p>
+                        </div>
+                    <% } %>
+                </div>
+            </div>
              <!-- Physical Order History -->
              <div class="glass-card p-6 rounded-sm">
                 <h3 class="text-xl text-gold mb-6 border-b border-gray-800 pb-2 flex items-center gap-3">
@@ -228,6 +263,152 @@
             }
         });
     }
+</script>
+<script>
+    // --- Skin Renderer for Account Page ---
+    document.addEventListener("DOMContentLoaded", () => {
+        const skinsToRender = document.querySelectorAll('canvas[id^="skin-canvas-"]');
+        
+        skinsToRender.forEach(canvas => {
+            const skinId = canvas.id.replace('skin-canvas-', '');
+            const ctx = canvas.getContext('2d');
+            
+            // Clear and Center
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.save();
+            ctx.translate(canvas.width / 2, canvas.height / 2 + 10); // Center & shift down slightly
+            ctx.scale(2, 2); // Zoom in for visibility
+
+            // --- DRAWING LOGIC (Adapted from renderer.js) ---
+            // Shared Styling
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 1;
+
+            // Positioning Shifts
+            if (['jesus', 'holyman_w', 'dictator', 'angel', 'demon'].includes(skinId)) {
+                ctx.translate(0, 10);
+            }
+
+            if (skinId === 'neon_punk') {
+                ctx.fillStyle = '#2ecc71'; ctx.fillRect(-10, -30, 20, 20);
+                ctx.fillStyle = '#2c3e50'; ctx.fillRect(-12, -10, 24, 30);
+                ctx.fillStyle = '#e74c3c'; ctx.fillRect(-5, -5, 10, 10);
+                ctx.fillStyle = '#000'; ctx.fillRect(-12, 20, 10, 15); ctx.fillRect(2, 20, 10, 15);
+            } 
+            else if (skinId === 'detective') {
+                ctx.fillStyle = '#d35400'; ctx.fillRect(-12, -35, 24, 5);
+                ctx.fillRect(-10, -45, 20, 10);
+                ctx.fillStyle = '#f1c40f'; ctx.fillRect(-10, -30, 20, 20);
+                ctx.fillStyle = '#a0522d'; ctx.fillRect(-14, -10, 28, 40); 
+                ctx.fillStyle = '#555'; ctx.fillRect(-12, 30, 10, 5); ctx.fillRect(2, 30, 10, 5);
+            } 
+            else if (skinId === 'shadow') {
+                ctx.fillStyle = '#000'; ctx.globalAlpha = 0.8;
+                ctx.beginPath(); ctx.arc(0, -10, 20, 0, Math.PI*2); ctx.fill();
+                ctx.fillRect(-10, 10, 20, 20); ctx.globalAlpha = 1.0;
+                ctx.fillStyle = '#fff'; ctx.fillRect(-5, -15, 3, 3); ctx.fillRect(2, -15, 3, 3);
+            } 
+            else if (skinId === 'jesus' || skinId === 'holyman_w') {
+                ctx.fillStyle = '#fff'; ctx.fillRect(-10, -30, 20, 30);
+                ctx.fillStyle = '#e74c3c'; ctx.beginPath(); ctx.moveTo(-10,-30); ctx.lineTo(10,0); ctx.lineTo(10,-10); ctx.lineTo(-10,-40); ctx.fill();
+                ctx.strokeStyle='#f1c40f'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(0, -45, 10, 0, Math.PI*2); ctx.stroke();
+                ctx.fillStyle = '#8d6e63'; ctx.fillRect(-10, -25, 20, 10);
+            } 
+            else if (skinId === 'panda') {
+                ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(0, -25, 12, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = '#000'; 
+                ctx.beginPath(); ctx.arc(-5, -28, 4, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(5, -28, 4, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(-10, -35, 4, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(10, -35, 4, 0, Math.PI*2); ctx.fill();
+                ctx.fillRect(-12, -10, 24, 25);
+                ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(0, 5, 8, 0, Math.PI*2); ctx.fill();
+            }
+            else if (skinId === 'dictator') {
+                ctx.fillStyle = '#4b5320'; ctx.fillRect(-10, -30, 20, 30);
+                ctx.fillStyle = '#000'; ctx.fillRect(-10, -10, 20, 5);
+                ctx.fillStyle = '#333'; ctx.fillRect(-8, -45, 16, 10);
+                ctx.fillStyle = '#f1c40f'; ctx.fillRect(-2, -35, 4, 4);
+            }
+            else if (skinId === 'cowboy') {
+                ctx.fillStyle = '#ffdbac'; ctx.beginPath(); ctx.arc(0, -25, 9, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = '#8e44ad'; ctx.fillRect(-10, -10, 20, 25);
+                ctx.fillStyle = '#d35400'; ctx.fillRect(-12, -35, 24, 5);
+                ctx.fillRect(-8, -45, 16, 10);
+                ctx.fillStyle = '#e67e22'; ctx.fillRect(-10, -10, 20, 5);
+            }
+            else if (skinId === 'walrus') {
+                ctx.fillStyle = '#7f8c8d'; ctx.beginPath(); ctx.ellipse(0, -10, 18, 25, 0, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = '#bdc3c7'; ctx.beginPath(); ctx.ellipse(0, -12, 12, 9, 0, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = '#fff';
+                ctx.beginPath(); ctx.moveTo(-5, -8); ctx.lineTo(-3, 5); ctx.lineTo(0, -8); ctx.fill();
+                ctx.beginPath(); ctx.moveTo(5, -8); ctx.lineTo(3, 5); ctx.lineTo(0, -8); ctx.fill();
+                ctx.fillStyle = '#000';
+                ctx.beginPath(); ctx.arc(-5, -18, 2, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(5, -18, 2, 0, Math.PI*2); ctx.fill();
+                ctx.strokeStyle = '#333'; ctx.lineWidth = 1;
+                ctx.beginPath(); ctx.moveTo(-10, -12); ctx.lineTo(-18, -14); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(-10, -10); ctx.lineTo(-18, -8); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(10, -12); ctx.lineTo(18, -14); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(10, -10); ctx.lineTo(18, -8); ctx.stroke();
+            }
+            else if (skinId === 'angel') {
+                ctx.fillStyle = '#ecf0f1'; ctx.fillRect(-10, -30, 20, 30);
+                ctx.strokeStyle='#f1c40f'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(0, -45, 8, 0, Math.PI*2); ctx.stroke();
+                ctx.fillStyle = 'rgba(255,255,255,0.6)';
+                ctx.beginPath(); ctx.ellipse(-15, -20, 10, 20, -0.5, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.ellipse(15, -20, 10, 20, 0.5, 0, Math.PI*2); ctx.fill();
+            }
+            else if (skinId === 'demon') {
+                ctx.fillStyle = '#c0392b'; ctx.fillRect(-10, -30, 20, 30);
+                ctx.beginPath(); ctx.arc(0, -35, 10, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = '#f1c40f';
+                ctx.beginPath(); ctx.moveTo(-6, -37); ctx.lineTo(-2, -37); ctx.lineTo(-4, -34); ctx.fill();
+                ctx.beginPath(); ctx.moveTo(6, -37); ctx.lineTo(2, -37); ctx.lineTo(4, -34); ctx.fill();
+                ctx.fillStyle = '#000';
+                ctx.beginPath(); ctx.moveTo(-6, -40); ctx.lineTo(-10, -50); ctx.lineTo(-2, -42); ctx.fill();
+                ctx.beginPath(); ctx.moveTo(6, -40); ctx.lineTo(10, -50); ctx.lineTo(2, -42); ctx.fill();
+            }
+            else if (skinId === 'alien') {
+                ctx.fillStyle = '#2ecc71'; ctx.fillRect(-8, -10, 16, 25);
+                ctx.beginPath(); ctx.ellipse(0, -25, 10, 15, 0, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = '#000'; ctx.beginPath(); ctx.ellipse(-4, -25, 3, 5, -0.2, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.ellipse(4, -25, 3, 5, 0.2, 0, Math.PI*2); ctx.fill();
+            }
+            else if (skinId === 'astronaut') {
+                ctx.fillStyle = '#fff'; ctx.fillRect(-12, -40, 24, 40);
+                ctx.fillStyle = '#34495e'; ctx.fillRect(-8, -38, 16, 12);
+                ctx.fillStyle = '#bdc3c7'; ctx.fillRect(-14, -15, 4, 20); ctx.fillRect(10, -15, 4, 20);
+            }
+            else if (skinId === 'gorilla') {
+                ctx.fillStyle = '#2c3e50'; ctx.fillRect(-15, -30, 30, 30);
+                ctx.beginPath(); ctx.arc(0, -35, 11, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = '#000'; ctx.beginPath(); ctx.ellipse(0, -35, 8, 4, 0, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(-4, -35, 1, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(4, -35, 1, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = '#000'; ctx.beginPath(); ctx.ellipse(0, -29, 5, 3, 0, 0, Math.PI*2); ctx.fill();
+            }
+            else if (skinId === 'buddha') {
+                ctx.fillStyle = '#ff9800'; ctx.beginPath(); ctx.ellipse(0, -10, 14, 20, 0, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = '#e65100'; ctx.beginPath(); ctx.moveTo(-14,-15); ctx.lineTo(14,5); ctx.lineTo(14,-5); ctx.lineTo(-14,-25); ctx.fill();
+                ctx.fillStyle = '#ffcc80'; ctx.beginPath(); ctx.arc(0, -30, 10, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(0, -38, 5, 0, Math.PI*2); ctx.fill();
+                ctx.strokeStyle = '#000'; ctx.lineWidth = 1;
+                ctx.beginPath(); ctx.arc(-4, -30, 3, 0, Math.PI, false); ctx.stroke();
+                ctx.beginPath(); ctx.arc(4, -30, 3, 0, Math.PI, false); ctx.stroke();
+            }
+            else {
+                // Default / Fallback
+                ctx.fillStyle = '#f1c40f'; ctx.fillRect(-10, -30, 20, 20);
+                const grad = ctx.createLinearGradient(-15, -10, 15, 20);
+                grad.addColorStop(0, '#e74c3c'); grad.addColorStop(0.5, '#f1c40f'); grad.addColorStop(1, '#3498db');
+                ctx.fillStyle = grad; ctx.fillRect(-12, -10, 24, 30);
+                ctx.fillStyle = '#34495e'; ctx.fillRect(-12, 20, 10, 15); ctx.fillRect(2, 20, 10, 15);
+            }
+
+            ctx.restore();
+        });
+    });
 </script>
 
 <%- include('partials/footer') %>

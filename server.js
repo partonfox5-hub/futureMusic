@@ -443,6 +443,26 @@ app.get('/account', requireAuth, async (req, res) => {
                 `, [req.session.userId]);
                 physicalOrders = pOrders;
 
+                // --- NEW: Fetch Owned Skins & Assign Frame Colors ---
+                let [mySkins] = await pool.query("SELECT * FROM user_skins WHERE user_id = ?", [req.session.userId]);
+                
+                // Iterate to ensure every skin has a persistent frame color
+                let skinsUpdated = false;
+                for (let skin of mySkins) {
+                    if (!skin.frame_color) {
+                        // Generate random hex color
+                        const randomColor = '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
+                        skin.frame_color = randomColor; // Update local object
+                        
+                        // Update DB asynchronously
+                        await pool.query("UPDATE user_skins SET frame_color = ? WHERE id = ?", [randomColor, skin.id]);
+                        skinsUpdated = true;
+                    }
+                }
+                
+                // If we updated any colors, passing the modified 'mySkins' array is sufficient 
+                // as we updated the local objects in the loop.
+
             } catch (dbErr) {
                 console.error("⚠️ Account DB Fetch Error:", dbErr.message);
                 // We continue rendering with whatever data we have (likely just session data)
@@ -451,11 +471,12 @@ app.get('/account', requireAuth, async (req, res) => {
 
         // 3. Render Page
         // CRITICAL FIX: We pass 'user', NOT 'req.session.user' (which is undefined)
-        res.render('account', { 
-            user: user, 
-            digitalAssets: digitalAssets,
-            physicalOrders: physicalOrders 
-        });
+res.render('account', { 
+    user: user, 
+    digitalAssets: digitalAssets,
+    physicalOrders: physicalOrders,
+    gameSkins: mySkins || [] // Pass the skins to the template
+});
 
     } catch (err) {
         console.error("❌ Account Page Critical Error:", err);
