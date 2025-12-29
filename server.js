@@ -595,10 +595,42 @@ app.get('/merch', async (req, res) => {
             else sql += " ORDER BY created_at DESC";
 
 const result = await query(sql, params);
-            const products = result.rows.map(p => {
-                // 1. Existing fallback for the basic 'sizes' column
+            cconst products = result.rows.map(p => {
+                // 1. Parse sizes
                 if (typeof p.sizes === 'string') { try { p.sizes = JSON.parse(p.sizes); } catch(e) { p.sizes = []; } }
-                else if (!p.sizes) { p.sizes = []; }
+                else if (!Array.isArray(p.sizes)) { p.sizes = []; }
+
+                // 2. Extract "real" sizes from metadata variants
+                if (p.metadata) {
+                    try {
+                        let meta = p.metadata;
+                        if (typeof meta === 'string') { try { meta = JSON.parse(meta); } catch (e) {} }
+                        if (typeof meta === 'string') { try { meta = JSON.parse(meta); } catch (e) {} }
+
+                        if (meta && meta.variants && Array.isArray(meta.variants)) {
+                            let extractedSizes = meta.variants
+                                .filter(v => v.is_available === true)
+                                .map(v => {
+                                    if (!v.title) return null;
+                                    return v.title.split(' / ')[0].trim();
+                                })
+                                .filter(s => s);
+                            
+                            // Combine with existing sizes if any, or override
+                            if (extractedSizes.length > 0) {
+                                p.sizes = extractedSizes;
+                            }
+                        }
+                    } catch (e) {
+                        console.error("Metadata error for product:", p.sku);
+                    }
+                }
+
+                // 3. FINAL CLEANUP: Remove empty strings (""), spaces (" "), or nulls
+                p.sizes = p.sizes.filter(s => s && s.toString().trim().length > 0);
+                
+                return p;
+            });
 
                 // 2. NEW LOGIC: Extract "real" sizes from metadata variants
                 // This matches the logic currently used in your single product route
