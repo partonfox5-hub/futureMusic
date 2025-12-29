@@ -1062,6 +1062,10 @@ app.post('/api/game/register', async (req, res) => {
     const { email, password } = req.body;
     if (!email || !password) return res.json({ success: false, message: "Missing credentials" });
 
+        // --- ADD THIS BLOCK ---
+    if (password.length < 8) return res.json({ success: false, message: "Password must be at least 8 characters" });
+    // ----------------------
+
     if (pool) {
         try {
             // Check if exists
@@ -1123,7 +1127,8 @@ app.post('/api/game/purchase-skin', async (req, res) => {
                 skinId: skinId
             },
             // Redirect back to game
-            success_url: `${req.headers.origin}/?payment=success`, 
+            success_url: `${req.headers.origin}/?payment=success&skinId=${skinId}`, 
+
             cancel_url: `${req.headers.origin}/`,
         });
         res.json({ url: session.url });
@@ -1135,11 +1140,23 @@ app.post('/api/game/purchase-skin', async (req, res) => {
 // Stripe Webhook (Or Success Handler) - Simple version for "success_url" verification
 // Note: In production, use webhooks. For now, we will add a verify endpoint called by the game.
 app.post('/api/game/verify-purchase', async (req, res) => {
-    // This is a simplified placeholder. Ideally, use Stripe Webhooks.
-    // For this implementation, we will trust the checkout flow has completed if the frontend calls this 
-    // immediately after returning from Stripe, but normally you verify the Session ID.
-    // However, to keep it simple per instructions, we rely on the DB insert.
-    // See Webhook implementation below for robust handling.
+    const { userId, skinId } = req.body;
+    if (!userId || !skinId) return res.json({ success: false, message: "Missing data" });
+
+    if(pool) {
+        try {
+            // Insert skin into user_skins table
+            await pool.query("INSERT IGNORE INTO user_skins (user_id, skin_id, purchased_at) VALUES (?, ?, NOW())", 
+                [userId, skinId]);
+            console.log(`Verified purchase: ${skinId} for user ${userId}`);
+            res.json({ success: true });
+        } catch (err) {
+            console.error("Verify Error:", err);
+            res.json({ success: false, message: "DB Error" });
+        }
+    } else {
+        res.json({ success: false, message: "DB Offline" });
+    }
 });
 
 // Stripe Webhook Handler (Recommended)
