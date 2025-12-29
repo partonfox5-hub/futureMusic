@@ -947,64 +947,92 @@ app.get('/projects', (req, res) => res.render('projects', { title: 'Projects' })
 
 
 app.post('/api/cart/add', async (req, res) => {
-    // FIX: Accept sessionId from the browser (req.body) to match the frontend store.js
-    const { sku, size, sessionId: bodySessionId } = req.body;
-    
-    // Priority: 1. Browser's LocalStorage ID, 2. Server Cookie ID
-    const sessionId = bodySessionId || req.sessionID;
+    // 1. Wrap EVERYTHING in try/catch to ensure JSON response (Fixes "Unexpected token <")
+    try {
+        // FIX: Accept sessionId from the browser (req.body) to match the frontend store.js
+        const { sku, size, sessionId: bodySessionId } = req.body;
+        
+        // Priority: 1. Browser's LocalStorage ID, 2. Server Cookie ID
+        const sessionId = bodySessionId || req.sessionID;
 
-    if (!sku) return res.status(400).json({ error: 'SKU required' });
+        if (!sku) return res.status(400).json({ error: 'SKU required' });
 
-    if (pool) {
-        try {
-            // 1. Ensure session exists in 'carts' table
+        // --- NEW LOGIC START: Product Validation & Size Cleanup ---
+        let product = null;
+
+        // 1. Fetch Product first to validate it exists and check its type
+        if (pool) {
+            const [rows] = await pool.query("SELECT * FROM products WHERE sku = ?", [sku]);
+            if (rows.length > 0) product = rows[0];
+        } else {
+            product = await getProductBySku(sku); // Fallback to memory mock
+        }
+
+        if (!product) return res.status(404).json({ error: 'Product not found' });
+
+        // 2. Determine Correct Size (Fixes "Size applied to songs")
+        // Logic: If product has NO sizes defined, we FORCE size to be empty string.
+        let finalSize = size || '';
+        
+        let productSizes = [];
+        if (product.sizes) {
+            try {
+                // Handle both JSON string or pre-parsed array
+                productSizes = typeof product.sizes === 'string' ? JSON.parse(product.sizes) : product.sizes;
+            } catch(e) { productSizes = []; }
+        }
+
+        // If the product has no variants/sizes (e.g. Song), force finalSize to empty
+        // This ensures songs never get stuck with a "Size: null" or "Size: undefined" tag
+        if (!Array.isArray(productSizes) || productSizes.length === 0) {
+            finalSize = '';
+        }
+        // --- NEW LOGIC END ---
+
+        if (pool) {
+            // DB Mode
+            
+            // A. Ensure session exists in 'carts' table
             await pool.query(
                 "INSERT INTO carts (session_id, updated_at) VALUES (?, NOW()) ON DUPLICATE KEY UPDATE updated_at = NOW()", 
                 [sessionId]
             );
 
-            // 2. Check if this specific item (SKU + Size) is already in the cart
+            // B. Check if this specific item (SKU + Size) is already in the cart
             const [existing] = await pool.query(
                 "SELECT id FROM cart_items WHERE session_id = ? AND product_sku = ? AND size = ?", 
-                [sessionId, sku, size || '']
+                [sessionId, sku, finalSize]
             );
 
+            // C. Update or Insert
             if (existing.length > 0) {
-                // Update Quantity
                 await pool.query("UPDATE cart_items SET quantity = quantity + 1 WHERE id = ?", [existing[0].id]);
             } else {
-                // Insert New Item (Include added_at timestamp)
                 await pool.query(
                     "INSERT INTO cart_items (session_id, product_sku, quantity, size, added_at) VALUES (?, ?, 1, ?, NOW())", 
-                    [sessionId, sku, size || '']
+                    [sessionId, sku, finalSize]
                 );
             }
-            res.json({ success: true });
-
-        } catch (err) {
-            // Self-Healing for missing size column
-            if (err.code === 'ER_BAD_FIELD_ERROR' && err.sqlMessage.includes("Unknown column 'size'")) {
-                try {
-                    await pool.query("ALTER TABLE cart_items ADD COLUMN size VARCHAR(50) DEFAULT ''");
-                    return res.status(503).json({ error: 'System updated. Please try again.' });
-                } catch (alterErr) { console.error(alterErr); }
-            }
-            console.error("Cart Add Error:", err);
-            res.status(500).json({ error: 'Database error: ' + err.message });
-        }
-    } else {
-        // Memory Cart Fallback
-        if (!memoryCarts[sessionId]) memoryCarts[sessionId] = [];
-        const cart = memoryCarts[sessionId];
-        const existingItem = cart.find(i => i.sku === sku && i.size === (size || ''));
-        
-        if (existingItem) {
-            existingItem.quantity += 1;
         } else {
-            const product = await getProductBySku(sku);
-            if (product) cart.push({ ...product, quantity: 1, size: size || '' });
+            // Memory Cart Fallback (for testing without DB)
+            if (!memoryCarts[sessionId]) memoryCarts[sessionId] = [];
+            const cart = memoryCarts[sessionId];
+            const existingItem = cart.find(i => i.sku === sku && i.size === finalSize);
+            
+            if (existingItem) {
+                existingItem.quantity += 1;
+            } else {
+                cart.push({ ...product, quantity: 1, size: finalSize });
+            }
         }
+        
+        // Return Success JSON
         res.json({ success: true });
+
+    } catch (err) {
+        console.error("Cart Add Error:", err);
+        // CRITICAL: Return JSON error, not HTML. This prevents the SyntaxError in frontend.
+        res.status(500).json({ error: 'Server error: ' + err.message });
     }
 });
 
