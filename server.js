@@ -595,7 +595,7 @@ app.get('/merch', async (req, res) => {
             else sql += " ORDER BY created_at DESC";
 
 const result = await query(sql, params);
-            cconst products = result.rows.map(p => {
+            const products = result.rows.map(p => {
                 // 1. Parse sizes
                 if (typeof p.sizes === 'string') { try { p.sizes = JSON.parse(p.sizes); } catch(e) { p.sizes = []; } }
                 else if (!Array.isArray(p.sizes)) { p.sizes = []; }
