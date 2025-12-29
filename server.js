@@ -402,7 +402,21 @@ app.get('/contact', (req, res) => res.render('contact', { title: 'Contact' }));
 app.get('/advocacy', (req, res) => res.render('advocacy', { title: 'Advocacy' }));
 
 
-
+app.get('/account/debug', requireAuth, async (req, res) => {
+    // Copy the exact data fetching logic from your main /account route here
+    // ... (paste your fetching logic) ...
+    
+    // Instead of res.render, use res.json:
+    res.json({
+        status: "Data loaded successfully",
+        user: user,
+        digitalAssets: digitalAssets,
+        physicalOrders: physicalOrders,
+        gameSkins: mySkins,
+        cartCount: cartCount,
+        dbStatus: dbConnectionStatus
+    });
+});
 // ADDED: Account Page Route
 // ADDED: Account Page Route (Robust Version)
 app.get('/account', requireAuth, async (req, res) => {
