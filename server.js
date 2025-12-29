@@ -472,12 +472,15 @@ app.get('/account', requireAuth, async (req, res) => {
 
         // 3. Render Page
         // CRITICAL FIX: We pass 'user', NOT 'req.session.user' (which is undefined)
-res.render('account', { 
-    user: user, 
-    digitalAssets: digitalAssets,
-    physicalOrders: physicalOrders,
-    gameSkins: mySkins || [] // Pass the skins to the template
-});
+        // CRITICAL FIX 2: Added 'title' to prevent header crash
+        res.render('account', { 
+            title: 'Command Center', // <--- ADD THIS LINE
+            user: user, 
+            digitalAssets: digitalAssets,
+            physicalOrders: physicalOrders,
+            gameSkins: mySkins || [] 
+        });
+
 
     } catch (err) {
         console.error("❌ Account Page Critical Error:", err);
