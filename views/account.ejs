@@ -159,12 +159,7 @@
                 <p>No digital assets found in your inventory.</p>
             </div>
         <% } %>
-    </div>
-
-    <!-- Header 2: Owned Skins (Now inside the same card) -->
-    <h3 class="text-xl text-gold mb-6 border-b border-gray-800 pb-2 flex items-center gap-3 pt-6 border-t border-gray-800/50">
-        <i class="fas fa-mask text-sm"></i> Owned Skins
-    </h3>
+<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-4">
 
     <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         <% if (typeof gameSkins !== 'undefined' && gameSkins.length > 0) { %>
@@ -194,7 +189,6 @@
                 <p>No skins found in your collection.</p>
             </div>
         <% } %>
-    </div>
 
 </div>
              <!-- Physical Order History -->
