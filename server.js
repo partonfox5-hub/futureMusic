@@ -11,7 +11,7 @@ const allowedOrigins = [
     'https://mobile-game-853337900822.us-central1.run.app', // Your Cloud Run Game URL
     'http://localhost:8080', // Local testing
     'http://127.0.0.1:8080',
-    'https://futuremusic.online/'
+    'https://futuremusic.online'
 ];
 
 app.use(cors({
