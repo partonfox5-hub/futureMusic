@@ -209,14 +209,14 @@ if (DB_CONFIG.user && DB_CONFIG.database) {
     };
 
     let mode = 'Localhost';
-    if (cleanConnectionName) {
-        mode = 'UNIX SOCKET';
-        dbConfig.socketPath = `/cloudsql/${cleanConnectionName}`;
-        delete dbConfig.host; 
-    } else if (bypassHost) {
+    if (bypassHost) {
         mode = 'TCP BYPASS';
         dbConfig.host = bypassHost;
         dbConfig.port = 3306; 
+    } else if (cleanConnectionName) {
+        mode = 'UNIX SOCKET';
+        dbConfig.socketPath = `/cloudsql/${cleanConnectionName}`;
+        delete dbConfig.host; 
     } else {
         dbConfig.host = '127.0.0.1';
     }
