@@ -10,6 +10,18 @@
 
         <!-- Filter & Sort Form -->
         <form action="/merch" method="GET" class="glass-card p-4 rounded-lg flex flex-wrap gap-4 items-center border border-gray-700">
+                       <!-- Search By Name -->
+            <div class="flex flex-col">
+                <label class="text-[10px] uppercase text-[#D4AF37] tracking-widest font-bold mb-1">Search</label>
+                <input 
+                    type="text" 
+                    name="search" 
+                    value="<%= query.search || '' %>" 
+                    placeholder="Find artifact..." 
+                    class="bg-black/50 text-white text-sm border border-gray-600 rounded px-3 py-2 outline-none focus:border-[#D4AF37] w-48 placeholder-gray-500"
+                >
+            </div>
+           
             <!-- Filter Type -->
             <div class="flex flex-col">
                 <label class="text-[10px] uppercase text-[#D4AF37] tracking-widest font-bold mb-1">Type</label>

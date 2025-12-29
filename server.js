@@ -1,6 +1,17 @@
 const express = require('express');
 const app = express();
 
+// --- NEW CODE: Google Cloud Storage Setup ---
+const { Storage } = require('@google-cloud/storage');
+// If on Cloud Run, no keyFilename needed (uses default credentials). 
+// If local, point to your downloaded JSON key.
+const storage = new Storage({ 
+    projectId: process.env.GOOGLE_CLOUD_PROJECT || 'your-project-id',
+    // keyFilename: './service-account.json' // Uncomment for local dev
+});
+const bucketName = 'futuremusic-digital-assets'; // Your bucket name
+// --------------------------------------------
+
 app.set('trust proxy', 1); // Required for cross-domain cookies on GCloud
 const cors = require('cors');
 // Replace with your actual Game URL (e.g., https://colorization.web.app)
@@ -198,14 +209,14 @@ if (DB_CONFIG.user && DB_CONFIG.database) {
     };
 
     let mode = 'Localhost';
-    if (bypassHost) {
-        mode = 'TCP BYPASS';
-        dbConfig.host = bypassHost;
-        dbConfig.port = 3306; 
-    } else if (cleanConnectionName) {
+    if (cleanConnectionName) {
         mode = 'UNIX SOCKET';
         dbConfig.socketPath = `/cloudsql/${cleanConnectionName}`;
         delete dbConfig.host; 
+    } else if (bypassHost) {
+        mode = 'TCP BYPASS';
+        dbConfig.host = bypassHost;
+        dbConfig.port = 3306; 
     } else {
         dbConfig.host = '127.0.0.1';
     }
@@ -735,6 +746,13 @@ app.get('/merch', async (req, res) => {
             const params = [];
             if (type && type !== 'all') { sql += " AND type = ?"; params.push(type); }
             if (maxPrice) { sql += " AND price <= ?"; params.push(maxPrice); }
+                        // --- ADDED: Search Filter ---
+            if (req.query.search) { 
+                sql += " AND (name LIKE ? OR description LIKE ?)"; 
+                const term = `%${req.query.search}%`;
+                params.push(term, term); 
+            }
+
             if (sort === 'price_asc') sql += " ORDER BY price ASC";
             else if (sort === 'price_desc') sql += " ORDER BY price DESC";
             else sql += " ORDER BY created_at DESC";
@@ -1448,6 +1466,38 @@ app.post('/webhook', express.raw({type: 'application/json'}), async (request, re
             console.log(`Skin ${session.metadata.skinId} unlocked for user ${session.metadata.userId}`);
         }
     }
+        // --- NEW CODE: Handle Standard Cart Purchases (Digital/Physical) ---
+    else if (session.metadata && session.metadata.type === 'cart_checkout') {
+        // This assumes you pass 'cart_checkout' and 'userId' in metadata during Stripe Session creation
+        const userId = session.metadata.userId;
+        const sessionId = session.metadata.sessionId; // From your store cart
+        
+        // Move items from cart to orders
+        if(pool && userId) {
+            // 1. Create Order
+            const [orderResult] = await pool.query(
+                "INSERT INTO orders (user_id, total, status, session_id) VALUES (?, ?, 'completed', ?)",
+                [userId, session.amount_total / 100, sessionId] // Stripe amount is in cents
+            );
+            const orderId = orderResult.insertId;
+
+            // 2. Copy Items from Cart to Order Items
+            // Note: This logic depends on your checkout flow ensuring cart items still exist 
+            // or are passed in metadata. A robust implementation would look up the cart by sessionId.
+            await pool.query(`
+                INSERT INTO order_items (order_id, product_sku, quantity, price_at_time)
+                SELECT ?, product_sku, quantity, 0 
+                FROM cart_items 
+                WHERE session_id = ?
+            `, [orderId, sessionId]);
+            
+            // 3. (Optional) Clear Cart
+            await pool.query("DELETE FROM cart_items WHERE session_id = ?", [sessionId]);
+            
+            console.log(`Order ${orderId} created for user ${userId}`);
+        }
+    }
+    // ------------------------------------------------------------------
   }
   response.json({received: true});
 });
@@ -1463,6 +1513,65 @@ app.use((err, req, res, next) => {
     `);
 });
 // --- FIX END ---
+
+// --- NEW CODE: Secure Download Endpoint ---
+app.get('/api/download/:sku', async (req, res, next) => {
+    try {
+        const { sku } = req.params;
+        // ASSUMPTION: You have authentication middleware populating req.user.id
+        // If not, replace req.user.id with the appropriate session user identifier
+        const userId = req.user ? req.user.id : null; 
+
+        if (!userId) {
+            return res.status(401).send('Please log in to download assets.');
+        }
+
+        // 1. Verify Ownership
+        // Check if the user has a completed order for this SKU
+        const [orders] = await pool.query(`
+            SELECT oi.id 
+            FROM order_items oi
+            JOIN orders o ON oi.order_id = o.id
+            WHERE o.user_id = ? AND oi.product_sku = ? AND o.status = 'completed'
+        `, [userId, sku]);
+
+        if (orders.length === 0) {
+            return res.status(403).send('You have not purchased this item.');
+        }
+
+        // 2. Get the File Reference
+        const [products] = await pool.query(
+            'SELECT download_reference FROM products WHERE sku = ?', 
+            [sku]
+        );
+
+        if (products.length === 0 || !products[0].download_reference) {
+            return res.status(404).send('Download file not found.');
+        }
+
+        const fileName = products[0].download_reference;
+
+        // 3. Generate Signed URL (valid for 15 minutes)
+        const options = {
+            version: 'v4',
+            action: 'read',
+            expires: Date.now() + 15 * 60 * 1000, // 15 minutes
+        };
+
+        const [url] = await storage
+            .bucket(bucketName)
+            .file(`songs/${fileName}`) 
+            .getSignedUrl(options);
+
+        // 4. Redirect user to the secure Google Cloud link
+        res.redirect(url);
+
+    } catch (error) {
+        next(error);
+    }
+});
+
+// --- FIX START: Global Error Handler ---
 
 app.use((req, res, next) => res.status(404).render('404', { title: 'Signal Lost' }));
 
