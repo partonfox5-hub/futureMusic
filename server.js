@@ -976,25 +976,25 @@ const [itemsToOrder] = await pool.query(`
 
 // 2. Insert into orders with the new fields
 for (const item of itemsToOrder) {
-    await pool.query(`
-        INSERT INTO orders (
-            user_id, 
-            product_sku, 
-            amount, 
-            status, 
-            product_type,    
-            size,            
-            description,     
-            created_at
-        ) VALUES (?, ?, ?, 'paid', ?, ?, ?, NOW())
-    `, [
-        userId,              // Ensure 'userId' matches your variable (e.g., req.session.userId)
-        item.product_sku, 
-        item.price,          // Assumes price is in cart_items. If not, change to 'item.product_price' based on your schema
-        item.product_type,   // Maps to the new column
-        item.size,           // Maps to the new column (from cart)
-        item.description     // Maps to the new column
-    ]);
+        await pool.query(`
+            INSERT INTO orders (
+                user_id, 
+                stripe_session_id,
+                total_amount, 
+                payment_status, 
+                product_type,    
+                size,            
+                description,     
+                created_at
+            ) VALUES (?, ?, ?, 'unpaid', ?, ?, ?, NOW())
+        `, [
+            userId, 
+            session.id,           // We now save the Stripe Session ID
+            item.price,           // Maps to total_amount
+            item.product_type, 
+            item.size || 'N/A', 
+            `${item.product_sku || 'NoSKU'} - ${item.name}`, // Save SKU in description
+        ]);
 }
 // --- REPLACEMENT CODE END ---
         
