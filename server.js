@@ -402,19 +402,51 @@ app.get('/contact', (req, res) => res.render('contact', { title: 'Contact' }));
 app.get('/advocacy', (req, res) => res.render('advocacy', { title: 'Advocacy' }));
 
 
-app.get('/account/debug', requireAuth, async (req, res) => {
-    // Copy the exact data fetching logic from your main /account route here
-    // ... (paste your fetching logic) ...
+// --- DEBUG ROUTE: VIEW DATA WITHOUT CRASHING ---
+// NOTE: We removed 'requireAuth' so you can access this without logging in
+app.get('/account/debug', async (req, res) => {
     
-    // Instead of res.render, use res.json:
+    // 1. HARDCODE A USER ID FOR TESTING (Use 1, or whatever your User ID is)
+    const testUserId = 1; 
+    
+    // 2. Initialize Safe Defaults
+    let user = { id: testUserId, email: 'debug_test', full_name: 'Debug User' };
+    let digitalAssets = [];
+    let physicalOrders = [];
+    let mySkins = [];
+
+    // 3. Run the queries manually to test the DB
+    if (pool) {
+        try {
+            const [rows] = await pool.query("SELECT * FROM users WHERE id = ?", [testUserId]);
+            if (rows.length > 0) user = rows[0];
+        } catch (e) { user.error = e.message; }
+
+        try {
+            const [dRows] = await pool.query("SELECT * FROM orders WHERE user_id = ? AND product_type = 'digital' ORDER BY created_at DESC", [testUserId]);
+            digitalAssets = dRows;
+        } catch (e) { digitalAssets = [{error: e.message}]; }
+        
+        try {
+            const [pRows] = await pool.query("SELECT * FROM orders WHERE user_id = ? AND (product_type IS NULL OR product_type != 'digital') ORDER BY created_at DESC", [testUserId]);
+            physicalOrders = pRows;
+        } catch (e) { physicalOrders = [{error: e.message}]; }
+
+        try {
+            const [sRows] = await pool.query("SELECT * FROM user_skins WHERE user_id = ?", [testUserId]);
+            mySkins = Array.isArray(sRows) ? sRows : [];
+        } catch (e) { mySkins = [{error: e.message}]; }
+    }
+
+    // 4. Dump the result as JSON
     res.json({
-        status: "Data loaded successfully",
-        user: user,
+        DEBUG_MODE: true,
+        testUserId: testUserId,
+        dbStatus: (typeof dbConnectionStatus !== 'undefined' ? dbConnectionStatus : 'UNKNOWN'),
+        userData: user,
         digitalAssets: digitalAssets,
         physicalOrders: physicalOrders,
-        gameSkins: mySkins,
-        cartCount: cartCount,
-        dbStatus: dbConnectionStatus
+        skins: mySkins
     });
 });
 // ADDED: Account Page Route
