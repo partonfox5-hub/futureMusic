@@ -214,7 +214,8 @@
                                     </div>
                                 </div>
                                 <div class="text-right min-w-[100px]">
-                                    <span class="block text-[#D4AF37] font-mono">$<%= Number(order.amount).toFixed(2) %></span>
+                                    <span class="block text-[#D4AF37] font-mono">$<%= Number(order.total_amount).toFixed(2) %></span>
+
                                     <span class="text-xs text-green-500 uppercase tracking-wider border border-green-900/30 bg-green-900/10 px-2 py-1 rounded mt-1 inline-block">
                                         <%= order.status %>
                                     </span>

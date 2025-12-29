@@ -980,9 +980,16 @@ app.post('/initiate-checkout', async (req, res) => {
 
 // 1. Fetch cart items WITH product details from your products table
 // We join cart_items with products to get the description and type
+// 7. Record Order in DB (UPDATED)
+// --- REPLACEMENT CODE START ---
+
+// 1. Fetch cart items WITH product details from your products table
+// ADDED: p.name and p.price to the SELECT list so they are available for the insert
 const [itemsToOrder] = await pool.query(`
     SELECT 
         ci.*, 
+        p.name,
+        p.price,
         p.type AS product_type, 
         p.description 
     FROM cart_items ci
@@ -1007,13 +1014,14 @@ for (const item of itemsToOrder) {
     `, [
         userId, 
         session.id,           
-        item.price,           
+        item.price || 0,      // Fallback to 0 if price is missing
         item.product_type, 
         item.size || 'N/A', 
-        item.name,            // <--- CHANGED: Now using just the Name (no SKU)
-        'order received'      // <--- ADDED: Default status
+        item.name,            // Now this will correctly hold the Product Name
+        'order received'      // Default status
     ]);
 }
+// --- REPLACEMENT CODE END ---
 // --- REPLACEMENT CODE END ---
         
         res.json({ id: session.id });
