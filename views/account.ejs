@@ -143,9 +143,9 @@
                                         <h4 class="text-gray-300 font-bold group-hover:text-white truncate">
                                             <%= asset.description ? asset.description.substring(0, 30) + '...' : 'Digital Item' %>
                                         </h4>
-                                        <p class="text-xs text-gray-500 mt-1">
-                                            Acquired: <%= new Date(asset.created_at).toLocaleDateString() %>
-                                        </p>
+<p class="text-xs text-gray-500 mt-1">
+    Acquired: <%= asset.created_at ? new Date(asset.created_at).toLocaleDateString() : 'N/A' %>
+</p>
                                         <% if(asset.size) { %>
                                             <span class="text-[10px] uppercase tracking-wider bg-gray-900 text-gray-400 px-2 py-1 rounded mt-2 inline-block">
                                                 Format: <%= asset.size %>
@@ -222,7 +222,9 @@
                                     <div class="text-[#D4AF37] pt-1"><i class="fas fa-cube"></i></div>
                                     <div>
                                         <h4 class="text-gray-300 font-bold"><%= order.description || 'Physical Item' %></h4>
-                                        <p class="text-xs text-gray-500">Order #<%= order.id %> • <%= new Date(order.created_at).toLocaleDateString() %></p>
+                                        <p class="text-xs text-gray-500">
+    Order #<%= order.id %> • <%= order.created_at ? new Date(order.created_at).toLocaleDateString() : 'Date Unknown' %>
+</p>
                                         <% if(order.size) { %>
                                             <span class="text-xs text-gray-400 bg-gray-800 px-2 py-0.5 rounded ml-[-2px] mt-1 inline-block">Size: <%= order.size %></span>
                                         <% } %>

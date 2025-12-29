@@ -406,24 +406,37 @@ app.get('/advocacy', (req, res) => res.render('advocacy', { title: 'Advocacy' })
 // ADDED: Account Page Route
 app.get('/account', requireAuth, async (req, res) => {
     try {
-        // 1. Setup default safe data with fallback date to prevent Date() crashes
+        // 1. Setup default safe data
         let user = { 
-            email: req.session.email, 
+            email: req.session.email || 'Traveler', 
             id: req.session.userId,
-            created_at: new Date() // Fallback date if DB fails
+            created_at: new Date(),
+            full_name: 'Anonymous',
+            private_message: null,
+            avatar_url: null
         };
         let digitalAssets = [];
         let physicalOrders = [];
         let mySkins = [];
+        let cartCount = 0; // <--- FIX 1: Initialize cartCount
 
-        // 2. Check if DB is actually available before ANY queries
+        // 2. Database Fetching
         if (pool && typeof pool.query === 'function') {
             try {
                 // Fetch User Profile
-                // We use the raw pool.query for consistency here, or your helper if preferred
                 const [userRows] = await pool.query("SELECT * FROM users WHERE id = ?", [req.session.userId]);
                 if (userRows && userRows.length > 0) {
                     user = userRows[0];
+                }
+
+                // FIX 2: Fetch Cart Count (Required by Header)
+                // We assume cart is tracked by sessionID just like in the /merch route logic
+                const [cartRows] = await pool.query(
+                    "SELECT SUM(quantity) as count FROM cart_items WHERE session_id = ?", 
+                    [req.sessionID]
+                );
+                if (cartRows && cartRows.length > 0 && cartRows[0].count) {
+                    cartCount = parseInt(cartRows[0].count);
                 }
 
                 // Fetch Digital Assets
@@ -444,54 +457,41 @@ app.get('/account', requireAuth, async (req, res) => {
                 `, [req.session.userId]);
                 physicalOrders = pOrders;
 
-// --- NEW: Fetch Owned Skins & Assign Frame Colors ---
-// We wrap this inner logic in its own try/catch to prevent it from crashing the whole page
-try {
-    const [skinResults] = await pool.query("SELECT * FROM user_skins WHERE user_id = ?", [req.session.userId]);
-    mySkins = Array.isArray(skinResults) ? skinResults : []; // Ensure it is an array
-    
-    // Iterate to ensure every skin has a persistent frame color
-    for (let skin of mySkins) {
-        if (!skin.frame_color) {
-            // Generate random hex color
-            const randomColor = '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
-            skin.frame_color = randomColor; // Update local object
-            
-            // Only attempt DB update if the skin has an ID
-            if (skin.id) {
-                await pool.query("UPDATE user_skins SET frame_color = ? WHERE id = ?", [randomColor, skin.id]);
-            }
-        }
-    }
-} catch (skinErr) {
-    console.error("⚠️ Skin Fetch Error:", skinErr.message);
-    mySkins = []; // Fallback to empty array so page still loads
-}
+                // Fetch Owned Skins
+                const [skinResults] = await pool.query("SELECT * FROM user_skins WHERE user_id = ?", [req.session.userId]);
+                mySkins = Array.isArray(skinResults) ? skinResults : [];
                 
-                // If we updated any colors, passing the modified 'mySkins' array is sufficient 
-                // as we updated the local objects in the loop.
+                // Color Logic for Skins
+                for (let skin of mySkins) {
+                    if (!skin.frame_color) {
+                        const randomColor = '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
+                        skin.frame_color = randomColor;
+                        if (skin.id) {
+                            // Don't await this, let it happen in background to prevent page load lag
+                            pool.query("UPDATE user_skins SET frame_color = ? WHERE id = ?", [randomColor, skin.id]).catch(e => console.error(e));
+                        }
+                    }
+                }
 
             } catch (dbErr) {
                 console.error("⚠️ Account DB Fetch Error:", dbErr.message);
-                // We continue rendering with whatever data we have (likely just session data)
+                // We continue rendering with whatever data we managed to get
             }
         }
 
         // 3. Render Page
-        // CRITICAL FIX: We pass 'user', NOT 'req.session.user' (which is undefined)
-        // CRITICAL FIX 2: Added 'title' to prevent header crash
         res.render('account', { 
-            title: 'Command Center', // <--- ADD THIS LINE
+            title: 'Command Center', 
             user: user, 
             digitalAssets: digitalAssets,
             physicalOrders: physicalOrders,
-            gameSkins: mySkins || [] 
+            gameSkins: mySkins || [],
+            cartCount: cartCount // <--- FIX 1: Pass this variable to prevent Header crash
         });
-
 
   } catch (err) {
     console.error("❌ Account Page Critical Error:");
-    console.error(err.stack); // This prints the exact line number of the crash
+    console.error(err.stack);
     res.status(500).send(`
         <div style="font-family: monospace; background: #222; color: #f00; padding: 20px;">
             <h1>Command Center Malfunction</h1>
