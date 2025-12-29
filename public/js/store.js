@@ -18,31 +18,44 @@ const Store = {
         // Note: For product page, we might pass the button element directly, but here we query
         const btn = document.querySelector(`button[data-id="${sku}"]`) || document.querySelector(`button[data-sku="${sku}"]`);
         
+        // 1. Setup UI Variables
+        let originalText = '';
+        
+        // 2. Trigger Loading State (Only if button is found)
         if(btn) {
-            const originalText = btn.innerHTML;
+            originalText = btn.innerHTML;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ADDING...';
             btn.disabled = true;
+        }
 
-            try {
-                const response = await fetch('/api/cart', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ sessionId, sku, quantity: 1, size: size })
-                });
+        try {
+            // 3. Perform API Call (Runs regardless of button existence)
+            // MOVED OUTSIDE the if(btn) block
+            const response = await fetch('/api/cart', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sessionId, sku, quantity: 1, size: size })
+            });
 
-                if (!response.ok) throw new Error('Network response was not ok');
+            if (!response.ok) throw new Error('Network response was not ok');
 
+            // 4. Trigger UI Success (Only if button is found)
+            if(btn) {
                 btn.innerHTML = '<i class="fas fa-check"></i> ADDED';
                 setTimeout(() => {
                     btn.innerHTML = originalText;
                     btn.disabled = false;
                 }, 2000);
+            }
 
-                // Update badge
-                Store.refreshCartCount();
+            // 5. Update Badge (Runs regardless of button existence)
+            await Store.refreshCartCount();
 
-            } catch (error) {
-                console.error('Error adding to cart:', error);
+        } catch (error) {
+            console.error('Error adding to cart:', error);
+            
+            // 6. Trigger UI Error (Only if button is found)
+            if(btn) {
                 btn.innerHTML = 'ERROR';
                 setTimeout(() => {
                     btn.innerHTML = originalText;
@@ -72,7 +85,8 @@ const Store = {
     getCart: async () => {
         const sessionId = Store.getSessionId();
         try {
-            const res = await fetch(`/api/cart/${sessionId}`);
+            // ADDED: Timestamp to prevent browser caching of the badge number
+            const res = await fetch(`/api/cart/${sessionId}?t=${Date.now()}`);
             const data = await res.json();
             return data.items || [];
         } catch (e) {
@@ -91,7 +105,7 @@ const Store = {
         }
     },
 
-checkout: async () => {
+    checkout: async () => {
         const btn = document.getElementById('checkout-btn');
         if(btn) btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> PROCESSING...';
         // Redirect to checkout form
