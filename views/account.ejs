@@ -121,76 +121,74 @@
         <!-- Main Content -->
         <div class="lg:col-span-2 space-y-8">
             
-<!-- Digital Assets & Skins Combined -->
-<div class="glass-card p-6 rounded-sm">
-    
-    <!-- Header 1: Digital Items -->
-    <h3 class="text-xl text-gold mb-6 border-b border-gray-800 pb-2 flex items-center gap-3">
-        <i class="fas fa-broadcast-tower text-sm"></i> Digital Assets
-    </h3>
-    
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-         <% if (typeof digitalAssets !== 'undefined' && digitalAssets.length > 0) { %>
-            <% digitalAssets.forEach(function(asset) { %>
-                <!-- ... existing asset card code ... -->
-                <div class="glass-card p-4 rounded border border-gray-800 hover:border-[#D4AF37] transition-all group relative overflow-hidden">
-                    <!-- ... keep your existing asset card inner HTML here ... -->
-                     <div class="flex flex-col h-full justify-between">
-                        <div>
-                             <h4 class="text-gray-300 font-bold group-hover:text-white truncate">
-                                <%= asset.description ? asset.description.substring(0, 30) + '...' : 'Digital Item' %>
-                            </h4>
-                            <p class="text-xs text-gray-500 mt-1">
-                                Acquired: <%= asset.created_at ? new Date(asset.created_at).toLocaleDateString() : 'N/A' %>
-                            </p>
-                        </div>
-                        <div class="mt-4 pt-4 border-t border-gray-800 flex justify-between items-center">
-                            <span class="text-[#D4AF37] text-sm"><i class="fas fa-check-circle mr-1"></i> Active</span>
-                            <button class="text-xs bg-[#D4AF37]/10 hover:bg-[#D4AF37]/20 text-[#D4AF37] px-3 py-1 rounded transition-colors">
-                                Access
-                            </button>
-                        </div>
-                    </div>
+            <!-- Digital Assets & Skins Combined -->
+            <div class="glass-card p-6 rounded-sm">
+                
+                <!-- Header: Digital Items -->
+                <h3 class="text-xl text-gold mb-6 border-b border-gray-800 pb-2 flex items-center gap-3">
+                    <i class="fas fa-broadcast-tower text-sm"></i> Digital Assets
+                </h3>
+                
+                <!-- Digital Assets Loop -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                     <% if (typeof digitalAssets !== 'undefined' && digitalAssets.length > 0) { %>
+                        <% digitalAssets.forEach(function(asset) { %>
+                            <div class="glass-card p-4 rounded border border-gray-800 hover:border-[#D4AF37] transition-all group relative overflow-hidden">
+                                 <div class="flex flex-col h-full justify-between">
+                                    <div>
+                                         <h4 class="text-gray-300 font-bold group-hover:text-white truncate">
+                                            <%= asset.description ? asset.description.substring(0, 30) + '...' : 'Digital Item' %>
+                                        </h4>
+                                        <p class="text-xs text-gray-500 mt-1">
+                                            Acquired: <%= asset.created_at ? new Date(asset.created_at).toLocaleDateString() : 'N/A' %>
+                                        </p>
+                                    </div>
+                                    <div class="mt-4 pt-4 border-t border-gray-800 flex justify-between items-center">
+                                        <span class="text-[#D4AF37] text-sm"><i class="fas fa-check-circle mr-1"></i> Active</span>
+                                        <button class="text-xs bg-[#D4AF37]/10 hover:bg-[#D4AF37]/20 text-[#D4AF37] px-3 py-1 rounded transition-colors">
+                                            Access
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        <% }); %>
+                    <% } %>
                 </div>
-            <% }); %>
-        <% } else { %>
-            <div class="col-span-full text-center py-8 text-gray-500">
-                <i class="fas fa-wifi mb-2"></i>
-                <p>No digital assets found in your inventory.</p>
-            </div>
-        <% } %>
-<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-4">
 
-    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        <% if (typeof gameSkins !== 'undefined' && gameSkins.length > 0) { %>
-            <% gameSkins.forEach(function(skin) { %>
-                <!-- Ornate Skin Card -->
-                <div class="relative bg-black/40 p-3 rounded border transition-transform hover:scale-105" 
-                     style="border-color: <%= skin.frame_color %>; border-width: 2px; box-shadow: 0 0 10px <%= skin.frame_color %>40;">
-                    
-                    <!-- Canvas for Drawing Skin -->
-                    <div class="w-full aspect-square bg-gray-900/50 rounded flex items-center justify-center overflow-hidden mb-2 relative">
-                        <canvas id="skin-canvas-<%= skin.skin_id %>" width="100" height="100"></canvas>
-                        <!-- Ornate Corner Accents -->
-                        <div class="absolute top-0 left-0 w-2 h-2 border-t-2 border-l-2" style="border-color: <%= skin.frame_color %>"></div>
-                        <div class="absolute top-0 right-0 w-2 h-2 border-t-2 border-r-2" style="border-color: <%= skin.frame_color %>"></div>
-                        <div class="absolute bottom-0 left-0 w-2 h-2 border-b-2 border-l-2" style="border-color: <%= skin.frame_color %>"></div>
-                        <div class="absolute bottom-0 right-0 w-2 h-2 border-b-2 border-r-2" style="border-color: <%= skin.frame_color %>"></div>
-                    </div>
+                <!-- Skins Loop (Merged visually below) -->
+                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    <% if (typeof gameSkins !== 'undefined' && gameSkins.length > 0) { %>
+                        <% gameSkins.forEach(function(skin) { %>
+                            <!-- Ornate Skin Card -->
+                            <div class="relative bg-black/40 p-3 rounded border transition-transform hover:scale-105" 
+                                 style="border-color: <%= skin.frame_color %>; border-width: 2px; box-shadow: 0 0 10px <%= skin.frame_color %>40;">
+                                
+                                <!-- Canvas for Drawing Skin -->
+                                <div class="w-full aspect-square bg-gray-900/50 rounded flex items-center justify-center overflow-hidden mb-2 relative">
+                                    <canvas id="skin-canvas-<%= skin.skin_id %>" width="100" height="100"></canvas>
+                                    <!-- Ornate Corner Accents -->
+                                    <div class="absolute top-0 left-0 w-2 h-2 border-t-2 border-l-2" style="border-color: <%= skin.frame_color %>"></div>
+                                    <div class="absolute top-0 right-0 w-2 h-2 border-t-2 border-r-2" style="border-color: <%= skin.frame_color %>"></div>
+                                    <div class="absolute bottom-0 left-0 w-2 h-2 border-b-2 border-l-2" style="border-color: <%= skin.frame_color %>"></div>
+                                    <div class="absolute bottom-0 right-0 w-2 h-2 border-b-2 border-r-2" style="border-color: <%= skin.frame_color %>"></div>
+                                </div>
 
-                    <div class="text-center">
-                        <h4 class="text-gray-200 font-bold text-xs uppercase tracking-wider truncate"><%= String(skin.skin_id || 'Unknown').replace(/_/g, ' ') %></h4>
-                        <span class="text-[10px] text-gray-500">Asset ID: #<%= skin.id %></span>
-                    </div>
+                                <div class="text-center">
+                                    <h4 class="text-gray-200 font-bold text-xs uppercase tracking-wider truncate"><%= String(skin.skin_id || 'Unknown').replace(/_/g, ' ') %></h4>
+                                    <span class="text-[10px] text-gray-500">Asset ID: #<%= skin.id %></span>
+                                </div>
+                            </div>
+                        <% }); %>
+                    <% } else if ((!digitalAssets || digitalAssets.length === 0) && (!gameSkins || gameSkins.length === 0)) { %>
+                        <!-- Only show empty state if BOTH are empty -->
+                        <div class="col-span-full text-center py-8 text-gray-500">
+                            <i class="fas fa-wifi mb-2"></i>
+                            <p>No digital assets found in your inventory.</p>
+                        </div>
+                    <% } %>
                 </div>
-            <% }); %>
-        <% } else { %>
-            <div class="col-span-full text-center py-8 text-gray-500">
-                <p>No skins found in your collection.</p>
             </div>
-        <% } %>
 
-</div>
              <!-- Physical Order History -->
              <div class="glass-card p-6 rounded-sm">
                 <h3 class="text-xl text-gold mb-6 border-b border-gray-800 pb-2 flex items-center gap-3">
@@ -260,15 +258,11 @@
             const skinId = canvas.id.replace('skin-canvas-', '');
             const ctx = canvas.getContext('2d');
             
-  // Clear and Center
-ctx.clearRect(0, 0, canvas.width, canvas.height);
-ctx.save();
-
-// CHANGED: Moved from +10 to +20 (10% lower)
-ctx.translate(canvas.width / 2, canvas.height / 2 + 20); 
-
-// CHANGED: Reduced from 2.0 to 1.6 (20% smaller)
-ctx.scale(1.6, 1.6); 
+            // Clear and Center
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.save();
+            ctx.translate(canvas.width / 2, canvas.height / 2 + 20); // Moved lower (+20)
+            ctx.scale(1.6, 1.6); // Scaled smaller (1.6)
 
             // --- DRAWING LOGIC (Adapted from renderer.js) ---
             // Shared Styling
