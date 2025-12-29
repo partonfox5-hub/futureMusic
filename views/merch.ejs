@@ -16,11 +16,9 @@
                 <select name="type" onchange="this.form.submit()" class="bg-black/50 text-white text-sm border border-gray-600 rounded px-3 py-2 outline-none focus:border-[#D4AF37]">
                     <option value="all" <%= (!query.type || query.type === 'all') ? 'selected' : '' %>>All Classes</option>
                     <option value="T-Shirts" <%= query.type === 'T-Shirts' ? 'selected' : '' %>>T-Shirts</option>
-                    <option value="Hoodies" <%= query.type === 'Hoodies' ? 'selected' : '' %>>Hoodies & Sweatshirts</option>
-                    <option value="Long Sleeves" <%= query.type === 'Long Sleeves' ? 'selected' : '' %>>Long Sleeves</option>
-                    <option value="Bottoms" <%= query.type === 'Bottoms' ? 'selected' : '' %>>Bottoms</option>
+                    <option value="Hoodies" <%= query.type === 'Hoodies' ? 'selected' : '' %>>Hoodies</option>
                     <option value="Accessories" <%= query.type === 'Accessories' ? 'selected' : '' %>>Accessories</option>
-                    <option value="Apparel" <%= query.type === 'Apparel' ? 'selected' : '' %>>Other Apparel</option>
+                    <option value="Digital" <%= query.type === 'Digital' ? 'selected' : '' %>>Digital</option>
                 </select>
             </div>
 
@@ -28,7 +26,7 @@
             <div class="flex flex-col">
                 <label class="text-[10px] uppercase text-[#D4AF37] tracking-widest font-bold mb-1">Sort</label>
                 <select name="sort" onchange="this.form.submit()" class="bg-black/50 text-white text-sm border border-gray-600 rounded px-3 py-2 outline-none focus:border-[#D4AF37]">
-                    <option value="newest" <%= query.sort === 'newest' ? 'selected' : '' %>>Newest First</option>
+                    <option value="newest" <%= (!query.sort || query.sort === 'newest') ? 'selected' : '' %>>Newest Arrival</option>
                     <option value="price_asc" <%= query.sort === 'price_asc' ? 'selected' : '' %>>Price: Low to High</option>
                     <option value="price_desc" <%= query.sort === 'price_desc' ? 'selected' : '' %>>Price: High to Low</option>
                 </select>
@@ -36,126 +34,104 @@
         </form>
     </div>
 
-    <!-- Error/Debug Display -->
-    <% if (typeof debugError !== 'undefined' && debugError) { %>
-        <div class="bg-red-900/90 border border-red-500 text-white p-4 rounded mb-8">
-            <h3 class="font-bold">⚠️ SYSTEM ERROR</h3>
-            <p class="font-mono text-sm"><%= debugError %></p>
-        </div>
-    <% } %>
-
     <!-- Product Grid -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <% if (merch.length > 0) { %>
-            <% merch.forEach(item => { %>
-                <div class="glass-card rounded-xl overflow-hidden group hover:border-[#D4AF37]/50 transition-all duration-300 border border-gray-800 flex flex-col h-full">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+        <% if (products.length > 0) { %>
+            <% products.forEach(function(p) { %>
+                <div class="group relative glass-card border border-gray-800 hover:border-[#D4AF37]/50 transition-all duration-300 rounded-xl overflow-hidden flex flex-col">
+                    
                     <!-- Image -->
-                    <div class="relative h-64 overflow-hidden">
-                        <img src="<%= item.image_url %>" alt="<%= item.name %>" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700">
-                        <div class="absolute top-2 right-2 bg-black/80 backdrop-blur text-[#D4AF37] text-xs font-bold px-3 py-1 rounded-full border border-[#D4AF37]/30">
-                            $<%= Number(item.price).toFixed(2) %>
-                        </div>
-                    </div>
+                    <a href="/product/<%= p.sku %>" class="block relative aspect-[4/5] overflow-hidden bg-black/50">
+                        <img 
+                            src="<%= p.image_url %>" 
+                            onerror="this.src='https://placehold.co/600x600/111/D4AF37?text=NO+IMAGE'" 
+                            alt="<%= p.name %>" 
+                            class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"
+                        >
+                        <% if (p.stock_quantity <= 0) { %>
+                            <div class="absolute inset-0 bg-black/70 flex items-center justify-center">
+                                <span class="text-white font-bold tracking-widest border border-white px-4 py-2">SOLD OUT</span>
+                            </div>
+                        <% } %>
+                    </a>
 
-                    <!-- Content -->
+                    <!-- Details -->
                     <div class="p-6 flex flex-col flex-grow">
-                        <div class="flex justify-between items-start mb-2">
-                            <span class="text-xs text-gray-500 uppercase tracking-widest"><%= item.type %></span>
+                        <div class="mb-4 flex-grow">
+                            <div class="flex justify-between items-start mb-2">
+                                <h3 class="text-lg font-bold text-white leading-tight">
+                                    <a href="/product/<%= p.sku %>" class="hover:text-[#D4AF37] transition-colors"><%= p.name %></a>
+                                </h3>
+                                <span class="text-[#D4AF37] font-mono font-bold whitespace-nowrap ml-4">$<%= p.price %></span>
+                            </div>
+                            <p class="text-gray-500 text-xs uppercase tracking-wider"><%= p.type %></p>
                         </div>
 
-                        <a href="/merch/<%= item.id %>" class="flex-grow">
-                            <!-- Clean Name: Automatically remove 'Copy of' from display -->
-                            <h3 class="text-xl font-bold text-white mb-2 group-hover:text-[#D4AF37] transition-colors">
-                                <%= item.name.replace(/^Copy of\s+/i, '') %>
-                            </h3>
-                        </a>
-                        
-                        <!-- Strip HTML tags for cleaner preview -->
-                        <p class="text-gray-400 text-sm mb-6 line-clamp-2">
-                            <%= item.description ? item.description.replace(/<[^>]*>?/gm, ' ') : '' %>
-                        </p>
-                        
-                        <!-- Action Buttons -->
-<!-- Action Buttons -->
-<!-- Action Buttons -->
-                        <div class="mt-auto">
-                                                    
-<% 
-    // Fix: Ensure strict array check and string type to prevent empty selectors
-    const validSizes = (Array.isArray(item.sizes) ? item.sizes : []).filter(s => typeof s === 'string' && s.trim().length > 0);
-%>
-<% if (validSizes.length > 0) { %>
-    <!-- Size Selector & Add Button -->
-    <div class="flex flex-col gap-2">
-        <select class="w-full bg-black/50 text-white text-xs border border-gray-600 rounded px-2 py-3 outline-none focus:border-[#D4AF37] size-selector" 
-                id="size-select-<%= item.sku %>">
-            <option value="" disabled selected>Select Size</option>
-            <% validSizes.forEach(size => { %>
-                <option value="<%= size %>"><%= size %></option>
-            <% }); %>
-        </select>
-                                    
-                                    <button class="w-full btn-gold py-3 text-xs font-bold hover:scale-105 transition-transform quick-add-size-btn" 
-                                        data-id="<%= item.sku %>" 
-                                        data-name="<%= item.name %>">
-                                        ADD TO CART
-                                    </button>
-                                </div>
-                            <% } else { %>
-                                <!-- No sizes: Standard Quick Add -->
-                                <button class="w-full btn-gold py-3 text-xs font-bold add-to-cart-btn hover:scale-105 transition-transform" 
-                                    data-id="<%= item.sku %>" 
-                                    data-name="<%= item.name %>">
-                                    QUICK ADD
-                                </button>
+                        <!-- Quick Add -->
+                        <button 
+                            class="add-to-cart-btn w-full py-3 bg-[#D4AF37]/10 hover:bg-[#D4AF37] border border-[#D4AF37] text-[#D4AF37] hover:text-black font-bold uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
+                            data-id="<%= p.sku %>"
+                            data-name="<%= p.name %>"
+                            data-price="<%= p.price %>"
+                            data-image="<%= p.image_url %>"
+                            <%= p.stock_quantity <= 0 ? 'disabled' : '' %>
+                        >
+                            <span><%= p.stock_quantity <= 0 ? 'Unavailable' : 'Add to Manifest' %></span>
+                            <% if (p.stock_quantity > 0) { %>
+                                <i class="fas fa-plus transform group-hover:rotate-90 transition-transform"></i>
                             <% } %>
-                        </div>
+                        </button>
                     </div>
+
                 </div>
             <% }); %>
         <% } else { %>
-            <div class="col-span-full text-center py-20 bg-gray-900/30 rounded-xl border border-dashed border-gray-700">
-                <i class="fas fa-box-open text-4xl text-gray-600 mb-4"></i>
-                <p class="text-gray-400">No artifacts found matching your filters.</p>
-                <a href="/merch" class="text-[#D4AF37] text-sm mt-2 hover:underline">Clear Filters</a>
+            <div class="col-span-full py-20 text-center">
+                <i class="fas fa-box-open text-6xl text-gray-700 mb-4"></i>
+                <p class="text-gray-400 text-lg">No artifacts found matching your criteria.</p>
+                <a href="/merch" class="inline-block mt-4 text-[#D4AF37] hover:underline">Clear Filters</a>
             </div>
         <% } %>
     </div>
+
 </section>
 
-<script src="/js/store.js"></script>
+<%- include('partials/footer') %>
+
 <script>
     document.addEventListener('DOMContentLoaded', () => {
-        // Handle clicks for the new "Size Required" buttons
-        document.querySelectorAll('.quick-add-size-btn').forEach(btn => {
+        // Handle Quick Add Buttons on this page
+        document.querySelectorAll('.add-to-cart-btn').forEach(btn => {
             btn.addEventListener('click', async (e) => {
                 e.preventDefault();
-                const sku = btn.dataset.id;
                 
-                // Find the associated select box
-                const selectBox = document.getElementById(`size-select-${sku}`);
-                const size = selectBox ? selectBox.value : null;
+                if (btn.disabled) return;
 
-                // Validation: Check if a size is actually selected
-                if (!size) {
-                    alert('Please select a size first.');
-                    selectBox.focus();
-                    selectBox.classList.add('border-red-500'); // Visual cue
-                    setTimeout(() => selectBox.classList.remove('border-red-500'), 2000);
-                    return;
-                }
+                const sku = btn.dataset.id;
+                // Quick add always defaults size to null (perfect for Digital items)
+                // For sized items (Shirts), the backend or user should ideally go to product page, 
+                // but this "Quick Add" implies a default or no-size add.
+                const size = null; 
 
-                // Send to Server
-                // Send to Server
+                // Visual Feedback
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                btn.disabled = true;
+
                 try {
-                    const storeSessionId = localStorage.getItem('sessionId');
-                    
+                    // Get Session ID similar to store.js / product.ejs logic
+                    let cookieSid = document.cookie.match(/connect.sid=([^;]+)/)?.[1];
+                    if (cookieSid) {
+                        cookieSid = decodeURIComponent(cookieSid).split('.')[0].slice(2);
+                    }
+                    const storeSessionId = localStorage.getItem('sessionId') || cookieSid || '';
+
                     const res = await fetch('/api/cart/add', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ sku, size, sessionId: storeSessionId })
                     });
-
+                    
                     // Check if response is JSON
                     const contentType = res.headers.get("content-type");
                     if (!contentType || !contentType.includes("application/json")) {
@@ -168,24 +144,35 @@
                     
                         if (data.success) {
                         // Success Feedback
-                        const originalText = btn.innerHTML;
                         btn.innerHTML = 'ADDED';
                         btn.classList.add('bg-white', 'text-black');
                         
+                        // Update Cart Count
+                        const badge = document.getElementById('cart-count');
+                        if (badge) {
+                            let currentCount = parseInt(badge.innerText) || 0;
+                            badge.innerText = currentCount + 1;
+                            badge.classList.remove('hidden');
+                        }
+
                         setTimeout(() => {
                             btn.innerHTML = originalText;
                             btn.classList.remove('bg-white', 'text-black');
+                            btn.disabled = false;
                         }, 2000);
                     } else {
                         // LOG THE SERVER ERROR TO CONSOLE
                         console.error("SERVER ERROR DETAILS:", data);
                         alert('Error: ' + (data.error || 'Unknown error'));
+                        btn.innerHTML = originalText;
+                        btn.disabled = false;
                     }
                 } catch (err) {
                     console.error('Add to cart failed:', err);
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
                 }
             });
         });
     });
 </script>
-<%- include('partials/footer') %>
