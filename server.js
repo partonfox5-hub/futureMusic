@@ -988,29 +988,31 @@ const [itemsToOrder] = await pool.query(`
     FROM cart_items ci
     JOIN products p ON ci.product_sku = p.sku
     WHERE ci.session_id = ?
-`, [sessionId]); // Ensure 'sessionId' matches the variable name in your route (e.g., req.sessionID or session.id)
+`, [sessionId]);
 
 // 2. Insert into orders with the new fields
 for (const item of itemsToOrder) {
-        await pool.query(`
-            INSERT INTO orders (
-                user_id, 
-                stripe_session_id,
-                total_amount, 
-                payment_status, 
-                product_type,    
-                size,            
-                description,     
-                created_at
-            ) VALUES (?, ?, ?, 'unpaid', ?, ?, ?, NOW())
-        `, [
-            userId, 
-            session.id,           // We now save the Stripe Session ID
-            item.price,           // Maps to total_amount
-            item.product_type, 
-            item.size || 'N/A', 
-            `${item.product_sku || 'NoSKU'} - ${item.name}`, // Save SKU in description
-        ]);
+    await pool.query(`
+        INSERT INTO orders (
+            user_id, 
+            stripe_session_id,
+            total_amount, 
+            payment_status, 
+            product_type,    
+            size,            
+            description,
+            status,     
+            created_at
+        ) VALUES (?, ?, ?, 'unpaid', ?, ?, ?, ?, NOW())
+    `, [
+        userId, 
+        session.id,           
+        item.price,           
+        item.product_type, 
+        item.size || 'N/A', 
+        item.name,            // <--- CHANGED: Now using just the Name (no SKU)
+        'order received'      // <--- ADDED: Default status
+    ]);
 }
 // --- REPLACEMENT CODE END ---
         
@@ -1019,6 +1021,37 @@ for (const item of itemsToOrder) {
     } catch (err) {
         console.error("Checkout Error:", err);
         res.status(500).json({ error: "Checkout failed: " + err.message });
+    }
+});
+
+
+// --- NEW ROUTE: Handle Stripe Success ---
+app.get('/success', async (req, res) => {
+    const sessionId = req.query.session_id;
+
+    try {
+        // 1. Clean up the cart (Optional but recommended)
+        // We try to retrieve the Stripe session to find the original app_session_id
+        if (stripe && sessionId && pool) {
+            try {
+                const session = await stripe.checkout.sessions.retrieve(sessionId);
+                const appSessionId = session.metadata.app_session_id;
+                
+                if (appSessionId) {
+                    await pool.query("DELETE FROM cart_items WHERE session_id = ?", [appSessionId]);
+                    console.log(`🛒 Cart cleared for session: ${appSessionId}`);
+                }
+            } catch (err) {
+                console.error("⚠️ Failed to clear cart after success:", err.message);
+            }
+        }
+
+        // 2. Redirect to Account
+        res.redirect('/account');
+
+    } catch (err) {
+        console.error("Success Route Error:", err);
+        res.redirect('/account'); // Fallback to account anyway
     }
 });
 
