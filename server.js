@@ -444,22 +444,29 @@ app.get('/account', requireAuth, async (req, res) => {
                 `, [req.session.userId]);
                 physicalOrders = pOrders;
 
-                // --- NEW: Fetch Owned Skins & Assign Frame Colors ---
-                const [skinResults] = await pool.query("SELECT * FROM user_skins WHERE user_id = ?", [req.session.userId]);
-                mySkins = skinResults; // Assign to the outer variable                
-                // Iterate to ensure every skin has a persistent frame color
-                let skinsUpdated = false;
-                for (let skin of mySkins) {
-                    if (!skin.frame_color) {
-                        // Generate random hex color
-                        const randomColor = '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
-                        skin.frame_color = randomColor; // Update local object
-                        
-                        // Update DB asynchronously
-                        await pool.query("UPDATE user_skins SET frame_color = ? WHERE id = ?", [randomColor, skin.id]);
-                        skinsUpdated = true;
-                    }
-                }
+// --- NEW: Fetch Owned Skins & Assign Frame Colors ---
+// We wrap this inner logic in its own try/catch to prevent it from crashing the whole page
+try {
+    const [skinResults] = await pool.query("SELECT * FROM user_skins WHERE user_id = ?", [req.session.userId]);
+    mySkins = Array.isArray(skinResults) ? skinResults : []; // Ensure it is an array
+    
+    // Iterate to ensure every skin has a persistent frame color
+    for (let skin of mySkins) {
+        if (!skin.frame_color) {
+            // Generate random hex color
+            const randomColor = '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
+            skin.frame_color = randomColor; // Update local object
+            
+            // Only attempt DB update if the skin has an ID
+            if (skin.id) {
+                await pool.query("UPDATE user_skins SET frame_color = ? WHERE id = ?", [randomColor, skin.id]);
+            }
+        }
+    }
+} catch (skinErr) {
+    console.error("⚠️ Skin Fetch Error:", skinErr.message);
+    mySkins = []; // Fallback to empty array so page still loads
+}
                 
                 // If we updated any colors, passing the modified 'mySkins' array is sufficient 
                 // as we updated the local objects in the loop.
@@ -482,10 +489,17 @@ app.get('/account', requireAuth, async (req, res) => {
         });
 
 
-    } catch (err) {
-        console.error("❌ Account Page Critical Error:", err);
-        res.status(500).send(`<h1>Error loading account</h1><p>${err.message}</p>`);
-    }
+  } catch (err) {
+    console.error("❌ Account Page Critical Error:");
+    console.error(err.stack); // This prints the exact line number of the crash
+    res.status(500).send(`
+        <div style="font-family: monospace; background: #222; color: #f00; padding: 20px;">
+            <h1>Command Center Malfunction</h1>
+            <h3>${err.message}</h3>
+            <pre>${err.stack}</pre>
+        </div>
+    `);
+}
 });
 
 

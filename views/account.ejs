@@ -140,9 +140,9 @@
                     
                                 <div class="flex flex-col h-full justify-between">
                                     <div>
-                                        <h4 class="text-gray-300 font-bold group-hover:text-white truncate">
-                                            <%= asset.description ? asset.description.substring(0, 30) + '...' : 'Digital Item' %>
-                                        </h4>
+<h4 class="text-gray-300 font-bold group-hover:text-white truncate">
+    <%= asset.description ? asset.description.toString().substring(0, 30) + '...' : 'Digital Item' %>
+</h4>
                                         <p class="text-xs text-gray-500 mt-1">
                                             Acquired: <%= new Date(asset.created_at).toLocaleDateString() %>
                                         </p>
@@ -194,8 +194,7 @@
                                 </div>
 
                                 <div class="text-center">
-                                    <h4 class="text-gray-200 font-bold text-xs uppercase tracking-wider truncate"><%= (skin.skin_id || '').replace('_', ' ') %></h4>
-
+<h4 class="text-gray-200 font-bold text-xs uppercase tracking-wider truncate"><%= (skin.skin_id || '').toString().replace('_', ' ') %></h4>
                                     <span class="text-[10px] text-gray-500">Asset ID: #<%= skin.id %></span>
                                 </div>
                             </div>
