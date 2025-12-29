@@ -1078,7 +1078,10 @@ app.post('/api/cart', async (req, res) => {
             } else {
                 await query("INSERT INTO cart_items (session_id, product_sku, quantity, size) VALUES (?, ?, ?, ?)", [sessionId, sku, quantity || 1, storedSize]);
             }
-            return res.json({ success: true });
+            // CHANGED: Fetch new count and return it
+const [countRows] = await query("SELECT SUM(quantity) as count FROM cart_items WHERE session_id = ?", [sessionId]);
+const newCount = countRows[0].count ? parseInt(countRows[0].count) : 0;
+return res.json({ success: true, newCount });
         } catch (err) { return res.status(500).json({ error: 'Database error: ' + err.message }); }
     } else {
         if (!memoryCarts[sessionId]) memoryCarts[sessionId] = [];
@@ -1090,7 +1093,9 @@ app.post('/api/cart', async (req, res) => {
             if (!product) return res.status(404).json({ error: 'Product not found' });
             cart.push({ ...product, quantity: quantity || 1, size: storedSize });
         }
-        return res.json({ success: true, mode: 'memory' });
+        // CHANGED: Calculate memory count
+const newCount = cart.reduce((acc, item) => acc + item.quantity, 0);
+return res.json({ success: true, mode: 'memory', newCount });
     }
 });
 

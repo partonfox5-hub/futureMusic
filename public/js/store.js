@@ -44,6 +44,16 @@ window.Store = {
             });
 
             if (!response.ok) throw new Error('Network response was not ok');
+                    // --- NEW CODE: Update Badge immediately from server response ---
+        const data = await response.json();
+        if (data.newCount !== undefined) {
+            const badge = document.getElementById('cart-count');
+            if (badge) {
+                badge.innerText = data.newCount;
+                badge.classList.remove('hidden');
+            }
+        }
+        // ---------------------------------------------------------------
 
             // 4. Trigger UI Success (Only if button is found)
             if(btn) {
@@ -55,7 +65,7 @@ window.Store = {
             }
 
             // 5. Update Badge (Runs regardless of button existence)
-            await Store.refreshCartCount();
+           // await Store.refreshCartCount();
 
         } catch (error) {
             console.error('Error adding to cart:', error);
