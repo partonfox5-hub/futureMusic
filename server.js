@@ -404,109 +404,87 @@ app.get('/advocacy', (req, res) => res.render('advocacy', { title: 'Advocacy' })
 
 
 // ADDED: Account Page Route
+// ADDED: Account Page Route (Robust Version)
 app.get('/account', requireAuth, async (req, res) => {
-    try {
-        // 1. Setup default safe data
-        let user = { 
-            email: req.session.email || 'Traveler', 
-            id: req.session.userId,
-            created_at: new Date(),
-            full_name: 'Anonymous',
-            private_message: null,
-            avatar_url: null
-        };
-        let digitalAssets = [];
-        let physicalOrders = [];
-        let mySkins = [];
-        let cartCount = 0; // <--- FIX 1: Initialize cartCount
+    // 1. Initialize Safe Defaults (So page never crashes even if DB fails)
+    let user = { 
+        id: req.session.userId, 
+        email: req.session.email || 'Traveler',
+        full_name: 'Anonymous',
+        created_at: new Date(),
+        private_message: null,
+        avatar_url: null
+    };
+    let digitalAssets = [];
+    let physicalOrders = [];
+    let mySkins = [];
+    let cartCount = 0;
 
-        // 2. Database Fetching
-        if (pool && typeof pool.query === 'function') {
-            try {
-                // Fetch User Profile
-                const [userRows] = await pool.query("SELECT * FROM users WHERE id = ?", [req.session.userId]);
-                if (userRows && userRows.length > 0) {
-                    user = userRows[0];
+    // 2. Safely Fetch Data (Independent Blocks)
+    // We use separate try/catch blocks so one missing table doesn't crash the whole page.
+    if (pool) {
+        // A. User Data
+        try {
+            const [rows] = await pool.query("SELECT * FROM users WHERE id = ?", [req.session.userId]);
+            if (rows.length > 0) user = rows[0];
+        } catch (e) { console.error("⚠️ Account - User Fetch Error:", e.message); }
+
+        // B. Cart Count
+        try {
+            const sid = req.sessionID || '';
+            const [cRows] = await pool.query("SELECT SUM(quantity) as count FROM cart_items WHERE session_id = ?", [sid]);
+            if (cRows.length > 0 && cRows[0].count) cartCount = parseInt(cRows[0].count);
+        } catch (e) { console.error("⚠️ Account - Cart Fetch Error:", e.message); }
+
+        // C. Orders (Digital & Physical)
+        try {
+            // Check for digital assets
+            // Note: If your 'orders' table is missing the 'product_type' column, this specific query will fail,
+            // but the catch block will handle it, allowing the rest of the page to load.
+            const [dRows] = await pool.query("SELECT * FROM orders WHERE user_id = ? AND product_type = 'digital' ORDER BY created_at DESC", [req.session.userId]);
+            digitalAssets = dRows;
+            
+            const [pRows] = await pool.query("SELECT * FROM orders WHERE user_id = ? AND (product_type IS NULL OR product_type != 'digital') ORDER BY created_at DESC", [req.session.userId]);
+            physicalOrders = pRows;
+        } catch (e) { 
+            console.error("⚠️ Account - Orders Fetch Error (Likely missing 'product_type' column or table):", e.message); 
+        }
+
+        // D. Skins
+        try {
+            const [sRows] = await pool.query("SELECT * FROM user_skins WHERE user_id = ?", [req.session.userId]);
+            mySkins = Array.isArray(sRows) ? sRows : [];
+            
+            // Color Logic for Skins
+            for (let skin of mySkins) {
+                if (!skin.frame_color) {
+                    const randomColor = '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
+                    skin.frame_color = randomColor;
+                    if (skin.id) {
+                        pool.query("UPDATE user_skins SET frame_color = ? WHERE id = ?", [randomColor, skin.id]).catch(err => {});
+                    }
                 }
-
-                // FIX 2: Fetch Cart Count (Required by Header)
-                // We assume cart is tracked by sessionID just like in the /merch route logic
-// Ensure sessionID exists, otherwise fallback to empty string to prevent SQL crash
-const currentSessionId = req.sessionID || ''; 
-
-const [cartRows] = await pool.query(
-    "SELECT SUM(quantity) as count FROM cart_items WHERE session_id = ?", 
-    [currentSessionId]
-);
-
-// Safer check for the count
-if (cartRows && cartRows.length > 0 && cartRows[0].count != null) {
-    cartCount = parseInt(cartRows[0].count);
-}
-
-                // Fetch Digital Assets
-                const [dAssets] = await pool.query(`
-                    SELECT * FROM orders 
-                    WHERE user_id = ? 
-                    AND product_type = 'digital' 
-                    ORDER BY created_at DESC
-                `, [req.session.userId]);
-                digitalAssets = dAssets;
-
-                // Fetch Physical Orders
-                const [pOrders] = await pool.query(`
-                    SELECT * FROM orders 
-                    WHERE user_id = ? 
-                    AND (product_type IS NULL OR product_type != 'digital') 
-                    ORDER BY created_at DESC
-                `, [req.session.userId]);
-                physicalOrders = pOrders;
-
-                // Fetch Owned Skins
-                const [skinResults] = await pool.query("SELECT * FROM user_skins WHERE user_id = ?", [req.session.userId]);
-                mySkins = Array.isArray(skinResults) ? skinResults : [];
-                
-                // Color Logic for Skins
-for (let skin of mySkins) {
-    if (!skin.frame_color) {
-        const randomColor = '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
-        skin.frame_color = randomColor;
-        
-        // Only attempt DB update if skin.id exists
-        if (skin.id) {
-            pool.query("UPDATE user_skins SET frame_color = ? WHERE id = ?", [randomColor, skin.id]).catch(e => console.error("Skin update failed (non-critical):", e.message));
-        }
-    }
-}
-
-            } catch (dbErr) {
-                console.error("⚠️ Account DB Fetch Error:", dbErr.message);
-                // We continue rendering with whatever data we managed to get
             }
-        }
+        } catch (e) { console.error("⚠️ Account - Skins Fetch Error (Likely missing 'user_skins' table):", e.message); }
+    }
 
-        // 3. Render Page
+    // 3. Render Page
+    // Since we initialized empty variables at the top, this will ALWAYS succeed.
+    try {
         res.render('account', { 
             title: 'Command Center', 
             user: user, 
             digitalAssets: digitalAssets,
             physicalOrders: physicalOrders,
-            gameSkins: mySkins || [],
-            cartCount: cartCount // <--- FIX 1: Pass this variable to prevent Header crash
+            gameSkins: mySkins,
+            cartCount: cartCount
         });
-
-  } catch (err) {
-    console.error("❌ Account Page Critical Error:");
-    console.error(err.stack);
-    res.status(500).send(`
-        <div style="font-family: monospace; background: #222; color: #f00; padding: 20px;">
-            <h1>Command Center Malfunction</h1>
-            <h3>${err.message}</h3>
-            <pre>${err.stack}</pre>
-        </div>
-    `);
-}
+    } catch (renderErr) {
+        console.error("❌ Account Render Error:", renderErr);
+        res.status(500).send("Error loading Command Center interface.");
+    }
 });
+
 
 
 // --- NEW ACCOUNT ACTION ROUTES ---
@@ -978,8 +956,8 @@ app.post('/api/cart/add', async (req, res) => {
         // FIX: Accept sessionId from the browser (req.body) to match the frontend store.js
         const { sku, size, sessionId: bodySessionId } = req.body;
         
-        // Priority: 1. Browser's LocalStorage ID, 2. Server Cookie ID
-        const sessionId = bodySessionId || req.sessionID;
+         // Priority: 1. Browser's LocalStorage ID, 2. Server Cookie ID, 3. Fallback (Prevents Crash)
+        const sessionId = bodySessionId || req.sessionID || `guest-${Date.now()}`;
 
         if (!sku) return res.status(400).json({ error: 'SKU required' });
 
@@ -1022,6 +1000,7 @@ app.post('/api/cart/add', async (req, res) => {
         if (productSizes.length === 0) {
             finalSize = '';
         }
+        if (!finalSize) finalSize = '';
         // --- NEW LOGIC END ---
 
         if (pool) {

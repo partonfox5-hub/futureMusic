@@ -81,8 +81,8 @@
                         <div class="mt-auto">
                                                     
 <% 
-    // Clean sizes before checking (Filter out empty strings)
-    const validSizes = (item.sizes || []).filter(s => s && s.trim() !== ''); 
+    // Fix: Ensure strict array check and string type to prevent empty selectors
+    const validSizes = (Array.isArray(item.sizes) ? item.sizes : []).filter(s => typeof s === 'string' && s.trim().length > 0);
 %>
 <% if (validSizes.length > 0) { %>
     <!-- Size Selector & Add Button -->
