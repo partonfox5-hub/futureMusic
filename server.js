@@ -972,19 +972,28 @@ app.post('/api/cart/add', async (req, res) => {
 
         // 2. Determine Correct Size (Fixes "Size applied to songs")
         // Logic: If product has NO sizes defined, we FORCE size to be empty string.
+ // 2. Determine Correct Size (Fixes "Size applied to songs")
         let finalSize = size || '';
-        
         let productSizes = [];
-        if (product.sizes) {
+
+        if (product && product.sizes) {
             try {
                 // Handle both JSON string or pre-parsed array
                 productSizes = typeof product.sizes === 'string' ? JSON.parse(product.sizes) : product.sizes;
-            } catch(e) { productSizes = []; }
+                // CRITICAL FIX: Filter out nulls, empty strings, or just whitespace
+                if (Array.isArray(productSizes)) {
+                    productSizes = productSizes.filter(s => s && s.toString().trim() !== '');
+                } else {
+                    productSizes = [];
+                }
+            } catch(e) { 
+                console.error("Size parsing error for SKU " + sku, e);
+                productSizes = []; 
+            }
         }
 
-        // If the product has no variants/sizes (e.g. Song), force finalSize to empty
-        // This ensures songs never get stuck with a "Size: null" or "Size: undefined" tag
-        if (!Array.isArray(productSizes) || productSizes.length === 0) {
+        // If the product has no VALID sizes (e.g. Song or [""]), force finalSize to empty
+        if (productSizes.length === 0) {
             finalSize = '';
         }
         // --- NEW LOGIC END ---
@@ -1031,8 +1040,9 @@ app.post('/api/cart/add', async (req, res) => {
 
     } catch (err) {
         console.error("Cart Add Error:", err);
-        // CRITICAL: Return JSON error, not HTML. This prevents the SyntaxError in frontend.
-        res.status(500).json({ error: 'Server error: ' + err.message });
+        if (!res.headersSent) {
+             res.status(500).json({ error: 'Server error: ' + err.message });
+        }
     }
 });
 

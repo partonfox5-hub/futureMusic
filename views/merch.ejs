@@ -79,13 +79,18 @@
 <!-- Action Buttons -->
 <!-- Action Buttons -->
                         <div class="mt-auto">
-                            <% if (item.sizes && item.sizes.length > 0) { %>
+                                                    
+                            <% 
+                                // Clean sizes before checking (Filter out empty strings)
+                                const validSizes = (item.sizes || []).filter(s => s && s.trim() !== ''); 
+                            %>
+                            <% if (validSizes.length > 0) { %>
                                 <!-- Size Selector & Add Button -->
                                 <div class="flex flex-col gap-2">
                                     <select class="w-full bg-black/50 text-white text-xs border border-gray-600 rounded px-2 py-3 outline-none focus:border-[#D4AF37] size-selector" 
                                             id="size-select-<%= item.sku %>">
                                         <option value="" disabled selected>Select Size</option>
-                                        <% item.sizes.forEach(size => { %>
+                                        <% validSizes.forEach(size => { %>
                                             <option value="<%= size %>"><%= size %></option>
                                         <% }); %>
                                     </select>
@@ -141,8 +146,8 @@
                 }
 
                 // Send to Server
-try {
-                    // FIX: Grab the Session ID from local storage so it matches the cart view
+                // Send to Server
+                try {
                     const storeSessionId = localStorage.getItem('sessionId');
                     
                     const res = await fetch('/api/cart/add', {
@@ -150,6 +155,15 @@ try {
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ sku, size, sessionId: storeSessionId })
                     });
+
+                    // Check if response is JSON
+                    const contentType = res.headers.get("content-type");
+                    if (!contentType || !contentType.includes("application/json")) {
+                        const textText = await res.text();
+                        console.error("Server returned non-JSON:", textText);
+                        throw new Error("Server Error: Check console for details");
+                    }
+
                     const data = await res.json();
                     
                     if (data.success) {
