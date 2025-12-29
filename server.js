@@ -1023,84 +1023,78 @@ app.get('/projects', (req, res) => res.render('projects', { title: 'Projects' })
 
 
 app.post('/api/cart/add', async (req, res) => {
-    // 1. Wrap EVERYTHING in try/catch to ensure JSON response (Fixes "Unexpected token <")
+    // 1. DIAGNOSTIC LOG: See exactly what the browser sent
+    console.log("🛒 API/CART/ADD Request:", req.body);
+
     try {
-        // FIX: Accept sessionId from the browser (req.body) to match the frontend store.js
         const { sku, size, sessionId: bodySessionId } = req.body;
         
-         // Priority: 1. Browser's LocalStorage ID, 2. Server Cookie ID, 3. Fallback (Prevents Crash)
-        const sessionId = bodySessionId || req.sessionID || `guest-${Date.now()}`;
+        // 2. Priority: Browser Session -> Server Session -> Random Fallback
+        let sessionId = bodySessionId || req.sessionID;
+        if (!sessionId) sessionId = `guest-${Date.now()}`;
 
-        if (!sku) return res.status(400).json({ error: 'SKU required' });
-
-        // --- NEW LOGIC START: Product Validation & Size Cleanup ---
-        let product = null;
-
-        // 1. Fetch Product first to validate it exists and check its type
-        if (pool) {
-            const [rows] = await pool.query("SELECT * FROM products WHERE sku = ?", [sku]);
-            if (rows.length > 0) product = rows[0];
-        } else {
-            product = await getProductBySku(sku); // Fallback to memory mock
+        if (!sku) {
+            console.log("❌ Missing SKU in request");
+            return res.status(400).json({ success: false, error: 'SKU required' });
         }
 
-        if (!product) return res.status(404).json({ error: 'Product not found' });
-
-        // 2. Determine Correct Size (Fixes "Size applied to songs")
-        // Logic: If product has NO sizes defined, we FORCE size to be empty string.
- // 2. Determine Correct Size (Fixes "Size applied to songs")
-        let finalSize = size || '';
-        let productSizes = [];
-
-        if (product && product.sizes) {
-            try {
-                // Handle both JSON string or pre-parsed array
-                productSizes = typeof product.sizes === 'string' ? JSON.parse(product.sizes) : product.sizes;
-                // CRITICAL FIX: Filter out nulls, empty strings, or just whitespace
-                if (Array.isArray(productSizes)) {
-                    productSizes = productSizes.filter(s => s && s.toString().trim() !== '');
-                } else {
-                    productSizes = [];
-                }
-            } catch(e) { 
-                console.error("Size parsing error for SKU " + sku, e);
-                productSizes = []; 
-            }
-        }
-
-        // If the product has no VALID sizes (e.g. Song or [""]), force finalSize to empty
-        if (productSizes.length === 0) {
+        // 3. Clean Size Input (Fixes "null" or "undefined" strings)
+        let finalSize = size;
+        if (!finalSize || finalSize === 'null' || finalSize === 'undefined') {
             finalSize = '';
         }
-        if (!finalSize) finalSize = '';
-        // --- NEW LOGIC END ---
 
+        // 4. Product Lookup (Safely)
+        let product = null;
         if (pool) {
-            // DB Mode
-            
-            // A. Ensure session exists in 'carts' table
-            await pool.query(
-                "INSERT INTO carts (session_id, updated_at) VALUES (?, NOW()) ON DUPLICATE KEY UPDATE updated_at = NOW()", 
-                [sessionId]
-            );
+            try {
+                const [rows] = await pool.query("SELECT * FROM products WHERE sku = ?", [sku]);
+                product = rows[0];
+            } catch (dbErr) {
+                console.error("⚠️ DB Product Fetch Error (Continuing to mock):", dbErr.message);
+            }
+        }
+        
+        // Fallback to mock items if DB fails or product not found
+        if (!product) {
+            product = mockMerchItems.find(p => p.sku === sku);
+        }
 
-            // B. Check if this specific item (SKU + Size) is already in the cart
-            const [existing] = await pool.query(
-                "SELECT id FROM cart_items WHERE session_id = ? AND product_sku = ? AND size = ?", 
-                [sessionId, sku, finalSize]
-            );
+        if (!product) {
+            console.log("❌ Product not found for SKU:", sku);
+            return res.status(404).json({ success: false, error: 'Product not found' });
+        }
 
-            // C. Update or Insert
-            if (existing.length > 0) {
-                await pool.query("UPDATE cart_items SET quantity = quantity + 1 WHERE id = ?", [existing[0].id]);
-            } else {
+        // 5. Database Operation (Wrapped in its own try/catch to prevent crashes)
+        if (pool) {
+            try {
+                // A. Ensure cart container exists
                 await pool.query(
-                    "INSERT INTO cart_items (session_id, product_sku, quantity, size, added_at) VALUES (?, ?, 1, ?, NOW())", 
+                    "INSERT INTO carts (session_id, updated_at) VALUES (?, NOW()) ON DUPLICATE KEY UPDATE updated_at = NOW()", 
+                    [sessionId]
+                );
+
+                // B. Check for existing item
+                const [existing] = await pool.query(
+                    "SELECT id FROM cart_items WHERE session_id = ? AND product_sku = ? AND size = ?", 
                     [sessionId, sku, finalSize]
                 );
+
+                // C. Update or Insert
+                if (existing.length > 0) {
+                    await pool.query("UPDATE cart_items SET quantity = quantity + 1 WHERE id = ?", [existing[0].id]);
+                } else {
+                    await pool.query(
+                        "INSERT INTO cart_items (session_id, product_sku, quantity, size, added_at) VALUES (?, ?, 1, ?, NOW())", 
+                        [sessionId, sku, finalSize]
+                    );
+                }
+            } catch (sqlErr) {
+                console.error("🔥 SQL Error during cart update:", sqlErr);
+                throw new Error("Database failed to update cart: " + sqlErr.message);
             }
         } else {
-            // Memory Cart Fallback (for testing without DB)
+            // Memory Fallback (If DB is completely offline)
             if (!memoryCarts[sessionId]) memoryCarts[sessionId] = [];
             const cart = memoryCarts[sessionId];
             const existingItem = cart.find(i => i.sku === sku && i.size === finalSize);
@@ -1112,20 +1106,19 @@ app.post('/api/cart/add', async (req, res) => {
             }
         }
         
-        // Return Success JSON
+        // 6. Success Response
+        console.log(`✅ Added ${sku} (Size: ${finalSize}) to cart for session ${sessionId}`);
         res.json({ success: true });
 
     } catch (err) {
-        // Send the FULL error details to the browser so we can see it in Console
-        console.error("Cart Add Error:", err);
-        if (!res.headersSent) {
-            res.status(500).json({ 
-                success: false,
-                error: err.message,
-                stack: err.stack, // This allows you to see the line number in browser
-                details: "Check your browser console > Network > Response to see this"
-            });
-        }
+        // 7. CATASTROPHIC ERROR HANDLER
+        // This ensures you receive JSON even if the server crashes
+        console.error("🔥 CRITICAL SERVER ERROR:", err);
+        res.status(500).json({ 
+            success: false,
+            error: err.message || "Internal Server Error",
+            details: "Check Cloud Run logs for 'CRITICAL SERVER ERROR'"
+        });
     }
 });
 
