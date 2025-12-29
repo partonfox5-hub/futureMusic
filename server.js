@@ -531,11 +531,28 @@ app.get('/account', requireAuth, async (req, res) => {
             // --- FIXES END ---
         });
     } catch (renderErr) {
-        console.error("❌ Account Render Error (Check your Partials):", renderErr);
+        // 1. FORCE GOOGLE LOGS TO SEE THIS
+        // We use JSON.stringify with 'severity: ERROR' to trigger the red flag in Logs Explorer
+        console.log(JSON.stringify({
+            severity: 'ERROR',
+            component: 'account_page_render',
+            message: "❌ Account Render Crash",
+            error_name: renderErr.name,
+            error_details: renderErr.message,
+            stack_trace: renderErr.stack
+        }));
+
+        // 2. SHOW ERROR ON SCREEN (So you don't just see "Internal Server Error")
         res.status(500).send(`
-            <h1>Interface Error</h1>
-            <p>The Command Center failed to load. Please check your server console for the exact error.</p>
-            <pre>${renderErr.message}</pre>
+            <div style="background: #1a1a1a; color: #ff5555; padding: 40px; font-family: monospace;">
+                <h1>⚠️ RENDER ERROR DETECTED</h1>
+                <p>The server has the data, but the EJS template failed to compile.</p>
+                <hr style="border: 1px solid #333; margin: 20px 0;">
+                <h3 style="color: white;">Error Message:</h3>
+                <pre style="background: #000; padding: 15px; border: 1px solid #333;">${renderErr.message}</pre>
+                <h3 style="color: white;">Stack Trace (Look for line numbers):</h3>
+                <pre style="background: #000; padding: 15px; border: 1px solid #333; white-space: pre-wrap;">${renderErr.stack}</pre>
+            </div>
         `);
     }
 });
