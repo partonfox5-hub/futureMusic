@@ -452,71 +452,76 @@ app.get('/account/debug', async (req, res) => {
 // ADDED: Account Page Route
 // ADDED: Account Page Route (Robust Version)
 app.get('/account', requireAuth, async (req, res) => {
-    // 1. Initialize Safe Defaults (So page never crashes even if DB fails)
-    let user = { 
-        id: req.session.userId, 
-        email: req.session.email || 'Traveler',
-        full_name: 'Anonymous',
-        created_at: new Date(),
-        private_message: null,
-        avatar_url: null
-    };
-    let digitalAssets = [];
-    let physicalOrders = [];
-    let mySkins = [];
-    let cartCount = 0;
+    // 0. MASTER ERROR TRAP: Wrap the ENTIRE route logic
+    try {
+        console.log("🟢 DEBUG: Account Route Hit. User ID:", req.session.userId);
 
-    // 2. Safely Fetch Data (Independent Blocks)
-    // We use separate try/catch blocks so one missing table doesn't crash the whole page.
-    if (pool) {
-        // A. User Data
-        try {
-            const [rows] = await pool.query("SELECT * FROM users WHERE id = ?", [req.session.userId]);
-            if (rows.length > 0) user = rows[0];
-        } catch (e) { console.error("⚠️ Account - User Fetch Error:", e.message); }
+        // 1. Initialize Safe Defaults (So page never crashes even if DB fails)
+        let user = { 
+            id: req.session.userId, 
+            email: req.session.email || 'Traveler',
+            full_name: 'Anonymous',
+            created_at: new Date(),
+            private_message: null,
+            avatar_url: null
+        };
+        let digitalAssets = [];
+        let physicalOrders = [];
+        let mySkins = [];
+        let cartCount = 0;
 
-        // B. Cart Count
-        try {
-            const sid = req.sessionID || '';
-            const [cRows] = await pool.query("SELECT SUM(quantity) as count FROM cart_items WHERE session_id = ?", [sid]);
-            if (cRows.length > 0 && cRows[0].count) cartCount = parseInt(cRows[0].count);
-        } catch (e) { console.error("⚠️ Account - Cart Fetch Error:", e.message); }
-
-        // C. Orders (Digital & Physical)
-        try {
-            // Check for digital assets
-            // Note: If your 'orders' table is missing the 'product_type' column, this specific query will fail,
-            // but the catch block will handle it, allowing the rest of the page to load.
-            const [dRows] = await pool.query("SELECT * FROM orders WHERE user_id = ? AND product_type = 'digital' ORDER BY created_at DESC", [req.session.userId]);
-            digitalAssets = dRows;
+        // 2. Safely Fetch Data (Independent Blocks)
+        // We use separate try/catch blocks so one missing table doesn't crash the whole page.
+        if (pool) {
+            console.log("🟢 DEBUG: DB Pool active. Fetching data...");
             
-            const [pRows] = await pool.query("SELECT * FROM orders WHERE user_id = ? AND (product_type IS NULL OR product_type != 'digital') ORDER BY created_at DESC", [req.session.userId]);
-            physicalOrders = pRows;
-        } catch (e) { 
-            console.error("⚠️ Account - Orders Fetch Error (Likely missing 'product_type' column or table):", e.message); 
-        }
+            // A. User Data
+            try {
+                const [rows] = await pool.query("SELECT * FROM users WHERE id = ?", [req.session.userId]);
+                if (rows.length > 0) user = rows[0];
+            } catch (e) { console.error("⚠️ Account - User Fetch Error:", e.message); }
 
-        // D. Skins
-        try {
-            const [sRows] = await pool.query("SELECT * FROM user_skins WHERE user_id = ?", [req.session.userId]);
-            mySkins = Array.isArray(sRows) ? sRows : [];
-            
-            // Color Logic for Skins
-            for (let skin of mySkins) {
-                if (!skin.frame_color) {
-                    const randomColor = '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
-                    skin.frame_color = randomColor;
-                    if (skin.id) {
-                        pool.query("UPDATE user_skins SET frame_color = ? WHERE id = ?", [randomColor, skin.id]).catch(err => {});
+            // B. Cart Count
+            try {
+                const sid = req.sessionID || '';
+                const [cRows] = await pool.query("SELECT SUM(quantity) as count FROM cart_items WHERE session_id = ?", [sid]);
+                if (cRows.length > 0 && cRows[0].count) cartCount = parseInt(cRows[0].count);
+            } catch (e) { console.error("⚠️ Account - Cart Fetch Error:", e.message); }
+
+            // C. Orders (Digital & Physical)
+            try {
+                const [dRows] = await pool.query("SELECT * FROM orders WHERE user_id = ? AND product_type = 'digital' ORDER BY created_at DESC", [req.session.userId]);
+                digitalAssets = dRows;
+                
+                const [pRows] = await pool.query("SELECT * FROM orders WHERE user_id = ? AND (product_type IS NULL OR product_type != 'digital') ORDER BY created_at DESC", [req.session.userId]);
+                physicalOrders = pRows;
+            } catch (e) { 
+                console.error("⚠️ Account - Orders Fetch Error:", e.message); 
+            }
+
+            // D. Skins
+            try {
+                const [sRows] = await pool.query("SELECT * FROM user_skins WHERE user_id = ?", [req.session.userId]);
+                mySkins = Array.isArray(sRows) ? sRows : [];
+                
+                // Color Logic for Skins
+                for (let skin of mySkins) {
+                    if (!skin.frame_color) {
+                        const randomColor = '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
+                        skin.frame_color = randomColor;
+                        if (skin.id) {
+                            pool.query("UPDATE user_skins SET frame_color = ? WHERE id = ?", [randomColor, skin.id]).catch(err => {});
+                        }
                     }
                 }
-            }
-        } catch (e) { console.error("⚠️ Account - Skins Fetch Error (Likely missing 'user_skins' table):", e.message); }
-    }
+            } catch (e) { console.error("⚠️ Account - Skins Fetch Error:", e.message); }
+        } else {
+            console.log("🟠 DEBUG: DB Pool is missing/offline.");
+        }
 
-    // 3. Render Page
-    // Since we initialized empty variables at the top, this will ALWAYS succeed.
-    try {
+        // 3. Render Page
+        console.log("🟢 DEBUG: All data fetched. Rendering EJS now...");
+        
         res.render('account', { 
             title: 'Command Center', 
             user: user, 
@@ -530,32 +535,37 @@ app.get('/account', requireAuth, async (req, res) => {
             dbStatus: dbConnectionStatus || 'UNKNOWN', // Fixes debug banners
             // --- FIXES END ---
         });
-    } catch (renderErr) {
-        // 1. FORCE GOOGLE LOGS TO SEE THIS
-        // We use JSON.stringify with 'severity: ERROR' to trigger the red flag in Logs Explorer
+
+    } catch (criticalErr) {
+        // --- THE NUCLEAR LOGGER ---
+        // This catches ANY crash in the route, not just the render part.
+        
+        console.error("🔴 CRITICAL CRASH IN /ACCOUNT ROUTE:", criticalErr);
+        
+        // Force Cloud Run to see it as an ERROR
         console.log(JSON.stringify({
             severity: 'ERROR',
-            component: 'account_page_render',
-            message: "❌ Account Render Crash",
-            error_name: renderErr.name,
-            error_details: renderErr.message,
-            stack_trace: renderErr.stack
+            component: 'account_route_crash',
+            message: "CRITICAL: Account Route Failed",
+            error_message: criticalErr.message,
+            stack_trace: criticalErr.stack
         }));
 
-        // 2. SHOW ERROR ON SCREEN (So you don't just see "Internal Server Error")
+        // Show the error to YOU in the browser
         res.status(500).send(`
-            <div style="background: #1a1a1a; color: #ff5555; padding: 40px; font-family: monospace;">
-                <h1>⚠️ RENDER ERROR DETECTED</h1>
-                <p>The server has the data, but the EJS template failed to compile.</p>
-                <hr style="border: 1px solid #333; margin: 20px 0;">
-                <h3 style="color: white;">Error Message:</h3>
-                <pre style="background: #000; padding: 15px; border: 1px solid #333;">${renderErr.message}</pre>
-                <h3 style="color: white;">Stack Trace (Look for line numbers):</h3>
-                <pre style="background: #000; padding: 15px; border: 1px solid #333; white-space: pre-wrap;">${renderErr.stack}</pre>
+            <div style="background: #000; color: #ff5555; padding: 50px; font-family: monospace;">
+                <h1>🛑 CRITICAL ROUTE ERROR</h1>
+                <p>The server crashed before it could finish loading the page.</p>
+                <hr style="border-color: #333;">
+                <h3>Error Details:</h3>
+                <pre style="background: #111; padding: 20px; border: 1px solid #333;">${criticalErr.message}</pre>
+                <h3>Stack Trace:</h3>
+                <pre style="background: #111; padding: 20px; border: 1px solid #333; white-space: pre-wrap;">${criticalErr.stack}</pre>
             </div>
         `);
     }
 });
+// ... existing code ...
 
 
 
