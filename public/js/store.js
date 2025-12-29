@@ -159,7 +159,13 @@ window.renderCartPage = async () => {
                 <div class="flex items-center gap-4">
                     <span class="text-gray-500 text-sm">Qty: ${item.quantity}</span>
                     <!-- Replaced the button line below to handle quotes safely -->
-                    <button onclick="Store.remove('${item.sku.replace(/'/g, "\\'")}', '${(item.size || '').replace(/'/g, "\\'")}')" class="text-gray-500 hover:text-red-500 transition-colors">
+                    <!-- BUTTON FIXED: Uses data attributes to prevent syntax errors -->
+                    <button 
+                        type="button"
+                        data-action="remove-item"
+                        data-sku="${String(item.sku).replace(/"/g, '&quot;')}" 
+                        data-size="${String(item.size || '').replace(/"/g, '&quot;')}" 
+                        class="text-gray-500 hover:text-red-500 transition-colors">
                         <i class="fas fa-trash"></i>
                     </button>
                 </div>
@@ -168,6 +174,16 @@ window.renderCartPage = async () => {
     });
 
     container.innerHTML = html;
+
+    // --- NEW CODE: Bind Remove Buttons Safely ---
+    // This replaces the inline onclick to prevent "Invalid Token" errors
+    container.querySelectorAll('button[data-action="remove-item"]').forEach(btn => {
+        btn.onclick = () => {
+            Store.remove(btn.dataset.sku, btn.dataset.size);
+        };
+    });
+    // --------------------------------------------
+
     if(totalEl) totalEl.innerText = `$${total.toFixed(2)}`;
     
     // Bind Checkout
