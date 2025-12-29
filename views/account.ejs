@@ -195,7 +195,8 @@
                                 </div>
 
                                 <div class="text-center">
-                                    <h4 class="text-gray-200 font-bold text-xs uppercase tracking-wider truncate"><%= skin.skin_id.replace('_', ' ') %></h4>
+                                    <h4 class="text-gray-200 font-bold text-xs uppercase tracking-wider truncate"><%= (skin.skin_id || '').replace('_', ' ') %></h4>
+
                                     <span class="text-[10px] text-gray-500">Asset ID: #<%= skin.id %></span>
                                 </div>
                             </div>
