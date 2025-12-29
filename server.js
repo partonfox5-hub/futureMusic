@@ -414,6 +414,7 @@ app.get('/account', requireAuth, async (req, res) => {
         };
         let digitalAssets = [];
         let physicalOrders = [];
+        let mySkins = [];
 
         // 2. Check if DB is actually available before ANY queries
         if (pool && typeof pool.query === 'function') {
@@ -444,8 +445,8 @@ app.get('/account', requireAuth, async (req, res) => {
                 physicalOrders = pOrders;
 
                 // --- NEW: Fetch Owned Skins & Assign Frame Colors ---
-                let [mySkins] = await pool.query("SELECT * FROM user_skins WHERE user_id = ?", [req.session.userId]);
-                
+                const [skinResults] = await pool.query("SELECT * FROM user_skins WHERE user_id = ?", [req.session.userId]);
+                mySkins = skinResults; // Assign to the outer variable                
                 // Iterate to ensure every skin has a persistent frame color
                 let skinsUpdated = false;
                 for (let skin of mySkins) {
