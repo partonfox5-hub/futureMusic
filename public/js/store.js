@@ -15,10 +15,13 @@ const Store = {
         const sessionId = Store.getSessionId();
         
         // Find button to update UI
-        // We look for the button to show the loading spinner, but we DON'T require it to exist for the cart to work.
+        // Note: For product page, we might pass the button element directly, but here we query
         const btn = document.querySelector(`button[data-id="${sku}"]`) || document.querySelector(`button[data-sku="${sku}"]`);
         
+        // 1. Setup UI Variables
         let originalText = '';
+        
+        // 2. Trigger Loading State (Only if button is found)
         if(btn) {
             originalText = btn.innerHTML;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ADDING...';
@@ -26,8 +29,8 @@ const Store = {
         }
 
         try {
-            // DATA: Perform API Call
-            // This now runs OUTSIDE the if(btn) block, ensuring items are added even if the button selector fails
+            // 3. Perform API Call (Runs regardless of button existence)
+            // MOVED OUTSIDE the if(btn) block
             const response = await fetch('/api/cart', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -36,11 +39,7 @@ const Store = {
 
             if (!response.ok) throw new Error('Network response was not ok');
 
-            // CRITICAL FIX: Update badge immediately after successful add
-            // We await this to ensure the DOM updates before we finish
-            await Store.refreshCartCount();
-
-            // UI: Set Success State (Only if button was found)
+            // 4. Trigger UI Success (Only if button is found)
             if(btn) {
                 btn.innerHTML = '<i class="fas fa-check"></i> ADDED';
                 setTimeout(() => {
@@ -49,10 +48,13 @@ const Store = {
                 }, 2000);
             }
 
+            // 5. Update Badge (Runs regardless of button existence)
+            await Store.refreshCartCount();
+
         } catch (error) {
             console.error('Error adding to cart:', error);
             
-            // UI: Set Error State
+            // 6. Trigger UI Error (Only if button is found)
             if(btn) {
                 btn.innerHTML = 'ERROR';
                 setTimeout(() => {
@@ -83,7 +85,7 @@ const Store = {
     getCart: async () => {
         const sessionId = Store.getSessionId();
         try {
-            // Add timestamp to prevent caching
+            // ADDED: Timestamp to prevent browser caching of the badge number
             const res = await fetch(`/api/cart/${sessionId}?t=${Date.now()}`);
             const data = await res.json();
             return data.items || [];
