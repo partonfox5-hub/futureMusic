@@ -170,10 +170,9 @@
                         </div>
                     <% } %>
                 </div>
-            </div>
-            <!-- Game Skins Asset Collection -->
-            <div class="glass-card p-6 rounded-sm">
-                <h3 class="text-xl text-gold mb-6 border-b border-gray-800 pb-2 flex items-center gap-3">
+
+                <!-- MERGED: Owned Skins Section -->
+                <h3 class="text-xl text-gold mt-8 mb-6 border-b border-gray-800 pb-2 flex items-center gap-3">
                     <i class="fas fa-mask text-sm"></i> Owned Skins
                 </h3>
                 
@@ -208,6 +207,8 @@
                     <% } %>
                 </div>
             </div>
+
+
              <!-- Physical Order History -->
              <div class="glass-card p-6 rounded-sm">
                 <h3 class="text-xl text-gold mb-6 border-b border-gray-800 pb-2 flex items-center gap-3">
@@ -278,7 +279,7 @@
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.save();
             ctx.translate(canvas.width / 2, canvas.height / 2 + 10); // Center & shift down slightly
-            ctx.scale(2, 2); // Zoom in for visibility
+            ctx.scale(1.6, 1.6); // Zoom in for visibility
 
             // --- DRAWING LOGIC (Adapted from renderer.js) ---
             // Shared Styling
