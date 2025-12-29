@@ -356,36 +356,73 @@ app.post('/register', async (req, res) => {
 
 // 3. Handle Login
 app.post('/login', async (req, res) => {
-    const { email, password } = req.body;
-    
     try {
+        console.log("🟢 DEBUG: Login attempted for:", req.body.email);
+        
+        const { email, password } = req.body;
+        
         if (!pool) throw new Error("Database not connected");
 
+        // 1. Fetch User
+        // Note: We use pool.query here which returns [rows, fields]
         const [users] = await pool.query("SELECT * FROM users WHERE email = ?", [email]);
         
         if (users.length === 0) {
+            console.log("🟠 DEBUG: User not found in DB.");
             return res.send('<script>alert("Invalid email or password"); window.location.href="/login";</script>');
         }
 
         const user = users[0];
-                const match = await bcrypt.compare(password, user.password_hash);
+        
+        // 2. Validate Data before Bcrypt
+        console.log("🟢 DEBUG: User found. ID:", user.id);
+        
+        if (!password) throw new Error("Password field is missing from the request body.");
+        if (!user.password_hash) throw new Error("This user has no password_hash in the database. (Did you manually insert them?)");
 
+        // 3. Compare Password
+        console.log("🟢 DEBUG: Comparing password hash...");
+        const match = await bcrypt.compare(password, user.password_hash);
 
         if (match) {
+            console.log("🟢 DEBUG: Password match! Setting session...");
             req.session.userId = user.id;
             req.session.email = user.email;
             
             // --- FIX START ---
             const redirectUrl = req.session.returnTo || '/account';
             delete req.session.returnTo; // Clear it after use
+            
+            console.log("🟢 DEBUG: Redirecting to:", redirectUrl);
             res.redirect(redirectUrl);
             // --- FIX END ---
         } else {
+            console.log("🟠 DEBUG: Password mismatch.");
             res.send('<script>alert("Invalid email or password"); window.location.href="/login";</script>');
         }
-    } catch (err) {
-        console.error(err);
-        res.status(500).send("Login error");
+    } catch (loginErr) {
+        // --- NUCLEAR LOGGER FOR LOGIN ---
+        console.error("🔴 LOGIN CRASH:", loginErr);
+        
+        console.log(JSON.stringify({
+            severity: 'ERROR',
+            component: 'login_route',
+            message: "Login Route Failed",
+            error_message: loginErr.message,
+            stack_trace: loginErr.stack
+        }));
+
+        res.status(500).send(`
+            <div style="background: #000; color: #ff5555; padding: 40px; font-family: monospace;">
+                <h1>🛑 LOGIN FAILED</h1>
+                <p>The server crashed while trying to log you in.</p>
+                <hr style="border: 1px solid #333; margin: 20px 0;">
+                <h3 style="color: white;">Error Details:</h3>
+                <pre style="background: #111; padding: 15px; border: 1px solid #333;">${loginErr.message}</pre>
+                <h3 style="color: white;">Stack Trace:</h3>
+                <pre style="background: #111; padding: 15px; border: 1px solid #333; white-space: pre-wrap;">${loginErr.stack}</pre>
+            </div>
+        `);
     }
 });
 
