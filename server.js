@@ -1075,9 +1075,15 @@ app.post('/api/cart/add', async (req, res) => {
         res.json({ success: true });
 
     } catch (err) {
+        // Send the FULL error details to the browser so we can see it in Console
         console.error("Cart Add Error:", err);
         if (!res.headersSent) {
-             res.status(500).json({ error: 'Server error: ' + err.message });
+            res.status(500).json({ 
+                success: false,
+                error: err.message,
+                stack: err.stack, // This allows you to see the line number in browser
+                details: "Check your browser console > Network > Response to see this"
+            });
         }
     }
 });

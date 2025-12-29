@@ -90,7 +90,7 @@
                                     <select class="w-full bg-black/50 text-white text-xs border border-gray-600 rounded px-2 py-3 outline-none focus:border-[#D4AF37] size-selector" 
                                             id="size-select-<%= item.sku %>">
                                         <option value="" disabled selected>Select Size</option>
-                                        <% validSizes.forEach(size => { %>
+                                        <% cleanSizes.forEach(size => { %>
                                             <option value="<%= size %>"><%= size %></option>
                                         <% }); %>
                                     </select>
@@ -166,18 +166,20 @@
 
                     const data = await res.json();
                     
-                    if (data.success) {
+                        if (data.success) {
                         // Success Feedback
                         const originalText = btn.innerHTML;
                         btn.innerHTML = 'ADDED';
-                        btn.classList.add('bg-white', 'text-black'); // Visual flash
+                        btn.classList.add('bg-white', 'text-black');
                         
                         setTimeout(() => {
                             btn.innerHTML = originalText;
                             btn.classList.remove('bg-white', 'text-black');
                         }, 2000);
                     } else {
-                        alert('Error adding item.');
+                        // LOG THE SERVER ERROR TO CONSOLE
+                        console.error("SERVER ERROR DETAILS:", data);
+                        alert('Error: ' + (data.error || 'Unknown error'));
                     }
                 } catch (err) {
                     console.error('Add to cart failed:', err);
