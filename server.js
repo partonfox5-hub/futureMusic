@@ -1079,8 +1079,8 @@ app.post('/api/cart', async (req, res) => {
                 await query("INSERT INTO cart_items (session_id, product_sku, quantity, size) VALUES (?, ?, ?, ?)", [sessionId, sku, quantity || 1, storedSize]);
             }
             // CHANGED: Fetch new count and return it
-const [countRows] = await query("SELECT SUM(quantity) as count FROM cart_items WHERE session_id = ?", [sessionId]);
-const newCount = countRows[0].count ? parseInt(countRows[0].count) : 0;
+const countResult = await query("SELECT SUM(quantity) as count FROM cart_items WHERE session_id = ?", [sessionId]);
+const newCount = (countResult.rows && countResult.rows[0].count) ? parseInt(countResult.rows[0].count) : 0;
 return res.json({ success: true, newCount });
         } catch (err) { return res.status(500).json({ error: 'Database error: ' + err.message }); }
     } else {
@@ -1228,8 +1228,21 @@ app.post('/api/cart/add', async (req, res) => {
         }
         
         // 6. Success Response
-        console.log(`✅ Added ${sku} (Size: ${finalSize}) to cart for session ${sessionId}`);
-        res.json({ success: true });
+        // --- ADDED: Calculate New Count for Instant Badge Update ---
+        let newCount = 0;
+        if (pool) {
+            try {
+               const [cRows] = await pool.query("SELECT SUM(quantity) as count FROM cart_items WHERE session_id = ?", [sessionId]);
+               if(cRows.length > 0) newCount = parseInt(cRows[0].count || 0);
+            } catch(e) {}
+        } else {
+            // Memory fallback count
+            const cart = memoryCarts[sessionId] || [];
+            newCount = cart.reduce((acc, item) => acc + item.quantity, 0);
+        }
+
+        console.log(`✅ Added ${sku} (Size: ${finalSize}) to cart for session ${sessionId}. New Count: ${newCount}`);
+        res.json({ success: true, newCount: newCount });
 
     } catch (err) {
         // 7. CATASTROPHIC ERROR HANDLER

@@ -123,16 +123,25 @@ const storeSessionId = localStorage.getItem('sessionId') || cookieSid || '';
             });
             const data = await res.json();
             
-            if (data.success) {
+                     if (data.success) {
                 // Visual Feedback
                 const originalText = btn.innerHTML;
                 btn.innerHTML = '<i class="fas fa-check"></i> ADDED';
                 btn.classList.add('bg-[#D4AF37]', 'text-black');
+                
+                // --- FIX: Update Cart Badge Instantly ---
+                if (data.newCount !== undefined) {
+                    const badge = document.getElementById('cart-count');
+                    if (badge) {
+                        badge.innerText = data.newCount;
+                        badge.classList.remove('hidden');
+                    }
+                }
+                // ----------------------------------------
+
                 setTimeout(() => {
                     btn.innerHTML = originalText;
                     btn.classList.remove('bg-[#D4AF37]', 'text-black');
-                    // Refresh cart count if you have a function for it
-                    if (window.updateCartCount) window.updateCartCount(); 
                 }, 2000);
             } else {
                 alert('Error adding to manifest');

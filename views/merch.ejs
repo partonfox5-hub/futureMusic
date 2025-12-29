@@ -167,12 +167,22 @@
 
                     const data = await res.json();
                     
-                        if (data.success) {
+                                      if (data.success) {
                         // Success Feedback
                         const originalText = btn.innerHTML;
                         btn.innerHTML = 'ADDED';
                         btn.classList.add('bg-white', 'text-black');
                         
+                        // --- FIX: Update Cart Badge Instantly ---
+                        if (data.newCount !== undefined) {
+                            const badge = document.getElementById('cart-count');
+                            if (badge) {
+                                badge.innerText = data.newCount;
+                                badge.classList.remove('hidden');
+                            }
+                        }
+                        // ----------------------------------------
+
                         setTimeout(() => {
                             btn.innerHTML = originalText;
                             btn.classList.remove('bg-white', 'text-black');
