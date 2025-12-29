@@ -431,13 +431,18 @@ app.get('/account', requireAuth, async (req, res) => {
 
                 // FIX 2: Fetch Cart Count (Required by Header)
                 // We assume cart is tracked by sessionID just like in the /merch route logic
-                const [cartRows] = await pool.query(
-                    "SELECT SUM(quantity) as count FROM cart_items WHERE session_id = ?", 
-                    [req.sessionID]
-                );
-                if (cartRows && cartRows.length > 0 && cartRows[0].count) {
-                    cartCount = parseInt(cartRows[0].count);
-                }
+// Ensure sessionID exists, otherwise fallback to empty string to prevent SQL crash
+const currentSessionId = req.sessionID || ''; 
+
+const [cartRows] = await pool.query(
+    "SELECT SUM(quantity) as count FROM cart_items WHERE session_id = ?", 
+    [currentSessionId]
+);
+
+// Safer check for the count
+if (cartRows && cartRows.length > 0 && cartRows[0].count != null) {
+    cartCount = parseInt(cartRows[0].count);
+}
 
                 // Fetch Digital Assets
                 const [dAssets] = await pool.query(`
@@ -462,16 +467,17 @@ app.get('/account', requireAuth, async (req, res) => {
                 mySkins = Array.isArray(skinResults) ? skinResults : [];
                 
                 // Color Logic for Skins
-                for (let skin of mySkins) {
-                    if (!skin.frame_color) {
-                        const randomColor = '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
-                        skin.frame_color = randomColor;
-                        if (skin.id) {
-                            // Don't await this, let it happen in background to prevent page load lag
-                            pool.query("UPDATE user_skins SET frame_color = ? WHERE id = ?", [randomColor, skin.id]).catch(e => console.error(e));
-                        }
-                    }
-                }
+for (let skin of mySkins) {
+    if (!skin.frame_color) {
+        const randomColor = '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
+        skin.frame_color = randomColor;
+        
+        // Only attempt DB update if skin.id exists
+        if (skin.id) {
+            pool.query("UPDATE user_skins SET frame_color = ? WHERE id = ?", [randomColor, skin.id]).catch(e => console.error("Skin update failed (non-critical):", e.message));
+        }
+    }
+}
 
             } catch (dbErr) {
                 console.error("⚠️ Account DB Fetch Error:", dbErr.message);
