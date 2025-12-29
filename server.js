@@ -470,18 +470,27 @@ app.get('/account', requireAuth, async (req, res) => {
 
     // 3. Render Page
     // Since we initialized empty variables at the top, this will ALWAYS succeed.
-    try {
+   try {
         res.render('account', { 
             title: 'Command Center', 
             user: user, 
             digitalAssets: digitalAssets,
             physicalOrders: physicalOrders,
             gameSkins: mySkins,
-            cartCount: cartCount
+            cartCount: cartCount,
+            // --- FIXES START: Variables required by Header/Footer ---
+            path: req.path,          // Fixes "Active Link" logic in header
+            query: req.query,        // Fixes "Search Bar" logic in header
+            dbStatus: dbConnectionStatus || 'UNKNOWN', // Fixes debug banners
+            // --- FIXES END ---
         });
     } catch (renderErr) {
-        console.error("❌ Account Render Error:", renderErr);
-        res.status(500).send("Error loading Command Center interface.");
+        console.error("❌ Account Render Error (Check your Partials):", renderErr);
+        res.status(500).send(`
+            <h1>Interface Error</h1>
+            <p>The Command Center failed to load. Please check your server console for the exact error.</p>
+            <pre>${renderErr.message}</pre>
+        `);
     }
 });
 
