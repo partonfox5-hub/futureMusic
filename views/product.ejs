@@ -24,135 +24,121 @@
                 </span>
             </div>
 
-            <h1 class="text-5xl md:text-6xl text-[#D4AF37] brand-font mb-4 leading-tight"><%= product.name %></h1>
-            <p class="text-2xl text-gray-300 font-light mb-8 font-mono">$<%= product.price %></p>
+            <h1 class="text-4xl md:text-5xl font-black text-[#D4AF37] mb-4 brand-font"><%= product.name %></h1>
             
-            <div class="prose prose-invert text-gray-400 mb-8 max-w-none">
-                <p><%= product.description %></p>
+            <div class="text-2xl text-white font-bold mb-6">$<%= Number(product.price).toFixed(2) %></div>
+
+            <!-- Changed to <%- %> to render HTML tags properly -->
+            <div class="text-gray-300 leading-relaxed mb-8 text-lg border-l-2 border-[#D4AF37]/50 pl-4 prose prose-invert">
+                <%- product.description %>
             </div>
 
-            <!-- Size Selector (Conditional) -->
-            <% 
-                // Logic to safely parse sizes and ensure we have a valid list
-                let availableSizes = [];
-                if (product.sizes && typeof product.sizes === 'string') {
-                    availableSizes = product.sizes.split(',').map(s => s.trim()).filter(s => s !== '');
-                }
-            %>
-
-            <% if (availableSizes.length > 0) { %>
+<!-- SIZE SELECTION UI -->
+<% if (product.sizes && product.sizes.length > 0) { %>
                 <div class="mb-6">
-                    <label for="size" class="text-[10px] uppercase text-[#D4AF37] tracking-widest font-bold mb-2 block">Select Size</label>
-                    <select id="size" name="size" class="w-full bg-black/50 text-white border border-gray-700 rounded p-3 focus:border-[#D4AF37] outline-none transition-colors">
-                        <% availableSizes.forEach(function(size) { %>
-                            <option value="<%= size %>"><%= size %></option>
+                    <h3 class="text-[#D4AF37] text-xs font-bold uppercase tracking-widest mb-3">Select Size</h3>
+                    <div class="flex flex-wrap gap-2" id="size-selector-container">
+                        <% product.sizes.forEach((size, i) => { %>
+                            <label class="cursor-pointer group">
+                                <input type="radio" name="selected_size" value="<%= size %>" class="peer sr-only" <%= i === 0 ? 'checked' : '' %>>
+                                <span class="block px-4 py-3 border border-gray-700 bg-black/50 text-gray-400 
+                                             peer-checked:bg-[#D4AF37] peer-checked:text-black peer-checked:border-[#D4AF37] 
+                                             peer-checked:font-bold
+                                             group-hover:border-[#D4AF37]/50 
+                                             transition-all text-sm uppercase">
+                                    <%= size %>
+                                </span>
+                            </label>
                         <% }); %>
-                    </select>
+                    </div>
+                    <p id="size-error-msg" class="text-red-500 text-xs mt-2 hidden"><i class="fas fa-exclamation-circle"></i> Please select a size option.</p>
                 </div>
             <% } %>
-
-            <!-- Add to Cart Button -->
-            <button 
-                id="addToCartMain"
-                class="w-full py-4 bg-[#D4AF37] hover:bg-[#D4AF37]/90 text-black font-bold text-lg uppercase tracking-widest transition-all duration-300 transform hover:-translate-y-1 shadow-[0_0_20px_rgba(212,175,55,0.3)] flex items-center justify-center gap-3 mb-6"
-                data-sku="<%= product.sku %>"
-            >
-                <span>Initialize Acquisition</span>
-                <i class="fas fa-arrow-right"></i>
+            <!-- END SIZE SELECTION -->
+            <!-- Add to Cart Action -->
+            <button class="w-full btn-gold py-4 text-xl font-bold shadow-[0_0_20px_rgba(212,175,55,0.3)] hover:shadow-[0_0_30px_rgba(212,175,55,0.5)] flex items-center justify-center gap-3 add-to-cart-btn"
+                data-id="<%= product.sku %>"
+                data-name="<%= product.name %>"
+                id="addToCartMain">
+                <i class="fas fa-cart-plus"></i> ADD TO MANIFEST
             </button>
 
-            <!-- Metadata / Specs -->
-            <div class="border-t border-gray-800 pt-6 grid grid-cols-2 gap-4 text-xs font-mono text-gray-500">
-                <div>
-                    <span class="block uppercase tracking-wider mb-1">SKU</span>
-                    <span class="text-white"><%= product.sku %></span>
-                </div>
-                <div>
-                    <span class="block uppercase tracking-wider mb-1">Availability</span>
-                    <span class="text-white">
-                        <% if (product.stock_quantity > 0) { %>
-                            IN STOCK (<%= product.stock_quantity %>)
-                        <% } else { %>
-                            OUT OF STOCK
-                        <% } %>
-                    </span>
-                </div>
-            </div>
+            <a href="/merch" class="block text-center mt-6 text-gray-500 hover:text-[#D4AF37] transition-colors text-sm uppercase tracking-widest">
+                <i class="fas fa-arrow-left mr-2"></i> Return to Supply
+            </a>
         </div>
     </div>
 
 </section>
 
-<%- include('partials/footer') %>
-
+<script src="/js/store.js"></script>
 <script>
-    const mainBtn = document.getElementById('addToCartMain');
-    
-    if (mainBtn) {
-        mainBtn.addEventListener('click', async (e) => {
-            e.preventDefault();
-            
-            const btn = e.target.closest('button');
-            const sku = btn.dataset.sku;
-            
-            // CHANGED: Safe check for size element (it might not exist for digital items)
-            const sizeElement = document.getElementById('size');
-            const size = sizeElement ? sizeElement.value : null;
+    // Custom logic to grab the selected size
+document.getElementById('addToCartMain').addEventListener('click', async (e) => {
+        e.stopPropagation();
+        e.preventDefault();
 
-            // 1. Prepare Data
-            let cookieSid = document.cookie.match(/connect.sid=([^;]+)/)?.[1];
-            if (cookieSid) {
-                cookieSid = decodeURIComponent(cookieSid).split('.')[0].slice(2);
-            }
-            const storeSessionId = localStorage.getItem('sessionId') || cookieSid || '';
-            const payload = { sku, size, sessionId: storeSessionId };
+        const btn = e.target.closest('button');
+        const sku = btn.dataset.id;
+        
+        // 1. Check for Size
+        let size = null;
+        const sizeOptions = document.querySelectorAll('input[name="selected_size"]');
+        const selectedOption = document.querySelector('input[name="selected_size"]:checked');
 
-            // 2. Visual Feedback (Loading)
-            const originalText = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> PROCESSING...';
-            btn.disabled = true;
-
-            // 3. Send to Server
-            try {
-                const res = await fetch('/api/cart/add', {
-                    method: 'POST',
-                    credentials: 'include',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                const data = await res.json();
+        // VALIDATION: If sizes exist but none checked, STOP.
+        if (sizeOptions.length > 0) {
+            if (!selectedOption) {
+                // Show error message and shake animation
+                const errorMsg = document.getElementById('size-error-msg');
+                if(errorMsg) errorMsg.classList.remove('hidden');
                 
-                if (data.success) {
-                    // Visual Feedback (Success)
-                    btn.innerHTML = '<i class="fas fa-check"></i> ADDED';
-                    btn.classList.remove('bg-[#D4AF37]', 'text-black');
-                    btn.classList.add('bg-green-500', 'text-white');
-                    
-                    // Update Cart Count
-                    const badge = document.getElementById('cart-count');
-                    if (badge) {
-                        let currentCount = parseInt(badge.innerText) || 0;
-                        badge.innerText = currentCount + 1;
-                        badge.classList.remove('hidden');
-                    }
-
-                    setTimeout(() => {
-                        btn.innerHTML = originalText;
-                        btn.classList.add('bg-[#D4AF37]', 'text-black');
-                        btn.classList.remove('bg-green-500', 'text-white');
-                        btn.disabled = false;
-                    }, 2000);
-                } else {
-                    alert('Error: ' + (data.error || 'Could not add item'));
-                    btn.innerHTML = originalText;
-                    btn.disabled = false;
-                }
-            } catch (err) {
-                console.error(err);
-                alert('Connection Error');
-                btn.innerHTML = originalText;
-                btn.disabled = false;
+                // Optional: Scroll to size selector
+                document.getElementById('size-selector-container').scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return; // <--- CRITICAL: Stops the function here
+            } else {
+                size = selectedOption.value;
+                // Hide error if previously shown
+                const errorMsg = document.getElementById('size-error-msg');
+                if(errorMsg) errorMsg.classList.add('hidden');
             }
-        });
-    }
+        }
+
+        // 2. Prepare Data
+        let cookieSid = document.cookie.match(/connect.sid=([^;]+)/)?.[1];
+if (cookieSid) {
+    cookieSid = decodeURIComponent(cookieSid).split('.')[0].slice(2);
+}
+const storeSessionId = localStorage.getItem('sessionId') || cookieSid || '';
+        const payload = { sku, size, sessionId: storeSessionId };
+
+        // 3. Send to Server
+        try {
+            const res = await fetch('/api/cart/add', {
+                method: 'POST',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            
+            if (data.success) {
+                // Visual Feedback
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-check"></i> ADDED';
+                btn.classList.add('bg-[#D4AF37]', 'text-black');
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.classList.remove('bg-[#D4AF37]', 'text-black');
+                    // Refresh cart count if you have a function for it
+                    if (window.updateCartCount) window.updateCartCount(); 
+                }, 2000);
+            } else {
+                alert('Error adding to manifest');
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    });
 </script>
+<%- include('partials/footer') %>
