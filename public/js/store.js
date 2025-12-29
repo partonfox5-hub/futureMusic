@@ -28,6 +28,16 @@ window.Store = {
             btn.disabled = true;
         }
 
+        // --- OPTIMISTIC UPDATE START ---
+        // Immediately increment the counter so the user sees feedback instantly
+        const badge = document.getElementById('cart-count');
+        if (badge) {
+            let currentCount = parseInt(badge.innerText) || 0;
+            badge.innerText = currentCount + 1;
+            badge.classList.remove('hidden');
+        }
+        // --- OPTIMISTIC UPDATE END ---
+
         try {
             // 3. Perform API Call (Runs regardless of button existence)
             // MOVED OUTSIDE the if(btn) block
@@ -53,6 +63,9 @@ window.Store = {
 
         } catch (error) {
             console.error('Error adding to cart:', error);
+            
+            // ROLLBACK: If it failed, fetch the real count from server to correct the optimistic update
+            Store.refreshCartCount(); 
             
             // 6. Trigger UI Error (Only if button is found)
             if(btn) {
