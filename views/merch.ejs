@@ -84,7 +84,8 @@
     // Fix: Ensure strict array check and string type to prevent empty selectors
     const validSizes = (Array.isArray(item.sizes) ? item.sizes : []).filter(s => typeof s === 'string' && s.trim().length > 0);
 %>
-<% if (validSizes.length > 0) { %>
+<% if (validSizes.length > 0 && item.type !== 'digital') { %>
+
     <!-- Size Selector & Add Button -->
     <div class="flex flex-col gap-2">
         <select class="w-full bg-black/50 text-white text-xs border border-gray-600 rounded px-2 py-3 outline-none focus:border-[#D4AF37] size-selector" 

@@ -34,7 +34,8 @@
             </div>
 
 <!-- SIZE SELECTION UI -->
-<% if (product.sizes && product.sizes.length > 0) { %>
+<% if (product.sizes && product.sizes.length > 0 && product.type !== 'digital') { %>
+
                 <div class="mb-6">
                     <h3 class="text-[#D4AF37] text-xs font-bold uppercase tracking-widest mb-3">Select Size</h3>
                     <div class="flex flex-wrap gap-2" id="size-selector-container">
