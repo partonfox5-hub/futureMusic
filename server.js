@@ -620,22 +620,38 @@ app.get('/account', requireAuth, async (req, res) => {
 
 // --- NEW ACCOUNT ACTION ROUTES ---
 
-// Change Email
+// Change Email (Robust Version)
 app.post('/account/update-email', requireAuth, async (req, res) => {
     const { newEmail } = req.body;
     if (!newEmail) return res.redirect('/account');
     
     try {
         if(pool) {
+            // 1. Check if email is already taken by another user
+            const [existing] = await pool.query("SELECT id FROM users WHERE email = ? AND id != ?", [newEmail, req.session.userId]);
+            if (existing.length > 0) {
+                 return res.send('<script>alert("That email address is already in use."); window.location.href="/account";</script>');
+            }
+
+            // 2. Perform Update
             await pool.query("UPDATE users SET email = ? WHERE id = ?", [newEmail, req.session.userId]);
-            req.session.email = newEmail; // Update session
+            req.session.email = newEmail; 
+            
+            // 3. Force Session Save (Fixes the "not logged in" glitch after update)
+            req.session.save((err) => {
+                if (err) console.error("Session save error", err);
+                res.send('<script>alert("Email updated successfully."); window.location.href="/account";</script>');
+            });
+            return;
         }
         res.redirect('/account');
     } catch (err) {
         console.error("Update email error:", err);
-        res.status(500).send("Error updating email.");
+        // Keep user in the flow instead of showing a white error page
+        res.send('<script>alert("Error updating email. Please try again."); window.location.href="/account";</script>');
     }
 });
+
 
 // Reset (Change) Password
 app.post('/account/update-password', requireAuth, async (req, res) => {
