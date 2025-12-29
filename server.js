@@ -29,6 +29,17 @@ app.use(cors({
     credentials: true
 }));
 
+// --- FIX START: Body Parsers & Logging ---
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Log every request to console (Visible in Google Cloud Logs)
+app.use((req, res, next) => {
+    console.log(`[REQUEST] ${req.method} ${req.path}`);
+    next();
+});
+// --- FIX END ---
+
 const path = require('path');
 const fs = require('fs'); 
 const http = require('http'); 
@@ -1364,6 +1375,18 @@ app.post('/webhook', express.raw({type: 'application/json'}), async (request, re
   }
   response.json({received: true});
 });
+
+// --- FIX START: Global Error Handler ---
+app.use((err, req, res, next) => {
+    console.error("!!! SERVER ERROR !!!");
+    console.error(err.stack); // This prints the specific error line to logs
+    res.status(500).send(`
+        <h1>Internal Server Error</h1>
+        <p>The server encountered an error:</p>
+        <pre>${err.message}</pre>
+    `);
+});
+// --- FIX END ---
 
 app.use((req, res, next) => res.status(404).render('404', { title: 'Signal Lost' }));
 
