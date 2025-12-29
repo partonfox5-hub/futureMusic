@@ -1,4 +1,4 @@
-const Store = {
+window.Store = {
     // Generate or retrieve a persistent session ID
     getSessionId: () => {
         // CHANGED: Use 'sessionId' to match product.ejs and merch.ejs
@@ -74,7 +74,10 @@ const Store = {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ sessionId, sku, size: size || '' })
             });
-            if (window.renderCartPage) window.renderCartPage();
+            
+            // Added 'await' to ensure the list rebuilds before we update the badge
+            if (window.renderCartPage) await window.renderCartPage();
+            
             Store.refreshCartCount();
         } catch (error) {
             console.error('Error removing item:', error);
@@ -155,7 +158,8 @@ window.renderCartPage = async () => {
                 </div>
                 <div class="flex items-center gap-4">
                     <span class="text-gray-500 text-sm">Qty: ${item.quantity}</span>
-                    <button onclick="Store.remove('${item.sku}', '${item.size || ''}')" class="text-gray-500 hover:text-red-500 transition-colors">
+                    <!-- Replaced the button line below to handle quotes safely -->
+                    <button onclick="Store.remove('${item.sku.replace(/'/g, "\\'")}', '${(item.size || '').replace(/'/g, "\\'")}')" class="text-gray-500 hover:text-red-500 transition-colors">
                         <i class="fas fa-trash"></i>
                     </button>
                 </div>
