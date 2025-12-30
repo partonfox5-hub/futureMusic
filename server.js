@@ -1536,60 +1536,59 @@ app.use((err, req, res, next) => {
 });
 // --- FIX END ---
 
-// --- NEW CODE: Secure Download Endpoint ---
 app.get('/api/download/:sku', async (req, res, next) => {
-    try {
-        const { sku } = req.params;
-        const userId = req.session.userId; // <--- FIX: Use session userId
+    // 1. SETUP: Logging & Variables
+    console.log(`[DOWNLOAD] Request received for SKU: ${req.params.sku}`);
+    const { sku } = req.params;
+    const userId = req.session.userId;
+    // Use ENV bucket if available, otherwise fallback to your hardcoded default
+    const targetBucket = process.env.GCS_BUCKET_NAME || 'futuremusic-digital-assets';
 
+    try {
+        // 2. AUTH CHECK
         if (!userId) {
+            console.log(`[DOWNLOAD] Blocked: User not logged in.`);
             return res.status(401).send('Please log in to download assets.');
         }
 
-        // 1. Verify Ownership
-        // Robust check: matches if Order has the SKU OR if Order description matches Product Name
+        if (!pool) throw new Error("Database connection is offline.");
+
+        // 3. OWNERSHIP CHECK (Simplified Logic)
+        // Check if there is an order for this User ID that matches the SKU
+        // OR matches the Product Name (legacy support)
         const [orders] = await pool.query(`
             SELECT o.id 
             FROM orders o
-            JOIN products p ON p.sku = ?
+            LEFT JOIN products p ON p.sku = ?
             WHERE o.user_id = ? 
             AND (
                 o.product_sku = ? 
                 OR 
-                o.description = p.name
+                (p.name IS NOT NULL AND o.description = p.name)
             )
+            LIMIT 1
         `, [sku, userId, sku]);
 
         if (orders.length === 0) {
+            console.log(`[DOWNLOAD] Blocked: No purchase found for User ${userId} / SKU ${sku}`);
             return res.status(403).send('You have not purchased this item.');
         }
 
-        // 2. Verify purchase and get Filename from Database
-        let fileName;
+        // 4. GET FILENAME
+        const [products] = await pool.query('SELECT download_reference FROM products WHERE sku = ?', [sku]);
         
-        try {
-            // Query the products table using the SKU from the URL (e.g., muqe8UR05IM)
-            // We specifically ask for the 'download_reference' column (the actual filename)
-            const [products] = await pool.query(
-                'SELECT download_reference FROM products WHERE sku = ?', 
-                [sku]
-            );
-
-            // SAFETY CHECK: Ensure we found a row AND the download_reference column is not empty
-            if (products && products.length > 0 && products[0].download_reference) {
-                fileName = products[0].download_reference;
-            } else {
-                console.error(`Product found for SKU ${sku}, but 'download_reference' is missing/empty.`);
-                return res.status(404).send('File mapping missing in database.');
-            }
-
-        } catch (dbError) {
-            console.error(`Database Error for SKU ${sku}:`, dbError);
-            return res.status(500).send('Database lookup failed.');
+        // Safety check: Does the product exist and have a filename?
+        if (!products.length || !products[0].download_reference) {
+            console.error(`[DOWNLOAD] Data Error: Product SKU ${sku} exists, but 'download_reference' is empty.`);
+            return res.status(404).send('Asset file mapping is missing in the database.');
         }
 
+        const fileName = products[0].download_reference;
+        const filePath = `songs/${fileName}`;
 
-        // 3. Generate Signed URL (valid for 15 minutes)
+        console.log(`[DOWNLOAD] Attempting to sign URL for: gs://${targetBucket}/${filePath}`);
+
+        // 5. GENERATE SIGNED URL
         const options = {
             version: 'v4',
             action: 'read',
@@ -1597,16 +1596,26 @@ app.get('/api/download/:sku', async (req, res, next) => {
         };
 
         const [url] = await storage
-            .bucket(bucketName)
-            .file(`songs/${fileName}`) 
+            .bucket(targetBucket)
+            .file(filePath)
             .getSignedUrl(options);
 
-        // 4. Redirect user to the secure Google Cloud link
+        // 6. SUCCESS
+        console.log(`[DOWNLOAD] Success. Redirecting user.`);
         res.redirect(url);
 
     } catch (error) {
-        console.error('DOWNLOAD ERROR:', error); // Log specific error details to console
-        next(error);
+        // 7. SPECIFIC ERROR LOGGING
+        console.error('*** CRITICAL DOWNLOAD ERROR ***');
+        console.error('Message:', error.message);
+        
+        // Check for common Signing errors
+        if (error.message.includes('SigningError') || error.message.includes('credential')) {
+            console.error('HINT: This is likely a permissions issue. If Local: Uncomment "keyFilename". If Cloud: Ensure Service Account has "Token Creator" role.');
+        }
+
+        // Pass to global handler or show user simple message
+        res.status(500).send(`Server Error: ${error.message}`);
     }
 });
 
