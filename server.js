@@ -733,18 +733,11 @@ app.post('/account/message', requireAuth, async (req, res) => {
     try {
         if (!pool) throw new Error("DB Offline");
 
-        // 1. Check if user already has a message sent
+        // 1. Check if user already has a message sent (extra security, though UI disables it too)
         const [users] = await pool.query("SELECT private_message FROM users WHERE id = ?", [req.session.userId]);
         if (users[0] && users[0].private_message) {
              return res.send('<script>alert("You have already transmitted your one message."); window.location.href="/account";</script>');
         }
-
-        // --- NEW SECURITY: Check for at least one order ---
-        const [orders] = await pool.query("SELECT id FROM orders WHERE user_id = ? LIMIT 1", [req.session.userId]);
-        if (orders.length === 0) {
-            return res.send('<script>alert("Access Denied: You must make at least one purchase to use this frequency."); window.location.href="/account";</script>');
-        }
-        // --------------------------------------------------
 
         // 2. Update
         await pool.query("UPDATE users SET private_message = ? WHERE id = ?", [message, req.session.userId]);
