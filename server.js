@@ -1564,18 +1564,30 @@ app.get('/api/download/:sku', async (req, res, next) => {
             return res.status(403).send('You have not purchased this item.');
         }
 
-        // 2. Get the File Reference
-        const [products] = await pool.query(
-            'SELECT download_reference FROM products WHERE sku = ?', 
-            [sku]
-        );
+        // 2. Verify purchase and get Filename from Database
+        let fileName;
+        
+        try {
+            // Query the products table using the SKU from the URL (e.g., muqe8UR05IM)
+            // We specifically ask for the 'download_reference' column (the actual filename)
+            const [products] = await pool.query(
+                'SELECT download_reference FROM products WHERE sku = ?', 
+                [sku]
+            );
 
-        if (!products || products.length === 0 || !products[0].download_reference) {
-            console.error(`File lookup failed for SKU: ${sku}`);
-            return res.status(404).send('Download file not found in database.');
+            // SAFETY CHECK: Ensure we found a row AND the download_reference column is not empty
+            if (products && products.length > 0 && products[0].download_reference) {
+                fileName = products[0].download_reference;
+            } else {
+                console.error(`Product found for SKU ${sku}, but 'download_reference' is missing/empty.`);
+                return res.status(404).send('File mapping missing in database.');
+            }
+
+        } catch (dbError) {
+            console.error(`Database Error for SKU ${sku}:`, dbError);
+            return res.status(500).send('Database lookup failed.');
         }
 
-        const fileName = products[0].download_reference;
 
         // 3. Generate Signed URL (valid for 15 minutes)
         const options = {
