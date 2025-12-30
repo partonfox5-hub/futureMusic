@@ -58,7 +58,16 @@
             </div>
                 <div>
                     <label for="reg-password" class="sr-only">Password</label>
-                    <input id="reg-password" name="password" type="password" required class="appearance-none rounded-none relative block w-full px-3 py-3 border border-gray-700 bg-gray-900 text-white placeholder-gray-500 focus:outline-none focus:ring-[#D4AF37] focus:border-[#D4AF37] focus:z-10 sm:text-sm" placeholder="Password">
+                    <div>
+    <label for="reg-password" class="sr-only">Password</label>
+    <!-- UPDATED: Added pattern, title, and minlength for security -->
+    <input id="reg-password" name="password" type="password" required 
+        minlength="8"
+        pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}"
+        title="Must contain at least one number and one uppercase and lowercase letter, and at least 8 or more characters"
+        class="appearance-none rounded-none relative block w-full px-3 py-3 border border-gray-700 bg-gray-900 text-white placeholder-gray-500 focus:outline-none focus:ring-[#D4AF37] focus:border-[#D4AF37] focus:z-10 sm:text-sm" 
+        placeholder="Password (Min 8 chars, 1 Upper, 1 Lower, 1 Number)">
+</div>
                 </div>
                 <div>
                     <label for="reg-confirm" class="sr-only">Confirm Password</label>
@@ -76,6 +85,23 @@
 </div>
 
 <script>
+    // --- NEW: Validate Passwords Match on Submit ---
+    document.addEventListener('DOMContentLoaded', () => {
+        const regForm = document.getElementById('register-form');
+        if (regForm) {
+            regForm.addEventListener('submit', function(e) {
+                const password = document.getElementById('reg-password').value;
+                const confirm = document.getElementById('reg-confirm').value;
+                
+                if (password !== confirm) {
+                    e.preventDefault(); // Stop submission
+                    alert("Security Alert: Passwords do not match.");
+                }
+            });
+        }
+    });
+    // -----------------------------------------------
+
     function toggleForm(type) {
         const loginForm = document.getElementById('login-form');
         const regForm = document.getElementById('register-form');

@@ -350,13 +350,25 @@ app.get('/login', (req, res) => {
 
 // 2. Handle Registration
 app.post('/register', async (req, res) => {
-    // 1. Only extract email and password (we ignore the username field from the form)
-    const { email, password } = req.body;
+    // 1. Extract email, password, AND confirmPassword
+    const { email, password, confirmPassword } = req.body;
 
     // 2. Validate existence
     if (!email || !password) {
         return res.status(400).send('Please provide both an email and password.');
     }
+
+    // --- NEW SECURITY: Strict Password Validation ---
+    if (password !== confirmPassword) {
+        return res.status(400).send('Error: Passwords do not match.');
+    }
+
+    // Regex: At least 8 chars, 1 uppercase, 1 lowercase, 1 number
+    const passwordRegex = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}$/;
+    if (!passwordRegex.test(password)) {
+        return res.status(400).send('Error: Password must be at least 8 characters long and contain at least one number, one uppercase letter, and one lowercase letter.');
+    }
+    // ------------------------------------------------
 
     if (pool) {
         try {
@@ -1372,10 +1384,12 @@ app.post('/api/game/register', async (req, res) => {
     const { email, password } = req.body;
     if (!email || !password) return res.json({ success: false, message: "Missing credentials" });
 
-        // --- ADD THIS BLOCK ---
-    if (password.length < 8) return res.json({ success: false, message: "Password must be at least 8 characters" });
-    // ----------------------
-
+    // --- UPDATED SECURITY BLOCK ---
+    const passwordRegex = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}$/;
+    if (!passwordRegex.test(password)) {
+        return res.json({ success: false, message: "Password too weak: Must be 8+ chars with 1 Upper, 1 Lower, and 1 Number." });
+    }
+    // ------------------------------
     if (pool) {
         try {
             // Check if exists
