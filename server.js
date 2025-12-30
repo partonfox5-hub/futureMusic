@@ -374,7 +374,12 @@ app.post('/register', async (req, res) => {
         try {
             // 3. DATABASE FIX: Use the email as the username
             // This satisfies the database requirement for a 'username' column automatically.
-           
+                       // --- NEW: Check if email exists ---
+            const [existingUser] = await pool.query("SELECT id FROM users WHERE email = ?", [email]);
+            if (existingUser.length > 0) {
+                 return res.send('<script>alert("That email is already registered. Please sign in."); window.location.href="/login";</script>');
+            }
+            // ----------------------------------
 
             // 4. Hash the password
             const hashedPassword = await bcrypt.hash(password, 10);
