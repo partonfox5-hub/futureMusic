@@ -1,6 +1,17 @@
 const express = require('express');
 const app = express();
+// --- FIX START: Global Crash Handlers ---
+process.on('uncaughtException', (err) => {
+    console.error('CRITICAL ERROR: Uncaught Exception:', err);
+    console.error(err.stack);
+    process.exit(1); // Force exit so Cloud Run restarts it
+});
 
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('CRITICAL ERROR: Unhandled Rejection at:', promise, 'reason:', reason);
+    process.exit(1);
+});
+// --- FIX END ---
 // --- NEW CODE: Google Cloud Storage Setup ---
 const { Storage } = require('@google-cloud/storage');
 // If on Cloud Run, no keyFilename needed (uses default credentials). 
@@ -1579,5 +1590,15 @@ app.get('/api/download/:sku', async (req, res, next) => {
 
 app.use((req, res, next) => res.status(404).render('404', { title: 'Signal Lost' }));
 
-const PORT = process.env.PORT || 8080;
-app.listen(PORT, () => console.log(`Server is running on port ${PORT}`));
+const PORT = parseInt(process.env.PORT) || 8080;
+const server = app.listen(PORT, '0.0.0.0', () => {
+    console.log(`✅ Server successfully started on port ${PORT}`);
+});
+
+server.on('error', (e) => {
+    if (e.code === 'EADDRINUSE') {
+        console.error('❌ Port is already in use!');
+    } else {
+        console.error('❌ Server failed to start:', e);
+    }
+});
