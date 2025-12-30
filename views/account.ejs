@@ -130,24 +130,39 @@
                 </h3>
                 
  <!-- Digital Assets Loop -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
                      <% if (typeof digitalAssets !== 'undefined' && digitalAssets.length > 0) { %>
                         <% digitalAssets.forEach(function(asset) { %>
-                            <!-- NEW DIGITAL FREQUENCY CARD STYLE -->
-                            <div class="bg-black/40 border border-gray-800 p-4 rounded flex flex-col justify-between hover:border-gold/30 transition-all duration-300">
-                                <div class="mb-3">
-                                    <!-- Use asset.name if available, fallback to description or default -->
-                                    <h4 class="text-gold font-bold truncate pr-4 text-sm">
-                                        <%= asset.name || asset.description || 'Digital Frequency' %>
-                                    </h4>
-                                    <p class="text-[10px] text-gray-500 font-mono">MP3 • 320KBPS</p>
-                                </div>
+                            <!-- Ornate Digital Asset Card (Matches Skins) -->
+                            <div class="relative bg-black/40 p-3 rounded border transition-transform hover:scale-105 group" 
+                                 style="border-color: #D4AF37; border-width: 1px; box-shadow: 0 0 10px rgba(212, 175, 55, 0.1);">
                                 
-                                <!-- DOWNLOAD BUTTON logic from snippet -->
-                                <a href="/api/download/<%= asset.sku %>" target="_blank" class="flex items-center justify-center space-x-2 w-full text-xs bg-gold/10 text-gold border border-gold/50 px-3 py-2 rounded hover:bg-gold hover:text-black transition-all font-bold tracking-widest uppercase">
-                                    <span>Download</span>
-                                    <i class="fas fa-download"></i>
-                                </a>
+                                <!-- Image Container -->
+                                <div class="w-full aspect-square bg-gray-900/50 rounded flex items-center justify-center overflow-hidden mb-2 relative border border-gray-800">
+                                    <% if (asset.image_url) { %>
+                                        <img src="<%= asset.image_url %>" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity">
+                                    <% } else { %>
+                                        <i class="fas fa-music text-4xl text-[#D4AF37]/50"></i>
+                                    <% } %>
+                                    
+                                    <!-- Ornate Corner Accents -->
+                                    <div class="absolute top-0 left-0 w-2 h-2 border-t border-l border-[#D4AF37]"></div>
+                                    <div class="absolute top-0 right-0 w-2 h-2 border-t border-r border-[#D4AF37]"></div>
+                                    <div class="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-[#D4AF37]"></div>
+                                    <div class="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-[#D4AF37]"></div>
+
+                                    <!-- Overlay Play/Download Icon -->
+                                    <a href="/api/download/<%= asset.sku %>" target="_blank" class="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <i class="fas fa-download text-[#D4AF37] text-2xl drop-shadow-[0_0_5px_rgba(212,175,55,0.8)]"></i>
+                                    </a>
+                                </div>
+
+                                <div class="text-center">
+                                    <h4 class="text-gray-200 font-bold text-xs uppercase tracking-wider truncate px-1">
+                                        <%= asset.name || asset.description || 'Frequency' %>
+                                    </h4>
+                                    <span class="text-[10px] text-[#D4AF37]">MP3 • 320KBPS</span>
+                                </div>
                             </div>
                         <% }); %>
                     <% } %>

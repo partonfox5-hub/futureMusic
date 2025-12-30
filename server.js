@@ -566,11 +566,11 @@ app.get('/account', requireAuth, async (req, res) => {
             // C. Orders (Digital & Physical)
             try {
 const [dRows] = await pool.query(`
-    SELECT o.*, p.download_reference, p.sku 
-    FROM orders o 
-    LEFT JOIN products p ON o.product_sku = p.sku 
-    WHERE o.user_id = ? AND o.product_type = 'digital' 
-    ORDER BY o.created_at DESC
+SELECT o.*, p.download_reference, p.sku, p.image_url 
+FROM orders o 
+LEFT JOIN products p ON (o.product_sku = p.sku OR p.name = o.description) 
+WHERE o.user_id = ? AND o.product_type = 'digital' 
+ORDER BY o.created_at DESC
 `, [req.session.userId]);                digitalAssets = dRows;
                 
                 const [pRows] = await pool.query("SELECT * FROM orders WHERE user_id = ? AND (product_type IS NULL OR product_type != 'digital') ORDER BY created_at DESC", [req.session.userId]);
@@ -1549,10 +1549,12 @@ app.get('/api/download/:sku', async (req, res, next) => {
         // 1. Verify Ownership
         // Check if the user has a matching order for this SKU in the orders table
         const [orders] = await pool.query(`
-            SELECT id 
-            FROM orders 
-            WHERE user_id = ? AND product_sku = ?
-        `, [userId, sku]);
+            SELECT o.id 
+            FROM orders o
+            LEFT JOIN products p ON p.sku = ?
+            WHERE o.user_id = ? 
+            AND (o.product_sku = ? OR o.description = p.name)
+        `, [sku, userId, sku]);
 
         if (orders.length === 0) {
             return res.status(403).send('You have not purchased this item.');
