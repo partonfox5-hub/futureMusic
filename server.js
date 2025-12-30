@@ -1542,7 +1542,7 @@ app.get('/api/download/:sku', async (req, res, next) => {
     const { sku } = req.params;
     const userId = req.session.userId;
     // Use ENV bucket if available, otherwise fallback to your hardcoded default
-    const targetBucket = process.env.GCS_BUCKET_NAME || 'futuremusic-digital-assets';
+    const targetBucket = process.env.GCS_BUCKET_NAME || 'futuremusic';
 
     try {
         // 2. AUTH CHECK
