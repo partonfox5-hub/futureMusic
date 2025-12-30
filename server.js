@@ -18,14 +18,14 @@ process.on('unhandledRejection', (reason, promise) => {
 
 // --- NEW CODE: Google Cloud Storage Setup ---
 const { Storage } = require('@google-cloud/storage');
-// If on Cloud Run, no keyFilename needed (uses default credentials). 
-// If local, point to your downloaded JSON key.
+
+// --- FIX: Explicit Project ID & Bucket Configuration ---
 const storage = new Storage({ 
-    projectId: process.env.GOOGLE_CLOUD_PROJECT || 'your-project-id',
-    // keyFilename: './service-account.json' // Uncomment for local dev
+    // We explicitly set your Project ID here to prevent "Unknown Project" errors
+    projectId: process.env.GOOGLE_CLOUD_PROJECT || 'futuremusic'
 });
-const bucketName = 'futuremusic-digital-assets'; // Your bucket name
-// --------------------------------------------
+const bucketName = process.env.GCS_BUCKET_NAME || 'futuremusic-digital-assets'; 
+// -------------------------------------------------------
 
 app.set('trust proxy', 1); // Required for cross-domain cookies on GCloud
 const cors = require('cors');
