@@ -1588,9 +1588,11 @@ app.get('/api/download/:sku', async (req, res, next) => {
         res.redirect(url);
 
     } catch (error) {
+        console.error('DOWNLOAD ERROR:', error); // Log specific error details to console
         next(error);
     }
 });
+
 
 // --- FIX START: Global Error Handler ---
 
