@@ -89,18 +89,32 @@
                         </div>
                     </form>
 
-                    <!-- Private Bio Field -->
+ <!-- Private Bio Field -->
                     <div class="mt-6 pt-6 border-t border-gray-800 text-left">
                         <label class="text-[#D4AF37] text-xs uppercase tracking-widest font-bold mb-2 block">Private Link</label>
                         
+                        <% 
+                           // NEW LOGIC: Calculate if user has purchased anything (Digital or Physical)
+                           const hasPurchased = (typeof digitalAssets !== 'undefined' && digitalAssets.length > 0) || 
+                                              (typeof physicalOrders !== 'undefined' && physicalOrders.length > 0);
+                        %>
+
                         <% if (user.private_message) { %>
-                            <!-- LOCKED STATE -->
+                            <!-- STATE 1: ALREADY SENT (Locked) -->
                             <textarea disabled class="w-full bg-black/80 border border-gray-900 rounded p-3 text-sm text-gray-500 cursor-not-allowed h-32 resize-none"><%= user.private_message %></textarea>
                             <button disabled class="w-full mt-2 bg-gray-900 text-gray-600 text-xs py-2 rounded cursor-not-allowed">
                                 Message Transmitted (Locked)
                             </button>
+                        
+                        <% } else if (!hasPurchased) { %>
+                            <!-- STATE 2: NO PURCHASES (Locked) -->
+                            <textarea disabled class="w-full bg-black/80 border border-gray-900 rounded p-3 text-sm text-gray-500 cursor-not-allowed h-32 resize-none" placeholder="Purchase required to unlock frequency..."></textarea>
+                            <button disabled class="w-full mt-2 bg-red-900/20 text-red-400 text-xs py-2 rounded cursor-not-allowed border border-red-900/50">
+                                <i class="fas fa-lock mr-1"></i> Make at least (1) purchase to unlock
+                            </button>
+
                         <% } else { %>
-                            <!-- ACTIVE STATE -->
+                            <!-- STATE 3: UNLOCKED (Active) -->
                             <form action="/account/message" method="POST">
                                 <textarea 
                                     name="message"
