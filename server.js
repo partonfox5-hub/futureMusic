@@ -209,14 +209,14 @@ if (DB_CONFIG.user && DB_CONFIG.database) {
     };
 
     let mode = 'Localhost';
-    if (bypassHost) {
-        mode = 'TCP BYPASS';
-        dbConfig.host = bypassHost;
-        dbConfig.port = 3306; 
-    } else if (cleanConnectionName) {
+    if (cleanConnectionName) {
         mode = 'UNIX SOCKET';
         dbConfig.socketPath = `/cloudsql/${cleanConnectionName}`;
         delete dbConfig.host; 
+    } else if (bypassHost) {
+        mode = 'TCP BYPASS';
+        dbConfig.host = bypassHost;
+        dbConfig.port = 3306; 
     } else {
         dbConfig.host = '127.0.0.1';
     }
@@ -550,13 +550,8 @@ app.get('/account', requireAuth, async (req, res) => {
 
             // C. Orders (Digital & Physical)
             try {
-const [dRows] = await pool.query(`
-    SELECT o.*, p.download_reference, p.sku 
-    FROM orders o 
-    LEFT JOIN products p ON o.product_sku = p.sku 
-    WHERE o.user_id = ? AND o.product_type = 'digital' 
-    ORDER BY o.created_at DESC
-`, [req.session.userId]);                digitalAssets = dRows;
+                const [dRows] = await pool.query("SELECT * FROM orders WHERE user_id = ? AND product_type = 'digital' ORDER BY created_at DESC", [req.session.userId]);
+                digitalAssets = dRows;
                 
                 const [pRows] = await pool.query("SELECT * FROM orders WHERE user_id = ? AND (product_type IS NULL OR product_type != 'digital') ORDER BY created_at DESC", [req.session.userId]);
                 physicalOrders = pRows;
@@ -1028,22 +1023,20 @@ for (const item of itemsToOrder) {
             stripe_session_id,
             total_amount, 
             payment_status, 
-            product_type,
-            product_sku,
+            product_type,    
             size,            
             description,
             status,     
             created_at
-        ) VALUES (?, ?, ?, 'unpaid', ?, ?, ?, ?, ?, NOW())
+        ) VALUES (?, ?, ?, 'unpaid', ?, ?, ?, ?, NOW())
     `, [
         userId, 
         session.id,           
-        item.price || 0,      
-        item.product_type,
-        item.sku,             // <--- NEW: Saving the SKU
+        item.price || 0,      // Fallback to 0 if price is missing
+        item.product_type, 
         item.size || 'N/A', 
-        item.name,            
-        'order received'      
+        item.name,            // Now this will correctly hold the Product Name
+        'order received'      // Default status
     ]);
 }
 // --- REPLACEMENT CODE END ---
@@ -1525,18 +1518,21 @@ app.use((err, req, res, next) => {
 app.get('/api/download/:sku', async (req, res, next) => {
     try {
         const { sku } = req.params;
-        const userId = req.session.userId; // <--- FIX: Use session userId
+        // ASSUMPTION: You have authentication middleware populating req.user.id
+        // If not, replace req.user.id with the appropriate session user identifier
+        const userId = req.user ? req.user.id : null; 
 
         if (!userId) {
             return res.status(401).send('Please log in to download assets.');
         }
 
         // 1. Verify Ownership
-        // Check if the user has a matching order for this SKU in the orders table
+        // Check if the user has a completed order for this SKU
         const [orders] = await pool.query(`
-            SELECT id 
-            FROM orders 
-            WHERE user_id = ? AND product_sku = ?
+            SELECT oi.id 
+            FROM order_items oi
+            JOIN orders o ON oi.order_id = o.id
+            WHERE o.user_id = ? AND oi.product_sku = ? AND o.status = 'completed'
         `, [userId, sku]);
 
         if (orders.length === 0) {
@@ -1550,7 +1546,7 @@ app.get('/api/download/:sku', async (req, res, next) => {
         );
 
         if (products.length === 0 || !products[0].download_reference) {
-            return res.status(404).send('Download file not found in database.');
+            return res.status(404).send('Download file not found.');
         }
 
         const fileName = products[0].download_reference;
