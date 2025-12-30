@@ -762,7 +762,8 @@ app.get('/merch', async (req, res) => {
 
     try {
         if (pool) {
-            let sql = "SELECT * FROM products WHERE 1=1";
+           let sql = "SELECT * FROM products WHERE 1=1 AND type != 'digital'";
+
             const params = [];
             if (type && type !== 'all') { sql += " AND type = ?"; params.push(type); }
             if (maxPrice) { sql += " AND price <= ?"; params.push(maxPrice); }
@@ -826,7 +827,7 @@ const result = await query(sql, params);
                 res.render('merch', { ...commonPayload, merch: products, title: 'Merch', debugError: null });
             }
         } else {
-            let filtered = [...mockMerchItems];
+            let filtered = mockMerchItems.filter(p => p.type !== 'digital');
             if (type && type !== 'all') filtered = filtered.filter(p => p.type === type);
             if (maxPrice) filtered = filtered.filter(p => p.price <= maxPrice);
             if (sort === 'price_asc') filtered.sort((a,b) => a.price - b.price);
