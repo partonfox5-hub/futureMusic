@@ -1,31 +1,6 @@
 const express = require('express');
 const app = express();
 
-// --- FIX START: Global Crash Handlers ---
-process.on('uncaughtException', (err) => {
-    console.error('CRITICAL ERROR: Uncaught Exception:', err);
-    console.error(err.stack);
-    process.exit(1); // Force exit so Cloud Run restarts it
-});
-
-process.on('unhandledRejection', (reason, promise) => {
-    console.error('CRITICAL ERROR: Unhandled Rejection at:', promise, 'reason:', reason);
-    process.exit(1);
-});
-// --- FIX END ---
-
-
-// --- NEW CODE: Google Cloud Storage Setup ---
-const { Storage } = require('@google-cloud/storage');
-// If on Cloud Run, no keyFilename needed (uses default credentials). 
-// If local, point to your downloaded JSON key.
-const storage = new Storage({ 
-    projectId: process.env.GOOGLE_CLOUD_PROJECT || 'your-project-id',
-    // keyFilename: './service-account.json' // Uncomment for local dev
-});
-const bucketName = 'futuremusic-digital-assets'; // Your bucket name
-// --------------------------------------------
-
 app.set('trust proxy', 1); // Required for cross-domain cookies on GCloud
 const cors = require('cors');
 // Replace with your actual Game URL (e.g., https://colorization.web.app)
@@ -182,6 +157,7 @@ app.set('views', path.join(__dirname, 'views'));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // --- STRIPE ---
+let stripe;
 if (process.env.STRIPE_SECRET_KEY) {
     try {
         stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
@@ -193,22 +169,7 @@ if (process.env.STRIPE_SECRET_KEY) {
 }
 
 // --- DATABASE CONNECTION ---
-// --- FIX: Restore Database Connection ---
-const mysql = require('mysql2/promise');
-const pool = mysql.createPool({
-    host: process.env.DB_HOST,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-    waitForConnections: true,
-    connectionLimit: 10,
-    queueLimit: 0
-});
-
-// If you need Stripe (implied by server_old.js), initialize it here too:
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-// ----------------------------------------
-
+let pool;
 let dbConnectionStatus = "PENDING";
 let dbErrorDetail = null;
 
@@ -578,13 +539,8 @@ app.get('/account', requireAuth, async (req, res) => {
 
             // C. Orders (Digital & Physical)
             try {
-const [dRows] = await pool.query(`
-    SELECT o.*, p.download_reference, p.sku 
-    FROM orders o 
-    LEFT JOIN products p ON o.product_sku = p.sku 
-    WHERE o.user_id = ? AND o.product_type = 'digital' 
-    ORDER BY o.created_at DESC
-`, [req.session.userId]);                digitalAssets = dRows;
+                const [dRows] = await pool.query("SELECT * FROM orders WHERE user_id = ? AND product_type = 'digital' ORDER BY created_at DESC", [req.session.userId]);
+                digitalAssets = dRows;
                 
                 const [pRows] = await pool.query("SELECT * FROM orders WHERE user_id = ? AND (product_type IS NULL OR product_type != 'digital') ORDER BY created_at DESC", [req.session.userId]);
                 physicalOrders = pRows;
@@ -779,13 +735,6 @@ app.get('/merch', async (req, res) => {
             const params = [];
             if (type && type !== 'all') { sql += " AND type = ?"; params.push(type); }
             if (maxPrice) { sql += " AND price <= ?"; params.push(maxPrice); }
-                        // --- ADDED: Search Filter ---
-            if (req.query.search) { 
-                sql += " AND (name LIKE ? OR description LIKE ?)"; 
-                const term = `%${req.query.search}%`;
-                params.push(term, term); 
-            }
-
             if (sort === 'price_asc') sql += " ORDER BY price ASC";
             else if (sort === 'price_desc') sql += " ORDER BY price DESC";
             else sql += " ORDER BY created_at DESC";
@@ -1056,22 +1005,20 @@ for (const item of itemsToOrder) {
             stripe_session_id,
             total_amount, 
             payment_status, 
-            product_type,
-            product_sku,
+            product_type,    
             size,            
             description,
             status,     
             created_at
-        ) VALUES (?, ?, ?, 'unpaid', ?, ?, ?, ?, ?, NOW())
+        ) VALUES (?, ?, ?, 'unpaid', ?, ?, ?, ?, NOW())
     `, [
         userId, 
         session.id,           
-        item.price || 0,      
-        item.product_type,
-        item.sku,             // <--- NEW: Saving the SKU
+        item.price || 0,      // Fallback to 0 if price is missing
+        item.product_type, 
         item.size || 'N/A', 
-        item.name,            
-        'order received'      
+        item.name,            // Now this will correctly hold the Product Name
+        'order received'      // Default status
     ]);
 }
 // --- REPLACEMENT CODE END ---
@@ -1132,8 +1079,8 @@ app.post('/api/cart', async (req, res) => {
                 await query("INSERT INTO cart_items (session_id, product_sku, quantity, size) VALUES (?, ?, ?, ?)", [sessionId, sku, quantity || 1, storedSize]);
             }
             // CHANGED: Fetch new count and return it
-const countResult = await query("SELECT SUM(quantity) as count FROM cart_items WHERE session_id = ?", [sessionId]);
-const newCount = (countResult.rows && countResult.rows[0].count) ? parseInt(countResult.rows[0].count) : 0;
+const [countRows] = await query("SELECT SUM(quantity) as count FROM cart_items WHERE session_id = ?", [sessionId]);
+const newCount = countRows[0].count ? parseInt(countRows[0].count) : 0;
 return res.json({ success: true, newCount });
         } catch (err) { return res.status(500).json({ error: 'Database error: ' + err.message }); }
     } else {
@@ -1281,21 +1228,8 @@ app.post('/api/cart/add', async (req, res) => {
         }
         
         // 6. Success Response
-        // --- ADDED: Calculate New Count for Instant Badge Update ---
-        let newCount = 0;
-        if (pool) {
-            try {
-               const [cRows] = await pool.query("SELECT SUM(quantity) as count FROM cart_items WHERE session_id = ?", [sessionId]);
-               if(cRows.length > 0) newCount = parseInt(cRows[0].count || 0);
-            } catch(e) {}
-        } else {
-            // Memory fallback count
-            const cart = memoryCarts[sessionId] || [];
-            newCount = cart.reduce((acc, item) => acc + item.quantity, 0);
-        }
-
-        console.log(`✅ Added ${sku} (Size: ${finalSize}) to cart for session ${sessionId}. New Count: ${newCount}`);
-        res.json({ success: true, newCount: newCount });
+        console.log(`✅ Added ${sku} (Size: ${finalSize}) to cart for session ${sessionId}`);
+        res.json({ success: true });
 
     } catch (err) {
         // 7. CATASTROPHIC ERROR HANDLER
@@ -1501,38 +1435,6 @@ app.post('/webhook', express.raw({type: 'application/json'}), async (request, re
             console.log(`Skin ${session.metadata.skinId} unlocked for user ${session.metadata.userId}`);
         }
     }
-        // --- NEW CODE: Handle Standard Cart Purchases (Digital/Physical) ---
-    else if (session.metadata && session.metadata.type === 'cart_checkout') {
-        // This assumes you pass 'cart_checkout' and 'userId' in metadata during Stripe Session creation
-        const userId = session.metadata.userId;
-        const sessionId = session.metadata.sessionId; // From your store cart
-        
-        // Move items from cart to orders
-        if(pool && userId) {
-            // 1. Create Order
-            const [orderResult] = await pool.query(
-                "INSERT INTO orders (user_id, total, status, session_id) VALUES (?, ?, 'completed', ?)",
-                [userId, session.amount_total / 100, sessionId] // Stripe amount is in cents
-            );
-            const orderId = orderResult.insertId;
-
-            // 2. Copy Items from Cart to Order Items
-            // Note: This logic depends on your checkout flow ensuring cart items still exist 
-            // or are passed in metadata. A robust implementation would look up the cart by sessionId.
-            await pool.query(`
-                INSERT INTO order_items (order_id, product_sku, quantity, price_at_time)
-                SELECT ?, product_sku, quantity, 0 
-                FROM cart_items 
-                WHERE session_id = ?
-            `, [orderId, sessionId]);
-            
-            // 3. (Optional) Clear Cart
-            await pool.query("DELETE FROM cart_items WHERE session_id = ?", [sessionId]);
-            
-            console.log(`Order ${orderId} created for user ${userId}`);
-        }
-    }
-    // ------------------------------------------------------------------
   }
   response.json({received: true});
 });
@@ -1549,83 +1451,7 @@ app.use((err, req, res, next) => {
 });
 // --- FIX END ---
 
-// --- NEW CODE: Secure Download Endpoint ---
-app.get('/api/download/:sku', async (req, res, next) => {
-    try {
-        const { sku } = req.params;
-        const userId = req.session.userId; // <--- FIX: Use session userId
-
-        if (!userId) {
-            return res.status(401).send('Please log in to download assets.');
-        }
-
-        // 1. Verify Ownership
-        // Check if the user has a matching order for this SKU in the orders table
-        const [orders] = await pool.query(`
-            SELECT id 
-            FROM orders 
-            WHERE user_id = ? AND product_sku = ?
-        `, [userId, sku]);
-
-        if (orders.length === 0) {
-            return res.status(403).send('You have not purchased this item.');
-        }
-
-        // 2. Get the File Reference
-        const [products] = await pool.query(
-            'SELECT download_reference FROM products WHERE sku = ?', 
-            [sku]
-        );
-
-        if (products.length === 0 || !products[0].download_reference) {
-            return res.status(404).send('Download file not found in database.');
-        }
-
-        const fileName = products[0].download_reference;
-
-        // 3. Generate Signed URL (valid for 15 minutes)
-        const options = {
-            version: 'v4',
-            action: 'read',
-            expires: Date.now() + 15 * 60 * 1000, // 15 minutes
-        };
-
-        const [url] = await storage
-            .bucket(bucketName)
-            .file(`songs/${fileName}`) 
-            .getSignedUrl(options);
-
-        // 4. Redirect user to the secure Google Cloud link
-        res.redirect(url);
-
-    } catch (error) {
-        next(error);
-    }
-});
-
-// --- FIX START: Global Error Handler ---
-
 app.use((req, res, next) => res.status(404).render('404', { title: 'Signal Lost' }));
 
-const PORT = parseInt(process.env.PORT) || 8080;
-const server = app.listen(PORT, () => {
-    console.log(`Server listening on port ${PORT}`);
-});
-
-// Optional: Graceful Shutdown (Good for Cloud Run)
-process.on('SIGTERM', () => {
-    console.log('SIGTERM signal received: closing HTTP server');
-    server.close(() => {
-        console.log('HTTP server closed');
-        pool.end(); // Close database pool
-    });
-});
-
-
-server.on('error', (e) => {
-    if (e.code === 'EADDRINUSE') {
-        console.error('❌ Port is already in use!');
-    } else {
-        console.error('❌ Server failed to start:', e);
-    }
-});
+const PORT = process.env.PORT || 8080;
+app.listen(PORT, () => console.log(`Server is running on port ${PORT}`));
