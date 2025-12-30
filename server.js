@@ -1586,6 +1586,11 @@ app.get('/api/download/:sku', async (req, res, next) => {
         const fileName = products[0].download_reference;
         const filePath = `songs/${fileName}`;
 
+        // --- FIX START: Identity Check & Options ---
+        // 1. Detect who is running this code
+        // We use the storage auth client to find the active Service Account email
+        const [serviceAccountEmail] = await storage.getServiceAccount();
+        console.log(`[DOWNLOAD] Current Service Account Email: ${serviceAccountEmail.email_address}`);
         console.log(`[DOWNLOAD] Attempting to sign URL for: gs://${targetBucket}/${filePath}`);
 
         // 5. GENERATE SIGNED URL
@@ -1593,12 +1598,15 @@ app.get('/api/download/:sku', async (req, res, next) => {
             version: 'v4',
             action: 'read',
             expires: Date.now() + 15 * 60 * 1000, // 15 minutes
+            // Explicitly set the account email to help the signer
+            serviceAccountEmail: serviceAccountEmail.email_address 
         };
 
         const [url] = await storage
             .bucket(targetBucket)
             .file(filePath)
             .getSignedUrl(options);
+        // --- FIX END ---
 
         // 6. SUCCESS
         console.log(`[DOWNLOAD] Success. Redirecting user.`);
