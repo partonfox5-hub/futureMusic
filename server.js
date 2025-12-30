@@ -1055,7 +1055,7 @@ for (const item of itemsToOrder) {
         session.id,           
         item.price || 0,      
         item.product_type,
-        item.sku,             // <--- NEW: Saving the SKU
+        item.product_sku,           // <--- NEW: Saving the SKU
         item.size || 'N/A', 
         item.name,            
         'order received'      
@@ -1547,13 +1547,17 @@ app.get('/api/download/:sku', async (req, res, next) => {
         }
 
         // 1. Verify Ownership
-        // Check if the user has a matching order for this SKU in the orders table
+        // Robust check: matches if Order has the SKU OR if Order description matches Product Name
         const [orders] = await pool.query(`
             SELECT o.id 
             FROM orders o
-            LEFT JOIN products p ON p.sku = ?
+            JOIN products p ON p.sku = ?
             WHERE o.user_id = ? 
-            AND (o.product_sku = ? OR o.description = p.name)
+            AND (
+                o.product_sku = ? 
+                OR 
+                o.description = p.name
+            )
         `, [sku, userId, sku]);
 
         if (orders.length === 0) {
@@ -1566,7 +1570,8 @@ app.get('/api/download/:sku', async (req, res, next) => {
             [sku]
         );
 
-        if (products.length === 0 || !products[0].download_reference) {
+        if (!products || products.length === 0 || !products[0].download_reference) {
+            console.error(`File lookup failed for SKU: ${sku}`);
             return res.status(404).send('Download file not found in database.');
         }
 
