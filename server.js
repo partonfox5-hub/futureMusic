@@ -1,3 +1,4 @@
+try { require('dotenv').config(); } catch (e) { /* dotenv not installed */ }
 const express = require('express');
 const app = express();
 
@@ -69,8 +70,8 @@ app.use((req, res, next) => {
 const path = require('path');
 const fs = require('fs'); 
 const http = require('http'); 
-const bodyParser = require('body-parser');
-const { Storage } = require('@google-cloud/storage');
+//const bodyParser = require('body-parser');
+//const { Storage } = require('@google-cloud/storage');
 const mysql = require('mysql2/promise');
 const bcrypt = require('bcrypt');
 const session = require('express-session');
@@ -98,7 +99,7 @@ const requireLogin = (req, res, next) => {
 };
 
 // Try loading .env if available
-try { require('dotenv').config(); } catch (e) { /* dotenv not installed */ }
+//try { require('dotenv').config(); } catch (e) { /* dotenv not installed */ }
 
 // --- CONFIGURATION ---
 const BUCKET_NAME = process.env.GCS_BUCKET_NAME || 'your-song-bucket-name';
@@ -131,8 +132,8 @@ const mockMerchItems = [
 const memoryCarts = {};
 
 // --- MIDDLEWARE ---
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+//app.use(bodyParser.json());
+//app.use(bodyParser.urlencoded({ extended: true }));
 
 // --- DIAGNOSTIC: IDENTITY CHECK ---
 const options = {
@@ -182,6 +183,7 @@ app.set('views', path.join(__dirname, 'views'));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // --- STRIPE ---
+let stripe;
 if (process.env.STRIPE_SECRET_KEY) {
     try {
         stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
@@ -193,22 +195,7 @@ if (process.env.STRIPE_SECRET_KEY) {
 }
 
 // --- DATABASE CONNECTION ---
-// --- FIX: Restore Database Connection ---
-const mysql = require('mysql2/promise');
-const pool = mysql.createPool({
-    host: process.env.DB_HOST,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-    waitForConnections: true,
-    connectionLimit: 10,
-    queueLimit: 0
-});
-
-// If you need Stripe (implied by server_old.js), initialize it here too:
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-// ----------------------------------------
-
+let pool;
 let dbConnectionStatus = "PENDING";
 let dbErrorDetail = null;
 
@@ -1608,19 +1595,9 @@ app.get('/api/download/:sku', async (req, res, next) => {
 app.use((req, res, next) => res.status(404).render('404', { title: 'Signal Lost' }));
 
 const PORT = parseInt(process.env.PORT) || 8080;
-const server = app.listen(PORT, () => {
-    console.log(`Server listening on port ${PORT}`);
+const server = app.listen(PORT, '0.0.0.0', () => {
+    console.log(`✅ Server successfully started on port ${PORT}`);
 });
-
-// Optional: Graceful Shutdown (Good for Cloud Run)
-process.on('SIGTERM', () => {
-    console.log('SIGTERM signal received: closing HTTP server');
-    server.close(() => {
-        console.log('HTTP server closed');
-        pool.end(); // Close database pool
-    });
-});
-
 
 server.on('error', (e) => {
     if (e.code === 'EADDRINUSE') {
