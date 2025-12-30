@@ -24,7 +24,7 @@ const storage = new Storage({
     // We explicitly set your Project ID here to prevent "Unknown Project" errors
     projectId: process.env.GOOGLE_CLOUD_PROJECT || 'futuremusic'
 });
-const bucketName = process.env.GCS_BUCKET_NAME || 'futuremusic-digital-assets'; 
+const bucketName = process.env.GCS_BUCKET_NAME || 'futuremusic'; 
 // -------------------------------------------------------
 
 app.set('trust proxy', 1); // Required for cross-domain cookies on GCloud
