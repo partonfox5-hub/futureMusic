@@ -1,33 +1,54 @@
 <%- include('partials/header') %>
 
+<style>
+    /* Medieval Drop Cap Styling */
+    .drop-cap::first-letter {
+        float: left;
+        font-family: "Old English Text MT", "Playfair Display", serif;
+        font-size: 5.5rem;
+        line-height: 0.8;
+        padding-top: 4px;
+        padding-right: 12px;
+        padding-left: 3px;
+        color: #D4AF37; /* The theme's gold color */
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    }
+</style>
+
 <section class="max-w-4xl mx-auto py-12 text-center">
     <div class="glass-card p-12 rounded-2xl relative border-t-4 border-[#D4AF37]">
-        <!-- Avatar/Icon -->
-        <div class="w-32 h-32 mx-auto bg-black rounded-full border-4 border-[#D4AF37] flex items-center justify-center mb-8 shadow-[0_0_30px_rgba(212,175,55,0.4)]">
-            <i class="fas fa-user-astronaut text-5xl text-[#D4AF37]"></i>
+        <!-- Brand Logo -->
+        <div class="w-32 h-32 mx-auto bg-black rounded-full border-4 border-[#D4AF37] overflow-hidden mb-8 shadow-[0_0_30px_rgba(212,175,55,0.4)]">
+            <img src="/images/logo.png" alt="Logo" class="w-full h-full object-cover" onerror="this.src='https://via.placeholder.com/128?text=Logo'">
         </div>
 
-        <h2 class="text-4xl font-bold mb-8 font-serif">THE MYSTIC ONE</h2>
+        <!-- Featured Video -->
+        <div class="mb-12 w-full aspect-video rounded-xl overflow-hidden shadow-2xl border border-white/10 bg-black/20">
+            <iframe 
+                class="w-full h-full" 
+                src="https://www.youtube.com/embed/dQw4w9WgXcQ" 
+                title="Featured Video" 
+                frameborder="0" 
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                allowfullscreen>
+            </iframe>
+        </div>
+
+        <h2 class="text-4xl font-bold mb-8 font-serif uppercase tracking-widest">A Message from our sovereign:</h2>
         
-        <div class="space-y-6 text-lg text-gray-300 leading-loose font-light">
-            <p>
-                Born from the collision of structured discipline and boundless creativity, 
-                <strong class="text-[#D4AF37]">The Mystic One</strong> represents the duality of the human spirit.
+        <div class="space-y-6 text-lg text-gray-300 leading-loose font-light text-left">
+            <p class="drop-cap">
+                Please excuse the oddity of illusory hierarchy, this is just what gets the people going. My name is Fox Parton and I am the creator of this digital infrastructure web.
+                <strong class="text-[#D4AF37]">The goal is freedom within reason</strong> as in freedom which does not compell one or any to suffer. 
             </p>
             <p>
-                Drawing inspiration from the esoteric traditions of the past and the digital chaos of the future, 
-                we craft soundscapes that challenge the listener to march to a different drum.
-                The Captain is not just a persona; it is a directive to take command of your own reality.
+                I created this website to house my music and my projects which I think can bring light to the world and make people think (But not too hard) as they enjoy themselves. I believe in a better life for all
+                and I am a passionate enthusiast for the rise of artifical intelligence - enabling more people to create, and to create faster and more ambitiously than ever before. Code, music, art, law, politics, are all becoming more accessible to each and every human regradless of their innate abilities.
+                I beleive this trend will continue to exponentiate until such a time as we are all truly equal - the machines and their output far dwarfing our own, and creativity becoming little more than a signature, like all other skills, a superpower of the past, now gifted to us all. 
             </p>
-            <p>
-                Based in the ether, broadcasting everywhere.
+            <p class="text-center italic mt-8 text-gray-400">
+                I hope you can enjoy what I've laid out as an offering to you, and feel free to share yourself and your creations as well. 
             </p>
-        </div>
-
-        <div class="mt-12 flex justify-center gap-6">
-            <a href="#" class="text-2xl text-gray-400 hover:text-[#D4AF37] transition-colors"><i class="fab fa-instagram"></i></a>
-            <a href="#" class="text-2xl text-gray-400 hover:text-[#D4AF37] transition-colors"><i class="fab fa-twitter"></i></a>
-            <a href="#" class="text-2xl text-gray-400 hover:text-[#D4AF37] transition-colors"><i class="fab fa-youtube"></i></a>
         </div>
     </div>
 </section>
