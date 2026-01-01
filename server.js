@@ -493,6 +493,30 @@ app.get('/about', (req, res) => res.render('about', { title: 'About' }));
 app.get('/contact', (req, res) => res.render('contact', { title: 'Contact' }));
 app.get('/advocacy', (req, res) => res.render('advocacy', { title: 'Advocacy' }));
 
+// Handle Contact Form Submission
+app.post('/contact', async (req, res) => {
+    const { name, email, subject, message } = req.body;
+
+    // Check if the database pool is initialized
+    if (!pool) {
+        return res.status(500).send('<script>alert("Database offline. Please try again later."); window.location.href="/contact";</script>');
+    }
+
+    try {
+        // Insert the submission into the contact_messages table
+        await pool.query(
+            "INSERT INTO contact_messages (name, email, subject, message) VALUES (?, ?, ?, ?)",
+            [name, email, subject, message]
+        );
+        
+        // Provide feedback to the user and redirect back to the contact page
+        res.send('<script>alert("Transmission Received. Our team will review the signal."); window.location.href="/contact";</script>');
+    } catch (err) {
+        console.error("Contact Form Error:", err);
+        res.status(500).send('<script>alert("Transmission Error. Please try again."); window.location.href="/contact";</script>');
+    }
+});
+
 
 // --- DEBUG ROUTE: VIEW DATA WITHOUT CRASHING ---
 // NOTE: We removed 'requireAuth' so you can access this without logging in
