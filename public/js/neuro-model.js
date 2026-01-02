@@ -1,5 +1,7 @@
 // public/js/neuro-model.js
 
+// Reference Recharts from the window object safely
+const RechartsObj = window.Recharts || {};
 const { 
   LineChart, 
   Line, 
@@ -9,7 +11,7 @@ const {
   Tooltip, 
   Legend, 
   ResponsiveContainer 
-} = window.Recharts;
+} = RechartsObj;
 const NeuroModel = () => {
   // --- STATE ---
   const [drinks, setDrinks] = React.useState(4);    
@@ -262,7 +264,11 @@ const NeuroModel = () => {
   );
 };
 
-// Mount the app
-const rootNode = document.getElementById('neuro-model-root');
-const root = ReactDOM.createRoot(rootNode);
-root.render(React.createElement(NeuroModel));
+// Mount the app only after all window resources (scripts) are loaded
+window.addEventListener('load', () => {
+  const rootNode = document.getElementById('neuro-model-root');
+  if (rootNode) {
+    const root = ReactDOM.createRoot(rootNode);
+    root.render(React.createElement(NeuroModel));
+  }
+});
