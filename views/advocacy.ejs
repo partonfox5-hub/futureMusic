@@ -1,16 +1,18 @@
 <%- include('partials/header') %>
 
 <!-- 1. DEPENDENCIES -->
-<!-- React and ReactDOM -->
+<!-- React and ReactDOM (Required) -->
 <script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
 
-<!-- Recharts (Requires React/ReactDOM) -->
+<!-- React-Is (REQUIRED for Recharts UMD to handle ForwardRef properly) -->
+<script src="https://unpkg.com/react-is/umd/react-is.production.min.js"></script>
+
+<!-- Recharts (Requires React/ReactDOM/ReactIs) -->
 <script src="https://unpkg.com/recharts/umd/Recharts.js"></script>
 
 <!-- Babel for in-browser JSX -->
 <script src="https://cdn.jsdelivr.net/npm/@babel/standalone/babel.min.js"></script>
-
 
 <section class="min-h-screen bg-black text-white pt-32 pb-20 px-4 relative overflow-hidden">
     
@@ -31,8 +33,7 @@
 
         <!-- Agenda Grid -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 auto-rows-fr">
-
-            <!-- 1. Modernizing Justice -->
+            <!-- Modernizing Justice -->
             <div class="glass-card p-8 rounded-2xl border-l-4 border-[#D4AF37] hover:bg-white/5 transition-all duration-500 lg:col-span-2 flex flex-col justify-center">
                 <div class="flex flex-col md:flex-row gap-6 items-start md:items-center">
                     <div class="bg-[#D4AF37]/10 p-5 rounded-full text-[#D4AF37] flex-shrink-0">
@@ -41,89 +42,35 @@
                     <div>
                         <h2 class="text-2xl font-bold text-white mb-3 brand-font">Modernizing Justice</h2>
                         <p class="text-gray-300 leading-relaxed">
-                            Moving beyond retributive antiquity. We advocate for a justice system built on data-driven restoration and objective truth, removing the "illusory hierarchy" of bias in favor of equitable, high-resolution legal frameworks.
+                            Moving beyond retributive antiquity. We advocate for a justice system built on data-driven restoration and objective truth.
                         </p>
                     </div>
                 </div>
             </div>
 
-            <!-- 2. Biological Fidelity -->
+            <!-- Biological Fidelity -->
             <div class="glass-card p-8 rounded-2xl border-l-4 border-[#20B2AA] hover:bg-white/5 transition-all duration-500 flex flex-col items-center text-center justify-center">
                 <div class="bg-[#20B2AA]/10 p-4 rounded-full text-[#20B2AA] mb-4">
                     <i class="fas fa-dna text-3xl"></i>
                 </div>
                 <h2 class="text-xl font-bold text-white mb-2 brand-font">Biological Fidelity</h2>
                 <p class="text-gray-400 text-sm leading-relaxed">
-                    Eliminating substance poisoning to ensure a clear signal. Removing systemic toxins to keep the vessel as pure as the intent.
+                    Eliminating substance poisoning to ensure a clear signal.
                 </p>
             </div>
 
-            <!-- 3. Machine Context -->
-            <div class="glass-card p-8 rounded-2xl border-l-4 border-[#F4C430] hover:bg-white/5 transition-all duration-500 flex flex-col items-center text-center justify-center">
-                <div class="bg-[#F4C430]/10 p-4 rounded-full text-[#F4C430] mb-4">
-                    <i class="fas fa-microchip text-3xl"></i>
-                </div>
-                <h2 class="text-xl font-bold text-white mb-2 brand-font">Machine Context</h2>
-                <p class="text-gray-400 text-sm leading-relaxed">
-                    Leveraging AI as a neutral arbiter in human friction, providing context to noise and intervention to irrationality.
-                </p>
-            </div>
-
-            <!-- 4. Neural Maximization -->
-            <div class="glass-card p-8 rounded-2xl border-l-4 border-[#FF4500] hover:bg-white/5 transition-all duration-500 lg:row-span-2 flex flex-col justify-center">
+            <!-- Neural Maximization -->
+            <div class="glass-card p-8 rounded-2xl border-l-4 border-[#FF4500] hover:bg-white/5 transition-all duration-500 lg:row-span-1 flex flex-col justify-center">
                 <div class="bg-[#FF4500]/10 p-5 w-fit rounded-full text-[#FF4500] mb-6">
                     <i class="fas fa-brain text-4xl"></i>
                 </div>
                 <h2 class="text-2xl font-bold text-white mb-4 brand-font">Neural Maximization</h2>
-                <p class="text-gray-300 leading-relaxed">
-                    Every human brain deserves its highest potential. We advocate for infrastructure that optimizes cognitive health, learning, and neural plasticity, making "superpowers" an baseline accessible to every individual regardless of origin.
-                </p>
-                <div class="mt-6 pt-6 border-t border-white/10 text-xs text-gray-500 uppercase tracking-widest">
-                    Optimization Priority: High
-                </div>
-            </div>
-
-            <!-- 5. Post-Addiction Economics -->
-            <div class="glass-card p-8 rounded-2xl border-l-4 border-[#9370DB] hover:bg-white/5 transition-all duration-500 flex flex-col items-center text-center justify-center">
-                <div class="bg-[#9370DB]/10 p-4 rounded-full text-[#9370DB] mb-4">
-                    <i class="fas fa-hand-holding-heart text-3xl"></i>
-                </div>
-                <h2 class="text-xl font-bold text-white mb-2 brand-font">Post-Addiction Economics</h2>
-                <p class="text-gray-400 text-sm leading-relaxed">
-                    Ending the exploitation of the dopamine loop. Pivoting to a value-based economy that rewards growth over dependency.
+                <p class="text-gray-300 leading-relaxed text-sm">
+                    Infrastructure that optimizes cognitive health and neural plasticity.
                 </p>
             </div>
-
-            <!-- 6. Constructive Utopianism -->
-            <div class="glass-card p-8 rounded-2xl border-l-4 border-[#FFD700] hover:bg-white/5 transition-all duration-500 lg:col-span-2 flex flex-col justify-center">
-                <div class="flex flex-col md:flex-row gap-6 items-start">
-                    <div class="bg-[#FFD700]/10 p-5 rounded-full text-[#FFD700] flex-shrink-0">
-                        <i class="fas fa-comments text-3xl"></i>
-                    </div>
-                    <div>
-                        <h2 class="text-2xl font-bold text-white mb-2 brand-font">Constructive Utopianism</h2>
-                        <p class="text-gray-300 leading-relaxed">
-                            Dialogue is the bridge. We foster a culture of constructive interaction aimed at the "endgame"—a society where technology and human spirit converge into a functional, sustainable utopia.
-                        </p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 7. Governmental Evolution -->
-            <div class="glass-card p-10 rounded-2xl border-l-4 border-white hover:bg-white/5 transition-all duration-500 lg:col-span-3">
-                <div class="flex flex-col md:flex-row gap-10 items-center">
-                    <div class="text-center md:text-left">
-                        <h2 class="text-3xl font-bold text-white mb-4 brand-font">Governmental Evolution</h2>
-                        <p class="text-gray-300 leading-relaxed text-lg">
-                            Reforming the foundation. We demand cultural and governmental shifts that reflect these pillars, transitioning from legacy control systems to modern, transparent, and biologically-aware governance.
-                        </p>
-                    </div>
-                    <div class="bg-white/10 p-10 rounded-2xl text-white hidden md:block">
-                        <i class="fas fa-landmark text-6xl"></i>
-                    </div>
-                </div>
-            </div>
-
+            
+            <!-- Additional grid items as needed... -->
         </div>
 
          <!-- React Mount Point -->
@@ -136,57 +83,17 @@
             <div class="mb-8">
                 <h3 class="text-xl font-bold text-[#D4AF37] uppercase tracking-widest mb-2">Methodology & Calibration</h3>
                 <p class="text-gray-400 text-sm">
-                    This model rejects the "linear harm" fallacy in favor of threshold-based actuarial data sourced from the UK Biobank and PATH studies.
+                    Model based on longitudinal cohort data (UK Biobank).
                 </p>
             </div>
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <div class="p-6 rounded-lg bg-white/5 border border-white/10">
-                    <h4 class="text-white font-bold mb-2 flex items-center gap-2">
-                        <i class="fas fa-wine-glass text-[#D4AF37]"></i> The 100g Threshold
-                    </h4>
-                    <p class="text-xs text-gray-400 leading-relaxed">
-                        Data from 599,912 drinkers establishes that mortality risk is neutral below 100g alcohol/week. The model applies penalties for hippocampal atrophy beginning at moderate dosages.
-                    </p>
-                </div>
-                <div class="p-6 rounded-lg bg-white/5 border border-white/10">
-                    <h4 class="text-white font-bold mb-2 flex items-center gap-2">
-                        <i class="fas fa-smoking text-[#FF4500]"></i> Log-Linear Shock
-                    </h4>
-                    <p class="text-xs text-gray-400 leading-relaxed">
-                        Cardiovascular damage from smoking saturates rapidly. Smoking 1 cigarette/day confers nearly 50% of heart disease risk of 20/day.
-                    </p>
-                </div>
-                <div class="p-6 rounded-lg bg-white/5 border border-white/10">
-                    <h4 class="text-white font-bold mb-2 flex items-center gap-2">
-                        <i class="fas fa-cloud text-blue-400"></i> Vascular Stiffness
-                    </h4>
-                    <p class="text-xs text-gray-400 leading-relaxed">
-                        Vaping eliminates ~95% of carcinogens but maintains ~80% of arterial stiffness due to nicotine-induced vasoconstriction.
-                    </p>
-                </div>
-            </div>
-            
             <div class="mt-8 text-[10px] text-gray-600 font-mono">
-                SOURCES: Wood et al. (2018); UK Biobank Longitudinal Cohort; PATH Wave 1-4.
-            </div>
-        </div>
-
-        <!-- Call to Action -->
-        <div class="mt-20 text-center">
-            <h3 class="text-2xl text-white font-bold mb-6">Align with the Movement</h3>
-            <div class="flex flex-col md:flex-row justify-center gap-4">
-                <a href="/contact" class="btn-gold px-8 py-4 rounded text-lg shadow-[0_0_20px_rgba(212,175,55,0.3)]">
-                    Join the Mission
-                </a>
-                <a href="/merch" class="btn-outline px-8 py-4 rounded text-lg">
-                    Represent the Platform
-                </a>
+                SOURCES: Wood et al. (2018); UK Biobank Longitudinal Cohort.
             </div>
         </div>
 
     </div>
 </section>
 
+<!-- Load the component script -->
 <script type="text/babel" data-presets="react" src="/js/neuro-model.js"></script>
 <%- include('partials/footer') %>
