@@ -1,7 +1,15 @@
 // public/js/neuro-model.js
 
-const { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } = Recharts;
-
+const { 
+  LineChart, 
+  Line, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  Legend, 
+  ResponsiveContainer 
+} = window.Recharts;
 const NeuroModel = () => {
   // --- STATE ---
   const [drinks, setDrinks] = React.useState(4);    

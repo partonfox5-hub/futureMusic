@@ -1,11 +1,12 @@
 <%- include('partials/header') %>
 
 <!-- 1. ADD DEPENDENCIES (Place inside <head> or at top of body) -->
-<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-<script src="https://unpkg.com/recharts/umd/Recharts.min.js"></script>
-<!-- Babel is required to compile the JSX in the browser -->
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/recharts/umd/Recharts.min.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/@babel/standalone/babel.min.js"></script>
 
 
 <section class="min-h-screen bg-black text-white pt-32 pb-20 px-4 relative overflow-hidden">
@@ -190,6 +191,5 @@
     </div>
 </section>
 
-<script type="text/babel" src="/js/neuro-model.js"></script>
-
+<script type="text/babel" data-presets="react" src="/js/neuro-model.js"></script>
 <%- include('partials/footer') %>
