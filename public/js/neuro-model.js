@@ -1,17 +1,30 @@
 // public/js/neuro-model.js
 
 const NeuroModel = () => {
-  // --- RECHARTS SAFETY INITIALIZATION ---
-  // We extract components inside the function with fallbacks to avoid Error #130
-  const RC = window.Recharts || {};
-  const LineChart = RC.LineChart || 'div';
-  const Line = RC.Line || 'div';
-  const XAxis = RC.XAxis || 'div';
-  const YAxis = RC.YAxis || 'div';
-  const CartesianGrid = RC.CartesianGrid || 'div';
-  const Tooltip = RC.Tooltip || 'div';
-  const Legend = RC.Legend || 'div';
-  const ResponsiveContainer = RC.ResponsiveContainer || 'div';
+  // --- RECHARTS CHECK ---
+  // We check if Recharts is available. If not, we return a loading state.
+  // This prevents the "ForwardRef" error caused by passing invalid component types to React.
+  if (!window.Recharts) {
+    return (
+      <div className="w-full h-[400px] flex items-center justify-center border border-white/10 rounded-xl bg-white/5">
+        <div className="text-[#D4AF37] animate-pulse font-mono uppercase tracking-widest text-sm">
+          Initializing Neural Engine...
+        </div>
+      </div>
+    );
+  }
+
+  // Destructure components directly from the validated window object
+  const { 
+    LineChart, 
+    Line, 
+    XAxis, 
+    YAxis, 
+    CartesianGrid, 
+    Tooltip, 
+    Legend, 
+    ResponsiveContainer 
+  } = window.Recharts;
 
   // --- STATE ---
   const [drinks, setDrinks] = React.useState(4);    
@@ -122,6 +135,7 @@ const NeuroModel = () => {
                   className={`px-4 py-2 rounded text-xs font-bold uppercase tracking-wider transition-all
                     ${activeTab === tabId ? 'bg-[#D4AF37] text-black' : 'text-gray-500 hover:text-white'}`}
                 >
+                  <i className={`fas ${tabId === 'alcohol' ? 'fa-wine-glass' : tabId === 'tobacco' ? 'fa-smoking' : 'fa-cannabis'} mr-2`}></i>
                   {tabId}
                 </button>
               ))}
@@ -209,11 +223,21 @@ const NeuroModel = () => {
   );
 };
 
-// Start logic
+// Start logic - We use a short timeout to ensure the window.Recharts global is populated
 window.addEventListener('load', () => {
-  const rootNode = document.getElementById('neuro-model-root');
-  if (rootNode && window.Recharts) {
-    const root = ReactDOM.createRoot(rootNode);
-    root.render(React.createElement(NeuroModel));
+  const mountApp = () => {
+    const rootNode = document.getElementById('neuro-model-root');
+    if (rootNode) {
+      const root = ReactDOM.createRoot(rootNode);
+      root.render(React.createElement(NeuroModel));
+    }
+  };
+
+  // Give the browser one more tick to finalize script execution
+  if (window.Recharts) {
+    mountApp();
+  } else {
+    // If scripts are still loading, wait 100ms
+    setTimeout(mountApp, 100);
   }
 });
