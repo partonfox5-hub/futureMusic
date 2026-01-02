@@ -1,19 +1,5 @@
 <%- include('partials/header') %>
 
-<!-- 1. DEPENDENCIES -->
-<!-- React and ReactDOM (Required) -->
-<script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
-
-<!-- React-Is (REQUIRED for Recharts UMD to handle ForwardRef properly) -->
-<script src="https://unpkg.com/react-is/umd/react-is.production.min.js"></script>
-
-<!-- Recharts (Requires React/ReactDOM/ReactIs) -->
-<script src="https://unpkg.com/recharts/umd/Recharts.js"></script>
-
-<!-- Babel for in-browser JSX -->
-<script src="https://cdn.jsdelivr.net/npm/@babel/standalone/babel.min.js"></script>
-
 <section class="min-h-screen bg-black text-white pt-32 pb-20 px-4 relative overflow-hidden">
     
     <!-- Decorative Background Element -->
@@ -31,9 +17,10 @@
             </p>
         </div>
 
-        <!-- Agenda Grid -->
+        <!-- Agenda Grid: Varied Sizes and Shapes -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 auto-rows-fr">
-            <!-- Modernizing Justice -->
+
+            <!-- 1. Modernizing Justice (Wide on Desktop) -->
             <div class="glass-card p-8 rounded-2xl border-l-4 border-[#D4AF37] hover:bg-white/5 transition-all duration-500 lg:col-span-2 flex flex-col justify-center">
                 <div class="flex flex-col md:flex-row gap-6 items-start md:items-center">
                     <div class="bg-[#D4AF37]/10 p-5 rounded-full text-[#D4AF37] flex-shrink-0">
@@ -42,58 +29,105 @@
                     <div>
                         <h2 class="text-2xl font-bold text-white mb-3 brand-font">Modernizing Justice</h2>
                         <p class="text-gray-300 leading-relaxed">
-                            Moving beyond retributive antiquity. We advocate for a justice system built on data-driven restoration and objective truth.
+                            Moving beyond retributive antiquity. We advocate for a justice system built on data-driven restoration and objective truth, removing the "illusory hierarchy" of bias in favor of equitable, high-resolution legal frameworks.
                         </p>
                     </div>
                 </div>
             </div>
 
-            <!-- Biological Fidelity -->
+            <!-- 2. Biological Fidelity (Small Square) -->
             <div class="glass-card p-8 rounded-2xl border-l-4 border-[#20B2AA] hover:bg-white/5 transition-all duration-500 flex flex-col items-center text-center justify-center">
                 <div class="bg-[#20B2AA]/10 p-4 rounded-full text-[#20B2AA] mb-4">
                     <i class="fas fa-dna text-3xl"></i>
                 </div>
                 <h2 class="text-xl font-bold text-white mb-2 brand-font">Biological Fidelity</h2>
                 <p class="text-gray-400 text-sm leading-relaxed">
-                    Eliminating substance poisoning to ensure a clear signal.
+                    Eliminating substance poisoning to ensure a clear signal. Removing systemic toxins to keep the vessel as pure as the intent.
                 </p>
             </div>
 
-            <!-- Neural Maximization -->
-            <div class="glass-card p-8 rounded-2xl border-l-4 border-[#FF4500] hover:bg-white/5 transition-all duration-500 lg:row-span-1 flex flex-col justify-center">
+            <!-- 3. Machine Context (Small Square) -->
+            <div class="glass-card p-8 rounded-2xl border-l-4 border-[#F4C430] hover:bg-white/5 transition-all duration-500 flex flex-col items-center text-center justify-center">
+                <div class="bg-[#F4C430]/10 p-4 rounded-full text-[#F4C430] mb-4">
+                    <i class="fas fa-microchip text-3xl"></i>
+                </div>
+                <h2 class="text-xl font-bold text-white mb-2 brand-font">Machine Context</h2>
+                <p class="text-gray-400 text-sm leading-relaxed">
+                    Leveraging AI as a neutral arbiter in human friction, providing context to noise and intervention to irrationality.
+                </p>
+            </div>
+
+            <!-- 4. Neural Maximization (Tall Card) -->
+            <div class="glass-card p-8 rounded-2xl border-l-4 border-[#FF4500] hover:bg-white/5 transition-all duration-500 lg:row-span-2 flex flex-col justify-center">
                 <div class="bg-[#FF4500]/10 p-5 w-fit rounded-full text-[#FF4500] mb-6">
                     <i class="fas fa-brain text-4xl"></i>
                 </div>
                 <h2 class="text-2xl font-bold text-white mb-4 brand-font">Neural Maximization</h2>
-                <p class="text-gray-300 leading-relaxed text-sm">
-                    Infrastructure that optimizes cognitive health and neural plasticity.
+                <p class="text-gray-300 leading-relaxed">
+                    Every human brain deserves its highest potential. We advocate for infrastructure that optimizes cognitive health, learning, and neural plasticity, making "superpowers" an baseline accessible to every individual regardless of origin.
+                </p>
+                <div class="mt-6 pt-6 border-t border-white/10 text-xs text-gray-500 uppercase tracking-widest">
+                    Optimization Priority: High
+                </div>
+            </div>
+
+            <!-- 5. Post-Addiction Economics (Small Square) -->
+            <div class="glass-card p-8 rounded-2xl border-l-4 border-[#9370DB] hover:bg-white/5 transition-all duration-500 flex flex-col items-center text-center justify-center">
+                <div class="bg-[#9370DB]/10 p-4 rounded-full text-[#9370DB] mb-4">
+                    <i class="fas fa-hand-holding-heart text-3xl"></i>
+                </div>
+                <h2 class="text-xl font-bold text-white mb-2 brand-font">Post-Addiction Economics</h2>
+                <p class="text-gray-400 text-sm leading-relaxed">
+                    Ending the exploitation of the dopamine loop. Pivoting to a value-based economy that rewards growth over dependency.
                 </p>
             </div>
-            
-            <!-- Additional grid items as needed... -->
-        </div>
 
-         <!-- React Mount Point -->
-        <div class="mt-24 mb-12">
-            <div id="neuro-model-root"></div>
-        </div>
-
-        <!-- Research Summary -->
-        <div class="border-t border-white/10 pt-12 mt-12">
-            <div class="mb-8">
-                <h3 class="text-xl font-bold text-[#D4AF37] uppercase tracking-widest mb-2">Methodology & Calibration</h3>
-                <p class="text-gray-400 text-sm">
-                    Model based on longitudinal cohort data (UK Biobank).
-                </p>
+            <!-- 6. Dialogue Towards Utopia (Wide Card) -->
+            <div class="glass-card p-8 rounded-2xl border-l-4 border-[#FFD700] hover:bg-white/5 transition-all duration-500 lg:col-span-2 flex flex-col justify-center">
+                <div class="flex flex-col md:flex-row gap-6 items-start">
+                    <div class="bg-[#FFD700]/10 p-5 rounded-full text-[#FFD700] flex-shrink-0">
+                        <i class="fas fa-comments text-3xl"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-2xl font-bold text-white mb-2 brand-font">Constructive Utopianism</h2>
+                        <p class="text-gray-300 leading-relaxed">
+                            Dialogue is the bridge. We foster a culture of constructive interaction aimed at the "endgame"—a society where technology and human spirit converge into a functional, sustainable utopia.
+                        </p>
+                    </div>
+                </div>
             </div>
-            <div class="mt-8 text-[10px] text-gray-600 font-mono">
-                SOURCES: Wood et al. (2018); UK Biobank Longitudinal Cohort.
+
+            <!-- 7. Structural & Cultural Reform (Full Width Footer-Style) -->
+            <div class="glass-card p-10 rounded-2xl border-l-4 border-white hover:bg-white/5 transition-all duration-500 lg:col-span-3">
+                <div class="flex flex-col md:flex-row gap-10 items-center">
+                    <div class="text-center md:text-left">
+                        <h2 class="text-3xl font-bold text-white mb-4 brand-font">Governmental Evolution</h2>
+                        <p class="text-gray-300 leading-relaxed text-lg">
+                            Reforming the foundation. We demand cultural and governmental shifts that reflect these pillars, transitioning from legacy control systems to modern, transparent, and biologically-aware governance.
+                        </p>
+                    </div>
+                    <div class="bg-white/10 p-10 rounded-2xl text-white hidden md:block">
+                        <i class="fas fa-landmark text-6xl"></i>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Call to Action -->
+        <div class="mt-20 text-center">
+            <h3 class="text-2xl text-white font-bold mb-6">Align with the Movement</h3>
+            <div class="flex flex-col md:flex-row justify-center gap-4">
+                <a href="/contact" class="btn-gold px-8 py-4 rounded text-lg shadow-[0_0_20px_rgba(212,175,55,0.3)]">
+                    Join the Mission
+                </a>
+                <a href="/merch" class="btn-outline px-8 py-4 rounded text-lg">
+                    Represent the Platform
+                </a>
             </div>
         </div>
 
     </div>
 </section>
 
-<!-- Load the component script -->
-<script type="text/babel" data-presets="react" src="/js/neuro-model.js"></script>
 <%- include('partials/footer') %>
