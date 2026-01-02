@@ -1,5 +1,13 @@
 <%- include('partials/header') %>
 
+<!-- 1. ADD DEPENDENCIES (Place inside <head> or at top of body) -->
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/recharts/umd/Recharts.min.js"></script>
+<!-- Babel is required to compile the JSX in the browser -->
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+
 <section class="min-h-screen bg-black text-white pt-32 pb-20 px-4 relative overflow-hidden">
     
     <!-- Decorative Background Element -->
@@ -114,6 +122,58 @@
 
         </div>
 
+         <!-- 2. ADD MOUNT POINT -->
+        <div class="mt-24 mb-12">
+            <div id="neuro-model-root"></div>
+        </div>
+
+        <!-- 3. ADD RESEARCH SUMMARY (Requested HTML) -->
+        <div class="border-t border-white/10 pt-12 mt-12">
+            <div class="mb-8">
+                <h3 class="text-xl font-bold text-[#D4AF37] uppercase tracking-widest mb-2">Methodology & Calibration</h3>
+                <p class="text-gray-400 text-sm">
+                    This model rejects the "linear harm" fallacy (e.g., "1 drink = 1 day lost") in favor of threshold-based actuarial data sourced from the UK Biobank and PATH studies.
+                </p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Point 1: Alcohol -->
+                <div class="p-6 rounded-lg bg-white/5 border border-white/10">
+                    <h4 class="text-white font-bold mb-2 flex items-center gap-2">
+                        <i class="fas fa-wine-glass text-[#D4AF37]"></i> The 100g Threshold
+                    </h4>
+                    <p class="text-xs text-gray-400 leading-relaxed">
+                        Data from 599,912 drinkers establishes that mortality risk is effectively neutral below 100g of alcohol/week (<7 standard drinks). The model applies zero mortality penalty below this line, but calculates hippocampal atrophy (Memory) beginning at moderate dosages.
+                    </p>
+                </div>
+
+                <!-- Point 2: Tobacco -->
+                <div class="p-6 rounded-lg bg-white/5 border border-white/10">
+                    <h4 class="text-white font-bold mb-2 flex items-center gap-2">
+                        <i class="fas fa-smoking text-[#FF4500]"></i> Log-Linear Shock
+                    </h4>
+                    <p class="text-xs text-gray-400 leading-relaxed">
+                        Unlike alcohol, cardiovascular damage from smoking saturates rapidly. Smoking 1 cigarette/day confers nearly 50% of the heart disease risk of smoking 20/day. The model applies a "shock penalty" to the Energy metric immediately upon introduction of combustible tobacco.
+                    </p>
+                </div>
+
+                <!-- Point 3: Vaping -->
+                <div class="p-6 rounded-lg bg-white/5 border border-white/10">
+                    <h4 class="text-white font-bold mb-2 flex items-center gap-2">
+                        <i class="fas fa-cloud text-blue-400"></i> Vascular Stiffness
+                    </h4>
+                    <p class="text-xs text-gray-400 leading-relaxed">
+                        While vaping eliminates ~95% of carcinogens (Cancer Risk), it maintains ~80% of the arterial stiffness (Vascular Age) of smoking due to nicotine-induced vasoconstriction. The model reflects this by sparing "Lifespan" but penalizing "Energy" and "Focus" significantly.
+                    </p>
+                </div>
+            </div>
+            
+            <div class="mt-8 text-[10px] text-gray-600 font-mono">
+                SOURCES: Wood et al. (2018) "Risk thresholds for alcohol consumption"; UK Biobank Longitudinal Cohort (N=36,678); Population Assessment of Tobacco and Health (PATH) Wave 1-4.
+            </div>
+        </div>
+
+
         <!-- Call to Action -->
         <div class="mt-20 text-center">
             <h3 class="text-2xl text-white font-bold mb-6">Align with the Movement</h3>
@@ -129,5 +189,7 @@
 
     </div>
 </section>
+
+<script type="text/babel" src="/js/neuro-model.js"></script>
 
 <%- include('partials/footer') %>
