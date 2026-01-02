@@ -1,18 +1,18 @@
 // public/js/neuro-model.js
 
-// Reference Recharts from the window object safely
-const RechartsObj = window.Recharts || {};
-const { 
-  LineChart, 
-  Line, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  Legend, 
-  ResponsiveContainer 
-} = RechartsObj;
 const NeuroModel = () => {
+  // --- RECHARTS SAFETY INITIALIZATION ---
+  // We extract components inside the function with fallbacks to avoid Error #130
+  const RC = window.Recharts || {};
+  const LineChart = RC.LineChart || 'div';
+  const Line = RC.Line || 'div';
+  const XAxis = RC.XAxis || 'div';
+  const YAxis = RC.YAxis || 'div';
+  const CartesianGrid = RC.CartesianGrid || 'div';
+  const Tooltip = RC.Tooltip || 'div';
+  const Legend = RC.Legend || 'div';
+  const ResponsiveContainer = RC.ResponsiveContainer || 'div';
+
   // --- STATE ---
   const [drinks, setDrinks] = React.useState(4);    
   const [cigs, setCigs] = React.useState(0);        
@@ -58,25 +58,25 @@ const NeuroModel = () => {
     return TIMELINES.map(year => {
       let lifeLoss = 0;
       
-      // 1. ALCOHOL: Threshold Logic (<7 is noise)
+      // 1. ALCOHOL
       if (drinks > 7) {
          lifeLoss += (Math.pow(drinks - 7, 1.3) * 0.05) * (year / 40);
       }
 
-      // 2. TOBACCO: Supralinear (Immediate shock)
+      // 2. TOBACCO
       if (cigs > 0) {
         const packYears = (cigs / 20) * year;
         lifeLoss += packYears * 0.8; 
         if (year > 1) lifeLoss += 1.5; 
       }
 
-      // 3. VAPING: Vascular morbidity > Mortality
+      // 3. VAPING
       if (vape > 0) {
         const vapeEquiv = vape * 0.33; 
         lifeLoss += (vapeEquiv / 20) * year * 0.4;
       }
 
-      // 4. SYNERGY: Alcohol + Smoking
+      // 4. SYNERGY
       if (drinks > 10 && cigs > 5) {
         lifeLoss *= 1.35; 
       }
@@ -91,11 +91,6 @@ const NeuroModel = () => {
       });
 
       point.lifespan = Math.max(60, BASELINE_LIFESPAN - lifeLoss);
-      
-      // Income Proxy
-      const cognitiveAvg = (point.focus + point.memory) / 2;
-      point.income = BASELINE_INCOME * (cognitiveAvg / 100);
-
       return point;
     });
   }, [drinks, cigs, vape, thc]);
@@ -105,169 +100,119 @@ const NeuroModel = () => {
 
   return (
     <div className="w-full text-white font-sans selection:bg-[#D4AF37] selection:text-black">
-      
       <div className="mb-8 border-l-4 border-[#D4AF37] pl-6">
         <h2 className="text-3xl font-black uppercase tracking-tighter text-white mb-2">
           Actuarial Calibration <span className="text-[#D4AF37]">v2.1</span>
         </h2>
         <p className="text-gray-400 max-w-2xl text-sm leading-relaxed">
-          Refined probabilistic model based on longitudinal cohort data (UK Biobank/PATH). 
-          Replacing linear assumptions with <strong>biological thresholds</strong> and <strong>synergistic toxicity</strong>.
+          Refined probabilistic model based on longitudinal cohort data.
         </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
-        {/* --- CONTROLS --- */}
+        {/* CONTROLS */}
         <div className="lg:col-span-4 space-y-6">
           <div className="glass-card bg-white/5 border border-white/10 p-6 rounded-xl">
-            
-            {/* Tabs */}
             <div className="flex gap-2 mb-6 border-b border-white/10 pb-4 overflow-x-auto">
-              {[
-                { id: 'alcohol', icon: 'fas fa-wine-glass', label: 'EtOH' },
-                { id: 'tobacco', icon: 'fas fa-smoking', label: 'Nicotine' },
-                { id: 'thc', icon: 'fas fa-cannabis', label: 'THC' }
-              ].map(t => (
+              {['alcohol', 'tobacco', 'thc'].map(tabId => (
                 <button 
-                  key={t.id}
-                  onClick={() => setActiveTab(t.id)}
-                  className={`px-4 py-2 rounded text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2
-                    ${activeTab === t.id ? 'bg-[#D4AF37] text-black' : 'text-gray-500 hover:text-white'}`}
+                  key={tabId}
+                  onClick={() => setActiveTab(tabId)}
+                  className={`px-4 py-2 rounded text-xs font-bold uppercase tracking-wider transition-all
+                    ${activeTab === tabId ? 'bg-[#D4AF37] text-black' : 'text-gray-500 hover:text-white'}`}
                 >
-                  <i className={t.icon}></i> {t.label}
+                  {tabId}
                 </button>
               ))}
             </div>
 
-            {/* Sliders */}
             <div className="min-h-[120px]">
               {activeTab === 'alcohol' && (
-                <div className="animate-fade-in">
+                <div>
                   <div className="flex justify-between mb-2">
                     <label className="text-xs uppercase text-[#D4AF37] font-bold">Standard Drinks / Week</label>
                     <span className="text-xl font-mono">{drinks}</span>
                   </div>
-                  <input type="range" min="0" max="40" value={drinks} onChange={e => setDrinks(Number(e.target.value))} 
-                    className="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-[#D4AF37]" />
-                  <p className="text-[10px] text-gray-500 mt-3 italic">
-                    <span className="text-white">Threshold Logic:</span> &lt;7 drinks/week shows negligible mortality impact. Neuro-atrophy accelerates &gt;14/week.
-                  </p>
+                  <input type="range" min="0" max="40" value={drinks} onChange={e => setDrinks(Number(e.target.value))} className="w-full h-1 bg-gray-700 accent-[#D4AF37] rounded-lg appearance-none cursor-pointer" />
                 </div>
               )}
-              
               {activeTab === 'tobacco' && (
-                <div className="space-y-6 animate-fade-in">
+                <div className="space-y-4">
                   <div>
                     <div className="flex justify-between mb-2">
-                      <label className="text-xs uppercase text-[#FF4500] font-bold">Cigarettes / Day</label>
+                      <label className="text-xs uppercase text-[#FF4500] font-bold">Cigs / Day</label>
                       <span className="text-xl font-mono">{cigs}</span>
                     </div>
-                    <input type="range" min="0" max="40" value={cigs} onChange={e => setCigs(Number(e.target.value))} 
-                      className="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-[#FF4500]" />
+                    <input type="range" min="0" max="40" value={cigs} onChange={e => setCigs(Number(e.target.value))} className="w-full h-1 bg-gray-700 accent-[#FF4500] rounded-lg appearance-none cursor-pointer" />
                   </div>
                   <div>
                     <div className="flex justify-between mb-2">
-                      <label className="text-xs uppercase text-blue-400 font-bold">Vape (mL / Week)</label>
+                      <label className="text-xs uppercase text-blue-400 font-bold">Vape (mL / Wk)</label>
                       <span className="text-xl font-mono">{vape}</span>
                     </div>
-                    <input type="range" min="0" max="50" value={vape} onChange={e => setVape(Number(e.target.value))} 
-                      className="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-400" />
-                    <p className="text-[10px] text-gray-500 mt-3 italic">
-                      <span className="text-white">Vascular Stiffness:</span> Vaping reduces cancer risk by ~95%, but maintains ~80% of the arterial stiffness of smoking.
-                    </p>
+                    <input type="range" min="0" max="50" value={vape} onChange={e => setVape(Number(e.target.value))} className="w-full h-1 bg-gray-700 accent-blue-400 rounded-lg appearance-none cursor-pointer" />
                   </div>
                 </div>
               )}
-
               {activeTab === 'thc' && (
-                <div className="animate-fade-in">
+                <div>
                   <div className="flex justify-between mb-2">
                     <label className="text-xs uppercase text-[#20B2AA] font-bold">Grams / Week</label>
                     <span className="text-xl font-mono">{thc}g</span>
                   </div>
-                  <input type="range" min="0" max="14" step="0.5" value={thc} onChange={e => setThc(Number(e.target.value))} 
-                    className="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-[#20B2AA]" />
-                  <p className="text-[10px] text-gray-500 mt-3 italic">
-                    <span className="text-white">Functional Connectivity:</span> Impact is primarily on verbal memory and motivation, not gross volume atrophy.
-                  </p>
+                  <input type="range" min="0" max="14" step="0.5" value={thc} onChange={e => setThc(Number(e.target.value))} className="w-full h-1 bg-gray-700 accent-[#20B2AA] rounded-lg appearance-none cursor-pointer" />
                 </div>
               )}
             </div>
           </div>
 
-          {/* Key Stats */}
           <div className="grid grid-cols-2 gap-4">
              <div className="bg-white/5 p-4 rounded-xl border border-white/10">
-                <div className="text-xs text-gray-500 uppercase mb-1">Projected Lifespan</div>
-                <div className="text-2xl font-mono font-bold text-white">
-                    {final.lifespan.toFixed(1)} <span className="text-sm text-gray-500">Years</span>
-                </div>
-                <div className="w-full bg-gray-800 h-1 mt-2 rounded-full overflow-hidden">
-                    <div className="bg-white h-full" style={{ width: `${(final.lifespan/85)*100}%` }}></div>
-                </div>
+                <div className="text-xs text-gray-500 mb-1 uppercase">Lifespan</div>
+                <div className="text-2xl font-mono font-bold">{final.lifespan.toFixed(1)}</div>
              </div>
              <div className="bg-white/5 p-4 rounded-xl border border-white/10">
-                <div className="text-xs text-gray-500 uppercase mb-1">Microlives Lost</div>
-                <div className="text-2xl font-mono font-bold text-[#FF4500]">
-                    {microlivesLost.toLocaleString()}
-                </div>
-                <div className="text-[10px] text-gray-500 mt-1">30min blocks of life</div>
+                <div className="text-xs text-gray-500 mb-1 uppercase">Microlives Lost</div>
+                <div className="text-2xl font-mono font-bold text-[#FF4500]">{microlivesLost.toLocaleString()}</div>
              </div>
           </div>
         </div>
 
-        {/* --- CHARTS --- */}
-        <div className="lg:col-span-8 bg-black/40 border border-white/10 rounded-xl p-6 backdrop-blur-sm">
-            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-6 flex items-center gap-2">
-                <i className="fas fa-chart-line text-[#D4AF37]"></i> 40-Year Neuro-Projection
-            </h3>
-            
+        {/* CHARTS */}
+        <div className="lg:col-span-8 bg-black/40 border border-white/10 rounded-xl p-6">
             <div className="h-[300px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={data}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#333" vertical={false} />
                         <XAxis dataKey="name" stroke="#666" fontSize={12} tickLine={false} axisLine={false} />
                         <YAxis domain={[40, 100]} stroke="#666" fontSize={12} tickLine={false} axisLine={false} />
-                        <Tooltip 
-                            contentStyle={{ backgroundColor: '#111', border: '1px solid #333', borderRadius: '8px' }}
-                            itemStyle={{ fontSize: '12px' }}
-                        />
+                        <Tooltip contentStyle={{ backgroundColor: '#111', border: '1px solid #333' }} />
                         <Legend />
-                        <Line type="monotone" dataKey="focus" stroke="#D4AF37" strokeWidth={2} dot={false} name="Cortical Thickness" />
-                        <Line type="monotone" dataKey="memory" stroke="#20B2AA" strokeWidth={2} dot={false} name="Hippocampal Vol" />
-                        <Line type="monotone" dataKey="energy" stroke="#FF4500" strokeWidth={2} dot={false} name="Vascular Health" />
+                        <Line type="monotone" dataKey="focus" stroke="#D4AF37" strokeWidth={2} dot={false} name="Focus" />
+                        <Line type="monotone" dataKey="memory" stroke="#20B2AA" strokeWidth={2} dot={false} name="Memory" />
+                        <Line type="monotone" dataKey="energy" stroke="#FF4500" strokeWidth={2} dot={false} name="Vascular" />
                     </LineChart>
                 </ResponsiveContainer>
             </div>
-
-            <div className="mt-6 pt-6 border-t border-white/10 grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="mt-6 pt-6 border-t border-white/10 grid grid-cols-3 gap-6">
                 {metrics.filter(m => m.type !== 'outcome').map(m => (
                     <div key={m.id}>
-                        <div className="flex items-center gap-2 mb-2">
-                            <div className="w-2 h-2 rounded-full" style={{backgroundColor: m.color}}></div>
-                            <span className="text-xs font-bold text-gray-300 uppercase">{m.name}</span>
-                        </div>
-                        <div className="text-xs text-gray-500 leading-tight">
-                            {m.desc}
-                        </div>
-                        <div className="mt-2 text-xl font-mono" style={{color: m.color}}>
-                            {Math.round(final[m.id])}%
-                        </div>
+                        <span className="text-[10px] font-bold text-gray-500 uppercase">{m.name}</span>
+                        <div className="text-xl font-mono" style={{color: m.color}}>{Math.round(final[m.id])}%</div>
                     </div>
                 ))}
             </div>
         </div>
-
       </div>
     </div>
   );
 };
 
-// Mount the app only after all window resources (scripts) are loaded
+// Start logic
 window.addEventListener('load', () => {
   const rootNode = document.getElementById('neuro-model-root');
-  if (rootNode) {
+  if (rootNode && window.Recharts) {
     const root = ReactDOM.createRoot(rootNode);
     root.render(React.createElement(NeuroModel));
   }

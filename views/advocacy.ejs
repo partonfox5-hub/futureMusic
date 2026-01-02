@@ -1,11 +1,14 @@
 <%- include('partials/header') %>
 
-<!-- 1. ADD DEPENDENCIES (Place inside <head> or at top of body) -->
+<!-- 1. DEPENDENCIES -->
+<!-- React and ReactDOM -->
 <script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
 
-<script src="https://cdn.jsdelivr.net/npm/recharts/umd/Recharts.min.js"></script>
+<!-- Recharts (Requires React/ReactDOM) -->
+<script src="https://unpkg.com/recharts/umd/Recharts.js"></script>
 
+<!-- Babel for in-browser JSX -->
 <script src="https://cdn.jsdelivr.net/npm/@babel/standalone/babel.min.js"></script>
 
 
@@ -26,10 +29,10 @@
             </p>
         </div>
 
-        <!-- Agenda Grid: Varied Sizes and Shapes -->
+        <!-- Agenda Grid -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 auto-rows-fr">
 
-            <!-- 1. Modernizing Justice (Wide on Desktop) -->
+            <!-- 1. Modernizing Justice -->
             <div class="glass-card p-8 rounded-2xl border-l-4 border-[#D4AF37] hover:bg-white/5 transition-all duration-500 lg:col-span-2 flex flex-col justify-center">
                 <div class="flex flex-col md:flex-row gap-6 items-start md:items-center">
                     <div class="bg-[#D4AF37]/10 p-5 rounded-full text-[#D4AF37] flex-shrink-0">
@@ -44,7 +47,7 @@
                 </div>
             </div>
 
-            <!-- 2. Biological Fidelity (Small Square) -->
+            <!-- 2. Biological Fidelity -->
             <div class="glass-card p-8 rounded-2xl border-l-4 border-[#20B2AA] hover:bg-white/5 transition-all duration-500 flex flex-col items-center text-center justify-center">
                 <div class="bg-[#20B2AA]/10 p-4 rounded-full text-[#20B2AA] mb-4">
                     <i class="fas fa-dna text-3xl"></i>
@@ -55,7 +58,7 @@
                 </p>
             </div>
 
-            <!-- 3. Machine Context (Small Square) -->
+            <!-- 3. Machine Context -->
             <div class="glass-card p-8 rounded-2xl border-l-4 border-[#F4C430] hover:bg-white/5 transition-all duration-500 flex flex-col items-center text-center justify-center">
                 <div class="bg-[#F4C430]/10 p-4 rounded-full text-[#F4C430] mb-4">
                     <i class="fas fa-microchip text-3xl"></i>
@@ -66,7 +69,7 @@
                 </p>
             </div>
 
-            <!-- 4. Neural Maximization (Tall Card) -->
+            <!-- 4. Neural Maximization -->
             <div class="glass-card p-8 rounded-2xl border-l-4 border-[#FF4500] hover:bg-white/5 transition-all duration-500 lg:row-span-2 flex flex-col justify-center">
                 <div class="bg-[#FF4500]/10 p-5 w-fit rounded-full text-[#FF4500] mb-6">
                     <i class="fas fa-brain text-4xl"></i>
@@ -80,7 +83,7 @@
                 </div>
             </div>
 
-            <!-- 5. Post-Addiction Economics (Small Square) -->
+            <!-- 5. Post-Addiction Economics -->
             <div class="glass-card p-8 rounded-2xl border-l-4 border-[#9370DB] hover:bg-white/5 transition-all duration-500 flex flex-col items-center text-center justify-center">
                 <div class="bg-[#9370DB]/10 p-4 rounded-full text-[#9370DB] mb-4">
                     <i class="fas fa-hand-holding-heart text-3xl"></i>
@@ -91,7 +94,7 @@
                 </p>
             </div>
 
-            <!-- 6. Dialogue Towards Utopia (Wide Card) -->
+            <!-- 6. Constructive Utopianism -->
             <div class="glass-card p-8 rounded-2xl border-l-4 border-[#FFD700] hover:bg-white/5 transition-all duration-500 lg:col-span-2 flex flex-col justify-center">
                 <div class="flex flex-col md:flex-row gap-6 items-start">
                     <div class="bg-[#FFD700]/10 p-5 rounded-full text-[#FFD700] flex-shrink-0">
@@ -106,7 +109,7 @@
                 </div>
             </div>
 
-            <!-- 7. Structural & Cultural Reform (Full Width Footer-Style) -->
+            <!-- 7. Governmental Evolution -->
             <div class="glass-card p-10 rounded-2xl border-l-4 border-white hover:bg-white/5 transition-all duration-500 lg:col-span-3">
                 <div class="flex flex-col md:flex-row gap-10 items-center">
                     <div class="text-center md:text-left">
@@ -123,57 +126,51 @@
 
         </div>
 
-         <!-- 2. ADD MOUNT POINT -->
+         <!-- React Mount Point -->
         <div class="mt-24 mb-12">
             <div id="neuro-model-root"></div>
         </div>
 
-        <!-- 3. ADD RESEARCH SUMMARY (Requested HTML) -->
+        <!-- Research Summary -->
         <div class="border-t border-white/10 pt-12 mt-12">
             <div class="mb-8">
                 <h3 class="text-xl font-bold text-[#D4AF37] uppercase tracking-widest mb-2">Methodology & Calibration</h3>
                 <p class="text-gray-400 text-sm">
-                    This model rejects the "linear harm" fallacy (e.g., "1 drink = 1 day lost") in favor of threshold-based actuarial data sourced from the UK Biobank and PATH studies.
+                    This model rejects the "linear harm" fallacy in favor of threshold-based actuarial data sourced from the UK Biobank and PATH studies.
                 </p>
             </div>
             
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <!-- Point 1: Alcohol -->
                 <div class="p-6 rounded-lg bg-white/5 border border-white/10">
                     <h4 class="text-white font-bold mb-2 flex items-center gap-2">
                         <i class="fas fa-wine-glass text-[#D4AF37]"></i> The 100g Threshold
                     </h4>
                     <p class="text-xs text-gray-400 leading-relaxed">
-                        Data from 599,912 drinkers establishes that mortality risk is effectively neutral below 100g of alcohol/week (<7 standard drinks). The model applies zero mortality penalty below this line, but calculates hippocampal atrophy (Memory) beginning at moderate dosages.
+                        Data from 599,912 drinkers establishes that mortality risk is neutral below 100g alcohol/week. The model applies penalties for hippocampal atrophy beginning at moderate dosages.
                     </p>
                 </div>
-
-                <!-- Point 2: Tobacco -->
                 <div class="p-6 rounded-lg bg-white/5 border border-white/10">
                     <h4 class="text-white font-bold mb-2 flex items-center gap-2">
                         <i class="fas fa-smoking text-[#FF4500]"></i> Log-Linear Shock
                     </h4>
                     <p class="text-xs text-gray-400 leading-relaxed">
-                        Unlike alcohol, cardiovascular damage from smoking saturates rapidly. Smoking 1 cigarette/day confers nearly 50% of the heart disease risk of smoking 20/day. The model applies a "shock penalty" to the Energy metric immediately upon introduction of combustible tobacco.
+                        Cardiovascular damage from smoking saturates rapidly. Smoking 1 cigarette/day confers nearly 50% of heart disease risk of 20/day.
                     </p>
                 </div>
-
-                <!-- Point 3: Vaping -->
                 <div class="p-6 rounded-lg bg-white/5 border border-white/10">
                     <h4 class="text-white font-bold mb-2 flex items-center gap-2">
                         <i class="fas fa-cloud text-blue-400"></i> Vascular Stiffness
                     </h4>
                     <p class="text-xs text-gray-400 leading-relaxed">
-                        While vaping eliminates ~95% of carcinogens (Cancer Risk), it maintains ~80% of the arterial stiffness (Vascular Age) of smoking due to nicotine-induced vasoconstriction. The model reflects this by sparing "Lifespan" but penalizing "Energy" and "Focus" significantly.
+                        Vaping eliminates ~95% of carcinogens but maintains ~80% of arterial stiffness due to nicotine-induced vasoconstriction.
                     </p>
                 </div>
             </div>
             
             <div class="mt-8 text-[10px] text-gray-600 font-mono">
-                SOURCES: Wood et al. (2018) "Risk thresholds for alcohol consumption"; UK Biobank Longitudinal Cohort (N=36,678); Population Assessment of Tobacco and Health (PATH) Wave 1-4.
+                SOURCES: Wood et al. (2018); UK Biobank Longitudinal Cohort; PATH Wave 1-4.
             </div>
         </div>
-
 
         <!-- Call to Action -->
         <div class="mt-20 text-center">
