@@ -17,8 +17,33 @@
             </p>
         </div>
 
-        <!-- Agenda Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 auto-rows-fr overflow-hidden rounded-3xl border border-white/10">
+                <!-- Language Toggle -->
+        <div class="flex justify-center mb-10">
+            <div class="flex bg-white/5 p-1 rounded-xl border border-white/10">
+                <button onclick="toggleLanguage('flashy')" id="btn-flashy" class="px-6 py-2 rounded-lg text-xs font-bold transition-all bg-[#D4AF37] text-black uppercase tracking-widest">
+                    Flashy Language
+                </button>
+                <button onclick="toggleLanguage('plain')" id="btn-plain" class="px-6 py-2 rounded-lg text-xs font-bold transition-all text-gray-500 hover:text-white uppercase tracking-widest">
+                    Plain English
+                </button>
+            </div>
+        </div>
+
+        <!-- Plain English Section (Hidden by default) -->
+        <div id="plain-english-content" class="hidden max-w-4xl mx-auto glass-card p-12 rounded-3xl border border-white/10 mb-16">
+            <h2 class="text-3xl font-bold text-[#D4AF37] mb-6 brand-font uppercase">Our Goals in Plain English</h2>
+            <div class="space-y-6 text-gray-300 text-lg leading-relaxed">
+                <p>
+                    [Your plain English content goes here. You can fill this in with simple explanations of your platform goals.]
+                </p>
+                <p>
+                    [Add more paragraphs as needed to mirror the points in the grid below.]
+                </p>
+            </div>
+        </div>
+
+        <!-- Agenda Grid (ID added for toggling) -->
+        <div id="flashy-grid-content" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 auto-rows-fr overflow-hidden rounded-3xl border border-white/10">
    <!-- 1. Modernizing Justice -->
             <div class="glass-card p-10 border-b lg:border-r border-white/10 hover:bg-white/5 transition-all duration-500 lg:col-span-2 flex flex-col justify-center">
                 <div class="flex flex-col md:flex-row gap-6 items-start md:items-center">
@@ -359,6 +384,33 @@
         visibleMetrics: ['income', 'memory', 'happiness', 'lifespan', 'mortality'],
         selectedYear: 40
     };
+
+        function toggleLanguage(mode) {
+        const flashyGrid = document.getElementById('flashy-grid-content');
+        const plainSection = document.getElementById('plain-english-content');
+        const btnFlashy = document.getElementById('btn-flashy');
+        const btnPlain = document.getElementById('btn-plain');
+
+        if (mode === 'plain') {
+            flashyGrid.classList.add('hidden');
+            plainSection.classList.remove('hidden');
+            
+            // Update Buttons
+            btnPlain.classList.add('bg-[#D4AF37]', 'text-black');
+            btnPlain.classList.remove('text-gray-500', 'hover:text-white');
+            btnFlashy.classList.remove('bg-[#D4AF37]', 'text-black');
+            btnFlashy.classList.add('text-gray-500', 'hover:text-white');
+        } else {
+            flashyGrid.classList.remove('hidden');
+            plainSection.classList.add('hidden');
+            
+            // Update Buttons
+            btnFlashy.classList.add('bg-[#D4AF37]', 'text-black');
+            btnFlashy.classList.remove('text-gray-500', 'hover:text-white');
+            btnPlain.classList.remove('bg-[#D4AF37]', 'text-black');
+            btnPlain.classList.add('text-gray-500', 'hover:text-white');
+        }
+    }
 
     const timelines = [0, 0.5, 1, 2, 3, 5, 10, 15, 20, 25, 30, 35, 40];
     const BASE_LIFE = 80;
