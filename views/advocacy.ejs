@@ -318,6 +318,66 @@
     </div>
 </section>
 
+<!-- START RECOVERY CALCULATOR INTEGRATION -->
+<div class="glass-card p-10 rounded-3xl border border-[#D4AF37]/20 relative overflow-hidden mt-12" id="recovery-roadmap">
+    <div class="absolute top-0 right-0 p-8 opacity-5">
+        <i class="fas fa-redo-alt text-8xl text-[#D4AF37]"></i>
+    </div>
+
+    <div class="relative z-10">
+        <h2 class="text-3xl font-black text-white brand-font uppercase mb-2">Physiological Recovery Roadmap</h2>
+        <p class="text-gray-400 mb-10 max-w-2xl text-sm leading-relaxed text-left">
+            Multi-dimensional modeling of biological reclamation based on cumulative toxicity, metabolic individuality, and duration-weighted repair mechanisms.
+        </p>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-10">
+            <div class="space-y-6">
+                <h3 class="text-xs font-bold text-[#D4AF37] uppercase tracking-[0.2em] mb-4">Biological Profile</h3>
+                <div class="space-y-4">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-[10px] text-gray-500 uppercase mb-2 text-left">Sex</label>
+                            <select id="calc-gender" onchange="calculateRecovery()" class="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white text-xs outline-none focus:border-[#D4AF37]">
+                                <option value="male">Male</option>
+                                <option value="female">Female</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] text-gray-500 uppercase mb-2 text-left">Height (Inches)</label>
+                            <input type="number" id="calc-height" value="70" oninput="calculateRecovery()" class="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white text-xs outline-none focus:border-[#D4AF37]">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-[10px] text-gray-500 uppercase mb-2 text-left">Weight (lbs)</label>
+                            <input type="number" id="calc-weight" value="175" oninput="calculateRecovery()" class="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white text-xs outline-none focus:border-[#D4AF37]">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] text-gray-500 uppercase mb-2 text-left">Years Active</label>
+                            <input type="number" id="calc-years" value="5" oninput="calculateRecovery()" class="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white text-xs outline-none focus:border-[#D4AF37]">
+                        </div>
+                    </div>
+                    <div class="p-4 bg-[#D4AF37]/5 rounded-xl border border-[#D4AF37]/20">
+                        <div class="flex items-center gap-2 mb-2">
+                            <i class="fas fa-microscope text-[#D4AF37] text-xs"></i>
+                            <span class="text-[10px] text-[#D4AF37] font-bold uppercase">Dynamic Modeling</span>
+                        </div>
+                        <p id="bmi-display" class="text-[10px] text-gray-400 leading-tight mb-2 text-left">BMI: 25.1 (Normal)</p>
+                        <p class="text-[9px] text-gray-400 leading-tight italic text-left">
+                            Calculated using duration-weighted repair curves. Chronic use history extends regeneration timelines for neurological and hepatic tissue.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="lg:col-span-2">
+                <div id="recovery-milestones" class="space-y-4"></div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- END RECOVERY CALCULATOR INTEGRATION -->
+
         <!-- Call to Action -->
         <div class="mt-32 text-center pb-12">
             <h3 class="text-3xl text-white font-bold mb-8 brand-font">Align with the Movement</h3>
@@ -383,6 +443,7 @@
 <script>
     const state = {
         alcohol: 1, tobacco: 0, vape: 0, sugar: 25, mj: 0, mjvape: 0, shs: 0,
+        yearsActive: 5, weight: 175, height: 70, gender: 'male', // New properties
         visibleMetrics: ['income', 'memory', 'happiness', 'lifespan', 'mortality'],
         selectedYear: 40
     };
@@ -629,11 +690,98 @@
     function updateInput(key, val) {
         state[key] = parseFloat(val);
         const unit = key === 'sugar' ? 'g' : key === 'shs' ? 'h' : (key === 'vape' || key === 'mjvape' ? 'mL/g' : '');
-        document.getElementById('val-' + key).textContent = val + unit;
+        const displayEl = document.getElementById('val-' + key);
+        if (displayEl) displayEl.textContent = val + unit;
         updateUI();
+        calculateRecovery(); // Triggers the second calculator
     }
 
-    window.addEventListener('load', init);
+    window.addEventListener('load', () => {
+        init();
+        calculateRecovery();
+    });
+
+
+        function calculateRecovery() {
+        const years = Math.max(0.1, parseFloat(document.getElementById('calc-years').value) || 0);
+        const weight = Math.max(50, parseFloat(document.getElementById('calc-weight').value) || 150);
+        const height = Math.max(40, parseFloat(document.getElementById('calc-height').value) || 70);
+        const gender = document.getElementById('calc-gender').value;
+        const container = document.getElementById('recovery-milestones');
+        if (!container) return;
+        container.innerHTML = '';
+
+        const bmi = (weight * 703) / (height * height);
+        const bmiCategory = bmi > 30 ? 'Obese' : bmi > 25 ? 'Overweight' : 'Normal';
+        document.getElementById('bmi-display').textContent = `BMI: ${bmi.toFixed(1)} (${bmiCategory})`;
+
+        const milestones = [];
+        const durationScalar = 1 + (years * 0.05);
+
+        if (state.alcohol > 0) {
+            let stormHours = Math.round(72 * (1 + (state.alcohol / 100))); 
+            milestones.push({ t: `${stormHours} Hours`, cat: 'Neuro (Risk)', desc: 'The Storm Zone: Neurochemical rebalancing. High dosage increases the duration of autonomic instability.', color: '#ef4444' });
+
+            let hepaticWeeks = (4 + (state.alcohol / 7)) * (gender === 'female' ? 1.4 : 1.0) * (bmi > 30 ? 1.3 : 1.0) * durationScalar;
+            milestones.push({ t: `${Math.round(hepaticWeeks)} Weeks`, cat: 'Hepatic', desc: 'The Hepatic Reset: Cumulative years of use significantly extend the timeline for enzyme baseline return.', color: '#D4AF37' });
+
+            let brainMonths = 3 * (1 + (state.alcohol / 20)) * (years > 5 ? 2 : 1) * (years > 15 ? 1.5 : 1);
+            milestones.push({ t: `${Math.round(brainMonths)} Months`, cat: 'Cognitive', desc: 'Neural Restoration: Chronic duration creates a volumetric lag, requiring longer horizons for white matter repair.', color: '#8b5cf6' });
+        }
+
+        if (state.tobacco > 0) {
+            const packYears = (state.tobacco / 140) * years;
+            milestones.push({ t: '24 Hours', cat: 'Respiratory', desc: 'Oxygen Flood: Carbon monoxide clearance. Blood oxygen-carrying capacity returns to baseline.', color: '#ef4444' });
+            milestones.push({ t: `${Math.round(12 * (1 + (packYears / 20)) / 12 * 10) / 10} Years`, cat: 'Cardiac', desc: 'Vascular inflammatory markers normalize. Timeline is weighted by your cumulative pack-year history.', color: '#20B2AA' });
+            milestones.push({ t: `${Math.round(10 + (packYears * 0.25))} Years`, cat: 'Oncological', desc: 'Fletcher-Peto Lock: Halving of lung cancer risk. High pack-year history shifts this milestone further.', color: '#f43f5e' });
+        }
+
+        if (state.mj > 0) {
+            let washoutWeeks = 2 * (1 + (state.mj / 7)) * (state.mj >= 7 ? 2.0 : 1.0) * (bmi > 30 ? 2.0 : (bmi > 25 ? 1.5 : 1.0));
+            milestones.push({ t: `${Math.round(4 * durationScalar)} Weeks`, cat: 'Neural Reset', desc: 'The Fog Lifts: CB1 receptor upregulation. Long-term usage history slows the "Neural Reset" process.', color: '#22c55e' });
+            milestones.push({ t: `${Math.round(washoutWeeks)} Weeks`, cat: 'Metabolic', desc: `Full Depot Clearance: THC adipose washout. High dosage and BMI create a "Depot Effect" that protracts detox.`, color: '#22c55e' });
+        }
+
+        if (state.sugar > 36) {
+            milestones.push({ t: `${Math.round(10 * (1 + (state.sugar / 200)))} Days`, cat: 'Hepatic', desc: 'The Liver Dump: High sugar intake requires more time to clear cellular edema and liver fat.', color: '#F4C430' });
+            let metabolicWeeks = (gender === 'male' ? 8 : 4) * (1 + (state.sugar / 100)) * durationScalar;
+            milestones.push({ t: `${Math.round(metabolicWeeks)} Weeks`, cat: 'Metabolic', desc: `Metabolic Freedom: Timeline is protracted in males and chronic users due to deeper insulin resistance.`, color: '#F4C430' });
+        }
+
+        if (milestones.length === 0) {
+            container.innerHTML = '<div class="text-gray-500 italic py-10 text-center text-sm">Adjust substance sliders above to generate roadmap.</div>';
+            return;
+        }
+
+        milestones.sort((a, b) => {
+            const parseTime = (s) => {
+                const val = parseFloat(s);
+                if (s.includes('Hour')) return val;
+                if (s.includes('Day')) return val * 24;
+                if (s.includes('Week')) return val * 168;
+                if (s.includes('Month')) return val * 720;
+                if (s.includes('Year')) return val * 8760;
+                return 0;
+            };
+            return parseTime(a.t) - parseTime(b.t);
+        }).forEach(m => {
+            const div = document.createElement('div');
+            div.className = 'flex items-center gap-6 p-4 bg-white/5 rounded-2xl border border-white/5 hover:border-white/10 transition-all';
+            div.innerHTML = `
+                <div class="w-20 flex-shrink-0 text-center">
+                    <span class="block text-[8px] text-gray-400 uppercase mb-1">Window</span>
+                    <span class="text-xs font-black text-white">${m.t}</span>
+                </div>
+                <div class="h-8 w-[1.5px] rounded-full" style="background: ${m.color}"></div>
+                <div class="flex-1 text-left">
+                    <span class="block text-[9px] uppercase font-bold tracking-widest mb-1" style="color: ${m.color}">${m.cat}</span>
+                    <p class="text-xs text-gray-300 leading-snug">${m.desc}</p>
+                </div>`;
+            container.appendChild(div);
+        });
+    }
+
+    
 </script>
 
 <%- include('partials/footer') %>
