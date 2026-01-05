@@ -1,275 +1,298 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" type="image/png" href="/images/logo.png">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>☀️</text></svg>">
 
-    <title><%= typeof title !== 'undefined' ? title : "The Captain's Frequency" %></title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://js.stripe.com/v3/"></script> <!-- Stripe JS -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Raleway:wght@300;400;600&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --gold-primary: #D4AF37;
-            --gold-light: #F4C430;
-            --gold-dark: #AA8C2C;
-            --void-black: #050505;
-            --eye-teal: #20B2AA;
-        }
+<title><%= typeof title !== 'undefined' ? title : 'Shine More Online' %></title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
 
-        body {
-            font-family: 'Raleway', sans-serif;
-            background-color: var(--void-black);
-            color: #fff;
-            overflow-x: hidden;
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-        }
+<style>
+    :root {
+        --navy-base: #052c65;
+        --navy-light: #0b3d87;
+        --gold-accent: #FFD700; 
+        --text-main: #e0e7ff;
+        --text-heading: #ffffff;
+    }
 
-        h1, h2, h3, .brand-font {
-            font-family: 'Cinzel', serif;
-        }
+    body {
+        font-family: 'Inter', sans-serif;
+        background-color: var(--navy-base);
+        color: var(--text-main);
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+    }
 
-        /* Skip to Content Link Styles */
-        .skip-link {
-            position: absolute;
-            top: -100px;
-            left: 0;
-            background: var(--gold-primary);
-            color: black;
-            padding: 10px 20px;
-            z-index: 9999;
-            transition: top 0.2s;
-            text-decoration: none;
-            font-weight: bold;
-            font-family: 'Raleway', sans-serif;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
+    h1, h2, h3, h4, h5, .heading-font {
+        font-family: 'Montserrat', sans-serif;
+        font-weight: 700;
+    }
 
-        .skip-link:focus {
-            top: 0;
-        }
+    /* Skip to Content Link Styles */
+    .skip-link {
+        position: absolute;
+        top: -100px;
+        left: 0;
+        background: var(--gold-accent);
+        color: var(--navy-base);
+        padding: 10px 20px;
+        z-index: 10000; /* Higher than nav */
+        transition: top 0.2s;
+        text-decoration: none;
+        font-weight: bold;
+        font-family: 'Montserrat', sans-serif;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
 
-        /* --- ACCESSIBILITY FIX --- */
-        /* Desktop: Completely hide mobile elements from focus order and DOM */
-        @media (min-width: 768px) {
-            #mobile-menu {
-                display: none !important;
-            }
-        }
+    .skip-link:focus {
+        top: 0;
+    }
 
-        /* The Psychedelic Background Animation */
-        .psych-bg {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            z-index: -1;
-            background: 
-                radial-gradient(circle at 50% 50%, rgba(0,0,0,0.8), rgba(0,0,0,0.95)),
-                conic-gradient(from 0deg, #ff0000, #ff8a00, #ffe500, #008026, #004dff, #760188, #ff0000);
-            background-size: 200% 200%;
-            filter: blur(40px);
-            opacity: 0.4;
-            animation: spin-psychedelic 20s linear infinite;
+    /* --- ACCESSIBILITY FIX --- */
+    /* Desktop: Completely hide mobile elements from focus order and DOM */
+    @media (min-width: 768px) {
+        #mobile-menu {
+            display: none !important;
         }
+    }
 
-        @keyframes spin-psychedelic {
-            0% { transform: scale(1.5) rotate(0deg); }
-            50% { transform: scale(1.8) rotate(180deg); }
-            100% { transform: scale(1.5) rotate(360deg); }
-        }
+    .bg-mesh {
+        position: fixed;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background: radial-gradient(at 0% 0%, rgba(255, 215, 0, 0.15) 0px, transparent 50%),
+                    radial-gradient(at 100% 100%, rgba(11, 61, 135, 0.5) 0px, transparent 50%);
+        z-index: -1; pointer-events: none;
+    }
 
-        /* Gold Metallic Effect Text */
-        .text-gold {
-            background: linear-gradient(to bottom, var(--gold-light), var(--gold-primary), var(--gold-dark));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            text-shadow: 0px 2px 4px rgba(0,0,0,0.5);
-        }
+    /* Nav & Button Styles */
+    .nav-link {
+        position: relative;
+        padding: 0.5rem 0;
+        font-family: 'Montserrat', sans-serif; font-size: 0.85rem; font-weight: 600;
+        text-transform: uppercase; color: var(--text-main); transition: color 0.3s ease;
+        cursor: pointer;
+        background: none;
+        border: none;
+    }
+    .nav-link::after {
+        content: '';
+        position: absolute; width: 0; height: 2px; bottom: 0; left: 0;
+        background-color: var(--gold-accent); transition: width 0.3s ease;
+    }
+    .nav-link:hover, .nav-link:focus { color: var(--gold-accent); outline: none; }
+    .nav-link:hover::after, .nav-link:focus::after { width: 100%; }
 
-        .border-gold {
-            border-color: var(--gold-primary);
-            box-shadow: 0 0 15px rgba(212, 175, 55, 0.3);
-        }
+    /* Dropdown Styles */
+    .dropdown-menu {
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(10px);
+        transition: all 0.3s ease;
+    }
+    /* Keep visible when group is hovered OR if the menu is marked as active via JS */
+    .group:hover .dropdown-menu,
+    .dropdown-menu.active {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
+    }
 
-        .btn-gold {
-            background: linear-gradient(45deg, var(--gold-dark), var(--gold-primary));
-            color: black;
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-            border: none;
-            cursor: pointer;
-            padding: 0.5rem 1.5rem;
-            border-radius: 0.25rem;
-        }
+    .btn-gold {
+        background: transparent;
+        color: var(--gold-accent); border: 1px solid var(--gold-accent);
+        padding: 0.75rem 2rem; font-family: 'Montserrat', sans-serif; font-weight: 700;
+        text-transform: uppercase; letter-spacing: 1px;
+        transition: all 0.3s ease;
+        position: relative; overflow: hidden; z-index: 1;
+    }
+    .btn-gold::before {
+        content: '';
+        position: absolute; top: 0; left: 0; width: 0%; height: 100%;
+        background-color: var(--gold-accent); transition: width 0.3s cubic-bezier(0.19, 1, 0.22, 1);
+        z-index: -1;
+    }
+    .btn-gold:hover::before { width: 100%;
+    }
+    .btn-gold:hover { color: var(--navy-base);
+    }
 
-        .btn-gold:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 0 20px var(--gold-primary);
-        }
-        
-        .btn-outline {
-            border: 1px solid var(--gold-primary);
-            color: var(--gold-primary);
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            transition: all 0.3s ease;
-        }
-        
-        .btn-outline:hover {
-            background: rgba(212, 175, 55, 0.1);
-            color: #fff;
-        }
+    .sun-spin { animation: spin 60s linear infinite; transform-origin: center;
+    }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg);
+    } }
+    
+    input, textarea, select {
+        background: var(--navy-light) !important;
+        border: 1px solid #233554 !important;
+        color: white !important;
+    }
+</style>
 
-        /* Nav & Scroll */
-        .nav-link { padding: 8px 0; }
-        .nav-link:hover { color: var(--gold-primary); }
-        
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: var(--void-black); }
-        ::-webkit-scrollbar-thumb { background: var(--gold-dark); border-radius: 4px; }
 
-        /* Card Hover Effects */
-        .glass-card {
-            background: rgba(10, 10, 10, 0.8);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(212, 175, 55, 0.2);
-            transition: all 0.4s ease;
-        }
-        .glass-card:hover {
-            border-color: var(--gold-primary);
-            transform: translateY(-5px);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-        }
-
-        /* Cart Badge */
-        .cart-badge {
-            position: absolute;
-            top: -5px;
-            right: -10px;
-            background: var(--eye-teal);
-            color: black;
-            font-size: 0.7rem;
-            border-radius: 50%;
-            width: 18px;
-            height: 18px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            box-shadow: 0 0 5px var(--eye-teal);
-        }
-    </style>
 </head>
 <body>
-    <!-- Skip Link: Ensures keyboard users can jump to the main content immediately -->
-    <a href="#main-content" class="skip-link">Skip to main content</a>
+<!-- Skip Link: MUST BE THE FIRST ELEMENT IN THE BODY -->
+<a href="#main-content" class="skip-link">Skip to main content</a>
 
-    <!-- Background -->
-    <div class="psych-bg"></div>
+<div class="bg-mesh"></div>
 
-    <nav class="fixed w-full z-50 bg-black/90 border-b border-yellow-700/50 backdrop-blur-md">
-        <div class="container mx-auto px-6 py-4">
-            <div class="flex justify-between items-center">
-                <a href="/" class="flex items-center space-x-3 cursor-pointer no-underline">
-                    <img src="/images/logo.png" alt="Logo" class="h-10 w-auto">
-                    <span class="text-xl font-bold tracking-widest text-gold brand-font hidden sm:block">FUTURE MUSIC COLLECTIVE</span>
-                </a>
-
-                <div class="hidden md:flex space-x-6 items-center">
-                    <a href="/" class="nav-link text-gray-300 font-semibold tracking-wider uppercase text-sm">Home</a>
-                    <div class="relative group h-full flex items-center">
-                        <button class="nav-link text-gray-300 font-semibold tracking-wider uppercase text-sm flex items-center gap-1 focus:outline-none cursor-pointer">
-                            Music <i class="fas fa-chevron-down text-[10px] ml-1 transition-transform group-hover:rotate-180 text-[#D4AF37]"></i>
-                        </button>
-                        
-                        <!-- Dropdown Content -->
-                        <div class="absolute left-0 top-full mt-0 w-48 bg-black/95 backdrop-blur-xl border border-yellow-700/50 rounded-sm shadow-[0_0_15px_rgba(0,0,0,0.8)] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform group-hover:translate-y-0 translate-y-2 overflow-hidden">
-                            <a href="/music" class="block px-5 py-3 text-xs font-bold text-gray-300 hover:text-black hover:bg-[#D4AF37] uppercase tracking-widest border-b border-white/10 transition-colors">
-                                Browse Songs
-                            </a>
-                            <a href="/rights" class="block px-5 py-3 text-xs font-bold text-gray-300 hover:text-black hover:bg-[#D4AF37] uppercase tracking-widest border-b border-white/10 transition-colors">
-                                Rights
-                            </a>
-                            <a href="/merch" class="block px-5 py-3 text-xs font-bold text-gray-300 hover:text-black hover:bg-[#D4AF37] uppercase tracking-widest transition-colors">
-                                Merch
-                            </a>
-                        </div>
-                    </div>
-                    <a href="/projects" class="nav-link text-gray-300 font-semibold tracking-wider uppercase text-sm">Projects</a>
-                    <a href="/advocacy" class="nav-link text-gray-300 font-semibold tracking-wider uppercase text-sm">Advocacy</a>
-                    <a href="/about" class="nav-link text-gray-300 font-semibold tracking-wider uppercase text-sm">About</a>
-                    
-                    <!-- Cart Icon -->
-                    <a href="/cart" class="relative text-[#D4AF37] hover:text-white transition-colors ml-4">
-                        <i class="fas fa-shopping-cart text-xl"></i>
-                        <span id="cart-count" class="cart-badge hidden">0</span>
-                    </a>
-
-                    <a href="/account" class="ml-6 flex items-center gap-2 text-gray-400 hover:text-[#D4AF37] transition-colors group">
-                        <div class="w-8 h-8 rounded-full border border-gray-600 group-hover:border-[#D4AF37] flex items-center justify-center transition-all">
-                            <i class="fas fa-user text-xs"></i>
-                        </div>
-                        <span class="text-xs font-bold uppercase tracking-widest hidden lg:block">My Account</span>
-                    </a>
-
-                    <a href="/contact" class="ml-4 px-4 py-2 bg-[#D4AF37] text-black border border-[#D4AF37] hover:bg-transparent hover:text-[#D4AF37] transition-all text-sm uppercase font-bold rounded-sm shadow-[0_0_10px_rgba(212,175,55,0.2)]">Contact</a>
-                </div>
-
-                <button 
-                    class="md:hidden text-[#D4AF37]" 
-                    onclick="toggleMobileMenu()"
-                    aria-label="Toggle Navigation"
-                    aria-expanded="false"
-                    aria-controls="mobile-menu"
-                >
-                    <i class="fas fa-bars text-2xl"></i>
-                </button>
-            </div>
-        </div>
+<nav class="fixed w-full z-50 bg-[#052c65]/95 backdrop-blur-md border-b border-[#0b3d87]">
+    <div class="container mx-auto px-6 h-24 flex justify-between items-center">
         
-        <!-- Mobile Menu with aria-hidden logic -->
-        <div id="mobile-menu" class="hidden md:hidden bg-black border-t border-yellow-700/30" aria-hidden="true">
-            <div class="flex flex-col p-4 space-y-4 text-center">
-                <a href="/" class="text-gray-300 hover:text-[#D4AF37]">HOME</a>
-                <a href="/music" class="text-gray-300 hover:text-[#D4AF37]">MUSIC</a>
-                <a href="/rights" class="text-gray-300 hover:text-[#D4AF37]">RIGHTS</a>
-                <a href="/merch" class="text-gray-300 hover:text-[#D4AF37]">MERCH</a>
-                <a href="/projects" class="text-gray-300 hover:text-[#D4AF37]">PROJECTS</a>
-                <a href="/about" class="text-gray-300 hover:text-[#D4AF37]">ABOUT</a>
-                <a href="/advocacy" class="text-gray-300 hover:text-[#D4AF37]">ADVOCACY</a>
-                <a href="/cart" class="text-[#D4AF37]">CART</a>
-                <a href="/contact" class="text-[#D4AF37]">CONTACT</a>
+        <a href="/" class="flex items-center gap-4 group">
+            <img src="/images/shinemoreonline.png" alt="Shine More Online" class="h-14 w-auto object-contain hover:opacity-90 transition-opacity">
+        </a>
+
+        <div class="hidden md:flex items-center space-x-10">
+            <a href="/" class="nav-link">Overview</a>
+            
+            <div class="relative group h-full flex items-center">
+                <!-- Services Dropdown Button -->
+                <button 
+                    class="nav-link flex items-center gap-1" 
+                    aria-haspopup="true" 
+                    aria-expanded="false"
+                    onclick="toggleDropdown(event, 'services-dropdown')"
+                    onkeydown="handleDropdownKey(event, 'services-dropdown')"
+                >
+                    Services <i class="fas fa-chevron-down text-[0.6rem] ml-1"></i>
+                </button>
+                <div id="services-dropdown" class="dropdown-menu absolute top-16 left-0 w-64 bg-[#052c65] border border-[#0b3d87] shadow-2xl rounded-sm p-4 grid gap-2 z-50">
+                    <a href="/services/web-design" class="block text-sm text-[#e0e7ff] hover:text-[#FFD700] p-2 hover:bg-[#0b3d87]/30 transition-colors">Web Design</a>
+                    <a href="/services/web-infrastructure" class="block text-sm text-[#e0e7ff] hover:text-[#FFD700] p-2 hover:bg-[#0b3d87]/30 transition-colors">Infrastructure</a>
+                    <a href="/services/wcag-compliance" class="block text-sm text-[#e0e7ff] hover:text-[#FFD700] p-2 hover:bg-[#0b3d87]/30 transition-colors">WCAG Compliance</a>
+                    <a href="/services/mobile-app-development" class="block text-sm text-[#e0e7ff] hover:text-[#FFD700] p-2 hover:bg-[#0b3d87]/30 transition-colors">Mobile Apps</a>
+                    <a href="/services/automation-consulting" class="block text-sm text-[#e0e7ff] hover:text-[#FFD700] p-2 hover:bg-[#0b3d87]/30 transition-colors">Automation</a>
+                    <a href="/services/vr-development" class="block text-sm text-[#e0e7ff] hover:text-[#FFD700] p-2 hover:bg-[#0b3d87]/30 transition-colors">VR / AR</a>
+                    <div class="border-t border-[#0b3d87] my-1"></div>
+                    <a href="/services" class="block text-xs font-bold text-[#FFD700] uppercase tracking-wide p-2">View All Services &rarr;</a>
+                </div>
             </div>
+
+            <div class="relative group h-full flex items-center">
+                <!-- Music Dropdown Button -->
+                <button 
+                    class="nav-link flex items-center gap-1" 
+                    aria-haspopup="true" 
+                    aria-expanded="false"
+                    onclick="toggleDropdown(event, 'music-dropdown')"
+                    onkeydown="handleDropdownKey(event, 'music-dropdown')"
+                >
+                    Music <i class="fas fa-chevron-down text-[0.6rem] ml-1"></i>
+                </button>
+                <div id="music-dropdown" class="dropdown-menu absolute top-16 left-0 w-64 bg-[#052c65] border border-[#0b3d87] shadow-2xl rounded-sm p-4 grid gap-2 z-50">
+                    <a href="/music/library" class="block text-sm text-[#e0e7ff] hover:text-[#FFD700] p-2 hover:bg-[#0b3d87]/30 transition-colors">Our Library</a>
+                    <a href="/music/licensing" class="block text-sm text-[#e0e7ff] hover:text-[#FFD700] p-2 hover:bg-[#0b3d87]/30 transition-colors">Licensing</a>
+                    <a href="/music/custom-scores" class="block text-sm text-[#e0e7ff] hover:text-[#FFD700] p-2 hover:bg-[#0b3d87]/30 transition-colors">Custom Scores</a>
+                </div>
+            </div>
+
+            <a href="/portfolio" class="nav-link">Work</a>
+            <a href="/about" class="nav-link">Company</a>
+            
+            <a href="/login" class="text-white hover:text-[#FFD700] transition-colors" title="Account Login">
+                <i class="fas fa-user-circle text-xl"></i>
+            </a>
+
+            <a href="/contact" class="btn-gold text-xs py-3 px-8 ml-4">Start Project</a>
         </div>
-    </nav>
+
+        <button 
+            class="md:hidden text-[#FFD700] text-2xl" 
+            onclick="toggleMobileMenu()"
+            aria-label="Toggle Navigation"
+            aria-expanded="false"
+            aria-controls="mobile-menu"
+        >
+            <i class="fas fa-bars"></i>
+        </button>
+    </div>
     
-    <!-- Ensure your main content has id="main-content" for the skip link -->
-    <main id="main-content" class="flex-grow pt-24 px-4 sm:px-6 relative z-10">
+    <!-- Mobile Menu with aria-hidden logic -->
+    <div id="mobile-menu" class="hidden md:hidden bg-[#052c65] border-t border-[#0b3d87] p-6 space-y-6 text-center" aria-hidden="true">
+        <a href="/" class="block text-white font-bold hover:text-[#FFD700]">OVERVIEW</a>
+        <a href="/services" class="block text-white font-bold hover:text-[#FFD700]">SERVICES</a>
+        <a href="/music" class="block text-white font-bold hover:text-[#FFD700]">MUSIC</a>
+        <a href="/portfolio" class="block text-white font-bold hover:text-[#FFD700]">WORK</a>
+        <a href="/login" class="block text-white font-bold hover:text-[#FFD700]">ACCOUNT</a>
+        <a href="/contact" class="block text-[#FFD700] font-bold">START PROJECT</a>
+    </div>
+</nav>
 
-    <script>
-        function toggleMobileMenu() {
-            const menu = document.getElementById('mobile-menu');
-            const btn = document.querySelector('button[aria-controls="mobile-menu"]');
-            
-            if (!menu) return;
+<!-- Main content with matching id for skip link -->
+<main id="main-content" class="flex-grow pt-24">
 
-            const isHidden = menu.classList.toggle('hidden');
-            
-            // Toggle accessibility attributes
-            menu.setAttribute('aria-hidden', isHidden);
-            if (btn) {
-                btn.setAttribute('aria-expanded', !isHidden);
-            }
+<script>
+    // Desktop Dropdown Logic
+    function toggleDropdown(e, dropdownId) {
+        const btn = e.currentTarget;
+        const dropdown = document.getElementById(dropdownId);
+        const isExpanded = btn.getAttribute('aria-expanded') === 'true';
+        
+        // Close other dropdowns first
+        document.querySelectorAll('.dropdown-menu').forEach(menu => {
+            if(menu.id !== dropdownId) menu.classList.remove('active');
+        });
+        document.querySelectorAll('button[aria-haspopup="true"]').forEach(button => {
+            if(button !== btn) button.setAttribute('aria-expanded', 'false');
+        });
+
+        btn.setAttribute('aria-expanded', !isExpanded);
+        dropdown.classList.toggle('active');
+    }
+
+    function handleDropdownKey(e, dropdownId) {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            toggleDropdown(e, dropdownId);
         }
-    </script>
+        if (e.key === 'Escape') {
+            const btn = e.currentTarget;
+            const dropdown = document.getElementById(dropdownId);
+            btn.setAttribute('aria-expanded', 'false');
+            dropdown.classList.remove('active');
+        }
+    }
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+        const groups = document.querySelectorAll('.group');
+        groups.forEach(group => {
+            if (!group.contains(e.target)) {
+                const btn = group.querySelector('button[aria-haspopup="true"]');
+                const dropdown = group.querySelector('.dropdown-menu');
+                if (btn && dropdown) {
+                    btn.setAttribute('aria-expanded', 'false');
+                    dropdown.classList.remove('active');
+                }
+            }
+        });
+    });
+
+    // Mobile Menu Logic
+    function toggleMobileMenu() {
+        const menu = document.getElementById('mobile-menu');
+        const btn = document.querySelector('button[aria-controls="mobile-menu"]');
+        
+        if (!menu) return;
+
+        const isHidden = menu.classList.toggle('hidden');
+        
+        // Toggle accessibility attributes
+        menu.setAttribute('aria-hidden', isHidden);
+        if (btn) {
+            btn.setAttribute('aria-expanded', !isHidden);
+        }
+    }
+</script>
+
+
+</body>
+</html>
