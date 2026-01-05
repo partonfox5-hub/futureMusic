@@ -33,6 +33,35 @@
             font-family: 'Cinzel', serif;
         }
 
+        /* Skip to Content Link Styles */
+        .skip-link {
+            position: absolute;
+            top: -100px;
+            left: 0;
+            background: var(--gold-primary);
+            color: black;
+            padding: 10px 20px;
+            z-index: 9999;
+            transition: top 0.2s;
+            text-decoration: none;
+            font-weight: bold;
+            font-family: 'Raleway', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .skip-link:focus {
+            top: 0;
+        }
+
+        /* --- ACCESSIBILITY FIX --- */
+        /* Desktop: Completely hide mobile elements from focus order and DOM */
+        @media (min-width: 768px) {
+            #mobile-menu {
+                display: none !important;
+            }
+        }
+
         /* The Psychedelic Background Animation */
         .psych-bg {
             position: fixed;
@@ -143,6 +172,8 @@
     </style>
 </head>
 <body>
+    <!-- Skip Link: Ensures keyboard users can jump to the main content immediately -->
+    <a href="#main-content" class="skip-link">Skip to main content</a>
 
     <!-- Background -->
     <div class="psych-bg"></div>
@@ -158,23 +189,23 @@
                 <div class="hidden md:flex space-x-6 items-center">
                     <a href="/" class="nav-link text-gray-300 font-semibold tracking-wider uppercase text-sm">Home</a>
                     <div class="relative group h-full flex items-center">
-    <button class="nav-link text-gray-300 font-semibold tracking-wider uppercase text-sm flex items-center gap-1 focus:outline-none cursor-pointer">
-        Music <i class="fas fa-chevron-down text-[10px] ml-1 transition-transform group-hover:rotate-180 text-[#D4AF37]"></i>
-    </button>
-    
-    <!-- Dropdown Content -->
-    <div class="absolute left-0 top-full mt-0 w-48 bg-black/95 backdrop-blur-xl border border-yellow-700/50 rounded-sm shadow-[0_0_15px_rgba(0,0,0,0.8)] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform group-hover:translate-y-0 translate-y-2 overflow-hidden">
-        <a href="/music" class="block px-5 py-3 text-xs font-bold text-gray-300 hover:text-black hover:bg-[#D4AF37] uppercase tracking-widest border-b border-white/10 transition-colors">
-            Browse Songs
-        </a>
-        <a href="/rights" class="block px-5 py-3 text-xs font-bold text-gray-300 hover:text-black hover:bg-[#D4AF37] uppercase tracking-widest border-b border-white/10 transition-colors">
-            Rights
-        </a>
-        <a href="/merch" class="block px-5 py-3 text-xs font-bold text-gray-300 hover:text-black hover:bg-[#D4AF37] uppercase tracking-widest transition-colors">
-            Merch
-        </a>
-    </div>
-</div>
+                        <button class="nav-link text-gray-300 font-semibold tracking-wider uppercase text-sm flex items-center gap-1 focus:outline-none cursor-pointer">
+                            Music <i class="fas fa-chevron-down text-[10px] ml-1 transition-transform group-hover:rotate-180 text-[#D4AF37]"></i>
+                        </button>
+                        
+                        <!-- Dropdown Content -->
+                        <div class="absolute left-0 top-full mt-0 w-48 bg-black/95 backdrop-blur-xl border border-yellow-700/50 rounded-sm shadow-[0_0_15px_rgba(0,0,0,0.8)] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform group-hover:translate-y-0 translate-y-2 overflow-hidden">
+                            <a href="/music" class="block px-5 py-3 text-xs font-bold text-gray-300 hover:text-black hover:bg-[#D4AF37] uppercase tracking-widest border-b border-white/10 transition-colors">
+                                Browse Songs
+                            </a>
+                            <a href="/rights" class="block px-5 py-3 text-xs font-bold text-gray-300 hover:text-black hover:bg-[#D4AF37] uppercase tracking-widest border-b border-white/10 transition-colors">
+                                Rights
+                            </a>
+                            <a href="/merch" class="block px-5 py-3 text-xs font-bold text-gray-300 hover:text-black hover:bg-[#D4AF37] uppercase tracking-widest transition-colors">
+                                Merch
+                            </a>
+                        </div>
+                    </div>
                     <a href="/projects" class="nav-link text-gray-300 font-semibold tracking-wider uppercase text-sm">Projects</a>
                     <a href="/advocacy" class="nav-link text-gray-300 font-semibold tracking-wider uppercase text-sm">Advocacy</a>
                     <a href="/about" class="nav-link text-gray-300 font-semibold tracking-wider uppercase text-sm">About</a>
@@ -186,22 +217,29 @@
                     </a>
 
                     <a href="/account" class="ml-6 flex items-center gap-2 text-gray-400 hover:text-[#D4AF37] transition-colors group">
-    <div class="w-8 h-8 rounded-full border border-gray-600 group-hover:border-[#D4AF37] flex items-center justify-center transition-all">
-        <i class="fas fa-user text-xs"></i>
-    </div>
-    <span class="text-xs font-bold uppercase tracking-widest hidden lg:block">My Account</span>
-</a>
+                        <div class="w-8 h-8 rounded-full border border-gray-600 group-hover:border-[#D4AF37] flex items-center justify-center transition-all">
+                            <i class="fas fa-user text-xs"></i>
+                        </div>
+                        <span class="text-xs font-bold uppercase tracking-widest hidden lg:block">My Account</span>
+                    </a>
 
-<a href="/contact" class="ml-4 px-4 py-2 bg-[#D4AF37] text-black border border-[#D4AF37] hover:bg-transparent hover:text-[#D4AF37] transition-all text-sm uppercase font-bold rounded-sm shadow-[0_0_10px_rgba(212,175,55,0.2)]">Contact</a>
+                    <a href="/contact" class="ml-4 px-4 py-2 bg-[#D4AF37] text-black border border-[#D4AF37] hover:bg-transparent hover:text-[#D4AF37] transition-all text-sm uppercase font-bold rounded-sm shadow-[0_0_10px_rgba(212,175,55,0.2)]">Contact</a>
                 </div>
 
-                <button class="md:hidden text-[#D4AF37]" onclick="document.getElementById('mobile-menu').classList.toggle('hidden')">
+                <button 
+                    class="md:hidden text-[#D4AF37]" 
+                    onclick="toggleMobileMenu()"
+                    aria-label="Toggle Navigation"
+                    aria-expanded="false"
+                    aria-controls="mobile-menu"
+                >
                     <i class="fas fa-bars text-2xl"></i>
                 </button>
             </div>
         </div>
         
-        <div id="mobile-menu" class="hidden md:hidden bg-black border-t border-yellow-700/30">
+        <!-- Mobile Menu with aria-hidden logic -->
+        <div id="mobile-menu" class="hidden md:hidden bg-black border-t border-yellow-700/30" aria-hidden="true">
             <div class="flex flex-col p-4 space-y-4 text-center">
                 <a href="/" class="text-gray-300 hover:text-[#D4AF37]">HOME</a>
                 <a href="/music" class="text-gray-300 hover:text-[#D4AF37]">MUSIC</a>
@@ -216,4 +254,22 @@
         </div>
     </nav>
     
-    <main class="flex-grow pt-24 px-4 sm:px-6 relative z-10">
+    <!-- Ensure your main content has id="main-content" for the skip link -->
+    <main id="main-content" class="flex-grow pt-24 px-4 sm:px-6 relative z-10">
+
+    <script>
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobile-menu');
+            const btn = document.querySelector('button[aria-controls="mobile-menu"]');
+            
+            if (!menu) return;
+
+            const isHidden = menu.classList.toggle('hidden');
+            
+            // Toggle accessibility attributes
+            menu.setAttribute('aria-hidden', isHidden);
+            if (btn) {
+                btn.setAttribute('aria-expanded', !isHidden);
+            }
+        }
+    </script>
