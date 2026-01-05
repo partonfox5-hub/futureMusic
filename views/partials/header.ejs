@@ -1,298 +1,262 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>☀️</text></svg>">
-
-<title><%= typeof title !== 'undefined' ? title : 'Shine More Online' %></title>
-<script src="https://cdn.tailwindcss.com"></script>
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
-
-<style>
-    :root {
-        --navy-base: #052c65;
-        --navy-light: #0b3d87;
-        --gold-accent: #FFD700; 
-        --text-main: #e0e7ff;
-        --text-heading: #ffffff;
-    }
-
-    body {
-        font-family: 'Inter', sans-serif;
-        background-color: var(--navy-base);
-        color: var(--text-main);
-        display: flex;
-        flex-direction: column;
-        min-height: 100vh;
-    }
-
-    h1, h2, h3, h4, h5, .heading-font {
-        font-family: 'Montserrat', sans-serif;
-        font-weight: 700;
-    }
-
-    /* Skip to Content Link Styles */
-    .skip-link {
-        position: absolute;
-        top: -100px;
-        left: 0;
-        background: var(--gold-accent);
-        color: var(--navy-base);
-        padding: 10px 20px;
-        z-index: 10000; /* Higher than nav */
-        transition: top 0.2s;
-        text-decoration: none;
-        font-weight: bold;
-        font-family: 'Montserrat', sans-serif;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-    }
-
-    .skip-link:focus {
-        top: 0;
-    }
-
-    /* --- ACCESSIBILITY FIX --- */
-    /* Desktop: Completely hide mobile elements from focus order and DOM */
-    @media (min-width: 768px) {
-        #mobile-menu {
-            display: none !important;
-        }
-    }
-
-    .bg-mesh {
-        position: fixed;
-        top: 0; left: 0; width: 100%; height: 100%;
-        background: radial-gradient(at 0% 0%, rgba(255, 215, 0, 0.15) 0px, transparent 50%),
-                    radial-gradient(at 100% 100%, rgba(11, 61, 135, 0.5) 0px, transparent 50%);
-        z-index: -1; pointer-events: none;
-    }
-
-    /* Nav & Button Styles */
-    .nav-link {
-        position: relative;
-        padding: 0.5rem 0;
-        font-family: 'Montserrat', sans-serif; font-size: 0.85rem; font-weight: 600;
-        text-transform: uppercase; color: var(--text-main); transition: color 0.3s ease;
-        cursor: pointer;
-        background: none;
-        border: none;
-    }
-    .nav-link::after {
-        content: '';
-        position: absolute; width: 0; height: 2px; bottom: 0; left: 0;
-        background-color: var(--gold-accent); transition: width 0.3s ease;
-    }
-    .nav-link:hover, .nav-link:focus { color: var(--gold-accent); outline: none; }
-    .nav-link:hover::after, .nav-link:focus::after { width: 100%; }
-
-    /* Dropdown Styles */
-    .dropdown-menu {
-        opacity: 0;
-        visibility: hidden;
-        transform: translateY(10px);
-        transition: all 0.3s ease;
-    }
-    /* Keep visible when group is hovered OR if the menu is marked as active via JS */
-    .group:hover .dropdown-menu,
-    .dropdown-menu.active {
-        opacity: 1;
-        visibility: visible;
-        transform: translateY(0);
-    }
-
-    .btn-gold {
-        background: transparent;
-        color: var(--gold-accent); border: 1px solid var(--gold-accent);
-        padding: 0.75rem 2rem; font-family: 'Montserrat', sans-serif; font-weight: 700;
-        text-transform: uppercase; letter-spacing: 1px;
-        transition: all 0.3s ease;
-        position: relative; overflow: hidden; z-index: 1;
-    }
-    .btn-gold::before {
-        content: '';
-        position: absolute; top: 0; left: 0; width: 0%; height: 100%;
-        background-color: var(--gold-accent); transition: width 0.3s cubic-bezier(0.19, 1, 0.22, 1);
-        z-index: -1;
-    }
-    .btn-gold:hover::before { width: 100%;
-    }
-    .btn-gold:hover { color: var(--navy-base);
-    }
-
-    .sun-spin { animation: spin 60s linear infinite; transform-origin: center;
-    }
-    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg);
-    } }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>☀️</text></svg>">
     
-    input, textarea, select {
-        background: var(--navy-light) !important;
-        border: 1px solid #233554 !important;
-        color: white !important;
-    }
-</style>
+    <title><%= typeof title !== 'undefined' ? title : 'Shine More Online' %></title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --navy-base: #052c65;
+            --navy-light: #0b3d87;
+            --gold-accent: #FFD700; 
+            --text-main: #e0e7ff;
+            --text-heading: #ffffff;
+        }
 
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--navy-base);
+            color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
 
+        h1, h2, h3, h4, h5, .heading-font {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 700;
+        }
+
+        /* Skip to Content Link Styles */
+        .skip-link {
+            position: absolute;
+            top: -100px;
+            left: 0;
+            background: var(--gold-accent);
+            color: var(--navy-base);
+            padding: 10px 20px;
+            z-index: 10000; /* Higher than nav */
+            transition: top 0.2s;
+            text-decoration: none;
+            font-weight: bold;
+            font-family: 'Montserrat', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .skip-link:focus {
+            top: 0;
+        }
+
+        /* --- ACCESSIBILITY FIX --- */
+        /* Desktop: Completely hide mobile elements from focus order and DOM */
+        @media (min-width: 768px) {
+            #mobile-menu {
+                display: none !important;
+            }
+        }
+
+        .bg-mesh {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(at 0% 0%, rgba(255, 215, 0, 0.15) 0px, transparent 50%),
+                        radial-gradient(at 100% 100%, rgba(11, 61, 135, 0.5) 0px, transparent 50%);
+            z-index: -1; pointer-events: none;
+        }
+
+        /* Nav & Button Styles */
+        .nav-link {
+            position: relative;
+            padding: 0.5rem 0;
+            font-family: 'Montserrat', sans-serif; font-size: 0.85rem; font-weight: 600;
+            text-transform: uppercase; color: var(--text-main); transition: color 0.3s ease;
+            cursor: pointer;
+            background: none;
+            border: none;
+        }
+        .nav-link::after {
+            content: '';
+            position: absolute; width: 0; height: 2px; bottom: 0; left: 0;
+            background-color: var(--gold-accent); transition: width 0.3s ease;
+        }
+        .nav-link:hover, .nav-link:focus { color: var(--gold-accent); outline: none; }
+        .nav-link:hover::after, .nav-link:focus::after { width: 100%; }
+
+        /* Dropdown Styles */
+        .dropdown-menu {
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(10px);
+            transition: all 0.3s ease;
+        }
+        /* Keep visible when group is hovered OR if the menu is marked as active via JS */
+        .group:hover .dropdown-menu,
+        .dropdown-menu.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .btn-gold {
+            background: transparent;
+            color: var(--gold-accent); border: 1px solid var(--gold-accent);
+            padding: 0.75rem 2rem; font-family: 'Montserrat', sans-serif; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 1px;
+            transition: all 0.3s ease;
+            position: relative; overflow: hidden; z-index: 1;
+        }
+        .btn-gold::before {
+            content: '';
+            position: absolute; top: 0; left: 0; width: 0%; height: 100%;
+            background-color: var(--gold-accent); transition: width 0.3s cubic-bezier(0.19, 1, 0.22, 1);
+            z-index: -1;
+        }
+        .btn-gold:hover::before { width: 100%;
+        }
+        .btn-gold:hover { color: var(--navy-base);
+        }
+
+        .sun-spin { animation: spin 60s linear infinite; transform-origin: center;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg);
+        } }
+        
+        input, textarea, select {
+            background: var(--navy-light) !important;
+            border: 1px solid #233554 !important;
+            color: white !important;
+        }
+    </style>
 </head>
 <body>
-<!-- Skip Link: MUST BE THE FIRST ELEMENT IN THE BODY -->
-<a href="#main-content" class="skip-link">Skip to main content</a>
+    <!-- Skip Link: MUST BE THE FIRST ELEMENT IN THE BODY -->
+    <a href="#main-content" class="skip-link">Skip to main content</a>
 
-<div class="bg-mesh"></div>
+    <div class="bg-mesh"></div>
 
-<nav class="fixed w-full z-50 bg-[#052c65]/95 backdrop-blur-md border-b border-[#0b3d87]">
-    <div class="container mx-auto px-6 h-24 flex justify-between items-center">
-        
-        <a href="/" class="flex items-center gap-4 group">
-            <img src="/images/shinemoreonline.png" alt="Shine More Online" class="h-14 w-auto object-contain hover:opacity-90 transition-opacity">
-        </a>
-
-        <div class="hidden md:flex items-center space-x-10">
-            <a href="/" class="nav-link">Overview</a>
+    <nav class="fixed w-full z-50 bg-[#052c65]/95 backdrop-blur-md border-b border-[#0b3d87]">
+        <div class="container mx-auto px-6 h-24 flex justify-between items-center">
             
-            <div class="relative group h-full flex items-center">
-                <!-- Services Dropdown Button -->
-                <button 
-                    class="nav-link flex items-center gap-1" 
-                    aria-haspopup="true" 
-                    aria-expanded="false"
-                    onclick="toggleDropdown(event, 'services-dropdown')"
-                    onkeydown="handleDropdownKey(event, 'services-dropdown')"
-                >
-                    Services <i class="fas fa-chevron-down text-[0.6rem] ml-1"></i>
-                </button>
-                <div id="services-dropdown" class="dropdown-menu absolute top-16 left-0 w-64 bg-[#052c65] border border-[#0b3d87] shadow-2xl rounded-sm p-4 grid gap-2 z-50">
-                    <a href="/services/web-design" class="block text-sm text-[#e0e7ff] hover:text-[#FFD700] p-2 hover:bg-[#0b3d87]/30 transition-colors">Web Design</a>
-                    <a href="/services/web-infrastructure" class="block text-sm text-[#e0e7ff] hover:text-[#FFD700] p-2 hover:bg-[#0b3d87]/30 transition-colors">Infrastructure</a>
-                    <a href="/services/wcag-compliance" class="block text-sm text-[#e0e7ff] hover:text-[#FFD700] p-2 hover:bg-[#0b3d87]/30 transition-colors">WCAG Compliance</a>
-                    <a href="/services/mobile-app-development" class="block text-sm text-[#e0e7ff] hover:text-[#FFD700] p-2 hover:bg-[#0b3d87]/30 transition-colors">Mobile Apps</a>
-                    <a href="/services/automation-consulting" class="block text-sm text-[#e0e7ff] hover:text-[#FFD700] p-2 hover:bg-[#0b3d87]/30 transition-colors">Automation</a>
-                    <a href="/services/vr-development" class="block text-sm text-[#e0e7ff] hover:text-[#FFD700] p-2 hover:bg-[#0b3d87]/30 transition-colors">VR / AR</a>
-                    <div class="border-t border-[#0b3d87] my-1"></div>
-                    <a href="/services" class="block text-xs font-bold text-[#FFD700] uppercase tracking-wide p-2">View All Services &rarr;</a>
-                </div>
-            </div>
-
-            <div class="relative group h-full flex items-center">
-                <!-- Music Dropdown Button -->
-                <button 
-                    class="nav-link flex items-center gap-1" 
-                    aria-haspopup="true" 
-                    aria-expanded="false"
-                    onclick="toggleDropdown(event, 'music-dropdown')"
-                    onkeydown="handleDropdownKey(event, 'music-dropdown')"
-                >
-                    Music <i class="fas fa-chevron-down text-[0.6rem] ml-1"></i>
-                </button>
-                <div id="music-dropdown" class="dropdown-menu absolute top-16 left-0 w-64 bg-[#052c65] border border-[#0b3d87] shadow-2xl rounded-sm p-4 grid gap-2 z-50">
-                    <a href="/music/library" class="block text-sm text-[#e0e7ff] hover:text-[#FFD700] p-2 hover:bg-[#0b3d87]/30 transition-colors">Our Library</a>
-                    <a href="/music/licensing" class="block text-sm text-[#e0e7ff] hover:text-[#FFD700] p-2 hover:bg-[#0b3d87]/30 transition-colors">Licensing</a>
-                    <a href="/music/custom-scores" class="block text-sm text-[#e0e7ff] hover:text-[#FFD700] p-2 hover:bg-[#0b3d87]/30 transition-colors">Custom Scores</a>
-                </div>
-            </div>
-
-            <a href="/portfolio" class="nav-link">Work</a>
-            <a href="/about" class="nav-link">Company</a>
-            
-            <a href="/login" class="text-white hover:text-[#FFD700] transition-colors" title="Account Login">
-                <i class="fas fa-user-circle text-xl"></i>
+            <a href="/" class="flex items-center gap-4 group">
+                <img src="/images/shinemoreonline.png" alt="Shine More Online" class="h-14 w-auto object-contain hover:opacity-90 transition-opacity">
             </a>
 
-            <a href="/contact" class="btn-gold text-xs py-3 px-8 ml-4">Start Project</a>
+            <div class="hidden md:flex items-center space-x-10">
+                <a href="/" class="nav-link">Overview</a>
+                
+                <div class="relative group h-full flex items-center">
+                    <!-- Changed to button for accessibility: Buttons open menus, links navigate -->
+                    <button 
+                        class="nav-link flex items-center gap-1" 
+                        aria-haspopup="true" 
+                        aria-expanded="false"
+                        onclick="toggleDropdown(event)"
+                        onkeydown="handleDropdownKey(event)"
+                    >
+                        Services <i class="fas fa-chevron-down text-[0.6rem] ml-1"></i>
+                    </button>
+                    <div id="services-dropdown" class="dropdown-menu absolute top-16 left-0 w-64 bg-[#052c65] border border-[#0b3d87] shadow-2xl rounded-sm p-4 grid gap-2 z-50">
+                        <a href="/services/web-design" class="block text-sm text-[#e0e7ff] hover:text-[#FFD700] p-2 hover:bg-[#0b3d87]/30 transition-colors">Web Design</a>
+                        <a href="/services/web-infrastructure" class="block text-sm text-[#e0e7ff] hover:text-[#FFD700] p-2 hover:bg-[#0b3d87]/30 transition-colors">Infrastructure</a>
+                        <a href="/services/wcag-compliance" class="block text-sm text-[#e0e7ff] hover:text-[#FFD700] p-2 hover:bg-[#0b3d87]/30 transition-colors">WCAG Compliance</a>
+                        <a href="/services/mobile-app-development" class="block text-sm text-[#e0e7ff] hover:text-[#FFD700] p-2 hover:bg-[#0b3d87]/30 transition-colors">Mobile Apps</a>
+                        <a href="/services/automation-consulting" class="block text-sm text-[#e0e7ff] hover:text-[#FFD700] p-2 hover:bg-[#0b3d87]/30 transition-colors">Automation</a>
+                        <a href="/services/vr-development" class="block text-sm text-[#e0e7ff] hover:text-[#FFD700] p-2 hover:bg-[#0b3d87]/30 transition-colors">VR / AR</a>
+                        <div class="border-t border-[#0b3d87] my-1"></div>
+                        <a href="/services" class="block text-xs font-bold text-[#FFD700] uppercase tracking-wide p-2">View All Services &rarr;</a>
+                    </div>
+                </div>
+
+                <a href="/portfolio" class="nav-link">Work</a>
+                <a href="/about" class="nav-link">Company</a>
+                
+                <a href="/login" class="text-white hover:text-[#FFD700] transition-colors" title="Account Login">
+                    <i class="fas fa-user-circle text-xl"></i>
+                </a>
+
+                <a href="/contact" class="btn-gold text-xs py-3 px-8 ml-4">Start Project</a>
+            </div>
+
+            <button 
+                class="md:hidden text-[#FFD700] text-2xl" 
+                onclick="toggleMobileMenu()"
+                aria-label="Toggle Navigation"
+                aria-expanded="false"
+                aria-controls="mobile-menu"
+            >
+                <i class="fas fa-bars"></i>
+            </button>
         </div>
-
-        <button 
-            class="md:hidden text-[#FFD700] text-2xl" 
-            onclick="toggleMobileMenu()"
-            aria-label="Toggle Navigation"
-            aria-expanded="false"
-            aria-controls="mobile-menu"
-        >
-            <i class="fas fa-bars"></i>
-        </button>
-    </div>
-    
-    <!-- Mobile Menu with aria-hidden logic -->
-    <div id="mobile-menu" class="hidden md:hidden bg-[#052c65] border-t border-[#0b3d87] p-6 space-y-6 text-center" aria-hidden="true">
-        <a href="/" class="block text-white font-bold hover:text-[#FFD700]">OVERVIEW</a>
-        <a href="/services" class="block text-white font-bold hover:text-[#FFD700]">SERVICES</a>
-        <a href="/music" class="block text-white font-bold hover:text-[#FFD700]">MUSIC</a>
-        <a href="/portfolio" class="block text-white font-bold hover:text-[#FFD700]">WORK</a>
-        <a href="/login" class="block text-white font-bold hover:text-[#FFD700]">ACCOUNT</a>
-        <a href="/contact" class="block text-[#FFD700] font-bold">START PROJECT</a>
-    </div>
-</nav>
-
-<!-- Main content with matching id for skip link -->
-<main id="main-content" class="flex-grow pt-24">
-
-<script>
-    // Desktop Dropdown Logic
-    function toggleDropdown(e, dropdownId) {
-        const btn = e.currentTarget;
-        const dropdown = document.getElementById(dropdownId);
-        const isExpanded = btn.getAttribute('aria-expanded') === 'true';
         
-        // Close other dropdowns first
-        document.querySelectorAll('.dropdown-menu').forEach(menu => {
-            if(menu.id !== dropdownId) menu.classList.remove('active');
-        });
-        document.querySelectorAll('button[aria-haspopup="true"]').forEach(button => {
-            if(button !== btn) button.setAttribute('aria-expanded', 'false');
-        });
+        <!-- Mobile Menu with aria-hidden logic -->
+        <div id="mobile-menu" class="hidden md:hidden bg-[#052c65] border-t border-[#0b3d87] p-6 space-y-6 text-center" aria-hidden="true">
+            <a href="/" class="block text-white font-bold hover:text-[#FFD700]">OVERVIEW</a>
+            <a href="/services" class="block text-white font-bold hover:text-[#FFD700]">SERVICES</a>
+            <a href="/portfolio" class="block text-white font-bold hover:text-[#FFD700]">WORK</a>
+            <a href="/login" class="block text-white font-bold hover:text-[#FFD700]">ACCOUNT</a>
+            <a href="/contact" class="block text-[#FFD700] font-bold">START PROJECT</a>
+        </div>
+    </nav>
 
-        btn.setAttribute('aria-expanded', !isExpanded);
-        dropdown.classList.toggle('active');
-    }
+    <!-- Main content with matching id for skip link -->
+    <main id="main-content" class="flex-grow pt-24">
 
-    function handleDropdownKey(e, dropdownId) {
-        if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            toggleDropdown(e, dropdownId);
-        }
-        if (e.key === 'Escape') {
+    <script>
+        // Desktop Dropdown Logic
+        function toggleDropdown(e) {
             const btn = e.currentTarget;
-            const dropdown = document.getElementById(dropdownId);
-            btn.setAttribute('aria-expanded', 'false');
-            dropdown.classList.remove('active');
+            const dropdown = document.getElementById('services-dropdown');
+            const isExpanded = btn.getAttribute('aria-expanded') === 'true';
+            
+            btn.setAttribute('aria-expanded', !isExpanded);
+            dropdown.classList.toggle('active');
         }
-    }
 
-    // Close dropdown when clicking outside
-    document.addEventListener('click', (e) => {
-        const groups = document.querySelectorAll('.group');
-        groups.forEach(group => {
-            if (!group.contains(e.target)) {
+        function handleDropdownKey(e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                toggleDropdown(e);
+            }
+            if (e.key === 'Escape') {
+                const btn = e.currentTarget;
+                const dropdown = document.getElementById('services-dropdown');
+                btn.setAttribute('aria-expanded', 'false');
+                dropdown.classList.remove('active');
+            }
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            const group = document.querySelector('.group');
+            if (group && !group.contains(e.target)) {
                 const btn = group.querySelector('button[aria-haspopup="true"]');
-                const dropdown = group.querySelector('.dropdown-menu');
+                const dropdown = document.getElementById('services-dropdown');
                 if (btn && dropdown) {
                     btn.setAttribute('aria-expanded', 'false');
                     dropdown.classList.remove('active');
                 }
             }
         });
-    });
 
-    // Mobile Menu Logic
-    function toggleMobileMenu() {
-        const menu = document.getElementById('mobile-menu');
-        const btn = document.querySelector('button[aria-controls="mobile-menu"]');
-        
-        if (!menu) return;
+        // Mobile Menu Logic
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobile-menu');
+            const btn = document.querySelector('button[aria-controls="mobile-menu"]');
+            
+            if (!menu) return;
 
-        const isHidden = menu.classList.toggle('hidden');
-        
-        // Toggle accessibility attributes
-        menu.setAttribute('aria-hidden', isHidden);
-        if (btn) {
-            btn.setAttribute('aria-expanded', !isHidden);
+            const isHidden = menu.classList.toggle('hidden');
+            
+            // Toggle accessibility attributes
+            menu.setAttribute('aria-hidden', isHidden);
+            if (btn) {
+                btn.setAttribute('aria-expanded', !isHidden);
+            }
         }
-    }
-</script>
-
-
-</body>
-</html>
+    </script>
