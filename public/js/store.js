@@ -1,7 +1,6 @@
 window.Store = {
     // Generate or retrieve a persistent session ID
     getSessionId: () => {
-        // CHANGED: Use 'sessionId' to match product.ejs and merch.ejs
         let sid = localStorage.getItem('sessionId');
         if (!sid) {
             sid = crypto.randomUUID();
@@ -15,18 +14,21 @@ window.Store = {
         const sessionId = Store.getSessionId();
         
         // Find button to update UI
-        // Note: For product page, we might pass the button element directly, but here we query
         const btn = document.querySelector(`button[data-id="${sku}"]`) || document.querySelector(`button[data-sku="${sku}"]`);
         
         // 1. Setup UI Variables
         let originalText = '';
+        let originalAria = '';
         
-        // 2. Trigger Loading State (Only if button is found)
+        // 2. Trigger Loading State
         if(btn) {
             originalText = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ADDING...';
+            originalAria = btn.getAttribute('aria-label') || 'Add to cart';
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin" aria-hidden="true"></i> ADDING...';
+            btn.setAttribute('aria-label', 'Adding item to manifest, please wait');
             btn.disabled = true;
         }
+
         const badge = document.getElementById('cart-count');
         if (badge) {
             let currentCount = parseInt(badge.innerText) || 0;
@@ -35,8 +37,6 @@ window.Store = {
         }
 
         try {
-            // 3. Perform API Call (Runs regardless of button existence)
-            // MOVED OUTSIDE the if(btn) block
             const response = await fetch('/api/cart', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -44,40 +44,35 @@ window.Store = {
             });
 
             if (!response.ok) throw new Error('Network response was not ok');
-                    // --- NEW CODE: Update Badge immediately from server response ---
-        const data = await response.json();
-        if (data.newCount !== undefined) {
-            const badge = document.getElementById('cart-count');
-            if (badge) {
+            
+            const data = await response.json();
+            if (data.newCount !== undefined && badge) {
                 badge.innerText = data.newCount;
                 badge.classList.remove('hidden');
             }
-        }
-        // ---------------------------------------------------------------
 
-            // 4. Trigger UI Success (Only if button is found)
+            // 4. Trigger UI Success
             if(btn) {
-                btn.innerHTML = '<i class="fas fa-check"></i> ADDED';
+                btn.innerHTML = '<i class="fas fa-check" aria-hidden="true"></i> ADDED';
+                btn.setAttribute('aria-label', 'Item successfully added to manifest');
                 setTimeout(() => {
                     btn.innerHTML = originalText;
+                    btn.setAttribute('aria-label', originalAria);
                     btn.disabled = false;
                 }, 2000);
             }
 
-            // 5. Update Badge (Runs regardless of button existence)
-           // await Store.refreshCartCount();
-
         } catch (error) {
             console.error('Error adding to cart:', error);
-            
-            // ROLLBACK: If it failed, fetch the real count from server to correct the optimistic update
             Store.refreshCartCount(); 
             
-            // 6. Trigger UI Error (Only if button is found)
+            // 6. Trigger UI Error
             if(btn) {
                 btn.innerHTML = 'ERROR';
+                btn.setAttribute('aria-label', 'Failed to add item. Please try again.');
                 setTimeout(() => {
                     btn.innerHTML = originalText;
+                    btn.setAttribute('aria-label', originalAria);
                     btn.disabled = false;
                 }, 2000);
             }
@@ -94,9 +89,7 @@ window.Store = {
                 body: JSON.stringify({ sessionId, sku, size: size || '' })
             });
             
-            // Added 'await' to ensure the list rebuilds before we update the badge
             if (window.renderCartPage) await window.renderCartPage();
-            
             Store.refreshCartCount();
         } catch (error) {
             console.error('Error removing item:', error);
@@ -107,7 +100,6 @@ window.Store = {
     getCart: async () => {
         const sessionId = Store.getSessionId();
         try {
-            // ADDED: Timestamp to prevent browser caching of the badge number
             const res = await fetch(`/api/cart/${sessionId}?t=${Date.now()}`);
             const data = await res.json();
             return data.items || [];
@@ -129,8 +121,11 @@ window.Store = {
 
     checkout: async () => {
         const btn = document.getElementById('checkout-btn');
-        if(btn) btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> PROCESSING...';
-        // Redirect to checkout form
+        if(btn) {
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin" aria-hidden="true"></i> PROCESSING...';
+            btn.setAttribute('aria-label', 'Initiating secure checkout, please wait');
+            btn.disabled = true;
+        }
         window.location.href = '/checkout-form';
     }
 };
@@ -162,11 +157,12 @@ window.renderCartPage = async () => {
         const price = Number(item.price);
         total += price * item.quantity;
         const sizeBadge = item.size ? `<span class="text-xs bg-gray-800 text-gray-300 px-2 py-1 rounded border border-gray-600 ml-2">${item.size}</span>` : '';
+        const ariaLabel = `Remove ${item.name}${item.size ? ' (Size: ' + item.size + ')' : ''} from manifest`;
         
         html += `
             <div class="glass-card p-4 rounded flex items-center justify-between border border-gray-700">
                 <div class="flex items-center gap-4">
-                    <img src="${item.image_url || '/images/default-album-art.jpg'}" class="w-16 h-16 object-cover rounded bg-gray-900">
+                    <img src="${item.image_url || '/images/default-album-art.jpg'}" alt="${item.name}" class="w-16 h-16 object-cover rounded bg-gray-900">
                     <div>
                         <h3 class="text-white font-bold flex items-center">
                             ${item.name} 
@@ -177,15 +173,14 @@ window.renderCartPage = async () => {
                 </div>
                 <div class="flex items-center gap-4">
                     <span class="text-gray-500 text-sm">Qty: ${item.quantity}</span>
-                    <!-- Replaced the button line below to handle quotes safely -->
-                    <!-- BUTTON FIXED: Uses data attributes to prevent syntax errors -->
                     <button 
                         type="button"
                         data-action="remove-item"
                         data-sku="${String(item.sku).replace(/"/g, '&quot;')}" 
                         data-size="${String(item.size || '').replace(/"/g, '&quot;')}" 
-                        class="text-gray-500 hover:text-red-500 transition-colors">
-                        <i class="fas fa-trash"></i>
+                        aria-label="${ariaLabel}"
+                        class="text-gray-500 hover:text-red-500 focus:outline-none focus:text-red-500 focus:ring-2 focus:ring-red-500/20 rounded p-1 transition-all">
+                        <i class="fas fa-trash" aria-hidden="true"></i>
                     </button>
                 </div>
             </div>
@@ -194,18 +189,14 @@ window.renderCartPage = async () => {
 
     container.innerHTML = html;
 
-    // --- NEW CODE: Bind Remove Buttons Safely ---
-    // This replaces the inline onclick to prevent "Invalid Token" errors
     container.querySelectorAll('button[data-action="remove-item"]').forEach(btn => {
         btn.onclick = () => {
             Store.remove(btn.dataset.sku, btn.dataset.size);
         };
     });
-    // --------------------------------------------
 
     if(totalEl) totalEl.innerText = `$${total.toFixed(2)}`;
     
-    // Bind Checkout
     const checkoutBtn = document.getElementById('checkout-btn');
     if(checkoutBtn) {
         checkoutBtn.onclick = Store.checkout;
@@ -215,40 +206,26 @@ window.renderCartPage = async () => {
 document.addEventListener('DOMContentLoaded', () => {
     Store.refreshCartCount();
 
-    // --- FIX: Bind Main Product Page Button ---
     const mainBtn = document.getElementById('addToCartMain');
     if (mainBtn) {
-        // Remove any inline onclick attributes that might cause conflicts (optional safety)
         mainBtn.onclick = null; 
-
         mainBtn.addEventListener('click', (e) => {
-            e.preventDefault(); // Stop the form from submitting normally
-            
-            // Attempt to find the size dropdown (commonly named 'size' or just the first select)
+            e.preventDefault();
             const sizeSelect = document.getElementById('size') || document.querySelector('select');
             const size = sizeSelect ? sizeSelect.value : null;
-            
-            // Get SKU from the button's data attribute
             const sku = mainBtn.dataset.id || mainBtn.dataset.sku;
-            
             if (sku) {
                 Store.add(sku, size);
-            } else {
-                console.error("No SKU found on main button");
             }
         });
     }
-    // ------------------------------------------
 
-
-    // Global listener for Add to Cart buttons (Quick Add)
     document.body.addEventListener('click', (e) => {
         const btn = e.target.closest('.add-to-cart-btn');
-        // Only trigger if no custom listener attached (Product page has its own)
         if (btn && !btn.id.includes('addToCartMain')) {
             e.preventDefault();
             const sku = btn.dataset.id || btn.dataset.sku; 
-            if (sku) Store.add(sku); // Default add (no size)
+            if (sku) Store.add(sku);
         }
     });
 });
