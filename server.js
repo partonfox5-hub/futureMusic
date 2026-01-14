@@ -489,6 +489,11 @@ app.get('/logout', (req, res) => {
 
 app.get('/', (req, res) => res.render('index', { title: 'Home' }));
 app.get('/projects', (req, res) => res.render('projects', { title: 'Projects' }));
+// Domain Project Page
+app.get('/domain', (req, res) => {
+    res.render('domain');
+});
+
 app.get('/about', (req, res) => res.render('about', { title: 'About' }));
 app.get('/contact', (req, res) => res.render('contact', { title: 'Contact' }));
 app.get('/advocacy', (req, res) => res.render('advocacy', { title: 'Advocacy' }));
