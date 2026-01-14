@@ -1,40 +1,42 @@
 <%- include('partials/header') %>
 
 <section class="max-w-2xl mx-auto py-12">
-    <h2 class="text-4xl md:text-6xl text-center mb-8 text-gold">TRANSMIT SIGNAL</h2>
-    <p class="text-center text-gray-400 mb-12">The lines are open. Send your message directly to command.</p>
+<h2 class="text-4xl md:text-6xl text-center mb-8 text-gold">TRANSMIT SIGNAL</h2>
+<p class="text-center text-gray-400 mb-12">The lines are open. Send your message directly to command.</p>
 
-    <form class="space-y-6 glass-card p-8 md:p-12 rounded-xl" action="/contact" method="POST">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="space-y-2">
-                <label class="text-xs uppercase tracking-widest text-[#D4AF37]">Codename / Name</label>
-                <input type="text" class="w-full bg-black/50 border border-gray-700 rounded p-3 text-white focus:border-[#D4AF37] focus:outline-none transition-colors" placeholder="Enter name">
-            </div>
-            <div class="space-y-2">
-                <label class="text-xs uppercase tracking-widest text-[#D4AF37]">Frequency / Email</label>
-                <input type="email" class="w-full bg-black/50 border border-gray-700 rounded p-3 text-white focus:border-[#D4AF37] focus:outline-none transition-colors" placeholder="Enter email">
-            </div>
-        </div>
-        
+<form class="space-y-6 glass-card p-8 md:p-12 rounded-xl" action="/contact" method="POST">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div class="space-y-2">
-            <label class="text-xs uppercase tracking-widest text-[#D4AF37]">Subject</label>
-            <select class="w-full bg-black/50 border border-gray-700 rounded p-3 text-white focus:border-[#D4AF37] focus:outline-none transition-colors">
-                <option>Booking Inquiry</option>
-                <option>Collaboration</option>
-                <option>Merch Support</option>
-                <option>Fan Mail</option>
-            </select>
+            <label for="codename" class="text-xs uppercase tracking-widest text-[#D4AF37]">Codename / Name</label>
+            <input id="codename" name="codename" type="text" class="w-full bg-black/50 border border-gray-700 rounded p-3 text-white focus:border-[#D4AF37] focus:outline-none transition-colors" placeholder="Enter name" required>
         </div>
-
         <div class="space-y-2">
-            <label class="text-xs uppercase tracking-widest text-[#D4AF37]">Transmission</label>
-            <textarea rows="5" class="w-full bg-black/50 border border-gray-700 rounded p-3 text-white focus:border-[#D4AF37] focus:outline-none transition-colors" placeholder="Type your message here..."></textarea>
+            <label for="email" class="text-xs uppercase tracking-widest text-[#D4AF37]">Frequency / Email</label>
+            <input id="email" name="email" type="email" class="w-full bg-black/50 border border-gray-700 rounded p-3 text-white focus:border-[#D4AF37] focus:outline-none transition-colors" placeholder="Enter email" required>
         </div>
+    </div>
+    
+    <div class="space-y-2">
+        <label for="subject" class="text-xs uppercase tracking-widest text-[#D4AF37]">Subject</label>
+        <select id="subject" name="subject" class="w-full bg-black/50 border border-gray-700 rounded p-3 text-white focus:border-[#D4AF37] focus:outline-none transition-colors">
+            <option value="booking">Booking Inquiry</option>
+            <option value="collaboration">Collaboration</option>
+            <option value="support">Merch Support</option>
+            <option value="fanmail">Fan Mail</option>
+        </select>
+    </div>
 
-        <button type="submit" class="w-full btn-gold py-4 text-lg font-bold shadow-lg hover:shadow-[#D4AF37]/50">
-            SEND TRANSMISSION
-        </button>
-    </form>
+    <div class="space-y-2">
+        <label for="message" class="text-xs uppercase tracking-widest text-[#D4AF37]">Transmission</label>
+        <textarea id="message" name="message" rows="5" class="w-full bg-black/50 border border-gray-700 rounded p-3 text-white focus:border-[#D4AF37] focus:outline-none transition-colors" placeholder="Type your message here..." required></textarea>
+    </div>
+
+    <button type="submit" class="w-full btn-gold py-4 text-lg font-bold shadow-lg hover:shadow-[#D4AF37]/50" aria-label="Send your transmission message">
+        SEND TRANSMISSION
+    </button>
+</form>
+
+
 </section>
 
 <%- include('partials/footer') %>
