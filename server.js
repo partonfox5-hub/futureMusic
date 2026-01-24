@@ -34,27 +34,39 @@ const cors = require('cors');
 // Allow both the environment variable AND specific local/production URLs
 const allowedOrigins = [
     process.env.GAME_URL,
-    'https://mobile-game-853337900822.us-central1.run.app', // Your Cloud Run Game URL
+    '[https://mobile-game-853337900822.us-central1.run.app](https://mobile-game-853337900822.us-central1.run.app)', // Your Cloud Run Game URL
     'http://localhost:8080', // Local testing
-    'http://127.0.0.1:8080',
-    'https://futuremusic.online'
+    '[http://127.0.0.1:8080](http://127.0.0.1:8080)',
+    '[https://futuremusic.online](https://futuremusic.online)',
+    '[https://www.futuremusic.online](https://www.futuremusic.online)' // NEW: Explicitly allow www
 ];
 
 app.use(cors({
     origin: function (origin, callback) {
         // Allow requests with no origin (like mobile apps or curl requests)
         if (!origin) return callback(null, true);
-        if (allowedOrigins.indexOf(origin) !== -1 || origin.includes('web.app') || origin.includes('firebaseapp.com')) {
-            callback(null, true);
-        } else {
-            // Optional: For debugging, you can uncomment the next line to allow ALL origins temporarily
-            // callback(null, true); 
-            console.log("Blocked by CORS:", origin);
-            callback(new Error('Not allowed by CORS'));
+        
+        // 1. Exact Match Check
+        if (allowedOrigins.indexOf(origin) !== -1) {
+            return callback(null, true);
         }
+
+        // 2. Pattern Match Check (Allows all subdomains of your site)
+        if (origin.includes('web.app') || 
+            origin.includes('firebaseapp.com') || 
+            origin.includes('futuremusic.online')) { 
+            return callback(null, true);
+        }
+
+        // 3. Fallback: Block
+        console.log("⚠️ BLOCKED BY CORS:", origin);
+        // If you are still stuck, you can uncomment the line below to temporarily allow everything:
+        // return callback(null, true);
+        callback(new Error('Not allowed by CORS'));
     },
     credentials: true
 }));
+
 
 // --- FIX START: Body Parsers & Logging ---
 app.use(express.json());
