@@ -259,7 +259,13 @@ button:active {
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 100;
+    z-index: 99999; /* Max Z-Index to ensure it is never hidden */
+    pointer-events: auto;
+}
+
+#btn-fullscreen {
+    font-size: 20px;
+    line-height: 38px; /* Vertically center the icon */
 }
 
 .lvl-card {
