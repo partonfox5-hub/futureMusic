@@ -1,0 +1,469 @@
+body, html {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background-color: #000;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    touch-action: none; /* Prevent browser zooming/scrolling */
+    user-select: none; /* Prevent text selection highlight */
+    -webkit-user-select: none;
+}
+
+#bg-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-position: center;
+    transition: background-image 1s ease-in-out;
+    z-index: 0;
+    opacity: 0.6;
+}
+
+canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    display: block;
+}
+
+#effect-canvas { z-index: 1; }
+#game-canvas { z-index: 2; }
+
+#ui-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10;
+    pointer-events: none; /* Let clicks pass through to canvas unless on a button */
+}
+
+/* Enable pointer events on interactive UI elements */
+#main-menu, #game-over, #ad-overlay, #hud, #color-modal {
+    pointer-events: auto;
+}
+
+.hidden { display: none !important; }
+
+#hud {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px;
+    color: white;
+    font-weight: bold;
+    font-size: 18px;
+    text-shadow: 2px 2px 0 #000;
+}
+
+#chest-zone {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    /* Original 120x100 -> 30% larger is approx 156x130 */
+    width: 156px;
+    height: 130px;
+    background-image: url('images/chest.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center bottom;
+    text-align: center;
+    color: transparent;
+    z-index: 5;
+}
+
+
+
+#sequence-board {
+    position: absolute;
+    top: 50px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 5px;
+}
+
+.seq-dot {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 2px solid white;
+    opacity: 0.5;
+}
+
+.seq-dot.active {
+    opacity: 1;
+    transform: scale(1.2);
+    box-shadow: 0 0 10px white;
+}
+
+#color-modal {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.9);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    /* Animation triggers when class removed/added, but handled via child animation mostly */
+}
+
+/* Spin and fade in animation for the options container */
+@keyframes spinIn {
+    0% { transform: scale(0) rotate(-180deg); opacity: 0; }
+    100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+#color-options {
+    animation: spinIn 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+#tutorial-modal {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.95);
+    border: 2px solid white;
+    padding: 20px;
+    border-radius: 15px;
+    text-align: center;
+    color: white;
+    width: 90%;
+    max-width: 450px;
+    z-index: 2000;
+    pointer-events: auto;
+}
+
+.color-choice-btn {
+    width: 60px; height: 60px;
+    margin: 10px;
+    border-radius: 50%;
+    border: 3px solid white;
+    display: inline-block;
+    transition: transform 0.2s, box-shadow 0.2s;
+    cursor: pointer;
+}
+
+.color-choice-btn:hover {
+    transform: scale(1.2);
+    box-shadow: 0 0 20px white;
+}
+
+#main-menu, #game-over {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    /* Use the specific menu background image */
+    background: url('images/menu_background.jpg') no-repeat center center; 
+    background-size: cover;
+    padding: 40px; /* Increased padding */
+    border: 3px solid white; /* Added border */
+    border-radius: 10px;
+    text-align: center;
+    color: white;
+    width: 80%;
+    max-width: 400px;
+    box-shadow: 0 0 20px rgba(0,0,0,0.8);
+}
+
+#level-select-screen {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.9);
+    padding: 20px;
+    border-radius: 10px;
+    text-align: center;
+    color: white;
+    width: 90%; /* Increased width */
+    max-width: 800px; /* Increased max-width for desktop grid */
+    height: 80%; /* Fixed height to allow internal scrolling */
+    display: flex;
+    flex-direction: column;
+    pointer-events: auto;
+    z-index: 100;
+}
+
+button {
+    background: linear-gradient(to bottom, #ffb74d, #ff9800);
+    border: 2px solid #fff;
+    padding: 12px 24px;
+    color: white;
+    font-size: 18px;
+    margin: 5px;
+    border-radius: 8px;
+    cursor: pointer;
+    box-shadow: 0 4px 0 #c66900;
+    text-shadow: 1px 1px 0 rgba(0,0,0,0.5);
+    font-family: inherit;
+    transition: transform 0.1s;
+}
+
+button:active { 
+    transform: translateY(4px);
+    box-shadow: 0 0 0 #c66900;
+}
+
+.icon-btn {
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border-radius: 50%;
+    line-height: 36px;
+    text-align: center;
+}
+
+#level-select {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin: 10px 0;
+    flex-grow: 1; /* Fill available space */
+    overflow-y: auto; /* Scroll only this area */
+    align-content: flex-start;
+}
+
+.lvl-btn {
+    width: 40px;
+    height: 40px;
+    margin: 5px;
+    background: #ff9800;
+    color: white;
+    border: 1px solid white;
+}
+
+.lvl-btn.locked {
+    background: #222;
+    color: #555;
+    border: 1px solid #444;
+    cursor: not-allowed;
+}
+
+#ad-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: black;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+}
+
+.lvl-card {
+    width: 80px;
+    height: 80px;
+    margin: 8px;
+    border: 2px solid white;
+    border-radius: 10px;
+    background-size: cover;
+    background-position: center;
+    position: relative;
+    cursor: pointer;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.5);
+    transition: transform 0.2s;
+    display: inline-block;
+}
+.lvl-card:hover { transform: scale(1.1); }
+.lvl-card span {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 24px;
+    font-weight: bold;
+    color: white;
+    text-shadow: 0 0 4px black, 0 0 8px black;
+    pointer-events: none;
+}
+.lvl-card.locked {
+    filter: grayscale(100%) brightness(0.5);
+    cursor: not-allowed;
+    border-color: #555;
+}
+
+#ad-warning {
+    position: absolute;
+    top: 100px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255, 0, 0, 0.8);
+    color: white;
+    font-size: 24px;
+    padding: 10px 20px;
+    border-radius: 20px;
+    border: 2px solid white;
+    z-index: 200;
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: translateX(-50%) scale(1); }
+    50% { transform: translateX(-50%) scale(1.1); }
+    100% { transform: translateX(-50%) scale(1); }
+}
+
+/* Layout fixes for Main Menu */
+.menu-stack {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+}
+
+.menu-stack button {
+    width: 80%; /* Consistent width */
+    margin: 0;
+}
+
+/* Bigger Level Select Cards (Desktop) */
+.lvl-card {
+    width: 160px; /* Was 80px, now 100% bigger */
+    height: 160px; /* Was 80px */
+    margin: 15px;
+    border: 3px solid white;
+    border-radius: 15px;
+    background-size: cover;
+    background-position: center;
+    position: relative;
+    cursor: pointer;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.5);
+    transition: transform 0.2s;
+    display: inline-block;
+}
+
+/* Fancy Text for Level Number */
+.lvl-card .lvl-num {
+    position: absolute;
+    top: 30%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 48px; /* Bigger font */
+    font-family: 'Impact', sans-serif; /* Fancy/Bold font */
+    color: #FFD700; /* Gold */
+    -webkit-text-stroke: 2px black;
+    pointer-events: none;
+}
+
+/* High Score Display on Card */
+.lvl-card .lvl-score {
+    position: absolute;
+    bottom: 10px;
+    width: 100%;
+    text-align: center;
+    font-size: 16px;
+    color: white;
+    font-weight: bold;
+    text-shadow: 2px 2px 0 #000;
+    background: rgba(0,0,0,0.5);
+    padding: 2px 0;
+}
+
+/* Ad Overlay Fix */
+#ad-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.95); /* Darker background */
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999; /* Ensure on top of everything */
+    pointer-events: auto; /* Catch clicks */
+}
+
+.ad-content {
+    background: #333;
+    padding: 40px;
+    border: 4px solid gold;
+    border-radius: 20px;
+    text-align: center;
+}
+
+/* Decorative Menu Targets */
+.menu-deco {
+    position: absolute;
+    width: 88px; /* Standard base size */
+    height: 88px;
+    pointer-events: none;
+    z-index: 10;
+}
+.deco-green { top: -44px; left: 50%; transform: translateX(-50%); }
+.deco-blue  { top: 50%; right: -44px; transform: translateY(-50%); }
+.deco-red   { bottom: -44px; left: 50%; transform: translateX(-50%); }
+.deco-gold  { top: 50%; left: -44px; transform: translateY(-50%); }
+.deco-orange { top: -40px; right: -40px; transform: scale(0.8); } /* Corner accent */
+
+/* Custom Ad Player Styles */
+#video-ad-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    background: black;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#video-ui-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 50px;
+    z-index: 10001;
+    pointer-events: none; /* Let clicks pass to video unless on button */
+}
+
+#video-countdown {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background: rgba(0,0,0,0.7);
+    color: white;
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-size: 14px;
+    border: 1px solid white;
+}
+
+#video-close-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 30px;
+    height: 30px;
+    background: red;
+    color: white;
+    text-align: center;
+    line-height: 30px;
+    font-weight: bold;
+    border: 2px solid white;
+    border-radius: 5px;
+    cursor: pointer;
+    pointer-events: auto; /* Enable clicking */
+}
+
+#google-ad-container {
+    background: white;
+    padding: 20px;
+    text-align: center;
+    border: 2px solid gold;
+    border-radius: 10px;
+    max-width: 90%;
+}

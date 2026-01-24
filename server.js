@@ -501,6 +501,7 @@ app.get('/logout', (req, res) => {
 
 app.get('/', (req, res) => res.render('index', { title: 'Home' }));
 app.get('/projects', (req, res) => res.render('projects', { title: 'Projects' }));
+app.get('/target-catharsis', (req, res) => res.render('target-catharsis', { title: 'Target Catharsis' }));
 // Domain Project Page
 app.get('/domain', (req, res) => {
     res.render('domain');
@@ -1414,7 +1415,9 @@ app.post('/api/game/login', async (req, res) => {
                 success: true, 
                 userId: user.id, 
                 username: user.email, 
-                ownedSkins: ownedSkinIds 
+                ownedSkins: ownedSkinIds,
+                // Return status based on DB column (assumes column has_no_ads exists as boolean/tinyint)
+                hasNoAds: !!user.has_no_ads 
             });
         } else {
             res.json({ success: false, message: "Invalid password" });
@@ -1507,6 +1510,38 @@ app.post('/api/game/purchase-skin', async (req, res) => {
     }
 });
 
+// Create Stripe Checkout for No Ads
+app.post('/api/game/purchase-no-ads', async (req, res) => {
+    const { userId } = req.body;
+    if (!userId) return res.json({ error: "Not logged in" });
+    if (!stripe) return res.json({ error: "Payments unavailable" });
+
+    try {
+        const session = await stripe.checkout.sessions.create({
+            payment_method_types: ['card'],
+            line_items: [{
+                price_data: {
+                    currency: 'usd',
+                    product_data: { name: "Remove Ads (Target Breaker)" },
+                    unit_amount: 199, // $1.99
+                },
+                quantity: 1,
+            }],
+            mode: 'payment',
+            metadata: { 
+                type: 'no_ads_purchase',
+                userId: userId
+            },
+            // Redirect back to game with a success flag
+            success_url: `${req.headers.origin}/?payment=success&type=no_ads`, 
+            cancel_url: `${req.headers.origin}/`,
+        });
+        res.json({ url: session.url });
+    } catch (e) {
+        res.json({ error: e.message });
+    }
+});
+
 // Stripe Webhook (Or Success Handler) - Simple version for "success_url" verification
 // Note: In production, use webhooks. For now, we will add a verify endpoint called by the game.
 app.post('/api/game/verify-purchase', async (req, res) => {
@@ -1549,6 +1584,16 @@ app.post('/webhook', express.raw({type: 'application/json'}), async (request, re
             console.log(`Skin ${session.metadata.skinId} unlocked for user ${session.metadata.userId}`);
         }
     }
+    // --- NEW CODE: Handle No Ads Purchase ---
+    else if (session.metadata && session.metadata.type === 'no_ads_purchase') {
+        if (pool) {
+            // Update the user record to disable ads
+            await pool.query("UPDATE users SET has_no_ads = 1 WHERE id = ?", 
+                [session.metadata.userId]);
+            console.log(`Ads removed for user ${session.metadata.userId}`);
+        }
+    }
+    // ----------------------------------------
         // --- NEW CODE: Handle Standard Cart Purchases (Digital/Physical) ---
     else if (session.metadata && session.metadata.type === 'cart_checkout') {
         // This assumes you pass 'cart_checkout' and 'userId' in metadata during Stripe Session creation
