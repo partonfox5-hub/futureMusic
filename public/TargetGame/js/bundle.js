@@ -138,19 +138,23 @@ constructor(gameInstance) {
         });
 
         // SAFETY: Handle Video Errors (404, Decode Error)
-        // If video fails to load on web, immediately show Close button
         this.videoPlayer.addEventListener('error', (e) => {
             console.error("Ad Video Error:", this.videoPlayer.error);
             this.videoCloseBtn.classList.remove('hidden');
-            this.videoCountdown.innerText = "Error";
+            this.videoCountdown.innerText = "Skip";
+        });
+
+        // SAFETY: Handle "Stalled" video (Audio plays, video freezes)
+        this.videoPlayer.addEventListener('stalled', () => {
+            console.warn("Ad Video Stalled");
+            this.videoCloseBtn.classList.remove('hidden');
         });
 
         // Video Events
         this.videoPlayer.addEventListener('timeupdate', () => {
             const currentTime = this.videoPlayer.currentTime;
             
-            // Logic: Countdown strictly from 30 seconds (as requested)
-            // This ensures the UI always shows 30 -> 29 -> ... regardless of video length
+            // Logic: Countdown strictly from 30 seconds
             let left = Math.ceil(30 - currentTime);
             if (left < 0) left = 0;
             
@@ -223,12 +227,13 @@ constructor(gameInstance) {
         }, 1000);
     }
 
- playVideoAd(type) {
+playVideoAd(type) {
         this.videoContainer.classList.remove('hidden');
         // Ensure close button is hidden at start of new ad
         this.videoCloseBtn.classList.add('hidden');
+        this.videoCountdown.innerText = "30s"; 
         
-        // Use relative paths, but ensure no leading slash to work in subdirectories
+        // Use relative paths
         if (type === 'cohabisafe') {
             this.videoPlayer.src = 'ads/cohabisafe.mp4';
             this.currentLink = 'https://www.cohabisafe.com';
@@ -236,7 +241,6 @@ constructor(gameInstance) {
             this.videoPlayer.src = 'ads/merch.mp4';
             this.currentLink = 'https://futuremusic.online/merch';
         } else if (type === 'colorization') {
-            // Check for Mobile Device (Standard tablet/mobile break is 768px)
             if (window.innerWidth <= 768) {
                 this.videoPlayer.src = 'ads/colorization_mobile.mp4';
             } else {
@@ -245,10 +249,14 @@ constructor(gameInstance) {
             this.currentLink = 'https://futuremusic.online/projects';
         }
 
-        // Important for Web: Load before Play
         this.videoPlayer.load();
 
         const playPromise = this.videoPlayer.play();
+
+        // FAILSAFE: Force close button to appear after 5 seconds if visual rendering fails
+        setTimeout(() => {
+            this.videoCloseBtn.classList.remove('hidden');
+        }, 5000);
 
         if (playPromise !== undefined) {
             playPromise.then(_ => {
@@ -256,8 +264,6 @@ constructor(gameInstance) {
             })
             .catch(error => {
                 console.error("Autoplay failed or prevented:", error);
-                // CRITICAL FIX: If play fails, show the close button IMMEDIATELY 
-                // so the game does not freeze.
                 this.videoCloseBtn.classList.remove('hidden');
                 this.videoCountdown.innerText = "Tap to Close";
             });
