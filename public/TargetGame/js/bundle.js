@@ -1613,17 +1613,19 @@ endLevel() {
 destroyTarget(target, forceStarScore = false, inputColor = null) {
         if (!target || target.state === 'dying') return;
         
-        let pts = target.def.points;
+        // Safety check: ShootingStars and PowerUps might not have 'def' populated like Targets
+        let type = target.def ? target.def.type : 'unknown';
+        let pts = target.def ? target.def.points : 0;
         let textToShow = ""; // To store multiplier text if needed
 
         if(forceStarScore) pts = 50;
         
-        if (inputColor && inputColor === target.def.type) {
+        if (inputColor && inputColor === type) {
              pts *= 2;
              textToShow = "MATCH! x2";
         }
 
-        if (!forceStarScore && target.def.type === this.comboColor) {
+        if (!forceStarScore && type === this.comboColor) {
             this.comboCount++;
             if (this.comboCount >= 3) {
                 const mult = 1.1 + ((this.comboCount - 3) * 0.1);
@@ -1632,11 +1634,11 @@ destroyTarget(target, forceStarScore = false, inputColor = null) {
                 this.playSfx('combo.mp3'); 
             }
         } else {
-            this.comboColor = target.def.type;
+            this.comboColor = type;
             this.comboCount = 1;
         }
 
-        this.checkSequence(target.def.type);
+        this.checkSequence(type);
 
         const finalPoints = Math.floor(pts);
         this.score += finalPoints;
@@ -1652,14 +1654,24 @@ destroyTarget(target, forceStarScore = false, inputColor = null) {
         }
 
         // Sound & Animation Logic
-        if (forceStarScore || target.def.type === 'star_active' || this.starModeActive) {
+        if (forceStarScore || type === 'star_active' || this.starModeActive) {
             this.playSfx('star_break.mp3'); 
             this.addRipple(target.x, target.y, 'gold', 200); 
         } else {
-            this.playSfx(target.def.type + '_break.mp3');
+            // Safety for sound file
+            if(type !== 'unknown') {
+                this.playSfx(type + '_break.mp3');
+            }
         }
 
-        target.break();
+        // CRITICAL FIX: ShootingStars do not have a break() method.
+        if (typeof target.break === 'function') {
+            target.break();
+        } else {
+            // Manually kill entities that don't have break animation logic
+            target.state = 'dying';
+            target.dieTimer = 0;
+        }
     }
 
  activatePowerup(p) {
@@ -1748,7 +1760,8 @@ destroyTarget(target, forceStarScore = false, inputColor = null) {
 
   checkSlice(points, inputColor) {
         this.targets.forEach(t => {
-            if (t.def.type === 'red' && t.state === 'active') {
+            // CRITICAL FIX: Added 't.def &&' check because ShootingStars do not have 'def'
+            if (t.def && t.def.type === 'red' && t.state === 'active') {
                 // 1. Gather all points from the gesture that are INSIDE the target
                 const insidePoints = points.filter(p => t.contains(p.x, p.y));
 
