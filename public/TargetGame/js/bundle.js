@@ -107,7 +107,7 @@ const STATE = {
 // ==========================================
 
 class AdManager {
-constructor(gameInstance) {
+  constructor(gameInstance) {
         this.game = gameInstance;
         this.overlay = document.getElementById('ad-overlay');
         
@@ -137,17 +137,18 @@ constructor(gameInstance) {
             this.closeAd();
         });
 
-        // SAFETY: Handle Video Errors (404, Decode Error)
+        // SAFETY: Handle Video Errors (500 Error, 404, Decode Error)
+        // If video fails, immediately show Close button so game doesn't freeze
         this.videoPlayer.addEventListener('error', (e) => {
-            console.error("Ad Video Error:", this.videoPlayer.error);
+            console.warn("Ad Failed to Load (Error 500/404). Showing Close Button.");
             this.videoCloseBtn.classList.remove('hidden');
             this.videoCountdown.innerText = "Skip";
         });
-
-        // SAFETY: Handle "Stalled" video (Audio plays, video freezes)
+        
+        // SAFETY: Handle Stalled Video (Connection drops)
         this.videoPlayer.addEventListener('stalled', () => {
-            console.warn("Ad Video Stalled");
-            this.videoCloseBtn.classList.remove('hidden');
+             // If stalled for too long, button is available
+             this.videoCloseBtn.classList.remove('hidden');
         });
 
         // Video Events
@@ -227,45 +228,52 @@ constructor(gameInstance) {
         }, 1000);
     }
 
-playVideoAd(type) {
+ playVideoAd(type) {
         this.videoContainer.classList.remove('hidden');
-        // Ensure close button is hidden at start of new ad
+        // Ensure close button is hidden at start, but show countdown
         this.videoCloseBtn.classList.add('hidden');
         this.videoCountdown.innerText = "30s"; 
         
-        // Use relative paths
+        // FIX: Use Absolute Paths from domain root to prevent 500 Errors
+        // Assuming your game is hosted at your-site.com/TargetGame/
+        const basePath = '/TargetGame/ads/'; 
+
         if (type === 'cohabisafe') {
-            this.videoPlayer.src = 'ads/cohabisafe.mp4';
+            this.videoPlayer.src = basePath + 'cohabisafe.mp4';
             this.currentLink = 'https://www.cohabisafe.com';
         } else if (type === 'merch') {
-            this.videoPlayer.src = 'ads/merch.mp4';
+            this.videoPlayer.src = basePath + 'merch.mp4';
             this.currentLink = 'https://futuremusic.online/merch';
         } else if (type === 'colorization') {
             if (window.innerWidth <= 768) {
-                this.videoPlayer.src = 'ads/colorization_mobile.mp4';
+                this.videoPlayer.src = basePath + 'colorization_mobile.mp4';
             } else {
-                this.videoPlayer.src = 'ads/colorization_desktop.mp4';
+                this.videoPlayer.src = basePath + 'colorization_desktop.mp4';
             }
             this.currentLink = 'https://futuremusic.online/projects';
         }
 
         this.videoPlayer.load();
 
-        const playPromise = this.videoPlayer.play();
-
-        // FAILSAFE: Force close button to appear after 5 seconds if visual rendering fails
-        setTimeout(() => {
+        // Safety Timeout: If video doesn't start in 3 seconds, show close button
+        const safetyTimer = setTimeout(() => {
             this.videoCloseBtn.classList.remove('hidden');
-        }, 5000);
+            this.videoCountdown.innerText = "Skip";
+        }, 3000);
+
+        const playPromise = this.videoPlayer.play();
 
         if (playPromise !== undefined) {
             playPromise.then(_ => {
-                // Video playback started successfully
+                // Video playback started, cancel safety timer
+                clearTimeout(safetyTimer);
             })
             .catch(error => {
-                console.error("Autoplay failed or prevented:", error);
+                console.error("Ad Playback Error:", error);
+                // CRITICAL FIX: If 500 Error or NotSupportedError happens, show Close immediately
+                clearTimeout(safetyTimer);
                 this.videoCloseBtn.classList.remove('hidden');
-                this.videoCountdown.innerText = "Tap to Close";
+                this.videoCountdown.innerText = "Error - Tap X";
             });
         }
     }
