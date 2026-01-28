@@ -1664,7 +1664,7 @@ destroyTarget(target, forceStarScore = false, inputColor = null) {
             }
         }
 
-        // CRITICAL FIX: ShootingStars do not have a break() method.
+        // CRITICAL FIX: Check if break function exists before calling
         if (typeof target.break === 'function') {
             target.break();
         } else {
@@ -1758,7 +1758,7 @@ destroyTarget(target, forceStarScore = false, inputColor = null) {
         this.ripples.push(new Ripple(x, y, color, maxRadius));
     }
 
-  checkSlice(points, inputColor) {
+ checkSlice(points, inputColor) {
         this.targets.forEach(t => {
             // CRITICAL FIX: Added 't.def &&' check because ShootingStars do not have 'def'
             if (t.def && t.def.type === 'red' && t.state === 'active') {

@@ -132,8 +132,13 @@
 
     </div> <!-- CLOSING DIV FOR ui-layer MOVED HERE -->
         
-    <!-- Unified Ad Overlay (MOVED OUTSIDE UI LAYER) -->
-    <div id="ad-overlay" class="hidden">
+   <!-- Ad Warning (Small overlay during game) -->
+        <div id="ad-warning" class="hidden">Ad in <span id="ad-countdown">10</span>s</div>
+        
+    </div> <!-- CLOSING DIV FOR ui-layer -->
+
+    <!-- Unified Ad Overlay - MOVED OUTSIDE UI LAYER with FIXED POSITION -->
+    <div id="ad-overlay" class="hidden" style="position: fixed !important; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 2147483647 !important; background: rgba(0,0,0,1); pointer-events: auto !important;">
         
         <!-- GOOGLE ADS CONTAINER -->
         <div id="google-ad-container" class="hidden">
