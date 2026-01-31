@@ -5,7 +5,7 @@
 
 const CONFIG = {
     // CHANGE THIS to your production URL when deploying live (e.g. 'https://your-app.com')
-    API_BASE_URL: 'http://futuremusic.online', 
+    API_BASE_URL: 'https://futuremusic.online', 
 
     TOTAL_LEVELS: 20,
     BASE_WIN_SCORE: 500,
@@ -234,21 +234,21 @@ class AdManager {
         this.videoCloseBtn.classList.add('hidden');
         this.videoCountdown.innerText = "30s"; 
         
-        // FIX: Use Absolute Paths from domain root to prevent 500 Errors
-        // Assuming your game is hosted at your-site.com/TargetGame/
-        const basePath = '/TargetGame/ads/'; 
+        // FIX: Point to the new Server Route that handles GCS Signed URLs
+        // We use the full API URL to ensure it hits the backend correctly
+        const baseAdUrl = `${CONFIG.API_BASE_URL}/api/ad-video/`;
 
         if (type === 'cohabisafe') {
-            this.videoPlayer.src = basePath + 'cohabisafe.mp4';
+            this.videoPlayer.src = baseAdUrl + 'cohabisafe.mp4';
             this.currentLink = 'https://www.cohabisafe.com';
         } else if (type === 'merch') {
-            this.videoPlayer.src = basePath + 'merch.mp4';
+            this.videoPlayer.src = baseAdUrl + 'merch.mp4';
             this.currentLink = 'https://futuremusic.online/merch';
         } else if (type === 'colorization') {
             if (window.innerWidth <= 768) {
-                this.videoPlayer.src = basePath + 'colorization_mobile.mp4';
+                this.videoPlayer.src = baseAdUrl + 'colorization_mobile.mp4';
             } else {
-                this.videoPlayer.src = basePath + 'colorization_desktop.mp4';
+                this.videoPlayer.src = baseAdUrl + 'colorization_desktop.mp4';
             }
             this.currentLink = 'https://futuremusic.online/projects';
         }
