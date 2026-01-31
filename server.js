@@ -1630,6 +1630,38 @@ app.post('/webhook', express.raw({type: 'application/json'}), async (request, re
   response.json({received: true});
 });
 
+
+// --- NEW ROUTE: Secure Ad Streaming from GCS ---
+app.get('/api/ad-video/:filename', async (req, res) => {
+    const { filename } = req.params;
+    // Using the bucket name found in your screenshot
+    const bucketName = 'futuremusic'; 
+    const filePath = `ads/${filename}`;
+
+    try {
+        // 1. Generate a temporary signed URL (valid for 15 minutes)
+        // This allows the browser to load the private video file
+        const [url] = await storage
+            .bucket(bucketName)
+            .file(filePath)
+            .getSignedUrl({
+                version: 'v4',
+                action: 'read',
+                expires: Date.now() + 15 * 60 * 1000, 
+            });
+
+        // 2. Redirect the video player to this secure Google URL
+        res.redirect(url);
+
+    } catch (err) {
+        console.error("Ad Stream Error:", err);
+        // If file missing or permissions wrong, send 404
+        res.status(404).send("Ad not found");
+    }
+});
+
+
+
 // --- FIX START: Global Error Handler ---
 app.use((err, req, res, next) => {
     console.error("!!! SERVER ERROR !!!");
