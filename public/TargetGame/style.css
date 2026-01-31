@@ -222,6 +222,15 @@ button:active {
     text-align: center;
 }
 
+@media (max-width: 768px) {
+    .icon-btn {
+        width: 36px;  /* 10% smaller than 40px */
+        height: 36px; /* 10% smaller than 40px */
+        line-height: 32px;
+        font-size: 16px; /* Slightly adjust icon font size to match */
+    }
+}
+
 #level-select {
     display: flex;
     flex-wrap: wrap;

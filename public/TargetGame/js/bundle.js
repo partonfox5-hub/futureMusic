@@ -228,7 +228,7 @@ class AdManager {
         }, 1000);
     }
 
-  playVideoAd(type) {
+ playVideoAd(type) {
         // FIX: Show container BEFORE loading source to prevent browser optimization issues
         this.videoContainer.classList.remove('hidden');
         
@@ -254,11 +254,13 @@ class AdManager {
             this.currentLink = 'https://futuremusic.online/projects';
         }
 
-        // FIX: Reset load to ensure new source is picked up
+        // FIX: Explicitly load to reset the element
         this.videoPlayer.load();
 
         // Safety Timeout: If video doesn't start in 3 seconds, show close button
+        // This prevents the game from freezing if the browser blocks the video
         const safetyTimer = setTimeout(() => {
+            console.log("Ad safety timer triggered");
             this.videoCloseBtn.classList.remove('hidden');
             this.videoCountdown.innerText = "Skip";
         }, 3000);
@@ -272,10 +274,11 @@ class AdManager {
             })
             .catch(error => {
                 console.error("Ad Playback Error:", error);
-                // CRITICAL FIX: If 500/404 Error or NotSupportedError happens, show Close immediately
+                // CRITICAL FIX: If 500/404 Error or NotSupportedError (Autoplay block) happens, 
+                // show Close immediately so game doesn't freeze.
                 clearTimeout(safetyTimer);
                 this.videoCloseBtn.classList.remove('hidden');
-                this.videoCountdown.innerText = "Error - Tap X";
+                this.videoCountdown.innerText = "Tap X";
             });
         }
     }
@@ -390,7 +393,7 @@ draw(ctx, imgSolid) {
 }
 
 class Target extends Entity {
-    constructor(x, y, definition, levelSpeedMult = 1) {
+ constructor(x, y, definition, levelSpeedMult = 1) {
         super(x, y, null, levelSpeedMult); // Pass multiplier to Entity
         this.def = definition;
         this.isDragging = false;
@@ -398,9 +401,14 @@ class Target extends Entity {
         this.isStarBreak = false; // Flag for effect
 
         // ORIGINAL BASE WAS 88. 
-        // REQUEST: "About 10% bigger". 
-        // New Base = 88 * 1.1 = ~97. Let's use 98 for cleanliness.
-        const base = 98; 
+        // REQUEST: "About 10% bigger". New Base = 98.
+        // NEW REQUEST: 15% smaller on mobile only.
+        let base = 98; 
+        
+        // Mobile check (standard breakpoint)
+        if (window.innerWidth <= 768) {
+            base = 98 * 0.85; // Reduce by 15%
+        }
         
         if (this.def.type === 'green') {
             this.width = base * 1.10; this.height = base * 1.10;
@@ -1351,18 +1359,21 @@ startLevel(lvl) {
         this.loop(); 
     }
 
-spawnTarget() {
+ spawnTarget() {
         const maxTargetSize = 150; 
         const safeMargin = maxTargetSize / 2 + 20; 
         const chestBuffer = 140; 
 
+        // FIX: Use window.innerWidth/Height instead of this.canvas.width/height
+        // The canvas width includes the Device Pixel Ratio multiplier, which causes
+        // coordinates to be off-screen on high-res mobile displays.
         const minX = safeMargin;
-        const maxX = this.canvas.width - safeMargin;
+        const maxX = window.innerWidth - safeMargin;
         const minY = safeMargin;
-        const maxY = this.canvas.height - safeMargin - chestBuffer;
+        const maxY = window.innerHeight - safeMargin - chestBuffer;
 
-        const x = minX < maxX ? Math.random() * (maxX - minX) + minX : this.canvas.width/2;
-        const y = minY < maxY ? Math.random() * (maxY - minY) + minY : this.canvas.height/2;
+        const x = minX < maxX ? Math.random() * (maxX - minX) + minX : window.innerWidth/2;
+        const y = minY < maxY ? Math.random() * (maxY - minY) + minY : window.innerHeight/2;
 
         // Calculate Level Speed Multiplier for Despawn (Stay Time)
         // 2% per level: Math.pow(1.02, level - 1)
