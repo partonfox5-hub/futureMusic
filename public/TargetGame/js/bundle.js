@@ -228,7 +228,7 @@ class AdManager {
         }, 1000);
     }
 
- playVideoAd(type) {
+  playVideoAd(type) {
         // FIX: Show container BEFORE loading source to prevent browser optimization issues
         this.videoContainer.classList.remove('hidden');
         
@@ -257,37 +257,47 @@ class AdManager {
         // FIX: Explicitly load to reset the element
         this.videoPlayer.load();
 
-        // Safety Timeout: If video doesn't start in 3 seconds, show close button
-        // This prevents the game from freezing if the browser blocks the video
-        const safetyTimer = setTimeout(() => {
-            console.log("Ad safety timer triggered");
-            this.videoCloseBtn.classList.remove('hidden');
-            this.videoCountdown.innerText = "Skip";
-        }, 3000);
-
-        const playPromise = this.videoPlayer.play();
-
-        if (playPromise !== undefined) {
-            playPromise.then(_ => {
-                // Video playback started, cancel safety timer
-                clearTimeout(safetyTimer);
-            })
-            .catch(error => {
-                console.error("Ad Playback Error:", error);
-                // CRITICAL FIX: If 500/404 Error or NotSupportedError (Autoplay block) happens, 
-                // show Close immediately so game doesn't freeze.
-                clearTimeout(safetyTimer);
+        // CHROME DESKTOP FIX: 
+        // We must allow the browser to paint the overlay as "Visible" before attempting to play.
+        // Wrapping the play logic in a timeout ensures the DOM is ready and prevents the freeze.
+        setTimeout(() => {
+            // Safety Timeout: If video doesn't start in 3 seconds, show close button
+            // This prevents the game from freezing if the browser blocks the video
+            const safetyTimer = setTimeout(() => {
+                console.log("Ad safety timer triggered");
                 this.videoCloseBtn.classList.remove('hidden');
-                this.videoCountdown.innerText = "Tap X";
-            });
-        }
+                this.videoCountdown.innerText = "Skip";
+            }, 3000);
+
+            const playPromise = this.videoPlayer.play();
+
+            if (playPromise !== undefined) {
+                playPromise.then(_ => {
+                    // Video playback started, cancel safety timer
+                    clearTimeout(safetyTimer);
+                })
+                .catch(error => {
+                    console.error("Ad Playback Error:", error);
+                    // CRITICAL FIX: If 500/404 Error or NotSupportedError (Autoplay block) happens, 
+                    // show Close immediately so game doesn't freeze.
+                    clearTimeout(safetyTimer);
+                    this.videoCloseBtn.classList.remove('hidden');
+                    this.videoCountdown.innerText = "Tap X";
+                });
+            }
+        }, 150); // 150ms delay to ensure Chrome paints the element as visible
     }
 
 
-    closeAd() {
+ closeAd() {
         this.videoPlayer.pause();
         this.videoPlayer.src = ""; // Unload video
+        this.videoPlayer.load();   // Force browser to drop the resource connection
+        
         this.overlay.classList.add('hidden');
+        this.googleContainer.classList.add('hidden'); // Ensure Google container is also hidden
+        this.videoContainer.classList.add('hidden');  // Ensure Video container is also hidden
+        
         this.isAdPlaying = false;
         
         if (this.onAdComplete) {
