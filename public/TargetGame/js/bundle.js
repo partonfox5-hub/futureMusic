@@ -228,14 +228,15 @@ class AdManager {
         }, 1000);
     }
 
- playVideoAd(type) {
+  playVideoAd(type) {
+        // FIX: Show container BEFORE loading source to prevent browser optimization issues
         this.videoContainer.classList.remove('hidden');
+        
         // Ensure close button is hidden at start, but show countdown
         this.videoCloseBtn.classList.add('hidden');
         this.videoCountdown.innerText = "30s"; 
         
-        // FIX: Point to the new Server Route that handles GCS Signed URLs
-        // We use the full API URL to ensure it hits the backend correctly
+        // Points to Server Route that handles GCS Signed URLs
         const baseAdUrl = `${CONFIG.API_BASE_URL}/api/ad-video/`;
 
         if (type === 'cohabisafe') {
@@ -253,6 +254,7 @@ class AdManager {
             this.currentLink = 'https://futuremusic.online/projects';
         }
 
+        // FIX: Reset load to ensure new source is picked up
         this.videoPlayer.load();
 
         // Safety Timeout: If video doesn't start in 3 seconds, show close button
@@ -270,7 +272,7 @@ class AdManager {
             })
             .catch(error => {
                 console.error("Ad Playback Error:", error);
-                // CRITICAL FIX: If 500 Error or NotSupportedError happens, show Close immediately
+                // CRITICAL FIX: If 500/404 Error or NotSupportedError happens, show Close immediately
                 clearTimeout(safetyTimer);
                 this.videoCloseBtn.classList.remove('hidden');
                 this.videoCountdown.innerText = "Error - Tap X";
@@ -670,7 +672,9 @@ class InputHandler {
 onStart(e) {
         e.preventDefault();
         const pos = this.getPos(e);
-        const id = e.identifier || 'mouse';
+        
+        // FIX: Correctly extract identifier for Touch events
+        const id = e.changedTouches ? e.changedTouches[0].identifier : 'mouse';
         
         // Pick random color for this interaction
         const randColor = this.targetColors[Math.floor(Math.random() * this.targetColors.length)];
@@ -1071,7 +1075,7 @@ async performLogin() {
         }
     }
 
-      async purchaseNoAds() {
+async purchaseNoAds() {
         const btn = document.getElementById('btn-iap');
         const originalText = btn.innerText;
         btn.innerText = "Processing...";
@@ -1087,8 +1091,8 @@ async performLogin() {
             const data = await response.json();
 
             if (data.url) {
-                // Redirect to Stripe
-                window.location.href = data.url;
+                // FIX: Use window.top.location to break out of the iFrame for Stripe
+                window.top.location.href = data.url;
             } else {
                 alert("Error: " + (data.error || "Unknown error"));
                 btn.innerText = originalText;
@@ -1408,7 +1412,7 @@ spawnTarget() {
         }
     }
 
-  update(dt) {
+ update(dt) {
         if(this.levelEnded) return;
 
         this.timeLeft -= dt / 1000;
@@ -1433,16 +1437,36 @@ spawnTarget() {
              const ry = Math.random() * this.canvas.height;
              this.ripples.push(new Ripple(rx, ry, 'rgba(255,255,255,0.3)'));
         }
-        // --- 90 Second Interval Ad Logic ---
+        
+        // --- 90 Second Interval Ad Logic & Warning ---
         if (!STATE.hasRemovedAds) {
             this.adAccumulator += dt;
-            if (this.adAccumulator >= 90000) { // 90,000 ms = 90 seconds
-                this.adAccumulator = 0; // Reset timer
+
+            // SHOW WARNING (Between 80s and 90s)
+            if (this.adAccumulator >= 80000 && this.adAccumulator < 90000) {
+                const warnEl = document.getElementById('ad-warning');
+                const countEl = document.getElementById('ad-countdown');
+                const timeLeft = Math.ceil((90000 - this.adAccumulator) / 1000);
+                
+                warnEl.classList.remove('hidden');
+                countEl.innerText = timeLeft;
+            } else {
+                document.getElementById('ad-warning').classList.add('hidden');
+            }
+
+            // TRIGGER AD (At 90s)
+            if (this.adAccumulator >= 90000) { 
+                this.adAccumulator = 0; // Reset timer immediately to prevent double trigger
+                document.getElementById('ad-warning').classList.add('hidden'); // Ensure warning is gone
+                
                 this.adManager.triggerAd(() => {
                     this.lastTime = Date.now(); // Reset delta calculation
                     this.resume();
                 });
             }
+        } else {
+            // Ensure warning is hidden if ads are removed during play
+            document.getElementById('ad-warning').classList.add('hidden');
         }
 
         if (this.timeLeft <= 0) {
@@ -1479,7 +1503,6 @@ spawnTarget() {
             
             // Penalty: If target dies naturally (not broken) and isn't a powerup/star/shootingstar
             if (t.state === 'dead' && !t.broken && t instanceof Target && t.def.type !== 'star_active') {
-                // CHANGED: Base 10 + 5 per level
                 const penalty = 10 + ((this.level - 1) * 5);
                 this.score = Math.max(0, this.score - penalty);
                 this.texts.push(new FloatingText(t.x, t.y, `-${penalty}`));
