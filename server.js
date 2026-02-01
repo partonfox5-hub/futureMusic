@@ -35,7 +35,9 @@ const cors = require('cors');
 const allowedOrigins = [
     process.env.GAME_URL,
     '[https://mobile-game-853337900822.us-central1.run.app](https://mobile-game-853337900822.us-central1.run.app)', // Your Cloud Run Game URL
-    'http://localhost:8080', // Local testing
+    'http://localhost',        // Android debug origin
+    'capacitor://localhost',    // iOS/Android production origin
+    'http://localhost:8080',     // Local testing
     '[http://127.0.0.1:8080](http://127.0.0.1:8080)',
     '[https://futuremusic.online](https://futuremusic.online)',
     '[https://www.futuremusic.online](https://www.futuremusic.online)' // NEW: Explicitly allow www
