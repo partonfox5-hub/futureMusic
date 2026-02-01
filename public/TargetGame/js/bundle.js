@@ -242,29 +242,34 @@ class AdManager {
         if (type === 'cohabisafe') {
             this.videoPlayer.src = baseAdUrl + 'cohabisafe.mp4';
             this.currentLink = 'https://www.cohabisafe.com';
+            console.log("Playing video ad type:", type, "src:", this.videoPlayer.src);
         } else if (type === 'merch') {
             this.videoPlayer.src = baseAdUrl + 'merch.mp4';
             this.currentLink = 'https://futuremusic.online/merch';
+            console.log("Playing video ad type:", type, "src:", this.videoPlayer.src);
         } else if (type === 'colorization') {
             if (window.innerWidth <= 768) {
                 this.videoPlayer.src = baseAdUrl + 'colorization_mobile.mp4';
+                console.log("Playing video ad type:", type, "src:", this.videoPlayer.src);
             } else {
                 this.videoPlayer.src = baseAdUrl + 'colorization_desktop.mp4';
+                console.log("Playing video ad type:", type, "src:", this.videoPlayer.src);
             }
             this.currentLink = 'https://futuremusic.online/projects';
         }
 
+        // FIX: Mute before load/play to bypass Chrome autoplay block
+    this.videoPlayer.muted = true;
+
         // FIX: Explicitly load to reset the element
         this.videoPlayer.load();
 
-        // CHROME DESKTOP FIX: 
-        // We must allow the browser to paint the overlay as "Visible" before attempting to play.
-        // Wrapping the play logic in a timeout ensures the DOM is ready and prevents the freeze.
-        setTimeout(() => {
-            // Safety Timeout: If video doesn't start in 3 seconds, show close button
-            // This prevents the game from freezing if the browser blocks the video
+        // IMPROVED CHROME FIX: Use requestAnimationFrame (ensures paint) instead of setTimeout.
+    // Double rAF for safety (common pattern to wait one full frame).
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
             const safetyTimer = setTimeout(() => {
-                console.log("Ad safety timer triggered");
+                console.log("Ad safety timer triggered");  // ADD for debug
                 this.videoCloseBtn.classList.remove('hidden');
                 this.videoCountdown.innerText = "Skip";
             }, 3000);
@@ -273,20 +278,22 @@ class AdManager {
 
             if (playPromise !== undefined) {
                 playPromise.then(_ => {
-                    // Video playback started, cancel safety timer
+                    // FIX: Unmute once playback starts (bypasses policy)
+                    this.videoPlayer.muted = false;
                     clearTimeout(safetyTimer);
+                    console.log("Ad playback started successfully");  // ADD for debug
                 })
                 .catch(error => {
-                    console.error("Ad Playback Error:", error);
-                    // CRITICAL FIX: If 500/404 Error or NotSupportedError (Autoplay block) happens, 
-                    // show Close immediately so game doesn't freeze.
+                    console.error("Ad Playback Error:", error);  // Already there, but ensure it's logging
                     clearTimeout(safetyTimer);
+                    this.videoPlayer.muted = false;  // Optional: Unmute in case partial load
                     this.videoCloseBtn.classList.remove('hidden');
                     this.videoCountdown.innerText = "Tap X";
                 });
             }
-        }, 150); // 150ms delay to ensure Chrome paints the element as visible
-    }
+        });
+    });
+}
 
 
  closeAd() {
