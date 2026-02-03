@@ -344,52 +344,51 @@ canvas {
 
     /* 2. Hero Selection Screen Override */
     
-    /* Unlock the parent panel to allow scrolling */
+    /* Unlock the parent panel to allow the whole page to scroll on mobile */
     #hero-selection .menu-panel {
-        display: block !important; /* Stop trying to center vertically */
-        overflow-y: auto !important; /* ENABLE SCROLLING */
+        display: block !important; 
+        overflow-y: auto !important; /* ENABLE PAGE SCROLLING */
         height: auto !important;
-        max-height: 90vh !important; /* Keep within screen but scroll internally */
-        padding-top: 40px; /* Space for top controls */
+        max-height: 90vh !important;
+        padding-top: 40px; 
     }
 
-    /* Stack the Setup Container Vertically */
+    /* FORCE Vertical Stack (Overrides HTML inline style) */
     #setup-container {
-        display: flex;
-        flex-direction: column !important;
-        height: auto !important; /* Let it grow with content */
+        display: flex !important;
+        flex-direction: column !important; /* Forces 1 column */
+        height: auto !important; /* Let it grow tall */
         gap: 20px !important;
     }
 
-    /* Left Column (Settings/Flag) - Ensure it fits */
+    /* Left Column (Settings/Flag) */
     #setup-container > div:first-child {
         width: 100%;
-        flex: none; /* Do not stretch/shrink */
+        flex: none; 
     }
     
-    /* Flag Canvas resizing */
     #flag-canvas {
         max-width: 100%;
         height: auto;
     }
 
-    /* Right Column (Animals) - Expand fully so page scrolls */
+    /* Right Column (Animals) */
     .hero-options {
         width: 100%;
-        flex: none; /* Disable flex sizing, let it auto-height */
+        flex: none; 
         height: auto !important;
-        max-height: none !important; /* Remove any height limits */
+        max-height: none !important; /* Remove internal scroll limit */
         overflow: visible !important; /* Don't scroll internally, let page scroll */
         padding-left: 0;
         border-left: none;
-        border-top: 2px solid #555; /* Separator line */
+        border-top: 2px solid #555; 
         padding-top: 20px;
-        margin-bottom: 40px; /* Space at bottom for scrolling */
+        margin-bottom: 40px; 
     }
 
-    /* Adjust Card size for mobile grid */
+    /* Mobile Card Sizing */
     .hero-card {
-        width: 45% !important; /* 2 cards per row */
+        width: 45% !important; 
         max-width: 140px;
         font-size: 0.9rem;
     }
