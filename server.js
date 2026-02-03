@@ -1505,7 +1505,7 @@ app.post('/api/game/purchase-animal', async (req, res) => {
                 animalId: type === 'pack' ? 'all_animals' : animalName.toLowerCase()
             },
             success_url: `${req.headers.origin}/?payment=success&unlock=${type === 'pack' ? 'pack' : animalName}`, 
-            cancel_url: `${req.headers.origin}/`,
+            cancel_url: `${req.headers.origin}/herd-orama`,
         });
         res.json({ url: session.url });
     } catch (e) {
@@ -1539,7 +1539,7 @@ app.post('/api/game/purchase-skin', async (req, res) => {
             // Redirect back to game
             success_url: `${req.headers.origin}/?payment=success&skinId=${skinId}`, 
 
-            cancel_url: `${req.headers.origin}/`,
+            cancel_url: `${req.headers.origin}/herd-orama`,
         });
         res.json({ url: session.url });
     } catch (e) {
