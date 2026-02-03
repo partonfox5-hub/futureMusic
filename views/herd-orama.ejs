@@ -1,0 +1,24 @@
+<%- include('partials/header') %>
+
+<div class="w-full h-screen bg-gray-900 flex flex-col">
+    <!-- Navigation Bar -->
+    <div class="bg-black/80 p-4 border-b border-gray-700 flex justify-between items-center z-50">
+        <a href="/projects" class="text-[#D4AF37] hover:text-white font-bold uppercase tracking-wider flex items-center gap-2 transition-colors">
+            &larr; Back to Archive
+        </a>
+        <h1 class="text-white font-serif tracking-widest hidden md:block">HERD-ORAMA</h1>
+        <div class="w-24"></div> <!-- Spacer for centering -->
+    </div>
+
+    <!-- Game Container -->
+    <div class="flex-grow relative overflow-hidden">
+        <iframe 
+            src="/herd.io%20distribution/index.html" 
+            class="absolute inset-0 w-full h-full border-0"
+            title="Herd-Orama Game"
+            allowfullscreen>
+        </iframe>
+    </div>
+</div>
+
+<%- include('partials/footer') %>

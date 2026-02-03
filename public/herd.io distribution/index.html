@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Herd Survival</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- 
+    SOUND EFFECTS REQUIRED IN /sfx/ FOLDER:
+    1. click.mp3 (Menu interactions)
+    2. start_game.mp3 (Game launch)
+    3. step.mp3 (Animal movement step)
+    4. eat.mp3 (Eating grass/apples/rabbits)
+    5. levelup.mp3 (Growth or Stat upgrade)
+    6. fight_start.mp3 (Fight cloud forms)
+    7. hit.mp3 (Damage tick in fight)
+    8. die.mp3 (Animal death)
+    9. monolith.mp3 (Monolith activation)
+    10. revert.mp3 (Monolith wear off)
+    -->
+</head>
+<body>
+
+ <!-- Global Background -->
+    <div id="global-background"></div>
+
+    <!-- Global Mute Button -->
+    <!-- Global Top Right Controls -->
+    <!-- Removed 'hidden' class so they appear on Menu, moved closing div to end -->
+    <div id="top-right-icons" style="position:absolute; top:20px; right:20px; z-index:2000; display:flex; gap:10px;">
+
+        <button id="btn-mute" style="width:auto; padding:10px 15px; background:rgba(0,0,0,0.7); border:2px solid white; margin:0;">🔊</button>
+<button id="btn-settings-ingame" class="hidden" style="width:auto; padding:10px 15px; background:rgba(0,0,0,0.7); border:2px solid white; margin:0;">⚙️</button>
+    </div>
+
+    <!-- In-Game Settings Modal -->
+    <div id="ingame-menu" class="hidden" style="position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:2001; display:flex; justify-content:center; align-items:center;">
+        <div class="menu-panel">
+            <h2>PAUSED</h2>
+            <button id="btn-resume">Resume Game</button>
+            <button id="btn-restart-current">Restart (Same Settings)</button>
+            <button id="btn-exit-main">Main Menu</button>
+        </div>
+    </div>
+
+    <!-- Auth/Buy Modal -->
+    <div id="auth-modal" class="hidden" style="position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:3000; display:flex; justify-content:center; align-items:center;">
+        <div class="menu-panel" id="auth-content">
+            <!-- Content injected by JS -->
+        </div>
+    </div>
+    <!-- Splash Screen -->
+    <div id="splash-screen">
+        <div class="menu-panel">
+            <h1>HERDO-RAMA</h1>
+            <p>Click to Enter</p>
+        </div>
+    </div>
+
+    <!-- Main Menu -->
+    <div id="main-menu" class="hidden">
+        <div class="menu-panel">
+            <h1>HERDO-RAMA</h1>
+            <div class="menu-buttons">
+            <button id="btn-new-game">New Game</button>
+            <button id="btn-animals">My Animals</button>
+            <!-- Removed Settings Button -->
+            <a href="https://futuremusic.online" target="_blank" class="button-link">FutureMusic.online</a>
+            
+            <!-- New Image Links: Sizes increased by 15% -->
+            <div style="margin-top: 10px; display: flex; gap: 15px; justify-content: center; align-items: center;">
+                <a href="https://futuremusic.online/merch" target="_blank">
+                    <!-- Changed 15rem to 17.25rem, added max-height -->
+                    <img src="merch.jpg" alt="Merch" style="height: 21.25rem; max-height: 35vh; width: auto; border-radius: 8px; border: 2px solid white;">
+                </a>
+                <a href="http://www.cohabisafe.com" target="_blank">
+                    <!-- Changed 10rem to 11.5rem, added max-height -->
+                    <img src="cohabisafe.png" alt="CohabiSafe" style="height: 15.5rem; max-height: 35vh; width: auto; border-radius: 8px; border: 2px solid white;">
+                </a>
+            </div>
+        </div>
+    </div>
+    </div>
+    <!-- Settings Menu -->
+    <div id="settings-menu" class="hidden">
+        <div class="menu-panel">
+            <h2>Settings</h2>
+        <div class="control-group">
+            <label>Controls (Desktop):</label>
+            <select id="control-scheme">
+                <option value="wasd">WASD Keys</option>
+                <option value="mouse">Mouse Follow</option>
+            </select>
+        </div>
+        <button id="btn-back-settings">Back</button>
+    </div>
+    </div>
+    <!-- Animals Collection -->
+    <div id="animals-menu" class="hidden">
+        <div class="menu-panel">
+            <h2>Owned Animals</h2>
+        <div class="animal-grid" style="display:flex; flex-wrap:wrap; justify-content:center; gap:15px;">
+            <!-- Free Animals -->
+            <div class="animal-card" style="background:#8B4513; padding:10px; border-radius:10px;"><img src="deer/still.png" style="width:60px;"><h3>Deer</h3></div>
+            <div class="animal-card" style="background:#2F4F4F; padding:10px; border-radius:10px;"><img src="chimp/still.png" style="width:60px;"><h3>Chimp</h3></div>
+            <div class="animal-card" style="background:#556B2F; padding:10px; border-radius:10px;"><img src="dog/still.png" style="width:60px;"><h3>Dog</h3></div>
+            
+ <!-- Premium Animals -->
+            <div class="animal-card" data-type="snake" style="background:#483D8B; padding:10px; border-radius:10px;"><img src="snake/still.png" style="width:60px;"><h3>Snake</h3></div>
+            <div class="animal-card" data-type="pig" style="background:#B8860B; padding:10px; border-radius:10px;"><img src="pig/still.png" style="width:60px;"><h3>Pig</h3></div>
+            <div class="animal-card" data-type="anteater" style="background:#800000; padding:10px; border-radius:10px;"><img src="anteater/still.png" style="width:60px;"><h3>Anteater</h3></div>
+            <div class="animal-card" data-type="cat" style="background:#008B8B; padding:10px; border-radius:10px;"><img src="cat/still.png" style="width:60px;"><h3>Cat</h3></div>
+        </div>
+        <button id="btn-back-animals">Back</button>
+    </div>
+    </div>
+
+    <!-- Hero Selection -->
+    <div id="hero-selection" class="hidden">
+        <div class="menu-panel">
+<div id="setup-container" style="display:flex; flex-direction:row; gap:30px; align-items:flex-start; width:100%; height:100%;">
+    
+    <!-- Left Column: Settings & Flags -->
+    <div style="flex: 1; display:flex; flex-direction:column; align-items:center; justify-content: flex-start;">
+        <h2>Choose Your Herd</h2>
+        <button id="btn-back-hero" style="margin-bottom: 15px; background: #555;">&lt; Back to Menu</button>
+
+        <!-- Flag Creator -->
+        <div style="margin-bottom: 20px; text-align: center;">
+            <p>Draw Your Flag:</p>
+            
+            <!-- Advanced Flag Tools -->
+            <div id="flag-tools" style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; margin-bottom: 10px;">
+                <div style="margin-bottom: 5px; display:flex; justify-content:center; gap: 10px; align-items:center;">
+                    <label>Brush:</label>
+                    <input type="color" id="flag-color" value="#000000">
+                    <input type="range" id="flag-size" min="2" max="20" value="4" title="Size">
+                    <select id="flag-shape">
+                        <option value="square">Square</option>
+                        <option value="circle">Circle</option>
+                    </select>
+                </div>
+                <div style="margin-bottom: 5px;">
+                    <label>Emojis:</label>
+                    <select id="flag-emoji">
+                        <option value="">(None)</option>
+                        <option value="💀">💀</option>
+                        <option value="⚡">⚡</option>
+                        <option value="👑">👑</option>
+                        <option value="⚔️">⚔️</option>
+                        <option value="🛡️">🛡️</option>
+                        <option value="🔥">🔥</option>
+                    </select>
+                    <button id="btn-place-emoji" style="display:inline-block; width:auto; padding: 2px 10px; font-size: 0.8rem; margin:0;">Place Center</button>
+                </div>
+            </div>
+
+            <canvas id="flag-canvas" width="200" height="120" style="border: 2px solid white; background: white; cursor: default; display: block; margin: 10px auto; touch-action: none;"></canvas>
+            
+            <button id="btn-clear-flag" style="width: 100px; padding: 5px; margin: 5px auto; font-size: 0.8rem;">Clear All</button>
+            
+            <div style="margin-top: 15px;">
+                <label>Herd Range Color: </label>
+                <input type="color" id="herd-color-picker" value="#00ffff">
+            </div>
+        </div>
+
+        <!-- Sliders -->
+        <div style="width: 100%; max-width: 300px;">
+            <div style="margin-bottom: 15px;">
+                <label>Map Size: <span id="map-size-val">100</span>%</label>
+                <input type="range" id="map-size-slider" min="50" max="150" value="100" style="width:100%" oninput="document.getElementById('map-size-val').innerText = this.value">
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <label>Enemy Herds: <span id="herd-count-val">5</span></label>
+                <input type="range" id="herd-slider" min="1" max="16" value="5" style="width:100%" oninput="document.getElementById('herd-count-val').innerText = this.value">
+            </div>
+        </div>
+    </div> 
+    <!-- End Left Column -->
+
+    <!-- Right Column: Animals -->
+    <div class="hero-options">
+            <h2 style="width: 100%; text-align: center; margin-bottom: 10px; margin-top: 0;">Select Your Animal</h2>
+        <div class="hero-card" data-type="chimp">
+            <img src="chimp/still.png" alt="Chimp" style="width: 50px; display:block; margin:0 auto;">
+            <h3>Chimp</h3>
+            <p>Omnivore. Balanced.</p>
+        </div>
+        <div class="hero-card" data-type="deer">
+            <img src="deer/still.png" alt="Deer" style="width: 50px; display:block; margin:0 auto;">
+            <h3>Deer</h3>
+            <p>Herbivore. Fast.</p>
+        </div>
+        <div class="hero-card" data-type="dog">
+            <img src="dog/still.png" alt="Dog" style="width: 50px; display:block; margin:0 auto;">
+            <h3>Dog</h3>
+            <p>Double XP from Rabbits.</p>
+        </div>
+        <div class="hero-card" data-type="snake" data-locked="true">
+            <img src="snake/still.png" alt="Snake" style="width: 50px; display:block; margin:0 auto; filter:grayscale(100%);">
+            <h3>Snake</h3>
+            <p>Slower. Breeds Fast. 🔒 <br><span style="color:#00ff00; font-size:0.9rem;">$0.99</span></p>
+        </div>
+        <div class="hero-card" data-type="pig" data-locked="true">
+            <img src="pig/still.png" alt="Pig" style="width: 50px; display:block; margin:0 auto; filter:grayscale(100%);">
+            <h3>Pig</h3>
+            <p>High HP. Tanky. 🔒 <br><span style="color:#00ff00; font-size:0.9rem;">$0.99</span></p>
+        </div>
+        <div class="hero-card" data-type="anteater" data-locked="true">
+            <img src="anteater/still.png" alt="Anteater" style="width: 50px; display:block; margin:0 auto; filter:grayscale(100%);">
+            <h3>Anteater</h3>
+            <p>Weak Start. Huge Upgrade. 🔒 <br><span style="color:#00ff00; font-size:0.9rem;">$0.99</span></p>
+        </div>
+        <div class="hero-card" data-type="cat" data-locked="true">
+            <img src="cat/still.png" alt="Cat" style="width: 50px; display:block; margin:0 auto; filter:grayscale(100%);">
+            <h3>Cat</h3>
+            <p>Fast. Deadly Upgrade. 🔒 <br><span style="color:#00ff00; font-size:0.9rem;">$0.99</span></p>
+        </div>
+    </div>
+    <!-- End Right Column -->
+
+</div>
+        </div> <!-- Closing menu-panel -->
+
+    </div>
+
+    
+
+    <!-- Game HUD -->
+    <div id="game-ui" class="hidden">
+                <!-- Roster Container -->
+        <div id="roster-panel"></div>
+            <!-- Birdshot UI -->
+    <div id="birdshot-bar">
+        <div id="birdshot-fill"></div>
+        <div id="birdshot-text">COOLDOWN</div>
+    </div>
+
+        <!-- Monolith Timer Display -->
+        <div id="monolith-timer-ui" class="hidden">MONOLITH POWER: <span id="mono-time-val">0</span>s</div>
+                <div id="birdshot-timer-ui" class="hidden" style="position:absolute; left:50%; transform:translateX(-50%); top:160px; font-size:1.5rem; font-weight:bold; color:#ffcc00; pointer-events:none; text-shadow:2px 2px 0 black;">TRIPLE SHOT: <span id="bird-time-val">0</span>s</div>
+        <div id="map-timer-ui" class="hidden" style="color: #00ff00;">MINIMAP: <span id="map-time-val">0</span>s</div>
+        <div id="top-bar">
+            <div class="stat-box">XP: <span id="xp-display">0</span></div>
+            
+ <div class="upgrades">
+                <div class="upgrade-btn" id="upg-hp" title="Boost Health">
+                    ❤️ HP <span class="cost">(5xp)</span>
+                </div>
+                <div class="upgrade-btn" id="upg-spd" title="Boost Speed">
+                    ⚡ SPD <span class="cost">(5xp)</span>
+                </div>
+                <div class="upgrade-btn" id="upg-dmg" title="Boost Damage">
+                    ⚔️ DMG <span class="cost">(5xp)</span>
+                </div>
+<div class="upgrade-btn" id="upg-breed" title="Boost Reproduction">
+    👶 REPRODUCTION <span class="cost">(5xp)</span>
+</div>
+<div class="upgrade-btn" id="upg-bird" title="Birdshot Upgrade">
+    🕊️ BIRDSHOT <span class="cost">(5xp)</span>
+</div>
+            </div>
+
+                        <div id="stats-bar" style="display:flex; gap:15px; font-size: 0.9rem; color: #ddd; margin-left: 20px;">
+                <span>❤️ <span id="stat-hp">0</span></span>
+                <span>⚡ <span id="stat-spd">0</span></span>
+                <span>⚔️ <span id="stat-dmg">0</span></span>
+                <span>👶 <span id="stat-breed">0</span>%</span>
+            </div>
+        </div>
+    </div>
+
+        <!-- Game Over / Win Modal -->
+    <div id="game-over-modal" class="hidden">
+        <div class="modal-content">
+            <h1 id="go-title">GAME OVER</h1>
+            <div id="go-emoji" style="font-size: 5rem; margin: 10px;">☹️</div>
+            <p id="go-message">Your herd has fallen.</p>
+            <button id="btn-restart">Restart Game</button>
+            <button id="btn-return-menu">Main Menu</button>
+        </div>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <script src="game-secure.js"></script>
+</body>
+</html>

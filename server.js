@@ -1478,6 +1478,41 @@ app.post('/api/game/get-skins', async (req, res) => {
     } catch(e) { res.json({ success: false }); }
 });
 
+// NEW: Purchase Animal or Pack
+app.post('/api/game/purchase-animal', async (req, res) => {
+    const { userId, type, animalName } = req.body; // type = 'single' or 'pack'
+    if (!userId) return res.json({ error: "Not logged in" });
+    if (!stripe) return res.json({ error: "Payments unavailable" });
+
+    const price = type === 'pack' ? 299 : 99; // $2.99 or $0.99
+    const itemName = type === 'pack' ? "Predator Pack (4 Animals)" : `Unlock: ${animalName}`;
+
+    try {
+        const session = await stripe.checkout.sessions.create({
+            payment_method_types: ['card'],
+            line_items: [{
+                price_data: {
+                    currency: 'usd',
+                    product_data: { name: itemName },
+                    unit_amount: price, 
+                },
+                quantity: 1,
+            }],
+            mode: 'payment',
+            metadata: { 
+                type: 'animal_purchase', // We will detect this in webhook
+                userId: userId,
+                animalId: type === 'pack' ? 'all_animals' : animalName.toLowerCase()
+            },
+            success_url: `${req.headers.origin}/?payment=success&unlock=${type === 'pack' ? 'pack' : animalName}`, 
+            cancel_url: `${req.headers.origin}/`,
+        });
+        res.json({ url: session.url });
+    } catch (e) {
+        res.json({ error: e.message });
+    }
+});
+
 // Create Stripe Checkout for Skins
 app.post('/api/game/purchase-skin', async (req, res) => {
     const { skinId, skinName, userId } = req.body;
@@ -1584,6 +1619,22 @@ app.post('/webhook', express.raw({type: 'application/json'}), async (request, re
             await pool.query("INSERT IGNORE INTO user_skins (user_id, skin_id) VALUES (?, ?)", 
                 [session.metadata.userId, session.metadata.skinId]);
             console.log(`Skin ${session.metadata.skinId} unlocked for user ${session.metadata.userId}`);
+        }
+    }  else if (session.metadata && session.metadata.type === 'animal_purchase') {
+        if (pool) {
+            // We reuse user_skins table but use the animal name as the "skin_id"
+            // If it's the pack, we insert all 4
+            if(session.metadata.animalId === 'all_animals') {
+                const animals = ['snake', 'pig', 'anteater', 'cat'];
+                for(let animal of animals) {
+                    await pool.query("INSERT IGNORE INTO user_skins (user_id, skin_id) VALUES (?, ?)", 
+                        [session.metadata.userId, animal]);
+                }
+            } else {
+                await pool.query("INSERT IGNORE INTO user_skins (user_id, skin_id) VALUES (?, ?)", 
+                    [session.metadata.userId, session.metadata.animalId]);
+            }
+            console.log(`Animal(s) unlocked for user ${session.metadata.userId}`);
         }
     }
     // --- NEW CODE: Handle No Ads Purchase ---
@@ -1766,7 +1817,9 @@ app.get('/api/download/:sku', async (req, res, next) => {
         res.status(500).send(`Server Error: ${error.message}`);
     }
 });
-
+app.get('/herd-orama', (req, res) => {
+    res.render('herd-orama');
+});
 
 // --- FIX START: Global Error Handler ---
 
