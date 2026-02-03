@@ -125,6 +125,21 @@ button:hover { background: #A0522D; border-color: #fff; }
     width: 140px; /* Force fixed width so they grid nicely */
     flex-shrink: 0;
 }
+
+/* Hero Card Specific Colors (Lighter versions of My Animals) */
+.hero-card[data-type="deer"] { background: rgba(160, 82, 45, 0.6); } /* Sienna */
+.hero-card[data-type="chimp"] { background: rgba(70, 100, 100, 0.6); } /* Lighter Slate */
+.hero-card[data-type="dog"] { background: rgba(107, 142, 35, 0.6); } /* Olive Drab */
+.hero-card[data-type="snake"] { background: rgba(106, 90, 205, 0.6); } /* Slate Blue */
+.hero-card[data-type="pig"] { background: rgba(218, 165, 32, 0.6); } /* GoldenRod */
+.hero-card[data-type="anteater"] { background: rgba(165, 42, 42, 0.6); } /* Brown */
+.hero-card[data-type="cat"] { background: rgba(32, 178, 170, 0.6); } /* Light Sea Green */
+
+/* Ensure hover effect creates a "glow" on top of the color */
+.hero-card:hover { 
+    filter: brightness(1.3); 
+    border-color: #ff9800; 
+}
 /* Add this logic for locked cards */
 .hero-card[data-locked="true"] {
     opacity: 0.8;
