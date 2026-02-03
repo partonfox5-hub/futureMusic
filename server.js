@@ -1818,7 +1818,8 @@ app.get('/api/download/:sku', async (req, res, next) => {
     }
 });
 app.get('/herd-orama', (req, res) => {
-    res.render('herd-orama');
+    // Redirect directly to the static file to satisfy Stripe's "top level" security requirement
+    res.redirect('/herd.io%20distribution/index.html');
 });
 
 // --- FIX START: Global Error Handler ---
