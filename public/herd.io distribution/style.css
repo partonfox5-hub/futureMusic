@@ -189,7 +189,7 @@ button:hover { background: #A0522D; border-color: #fff; }
         bottom: 0;
         left: 0;
         width: 100%;
-        padding-bottom: 150px; /* Increased to push Birdshot button up */
+        padding-bottom: 120px; /* Increased to push Birdshot button up */
         z-index: 100; /* Ensure it sits on top of game elements */
     }
 
@@ -453,7 +453,7 @@ canvas {
     
     /* 1. Pad Upgrades down below Mute/Settings and Stack them */
     #top-bar {
-        padding-top: 80px; /* Moves everything down below icons */
+        padding-top: 40px; /* Moves everything down below icons */
         flex-direction: column; /* Stacks XP and Upgrades */
         align-items: center;
         gap: 5px;
