@@ -360,7 +360,9 @@ canvas {
 #hero-selection .menu-panel {
     max-width: 95%;
     width: 1100px; /* Wide enough for side-by-side */
-    height: 85vh; /* Fixed height to ensure scrolling happens inside, not on body */
+    height: auto;
+    max-height: 90vh; /* Cap height so it stays on screen */
+    overflow-y: auto; /* Enable vertical scrolling */
     padding: 20px;
 }
 

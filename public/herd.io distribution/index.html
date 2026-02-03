@@ -128,7 +128,7 @@
     <!-- Hero Selection -->
     <div id="hero-selection" class="hidden">
         <div class="menu-panel">
-<div id="setup-container" style="display:flex; flex-direction:row; gap:30px; align-items:flex-start; width:100%; height:100%;">
+<div id="setup-container" style="display:flex; flex-direction:row; gap:30px; align-items:flex-start; width:100%; min-height:100%;">
     <!-- Left Column: Settings & Flags -->
     <div style="flex: 1; display:flex; flex-direction:column; align-items:center; justify-content: flex-start;">
         <h2>Choose Your Herd</h2>
@@ -183,7 +183,7 @@
         </div>
 
         <!-- Sliders -->
-        <div style="width: 100%; max-width: 300px;">
+        <div style="width: 100%; max-width: 300px; padding-bottom: 20px;">
             <div style="margin-bottom: 15px;">
                 <label>Map Size: <span id="map-size-val">100</span>%</label>
                 <input type="range" id="map-size-slider" min="50" max="150" value="100" style="width:100%" oninput="document.getElementById('map-size-val').innerText = this.value">
