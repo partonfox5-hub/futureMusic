@@ -491,7 +491,7 @@ canvas {
     }
 
     #roster-panel {
-        top: 60px; /* Positioned below the toggle button */
+        top: 30px; /* Positioned below the toggle button */
         left: 10px;
         transition: opacity 0.3s;
     }
