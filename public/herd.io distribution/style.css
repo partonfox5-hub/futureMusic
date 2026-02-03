@@ -166,8 +166,34 @@ button:hover { background: #A0522D; border-color: #fff; }
     left: 20px;
     display: flex;
     flex-direction: column;
+    gap: 0;
+    pointer-events: auto; /* Changed to auto so button is clickable */
+    transition: all 0.3s ease;
+}
+
+#roster-list {
+    display: flex;
+    flex-direction: column;
     gap: 10px;
-    pointer-events: none;
+    max-height: 50vh;
+    overflow-y: auto;
+    pointer-events: none; /* Keep clicks passing through the list items */
+}
+
+/* Mobile Layout Overrides */
+@media (max-width: 768px) {
+    /* Move XP/Upgrade Bar to Bottom */
+    #top-bar {
+        top: auto;
+        bottom: 0;
+        width: 100%;
+        padding-bottom: 20px; /* Space for home indicator on phones */
+    }
+
+    /* Adjust Game UI elements to not overlap the bottom bar */
+    #birdshot-bar {
+        bottom: 110px; /* Moved up to clear the bottom bar */
+    }
 }
 
 .roster-card {

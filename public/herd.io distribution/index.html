@@ -169,8 +169,16 @@
             <button id="btn-clear-flag" style="width: 100px; padding: 5px; margin: 5px auto; font-size: 0.8rem;">Clear All</button>
             
             <div style="margin-top: 15px;">
-                <label>Herd Range Color: </label>
-                <input type="color" id="herd-color-picker" value="#00ffff">
+<label>Herd Range Color: </label>
+<input type="color" id="herd-color-picker" value="#00ffff">
+<div style="margin-top: 10px;">
+    <label>AI Difficulty: </label>
+    <select id="difficulty-select" style="padding: 5px; border-radius: 5px;">
+        <option value="easy">Easy (Normal)</option>
+        <option value="medium">Medium (+33% XP)</option>
+        <option value="hard">Hard (+75% XP)</option>
+    </select>
+</div>
             </div>
         </div>
 
@@ -239,8 +247,11 @@
 
     <!-- Game HUD -->
     <div id="game-ui" class="hidden">
-                <!-- Roster Container -->
-<div id="roster-panel"></div>
+<!-- Roster Container -->
+<div id="roster-panel">
+    <button id="btn-roster-toggle" style="width: 100%; padding: 2px; margin-bottom: 5px; font-size: 0.8rem; background: #444; border: 1px solid #999;">▲ Hide Roster</button>
+    <div id="roster-list"></div>
+</div>
             <!-- Birdshot UI -->
     <div id="birdshot-bar">
         <div id="birdshot-fill"></div>
