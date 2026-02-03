@@ -177,19 +177,19 @@ button:hover { background: #A0522D; border-color: #fff; }
     gap: 10px;
     max-height: 50vh;
     overflow-y: auto;
-    pointer-events: none; /* Keep clicks passing through the list items */
+    pointer-events: auto; /* ENABLE clicks so scrollbar works */
 }
 
 /* Mobile Layout Overrides */
 @media (max-width: 768px) {
-    /* Move XP/Upgrade Bar to Bottom */
+   /* Move XP/Upgrade Bar to Bottom */
     #top-bar {
         position: absolute; /* Required for bottom positioning to work */
         top: auto;
         bottom: 0;
         left: 0;
         width: 100%;
-        padding-bottom: 20px; /* Space for home indicator on phones */
+        padding-bottom: 80px; /* Increased to push Birdshot button up */
         z-index: 100; /* Ensure it sits on top of game elements */
     }
 
@@ -479,8 +479,8 @@ canvas {
     #btn-toggle-roster {
         display: block; /* Show button only on mobile */
         position: absolute;
-        top: 250px; /* Below the new stacked upgrades */
-        left: 20px;
+        top: 50px; /* Moved to Top Left */
+        left: 10px;
         z-index: 2005;
         background: rgba(0,0,0,0.7);
         border: 2px solid white;
@@ -491,8 +491,8 @@ canvas {
     }
 
     #roster-panel {
-        top: 300px; /* Move actual roster list down */
-        left: 20px;
+        top: 85px; /* Positioned below the toggle button */
+        left: 10px;
         transition: opacity 0.3s;
     }
 
