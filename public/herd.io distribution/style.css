@@ -321,13 +321,15 @@ canvas {
 
 /* --- RESPONSIVE / MOBILE UPDATES --- */
 
-/* Default Desktop Behavior (Moved from inline) */
+
+/* --- HERO SELECTION LAYOUT (Desktop Default) --- */
 #setup-container {
     display: flex;
     flex-direction: row;
+    height: 100%;
 }
 
-/* Mobile Layout Fixes */
+/* --- MOBILE RESPONSIVE UPDATES --- */
 @media (max-width: 768px) {
     /* 1. Main Menu: Stack Merch Images */
     .merch-container {
@@ -336,49 +338,59 @@ canvas {
     }
     .merch-container a img {
         height: auto !important;
-        max-height: 20vh !important; /* Fit within screen */
+        max-height: 18vh !important;
         width: auto !important;
     }
 
-    /* 2. Hero Selection: 2 Rows instead of Columns */
-    #setup-container {
-        flex-direction: column !important;
-        overflow-y: auto; /* Allow scrolling the whole panel if needed */
-        gap: 10px !important;
+    /* 2. Hero Selection Screen Override */
+    
+    /* Unlock the parent panel to allow scrolling */
+    #hero-selection .menu-panel {
+        display: block !important; /* Stop trying to center vertically */
+        overflow-y: auto !important; /* ENABLE SCROLLING */
+        height: auto !important;
+        max-height: 90vh !important; /* Keep within screen but scroll internally */
+        padding-top: 40px; /* Space for top controls */
     }
 
-    /* Left Column (Settings) becomes Top Row */
+    /* Stack the Setup Container Vertically */
+    #setup-container {
+        display: flex;
+        flex-direction: column !important;
+        height: auto !important; /* Let it grow with content */
+        gap: 20px !important;
+    }
+
+    /* Left Column (Settings/Flag) - Ensure it fits */
     #setup-container > div:first-child {
         width: 100%;
-        flex: 0 0 auto; /* Don't expand infinitely */
+        flex: none; /* Do not stretch/shrink */
     }
-
-    /* Flag Canvas resizing for mobile */
+    
+    /* Flag Canvas resizing */
     #flag-canvas {
         max-width: 100%;
         height: auto;
     }
 
-    /* Right Column (Animals) becomes Bottom Row with Scroll */
+    /* Right Column (Animals) - Expand fully so page scrolls */
     .hero-options {
         width: 100%;
-        height: auto;
-        max-height: 40vh; /* Limit height to force scroll */
-        flex: 1;
-        border-left: none;
-        border-top: 1px solid #555;
+        flex: none; /* Disable flex sizing, let it auto-height */
+        height: auto !important;
+        max-height: none !important; /* Remove any height limits */
+        overflow: visible !important; /* Don't scroll internally, let page scroll */
         padding-left: 0;
-        padding-top: 15px;
-        justify-content: center; /* Keep grid centered */
-        overflow-y: auto; /* Enable Scrollview */
+        border-left: none;
+        border-top: 2px solid #555; /* Separator line */
+        padding-top: 20px;
+        margin-bottom: 40px; /* Space at bottom for scrolling */
     }
 
-    /* Adjust Card size slightly for mobile grid */
+    /* Adjust Card size for mobile grid */
     .hero-card {
-        width: 100px;
-        font-size: 0.8rem;
-    }
-    .hero-card img {
-        width: 40px !important;
+        width: 45% !important; /* 2 cards per row */
+        max-width: 140px;
+        font-size: 0.9rem;
     }
 }
