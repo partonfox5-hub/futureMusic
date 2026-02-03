@@ -18,6 +18,16 @@
     9. monolith.mp3 (Monolith activation)
     10. revert.mp3 (Monolith wear off)
     -->
+    <style>
+    /* ADDED: Shrink game by 10% to fit screen better */
+    body {
+        transform: scale(0.9);
+        transform-origin: top center;
+        background-color: #111; /* Dark background for the empty space */
+        overflow: hidden; /* Hide scrollbars created by scaling */
+        height: 111vh; /* Compensate for the 10% shrink so it fills height */
+    }
+</style>
 </head>
 <body>
 
