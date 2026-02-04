@@ -465,7 +465,7 @@ canvas {
     
     /* 1. Pad Upgrades down below Mute/Settings and Stack them */
     #top-bar {
-        padding-top: 40px; /* Moves everything down below icons */
+        padding-top: 50px; /* Moves everything down below icons */
         flex-direction: column; /* Stacks XP and Upgrades */
         align-items: center;
         gap: 5px;
@@ -518,7 +518,9 @@ canvas {
     #birdshot-bar {
         bottom: 30px; 
         width: 90%;
-        z-index: 100; /* Force on top of canvas */
+        z-index: 100;
+        top: -30px;
+         /* Force on top of canvas */
     }
 
         /* Fix for overlapping, wrapping, and large text on mobile */
