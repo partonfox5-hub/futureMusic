@@ -190,7 +190,7 @@ button:hover { background: #A0522D; border-color: #fff; }
         left: 0;
         width: 100%;
         /* UPDATED: Large padding pushes buttons up away from screen edge */
-        padding-bottom: 130px !important; 
+        padding-bottom: 100px !important; 
         z-index: 100; 
     }
 
@@ -201,7 +201,7 @@ button:hover { background: #A0522D; border-color: #fff; }
         transform: none !important;
         
         /* New Top-Left Positioning */
-        top: 85px !important;   /* Sits just below the flag */
+        top: 105px !important;   /* Sits just below the flag */
         left: 150px !important; /* Aligns horizontally with the flag area */
         
         /* Adjust Size */
