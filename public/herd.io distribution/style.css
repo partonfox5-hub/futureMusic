@@ -201,7 +201,7 @@ button:hover { background: #A0522D; border-color: #fff; }
         
         /* Move to bottom */
         top: auto !important;   
-        bottom: 125px !important; /* Sits just above the XP/Upgrade bar */
+        bottom: 160px !important; /* Sits just above the XP/Upgrade bar */
         
         left: 50% !important;
         transform: translateX(-50%) !important; /* Center it */
@@ -496,10 +496,10 @@ canvas {
         padding-bottom: 12px; 
     }
     /* 3. Move Roster down and setup Toggle functionality */
-    #btn-toggle-roster {
+    #btn-roster-toggle {
         display: block; /* Show button only on mobile */
         position: absolute;
-        top: 20px; /* Moved to Top Left */
+        top: 5px; /* Moved Up 15px */
         left: 10px;
         z-index: 2005;
         background: rgba(0,0,0,0.7);
