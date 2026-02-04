@@ -194,6 +194,7 @@ button:hover { background: #A0522D; border-color: #fff; }
         bottom: 0;
         left: 0;
         width: 100%;
+        padding-right: 0 !important; /* Reset desktop padding */
         /* UPDATED: Large padding pushes buttons up away from screen edge */
         padding-bottom: 25px !important; 
         z-index: 100; 
@@ -261,6 +262,7 @@ button:hover { background: #A0522D; border-color: #fff; }
     justify-content: center;
     align-items: center;
     padding: 10px;
+    padding-right: 240px; /* Shift content left to avoid top-right icons */
     background: rgba(0,0,0,0.6);
     pointer-events: auto;
     gap: 20px;
@@ -598,7 +600,7 @@ canvas {
         transform: scale(0.85);
         transform-origin: top right;
         right: 10px !important;
-        top: 10px !important;
+        top: 25px !important;
     }
 }
 
