@@ -575,11 +575,7 @@ canvas {
     #top-bar.minimized-bar .upgrades {
         display: none;
     }
-    #top-bar.minimized-bar #stat-hp, 
-    #top-bar.minimized-bar #stats-bar {
-        /* Optional: Hide extra stats if desired, or keep them */
-        display: none; 
-    }
+
 
         /* Fix for overlapping, wrapping, and large text on mobile */
     #monolith-timer-ui, #map-timer-ui, #birdshot-timer-ui {
