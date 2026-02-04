@@ -538,12 +538,17 @@ canvas {
 
     /* 4. Ensure Birdshot Bar appears above bottom edge on mobile */
     #birdshot-bar {
-        bottom: 250px !important; /* Raised up high to clear XP bar */
+        bottom: 250px !important; /* Default High position (clears upgrade buttons) */
         width: 90%;
         z-index: 100;
-        top: auto !important; /* Reset top */
+        top: auto !important;
+        transition: bottom 0.3s ease; /* Smooth sliding animation */
     }
 
+    /* New state for when upgrades are minimized */
+    #birdshot-bar.lowered {
+        bottom: 80px !important; /* Low position (just above XP bar) */
+    }
       /* 5. Mobile Minimize Button Styling */
     #btn-minimize-upgrades {
         display: block !important; /* Force show on mobile */
