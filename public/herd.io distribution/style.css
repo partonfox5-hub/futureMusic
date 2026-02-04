@@ -190,7 +190,7 @@ button:hover { background: #A0522D; border-color: #fff; }
         left: 0;
         width: 100%;
         /* UPDATED: Large padding pushes buttons up away from screen edge */
-        padding-bottom: 200px !important; 
+        padding-bottom: 130px !important; 
         z-index: 100; 
     }
 
