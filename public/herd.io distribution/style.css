@@ -184,18 +184,30 @@ button:hover { background: #A0522D; border-color: #fff; }
 @media (max-width: 768px) {
    /* Move XP/Upgrade Bar to Bottom */
     #top-bar {
-        position: absolute; /* Required for bottom positioning to work */
+        position: absolute; 
         top: auto;
         bottom: 0;
         left: 0;
         width: 100%;
-        padding-bottom: 120px; /* Increased to push Birdshot button up */
-        z-index: 100; /* Ensure it sits on top of game elements */
+        /* UPDATED: Large padding pushes buttons up away from screen edge */
+        padding-bottom: 200px !important; 
+        z-index: 100; 
     }
 
-    /* Move Birdshot bar UP so it isn't covered by the bottom menu */
+  /* 4. Position Birdshot Bar beneath Flag/Counter on Mobile */
     #birdshot-bar {
-        bottom: 110px; 
+        /* Reset bottom positioning */
+        bottom: auto !important;
+        transform: none !important;
+        
+        /* New Top-Left Positioning */
+        top: 85px !important;   /* Sits just below the flag */
+        left: 150px !important; /* Aligns horizontally with the flag area */
+        
+        /* Adjust Size */
+        width: 140px !important; /* Smaller width to fit the corner */
+        height: 25px !important;
+        z-index: 100; 
     }
 }
 
@@ -508,4 +520,20 @@ canvas {
         width: 90%;
         z-index: 100; /* Force on top of canvas */
     }
+
+        /* Fix for overlapping, wrapping, and large text on mobile */
+    #monolith-timer-ui, #map-timer-ui, #birdshot-timer-ui {
+        font-size: 1.2rem !important; /* Reduced size (approx 40% smaller) */
+        white-space: nowrap; /* Forces text to stay on one line */
+        width: 100%; /* Ensures centering works without wrapping */
+        text-align: center;
+        /* Reset positioning to use full width stacking */
+        left: 0 !important; 
+        transform: none !important; 
+    }
+
+    /* Stack them vertically with tight spacing */
+    #monolith-timer-ui { top: 90px !important; }
+    #map-timer-ui { top: 115px !important; }
+    #birdshot-timer-ui { top: 140px !important; }
 }
