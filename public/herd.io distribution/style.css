@@ -19,6 +19,10 @@ body, html {
     display: none !important;
 }
 
+#btn-minimize-upgrades {
+    display: none; /* Hidden on desktop */
+}
+
 @keyframes spinBackground {
     from { transform: translate(-50%, -50%) rotate(0deg); }
     to { transform: translate(-50%, -50%) rotate(360deg); }
@@ -201,14 +205,14 @@ button:hover { background: #A0522D; border-color: #fff; }
         
         /* Move to bottom */
         top: auto !important;   
-        bottom: 160px !important; /* Sits just above the XP/Upgrade bar */
+        bottom: 200px !important; /* Sits just above the XP/Upgrade bar */
         
         left: 50% !important;
         transform: translateX(-50%) !important; /* Center it */
         
         /* Adjust Size */
-        width: 200px !important; 
-        height: 35px !important;
+        width: 175px !important; 
+        height: 30px !important;
         z-index: 100; 
     }
     
@@ -499,21 +503,30 @@ canvas {
     #btn-roster-toggle {
         display: block; /* Show button only on mobile */
         position: absolute;
-        top: 5px; /* Moved Up 15px */
-        left: 10px;
+        top: 5px; 
+        left: 5px;
         z-index: 2005;
         background: rgba(0,0,0,0.7);
         border: 2px solid white;
         color: white;
         padding: 5px 10px;
-        font-size: 1.2rem;
-        width: auto;
+        font-size: 1rem;
+        /* FIX: Prevent width collapse and text wrap */
+        width: 140px; 
+        white-space: nowrap;
+        text-align: center;
     }
 
     #roster-panel {
-        top: 30px; /* Positioned below the toggle button */
-        left: 10px;
-        transition: opacity 0.3s;
+        top: 0; /* Reset panel top, rely on list margin */
+        left: 5px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* Push the list down so it doesn't overlap flag or toggle button */
+    #roster-list {
+        margin-top: 50px; 
     }
 
     /* Class to hide roster when toggled */
@@ -529,6 +542,38 @@ canvas {
         z-index: 100;
         top: -30px;
          /* Force on top of canvas */
+    }
+
+      /* 5. Mobile Minimize Button Styling */
+    #btn-minimize-upgrades {
+        display: block;
+        position: absolute;
+        top: -40px; /* Sits on top of the bar */
+        right: 10px;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: #333;
+        border: 2px solid white;
+        color: gold;
+        font-size: 1.2rem;
+        z-index: 200;
+        padding: 0;
+        line-height: 36px; /* Center vertical text */
+    }
+
+    /* Minimized State: Hide upgrades, shrink bar */
+    #top-bar.minimized-bar {
+        padding-bottom: 5px !important;
+        height: auto;
+    }
+    #top-bar.minimized-bar .upgrades {
+        display: none;
+    }
+    #top-bar.minimized-bar #stat-hp, 
+    #top-bar.minimized-bar #stats-bar {
+        /* Optional: Hide extra stats if desired, or keep them */
+        display: none; 
     }
 
         /* Fix for overlapping, wrapping, and large text on mobile */
