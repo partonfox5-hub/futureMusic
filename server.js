@@ -1635,6 +1635,32 @@ app.post('/webhook', express.raw({type: 'application/json'}), async (request, re
                     [session.metadata.userId, session.metadata.animalId]);
             }
             console.log(`Animal(s) unlocked for user ${session.metadata.userId}`);
+
+              // --- NEW: Record Transaction History ---
+            const amount = session.amount_total / 100; // Convert cents to dollars
+            const desc = session.metadata.animalId === 'all_animals' ? 'Predator Pack' : `Unlock: ${session.metadata.animalId}`;
+            
+            await pool.query(`
+                INSERT INTO orders (
+                    user_id, 
+                    stripe_session_id,
+                    total_amount, 
+                    payment_status, 
+                    product_type,
+                    product_sku,
+                    description,
+                    status,     
+                    created_at
+                ) VALUES (?, ?, ?, 'paid', 'game_unlock', ?, ?, 'completed', NOW())
+            `, [
+                session.metadata.userId,
+                session.id,
+                amount,
+                session.metadata.animalId, // Use animal ID as the SKU
+                desc
+            ]);
+            console.log(`Order record created for Animal Purchase: ${desc}`);
+            // ---------------------------------------
         }
     }
     // --- NEW CODE: Handle No Ads Purchase ---
