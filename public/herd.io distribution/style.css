@@ -4,6 +4,7 @@
     box-sizing: border-box;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     user-select: none;
+    -webkit-tap-highlight-color: transparent; /* Removes blue overlay on tap */
 }
 
 body, html {
@@ -194,20 +195,26 @@ button:hover { background: #A0522D; border-color: #fff; }
         z-index: 100; 
     }
 
-  /* 4. Position Birdshot Bar beneath Flag/Counter on Mobile */
+   /* 4. Position Birdshot Bar ABOVE XP Bar on Mobile */
     #birdshot-bar {
-        /* Reset bottom positioning */
-        bottom: auto !important;
         transform: none !important;
         
-        /* New Top-Left Positioning */
-        top: 105px !important;   /* Sits just below the flag */
-        left: 150px !important; /* Aligns horizontally with the flag area */
+        /* Move to bottom */
+        top: auto !important;   
+        bottom: 125px !important; /* Sits just above the XP/Upgrade bar */
+        
+        left: 50% !important;
+        transform: translateX(-50%) !important; /* Center it */
         
         /* Adjust Size */
-        width: 140px !important; /* Smaller width to fit the corner */
-        height: 25px !important;
+        width: 200px !important; 
+        height: 35px !important;
         z-index: 100; 
+    }
+    
+    /* Shrink text inside bar for mobile */
+    #birdshot-bar #birdshot-text {
+        font-size: 0.8rem;
     }
 }
 
@@ -481,12 +488,13 @@ canvas {
     }
 
     .upgrade-btn {
-        width: 48%; /* Fits 2 per row */
-        font-size: 0.85rem; /* ~15% smaller */
+        width: 48%; 
+        font-size: 0.85rem; 
         justify-content: center;
         margin: 0;
+        padding-top: 12px; /* Increased vertical padding */
+        padding-bottom: 12px; 
     }
-
     /* 3. Move Roster down and setup Toggle functionality */
     #btn-toggle-roster {
         display: block; /* Show button only on mobile */

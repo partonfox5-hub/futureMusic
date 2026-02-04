@@ -149,6 +149,8 @@
             <div class="animal-card" data-type="pig" style="background:#B8860B; padding:10px; border-radius:10px;"><img src="pig/still.png" style="width:60px;"><h3>Pig</h3></div>
             <div class="animal-card" data-type="anteater" style="background:#800000; padding:10px; border-radius:10px;"><img src="anteater/still.png" style="width:60px;"><h3>Anteater</h3></div>
             <div class="animal-card" data-type="cat" style="background:#008B8B; padding:10px; border-radius:10px;"><img src="cat/still.png" style="width:60px;"><h3>Cat</h3></div>
+            <!-- Special -->
+            <div class="animal-card" data-type="velociraptor" style="background:#800000; border:1px solid red; padding:10px; border-radius:10px;"><img src="velociraptor/still.png" style="width:60px;"><h3>Raptor</h3></div>
         </div>
         <button id="btn-back-animals">Back</button>
     </div>
@@ -263,6 +265,17 @@
             <img src="cat/still.png" alt="Cat" style="width: 50px; display:block; margin:0 auto; filter:grayscale(100%);">
             <h3>Cat</h3>
             <p>Fast. Deadly Upgrade. 🔒 <br><span style="color:#00ff00; font-size:0.9rem;">$0.99</span></p>
+        </div>
+
+                <!-- Special Category -->
+        <h2 style="width: 100%; text-align: center; margin-top: 20px; color: #ff5555; text-shadow: 0 0 5px red;">SPECIAL</h2>
+        <div class="hero-card" data-type="velociraptor" data-locked="true" style="background: rgba(200, 50, 50, 0.6); border: 1px solid red;">
+            <img src="velociraptor/still.png" alt="Raptor" style="width: 50px; display:block; margin:0 auto; filter:grayscale(100%);" onerror="this.style.background='red';this.style.width='40px';this.style.height='40px';this.style.borderRadius='50%'">
+            <h3>Velociraptor</h3>
+            <p>Extra fast but low reproduction. Carnivore.  🔒<br><span style="color:#00ff00; font-size:0.9rem;">$1.99</span></p>
+            <div style="margin-top:5px; font-size:0.7rem; color:#ffcc00; border-top:1px solid #aaa; padding-top:2px;">
+                OR: Win 10 Hard Games <br>(<span id="raptor-progress">0</span>/10)
+            </div>
         </div>
     </div>
     <!-- End Right Column -->

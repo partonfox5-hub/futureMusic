@@ -40,7 +40,8 @@ const allowedOrigins = [
     'http://localhost:8080',     // Local testing
     '[http://127.0.0.1:8080](http://127.0.0.1:8080)',
     '[https://futuremusic.online](https://futuremusic.online)',
-    '[https://www.futuremusic.online](https://www.futuremusic.online)' // NEW: Explicitly allow www
+    '[https://www.futuremusic.online](https://www.futuremusic.online)',
+    'https://addictinggames.com' // NEW: Explicitly allow www
 ];
 
 app.use(cors({
@@ -1418,8 +1419,8 @@ app.post('/api/game/login', async (req, res) => {
                 userId: user.id, 
                 username: user.email, 
                 ownedSkins: ownedSkinIds,
-                // Return status based on DB column (assumes column has_no_ads exists as boolean/tinyint)
-                hasNoAds: !!user.has_no_ads 
+                hasNoAds: !!user.has_no_ads,
+                hardModeWins: user.hard_mode_wins || 0
             });
         } else {
             res.json({ success: false, message: "Invalid password" });
@@ -1484,7 +1485,11 @@ app.post('/api/game/purchase-animal', async (req, res) => {
     if (!userId) return res.json({ error: "Not logged in" });
     if (!stripe) return res.json({ error: "Payments unavailable" });
 
-    const price = type === 'pack' ? 299 : 99; // $2.99 or $0.99
+    // Logic: Pack=$2.99, Velociraptor=$1.99, Others=$0.99
+    let price = 99;
+    if (type === 'pack') price = 299;
+    else if (animalName.toLowerCase() === 'velociraptor') price = 199;
+
     const itemName = type === 'pack' ? "Predator Pack (4 Animals)" : `Unlock: ${animalName}`;
 
     try {
@@ -1736,11 +1741,33 @@ app.get('/api/game/check-session', async (req, res) => {
             userId: user.id, 
             username: user.email, 
             ownedSkins: ownedSkinIds,
-            hasNoAds: !!user.has_no_ads 
+            hasNoAds: !!user.has_no_ads,
+            hardModeWins: user.hard_mode_wins || 0
         });
 
     } catch (err) {
         console.error("Session Check Error:", err);
+        res.json({ success: false });
+    }
+});
+
+// Record Hard Mode Win
+app.post('/api/game/record-win', async (req, res) => {
+    const { userId, difficulty } = req.body;
+    if (!userId || difficulty !== 'hard') return res.json({ success: false });
+
+    if (pool) {
+        try {
+            await pool.query("UPDATE users SET hard_mode_wins = hard_mode_wins + 1 WHERE id = ?", [userId]);
+            
+            // Return new count
+            const [rows] = await pool.query("SELECT hard_mode_wins FROM users WHERE id = ?", [userId]);
+            res.json({ success: true, newCount: rows[0].hard_mode_wins });
+        } catch (e) {
+            console.error(e);
+            res.json({ success: false });
+        }
+    } else {
         res.json({ success: false });
     }
 });
