@@ -1709,7 +1709,41 @@ app.post('/webhook', express.raw({type: 'application/json'}), async (request, re
   response.json({received: true});
 });
 
+// Check Active Session (Auto-login on refresh)
+app.get('/api/game/check-session', async (req, res) => {
+    // 1. Check if session exists
+    if (!req.session || !req.session.userId) {
+        return res.json({ success: false });
+    }
 
+    const userId = req.session.userId;
+
+    try {
+        if (!pool) throw new Error("DB Offline");
+
+        // 2. Fetch User Details
+        const [users] = await pool.query("SELECT * FROM users WHERE id = ?", [userId]);
+        if (users.length === 0) return res.json({ success: false });
+        const user = users[0];
+
+        // 3. Fetch Skins
+        const [skins] = await pool.query("SELECT skin_id FROM user_skins WHERE user_id = ?", [userId]);
+        const ownedSkinIds = skins.map(s => s.skin_id);
+
+        // 4. Return same data structure as /api/game/login
+        res.json({ 
+            success: true, 
+            userId: user.id, 
+            username: user.email, 
+            ownedSkins: ownedSkinIds,
+            hasNoAds: !!user.has_no_ads 
+        });
+
+    } catch (err) {
+        console.error("Session Check Error:", err);
+        res.json({ success: false });
+    }
+});
 // --- NEW ROUTE: Secure Ad Streaming from GCS ---
 app.get('/api/ad-video/:filename', async (req, res) => {
     const { filename } = req.params;
