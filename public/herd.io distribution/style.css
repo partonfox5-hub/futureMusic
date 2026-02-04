@@ -465,7 +465,7 @@ canvas {
     
     /* 1. Pad Upgrades down below Mute/Settings and Stack them */
     #top-bar {
-        padding-top: 50px; /* Moves everything down below icons */
+        padding-top: 20px; /* Moves everything down below icons */
         flex-direction: column; /* Stacks XP and Upgrades */
         align-items: center;
         gap: 5px;
