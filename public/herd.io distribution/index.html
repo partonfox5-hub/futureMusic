@@ -5,6 +5,35 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Herd Survival</title>
     <link rel="stylesheet" href="style.css">
+     <style>
+        /* --- LOGO SCREEN STYLES --- */
+        #logo-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: #000;
+            z-index: 20000; /* Highest Priority */
+            display: flex; justify-content: center; align-items: center;
+            cursor: pointer;
+            transition: opacity 2s ease-in-out;
+        }
+
+        #logo-img {
+            max-width: 60%; 
+            max-height: 60%;
+            filter: grayscale(100%) brightness(0.6);
+            opacity: 0.8;
+            transition: transform 0.1s ease-out;
+        }
+
+        .logo-spark {
+            position: absolute;
+            width: 4px; height: 4px;
+            background: #fff;
+            border-radius: 50%;
+            pointer-events: none;
+            box-shadow: 0 0 10px #fff, 0 0 20px #f1c40f;
+            z-index: 20001;
+        }
+    </style>
     <!-- 
     SOUND EFFECTS REQUIRED IN /sfx/ FOLDER:
     1. click.mp3 (Menu interactions)
@@ -21,6 +50,13 @@
 
 </head>
 <body>
+
+        <!-- LOGO SCREEN -->
+    <div id="logo-screen">
+        <!-- Ensure you have an 'images' folder or update this src -->
+        <img id="logo-img" src="images/shinemoreonline.png" alt="Shine More Online">
+        <div id="logo-sparks"></div>
+    </div>
 
  <!-- Global Background -->
     <div id="global-background"></div>
@@ -297,7 +333,109 @@
     </div>
 
     <canvas id="gameCanvas"></canvas>
+ <script>
+    // --- SHINE MORE ONLINE LOGO SEQUENCE ---
+    (function() {
+        const logoScreen = document.getElementById('logo-screen');
+        const logoImg = document.getElementById('logo-img');
+        const sparkContainer = document.getElementById('logo-sparks');
+        
+        if (!logoScreen) return; 
 
+        // Handle Click to Website
+        logoScreen.addEventListener('click', () => {
+            const url = 'https://www.shinemoreonline.org';
+            try { window.open(url, '_blank'); } 
+            catch (error) { console.error('Failed to open URL:', error); }
+        });
+
+        // 1. Flicker Phase (0s - 2.0s)
+        let flickerCount = 0;
+        const flickerInterval = setInterval(() => {
+            const opacity = 0.4 + Math.random() * 0.4; 
+            logoImg.style.opacity = opacity;
+            
+            if (Math.random() > 0.7) {
+                logoImg.style.filter = `grayscale(100%) brightness(${0.5 + Math.random()})`;
+            } else {
+                logoImg.style.filter = 'grayscale(100%) brightness(0.6)';
+            }
+
+            flickerCount++;
+            if(flickerCount > 18) clearInterval(flickerInterval);
+        }, 100);
+
+        // 2. Activation Phase (2.0s)
+        setTimeout(() => {
+            clearInterval(flickerInterval);
+            
+            // Snap to full color
+            logoImg.style.opacity = '1';
+            logoImg.style.filter = 'grayscale(0%) brightness(1.1) drop-shadow(0 0 30px rgba(255,255,255,0.4))';
+            logoImg.style.transform = 'scale(1.05)';
+            setTimeout(() => logoImg.style.transform = 'scale(1.0)', 150);
+
+            // --- Spark Effects ---
+            const rect = logoImg.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+            
+            for (let i = 0; i < 150; i++) {
+                const spark = document.createElement('div');
+                spark.className = 'logo-spark';
+                
+                const rand = Math.random();
+                const color = rand > 0.6 ? '#fff' : (rand > 0.3 ? '#f1c40f' : '#00d2d3');
+                spark.style.background = color;
+                spark.style.boxShadow = `0 0 10px ${color}`;
+
+                const angle = Math.random() * Math.PI * 2;
+                const w = rect.width / 2;
+                const h = rect.height / 2;
+                
+                const sx = centerX + Math.cos(angle) * (w * 0.9); 
+                const sy = centerY + Math.sin(angle) * (h * 0.9);
+                
+                spark.style.left = sx + 'px';
+                spark.style.top = sy + 'px';
+                sparkContainer.appendChild(spark);
+
+                const dist = 300 + Math.random() * 600; 
+                const dx = Math.cos(angle) * dist;
+                const dy = Math.sin(angle) * dist;
+                const duration = 600 + Math.random() * 1000; 
+
+                spark.animate([
+                    { transform: 'translate(0, 0) scale(1)', opacity: 1 },
+                    { transform: `translate(${dx}px, ${dy}px) scale(0)`, opacity: 0 }
+                ], {
+                    duration: duration,
+                    easing: 'cubic-bezier(0.2, 0.9, 0.3, 1)',
+                    fill: 'forwards'
+                });
+                
+                setTimeout(() => spark.remove(), duration + 100);
+            }
+
+        }, 2000);
+
+        // 3. Logo Fades to Black (5.0s)
+        setTimeout(() => {
+            logoImg.style.opacity = '0'; 
+        }, 5000);
+
+        // 4. Screen Fades Out (5.5s)
+        setTimeout(() => {
+            logoScreen.style.opacity = '0'; 
+        }, 5500);
+
+        // 5. Cleanup (6.5s) - Reveals the Herd Survival Splash Screen
+        setTimeout(() => {
+            logoScreen.style.display = 'none';
+        }, 6500);
+
+    })();
+    </script>
     <script src="game-secure.js"></script>
 </body>
 </html>
