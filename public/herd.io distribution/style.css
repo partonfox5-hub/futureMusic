@@ -20,7 +20,7 @@ body, html {
 }
 
 #btn-minimize-upgrades {
-    display: none; /* Hidden on desktop */
+    display: none !important; /* Hidden on desktop */
 }
 
 @keyframes spinBackground {
@@ -500,7 +500,7 @@ canvas {
         padding-bottom: 12px; 
     }
     /* 3. Move Roster down and setup Toggle functionality */
-    #btn-roster-toggle {
+ #btn-roster-toggle {
         display: block; /* Show button only on mobile */
         position: absolute;
         top: 5px; 
@@ -513,6 +513,7 @@ canvas {
         font-size: 1rem;
         /* FIX: Prevent width collapse and text wrap */
         width: 140px; 
+        min-width: 140px !important; /* Forces width to stay even if toggled */
         white-space: nowrap;
         text-align: center;
     }
@@ -537,18 +538,17 @@ canvas {
 
     /* 4. Ensure Birdshot Bar appears above bottom edge on mobile */
     #birdshot-bar {
-        bottom: 30px; 
+        bottom: 250px !important; /* Raised up high to clear XP bar */
         width: 90%;
         z-index: 100;
-        top: -30px;
-         /* Force on top of canvas */
+        top: auto !important; /* Reset top */
     }
 
       /* 5. Mobile Minimize Button Styling */
     #btn-minimize-upgrades {
-        display: block;
+        display: block !important; /* Force show on mobile */
         position: absolute;
-        top: -40px; /* Sits on top of the bar */
+        top: -45px; /* Sits on top of the bar */
         right: 10px;
         width: 40px;
         height: 40px;
@@ -559,7 +559,7 @@ canvas {
         font-size: 1.2rem;
         z-index: 200;
         padding: 0;
-        line-height: 36px; /* Center vertical text */
+        line-height: 36px; 
     }
 
     /* Minimized State: Hide upgrades, shrink bar */
@@ -591,4 +591,13 @@ canvas {
     #monolith-timer-ui { top: 90px !important; }
     #map-timer-ui { top: 115px !important; }
     #birdshot-timer-ui { top: 140px !important; }
+
+        /* Scale down top right icons on mobile */
+    #top-right-icons {
+        transform: scale(0.85);
+        transform-origin: top right;
+        right: 10px !important;
+        top: 10px !important;
+    }
 }
+
