@@ -41,7 +41,8 @@ const allowedOrigins = [
     '[http://127.0.0.1:8080](http://127.0.0.1:8080)',
     '[https://futuremusic.online](https://futuremusic.online)',
     '[https://www.futuremusic.online](https://www.futuremusic.online)',
-    'https://addictinggames.com' // NEW: Explicitly allow www
+    'https://addictinggames.com',
+    'https://newgrounds.com' // NEW: Explicitly allow www
 ];
 
 app.use(cors({
