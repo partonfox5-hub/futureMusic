@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Luckiest+Guy&display=swap');
 * {
     margin: 0;
     padding: 0;
@@ -82,31 +83,52 @@ body, html {
     cursor: pointer;
 }
 
-h1 { font-size: 3.5rem; margin-bottom: 5px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); line-height: 1; }
+h1 { 
+    font-family: 'Luckiest Guy', cursive; 
+    font-size: 4.5rem; 
+    margin-bottom: 20px; 
+    color: #FFEB3B;
+    text-shadow: 4px 4px 0px #2E7D32, 6px 6px 0px #1B5E20; 
+    letter-spacing: 3px;
+    -webkit-text-stroke: 2px #1B5E20;
+}
 h2 { font-size: 2.5rem; margin-bottom: 20px; }
 
 button, .button-link {
     display: block;
-    width: 200px;
-    padding: 10px; /* Reduced from 15px */
-    margin: 5px auto; /* Reduced from 10px */
-    /* Thematic Style */
-    background: #8B4513; /* SaddleBrown */
-    border: 3px solid #DEB887; /* BurlyWood border */
-    color: #FFF8DC; /* Cornsilk text */
-    font-size: 1.2rem;
-    font-weight: bold;
-    cursor: pointer;
-    text-align: center;
+    width: 280px;
+    padding: 15px 10px;
+    margin: 12px auto;
+    
+    /* Jungle Green Style */
+    background: linear-gradient(to bottom, #66BB6A 0%, #2E7D32 100%);
+    border: 3px solid #A5D6A7;
+    border-radius: 15px;
+    
+    /* Typography */
+    font-family: 'Luckiest Guy', cursive;
+    color: white;
+    font-size: 1.5rem;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    text-shadow: 2px 2px 0px #1B5E20;
     text-decoration: none;
-    border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.5);
-    text-shadow: 1px 1px 2px black;
-    transition: transform 0.1s, background 0.2s;
+    text-align: center;
+    cursor: pointer;
+    
+    /* 3D Pop Effect */
+    box-shadow: 0 6px 0 #1B5E20, 0 10px 10px rgba(0,0,0,0.3);
+    transition: all 0.1s ease;
+    position: relative;
+    top: 0;
 }
 
-button:active { transform: scale(0.95); box-shadow: 0 1px 2px rgba(0,0,0,0.5); }
-button:hover { background: #A0522D; border-color: #fff; }
+button:active { 
+    top: 6px; 
+    box-shadow: 0 0 0 #1B5E20, inset 0 3px 5px rgba(0,0,0,0.4);
+    background: linear-gradient(to bottom, #2E7D32 0%, #1B5E20 100%);
+}
+button:hover { background: #000000; border-color: #fff; }
 /* Hero Selection */
 .hero-options {
     flex: 1.5; /* Right column takes slightly more space */
