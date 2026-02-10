@@ -1910,6 +1910,11 @@ app.get('/herd-orama', (req, res) => {
     res.redirect('/herd.io%20distribution/index.html');
 });
 
+// NEW ROUTE: Handle /herdorama (no hyphen)
+app.get('/herdorama', (req, res) => {
+    res.redirect('/herd.io%20distribution/index.html');
+});
+
 // --- FIX START: Global Error Handler ---
 
 app.use((req, res, next) => res.status(404).render('404', { title: 'Signal Lost' }));
