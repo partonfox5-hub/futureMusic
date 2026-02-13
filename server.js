@@ -40,9 +40,13 @@ const allowedOrigins = [
     'http://localhost:8080',     // Local testing
     '[http://127.0.0.1:8080](http://127.0.0.1:8080)',
     '[https://futuremusic.online](https://futuremusic.online)',
-    '[https://www.futuremusic.online](https://www.futuremusic.online)',
+'[https://www.futuremusic.online](https://www.futuremusic.online)',
     'https://addictinggames.com',
-    'https://newgrounds.com' // NEW: Explicitly allow www
+    'https://cdn2.addictinggames.com', // Specific AddictingGames CDN
+    'https://html5.addictinggames.com', // Alternate AddictingGames CDN
+    'https://newgrounds.com',
+    'https://ungrounded.net', // Newgrounds CDN
+    'https://uploads.ungrounded.net' // Newgrounds Uploads
 ];
 
 app.use(cors({
@@ -55,10 +59,13 @@ app.use(cors({
             return callback(null, true);
         }
 
-        // 2. Pattern Match Check (Allows all subdomains of your site)
+// 2. Pattern Match Check (Allows all subdomains of your site and game portals)
         if (origin.includes('web.app') || 
             origin.includes('firebaseapp.com') || 
-            origin.includes('futuremusic.online')) { 
+            origin.includes('futuremusic.online') ||
+            origin.includes('addictinggames.com') || 
+            origin.includes('newgrounds.com') ||
+            origin.includes('ungrounded.net')) { 
             return callback(null, true);
         }
 
