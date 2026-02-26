@@ -512,6 +512,7 @@ app.get('/logout', (req, res) => {
 
 app.get('/', (req, res) => res.render('index', { title: 'Home' }));
 app.get('/projects', (req, res) => res.render('projects', { title: 'Projects' }));
+app.get('/addiction-slayer', (req, res) => res.render('addictionSlayer', { title: 'Addiction Slayer' }));
 app.get('/target-catharsis', (req, res) => res.render('target-catharsis', { title: 'Target Catharsis' }));
 // Domain Project Page
 app.get('/domain', (req, res) => {
