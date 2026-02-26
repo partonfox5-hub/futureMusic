@@ -348,7 +348,90 @@
             justify-content: center;
             transition: all 0.2s;
         }
-        .sys-btn:hover { background: rgba(0, 242, 254, 0.2); box-shadow: 0 0 10px rgba(0,242,254,0.5); }
+  .sys-btn:hover { background: rgba(0, 242, 254, 0.2); box-shadow: 0 0 10px rgba(0,242,254,0.5); }
+
+        /* Mobile Controls & Responsive Adjustments */
+        #mobile-controls {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            #mobile-controls {
+                display: flex;
+                position: absolute;
+                bottom: 20px;
+                left: 0;
+                width: 100%;
+                padding: 0 20px;
+                box-sizing: border-box;
+                justify-content: space-between;
+                align-items: flex-end;
+                pointer-events: none;
+                z-index: 500;
+            }
+            #dpad {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                opacity: 0.5;
+            }
+            .dpad-row {
+                display: flex;
+                justify-content: center;
+            }
+            .dpad-btn {
+                background: rgba(255, 255, 255, 0.7);
+                border: 2px solid rgba(0, 0, 0, 0.8);
+                border-radius: 8px;
+                color: black;
+                font-size: 20px;
+                width: 45px;
+                height: 45px;
+                margin: 2px;
+                pointer-events: auto;
+                user-select: none;
+                touch-action: none;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+            }
+            #action-buttons {
+                display: flex;
+                opacity: 0.5;
+                gap: 10px;
+            }
+            .action-btn {
+                background: rgba(255, 255, 255, 0.7);
+                border: 2px solid rgba(0, 0, 0, 0.8);
+                border-radius: 50%;
+                color: black;
+                font-size: 24px;
+                width: 60px;
+                height: 60px;
+                pointer-events: auto;
+                user-select: none;
+                touch-action: none;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+            }
+            
+            /* Scale down Addiction & Stats Panel by 50% */
+            .addiction-panel {
+                transform: scale(0.5);
+                transform-origin: top right;
+            }
+            
+            /* Drop temporary effects safely below the scaled panel */
+            #active-effects {
+                top: 150px;
+                left: auto;
+                right: 20px;
+                transform: none;
+                flex-direction: column;
+                align-items: flex-end;
+            }
+        }
     </style>
 </head>
 <body>
@@ -453,7 +536,28 @@
             </div>
         </div>
         
-        <div id="active-effects"></div>
+ <div id="active-effects"></div>
+
+        <!-- Mobile Controls -->
+        <div id="mobile-controls">
+            <div id="dpad">
+                <div class="dpad-row">
+                    <button id="dpad-up" class="dpad-btn">▲</button>
+                </div>
+                <div class="dpad-row">
+                    <button id="dpad-left" class="dpad-btn">◀</button>
+                    <button id="dpad-center" class="dpad-btn">🤸</button>
+                    <button id="dpad-right" class="dpad-btn">▶</button>
+                </div>
+                <div class="dpad-row">
+                    <button id="dpad-down" class="dpad-btn">▼</button>
+                </div>
+            </div>
+            <div id="action-buttons">
+                <button id="btn-forcefield" class="action-btn">🛡️</button>
+                <button id="btn-attack" class="action-btn">🌊</button>
+            </div>
+        </div>
     </div>
 
     <!-- Upgrade Modal -->
