@@ -5,178 +5,150 @@
     
     <div class="flex flex-col gap-16">
 
-        <div class="glass-card rounded-xl overflow-hidden shadow-2xl border border-gray-700">
-            <div class="flex flex-col lg:flex-row">
-                <a href="/addiction-slayer" class="w-full lg:w-2/3 h-[500px] relative group overflow-hidden bg-gray-900 block">
-<img 
-                        src="/images/addictionSlayer.png" 
-                        alt="Addiction Slayer" 
-                        class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 opacity-90 group-hover:opacity-100"
-                    >
-                    <div class="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center">
-                        <div class="w-20 h-20 rounded-full border-4 border-[#D4AF37] flex items-center justify-center group-hover:bg-[#D4AF37] group-hover:text-black transition-all duration-300">
-                            <span class="text-3xl ml-2 text-white group-hover:text-black">▶</span>
+  <!-- GAMES SECTION -->
+        <div class="w-full mb-8">
+            <h2 class="text-3xl md:text-5xl font-bold text-center mb-12 text-[#D4AF37] font-serif uppercase tracking-widest border-b border-gray-700 pb-6">Games</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                
+                <!-- PAINTCADIA (NEW) -->
+                <div class="glass-card rounded-xl overflow-hidden shadow-2xl border border-gray-700 flex flex-col aspect-[1/2] bg-gray-800/50">
+                    <a href="/paintcadia" class="relative w-full h-1/2 group block overflow-hidden bg-gray-900">
+                        <img src="/images/paintcadia.png" alt="Paintcadia" class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 opacity-90 group-hover:opacity-100" onerror="this.src='/images/FALLBACK_IMG.png'">
+                        <div class="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center">
+                            <div class="w-16 h-16 rounded-full border-4 border-[#D4AF37] flex items-center justify-center group-hover:bg-[#D4AF37] group-hover:text-black transition-all duration-300">
+                                <span class="text-2xl ml-1 text-white group-hover:text-black">▶</span>
+                            </div>
                         </div>
-                    </div>
-                </a>
-
-                <div class="w-full lg:w-1/3 p-8 flex flex-col justify-center bg-gray-800/50">
-                    <h3 class="text-3xl font-bold text-[#D4AF37] mb-4 font-serif uppercase">ADDICTION SLAYER</h3>
-                    <p class="text-[#20B2AA] mb-4 text-sm tracking-wider uppercase">Action-Packed Behavioral Modulator</p>
-                    
-                    <div class="text-gray-300 leading-relaxed mb-8">
-                        <p>
-                            Break the cycle in this adrenaline-fueled arcade experience. Face down the physical manifestations of your darkest impulses, utilizing strategic reflexes and precision strikes to reclaim your autonomy. Every victory in the arena is a step toward conquering the habits that hold you back in the real world. Prepare to slay your demons.
-                        </p>
-                    </div>
-
-                    <a href="/addiction-slayer" class="inline-block bg-[#D4AF37] text-black px-6 py-3 rounded font-bold hover:bg-white transition-colors text-center">
-                        Play Full Screen &rarr;
                     </a>
-                </div>
-            </div>
-        </div>
-
-        <!-- SECTION 1: COLOR CONTAGION (Prominent / Top) -->
-        <div class="glass-card rounded-xl overflow-hidden shadow-2xl border border-gray-700">
-            <div class="flex flex-col lg:flex-row">
-                <!-- Game Iframe Container -->
-                <div class="w-full lg:w-2/3 h-[500px] bg-gray-900 relative">
-                    <!-- Fallback Image (Visible while loading) -->
-                    <img 
-                        id="game-fallback"
-                        src="/images/FALLBACK_IMG.png" 
-                        alt="Loading Game..." 
-                        class="absolute inset-0 w-full h-full object-cover z-10 transition-opacity duration-1000"
-                    >
-                    
-                    <iframe 
-                        src="https://mobile-game-853337900822.us-central1.run.app/" 
-                        class="absolute inset-0 w-full h-full z-0"
-                        title="Color Contagion Game"
-                        frameborder="0"
-                        allowfullscreen
-                        onload="document.getElementById('game-fallback').classList.add('opacity-0', 'pointer-events-none')">
-                    </iframe>
-                </div>
-                
-                <!-- Game Bio Section -->
-                <div class="w-full lg:w-1/3 p-8 flex flex-col justify-center bg-gray-800/50">
-                    <h3 class="text-3xl font-bold text-[#D4AF37] mb-4 font-serif">COLOR CONTAGION</h3>
-                    <p class="text-[#20B2AA] mb-4 text-sm tracking-wider uppercase">Browser-Based Tactical Simulation</p>
-                    
-                    <div class="text-gray-300 leading-relaxed mb-8">
-                        <!-- UPDATE BIO HERE -->
-                        <p>
-                            Colorization is a simple and relaxing game that gives the player a sense of progress as they upgrade different regions of their character's brain in order to create inventions, engage in dialogue, and colorize a black and white world infested by zombie-esque tribes, who can be converted and led to help you on your mission to reinvigorate the game world.
-                        </p>
-                    </div>
-
-                    <a href="https://mobile-game-853337900822.us-central1.run.app/" target="_blank" class="inline-block bg-[#D4AF37] text-black px-6 py-3 rounded font-bold hover:bg-white transition-colors text-center">
-                        Play Full Screen &rarr;
-                    </a>
-                </div>
-
-
-            </div>
-        </div>
-
-         <!-- SECTION: HERD-ORAMA (Added) -->
-        <div class="glass-card rounded-xl overflow-hidden shadow-2xl border border-gray-700">
-            <div class="flex flex-col lg:flex-row-reverse">
-                
-                <!-- Game Preview Image (Links to Game Page) -->
-                <a href="/herd-orama" class="w-full lg:w-2/3 h-[500px] relative group overflow-hidden bg-gray-900 block">
-                    <!-- Using menu_background.png from the folder structure shown -->
-                    <img 
-                        src="/herd.io%20distribution/menu_background.png" 
-                        alt="Herd-Orama" 
-                        class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 opacity-90 group-hover:opacity-100"
-                    >
-                    <!-- Overlay Play Button Effect -->
-                    <div class="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center">
-                        <div class="w-20 h-20 rounded-full border-4 border-[#D4AF37] flex items-center justify-center group-hover:bg-[#D4AF37] group-hover:text-black transition-all duration-300">
-                            <span class="text-3xl ml-2 text-white group-hover:text-black">▶</span>
+                    <div class="p-6 flex flex-col flex-grow justify-between">
+                        <div>
+                            <h3 class="text-2xl font-bold text-[#D4AF37] mb-2 font-serif uppercase">Paintcadia</h3>
+                            <p class="text-gray-300 text-sm leading-relaxed mb-4">
+                                Step into a vibrant world of colors and creativity. Paintcadia is an immersive experience where your artistic vision shapes the environment. Unleash your imagination and explore a canvas without limits.
+                            </p>
                         </div>
+                        <a href="/paintcadia" class="block w-full bg-[#D4AF37] text-black py-3 rounded font-bold hover:bg-white transition-colors text-center uppercase tracking-wider">
+                            Play Full Screen
+                        </a>
                     </div>
-                </a>
+                </div>
 
-                <!-- Game Info Section -->
-                <div class="w-full lg:w-1/3 p-8 flex flex-col justify-center border-t lg:border-t-0 lg:border-r border-gray-700 bg-black/20">
-                    <h3 class="text-3xl font-bold text-[#D4AF37] mb-4 font-serif uppercase">HERD-ORAMA</h3>
-                    <p class="text-[#20B2AA] mb-4 text-sm tracking-wider uppercase">Multiplayer Survival Evolved</p>
-                    
-                    <div class="text-gray-300 leading-relaxed mb-8">
-                        <p>
-                            Enter the wild in this browser-based survival experience. Navigate the ecosystem, grow your herd, and compete for dominance in a ruthless natural world. 
-                        </p>
-                    </div>
-
-                    <a href="/herd-orama" class="inline-block px-8 py-4 border-2 border-[#D4AF37] text-[#D4AF37] font-bold uppercase tracking-widest hover:bg-[#D4AF37] hover:text-black transition-all duration-300 text-center">
-                        Launch Herd-Orama
+                <!-- ADDICTION SLAYER -->
+                <div class="glass-card rounded-xl overflow-hidden shadow-2xl border border-gray-700 flex flex-col aspect-[1/2] bg-gray-800/50">
+                    <a href="/addiction-slayer" class="relative w-full h-1/2 group block overflow-hidden bg-gray-900">
+                        <img src="/images/addictionSlayer.png" alt="Addiction Slayer" class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 opacity-90 group-hover:opacity-100">
+                        <div class="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center">
+                            <div class="w-16 h-16 rounded-full border-4 border-[#D4AF37] flex items-center justify-center group-hover:bg-[#D4AF37] group-hover:text-black transition-all duration-300">
+                                <span class="text-2xl ml-1 text-white group-hover:text-black">▶</span>
+                            </div>
+                        </div>
                     </a>
-                </div>
-
-            </div>
-        </div>
-
-<!-- SECTION 2: TARGET CATHARSIS -->
-        <div class="glass-card rounded-xl overflow-hidden shadow-2xl border border-gray-700">
-            <div class="flex flex-col lg:flex-row-reverse">
-                <!-- Image Container -->
-                <div class="w-full lg:w-2/3 h-[500px] bg-gray-900 relative group overflow-hidden">
-                    <img 
-                        src="/images/target.png" 
-                        alt="Target Catharsis" 
-                        class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                    >
-                    <div class="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
-                </div>
-
-                <!-- Info Container -->
-                <div class="w-full lg:w-1/3 p-8 flex flex-col justify-center border-t lg:border-t-0 lg:border-r border-gray-700 bg-black/20">
-                    <h3 class="text-3xl font-bold text-gold mb-4 uppercase tracking-tighter">Target Catharsis</h3>
-                    <p class="text-gray-400 mb-8 leading-relaxed">
-                        A precision-based arcade challenge focusing on rhythm, reflexes, and visual harmony. Enter the zone and find your target.
-                    </p>
-                    <a href="/target-catharsis" class="inline-block px-8 py-4 border-2 border-gold text-gold font-bold uppercase tracking-widest hover:bg-gold hover:text-black transition-all duration-300 text-center">
-                        Launch Experience
-                    </a>
-                </div>
-            </div>
-        </div>
-
- <!-- SECTION 1.5: DOMAIN -->
-        <div class="glass-card rounded-xl overflow-hidden shadow-2xl border border-gray-700">
-            <div class="flex flex-col lg:flex-row">
-                <!-- Domain Banner Image (Link to Project) -->
-                <a href="/domain" class="w-full lg:w-2/3 h-[500px] relative group overflow-hidden bg-gray-900 block">
-                    <img 
-                        src="/images/domain3.png" 
-                        alt="Domain Project" 
-                        class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 opacity-90 group-hover:opacity-100"
-                    >
-                    <!-- Overlay hint -->
-                    <div class="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors duration-300 flex items-center justify-center">
-                        <span class="opacity-0 group-hover:opacity-100 text-white font-serif italic text-2xl drop-shadow-lg transition-opacity duration-300 bg-black/50 px-4 py-2 rounded">View Project</span>
+                    <div class="p-6 flex flex-col flex-grow justify-between">
+                        <div>
+                            <h3 class="text-2xl font-bold text-[#D4AF37] mb-2 font-serif uppercase">Addiction Slayer</h3>
+                            <p class="text-gray-300 text-sm leading-relaxed mb-4">
+                                Break the cycle in this adrenaline-fueled arcade experience. Face down the physical manifestations of your darkest impulses, utilizing strategic reflexes and precision strikes to reclaim your autonomy.
+                            </p>
+                        </div>
+                        <a href="/addiction-slayer" class="block w-full bg-[#D4AF37] text-black py-3 rounded font-bold hover:bg-white transition-colors text-center uppercase tracking-wider">
+                            Play Full Screen
+                        </a>
                     </div>
-                </a>
-                
-                <!-- Domain Bio Section -->
-                <div class="w-full lg:w-1/3 p-8 flex flex-col justify-center bg-gray-800/50">
-                    <h3 class="text-3xl font-bold text-[#D4AF37] mb-4 font-serif">DOMAIN</h3>
-                    <p class="text-[#20B2AA] mb-4 text-sm tracking-wider uppercase">Chess meets dueling monsters with a civilized twist</p>
-                    
-                    <div class="text-gray-300 leading-relaxed mb-8">
-                        <p>
-                            Domain is a strategy game where you manage ethereal resource pools to overwhelm your opponent with classic abillities and civ construction.
-                        </p>
-                    </div>
-
-                    <a href="/domain" class="inline-block bg-[#D4AF37] text-black px-6 py-3 rounded font-bold hover:bg-white transition-colors text-center">
-                        Explore Domain &rarr;
-                    </a>
                 </div>
+
+                <!-- COLOR CONTAGION -->
+                <div class="glass-card rounded-xl overflow-hidden shadow-2xl border border-gray-700 flex flex-col aspect-[1/2] bg-gray-800/50">
+                    <a href="https://mobile-game-853337900822.us-central1.run.app/" target="_blank" class="relative w-full h-1/2 group block overflow-hidden bg-gray-900">
+                        <img src="/images/FALLBACK_IMG.png" alt="Color Contagion" class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 opacity-90 group-hover:opacity-100">
+                        <div class="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center">
+                            <div class="w-16 h-16 rounded-full border-4 border-[#D4AF37] flex items-center justify-center group-hover:bg-[#D4AF37] group-hover:text-black transition-all duration-300">
+                                <span class="text-2xl ml-1 text-white group-hover:text-black">▶</span>
+                            </div>
+                        </div>
+                    </a>
+                    <div class="p-6 flex flex-col flex-grow justify-between">
+                        <div>
+                            <h3 class="text-2xl font-bold text-[#D4AF37] mb-2 font-serif uppercase">Color Contagion</h3>
+                            <p class="text-gray-300 text-sm leading-relaxed mb-4 line-clamp-6">
+                                Colorization is a simple and relaxing game that gives the player a sense of progress as they upgrade different regions of their character's brain in order to create inventions, engage in dialogue, and colorize a black and white world.
+                            </p>
+                        </div>
+                        <a href="https://mobile-game-853337900822.us-central1.run.app/" target="_blank" class="block w-full bg-[#D4AF37] text-black py-3 rounded font-bold hover:bg-white transition-colors text-center uppercase tracking-wider">
+                            Play Full Screen
+                        </a>
+                    </div>
+                </div>
+
+                <!-- HERD-ORAMA -->
+                <div class="glass-card rounded-xl overflow-hidden shadow-2xl border border-gray-700 flex flex-col aspect-[1/2] bg-gray-800/50">
+                    <a href="/herd-orama" class="relative w-full h-1/2 group block overflow-hidden bg-gray-900">
+                        <img src="/herd.io%20distribution/menu_background.png" alt="Herd-Orama" class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 opacity-90 group-hover:opacity-100">
+                        <div class="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center">
+                            <div class="w-16 h-16 rounded-full border-4 border-[#D4AF37] flex items-center justify-center group-hover:bg-[#D4AF37] group-hover:text-black transition-all duration-300">
+                                <span class="text-2xl ml-1 text-white group-hover:text-black">▶</span>
+                            </div>
+                        </div>
+                    </a>
+                    <div class="p-6 flex flex-col flex-grow justify-between">
+                        <div>
+                            <h3 class="text-2xl font-bold text-[#D4AF37] mb-2 font-serif uppercase">Herd-Orama</h3>
+                            <p class="text-gray-300 text-sm leading-relaxed mb-4">
+                                Enter the wild in this browser-based survival experience. Navigate the ecosystem, grow your herd, and compete for dominance in a ruthless natural world.
+                            </p>
+                        </div>
+                        <a href="/herd-orama" class="block w-full border-2 border-[#D4AF37] text-[#D4AF37] py-3 rounded font-bold hover:bg-[#D4AF37] hover:text-black transition-colors text-center uppercase tracking-wider">
+                            Launch Herd-Orama
+                        </a>
+                    </div>
+                </div>
+
+                <!-- TARGET CATHARSIS -->
+                <div class="glass-card rounded-xl overflow-hidden shadow-2xl border border-gray-700 flex flex-col aspect-[1/2] bg-gray-800/50">
+                    <a href="/target-catharsis" class="relative w-full h-1/2 group block overflow-hidden bg-gray-900">
+                        <img src="/images/target.png" alt="Target Catharsis" class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 opacity-90 group-hover:opacity-100">
+                        <div class="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center">
+                            <div class="w-16 h-16 rounded-full border-4 border-[#D4AF37] flex items-center justify-center group-hover:bg-[#D4AF37] group-hover:text-black transition-all duration-300">
+                                <span class="text-2xl ml-1 text-white group-hover:text-black">▶</span>
+                            </div>
+                        </div>
+                    </a>
+                    <div class="p-6 flex flex-col flex-grow justify-between">
+                        <div>
+                            <h3 class="text-2xl font-bold text-[#D4AF37] mb-2 font-serif uppercase">Target Catharsis</h3>
+                            <p class="text-gray-300 text-sm leading-relaxed mb-4">
+                                A precision-based arcade challenge focusing on rhythm, reflexes, and visual harmony. Enter the zone and find your target.
+                            </p>
+                        </div>
+                        <a href="/target-catharsis" class="block w-full border-2 border-[#D4AF37] text-[#D4AF37] py-3 rounded font-bold hover:bg-[#D4AF37] hover:text-black transition-colors text-center uppercase tracking-wider">
+                            Launch Experience
+                        </a>
+                    </div>
+                </div>
+
+                <!-- DOMAIN -->
+                <div class="glass-card rounded-xl overflow-hidden shadow-2xl border border-gray-700 flex flex-col aspect-[1/2] bg-gray-800/50">
+                    <a href="/domain" class="relative w-full h-1/2 group block overflow-hidden bg-gray-900">
+                        <img src="/images/domain3.png" alt="Domain Project" class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 opacity-90 group-hover:opacity-100">
+                        <div class="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center">
+                            <div class="w-16 h-16 rounded-full border-4 border-[#D4AF37] flex items-center justify-center group-hover:bg-[#D4AF37] group-hover:text-black transition-all duration-300">
+                                <span class="text-2xl ml-1 text-white group-hover:text-black">▶</span>
+                            </div>
+                        </div>
+                    </a>
+                    <div class="p-6 flex flex-col flex-grow justify-between">
+                        <div>
+                            <h3 class="text-2xl font-bold text-[#D4AF37] mb-2 font-serif uppercase">Domain</h3>
+                            <p class="text-gray-300 text-sm leading-relaxed mb-4">
+                                Chess meets dueling monsters with a civilized twist. Manage ethereal resource pools to overwhelm your opponent with classic abilities and civ construction.
+                            </p>
+                        </div>
+                        <a href="/domain" class="block w-full bg-[#D4AF37] text-black py-3 rounded font-bold hover:bg-white transition-colors text-center uppercase tracking-wider">
+                            Explore Domain
+                        </a>
+                    </div>
+                </div>
+
             </div>
         </div>
 
