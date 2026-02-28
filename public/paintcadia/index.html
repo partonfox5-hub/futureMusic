@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paintcadia</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bungee&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- Global Top Right Buttons -->
+     <div id="top-right-controls">
+    <div id="global-controls">
+        <button id="btn-mute">🔊 Mute</button>
+        <button id="btn-fullscreen">⛶ Fullscreen</button>
+    </div>
+</div>
+
+    <!-- LOGO SCREEN -->
+    <div id="logo-screen">
+        <img id="logo-img" src="images/shinemoreonline.png" alt="Shine More Online">
+        <div id="logo-sparks"></div>
+    </div>
+
+    <!-- Click to Start Screen -->
+    <div id="click-to-start-screen" class="screen" style="z-index: 1500; background-color: transparent; cursor: pointer; width: 100%; height: 100%;">
+        <h1 style="animation: rgbPulse 3s infinite; font-size: 80px;">CLICK TO START</h1>
+    </div>
+
+    <!-- Main Menu -->
+    <div id="main-menu" class="screen">
+        <h1>Paintcadia</h1>
+        <div class="menu-buttons">
+            <button id="btn-tutorial">Tutorial</button>
+            <button id="btn-custom-game">Custom Game</button>
+            <button id="btn-levels">Levels (Coming Soon)</button>
+            <a href="https://futuremusic.online" target="_blank" class="link-btn">futuremusic.online</a>
+        </div>
+        <input type="file" id="image-upload" accept="image/png, image/jpeg" style="display: none;">
+    </div>
+
+  <!-- Tutorial Screen -->
+    <div id="tutorial-screen" class="screen">
+        <h2>How to Play</h2>
+        <p>🖌️ You are a paintbrush. Move with WASD/Arrows.</p>
+        <p>💧 Auto-shoot paint blobs towards your mouse.</p>
+        <p>💣 Press SPACE to throw a Paint Grenade!</p>
+        <p>🔴🟢🔵⚫🌈 Pick up paint cans to colorize the map.</p>
+        <p>Cover the map in ALL colors to win!</p>
+        <p>🤺 Survive Knights, 💂 Musketeers, and 🐉 Dragons.</p>
+        <button id="btn-close-tutorial">Back to Menu</button>
+    </div>
+
+    <!-- Level Selection Screen -->
+    <div id="level-screen" class="screen">
+        <h2>Select Level</h2>
+        <div class="level-grid" id="level-grid"></div>
+        <button id="btn-cancel-levels" style="margin-top: 20px;">Back to Menu</button>
+    </div>
+
+    <!-- Difficulty Selection -->
+    <div id="difficulty-screen" class="screen">
+        <h2>Select Difficulty</h2>
+        <button class="diff-btn" data-diff="easy">Easy (1x Screen)</button>
+        <button class="diff-btn" data-diff="medium">Medium (4x Screen)</button>
+        <button class="diff-btn" data-diff="hard">Hard (16x Screen)</button>
+        <button id="btn-cancel-diff">Cancel</button>
+    </div>
+
+    <!-- Game Screen -->
+    <div id="game-screen" class="screen">
+ <div id="ui-bar">
+            <div class="ui-row">
+                <span id="hp-display" title="Health">💖 100/100</span>
+                <span id="fire-display" title="Fire Rate">🔫 3.0s</span>
+                <span id="speed-display" title="Move Speed">👟 200</span>
+                <span id="range-display" title="Paint Range">🖌️ 50px</span>
+                <span id="grenade-display" title="Paint Grenades (SPACE)">💣 0</span>
+                <span id="paint-display">Current: None</span>
+            </div>
+            <div class="ui-row">
+                <span id="progress-display">Total: 0%</span> | 
+                <span class="color-stat" data-color="r" id="stat-r">🔴 0%</span>
+                <span class="color-stat" data-color="g" id="stat-g">🟢 0%</span>
+                <span class="color-stat" data-color="b" id="stat-b">🔵 0%</span>
+                <span class="color-stat" data-color="k" id="stat-k">⚫ 0%</span>
+                <button id="btn-pause" style="margin-left: 20px; padding: 5px 10px;">Pause</button>
+            </div>
+            <div class="ui-row" id="perks-display" style="font-size: 14px; margin-top: 5px;">
+                <span id="perk-r" style="opacity: 0.3" title="100% Red: Triple Shot">✔️ 🔴 Triple Shot</span>
+                <span id="perk-g" style="opacity: 0.3" title="100% Green: Item Magnet">✔️ 🟢 Magnet</span>
+                <span id="perk-b" style="opacity: 0.3" title="100% Blue: Forcefield">✔️ 🔵 Shield</span>
+                <span id="perk-k" style="opacity: 0.3" title="100% Black: Explosive Paint">✔️ ⚫ Explosive</span>
+            </div>
+        
+    </div>
+
+    </div>
+    
+    <!-- Mobile Controls -->
+    <div id="mobile-controls">
+        <div id="d-pad">
+            <div class="d-btn up" data-key="w"></div>
+            <div class="d-btn left" data-key="a"></div>
+            <div class="d-btn right" data-key="d"></div>
+            <div class="d-btn down" data-key="s"></div>
+            <div class="d-btn center" id="btn-grenade-mobile">💣</div>
+        </div>
+        <div id="joystick-area">
+            <div id="joystick-base">
+                <div id="joystick-stick"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tutorial Popup -->
+    <div id="tutorial-popup" class="screen overlay" style="z-index: 2000; background: rgba(0,0,0,0.6);">
+        <div style="background: #222; border: 4px solid #0ff; padding: 20px; border-radius: 10px; text-align: center; max-width: 80%;">
+            <h2 id="tut-title" style="color: #0ff; margin-bottom: 15px;">Tutorial</h2>
+            <p id="tut-text" style="font-size: 18px; margin-bottom: 20px;">Text here</p>
+            <button id="btn-tut-ok">✖ Close</button>
+        </div>
+    </div>
+
+        <canvas id="gameCanvas"></canvas>
+
+    <!-- Pause Menu -->
+    <div id="pause-menu" class="screen overlay">
+        <h2>Paused</h2>
+        <button id="btn-resume" style="margin-bottom: 10px;">Resume</button>
+        <button id="btn-toggle-range" style="margin-bottom: 10px;">Range Visual: Dotted</button>
+        <button id="btn-toggle-range-color" style="margin-bottom: 10px;">Range Color: White</button>
+        <button id="btn-quit">Return to Main Menu</button>
+    </div>
+
+   <!-- Game Over / Win Screen -->
+    <div id="end-screen" class="screen overlay">
+        <h2 id="end-title">Game Over</h2>
+        <button id="btn-end-next" style="display: none; margin-bottom: 10px;">Next Level</button>
+        <button id="btn-end-retry" style="margin-bottom: 10px;">Retry Level</button>
+        <button id="btn-end-quit">Return to Main Menu</button>
+    </div>
+
+    <script src="game-secure.js"></script>
+</body>
+</html>
