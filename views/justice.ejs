@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
+    <style>
+        body { font-family: 'Courier New', Courier, monospace; background: #0a0a0a; color: #00ffcc; margin: 0; padding: 20px; }
+        .container { max-width: 900px; margin: auto; background: #111; padding: 30px; border: 1px solid #333; }
+        h1, h2, h3 { color: #fff; border-bottom: 1px solid #333; padding-bottom: 10px; }
+        
+        /* Catalog */
+        .catalog-item { background: #1a1a1a; padding: 15px; border: 1px solid #444; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
+        .catalog-item a { background: #00ffcc; color: #000; padding: 10px 15px; text-decoration: none; font-weight: bold; border-radius: 3px; }
+        
+        /* Auth & Forms */
+        .auth-box { background: #1a1a1a; padding: 20px; border-left: 4px solid #0077b5; margin-bottom: 30px; }
+        .btn-linkedin { background: #0077b5; color: white; padding: 10px 20px; text-decoration: none; font-weight: bold; }
+        
+        .attest-section { display: none; background: #111; border: 2px solid #00ffcc; padding: 20px; margin-top: 40px; }
+        .checkbox-group { margin: 15px 0; background: #222; padding: 15px; border-left: 4px solid #ff5555; }
+        .checkbox-group label { display: block; margin-bottom: 10px; font-size: 16px; color: #fff; cursor: pointer; }
+        
+        input[type="text"], textarea { width: 100%; background: #000; color: #00ffcc; border: 1px solid #444; padding: 10px; box-sizing: border-box; margin-top: 5px; }
+        
+        /* Signature Canvas */
+        .canvas-container { margin-top: 20px; }
+        canvas { background: #fff; border: 2px dashed #666; cursor: crosshair; }
+        
+        .submit-btn { background: #ff5555; color: #fff; padding: 15px; width: 100%; font-size: 18px; font-weight: bold; border: none; cursor: pointer; margin-top: 20px; transition: 0.3s; }
+        .submit-btn:hover { background: #ff0000; }
+        
+        #ipfs-result { display: none; margin-top: 20px; padding: 20px; background: #003300; border: 1px solid #00ff00; color: #00ff00; word-wrap: break-word; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Public Evidence & Accountability Portal</h1>
+    <p>Review the objective evidence. Your review time is logged locally. When satisfied, proceed to the bottom to submit your legally binding, cryptographically secured attestation.</p>
+
+    <h2>1. Evidence Catalog</h2>
+    <% evidenceCatalog.forEach(doc => { %>
+        <div class="catalog-item">
+            <div>
+                <strong style="color: #fff;"><%= doc.title %></strong><br>
+                <small style="color: #888;">Hash: <%= doc.documentHash %></small>
+            </div>
+            <% if(doc.type === 'split-screen') { %>
+                <a href="/justice/review/<%= doc.id %>">Open Split-Screen Review</a>
+            <% } else { %>
+                <a href="<%= doc.url %>" target="_blank">View File</a>
+            <% } %>
+        </div>
+    <% }) %>
+
+    <div style="text-align: center; margin-top: 40px;">
+        <button onclick="showAttestationForm()" style="background: #00ffcc; color: #000; padding: 15px 30px; font-size: 18px; font-weight: bold; border: none; cursor: pointer;">Proceed to Attestation</button>
+    </div>
+
+    <!-- ATTESTATION FORM -->
+    <div id="attest-section" class="attest-section">
+        <h2>2. Official Attestation</h2>
+        
+        <div class="auth-box">
+            <% if (!user) { %>
+                <h3>Identity Verification Required</h3>
+                <p>To securely anchor this attestation, you must verify your identity. No Web3 knowledge is required.</p>
+                <a href="/auth/linkedin" class="btn-linkedin">Verify Identity via LinkedIn</a>
+            <% } else { %>
+                <h3 style="color: #00ffcc;">Verified: <%= user.name %></h3>
+                <p style="color: #aaa;">Your invisible Web3 wallet has been generated to sign this record.</p>
+                <p style="font-size: 12px; color: #666;">Signer Address: <span id="wallet-address">Loading...</span></p>
+            <% } %>
+        </div>
+
+        <% if (user) { %>
+        <form id="attestForm">
+            <div class="checkbox-group">
+                <label>
+                    <input type="checkbox" id="isLawyer" onchange="toggleLawyer()"> <strong>I am a licensed legal professional.</strong>
+                </label>
+                <div id="lawyer-fields" style="display: none; margin-top: 10px; padding-left: 20px;">
+                    <input type="text" id="state" placeholder="State of Licensure (e.g., CA, NY)">
+                    <input type="text" id="barNumber" placeholder="Bar Registration Number">
+                </div>
+            </div>
+
+            <div class="checkbox-group" style="border-left-color: #00ffcc;">
+                <label><input type="checkbox" id="agreeAcquit" required> <strong>I attest that based on the evidence, the defendant should be acquitted.</strong></label>
+                <label><input type="checkbox" id="agreeDisqualify" required> <strong>I attest that the objective evidence indicates the judge should be disqualified/investigated.</strong></label>
+            </div>
+
+            <label>Professional Rationale / Comments:</label>
+            <textarea id="rationale" rows="5" placeholder="Enter your reasoning based on the citations..." required></textarea>
+
+            <div class="canvas-container">
+                <label><strong>Digital Signature:</strong> Please draw your signature below.</label><br>
+                <canvas id="sigCanvas" width="400" height="150"></canvas>
+                <br><button type="button" onclick="clearCanvas()" style="background: #333; color: white; border: none; padding: 5px 10px; margin-top: 5px; cursor: pointer;">Clear Signature</button>
+            </div>
+
+            <button type="submit" class="submit-btn" id="submitBtn">Sign & Upload to Immutable IPFS Ledger</button>
+        </form>
+
+        <div id="ipfs-result">
+            <h3>Attestation Permanently Recorded</h3>
+            <p>Your signature, identity token, drawn signature, and document hashes have been cryptographically bound together.</p>
+            <p><strong>IPFS CID Hash:</strong> <br><a href="" id="ipfs-link" target="_blank" style="color:#00ff00;"></a></p>
+        </div>
+        <% } %>
+    </div>
+</div>
+
+<script>
+    function showAttestationForm() {
+        document.getElementById('attest-section').style.display = 'block';
+        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    }
+
+    function toggleLawyer() {
+        document.getElementById('lawyer-fields').style.display = document.getElementById('isLawyer').checked ? 'block' : 'none';
+    }
+
+    // --- WEB3 WALLET GENERATION ---
+    let wallet;
+    if (typeof ethers !== 'undefined') {
+        let pk = localStorage.getItem('justice_wallet_pk');
+        if (!pk) {
+            const tempWallet = ethers.Wallet.createRandom();
+            pk = tempWallet.privateKey;
+            localStorage.setItem('justice_wallet_pk', pk);
+        }
+        wallet = new ethers.Wallet(pk);
+        const addrElement = document.getElementById('wallet-address');
+        if(addrElement) addrElement.innerText = wallet.address;
+    }
+
+    // --- CANVAS DRAWING LOGIC ---
+    const canvas = document.getElementById('sigCanvas');
+    let ctx, drawing = false;
+    
+    if (canvas) {
+        ctx = canvas.getContext('2d');
+        ctx.strokeStyle = '#000'; // Black ink on white canvas
+        ctx.lineWidth = 2;
+
+        const getPos = (e) => {
+            const rect = canvas.getBoundingClientRect();
+            return {
+                x: (e.clientX || e.touches[0].clientX) - rect.left,
+                y: (e.clientY || e.touches[0].clientY) - rect.top
+            };
+        };
+
+        const startDraw = (e) => { e.preventDefault(); drawing = true; const pos = getPos(e); ctx.beginPath(); ctx.moveTo(pos.x, pos.y); };
+        const draw = (e) => { e.preventDefault(); if (!drawing) return; const pos = getPos(e); ctx.lineTo(pos.x, pos.y); ctx.stroke(); };
+        const stopDraw = () => { drawing = false; ctx.closePath(); };
+
+        canvas.addEventListener('mousedown', startDraw);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseup', stopDraw);
+        canvas.addEventListener('mouseout', stopDraw);
+        
+        // Touch support for mobile
+        canvas.addEventListener('touchstart', startDraw);
+        canvas.addEventListener('touchmove', draw);
+        canvas.addEventListener('touchend', stopDraw);
+    }
+
+    function clearCanvas() {
+        if(ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    // --- FORM SUBMISSION ---
+    const form = document.getElementById('attestForm');
+    if(form) {
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            // Check if canvas is blank
+            const blank = document.createElement('canvas');
+            blank.width = canvas.width; blank.height = canvas.height;
+            if (canvas.toDataURL() === blank.toDataURL()) {
+                alert("Please draw your signature.");
+                return;
+            }
+
+            document.getElementById('submitBtn').disabled = true;
+            document.getElementById('submitBtn').innerText = "Generating Cryptographic Proof...";
+
+            // Retrieve Time Tracking from local storage
+            const timeTracking = JSON.parse(localStorage.getItem('justice_time_tracking') || '{}');
+
+            // 1. Build the payload
+            const payload = {
+                agreeAcquit: document.getElementById('agreeAcquit').checked,
+                agreeDisqualify: document.getElementById('agreeDisqualify').checked,
+                rationale: document.getElementById('rationale').value,
+                isLawyer: document.getElementById('isLawyer').checked,
+                barNumber: document.getElementById('barNumber').value,
+                state: document.getElementById('state').value,
+                timeTracking: timeTracking,
+                drawnSignatureBase64: canvas.toDataURL('image/png') // Convert signature to image data
+            };
+
+            // 2. Invisible Wallet signs the payload
+            const messageString = JSON.stringify(payload);
+            const signatureHash = await wallet.signMessage(messageString);
+
+            // 3. Send to Server for IPFS Upload
+            document.getElementById('submitBtn').innerText = "Uploading to IPFS...";
+            
+            const response = await fetch('/api/justice/attest', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    ...payload,
+                    signatureHash: signatureHash,
+                    walletAddress: wallet.address
+                })
+            });
+
+            const result = await response.json();
+            
+            if(result.success) {
+                document.getElementById('ipfs-result').style.display = 'block';
+                const ipfsLink = document.getElementById('ipfs-link');
+                ipfsLink.href = `https://gateway.pinata.cloud/ipfs/${result.ipfsHash}`;
+                ipfsLink.innerText = result.ipfsHash;
+                document.getElementById('submitBtn').innerText = "Record Secured";
+                
+                // Clear local tracking after successful submission
+                localStorage.removeItem('justice_time_tracking');
+            } else {
+                alert("Error: " + result.error);
+                document.getElementById('submitBtn').disabled = false;
+                document.getElementById('submitBtn').innerText = "Sign & Upload to Immutable IPFS Ledger";
+            }
+        });
+    }
+</script>
+</body>
+</html>

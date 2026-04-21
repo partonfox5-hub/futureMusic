@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title><%= title %></title>
+    <style>
+        body { margin: 0; font-family: Arial, sans-serif; background: #111; color: #ddd; height: 100vh; display: flex; flex-direction: column; }
+        .header { background: #000; padding: 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #333; }
+        .header a { color: #00ffcc; text-decoration: none; font-weight: bold; border: 1px solid #00ffcc; padding: 8px 15px; border-radius: 4px; }
+        .split-container { display: flex; flex: 1; overflow: hidden; }
+        .pane { flex: 1; padding: 20px; overflow-y: auto; }
+        .pane-left { border-right: 2px solid #333; background: #1a1a1a; }
+        .pane-right { background: #0a0a0a; }
+        
+        /* Transcript Styles */
+        .transcript-line { display: block; padding: 2px 5px; border-radius: 3px; transition: background 0.3s; }
+        .line-num { color: #666; margin-right: 15px; user-select: none; }
+        
+        /* Highlight Classes */
+        .highlight-green { background-color: rgba(0, 255, 0, 0.2); color: #00ff00; }
+        
+        /* Citation Link */
+        .citation { color: #00ffcc; text-decoration: underline; cursor: pointer; padding: 2px 4px; border-radius: 3px; transition: 0.3s; }
+        .citation:hover { background: rgba(0, 255, 204, 0.2); }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h2><%= title %></h2>
+    <a href="/justice" onclick="saveTime()">Return to Portal</a>
+</div>
+
+<div class="split-container">
+    <!-- LEFT PANE: TRANSCRIPT -->
+    <div class="pane pane-left" id="transcript-pane">
+        <h3 style="color: #fff;">Court Transcript</h3>
+        <hr style="border-color: #333;">
+        <div id="transcript-content">
+            <!-- Mock Transcript Data with ID tags -->
+            <span class="transcript-line" id="p3-l43"><span class="line-num">43</span> Q: Did you observe the defendant at the scene?</span>
+            <span class="transcript-line" id="p3-l44"><span class="line-num">44</span> A: I am not entirely sure, it was dark.</span>
+            <span class="transcript-line" id="p3-l45"><span class="line-num">45</span> Q: So you cannot positively identify him?</span>
+            <span class="transcript-line" id="p3-l46"><span class="line-num">46</span> A: No, I cannot.</span>
+            <br><br>
+            <span class="transcript-line" id="p5-l12"><span class="line-num">12</span> THE COURT: Objection overruled. The jury will ignore the lack of identification.</span>
+        </div>
+    </div>
+
+    <!-- RIGHT PANE: AI ANALYSIS -->
+    <div class="pane pane-right">
+        <h3 style="color: #fff;">AI Objective Analysis</h3>
+        <hr style="border-color: #333;">
+        <p><strong>Finding 1: Lack of Evidence</strong></p>
+        <p>The prosecution's primary witness explicitly stated they could not positively identify the defendant due to poor lighting conditions <span class="citation" data-target="p3-l45">(See Page 3, Lines 44-46)</span>. By standard legal definitions, this introduces reasonable doubt.</p>
+        
+        <p><strong>Finding 2: Judicial Conduct</strong></p>
+        <p>The judge's instruction to the jury to "ignore the lack of identification" <span class="citation" data-target="p5-l12">(See Page 5, Line 12)</span> is highly irregular and objectively prejudices the jury against the defense, violating the standard of impartiality.</p>
+    </div>
+</div>
+
+<script>
+    // 1. Time Tracking Logic
+    let timeSpent = 0;
+    const docId = '<%= doc.id %>';
+    
+    setInterval(() => { timeSpent++; }, 1000);
+
+    function saveTime() {
+        let tracking = JSON.parse(localStorage.getItem('justice_time_tracking') || '{}');
+        tracking[docId] = (tracking[docId] || 0) + timeSpent;
+        localStorage.setItem('justice_time_tracking', JSON.stringify(tracking));
+    }
+
+    // 2. Interactive Citation Highlighting
+    document.querySelectorAll('.citation').forEach(cite => {
+        cite.addEventListener('click', function() {
+            // Remove old highlights
+            document.querySelectorAll('.highlight-green').forEach(el => el.classList.remove('highlight-green'));
+            
+            // Highlight the citation clicked
+            this.classList.add('highlight-green');
+
+            // Find target lines in transcript (handles single lines or ranges like p3-l44,p3-l45,p3-l46)
+            const targets = this.getAttribute('data-target').split(',');
+            
+            targets.forEach(targetId => {
+                const targetEl = document.getElementById(targetId.trim());
+                if(targetEl) {
+                    targetEl.classList.add('highlight-green');
+                    // Scroll transcript pane to the line
+                    targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            });
+        });
+    });
+</script>
+
+</body>
+</html>

@@ -98,6 +98,7 @@ const http = require('http');
 const mysql = require('mysql2/promise');
 const bcrypt = require('bcrypt');
 const session = require('express-session');
+const axios = require('axios');
 
 // --- SESSION CONFIGURATION ---
 // --- SESSION CONFIGURATION ---
@@ -547,6 +548,151 @@ app.post('/contact', async (req, res) => {
         res.status(500).send('<script>alert("Transmission Error. Please try again."); window.location.href="/contact";</script>');
     }
 });
+
+// ============================================================================
+// --- JUSTICE PORTAL: ISOLATED SYSTEM ---
+// ============================================================================
+
+// --- JUSTICE PORTAL: EVIDENCE CATALOG ---
+// This acts as the database for the portal. The hashes tie the files to the IPFS signature.
+const evidenceCatalog = [
+    { 
+        id: 'doc1', 
+        title: 'Trial Transcript: Cross Examination vs AI Analysis', 
+        type: 'split-screen', 
+        documentHash: 'SHA256:8f434346648f6b96df89dda901c5176b10a6d83961dd3c1ac88b59b2dc327aa4' 
+    },
+    { 
+        id: 'video1', 
+        title: 'Bodycam Footage 1', 
+        type: 'video', 
+        url: '/evidence/video1.mp4',
+        documentHash: 'SHA256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'
+    }
+];
+
+// --- JUSTICE PORTAL: ROUTES ---
+
+// 1. Main Portal Page
+app.get('/justice', (req, res) => {
+    res.render('justice', { 
+        title: 'Public Evidence & Accountability Portal', 
+        user: req.session.linkedinProfile || null,
+        evidenceCatalog: evidenceCatalog
+    });
+});
+
+// 2. Split Screen Review Route
+app.get('/justice/review/:id', (req, res) => {
+    const doc = evidenceCatalog.find(d => d.id === req.params.id);
+    if (!doc) return res.redirect('/justice');
+    
+    res.render('review', { title: doc.title, doc: doc });
+});
+
+// 3. LinkedIn Auth Flow (Strictly for the Justice Portal)
+app.get('/auth/linkedin', (req, res) => {
+    const redirectUri = `${DOMAIN}/auth/linkedin/callback`;
+    const clientId = process.env.LINKEDIN_CLIENT_ID;
+    const scope = 'openid profile email';
+    const state = req.sessionID;
+    const url = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}&scope=${encodeURIComponent(scope)}`;
+    res.redirect(url);
+});
+
+app.get('/auth/linkedin/callback', async (req, res) => {
+    const { code, error } = req.query;
+    if (error) return res.send(`Authentication Error: ${error}`);
+    try {
+        const redirectUri = `${DOMAIN}/auth/linkedin/callback`;
+        const tokenRes = await axios.post('https://www.linkedin.com/oauth/v2/accessToken', new URLSearchParams({
+            grant_type: 'authorization_code',
+            code: code,
+            redirect_uri: redirectUri,
+            client_id: process.env.LINKEDIN_CLIENT_ID,
+            client_secret: process.env.LINKEDIN_CLIENT_SECRET
+        }), { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
+
+        const accessToken = tokenRes.data.access_token;
+        const profileRes = await axios.get('https://api.linkedin.com/v2/userinfo', {
+            headers: { Authorization: `Bearer ${accessToken}` }
+        });
+
+        // Save secure LinkedIn data to session
+        req.session.linkedinProfile = profileRes.data;
+        res.redirect('/justice'); // Send them back to the portal
+    } catch (err) {
+        console.error("LinkedIn Auth Failed:", err.response ? err.response.data : err.message);
+        res.status(500).send('LinkedIn Verification Failed. Check your API keys.');
+    }
+});
+
+// 4. IPFS Attestation Submission
+app.post('/api/justice/attest', async (req, res) => {
+    // Block unauthorized submissions
+    if (!req.session.linkedinProfile) {
+        return res.status(401).json({ error: 'Must authenticate via LinkedIn' });
+    }
+    
+    const { 
+        signatureHash, walletAddress, drawnSignatureBase64, 
+        agreeAcquit, agreeDisqualify, rationale, 
+        isLawyer, barNumber, state, timeTracking 
+    } = req.body;
+
+    // Construct the immutable record anchoring everything together
+    const attestationRecord = {
+        schema: "EAS-Judicial-Accountability-v1",
+        timestamp: new Date().toISOString(),
+        identity: {
+            name: req.session.linkedinProfile.name,
+            email: req.session.linkedinProfile.email,
+            linkedinId: req.session.linkedinProfile.sub, // Unique LinkedIn User ID
+            verifiedVia: 'LinkedIn OAuth 2.0'
+        },
+        professionalCredentials: {
+            isLawyer: isLawyer,
+            state: state || 'N/A',
+            barNumber: barNumber || 'N/A'
+        },
+        cryptographicProof: {
+            signerAddress: walletAddress,
+            walletSignature: signatureHash, // The math proving the wallet signed this
+            drawnSignature: drawnSignatureBase64 // The visual representation
+        },
+        evidenceReviewed: evidenceCatalog.map(doc => ({
+            id: doc.id,
+            title: doc.title,
+            documentHash: doc.documentHash, // TIES THE SIGNATURE TO THE EXACT FILES
+            timeSpentSeconds: timeTracking[doc.id] || 0
+        })),
+        attestation: {
+            concludesAcquittal: agreeAcquit,
+            concludesJudgeDisqualified: agreeDisqualify,
+            rationale: rationale
+        }
+    };
+
+    try {
+        // Upload directly to IPFS via Pinata
+        const pinataUrl = `https://api.pinata.cloud/pinning/pinJSONToIPFS`;
+        const response = await axios.post(pinataUrl, attestationRecord, {
+            headers: {
+                'Content-Type': 'application/json',
+                pinata_api_key: process.env.PINATA_API_KEY,
+                pinata_secret_api_key: process.env.PINATA_SECRET_KEY
+            }
+        });
+
+        res.json({ success: true, ipfsHash: response.data.IpfsHash });
+    } catch (err) {
+        console.error("Pinata Upload Error:", err.response ? err.response.data : err.message);
+        res.status(500).json({ error: 'Failed to upload to IPFS' });
+    }
+});
+// ============================================================================
+// --- END JUSTICE PORTAL ---
+// ============================================================================
 
 
 // --- DEBUG ROUTE: VIEW DATA WITHOUT CRASHING ---
