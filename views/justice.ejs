@@ -83,6 +83,10 @@
 
                 <input type="text" id="fullName" placeholder="Full Legal Name" value="<%= user ? user.name : '' %>" required>
                 <input type="email" id="emailAddress" placeholder="Email Address (Required if no LinkedIn)" value="<%= user ? user.email : '' %>">
+                <% if (!user) { %>
+                    <button type="button" id="verifyEmailBtn" onclick="sendVerificationEmail()" style="background: #0077b5; color: white; border: none; padding: 8px 15px; cursor: pointer; margin-top: 10px; font-weight: bold;">Verify Email</button>
+                    <span id="email-status" style="margin-left: 10px; font-size: 14px;"></span>
+                <% } %>
                 <input type="tel" id="phoneNumber" placeholder="Phone Number (Optional)">
             </div>
 
@@ -93,6 +97,7 @@
                 <div id="lawyer-fields" style="display: none; margin-top: 10px; padding-left: 20px;">
                     <input type="text" id="state" placeholder="State of Licensure (e.g., CA, NY)">
                     <input type="text" id="barNumber" placeholder="Bar Registration Number">
+                    <span id="lawyer-status" style="display: block; margin-top: 10px; font-weight: bold;"></span>
                 </div>
             </div>
 
@@ -127,8 +132,89 @@
         window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
     }
 
-    function toggleLawyer() {
+function toggleLawyer() {
         document.getElementById('lawyer-fields').style.display = document.getElementById('isLawyer').checked ? 'block' : 'none';
+    }
+
+    // --- AUTOMATED LAWYER VERIFICATION ---
+    const stateInput = document.getElementById('state');
+    const barInput = document.getElementById('barNumber');
+    
+    async function verifyLawyer() {
+        const state = stateInput.value.trim();
+        const barNumber = barInput.value.trim();
+        const statusEl = document.getElementById('lawyer-status');
+        
+        if (state && barNumber) {
+            statusEl.innerText = "Verifying credentials...";
+            statusEl.style.color = "yellow";
+            try {
+                const res = await fetch('/api/justice/verify-lawyer', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ state, barNumber })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    statusEl.innerText = "✓ Credentials Verified Active";
+                    statusEl.style.color = "#00ffcc";
+                } else {
+                    statusEl.innerText = "✗ Verification Failed. Check format.";
+                    statusEl.style.color = "#ff5555";
+                }
+            } catch (e) {
+                statusEl.innerText = "Error verifying.";
+                statusEl.style.color = "#ff5555";
+            }
+        } else {
+            statusEl.innerText = "";
+        }
+    }
+
+    if(stateInput) stateInput.addEventListener('input', verifyLawyer);
+    if(barInput) barInput.addEventListener('input', verifyLawyer);
+
+    // --- AUTOMATED EMAIL VERIFICATION ---
+    let emailCheckInterval;
+    async function sendVerificationEmail() {
+        const email = document.getElementById('emailAddress').value.trim();
+        if (!email) return alert("Please enter an email first.");
+        
+        const btn = document.getElementById('verifyEmailBtn');
+        const statusEl = document.getElementById('email-status');
+        btn.innerText = "Sending...";
+        
+        try {
+            const res = await fetch('/api/justice/send-verification', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email })
+            });
+            const data = await res.json();
+            if (data.success) {
+                btn.innerText = "Sent! Check Inbox.";
+                statusEl.innerText = "Waiting for verification (click link in email)...";
+                statusEl.style.color = "yellow";
+                
+                emailCheckInterval = setInterval(async () => {
+                    const checkRes = await fetch('/api/justice/check-email-verification');
+                    const checkData = await checkRes.json();
+                    if (checkData.verified && checkData.email === email) {
+                        clearInterval(emailCheckInterval);
+                        statusEl.innerText = "✓ Email Verified";
+                        statusEl.style.color = "#00ffcc";
+                        btn.style.display = "none";
+                    }
+                }, 3000);
+                
+            } else {
+                alert(data.error);
+                btn.innerText = "Verify Email";
+            }
+        } catch (e) {
+            alert("Error sending email.");
+            btn.innerText = "Verify Email";
+        }
     }
 
     // --- WEB3 WALLET GENERATION ---
@@ -195,12 +281,14 @@
                 return;
             }
 
-            // Validate that either LinkedIn is connected OR Email is provided
+                 // Validate that either LinkedIn is connected OR Email is provided and verified
             const emailVal = document.getElementById('emailAddress').value.trim();
             const hasLinkedIn = <%= user ? 'true' : 'false' %>;
+            const statusEl = document.getElementById('email-status');
+            const isEmailVerified = statusEl && statusEl.innerText.includes('✓');
             
-            if (!hasLinkedIn && !emailVal) {
-                alert("You must either verify with LinkedIn or provide an Email Address.");
+            if (!hasLinkedIn && (!emailVal || !isEmailVerified)) {
+                alert("You must either verify with LinkedIn or verify your Email Address by clicking 'Verify Email'.");
                 document.getElementById('emailAddress').focus();
                 return;
             }

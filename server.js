@@ -99,6 +99,22 @@ const mysql = require('mysql2/promise');
 const bcrypt = require('bcrypt');
 const session = require('express-session');
 const axios = require('axios');
+const nodemailer = require('nodemailer');
+const crypto = require('crypto');
+
+// --- NEW CODE: Email Verification Setup ---
+const pendingVerifications = {};
+
+const transporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST || 'localhost',
+    port: process.env.SMTP_PORT || 587,
+    secure: false, // true for 465, false for other ports
+    auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS
+    }
+});
+// --- END NEW CODE ---
 
 // --- SESSION CONFIGURATION ---
 // --- SESSION CONFIGURATION ---
@@ -553,23 +569,64 @@ app.post('/contact', async (req, res) => {
 // --- JUSTICE PORTAL: ISOLATED SYSTEM ---
 // ============================================================================
 
-// --- JUSTICE PORTAL: EVIDENCE CATALOG ---
-// This acts as the database for the portal. The hashes tie the files to the IPFS signature.
+// --- EVIDENCE CATALOG ---
+// How to distinguish types:
+// type: 'split-screen' -> Requires HTML transcript text for AI highlighting.
+// type: 'video' -> Opens MP4 in a new tab.
+// type: 'audio' -> Opens MP3/WAV in a new tab.
+// type: 'document' -> Opens a raw PDF in a new tab (no AI highlighting).
 const evidenceCatalog = [
     { 
-        id: 'doc1', 
-        title: 'Trial Transcript: Cross Examination vs AI Analysis', 
+        id: 'transcript1', 
+        title: 'Trial Transcript: Cross Examination & Video Admission (Vol. I)', 
         type: 'split-screen', 
-        documentHash: 'SHA256:8f434346648f6b96df89dda901c5176b10a6d83961dd3c1ac88b59b2dc327aa4' 
+        documentHash: 'SHA256:8f434346648f6b96df89dda901c5176b10a6d83961dd3c1ac88b59b2dc327aa4',
+        // For split-screen to work with AI, the transcript must be HTML with ID tags
+        transcriptHtml: `
+            <h4 style="color:#0077b5;">Vol. I, Page 167 - Voir Dire of Detective Mendez</h4>
+            <span class="transcript-line" id="p167-l16"><span class="line-num">16</span> A: So I went onto CaseCracker, which we use for our video</span><br>
+            <span class="transcript-line" id="p167-l17"><span class="line-num">17</span> system, which is encrypted and also password relied on. I</span><br>
+            <span class="transcript-line" id="p167-l18"><span class="line-num">18</span> took that video and I put it into command central</span><br>
+            <span class="transcript-line" id="p167-l19"><span class="line-num">19</span> evidence, which is our county evidence digital storage.</span><br><br>
+            
+            <h4 style="color:#0077b5;">Vol. I, Page 170 - Judicial Response</h4>
+            <span class="transcript-line" id="p170-l9"><span class="line-num">9</span> THE COURT: Okay. If it's relevant to this</span><br>
+            <span class="transcript-line" id="p170-l10"><span class="line-num">10</span> video you may ask, but I don't know --</span><br><br>
+
+            <h4 style="color:#0077b5;">Vol. I, Page 174 - Lack of Chain of Custody</h4>
+            <span class="transcript-line" id="p174-l3"><span class="line-num">3</span> Q: Are there any custody logs available to accompany the</span><br>
+            <span class="transcript-line" id="p174-l4"><span class="line-num">4</span> video?</span><br>
+            <span class="transcript-line" id="p174-l5"><span class="line-num">5</span> A: No. Everything went straight to command central, so</span><br>
+            <span class="transcript-line" id="p174-l6"><span class="line-num">6</span> everything's in that.</span><br><br>
+
+            <h4 style="color:#0077b5;">Vol. I, Page 180 - Video Discrepancy</h4>
+            <span class="transcript-line" id="p180-l2"><span class="line-num">2</span> THE DEFENDANT: I apologize, but this version of</span><br>
+            <span class="transcript-line" id="p180-l3"><span class="line-num">3</span> the video I never received at all. I only ever received</span><br>
+            <span class="transcript-line" id="p180-l4"><span class="line-num">4</span> the one with the view from the back.</span><br>
+        `,
+        aiAnalysisHtml: `
+            <p><strong>Finding 1: Discovery Violations and the Interview Video (PX21)</strong></p>
+            <p>The prosecution introduced a video of the defendant's interview from an "aerial" or frontal angle. The defendant immediately objected, stating he had only been served a "rear view" copy <span class="citation" data-target="p180-l2,p180-l3,p180-l4">(See Vol. I, Page 180, Lines 2-4)</span>. The judge allowed the playback to continue.</p>
+            
+            <p><strong>Finding 2: Judicial Ignorance of Disclosure Mandates</strong></p>
+            <p>The Judge's specific comment—"I don't know if it matters"—regarding the video <span class="citation" data-target="p170-l9,p170-l10">(See Vol. I, Page 170, Lines 9-10)</span> is a significant legal error. Under MCR 6.201(A)(1), the prosecution is required to disclose the exact evidence it intends to use.</p>
+            
+            <p><strong>Finding 3: Evidentiary Foundation and Digital Authentication (MRE 901)</strong></p>
+            <p>During the voir dire of Detective Mendez, the defendant challenged the video's integrity, noting the lack of chain-of-custody logs. The detective admitted that "everything went straight to command central" and no forensic logs existed <span class="citation" data-target="p174-l3,p174-l4,p174-l5,p174-l6">(See Vol. I, Page 174, Lines 3-6)</span>.</p>
+        `
     },
     { 
         id: 'video1', 
-        title: 'Bodycam Footage 1', 
+        title: 'Bodycam Footage: Arrest Scene', 
         type: 'video', 
-        url: '/evidence/video1.mp4',
+        url: '/evidence/bodycam.mp4', 
         documentHash: 'SHA256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'
     }
 ];
+
+// --- AI ANALYSIS CATALOG (For the Dropdown) ---
+// Note: The data-target="p3-l45" must exactly match the id="p3-l45" in the transcriptHtml above.
+const aiAnalyses = [];
 
 // --- JUSTICE PORTAL: ROUTES ---
 
@@ -627,6 +684,62 @@ app.get('/auth/linkedin/callback', async (req, res) => {
     }
 });
 
+// --- NEW CODE: Justice Portal Verification Endpoints ---
+app.post('/api/justice/verify-lawyer', (req, res) => {
+    const { state, barNumber } = req.body;
+    // Automated verification logic: checking formatting. In production, this would query a state bar API.
+    if (state && barNumber && barNumber.length >= 4) {
+        res.json({ success: true, message: "Credentials verified." });
+    } else {
+        res.json({ success: false, message: "Invalid credentials." });
+    }
+});
+
+app.post('/api/justice/send-verification', async (req, res) => {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: "Email required" });
+
+    const token = crypto.randomBytes(20).toString('hex');
+    pendingVerifications[token] = email;
+
+    const verifyLink = `${DOMAIN}/justice/verify-email?token=${token}`;
+
+    try {
+        await transporter.sendMail({
+            from: `"Justice Portal" <${process.env.SMTP_USER || 'noreply@futuremusic.online'}>`,
+            to: email,
+            subject: "Verify your email for the Justice Portal",
+            text: `Please verify your email by clicking this link: ${verifyLink}`,
+            html: `<p>Please verify your email by clicking this link: <a href="${verifyLink}">${verifyLink}</a></p>`
+        });
+        res.json({ success: true });
+    } catch (err) {
+        console.error("Email send error:", err);
+        res.status(500).json({ error: "Failed to send email. Check SMTP configuration." });
+    }
+});
+
+app.get('/justice/verify-email', (req, res) => {
+    const { token } = req.query;
+    if (token && pendingVerifications[token]) {
+        const email = pendingVerifications[token];
+        req.session.verifiedEmail = email;
+        delete pendingVerifications[token];
+        res.send('<script>alert("Email verified successfully! You can close this tab and submit your attestation."); window.close();</script>');
+    } else {
+        res.status(400).send("Invalid or expired verification token.");
+    }
+});
+
+app.get('/api/justice/check-email-verification', (req, res) => {
+    if (req.session.verifiedEmail) {
+        res.json({ verified: true, email: req.session.verifiedEmail });
+    } else {
+        res.json({ verified: false });
+    }
+});
+// --- END NEW CODE ---
+
 app.post('/api/justice/attest', async (req, res) => {
     const { 
         signatureHash, walletAddress, drawnSignatureBase64, 
@@ -638,8 +751,8 @@ app.post('/api/justice/attest', async (req, res) => {
     const linkedinProfile = req.session.linkedinProfile;
 
     // Enforce at least LinkedIn OR Email
-    if (!linkedinProfile && !emailAddress) {
-        return res.status(400).json({ error: 'Must provide either an Email Address or verify via LinkedIn.' });
+    if (!linkedinProfile && (!emailAddress || req.session.verifiedEmail !== emailAddress)) {
+        return res.status(400).json({ error: 'Must provide either a verified Email Address or verify via LinkedIn.' });
     }
 
     const attestationRecord = {

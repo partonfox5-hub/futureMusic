@@ -32,18 +32,13 @@
 </div>
 
 <div class="split-container">
-    <!-- LEFT PANE: TRANSCRIPT -->
+  <!-- LEFT PANE: TRANSCRIPT -->
     <div class="pane pane-left" id="transcript-pane">
         <h3 style="color: #fff;">Court Transcript</h3>
         <hr style="border-color: #333;">
-        <div id="transcript-content">
-            <!-- Mock Transcript Data with ID tags -->
-            <span class="transcript-line" id="p3-l43"><span class="line-num">43</span> Q: Did you observe the defendant at the scene?</span>
-            <span class="transcript-line" id="p3-l44"><span class="line-num">44</span> A: I am not entirely sure, it was dark.</span>
-            <span class="transcript-line" id="p3-l45"><span class="line-num">45</span> Q: So you cannot positively identify him?</span>
-            <span class="transcript-line" id="p3-l46"><span class="line-num">46</span> A: No, I cannot.</span>
-            <br><br>
-            <span class="transcript-line" id="p5-l12"><span class="line-num">12</span> THE COURT: Objection overruled. The jury will ignore the lack of identification.</span>
+        <div id="transcript-content" style="line-height: 1.8;">
+            <!-- Dynamically loads the transcriptHtml from server.js -->
+            <%- doc.transcriptHtml %>
         </div>
     </div>
 
@@ -51,11 +46,7 @@
     <div class="pane pane-right">
         <h3 style="color: #fff;">AI Objective Analysis</h3>
         <hr style="border-color: #333;">
-        <p><strong>Finding 1: Lack of Evidence</strong></p>
-        <p>The prosecution's primary witness explicitly stated they could not positively identify the defendant due to poor lighting conditions <span class="citation" data-target="p3-l45">(See Page 3, Lines 44-46)</span>. By standard legal definitions, this introduces reasonable doubt.</p>
-        
-        <p><strong>Finding 2: Judicial Conduct</strong></p>
-        <p>The judge's instruction to the jury to "ignore the lack of identification" <span class="citation" data-target="p5-l12">(See Page 5, Line 12)</span> is highly irregular and objectively prejudices the jury against the defense, violating the standard of impartiality.</p>
+        <%- doc.aiAnalysisHtml %>
     </div>
 </div>
 
