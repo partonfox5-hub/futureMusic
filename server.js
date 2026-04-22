@@ -627,28 +627,31 @@ app.get('/auth/linkedin/callback', async (req, res) => {
     }
 });
 
-// 4. IPFS Attestation Submission
 app.post('/api/justice/attest', async (req, res) => {
-    // Block unauthorized submissions
-    if (!req.session.linkedinProfile) {
-        return res.status(401).json({ error: 'Must authenticate via LinkedIn' });
-    }
-    
     const { 
         signatureHash, walletAddress, drawnSignatureBase64, 
+        fullName, emailAddress, phoneNumber,
         agreeAcquit, agreeDisqualify, rationale, 
         isLawyer, barNumber, state, timeTracking 
     } = req.body;
 
-    // Construct the immutable record anchoring everything together
+    const linkedinProfile = req.session.linkedinProfile;
+
+    // Enforce at least LinkedIn OR Email
+    if (!linkedinProfile && !emailAddress) {
+        return res.status(400).json({ error: 'Must provide either an Email Address or verify via LinkedIn.' });
+    }
+
     const attestationRecord = {
-        schema: "EAS-Judicial-Accountability-v1",
+        schema: "EAS-Judicial-Accountability-v2",
         timestamp: new Date().toISOString(),
         identity: {
-            name: req.session.linkedinProfile.name,
-            email: req.session.linkedinProfile.email,
-            linkedinId: req.session.linkedinProfile.sub, // Unique LinkedIn User ID
-            verifiedVia: 'LinkedIn OAuth 2.0'
+            linkedinVerifiedName: linkedinProfile ? linkedinProfile.name : 'Unverified',
+            linkedinId: linkedinProfile ? linkedinProfile.sub : 'N/A', 
+            providedFullName: fullName,
+            providedEmail: emailAddress || (linkedinProfile ? linkedinProfile.email : 'N/A'),
+            providedPhone: phoneNumber || 'N/A',
+            verifiedVia: linkedinProfile ? 'LinkedIn + Manual Entry' : 'Manual Entry (Email)'
         },
         professionalCredentials: {
             isLawyer: isLawyer,
@@ -657,13 +660,13 @@ app.post('/api/justice/attest', async (req, res) => {
         },
         cryptographicProof: {
             signerAddress: walletAddress,
-            walletSignature: signatureHash, // The math proving the wallet signed this
-            drawnSignature: drawnSignatureBase64 // The visual representation
+            walletSignature: signatureHash, 
+            drawnSignature: drawnSignatureBase64 
         },
         evidenceReviewed: evidenceCatalog.map(doc => ({
             id: doc.id,
             title: doc.title,
-            documentHash: doc.documentHash, // TIES THE SIGNATURE TO THE EXACT FILES
+            documentHash: doc.documentHash, 
             timeSpentSeconds: timeTracking[doc.id] || 0
         })),
         attestation: {
@@ -674,7 +677,6 @@ app.post('/api/justice/attest', async (req, res) => {
     };
 
     try {
-        // Upload directly to IPFS via Pinata
         const pinataUrl = `https://api.pinata.cloud/pinning/pinJSONToIPFS`;
         const response = await axios.post(pinataUrl, attestationRecord, {
             headers: {
@@ -690,9 +692,6 @@ app.post('/api/justice/attest', async (req, res) => {
         res.status(500).json({ error: 'Failed to upload to IPFS' });
     }
 });
-// ============================================================================
-// --- END JUSTICE PORTAL ---
-// ============================================================================
 
 
 // --- DEBUG ROUTE: VIEW DATA WITHOUT CRASHING ---

@@ -59,24 +59,33 @@
         <button onclick="showAttestationForm()" style="background: #00ffcc; color: #000; padding: 15px 30px; font-size: 18px; font-weight: bold; border: none; cursor: pointer;">Proceed to Attestation</button>
     </div>
 
-    <!-- ATTESTATION FORM -->
+  <!-- ATTESTATION FORM -->
     <div id="attest-section" class="attest-section">
         <h2>2. Official Attestation</h2>
         
-        <div class="auth-box">
-            <% if (!user) { %>
-                <h3>Identity Verification Required</h3>
-                <p>To securely anchor this attestation, you must verify your identity. No Web3 knowledge is required.</p>
-                <a href="/auth/linkedin" class="btn-linkedin">Verify Identity via LinkedIn</a>
-            <% } else { %>
-                <h3 style="color: #00ffcc;">Verified: <%= user.name %></h3>
-                <p style="color: #aaa;">Your invisible Web3 wallet has been generated to sign this record.</p>
-                <p style="font-size: 12px; color: #666;">Signer Address: <span id="wallet-address">Loading...</span></p>
-            <% } %>
-        </div>
+        <p style="color: #aaa; margin-bottom: 20px;">Your invisible Web3 wallet has been generated to sign this record. <br>
+        <span style="font-size: 12px; color: #666;">Signer Address: <span id="wallet-address">Loading...</span></span></p>
 
-        <% if (user) { %>
         <form id="attestForm">
+            <!-- Personal Information Fields -->
+            <div class="checkbox-group" style="border-left-color: #0077b5;">
+                <label><strong>Signer Information</strong></label>
+                
+                <!-- LinkedIn Optional Block -->
+                <div style="background: #111; padding: 15px; margin-bottom: 15px; border: 1px solid #333;">
+                    <% if (!user) { %>
+                        <p style="margin-top: 0; font-size: 14px;"><strong>Optional:</strong> Verify your identity via LinkedIn to add strong cryptographic weight to your attestation.</p>
+                        <a href="/auth/linkedin" class="btn-linkedin" style="display: inline-block; margin-bottom: 10px;">Verify with LinkedIn</a>
+                    <% } else { %>
+                        <p style="margin-top: 0; color: #00ffcc;">✓ <strong>Verified via LinkedIn:</strong> <%= user.name %></p>
+                    <% } %>
+                </div>
+
+                <input type="text" id="fullName" placeholder="Full Legal Name" value="<%= user ? user.name : '' %>" required>
+                <input type="email" id="emailAddress" placeholder="Email Address (Required if no LinkedIn)" value="<%= user ? user.email : '' %>">
+                <input type="tel" id="phoneNumber" placeholder="Phone Number (Optional)">
+            </div>
+
             <div class="checkbox-group">
                 <label>
                     <input type="checkbox" id="isLawyer" onchange="toggleLawyer()"> <strong>I am a licensed legal professional.</strong>
@@ -109,7 +118,6 @@
             <p>Your signature, identity token, drawn signature, and document hashes have been cryptographically bound together.</p>
             <p><strong>IPFS CID Hash:</strong> <br><a href="" id="ipfs-link" target="_blank" style="color:#00ff00;"></a></p>
         </div>
-        <% } %>
     </div>
 </div>
 
@@ -179,11 +187,21 @@
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            // Check if canvas is blank
+   // Check if canvas is blank
             const blank = document.createElement('canvas');
             blank.width = canvas.width; blank.height = canvas.height;
             if (canvas.toDataURL() === blank.toDataURL()) {
                 alert("Please draw your signature.");
+                return;
+            }
+
+            // Validate that either LinkedIn is connected OR Email is provided
+            const emailVal = document.getElementById('emailAddress').value.trim();
+            const hasLinkedIn = <%= user ? 'true' : 'false' %>;
+            
+            if (!hasLinkedIn && !emailVal) {
+                alert("You must either verify with LinkedIn or provide an Email Address.");
+                document.getElementById('emailAddress').focus();
                 return;
             }
 
@@ -195,6 +213,9 @@
 
             // 1. Build the payload
             const payload = {
+                fullName: document.getElementById('fullName').value,
+                emailAddress: emailVal,
+                phoneNumber: document.getElementById('phoneNumber').value,
                 agreeAcquit: document.getElementById('agreeAcquit').checked,
                 agreeDisqualify: document.getElementById('agreeDisqualify').checked,
                 rationale: document.getElementById('rationale').value,
@@ -202,9 +223,9 @@
                 barNumber: document.getElementById('barNumber').value,
                 state: document.getElementById('state').value,
                 timeTracking: timeTracking,
-                drawnSignatureBase64: canvas.toDataURL('image/png') // Convert signature to image data
+                drawnSignatureBase64: canvas.toDataURL('image/png') 
             };
-
+            
             // 2. Invisible Wallet signs the payload
             const messageString = JSON.stringify(payload);
             const signatureHash = await wallet.signMessage(messageString);
