@@ -27,7 +27,19 @@
 <body>
 
 <div class="header">
-    <h2><%= title %></h2>
+    <div style="display: flex; align-items: center; gap: 15px;">
+        <h2 style="margin: 0;"><%= title %></h2>
+        <% if (typeof catalog !== 'undefined') { %>
+        <select onchange="if(this.value) window.location.href=this.value" style="padding: 8px; background: #222; color: #00ffcc; border: 1px solid #00ffcc; border-radius: 4px; font-weight: bold; cursor: pointer;">
+            <option value="" disabled>-- Switch Document --</option>
+            <% catalog.filter(item => item.type === 'split-screen').forEach(item => { %>
+                <option value="/justice/review/<%= item.id %>" <%= item.id === doc.id ? 'selected' : '' %>>
+                    <%= item.title %>
+                </option>
+            <% }) %>
+        </select>
+        <% } %>
+    </div>
     <a href="/justice" onclick="saveTime()">Return to Portal</a>
 </div>
 

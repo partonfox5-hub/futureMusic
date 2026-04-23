@@ -575,45 +575,42 @@ app.post('/contact', async (req, res) => {
 // type: 'video' -> Opens MP4 in a new tab.
 // type: 'audio' -> Opens MP3/WAV in a new tab.
 // type: 'document' -> Opens a raw PDF in a new tab (no AI highlighting).
+
+// Helper function to dynamically load HTML files from public/evidence
+function loadEvidenceHtml(filename) {
+    try {
+        return fs.readFileSync(path.join(__dirname, 'public', 'evidence', filename), 'utf8');
+    } catch (e) {
+        return `<div style="padding: 20px; color: #ff5555; border: 1px solid #ff5555; background: #220000;">
+                    <strong>File Not Found:</strong> Could not load <code>public/evidence/${filename}</code>.<br>
+                    Please ensure you have created this file and placed your HTML content inside it.
+                </div>`;
+    }
+}
+
 const evidenceCatalog = [
     { 
         id: 'transcript1', 
         title: 'Trial Transcript: Cross Examination & Video Admission (Vol. I)', 
         type: 'split-screen', 
         documentHash: 'SHA256:8f434346648f6b96df89dda901c5176b10a6d83961dd3c1ac88b59b2dc327aa4',
-        // For split-screen to work with AI, the transcript must be HTML with ID tags
-        transcriptHtml: `
-            <h4 style="color:#0077b5;">Vol. I, Page 167 - Voir Dire of Detective Mendez</h4>
-            <span class="transcript-line" id="p167-l16"><span class="line-num">16</span> A: So I went onto CaseCracker, which we use for our video</span><br>
-            <span class="transcript-line" id="p167-l17"><span class="line-num">17</span> system, which is encrypted and also password relied on. I</span><br>
-            <span class="transcript-line" id="p167-l18"><span class="line-num">18</span> took that video and I put it into command central</span><br>
-            <span class="transcript-line" id="p167-l19"><span class="line-num">19</span> evidence, which is our county evidence digital storage.</span><br><br>
-            
-            <h4 style="color:#0077b5;">Vol. I, Page 170 - Judicial Response</h4>
-            <span class="transcript-line" id="p170-l9"><span class="line-num">9</span> THE COURT: Okay. If it's relevant to this</span><br>
-            <span class="transcript-line" id="p170-l10"><span class="line-num">10</span> video you may ask, but I don't know --</span><br><br>
-
-            <h4 style="color:#0077b5;">Vol. I, Page 174 - Lack of Chain of Custody</h4>
-            <span class="transcript-line" id="p174-l3"><span class="line-num">3</span> Q: Are there any custody logs available to accompany the</span><br>
-            <span class="transcript-line" id="p174-l4"><span class="line-num">4</span> video?</span><br>
-            <span class="transcript-line" id="p174-l5"><span class="line-num">5</span> A: No. Everything went straight to command central, so</span><br>
-            <span class="transcript-line" id="p174-l6"><span class="line-num">6</span> everything's in that.</span><br><br>
-
-            <h4 style="color:#0077b5;">Vol. I, Page 180 - Video Discrepancy</h4>
-            <span class="transcript-line" id="p180-l2"><span class="line-num">2</span> THE DEFENDANT: I apologize, but this version of</span><br>
-            <span class="transcript-line" id="p180-l3"><span class="line-num">3</span> the video I never received at all. I only ever received</span><br>
-            <span class="transcript-line" id="p180-l4"><span class="line-num">4</span> the one with the view from the back.</span><br>
-        `,
-        aiAnalysisHtml: `
-            <p><strong>Finding 1: Discovery Violations and the Interview Video (PX21)</strong></p>
-            <p>The prosecution introduced a video of the defendant's interview from an "aerial" or frontal angle. The defendant immediately objected, stating he had only been served a "rear view" copy <span class="citation" data-target="p180-l2,p180-l3,p180-l4">(See Vol. I, Page 180, Lines 2-4)</span>. The judge allowed the playback to continue.</p>
-            
-            <p><strong>Finding 2: Judicial Ignorance of Disclosure Mandates</strong></p>
-            <p>The Judge's specific comment—"I don't know if it matters"—regarding the video <span class="citation" data-target="p170-l9,p170-l10">(See Vol. I, Page 170, Lines 9-10)</span> is a significant legal error. Under MCR 6.201(A)(1), the prosecution is required to disclose the exact evidence it intends to use.</p>
-            
-            <p><strong>Finding 3: Evidentiary Foundation and Digital Authentication (MRE 901)</strong></p>
-            <p>During the voir dire of Detective Mendez, the defendant challenged the video's integrity, noting the lack of chain-of-custody logs. The detective admitted that "everything went straight to command central" and no forensic logs existed <span class="citation" data-target="p174-l3,p174-l4,p174-l5,p174-l6">(See Vol. I, Page 174, Lines 3-6)</span>.</p>
-        `
+        transcriptHtml: loadEvidenceHtml('transcript1.html'),
+        aiAnalysisHtml: loadEvidenceHtml('analysis1.html')
+    },
+    { 
+        id: 'transcript2', 
+        title: 'Trial Transcript: Direct Examination (Vol. II)', 
+        type: 'split-screen', 
+        documentHash: 'Pending Verification',
+        transcriptHtml: loadEvidenceHtml('transcript2.html'),
+        aiAnalysisHtml: loadEvidenceHtml('analysis2.html')
+    },
+    { 
+        id: 'exhibits_pdf', 
+        title: 'Defendant Copy of Exhibits Tendered', 
+        type: 'document', 
+        url: '/evidence/Defendant_Copy of Exhibits_Tendered.pdf', 
+        documentHash: 'Pending Verification'
     },
     { 
         id: 'video1', 
@@ -644,7 +641,8 @@ app.get('/justice/review/:id', (req, res) => {
     const doc = evidenceCatalog.find(d => d.id === req.params.id);
     if (!doc) return res.redirect('/justice');
     
-    res.render('review', { title: doc.title, doc: doc });
+    // Pass the full catalog so the dropdown menu can render the options
+    res.render('review', { title: doc.title, doc: doc, catalog: evidenceCatalog });
 });
 
 // 3. LinkedIn Auth Flow (Strictly for the Justice Portal)
