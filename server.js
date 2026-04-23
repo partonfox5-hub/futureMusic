@@ -570,55 +570,28 @@ app.post('/contact', async (req, res) => {
 // ============================================================================
 
 // --- EVIDENCE CATALOG ---
-// How to distinguish types:
-// type: 'split-screen' -> Requires HTML transcript text for AI highlighting.
-// type: 'video' -> Opens MP4 in a new tab.
-// type: 'audio' -> Opens MP3/WAV in a new tab.
-// type: 'document' -> Opens a raw PDF in a new tab (no AI highlighting).
-
-// Helper function to dynamically load HTML files from public/evidence
+// Helper function to dynamically load AI Analysis HTML files from public/evidence
 function loadEvidenceHtml(filename) {
     try {
         return fs.readFileSync(path.join(__dirname, 'public', 'evidence', filename), 'utf8');
     } catch (e) {
-        return `<div style="padding: 20px; color: #ff5555; border: 1px solid #ff5555; background: #220000;">
-                    <strong>File Not Found:</strong> Could not load <code>public/evidence/${filename}</code>.<br>
-                    Please ensure you have created this file and placed your HTML content inside it.
-                </div>`;
+        return `<div style="padding: 20px; color: #aaa;"><em>AI Analysis pending or file not found.</em></div>`;
     }
 }
 
 const evidenceCatalog = [
-    { 
-        id: 'transcript1', 
-        title: 'Trial Transcript: Cross Examination & Video Admission (Vol. I)', 
-        type: 'split-screen', 
-        documentHash: 'SHA256:8f434346648f6b96df89dda901c5176b10a6d83961dd3c1ac88b59b2dc327aa4',
-        transcriptHtml: loadEvidenceHtml('transcript1.html'),
-        aiAnalysisHtml: loadEvidenceHtml('analysis1.html')
-    },
-    { 
-        id: 'transcript2', 
-        title: 'Trial Transcript: Direct Examination (Vol. II)', 
-        type: 'split-screen', 
-        documentHash: 'Pending Verification',
-        transcriptHtml: loadEvidenceHtml('transcript2.html'),
-        aiAnalysisHtml: loadEvidenceHtml('analysis2.html')
-    },
-    { 
-        id: 'exhibits_pdf', 
-        title: 'Defendant Copy of Exhibits Tendered', 
-        type: 'document', 
-        url: '/evidence/Defendant_Copy of Exhibits_Tendered.pdf', 
-        documentHash: 'Pending Verification'
-    },
-    { 
-        id: 'video1', 
-        title: 'Bodycam Footage: Arrest Scene', 
-        type: 'video', 
-        url: '/evidence/bodycam.mp4', 
-        documentHash: 'SHA256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'
-    }
+    { id: 'exhibits_pdf', title: 'Defendant_Copy of Exhibits_Tendered.pdf', type: 'split-screen', url: '/evidence/Defendant_Copy of Exhibits_Tendered.pdf', documentHash: 'Pending Verification', aiAnalysisHtml: loadEvidenceHtml('analysis_exhibits.html') },
+    { id: 'parton_2_5', title: 'parton.f.2.5.25.pdf', type: 'split-screen', url: '/evidence/parton.f.2.5.25.pdf', documentHash: 'Pending Verification', aiAnalysisHtml: loadEvidenceHtml('analysis_2_5.html') },
+    { id: 'parton_3_12', title: 'parton.f.3.12.25.pdf', type: 'split-screen', url: '/evidence/parton.f.3.12.25.pdf', documentHash: 'Pending Verification', aiAnalysisHtml: loadEvidenceHtml('analysis_3_12.html') },
+    { id: 'parton_5_15', title: 'parton.f.5.15.25.pdf', type: 'split-screen', url: '/evidence/parton.f.5.15.25.pdf', documentHash: 'Pending Verification', aiAnalysisHtml: loadEvidenceHtml('analysis_5_15.html') },
+    { id: 'parton_5_21', title: 'parton.f.5.21.25.pdf', type: 'split-screen', url: '/evidence/parton.f.5.21.25.pdf', documentHash: 'Pending Verification', aiAnalysisHtml: loadEvidenceHtml('analysis_5_21.html') },
+    { id: 'parton_5_22', title: 'parton.f.5.22.25.pdf', type: 'split-screen', url: '/evidence/parton.f.5.22.25.pdf', documentHash: 'Pending Verification', aiAnalysisHtml: loadEvidenceHtml('analysis_5_22.html') },
+    { id: 'parton_7_2', title: 'parton.f.7.2.25.pdf', type: 'split-screen', url: '/evidence/parton.f.7.2.25.pdf', documentHash: 'Pending Verification', aiAnalysisHtml: loadEvidenceHtml('analysis_7_2.html') },
+    { id: 'parton_7_7', title: 'parton.f.7.7.25.pdf', type: 'split-screen', url: '/evidence/parton.f.7.7.25.pdf', documentHash: 'Pending Verification', aiAnalysisHtml: loadEvidenceHtml('analysis_7_7.html') },
+    { id: 'parton_7_9', title: 'parton.f.7.9.25.pdf', type: 'split-screen', url: '/evidence/parton.f.7.9.25.pdf', documentHash: 'Pending Verification', aiAnalysisHtml: loadEvidenceHtml('analysis_7_9.html') },
+    { id: 'parton_8_27', title: 'parton.f.8.27.25.pdf', type: 'split-screen', url: '/evidence/parton.f.8.27.25.pdf', documentHash: 'Pending Verification', aiAnalysisHtml: loadEvidenceHtml('analysis_8_27.html') },
+    { id: 'parton_9_18', title: 'parton.f.9.18.25.pdf', type: 'split-screen', url: '/evidence/parton.f.9.18.25.pdf', documentHash: 'Pending Verification', aiAnalysisHtml: loadEvidenceHtml('analysis_9_18.html') },
+    { id: 'parton_10_29', title: 'parton.f.10.29.25.pdf', type: 'split-screen', url: '/evidence/parton.f.10.29.25.pdf', documentHash: 'Pending Verification', aiAnalysisHtml: loadEvidenceHtml('analysis_10_29.html') }
 ];
 
 // --- AI ANALYSIS CATALOG (For the Dropdown) ---
@@ -641,7 +614,6 @@ app.get('/justice/review/:id', (req, res) => {
     const doc = evidenceCatalog.find(d => d.id === req.params.id);
     if (!doc) return res.redirect('/justice');
     
-    // Pass the full catalog so the dropdown menu can render the options
     res.render('review', { title: doc.title, doc: doc, catalog: evidenceCatalog });
 });
 

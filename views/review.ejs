@@ -30,7 +30,7 @@
     <div style="display: flex; align-items: center; gap: 15px;">
         <h2 style="margin: 0;"><%= title %></h2>
         <% if (typeof catalog !== 'undefined') { %>
-        <select onchange="if(this.value) window.location.href=this.value" style="padding: 8px; background: #222; color: #00ffcc; border: 1px solid #00ffcc; border-radius: 4px; font-weight: bold; cursor: pointer;">
+        <select onchange="if(this.value) window.location.href=this.value" style="padding: 8px; background: #222; color: #00ffcc; border: 1px solid #00ffcc; border-radius: 4px; font-weight: bold; cursor: pointer; max-width: 300px;">
             <option value="" disabled>-- Switch Document --</option>
             <% catalog.filter(item => item.type === 'split-screen').forEach(item => { %>
                 <option value="/justice/review/<%= item.id %>" <%= item.id === doc.id ? 'selected' : '' %>>
@@ -45,12 +45,17 @@
 
 <div class="split-container">
   <!-- LEFT PANE: TRANSCRIPT -->
-    <div class="pane pane-left" id="transcript-pane">
-        <h3 style="color: #fff;">Court Transcript</h3>
-        <hr style="border-color: #333;">
-        <div id="transcript-content" style="line-height: 1.8;">
-            <!-- Dynamically loads the transcriptHtml from server.js -->
-            <%- doc.transcriptHtml %>
+    <div class="pane pane-left" id="transcript-pane" style="display: flex; flex-direction: column;">
+        <h3 style="color: #fff;">Court Document</h3>
+        <hr style="border-color: #333; width: 100%;">
+        <div id="transcript-content" style="line-height: 1.8; flex: 1;">
+            <% if (doc.url && doc.url.endsWith('.pdf')) { %>
+                <iframe src="<%= doc.url %>" width="100%" height="100%" style="border: none; min-height: 750px;"></iframe>
+            <% } else if (doc.transcriptHtml) { %>
+                <%- doc.transcriptHtml %>
+            <% } else { %>
+                <p style="color: #ff5555;">Document format not supported for inline viewing.</p>
+            <% } %>
         </div>
     </div>
 
