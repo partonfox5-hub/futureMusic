@@ -570,19 +570,49 @@ app.post('/contact', async (req, res) => {
 // ============================================================================
 
 // --- EVIDENCE CATALOG ---
+const standardAnalyses = [
+    { title: 'Cruel & Unnecessary Punishment', url: '/analysis/cruel and unneccessary punishment summary.pdf' },
+    { title: 'Evidence Failures', url: '/analysis/evidence failures.pdf' },
+    { title: 'Human Rights Basis', url: '/analysis/human rights basis summary.pdf' },
+    { title: 'Legal & Moral Error', url: '/analysis/Legal and moral error summary (trial court).pdf' }
+];
+
 const evidenceCatalog = [
-    { id: 'exhibits_pdf', title: 'Defendant_Copy of Exhibits_Tendered.pdf', type: 'split-screen', url: '/evidence/Defendant_Copy of Exhibits_Tendered.pdf', documentHash: 'Pending Verification', aiAnalysisUrl: '/analysis/ai_analysis_exhibits.pdf' },
-    { id: 'parton_2_5', title: 'parton.f.2.5.25.pdf', type: 'split-screen', url: '/evidence/parton.f.2.5.25.pdf', documentHash: 'Pending Verification', aiAnalysisUrl: '/analysis/ai_analysis_2_5.pdf' },
-    { id: 'parton_3_12', title: 'parton.f.3.12.25.pdf', type: 'split-screen', url: '/evidence/parton.f.3.12.25.pdf', documentHash: 'Pending Verification', aiAnalysisUrl: '/analysis/ai_analysis_3_12.pdf' },
-    { id: 'parton_5_15', title: 'parton.f.5.15.25.pdf', type: 'split-screen', url: '/evidence/parton.f.5.15.25.pdf', documentHash: 'Pending Verification', aiAnalysisUrl: '/analysis/ai_analysis_5_15.pdf' },
-    { id: 'parton_5_21', title: 'parton.f.5.21.25.pdf', type: 'split-screen', url: '/evidence/parton.f.5.21.25.pdf', documentHash: 'Pending Verification', aiAnalysisUrl: '/analysis/ai_analysis_5_21.pdf' },
-    { id: 'parton_5_22', title: 'parton.f.5.22.25.pdf', type: 'split-screen', url: '/evidence/parton.f.5.22.25.pdf', documentHash: 'Pending Verification', aiAnalysisUrl: '/analysis/ai_analysis_5_22.pdf' },
-    { id: 'parton_7_2', title: 'parton.f.7.2.25.pdf', type: 'split-screen', url: '/evidence/parton.f.7.2.25.pdf', documentHash: 'Pending Verification', aiAnalysisUrl: '/analysis/ai_analysis_7_2.pdf' },
-    { id: 'parton_7_7', title: 'parton.f.7.7.25.pdf', type: 'split-screen', url: '/evidence/parton.f.7.7.25.pdf', documentHash: 'Pending Verification', aiAnalysisUrl: '/analysis/ai_analysis_7_7.pdf' },
-    { id: 'parton_7_9', title: 'parton.f.7.9.25.pdf', type: 'split-screen', url: '/evidence/parton.f.7.9.25.pdf', documentHash: 'Pending Verification', aiAnalysisUrl: '/analysis/ai_analysis_7_9.pdf' },
-    { id: 'parton_8_27', title: 'parton.f.8.27.25.pdf', type: 'split-screen', url: '/evidence/parton.f.8.27.25.pdf', documentHash: 'Pending Verification', aiAnalysisUrl: '/analysis/ai_analysis_8_27.pdf' },
-    { id: 'parton_9_18', title: 'parton.f.9.18.25.pdf', type: 'split-screen', url: '/evidence/parton.f.9.18.25.pdf', documentHash: 'Pending Verification', aiAnalysisUrl: '/analysis/ai_analysis_9_18.pdf' },
-    { id: 'parton_10_29', title: 'parton.f.10.29.25.pdf', type: 'split-screen', url: '/evidence/parton.f.10.29.25.pdf', documentHash: 'Pending Verification', aiAnalysisUrl: '/analysis/ai_analysis_10_29.pdf' }
+    { 
+        id: 'exhibits_pdf', 
+        title: 'Defendant_Copy of Exhibits_Tendered.pdf', 
+        type: 'split-screen', 
+        url: '/evidence/Defendant_Copy of Exhibits_Tendered.pdf', 
+        documentHash: 'Pending Verification', 
+        aiAnalyses: [
+            { title: 'Evidence Failures', url: '/analysis/evidence failures.pdf' }
+        ] 
+    },
+    { id: 'parton_2_5', title: 'parton.f.2.5.25.pdf', type: 'split-screen', url: '/evidence/parton.f.2.5.25.pdf', documentHash: 'Pending Verification', aiAnalyses: standardAnalyses },
+    { id: 'parton_3_12', title: 'parton.f.3.12.25.pdf', type: 'split-screen', url: '/evidence/parton.f.3.12.25.pdf', documentHash: 'Pending Verification', aiAnalyses: standardAnalyses },
+    { id: 'parton_5_15', title: 'parton.f.5.15.25.pdf', type: 'split-screen', url: '/evidence/parton.f.5.15.25.pdf', documentHash: 'Pending Verification', aiAnalyses: standardAnalyses },
+    { id: 'parton_5_21', title: 'parton.f.5.21.25.pdf', type: 'split-screen', url: '/evidence/parton.f.5.21.25.pdf', documentHash: 'Pending Verification', aiAnalyses: standardAnalyses },
+    { id: 'parton_5_22', title: 'parton.f.5.22.25.pdf', type: 'split-screen', url: '/evidence/parton.f.5.22.25.pdf', documentHash: 'Pending Verification', aiAnalyses: standardAnalyses },
+    { id: 'parton_7_2', title: 'parton.f.7.2.25.pdf', type: 'split-screen', url: '/evidence/parton.f.7.2.25.pdf', documentHash: 'Pending Verification', aiAnalyses: standardAnalyses },
+    { id: 'parton_7_7', title: 'parton.f.7.7.25.pdf', type: 'split-screen', url: '/evidence/parton.f.7.7.25.pdf', documentHash: 'Pending Verification', aiAnalyses: standardAnalyses },
+    { id: 'parton_7_9', title: 'parton.f.7.9.25.pdf', type: 'split-screen', url: '/evidence/parton.f.7.9.25.pdf', documentHash: 'Pending Verification', aiAnalyses: standardAnalyses },
+    { id: 'parton_8_27', title: 'parton.f.8.27.25.pdf', type: 'split-screen', url: '/evidence/parton.f.8.27.25.pdf', documentHash: 'Pending Verification', aiAnalyses: standardAnalyses },
+    { id: 'parton_9_18', title: 'parton.f.9.18.25.pdf', type: 'split-screen', url: '/evidence/parton.f.9.18.25.pdf', documentHash: 'Pending Verification', aiAnalyses: standardAnalyses },
+    { id: 'parton_10_29', title: 'parton.f.10.29.25.pdf', type: 'split-screen', url: '/evidence/parton.f.10.29.25.pdf', documentHash: 'Pending Verification', aiAnalyses: standardAnalyses },
+    { 
+        id: 'video_evidence_1', 
+        title: 'Video Evidence 1 (External)', 
+        type: 'video', 
+        url: 'https://storage.googleapis.com/futuremusic/evidence/video1.mp4', 
+        documentHash: 'Pending Verification' 
+    },
+    { 
+        id: 'video_evidence_2', 
+        title: 'Video Evidence 2 (External)', 
+        type: 'video', 
+        url: 'https://storage.googleapis.com/futuremusic/evidence/video2.mp4', 
+        documentHash: 'Pending Verification' 
+    }
 ];
 
 // --- AI ANALYSIS CATALOG (For the Dropdown) ---

@@ -8,7 +8,8 @@
         .header { background: #000; padding: 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #333; }
         .header a { color: #00ffcc; text-decoration: none; font-weight: bold; border: 1px solid #00ffcc; padding: 8px 15px; border-radius: 4px; }
         .split-container { display: flex; flex: 1; overflow: hidden; }
-        .pane { flex: 1; padding: 20px; overflow-y: auto; }
+                .pane { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        .pane-header { padding: 10px 20px; background: #111; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; }
         .pane-left { border-right: 2px solid #333; background: #1a1a1a; }
         .pane-right { background: #0a0a0a; }
         
@@ -66,14 +67,15 @@
 
 <div class="split-container" id="split-container">
     <!-- LEFT PANE: TRANSCRIPT -->
-    <div class="pane pane-left" id="pane-left" style="display: flex; flex-direction: column; flex: 0 0 50%;">
-        <h3 style="color: #fff;">Court Document</h3>
-        <hr style="border-color: #333; width: 100%;">
-        <div style="flex: 1;">
+    <div class="pane pane-left" id="pane-left" style="flex: 0 0 50%;">
+        <div class="pane-header">
+            <h3 style="color: #fff; margin: 0; font-size: 16px;">Court Document</h3>
+        </div>
+        <div style="flex: 1; overflow: hidden;">
             <% if (doc.url && doc.url.endsWith('.pdf')) { %>
-                <iframe src="<%= doc.url %>" width="100%" height="100%" style="border: none; min-height: 750px;"></iframe>
+                <iframe src="<%= doc.url %>" width="100%" height="100%" style="border: none; display: block;"></iframe>
             <% } else { %>
-                <p style="color: #ff5555;">Document format not supported.</p>
+                <p style="color: #ff5555; padding: 20px;">Document format not supported.</p>
             <% } %>
         </div>
     </div>
@@ -82,14 +84,22 @@
     <div class="resizer" id="drag-resizer"></div>
 
     <!-- RIGHT PANE: AI ANALYSIS -->
-    <div class="pane pane-right" id="pane-right" style="display: flex; flex-direction: column; flex: 1;">
-        <h3 style="color: #fff;">AI Objective Analysis</h3>
-        <hr style="border-color: #333; width: 100%;">
-        <div style="flex: 1;">
-            <% if (doc.aiAnalysisUrl) { %>
-                <iframe src="<%= doc.aiAnalysisUrl %>" width="100%" height="100%" style="border: none; min-height: 750px;"></iframe>
+    <div class="pane pane-right" id="pane-right">
+        <div class="pane-header">
+            <h3 style="color: #fff; margin: 0; font-size: 16px;">AI Objective Analysis</h3>
+            <% if (doc.aiAnalyses && doc.aiAnalyses.length > 0) { %>
+                <select onchange="document.getElementById('analysis-iframe').src = this.value;" style="padding: 6px; background: #222; color: #00ffcc; border: 1px solid #00ffcc; border-radius: 4px; cursor: pointer; max-width: 250px; font-weight: bold;">
+                    <% doc.aiAnalyses.forEach((analysis) => { %>
+                        <option value="<%= analysis.url %>"><%= analysis.title %></option>
+                    <% }) %>
+                </select>
+            <% } %>
+        </div>
+        <div style="flex: 1; overflow: hidden;">
+            <% if (doc.aiAnalyses && doc.aiAnalyses.length > 0) { %>
+                <iframe id="analysis-iframe" src="<%= doc.aiAnalyses[0].url %>" width="100%" height="100%" style="border: none; display: block;"></iframe>
             <% } else { %>
-                <p style="color: #aaa;">No AI Analysis document mapped for this file yet.</p>
+                <p style="color: #aaa; padding: 20px;">No AI Analysis document mapped for this file yet.</p>
             <% } %>
         </div>
     </div>
