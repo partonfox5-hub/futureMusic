@@ -22,6 +22,27 @@
         /* Citation Link */
         .citation { color: #00ffcc; text-decoration: underline; cursor: pointer; padding: 2px 4px; border-radius: 3px; transition: 0.3s; }
         .citation:hover { background: rgba(0, 255, 204, 0.2); }
+        
+        /* Draggable Divider Styles */
+        .resizer {
+            width: 10px;
+            background: #222;
+            cursor: col-resize;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            border-left: 1px solid #333;
+            border-right: 1px solid #333;
+        }
+        .resizer:hover, .resizer:active {
+            background: #00ffcc;
+        }
+        .resizer::after {
+            content: "⋮";
+            color: #666;
+            font-size: 20px;
+        }
     </style>
 </head>
 <body>
@@ -43,27 +64,34 @@
     <a href="/justice" onclick="saveTime()">Return to Portal</a>
 </div>
 
-<div class="split-container">
-  <!-- LEFT PANE: TRANSCRIPT -->
-    <div class="pane pane-left" id="transcript-pane" style="display: flex; flex-direction: column;">
+<div class="split-container" id="split-container">
+    <!-- LEFT PANE: TRANSCRIPT -->
+    <div class="pane pane-left" id="pane-left" style="display: flex; flex-direction: column; flex: 0 0 50%;">
         <h3 style="color: #fff;">Court Document</h3>
         <hr style="border-color: #333; width: 100%;">
-        <div id="transcript-content" style="line-height: 1.8; flex: 1;">
+        <div style="flex: 1;">
             <% if (doc.url && doc.url.endsWith('.pdf')) { %>
                 <iframe src="<%= doc.url %>" width="100%" height="100%" style="border: none; min-height: 750px;"></iframe>
-            <% } else if (doc.transcriptHtml) { %>
-                <%- doc.transcriptHtml %>
             <% } else { %>
-                <p style="color: #ff5555;">Document format not supported for inline viewing.</p>
+                <p style="color: #ff5555;">Document format not supported.</p>
             <% } %>
         </div>
     </div>
 
+    <!-- DRAGGABLE DIVIDER -->
+    <div class="resizer" id="drag-resizer"></div>
+
     <!-- RIGHT PANE: AI ANALYSIS -->
-    <div class="pane pane-right">
+    <div class="pane pane-right" id="pane-right" style="display: flex; flex-direction: column; flex: 1;">
         <h3 style="color: #fff;">AI Objective Analysis</h3>
-        <hr style="border-color: #333;">
-        <%- doc.aiAnalysisHtml %>
+        <hr style="border-color: #333; width: 100%;">
+        <div style="flex: 1;">
+            <% if (doc.aiAnalysisUrl) { %>
+                <iframe src="<%= doc.aiAnalysisUrl %>" width="100%" height="100%" style="border: none; min-height: 750px;"></iframe>
+            <% } else { %>
+                <p style="color: #aaa;">No AI Analysis document mapped for this file yet.</p>
+            <% } %>
+        </div>
     </div>
 </div>
 
@@ -74,33 +102,45 @@
     
     setInterval(() => { timeSpent++; }, 1000);
 
-    function saveTime() {
+     function saveTime() {
         let tracking = JSON.parse(localStorage.getItem('justice_time_tracking') || '{}');
         tracking[docId] = (tracking[docId] || 0) + timeSpent;
         localStorage.setItem('justice_time_tracking', JSON.stringify(tracking));
     }
 
-    // 2. Interactive Citation Highlighting
-    document.querySelectorAll('.citation').forEach(cite => {
-        cite.addEventListener('click', function() {
-            // Remove old highlights
-            document.querySelectorAll('.highlight-green').forEach(el => el.classList.remove('highlight-green'));
-            
-            // Highlight the citation clicked
-            this.classList.add('highlight-green');
+    // 2. Draggable Split Screen Logic
+    const resizer = document.getElementById('drag-resizer');
+    const leftPane = document.getElementById('pane-left');
+    const container = document.getElementById('split-container');
+    let isResizing = false;
 
-            // Find target lines in transcript (handles single lines or ranges like p3-l44,p3-l45,p3-l46)
-            const targets = this.getAttribute('data-target').split(',');
-            
-            targets.forEach(targetId => {
-                const targetEl = document.getElementById(targetId.trim());
-                if(targetEl) {
-                    targetEl.classList.add('highlight-green');
-                    // Scroll transcript pane to the line
-                    targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }
-            });
-        });
+    resizer.addEventListener('mousedown', (e) => {
+        isResizing = true;
+        document.body.style.cursor = 'col-resize';
+        // Disable iframe pointer events while dragging so the mouse doesn't get "stuck" inside the PDF viewer
+        document.querySelectorAll('iframe').forEach(iframe => iframe.style.pointerEvents = 'none');
+    });
+
+    document.addEventListener('mousemove', (e) => {
+        if (!isResizing) return;
+        const containerRect = container.getBoundingClientRect();
+        // Calculate new width percentage based on mouse position
+        let newWidth = ((e.clientX - containerRect.left) / containerRect.width) * 100;
+        
+        // Constrain the drag so neither side disappears completely (min 15%, max 85%)
+        if (newWidth < 15) newWidth = 15;
+        if (newWidth > 85) newWidth = 85;
+        
+        leftPane.style.flex = `0 0 ${newWidth}%`;
+    });
+
+    document.addEventListener('mouseup', () => {
+        if (isResizing) {
+            isResizing = false;
+            document.body.style.cursor = 'default';
+            // Re-enable iframe pointer events
+            document.querySelectorAll('iframe').forEach(iframe => iframe.style.pointerEvents = 'auto');
+        }
     });
 </script>
 
