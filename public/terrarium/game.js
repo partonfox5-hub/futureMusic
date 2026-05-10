@@ -18,10 +18,22 @@ window.mouseX = 0;
 window.mouseY = 0;
 window.isPaused = false;
 window.hoveredBird = null;
-let trees = [
-    { x: canvas.width * 0.2, y: canvas.height - 50, w: 40, h: canvas.height * 0.6, branches: [{x: canvas.width * 0.2, y: canvas.height - 250, w: 180, side: 1}] },
-    { x: canvas.width * 0.8, y: canvas.height - 50, w: 50, h: canvas.height * 0.7, branches: [{x: canvas.width * 0.8 - 180, y: canvas.height - 300, w: 180, side: -1}] }
-];
+let trees = [];
+let numTrees = Math.floor(Math.random() * 3) + 2; // 2 to 4 trees
+for (let i = 0; i < numTrees; i++) {
+    let tx = canvas.width * (0.1 + (i * 0.8 / numTrees)) + (Math.random() * 100 - 50);
+    let th = canvas.height * (0.4 + Math.random() * 0.4);
+    let tw = 30 + Math.random() * 30;
+    let branches = [];
+    let numBranches = Math.floor(Math.random() * 3) + 2;
+    for (let j = 0; j < numBranches; j++) {
+        let side = Math.random() > 0.5 ? 1 : -1;
+        let by = canvas.height - 50 - (th * (0.2 + Math.random() * 0.7));
+        let bw = 80 + Math.random() * 120;
+        branches.push({ x: side === 1 ? tx : tx - bw, y: by, w: bw, side: side });
+    }
+    trees.push({ x: tx, y: canvas.height - 50, w: tw, h: th, branches: branches });
+}
 
 const birdFacts = {
     'Robin': 'Robins are known for their running and stopping behavior while foraging on the ground.',
@@ -416,6 +428,24 @@ function drawEnvironment() {
     else color = '#0B1D3A'; 
     document.getElementById('sky-overlay').style.backgroundColor = color;
 
+   // Background Hills
+    ctx.fillStyle = '#3a5f27';
+    ctx.beginPath();
+    ctx.ellipse(canvas.width * 0.2, canvas.height - 50, canvas.width * 0.4, 150, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(canvas.width * 0.8, canvas.height - 50, canvas.width * 0.5, 200, 0, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Background distant trees
+    ctx.fillStyle = '#224016';
+    for(let i = 1; i < 10; i++) {
+        let dx = canvas.width * (i / 10);
+        let dy = canvas.height - 80 + Math.sin(i) * 30;
+        ctx.beginPath(); ctx.moveTo(dx, dy); ctx.lineTo(dx - 15, dy + 40); ctx.lineTo(dx + 15, dy + 40); ctx.fill();
+    }
+
+    // Foreground Ground
     ctx.fillStyle = '#2d4c1e';
     ctx.fillRect(0, canvas.height - 50, canvas.width, 50);
 
@@ -443,8 +473,19 @@ function drawEnvironment() {
 
     ctx.fillStyle = '#eedd82';
     seeds.forEach(s => { ctx.beginPath(); ctx.arc(s.x, s.y, 3, 0, Math.PI*2); ctx.fill(); });
-    ctx.fillStyle = '#000';
-    bugs.forEach(b => { ctx.beginPath(); ctx.arc(b.x, b.y, 2, 0, Math.PI*2); ctx.fill(); });
+    
+    // Draw Worms
+    ctx.strokeStyle = '#ffb6c1';
+    ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
+    bugs.forEach(b => { 
+        ctx.beginPath(); 
+        let squirm = Math.sin(b.cycle || 0) * 3;
+        ctx.moveTo(b.x - 5, b.y);
+        ctx.quadraticCurveTo(b.x, b.y - 5 - squirm, b.x + 5, b.y);
+        ctx.stroke(); 
+    });
+
     ctx.fillStyle = '#f4f4f4';
     eggs.forEach(e => { ctx.beginPath(); ctx.ellipse(e.x, e.y, 6, 8, 0, 0, Math.PI*2); ctx.fill(); });
 }
@@ -465,8 +506,21 @@ function gameLoop() {
         const timeScale = window.hoveredBird ? 0.5 : 1.0;
         const scaledDelta = deltaTime * timeScale;
 
-        if (Math.random() < 0.02 && bugs.length < 20) bugs.push({x: Math.random() * canvas.width, y: canvas.height - 50});
+  if (Math.random() < 0.02 && bugs.length < 20) {
+            bugs.push({
+                x: Math.random() * canvas.width, 
+                y: canvas.height - 30 + (Math.random() * 20 - 10), 
+                vx: (Math.random() - 0.5) * 20, 
+                cycle: Math.random() * Math.PI * 2
+            });
+        }
 
+        bugs.forEach(b => {
+            b.x += (b.vx * scaledDelta) / 1000;
+            b.cycle += (scaledDelta / 1000) * 15;
+            if (b.x < 0 || b.x > canvas.width) b.vx *= -1;
+            if (Math.random() < 0.01) b.vx *= -1; // Randomly change direction
+        });
         eggs.forEach(e => {
             e.hatchTime -= scaledDelta / 1000 * BIRD_AGING_MULTIPLIER;
             if (e.hatchTime <= 0) {
