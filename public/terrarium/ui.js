@@ -56,6 +56,11 @@ function handleItemDrop(type, x, y) {
     }
 }
 
+// Global Audio Unlock
+document.body.addEventListener('click', () => {
+    if(window.unlockAudio) window.unlockAudio();
+}, { once: true });
+
 // Bindings
 document.getElementById('bird-name').addEventListener('input', (e) => {
     if (selectedBird) selectedBird.name = e.target.value;
@@ -69,7 +74,10 @@ document.getElementById('custom-bird-btn').addEventListener('click', () => {
 
 document.getElementById('chronology-btn').addEventListener('click', () => {
     const list = document.getElementById('chronology-list');
-    list.innerHTML = chronology.length ? chronology.map(c => `<li>${c}</li>`).join('') : '<li>No history yet...</li>';
+    // window.chronology comes from game.js
+    list.innerHTML = window.chronology && window.chronology.length > 0 
+        ? window.chronology.map(c => `<li>${c}</li>`).join('') 
+        : '<li>No history yet...</li>';
     document.getElementById('chronology-modal').classList.remove('hidden');
 });
 
@@ -79,18 +87,31 @@ function createCustomBird() {
     const name = document.getElementById('c-name').value || 'Custom Species';
     const bodyColor = document.getElementById('c-body').value;
     const wingColor = document.getElementById('c-wing').value;
+    
+    // New Components
+    const body = document.getElementById('c-body-type').value;
+    const head = document.getElementById('c-head-type').value;
+    const beak = document.getElementById('c-beak-type').value;
+    const wing = document.getElementById('c-wing-type').value;
+    const tail = document.getElementById('c-tail-type').value;
+
     const habit = document.getElementById('c-habit').value;
     const size = document.getElementById('c-size').value;
     const lifespan = document.getElementById('c-lifespan').value;
     const libido = document.getElementById('c-libido').value;
     
-    const customData = { bodyColor, wingColor, habit, size, lifespan, libido };
+    const customData = { bodyColor, wingColor, body, head, beak, wing, tail, habit, size, lifespan, libido };
     
+    // 1. Add to Roster
     const roster = document.getElementById('custom-roster');
     const btn = document.createElement('button');
     btn.innerText = name;
     btn.onclick = () => spawnBird(name, customData);
     roster.appendChild(btn);
     
+    // 2. Spawn immediately (Hatch)
+    spawnBird(name, customData);
+    
+    // 3. Close the modal
     closeModal('custom-maker-modal');
 }

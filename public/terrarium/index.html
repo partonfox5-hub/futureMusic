@@ -42,13 +42,24 @@
         <button onclick="closeModal('bird-modal')">Close</button>
     </div>
 
-    <!-- Custom Bird Maker Modal -->
-    <div id="custom-maker-modal" class="modal hidden">
+ <!-- Custom Bird Maker Modal -->
+    <div id="custom-maker-modal" class="modal hidden" style="width: 320px; max-height: 90vh; overflow-y: auto;">
         <h3>Custom Bird Maker</h3>
+        <input type="text" id="c-name" placeholder="Species Name"><br>
         <input type="color" id="c-body" value="#888888"> Body Color<br>
         <input type="color" id="c-wing" value="#444444"> Wing Color<br>
-        <input type="text" id="c-name" placeholder="Species Name"><br>
-        <button onclick="createCustomBird()">Hatch</button>
+        
+        <label>Body: <select id="c-body-type"><option value="normal">Normal</option><option value="slim">Slim</option><option value="plump">Plump</option></select></label><br>
+        <label>Head: <select id="c-head-type"><option value="smooth">Smooth</option><option value="crested">Crested</option></select></label><br>
+        <label>Beak: <select id="c-beak-type"><option value="short">Short</option><option value="long">Long</option><option value="curved">Curved</option></select></label><br>
+        <label>Wing: <select id="c-wing-type"><option value="pointed">Pointed</option><option value="rounded">Rounded</option></select></label><br>
+        <label>Tail: <select id="c-tail-type"><option value="normal">Normal</option><option value="forked">Forked</option><option value="fan">Fan</option></select></label><br>
+
+        <label>Habit: <select id="c-habit"><option value="normal">Normal</option><option value="branch hog">Branch Hog</option><option value="nocturnal">Nocturnal</option></select></label><br>
+        <label>Size: <input type="range" id="c-size" min="0.5" max="2" step="0.1" value="1"></label><br>
+        <label>Lifespan: <input type="number" id="c-lifespan" value="3650"></label><br>
+        <label>Libido: <input type="range" id="c-libido" min="1" max="10" value="5"></label><br>
+        <button onclick="createCustomBird()">Hatch & Add to Roster</button>
         <button onclick="closeModal('custom-maker-modal')">Cancel</button>
     </div>
 
