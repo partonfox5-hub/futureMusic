@@ -87,13 +87,15 @@ class Bird {
         this.y = y;
         this.species = species;
         this.name = existingName || `Wild ${species}`;
-        this.age = existingAge;
-        this.vx = (Math.random() - 0.5) * 3;
-        this.vy = (Math.random() - 0.5) * 3;
+      this.age = existingAge;
+        let spd = (customData && customData.speed) ? parseFloat(customData.speed) : 1;
+        this.vx = (Math.random() - 0.5) * 3 * spd;
+        this.vy = (Math.random() - 0.5) * 3 * spd;
         this.state = 'flying'; 
         this.flapCycle = Math.random() * Math.PI * 2;
         this.customData = customData;
         this.inBirdhouse = null;
+        this.opacity = 1;
         
         let isCustomName = existingName ? true : false;
         birdRegistry.push({ id: this.clientId, name: this.name, species: this.species, customName: isCustomName, parents: parents });
@@ -110,16 +112,36 @@ class Bird {
         setInterval(() => { if(!window.isPaused && Math.random() < 0.15) playChirp(this.species); }, 3333);
     }
 
-    update(deltaTime) {
+     update(deltaTime) {
+        if (this.state === 'dead') {
+            this.y += (deltaTime / 1000) * 50; // Fall down
+            if (this.y > canvas.height - 50) {
+                this.y = canvas.height - 50;
+                this.opacity -= (deltaTime / 1000) * 0.5; // Fade out over 2 seconds
+                if (this.opacity <= 0) {
+                    birds = birds.filter(b => b !== this);
+                }
+            }
+            return;
+        }
+
         if (this.state === 'dragged') return;
         
+        let speedMult = (this.customData && this.customData.speed) ? parseFloat(this.customData.speed) : 1;
+        let temperament = (this.customData && this.customData.temperament) ? parseInt(this.customData.temperament) : 5;
+
         this.age += (deltaTime / 1000) * BIRD_AGING_MULTIPLIER;
         let maxLifespan = (this.customData && this.customData.lifespan) ? this.customData.lifespan : 3650;
         
         if (!isImmortal && this.age > maxLifespan) { 
             chronology.push(`${this.name} (${this.species}) died of old age at ${Math.floor(this.age)} days.`);
-            birds = birds.filter(b => b !== this);
-            if(this.inBirdhouse) this.inBirdhouse.occupants = this.inBirdhouse.occupants.filter(b => b !== this);
+            this.state = 'dead';
+            if(this.inBirdhouse) {
+                this.inBirdhouse.occupants = this.inBirdhouse.occupants.filter(b => b !== this);
+                this.x = this.inBirdhouse.x;
+                this.y = this.inBirdhouse.y;
+                this.inBirdhouse = null;
+            }
             return;
         }
 
@@ -132,7 +154,7 @@ class Bird {
                 this.inBirdhouse.occupants = this.inBirdhouse.occupants.filter(b => b !== this);
                 this.inBirdhouse = null;
                 this.state = 'flying';
-                this.vy = -3;
+                this.vy = -3 * speedMult;
             } else {
                 this.x = this.inBirdhouse.x;
                 this.y = this.inBirdhouse.y;
@@ -150,15 +172,31 @@ class Bird {
 
         if (this.state === 'flying' || this.state === 'perching') {
             if (this.state === 'flying') {
+                if (temperament < 10) {
+                    let avoidRadius = (10 - temperament) * 20; 
+                    let nearestOther = birds.find(b => b !== this && b.species !== this.species && b.state !== 'dead' && !b.inBirdhouse && Math.hypot(b.x - this.x, b.y - this.y) < avoidRadius);
+                    if (nearestOther) {
+                        this.vx += (this.x > nearestOther.x ? 0.2 : -0.2) * speedMult;
+                        this.vy += (this.y > nearestOther.y ? 0.2 : -0.2) * speedMult;
+                    }
+                }
+
                 this.x += this.vx; this.y += this.vy;
-                this.flapCycle += 0.5;
+                this.flapCycle += 0.5 * speedMult;
+                
+                let maxSpd = 5 * speedMult;
+                if (this.vx > maxSpd) this.vx = maxSpd;
+                if (this.vx < -maxSpd) this.vx = -maxSpd;
+                if (this.vy > maxSpd) this.vy = maxSpd;
+                if (this.vy < -maxSpd) this.vy = -maxSpd;
+
                 if (this.x < 20 || this.x > canvas.width - 20) this.vx *= -1;
                 if (this.y < 20 || this.y > canvas.height - 100) this.vy *= -1;
             } else if (this.state === 'perching') {
                 this.flapCycle = 0;
                 if(Math.random() < 0.02) this.x += (Math.random() - 0.5) * 15; 
                 let hopChance = (this.customData && this.customData.habit === 'branch hog') ? 0.001 : 0.01;
-                if(Math.random() < hopChance) { this.state = 'flying'; this.vy = -3; } 
+                if(Math.random() < hopChance) { this.state = 'flying'; this.vy = -3 * speedMult; } 
             }
 
             if (this.hunger > 10 && !isNight) {
@@ -180,7 +218,7 @@ class Bird {
             let libidoMultiplier = (this.customData && this.customData.libido) ? this.customData.libido / 5 : 1;
             let canMate = this.state === 'perching' || this.y > canvas.height - 60; // Trees or ground only
             if (canMate && this.age > 365 && Math.random() < (0.001 * libidoMultiplier)) {
-                let mate = birds.find(b => b !== this && b.species === this.species && b.age > 365 && b.state !== 'seeking_mate' && b.state !== 'mating' && (b.state === 'perching' || b.y > canvas.height - 60));
+                let mate = birds.find(b => b !== this && b.species === this.species && b.age > 365 && b.state !== 'seeking_mate' && b.state !== 'mating' && b.state !== 'dead' && (b.state === 'perching' || b.y > canvas.height - 60));
                 if (mate) {
                     this.state = 'seeking_mate';
                     mate.state = 'seeking_mate';
@@ -196,12 +234,12 @@ class Bird {
             }
 
         } else if (this.state === 'seeking_birdhouse') {
-            this.flapCycle += 0.6;
+            this.flapCycle += 0.6 * speedMult;
             const dx = this.target.x - this.x;
             const dy = this.target.y - this.y;
             const dist = Math.hypot(dx, dy);
-            this.x += (dx / dist) * 3;
-            this.y += (dy / dist) * 3;
+            this.x += (dx / dist) * 3 * speedMult;
+            this.y += (dy / dist) * 3 * speedMult;
             if (dist < 10) {
                 if (this.target.occupants.length < 3) {
                     this.target.occupants.push(this);
@@ -212,8 +250,8 @@ class Bird {
                 }
             }
         } else if (this.state === 'swooping') {
-            this.flapCycle += 0.2; 
-            this.swoopProgress += (deltaTime / 1000) * 1.5;
+            this.flapCycle += 0.2 * speedMult; 
+            this.swoopProgress += (deltaTime / 1000) * 1.5 * speedMult;
             
             if (this.swoopProgress >= 1) {
                 this.swoopProgress = 1;
@@ -221,7 +259,7 @@ class Bird {
                 if (this.targetType === 'bug') bugs = bugs.filter(b => b !== this.target);
                 if (this.targetType === 'seed') seeds = seeds.filter(s => s !== this.target);
                 if (this.targetType === 'feeder') this.target.food -= 10;
-                this.state = 'flying'; this.vy = -3; 
+                this.state = 'flying'; this.vy = -3 * speedMult; 
             } else {
                 let t = this.swoopProgress;
                 let invT = 1 - t;
@@ -229,27 +267,28 @@ class Bird {
                 this.y = invT * invT * this.swoopStart.y + 2 * invT * t * this.swoopCp.y + t * t * this.target.y;
             }
         } else if (this.state === 'seeking_tree') {
-            this.flapCycle += 0.6;
+            this.flapCycle += 0.6 * speedMult;
             const dx = this.target.x - this.x;
             const dy = this.target.y - this.y;
             const dist = Math.hypot(dx, dy);
-            this.x += (dx / dist) * 3;
-            this.y += (dy / dist) * 3;
+            this.x += (dx / dist) * 3 * speedMult;
+            this.y += (dy / dist) * 3 * speedMult;
             if (dist < 10) { this.state = 'perching'; this.vy = 0; }
         } else if (this.state === 'seeking_mate') {
-            this.flapCycle += 0.6;
+            this.flapCycle += 0.6 * speedMult;
             const dx = this.target.x - this.x;
             const dy = this.target.y - this.y;
             const dist = Math.hypot(dx, dy);
             if (dist > 10) {
-                this.x += (dx / dist) * 3;
-                this.y += (dy / dist) * 3;
+                this.x += (dx / dist) * 3 * speedMult;
+                this.y += (dy / dist) * 3 * speedMult;
             } else {
                 this.state = 'mating';
                 if(this.target) this.target.state = 'mating';
                 setTimeout(() => {
+                    if (this.state === 'dead') return;
                     this.state = 'flying'; 
-                    if(this.target) {
+                    if(this.target && this.target.state !== 'dead') {
                         this.target.state = 'flying';
                         eggs.push({x: this.x, y: this.y, species: this.species, hatchTime: 100, parent1: this.name, parent2: this.target.name, p1Id: this.clientId, p2Id: this.target.clientId, customData: this.customData});
                         chronology.push(`${this.name} and ${this.target.name} laid an egg!`);
@@ -264,6 +303,7 @@ class Bird {
         if (this.inBirdhouse) return; // Don't draw if inside birdhouse
 
         ctx.save();
+        ctx.globalAlpha = Math.max(0, this.opacity);
         ctx.translate(this.x, this.y);
         
         let growthScale = Math.min(1, 0.4 + (this.age / 5) * 0.6); // Starts small, full size at 5 days
@@ -275,6 +315,7 @@ class Bird {
         if (this.state === 'perching' || this.state === 'mating' || this.state === 'dragged') angle = 0;
         if (this.vx < 0) { ctx.scale(-scale, scale); } else { ctx.scale(scale, scale); }
         if (this.state !== 'perching' && this.state !== 'mating' && this.state !== 'dragged') ctx.rotate(angle);
+        if (this.state === 'dead') { ctx.scale(1, -1); angle = 0; } // Fall upside down
 
         let tailType = this.customData?.tail || 'normal';
         let bodyType = this.customData?.body || 'normal';
@@ -315,7 +356,7 @@ class Bird {
         }
         ctx.fill();
 
-        let flapOffset = (this.state !== 'perching' && this.state !== 'mating' && this.state !== 'dragged') ? Math.sin(this.flapCycle) * 15 : 0;
+        let flapOffset = (this.state !== 'perching' && this.state !== 'mating' && this.state !== 'dragged' && this.state !== 'dead') ? Math.sin(this.flapCycle) * 15 : 0;
         ctx.fillStyle = this.wingColor;
         ctx.beginPath();
         if (wingType === 'rounded') {
@@ -328,7 +369,7 @@ class Bird {
         ctx.restore();
 
         // Draw hover circle
-        if (window.hoveredBird === this) {
+        if (window.hoveredBird === this && this.state !== 'dead') {
             ctx.strokeStyle = '#FFFFFF';
             ctx.lineWidth = 2;
             ctx.beginPath();

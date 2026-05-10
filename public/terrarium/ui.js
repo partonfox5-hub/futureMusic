@@ -174,8 +174,10 @@ function createCustomBird() {
     const size = document.getElementById('c-size').value;
     const lifespan = document.getElementById('c-lifespan').value;
     const libido = document.getElementById('c-libido').value;
+    const speed = document.getElementById('c-speed').value;
+    const temperament = document.getElementById('c-temperament').value;
     
-    const customData = { bodyColor, wingColor, body, head, beak, wing, tail, habit, size, lifespan, libido };
+    const customData = { bodyColor, wingColor, body, head, beak, wing, tail, habit, size, lifespan, libido, speed, temperament };
     
     // 1. Add to Roster
     const roster = document.getElementById('custom-roster');
