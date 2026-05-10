@@ -160,6 +160,11 @@ document.getElementById('chronology-btn').addEventListener('click', () => {
 
 document.getElementById('immortal-toggle').addEventListener('change', (e) => isImmortal = e.target.checked);
 
+document.getElementById('game-speed-slider').addEventListener('input', (e) => {
+    window.gameSpeedMultiplier = parseFloat(e.target.value);
+    document.getElementById('speed-display').innerText = window.gameSpeedMultiplier + 'x';
+});
+
 function createCustomBird() {
     const name = document.getElementById('c-name').value || 'Custom Species';
     const bodyColor = document.getElementById('c-body').value;

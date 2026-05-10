@@ -18,6 +18,10 @@ window.mouseX = 0;
 window.mouseY = 0;
 window.isPaused = false;
 window.hoveredBird = null;
+window.gameSpeedMultiplier = 1;
+window.gameTime = Date.now();
+let timeSinceLastBug = 0;
+let nextBugInterval = Math.random() * 20000 + 10000; // 10s to 30s
 let trees = [];
 let numTrees = Math.floor(Math.random() * 3) + 2; // 2 to 4 trees
 for (let i = 0; i < numTrees; i++) {
@@ -145,7 +149,7 @@ class Bird {
         this.age += (deltaTime / 1000) * BIRD_AGING_MULTIPLIER;
         let maxLifespan = (this.customData && this.customData.lifespan) ? this.customData.lifespan : 3650;
         
-        if (!isImmortal && this.age > maxLifespan) { 
+       if (!isImmortal && this.age > maxLifespan) { 
             chronology.push(`${this.name} (${this.species}) died of old age at ${Math.floor(this.age)} days.`);
             this.state = 'dead';
             if(this.inBirdhouse) {
@@ -158,7 +162,7 @@ class Bird {
         }
 
         const cycleDuration = 15 * 60 * 1000; 
-        const cycleProgress = (Date.now() % cycleDuration) / cycleDuration;
+        const cycleProgress = (window.gameTime % cycleDuration) / cycleDuration;
         const isNight = cycleProgress > 0.5;
 
         if (this.inBirdhouse) {
@@ -428,9 +432,8 @@ class Bird {
 }
 
 function drawEnvironment() {
-    const now = Date.now();
     const cycleDuration = 15 * 60 * 1000; 
-    const cycleProgress = (now % cycleDuration) / cycleDuration;
+    const cycleProgress = (window.gameTime % cycleDuration) / cycleDuration;
     
     let color;
     if (cycleProgress < 0.1) color = '#ffb347'; 
@@ -515,15 +518,21 @@ function gameLoop() {
     
     if (!window.isPaused) {
         const timeScale = window.hoveredBird ? 0.5 : 1.0;
-        const scaledDelta = deltaTime * timeScale;
+        const speedMult = window.gameSpeedMultiplier || 1;
+        const scaledDelta = deltaTime * timeScale * speedMult;
+        
+        window.gameTime += scaledDelta; // Advance internal game time
 
-  if (Math.random() < 0.02 && bugs.length < 20) {
+        timeSinceLastBug += scaledDelta;
+        if (timeSinceLastBug > nextBugInterval && bugs.length < 20) {
             bugs.push({
                 x: Math.random() * canvas.width, 
                 y: canvas.height - 30 + (Math.random() * 20 - 10), 
                 vx: (Math.random() - 0.5) * 20, 
                 cycle: Math.random() * Math.PI * 2
             });
+            timeSinceLastBug = 0;
+            nextBugInterval = Math.random() * 20000 + 10000; // 10s to 30s
         }
 
         bugs.forEach(b => {
@@ -532,6 +541,7 @@ function gameLoop() {
             if (b.x < 0 || b.x > canvas.width) b.vx *= -1;
             if (Math.random() < 0.01) b.vx *= -1; // Randomly change direction
         });
+
         eggs.forEach(e => {
             e.hatchTime -= scaledDelta / 1000 * BIRD_AGING_MULTIPLIER;
             if (e.hatchTime <= 0) {
