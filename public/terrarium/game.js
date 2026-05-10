@@ -403,7 +403,7 @@ class Bird {
         } else { 
             ctx.moveTo(12, -2); ctx.lineTo(20, 0); ctx.lineTo(12, 2);
         }
-        ctx.fill()
+        ctx.fill();
         let flapOffset = (this.state !== 'perching' && this.state !== 'mating' && this.state !== 'dragged' && this.state !== 'dead') ? Math.sin(this.flapCycle) * 15 : 0;
         ctx.fillStyle = this.wingColor;
         ctx.beginPath();
