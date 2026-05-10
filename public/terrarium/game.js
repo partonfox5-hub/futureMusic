@@ -540,7 +540,7 @@ function gameLoop() {
             b.cycle += (scaledDelta / 1000) * 15;
             if (b.x < 0 || b.x > canvas.width) b.vx *= -1;
             if (Math.random() < 0.01) b.vx *= -1; // Randomly change direction
-        });
+        })
 
         eggs.forEach(e => {
             e.hatchTime -= scaledDelta / 1000 * BIRD_AGING_MULTIPLIER;
