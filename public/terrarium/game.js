@@ -204,11 +204,16 @@ class Bird {
 
                 if (this.x < 20 || this.x > canvas.width - 20) this.vx *= -1;
                 if (this.y < 20 || this.y > canvas.height - 100) this.vy *= -1;
-            } else if (this.state === 'perching') {
+  } else if (this.state === 'perching') {
                 this.flapCycle = 0;
-                if(Math.random() < 0.02) this.x += (Math.random() - 0.5) * 15; 
-                let hopChance = (this.customData && this.customData.habit === 'branch hog') ? 0.001 : 0.01;
-                if(Math.random() < hopChance) { this.state = 'flying'; this.vy = -3 * speedMult; } 
+                let isNocturnal = this.customData && this.customData.habit === 'nocturnal';
+                let sleeping = isNight && !isNocturnal;
+                
+                if (!sleeping) {
+                    if(Math.random() < 0.02) this.x += (Math.random() - 0.5) * 15; 
+                    let hopChance = (this.customData && this.customData.habit === 'branch hog') ? 0.001 : 0.01;
+                    if(Math.random() < hopChance) { this.state = 'flying'; this.vy = -3 * speedMult; } 
+                }
             }
 
             if (this.hunger > 10 && !isNight) {
@@ -227,23 +232,25 @@ class Bird {
                 }
             }
 
-               let libidoMultiplier = (this.customData && this.customData.libido) ? this.customData.libido / 5 : 1;
+                 let libidoMultiplier = (this.customData && this.customData.libido) ? this.customData.libido / 5 : 1;
             let canMate = this.state === 'perching' || this.y > canvas.height - 60; // Trees or ground only
             if (canMate && this.age > 365 && Math.random() < (0.001 * libidoMultiplier)) {
-                // Removed species requirement to allow cross-breeding
                 let mate = birds.find(b => b !== this && b.age > 365 && b.state !== 'seeking_mate' && b.state !== 'mating' && b.state !== 'dead' && (b.state === 'perching' || b.y > canvas.height - 60));
                 if (mate) {
                     this.state = 'seeking_mate';
-                    mate.state = 'seeking_mate';
                     this.target = mate;
-                    mate.target = this;
+                    // Do NOT set mate's state to seeking, they stay perching/grounded so egg isn't mid-air
                 }
             }
 
-            if (this.state === 'flying' && Math.random() < 0.03 && !isNight) {
-                let targetTree = trees[Math.floor(Math.random() * trees.length)];
-                this.state = 'seeking_tree';
-                this.target = {x: targetTree.x + (Math.random() - 0.5) * 100, y: targetTree.y - targetTree.h + (Math.random() - 0.5) * 50};
+            let isNocturnal = this.customData && this.customData.habit === 'nocturnal';
+            if (this.state === 'flying') {
+                let seekChance = (isNight && !isNocturnal) ? 0.1 : 0.03; // Seek trees aggressively at night
+                if (Math.random() < seekChance) {
+                    let targetTree = trees[Math.floor(Math.random() * trees.length)];
+                    this.state = 'seeking_tree';
+                    this.target = {x: targetTree.x + (Math.random() - 0.5) * 100, y: targetTree.y - targetTree.h + (Math.random() - 0.5) * 50};
+                }
             }
 
         } else if (this.state === 'seeking_birdhouse') {
@@ -288,6 +295,10 @@ class Bird {
             this.y += (dy / dist) * 3 * speedMult;
             if (dist < 10) { this.state = 'perching'; this.vy = 0; }
           } else if (this.state === 'seeking_mate') {
+            if (!this.target || this.target.state === 'dead' || this.target.state === 'mating') {
+                this.state = 'flying'; // Cancel if mate moved or died
+                return;
+            }
             this.flapCycle += 0.6 * speedMult;
             const dx = this.target.x - this.x;
             const dy = this.target.y - this.y;
@@ -297,7 +308,7 @@ class Bird {
                 this.y += (dy / dist) * 3 * speedMult;
             } else {
                 this.state = 'mating';
-                if(this.target) this.target.state = 'mating';
+                this.target.state = 'mating';
                 setTimeout(() => {
                     if (this.state === 'dead') return;
                     this.state = 'flying'; 
@@ -343,7 +354,8 @@ class Bird {
         ctx.globalAlpha = Math.max(0, this.opacity);
         ctx.translate(this.x, this.y);
         
-        let growthScale = Math.min(1, 0.25 + (this.age / 5) * 0.75); // Starts at 25%, full size at 5 days
+        // 365 days = 1 year. At 100x multiplier, this takes 3.65 real seconds to reach full size.
+        let growthScale = Math.min(1, 0.25 + (this.age / 365) * 0.75); 
         let customScale = (this.customData && this.customData.size) ? parseFloat(this.customData.size) : 1;
         let scale = growthScale * customScale;
         
@@ -584,4 +596,5 @@ async function init() {
 init();
 
 window.spawnBird = (species, customData = null) => birds.push(new Bird(canvas.width/2, canvas.height/2, species, customData));
-window.birds = birds;
+window.getBirds = () => birds;
+window.removeBird = (bird) => { birds = birds.filter(b => b !== bird); };

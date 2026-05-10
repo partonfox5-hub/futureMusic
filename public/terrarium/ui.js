@@ -32,7 +32,8 @@ canvasEl.addEventListener('mousedown', e => {
         return;
     }
 
-    let clickedBird = birds.find(b => !b.inBirdhouse && Math.hypot(b.x - x, b.y - y) < 30);
+    let currentBirds = window.getBirds ? window.getBirds() : birds;
+    let clickedBird = currentBirds.find(b => !b.inBirdhouse && Math.hypot(b.x - x, b.y - y) < 30);
     if (clickedBird) {
         draggedBird = clickedBird;
         isDraggingBird = false;
@@ -59,8 +60,7 @@ window.addEventListener('mouseup', e => {
         let inNestY = e.clientY >= nestRect.top && e.clientY <= nestRect.bottom;
 
         if (isDraggingBird && inNestX && inNestY) {
-            let index = window.birds.indexOf(draggedBird);
-            if(index > -1) window.birds.splice(index, 1);
+            if (window.removeBird) window.removeBird(draggedBird);
             window.chronology.push(`${draggedBird.name} was retired to the nest.`);
         } else if (!isDraggingBird) {
             selectedBird = draggedBird;
@@ -69,9 +69,10 @@ window.addEventListener('mouseup', e => {
             document.getElementById('bird-age').innerText = Math.floor(draggedBird.age);
             document.getElementById('bird-fact').innerText = birdFacts[draggedBird.species] || 'A unique custom bird!';
             document.getElementById('bird-modal').classList.remove('hidden');
+        } else {
+            draggedBird.state = 'flying'; // Drop back to flying if not in nest
         }
         
-        if (window.birds.includes(draggedBird)) draggedBird.state = 'flying';
         draggedBird = null;
     }
 });
