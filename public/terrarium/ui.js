@@ -52,14 +52,15 @@ canvasEl.addEventListener('mousemove', e => {
     }
 });
 
-canvasEl.addEventListener('mouseup', e => {
+window.addEventListener('mouseup', e => {
     if (draggedBird) {
         const nestRect = document.getElementById('retire-nest').getBoundingClientRect();
         let inNestX = e.clientX >= nestRect.left && e.clientX <= nestRect.right;
         let inNestY = e.clientY >= nestRect.top && e.clientY <= nestRect.bottom;
 
         if (isDraggingBird && inNestX && inNestY) {
-            birds = birds.filter(b => b !== draggedBird);
+            let index = window.birds.indexOf(draggedBird);
+            if(index > -1) window.birds.splice(index, 1);
             window.chronology.push(`${draggedBird.name} was retired to the nest.`);
         } else if (!isDraggingBird) {
             selectedBird = draggedBird;
@@ -70,7 +71,7 @@ canvasEl.addEventListener('mouseup', e => {
             document.getElementById('bird-modal').classList.remove('hidden');
         }
         
-        if (birds.includes(draggedBird)) draggedBird.state = 'flying';
+        if (window.birds.includes(draggedBird)) draggedBird.state = 'flying';
         draggedBird = null;
     }
 });

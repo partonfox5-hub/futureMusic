@@ -215,10 +215,11 @@ class Bird {
                 }
             }
 
-            let libidoMultiplier = (this.customData && this.customData.libido) ? this.customData.libido / 5 : 1;
+               let libidoMultiplier = (this.customData && this.customData.libido) ? this.customData.libido / 5 : 1;
             let canMate = this.state === 'perching' || this.y > canvas.height - 60; // Trees or ground only
             if (canMate && this.age > 365 && Math.random() < (0.001 * libidoMultiplier)) {
-                let mate = birds.find(b => b !== this && b.species === this.species && b.age > 365 && b.state !== 'seeking_mate' && b.state !== 'mating' && b.state !== 'dead' && (b.state === 'perching' || b.y > canvas.height - 60));
+                // Removed species requirement to allow cross-breeding
+                let mate = birds.find(b => b !== this && b.age > 365 && b.state !== 'seeking_mate' && b.state !== 'mating' && b.state !== 'dead' && (b.state === 'perching' || b.y > canvas.height - 60));
                 if (mate) {
                     this.state = 'seeking_mate';
                     mate.state = 'seeking_mate';
@@ -274,7 +275,7 @@ class Bird {
             this.x += (dx / dist) * 3 * speedMult;
             this.y += (dy / dist) * 3 * speedMult;
             if (dist < 10) { this.state = 'perching'; this.vy = 0; }
-        } else if (this.state === 'seeking_mate') {
+          } else if (this.state === 'seeking_mate') {
             this.flapCycle += 0.6 * speedMult;
             const dx = this.target.x - this.x;
             const dy = this.target.y - this.y;
@@ -290,7 +291,31 @@ class Bird {
                     this.state = 'flying'; 
                     if(this.target && this.target.state !== 'dead') {
                         this.target.state = 'flying';
-                        eggs.push({x: this.x, y: this.y, species: this.species, hatchTime: 100, parent1: this.name, parent2: this.target.name, p1Id: this.clientId, p2Id: this.target.clientId, customData: this.customData});
+                        
+                        // Cross-breeding trait mixing
+                        let mix = (t1, t2) => Math.random() < 0.5 ? t1 : t2;
+                        let cd1 = this.customData || {};
+                        let cd2 = this.target.customData || {};
+                        
+                        let newCustomData = {
+                            bodyColor: mix(this.bodyColor, this.target.bodyColor),
+                            wingColor: mix(this.wingColor, this.target.wingColor),
+                            body: mix(cd1.body || 'normal', cd2.body || 'normal'),
+                            head: mix(cd1.head || (this.species==='Cardinal'||this.species==='Blue Jay'?'crested':'smooth'), cd2.head || (this.target.species==='Cardinal'||this.target.species==='Blue Jay'?'crested':'smooth')),
+                            beak: mix(cd1.beak || 'short', cd2.beak || 'short'),
+                            wing: mix(cd1.wing || 'pointed', cd2.wing || 'pointed'),
+                            tail: mix(cd1.tail || 'normal', cd2.tail || 'normal'),
+                            habit: mix(cd1.habit || 'normal', cd2.habit || 'normal'),
+                            size: mix(cd1.size || 1, cd2.size || 1),
+                            lifespan: mix(cd1.lifespan || 3650, cd2.lifespan || 3650),
+                            libido: mix(cd1.libido || 5, cd2.libido || 5),
+                            speed: mix(cd1.speed || 1, cd2.speed || 1),
+                            temperament: mix(cd1.temperament || 5, cd2.temperament || 5)
+                        };
+                        
+                        let newSpecies = this.species === this.target.species ? this.species : `Hybrid ${this.species.split(' ')[0]}-${this.target.species.split(' ')[0]}`;
+
+                        eggs.push({x: this.x, y: this.y, species: newSpecies, hatchTime: 100, parent1: this.name, parent2: this.target.name, p1Id: this.clientId, p2Id: this.target.clientId, customData: newCustomData});
                         chronology.push(`${this.name} and ${this.target.name} laid an egg!`);
                         this.target = null;
                     }
@@ -299,14 +324,14 @@ class Bird {
         }
     }
 
-    drawMathBird(ctx) {
+      drawMathBird(ctx) {
         if (this.inBirdhouse) return; // Don't draw if inside birdhouse
 
         ctx.save();
         ctx.globalAlpha = Math.max(0, this.opacity);
         ctx.translate(this.x, this.y);
         
-        let growthScale = Math.min(1, 0.4 + (this.age / 5) * 0.6); // Starts small, full size at 5 days
+        let growthScale = Math.min(1, 0.25 + (this.age / 5) * 0.75); // Starts at 25%, full size at 5 days
         let customScale = (this.customData && this.customData.size) ? parseFloat(this.customData.size) : 1;
         let scale = growthScale * customScale;
         
@@ -430,12 +455,13 @@ function gameLoop() {
     const deltaTime = now - lastTime;
     lastTime = now;
 
-    if (!window.isPaused) {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        drawEnvironment();
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawEnvironment();
 
-        // Calculate hovered bird for slowdown and circle
-        window.hoveredBird = birds.find(b => !b.inBirdhouse && Math.hypot(b.x - window.mouseX, b.y - window.mouseY) < 30);
+    // Calculate hovered bird for slowdown and circle, even when paused
+    window.hoveredBird = birds.find(b => !b.inBirdhouse && b.state !== 'dead' && Math.hypot(b.x - window.mouseX, b.y - window.mouseY) < 30);
+    
+    if (!window.isPaused) {
         const timeScale = window.hoveredBird ? 0.5 : 1.0;
         const scaledDelta = deltaTime * timeScale;
 
@@ -451,6 +477,15 @@ function gameLoop() {
         eggs = eggs.filter(e => e.hatchTime > 0);
 
         birds.forEach(bird => { bird.update(scaledDelta); bird.drawMathBird(ctx); });
+    } else {
+        // If paused, just draw them in their current state so dragging/hovering updates visually
+        birds.forEach(bird => { 
+            if (bird.state === 'dragged') {
+                bird.x = window.mouseX;
+                bird.y = window.mouseY;
+            }
+            bird.drawMathBird(ctx); 
+        });
     }
 
     requestAnimationFrame(gameLoop);
