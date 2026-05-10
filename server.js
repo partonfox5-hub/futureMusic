@@ -2059,7 +2059,72 @@ app.get('/api/ad-video/:filename', async (req, res) => {
     }
 });
 
+// ============================================================================
+// --- TERRARIUM GAME API ROUTES ---
+// ============================================================================
 
+// Auto-Load Game State based on Browser Session
+app.get('/api/terrarium/load/:session', async (req, res) => {
+    const { session } = req.params;
+    if (!pool) return res.status(500).json({ error: "Database offline" });
+
+    try {
+        let [users] = await pool.query('SELECT * FROM bird_users WHERE session_token = ?', [session]);
+        
+        if (users.length === 0) {
+            await pool.query('INSERT INTO bird_users (session_token) VALUES (?)', [session]);
+            [users] = await pool.query('SELECT * FROM bird_users WHERE session_token = ?', [session]);
+        }
+        const user = users[0];
+        
+        const [birds] = await pool.query('SELECT * FROM birds WHERE user_id = ? AND is_alive = TRUE', [user.id]);
+        const [feeders] = await pool.query('SELECT * FROM feeders WHERE user_id = ?', [user.id]);
+        
+        const now = new Date();
+        const lastSaved = new Date(user.last_saved);
+        const secondsOffline = Math.max(0, (now - lastSaved) / 1000);
+        
+        res.json({ user, birds, feeders, secondsOffline });
+    } catch (err) {
+        console.error("Terrarium Load Error:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Auto-Save Game State (Called every 10 seconds in the background)
+app.post('/api/terrarium/save', async (req, res) => {
+    const { session, birds } = req.body;
+    if (!pool) return res.status(500).json({ error: "Database offline" });
+
+    try {
+        const [users] = await pool.query('SELECT id FROM bird_users WHERE session_token = ?', [session]);
+        if (users.length === 0) return res.status(404).json({ error: "User not found" });
+        
+        const userId = users[0].id;
+        
+        // Update user's last online timestamp
+        await pool.query('UPDATE bird_users SET last_saved = CURRENT_TIMESTAMP WHERE id = ?', [userId]);
+
+        // Save each bird using UPSERT
+        if (birds && birds.length > 0) {
+            for (let b of birds) {
+                const traits = JSON.stringify(b.customData || {});
+                await pool.query(`
+                    INSERT INTO birds (client_id, user_id, name, species, age_days, x_pos, y_pos, custom_traits) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    ON DUPLICATE KEY UPDATE 
+                    age_days = VALUES(age_days), x_pos = VALUES(x_pos), y_pos = VALUES(y_pos), name = VALUES(name)
+                `, [b.clientId, userId, b.name, b.species, b.age, b.x, b.y, traits]);
+            }
+        }
+
+        res.json({ success: true });
+    } catch (err) {
+        console.error("Terrarium Save Error:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+// ============================================================================
 
 // --- FIX START: Global Error Handler ---
 app.use((err, req, res, next) => {

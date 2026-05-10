@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Nature Terrarium</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="sky-overlay"></div>
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- Left UI: Roster -->
+    <div id="roster-panel">
+        <h3>Spawn Birds</h3>
+        <button onclick="spawnBird('Robin')">Robin</button>
+        <button onclick="spawnBird('Blue Jay')">Blue Jay</button>
+        <button onclick="spawnBird('Cardinal')">Cardinal</button>
+        <hr>
+        <div id="custom-roster"></div>
+    </div>
+
+    <!-- Top Right UI -->
+    <div id="top-right-controls">
+        <label><input type="checkbox" id="immortal-toggle"> Immortal Birds</label>
+        <button id="chronology-btn">Chronology</button>
+    </div>
+
+    <!-- Bottom Left UI -->
+    <div id="bottom-left-controls">
+        <div id="seed-bag" draggable="true">🌾 Seed</div>
+        <div id="feeder-item" draggable="true">🪵 Feeder</div>
+        <button id="custom-bird-btn">Make Custom Bird</button>
+    </div>
+
+    <!-- Bird Info Modal -->
+    <div id="bird-modal" class="modal hidden">
+        <input type="text" id="bird-name" placeholder="Name">
+        <p>Species: <span id="bird-species"></span></p>
+        <p>Age: <span id="bird-age"></span> days</p>
+        <p id="bird-fact"></p>
+        <button onclick="closeModal('bird-modal')">Close</button>
+    </div>
+
+    <!-- Custom Bird Maker Modal -->
+    <div id="custom-maker-modal" class="modal hidden">
+        <h3>Custom Bird Maker</h3>
+        <input type="color" id="c-body" value="#888888"> Body Color<br>
+        <input type="color" id="c-wing" value="#444444"> Wing Color<br>
+        <input type="text" id="c-name" placeholder="Species Name"><br>
+        <button onclick="createCustomBird()">Hatch</button>
+        <button onclick="closeModal('custom-maker-modal')">Cancel</button>
+    </div>
+
+    <script src="game.js"></script>
+    <script src="ui.js"></script>
+</body>
+</html>
