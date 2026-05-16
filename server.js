@@ -532,6 +532,7 @@ app.get('/projects', (req, res) => res.render('projects', { title: 'Projects' })
 app.get('/addiction-slayer', (req, res) => res.redirect('/addiction%20slayer/index.html'));
 app.get('/target-catharsis', (req, res) => res.render('target-catharsis', { title: 'Target Catharsis' }));
 app.get('/paintcadia', (req, res) => res.render('paintcadia', { title: 'Paintcadia' }));
+app.get('/zombie-defense', (req, res) => res.redirect('/zombie-defense/index.html'));
 // Domain Project Page
 app.get('/domain', (req, res) => {
     res.render('domain');
