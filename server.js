@@ -14,7 +14,8 @@ process.on('unhandledRejection', (reason, promise) => {
     process.exit(1);
 });
 // --- FIX END ---
-
+const PRINTIFY_TOKEN = process.env.PRINTIFY_API_TOKEN;
+const PRINTIFY_SHOP_ID = process.env.PRINTIFY_SHOP_ID || '4210003';
 
 // --- NEW CODE: Google Cloud Storage Setup ---
 const { Storage } = require('@google-cloud/storage');
@@ -1647,6 +1648,85 @@ app.get('/admin/repair-data', async (req, res) => {
         `);
     } catch (err) {
         res.status(500).send("Error: " + err.message);
+    }
+});
+
+// Minimal Printify product sync
+app.get('/admin/sync-printify', async (req, res) => {
+    if (!PRINTIFY_TOKEN) {
+        return res.status(500).send('PRINTIFY_API_TOKEN missing');
+    }
+    if (!pool) {
+        return res.status(500).send('Database offline');
+    }
+
+    try {
+        const response = await axios.get(
+            `https://api.printify.com/v1/shops/${PRINTIFY_SHOP_ID}/products.json?limit=50`,
+            {
+                headers: {
+                    Authorization: `Bearer ${PRINTIFY_TOKEN}`,
+                    'User-Agent': 'FutureMusic'
+                }
+            }
+        );
+
+        const products = response.data.data || [];
+        let updated = 0;
+
+        for (const p of products) {
+            const sku = String(p.id);
+            const name = p.title || 'Untitled';
+            const description = p.description || '';
+            const price = (p.variants?.[0]?.price || 0) / 100;
+            const image_url = p.images?.[0]?.src || null;
+            const type = (p.tags && p.tags[0]) || 'Apparel';
+
+            const metadata = {
+                variants: (p.variants || []).map(v => ({
+                    id: v.id,
+                    title: v.title,
+                    price: v.price / 100,
+                    is_available: v.is_enabled && v.is_available
+                }))
+            };
+
+            await pool.query(`
+                INSERT INTO products (sku, name, description, price, image_url, type, metadata, sizes)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ON DUPLICATE KEY UPDATE
+                    name = VALUES(name),
+                    description = VALUES(description),
+                    price = VALUES(price),
+                    image_url = VALUES(image_url),
+                    type = VALUES(type),
+                    metadata = VALUES(metadata)
+            `, [
+                sku,
+                name,
+                description,
+                price,
+                image_url,
+                type,
+                JSON.stringify(metadata),
+                JSON.stringify([])
+            ]);
+
+            updated++;
+        }
+
+        res.send(`
+            <h1>Sync Complete</h1>
+            <p>Pulled ${products.length} products from Printify.</p>
+            <p>Updated/inserted: ${updated}</p>
+            <a href="/merch">Go to Merch →</a>
+        `);
+    } catch (err) {
+        console.error('Printify sync error:', err.response?.data || err.message);
+        res.status(500).send(`
+            <h1>Sync Failed</h1>
+            <pre>${err.response?.data ? JSON.stringify(err.response.data, null, 2) : err.message}</pre>
+        `);
     }
 });
 
