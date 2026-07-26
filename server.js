@@ -1085,7 +1085,7 @@ app.get('/merch', async (req, res) => {
 
     try {
         if (pool) {
-           let sql = "SELECT * FROM products WHERE 1=1 AND type != 'digital'";
+           let sql = "SELECT * FROM products WHERE 1=1 AND type != 'digital' AND image_url IS NOT NULL AND image_url != '' AND image_url LIKE 'http%'";
 
             const params = [];
             if (type && type !== 'all') { sql += " AND type = ?"; params.push(type); }
