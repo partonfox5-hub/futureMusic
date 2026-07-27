@@ -1718,17 +1718,26 @@ app.get('/admin/sync-printify', async (req, res) => {
             updated++;
         }
 
-        // --- DELETE everything that is no longer in Printify ---
-        // Only delete real merch products (keep digital songs)
-        if (currentSkus.size > 0) {
-            const placeholders = Array.from(currentSkus).map(() => '?').join(',');
-            await pool.query(
-                `DELETE FROM products 
-                 WHERE type != 'digital' 
-                 AND sku NOT IN (${placeholders})`,
-                Array.from(currentSkus)
-            );
-        }
+// --- DELETE everything that is no longer in Printify ---
+// First remove any cart items that reference products we're about to delete
+if (currentSkus.size > 0) {
+    const placeholders = Array.from(currentSkus).map(() => '?').join(',');
+
+    // 1. Clean cart_items that point to dead products
+    await pool.query(
+        `DELETE FROM cart_items 
+         WHERE product_sku NOT IN (${placeholders})`,
+        Array.from(currentSkus)
+    );
+
+    // 2. Now it's safe to delete the old products
+    await pool.query(
+        `DELETE FROM products 
+         WHERE type != 'digital' 
+         AND sku NOT IN (${placeholders})`,
+        Array.from(currentSkus)
+    );
+}
 
         res.send(`
             <h1>Sync Complete</h1>
