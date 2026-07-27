@@ -1651,7 +1651,7 @@ app.get('/admin/repair-data', async (req, res) => {
     }
 });
 
-// Minimal Printify product sync
+// ====================== PRINTIFY SYNC (with cleanup) ======================
 app.get('/admin/sync-printify', async (req, res) => {
     if (!PRINTIFY_TOKEN) {
         return res.status(500).send('PRINTIFY_API_TOKEN missing');
@@ -1672,10 +1672,13 @@ app.get('/admin/sync-printify', async (req, res) => {
         );
 
         const products = response.data.data || [];
+        const currentSkus = new Set();
         let updated = 0;
 
         for (const p of products) {
             const sku = String(p.id);
+            currentSkus.add(sku);
+
             const name = p.title || 'Untitled';
             const description = p.description || '';
             const price = (p.variants?.[0]?.price || 0) / 100;
@@ -1715,10 +1718,23 @@ app.get('/admin/sync-printify', async (req, res) => {
             updated++;
         }
 
+        // --- DELETE everything that is no longer in Printify ---
+        // Only delete real merch products (keep digital songs)
+        if (currentSkus.size > 0) {
+            const placeholders = Array.from(currentSkus).map(() => '?').join(',');
+            await pool.query(
+                `DELETE FROM products 
+                 WHERE type != 'digital' 
+                 AND sku NOT IN (${placeholders})`,
+                Array.from(currentSkus)
+            );
+        }
+
         res.send(`
             <h1>Sync Complete</h1>
-            <p>Pulled ${products.length} products from Printify.</p>
+            <p>Pulled <strong>${products.length}</strong> current products from Printify.</p>
             <p>Updated/inserted: ${updated}</p>
+            <p>Old unavailable products have been removed.</p>
             <a href="/merch">Go to Merch →</a>
         `);
     } catch (err) {
