@@ -21,6 +21,8 @@ const config = {
   scale: {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
+    parent: 'game-container',
+    expandParent: false,
   },
   scene: [BootScene, GameScene],
   fps: { target: 60, forceSetTimeOut: false },
@@ -37,7 +39,17 @@ if (typeof Phaser === 'undefined') {
     '<h1>Phaser failed to load</h1><p>Check your network / CDN access, then reload.</p></div>';
 } else {
   // eslint-disable-next-line no-new
-  new Phaser.Game(config);
+  const game = new Phaser.Game(config);
+  // Keep canvas fitted when iframe / shell resizes
+  const refreshScale = () => {
+    try {
+      game.scale?.refresh();
+    } catch (_) {}
+  };
+  window.addEventListener('resize', refreshScale);
+  // After fonts / layout settle in embedded iframe
+  setTimeout(refreshScale, 100);
+  setTimeout(refreshScale, 500);
   console.info(
     '%c Rampart Reborn %c ready ',
     'background:#d4a017;color:#000;font-weight:bold',

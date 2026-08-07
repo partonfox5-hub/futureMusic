@@ -87,84 +87,15 @@ export class GameScene extends Phaser.Scene {
       this.mp.destroy();
       this._showPanel('menu');
     });
-    const unlockLobbyChat = () => {
-      $('chat-input').disabled = false;
-      $('btn-chat-send').disabled = false;
-    };
-    const setLobbyStatus = (msg) => {
-      const el = $('lobby-status');
-      if (el) el.textContent = msg;
-    };
-    this.mp.onStatus = (msg) => {
-      setLobbyStatus(msg);
-      if (this.mp.connected) {
-        $('btn-ready').disabled = false;
-        unlockLobbyChat();
-      }
-    };
-    this.mp.onDisconnect = () => {
-      $('btn-ready').disabled = true;
-      $('btn-ready').textContent = 'Ready';
-      setLobbyStatus(
-        this.mp.isHost
-          ? 'Opponent disconnected — waiting for a new guest…'
-          : 'Disconnected from host'
-      );
-      this.toast('Opponent left the lobby');
-    };
-    this.mp.onReadyChange = (local, remote) => {
-      if (this.mp.bothReady() && this.mp.isHost) {
-        setLobbyStatus('Both ready — starting…');
-        this._startMultiplayerMatch();
-      } else if (local && !remote) {
-        setLobbyStatus('You are ready — waiting for opponent…');
-      } else if (!local && remote) {
-        setLobbyStatus('Opponent ready — press Ready when you are');
-        $('btn-ready').disabled = false;
-      }
-    };
 
-    $('btn-create-room')?.addEventListener('click', async () => {
-      this.audio.resume();
-      setLobbyStatus('Creating room…');
-      const ok = await this.mp.createRoom();
-      $('room-code-display').textContent = this.mp.roomCode || 'ERROR';
-      $('btn-copy-code').disabled = !this.mp.roomCode;
-      // Host waits for guest before Ready is enabled
-      $('btn-ready').disabled = true;
-      $('btn-ready').textContent = 'Ready';
-      unlockLobbyChat();
-      if (ok) {
-        setLobbyStatus('Waiting for opponent… share the code above');
-      }
-    });
+    // Lobby buttons — handlers live in _setupMP (single place, no overwrite)
+    $('btn-create-room')?.addEventListener('click', () => this._lobbyCreate());
     $('btn-copy-code')?.addEventListener('click', () => {
       if (this.mp.roomCode) navigator.clipboard?.writeText(this.mp.roomCode);
       this.toast('Code copied');
     });
-    $('btn-join-room')?.addEventListener('click', async () => {
-      this.audio.resume();
-      const code = $('join-code').value;
-      setLobbyStatus('Joining…');
-      const ok = await this.mp.joinRoom(code);
-      if (ok) {
-        $('btn-ready').disabled = false;
-        unlockLobbyChat();
-        setLobbyStatus('Joined — press Ready when both players are here');
-      }
-    });
-    $('btn-ready')?.addEventListener('click', () => {
-      if (!this.mp.connected) {
-        this.toast('Wait for an opponent to join first');
-        return;
-      }
-      this.mp.setReady(true);
-      $('btn-ready').textContent = 'Waiting…';
-      $('btn-ready').disabled = true;
-      if (this.mp.bothReady() && this.mp.isHost) {
-        this._startMultiplayerMatch();
-      }
-    });
+    $('btn-join-room')?.addEventListener('click', () => this._lobbyJoin());
+    $('btn-ready')?.addEventListener('click', () => this._lobbyReady());
     $('btn-chat-send')?.addEventListener('click', () => this._sendChat());
     $('chat-input')?.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') this._sendChat();
@@ -180,6 +111,107 @@ export class GameScene extends Phaser.Scene {
 
     // Build palette populated later
     this._paletteEl = $('palette-btns');
+  }
+
+  _readNickname() {
+    const el = document.getElementById('lobby-nick');
+    const v = (el?.value || '').trim();
+    if (v) return v;
+    // Prompt if empty
+    const asked = window.prompt('Quick nickname for this match?', 'Captain');
+    if (asked != null && asked.trim()) {
+      if (el) el.value = asked.trim().slice(0, 16);
+      return asked.trim().slice(0, 16);
+    }
+    return 'Player';
+  }
+
+  _unlockLobbyChat(on) {
+    const chat = document.getElementById('chat-input');
+    const send = document.getElementById('btn-chat-send');
+    if (chat) chat.disabled = !on;
+    if (send) send.disabled = !on;
+  }
+
+  _setLobbyStatus(msg) {
+    const el = document.getElementById('lobby-status');
+    if (el) el.textContent = msg;
+  }
+
+  _updateLobbyPlayers() {
+    const el = document.getElementById('lobby-players');
+    if (!el) return;
+    if (!this.mp.connected) {
+      el.textContent = this.mp.isHost
+        ? `You: ${this.mp.localNick} · waiting for opponent…`
+        : `You: ${this.mp.localNick}`;
+      return;
+    }
+    el.textContent = `You: ${this.mp.localNick}  ·  Opponent: ${this.mp.remoteNick}`;
+  }
+
+  _enableLobbyReady(on) {
+    const btn = document.getElementById('btn-ready');
+    if (!btn) return;
+    btn.disabled = !on;
+    if (on && btn.textContent === 'Waiting…') {
+      /* keep waiting label if already ready */
+    } else if (on) {
+      btn.textContent = 'Ready';
+    }
+  }
+
+  async _lobbyCreate() {
+    this.audio.resume();
+    const nick = this._readNickname();
+    this._setLobbyStatus('Creating room…');
+    this._enableLobbyReady(false);
+    const ok = await this.mp.createRoom(nick);
+    const codeEl = document.getElementById('room-code-display');
+    const copyBtn = document.getElementById('btn-copy-code');
+    if (codeEl) codeEl.textContent = this.mp.roomCode || 'ERROR';
+    if (copyBtn) copyBtn.disabled = !this.mp.roomCode;
+    document.getElementById('btn-ready').textContent = 'Ready';
+    this._unlockLobbyChat(false);
+    this._updateLobbyPlayers();
+    if (ok) {
+      this._setLobbyStatus('Waiting for opponent… share the code above');
+    }
+  }
+
+  async _lobbyJoin() {
+    this.audio.resume();
+    const nick = this._readNickname();
+    const code = document.getElementById('join-code')?.value || '';
+    this._setLobbyStatus('Joining…');
+    const ok = await this.mp.joinRoom(code, nick);
+    this._updateLobbyPlayers();
+    if (ok) {
+      this._enableLobbyReady(true);
+      this._unlockLobbyChat(true);
+      this._setLobbyStatus('Joined — press Ready when both players are here');
+    }
+  }
+
+  _lobbyReady() {
+    if (!this.mp.connected) {
+      this.toast('Wait for an opponent to join first');
+      return;
+    }
+    this.mp.setReady(true);
+    const btn = document.getElementById('btn-ready');
+    if (btn) {
+      btn.textContent = 'Waiting…';
+      btn.disabled = true;
+    }
+    this._setLobbyStatus(
+      this.mp.remoteReady
+        ? 'Both ready — starting…'
+        : 'You are ready — waiting for opponent…'
+    );
+    if (this.mp.bothReady() && this.mp.isHost) {
+      this._startMultiplayerMatch();
+    }
   }
 
   _onSkipBuildClick() {
@@ -225,13 +257,25 @@ export class GameScene extends Phaser.Scene {
   }
 
   _setupMP() {
-    const $ = (id) => document.getElementById(id);
+    // Single source of truth for PeerJS callbacks (do not re-assign elsewhere)
     this.mp.onStatus = (msg) => {
-      if ($('lobby-status')) $('lobby-status').textContent = msg;
+      this._setLobbyStatus(msg);
       this.setStatus(msg);
+      if (this.mp.connected) {
+        this._enableLobbyReady(true);
+        this._unlockLobbyChat(true);
+        this._updateLobbyPlayers();
+      }
     };
+    this.mp.onPeerConnected = () => {
+      this._enableLobbyReady(true);
+      this._unlockLobbyChat(true);
+      this._updateLobbyPlayers();
+      this.toast(`${this.mp.remoteNick || 'Opponent'} linked`);
+    };
+    this.mp.onNickChange = () => this._updateLobbyPlayers();
     this.mp.onChat = (from, text) => {
-      const log = $('chat-log');
+      const log = document.getElementById('chat-log');
       if (!log) return;
       const div = document.createElement('div');
       div.textContent = `${from}: ${text}`;
@@ -239,21 +283,33 @@ export class GameScene extends Phaser.Scene {
       log.scrollTop = log.scrollHeight;
     };
     this.mp.onReadyChange = (local, remote) => {
-      this.setStatus(`Ready L:${local} R:${remote}`);
+      this.setStatus(`Ready — you:${local ? 'yes' : 'no'} · foe:${remote ? 'yes' : 'no'}`);
+      if (local && !remote) {
+        this._setLobbyStatus('You are ready — waiting for opponent…');
+      } else if (!local && remote) {
+        this._setLobbyStatus(`${this.mp.remoteNick} is ready — press Ready`);
+        this._enableLobbyReady(true);
+        const btn = document.getElementById('btn-ready');
+        if (btn) btn.textContent = 'Ready';
+      } else if (local && remote) {
+        this._setLobbyStatus('Both ready — starting…');
+      }
       if (local && remote && this.mp.isHost) {
         this._startMultiplayerMatch();
       }
-      // Guest waits for host state
     };
     this.mp.onMessage = (data) => {
       if (data.t === 'start') {
-        this.startGame('mp', { isHost: false, seed: data.seed });
-        // Apply host map later via state sync
+        this.startGame('mp', {
+          isHost: false,
+          seed: data.seed,
+          hostName: this.mp.remoteNick,
+          guestName: this.mp.localNick,
+        });
       } else if (data.t === 'state' && data.state) {
         this._applyRemoteState(data.state);
       } else if (data.t === 'input') {
         if (data.input?.type === 'skipBuild') {
-          // Either peer can register a skip vote
           const pid = data.input.playerId ?? (this.mp.isHost ? 1 : 0);
           this.phaseMgr?.voteBuildSkip(pid);
           this.updateSkipVote(true);
@@ -263,6 +319,20 @@ export class GameScene extends Phaser.Scene {
       }
     };
     this.mp.onDisconnect = () => {
+      // Still in lobby
+      if (this.state.phase === PHASES.MENU || !this.phaseMgr?.running) {
+        this._enableLobbyReady(false);
+        document.getElementById('btn-ready').textContent = 'Ready';
+        this._unlockLobbyChat(false);
+        this._updateLobbyPlayers();
+        this._setLobbyStatus(
+          this.mp.isHost
+            ? 'Opponent disconnected — waiting for a new guest…'
+            : 'Disconnected from host'
+        );
+        this.toast('Opponent left the lobby');
+        return;
+      }
       this.toast('Opponent left — continuing offline vs AI');
       if (this.state.players?.[1]) {
         this.state.players[1].isAI = true;
@@ -274,15 +344,33 @@ export class GameScene extends Phaser.Scene {
   _sendChat() {
     const input = document.getElementById('chat-input');
     if (!input?.value.trim()) return;
-    const name = this.mp.isHost ? 'Host' : 'Guest';
-    this.mp.sendChat(input.value.trim(), name);
+    if (!this.mp.connected) {
+      this.toast('Not connected yet');
+      return;
+    }
+    this.mp.sendChat(input.value.trim(), this.mp.localNick);
     input.value = '';
   }
 
   _startMultiplayerMatch() {
+    if (this._mpStarting) return;
+    this._mpStarting = true;
     const seed = Date.now() % 99999;
-    this.mp.send({ t: 'start', seed });
-    this.startGame('mp', { isHost: true, seed });
+    this.mp.send({
+      t: 'start',
+      seed,
+      hostName: this.mp.localNick,
+      guestName: this.mp.remoteNick,
+    });
+    this.startGame('mp', {
+      isHost: true,
+      seed,
+      hostName: this.mp.localNick,
+      guestName: this.mp.remoteNick,
+    });
+    setTimeout(() => {
+      this._mpStarting = false;
+    }, 2000);
   }
 
   _applyRemoteState(snap) {

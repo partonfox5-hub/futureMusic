@@ -104,7 +104,11 @@
         <section id="panel-lobby" class="panel">
           <div class="panel-card">
             <h2>Online Lobby</h2>
-            <p>Create a room and wait for a friend. Share the code — both press Ready to start. Same game version required.</p>
+            <p>Enter a nickname, create or join a room, wait until you see each other, then both press Ready.</p>
+            <div class="lobby-row">
+              <label class="nick-label" for="lobby-nick">Nickname</label>
+              <input id="lobby-nick" type="text" maxlength="16" placeholder="Your name" autocomplete="nickname" />
+            </div>
             <div class="lobby-row">
               <button class="btn primary" id="btn-create-room">Create Room</button>
               <span id="room-code-display" class="room-code">————</span>
@@ -114,6 +118,7 @@
               <input id="join-code" type="text" maxlength="12" placeholder="ROOM CODE" autocomplete="off" />
               <button class="btn" id="btn-join-room">Join</button>
             </div>
+            <div id="lobby-players" class="lobby-players">You: —</div>
             <div id="lobby-status" class="status">Disconnected — create or join a room</div>
             <div id="chat-box" class="chat-box">
               <div id="chat-log"></div>
