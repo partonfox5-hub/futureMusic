@@ -543,6 +543,11 @@ try {
     console.error('[rampart-lab] failed to mount:', e.message);
 }
 
+// Unlisted test pages (not linked from homepage / projects)
+app.get('/test-3bkyzsrg', (req, res) => {
+    res.render('test-3bkyzsrg', { title: 'Rampart responsive test' });
+});
+
 // Domain Project Page
 app.get('/domain', (req, res) => {
     res.render('domain');

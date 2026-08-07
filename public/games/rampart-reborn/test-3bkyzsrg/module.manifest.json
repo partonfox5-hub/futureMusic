@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "moduleId": "rampart-reborn",
+  "title": "Rampart Reborn",
+  "description": "Build walls, fire cannons, capture flags. PeerJS multiplayer.",
+  "entry": "index.html",
+  "version": "1.0.0",
+  "authors": ["futuremusic"],
+  "license": "proprietary",
+
+  "multiplayer": {
+    "enabled": true,
+    "transport": "peerjs",
+    "protocolVersion": 1,
+    "peerJsCdn": "https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js",
+    "roomCodePattern": "^RRP[0-9][A-Z0-9]{5}$",
+    "lobby": {
+      "create": true,
+      "join": true,
+      "ready": true,
+      "chat": true
+    },
+    "requiredMessageTypes": [
+      "ready",
+      "start",
+      "state",
+      "input",
+      "chat",
+      "ping",
+      "hello"
+    ],
+    "envelope": {
+      "v": 1,
+      "requiredFields": ["t"]
+    },
+    "entryModule": "js/systems/MultiplayerManager.js",
+    "notes": "Host-authoritative. Room ids: RRP{protocolVersion}{5chars}."
+  },
+
+  "engine": {
+    "phaser": "3.80.1",
+    "phaserCdn": "https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"
+  },
+
+  "capabilities": {
+    "offlinePlay": true,
+    "hotseat": true,
+    "singlePlayerAI": true
+  },
+
+  "ui": {
+    "primaryColor": "#d4a017",
+    "thumbnail": null
+  },
+
+  "validation": {
+    "forbidAbsoluteFileUrls": true,
+    "forbidNodeRequires": true,
+    "maxZipMb": 25
+  }
+}
