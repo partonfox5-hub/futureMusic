@@ -534,6 +534,15 @@ app.get('/addiction-slayer', (req, res) => res.redirect('/addiction%20slayer/ind
 app.get('/target-catharsis', (req, res) => res.render('target-catharsis', { title: 'Target Catharsis' }));
 app.get('/paintcadia', (req, res) => res.render('paintcadia', { title: 'Paintcadia' }));
 app.get('/zombie-defense', (req, res) => res.redirect('/zombie-defense/index.html'));
+
+// Rampart Reborn — game shell + mod-lab APIs
+try {
+    require('./rampart-lab').mount(app, { requireLogin });
+    console.log('[rampart-lab] routes mounted');
+} catch (e) {
+    console.error('[rampart-lab] failed to mount:', e.message);
+}
+
 // Domain Project Page
 app.get('/domain', (req, res) => {
     res.render('domain');

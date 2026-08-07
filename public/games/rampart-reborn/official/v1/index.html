@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rampart Reborn — Castle Siege</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=UnifrakturCook:wght@700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <!-- Phaser 3 CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
+  <!-- PeerJS for P2P multiplayer -->
+  <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
+</head>
+<body>
+  <div id="app">
+    <header id="top-bar" class="medieval-banner">
+      <div class="banner-wood">
+        <div class="brand">
+          <span class="logo" aria-hidden="true">⚔</span>
+          <h1>Rampart Reborn</h1>
+        </div>
+
+        <div class="scroll-field phase-scroll">
+          <span class="scroll-ico" aria-hidden="true">📜</span>
+          <div class="scroll-body">
+            <span class="scroll-label">Phase</span>
+            <span id="hud-phase" class="scroll-value">Menu</span>
+          </div>
+        </div>
+
+        <!-- Medieval 60s watch face for phase timer -->
+        <div class="watch-wrap" title="Phase timer">
+          <canvas id="hud-watch" width="88" height="88" aria-label="Round timer"></canvas>
+          <div class="watch-caption">
+            <span id="hud-timer" class="watch-seconds">—</span>
+          </div>
+        </div>
+
+        <div class="resource-row">
+          <div class="scroll-field iron-scroll score p0">
+            <span class="scroll-ico" aria-hidden="true">🔵</span>
+            <div class="scroll-body">
+              <span class="scroll-label">Your Glory</span>
+              <span class="scroll-value"><b id="score-p0">0</b></span>
+            </div>
+          </div>
+          <div class="scroll-field iron-scroll score p1">
+            <span class="scroll-ico" aria-hidden="true">🔴</span>
+            <div class="scroll-body">
+              <span class="scroll-label">Foe</span>
+              <span class="scroll-value"><b id="score-p1">0</b></span>
+            </div>
+          </div>
+          <div class="scroll-field wood-scroll score pts">
+            <span class="scroll-ico" aria-hidden="true">◆</span>
+            <div class="scroll-body">
+              <span class="scroll-label">Treasury</span>
+              <span class="scroll-value"><b id="spend-pts">0</b></span>
+            </div>
+          </div>
+          <div class="scroll-field iron-scroll score ammo">
+            <span class="scroll-ico" aria-hidden="true">💣</span>
+            <div class="scroll-body">
+              <span class="scroll-label">Powder</span>
+              <span class="scroll-value"><b id="hud-ammo">—</b></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="scroll-field round-scroll">
+          <span class="scroll-ico" aria-hidden="true">🏰</span>
+          <div class="scroll-body">
+            <span class="scroll-label">Campaign</span>
+            <span id="hud-round" class="scroll-value">Round 1/6</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main id="game-wrap">
+      <div id="game-container"></div>
+
+      <!-- Overlay UI panels (outside Phaser canvas for crisp text) -->
+      <div id="overlay-root">
+        <!-- Main Menu -->
+        <section id="panel-menu" class="panel active">
+          <div class="panel-card menu-card">
+            <h2>⚔ Rampart Reborn</h2>
+            <p class="tagline">Build walls. Enclose keeps. Fire cannons. Capture flags. Invade.</p>
+            <p class="subtitle">A modern spiritual successor to Atari’s classic <em>Rampart</em> (1990).</p>
+            <div class="menu-btns">
+              <button class="btn primary" data-mode="sp">Single Player vs AI</button>
+              <button class="btn" data-mode="hotseat">Local Hotseat (2P)</button>
+              <button class="btn" data-mode="mp">Online Multiplayer</button>
+              <button class="btn ghost" id="btn-tutorial">How to Play</button>
+            </div>
+            <p class="hint">Desktop recommended · Mouse + WASD · No install needed</p>
+          </div>
+        </section>
+
+        <!-- Multiplayer Lobby -->
+        <section id="panel-lobby" class="panel">
+          <div class="panel-card">
+            <h2>Online Lobby</h2>
+            <p>Create a room and wait for a friend. Share the code — both press Ready to start. Same game version required.</p>
+            <div class="lobby-row">
+              <button class="btn primary" id="btn-create-room">Create Room</button>
+              <span id="room-code-display" class="room-code">————</span>
+              <button class="btn ghost" id="btn-copy-code" disabled>Copy</button>
+            </div>
+            <div class="lobby-row">
+              <input id="join-code" type="text" maxlength="12" placeholder="ROOM CODE" autocomplete="off" />
+              <button class="btn" id="btn-join-room">Join</button>
+            </div>
+            <div id="lobby-status" class="status">Disconnected — create or join a room</div>
+            <div id="chat-box" class="chat-box">
+              <div id="chat-log"></div>
+              <div class="chat-input-row">
+                <input id="chat-input" type="text" placeholder="Chat…" maxlength="120" disabled />
+                <button class="btn ghost" id="btn-chat-send" disabled>Send</button>
+              </div>
+            </div>
+            <div class="lobby-row">
+              <button class="btn" id="btn-ready" disabled>Ready</button>
+              <button class="btn ghost" id="btn-lobby-back">Back</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- Tutorial -->
+        <section id="panel-tutorial" class="panel">
+          <div class="panel-card wide">
+            <h2>How to Play</h2>
+            <ol class="tutorial-list">
+              <li><strong>Build / Repair</strong> — Place Tetris-like wall pieces (<kbd>R</kbd> rotate, click place). Each wall <strong>segment costs 1 pt</strong>. Use <strong>Vote: End Build Early</strong> to skip the timer (both players in online). Fully enclose at least one keep (orthogonally — diagonals don’t count!). Between rounds you build again with your treasury.</li>
+              <li><strong>Round bonus</strong> — Each round grants <strong>20 × round number</strong> points to both players (R1: 20, R2: 40, …).</li>
+              <li><strong>Battle</strong> — Cannons auto-deploy; <strong>click map to fire</strong> (full range, low arc). Archers auto-target units. AI fires back. Units cross river at 25% speed; place <strong>bridges</strong> on water. Flags: +pts label, 3s capture in range. <kbd>F</kbd> FPS.</li>
+              <li><strong>Loser wheel</strong> — Only if you lost <em>more</em> cannons that round <em>and</em> ended with fewer standing than your opponent: spin for a consolation prize.</li>
+              <li><strong>Between rounds</strong> — Spend points building walls, bridges, and structures again (no separate market). Flags pay best.</li>
+              <li>Structures &amp; damage <strong>persist</strong> between rounds. Highest score after 6 rounds wins — or eliminate the foe’s last keep.</li>
+            </ol>
+            <p class="hint">Hotkeys: <kbd>R</kbd> rotate · <kbd>Space</kbd> skip piece · <kbd>G</kbd> toggle gate · <kbd>F</kbd> FPS · <kbd>Esc</kbd> exit FPS · <kbd>H</kbd> help</p>
+            <button class="btn primary" id="btn-tut-close">Got it</button>
+          </div>
+        </section>
+
+        <!-- Card panel kept hidden (bonus pick removed — build covers inter-round) -->
+        <section id="panel-cards" class="panel" aria-hidden="true" style="display:none"></section>
+
+        <!-- Build palette (side dock during build phase) -->
+        <aside id="build-palette" class="side-dock hidden">
+          <h3>Build</h3>
+          <p class="tiny">Walls: <strong>1 pt</strong> per segment</p>
+          <div id="palette-btns"></div>
+          <div id="piece-preview" class="piece-preview"></div>
+          <p class="tiny" id="build-hint"><kbd>RMB</kbd>/<kbd>R</kbd> rotate · <kbd>Wheel</kbd> cycle · bridges on water · Shift+Wheel zoom</p>
+          <button class="btn primary" id="btn-skip-build" type="button">Vote: End Build Early</button>
+          <p class="tiny" id="skip-vote-status"></p>
+        </aside>
+
+        <!-- Loser prize wheel -->
+        <section id="panel-wheel" class="panel">
+          <div class="panel-card wheel-card">
+            <h2 class="wheel-title">Loser Prize Wheel</h2>
+            <p id="wheel-subtitle" class="wheel-sub">Lost more cannons this round and fewer remaining.</p>
+            <canvas id="wheel-canvas" width="360" height="380" aria-label="Prize wheel"></canvas>
+            <p id="wheel-hint" class="wheel-hint">Press <kbd>Space</kbd> to spin · press again to stop</p>
+            <p id="wheel-result" class="wheel-result hidden"></p>
+            <button class="btn primary" id="btn-wheel-claim" disabled>Claim Prize</button>
+          </div>
+        </section>
+
+        <!-- Shop panel retired (post-round market removed) -->
+        <section id="panel-shop" class="panel" aria-hidden="true" style="display:none"></section>
+
+        <!-- End of game -->
+        <section id="panel-end" class="panel">
+          <div class="panel-card">
+            <h2 id="end-title">Victory!</h2>
+            <p id="end-detail"></p>
+            <button class="btn primary" id="btn-rematch">Main Menu</button>
+          </div>
+        </section>
+
+        <!-- Floating toast -->
+        <div id="toast" class="toast hidden"></div>
+      </div>
+    </main>
+
+    <footer id="bottom-bar">
+      <span id="status-line">Ready</span>
+      <span id="fps-mode-indicator" class="hidden">FPS: —</span>
+      <span class="controls-hint">LMB select/place · RMB order · WASD move · F FPS</span>
+    </footer>
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
