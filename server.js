@@ -2389,7 +2389,7 @@ app.get("/api/hero-slayer/download", async (req, res) => {
         }
     }
 
-    // Dev/local: allow download if zip exists and no stripe (preview)
+    // Dev/local: allow if zip is on disk and Stripe is not configured
     if (!entitled && !process.env.STRIPE_SECRET_KEY && fsMod.existsSync(HERO_SLAYER_ZIP)) {
         entitled = true;
     }
@@ -2398,11 +2398,40 @@ app.get("/api/hero-slayer/download", async (req, res) => {
         return res.status(403).send("Purchase required. Complete checkout first.");
     }
 
-    const zipPath = HERO_SLAYER_ZIP;
-    if (!fsMod.existsSync(zipPath)) {
-        return res.status(404).send("Download package is being prepared. Please try again shortly.");
+    const targetBucket = process.env.GCS_BUCKET_NAME || bucketName || "futuremusic";
+    const gcsPath = HERO_SLAYER_GCS_PATH; // downloads/hero-slayer-alpha.zip
+
+    // Prefer GCS signed URL (production Cloud Run — zip is not in the git image)
+    try {
+        const file = storage.bucket(targetBucket).file(gcsPath);
+        const [exists] = await file.exists();
+        if (exists) {
+            let options = {
+                version: "v4",
+                action: "read",
+                expires: Date.now() + 60 * 60 * 1000, // 1 hour (large zip)
+                responseDisposition: 'attachment; filename="hero-slayer-alpha.zip"',
+            };
+            try {
+                const [serviceAccountEmail] = await storage.getServiceAccount();
+                if (serviceAccountEmail && serviceAccountEmail.email_address) {
+                    options.serviceAccountEmail = serviceAccountEmail.email_address;
+                }
+            } catch (_) { /* ADC may still sign without this */ }
+            const [url] = await file.getSignedUrl(options);
+            console.log(`[HERO-SLAYER] Redirecting to signed GCS URL gs://${targetBucket}/${gcsPath}`);
+            return res.redirect(url);
+        }
+        console.warn(`[HERO-SLAYER] GCS object missing: gs://${targetBucket}/${gcsPath}`);
+    } catch (gcsErr) {
+        console.error("[HERO-SLAYER] GCS signed URL failed:", gcsErr.message);
     }
-    res.download(zipPath, "hero-slayer-alpha.zip");
+
+    // Fallback: local file (dev machine with zip on disk)
+    if (fsMod.existsSync(HERO_SLAYER_ZIP)) {
+        return res.download(HERO_SLAYER_ZIP, "hero-slayer-alpha.zip");
+    }
+    return res.status(404).send("Download package is being prepared. Please try again shortly.");
 });
 
 
