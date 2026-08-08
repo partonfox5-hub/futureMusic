@@ -1,238 +1,194 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Hero Slayer — Alpha Access $5</title>
-  <link rel="icon" type="image/png" href="/images/logo.png" />
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" />
-  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Cinzel+Decorative:wght@700;900&family=EB+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Raleway:wght@300;400;600&display=swap" rel="stylesheet" />
-  <style>
-    :root {
-      --gold: #D4AF37;
-      --gold-l: #F4C430;
-      --gold-d: #8a7020;
-      --stone: #c8b89a;
-      --stone-d: #5a4a38;
-      --teal: #20B2AA;
-    }
-    body {
-      font-family: 'Raleway', sans-serif;
-      background: #050308;
-      color: #fff;
-      margin: 0;
-      min-height: 100vh;
-      overflow-x: hidden;
-    }
-    h2, h3, .brand { font-family: 'Cinzel', serif; }
-    .btn-gold {
-      background: linear-gradient(45deg, #AA8C2C, #D4AF37);
-      color: #000;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 2px;
-      border: none;
-      cursor: pointer;
-      transition: transform .15s, filter .15s;
-    }
-    .btn-gold:hover { filter: brightness(1.08); transform: translateY(-1px); }
-    .btn-gold:disabled { opacity: .6; cursor: wait; transform: none; }
-    .text-gold {
-      background: linear-gradient(to bottom, #F4C430, #D4AF37, #AA8C2C);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-    .feat-ico {
-      width: 56px; height: 56px; border-radius: 50%; flex-shrink: 0;
-      border: 2px solid rgba(212,175,55,.55);
-      background-size: cover; background-position: center top;
-      box-shadow: 0 0 12px rgba(212,175,55,.25);
-    }
-    .glass {
-      background: rgba(20,16,28,.72);
-      border: 1px solid rgba(212,175,55,.22);
-      backdrop-filter: blur(8px);
-    }
+<%- include('partials/header') %>
 
-    /* ═══ Greek stone mythology 3D title ═══ */
-    .myth-title-wrap {
-      position: relative;
-      display: inline-block;
-      padding: 0.35em 0.5em 0.55em;
-      perspective: 900px;
-    }
-    .myth-title {
-      font-family: 'Cinzel Decorative', 'Cinzel', serif;
-      font-weight: 900;
-      font-size: clamp(2.6rem, 9vw, 5.75rem);
-      line-height: 0.95;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      margin: 0;
-      color: #e8dcc4;
-      /* carved marble + gold leaf 3D */
-      background:
-        linear-gradient(
-          175deg,
-          #fff8e8 0%,
-          #e8d4a8 18%,
-          #c9a84c 38%,
-          #8a6a28 55%,
-          #e0c878 72%,
-          #5a4020 100%
-        );
-      -webkit-background-clip: text;
-      background-clip: text;
-      -webkit-text-fill-color: transparent;
-      filter: drop-shadow(0 2px 0 #2a1a08)
-              drop-shadow(0 4px 0 #1a1008)
-              drop-shadow(0 8px 14px rgba(0,0,0,0.75))
-              drop-shadow(0 0 28px rgba(212,175,55,0.35));
-      transform: rotateX(8deg) scaleY(1.05);
-      transform-style: preserve-3d;
-    }
-    .myth-title-edge {
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      z-index: -1;
-      font-family: 'Cinzel Decorative', 'Cinzel', serif;
-      font-weight: 900;
-      font-size: clamp(2.6rem, 9vw, 5.75rem);
-      line-height: 0.95;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: transparent;
-      text-shadow:
-        0 1px 0 #3a2a18,
-        0 2px 0 #2a1c10,
-        0 3px 0 #1f150c,
-        0 4px 0 #181008,
-        0 6px 2px rgba(0,0,0,0.55),
-        0 10px 20px rgba(0,0,0,0.45);
-      transform: rotateX(8deg) scaleY(1.05) translateY(3px);
-    }
-    .myth-subtitle {
-      font-family: 'Cinzel', serif;
-      font-size: clamp(0.7rem, 2.2vw, 1.05rem);
-      letter-spacing: 0.42em;
-      text-transform: uppercase;
-      color: #c0a878;
-      text-shadow: 0 2px 8px #000, 0 0 20px rgba(212,175,55,0.25);
-      margin-top: 0.65rem;
-    }
-    .myth-title-ornament {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 12px;
-      margin: 0.75rem auto 0;
-      color: #a89060;
-      font-size: 0.85rem;
-      letter-spacing: 0.35em;
-      opacity: 0.9;
-    }
-    .myth-title-ornament::before,
-    .myth-title-ornament::after {
-      content: "";
-      height: 1px;
-      width: min(80px, 18vw);
-      background: linear-gradient(90deg, transparent, #c0a060, transparent);
-    }
+<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=EB+Garamond:ital,wght@0,500;0,600;0,700;1,500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --hs-gold: #D4AF37;
+    --hs-gold-l: #F4C430;
+  }
+  .hs-page {
+    overflow-x: hidden;
+  }
+  .hs-btn-gold {
+    background: linear-gradient(45deg, #AA8C2C, #D4AF37);
+    color: #000;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    border: none;
+    cursor: pointer;
+    transition: transform .15s, filter .15s;
+  }
+  .hs-btn-gold:hover { filter: brightness(1.08); transform: translateY(-1px); }
+  .hs-btn-gold:disabled { opacity: .6; cursor: wait; transform: none; }
+  .hs-feat-ico {
+    width: 56px; height: 56px; border-radius: 50%; flex-shrink: 0;
+    border: 2px solid rgba(212,175,55,.55);
+    background-size: cover; background-position: center top;
+    box-shadow: 0 0 12px rgba(212,175,55,.25);
+  }
+  .hs-glass {
+    background: rgba(20,16,28,.72);
+    border: 1px solid rgba(212,175,55,.22);
+    backdrop-filter: blur(8px);
+  }
 
-    /* ═══ Medieval drop cap bio ═══ */
-    .bio-block {
-      position: relative;
-      font-family: 'EB Garamond', 'Cinzel', Georgia, serif;
-      font-size: clamp(1.12rem, 2.2vw, 1.35rem);
-      line-height: 1.7;
-      color: #d8d0c0;
-      text-align: left;
-      max-width: 42rem;
-      margin: 0 auto;
-    }
-    .bio-block::first-letter {
-      float: left;
-      font-family: 'Cinzel Decorative', 'Cinzel', serif;
-      font-weight: 900;
-      font-size: 5.6rem;
-      line-height: 0.78;
-      padding: 0.08em 0.12em 0 0;
-      margin: 0.04em 0.08em 0 0;
-      color: #e8d4a0;
-      background: linear-gradient(165deg, #fff0c8 0%, #d4af37 40%, #6a5020 100%);
-      -webkit-background-clip: text;
-      background-clip: text;
-      -webkit-text-fill-color: transparent;
-      text-shadow: none;
-      filter:
-        drop-shadow(2px 2px 0 #2a1a08)
-        drop-shadow(0 0 12px rgba(212,175,55,0.35));
-      border-right: 2px solid rgba(212,175,55,0.35);
-      padding-right: 0.14em;
-      margin-right: 0.14em;
-    }
+  /* Greek stone mythology 3D title */
+  .myth-title-wrap {
+    position: relative;
+    display: inline-block;
+    padding: 0.35em 0.5em 0.55em;
+    perspective: 900px;
+  }
+  .myth-title {
+    font-family: 'Cinzel Decorative', 'Cinzel', serif;
+    font-weight: 900;
+    font-size: clamp(2.4rem, 8vw, 5.5rem);
+    line-height: 0.95;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin: 0;
+    color: #e8dcc4;
+    background: linear-gradient(175deg, #fff8e8 0%, #e8d4a8 18%, #c9a84c 38%, #8a6a28 55%, #e0c878 72%, #5a4020 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 2px 0 #2a1a08)
+            drop-shadow(0 4px 0 #1a1008)
+            drop-shadow(0 8px 14px rgba(0,0,0,0.75))
+            drop-shadow(0 0 28px rgba(212,175,55,0.35));
+    transform: rotateX(8deg) scaleY(1.05);
+    transform-style: preserve-3d;
+  }
+  .myth-title-edge {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: -1;
+    font-family: 'Cinzel Decorative', 'Cinzel', serif;
+    font-weight: 900;
+    font-size: clamp(2.4rem, 8vw, 5.5rem);
+    line-height: 0.95;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: transparent;
+    text-shadow:
+      0 1px 0 #3a2a18, 0 2px 0 #2a1c10, 0 3px 0 #1f150c,
+      0 4px 0 #181008, 0 6px 2px rgba(0,0,0,0.55), 0 10px 20px rgba(0,0,0,0.45);
+    transform: rotateX(8deg) scaleY(1.05) translateY(3px);
+  }
+  .myth-subtitle {
+    font-family: 'Cinzel', serif;
+    font-size: clamp(0.7rem, 2.2vw, 1.05rem);
+    letter-spacing: 0.42em;
+    text-transform: uppercase;
+    color: #c0a878;
+    text-shadow: 0 2px 8px #000, 0 0 20px rgba(212,175,55,0.25);
+    margin-top: 0.65rem;
+  }
+  .myth-title-ornament {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin: 0.75rem auto 0;
+    color: #a89060;
+    font-size: 0.85rem;
+    letter-spacing: 0.35em;
+    opacity: 0.9;
+  }
+  .myth-title-ornament::before,
+  .myth-title-ornament::after {
+    content: "";
+    height: 1px;
+    width: min(80px, 18vw);
+    background: linear-gradient(90deg, transparent, #c0a060, transparent);
+  }
 
-    /* ═══ Scattered unit sprites ═══ */
-    .sprite-layer {
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      overflow: hidden;
-      z-index: 1;
-    }
-    .unit-sprite {
-      position: absolute;
-      width: clamp(52px, 8vw, 88px);
-      height: clamp(52px, 8vw, 88px);
-      border-radius: 50%;
-      background-size: cover;
-      background-position: center top;
-      border: 2px solid rgba(212,175,55,0.45);
-      box-shadow:
-        0 0 0 1px rgba(0,0,0,0.6),
-        0 6px 18px rgba(0,0,0,0.55),
-        0 0 20px rgba(120,60,200,0.2);
-      opacity: 0.88;
-      animation: sprite-float 7s ease-in-out infinite;
-    }
-    .unit-sprite.sm { width: clamp(40px, 6vw, 64px); height: clamp(40px, 6vw, 64px); opacity: 0.72; }
-    .unit-sprite.lg { width: clamp(64px, 10vw, 110px); height: clamp(64px, 10vw, 110px); }
-    @keyframes sprite-float {
-      0%, 100% { transform: translateY(0) rotate(var(--r, 0deg)); }
-      50% { transform: translateY(-10px) rotate(var(--r, 0deg)); }
-    }
-    .content-above { position: relative; z-index: 2; }
+  /* Medieval drop cap */
+  .bio-block {
+    position: relative;
+    font-family: 'EB Garamond', 'Cinzel', Georgia, serif;
+    font-size: clamp(1.12rem, 2.2vw, 1.35rem);
+    line-height: 1.7;
+    color: #d8d0c0;
+    text-align: left;
+    max-width: 42rem;
+    margin: 0 auto;
+  }
+  .bio-block::first-letter {
+    float: left;
+    font-family: 'Cinzel Decorative', 'Cinzel', serif;
+    font-weight: 900;
+    font-size: 5.6rem;
+    line-height: 0.78;
+    padding: 0.08em 0.12em 0 0;
+    margin: 0.04em 0.08em 0 0;
+    background: linear-gradient(165deg, #fff0c8 0%, #d4af37 40%, #6a5020 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(2px 2px 0 #2a1a08) drop-shadow(0 0 12px rgba(212,175,55,0.35));
+    border-right: 2px solid rgba(212,175,55,0.35);
+    padding-right: 0.14em;
+    margin-right: 0.14em;
+  }
 
-    @media (max-width: 640px) {
-      .unit-sprite { opacity: 0.55; }
-      .bio-block::first-letter { font-size: 4rem; }
-    }
-  </style>
-</head>
-<body>
-  <%
-    const scatter = [
-      { img: '/images/hero-slayer/goblin.jpg', top: '12%', left: '3%', r: '-12deg', cls: '', d: '0s' },
-      { img: '/images/hero-slayer/slime.jpg', top: '28%', right: '4%', r: '14deg', cls: 'sm', d: '0.8s' },
-      { img: '/images/hero-slayer/demon_king.jpg', top: '8%', right: '8%', r: '6deg', cls: 'lg', d: '1.2s' },
-      { img: '/images/hero-slayer/dragon.jpg', top: '48%', left: '2%', r: '-8deg', cls: '', d: '0.4s' },
-      { img: '/images/hero-slayer/skeleton.jpg', top: '62%', right: '3%', r: '18deg', cls: 'sm', d: '1.6s' },
-      { img: '/images/hero-slayer/angel.jpg', top: '72%', left: '6%', r: '-16deg', cls: '', d: '0.6s' },
-      { img: '/images/hero-slayer/bone_golem.jpg', top: '38%', right: '1%', r: '10deg', cls: '', d: '2s' },
-      { img: '/images/hero-slayer/bat.jpg', top: '18%', left: '12%', r: '22deg', cls: 'sm', d: '1s' },
-      { img: '/images/hero-slayer/hero_aeloria.jpg', top: '82%', right: '10%', r: '-6deg', cls: '', d: '1.4s' },
-      { img: '/images/hero-slayer/crimson_commander.jpg', top: '55%', left: '10%', r: '8deg', cls: 'sm', d: '0.2s' },
-      { img: '/images/hero-slayer/death_knight.jpg', top: '88%', left: '18%', r: '-20deg', cls: 'sm', d: '1.8s' },
-      { img: '/images/hero-slayer/lich.jpg', top: '42%', left: '88%', r: '12deg', cls: 'sm', d: '0.9s' },
-    ];
-  %>
+  /* Scattered unit sprites */
+  .sprite-layer {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 1;
+  }
+  .unit-sprite {
+    position: absolute;
+    width: clamp(52px, 8vw, 88px);
+    height: clamp(52px, 8vw, 88px);
+    border-radius: 50%;
+    background-size: cover;
+    background-position: center top;
+    border: 2px solid rgba(212,175,55,0.45);
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.6), 0 6px 18px rgba(0,0,0,0.55), 0 0 20px rgba(120,60,200,0.2);
+    opacity: 0.88;
+    animation: sprite-float 7s ease-in-out infinite;
+  }
+  .unit-sprite.sm { width: clamp(40px, 6vw, 64px); height: clamp(40px, 6vw, 64px); opacity: 0.72; }
+  .unit-sprite.lg { width: clamp(64px, 10vw, 110px); height: clamp(64px, 10vw, 110px); }
+  @keyframes sprite-float {
+    0%, 100% { transform: translateY(0) rotate(var(--r, 0deg)); }
+    50% { transform: translateY(-10px) rotate(var(--r, 0deg)); }
+  }
+  .content-above { position: relative; z-index: 2; }
 
+  @media (max-width: 640px) {
+    .unit-sprite { opacity: 0.55; }
+    .bio-block::first-letter { font-size: 4rem; }
+  }
+</style>
+
+<%
+  const scatter = [
+    { img: '/images/hero-slayer/goblin.jpg', top: '12%', left: '3%', r: '-12deg', cls: '', d: '0s' },
+    { img: '/images/hero-slayer/slime.jpg', top: '28%', right: '4%', r: '14deg', cls: 'sm', d: '0.8s' },
+    { img: '/images/hero-slayer/demon_king.jpg', top: '8%', right: '8%', r: '6deg', cls: 'lg', d: '1.2s' },
+    { img: '/images/hero-slayer/dragon.jpg', top: '48%', left: '2%', r: '-8deg', cls: '', d: '0.4s' },
+    { img: '/images/hero-slayer/skeleton.jpg', top: '62%', right: '3%', r: '18deg', cls: 'sm', d: '1.6s' },
+    { img: '/images/hero-slayer/angel.jpg', top: '72%', left: '6%', r: '-16deg', cls: '', d: '0.6s' },
+    { img: '/images/hero-slayer/bone_golem.jpg', top: '38%', right: '1%', r: '10deg', cls: '', d: '2s' },
+    { img: '/images/hero-slayer/bat.jpg', top: '18%', left: '12%', r: '22deg', cls: 'sm', d: '1s' },
+    { img: '/images/hero-slayer/hero_aeloria.jpg', top: '82%', right: '10%', r: '-6deg', cls: '', d: '1.4s' },
+    { img: '/images/hero-slayer/crimson_commander.jpg', top: '55%', left: '10%', r: '8deg', cls: 'sm', d: '0.2s' },
+    { img: '/images/hero-slayer/death_knight.jpg', top: '88%', left: '18%', r: '-20deg', cls: 'sm', d: '1.8s' },
+    { img: '/images/hero-slayer/lich.jpg', top: '42%', left: '88%', r: '12deg', cls: 'sm', d: '0.9s' },
+  ];
+%>
+
+<div class="hs-page -mx-4 sm:-mx-6">
   <!-- Top: mural + mythic stone title -->
   <section class="relative min-h-[70vh] md:min-h-[75vh] overflow-hidden">
     <iframe src="/games/hero-slayer-splash/index.html" title="Hero Slayer world" class="absolute inset-0 w-full h-full border-0 scale-105" loading="eager"></iframe>
@@ -243,7 +199,7 @@
            style="top:<%= s.top %>;<%= s.left ? 'left:'+s.left : '' %>;<%= s.right ? 'right:'+s.right : '' %>;--r:<%= s.r %>;animation-delay:<%= s.d %>;background-image:url('<%= s.img %>')"></div>
       <% }) %>
     </div>
-    <div class="relative z-10 content-above max-w-4xl mx-auto px-4 pt-14 md:pt-20 pb-12 text-center">
+    <div class="relative z-10 content-above max-w-4xl mx-auto px-4 pt-8 md:pt-12 pb-12 text-center">
       <p class="text-white tracking-[0.35em] uppercase text-xs md:text-sm font-bold mb-3 drop-shadow-lg">
         Alpha Access · Future Music Collective
       </p>
@@ -254,14 +210,14 @@
       <p class="myth-subtitle">Dimensional Force · Heroes of Fortune</p>
       <div class="myth-title-ornament">⚔ · ⚔ · ⚔</div>
 
-      <div class="inline-flex flex-col sm:flex-row items-center gap-4 glass rounded-xl px-6 py-5 shadow-2xl mt-8">
+      <div class="inline-flex flex-col sm:flex-row items-center gap-4 hs-glass rounded-xl px-6 py-5 shadow-2xl mt-8">
         <div class="text-left">
           <div class="text-gray-400 text-sm line-through">Normally $20.00</div>
           <div class="text-3xl md:text-4xl font-bold text-[#D4AF37]">$5.00
             <span class="text-base text-[#20B2AA] font-semibold"> · 75% off Alpha</span>
           </div>
         </div>
-        <button id="hs-buy-btn" type="button" class="btn-gold px-8 py-3 text-base md:text-lg rounded-sm shadow-lg">
+        <button id="hs-buy-btn" type="button" class="hs-btn-gold px-8 py-3 text-base md:text-lg rounded-sm shadow-lg">
           Confirm &amp; Checkout
         </button>
       </div>
@@ -278,7 +234,7 @@
       <% }) %>
     </div>
     <div class="content-above relative max-w-3xl mx-auto">
-      <h2 class="brand text-2xl md:text-3xl text-gold text-center mb-8">The Conquest</h2>
+      <h2 class="brand-font text-2xl md:text-3xl text-gold text-center mb-8">The Conquest</h2>
       <p class="bio-block">
         Hero Slayer drops you into a living mythological realm where a tear in the sky spills either Darkness or a lone Hero onto fog-shrouded territories.
         Summon and upgrade armies of unique units from your portal — chitinous goblin swarms, acid slimes, lifestealing vampires, possessable shadow dragons, and the Demon King apex —
@@ -291,7 +247,7 @@
 
   <!-- Codex features -->
   <section class="relative max-w-5xl mx-auto px-4 pb-16 content-above">
-    <h2 class="brand text-2xl md:text-3xl text-gold text-center mb-8">From the Codex</h2>
+    <h2 class="brand-font text-2xl md:text-3xl text-gold text-center mb-8">From the Codex</h2>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
       <% const codex = [
         { img: '/images/hero-slayer/goblin.jpg', t: 'Portal Armies', d: 'Bug-alien skirmishers and elite legions pour from your dimensional portal. Cheap chitinous fodder scales into boss-tier war engines as you unlock power and artifacts.' },
@@ -304,10 +260,10 @@
         { img: '/images/hero-slayer/angel.jpg', t: 'Sandbox & Myth Mode', d: 'Campaign conquest for long-form dominion, plus a free-spawn sandbox arena for stylistic top-down and FPS hybrid experiments without campaign gates.' },
       ]; %>
       <% codex.forEach(function(f){ %>
-      <article class="glass rounded-xl p-4 flex gap-4 items-start">
-        <div class="feat-ico" style="background-image:url('<%= f.img %>')"></div>
+      <article class="hs-glass rounded-xl p-4 flex gap-4 items-start">
+        <div class="hs-feat-ico" style="background-image:url('<%= f.img %>')"></div>
         <div>
-          <h3 class="text-[#D4AF37] font-bold text-lg mb-1 brand"><%= f.t %></h3>
+          <h3 class="text-[#D4AF37] font-bold text-lg mb-1 brand-font"><%= f.t %></h3>
           <p class="text-gray-300 text-sm leading-relaxed"><%= f.d %></p>
         </div>
       </article>
@@ -318,31 +274,32 @@
   <section class="border-t border-yellow-900/30 py-12 px-4 text-center content-above">
     <p class="text-gray-400 text-sm mb-2">Retail <span class="line-through">$20</span> · Alpha access</p>
     <p class="text-4xl font-bold text-[#D4AF37] mb-6" style="font-family:'Cinzel Decorative',Cinzel,serif">$5</p>
-    <button id="hs-buy-btn-2" type="button" class="btn-gold px-10 py-4 text-lg rounded-sm">Confirm Alpha Purchase — $5</button>
+    <button id="hs-buy-btn-2" type="button" class="hs-btn-gold px-10 py-4 text-lg rounded-sm">Confirm Alpha Purchase — $5</button>
     <p class="mt-6 text-xs text-gray-600">After payment you receive the obfuscated Windows package download.</p>
     <a href="/projects" class="inline-block mt-4 text-[#D4AF37] text-sm hover:text-white">← Projects</a>
   </section>
+</div>
 
-  <script>
-  (function(){
-    async function startCheckout(){
-      const status = document.getElementById('hs-buy-status');
-      const btns = [document.getElementById('hs-buy-btn'), document.getElementById('hs-buy-btn-2')];
-      btns.forEach(b => { if(b){ b.disabled = true; b.textContent = 'Opening Stripe…'; }});
-      if(status) status.textContent = 'Creating secure checkout session…';
-      try {
-        const res = await fetch('/api/hero-slayer/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
-        const data = await res.json();
-        if (!res.ok || !data.url) throw new Error(data.error || 'Checkout failed');
-        window.location.href = data.url;
-      } catch (e) {
-        if(status) status.textContent = e.message || 'Checkout error';
-        btns.forEach(b => { if(b){ b.disabled = false; b.textContent = 'Confirm & Checkout'; }});
-      }
+<script>
+(function(){
+  async function startCheckout(){
+    const status = document.getElementById('hs-buy-status');
+    const btns = [document.getElementById('hs-buy-btn'), document.getElementById('hs-buy-btn-2')];
+    btns.forEach(b => { if(b){ b.disabled = true; b.textContent = 'Opening Stripe…'; }});
+    if(status) status.textContent = 'Creating secure checkout session…';
+    try {
+      const res = await fetch('/api/hero-slayer/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+      const data = await res.json();
+      if (!res.ok || !data.url) throw new Error(data.error || 'Checkout failed');
+      window.location.href = data.url;
+    } catch (e) {
+      if(status) status.textContent = e.message || 'Checkout error';
+      btns.forEach(b => { if(b){ b.disabled = false; b.textContent = 'Confirm & Checkout'; }});
     }
-    document.getElementById('hs-buy-btn')?.addEventListener('click', startCheckout);
-    document.getElementById('hs-buy-btn-2')?.addEventListener('click', startCheckout);
-  })();
-  </script>
-</body>
-</html>
+  }
+  document.getElementById('hs-buy-btn')?.addEventListener('click', startCheckout);
+  document.getElementById('hs-buy-btn-2')?.addEventListener('click', startCheckout);
+})();
+</script>
+
+<%- include('partials/footer') %>
