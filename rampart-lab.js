@@ -18,6 +18,9 @@ const FORKS_DIR = path.join(ROOT, 'forks');
 const REGISTRY_PATH = path.join(ROOT, 'registry.json');
 const RAW_DIR = path.join(__dirname, 'raw', 'rampart-uploads');
 
+/** Community fork uploads locked for now (game stays live; projects card hidden). */
+const RAMPART_FORK_UPLOADS_ENABLED = false;
+
 const MAX_ZIP_MB = 25;
 const MAX_FILES = 2000;
 const ALLOWED_EXT = new Set([
@@ -254,6 +257,7 @@ function mount(app, { requireLogin }) {
   app.get('/rampart', (req, res) => {
     res.render('rampart', {
       title: 'Rampart Reborn',
+      forkUploadsEnabled: RAMPART_FORK_UPLOADS_ENABLED,
       user: req.session?.userId
         ? { id: req.session.userId, email: req.session.email || null }
         : null,
@@ -281,6 +285,12 @@ function mount(app, { requireLogin }) {
   });
 
   app.post('/api/rampart/upload', requireLoginApi, (req, res) => {
+    if (!RAMPART_FORK_UPLOADS_ENABLED) {
+      return res.status(403).json({
+        error: 'Fork uploads are temporarily locked. Play the official build while the mod lab is closed.',
+        locked: true,
+      });
+    }
     upload.single('zip')(req, res, async (err) => {
       if (err) {
         return res.status(400).json({ error: err.message || 'Upload error' });

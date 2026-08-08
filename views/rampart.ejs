@@ -145,10 +145,17 @@
       <h2>Mod lab (pilot)</h2>
       <a class="btn" id="btn-download" href="/api/rampart/download">Download source</a>
       <button type="button" class="btn" id="btn-guide">Grok Build starter guide</button>
+      <% if (typeof forkUploadsEnabled !== 'undefined' && forkUploadsEnabled) { %>
       <button type="button" class="btn" id="btn-upload">Upload fork (login)</button>
       <input type="file" id="upload-file" accept=".zip,application/zip" />
       <p class="status-line" id="upload-status"></p>
       <p class="hint">Uploads are scanned for safety. Same protocol version can multiplayer together.</p>
+      <% } else { %>
+      <button type="button" class="btn" id="btn-upload" disabled title="Temporarily locked">Upload fork — locked</button>
+      <input type="file" id="upload-file" accept=".zip,application/zip" disabled />
+      <p class="status-line err" id="upload-status">Fork uploads are temporarily locked.</p>
+      <p class="hint">Official multiplayer still works. Community uploads will reopen later.</p>
+      <% } %>
 
       <h2>Community forks</h2>
       <div class="fork-list" id="fork-list">
@@ -198,6 +205,7 @@ and cannon ammo for a faster siege, then tell me what you changed.</pre>
       const statusEl = document.getElementById('upload-status');
       const fileInput = document.getElementById('upload-file');
       const loggedIn = <%= typeof user !== 'undefined' && user ? 'true' : 'false' %>;
+      const forkUploadsEnabled = <%= typeof forkUploadsEnabled !== 'undefined' && forkUploadsEnabled ? 'true' : 'false' %>;
 
       function setGame(src, label) {
         frame.src = src;
@@ -218,7 +226,12 @@ and cannon ammo for a faster siege, then tell me what you changed.</pre>
         if (e.target.id === 'guide-modal') e.target.classList.remove('open');
       });
 
-      document.getElementById('btn-upload').addEventListener('click', () => {
+      document.getElementById('btn-upload')?.addEventListener('click', () => {
+        if (!forkUploadsEnabled) {
+          statusEl.textContent = 'Fork uploads are temporarily locked.';
+          statusEl.className = 'status-line err';
+          return;
+        }
         if (!loggedIn) {
           statusEl.textContent = 'Log in on the site, then return here to upload.';
           statusEl.className = 'status-line err';
@@ -228,7 +241,12 @@ and cannon ammo for a faster siege, then tell me what you changed.</pre>
         fileInput.click();
       });
 
-      fileInput.addEventListener('change', async () => {
+      fileInput?.addEventListener('change', async () => {
+        if (!forkUploadsEnabled) {
+          statusEl.textContent = 'Fork uploads are temporarily locked.';
+          statusEl.className = 'status-line err';
+          return;
+        }
         const file = fileInput.files && fileInput.files[0];
         if (!file) return;
         statusEl.textContent = 'Uploading & validating…';
