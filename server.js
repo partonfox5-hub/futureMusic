@@ -2260,6 +2260,8 @@ const HERO_SLAYER_RETAIL_CENTS = 2000;
 const pathMod = require("path");
 const fsMod = require("fs");
 const HERO_SLAYER_ZIP = pathMod.join(__dirname, "public", "downloads", "hero-slayer-alpha.zip");
+/** GCS object key in bucket `futuremusic` (or GCS_BUCKET_NAME). */
+const HERO_SLAYER_GCS_PATH = process.env.HERO_SLAYER_GCS_PATH || "downloads/hero-slayer-alpha.zip";
 
 
 // Production Hero Slayer product
