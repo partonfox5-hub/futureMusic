@@ -479,33 +479,45 @@ kbd {
 .card-choice.lasting { border-color: #6e40c9; }
 .card-choice.lasting .name { color: #a371f7; }
 
-/* Build palette */
+/* Build palette — compact 2-col grid so all options fit without scrollbar */
 .side-dock {
   position: absolute;
-  top: 14px;
-  right: 14px;
-  width: 260px;
+  top: 10px;
+  right: 10px;
+  width: min(300px, calc(100% - 20px));
   background: rgba(22, 27, 34, 0.96);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 16px;
+  border-radius: 10px;
+  padding: 10px;
   pointer-events: auto;
   z-index: 40;
-  max-height: calc(100% - 28px);
-  overflow-y: auto;
-}
-.side-dock.hidden { display: none; }
-.side-dock h3 { font-size: 20px; color: var(--gold); margin-bottom: 6px; }
-#palette-btns {
+  max-height: calc(100% - 20px);
+  overflow-y: hidden; /* avoid scrollbar — buttons shrink into 2 columns */
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin: 12px 0;
+  min-height: 0;
+}
+.side-dock.hidden { display: none; }
+.side-dock h3 { font-size: 14px; color: var(--gold); margin-bottom: 2px; }
+.side-dock > .tiny { font-size: 10px; line-height: 1.25; margin: 0 0 4px; }
+#palette-btns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+  margin: 6px 0;
+  flex: 1 1 auto;
+  min-height: 0;
+  align-content: start;
 }
 #palette-btns .btn {
   text-align: left;
-  font-size: 16px;
-  padding: 12px 14px;
+  /* ~30% smaller than prior 16px / 12px 14px padding */
+  font-size: 11px;
+  line-height: 1.2;
+  padding: 6px 8px;
+  border-radius: 6px;
+  white-space: normal;
+  min-height: 0;
 }
 #palette-btns .btn.active {
   border-color: var(--gold);
@@ -513,25 +525,33 @@ kbd {
   box-shadow: 0 0 0 1px var(--gold);
 }
 .piece-preview {
-  min-height: 72px;
+  min-height: 40px;
+  max-height: 48px;
   background: #0d1117;
-  border-radius: 8px;
+  border-radius: 6px;
   border: 1px dashed var(--border);
-  margin: 8px 0;
-  font-size: 16px;
+  margin: 4px 0;
+  font-size: 11px;
   color: var(--muted);
   display: flex;
   align-items: center;
   justify-content: center;
   text-align: center;
-  padding: 8px;
+  padding: 4px 6px;
+  flex-shrink: 0;
+}
+#build-hint {
+  font-size: 9px !important;
+  line-height: 1.25;
+  margin: 2px 0 4px !important;
 }
 
 #btn-skip-build {
   width: 100%;
-  margin-top: 10px;
-  font-size: 16px;
-  padding: 12px 10px;
+  margin-top: 4px;
+  font-size: 11px;
+  padding: 7px 8px;
+  flex-shrink: 0;
 }
 #btn-skip-build.voted {
   border-color: var(--ok);
