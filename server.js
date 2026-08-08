@@ -1,4 +1,4 @@
-try { require('dotenv').config(); } catch (e) { /* dotenv not installed */ }
+﻿try { require('dotenv').config(); } catch (e) { /* dotenv not installed */ }
 const express = require('express');
 const app = express();
 
@@ -71,7 +71,7 @@ app.use(cors({
         }
 
         // 3. Fallback: Block
-        console.log("⚠️ BLOCKED BY CORS:", origin);
+        console.log("âš ï¸ BLOCKED BY CORS:", origin);
         // If you are still stuck, you can uncomment the line below to temporarily allow everything:
         // return callback(null, true);
         callback(new Error('Not allowed by CORS'));
@@ -155,7 +155,7 @@ if (!rawDomain.startsWith('http://') && !rawDomain.startsWith('https://')) {
 // Remove trailing slash to prevent double slashes in generated URLs
 const DOMAIN = rawDomain.replace(/\/$/, '');
 
-console.log(`🌍 DOMAIN Configured as: ${DOMAIN}`);
+console.log(`ðŸŒ DOMAIN Configured as: ${DOMAIN}`);
 
 // --- DATA LOADING ---
 let songsData = [];
@@ -188,10 +188,10 @@ const reqAuth = http.request(options, (resAuth) => {
     let data = '';
     resAuth.on('data', (chunk) => data += chunk);
     resAuth.on('end', () => {
-        console.log("🕵️ IDENTITY CHECK: This container is running as:", data.trim());
+        console.log("ðŸ•µï¸ IDENTITY CHECK: This container is running as:", data.trim());
     });
 });
-reqAuth.on('error', (e) => console.log("🕵️ IDENTITY CHECK FAILED:", e.message));
+reqAuth.on('error', (e) => console.log("ðŸ•µï¸ IDENTITY CHECK FAILED:", e.message));
 reqAuth.end();
 
 
@@ -229,10 +229,10 @@ if (process.env.STRIPE_SECRET_KEY) {
     try {
         stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
     } catch (e) {
-        console.warn("⚠️ STRIPE WARNING:", e.message);
+        console.warn("âš ï¸ STRIPE WARNING:", e.message);
     }
 } else {
-    console.warn("⚠️ STRIPE WARNING: STRIPE_SECRET_KEY is missing. Checkout will not work.");
+    console.warn("âš ï¸ STRIPE WARNING: STRIPE_SECRET_KEY is missing. Checkout will not work.");
 }
 
 // --- DATABASE CONNECTION ---
@@ -277,18 +277,18 @@ if (DB_CONFIG.user && DB_CONFIG.database) {
         dbConfig.host = '127.0.0.1';
     }
 
-    console.log(`🔌 MODE: ${mode}. Attempting connection...`);
+    console.log(`ðŸ”Œ MODE: ${mode}. Attempting connection...`);
 
     async function initializeDbPool() {
         try {
             pool = mysql.createPool(dbConfig);
             const [rows] = await pool.query('SELECT 1 + 1 AS solution');
             if (rows && rows[0].solution === 2) {
-                console.log("✅ DB CONNECTED SUCCESSFULLY (MySQL)");
+                console.log("âœ… DB CONNECTED SUCCESSFULLY (MySQL)");
                 dbConnectionStatus = "CONNECTED";
             }
         } catch (err) {
-            console.error("❌ INITIAL CONNECTION FAILED:", err.message);
+            console.error("âŒ INITIAL CONNECTION FAILED:", err.message);
             let socketDiagnostic = "";
             if (mode === 'UNIX SOCKET') {
                 try {
@@ -453,7 +453,7 @@ app.post('/register', async (req, res) => {
 // 3. Handle Login
 app.post('/login', async (req, res) => {
     try {
-        console.log("🟢 DEBUG: Login attempted for:", req.body.email);
+        console.log("ðŸŸ¢ DEBUG: Login attempted for:", req.body.email);
         
         const { email, password } = req.body;
         
@@ -464,24 +464,24 @@ app.post('/login', async (req, res) => {
         const [users] = await pool.query("SELECT * FROM users WHERE email = ?", [email]);
         
         if (users.length === 0) {
-            console.log("🟠 DEBUG: User not found in DB.");
+            console.log("ðŸŸ  DEBUG: User not found in DB.");
             return res.send('<script>alert("Invalid email or password"); window.location.href="/login";</script>');
         }
 
         const user = users[0];
         
         // 2. Validate Data before Bcrypt
-        console.log("🟢 DEBUG: User found. ID:", user.id);
+        console.log("ðŸŸ¢ DEBUG: User found. ID:", user.id);
         
         if (!password) throw new Error("Password field is missing from the request body.");
         if (!user.password_hash) throw new Error("This user has no password_hash in the database. (Did you manually insert them?)");
 
         // 3. Compare Password
-        console.log("🟢 DEBUG: Comparing password hash...");
+        console.log("ðŸŸ¢ DEBUG: Comparing password hash...");
         const match = await bcrypt.compare(password, user.password_hash);
 
         if (match) {
-            console.log("🟢 DEBUG: Password match! Setting session...");
+            console.log("ðŸŸ¢ DEBUG: Password match! Setting session...");
             req.session.userId = user.id;
             req.session.email = user.email;
             
@@ -489,16 +489,16 @@ app.post('/login', async (req, res) => {
             const redirectUrl = req.session.returnTo || '/account';
             delete req.session.returnTo; // Clear it after use
             
-            console.log("🟢 DEBUG: Redirecting to:", redirectUrl);
+            console.log("ðŸŸ¢ DEBUG: Redirecting to:", redirectUrl);
             res.redirect(redirectUrl);
             // --- FIX END ---
         } else {
-            console.log("🟠 DEBUG: Password mismatch.");
+            console.log("ðŸŸ  DEBUG: Password mismatch.");
             res.send('<script>alert("Invalid email or password"); window.location.href="/login";</script>');
         }
     } catch (loginErr) {
         // --- NUCLEAR LOGGER FOR LOGIN ---
-        console.error("🔴 LOGIN CRASH:", loginErr);
+        console.error("ðŸ”´ LOGIN CRASH:", loginErr);
         
         console.log(JSON.stringify({
             severity: 'ERROR',
@@ -510,7 +510,7 @@ app.post('/login', async (req, res) => {
 
         res.status(500).send(`
             <div style="background: #000; color: #ff5555; padding: 40px; font-family: monospace;">
-                <h1>🛑 LOGIN FAILED</h1>
+                <h1>ðŸ›‘ LOGIN FAILED</h1>
                 <p>The server crashed while trying to log you in.</p>
                 <hr style="border: 1px solid #333; margin: 20px 0;">
                 <h3 style="color: white;">Error Details:</h3>
@@ -535,7 +535,7 @@ app.get('/target-catharsis', (req, res) => res.render('target-catharsis', { titl
 app.get('/paintcadia', (req, res) => res.render('paintcadia', { title: 'Paintcadia' }));
 app.get('/zombie-defense', (req, res) => res.redirect('/zombie-defense/index.html'));
 
-// Rampart Reborn — game shell + mod-lab APIs
+// Rampart Reborn â€” game shell + mod-lab APIs
 try {
     require('./rampart-lab').mount(app, { requireLogin });
     console.log('[rampart-lab] routes mounted');
@@ -869,7 +869,7 @@ app.get('/account/debug', async (req, res) => {
 app.get('/account', requireAuth, async (req, res) => {
     // 0. MASTER ERROR TRAP: Wrap the ENTIRE route logic
     try {
-        console.log("🟢 DEBUG: Account Route Hit. User ID:", req.session.userId);
+        console.log("ðŸŸ¢ DEBUG: Account Route Hit. User ID:", req.session.userId);
 
         // 1. Initialize Safe Defaults (So page never crashes even if DB fails)
         let user = { 
@@ -888,20 +888,20 @@ app.get('/account', requireAuth, async (req, res) => {
         // 2. Safely Fetch Data (Independent Blocks)
         // We use separate try/catch blocks so one missing table doesn't crash the whole page.
         if (pool) {
-            console.log("🟢 DEBUG: DB Pool active. Fetching data...");
+            console.log("ðŸŸ¢ DEBUG: DB Pool active. Fetching data...");
             
             // A. User Data
             try {
                 const [rows] = await pool.query("SELECT * FROM users WHERE id = ?", [req.session.userId]);
                 if (rows.length > 0) user = rows[0];
-            } catch (e) { console.error("⚠️ Account - User Fetch Error:", e.message); }
+            } catch (e) { console.error("âš ï¸ Account - User Fetch Error:", e.message); }
 
             // B. Cart Count
             try {
                 const sid = req.sessionID || '';
                 const [cRows] = await pool.query("SELECT SUM(quantity) as count FROM cart_items WHERE session_id = ?", [sid]);
                 if (cRows.length > 0 && cRows[0].count) cartCount = parseInt(cRows[0].count);
-            } catch (e) { console.error("⚠️ Account - Cart Fetch Error:", e.message); }
+            } catch (e) { console.error("âš ï¸ Account - Cart Fetch Error:", e.message); }
 
             // C. Orders (Digital & Physical)
             try {
@@ -916,7 +916,7 @@ ORDER BY o.created_at DESC
                 const [pRows] = await pool.query("SELECT * FROM orders WHERE user_id = ? AND (product_type IS NULL OR product_type != 'digital') ORDER BY created_at DESC", [req.session.userId]);
                 physicalOrders = pRows;
             } catch (e) { 
-                console.error("⚠️ Account - Orders Fetch Error:", e.message); 
+                console.error("âš ï¸ Account - Orders Fetch Error:", e.message); 
             }
 
             // D. Skins
@@ -934,13 +934,13 @@ ORDER BY o.created_at DESC
                         }
                     }
                 }
-            } catch (e) { console.error("⚠️ Account - Skins Fetch Error:", e.message); }
+            } catch (e) { console.error("âš ï¸ Account - Skins Fetch Error:", e.message); }
         } else {
-            console.log("🟠 DEBUG: DB Pool is missing/offline.");
+            console.log("ðŸŸ  DEBUG: DB Pool is missing/offline.");
         }
 
         // 3. Render Page
-        console.log("🟢 DEBUG: All data fetched. Rendering EJS now...");
+        console.log("ðŸŸ¢ DEBUG: All data fetched. Rendering EJS now...");
         
         res.render('account', { 
             title: 'Command Center', 
@@ -960,7 +960,7 @@ ORDER BY o.created_at DESC
         // --- THE NUCLEAR LOGGER ---
         // This catches ANY crash in the route, not just the render part.
         
-        console.error("🔴 CRITICAL CRASH IN /ACCOUNT ROUTE:", criticalErr);
+        console.error("ðŸ”´ CRITICAL CRASH IN /ACCOUNT ROUTE:", criticalErr);
         
         // Force Cloud Run to see it as an ERROR
         console.log(JSON.stringify({
@@ -974,7 +974,7 @@ ORDER BY o.created_at DESC
         // Show the error to YOU in the browser
         res.status(500).send(`
             <div style="background: #000; color: #ff5555; padding: 50px; font-family: monospace;">
-                <h1>🛑 CRITICAL ROUTE ERROR</h1>
+                <h1>ðŸ›‘ CRITICAL ROUTE ERROR</h1>
                 <p>The server crashed before it could finish loading the page.</p>
                 <hr style="border-color: #333;">
                 <h3>Error Details:</h3>
@@ -1266,7 +1266,7 @@ app.post('/initiate-checkout', async (req, res) => {
     }
 
     if (!stripe) {
-        console.error("❌ Checkout blocked: Stripe is not configured.");
+        console.error("âŒ Checkout blocked: Stripe is not configured.");
         return res.status(503).json({ error: "Payment gateway is not configured (Missing STRIPE_SECRET_KEY)." });
     }
 
@@ -1351,7 +1351,7 @@ app.post('/initiate-checkout', async (req, res) => {
         }
 
         // 4. Create the Session
-        console.log(`🚀 Creating Stripe Session for ${domain}`);
+        console.log(`ðŸš€ Creating Stripe Session for ${domain}`);
         const session = await stripe.checkout.sessions.create(sessionConfig);
         
         // 7. Record Order in DB
@@ -1428,10 +1428,10 @@ app.get('/success', async (req, res) => {
                 
                 if (appSessionId) {
                     await pool.query("DELETE FROM cart_items WHERE session_id = ?", [appSessionId]);
-                    console.log(`🛒 Cart cleared for session: ${appSessionId}`);
+                    console.log(`ðŸ›’ Cart cleared for session: ${appSessionId}`);
                 }
             } catch (err) {
-                console.error("⚠️ Failed to clear cart after success:", err.message);
+                console.error("âš ï¸ Failed to clear cart after success:", err.message);
             }
         }
 
@@ -1526,7 +1526,7 @@ app.get('/projects', (req, res) => res.render('projects', { title: 'Projects' })
 
 app.post('/api/cart/add', async (req, res) => {
     // 1. DIAGNOSTIC LOG: See exactly what the browser sent
-    console.log("🛒 API/CART/ADD Request:", req.body);
+    console.log("ðŸ›’ API/CART/ADD Request:", req.body);
 
     try {
         const { sku, size, sessionId: bodySessionId } = req.body;
@@ -1536,7 +1536,7 @@ app.post('/api/cart/add', async (req, res) => {
         if (!sessionId) sessionId = `guest-${Date.now()}`;
 
         if (!sku) {
-            console.log("❌ Missing SKU in request");
+            console.log("âŒ Missing SKU in request");
             return res.status(400).json({ success: false, error: 'SKU required' });
         }
 
@@ -1553,7 +1553,7 @@ app.post('/api/cart/add', async (req, res) => {
                 const [rows] = await pool.query("SELECT * FROM products WHERE sku = ?", [sku]);
                 product = rows[0];
             } catch (dbErr) {
-                console.error("⚠️ DB Product Fetch Error (Continuing to mock):", dbErr.message);
+                console.error("âš ï¸ DB Product Fetch Error (Continuing to mock):", dbErr.message);
             }
         }
         
@@ -1563,7 +1563,7 @@ app.post('/api/cart/add', async (req, res) => {
         }
 
         if (!product) {
-            console.log("❌ Product not found for SKU:", sku);
+            console.log("âŒ Product not found for SKU:", sku);
             return res.status(404).json({ success: false, error: 'Product not found' });
         }
 
@@ -1592,7 +1592,7 @@ app.post('/api/cart/add', async (req, res) => {
                     );
                 }
             } catch (sqlErr) {
-                console.error("🔥 SQL Error during cart update:", sqlErr);
+                console.error("ðŸ”¥ SQL Error during cart update:", sqlErr);
                 throw new Error("Database failed to update cart: " + sqlErr.message);
             }
         } else {
@@ -1622,13 +1622,13 @@ app.post('/api/cart/add', async (req, res) => {
             newCount = cart.reduce((acc, item) => acc + item.quantity, 0);
         }
 
-        console.log(`✅ Added ${sku} (Size: ${finalSize}) to cart for session ${sessionId}. New Count: ${newCount}`);
+        console.log(`âœ… Added ${sku} (Size: ${finalSize}) to cart for session ${sessionId}. New Count: ${newCount}`);
         res.json({ success: true, newCount: newCount });
 
     } catch (err) {
         // 7. CATASTROPHIC ERROR HANDLER
         // This ensures you receive JSON even if the server crashes
-        console.error("🔥 CRITICAL SERVER ERROR:", err);
+        console.error("ðŸ”¥ CRITICAL SERVER ERROR:", err);
         res.status(500).json({ 
             success: false,
             error: err.message || "Internal Server Error",
@@ -1761,7 +1761,7 @@ if (currentSkus.size > 0) {
             <p>Pulled <strong>${products.length}</strong> current products from Printify.</p>
             <p>Updated/inserted: ${updated}</p>
             <p>Old unavailable products have been removed.</p>
-            <a href="/merch">Go to Merch →</a>
+            <a href="/merch">Go to Merch â†’</a>
         `);
     } catch (err) {
         console.error('Printify sync error:', err.response?.data || err.message);
@@ -2251,8 +2251,8 @@ app.post('/api/terrarium/save', async (req, res) => {
 
 
 // ============================================================================
-// HERO SLAYER ALPHA — test routes (slug 7qsba2gtr6). Promote after QA.
-// Retail $20 / Alpha sale $5 (75% off). Stripe Checkout → download zip.
+// HERO SLAYER ALPHA â€” test routes (slug 7qsba2gtr6). Promote after QA.
+// Retail $20 / Alpha sale $5 (75% off). Stripe Checkout â†’ download zip.
 // ============================================================================
 const HERO_SLAYER_SKU = "hero-slayer-alpha";
 const HERO_SLAYER_PRICE_CENTS = 500; // $5.00 alpha
@@ -2266,7 +2266,7 @@ const HERO_SLAYER_GCS_PATH = process.env.HERO_SLAYER_GCS_PATH || "downloads/hero
 
 // Production Hero Slayer product
 app.get("/hero-slayer", (req, res) => {
-    res.render("hero-slayer", { title: "Hero Slayer — Alpha Access" });
+    res.render("hero-slayer", { title: "Hero Slayer â€” Alpha Access" });
 });
 app.get("/hero-slayer/success", async (req, res) => {
     const sessionId = req.query.session_id || "";
@@ -2288,7 +2288,7 @@ app.get("/hero-slayer/success", async (req, res) => {
 });
 
 app.get("/test-7qsba2gtr6", (req, res) => {
-    res.render("test-7qsba2gtr6", { title: "Hero Slayer — Alpha Access (Test)" });
+    res.render("test-7qsba2gtr6", { title: "Hero Slayer â€” Alpha Access (Test)" });
 });
 app.get("/test-7qsba2gtr6-splash", (req, res) => {
     res.render("test-7qsba2gtr6-splash", { title: "Hero Slayer Splash (Test)" });
@@ -2329,8 +2329,8 @@ app.post("/api/hero-slayer/checkout", async (req, res) => {
                     currency: "usd",
                     unit_amount: HERO_SLAYER_PRICE_CENTS,
                     product_data: {
-                        name: "Hero Slayer — Alpha Access",
-                        description: "Normally $20 — Alpha 75% off ($5). Desktop package download.",
+                        name: "Hero Slayer â€” Alpha Access",
+                        description: "Normally $20 â€” Alpha 75% off ($5). Desktop package download.",
                         images: [`${domain}/images/hero-slayer/demon_king.jpg`],
                         metadata: { sku: HERO_SLAYER_SKU },
                     },
@@ -2403,7 +2403,7 @@ app.get("/api/hero-slayer/download", async (req, res) => {
     const targetBucket = process.env.GCS_BUCKET_NAME || bucketName || "futuremusic";
     const gcsPath = HERO_SLAYER_GCS_PATH; // downloads/hero-slayer-alpha.zip
 
-    // Prefer GCS signed URL (production Cloud Run — zip is not in the git image)
+    // Prefer GCS signed URL (production Cloud Run â€” zip is not in the git image)
     try {
         const file = storage.bucket(targetBucket).file(gcsPath);
         const [exists] = await file.exists();
@@ -2555,13 +2555,13 @@ app.use((req, res, next) => res.status(404).render('404', { title: 'Signal Lost'
 
 const PORT = parseInt(process.env.PORT) || 8080;
 const server = app.listen(PORT, '0.0.0.0', () => {
-    console.log(`✅ Server successfully started on port ${PORT}`);
+    console.log(`âœ… Server successfully started on port ${PORT}`);
 });
 
 server.on('error', (e) => {
     if (e.code === 'EADDRINUSE') {
-        console.error('❌ Port is already in use!');
+        console.error('âŒ Port is already in use!');
     } else {
-        console.error('❌ Server failed to start:', e);
+        console.error('âŒ Server failed to start:', e);
     }
 });
