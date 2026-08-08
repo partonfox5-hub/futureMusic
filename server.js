@@ -547,6 +547,9 @@ try {
 app.get('/test-3bkyzsrg', (req, res) => {
     res.render('test-3bkyzsrg', { title: 'Rampart responsive test' });
 });
+app.get('/test-bk74eh6y', (req, res) => {
+    res.render('test-bk74eh6y', { title: 'Rampart multiplayer test' });
+});
 
 // Domain Project Page
 app.get('/domain', (req, res) => {

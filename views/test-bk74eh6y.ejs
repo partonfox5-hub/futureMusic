@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rampart multiplayer test | Future Music</title>
+  <style>
+    :root { --gold: #D4AF37; --bg: #0c0e12; --panel: #141820; --border: #2a3140; --text: #e8e6e0; --muted: #9aa3b2; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; height: 100%; background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; overflow: hidden; }
+    .shell {
+      display: grid;
+      grid-template-columns: minmax(200px, 280px) minmax(0, 1fr);
+      grid-template-rows: 44px minmax(0, 1fr);
+      height: 100dvh; max-height: 100dvh; overflow: hidden;
+    }
+    .topbar {
+      grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between;
+      padding: 0 12px; background: #000; border-bottom: 1px solid var(--border);
+    }
+    .topbar a { color: var(--gold); text-decoration: none; font-weight: 700; font-size: 12px; text-transform: uppercase; }
+    .topbar h1 { margin: 0; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: #fff; }
+    .badge { font-size: 10px; color: var(--muted); border: 1px solid var(--border); padding: 3px 8px; border-radius: 999px; }
+    .rail { background: var(--panel); border-right: 1px solid var(--border); overflow-y: auto; padding: 12px; font-size: 12px; color: var(--muted); line-height: 1.45; }
+    .rail h2 { margin: 0 0 8px; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gold); }
+    .rail ol { padding-left: 18px; margin: 0 0 12px; }
+    .rail li { margin-bottom: 6px; }
+    .rail strong { color: var(--text); }
+    .stage { position: relative; min-width: 0; min-height: 0; overflow: hidden; background: #000; }
+    .stage iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+    @media (max-width: 720px) {
+      .shell { grid-template-columns: 1fr; grid-template-rows: 44px auto minmax(0, 1fr); }
+      .rail { max-height: 30vh; border-right: 0; border-bottom: 1px solid var(--border); }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <a href="/projects">&larr; Projects</a>
+      <h1>Rampart · MP test</h1>
+      <span class="badge">test-bk74eh6y</span>
+    </header>
+    <aside class="rail">
+      <h2>How to test multiplayer</h2>
+      <ol>
+        <li>Open this URL on <strong>two devices/browsers</strong>.</li>
+        <li>Both enter a <strong>nickname</strong>.</li>
+        <li>Device A: <strong>Create Room</strong> → <strong>Copy code</strong> (long id — paste full string).</li>
+        <li>Device B: paste code → <strong>Join</strong>.</li>
+        <li>When both names show under lobby, both press <strong>Ready</strong>.</li>
+      </ol>
+      <p>Both players must use <strong>this same test page</strong> (not mixed with /rampart production).</p>
+      <p style="color:var(--gold);margin-top:12px;">Unlisted test — not on homepage.</p>
+    </aside>
+    <main class="stage">
+      <iframe
+        title="Rampart multiplayer test"
+        src="/games/rampart-reborn/test-bk74eh6y/index.html"
+        allow="autoplay; fullscreen; gamepad"
+        referrerpolicy="no-referrer"
+        allowfullscreen
+      ></iframe>
+    </main>
+  </div>
+</body>
+</html>
