@@ -2246,6 +2246,139 @@ app.post('/api/terrarium/save', async (req, res) => {
 });
 // ============================================================================
 
+
+// ============================================================================
+// HERO SLAYER ALPHA — test routes (slug 7qsba2gtr6). Promote after QA.
+// Retail $20 / Alpha sale $5 (75% off). Stripe Checkout → download zip.
+// ============================================================================
+const HERO_SLAYER_SKU = "hero-slayer-alpha";
+const HERO_SLAYER_PRICE_CENTS = 500; // $5.00 alpha
+const HERO_SLAYER_RETAIL_CENTS = 2000;
+const pathMod = require("path");
+const fsMod = require("fs");
+const HERO_SLAYER_ZIP = pathMod.join(__dirname, "public", "downloads", "hero-slayer-alpha.zip");
+
+app.get("/test-7qsba2gtr6", (req, res) => {
+    res.render("test-7qsba2gtr6", { title: "Hero Slayer — Alpha Access (Test)" });
+});
+app.get("/test-7qsba2gtr6-splash", (req, res) => {
+    res.render("test-7qsba2gtr6-splash", { title: "Hero Slayer Splash (Test)" });
+});
+app.get("/test-7qsba2gtr6-success", async (req, res) => {
+    const sessionId = req.query.session_id || "";
+    // Mark session as entitled if Stripe paid
+    if (sessionId && stripe) {
+        try {
+            const session = await stripe.checkout.sessions.retrieve(sessionId);
+            if (session.payment_status === "paid" && session.metadata?.sku === HERO_SLAYER_SKU) {
+                req.session.heroSlayerEntitled = true;
+                req.session.heroSlayerSessionId = sessionId;
+            }
+        } catch (e) {
+            console.warn("[HERO-SLAYER] success verify:", e.message);
+        }
+    }
+    res.render("test-7qsba2gtr6-success", {
+        title: "Hero Slayer Download",
+        sessionId: sessionId || req.session.heroSlayerSessionId || "",
+    });
+});
+
+app.post("/api/hero-slayer/checkout", async (req, res) => {
+    if (!stripe) {
+        return res.status(503).json({ error: "Payment gateway not configured (STRIPE_SECRET_KEY)." });
+    }
+    try {
+        const protocol = req.headers["x-forwarded-proto"] || req.protocol;
+        const host = req.get("host");
+        const domain = `${protocol}://${host}`;
+        const session = await stripe.checkout.sessions.create({
+            payment_method_types: ["card"],
+            mode: "payment",
+            line_items: [{
+                price_data: {
+                    currency: "usd",
+                    unit_amount: HERO_SLAYER_PRICE_CENTS,
+                    product_data: {
+                        name: "Hero Slayer — Alpha Access",
+                        description: "Normally $20 — Alpha 75% off ($5). Desktop package download.",
+                        images: [`${domain}/images/hero-slayer/hero_aeloria.jpg`],
+                        metadata: { sku: HERO_SLAYER_SKU },
+                    },
+                },
+                quantity: 1,
+            }],
+            metadata: {
+                sku: HERO_SLAYER_SKU,
+                type: "hero_slayer_alpha",
+                userId: req.session.userId ? String(req.session.userId) : "",
+            },
+            success_url: `${domain}/test-7qsba2gtr6-success?session_id={CHECKOUT_SESSION_ID}`,
+            cancel_url: `${domain}/test-7qsba2gtr6`,
+            customer_email: req.session.email || undefined,
+        });
+        // Best-effort order row for logged-in users
+        if (pool && req.session.userId) {
+            try {
+                await pool.query(
+                    `INSERT INTO orders (user_id, total, status, session_id, product_sku, product_type, description)
+                     VALUES (?, ?, 'pending', ?, ?, 'digital', ?)
+                     ON DUPLICATE KEY UPDATE status = status`,
+                    [req.session.userId, HERO_SLAYER_PRICE_CENTS / 100, session.id, HERO_SLAYER_SKU, "Hero Slayer Alpha"]
+                );
+            } catch (dbErr) {
+                console.warn("[HERO-SLAYER] order insert skipped:", dbErr.message);
+            }
+        }
+        res.json({ url: session.url, sessionId: session.id });
+    } catch (e) {
+        console.error("[HERO-SLAYER] checkout error:", e);
+        res.status(500).json({ error: e.message || "Checkout failed" });
+    }
+});
+
+app.get("/api/hero-slayer/download", async (req, res) => {
+    const sessionId = req.query.session_id || req.session.heroSlayerSessionId;
+    let entitled = !!req.session.heroSlayerEntitled;
+
+    if (!entitled && sessionId && stripe) {
+        try {
+            const session = await stripe.checkout.sessions.retrieve(sessionId);
+            if (session.payment_status === "paid" && session.metadata?.sku === HERO_SLAYER_SKU) {
+                entitled = true;
+                req.session.heroSlayerEntitled = true;
+                req.session.heroSlayerSessionId = sessionId;
+                if (pool && req.session.userId) {
+                    try {
+                        await pool.query(
+                            `UPDATE orders SET status = 'completed' WHERE session_id = ?`,
+                            [sessionId]
+                        );
+                    } catch (_) { /* ok */ }
+                }
+            }
+        } catch (e) {
+            console.warn("[HERO-SLAYER] download verify:", e.message);
+        }
+    }
+
+    // Dev/local: allow download if zip exists and no stripe (preview)
+    if (!entitled && !process.env.STRIPE_SECRET_KEY && fsMod.existsSync(HERO_SLAYER_ZIP)) {
+        entitled = true;
+    }
+
+    if (!entitled) {
+        return res.status(403).send("Purchase required. Complete checkout first.");
+    }
+
+    const zipPath = HERO_SLAYER_ZIP;
+    if (!fsMod.existsSync(zipPath)) {
+        return res.status(404).send("Download package is being prepared. Please try again shortly.");
+    }
+    res.download(zipPath, "hero-slayer-alpha.zip");
+});
+
+
 // --- FIX START: Global Error Handler ---
 app.use((err, req, res, next) => {
     console.error("!!! SERVER ERROR !!!");

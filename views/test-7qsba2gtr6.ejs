@@ -1,0 +1,80 @@
+﻿<%- include('partials/header') %>
+<section class="relative min-h-[70vh] overflow-hidden border-b border-yellow-900/30">
+  <iframe src="/games/hero-slayer-splash/index.html" title="Hero Slayer menu" class="absolute inset-0 w-full h-full border-0 scale-105" loading="lazy"></iframe>
+  <div class="absolute inset-0 bg-gradient-to-t from-black via-black/55 to-black/30"></div>
+  <div class="relative z-10 max-w-5xl mx-auto px-4 py-20 md:py-28 text-center">
+    <p class="text-[#20B2AA] tracking-[0.35em] uppercase text-sm font-bold mb-3">Alpha Access · Future Music Collective</p>
+    <h1 class="text-5xl md:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-b from-[#F4C430] to-[#AA8C2C] mb-4">HERO SLAYER</h1>
+    <p class="text-gray-200 text-lg md:text-xl max-w-2xl mx-auto mb-8 leading-relaxed">
+      A tear in the sky spills Darkness or a lone Hero onto a living realm. Conquer lands, raise temples, and command dimensional forces.
+    </p>
+    <div class="inline-flex flex-col sm:flex-row items-center gap-3 bg-black/70 border border-[#D4AF37]/50 rounded-lg px-6 py-4 backdrop-blur">
+      <div class="text-left">
+        <div class="text-gray-400 text-sm line-through">Normally $20.00</div>
+        <div class="text-3xl font-bold text-[#D4AF37]">$5.00 <span class="text-base text-[#20B2AA] font-semibold">Alpha · 75% off</span></div>
+      </div>
+      <button id="hs-buy-btn" type="button" class="btn-gold px-8 py-3 text-lg rounded-sm shadow-lg">
+        Confirm &amp; Checkout
+      </button>
+    </div>
+    <p id="hs-buy-status" class="mt-4 text-sm text-gray-400"></p>
+  </div>
+</section>
+
+<section class="py-16 px-4 max-w-6xl mx-auto">
+  <h2 class="text-3xl md:text-4xl text-gold text-center mb-10 brand-font">Core Features</h2>
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+    <% const feats = [
+      { img: '/images/hero-slayer/goblin.jpg', t: 'Portal Armies', d: 'Summon dimensional units from your portal — goblins to bosses — and forge armies on the map.' },
+      { img: '/images/hero-slayer/hero_aeloria.jpg', t: 'Heroes of Fortune', d: 'Encounter living heroes with ranks, mounts, quests, and political weight across the realm.' },
+      { img: '/images/hero-slayer/dragon.jpg', t: 'Dragons & Beasts', d: 'Wildlife herds, rideable mounts, and dragons that reshape the fog of war.' },
+      { img: '/images/hero-slayer/skeleton.jpg', t: 'Living Territories', d: 'Capture lands, build farms and temples, tax or terrorize — every province has a pulse.' },
+      { img: '/images/hero-slayer/slime.jpg', t: 'God Powers', d: 'Lightning, corruption, monuments, and the Magic Orb to warp reinforcements at a premium.' },
+      { img: '/images/hero-slayer/bone_golem.jpg', t: 'Sandbox & Campaign', d: 'Full conquest mode plus a free-spawn sandbox arena for tactical experiments.' },
+    ]; %>
+    <% feats.forEach(function(f){ %>
+      <article class="glass-card rounded-xl border border-gray-700 p-5 flex gap-4 items-start bg-gray-900/40">
+        <div class="w-16 h-16 rounded-full flex-shrink-0 border-2 border-[#D4AF37]/60 bg-cover bg-center shadow-lg"
+             style="background-image:url('<%= f.img %>')" onerror="this.style.backgroundImage='url(/images/FALLBACK_IMG.png)'"></div>
+        <div>
+          <h3 class="text-[#D4AF37] font-bold text-lg mb-1"><%= f.t %></h3>
+          <p class="text-gray-300 text-sm leading-relaxed"><%= f.d %></p>
+        </div>
+      </article>
+    <% }) %>
+  </div>
+</section>
+
+<section class="py-12 px-4 max-w-3xl mx-auto text-center border-t border-yellow-900/30">
+  <h2 class="text-2xl text-white mb-3">What you get</h2>
+  <p class="text-gray-300 mb-6">After payment you download a <b class="text-[#D4AF37]">Windows build</b> (portable .exe via Electron) plus the obfuscated game package. Install and play offline — no code changes required to the HTML/JS engine.</p>
+  <ul class="text-left text-gray-400 space-y-2 max-w-md mx-auto mb-8">
+    <li>✓ Alpha access desktop package</li>
+    <li>✓ Obfuscated client for distribution</li>
+    <li>✓ Lifetime alpha updates path (same SKU)</li>
+  </ul>
+  <button id="hs-buy-btn-2" type="button" class="btn-gold px-10 py-4 text-lg rounded-sm">Confirm Alpha Purchase — $5</button>
+</section>
+
+<script>
+(async function(){
+  async function startCheckout(){
+    const status = document.getElementById('hs-buy-status');
+    const btns = [document.getElementById('hs-buy-btn'), document.getElementById('hs-buy-btn-2')];
+    btns.forEach(b => { if(b){ b.disabled = true; b.textContent = 'Opening Stripe…'; }});
+    if(status) status.textContent = 'Creating secure checkout session…';
+    try {
+      const res = await fetch('/api/hero-slayer/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+      const data = await res.json();
+      if (!res.ok || !data.url) throw new Error(data.error || 'Checkout failed');
+      window.location.href = data.url;
+    } catch (e) {
+      if(status) status.textContent = e.message || 'Checkout error';
+      btns.forEach(b => { if(b){ b.disabled = false; b.textContent = 'Confirm & Checkout'; }});
+    }
+  }
+  document.getElementById('hs-buy-btn')?.addEventListener('click', startCheckout);
+  document.getElementById('hs-buy-btn-2')?.addEventListener('click', startCheckout);
+})();
+</script>
+<%- include('partials/footer') %>

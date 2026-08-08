@@ -1,0 +1,63 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hero Slayer — Menu Preview</title>
+  <style>
+    html,body{margin:0;height:100%;background:#050308;overflow:hidden;font-family:Georgia,serif}
+    .stack{position:absolute;inset:0}
+    .sky,.land{position:absolute;inset:0;background-size:cover;background-position:center bottom}
+    .sky{background-image:url('menu_sky.png')}
+    .land{background-image:url('menu_land.png')}
+    canvas#demo{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+    .vignette{position:absolute;inset:0;background:radial-gradient(ellipse at center,transparent 40%,rgba(0,0,0,.65) 100%);pointer-events:none}
+    .title{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);text-align:center;z-index:5;color:#f0d080;text-shadow:0 2px 12px #000}
+    .title h1{margin:0;font-size:clamp(2rem,8vw,4.5rem);letter-spacing:.12em}
+    .title p{margin:.4rem 0 0;color:#c0a880;font-size:clamp(.8rem,2.5vw,1.1rem);letter-spacing:.2em;text-transform:uppercase}
+  </style>
+</head>
+<body>
+  <div class="stack">
+    <div class="sky"></div>
+    <canvas id="demo"></canvas>
+    <div class="land"></div>
+    <div class="vignette"></div>
+  </div>
+  <div class="title">
+    <h1>HERO SLAYER</h1>
+    <p>Dimensional Force · Heroes of Fortune</p>
+  </div>
+  <script>
+    // Lightweight constellation + combat silhouette loop (menu energy, no full engine)
+    const c = document.getElementById('demo');
+    const ctx = c.getContext('2d');
+    let W,H,t0=performance.now(),stars=[];
+    function resize(){W=c.width=innerWidth*devicePixelRatio;H=c.height=innerHeight*devicePixelRatio;c.style.width=innerWidth+'px';c.style.height=innerHeight+'px';stars=[];for(let i=0;i<80;i++)stars.push({x:Math.random()*W,y:Math.random()*H*0.55,r:Math.random()*1.8+0.4,p:Math.random()*6})}
+    addEventListener('resize',resize);resize();
+    const units=[];
+    for(let i=0;i<14;i++)units.push({x:0.2+Math.random()*0.6,y:0.55+Math.random()*0.2,s:6+Math.random()*10,vx:(Math.random()-.5)*0.04,team:i%2,hp:1});
+    function frame(now){
+      const t=(now-t0)/1000;
+      ctx.clearRect(0,0,W,H);
+      ctx.fillStyle='#fff8';
+      stars.forEach(s=>{const a=.3+.7*(.5+.5*Math.sin(t*2+s.p));ctx.globalAlpha=a;ctx.beginPath();ctx.arc(s.x,s.y,s.r*devicePixelRatio,0,Math.PI*2);ctx.fill()});
+      ctx.globalAlpha=1;
+      units.forEach(u=>{
+        u.x+=u.vx*0.016; if(u.x<0.12||u.x>0.88)u.vx*=-1;
+        const x=u.x*W,y=u.y*H,s=u.s*devicePixelRatio*(W/1280);
+        ctx.fillStyle=u.team? '#c080ff':'#60e0a0';
+        ctx.beginPath();ctx.ellipse(x,y,s*0.7,s,0,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle='rgba(0,0,0,.5)';ctx.fillRect(x-s,y-s*1.4,s*2,3);
+        ctx.fillStyle=u.team?'#f06080':'#80ffc0';ctx.fillRect(x-s,y-s*1.4,s*2*u.hp,3);
+      });
+      // clash sparks
+      ctx.strokeStyle=`rgba(255,200,80,${0.3+0.3*Math.sin(t*8)})`;
+      ctx.lineWidth=2*devicePixelRatio;
+      ctx.beginPath();ctx.moveTo(W*0.45,H*0.62);ctx.lineTo(W*0.55,H*0.58);ctx.stroke();
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  </script>
+</body>
+</html>

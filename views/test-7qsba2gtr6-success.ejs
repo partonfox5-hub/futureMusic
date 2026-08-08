@@ -1,0 +1,14 @@
+﻿<%- include('partials/header') %>
+<section class="min-h-[70vh] flex flex-col items-center justify-center text-center px-4">
+  <div class="glass-card p-10 rounded-xl border border-[#20B2AA]/50 max-w-xl w-full">
+    <i class="fas fa-check-circle text-6xl text-[#20B2AA] mb-6"></i>
+    <h1 class="text-4xl text-white brand-font mb-3">Hero Slayer Unlocked</h1>
+    <p class="text-gray-400 mb-6">Alpha access is confirmed. Download your obfuscated Windows package below.</p>
+    <a href="/api/hero-slayer/download?session_id=<%= sessionId || '' %>" class="btn-gold px-8 py-3 text-lg rounded-sm inline-block mb-4">
+      Download Hero Slayer Alpha (.zip)
+    </a>
+    <p class="text-xs text-gray-500">Extract the zip, run <code class="text-[#D4AF37]">Hero Slayer.exe</code> (or open index.html if using the web pack). Keep your receipt email.</p>
+    <a href="/test-7qsba2gtr6" class="block mt-6 text-[#D4AF37] text-sm">← Back to product page</a>
+  </div>
+</section>
+<%- include('partials/footer') %>
