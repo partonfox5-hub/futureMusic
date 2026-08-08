@@ -2261,6 +2261,30 @@ const pathMod = require("path");
 const fsMod = require("fs");
 const HERO_SLAYER_ZIP = pathMod.join(__dirname, "public", "downloads", "hero-slayer-alpha.zip");
 
+
+// Production Hero Slayer product
+app.get("/hero-slayer", (req, res) => {
+    res.render("hero-slayer", { title: "Hero Slayer — Alpha Access" });
+});
+app.get("/hero-slayer/success", async (req, res) => {
+    const sessionId = req.query.session_id || "";
+    if (sessionId && stripe) {
+        try {
+            const session = await stripe.checkout.sessions.retrieve(sessionId);
+            if (session.payment_status === "paid" && session.metadata?.sku === HERO_SLAYER_SKU) {
+                req.session.heroSlayerEntitled = true;
+                req.session.heroSlayerSessionId = sessionId;
+            }
+        } catch (e) {
+            console.warn("[HERO-SLAYER] success verify:", e.message);
+        }
+    }
+    res.render("hero-slayer-success", {
+        title: "Hero Slayer Download",
+        sessionId: sessionId || req.session.heroSlayerSessionId || "",
+    });
+});
+
 app.get("/test-7qsba2gtr6", (req, res) => {
     res.render("test-7qsba2gtr6", { title: "Hero Slayer — Alpha Access (Test)" });
 });
@@ -2305,7 +2329,7 @@ app.post("/api/hero-slayer/checkout", async (req, res) => {
                     product_data: {
                         name: "Hero Slayer — Alpha Access",
                         description: "Normally $20 — Alpha 75% off ($5). Desktop package download.",
-                        images: [`${domain}/images/hero-slayer/hero_aeloria.jpg`],
+                        images: [`${domain}/images/hero-slayer/demon_king.jpg`],
                         metadata: { sku: HERO_SLAYER_SKU },
                     },
                 },
@@ -2316,8 +2340,8 @@ app.post("/api/hero-slayer/checkout", async (req, res) => {
                 type: "hero_slayer_alpha",
                 userId: req.session.userId ? String(req.session.userId) : "",
             },
-            success_url: `${domain}/test-7qsba2gtr6-success?session_id={CHECKOUT_SESSION_ID}`,
-            cancel_url: `${domain}/test-7qsba2gtr6`,
+            success_url: `${domain}/hero-slayer/success?session_id={CHECKOUT_SESSION_ID}`,
+            cancel_url: `${domain}/hero-slayer`,
             customer_email: req.session.email || undefined,
         });
         // Best-effort order row for logged-in users

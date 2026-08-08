@@ -1,0 +1,122 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hero Slayer — Alpha Access $5</title>
+  <link rel="icon" type="image/png" href="/images/logo.png" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Raleway:wght@300;400;600&display=swap" rel="stylesheet" />
+  <style>
+    :root { --gold: #D4AF37; --gold-l: #F4C430; --teal: #20B2AA; }
+    body { font-family: 'Raleway', sans-serif; background: #050505; color: #fff; margin: 0; min-height: 100vh; }
+    h1,h2,h3,.brand { font-family: 'Cinzel', serif; }
+    .btn-gold {
+      background: linear-gradient(45deg, #AA8C2C, #D4AF37); color: #000; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 2px; border: none; cursor: pointer;
+      transition: transform .15s, filter .15s;
+    }
+    .btn-gold:hover { filter: brightness(1.08); transform: translateY(-1px); }
+    .btn-gold:disabled { opacity: .6; cursor: wait; transform: none; }
+    .text-gold {
+      background: linear-gradient(to bottom, #F4C430, #D4AF37, #AA8C2C);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .feat-ico {
+      width: 56px; height: 56px; border-radius: 50%; flex-shrink: 0;
+      border: 2px solid rgba(212,175,55,.55); background-size: cover; background-position: center top;
+      box-shadow: 0 0 12px rgba(212,175,55,.25);
+    }
+    .glass { background: rgba(20,16,28,.72); border: 1px solid rgba(212,175,55,.22); backdrop-filter: blur(8px); }
+  </style>
+</head>
+<body>
+  <!-- Hero art already carries the title — no site nav / no HERO SLAYER H1 overlay -->
+  <section class="relative min-h-[58vh] md:min-h-[62vh] overflow-hidden">
+    <iframe src="/games/hero-slayer-splash/index.html" title="Hero Slayer world" class="absolute inset-0 w-full h-full border-0 scale-105" loading="eager"></iframe>
+    <div class="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-black/25"></div>
+    <div class="relative z-10 max-w-3xl mx-auto px-4 pt-16 md:pt-24 pb-10 text-center">
+      <p class="text-[#20B2AA] tracking-[0.35em] uppercase text-xs md:text-sm font-bold mb-4">Alpha Access · Future Music Collective</p>
+      <div class="inline-flex flex-col sm:flex-row items-center gap-4 glass rounded-xl px-6 py-5 shadow-2xl">
+        <div class="text-left">
+          <div class="text-gray-400 text-sm line-through">Normally $20.00</div>
+          <div class="text-3xl md:text-4xl font-bold text-[#D4AF37]">$5.00
+            <span class="text-base text-[#20B2AA] font-semibold"> · 75% off Alpha</span>
+          </div>
+        </div>
+        <button id="hs-buy-btn" type="button" class="btn-gold px-8 py-3 text-base md:text-lg rounded-sm shadow-lg">
+          Confirm &amp; Checkout
+        </button>
+      </div>
+      <p id="hs-buy-status" class="mt-4 text-sm text-gray-400"></p>
+    </div>
+  </section>
+
+  <section class="max-w-3xl mx-auto px-5 py-10 md:py-12">
+    <h2 class="brand text-2xl md:text-3xl text-gold text-center mb-5">The Conquest</h2>
+    <p class="text-gray-300 text-base md:text-lg leading-relaxed text-center md:text-left">
+      Hero Slayer drops you into a living mythological realm where a tear in the sky spills either Darkness or a lone Hero onto fog-shrouded territories.
+      Summon and upgrade armies of unique units from your portal — chitinous goblin swarms, acid slimes, lifestealing vampires, possessable shadow dragons, and the Demon King apex —
+      then forge legacies, capture provinces, raise farms and Mad Temples, and hunt world heroes across a hybrid top-down / FPS battlefield.
+      Mount tigers and warhorses, call lightning and corruption as god powers, peer through the Magic Orb to warp reinforcements at a premium, and clash in audiologically upbeat bullet-hell skirmishes
+      where every shrine, wall, and wildlife herd can tip the balance between dimensional dominion and ruin.
+    </p>
+  </section>
+
+  <section class="max-w-5xl mx-auto px-4 pb-16">
+    <h2 class="brand text-2xl md:text-3xl text-gold text-center mb-8">From the Codex</h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+      <% const codex = [
+        { img: '/images/hero-slayer/goblin.jpg', t: 'Portal Armies', d: 'Bug-alien skirmishers and elite legions pour from your dimensional portal. Cheap chitinous fodder scales into boss-tier war engines as you unlock power and artifacts.' },
+        { img: '/images/hero-slayer/slime.jpg', t: 'Acid & Swarm Tactics', d: 'Slimes melt foes in a collision radius with acid bubbles while bats and flyers cut lines of sight — mix body types for bullet-hell pressure and map control.' },
+        { img: '/images/hero-slayer/hero_aeloria.jpg', t: 'Heroes of Fortune', d: 'Living heroes rank up, take quests, ride mounts, and reshape politics. Slay or ally them — their fortunes rewrite the fog of war across forty-two territories.' },
+        { img: '/images/hero-slayer/dragon.jpg', t: 'Dragons & Possession', d: 'Shadow Dragon: devastating breath and real combat weight. Possessable bosses let Darkness seize their forms when the hunt turns desperate.' },
+        { img: '/images/hero-slayer/demon_king.jpg', t: 'Demon King', d: 'Apex boss of the codex — hell nova plus triple sword beams from his blade. The crown of the summon table for those who earn the void mirror.' },
+        { img: '/images/hero-slayer/bone_golem.jpg', t: 'Lands, Temples & God Powers', d: 'Capture territories, seed farms, claim shrines, and raise Mad Temples. Lightning, corruption channels, monuments, and the Magic Orb remote-warp rewrite the front line.' },
+        { img: '/images/hero-slayer/crimson_commander.jpg', t: 'Army Legacies', d: 'Fury, Iron, and Scout banners grow with army level — attack speed, HP regen, and vision — while blacksmith forges refine steel for your free companies.' },
+        { img: '/images/hero-slayer/angel.jpg', t: 'Sandbox & Myth Mode', d: 'Campaign conquest for long-form dominion, plus a free-spawn sandbox arena for stylistic top-down and FPS hybrid experiments without campaign gates.' },
+      ]; %>
+      <% codex.forEach(function(f){ %>
+      <article class="glass rounded-xl p-4 flex gap-4 items-start">
+        <div class="feat-ico" style="background-image:url('<%= f.img %>')"></div>
+        <div>
+          <h3 class="text-[#D4AF37] font-bold text-lg mb-1 brand"><%= f.t %></h3>
+          <p class="text-gray-300 text-sm leading-relaxed"><%= f.d %></p>
+        </div>
+      </article>
+      <% }) %>
+    </div>
+  </section>
+
+  <section class="border-t border-yellow-900/30 py-12 px-4 text-center">
+    <p class="text-gray-400 text-sm mb-2">Retail <span class="line-through">$20</span> · Alpha access</p>
+    <p class="text-4xl font-bold text-[#D4AF37] mb-6">$5</p>
+    <button id="hs-buy-btn-2" type="button" class="btn-gold px-10 py-4 text-lg rounded-sm">Confirm Alpha Purchase — $5</button>
+    <p class="mt-6 text-xs text-gray-600">After payment you receive the obfuscated Windows package download.</p>
+    <a href="/projects" class="inline-block mt-4 text-[#D4AF37] text-sm hover:text-white">← Projects</a>
+  </section>
+
+  <script>
+  (function(){
+    async function startCheckout(){
+      const status = document.getElementById('hs-buy-status');
+      const btns = [document.getElementById('hs-buy-btn'), document.getElementById('hs-buy-btn-2')];
+      btns.forEach(b => { if(b){ b.disabled = true; b.textContent = 'Opening Stripe…'; }});
+      if(status) status.textContent = 'Creating secure checkout session…';
+      try {
+        const res = await fetch('/api/hero-slayer/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+        const data = await res.json();
+        if (!res.ok || !data.url) throw new Error(data.error || 'Checkout failed');
+        window.location.href = data.url;
+      } catch (e) {
+        if(status) status.textContent = e.message || 'Checkout error';
+        btns.forEach(b => { if(b){ b.disabled = false; b.textContent = 'Confirm & Checkout'; }});
+      }
+    }
+    document.getElementById('hs-buy-btn')?.addEventListener('click', startCheckout);
+    document.getElementById('hs-buy-btn-2')?.addEventListener('click', startCheckout);
+  })();
+  </script>
+</body>
+</html>
