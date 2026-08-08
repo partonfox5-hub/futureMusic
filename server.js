@@ -2266,7 +2266,8 @@ const HERO_SLAYER_GCS_PATH = process.env.HERO_SLAYER_GCS_PATH || "downloads/hero
 
 // Production Hero Slayer product
 app.get("/hero-slayer", (req, res) => {
-    res.render("hero-slayer", { title: "Hero Slayer â€” Alpha Access" });
+    res.render("hero-slayer", { title: "Hero Slayer - Alpha Access" });
+});
 });
 app.get("/hero-slayer/success", async (req, res) => {
     const sessionId = req.query.session_id || "";
