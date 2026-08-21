@@ -566,7 +566,7 @@ try {
 }
 
 function newedenHeaders(res) {
-    res.setHeader('Permissions-Policy', 'xr-spatial-tracking=(self), fullscreen=(self), gamepad=(self)');
+    res.setHeader('Permissions-Policy', 'xr-spatial-tracking=(self), fullscreen=(self), gamepad=(self), accelerometer=(self), gyroscope=(self), magnetometer=(self)');
 }
 
 function newedenFile(rel) {
