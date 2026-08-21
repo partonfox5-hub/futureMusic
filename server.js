@@ -221,6 +221,9 @@ app.use((req, res, next) => {
 
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
+// Canonical game URL is /neweden. Register before static so the pack's
+// index.html is not served at /games/neweden/ (that path 404s in the SPA router).
+app.get(['/games/neweden', '/games/neweden/'], (req, res) => res.redirect('/neweden'));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // --- STRIPE ---
@@ -566,7 +569,7 @@ function newedenHeaders(res) {
     res.setHeader('Permissions-Policy', 'xr-spatial-tracking=(self), fullscreen=(self), gamepad=(self)');
 }
 
-app.get(['/neweden', '/neweden/'], (req, res) => {
+app.get(['/neweden', '/neweden/', '/neweden/login', '/neweden/login/'], (req, res) => {
     newedenHeaders(res);
     const indexPath = path.join(__dirname, 'public', 'games', 'neweden', 'index.html');
     let html = fs.readFileSync(indexPath, 'utf8');
@@ -575,11 +578,6 @@ app.get(['/neweden', '/neweden/'], (req, res) => {
     const payload = user ? { name: user.displayName || user.name || user.username || '' } : null;
     html = html.replace('<head>', `<head><script>window.__FM_USER__=${JSON.stringify(payload)};</script>`);
     res.type('html').send(html);
-});
-app.get('/games/neweden', (req, res) => res.redirect('/neweden'));
-app.get('/games/neweden/', (req, res) => {
-    newedenHeaders(res);
-    res.sendFile(path.join(__dirname, 'public', 'games', 'neweden', 'index.html'));
 });
 
 // Domain Project Page
