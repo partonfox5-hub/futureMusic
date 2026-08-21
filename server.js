@@ -551,6 +551,37 @@ app.get('/test-bk74eh6y', (req, res) => {
     res.render('test-bk74eh6y', { title: 'Rampart multiplayer test' });
 });
 
+// New Eden (Starleap) — unlisted, not on homepage/projects. One world, 4 explorers.
+try {
+    const starleapMmo = require('./starleap-mmo.cjs');
+    const starleapWish = require('./starleap-wish.cjs');
+    app.all('/api/mmo', starleapMmo);
+    app.all('/api/wish', starleapWish);
+    console.log('[neweden] mmo + wish mounted');
+} catch (e) {
+    console.error('[neweden] failed to mount mmo/wish:', e.message);
+}
+
+function newedenHeaders(res) {
+    res.setHeader('Permissions-Policy', 'xr-spatial-tracking=(self), fullscreen=(self), gamepad=(self)');
+}
+
+app.get(['/neweden', '/neweden/'], (req, res) => {
+    newedenHeaders(res);
+    const indexPath = path.join(__dirname, 'public', 'games', 'neweden', 'index.html');
+    let html = fs.readFileSync(indexPath, 'utf8');
+    const sess = req.session || {};
+    const user = sess.user || (sess.userId ? { name: sess.username || sess.displayName || 'Explorer' } : null);
+    const payload = user ? { name: user.displayName || user.name || user.username || '' } : null;
+    html = html.replace('<head>', `<head><script>window.__FM_USER__=${JSON.stringify(payload)};</script>`);
+    res.type('html').send(html);
+});
+app.get('/games/neweden', (req, res) => res.redirect('/neweden'));
+app.get('/games/neweden/', (req, res) => {
+    newedenHeaders(res);
+    res.sendFile(path.join(__dirname, 'public', 'games', 'neweden', 'index.html'));
+});
+
 // Domain Project Page
 app.get('/domain', (req, res) => {
     res.render('domain');

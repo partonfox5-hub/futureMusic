@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>New Eden · Quest 3</title>
+  <style>
+    html, body { margin: 0; height: 100%; background: #0c1014; color: #eef1ec; font-family: system-ui, sans-serif; overflow: hidden; }
+    .bar {
+      position: absolute; left: 0; right: 0; top: 0; z-index: 3;
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      height: 40px; padding: 0 12px;
+      background: rgba(12,16,20,0.92); border-bottom: 1px solid #2a3140;
+      font-size: 12px;
+    }
+    .bar a { color: #e0b84a; text-decoration: none; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+    .bar span { color: #9aa3b2; }
+    iframe { position: absolute; inset: 40px 0 0 0; width: 100%; height: calc(100% - 40px); border: 0; background: #0c1014; }
+    @media (pointer: coarse) {
+      .bar { height: 48px; }
+      iframe { inset: 48px 0 0 0; height: calc(100% - 48px); }
+    }
+  </style>
+</head>
+<body>
+  <div class="bar">
+    <a href="/">Future Music</a>
+    <span>New Eden · 4 explorers · one world · Quest Browser: tap Enter VR</span>
+  </div>
+  <iframe
+    title="New Eden"
+    src="/games/neweden/"
+    allow="xr-spatial-tracking; fullscreen; gamepad; microphone; xr-spatial-tracking *"
+    allowfullscreen
+  ></iframe>
+  <script>
+    window.__FM_USER__ = <%- JSON.stringify(typeof user !== "undefined" && user ? { name: user.displayName || user.name || user.username || "" } : null) %>;
+    try {
+      const f = document.querySelector("iframe");
+      f.addEventListener("load", () => {
+        try { f.contentWindow.__FM_USER__ = window.__FM_USER__; } catch (e) {}
+      });
+    } catch (e) {}
+  </script>
+</body>
+</html>
