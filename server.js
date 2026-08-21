@@ -569,6 +569,25 @@ function newedenHeaders(res) {
     res.setHeader('Permissions-Policy', 'xr-spatial-tracking=(self), fullscreen=(self), gamepad=(self)');
 }
 
+function newedenFile(rel) {
+    return path.join(__dirname, 'public', 'games', 'neweden', rel);
+}
+app.get('/folk/:file', (req, res, next) => {
+    const fp = newedenFile(path.join('folk', path.basename(req.params.file || '')));
+    if (!fs.existsSync(fp)) return next();
+    res.sendFile(fp);
+});
+app.get('/game/anvil.png', (req, res, next) => {
+    const fp = newedenFile(path.join('game', 'anvil.png'));
+    if (!fs.existsSync(fp)) return next();
+    res.sendFile(fp);
+});
+app.get('/radio/:file', (req, res, next) => {
+    const fp = newedenFile(path.join('radio', path.basename(req.params.file || '')));
+    if (!fs.existsSync(fp)) return next();
+    res.sendFile(fp);
+});
+
 app.get(['/neweden', '/neweden/', '/neweden/login', '/neweden/login/'], (req, res) => {
     newedenHeaders(res);
     const indexPath = path.join(__dirname, 'public', 'games', 'neweden', 'index.html');
