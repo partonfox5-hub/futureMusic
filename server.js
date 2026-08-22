@@ -792,6 +792,21 @@ app.get(['/neweden', '/neweden/', '/neweden/login', '/neweden/login/'], (req, re
     res.type('html').send(html);
 });
 
+app.get('/test-v8k3n6q2', (req, res) => {
+    newedenHeaders(res);
+    res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+    const indexPath = path.join(__dirname, 'public', 'games', 'neweden', 'index-test-v8k3n6q2.html');
+    let html = fs.readFileSync(indexPath, 'utf8');
+    const sess = req.session || {};
+    const user = sess.user || (sess.userId ? { name: sess.username || sess.displayName || 'Explorer' } : null);
+    const payload = user ? { name: user.displayName || user.name || user.username || '' } : null;
+    html = html.replace(
+        '<head>',
+        `<head><script>window.__FM_USER__=${JSON.stringify(payload)};</script>`
+    );
+    res.type('html').send(html);
+});
+
 // Domain Project Page
 app.get('/domain', (req, res) => {
     res.render('domain', seo.page('domain'));
