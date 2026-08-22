@@ -288,9 +288,7 @@
       col *= 1.0 - oob;
       col *= 1.0 - hide;
       col += add;
-      float vig = smoothstep(1.15, 0.35, length((vUv - 0.5) * vec2(aspect * 0.55, 1.0)));
-      col *= mix(0.28, 1.0, vig);
-      col = col / (col + vec3(1.15)) * 1.05;
+      col = col / (col + vec3(1.08)) * 1.02;
       gl_FragColor = vec4(col, 1.0);
     }
   `;
@@ -536,14 +534,15 @@
     }
 
     function resize() {
-      const rect = root.getBoundingClientRect();
       dpr = Math.min(window.devicePixelRatio || 1, mobile ? 1.25 : 1.75);
-      w = Math.max(2, Math.floor(rect.width * dpr));
-      h = Math.max(2, Math.floor(rect.height * dpr));
+      const cw = Math.max(2, root.clientWidth);
+      const ch = Math.max(2, root.clientHeight);
+      w = Math.max(2, Math.floor(cw * dpr));
+      h = Math.max(2, Math.floor(ch * dpr));
       canvas.width = w;
       canvas.height = h;
-      canvas.style.width = rect.width + "px";
-      canvas.style.height = rect.height + "px";
+      canvas.style.width = "100%";
+      canvas.style.height = "100%";
       gl.viewport(0, 0, w, h);
       if (fbo) {
         gl.deleteTexture(fbo.tex);
@@ -677,12 +676,15 @@
           const cdx = p.x - cursor.x;
           const cdy = p.y - cursor.y;
           const cd2 = cdx * cdx + cdy * cdy + 1e-6;
-          const cr = 0.065;
+          const cr = 0.03;
           if (cd2 < cr * cr) {
             const cd = Math.sqrt(cd2);
             const fall = 1 - cd / cr;
-            p.vx += (cdx / cd) * fall * fall * 0.85 * dt;
-            p.vy += (cdy / cd) * fall * fall * 0.85 * dt;
+            const jitter = 0.3 + ((i * 37) % 10) / 10 * 1.1;
+            p.x += (cdx / cd) * fall * jitter * 0.028 * dt;
+            p.y += (cdy / cd) * fall * jitter * 0.028 * dt;
+            p.vx *= 1 - 0.28 * fall;
+            p.vy *= 1 - 0.28 * fall;
           }
         }
         p.vx *= 0.995;
@@ -723,25 +725,27 @@
             vy = starVel[i * 2 + 1];
           }
         }
+        vx *= 0.9992;
+        vy *= 0.9992;
+        x += vx * dt * 18;
+        y += vy * dt * 18;
         if (cursor.on && !holding) {
           const cx = cursor.x * w;
           const cy = cursor.y * h;
           const rdx = x - cx;
           const rdy = y - cy;
           const rd2 = rdx * rdx + rdy * rdy;
-          const radius = 0.039 * Math.min(w, h);
+          const radius = 0.028 * Math.min(w, h);
           if (rd2 < radius * radius && rd2 > 1) {
             const rd = Math.sqrt(rd2);
             const fall = 1 - rd / radius;
-            const force = fall * fall * 4500 * dt * dust;
-            vx += (rdx / rd) * force;
-            vy += (rdy / rd) * force;
+            const jitter = 0.22 + ((i * 47) % 100) / 100 * 1.15;
+            x += (rdx / rd) * fall * jitter * 12 * dt;
+            y += (rdy / rd) * fall * jitter * 12 * dt;
+            vx *= 1 - 0.35 * fall;
+            vy *= 1 - 0.35 * fall;
           }
         }
-        vx *= 0.9992;
-        vy *= 0.9992;
-        x += vx * dt * 18;
-        y += vy * dt * 18;
         if (x < -10) x = w + 10;
         if (x > w + 10) x = -10;
         if (y < -10) y = h + 10;
