@@ -244,6 +244,19 @@ app.get(['/shark', '/shark/'], (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'games', 'shark', 'index.html'));
 });
 
+// FENREST — unlisted Quest 3 WebXR village. Canonical URL is /fenrest.
+// Not linked from homepage / projects / nav. Register before static so
+// /games/fenrest/ does not serve the pack's index.html.
+function fenrestHeaders(res) {
+    res.setHeader('Permissions-Policy', 'xr-spatial-tracking=(self), fullscreen=(self), gamepad=(self), accelerometer=(self), gyroscope=(self), magnetometer=(self)');
+    res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+}
+app.get(['/games/fenrest', '/games/fenrest/'], (req, res) => res.redirect('/fenrest'));
+app.get(['/fenrest', '/fenrest/'], (req, res) => {
+    fenrestHeaders(res);
+    res.sendFile(path.join(__dirname, 'public', 'games', 'fenrest', 'index.html'));
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 // --- STRIPE ---
