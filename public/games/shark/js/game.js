@@ -1,12 +1,20 @@
 import * as THREE from "three";
 import { VRButton } from "three/addons/webxr/VRButton.js";
+import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
+import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
+import { ShaderPass } from "three/addons/postprocessing/ShaderPass.js";
+import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 
-const CELL = 78;
+const CELL = 156;
 const FLOOR = 0;
 const CEIL = 92;
-const TORP_SPEED = 44;
+const TORP_SPEED = 39.6;
+const TORP_CD = 0.546;
+const SUB_SPD = 9.35;
 const YT_MAX = 540;
 const SHARK_HITS = 3;
+const MAX_FUEL = 100;
+const MAX_TORP = 16;
 
 const keys = new Set();
 const mouse = { lock: false, dragging: false, lx: 0, ly: 0 };
@@ -31,6 +39,11 @@ let msg = "";
 let repairHold = 0;
 let fireCd = 0;
 let speed = 0;
+let fuel = MAX_FUEL;
+let torpAmmo = 8;
+let torpSide = 1;
+const bodyVel = new THREE.Vector3();
+const wishVel = new THREE.Vector3();
 let shake = 0;
 let sonarSweep = 0;
 let huntPing = 0;
@@ -62,11 +75,24 @@ function headingFrom(y) {
   right.set(Math.cos(y), 0, -Math.sin(y));
 }
 
+const texLoader = new THREE.TextureLoader();
+function loadTex(url) {
+  const t = texLoader.load(url);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.wrapS = THREE.RepeatWrapping;
+  t.wrapT = THREE.RepeatWrapping;
+  t.anisotropy = 4;
+  return t;
+}
+const sharkTex = loadTex("/games/shark/tex/shark-skin.jpg");
+const whaleTex = loadTex("/games/shark/tex/whale-skin.jpg");
+const torpTex = loadTex("/games/shark/tex/torpedo-metal.jpg");
+
 function skinMat(hex, extra) {
   return new THREE.MeshStandardMaterial({
     color: hex,
-    roughness: 0.72,
-    metalness: 0.08,
+    roughness: 0.55,
+    metalness: 0.06,
     ...extra,
   });
 }
@@ -74,16 +100,26 @@ function skinMat(hex, extra) {
 function latheBody(pts, segs, mat) {
   const geo = new THREE.LatheGeometry(pts, segs);
   geo.rotateZ(-Math.PI / 2);
+  geo.computeVertexNormals();
   return new THREE.Mesh(geo, mat);
+}
+
+function finShape(w, h) {
+  const s = new THREE.Shape();
+  s.moveTo(0, 0);
+  s.lineTo(w * 0.15, h);
+  s.lineTo(-w, h * 0.12);
+  s.lineTo(0, 0);
+  return new THREE.ExtrudeGeometry(s, { depth: 0.1, bevelEnabled: false, steps: 1 });
 }
 
 function makeSharkGeom() {
   const g = new THREE.Group();
   const inner = new THREE.Group();
   g.add(inner);
-  inner.rotation.y = Math.PI / 2;
-  const skin = skinMat(0x4a5560, { emissive: 0x0a1014 });
-  const belly = skinMat(0x8a9098);
+  inner.rotation.y = -Math.PI / 2;
+  const skin = skinMat(0xffffff, { map: sharkTex, roughness: 0.62, emissive: 0x0a1014, emissiveMap: sharkTex });
+  const belly = skinMat(0xffffff, { map: sharkTex, roughness: 0.7 });
   const profile = [
     new THREE.Vector2(0.04, 9.3),
     new THREE.Vector2(0.42, 8.7),
@@ -99,7 +135,7 @@ function makeSharkGeom() {
     new THREE.Vector2(0.42, -8.5),
     new THREE.Vector2(0.08, -9.15),
   ];
-  inner.add(latheBody(profile, 24, skin));
+  inner.add(latheBody(profile, 48, skin));
   const under = latheBody(
     [
       new THREE.Vector2(0.05, 6.4),
@@ -109,12 +145,12 @@ function makeSharkGeom() {
       new THREE.Vector2(1.05, -4.0),
       new THREE.Vector2(0.08, -6.2),
     ],
-    20,
+    32,
     belly
   );
   under.position.y = -0.55;
   inner.add(under);
-  const jaw = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.42, 1.7, 4, 2, 3), skin);
+  const jaw = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.42, 1.7, 6, 2, 4), skin);
   jaw.position.set(7.2, -1.15, 0);
   inner.add(jaw);
   const toothMat = new THREE.MeshStandardMaterial({ color: 0xe8e0d0, roughness: 0.4 });
@@ -124,11 +160,13 @@ function makeSharkGeom() {
     tth.position.set(0.9, 0.22, -0.55 + i * 0.16);
     jaw.add(tth);
   }
-  const dorsal = new THREE.Mesh(new THREE.ConeGeometry(1.55, 3.5, 8), skin);
-  dorsal.position.set(0.6, 2.55, 0);
+  const dorsal = new THREE.Mesh(finShape(1.8, 3.4), skin);
+  dorsal.rotation.x = Math.PI / 2;
+  dorsal.position.set(0.4, 2.05, -0.05);
   inner.add(dorsal);
-  const rearFin = new THREE.Mesh(new THREE.ConeGeometry(0.7, 1.6, 8), skin);
-  rearFin.position.set(-4.2, 1.35, 0);
+  const rearFin = new THREE.Mesh(finShape(0.8, 1.5), skin);
+  rearFin.rotation.x = Math.PI / 2;
+  rearFin.position.set(-4.2, 1.15, -0.05);
   inner.add(rearFin);
   const tail = new THREE.Mesh(new THREE.BoxGeometry(0.35, 5.2, 0.22, 2, 8, 1), skin);
   tail.position.set(-8.35, 0.2, 0);
@@ -165,9 +203,9 @@ function makeWhaleGeom() {
   const g = new THREE.Group();
   const inner = new THREE.Group();
   g.add(inner);
-  inner.rotation.y = Math.PI / 2;
-  const skin = skinMat(0x3d4a58, { emissive: 0x080c12 });
-  const pale = skinMat(0x6a7380);
+  inner.rotation.y = -Math.PI / 2;
+  const skin = skinMat(0xffffff, { map: whaleTex, roughness: 0.48, emissive: 0x080c12, emissiveMap: whaleTex });
+  const pale = skinMat(0xffffff, { map: whaleTex, roughness: 0.55 });
   const profile = [
     new THREE.Vector2(0.2, 9.4),
     new THREE.Vector2(1.4, 8.2),
@@ -180,8 +218,8 @@ function makeWhaleGeom() {
     new THREE.Vector2(0.85, -8.2),
     new THREE.Vector2(0.12, -9.2),
   ];
-  inner.add(latheBody(profile, 28, skin));
-  const head = new THREE.Mesh(new THREE.SphereGeometry(2.55, 20, 14), skin);
+  inner.add(latheBody(profile, 56, skin));
+  const head = new THREE.Mesh(new THREE.SphereGeometry(2.55, 32, 24), skin);
   head.scale.set(1.45, 0.88, 0.9);
   head.position.x = 7.1;
   inner.add(head);
@@ -193,7 +231,7 @@ function makeWhaleGeom() {
       new THREE.Vector2(1.4, -3.2),
       new THREE.Vector2(0.1, -5.5),
     ],
-    20,
+    32,
     pale
   );
   belly.position.y = -0.45;
@@ -211,6 +249,7 @@ function makeWhaleGeom() {
   blow.position.set(5.6, 1.55, 0);
   inner.add(blow);
   g.userData.tail = tail;
+  g.userData.hp = 2;
   g.scale.setScalar(2.15);
   return g;
 }
@@ -246,8 +285,43 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x010308);
 scene.fog = new THREE.FogExp2(0x031018, 0.015);
 
-const cam = new THREE.PerspectiveCamera(80, innerWidth / innerHeight, 0.08, 420);
+const cam = new THREE.PerspectiveCamera(80, innerWidth / innerHeight, 0.08, 900);
 cam.rotation.order = "YXZ";
+
+const UnderwaterShader = {
+  uniforms: {
+    tDiffuse: { value: null },
+    uTime: { value: 0 },
+    uWet: { value: 1 },
+  },
+  vertexShader:
+    "varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }",
+  fragmentShader: [
+    "uniform sampler2D tDiffuse; uniform float uTime; uniform float uWet; varying vec2 vUv;",
+    "void main(){",
+    "vec2 uv=vUv;",
+    "float cau=sin(uv.x*38.0+uTime*0.7)+sin(uv.y*29.0-uTime*0.55+uv.x*8.0);",
+    "vec2 chroma=vec2(0.0022,0.0)*uWet;",
+    "float r=texture2D(tDiffuse, uv+chroma).r;",
+    "float g=texture2D(tDiffuse, uv).g;",
+    "float b=texture2D(tDiffuse, uv-chroma).b;",
+    "vec3 c=vec3(r,g,b);",
+    "c *= 1.0 + cau * 0.055 * uWet;",
+    "c = mix(c, c*vec3(0.42,0.78,1.05), 0.38*uWet);",
+    "c = mix(c, vec3(dot(c,vec3(0.3,0.5,0.2))), -0.12*uWet);",
+    "float vig=smoothstep(1.05,0.22,length(uv-0.5));",
+    "c *= mix(1.0, vig, 0.5*uWet);",
+    "gl_FragColor=vec4(c,1.0);",
+    "}",
+  ].join("\n"),
+};
+const composer = new EffectComposer(renderer);
+composer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
+composer.setSize(innerWidth, innerHeight);
+composer.addPass(new RenderPass(scene, cam));
+const underPass = new ShaderPass(UnderwaterShader);
+composer.addPass(underPass);
+composer.addPass(new OutputPass());
 
 const sub = new THREE.Group();
 sub.position.set(0, 22, 0);
@@ -342,6 +416,12 @@ sub.add(exterior);
   prop.position.set(0, -0.35, 1.55);
   exterior.add(prop);
   exterior.userData.prop = prop;
+  for (const s of [-1, 1]) {
+    const tube = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.09, 0.85, 12), hullMat);
+    tube.rotation.x = Math.PI / 2;
+    tube.position.set(s * 1.05, -0.38, -1.2);
+    sub.add(tube);
+  }
 })();
 
 const crack = new THREE.Mesh(
@@ -374,7 +454,7 @@ scene.add(ambient);
 scene.add(hemi);
 
 const floor = new THREE.Mesh(
-  new THREE.CircleGeometry(480, 48),
+  new THREE.CircleGeometry(960, 64),
   new THREE.MeshStandardMaterial({ color: 0x161410, roughness: 0.98 })
 );
 floor.rotation.x = -Math.PI / 2;
@@ -388,7 +468,7 @@ function scatterWorld() {
   const glow = new THREE.MeshStandardMaterial({ color: 0x1a4a44, emissive: 0x0a2a22, roughness: 0.7 });
   for (let i = 0; i < 32; i++) {
     const ang = Math.random() * Math.PI * 2;
-    const r = 14 + Math.random() * 210;
+    const r = 28 + Math.random() * 420;
     const ruin = new THREE.Group();
     const col = new THREE.Mesh(
       new THREE.BoxGeometry(1.6 + Math.random(), 4 + Math.random() * 8, 1.6 + Math.random()),
@@ -408,7 +488,7 @@ function scatterWorld() {
   for (let i = 0; i < 10; i++) {
     const st = makeStatue();
     const ang = (i / 10) * Math.PI * 2;
-    const r = 22 + (i % 3) * 24;
+    const r = 44 + (i % 3) * 48;
     st.position.set(Math.cos(ang) * r, FLOOR + 1.4, Math.sin(ang) * r);
     st.rotation.y = ang + Math.PI;
     scene.add(st);
@@ -419,7 +499,7 @@ function scatterWorld() {
       new THREE.MeshStandardMaterial({ color: 0x163028, roughness: 0.9 })
     );
     const ang = Math.random() * 6.28;
-    const r = 8 + Math.random() * 160;
+    const r = 16 + Math.random() * 320;
     k.position.set(Math.cos(ang) * r, 3, Math.sin(ang) * r);
     k.userData.ph = Math.random() * 6;
     scene.add(k);
@@ -428,7 +508,7 @@ function scatterWorld() {
   for (let i = 0; i < 7; i++) {
     const p = new THREE.PointLight(0x1a6658, 1.4, 18);
     const ang = (i / 7) * 6.28;
-    p.position.set(Math.cos(ang) * (30 + i * 8), 2.5, Math.sin(ang) * (30 + i * 8));
+    p.position.set(Math.cos(ang) * (60 + i * 16), 2.5, Math.sin(ang) * (60 + i * 16));
     scene.add(p);
   }
 }
@@ -476,46 +556,101 @@ scene.add(shark);
 
 const whales = [makeWhaleGeom(), makeWhaleGeom(), makeWhaleGeom()];
 whales.forEach((w, i) => {
-  w.position.set((i - 1) * 48, 16 + i * 7, -40 - i * 22);
+  w.position.set((i - 1) * 96, 16 + i * 7, -80 - i * 44);
   scene.add(w);
 });
 
-const tanks = [];
-function spawnTank() {
-  const m = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.22, 0.22, 0.72, 10),
-    new THREE.MeshStandardMaterial({
-      color: 0x3a6a88,
-      emissive: 0x1a5068,
-      metalness: 0.5,
-      roughness: 0.4,
-    })
-  );
-  const light = new THREE.PointLight(0x3aa0c8, 1.6, 7);
-  m.add(light);
-  const ang = Math.random() * 6.28;
-  const r = 9 + Math.random() * 36;
-  m.position.set(
-    sub.position.x + Math.cos(ang) * r,
-    clamp(sub.position.y + (Math.random() - 0.5) * 12, 5, 48),
-    sub.position.z + Math.sin(ang) * r
-  );
-  scene.add(m);
-  tanks.push(m);
+function makeTorpedoMesh(scale) {
+  const s = scale || 1;
+  const g = new THREE.Group();
+  const mat = new THREE.MeshStandardMaterial({
+    map: torpTex,
+    color: 0xffffff,
+    metalness: 0.65,
+    roughness: 0.35,
+    emissive: 0x221100,
+  });
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.07 * s, 0.08 * s, 0.72 * s, 14), mat);
+  body.rotation.x = Math.PI / 2;
+  g.add(body);
+  const nose = new THREE.Mesh(new THREE.ConeGeometry(0.08 * s, 0.22 * s, 12), mat);
+  nose.rotation.x = Math.PI / 2;
+  nose.position.z = -0.46 * s;
+  g.add(nose);
+  for (let i = 0; i < 4; i++) {
+    const fin = new THREE.Mesh(new THREE.BoxGeometry(0.02 * s, 0.16 * s, 0.12 * s), mat);
+    fin.position.z = 0.28 * s;
+    fin.rotation.z = (i * Math.PI) / 2;
+    fin.position.x = Math.cos((i * Math.PI) / 2) * 0.08 * s;
+    fin.position.y = Math.sin((i * Math.PI) / 2) * 0.08 * s;
+    g.add(fin);
+  }
+  const glow = new THREE.PointLight(0xffcc66, 0.9 * s, 5 * s);
+  g.add(glow);
+  return g;
 }
-for (let i = 0; i < 8; i++) spawnTank();
+
+function makePickupMesh(kind) {
+  const g = new THREE.Group();
+  let lightCol = 0x3aa0c8;
+  if (kind === "o2") {
+    const tank = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.22, 0.22, 0.72, 16),
+      new THREE.MeshStandardMaterial({ color: 0x3a6a88, emissive: 0x1a88aa, metalness: 0.5, roughness: 0.35 })
+    );
+    const cap = new THREE.Mesh(
+      new THREE.SphereGeometry(0.14, 12, 8),
+      new THREE.MeshStandardMaterial({ color: 0xc8d0d8, metalness: 0.7 })
+    );
+    cap.position.y = 0.42;
+    g.add(tank);
+    g.add(cap);
+    lightCol = 0x3ad0ff;
+  } else if (kind === "fuel") {
+    const can = new THREE.Mesh(
+      new THREE.BoxGeometry(0.42, 0.55, 0.28),
+      new THREE.MeshStandardMaterial({ color: 0xc8a020, emissive: 0x664400, metalness: 0.4, roughness: 0.4 })
+    );
+    const handle = new THREE.Mesh(
+      new THREE.TorusGeometry(0.12, 0.03, 8, 12, Math.PI),
+      new THREE.MeshStandardMaterial({ color: 0x333333, metalness: 0.8 })
+    );
+    handle.position.y = 0.32;
+    handle.rotation.x = Math.PI / 2;
+    g.add(can);
+    g.add(handle);
+    lightCol = 0xffcc44;
+  } else {
+    const t = makeTorpedoMesh(1.15);
+    t.rotation.y = Math.PI / 2;
+    g.add(t);
+    lightCol = 0xff8844;
+  }
+  const light = new THREE.PointLight(lightCol, 2.2, 8);
+  g.add(light);
+  g.userData.kind = kind;
+  return g;
+}
+
+const pickups = [];
+function spawnPickup(kind) {
+  const m = makePickupMesh(kind);
+  const ang = Math.random() * 6.28;
+  const r = 8 + Math.random() * 70;
+  m.position.set(sub.position.x + Math.cos(ang) * r, FLOOR + 0.55, sub.position.z + Math.sin(ang) * r);
+  scene.add(m);
+  pickups.push(m);
+}
+for (let i = 0; i < 12; i++) spawnPickup("o2");
+for (let i = 0; i < 8; i++) spawnPickup("fuel");
+for (let i = 0; i < 8; i++) spawnPickup("torp");
 
 const torps = [];
-const torpGeo = new THREE.CylinderGeometry(0.06, 0.09, 0.72, 8);
-torpGeo.rotateX(Math.PI / 2);
-const torpMat = new THREE.MeshStandardMaterial({ color: 0xc8b070, metalness: 0.7, emissive: 0x332200 });
 for (let i = 0; i < 12; i++) {
-  const m = new THREE.Mesh(torpGeo, torpMat);
+  const m = makeTorpedoMesh(1);
   m.visible = false;
   m.userData.v = new THREE.Vector3();
   m.userData.life = 0;
-  const glow = new THREE.PointLight(0xffcc66, 1.2, 6);
-  m.add(glow);
   scene.add(m);
   torps.push(m);
 }
@@ -541,6 +676,30 @@ function burst(pos, n) {
     s.position.copy(pos);
     s.userData.v.set(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).multiplyScalar(9);
     s.userData.life = 0.45 + Math.random() * 0.35;
+  });
+}
+
+const bubFx = [];
+const bubMat = new THREE.MeshBasicMaterial({ color: 0x9eefff, transparent: true, opacity: 0.75 });
+for (let i = 0; i < 48; i++) {
+  const m = new THREE.Mesh(new THREE.SphereGeometry(0.05, 6, 6), bubMat);
+  m.visible = false;
+  m.userData.v = new THREE.Vector3();
+  m.userData.life = 0;
+  scene.add(m);
+  bubFx.push(m);
+}
+function bubbleBurst(pos, n) {
+  burst(pos, 6);
+  let used = 0;
+  bubFx.forEach((s) => {
+    if (s.userData.life > 0 || used >= n) return;
+    used += 1;
+    s.visible = true;
+    s.position.copy(pos);
+    s.scale.setScalar(0.6 + Math.random() * 1.6);
+    s.userData.v.set((Math.random() - 0.5) * 3, 2 + Math.random() * 5, (Math.random() - 0.5) * 3);
+    s.userData.life = 0.7 + Math.random() * 0.5;
   });
 }
 
@@ -583,6 +742,7 @@ function applyWorldMode(m) {
   scene.background = new THREE.Color(space ? 0x000005 : 0x010308);
   scene.fog = space ? new THREE.FogExp2(0x000000, 0.0022) : new THREE.FogExp2(0x031018, 0.015);
   renderer.toneMappingExposure = space ? 0.62 : 0.92;
+  if (typeof underPass !== "undefined") underPass.uniforms.uWet.value = space ? 0 : 1;
   kelp.forEach((k) => {
     k.visible = !space;
   });
@@ -744,12 +904,12 @@ function setTrackLabel(name) {
 function setRadioOn(on) {
   audio.on = on;
   if (audio.master) audio.master.gain.value = on ? 1 : 0;
-  if (audio.el) audio.el.volume = on ? 0.28 : 0;
+  if (audio.el) audio.el.volume = on ? 0.14 : 0;
   if (audio.ytPlayer) {
     try {
       if (on) {
         audio.ytPlayer.unMute?.();
-        audio.ytPlayer.setVolume?.(22);
+        audio.ytPlayer.setVolume?.(11);
       } else {
         audio.ytPlayer.mute?.();
         audio.ytPlayer.setVolume?.(0);
@@ -773,7 +933,7 @@ function playLocal(i) {
     audio.el.addEventListener("ended", () => playLocal(audio.i + 1));
   }
   audio.el.src = audio.tracks[audio.i];
-  audio.el.volume = audio.on ? 0.28 : 0;
+  audio.el.volume = audio.on ? 0.14 : 0;
   audio.el.play().catch(() => {});
   if (audio.ctx && !audio.src) {
     audio.src = audio.ctx.createMediaElementSource(audio.el);
@@ -819,7 +979,7 @@ async function playYt(i) {
         if (data && data.title) title = data.title;
       } catch (e) {}
       try {
-        player.setVolume?.(audio.on ? 22 : 0);
+        player.setVolume?.(audio.on ? 11 : 0);
         if (!audio.on) player.mute?.();
       } catch (e) {}
       setTrackLabel(title);
@@ -834,7 +994,7 @@ async function playYt(i) {
       events: {
         onReady: (e) => {
           try {
-            e.target.setVolume(audio.on ? 22 : 0);
+            e.target.setVolume(audio.on ? 11 : 0);
             if (!audio.on) e.target.mute();
           } catch (err) {}
           e.target.playVideo();
@@ -874,18 +1034,25 @@ async function startRadio() {
 
 function fire() {
   if (mode !== "pilot" || fireCd > 0 || hull <= 0 || !running || dead) return;
+  if (torpAmmo <= 0) {
+    setMsg("NO TORPEDOES", 1.1);
+    return;
+  }
   const t = torps.find((x) => x.userData.life <= 0);
   if (!t) return;
-  cam.getWorldDirection(tmp);
-  cam.getWorldPosition(tmp2);
-  t.position.copy(tmp2).add(tmp.multiplyScalar(1.5));
-  cam.getWorldDirection(t.userData.v);
-  t.userData.v.multiplyScalar(TORP_SPEED);
+  headingFrom(yaw);
+  torpSide *= -1;
+  tmp2.copy(sub.position).add(tmp.copy(right).multiplyScalar(1.12 * torpSide));
+  tmp2.y -= 0.35;
+  tmp2.add(tmp.copy(forward).multiplyScalar(1.35));
+  t.position.copy(tmp2);
+  t.userData.v.copy(forward).multiplyScalar(TORP_SPEED);
   tmp3.copy(t.position).add(t.userData.v);
   t.lookAt(tmp3);
-  t.userData.life = 3.4;
+  t.userData.life = 3.6;
   t.visible = true;
-  fireCd = 0.42;
+  torpAmmo -= 1;
+  fireCd = TORP_CD;
   sfx(140, 0.18, "sawtooth", 0.05);
   sfx(420, 0.12, "square", 0.03);
 }
@@ -1001,7 +1168,7 @@ function sharkAi(dt) {
 
   tmp2.copy(want).sub(shark.position);
   const dist = tmp2.length();
-  const spd = sharkState === "attack" ? 24 : sharkState === "hunt" ? 13 : sharkState === "retreat" ? 16 : 8.5;
+  const spd = (sharkState === "attack" ? 24 : sharkState === "hunt" ? 13 : sharkState === "retreat" ? 16 : 8.5) * 0.85;
   if (dist > 0.08) {
     tmp3.copy(shark.position).add(tmp2);
     shark.lookAt(tmp3);
@@ -1014,12 +1181,12 @@ function sharkAi(dt) {
 
 function whaleAi(dt) {
   whales.forEach((w, i) => {
-    const t = performance.now() * 0.00007 + i * 2.1;
-    const cx = sub.position.x + Math.cos(t) * (58 + i * 16);
-    const cz = sub.position.z + Math.sin(t * 0.82) * (64 + i * 12);
+    const t = performance.now() * 0.00006 + i * 2.1;
+    const cx = sub.position.x + Math.cos(t) * (116 + i * 32);
+    const cz = sub.position.z + Math.sin(t * 0.82) * (128 + i * 24);
     const wy = 11 + Math.sin(t * 1.6) * 7 + i * 3;
     tmp.set(cx, wy, cz);
-    w.position.lerp(tmp, Math.min(1, 0.35 * dt));
+    w.position.lerp(tmp, Math.min(1, 0.297 * dt));
     tmp2.set(cx + Math.cos(t + 0.2) * 4, wy, cz + Math.sin(t + 0.2) * 4);
     w.lookAt(tmp2);
     if (w.userData.tail) w.userData.tail.rotation.y = Math.sin(performance.now() * 0.004 + i) * 0.4;
@@ -1032,10 +1199,12 @@ function updateTorps(dt) {
     if (t.userData.life <= 0) return;
     t.userData.life -= dt;
     t.position.add(tmp.copy(t.userData.v).multiplyScalar(dt));
+    let hit = false;
     if (t.position.distanceTo(shark.position) < 14) {
       t.userData.life = 0;
       t.visible = false;
-      burst(t.position, 10);
+      bubbleBurst(t.position, 22);
+      hit = true;
       sharkHp -= 1;
       sfx(90, 0.2, "triangle", 0.08);
       setMsg("HIT " + sharkHp, 1.1);
@@ -1050,23 +1219,53 @@ function updateTorps(dt) {
         setSharkMood();
       }
     }
+    if (!hit) {
+      for (let w = 0; w < whales.length; w++) {
+        const wh = whales[w];
+        if (wh.userData.hp <= 0) continue;
+        if (t.position.distanceTo(wh.position) < 12) {
+          t.userData.life = 0;
+          t.visible = false;
+          bubbleBurst(t.position, 18);
+          wh.userData.hp -= 1;
+          setMsg("WHALE HIT", 1.1);
+          if (wh.userData.hp <= 0) {
+            bubbleBurst(wh.position, 28);
+            setMsg("WHALE DRIVEN OFF", 2);
+            const ang = Math.random() * 6.28;
+            wh.position.set(sub.position.x + Math.cos(ang) * 180, 14 + Math.random() * 20, sub.position.z + Math.sin(ang) * 180);
+            wh.userData.hp = 2;
+          }
+          break;
+        }
+      }
+    }
     if (t.userData.life <= 0) t.visible = false;
   });
 }
 
-function updateTanks() {
+function updatePickups() {
   const p = mode === "eva" ? evaDummy.position : sub.position;
-  for (let i = tanks.length - 1; i >= 0; i--) {
-    const tk = tanks[i];
-    tk.rotation.y += 0.02;
-    tk.position.y += Math.sin(performance.now() * 0.002 + i) * 0.004;
+  for (let i = pickups.length - 1; i >= 0; i--) {
+    const tk = pickups[i];
+    tk.rotation.y += 0.035;
+    tk.position.y = FLOOR + 0.55 + Math.sin(performance.now() * 0.002 + i) * 0.12;
     if (p.distanceTo(tk.position) < 1.7) {
-      oxygen = clamp(oxygen + 38, 0, 100);
+      const kind = tk.userData.kind;
       scene.remove(tk);
-      tanks.splice(i, 1);
-      setMsg("O2 +", 1);
+      pickups.splice(i, 1);
+      if (kind === "fuel") {
+        fuel = clamp(fuel + 42, 0, MAX_FUEL);
+        setMsg("FUEL +", 1);
+      } else if (kind === "torp") {
+        torpAmmo = Math.min(MAX_TORP, torpAmmo + 3);
+        setMsg("TORPEDOES +", 1);
+      } else {
+        oxygen = clamp(oxygen + 38, 0, 100);
+        setMsg("O2 +", 1);
+      }
       sfx(520, 0.12, "sine", 0.05);
-      spawnTank();
+      spawnPickup(kind);
     }
   }
 }
@@ -1077,6 +1276,14 @@ function updateFx(dt) {
     s.userData.life -= dt;
     s.position.add(tmp.copy(s.userData.v).multiplyScalar(dt));
     s.userData.v.y += 2 * dt;
+    if (s.userData.life <= 0) s.visible = false;
+  });
+  bubFx.forEach((s) => {
+    if (s.userData.life <= 0) return;
+    s.userData.life -= dt;
+    s.position.add(tmp.copy(s.userData.v).multiplyScalar(dt));
+    s.userData.v.y += 3.5 * dt;
+    s.userData.v.multiplyScalar(0.98);
     if (s.userData.life <= 0) s.visible = false;
   });
   const arr = bubbleGeo.attributes.position.array;
@@ -1151,6 +1358,12 @@ function hud() {
   document.getElementById("huli").style.width = hull + "%";
   document.getElementById("o2b").className = "bar" + (oxygen < 25 ? " bad" : oxygen < 50 ? " warn" : "");
   document.getElementById("hulb").className = "bar" + (hull < 34 ? " bad" : hull < 70 ? " warn" : "");
+  const fi = document.getElementById("fueli");
+  const ti = document.getElementById("torpi");
+  if (fi) fi.style.width = fuel + "%";
+  if (ti) ti.textContent = String(torpAmmo);
+  const fb = document.getElementById("fuelb");
+  if (fb) fb.className = "bar" + (fuel < 25 ? " bad" : fuel < 50 ? " warn" : "");
   document.getElementById("mode").textContent = mode === "pilot" ? "PILOT" : "EVA";
   document.getElementById("sstat").textContent = sharkState.toUpperCase();
   document.getElementById("msg").textContent = msgT > 0 ? msg : "";
@@ -1244,8 +1457,10 @@ function step(dt) {
   if (!running) return;
   dt = Math.min(0.05, dt);
   const body = mode === "pilot" ? sub : evaDummy;
-  const baseSpd = mode === "pilot" ? 11 : 11 * 0.25;
-  const spd = mode === "pilot" && hull < 100 ? baseSpd * 0.5 : baseSpd;
+  let baseSpd = mode === "pilot" ? SUB_SPD : SUB_SPD * 0.25;
+  if (mode === "pilot" && hull < 100) baseSpd *= 0.5;
+  if (mode === "pilot" && fuel <= 0) baseSpd *= 0.22;
+  const spd = baseSpd;
   const move = { ax: 0, az: 0, ay: 0 };
 
   if (xrOn) readXrMove(dt, move);
@@ -1254,10 +1469,11 @@ function step(dt) {
     if (keys.has("KeyS") || keys.has("ArrowDown")) move.az += 1;
     if (keys.has("KeyA") || keys.has("ArrowLeft")) move.ax -= 1;
     if (keys.has("KeyD") || keys.has("ArrowRight")) move.ax += 1;
-    if (keys.has("KeyQ")) move.ay -= 1;
-    if (keys.has("KeyE")) move.ay += 1;
+    if (keys.has("ShiftLeft") || keys.has("ShiftRight")) move.ay -= 1;
+    if (keys.has("Tab")) move.ay += 1;
     if (mode === "pilot") {
-      yaw = lookYaw;
+      const turn = wrapPi(lookYaw - yaw);
+      yaw += turn * Math.min(1, 3.4 * dt);
       pitch = lookPitch;
     }
   }
@@ -1270,12 +1486,17 @@ function step(dt) {
     if (right.lengthSq() < 0.001) right.set(1, 0, 0);
   }
 
-  tmp.copy(forward).multiplyScalar(-move.az * spd * dt);
-  tmp.add(tmp2.copy(right).multiplyScalar(move.ax * spd * dt));
-  tmp.y += move.ay * spd * 0.72 * dt;
+  wishVel.copy(forward).multiplyScalar(-move.az * spd);
+  wishVel.add(tmp2.copy(right).multiplyScalar(move.ax * spd));
+  wishVel.y = move.ay * spd * 0.72;
+  const thrusting = wishVel.lengthSq() > 0.04;
+  const k = thrusting ? 16 : 1.55;
+  bodyVel.lerp(wishVel, 1 - Math.exp(-k * dt));
+  tmp.copy(bodyVel).multiplyScalar(dt);
   body.position.add(tmp);
   body.position.y = clamp(body.position.y, FLOOR + 2.2, CEIL);
-  speed = dt > 1e-5 ? tmp.length() / dt : 0;
+  speed = bodyVel.length();
+  if (mode === "pilot" && speed > 0.6) fuel = Math.max(0, fuel - dt * 2.8);
 
   if (mode === "pilot") {
     sub.rotation.y = yaw;
@@ -1319,7 +1540,7 @@ function step(dt) {
   sharkAi(dt);
   whaleAi(dt);
   updateTorps(dt);
-  updateTanks();
+  updatePickups();
   updateFx(dt);
   drawMap();
   hud();
@@ -1331,16 +1552,19 @@ renderer.setAnimationLoop(() => {
   const dt = (now - last) / 1000;
   last = now;
   step(dt);
-  renderer.render(scene, cam);
+  underPass.uniforms.uTime.value = now * 0.001;
+  if (renderer.xr.isPresenting) renderer.render(scene, cam);
+  else composer.render();
 });
 
 function applyLook(dx, dy) {
-  lookYaw -= dx * 0.0022;
-  lookPitch -= dy * 0.0022;
+  lookYaw -= dx * 0.00165;
+  lookPitch -= dy * 0.00165;
   lookPitch = clamp(lookPitch, -1.15, 1.15);
 }
 
 window.addEventListener("keydown", (e) => {
+  if (e.code === "Tab") e.preventDefault();
   keys.add(e.code);
   if (e.code === "KeyF" && !e.repeat) tryToggleEva();
   if (e.code === "KeyR" && !e.repeat && mode === "pilot") toggleRadio();
@@ -1407,6 +1631,9 @@ function boot(nextMode) {
 function resetGame() {
   hull = 100;
   oxygen = 100;
+  fuel = MAX_FUEL;
+  torpAmmo = 8;
+  bodyVel.set(0, 0, 0);
   sharkHp = SHARK_HITS;
   sharkState = "patrol";
   sharkTimer = 14;
@@ -1455,6 +1682,7 @@ window.addEventListener("resize", () => {
   cam.aspect = innerWidth / innerHeight;
   cam.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight);
+  composer.setSize(innerWidth, innerHeight);
 });
 
 window.__controlsTest = {
@@ -1464,6 +1692,8 @@ window.__controlsTest = {
   getHull: () => hull,
   getMode: () => mode,
   getWorld: () => worldMode,
+  getFuel: () => fuel,
+  getAmmo: () => torpAmmo,
   setHull: (v) => {
     hull = clamp(v, 0, 100);
     crack.visible = hull < 100;
