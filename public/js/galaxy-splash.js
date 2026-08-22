@@ -478,7 +478,7 @@
     const SHIP_KINDS = [
       { id: "shuttle", src: "/images/galaxy/shuttle.png", w: 78, speed: 52 },
       { id: "destroyer", src: "/images/galaxy/destroyer.png", w: 118, speed: 30 },
-      { id: "whale", src: "/images/galaxy/whale.png", w: 102, speed: 24 },
+      { id: "whale", src: "/images/galaxy/whale.png", w: 168, speed: 8 },
     ];
     SHIP_KINDS.forEach(function (k) {
       k.img = new Image();
@@ -500,9 +500,57 @@
     root.appendChild(fxCanvas);
     const fx = fxCanvas.getContext("2d");
 
+    const lavaCanvas = document.createElement("canvas");
+    Object.assign(lavaCanvas.style, {
+      position: "absolute",
+      inset: "0",
+      width: "100%",
+      height: "100%",
+      pointerEvents: "none",
+      zIndex: "3",
+      mixBlendMode: "screen",
+    });
+    root.appendChild(lavaCanvas);
+    const lava = lavaCanvas.getContext("2d");
+    const LAVA_RGB = [
+      [255, 36, 28],
+      [32, 78, 255],
+      [28, 200, 62],
+      [255, 214, 28],
+    ];
+    const lavaBlobs = [];
+    function initLava() {
+      lavaBlobs.length = 0;
+      for (let c = 0; c < 4; c++) {
+        for (let n = 0; n < 2; n++) {
+          lavaBlobs.push({
+            c: LAVA_RGB[c],
+            x: Math.random(),
+            y: Math.random(),
+            vx: rand(-0.02, 0.02),
+            vy: rand(-0.016, 0.016),
+            rx: rand(0.24, 0.5),
+            ry: rand(0.1, 0.28),
+            ph: Math.random() * 6.28,
+            sp: rand(0.16, 0.42),
+          });
+        }
+      }
+    }
+    initLava();
+
+    let flashScr = 0;
+    const waves = [];
+
+    function holeCanvasXY(hole) {
+      return { x: hole.x * w, y: (1 - hole.y) * h };
+    }
+
     function burstSparks(px, py, n, power) {
       const pwr = power || 1;
-      for (let i = 0; i < n; i++) {
+      const room = Math.max(0, 480 - sparks.length);
+      const count = Math.min(n, room);
+      for (let i = 0; i < count; i++) {
         const ang = Math.random() * Math.PI * 2;
         const spd = (40 + Math.random() * 220) * pwr;
         sparks.push({
@@ -518,21 +566,45 @@
       }
     }
 
-    function collapseHole(idx) {
-      const h = holes[idx];
-      if (!h || h.mass < 0.008) return;
-      burstSparks(h.x * w, h.y * h, 64, 0.7 + h.mass);
-      for (let i = 0; i < nStars; i++) {
-        const dx = starPos[i * 2] - h.x * w;
-        const dy = starPos[i * 2 + 1] - h.y * h;
-        const d2 = dx * dx + dy * dy + 80;
-        const kick = (18000 * h.mass) / d2;
-        starVel[i * 2] += dx * kick * 0.02;
-        starVel[i * 2 + 1] += dy * kick * 0.02;
+    function expireHole(idx) {
+      const hole = holes[idx];
+      if (!hole || hole.mass < 0.008) return;
+      const c = holeCanvasXY(hole);
+      burstSparks(c.x, c.y, 14, 0.35);
+      hole.mass = 0;
+      hole.age = 0;
+      hole.grow = false;
+      if (holdIndex === idx) {
+        holding = false;
+        holdIndex = -1;
       }
-      h.mass = 0;
-      h.age = 0;
-      h.grow = false;
+    }
+
+    function neutrinoBurst(idx) {
+      const hole = holes[idx];
+      if (!hole || hole.mass < 0.008) return;
+      const c = holeCanvasXY(hole);
+      const mass = hole.mass;
+      flashScr = 1.2;
+      waves.push({ x: c.x, y: c.y, r: 12, a: 1 });
+      burstSparks(c.x, c.y, 180, 2.1 + mass);
+      const hx = hole.x * w;
+      const hy = hole.y * h;
+      const reach = 0.34 * Math.min(w, h);
+      for (let i = 0; i < nStars; i++) {
+        const dx = starPos[i * 2] - hx;
+        const dy = starPos[i * 2 + 1] - hy;
+        const d = Math.sqrt(dx * dx + dy * dy) + 1;
+        if (d < reach) {
+          const fall = 1 - d / reach;
+          const kick = 3.2 * mass * fall;
+          starVel[i * 2] += (dx / d) * kick;
+          starVel[i * 2 + 1] += (dy / d) * kick;
+        }
+      }
+      hole.mass = 0;
+      hole.age = 0;
+      hole.grow = false;
       if (holdIndex === idx) {
         holding = false;
         holdIndex = -1;
@@ -544,17 +616,21 @@
       const kind = SHIP_KINDS[(Math.random() * SHIP_KINDS.length) | 0];
       const fromLeft = Math.random() > 0.5;
       const y = (0.14 + Math.random() * 0.72) * h;
+      const whale = kind.id === "whale";
       ships.push({
         kind: kind.id,
         img: kind.img,
         x: fromLeft ? -kind.w : w + kind.w,
         y: y,
-        vx: (fromLeft ? 1 : -1) * kind.speed * (0.75 + Math.random() * 0.5),
-        vy: (Math.random() - 0.5) * 10,
+        vx: (fromLeft ? 1 : -1) * kind.speed * (0.75 + Math.random() * 0.45),
+        vy: (Math.random() - 0.5) * (whale ? 4 : 10),
         facing: fromLeft ? 1 : -1,
         frame: (Math.random() * 16) | 0,
         acc: 0,
-        size: kind.w * (0.85 + Math.random() * 0.3),
+        size: kind.w * (whale ? 1.25 + Math.random() * 0.25 : 0.85 + Math.random() * 0.3),
+        glow: whale,
+        fps: whale ? 7 : 12,
+        bob: Math.random() * 6.28,
       });
     }
 
@@ -628,6 +704,8 @@
       canvas.style.height = "100%";
       fxCanvas.width = w;
       fxCanvas.height = h;
+      lavaCanvas.width = w;
+      lavaCanvas.height = h;
       gl.viewport(0, 0, w, h);
       if (fbo) {
         gl.deleteTexture(fbo.tex);
@@ -677,13 +755,13 @@
 
       if (holding && holdIndex >= 0) {
         holes[holdIndex].mass = Math.min(0.62, holes[holdIndex].mass + dt * 0.21);
-        if (holes[holdIndex].mass >= 0.62) collapseHole(holdIndex);
+        if (holes[holdIndex].mass >= 0.62) neutrinoBurst(holdIndex);
       }
       for (let i = 0; i < MAX_HOLES; i++) {
         if (holes[i].mass > 0) holes[i].age += dt;
         if (!holes[i].grow && holes[i].mass > 0) {
           holes[i].mass *= Math.exp(-dt * 0.18);
-          if (holes[i].mass < 0.015) collapseHole(i);
+          if (holes[i].mass < 0.015) expireHole(i);
         }
       }
 
@@ -720,6 +798,7 @@
             drop.mass = 0;
             drop.age = 0;
             drop.grow = false;
+            if (keep.mass >= 0.62) neutrinoBurst(keep === a ? i : j);
           }
         }
       }
@@ -737,15 +816,16 @@
           const dx = hole.x - p.x;
           const dy = hole.y - p.y;
           const d2 = dx * dx + dy * dy + 0.00035;
-          const f = (hole.mass * 0.19 * dt * pull) / d2;
+          const f = (hole.mass * 0.48 * dt * pull) / d2;
           p.vx += dx * f;
           p.vy += dy * f;
           const rs = 0.006 + hole.mass * 0.05;
-          if (Math.sqrt(d2) < rs * 1.4) {
-            p.x = Math.random();
+          if (Math.sqrt(d2) < rs * 1.6) {
+            burstSparks(p.x * w, (1 - p.y) * h, 32, 1.05);
+            p.x = Math.random() > 0.5 ? -0.1 : 1.1;
             p.y = Math.random();
-            p.vx *= 0.1;
-            p.vy *= 0.1;
+            p.vx = 0;
+            p.vy = 0;
           }
         }
         p.x += p.vx * dt;
@@ -758,15 +838,13 @@
           const cdx = p.x - cursor.x;
           const cdy = p.y - cursor.y;
           const cd2 = cdx * cdx + cdy * cdy + 1e-6;
-          const cr = 0.03;
+          const cr = 0.09;
           if (cd2 < cr * cr) {
             const cd = Math.sqrt(cd2);
             const fall = 1 - cd / cr;
-            const jitter = 0.3 + ((i * 37) % 10) / 10 * 1.1;
-            p.x += (cdx / cd) * fall * jitter * 0.028 * dt;
-            p.y += (cdy / cd) * fall * jitter * 0.028 * dt;
-            p.vx *= 1 - 0.28 * fall;
-            p.vy *= 1 - 0.28 * fall;
+            const jitter = 0.35 + ((i * 37) % 10) / 10 * 1.2;
+            p.x += (cdx / cd) * fall * jitter * 0.06 * dt;
+            p.y += (cdy / cd) * fall * jitter * 0.06 * dt;
           }
         }
         p.vx *= 0.995;
@@ -795,11 +873,12 @@
           const dx = hx - x;
           const dy = hy - y;
           const d2 = dx * dx + dy * dy + 140;
-          const f = (hole.mass * 13000 * dt * dust * pull) / d2;
+          const f = (hole.mass * 22000 * dt * dust * pull) / d2;
           vx += dx * f;
           vy += dy * f;
           const rs = (0.006 + hole.mass * 0.05) * Math.min(w, h);
-          if (dx * dx + dy * dy < rs * rs * 1.3) {
+          if (dx * dx + dy * dy < rs * rs * 1.35) {
+            burstSparks(x, h - y, 8, 0.5);
             resetStar(i, true);
             x = starPos[i * 2];
             y = starPos[i * 2 + 1];
@@ -817,21 +896,29 @@
           const rdx = x - cx;
           const rdy = y - cy;
           const rd2 = rdx * rdx + rdy * rdy;
-          const radius = 0.028 * Math.min(w, h);
+          const radius = 0.11 * Math.min(w, h);
           if (rd2 < radius * radius && rd2 > 1) {
             const rd = Math.sqrt(rd2);
             const fall = 1 - rd / radius;
-            const jitter = 0.22 + ((i * 47) % 100) / 100 * 1.15;
-            x += (rdx / rd) * fall * jitter * 12 * dt;
-            y += (rdy / rd) * fall * jitter * 12 * dt;
-            vx *= 1 - 0.35 * fall;
-            vy *= 1 - 0.35 * fall;
+            const jitter = 0.28 + ((i * 47) % 100) / 100 * 1.45;
+            const push = fall * fall * jitter * 52 * dt;
+            x += (rdx / rd) * push;
+            y += (rdy / rd) * push;
+            vx += (rdx / rd) * fall * jitter * 1.1;
+            vy += (rdy / rd) * fall * jitter * 1.1;
           }
         }
         if (x < -10) x = w + 10;
         if (x > w + 10) x = -10;
         if (y < -10) y = h + 10;
         if (y > h + 10) y = -10;
+        if (!isFinite(x) || !isFinite(y) || !isFinite(vx) || !isFinite(vy)) {
+          resetStar(i, false);
+          x = starPos[i * 2];
+          y = starPos[i * 2 + 1];
+          vx = starVel[i * 2];
+          vy = starVel[i * 2 + 1];
+        }
         starPos[i * 2] = x;
         starPos[i * 2 + 1] = y;
         starVel[i * 2] = vx;
@@ -900,9 +987,10 @@
       }
       for (let s = ships.length - 1; s >= 0; s--) {
         const sh = ships[s];
+        const fps = sh.fps || 12;
         sh.acc += dt;
-        if (sh.acc >= 1 / 12) {
-          sh.acc -= 1 / 12;
+        if (sh.acc >= 1 / fps) {
+          sh.acc -= 1 / fps;
           sh.frame = (sh.frame + 1) % 16;
         }
         for (let k = 0; k < MAX_HOLES; k++) {
@@ -910,23 +998,24 @@
           if (hole.mass < 0.01) continue;
           const pull = 0.5 + 0.5 * (1 - Math.exp(-hole.age / 2.6));
           const hx = hole.x * w;
-          const hy = hole.y * h;
+          const hy = (1 - hole.y) * h;
           const dx = hx - sh.x;
           const dy = hy - sh.y;
-          const d2 = dx * dx + dy * dy + 120;
-          const f = (hole.mass * 9000 * dt * pull) / d2;
+          const d2 = dx * dx + dy * dy + 80;
+          const f = (hole.mass * 28000 * dt * pull) / d2;
           sh.vx += dx * f;
           sh.vy += dy * f;
           const rs = (0.006 + hole.mass * 0.05) * Math.min(w, h);
-          const hitR = Math.max(rs * 1.5, sh.size * 0.28);
+          const hitR = Math.max(rs * 1.65, sh.size * 0.32);
           if (dx * dx + dy * dy < hitR * hitR) {
-            burstSparks(sh.x, sh.y, 36, 0.85);
+            burstSparks(sh.x, sh.y, sh.glow ? 56 : 36, sh.glow ? 1.25 : 0.9);
             ships.splice(s, 1);
             sh._dead = true;
             break;
           }
         }
         if (sh._dead) continue;
+        if (sh.glow) sh.y += Math.sin(t * 0.65 + sh.bob) * 18 * dt;
         sh.x += sh.vx * dt;
         sh.y += sh.vy * dt;
         if (sh.x < -160 || sh.x > w + 160 || sh.y < -160 || sh.y > h + 160) ships.splice(s, 1);
@@ -959,6 +1048,16 @@
         fx.save();
         fx.translate(sh.x, sh.y);
         fx.scale(sh.facing, 1);
+        if (sh.glow) {
+          const glow = fx.createRadialGradient(0, 0, dw * 0.08, 0, 0, dw * 0.72);
+          glow.addColorStop(0, "rgba(120, 210, 255, 0.4)");
+          glow.addColorStop(0.45, "rgba(160, 90, 255, 0.16)");
+          glow.addColorStop(1, "rgba(0, 0, 0, 0)");
+          fx.fillStyle = glow;
+          fx.beginPath();
+          fx.ellipse(0, 0, dw * 0.72, dh * 0.48, 0, 0, Math.PI * 2);
+          fx.fill();
+        }
         fx.drawImage(img, sx, sy, cw, ch, -dw / 2, -dh / 2, dw, dh);
         fx.restore();
       }
@@ -971,6 +1070,58 @@
         fx.fill();
       }
       fx.globalAlpha = 1;
+
+      flashScr = Math.max(0, flashScr - dt * 0.62);
+      for (let i = waves.length - 1; i >= 0; i--) {
+        waves[i].r += dt * Math.max(w, h) * 0.9;
+        waves[i].a -= dt * 1.05;
+        if (waves[i].a <= 0) waves.splice(i, 1);
+      }
+      if (flashScr > 0) {
+        fx.fillStyle = "rgba(225, 248, 255," + (Math.min(1, flashScr) * 0.9) + ")";
+        fx.fillRect(0, 0, w, h);
+      }
+      for (let i = 0; i < waves.length; i++) {
+        const wv = waves[i];
+        fx.beginPath();
+        fx.arc(wv.x, wv.y, wv.r, 0, Math.PI * 2);
+        fx.strokeStyle = "rgba(170, 230, 255," + (wv.a * 0.9) + ")";
+        fx.lineWidth = Math.max(8, 16 * dpr);
+        fx.stroke();
+        fx.beginPath();
+        fx.arc(wv.x, wv.y, Math.max(0, wv.r * 0.68), 0, Math.PI * 2);
+        fx.strokeStyle = "rgba(255, 255, 255," + (wv.a * 0.5) + ")";
+        fx.lineWidth = Math.max(3, 6 * dpr);
+        fx.stroke();
+      }
+
+      lava.clearRect(0, 0, w, h);
+      lavaCanvas.style.opacity = String(0.25 + 0.15 * Math.sin(t * 0.37));
+      lava.globalCompositeOperation = "lighter";
+      for (let i = 0; i < lavaBlobs.length; i++) {
+        const b = lavaBlobs[i];
+        b.x += b.vx * dt;
+        b.y += b.vy * dt;
+        if (b.x < -0.2 || b.x > 1.2) b.vx *= -1;
+        if (b.y < -0.2 || b.y > 1.2) b.vy *= -1;
+        b.ph += dt * b.sp;
+        const rx = b.rx * (0.8 + 0.2 * Math.sin(b.ph)) * w;
+        const ry = b.ry * (0.8 + 0.2 * Math.cos(b.ph * 0.83)) * h;
+        lava.save();
+        lava.translate(b.x * w, b.y * h);
+        lava.scale(rx, ry);
+        const grd = lava.createRadialGradient(0, 0, 0, 0, 0, 1);
+        const rgb = b.c[0] + "," + b.c[1] + "," + b.c[2];
+        grd.addColorStop(0, "rgba(" + rgb + ",0.5)");
+        grd.addColorStop(0.52, "rgba(" + rgb + ",0.16)");
+        grd.addColorStop(1, "rgba(" + rgb + ",0)");
+        lava.fillStyle = grd;
+        lava.beginPath();
+        lava.arc(0, 0, 1, 0, Math.PI * 2);
+        lava.fill();
+        lava.restore();
+      }
+      lava.globalCompositeOperation = "source-over";
 
       const showUfo = cursor.on && !cursor.overUi;
       ufoCanvas.style.display = showUfo ? "block" : "none";
@@ -1026,6 +1177,7 @@
         window.removeEventListener("resize", onResize);
         if (ufoCanvas.parentNode) ufoCanvas.parentNode.removeChild(ufoCanvas);
         if (fxCanvas.parentNode) fxCanvas.parentNode.removeChild(fxCanvas);
+        if (lavaCanvas.parentNode) lavaCanvas.parentNode.removeChild(lavaCanvas);
         root.style.cursor = "";
       },
     };
