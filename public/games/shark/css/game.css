@@ -154,8 +154,19 @@ body.space-mode #start, body.space-mode #dead {
   bottom: 18px;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 12;
+  z-index: 30;
   pointer-events: auto;
+}
+body.xr #hud,
+body.xr #minimap-wrap,
+body.xr #radio,
+body.xr .bar-link,
+body.xr #touch,
+body.xr #msg {
+  visibility: hidden;
+}
+body.xr #vr-slot {
+  display: none;
 }
 #vr-slot button {
   position: static !important;

@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { VRButton } from "three/addons/webxr/VRButton.js";
+import { XRControllerModelFactory } from "three/addons/webxr/XRControllerModelFactory.js";
 import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
 import { ShaderPass } from "three/addons/postprocessing/ShaderPass.js";
@@ -49,6 +50,17 @@ let sonarSweep = 0;
 let huntPing = 0;
 let xrGrab = null;
 const xrPrev = new THREE.Vector3();
+let xrBaseRef = null;
+let xrTrigger = false;
+let xrGrip = false;
+let xrTriggerPrev = false;
+let xrFireArmed = true;
+let xrHatchArmed = true;
+const xrSeatPos = new THREE.Vector3();
+const xrSeatQuat = new THREE.Quaternion();
+const xrInvP = new THREE.Vector3();
+const xrInvQ = new THREE.Quaternion();
+const xrLocal = new THREE.Vector3();
 
 const tmp = new THREE.Vector3();
 const tmp2 = new THREE.Vector3();
@@ -320,6 +332,9 @@ const renderer = new THREE.WebGLRenderer({ antialias: true, canvas, alpha: false
 renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
 renderer.setSize(innerWidth, innerHeight);
 renderer.xr.enabled = true;
+try {
+  renderer.xr.setReferenceSpaceType("local");
+} catch (e) {}
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 0.92;
 document.getElementById("vr-slot").appendChild(VRButton.createButton(renderer));
@@ -421,18 +436,18 @@ scene.add(evaDummy);
 })();
 
 const wheel = new THREE.Group();
-wheel.position.set(0, -0.38, -0.58);
+wheel.position.set(0, -0.36, -0.55);
 cockpit.add(wheel);
 (function buildWheel() {
   const mat = new THREE.MeshStandardMaterial({ color: 0xc49a58, roughness: 0.45, metalness: 0.18, emissive: 0x2a1808 });
-  wheel.add(new THREE.Mesh(new THREE.TorusGeometry(0.22, 0.025, 8, 24), mat));
+  wheel.add(new THREE.Mesh(new THREE.TorusGeometry(0.26, 0.032, 10, 28), mat));
   for (let i = 0; i < 4; i++) {
-    const spoke = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.02, 0.02), mat);
+    const spoke = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.024, 0.024), mat);
     spoke.rotation.z = (i * Math.PI) / 2;
     wheel.add(spoke);
   }
   const hub = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.04, 0.04, 0.05, 10),
+    new THREE.CylinderGeometry(0.05, 0.05, 0.06, 10),
     new THREE.MeshStandardMaterial({ color: 0xccc4a0, metalness: 0.8 })
   );
   hub.rotation.x = Math.PI / 2;
@@ -440,11 +455,139 @@ cockpit.add(wheel);
 })();
 
 const fireBtn = new THREE.Mesh(
-  new THREE.CylinderGeometry(0.055, 0.055, 0.05, 12),
-  new THREE.MeshStandardMaterial({ color: 0xb02018, emissive: 0x400000, metalness: 0.4, roughness: 0.4 })
+  new THREE.CylinderGeometry(0.06, 0.07, 0.055, 14),
+  new THREE.MeshStandardMaterial({ color: 0xb02018, emissive: 0x501008, metalness: 0.4, roughness: 0.4 })
 );
-fireBtn.position.set(0.42, -0.42, -0.55);
+fireBtn.position.set(0.46, -0.4, -0.52);
+fireBtn.rotation.x = 0.2;
 cockpit.add(fireBtn);
+const fireBtnRestY = fireBtn.position.y;
+
+const hatchLever = new THREE.Group();
+hatchLever.position.set(-0.46, -0.4, -0.5);
+cockpit.add(hatchLever);
+(function buildHatchLever() {
+  const base = new THREE.Mesh(
+    new THREE.BoxGeometry(0.08, 0.04, 0.08),
+    new THREE.MeshStandardMaterial({ color: 0x2a3034, metalness: 0.6, roughness: 0.4 })
+  );
+  const stick = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.012, 0.012, 0.14, 8),
+    new THREE.MeshStandardMaterial({ color: 0xc8a020, metalness: 0.5, roughness: 0.35, emissive: 0x3a2a00 })
+  );
+  stick.position.y = 0.08;
+  const knob = new THREE.Mesh(
+    new THREE.SphereGeometry(0.028, 10, 8),
+    new THREE.MeshStandardMaterial({ color: 0xe0c040, emissive: 0x664400, metalness: 0.4 })
+  );
+  knob.position.y = 0.16;
+  hatchLever.add(base, stick, knob);
+})();
+
+function paintVrPlaque(ctx, w, h) {
+  ctx.fillStyle = "#1a1610";
+  ctx.fillRect(0, 0, w, h);
+  ctx.fillStyle = "#3a3224";
+  ctx.fillRect(10, 10, w - 20, h - 20);
+  ctx.fillStyle = "#c9b48a";
+  ctx.fillRect(18, 18, w - 36, h - 36);
+  ctx.fillStyle = "#5c4030";
+  ctx.fillRect(18, 18, w - 36, 64);
+  ctx.fillStyle = "#f0e2c4";
+  ctx.font = "bold 36px sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText("QUEST 3  ·  HELM", w / 2, 62);
+  ctx.textAlign = "left";
+  ctx.fillStyle = "#241c14";
+  ctx.font = "28px sans-serif";
+  const lines = [
+    "SQUEEZE GRIP on the wheel to drive.",
+    "  turn it  ·  push / pull for thrust",
+    "  lift / press for depth",
+    "PUSH the red button to fire torpedoes.",
+    "YELLOW lever — hatch (exit / re-enter).",
+    "OUTSIDE: hold TRIGGER near the hull",
+    "  to weld with the blowtorch.",
+    "Look with the headset. Coast if you let go.",
+  ];
+  lines.forEach((t, i) => ctx.fillText(t, 44, 118 + i * 40));
+}
+
+function makeDashScreen(w, h, draw) {
+  const cnv = document.createElement("canvas");
+  cnv.width = w;
+  cnv.height = h;
+  const ctx = cnv.getContext("2d");
+  draw(ctx, w, h);
+  const tex = new THREE.CanvasTexture(cnv);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 4;
+  const mesh = new THREE.Mesh(
+    new THREE.PlaneGeometry((w / h) * 0.36, 0.36),
+    new THREE.MeshBasicMaterial({ map: tex, toneMapped: false, side: THREE.DoubleSide })
+  );
+  mesh.userData.ctx = ctx;
+  mesh.userData.tex = tex;
+  mesh.userData.cnv = cnv;
+  const plate = new THREE.Mesh(
+    new THREE.BoxGeometry((w / h) * 0.37, 0.37, 0.02),
+    new THREE.MeshStandardMaterial({ color: 0x2a2418, metalness: 0.4, roughness: 0.5 })
+  );
+  plate.position.z = 0.012;
+  mesh.position.z = 0.024;
+  const g = new THREE.Group();
+  g.add(plate, mesh);
+  g.userData.screen = mesh;
+  return g;
+}
+
+const vrPanel = makeDashScreen(1024, 768, paintVrPlaque);
+vrPanel.position.set(-0.58, -0.08, -0.78);
+vrPanel.rotation.set(-0.18, 0.42, 0.08);
+vrPanel.visible = false;
+cockpit.add(vrPanel);
+
+const vrGauges = makeDashScreen(768, 256, (ctx, w, h) => {
+  ctx.fillStyle = "#0a100c";
+  ctx.fillRect(0, 0, w, h);
+});
+vrGauges.position.set(0.02, -0.22, -0.72);
+vrGauges.rotation.x = -0.28;
+vrGauges.scale.set(0.85, 0.85, 0.85);
+vrGauges.visible = false;
+cockpit.add(vrGauges);
+
+function paintVrGauges() {
+  const screen = vrGauges.userData.screen;
+  if (!screen) return;
+  const ctx = screen.userData.ctx;
+  const w = 768;
+  const h = 256;
+  ctx.fillStyle = "#07110c";
+  ctx.fillRect(0, 0, w, h);
+  const rows = [
+    ["O2", oxygen, 100, "#7dffb0"],
+    ["HULL", hull, 100, hull < 34 ? "#e05040" : hull < 70 ? "#e8c040" : "#7dffb0"],
+    ["FUEL", fuel, 100, fuel < 25 ? "#e05040" : "#7dffb0"],
+  ];
+  rows.forEach((row, i) => {
+    const y = 28 + i * 52;
+    ctx.fillStyle = "#c8e8c0";
+    ctx.font = "22px sans-serif";
+    ctx.textAlign = "left";
+    ctx.fillText(row[0], 24, y + 18);
+    ctx.fillStyle = "#122";
+    ctx.fillRect(120, y, 480, 22);
+    ctx.fillStyle = row[3];
+    ctx.fillRect(120, y, 480 * (row[1] / row[2]), 22);
+    ctx.fillStyle = "#eef";
+    ctx.fillText(Math.round(row[1]) + "%", 616, y + 18);
+  });
+  ctx.fillStyle = "#c8e8c0";
+  ctx.font = "22px sans-serif";
+  ctx.fillText("TORP  " + torpAmmo + "    " + (mode === "pilot" ? "PILOT" : "EVA") + "    " + sharkState.toUpperCase(), 24, 236);
+  screen.userData.tex.needsUpdate = true;
+}
 
 const exterior = new THREE.Group();
 sub.add(exterior);
@@ -812,31 +955,52 @@ function applyWorldMode(m) {
 
 const ctrl0 = renderer.xr.getController(0);
 const ctrl1 = renderer.xr.getController(1);
-cockpit.add(ctrl0);
-cockpit.add(ctrl1);
+const grip0 = renderer.xr.getControllerGrip(0);
+const grip1 = renderer.xr.getControllerGrip(1);
+scene.add(ctrl0, ctrl1, grip0, grip1);
+try {
+  const xrModels = new XRControllerModelFactory();
+  grip0.add(xrModels.createControllerModel(grip0));
+  grip1.add(xrModels.createControllerModel(grip1));
+} catch (e) {}
+function makeTorch() {
+  const g = new THREE.Group();
+  const handle = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.012, 0.014, 0.11, 8),
+    new THREE.MeshStandardMaterial({ color: 0x33383c, metalness: 0.7, roughness: 0.35 })
+  );
+  handle.rotation.x = Math.PI / 2;
+  handle.position.z = -0.04;
+  const cone = new THREE.Mesh(
+    new THREE.ConeGeometry(0.028, 0.16, 8),
+    new THREE.MeshBasicMaterial({ color: 0xffb040, transparent: true, opacity: 0.88 })
+  );
+  cone.rotation.x = -Math.PI / 2;
+  cone.position.z = -0.16;
+  const core = new THREE.Mesh(
+    new THREE.ConeGeometry(0.012, 0.1, 6),
+    new THREE.MeshBasicMaterial({ color: 0xfff2c8, transparent: true, opacity: 0.95 })
+  );
+  core.rotation.x = -Math.PI / 2;
+  core.position.z = -0.14;
+  g.add(handle, cone, core);
+  g.visible = false;
+  g.userData.cone = cone;
+  g.userData.core = core;
+  return g;
+}
+const torch0 = makeTorch();
+const torch1 = makeTorch();
+ctrl0.add(torch0);
+ctrl1.add(torch1);
 [ctrl0, ctrl1].forEach((c) => {
   const gizmo = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.01, 0.01, 0.12, 6),
+    new THREE.CylinderGeometry(0.008, 0.008, 0.1, 6),
     new THREE.MeshBasicMaterial({ color: 0x88ffcc })
   );
   gizmo.rotation.x = Math.PI / 2;
+  gizmo.position.z = -0.05;
   c.add(gizmo);
-  c.addEventListener("selectstart", () => {
-    if (!running || dead) return;
-    fireBtn.getWorldPosition(tmp);
-    c.getWorldPosition(tmp2);
-    fire();
-  });
-  c.addEventListener("squeezestart", () => {
-    wheel.getWorldPosition(tmp);
-    if (c.getWorldPosition(tmp2).distanceTo(tmp) < 0.62) {
-      xrGrab = c;
-      xrPrev.copy(c.position);
-    }
-  });
-  c.addEventListener("squeezeend", () => {
-    if (xrGrab === c) xrGrab = null;
-  });
 });
 
 const audio = {
@@ -1428,48 +1592,111 @@ function hud() {
     rw.hidden = !show;
     if (show) document.getElementById("repi").style.width = Math.min(100, (repairHold / 3) * 100) + "%";
   }
+  if (xrOn) paintVrGauges();
 }
 
-function parentControllers(to) {
-  [ctrl0, ctrl1].forEach((c) => {
-    if (c.parent) c.parent.remove(c);
-    to.add(c);
+function nearWorld(obj, maxd) {
+  obj.getWorldPosition(tmp);
+  for (const c of [ctrl0, ctrl1]) {
+    c.getWorldPosition(tmp2);
+    if (tmp.distanceTo(tmp2) < maxd) return c;
+  }
+  return null;
+}
+
+function pollXrButtons() {
+  xrTriggerPrev = xrTrigger;
+  xrTrigger = false;
+  xrGrip = false;
+  const session = renderer.xr.getSession();
+  if (!session) return;
+  for (const src of session.inputSources) {
+    const gp = src.gamepad;
+    if (!gp || !gp.buttons) continue;
+    if (gp.buttons[0] && gp.buttons[0].pressed) xrTrigger = true;
+    if (gp.buttons[1] && gp.buttons[1].pressed) xrGrip = true;
+  }
+}
+
+function syncXrSeat() {
+  if (!xrOn || !xrBaseRef || !renderer.xr.isPresenting) return;
+  const seat = mode === "pilot" ? cockpit : evaDummy;
+  seat.updateMatrixWorld(true);
+  xrSeatPos.set(0, mode === "pilot" ? 0.12 : 0, mode === "pilot" ? 0.02 : 0);
+  seat.localToWorld(xrSeatPos);
+  seat.getWorldQuaternion(xrSeatQuat);
+  xrInvQ.copy(xrSeatQuat).invert();
+  xrInvP.copy(xrSeatPos).applyQuaternion(xrInvQ).multiplyScalar(-1);
+  if (typeof XRRigidTransform === "undefined") return;
+  try {
+    const t = new XRRigidTransform(
+      { x: xrInvP.x, y: xrInvP.y, z: xrInvP.z },
+      { x: xrInvQ.x, y: xrInvQ.y, z: xrInvQ.z, w: xrInvQ.w }
+    );
+    renderer.xr.setReferenceSpace(xrBaseRef.getOffsetReferenceSpace(t));
+  } catch (e) {}
+}
+
+function setTorch(on) {
+  const active = on && mode === "eva";
+  [torch0, torch1].forEach((t, i) => {
+    const c = i === 0 ? ctrl0 : ctrl1;
+    const using = active && xrTrigger && nearWorld(sub, 3.4) === c;
+    t.visible = !!(active && xrTrigger);
+    if (t.visible) {
+      const flicker = 0.85 + Math.random() * 0.35;
+      t.userData.cone.scale.setScalar(flicker);
+      t.userData.core.scale.set(1, flicker, 1);
+    }
   });
+  if (!xrTrigger) {
+    torch0.visible = false;
+    torch1.visible = false;
+  }
+}
+
+function desktopCam(parent) {
+  if (xrOn) return;
+  if (cam.parent) cam.parent.remove(cam);
+  parent.add(cam);
 }
 
 function enterEva() {
   if (mode === "eva") return;
   mode = "eva";
-  cockpit.remove(cam);
   evaDummy.position.copy(sub.position);
   evaDummy.position.x += 2.3;
   evaDummy.position.y += 0.5;
-  evaDummy.add(cam);
-  cam.position.set(0, 0, 0);
-  cam.rotation.set(0, 0, 0);
+  evaDummy.quaternion.copy(sub.quaternion);
+  desktopCam(evaDummy);
+  if (!xrOn) {
+    cam.position.set(0, 0, 0);
+    cam.rotation.set(0, 0, 0);
+  }
   lookYaw = yaw;
   lookPitch = 0;
   cockpit.visible = false;
   exterior.visible = true;
   helm.visible = true;
-  parentControllers(evaDummy);
-  setMsg(hull < 100 ? "EVA — HOLD R NEAR THE HULL TO PATCH" : "EVA — F NEAR HATCH TO RE-ENTER", 3);
+  setMsg(xrOn ? "EVA — HOLD TRIGGER NEAR THE HULL TO WELD" : "EVA — HOLD R NEAR THE HULL TO PATCH", 3);
 }
 
 function enterPilot() {
   if (mode === "pilot") return;
   mode = "pilot";
-  evaDummy.remove(cam);
-  cockpit.add(cam);
-  cam.position.set(0, 0.18, 0.04);
-  cam.rotation.set(0, 0, 0);
+  desktopCam(cockpit);
+  if (!xrOn) {
+    cam.position.set(0, 0.18, 0.04);
+    cam.rotation.set(0, 0, 0);
+  }
   lookPitch = 0;
   lookYaw = yaw;
   pitch = 0;
   cockpit.visible = true;
   exterior.visible = false;
   helm.visible = false;
-  parentControllers(cockpit);
+  torch0.visible = false;
+  torch1.visible = false;
   setMsg("HATCH SEALED", 1.4);
 }
 
@@ -1481,30 +1708,63 @@ function tryToggleEva() {
 
 function readXrMove(dt, move) {
   if (!xrOn) return;
+  pollXrButtons();
   const session = renderer.xr.getSession();
-  if (!session) return;
-  for (const src of session.inputSources) {
-    const a = src.gamepad && src.gamepad.axes;
-    if (!a || a.length < 2) continue;
-    const sx = a.length >= 4 ? a[2] : a[0];
-    const sy = a.length >= 4 ? a[3] : a[1];
-    if (Math.abs(sx) > 0.15) {
-      if (src.handedness === "left") yaw -= sx * 1.6 * dt;
-      else move.ax += sx;
-    }
-    if (Math.abs(sy) > 0.15) {
-      if (src.handedness === "left") move.ay -= sy;
-      else move.az += sy;
+  if (mode === "eva" && session) {
+    for (const src of session.inputSources) {
+      const a = src.gamepad && src.gamepad.axes;
+      if (!a || !a.length) continue;
+      const sx = a.length >= 4 ? a[2] : a[0];
+      const sy = a.length >= 4 ? a[3] : a[1];
+      if (src.handedness === "right") {
+        if (Math.abs(sy) > 0.18) move.ay -= sy;
+      } else {
+        if (Math.abs(sx) > 0.18) move.ax += sx;
+        if (Math.abs(sy) > 0.18) move.az += sy;
+      }
     }
   }
-  if (xrGrab) {
-    const d = tmp.copy(xrGrab.position).sub(xrPrev);
-    yaw += d.x * 4.2;
-    move.ay += d.y * 16;
-    move.az -= d.z * 10;
-    xrPrev.copy(xrGrab.position);
-    wheel.rotation.z = -d.x * 6;
-    wheel.rotation.x = d.y * 4;
+  if (mode === "pilot") {
+    const hand = nearWorld(wheel, 0.38);
+    if (xrGrip && hand) {
+      xrGrab = hand;
+      cockpit.worldToLocal(xrLocal.copy(hand.getWorldPosition(tmp2)));
+      const dx = xrLocal.x - wheel.position.x;
+      const dy = xrLocal.y - wheel.position.y;
+      const dz = xrLocal.z - wheel.position.z;
+      yaw += -dx * 2.8 * dt;
+      if (dz < -0.03) move.az -= clamp((-dz - 0.03) * 7, 0, 1);
+      if (dz > 0.03) move.az += clamp((dz - 0.03) * 7, 0, 1);
+      move.ay += clamp(dy * 5.5, -1, 1);
+      wheel.rotation.z = clamp(-dx * 2.4, -0.85, 0.85);
+      wheel.rotation.x = clamp(dy * 1.6, -0.55, 0.55);
+    } else {
+      xrGrab = null;
+    }
+    const poking = !!nearWorld(fireBtn, 0.08);
+    const aiming = !!nearWorld(fireBtn, 0.14);
+    const pressed = poking || (aiming && xrTrigger);
+    fireBtn.position.y = pressed ? fireBtnRestY - 0.028 : fireBtnRestY;
+    fireBtn.material.emissive.setHex(pressed ? 0xff4018 : 0x501008);
+    if (pressed && xrFireArmed) {
+      fire();
+      xrFireArmed = false;
+    }
+    if (!pressed) xrFireArmed = true;
+    const onHatch = !!nearWorld(hatchLever, 0.15);
+    if (onHatch && (xrTrigger || xrGrip) && xrHatchArmed) {
+      xrHatchArmed = false;
+      tryToggleEva();
+    }
+    if (!xrTrigger && !xrGrip) xrHatchArmed = true;
+  } else {
+    xrGrab = null;
+    if (xrGrip && evaDummy.position.distanceTo(sub.position) < 3.1) {
+      if (xrHatchArmed) {
+        xrHatchArmed = false;
+        tryToggleEva();
+      }
+    } else if (!xrGrip) xrHatchArmed = true;
   }
 }
 
@@ -1556,32 +1816,37 @@ function step(dt) {
   if (mode === "pilot") {
     sub.rotation.y = yaw;
     if (!xrOn) cam.rotation.set(pitch, 0, 0);
-    else cam.rotation.set(0, 0, 0);
     if (!xrGrab) {
       wheel.rotation.z = THREE.MathUtils.damp(wheel.rotation.z, move.ax * 0.45, 6, dt);
       wheel.rotation.x = THREE.MathUtils.damp(wheel.rotation.x, -pitch * 0.25, 6, dt);
     }
     if (exterior.userData.prop) exterior.userData.prop.rotation.z += speed * dt * 4;
-    if (shake > 0) {
-      shake = Math.max(0, shake - dt);
-      cam.position.x = (Math.random() - 0.5) * shake * 0.12;
-      cam.position.y = 0.18 + (Math.random() - 0.5) * shake * 0.08;
-    } else {
-      cam.position.set(0, 0.18, 0.04);
-    }
+    if (!xrOn) {
+      if (shake > 0) {
+        shake = Math.max(0, shake - dt);
+        cam.position.x = (Math.random() - 0.5) * shake * 0.12;
+        cam.position.y = 0.18 + (Math.random() - 0.5) * shake * 0.08;
+      } else {
+        cam.position.set(0, 0.18, 0.04);
+      }
+    } else if (shake > 0) shake = Math.max(0, shake - dt);
   } else {
-    cam.rotation.set(lookPitch, lookYaw, 0);
-    if (keys.has("KeyR") && hull < 100 && evaDummy.position.distanceTo(sub.position) < 3.2) {
+    if (!xrOn) cam.rotation.set(lookPitch, lookYaw, 0);
+    const welding = xrOn
+      ? xrTrigger && hull < 100 && evaDummy.position.distanceTo(sub.position) < 3.2
+      : keys.has("KeyR") && hull < 100 && evaDummy.position.distanceTo(sub.position) < 3.2;
+    if (welding) {
       repairHold += dt;
-      setMsg("PATCHING " + Math.min(99, Math.floor((repairHold / 3) * 100)) + "%", 0.25);
+      setMsg((xrOn ? "WELDING " : "PATCHING ") + Math.min(99, Math.floor((repairHold / 3) * 100)) + "%", 0.25);
       if (repairHold > 3) {
         hull = 100;
         crack.visible = false;
         repairHold = 0;
-        setMsg("HULL SEALED — F TO RE-ENTER", 2);
+        setMsg(xrOn ? "HULL SEALED — SQUEEZE GRIP NEAR HATCH" : "HULL SEALED — F TO RE-ENTER", 2);
         sfx(300, 0.2, "sine", 0.06);
       }
     } else repairHold = 0;
+    setTorch(welding);
   }
 
   oxygen -= dt * (mode === "eva" ? 2.8 : 0.62);
@@ -1607,6 +1872,7 @@ renderer.setAnimationLoop(() => {
   const dt = (now - last) / 1000;
   last = now;
   step(dt);
+  if (xrOn) syncXrSeat();
   underPass.uniforms.uTime.value = now * 0.001;
   if (renderer.xr.isPresenting) renderer.render(scene, cam);
   else composer.render();
@@ -1653,15 +1919,57 @@ document.addEventListener("pointerlockchange", () => {
 
 renderer.xr.addEventListener("sessionstart", () => {
   xrOn = true;
+  xrGrab = null;
+  xrFireArmed = true;
+  xrHatchArmed = true;
   running = true;
   dead = false;
   document.getElementById("start").style.display = "none";
   document.getElementById("dead").hidden = true;
+  document.body.classList.add("xr");
+  vrPanel.visible = true;
+  vrGauges.visible = true;
+  if (cam.parent) cam.parent.remove(cam);
+  scene.add(cam);
+  try {
+    renderer.xr.setFoveation(0.25);
+  } catch (e) {}
+  xrBaseRef = renderer.xr.getReferenceSpace();
+  if (!xrBaseRef) {
+    const s = renderer.xr.getSession();
+    if (s && s.requestReferenceSpace) {
+      s.requestReferenceSpace("local")
+        .then((r) => {
+          xrBaseRef = r;
+        })
+        .catch(() => {
+          s.requestReferenceSpace("local-floor").then((r) => {
+            xrBaseRef = r;
+          });
+        });
+    }
+  }
   ensureAudio();
   startRadio();
+  setMsg("GRIP THE WHEEL · RED BUTTON FIRES", 3.2);
 });
 renderer.xr.addEventListener("sessionend", () => {
   xrOn = false;
+  xrGrab = null;
+  xrBaseRef = null;
+  document.body.classList.remove("xr");
+  vrPanel.visible = false;
+  vrGauges.visible = false;
+  torch0.visible = false;
+  torch1.visible = false;
+  if (cam.parent) cam.parent.remove(cam);
+  if (mode === "eva") {
+    evaDummy.add(cam);
+    cam.position.set(0, 0, 0);
+  } else {
+    cockpit.add(cam);
+    cam.position.set(0, 0.18, 0.04);
+  }
 });
 
 function ensureAudio() {
@@ -1743,6 +2051,7 @@ window.addEventListener("resize", () => {
 window.__controlsTest = {
   getYaw: () => yaw,
   getSpeed: () => speed,
+  getXr: () => xrOn,
   getPos: () => ({ x: sub.position.x, y: sub.position.y, z: sub.position.z }),
   getHull: () => hull,
   getMode: () => mode,
@@ -1764,4 +2073,5 @@ window.__controlsTest = {
   },
   fire,
   wrapPi,
+  getGrab: () => !!xrGrab,
 };
