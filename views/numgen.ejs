@@ -1,0 +1,468 @@
+<%- include('partials/header') %>
+
+<style>
+    .numgen-panel.glass-card:hover,
+    .numgen-copy.glass-card:hover {
+        transform: none;
+        border-color: rgba(212, 175, 55, 0.45);
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.45);
+    }
+    .numgen-out {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 0.82rem;
+        line-height: 1.65;
+        letter-spacing: 0.01em;
+        min-height: 18rem;
+        resize: vertical;
+    }
+    .numgen-chip {
+        border: 1px solid rgba(212, 175, 55, 0.35);
+        color: #D4AF37;
+        background: transparent;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        font-size: 0.65rem;
+        font-weight: 700;
+        padding: 0.4rem 0.7rem;
+        border-radius: 0.15rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    .numgen-chip:hover,
+    .numgen-chip.is-on {
+        background: #D4AF37;
+        color: #000;
+    }
+    .numgen-field {
+        width: 100%;
+        background: rgba(0, 0, 0, 0.55);
+        border: 1px solid #374151;
+        border-radius: 0.25rem;
+        padding: 0.7rem 0.85rem;
+        color: #fff;
+        transition: border-color 0.2s ease;
+    }
+    .numgen-field:focus {
+        outline: none;
+        border-color: #D4AF37;
+    }
+    .numgen-faq dt {
+        font-family: 'Cinzel', serif;
+        color: #D4AF37;
+        font-size: 1.05rem;
+        margin-bottom: 0.4rem;
+    }
+    .numgen-faq dd {
+        color: #d1d5db;
+        margin-bottom: 1.5rem;
+        line-height: 1.7;
+    }
+</style>
+
+<article class="max-w-5xl mx-auto py-8 md:py-12" itemscope itemtype="https://schema.org/WebApplication">
+    <header class="text-center mb-10">
+        <p class="text-[#20B2AA] tracking-[0.35em] uppercase text-xs font-bold mb-3">Free browser tool</p>
+        <h1 class="text-4xl md:text-6xl font-black text-gold brand-font uppercase tracking-tight mb-4" itemprop="name">
+            Random Number Generator
+        </h1>
+        <p class="text-gray-300 text-lg md:text-xl max-w-3xl mx-auto leading-relaxed" itemprop="description">
+            A free online <strong>number generator</strong> that creates random numbers in your browser.
+            One click produces <strong>1,000 ten-digit random numbers</strong>, comma-separated and ready to copy.
+            Change the count, digit length, or min–max range for any other random-number job.
+        </p>
+    </header>
+
+    <section class="numgen-panel glass-card rounded-2xl p-6 md:p-10 border-t-4 border-[#D4AF37] mb-14" aria-labelledby="generator-heading">
+        <h2 id="generator-heading" class="text-2xl md:text-3xl font-bold text-[#D4AF37] brand-font uppercase tracking-widest mb-2">
+            10-Digit Random Number Generator
+        </h2>
+        <p class="text-gray-400 mb-8 text-sm md:text-base">
+            Default: 1,000 numbers · 10 digits · leading zeros · comma-separated · generated locally (nothing is uploaded).
+        </p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div class="space-y-2">
+                <label for="numgen-mode" class="text-xs uppercase tracking-widest text-[#D4AF37]">Mode</label>
+                <select id="numgen-mode" class="numgen-field">
+                    <option value="digits" selected>Fixed digit length (IDs, PINs, codes)</option>
+                    <option value="range">Integer range (min–max)</option>
+                </select>
+            </div>
+            <div class="space-y-2">
+                <label for="numgen-count" class="text-xs uppercase tracking-widest text-[#D4AF37]">How many numbers</label>
+                <input id="numgen-count" class="numgen-field" type="number" min="1" max="10000" value="1000" inputmode="numeric">
+                <div class="flex flex-wrap gap-2 pt-1" id="count-chips"></div>
+            </div>
+        </div>
+
+        <div id="digits-panel" class="mb-6">
+            <div class="space-y-2">
+                <label for="numgen-digits" class="text-xs uppercase tracking-widest text-[#D4AF37]">Digits per number</label>
+                <input id="numgen-digits" class="numgen-field" type="number" min="1" max="18" value="10" inputmode="numeric">
+                <div class="flex flex-wrap gap-2 pt-1" id="digit-chips"></div>
+            </div>
+        </div>
+
+        <div id="range-panel" class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 hidden">
+            <div class="space-y-2">
+                <label for="numgen-min" class="text-xs uppercase tracking-widest text-[#D4AF37]">Minimum (inclusive)</label>
+                <input id="numgen-min" class="numgen-field" type="number" value="1">
+            </div>
+            <div class="space-y-2">
+                <label for="numgen-max" class="text-xs uppercase tracking-widest text-[#D4AF37]">Maximum (inclusive)</label>
+                <input id="numgen-max" class="numgen-field" type="number" value="100">
+            </div>
+        </div>
+
+        <div class="mb-6">
+            <div class="space-y-2">
+                <label for="numgen-format" class="text-xs uppercase tracking-widest text-[#D4AF37]">Output format</label>
+                <select id="numgen-format" class="numgen-field">
+                    <option value="comma" selected>Comma-separated (CSV-ready)</option>
+                    <option value="newline">One number per line</option>
+                    <option value="space">Space-separated</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="flex flex-col sm:flex-row gap-4 sm:items-center mb-8 text-sm text-gray-300">
+            <label class="inline-flex items-center gap-2 cursor-pointer">
+                <input id="numgen-pad" type="checkbox" checked class="accent-[#D4AF37] w-4 h-4">
+                Keep leading zeros
+            </label>
+            <label class="inline-flex items-center gap-2 cursor-pointer">
+                <input id="numgen-unique" type="checkbox" class="accent-[#20B2AA] w-4 h-4">
+                Unique values only
+            </label>
+        </div>
+
+        <div class="flex flex-wrap gap-3 justify-center md:justify-start mb-6">
+            <button type="button" id="btn-generate" class="btn-gold px-8 py-3 text-sm md:text-base rounded-sm shadow-[0_0_18px_rgba(212,175,55,0.35)]">
+                Generate 1000 Numbers
+            </button>
+            <button type="button" id="btn-copy" class="btn-outline px-6 py-3 text-sm rounded-sm">Copy All</button>
+            <button type="button" id="btn-download" class="btn-outline px-6 py-3 text-sm rounded-sm">Download .txt</button>
+            <button type="button" id="btn-clear" class="btn-outline px-6 py-3 text-sm rounded-sm">Clear</button>
+        </div>
+
+        <label for="numgen-output" class="sr-only">Generated random numbers</label>
+        <textarea id="numgen-output" class="numgen-out numgen-field w-full rounded-xl" readonly placeholder="Click Generate to create 1,000 comma-separated 10-digit numbers…"></textarea>
+        <p id="numgen-status" class="mt-3 text-sm text-[#20B2AA] min-h-[1.25rem]" role="status" aria-live="polite"></p>
+    </section>
+
+    <section class="numgen-copy glass-card rounded-2xl p-8 md:p-10 mb-10">
+        <h2 class="text-2xl md:text-3xl font-bold text-[#D4AF37] brand-font uppercase tracking-widest mb-4">What this number generator does</h2>
+        <p class="text-gray-300 leading-relaxed mb-4">
+            A <strong>random number generator</strong> (RNG) picks numbers without a predictable pattern.
+            This page is a <strong>random number generator online</strong> tool: it runs entirely on your device,
+            so results are not stored on a server and you do not need an account.
+        </p>
+        <p class="text-gray-300 leading-relaxed mb-4">
+            The default preset is a <strong>10 digit number generator</strong>. Each value is drawn from
+            <code class="text-[#F4C430]">0000000000</code> through <code class="text-[#F4C430]">9999999999</code>
+            and padded so every code is exactly ten characters. That format is useful for fake IDs, test accounts,
+            sample order numbers, spreadsheet fixtures, and bulk comma-separated lists.
+        </p>
+        <p class="text-gray-300 leading-relaxed">
+            Switch to range mode for a classic random number picker — for example 1 to 100, 1 to 6 (dice),
+            or 1 to 10,000. You can emit a single number or thousands at once, then copy or download the list.
+        </p>
+    </section>
+
+    <section class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+        <div class="numgen-copy glass-card rounded-xl p-6">
+            <h3 class="text-[#D4AF37] brand-font uppercase tracking-widest text-sm mb-3">Bulk output</h3>
+            <p class="text-gray-400 text-sm leading-relaxed">Generate up to 10,000 numbers per click. Default batch is 1,000 comma-separated values on one line.</p>
+        </div>
+        <div class="numgen-copy glass-card rounded-xl p-6">
+            <h3 class="text-[#D4AF37] brand-font uppercase tracking-widest text-sm mb-3">Private by design</h3>
+            <p class="text-gray-400 text-sm leading-relaxed">Numbers are created in the browser with the Web Cryptography API. Nothing is sent to Future Music servers.</p>
+        </div>
+        <div class="numgen-copy glass-card rounded-xl p-6">
+            <h3 class="text-[#D4AF37] brand-font uppercase tracking-widest text-sm mb-3">CSV-ready</h3>
+            <p class="text-gray-400 text-sm leading-relaxed">Copy into Excel, Google Sheets, JSON, SQL seeds, or a text file. Newline and space formats are one click away.</p>
+        </div>
+    </section>
+
+    <section class="numgen-copy glass-card rounded-2xl p-8 md:p-10 mb-10">
+        <h2 class="text-2xl md:text-3xl font-bold text-[#D4AF37] brand-font uppercase tracking-widest mb-4">How to generate random numbers</h2>
+        <ol class="list-decimal list-inside space-y-3 text-gray-300 leading-relaxed">
+            <li>Leave the defaults for a <strong>10-digit random number generator</strong> batch of 1,000, or set count and digits.</li>
+            <li>Optional: choose min–max range mode, unique values, or a different separator.</li>
+            <li>Press <strong>Generate 1000 Numbers</strong> (the label updates to match your count).</li>
+            <li>Press <strong>Copy All</strong> or <strong>Download .txt</strong>. Press <strong>Clear</strong> to empty the box.</li>
+        </ol>
+    </section>
+
+    <section class="numgen-copy glass-card rounded-2xl p-8 md:p-10 mb-10">
+        <h2 class="text-2xl md:text-3xl font-bold text-[#D4AF37] brand-font uppercase tracking-widest mb-4">When to use a random number generator</h2>
+        <ul class="space-y-3 text-gray-300 leading-relaxed list-disc list-inside">
+            <li><strong>Test data</strong> — dummy phone-style IDs, user keys, invoice numbers, and QA fixtures.</li>
+            <li><strong>Spreadsheets</strong> — paste a comma-separated list into Sheets or Excel for sampling columns.</li>
+            <li><strong>Games and raffles</strong> — pick a number in a range. Do not use this as a casino or lottery authority.</li>
+            <li><strong>Simulations</strong> — seeds and Monte Carlo-style input lists for classroom or prototype work.</li>
+            <li><strong>Design mockups</strong> — realistic-looking numeric strings without using real personal data.</li>
+        </ul>
+        <p class="text-gray-500 text-sm mt-6 leading-relaxed">
+            This tool is not a password manager and is not certified for cryptographic keys, legal drawings, or gambling.
+            It uses <code>crypto.getRandomValues</code> when the browser provides it, which is suitable for most everyday
+            random-number generator tasks.
+        </p>
+    </section>
+
+    <section class="numgen-copy glass-card rounded-2xl p-8 md:p-10 mb-10" aria-labelledby="faq-heading">
+        <h2 id="faq-heading" class="text-2xl md:text-3xl font-bold text-[#D4AF37] brand-font uppercase tracking-widest mb-6">
+            Random number generator FAQ
+        </h2>
+        <dl class="numgen-faq">
+            <dt>What is a random number generator?</dt>
+            <dd>A random number generator is a program that produces numbers that are hard to predict. This page is a free number generator you can use in any modern browser without installing software.</dd>
+
+            <dt>How do I generate 10-digit random numbers?</dt>
+            <dd>Keep “Digits per number” at 10 (the default) and press Generate. Each result is a 10-digit string from 0000000000 to 9999999999. Turn off “Keep leading zeros” if you want unpadded integers instead.</dd>
+
+            <dt>Can I generate 1000 random numbers at once?</dt>
+            <dd>Yes. The default batch size is 1,000. You can request anywhere from 1 to 10,000 numbers per click, then copy the whole comma-separated list or download it as a text file.</dd>
+
+            <dt>Is this random number generator free?</dt>
+            <dd>Yes. There is no signup, no watermark, and no usage cap beyond the 10,000-per-click limit (click Generate again for another batch).</dd>
+
+            <dt>Are the numbers cryptographically secure?</dt>
+            <dd>They are drawn with the Web Cryptography API in supporting browsers, which is far stronger than a simple <code>Math.random()</code> toy. Still, do not use the output as production encryption keys, wallet seeds, or official lottery results.</dd>
+
+            <dt>Do you store the numbers I generate?</dt>
+            <dd>No. Generation happens on your device. Future Music Collective does not receive, log, or save the list.</dd>
+
+            <dt>What is the difference between a number generator and a random number picker?</dt>
+            <dd>People use both phrases for the same idea. “Number generator” often means bulk IDs or codes; “random number picker” often means one integer from a min–max range. This tool does both.</dd>
+        </dl>
+    </section>
+
+    <p class="text-center text-gray-500 text-sm mb-8">
+        Part of the <a href="/" class="text-[#D4AF37] hover:underline">Future Music Collective</a> toolkit.
+        Last updated August 21, 2026.
+    </p>
+</article>
+
+<script>
+(function () {
+    const $ = (id) => document.getElementById(id);
+    const modeEl = $('numgen-mode');
+    const countEl = $('numgen-count');
+    const digitsEl = $('numgen-digits');
+    const formatEl = $('numgen-format');
+    const minEl = $('numgen-min');
+    const maxEl = $('numgen-max');
+    const padEl = $('numgen-pad');
+    const uniqueEl = $('numgen-unique');
+    const outEl = $('numgen-output');
+    const statusEl = $('numgen-status');
+    const genBtn = $('btn-generate');
+    const digitsPanel = $('digits-panel');
+    const rangePanel = $('range-panel');
+
+    function clamp(n, lo, hi) {
+        n = Number(n);
+        if (!Number.isFinite(n)) return lo;
+        return Math.min(hi, Math.max(lo, Math.floor(n)));
+    }
+
+    function setStatus(msg) {
+        statusEl.textContent = msg || '';
+    }
+
+    function randBelow(n) {
+        if (!(n > 0)) return 0;
+        if (window.crypto && crypto.getRandomValues) {
+            const UINT32 = 0x100000000;
+            if (n <= UINT32) {
+                const buf = new Uint32Array(1);
+                const limit = Math.floor(UINT32 / n) * n;
+                let x;
+                do {
+                    crypto.getRandomValues(buf);
+                    x = buf[0];
+                } while (x >= limit);
+                return x % n;
+            }
+            const MAX53 = 0x20000000000000;
+            if (n <= MAX53) {
+                const buf = new Uint32Array(2);
+                const limit = Math.floor(MAX53 / n) * n;
+                let x;
+                do {
+                    crypto.getRandomValues(buf);
+                    x = (buf[0] & 0x1fffff) * UINT32 + buf[1];
+                } while (x >= limit);
+                return x % n;
+            }
+        }
+        return Math.floor(Math.random() * n);
+    }
+
+    function randomDigitString(len, pad) {
+        len = clamp(len, 1, 18);
+        const span = Math.pow(10, len);
+        if (Number.isFinite(span) && span <= 1e15) {
+            const n = randBelow(span);
+            const s = String(n);
+            return pad ? s.padStart(len, '0') : s;
+        }
+        let s = '';
+        for (let i = 0; i < len; i++) s += String(randBelow(10));
+        if (!pad) s = String(BigInt(s));
+        return s;
+    }
+
+    function separator() {
+        const f = formatEl.value;
+        if (f === 'newline') return '\n';
+        if (f === 'space') return ' ';
+        return ',';
+    }
+
+    function syncMode() {
+        const range = modeEl.value === 'range';
+        rangePanel.classList.toggle('hidden', !range);
+        digitsPanel.classList.toggle('hidden', range);
+    }
+
+    function syncGenerateLabel() {
+        const n = clamp(countEl.value, 1, 10000);
+        genBtn.textContent = 'Generate ' + n + ' Number' + (n === 1 ? '' : 's');
+    }
+
+    function chipBar(hostId, values, inputEl) {
+        const host = $(hostId);
+        values.forEach((v) => {
+            const b = document.createElement('button');
+            b.type = 'button';
+            b.className = 'numgen-chip' + (String(inputEl.value) === String(v) ? ' is-on' : '');
+            b.textContent = String(v);
+            b.addEventListener('click', () => {
+                inputEl.value = String(v);
+                host.querySelectorAll('.numgen-chip').forEach((c) => c.classList.remove('is-on'));
+                b.classList.add('is-on');
+                syncGenerateLabel();
+            });
+            host.appendChild(b);
+        });
+    }
+
+    chipBar('count-chips', [1, 10, 100, 1000, 5000, 10000], countEl);
+    chipBar('digit-chips', [4, 6, 8, 10, 12, 16], digitsEl);
+
+    function generate() {
+        const count = clamp(countEl.value, 1, 10000);
+        countEl.value = String(count);
+        const unique = uniqueEl.checked;
+        const pad = padEl.checked;
+        const mode = modeEl.value;
+        const nums = [];
+        const seen = unique ? new Set() : null;
+        const maxAttempts = count * 40 + 80;
+
+        if (mode === 'range') {
+            const min = Number(minEl.value);
+            const max = Number(maxEl.value);
+            if (!Number.isFinite(min) || !Number.isFinite(max)) {
+                setStatus('Enter numeric min and max values.');
+                return;
+            }
+            if (min > max) {
+                setStatus('Minimum must be less than or equal to maximum.');
+                return;
+            }
+            const span = max - min + 1;
+            if (span > Number.MAX_SAFE_INTEGER) {
+                setStatus('That range is too large for this generator. Narrow min and max.');
+                return;
+            }
+            if (unique && count > span) {
+                setStatus('Unique count (' + count + ') is larger than the range size (' + span + ').');
+                return;
+            }
+            const width = String(Math.trunc(Math.max(Math.abs(min), Math.abs(max)))).length;
+            let attempts = 0;
+            while (nums.length < count) {
+                if (++attempts > maxAttempts) break;
+                const n = min + randBelow(span);
+                const s = pad ? String(n).padStart(width, '0') : String(n);
+                if (seen) {
+                    if (seen.has(s)) continue;
+                    seen.add(s);
+                }
+                nums.push(s);
+            }
+        } else {
+            const digits = clamp(digitsEl.value, 1, 18);
+            digitsEl.value = String(digits);
+            let attempts = 0;
+            while (nums.length < count) {
+                if (++attempts > maxAttempts) break;
+                const s = randomDigitString(digits, pad);
+                if (seen) {
+                    if (seen.has(s)) continue;
+                    seen.add(s);
+                }
+                nums.push(s);
+            }
+        }
+
+        outEl.value = nums.join(separator());
+        setStatus('Generated ' + nums.length + ' numbers · ' + new Date().toLocaleTimeString());
+        syncGenerateLabel();
+    }
+
+    function copyAll() {
+        if (!outEl.value) {
+            setStatus('Generate numbers before copying.');
+            return;
+        }
+        const done = () => setStatus('Copied ' + outEl.value.split(/[,\s]+/).filter(Boolean).length + ' numbers to the clipboard.');
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(outEl.value).then(done).catch(() => {
+                outEl.select();
+                document.execCommand('copy');
+                done();
+            });
+        } else {
+            outEl.select();
+            document.execCommand('copy');
+            done();
+        }
+    }
+
+    function downloadAll() {
+        if (!outEl.value) {
+            setStatus('Generate numbers before downloading.');
+            return;
+        }
+        const blob = new Blob([outEl.value], { type: 'text/plain;charset=utf-8' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'random-numbers.txt';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(a.href);
+        setStatus('Download started: random-numbers.txt');
+    }
+
+    function clearAll() {
+        outEl.value = '';
+        setStatus('');
+    }
+
+    modeEl.addEventListener('change', syncMode);
+    countEl.addEventListener('input', syncGenerateLabel);
+    $('btn-generate').addEventListener('click', generate);
+    $('btn-copy').addEventListener('click', copyAll);
+    $('btn-download').addEventListener('click', downloadAll);
+    $('btn-clear').addEventListener('click', clearAll);
+    syncMode();
+    syncGenerateLabel();
+})();
+</script>
+
+<%- include('partials/footer') %>
