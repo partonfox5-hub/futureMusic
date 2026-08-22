@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title><%= typeof title !== 'undefined' ? title : 'Rampart Reborn' %> | Future Music</title>
+  <%- include('partials/seo-meta') %>
   <style>
     :root {
       --gold: #D4AF37;
@@ -140,7 +140,12 @@
     <aside class="rail" aria-label="Mod lab">
       <h2>Play</h2>
       <button type="button" class="btn primary" id="btn-play-official">Play official</button>
-      <p class="hint">Multiplayer: create a room inside the game, share the code, wait for a friend, both press Ready.</p>
+      <p class="hint">Rampart Reborn is a free browser castle-defense game inspired by classic Rampart: build walls, place cannons, and siege rival keeps. Multiplayer: create a room inside the game, share the code, wait for a friend, both press Ready.</p>
+      <h2>FAQ</h2>
+      <p class="hint"><strong>What is Rampart Reborn?</strong> A browser remake of the classic Rampart loop: build castle walls, place cannons, and bombard rival keeps between building phases.</p>
+      <p class="hint"><strong>Is Rampart Reborn free?</strong> Yes. Play the official build in the browser from this page. Source download and community forks are available from the same shell.</p>
+      <p class="hint"><strong>Can I mod Rampart Reborn?</strong> Yes. The page includes a mod lab for documented forks. Login is required to upload a new fork; anyone can play listed versions.</p>
+      <p class="hint"><strong>Is this the original arcade Rampart?</strong> No. It is an original HTML5 reimplementation inspired by the arcade/SNES castle-defense classic, not a ROM or official port.</p>
 
       <h2>Mod lab (pilot)</h2>
       <a class="btn" id="btn-download" href="/api/rampart/download">Download source</a>

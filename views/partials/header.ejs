@@ -5,36 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" type="image/png" href="/images/logo.png">
 
-    <title><%= typeof title !== 'undefined' ? title : "The Captain's Frequency" %></title>
-    <% if (typeof metaDescription !== 'undefined' && metaDescription) { %>
-    <meta name="description" content="<%= metaDescription %>">
-    <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
-    <meta name="googlebot" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
-    <meta name="bingbot" content="index, follow">
-    <% } %>
-    <% if (typeof metaKeywords !== 'undefined' && metaKeywords) { %>
-    <meta name="keywords" content="<%= metaKeywords %>">
-    <% } %>
-    <% if (typeof canonicalUrl !== 'undefined' && canonicalUrl) { %>
-    <link rel="canonical" href="<%= canonicalUrl %>">
-    <link rel="alternate" hreflang="en" href="<%= canonicalUrl %>">
-    <link rel="alternate" hreflang="x-default" href="<%= canonicalUrl %>">
-    <meta property="og:locale" content="en_US">
-    <meta property="og:site_name" content="Future Music Collective">
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="<%= canonicalUrl %>">
-    <meta property="og:title" content="<%= typeof ogTitle !== 'undefined' && ogTitle ? ogTitle : title %>">
-    <meta property="og:description" content="<%= typeof ogDescription !== 'undefined' && ogDescription ? ogDescription : (typeof metaDescription !== 'undefined' ? metaDescription : '') %>">
-    <meta property="og:image" content="<%= typeof ogImage !== 'undefined' && ogImage ? ogImage : 'https://futuremusic.online/images/logo.png' %>">
-    <meta property="og:image:alt" content="<%= typeof ogTitle !== 'undefined' && ogTitle ? ogTitle : title %>">
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="<%= typeof ogTitle !== 'undefined' && ogTitle ? ogTitle : title %>">
-    <meta name="twitter:description" content="<%= typeof ogDescription !== 'undefined' && ogDescription ? ogDescription : (typeof metaDescription !== 'undefined' ? metaDescription : '') %>">
-    <meta name="twitter:image" content="<%= typeof ogImage !== 'undefined' && ogImage ? ogImage : 'https://futuremusic.online/images/logo.png' %>">
-    <% } %>
-    <% if (typeof jsonLd !== 'undefined' && jsonLd) { %>
-    <script type="application/ld+json"><%- typeof jsonLd === 'string' ? jsonLd : JSON.stringify(jsonLd) %></script>
-    <% } %>
+    <%- include('partials/seo-meta') %>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://js.stripe.com/v3/"></script> <!-- Stripe JS -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">

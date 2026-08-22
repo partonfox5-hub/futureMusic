@@ -1,0 +1,14 @@
+<% if (typeof landing !== 'undefined' && landing && landing.related && landing.related.length) { %>
+<nav class="seo-copy glass-card rounded-2xl p-8 md:p-10 mb-8" aria-label="Related games and tools">
+    <h2 class="text-2xl font-bold text-[#D4AF37] brand-font uppercase tracking-widest mb-6">More games & tools</h2>
+    <ul class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <% landing.related.forEach(function (item) { %>
+        <li>
+            <a href="<%= item.href %>" class="block border border-yellow-700/40 rounded-lg px-4 py-3 text-[#D4AF37] hover:bg-[#D4AF37] hover:text-black transition-colors font-bold uppercase tracking-wider text-sm">
+                <%= item.name %>
+            </a>
+        </li>
+        <% }) %>
+    </ul>
+</nav>
+<% } %>

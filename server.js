@@ -221,9 +221,14 @@ app.use((req, res, next) => {
 
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
+const seo = require('./lib/seo');
 // Canonical game URL is /neweden. Register before static so the pack's
 // index.html is not served at /games/neweden/ (that path 404s in the SPA router).
 app.get(['/games/neweden', '/games/neweden/'], (req, res) => res.redirect('/neweden'));
+// Landings must beat express.static directory indexes (public/zombie-defense, paintcadia, terrarium).
+app.get('/zombie-defense', (req, res) => res.render('game-landing', seo.page('zombie-defense')));
+app.get('/paintcadia', (req, res) => res.render('game-landing', seo.page('paintcadia')));
+app.get('/terrarium', (req, res) => res.render('game-landing', seo.page('terrarium')));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // --- STRIPE ---
@@ -532,11 +537,17 @@ app.get('/logout', (req, res) => {
 });
 
 app.get('/', (req, res) => res.render('index', { title: 'Home' }));
-app.get('/projects', (req, res) => res.render('projects', { title: 'Projects' }));
-app.get('/addiction-slayer', (req, res) => res.redirect('/addiction%20slayer/index.html'));
-app.get('/target-catharsis', (req, res) => res.render('target-catharsis', { title: 'Target Catharsis' }));
-app.get('/paintcadia', (req, res) => res.render('paintcadia', { title: 'Paintcadia' }));
-app.get('/zombie-defense', (req, res) => res.redirect('/zombie-defense/index.html'));
+app.get('/projects', (req, res) => res.render('projects', seo.page('projects')));
+app.get('/addiction-slayer', (req, res) => res.render('game-landing', seo.page('addiction-slayer')));
+app.get('/target-catharsis', (req, res) => res.render('game-landing', seo.page('target-catharsis')));
+app.get('/color-contagion', (req, res) => res.render('game-landing', seo.page('color-contagion')));
+app.get('/herd-orama', (req, res) => res.render('game-landing', seo.page('herd-orama')));
+app.get(['/zombie-game', '/zombie-tower-defense'], (req, res) => res.redirect(301, '/zombie-defense'));
+app.get(['/herd-survival', '/colorization'], (req, res) => {
+    if (req.path.indexOf('color') !== -1) return res.redirect(301, '/color-contagion');
+    res.redirect(301, '/herd-orama');
+});
+app.get(['/rampart-reborn', '/rampart-game'], (req, res) => res.redirect(301, '/rampart'));
 
 // Rampart Reborn â€” game shell + mod-lab APIs
 try {
@@ -595,195 +606,25 @@ app.get(['/neweden', '/neweden/', '/neweden/login', '/neweden/login/'], (req, re
     const sess = req.session || {};
     const user = sess.user || (sess.userId ? { name: sess.username || sess.displayName || 'Explorer' } : null);
     const payload = user ? { name: user.displayName || user.name || user.username || '' } : null;
-    html = html.replace('<head>', `<head><script>window.__FM_USER__=${JSON.stringify(payload)};</script>`);
+    html = html.replace(/<title>[^<]*<\/title>/i, '');
+    html = html.replace(
+        '<head>',
+        `<head><script>window.__FM_USER__=${JSON.stringify(payload)};</script>${seo.metaHtml('neweden')}`
+    );
     res.type('html').send(html);
 });
 
 // Domain Project Page
 app.get('/domain', (req, res) => {
-    res.render('domain');
+    res.render('domain', seo.page('domain'));
 });
 
 app.get('/about', (req, res) => res.render('about', { title: 'About' }));
 app.get('/contact', (req, res) => res.render('contact', { title: 'Contact' }));
 app.get('/advocacy', (req, res) => res.render('advocacy', { title: 'Advocacy' }));
 
-// Random number generator — unlisted (not in nav / projects). SEO aliases 301 here.
-const NUMGEN_URL = 'https://futuremusic.online/numgen';
-function numgenPageLocals() {
-    const title = 'Random Number Generator — Free 10-Digit Number Generator Online';
-    const metaDescription = 'Free random number generator: create 1,000 ten-digit numbers in one click, comma-separated and ready to copy. Also generate any count, digit length, or min–max range. Runs in your browser — no signup.';
-    return {
-        title,
-        metaDescription,
-        metaKeywords: 'random number generator, number generator, random number generator online, 10 digit number generator, generate random numbers, random number picker, comma separated random numbers, bulk random number generator, free number generator, 10-digit random number generator',
-        canonicalUrl: NUMGEN_URL,
-        ogTitle: title,
-        ogDescription: metaDescription,
-        ogImage: 'https://futuremusic.online/images/logo.png',
-        jsonLd: {
-            '@context': 'https://schema.org',
-            '@graph': [
-                {
-                    '@type': 'Organization',
-                    '@id': 'https://futuremusic.online/#org',
-                    name: 'Future Music Collective',
-                    url: 'https://futuremusic.online',
-                    logo: 'https://futuremusic.online/images/logo.png'
-                },
-                {
-                    '@type': 'WebSite',
-                    '@id': 'https://futuremusic.online/#website',
-                    url: 'https://futuremusic.online',
-                    name: 'Future Music Collective',
-                    publisher: { '@id': 'https://futuremusic.online/#org' }
-                },
-                {
-                    '@type': 'WebApplication',
-                    '@id': NUMGEN_URL + '#app',
-                    name: 'Random Number Generator',
-                    alternateName: [
-                        'Number Generator',
-                        '10-Digit Random Number Generator',
-                        'Bulk Random Number Generator',
-                        'Random Number Picker'
-                    ],
-                    url: NUMGEN_URL,
-                    description: metaDescription,
-                    applicationCategory: 'UtilitiesApplication',
-                    operatingSystem: 'Any',
-                    browserRequirements: 'Requires JavaScript',
-                    isAccessibleForFree: true,
-                    inLanguage: 'en',
-                    offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
-                    featureList: [
-                        'Generate 1,000 ten-digit random numbers per click',
-                        'Comma-separated, newline, or space-separated output',
-                        'Custom count, digit length, and min–max range',
-                        'Copy and download results',
-                        'Runs locally in the browser'
-                    ],
-                    publisher: { '@id': 'https://futuremusic.online/#org' }
-                },
-                {
-                    '@type': 'WebPage',
-                    '@id': NUMGEN_URL + '#webpage',
-                    url: NUMGEN_URL,
-                    name: title,
-                    description: metaDescription,
-                    isPartOf: { '@id': 'https://futuremusic.online/#website' },
-                    about: { '@id': NUMGEN_URL + '#app' },
-                    inLanguage: 'en',
-                    dateModified: '2026-08-21'
-                },
-                {
-                    '@type': 'BreadcrumbList',
-                    '@id': NUMGEN_URL + '#crumbs',
-                    itemListElement: [
-                        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://futuremusic.online/' },
-                        { '@type': 'ListItem', position: 2, name: 'Random Number Generator', item: NUMGEN_URL }
-                    ]
-                },
-                {
-                    '@type': 'HowTo',
-                    name: 'How to generate random numbers online',
-                    description: 'Generate a bulk list of random numbers, including 10-digit codes, in the browser.',
-                    totalTime: 'PT1M',
-                    step: [
-                        {
-                            '@type': 'HowToStep',
-                            position: 1,
-                            name: 'Choose a preset',
-                            text: 'Leave the defaults for a 10-digit random number generator batch of 1,000, or set count and digits.'
-                        },
-                        {
-                            '@type': 'HowToStep',
-                            position: 2,
-                            name: 'Optional range',
-                            text: 'Optional: choose min–max range mode, unique values, or a different separator.'
-                        },
-                        {
-                            '@type': 'HowToStep',
-                            position: 3,
-                            name: 'Generate',
-                            text: 'Press Generate. The button label updates to match your count.'
-                        },
-                        {
-                            '@type': 'HowToStep',
-                            position: 4,
-                            name: 'Copy or download',
-                            text: 'Press Copy All or Download .txt. Press Clear to empty the box.'
-                        }
-                    ]
-                },
-                {
-                    '@type': 'FAQPage',
-                    '@id': NUMGEN_URL + '#faq',
-                    mainEntity: [
-                        {
-                            '@type': 'Question',
-                            name: 'What is a random number generator?',
-                            acceptedAnswer: {
-                                '@type': 'Answer',
-                                text: 'A random number generator is a program that produces numbers that are hard to predict. This page is a free number generator you can use in any modern browser without installing software.'
-                            }
-                        },
-                        {
-                            '@type': 'Question',
-                            name: 'How do I generate 10-digit random numbers?',
-                            acceptedAnswer: {
-                                '@type': 'Answer',
-                                text: 'Keep “Digits per number” at 10 (the default) and press Generate. Each result is a 10-digit string from 0000000000 to 9999999999. Turn off “Keep leading zeros” if you want unpadded integers instead.'
-                            }
-                        },
-                        {
-                            '@type': 'Question',
-                            name: 'Can I generate 1000 random numbers at once?',
-                            acceptedAnswer: {
-                                '@type': 'Answer',
-                                text: 'Yes. The default batch size is 1,000. You can request anywhere from 1 to 10,000 numbers per click, then copy the whole comma-separated list or download it as a text file.'
-                            }
-                        },
-                        {
-                            '@type': 'Question',
-                            name: 'Is this random number generator free?',
-                            acceptedAnswer: {
-                                '@type': 'Answer',
-                                text: 'Yes. There is no signup, no watermark, and no usage cap beyond the 10,000-per-click limit (click Generate again for another batch).'
-                            }
-                        },
-                        {
-                            '@type': 'Question',
-                            name: 'Are the numbers cryptographically secure?',
-                            acceptedAnswer: {
-                                '@type': 'Answer',
-                                text: 'They are drawn with the Web Cryptography API in supporting browsers, which is far stronger than a simple Math.random() toy. Still, do not use the output as production encryption keys, wallet seeds, or official lottery results.'
-                            }
-                        },
-                        {
-                            '@type': 'Question',
-                            name: 'Do you store the numbers I generate?',
-                            acceptedAnswer: {
-                                '@type': 'Answer',
-                                text: 'No. Generation happens on your device. Future Music Collective does not receive, log, or save the list.'
-                            }
-                        },
-                        {
-                            '@type': 'Question',
-                            name: 'What is the difference between a number generator and a random number picker?',
-                            acceptedAnswer: {
-                                '@type': 'Answer',
-                                text: 'People use both phrases for the same idea. “Number generator” often means bulk IDs or codes; “random number picker” often means one integer from a min–max range. This tool does both.'
-                            }
-                        }
-                    ]
-                }
-            ]
-        }
-    };
-}
 app.get(['/numgen', '/numgen/'], (req, res) => {
-    res.render('numgen', numgenPageLocals());
+    res.render('numgen', seo.page('numgen'));
 });
 app.get([
     '/random-number-generator',
@@ -1759,7 +1600,7 @@ app.get('/', (req, res) => {
     });
 });
 
-app.get('/projects', (req, res) => res.render('projects', { title: 'Projects' }));
+app.get('/projects', (req, res) => res.render('projects', seo.page('projects')));
 
 
 app.post('/api/cart/add', async (req, res) => {
@@ -2504,7 +2345,7 @@ const HERO_SLAYER_GCS_PATH = process.env.HERO_SLAYER_GCS_PATH || "downloads/hero
 
 // Production Hero Slayer product
 app.get("/hero-slayer", (req, res) => {
-    res.render("hero-slayer", { title: "Hero Slayer - Alpha Access" });
+    res.render("hero-slayer", seo.page("hero-slayer"));
 });
 app.get("/hero-slayer/success", async (req, res) => {
     const sessionId = req.query.session_id || "";
@@ -2777,14 +2618,8 @@ app.get('/api/download/:sku', async (req, res, next) => {
         res.status(500).send(`Server Error: ${error.message}`);
     }
 });
-app.get('/herd-orama', (req, res) => {
-    // Redirect directly to the static file to satisfy Stripe's "top level" security requirement
-    res.redirect('/herd.io%20distribution/index.html');
-});
-
-// NEW ROUTE: Handle /herdorama (no hyphen)
 app.get('/herdorama', (req, res) => {
-    res.redirect('/herd.io%20distribution/index.html');
+    res.redirect(301, '/herd-orama');
 });
 
 // --- FIX START: Global Error Handler ---

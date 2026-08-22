@@ -255,8 +255,9 @@ function mount(app, { requireLogin }) {
   };
 
   app.get('/rampart', (req, res) => {
+    const seo = require('./lib/seo');
     res.render('rampart', {
-      title: 'Rampart Reborn',
+      ...seo.page('rampart'),
       forkUploadsEnabled: RAMPART_FORK_UPLOADS_ENABLED,
       user: req.session?.userId
         ? { id: req.session.userId, email: req.session.email || null }
