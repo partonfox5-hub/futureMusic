@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="theme-color" content="#010308" />
+  <title>SHARK — Pressure Cell</title>
+  <link rel="canonical" href="https://futuremusic.online/shark" />
+  <link rel="icon" type="image/svg+xml" href="/images/favicon.svg" />
+  <link rel="stylesheet" href="/games/shark/css/game.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <a class="bar-link" href="/">Future Music</a>
+  <canvas id="c"></canvas>
+  <div id="yt"></div>
+  <div id="hud">
+    <div>O2</div>
+    <div class="bar" id="o2b"><i id="o2i"></i></div>
+    <div>HULL</div>
+    <div class="bar" id="hulb"><i id="huli"></i></div>
+    <div>MODE <span id="mode">PILOT</span></div>
+    <div>SONAR <span id="sstat">PATROL</span></div>
+    <div class="hint">W/S thrust · A/D strafe · Q down · E up<br/>MOUSE look · LMB torpedo · F EVA / patch</div>
+  </div>
+  <div id="minimap-wrap">
+    <canvas id="minimap" width="168" height="168"></canvas>
+    <div class="sonar-cap">SONAR — CONTACT</div>
+  </div>
+  <div id="radio">RADIO 1 · CANNED BAND<br/><span id="radio-now">STANDBY</span></div>
+  <div id="msg"></div>
+  <div id="touch" aria-hidden="true">
+    <div class="stick">
+      <button type="button" data-code="KeyW">W</button>
+      <div class="row">
+        <button type="button" data-code="KeyA">A</button>
+        <button type="button" data-code="KeyS">S</button>
+        <button type="button" data-code="KeyD">D</button>
+      </div>
+      <div class="row">
+        <button type="button" data-code="KeyQ">Q</button>
+        <button type="button" data-code="KeyE">E</button>
+      </div>
+    </div>
+    <div class="actions">
+      <button type="button" id="touch-fire">FIRE</button>
+      <button type="button" data-code="KeyF">EVA</button>
+    </div>
+  </div>
+  <div id="vr-slot"></div>
+  <div id="start">
+    <div class="panel">
+      <h1>SHARK</h1>
+      <p>You are sealed in a pressure cell in a sea with no surface. A giant lives in the walls. It may be hunting. Whales pass in the dark. Sonar cannot tell them apart.</p>
+      <p>Patch the hull from outside after each strike. Steal oxygen from stray tanks. Drive it off with torpedoes when it lunges.</p>
+      <p>Desktop: WASD, Q/E, mouse, click. VR: grip the wheel, lift or press for depth, push it to thrust, trigger or the red button to fire.</p>
+      <button type="button" id="go">Dive</button>
+    </div>
+  </div>
+  <div id="dead" hidden>
+    <div class="panel">
+      <h1>LOST</h1>
+      <p id="dead-reason">The cell takes you.</p>
+      <button type="button" id="again">There is no surface. Again.</button>
+    </div>
+  </div>
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+    }
+  }
+  </script>
+  <script type="module" src="/games/shark/js/game.js"></script>
+</body>
+</html>

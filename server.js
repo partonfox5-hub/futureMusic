@@ -66,7 +66,9 @@ app.use(cors({
             origin.includes('futuremusic.online') ||
             origin.includes('addictinggames.com') || 
             origin.includes('newgrounds.com') ||
-            origin.includes('ungrounded.net')) { 
+            origin.includes('ungrounded.net') ||
+            origin.includes('localhost') ||
+            origin.includes('127.0.0.1')) { 
             return callback(null, true);
         }
 
@@ -229,6 +231,19 @@ app.get(['/games/neweden', '/games/neweden/'], (req, res) => res.redirect('/newe
 app.get('/zombie-defense', (req, res) => res.render('game-landing', seo.page('zombie-defense')));
 app.get('/paintcadia', (req, res) => res.render('game-landing', seo.page('paintcadia')));
 app.get('/terrarium', (req, res) => res.render('game-landing', seo.page('terrarium')));
+
+// SHARK — unlisted VR sub game. Register before static so /games/shark/ does not
+// serve the directory index (canonical URL is /shark). Not linked from nav.
+function sharkHeaders(res) {
+    res.setHeader('Permissions-Policy', 'xr-spatial-tracking=(self), fullscreen=(self), gamepad=(self), accelerometer=(self), gyroscope=(self), magnetometer=(self)');
+    res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+}
+app.get(['/games/shark', '/games/shark/'], (req, res) => res.redirect('/shark'));
+app.get(['/shark', '/shark/'], (req, res) => {
+    sharkHeaders(res);
+    res.sendFile(path.join(__dirname, 'public', 'games', 'shark', 'index.html'));
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 // --- STRIPE ---
@@ -566,6 +581,94 @@ app.get('/test-bk74eh6y', (req, res) => {
 });
 app.get('/test-r9k2mw7c', (req, res) => {
     res.render('test-r9k2mw7c', { title: 'Homepage galaxy splash test', noIndex: true });
+});
+
+const SHARK_YT_CHANNEL = 'UClOdltq7PUfU3cLyK0O-6jA';
+const SHARK_YT_FALLBACK = ['SQha9mRCsv8', 'hpUL9b0vVX8', 'DjZTj5Gv4NA', '01RVvhkRL_U', 'DGXsDgt5KZY', 'z1PFzPjj024', 'ZwGVGPxJO3E', 'KVKnZgM8_4g'];
+let sharkRadioCache = { t: 0, videos: [] };
+
+function sharkClockToSec(s) {
+    const p = String(s).split(':').map((n) => parseInt(n, 10));
+    if (!p.length || p.some((n) => Number.isNaN(n))) return null;
+    if (p.length === 2) return p[0] * 60 + p[1];
+    if (p.length === 3) return p[0] * 3600 + p[1] * 60 + p[2];
+    return null;
+}
+
+function sharkVideosFromHtml(html) {
+    const out = [];
+    const seen = new Set();
+    const blocks = String(html).split('lockupViewModel');
+    for (let i = 0; i < blocks.length; i++) {
+        const idm = blocks[i].match(/\/vi\/([a-zA-Z0-9_-]{11})\//);
+        if (!idm || seen.has(idm[1])) continue;
+        const tm = blocks[i].match(/"text":"(\d{1,2}:\d{2}(?::\d{2})?)"/);
+        const sec = tm ? sharkClockToSec(tm[1]) : null;
+        if (sec != null && sec >= 540) continue;
+        seen.add(idm[1]);
+        out.push(idm[1]);
+    }
+    if (!out.length) {
+        const ids = [...String(html).matchAll(/"videoId":"([a-zA-Z0-9_-]{11})"/g)].map((m) => m[1]);
+        for (let i = 0; i < ids.length; i++) {
+            if (!seen.has(ids[i])) {
+                seen.add(ids[i]);
+                out.push(ids[i]);
+            }
+        }
+    }
+    return out;
+}
+
+app.get('/api/shark/radio', async (req, res) => {
+    const dir = path.join(__dirname, 'public', 'games', 'shark', 'songs');
+    let files = [];
+    try {
+        files = fs.readdirSync(dir).filter((f) => /\.(mp3|ogg|wav|m4a)$/i.test(f) && !f.startsWith('.'));
+    } catch (e) {}
+    if (files.length) {
+        return res.json({
+            source: 'local',
+            tracks: files.map((f) => '/games/shark/songs/' + encodeURIComponent(f)),
+        });
+    }
+    if (sharkRadioCache.videos.length && Date.now() - sharkRadioCache.t < 10 * 60 * 1000) {
+        return res.json({ source: 'youtube', videos: sharkRadioCache.videos, maxSeconds: 540 });
+    }
+    let videos = [];
+    const ua = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36';
+    try {
+        const ac = new AbortController();
+        const to = setTimeout(() => ac.abort(), 8000);
+        const rss = await fetch(
+            'https://www.youtube.com/feeds/videos.xml?channel_id=' + SHARK_YT_CHANNEL,
+            { signal: ac.signal, headers: { 'User-Agent': ua } }
+        );
+        clearTimeout(to);
+        if (rss.ok) {
+            const xml = await rss.text();
+            videos = [...xml.matchAll(/<yt:videoId>([^<]+)<\/yt:videoId>/g)].map((m) => m[1]);
+        }
+    } catch (e) {
+        console.error('[shark radio rss]', e.message);
+    }
+    if (!videos.length) {
+        try {
+            const ac = new AbortController();
+            const to = setTimeout(() => ac.abort(), 8000);
+            const html = await fetch('https://www.youtube.com/@limitationsoflanguage/videos', {
+                signal: ac.signal,
+                headers: { 'User-Agent': ua, 'Accept-Language': 'en-US,en;q=0.9' },
+            }).then((r) => r.text());
+            clearTimeout(to);
+            videos = sharkVideosFromHtml(html);
+        } catch (e) {
+            console.error('[shark radio scrape]', e.message);
+        }
+    }
+    if (!videos.length) videos = SHARK_YT_FALLBACK.slice();
+    sharkRadioCache = { t: Date.now(), videos };
+    res.json({ source: 'youtube', videos, maxSeconds: 540 });
 });
 
 // New Eden (Starleap) — unlisted, not on homepage/projects. One world, 4 explorers.
