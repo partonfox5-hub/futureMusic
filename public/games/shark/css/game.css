@@ -51,6 +51,14 @@ html, body {
   cursor: pointer;
 }
 #start button:hover, #dead button:hover { background: #7dffb0; color: #02100a; }
+#start .modes { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+#start .modes button { flex: 1; min-width: 140px; }
+#start button.alt { border-color: #8ab4ff; color: #8ab4ff; background: #081018; }
+#start button.alt:hover { background: #8ab4ff; color: #020810; }
+body.space-mode #hud, body.space-mode #radio, body.space-mode .sonar-cap { color: #c8d4f0; }
+body.space-mode #start, body.space-mode #dead {
+  background: radial-gradient(ellipse at center, #0a1018 0%, #000 70%);
+}
 #hud {
   left: 16px;
   bottom: 16px;

@@ -13,8 +13,9 @@ const mouse = { lock: false, dragging: false, lx: 0, ly: 0 };
 let yaw = 0;
 let pitch = 0;
 let lookYaw = 0;
-let lookPitch = 0.16;
+let lookPitch = 0.08;
 let mode = "pilot";
+let worldMode = "sea";
 let running = false;
 let dead = false;
 let xrOn = false;
@@ -70,6 +71,12 @@ function skinMat(hex, extra) {
   });
 }
 
+function latheBody(pts, segs, mat) {
+  const geo = new THREE.LatheGeometry(pts, segs);
+  geo.rotateZ(-Math.PI / 2);
+  return new THREE.Mesh(geo, mat);
+}
+
 function makeSharkGeom() {
   const g = new THREE.Group();
   const inner = new THREE.Group();
@@ -77,36 +84,77 @@ function makeSharkGeom() {
   inner.rotation.y = Math.PI / 2;
   const skin = skinMat(0x4a5560, { emissive: 0x0a1014 });
   const belly = skinMat(0x8a9098);
-  const body = new THREE.Mesh(new THREE.CapsuleGeometry(2.2, 11, 6, 10), skin);
-  body.rotation.z = Math.PI / 2;
-  inner.add(body);
-  const under = new THREE.Mesh(new THREE.CapsuleGeometry(1.6, 8, 4, 8), belly);
-  under.rotation.z = Math.PI / 2;
-  under.position.y = -0.7;
+  const profile = [
+    new THREE.Vector2(0.04, 9.3),
+    new THREE.Vector2(0.42, 8.7),
+    new THREE.Vector2(1.05, 7.6),
+    new THREE.Vector2(1.75, 6.2),
+    new THREE.Vector2(2.2, 4.4),
+    new THREE.Vector2(2.32, 2.2),
+    new THREE.Vector2(2.28, 0.2),
+    new THREE.Vector2(2.05, -2.0),
+    new THREE.Vector2(1.7, -4.2),
+    new THREE.Vector2(1.25, -6.2),
+    new THREE.Vector2(0.85, -7.6),
+    new THREE.Vector2(0.42, -8.5),
+    new THREE.Vector2(0.08, -9.15),
+  ];
+  inner.add(latheBody(profile, 24, skin));
+  const under = latheBody(
+    [
+      new THREE.Vector2(0.05, 6.4),
+      new THREE.Vector2(1.15, 4.8),
+      new THREE.Vector2(1.55, 2.0),
+      new THREE.Vector2(1.45, -1.2),
+      new THREE.Vector2(1.05, -4.0),
+      new THREE.Vector2(0.08, -6.2),
+    ],
+    20,
+    belly
+  );
+  under.position.y = -0.55;
   inner.add(under);
-  const head = new THREE.Mesh(new THREE.ConeGeometry(2.1, 4.2, 8), skin);
-  head.rotation.z = -Math.PI / 2;
-  head.position.x = 8.2;
-  inner.add(head);
-  const jaw = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.5, 1.8), skin);
-  jaw.position.set(7.4, -1.1, 0);
+  const jaw = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.42, 1.7, 4, 2, 3), skin);
+  jaw.position.set(7.2, -1.15, 0);
   inner.add(jaw);
-  const fin = new THREE.Mesh(new THREE.ConeGeometry(1.6, 3.4, 4), skin);
-  fin.position.set(0.4, 2.6, 0);
-  inner.add(fin);
-  const tail = new THREE.Mesh(new THREE.BoxGeometry(0.4, 4.6, 2.8), skin);
-  tail.position.x = -8.2;
+  const toothMat = new THREE.MeshStandardMaterial({ color: 0xe8e0d0, roughness: 0.4 });
+  for (let i = 0; i < 8; i++) {
+    const tth = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.28, 6), toothMat);
+    tth.rotation.z = Math.PI;
+    tth.position.set(0.9, 0.22, -0.55 + i * 0.16);
+    jaw.add(tth);
+  }
+  const dorsal = new THREE.Mesh(new THREE.ConeGeometry(1.55, 3.5, 8), skin);
+  dorsal.position.set(0.6, 2.55, 0);
+  inner.add(dorsal);
+  const rearFin = new THREE.Mesh(new THREE.ConeGeometry(0.7, 1.6, 8), skin);
+  rearFin.position.set(-4.2, 1.35, 0);
+  inner.add(rearFin);
+  const tail = new THREE.Mesh(new THREE.BoxGeometry(0.35, 5.2, 0.22, 2, 8, 1), skin);
+  tail.position.set(-8.35, 0.2, 0);
   inner.add(tail);
-  const pec = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.25, 3.6), skin);
-  pec.position.set(2.2, -0.6, 0);
+  const fluke = new THREE.Mesh(new THREE.ConeGeometry(1.8, 2.4, 8), skin);
+  fluke.rotation.z = Math.PI / 2;
+  fluke.position.set(-9.1, 0.15, 0);
+  tail.add(fluke);
+  const pec = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.18, 3.8, 3, 1, 4), skin);
+  pec.position.set(2.1, -0.7, 0);
   inner.add(pec);
+  for (let s = -1; s <= 1; s += 2) {
+    for (let i = 0; i < 4; i++) {
+      const gill = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.7, 0.06), skin);
+      gill.position.set(4.4 - i * 0.22, 0.15, s * 1.85);
+      gill.rotation.y = s * 0.15;
+      inner.add(gill);
+    }
+  }
   const eye = new THREE.Mesh(
-    new THREE.SphereGeometry(0.22, 6, 6),
+    new THREE.SphereGeometry(0.22, 12, 10),
     new THREE.MeshBasicMaterial({ color: 0x111111 })
   );
-  eye.position.set(7.6, 0.5, 0.9);
+  eye.position.set(7.35, 0.48, 0.95);
   inner.add(eye);
-  inner.add(eye.clone().translateZ(-1.8));
+  inner.add(eye.clone().translateZ(-1.9));
   g.userData.tail = tail;
   g.userData.jaw = jaw;
   g.userData.skin = skin;
@@ -119,19 +167,49 @@ function makeWhaleGeom() {
   g.add(inner);
   inner.rotation.y = Math.PI / 2;
   const skin = skinMat(0x3d4a58, { emissive: 0x080c12 });
-  const body = new THREE.Mesh(new THREE.CapsuleGeometry(2.6, 12, 6, 10), skin);
-  body.rotation.z = Math.PI / 2;
-  inner.add(body);
-  const head = new THREE.Mesh(new THREE.SphereGeometry(2.5, 8, 6), skin);
-  head.scale.set(1.4, 0.9, 0.85);
-  head.position.x = 7.4;
+  const pale = skinMat(0x6a7380);
+  const profile = [
+    new THREE.Vector2(0.2, 9.4),
+    new THREE.Vector2(1.4, 8.2),
+    new THREE.Vector2(2.35, 6.4),
+    new THREE.Vector2(2.7, 4.0),
+    new THREE.Vector2(2.75, 1.2),
+    new THREE.Vector2(2.55, -1.6),
+    new THREE.Vector2(2.1, -4.4),
+    new THREE.Vector2(1.45, -6.8),
+    new THREE.Vector2(0.85, -8.2),
+    new THREE.Vector2(0.12, -9.2),
+  ];
+  inner.add(latheBody(profile, 28, skin));
+  const head = new THREE.Mesh(new THREE.SphereGeometry(2.55, 20, 14), skin);
+  head.scale.set(1.45, 0.88, 0.9);
+  head.position.x = 7.1;
   inner.add(head);
-  const tail = new THREE.Mesh(new THREE.BoxGeometry(0.5, 5.2, 3.2), skin);
-  tail.position.x = -8.5;
+  const belly = latheBody(
+    [
+      new THREE.Vector2(0.1, 5.5),
+      new THREE.Vector2(1.6, 3.5),
+      new THREE.Vector2(1.85, 0.5),
+      new THREE.Vector2(1.4, -3.2),
+      new THREE.Vector2(0.1, -5.5),
+    ],
+    20,
+    pale
+  );
+  belly.position.y = -0.45;
+  inner.add(belly);
+  const tail = new THREE.Mesh(new THREE.BoxGeometry(0.4, 5.6, 0.28, 2, 8, 1), skin);
+  tail.position.set(-8.4, 0.1, 0);
   inner.add(tail);
-  const flip = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.2, 3.8), skin);
-  flip.position.set(1.2, -1.4, 0);
+  const fluke = new THREE.Mesh(new THREE.BoxGeometry(0.25, 1.4, 5.4, 1, 2, 8), skin);
+  fluke.position.set(-0.2, 0, 0);
+  tail.add(fluke);
+  const flip = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.16, 4.2, 4, 1, 6), skin);
+  flip.position.set(1.4, -1.35, 0);
   inner.add(flip);
+  const blow = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.22, 0.35, 10), skin);
+  blow.position.set(5.6, 1.55, 0);
+  inner.add(blow);
   g.userData.tail = tail;
   g.scale.setScalar(2.15);
   return g;
@@ -168,7 +246,7 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x010308);
 scene.fog = new THREE.FogExp2(0x031018, 0.015);
 
-const cam = new THREE.PerspectiveCamera(72, innerWidth / innerHeight, 0.08, 280);
+const cam = new THREE.PerspectiveCamera(80, innerWidth / innerHeight, 0.08, 420);
 cam.rotation.order = "YXZ";
 
 const sub = new THREE.Group();
@@ -177,7 +255,7 @@ scene.add(sub);
 
 const cockpit = new THREE.Group();
 sub.add(cockpit);
-cam.position.set(0, 0.32, 0.12);
+cam.position.set(0, 0.18, 0.04);
 cockpit.add(cam);
 
 const evaDummy = new THREE.Group();
@@ -185,38 +263,41 @@ scene.add(evaDummy);
 
 (function buildCockpit() {
   const metal = new THREE.MeshStandardMaterial({ color: 0x1a2228, metalness: 0.65, roughness: 0.35 });
-  const dark = new THREE.MeshStandardMaterial({
-    color: 0x0b0e12,
-    metalness: 0.4,
-    roughness: 0.5,
-    side: THREE.BackSide,
+  const glassMat = new THREE.MeshStandardMaterial({
+    color: 0x9ec8dc,
+    metalness: 0.2,
+    roughness: 0.06,
+    transparent: true,
+    opacity: 0.075,
+    side: THREE.DoubleSide,
   });
-  const shell = new THREE.Mesh(new THREE.SphereGeometry(1.35, 24, 16, 0, Math.PI * 2, 0, Math.PI * 0.62), dark);
-  shell.rotation.x = Math.PI;
-  cockpit.add(shell);
+  const dome = new THREE.Mesh(new THREE.SphereGeometry(1.52, 48, 32), glassMat);
+  dome.renderOrder = 2;
+  sub.add(dome);
+  sub.userData.dome = dome;
+  const equator = new THREE.Mesh(new THREE.TorusGeometry(1.5, 0.035, 10, 48), metal);
+  equator.rotation.x = Math.PI / 2;
+  equator.position.y = -0.22;
+  sub.add(equator);
+  for (let i = 0; i < 2; i++) {
+    const rib = new THREE.Mesh(new THREE.TorusGeometry(1.5, 0.014, 8, 40), metal);
+    rib.rotation.y = Math.PI / 4 + (i * Math.PI) / 2;
+    sub.add(rib);
+  }
+  const deck = new THREE.Mesh(new THREE.CircleGeometry(1.35, 32), metal);
+  deck.rotation.x = -Math.PI / 2;
+  deck.position.y = -0.58;
+  cockpit.add(deck);
   const dash = new THREE.Mesh(
-    new THREE.BoxGeometry(1.6, 0.22, 0.55),
+    new THREE.BoxGeometry(1.15, 0.12, 0.38),
     new THREE.MeshStandardMaterial({ color: 0x1a2228, metalness: 0.65, roughness: 0.35, emissive: 0x0a1812 })
   );
-  dash.position.set(0, -0.42, -0.85);
+  dash.position.set(0, -0.5, -0.62);
   cockpit.add(dash);
-  const glass = new THREE.Mesh(
-    new THREE.CircleGeometry(0.82, 24),
-    new THREE.MeshStandardMaterial({
-      color: 0x223344,
-      transparent: true,
-      opacity: 0.16,
-      metalness: 0.9,
-      roughness: 0.1,
-      side: THREE.DoubleSide,
-    })
-  );
-  glass.position.set(0, 0.22, -1.05);
-  cockpit.add(glass);
 })();
 
 const wheel = new THREE.Group();
-wheel.position.set(0, -0.22, -0.72);
+wheel.position.set(0, -0.38, -0.58);
 cockpit.add(wheel);
 (function buildWheel() {
   const mat = new THREE.MeshStandardMaterial({ color: 0xc49a58, roughness: 0.45, metalness: 0.18, emissive: 0x2a1808 });
@@ -238,42 +319,29 @@ const fireBtn = new THREE.Mesh(
   new THREE.CylinderGeometry(0.055, 0.055, 0.05, 12),
   new THREE.MeshStandardMaterial({ color: 0xb02018, emissive: 0x400000, metalness: 0.4, roughness: 0.4 })
 );
-fireBtn.position.set(0.48, -0.28, -0.7);
+fireBtn.position.set(0.42, -0.42, -0.55);
 cockpit.add(fireBtn);
 
 const exterior = new THREE.Group();
 sub.add(exterior);
 (function buildExterior() {
   const hullMat = new THREE.MeshStandardMaterial({ color: 0x2a3840, metalness: 0.75, roughness: 0.38 });
-  const body = new THREE.Mesh(new THREE.CapsuleGeometry(1.15, 3.2, 6, 12), hullMat);
-  body.rotation.x = Math.PI / 2;
-  exterior.add(body);
-  const tower = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.38, 0.7, 8), hullMat);
-  tower.position.set(0, 1.05, 0.15);
-  exterior.add(tower);
-  const nose = new THREE.Mesh(
-    new THREE.SphereGeometry(0.7, 12, 8),
-    new THREE.MeshStandardMaterial({
-      color: 0x1c2a32,
-      metalness: 0.8,
-      roughness: 0.2,
-      transparent: true,
-      opacity: 0.5,
-    })
-  );
-  nose.position.set(0, 0.05, -2.05);
-  exterior.add(nose);
-  const fin = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.08, 0.55), hullMat);
-  fin.position.set(0, -0.15, 1.35);
+  const keel = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.22, 2.4), hullMat);
+  keel.position.set(0, -0.72, 0.15);
+  exterior.add(keel);
+  const hatch = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.32, 0.22, 12), hullMat);
+  hatch.position.set(0, -0.62, 0.55);
+  exterior.add(hatch);
+  const fin = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.07, 0.5), hullMat);
+  fin.position.set(0, -0.55, 1.15);
   exterior.add(fin);
   const prop = new THREE.Mesh(
     new THREE.BoxGeometry(0.08, 1.05, 0.22),
     new THREE.MeshStandardMaterial({ color: 0x8899aa, metalness: 0.8 })
   );
-  prop.position.set(0, 0, 2.05);
+  prop.position.set(0, -0.35, 1.55);
   exterior.add(prop);
   exterior.userData.prop = prop;
-  exterior.visible = false;
 })();
 
 const crack = new THREE.Mesh(
@@ -300,8 +368,10 @@ helm.visible = false;
 cam.add(helm);
 helm.target.position.set(0, -0.2, -10);
 cam.add(helm.target);
-scene.add(new THREE.AmbientLight(0x0c1820, 0.28));
-scene.add(new THREE.HemisphereLight(0x152838, 0x080604, 0.22));
+const ambient = new THREE.AmbientLight(0x0c1820, 0.28);
+const hemi = new THREE.HemisphereLight(0x152838, 0x080604, 0.22);
+scene.add(ambient);
+scene.add(hemi);
 
 const floor = new THREE.Mesh(
   new THREE.CircleGeometry(480, 48),
@@ -488,6 +558,49 @@ const bubbles = new THREE.Points(
   new THREE.PointsMaterial({ color: 0x88c0c8, size: 0.12, transparent: true, opacity: 0.35 })
 );
 scene.add(bubbles);
+
+const starFarPos = new Float32Array(900 * 3);
+for (let i = 0; i < 900; i++) {
+  const r = 50 + Math.random() * 240;
+  const th = Math.random() * Math.PI * 2;
+  const ph = Math.acos(2 * Math.random() - 1);
+  starFarPos[i * 3] = r * Math.sin(ph) * Math.cos(th);
+  starFarPos[i * 3 + 1] = r * Math.cos(ph);
+  starFarPos[i * 3 + 2] = r * Math.sin(ph) * Math.sin(th);
+}
+const starFarGeo = new THREE.BufferGeometry();
+starFarGeo.setAttribute("position", new THREE.BufferAttribute(starFarPos, 3));
+const starFar = new THREE.Points(
+  starFarGeo,
+  new THREE.PointsMaterial({ color: 0xf4f7ff, size: 0.22, sizeAttenuation: true, transparent: true, opacity: 0.9 })
+);
+starFar.visible = false;
+scene.add(starFar);
+
+function applyWorldMode(m) {
+  worldMode = m === "space" ? "space" : "sea";
+  const space = worldMode === "space";
+  scene.background = new THREE.Color(space ? 0x000005 : 0x010308);
+  scene.fog = space ? new THREE.FogExp2(0x000000, 0.0022) : new THREE.FogExp2(0x031018, 0.015);
+  renderer.toneMappingExposure = space ? 0.62 : 0.92;
+  kelp.forEach((k) => {
+    k.visible = !space;
+  });
+  starFar.visible = space;
+  bubbles.material.color.setHex(space ? 0xffffff : 0x88c0c8);
+  bubbles.material.opacity = space ? 0.8 : 0.35;
+  bubbles.material.size = space ? 0.07 : 0.12;
+  floor.material.color.setHex(space ? 0x08080c : 0x161410);
+  cellWalls.traverse((o) => {
+    if (o.material && o.material.color) o.material.color.setHex(space ? 0x101828 : 0x0c241c);
+  });
+  cellHelper.material.color.setHex(space ? 0x334466 : 0x14332a);
+  fill.color.setHex(space ? 0x445577 : 0x4a7a5a);
+  ambient.color.setHex(space ? 0x101018 : 0x0c1820);
+  ambient.intensity = space ? 0.22 : 0.28;
+  hemi.color.setHex(space ? 0x1a2840 : 0x152838);
+  document.body.classList.toggle("space-mode", space);
+}
 
 const ctrl0 = renderer.xr.getController(0);
 const ctrl1 = renderer.xr.getController(1);
@@ -877,15 +990,25 @@ function updateFx(dt) {
     if (s.userData.life <= 0) s.visible = false;
   });
   const arr = bubbleGeo.attributes.position.array;
+  const space = worldMode === "space";
   for (let i = 0; i < bubbleCount; i++) {
-    arr[i * 3 + 1] += dt * (0.4 + (i % 5) * 0.12);
-    if (arr[i * 3 + 1] > sub.position.y + 30) {
+    if (space) {
+      arr[i * 3] += Math.sin(performance.now() * 0.0003 + i) * dt * 1.2;
+      arr[i * 3 + 1] += Math.cos(performance.now() * 0.00025 + i * 0.7) * dt * 0.8;
+    } else {
+      arr[i * 3 + 1] += dt * (0.4 + (i % 5) * 0.12);
+    }
+    const dy = arr[i * 3 + 1] - sub.position.y;
+    const dx = arr[i * 3] - sub.position.x;
+    const dz = arr[i * 3 + 2] - sub.position.z;
+    if (dy > 32 || dy < -28 || dx * dx + dz * dz > 70 * 70) {
       arr[i * 3] = sub.position.x + (Math.random() - 0.5) * 50;
-      arr[i * 3 + 1] = sub.position.y - 18;
+      arr[i * 3 + 1] = sub.position.y + (space ? (Math.random() - 0.5) * 40 : -18);
       arr[i * 3 + 2] = sub.position.z + (Math.random() - 0.5) * 50;
     }
   }
   bubbleGeo.attributes.position.needsUpdate = true;
+  if (starFar.visible) starFar.position.copy(sub.position);
   kelp.forEach((k) => {
     k.rotation.z = Math.sin(performance.now() * 0.001 + k.userData.ph) * 0.18;
   });
@@ -896,9 +1019,9 @@ function drawMap() {
   const g = c.getContext("2d");
   const w = (c.width = 168);
   const h = (c.height = 168);
-  g.fillStyle = "#03110c";
+  g.fillStyle = worldMode === "space" ? "#05070e" : "#03110c";
   g.fillRect(0, 0, w, h);
-  g.strokeStyle = "#1c5a40";
+  g.strokeStyle = worldMode === "space" ? "#3a5080" : "#1c5a40";
   g.beginPath();
   g.arc(84, 84, 78, 0, Math.PI * 2);
   g.stroke();
@@ -974,7 +1097,7 @@ function enterPilot() {
   mode = "pilot";
   evaDummy.remove(cam);
   cockpit.add(cam);
-  cam.position.set(0, 0.32, 0.12);
+  cam.position.set(0, 0.18, 0.04);
   cam.rotation.set(0, 0, 0);
   lookPitch = 0;
   lookYaw = yaw;
@@ -1025,7 +1148,8 @@ function step(dt) {
   if (!running) return;
   dt = Math.min(0.05, dt);
   const body = mode === "pilot" ? sub : evaDummy;
-  const spd = mode === "pilot" ? (hull <= 0 ? 3.2 : 11) : 5.6;
+  const baseSpd = mode === "pilot" ? 11 : 5.6;
+  const spd = mode === "pilot" && hull < 100 ? baseSpd * 0.5 : baseSpd;
   const move = { ax: 0, az: 0, ay: 0 };
 
   if (xrOn) readXrMove(dt, move);
@@ -1069,9 +1193,9 @@ function step(dt) {
     if (shake > 0) {
       shake = Math.max(0, shake - dt);
       cam.position.x = (Math.random() - 0.5) * shake * 0.12;
-      cam.position.y = 0.32 + (Math.random() - 0.5) * shake * 0.08;
+      cam.position.y = 0.18 + (Math.random() - 0.5) * shake * 0.08;
     } else {
-      cam.position.set(0, 0.32, 0.12);
+      cam.position.set(0, 0.18, 0.04);
     }
   } else {
     cam.rotation.set(lookPitch, lookYaw, 0);
@@ -1175,7 +1299,8 @@ function ensureAudio() {
   audio.ctx.resume?.();
 }
 
-function boot() {
+function boot(nextMode) {
+  if (nextMode) applyWorldMode(nextMode);
   running = true;
   dead = false;
   document.getElementById("start").style.display = "none";
@@ -1196,9 +1321,9 @@ function resetGame() {
   if (mode === "eva") enterPilot();
   sub.position.set(0, 22, 0);
   yaw = 0;
-  pitch = 0.16;
+  pitch = 0.08;
   lookYaw = 0;
-  lookPitch = 0.16;
+  lookPitch = 0.08;
   crack.visible = false;
   shark.position.set(CELL * 0.92, 22, 0);
   setSharkMood();
@@ -1208,7 +1333,8 @@ function resetGame() {
   canvas.requestPointerLock?.();
 }
 
-document.getElementById("go").addEventListener("click", boot);
+document.getElementById("go-sea").addEventListener("click", () => boot("sea"));
+document.getElementById("go-space").addEventListener("click", () => boot("space"));
 document.getElementById("again").addEventListener("click", resetGame);
 
 document.querySelectorAll("#touch [data-code]").forEach((btn) => {
@@ -1242,6 +1368,11 @@ window.__controlsTest = {
   getPos: () => ({ x: sub.position.x, y: sub.position.y, z: sub.position.z }),
   getHull: () => hull,
   getMode: () => mode,
+  getWorld: () => worldMode,
+  setHull: (v) => {
+    hull = clamp(v, 0, 100);
+    crack.visible = hull < 100;
+  },
   getShark: () => sharkState,
   setYaw: (v) => {
     yaw = v;
