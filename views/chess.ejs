@@ -3,8 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Ultimate Character Chess (test) | Future Music</title>
-  <meta name="robots" content="noindex, nofollow" />
+  <%- include('partials/seo-meta') %>
   <style>
     html, body { margin: 0; height: 100%; background: #0c0c0e; color: #f2f1ee; font-family: system-ui, sans-serif; overflow: hidden; }
     .bar {
@@ -25,13 +24,14 @@
 </head>
 <body>
   <div class="bar">
+    <a href="/projects">Projects</a>
+    <span>Creature Chess<%= typeof alphaUnlocked !== 'undefined' && alphaUnlocked ? ' · Alpha pack' : '' %></span>
     <a href="/">Future Music</a>
-    <span>Ultimate Character Chess · unlisted test</span>
   </div>
   <iframe
-    title="Ultimate Character Chess"
-    src="/games/character-chess/"
-    allow="fullscreen; gamepad; autoplay"
+    title="Creature Chess"
+    src="/games/character-chess/<%= typeof sessionId !== 'undefined' && sessionId ? ('?session_id=' + encodeURIComponent(sessionId)) : '' %>"
+    allow="fullscreen; gamepad; autoplay; payment"
     allowfullscreen
   ></iframe>
 </body>
