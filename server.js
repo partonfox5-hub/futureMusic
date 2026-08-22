@@ -251,6 +251,10 @@ function fenrestHeaders(res) {
     res.setHeader('Permissions-Policy', 'xr-spatial-tracking=(self), fullscreen=(self), gamepad=(self), accelerometer=(self), gyroscope=(self), magnetometer=(self)');
     res.setHeader('X-Robots-Tag', 'noindex, nofollow');
 }
+app.use('/games/character-chess', (req, res, next) => {
+    res.setHeader('Permissions-Policy', 'xr-spatial-tracking=(self), fullscreen=(self), gamepad=(self), accelerometer=(self), gyroscope=(self), magnetometer=(self)');
+    next();
+});
 app.get(['/games/fenrest', '/games/fenrest/'], (req, res) => res.redirect('/fenrest'));
 app.get(['/fenrest', '/fenrest/'], (req, res) => {
     fenrestHeaders(res);
@@ -627,6 +631,7 @@ app.get('/test-c4h9n2x8', (req, res) => {
     res.redirect(301, '/chess');
 });
 app.get('/chess', async (req, res) => {
+    res.setHeader('Permissions-Policy', 'xr-spatial-tracking=(self), fullscreen=(self), gamepad=(self), accelerometer=(self), gyroscope=(self), magnetometer=(self)');
     const sessionId = String(req.query.session_id || '');
     if (sessionId && stripe) {
         try {
@@ -653,6 +658,11 @@ app.get('/test-p3n8q4v6', (req, res) => {
     res.setHeader('X-Robots-Tag', 'noindex, nofollow');
     res.setHeader('Permissions-Policy', 'xr-spatial-tracking=(self), fullscreen=(self), gamepad=(self), accelerometer=(self), gyroscope=(self), magnetometer=(self)');
     res.sendFile(path.join(__dirname, 'public', 'games', 'shark-test-p3n8q4v6', 'index.html'));
+});
+app.get('/test-n8q3v6k2', (req, res) => {
+    res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+    res.setHeader('Permissions-Policy', 'xr-spatial-tracking=(self), fullscreen=(self), gamepad=(self), accelerometer=(self), gyroscope=(self), magnetometer=(self)');
+    res.sendFile(path.join(__dirname, 'public', 'games', 'shark-test-n8q3v6k2', 'index.html'));
 });
 
 const SHARK_YT_CHANNEL = 'UClOdltq7PUfU3cLyK0O-6jA';

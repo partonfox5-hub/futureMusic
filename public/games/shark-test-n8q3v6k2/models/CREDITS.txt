@@ -1,0 +1,13 @@
+SHARK models (test n8q3v6k2)
+
+goblin-shark.glb
+  "Goblin Shark" by Quaternius
+  https://poly.pizza/m/JQrBevTzgD
+  License: CC0 1.0 Public Domain
+  Includes skeletal clips: Swimming_Normal, Swimming_Fast, Swimming_Impulse, Attack, Death.
+
+great-white.glb
+  "Great white shark" by Remy Tauziac
+  https://poly.pizza/m/2xYwaBltA2c
+  License: Creative Commons Attribution 3.0
+  Attribution: Great white shark by Remy Tauziac (CC-BY 3.0).
