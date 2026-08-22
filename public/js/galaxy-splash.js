@@ -580,28 +580,37 @@
       }
     }
 
-    function neutrinoBurst(idx) {
-      const hole = holes[idx];
-      if (!hole || hole.mass < 0.008) return;
-      const c = holeCanvasXY(hole);
-      const mass = hole.mass;
-      flashScr = 1.2;
-      waves.push({ x: c.x, y: c.y, r: 12, a: 1 });
-      burstSparks(c.x, c.y, 180, 2.1 + mass);
-      const hx = hole.x * w;
-      const hy = hole.y * h;
-      const reach = 0.34 * Math.min(w, h);
+    function panFlash(cx, cy, hx, hy, scale, mass) {
+      const s = Math.max(0.15, scale || 1);
+      flashScr = Math.max(flashScr, 1.2 * s);
+      waves.push({
+        x: cx,
+        y: cy,
+        r: 8 + 6 * s,
+        a: Math.min(1, 0.55 + 0.45 * s),
+        spd: 0.45 + 0.45 * s,
+        fade: 1.15 + 0.4 * s,
+      });
+      burstSparks(cx, cy, Math.floor(55 + 125 * s), (0.55 + mass) * (0.4 + 0.7 * s));
+      const reach = (0.14 + 0.2 * s) * Math.min(w, h);
+      const kickAmt = (0.9 + 2.3 * s) * mass;
       for (let i = 0; i < nStars; i++) {
         const dx = starPos[i * 2] - hx;
         const dy = starPos[i * 2 + 1] - hy;
         const d = Math.sqrt(dx * dx + dy * dy) + 1;
         if (d < reach) {
           const fall = 1 - d / reach;
-          const kick = 3.2 * mass * fall;
-          starVel[i * 2] += (dx / d) * kick;
-          starVel[i * 2 + 1] += (dy / d) * kick;
+          starVel[i * 2] += (dx / d) * kickAmt * fall;
+          starVel[i * 2 + 1] += (dy / d) * kickAmt * fall;
         }
       }
+    }
+
+    function neutrinoBurst(idx) {
+      const hole = holes[idx];
+      if (!hole || hole.mass < 0.008) return;
+      const c = holeCanvasXY(hole);
+      panFlash(c.x, c.y, hole.x * w, hole.y * h, 1, hole.mass);
       hole.mass = 0;
       hole.age = 0;
       hole.grow = false;
@@ -609,6 +618,12 @@
         holding = false;
         holdIndex = -1;
       }
+    }
+
+    function mergeFlash(hole) {
+      if (!hole || hole.mass < 0.008) return;
+      const c = holeCanvasXY(hole);
+      panFlash(c.x, c.y, hole.x * w, hole.y * h, 0.36, hole.mass);
     }
 
     function spawnShip() {
@@ -799,6 +814,7 @@
             drop.age = 0;
             drop.grow = false;
             if (keep.mass >= 0.62) neutrinoBurst(keep === a ? i : j);
+            else mergeFlash(keep);
           }
         }
       }
@@ -1073,8 +1089,8 @@
 
       flashScr = Math.max(0, flashScr - dt * 0.62);
       for (let i = waves.length - 1; i >= 0; i--) {
-        waves[i].r += dt * Math.max(w, h) * 0.9;
-        waves[i].a -= dt * 1.05;
+        waves[i].r += dt * Math.max(w, h) * (waves[i].spd || 0.9);
+        waves[i].a -= dt * (waves[i].fade || 1.05);
         if (waves[i].a <= 0) waves.splice(i, 1);
       }
       if (flashScr > 0) {
