@@ -585,6 +585,37 @@ try {
     console.error('[rampart-lab] failed to mount:', e.message);
 }
 
+const CHESS_ALPHA_SKU = 'creature-chess-alpha-pack';
+const CHESS_ALPHA_PRICE_CENTS = 100;
+function chessAlphaToken() {
+    const secret = process.env.SESSION_SECRET || 'dev_secret_key_123';
+    return crypto.createHmac('sha256', secret).update(CHESS_ALPHA_SKU).digest('hex').slice(0, 32);
+}
+function readReqCookie(req, name) {
+    const raw = String(req.headers.cookie || '');
+    for (const part of raw.split(';')) {
+        const idx = part.indexOf('=');
+        if (idx < 0) continue;
+        const k = part.slice(0, idx).trim();
+        if (k === name) return decodeURIComponent(part.slice(idx + 1).trim());
+    }
+    return '';
+}
+function grantChessAlpha(req, res) {
+    if (req.session) req.session.chessAlphaPack = true;
+    res.cookie('chess_alpha_pack', chessAlphaToken(), {
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 10 * 365 * 24 * 60 * 60 * 1000,
+        path: '/',
+    });
+}
+function hasChessAlpha(req) {
+    if (req.session && req.session.chessAlphaPack) return true;
+    return readReqCookie(req, 'chess_alpha_pack') === chessAlphaToken();
+}
+
 // Unlisted test pages (not linked from homepage / projects)
 app.get('/test-3bkyzsrg', (req, res) => {
     res.render('test-3bkyzsrg', { title: 'Rampart responsive test' });
@@ -593,8 +624,25 @@ app.get('/test-bk74eh6y', (req, res) => {
     res.render('test-bk74eh6y', { title: 'Rampart multiplayer test' });
 });
 app.get('/test-c4h9n2x8', (req, res) => {
-    res.setHeader('X-Robots-Tag', 'noindex, nofollow');
-    res.render('test-c4h9n2x8');
+    res.redirect(301, '/chess');
+});
+app.get('/chess', async (req, res) => {
+    const sessionId = String(req.query.session_id || '');
+    if (sessionId && stripe) {
+        try {
+            const session = await stripe.checkout.sessions.retrieve(sessionId);
+            if (session.payment_status === 'paid' && session.metadata?.sku === CHESS_ALPHA_SKU) {
+                grantChessAlpha(req, res);
+            }
+        } catch (e) {
+            console.warn('[CHESS] success verify:', e.message);
+        }
+    }
+    res.render('chess', {
+        ...seo.page('chess'),
+        sessionId,
+        alphaUnlocked: hasChessAlpha(req),
+    });
 });
 app.get('/test-m8q2n5k7', (req, res) => {
     res.setHeader('X-Robots-Tag', 'noindex, nofollow');
@@ -2260,6 +2308,16 @@ app.post('/webhook', express.raw({type: 'application/json'}), async (request, re
         }
     }
     // --- NEW CODE: Handle No Ads Purchase ---
+    else if (session.metadata && session.metadata.type === 'creature_chess_alpha') {
+        if (pool && session.metadata.userId) {
+            try {
+                await pool.query(`UPDATE orders SET status = 'completed' WHERE session_id = ?`, [session.id]);
+            } catch (e) {
+                console.warn('[CHESS] webhook order:', e.message);
+            }
+        }
+        console.log('[CHESS] Alpha pack paid', session.id);
+    }
     else if (session.metadata && session.metadata.type === 'no_ads_purchase') {
         if (pool) {
             // Update the user record to disable ads
@@ -2520,6 +2578,86 @@ app.get("/test-7qsba2gtr6-success", async (req, res) => {
         title: "Hero Slayer Download",
         sessionId: sessionId || req.session.heroSlayerSessionId || "",
     });
+});
+
+app.post("/api/chess/alpha-checkout", async (req, res) => {
+    if (!stripe) {
+        return res.status(503).json({ error: "Payment gateway not configured." });
+    }
+    try {
+        const protocol = req.headers["x-forwarded-proto"] || req.protocol;
+        const host = req.get("host");
+        const domain = `${protocol}://${host}`;
+        const session = await stripe.checkout.sessions.create({
+            payment_method_types: ["card"],
+            mode: "payment",
+            line_items: [{
+                price_data: {
+                    currency: "usd",
+                    unit_amount: CHESS_ALPHA_PRICE_CENTS,
+                    product_data: {
+                        name: "Creature Chess — Alpha pack",
+                        description: "Unlock extra units, four support cards, and 3D field for $1.",
+                        images: [`${domain}/images/creature-chess.jpg`],
+                        metadata: { sku: CHESS_ALPHA_SKU },
+                    },
+                },
+                quantity: 1,
+            }],
+            metadata: {
+                sku: CHESS_ALPHA_SKU,
+                type: "creature_chess_alpha",
+                userId: req.session.userId ? String(req.session.userId) : "",
+            },
+            success_url: `${domain}/chess?alpha=ok&session_id={CHECKOUT_SESSION_ID}`,
+            cancel_url: `${domain}/chess`,
+            customer_email: req.session.email || undefined,
+        });
+        if (pool && req.session.userId) {
+            try {
+                await pool.query(
+                    `INSERT INTO orders (user_id, total, status, session_id, product_sku, product_type, description)
+                     VALUES (?, ?, 'pending', ?, ?, 'digital', ?)
+                     ON DUPLICATE KEY UPDATE status = status`,
+                    [req.session.userId, CHESS_ALPHA_PRICE_CENTS / 100, session.id, CHESS_ALPHA_SKU, "Creature Chess Alpha pack"]
+                );
+            } catch (dbErr) {
+                console.warn("[CHESS] order insert skipped:", dbErr.message);
+            }
+        }
+        res.json({ url: session.url, sessionId: session.id });
+    } catch (e) {
+        console.error("[CHESS] checkout error:", e);
+        res.status(500).json({ error: e.message || "Checkout failed" });
+    }
+});
+
+app.get("/api/chess/alpha-status", (req, res) => {
+    res.json({ unlocked: hasChessAlpha(req) });
+});
+
+app.post("/api/chess/alpha-verify", async (req, res) => {
+    const sessionId = (req.body && req.body.session_id) || req.query.session_id || "";
+    if (!sessionId) return res.json({ unlocked: hasChessAlpha(req) });
+    if (!stripe) return res.status(503).json({ unlocked: false, error: "Payments unavailable" });
+    try {
+        const session = await stripe.checkout.sessions.retrieve(String(sessionId));
+        if (session.payment_status === "paid" && session.metadata?.sku === CHESS_ALPHA_SKU) {
+            grantChessAlpha(req, res);
+            if (pool && req.session.userId) {
+                try {
+                    await pool.query(`UPDATE orders SET status = 'completed' WHERE session_id = ?`, [sessionId]);
+                } catch (dbErr) {
+                    console.warn("[CHESS] order complete skipped:", dbErr.message);
+                }
+            }
+            return res.json({ unlocked: true });
+        }
+        res.json({ unlocked: hasChessAlpha(req) });
+    } catch (e) {
+        console.warn("[CHESS] verify:", e.message);
+        res.json({ unlocked: hasChessAlpha(req) });
+    }
 });
 
 app.post("/api/hero-slayer/checkout", async (req, res) => {
