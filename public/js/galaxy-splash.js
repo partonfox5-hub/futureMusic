@@ -447,7 +447,7 @@
     }
 
     const holes = [];
-    for (let i = 0; i < MAX_HOLES; i++) holes.push({ x: 0.5, y: 0.5, mass: 0, grow: false });
+    for (let i = 0; i < MAX_HOLES; i++) holes.push({ x: 0.5, y: 0.5, mass: 0, grow: false, age: 0 });
     let holding = false;
     let holdIndex = -1;
     const cursor = { x: -10, y: -10, on: false };
@@ -477,6 +477,7 @@
       holes[idx].x = uv.x;
       holes[idx].y = 1 - uv.y;
       holes[idx].mass = Math.max(holes[idx].mass, 0.035);
+      holes[idx].age = 0;
       holes[idx].grow = true;
       holding = true;
       holdIndex = idx;
@@ -563,9 +564,13 @@
         holes[holdIndex].mass = Math.min(0.475, holes[holdIndex].mass + dt * 0.21);
       }
       for (let i = 0; i < MAX_HOLES; i++) {
+        if (holes[i].mass > 0) holes[i].age += dt;
         if (!holes[i].grow && holes[i].mass > 0) {
           holes[i].mass *= Math.exp(-dt * 0.18);
-          if (holes[i].mass < 0.015) holes[i].mass = 0;
+          if (holes[i].mass < 0.015) {
+            holes[i].mass = 0;
+            holes[i].age = 0;
+          }
         }
       }
 
@@ -578,10 +583,11 @@
         for (let k = 0; k < MAX_HOLES; k++) {
           const hole = holes[k];
           if (hole.mass < 0.01) continue;
+          const pull = 0.5 + 0.5 * (1 - Math.exp(-hole.age / 2.6));
           const dx = hole.x - p.x;
           const dy = hole.y - p.y;
           const d2 = dx * dx + dy * dy + 0.00035;
-          const f = (hole.mass * 0.38 * dt) / d2;
+          const f = (hole.mass * 0.38 * dt * pull) / d2;
           p.vx += dx * f;
           p.vy += dy * f;
           const rs = 0.006 + hole.mass * 0.05;
@@ -630,12 +636,13 @@
         for (let k = 0; k < MAX_HOLES; k++) {
           const hole = holes[k];
           if (hole.mass < 0.01) continue;
+          const pull = 0.5 + 0.5 * (1 - Math.exp(-hole.age / 2.6));
           const hx = hole.x * w;
           const hy = hole.y * h;
           const dx = hx - x;
           const dy = hy - y;
           const d2 = dx * dx + dy * dy + 140;
-          const f = (hole.mass * 26000 * dt * dust) / d2;
+          const f = (hole.mass * 26000 * dt * dust * pull) / d2;
           vx += dx * f;
           vy += dy * f;
           const rs = (0.006 + hole.mass * 0.05) * Math.min(w, h);
