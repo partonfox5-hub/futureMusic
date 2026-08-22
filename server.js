@@ -564,6 +564,9 @@ app.get('/test-3bkyzsrg', (req, res) => {
 app.get('/test-bk74eh6y', (req, res) => {
     res.render('test-bk74eh6y', { title: 'Rampart multiplayer test' });
 });
+app.get('/test-r9k2mw7c', (req, res) => {
+    res.render('test-r9k2mw7c', { title: 'Homepage galaxy splash test', noIndex: true });
+});
 
 // New Eden (Starleap) — unlisted, not on homepage/projects. One world, 4 explorers.
 try {

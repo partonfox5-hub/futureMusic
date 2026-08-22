@@ -1,0 +1,76 @@
+<style>
+    #hero-section.galaxy-hero {
+        min-height: 100vh;
+        min-height: 100dvh;
+        touch-action: none;
+        background: #000;
+    }
+    #hero-section.galaxy-hero #cosmic-canvas {
+        pointer-events: none;
+        z-index: 0;
+        display: block;
+    }
+    #hero-ui {
+        pointer-events: none;
+    }
+    #hero-ui a,
+    #hero-ui button {
+        pointer-events: auto;
+    }
+    .galaxy-hint {
+        pointer-events: none;
+        letter-spacing: 0.28em;
+    }
+</style>
+
+<section id="hero-section" class="galaxy-hero min-h-[85vh] flex flex-col items-center justify-center text-center relative overflow-hidden perspective-1000 bg-black">
+    <canvas id="cosmic-canvas" class="absolute inset-0 w-full h-full z-0"></canvas>
+    <div id="hero-ui" class="max-w-6xl mx-auto relative z-10 px-4">
+        <% if (typeof splashPreview !== 'undefined' && splashPreview) { %>
+        <p class="galaxy-hint text-[#20B2AA] text-[10px] md:text-xs uppercase mb-6 font-bold">
+            Homepage splash preview · click empty space · hold to grow a black hole
+        </p>
+        <% } %>
+        <div class="mb-12 flex flex-col md:flex-row items-center justify-center gap-8 md:gap-12">
+            <div class="flex-shrink-0">
+                <img src="/images/logo.png" alt="Logo" class="w-32 md:w-48 h-auto object-contain drop-shadow-[0_0_20px_rgba(212,175,55,0.4)] hover:scale-105 transition-transform duration-500">
+            </div>
+            <div class="text-center md:text-left">
+                <h1 class="text-6xl md:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-b from-[#F4C430] to-[#AA8C2C] drop-shadow-2xl mb-2 leading-tight">
+                    THINK FREELY
+                </h1>
+                <h2 class="text-xl md:text-3xl text-white font-light tracking-[0.5em]">AS ONE AND THE SAME</h2>
+            </div>
+        </div>
+        <div class="flex flex-col items-center">
+            <p class="text-gray-300 text-lg md:text-xl max-w-2xl mx-auto mb-12 leading-relaxed drop-shadow-md bg-black/40 backdrop-blur-sm rounded-lg p-4 border border-white/5">
+                Wordplay into the embrace of richer mindhood and such things as that
+            </p>
+            <div class="flex flex-col sm:flex-row gap-6 justify-center">
+                <a href="/music" class="btn-gold px-8 py-4 text-lg rounded-sm shadow-lg inline-block transition-transform hover:-translate-y-1">
+                    Stream Now
+                </a>
+                <a href="/projects" class="btn-outline px-8 py-4 text-lg rounded-sm inline-block transition-transform hover:-translate-y-1">
+                    Software
+                </a>
+            </div>
+        </div>
+    </div>
+    <p class="galaxy-hint absolute bottom-10 left-0 right-0 text-[#D4AF37] text-[10px] md:text-xs uppercase z-10">
+        Click the cosmos · hold to birth a black hole
+    </p>
+    <div class="absolute bottom-4 animate-pulse text-[#D4AF37] z-10 pointer-events-none">
+        <i class="fas fa-chevron-down text-3xl"></i>
+    </div>
+</section>
+
+<script src="/js/galaxy-splash.js"></script>
+<script>
+(function () {
+    const canvas = document.getElementById('cosmic-canvas');
+    const root = document.getElementById('hero-section');
+    if (canvas && window.GalaxySplash) {
+        window.GalaxySplash.mount(canvas, { root: root });
+    }
+})();
+</script>

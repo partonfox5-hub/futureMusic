@@ -1,4 +1,7 @@
     <title><%= typeof title !== 'undefined' ? title : "The Captain's Frequency" %></title>
+    <% if (typeof noIndex !== 'undefined' && noIndex) { %>
+    <meta name="robots" content="noindex, nofollow">
+    <% } %>
     <% if (typeof metaDescription !== 'undefined' && metaDescription) { %>
     <meta name="description" content="<%= metaDescription %>">
     <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
