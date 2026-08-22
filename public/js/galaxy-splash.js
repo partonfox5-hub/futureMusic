@@ -729,11 +729,11 @@
           const rdx = x - cx;
           const rdy = y - cy;
           const rd2 = rdx * rdx + rdy * rdy;
-          const radius = 0.078 * Math.min(w, h);
+          const radius = 0.039 * Math.min(w, h);
           if (rd2 < radius * radius && rd2 > 1) {
             const rd = Math.sqrt(rd2);
             const fall = 1 - rd / radius;
-            const force = fall * fall * 9000 * dt * dust;
+            const force = fall * fall * 4500 * dt * dust;
             vx += (rdx / rd) * force;
             vy += (rdy / rd) * force;
           }
