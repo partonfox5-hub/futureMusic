@@ -118,21 +118,21 @@
       float nB = fbm(uv * 3.2 + vec2(-t * 0.7, t * 0.5) + 8.0);
       float nC = fbm(uv * 6.5 + 20.0 + t * 0.2);
 
-      vec3 col = vec3(0.004, 0.006, 0.016);
-      col += vec3(0.11, 0.04, 0.12) * nA;
-      col += vec3(0.04, 0.11, 0.14) * nB * 0.95;
-      col += vec3(0.18, 0.11, 0.04) * pow(nC, 2.0) * 0.55;
+      vec3 col = vec3(0.0006, 0.0008, 0.0022);
+      col += vec3(0.035, 0.012, 0.038) * nA;
+      col += vec3(0.012, 0.035, 0.045) * nB * 0.55;
+      col += vec3(0.055, 0.032, 0.012) * pow(nC, 2.2) * 0.22;
 
       float r = length(p);
       float ang = atan(p.y, p.x);
       float arm = 0.5 + 0.5 * sin(ang * 2.0 + r * 16.0 - uTime * 0.04);
-      float spiral = pow(arm, 3.0) * exp(-r * 2.4) * (0.55 + 0.45 * nB);
-      col += vec3(0.62, 0.42, 0.18) * spiral * 0.72;
-      col += vec3(0.14, 0.22, 0.32) * exp(-r * 3.2) * 0.62;
+      float spiral = pow(arm, 3.0) * exp(-r * 2.8) * (0.45 + 0.35 * nB);
+      col += vec3(0.38, 0.24, 0.10) * spiral * 0.22;
+      col += vec3(0.05, 0.08, 0.12) * exp(-r * 4.2) * 0.22;
 
-      float core = exp(-r * 14.0);
-      col += vec3(1.0, 0.85, 0.55) * core * 1.15;
-      col += vec3(1.0, 0.7, 0.35) * pow(core, 2.2) * 0.8;
+      float core = exp(-r * 18.0);
+      col += vec3(0.7, 0.55, 0.32) * core * 0.28;
+      col += vec3(0.8, 0.5, 0.22) * pow(core, 2.4) * 0.18;
 
       vec3 light = normalize(vec3(-0.35, 0.2, 0.75));
 
@@ -175,7 +175,7 @@
             vec3 h = normalize(light + vec3(0.0, 0.0, 1.0));
             spec = pow(max(dot(nrm, h), 0.0), 48.0) * 0.35;
           }
-          float shadeZ = mix(0.75, 1.0, clamp(z, 0.0, 1.0));
+          float shadeZ = mix(0.42, 0.72, clamp(z, 0.0, 1.0));
           col = alb * wrap * shadeZ + atm * shadeZ + vec3(spec);
         } else if (rr < 1.18) {
           float halo = 1.0 - smoothstep(1.0, 1.18, rr);
@@ -184,7 +184,7 @@
         }
       }
 
-      col += vec3(0.9, 0.95, 1.0) * pow(nC, 10.0) * 0.15;
+      col += vec3(0.7, 0.78, 0.9) * pow(nC, 12.0) * 0.06;
       gl_FragColor = vec4(col, 1.0);
     }
   `;
@@ -220,7 +220,7 @@
               + exp(-abs(c.y) * 38.0) * exp(-abs(c.x) * 2.4);
       }
       float a = core + spike * 0.55;
-      gl_FragColor = vec4(vCol * (0.75 + core), a);
+      gl_FragColor = vec4(vCol * (0.42 + core * 0.55), a);
     }
   `;
 
@@ -267,7 +267,7 @@
         vec2 d = luv - h;
         d.x *= aspect;
         float r = length(d);
-        float rs = 0.016 + m * 0.145;
+        float rs = 0.008 + m * 0.0725;
         vec2 dn = d / max(r, 1e-5);
         float pull = (rs * rs) / (r * r + 1e-4);
         luv.x -= (dn.x / aspect) * pull * 1.25;
@@ -289,8 +289,8 @@
       col *= 1.0 - hide;
       col += add;
       float vig = smoothstep(1.15, 0.35, length((vUv - 0.5) * vec2(aspect * 0.55, 1.0)));
-      col *= mix(0.55, 1.0, vig);
-      col = col / (col + vec3(1.0)) * 1.25;
+      col *= mix(0.28, 1.0, vig);
+      col = col / (col + vec3(1.15)) * 1.05;
       gl_FragColor = vec4(col, 1.0);
     }
   `;
@@ -420,7 +420,7 @@
       starData[i * 4] = c[0];
       starData[i * 4 + 1] = c[1];
       starData[i * 4 + 2] = c[2];
-      starData[i * 4 + 3] = dust ? rand(1.2, 2.4) : Math.random() > 0.97 ? rand(7, 14) : rand(1.1, 3.6);
+      starData[i * 4 + 3] = dust ? rand(0.9, 1.7) : Math.random() > 0.985 ? rand(4.5, 8) : rand(0.8, 2.2);
     }
 
     const planets = [];
@@ -428,13 +428,15 @@
       planets.length = 0;
       const types = [0, 1, 2, 3, 4, 5];
       for (let i = 0; i < MAX_PLANETS; i++) {
+        const ang = Math.random() * Math.PI * 2;
+        const dist = 0.32 + Math.random() * 0.4;
         planets.push({
-          x: Math.random(),
-          y: Math.random(),
-          z: Math.random(),
-          r: rand(0.035, 0.09) * (0.65 + Math.random() * 0.7),
-          vx: rand(-0.012, 0.012),
-          vy: rand(-0.008, 0.008),
+          x: 0.5 + Math.cos(ang) * dist * 0.9,
+          y: 0.5 + Math.sin(ang) * dist,
+          z: Math.random() * 0.45,
+          r: rand(0.016, 0.034) * (0.65 + Math.random() * 0.4),
+          vx: rand(-0.008, 0.008),
+          vy: rand(-0.005, 0.005),
           rot: Math.random() * Math.PI * 2,
           spin: rand(0.08, 0.22) * (Math.random() > 0.5 ? 1 : -1),
           type: types[i],
@@ -448,6 +450,7 @@
     for (let i = 0; i < MAX_HOLES; i++) holes.push({ x: 0.5, y: 0.5, mass: 0, grow: false });
     let holding = false;
     let holdIndex = -1;
+    const cursor = { x: -10, y: -10, on: false };
 
     function eventUV(e) {
       const rect = root.getBoundingClientRect();
@@ -473,7 +476,7 @@
       }
       holes[idx].x = uv.x;
       holes[idx].y = 1 - uv.y;
-      holes[idx].mass = Math.max(holes[idx].mass, 0.07);
+      holes[idx].mass = Math.max(holes[idx].mass, 0.035);
       holes[idx].grow = true;
       holding = true;
       holdIndex = idx;
@@ -487,6 +490,17 @@
       holding = false;
       if (holdIndex >= 0) holes[holdIndex].grow = false;
       holdIndex = -1;
+    }
+
+    function onMove(e) {
+      const uv = eventUV(e);
+      cursor.x = uv.x;
+      cursor.y = 1 - uv.y;
+      cursor.on = true;
+    }
+
+    function onLeave() {
+      cursor.on = false;
     }
 
     function resize() {
@@ -546,7 +560,7 @@
       const t = now * 0.001;
 
       if (holding && holdIndex >= 0) {
-        holes[holdIndex].mass = Math.min(0.95, holes[holdIndex].mass + dt * 0.42);
+        holes[holdIndex].mass = Math.min(0.475, holes[holdIndex].mass + dt * 0.21);
       }
       for (let i = 0; i < MAX_HOLES; i++) {
         if (!holes[i].grow && holes[i].mass > 0) {
@@ -570,7 +584,7 @@
           const f = (hole.mass * 0.38 * dt) / d2;
           p.vx += dx * f;
           p.vy += dy * f;
-          const rs = 0.012 + hole.mass * 0.1;
+          const rs = 0.006 + hole.mass * 0.05;
           if (Math.sqrt(d2) < rs * 1.4) {
             p.x = Math.random();
             p.y = Math.random();
@@ -584,11 +598,23 @@
         if (p.x > 1.12) p.x = -0.12;
         if (p.y < -0.12) p.y = 1.12;
         if (p.y > 1.12) p.y = -0.12;
+        if (cursor.on && !holding) {
+          const cdx = p.x - cursor.x;
+          const cdy = p.y - cursor.y;
+          const cd2 = cdx * cdx + cdy * cdy + 1e-6;
+          const cr = 0.065;
+          if (cd2 < cr * cr) {
+            const cd = Math.sqrt(cd2);
+            const fall = 1 - cd / cr;
+            p.vx += (cdx / cd) * fall * fall * 0.85 * dt;
+            p.vy += (cdy / cd) * fall * fall * 0.85 * dt;
+          }
+        }
         p.vx *= 0.995;
         p.vy *= 0.995;
         planetPos[i * 4] = p.x;
         planetPos[i * 4 + 1] = p.y;
-        planetPos[i * 4 + 2] = p.r * (0.75 + p.z * 0.5);
+        planetPos[i * 4 + 2] = p.r * (0.55 + p.z * 0.28);
         planetPos[i * 4 + 3] = p.z;
         planetPar[i * 4] = p.type;
         planetPar[i * 4 + 1] = p.rot;
@@ -612,13 +638,28 @@
           const f = (hole.mass * 26000 * dt * dust) / d2;
           vx += dx * f;
           vy += dy * f;
-          const rs = (0.012 + hole.mass * 0.1) * Math.min(w, h);
+          const rs = (0.006 + hole.mass * 0.05) * Math.min(w, h);
           if (dx * dx + dy * dy < rs * rs * 1.3) {
             resetStar(i, true);
             x = starPos[i * 2];
             y = starPos[i * 2 + 1];
             vx = starVel[i * 2];
             vy = starVel[i * 2 + 1];
+          }
+        }
+        if (cursor.on && !holding) {
+          const cx = cursor.x * w;
+          const cy = cursor.y * h;
+          const rdx = x - cx;
+          const rdy = y - cy;
+          const rd2 = rdx * rdx + rdy * rdy;
+          const radius = 0.078 * Math.min(w, h);
+          if (rd2 < radius * radius && rd2 > 1) {
+            const rd = Math.sqrt(rd2);
+            const fall = 1 - rd / radius;
+            const force = fall * fall * 9000 * dt * dust;
+            vx += (rdx / rd) * force;
+            vy += (rdy / rd) * force;
           }
         }
         vx *= 0.9992;
@@ -698,6 +739,8 @@
     initPlanets();
     resize();
     root.addEventListener("pointerdown", onDown);
+    root.addEventListener("pointermove", onMove);
+    root.addEventListener("pointerleave", onLeave);
     window.addEventListener("pointerup", onUp);
     window.addEventListener("pointercancel", onUp);
     window.addEventListener("resize", onResize);
@@ -708,6 +751,8 @@
         dead = true;
         cancelAnimationFrame(raf);
         root.removeEventListener("pointerdown", onDown);
+        root.removeEventListener("pointermove", onMove);
+        root.removeEventListener("pointerleave", onLeave);
         window.removeEventListener("pointerup", onUp);
         window.removeEventListener("pointercancel", onUp);
         window.removeEventListener("resize", onResize);
