@@ -450,7 +450,32 @@
     for (let i = 0; i < MAX_HOLES; i++) holes.push({ x: 0.5, y: 0.5, mass: 0, grow: false, age: 0 });
     let holding = false;
     let holdIndex = -1;
-    const cursor = { x: -10, y: -10, on: false };
+    const cursor = { x: -10, y: -10, cx: 0, cy: 0, on: false, overUi: false };
+
+    const ufoIdle = new Image();
+    const ufoClick = new Image();
+    ufoIdle.src = "/images/galaxy/ufo-idle.png";
+    ufoClick.src = "/images/galaxy/ufo-click.png";
+    const ufoCanvas = document.createElement("canvas");
+    const UFO_SIZE = 88;
+    ufoCanvas.width = UFO_SIZE;
+    ufoCanvas.height = UFO_SIZE;
+    ufoCanvas.setAttribute("aria-hidden", "true");
+    Object.assign(ufoCanvas.style, {
+      position: "fixed",
+      left: "0",
+      top: "0",
+      width: UFO_SIZE + "px",
+      height: UFO_SIZE + "px",
+      pointerEvents: "none",
+      zIndex: "99999",
+      display: "none",
+      transform: "translate(-50%, -50%)",
+    });
+    document.body.appendChild(ufoCanvas);
+    const ufoCtx = ufoCanvas.getContext("2d");
+    let ufoFrame = 0;
+    let ufoAcc = 0;
 
     function eventUV(e) {
       const rect = root.getBoundingClientRect();
@@ -481,6 +506,8 @@
       holes[idx].grow = true;
       holding = true;
       holdIndex = idx;
+      ufoFrame = 0;
+      ufoAcc = 0;
       try {
         root.setPointerCapture(e.pointerId);
       } catch (err) {}
@@ -497,11 +524,15 @@
       const uv = eventUV(e);
       cursor.x = uv.x;
       cursor.y = 1 - uv.y;
+      cursor.cx = e.clientX;
+      cursor.cy = e.clientY;
       cursor.on = true;
+      cursor.overUi = interactiveTarget(e.target);
     }
 
     function onLeave() {
       cursor.on = false;
+      cursor.overUi = false;
     }
 
     function resize() {
@@ -737,6 +768,30 @@
       gl.enableVertexAttribArray(cpa);
       gl.vertexAttribPointer(cpa, 2, gl.FLOAT, false, 0, 0);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
+
+      const showUfo = cursor.on && !cursor.overUi;
+      ufoCanvas.style.display = showUfo ? "block" : "none";
+      root.style.cursor = showUfo ? "none" : "";
+      if (showUfo) {
+        ufoCanvas.style.left = cursor.cx + "px";
+        ufoCanvas.style.top = cursor.cy + "px";
+        const sheet = holding && ufoClick.complete ? ufoClick : ufoIdle;
+        const fps = holding ? 16 : 12;
+        ufoAcc += dt;
+        if (ufoAcc >= 1 / fps) {
+          ufoAcc -= 1 / fps;
+          ufoFrame = (ufoFrame + 1) % 16;
+        }
+        if (sheet.complete && sheet.naturalWidth) {
+          const cols = 4;
+          const cw = sheet.naturalWidth / cols;
+          const ch = sheet.naturalHeight / cols;
+          const sx = (ufoFrame % cols) * cw;
+          const sy = Math.floor(ufoFrame / cols) * ch;
+          ufoCtx.clearRect(0, 0, UFO_SIZE, UFO_SIZE);
+          ufoCtx.drawImage(sheet, sx, sy, cw, ch, 0, 0, UFO_SIZE, UFO_SIZE);
+        }
+      }
     }
 
     function onResize() {
@@ -763,6 +818,8 @@
         window.removeEventListener("pointerup", onUp);
         window.removeEventListener("pointercancel", onUp);
         window.removeEventListener("resize", onResize);
+        if (ufoCanvas.parentNode) ufoCanvas.parentNode.removeChild(ufoCanvas);
+        root.style.cursor = "";
       },
     };
   }
