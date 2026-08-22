@@ -413,7 +413,7 @@
         starPos[i * 2] = Math.random() * w;
         starPos[i * 2 + 1] = Math.random() * h;
       }
-      const drift = dust ? 6 : 3.2;
+      const drift = dust ? 3 : 1.6;
       starVel[i * 2] = rand(-drift, drift);
       starVel[i * 2 + 1] = rand(-drift * 0.6, drift * 0.6);
       const c = starColor(i, dust);
