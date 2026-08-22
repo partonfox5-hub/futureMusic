@@ -579,6 +579,10 @@ app.get('/test-3bkyzsrg', (req, res) => {
 app.get('/test-bk74eh6y', (req, res) => {
     res.render('test-bk74eh6y', { title: 'Rampart multiplayer test' });
 });
+app.get('/test-c4h9n2x8', (req, res) => {
+    res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+    res.render('test-c4h9n2x8');
+});
 
 const SHARK_YT_CHANNEL = 'UClOdltq7PUfU3cLyK0O-6jA';
 const SHARK_YT_FALLBACK = ['SQha9mRCsv8', 'hpUL9b0vVX8', 'DjZTj5Gv4NA', '01RVvhkRL_U', 'DGXsDgt5KZY', 'z1PFzPjj024', 'ZwGVGPxJO3E', 'KVKnZgM8_4g'];

@@ -1,0 +1,6 @@
+Interface / UI / impact-adjacent one-shots:
+Kenney.nl Interface Sounds — CC0 1.0 Universal
+https://kenney.nl/assets/interface-sounds
+
+Attack-type color, creature cries, and missing hits are synthesized in-engine
+with the Web Audio API (original, no third-party samples).
