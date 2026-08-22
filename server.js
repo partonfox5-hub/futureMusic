@@ -579,9 +579,6 @@ app.get('/test-3bkyzsrg', (req, res) => {
 app.get('/test-bk74eh6y', (req, res) => {
     res.render('test-bk74eh6y', { title: 'Rampart multiplayer test' });
 });
-app.get('/test-r9k2mw7c', (req, res) => {
-    res.render('test-r9k2mw7c', { title: 'Homepage galaxy splash test', noIndex: true });
-});
 
 const SHARK_YT_CHANNEL = 'UClOdltq7PUfU3cLyK0O-6jA';
 const SHARK_YT_FALLBACK = ['SQha9mRCsv8', 'hpUL9b0vVX8', 'DjZTj5Gv4NA', '01RVvhkRL_U', 'DGXsDgt5KZY', 'z1PFzPjj024', 'ZwGVGPxJO3E', 'KVKnZgM8_4g'];
