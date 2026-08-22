@@ -455,7 +455,7 @@
     ufoIdle.src = "/images/galaxy/ufo-idle.png";
     ufoClick.src = "/images/galaxy/ufo-click.png";
     const ufoCanvas = document.createElement("canvas");
-    const UFO_SIZE = 88;
+    const UFO_SIZE = 62;
     ufoCanvas.width = UFO_SIZE;
     ufoCanvas.height = UFO_SIZE;
     ufoCanvas.setAttribute("aria-hidden", "true");
@@ -474,6 +474,89 @@
     const ufoCtx = ufoCanvas.getContext("2d");
     let ufoFrame = 0;
     let ufoAcc = 0;
+
+    const SHIP_KINDS = [
+      { id: "shuttle", src: "/images/galaxy/shuttle.png", w: 78, speed: 52 },
+      { id: "destroyer", src: "/images/galaxy/destroyer.png", w: 118, speed: 30 },
+      { id: "whale", src: "/images/galaxy/whale.png", w: 102, speed: 24 },
+    ];
+    SHIP_KINDS.forEach(function (k) {
+      k.img = new Image();
+      k.img.src = k.src;
+    });
+    const ships = [];
+    const sparks = [];
+    const SPARK_COLORS = ["#ff3b3b", "#3b7bff", "#3dff6b", "#D4AF37", "#ff7ad9", "#20B2AA", "#ffffff", "#ff9a3b"];
+    let spawnT = 0.8;
+    const fxCanvas = document.createElement("canvas");
+    Object.assign(fxCanvas.style, {
+      position: "absolute",
+      inset: "0",
+      width: "100%",
+      height: "100%",
+      pointerEvents: "none",
+      zIndex: "2",
+    });
+    root.appendChild(fxCanvas);
+    const fx = fxCanvas.getContext("2d");
+
+    function burstSparks(px, py, n, power) {
+      const pwr = power || 1;
+      for (let i = 0; i < n; i++) {
+        const ang = Math.random() * Math.PI * 2;
+        const spd = (40 + Math.random() * 220) * pwr;
+        sparks.push({
+          x: px,
+          y: py,
+          vx: Math.cos(ang) * spd,
+          vy: Math.sin(ang) * spd,
+          life: 0.35 + Math.random() * 0.55,
+          max: 0.9,
+          size: 1.4 + Math.random() * 3.2,
+          color: SPARK_COLORS[(Math.random() * SPARK_COLORS.length) | 0],
+        });
+      }
+    }
+
+    function collapseHole(idx) {
+      const h = holes[idx];
+      if (!h || h.mass < 0.008) return;
+      burstSparks(h.x * w, h.y * h, 64, 0.7 + h.mass);
+      for (let i = 0; i < nStars; i++) {
+        const dx = starPos[i * 2] - h.x * w;
+        const dy = starPos[i * 2 + 1] - h.y * h;
+        const d2 = dx * dx + dy * dy + 80;
+        const kick = (18000 * h.mass) / d2;
+        starVel[i * 2] += dx * kick * 0.02;
+        starVel[i * 2 + 1] += dy * kick * 0.02;
+      }
+      h.mass = 0;
+      h.age = 0;
+      h.grow = false;
+      if (holdIndex === idx) {
+        holding = false;
+        holdIndex = -1;
+      }
+    }
+
+    function spawnShip() {
+      if (ships.length >= 7) return;
+      const kind = SHIP_KINDS[(Math.random() * SHIP_KINDS.length) | 0];
+      const fromLeft = Math.random() > 0.5;
+      const y = (0.14 + Math.random() * 0.72) * h;
+      ships.push({
+        kind: kind.id,
+        img: kind.img,
+        x: fromLeft ? -kind.w : w + kind.w,
+        y: y,
+        vx: (fromLeft ? 1 : -1) * kind.speed * (0.75 + Math.random() * 0.5),
+        vy: (Math.random() - 0.5) * 10,
+        facing: fromLeft ? 1 : -1,
+        frame: (Math.random() * 16) | 0,
+        acc: 0,
+        size: kind.w * (0.85 + Math.random() * 0.3),
+      });
+    }
 
     function eventUV(e) {
       const rect = root.getBoundingClientRect();
@@ -543,6 +626,8 @@
       canvas.height = h;
       canvas.style.width = "100%";
       canvas.style.height = "100%";
+      fxCanvas.width = w;
+      fxCanvas.height = h;
       gl.viewport(0, 0, w, h);
       if (fbo) {
         gl.deleteTexture(fbo.tex);
@@ -592,16 +677,13 @@
 
       if (holding && holdIndex >= 0) {
         holes[holdIndex].mass = Math.min(0.62, holes[holdIndex].mass + dt * 0.21);
+        if (holes[holdIndex].mass >= 0.62) collapseHole(holdIndex);
       }
       for (let i = 0; i < MAX_HOLES; i++) {
         if (holes[i].mass > 0) holes[i].age += dt;
         if (!holes[i].grow && holes[i].mass > 0) {
           holes[i].mass *= Math.exp(-dt * 0.18);
-          if (holes[i].mass < 0.015) {
-            holes[i].mass = 0;
-            holes[i].age = 0;
-            holes[i].grow = false;
-          }
+          if (holes[i].mass < 0.015) collapseHole(i);
         }
       }
 
@@ -811,12 +893,94 @@
       gl.vertexAttribPointer(cpa, 2, gl.FLOAT, false, 0, 0);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
 
+      spawnT -= dt;
+      if (spawnT <= 0) {
+        spawnShip();
+        spawnT = 1.7 + Math.random() * 2.2;
+      }
+      for (let s = ships.length - 1; s >= 0; s--) {
+        const sh = ships[s];
+        sh.acc += dt;
+        if (sh.acc >= 1 / 12) {
+          sh.acc -= 1 / 12;
+          sh.frame = (sh.frame + 1) % 16;
+        }
+        for (let k = 0; k < MAX_HOLES; k++) {
+          const hole = holes[k];
+          if (hole.mass < 0.01) continue;
+          const pull = 0.5 + 0.5 * (1 - Math.exp(-hole.age / 2.6));
+          const hx = hole.x * w;
+          const hy = hole.y * h;
+          const dx = hx - sh.x;
+          const dy = hy - sh.y;
+          const d2 = dx * dx + dy * dy + 120;
+          const f = (hole.mass * 9000 * dt * pull) / d2;
+          sh.vx += dx * f;
+          sh.vy += dy * f;
+          const rs = (0.006 + hole.mass * 0.05) * Math.min(w, h);
+          const hitR = Math.max(rs * 1.5, sh.size * 0.28);
+          if (dx * dx + dy * dy < hitR * hitR) {
+            burstSparks(sh.x, sh.y, 36, 0.85);
+            ships.splice(s, 1);
+            sh._dead = true;
+            break;
+          }
+        }
+        if (sh._dead) continue;
+        sh.x += sh.vx * dt;
+        sh.y += sh.vy * dt;
+        if (sh.x < -160 || sh.x > w + 160 || sh.y < -160 || sh.y > h + 160) ships.splice(s, 1);
+      }
+      for (let i = sparks.length - 1; i >= 0; i--) {
+        const sp = sparks[i];
+        sp.life -= dt;
+        if (sp.life <= 0) {
+          sparks.splice(i, 1);
+          continue;
+        }
+        sp.x += sp.vx * dt;
+        sp.y += sp.vy * dt;
+        sp.vx *= 0.96;
+        sp.vy *= 0.96;
+      }
+      fx.setTransform(1, 0, 0, 1, 0, 0);
+      fx.clearRect(0, 0, w, h);
+      for (let s = 0; s < ships.length; s++) {
+        const sh = ships[s];
+        const img = sh.img;
+        if (!img || !img.complete || !img.naturalWidth) continue;
+        const cols = 4;
+        const cw = img.naturalWidth / cols;
+        const ch = img.naturalHeight / cols;
+        const sx = (sh.frame % cols) * cw;
+        const sy = Math.floor(sh.frame / cols) * ch;
+        const dw = sh.size;
+        const dh = sh.size * (ch / cw);
+        fx.save();
+        fx.translate(sh.x, sh.y);
+        fx.scale(sh.facing, 1);
+        fx.drawImage(img, sx, sy, cw, ch, -dw / 2, -dh / 2, dw, dh);
+        fx.restore();
+      }
+      for (let i = 0; i < sparks.length; i++) {
+        const sp = sparks[i];
+        fx.globalAlpha = Math.max(0, sp.life / 0.7);
+        fx.fillStyle = sp.color;
+        fx.beginPath();
+        fx.arc(sp.x, sp.y, sp.size, 0, Math.PI * 2);
+        fx.fill();
+      }
+      fx.globalAlpha = 1;
+
       const showUfo = cursor.on && !cursor.overUi;
       ufoCanvas.style.display = showUfo ? "block" : "none";
       root.style.cursor = showUfo ? "none" : "";
       if (showUfo) {
         ufoCanvas.style.left = cursor.cx + "px";
         ufoCanvas.style.top = cursor.cy + "px";
+        const bob = holding ? 0 : Math.sin(t * 2.6) * 3;
+        const pulse = holding ? 1 + 0.05 * Math.sin(t * 8) : 1;
+        ufoCanvas.style.transform = "translate(-50%, calc(-50% + " + bob + "px)) scale(" + pulse + ")";
         const sheet = holding && ufoClick.complete ? ufoClick : ufoIdle;
         const fps = holding ? 16 : 12;
         ufoAcc += dt;
@@ -861,6 +1025,7 @@
         window.removeEventListener("pointercancel", onUp);
         window.removeEventListener("resize", onResize);
         if (ufoCanvas.parentNode) ufoCanvas.parentNode.removeChild(ufoCanvas);
+        if (fxCanvas.parentNode) fxCanvas.parentNode.removeChild(fxCanvas);
         root.style.cursor = "";
       },
     };
