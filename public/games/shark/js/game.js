@@ -97,6 +97,46 @@ function skinMat(hex, extra) {
   });
 }
 
+function attachSwim(mat, opts) {
+  opts = opts || {};
+  const u = {
+    uTime: { value: 0 },
+    uAmp: { value: opts.amp != null ? opts.amp : 0.42 },
+    uPhase: { value: opts.phase || 0 },
+    uFreq: { value: opts.freq != null ? opts.freq : 0.42 },
+    uSpeed: { value: opts.speed != null ? opts.speed : 3.8 },
+    uLat: { value: opts.lat != null ? opts.lat : 1 },
+    uVert: { value: opts.vert != null ? opts.vert : 0.12 },
+  };
+  u._baseAmp = u.uAmp.value;
+  mat.userData.swim = u;
+  mat.onBeforeCompile = function (shader) {
+    Object.assign(shader.uniforms, u);
+    shader.vertexShader = shader.vertexShader
+      .replace(
+        "#include <common>",
+        "#include <common>\nuniform float uTime; uniform float uAmp; uniform float uPhase; uniform float uFreq; uniform float uSpeed; uniform float uLat; uniform float uVert;"
+      )
+      .replace(
+        "#include <begin_vertex>",
+        "#include <begin_vertex>\nfloat along = transformed.x;\nfloat env = smoothstep(8.2, -1.5, along);\nfloat wave = sin(along * uFreq - uTime * uSpeed + uPhase) * uAmp * env;\ntransformed.z += wave * uLat;\ntransformed.y += wave * uVert;"
+      );
+  };
+  mat.customProgramCacheKey = function () {
+    return "swimflex-v1";
+  };
+  return u;
+}
+
+function tickSwim(root, t, ampMul) {
+  const list = root.userData && root.userData.swimList;
+  if (!list) return;
+  for (let i = 0; i < list.length; i++) {
+    list[i].uTime.value = t;
+    if (ampMul != null) list[i].uAmp.value = list[i]._baseAmp * ampMul;
+  }
+}
+
 function latheBody(pts, segs, mat) {
   const geo = new THREE.LatheGeometry(pts, segs);
   geo.rotateZ(-Math.PI / 2);
@@ -196,6 +236,11 @@ function makeSharkGeom() {
   g.userData.tail = tail;
   g.userData.jaw = jaw;
   g.userData.skin = skin;
+  g.userData.pec = pec;
+  g.userData.swimList = [
+    attachSwim(skin, { amp: 0.55, freq: 0.38, speed: 4.2, lat: 1, vert: 0.1, phase: 0 }),
+    attachSwim(belly, { amp: 0.48, freq: 0.38, speed: 4.2, lat: 1, vert: 0.1, phase: 0.15 }),
+  ];
   return g;
 }
 
@@ -249,7 +294,12 @@ function makeWhaleGeom() {
   blow.position.set(5.6, 1.55, 0);
   inner.add(blow);
   g.userData.tail = tail;
+  g.userData.flip = flip;
   g.userData.hp = 2;
+  g.userData.swimList = [
+    attachSwim(skin, { amp: 0.62, freq: 0.28, speed: 2.4, lat: 0.22, vert: 1, phase: Math.random() * 4 }),
+    attachSwim(pale, { amp: 0.55, freq: 0.28, speed: 2.4, lat: 0.22, vert: 1, phase: 0.2 }),
+  ];
   g.scale.setScalar(2.15);
   return g;
 }
@@ -560,39 +610,42 @@ whales.forEach((w, i) => {
   scene.add(w);
 });
 
+const torpMatShared = new THREE.MeshStandardMaterial({
+  map: torpTex,
+  color: 0xffffff,
+  metalness: 0.65,
+  roughness: 0.35,
+  emissive: 0x332200,
+  emissiveIntensity: 0.45,
+});
+const torpBodyGeo = new THREE.CylinderGeometry(0.07, 0.08, 0.72, 10);
+torpBodyGeo.rotateX(Math.PI / 2);
+const torpNoseGeo = new THREE.ConeGeometry(0.08, 0.22, 10);
+torpNoseGeo.rotateX(Math.PI / 2);
+const torpFinGeo = new THREE.BoxGeometry(0.02, 0.16, 0.12);
+
 function makeTorpedoMesh(scale) {
   const s = scale || 1;
   const g = new THREE.Group();
-  const mat = new THREE.MeshStandardMaterial({
-    map: torpTex,
-    color: 0xffffff,
-    metalness: 0.65,
-    roughness: 0.35,
-    emissive: 0x221100,
-  });
-  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.07 * s, 0.08 * s, 0.72 * s, 14), mat);
-  body.rotation.x = Math.PI / 2;
+  const body = new THREE.Mesh(torpBodyGeo, torpMatShared);
   g.add(body);
-  const nose = new THREE.Mesh(new THREE.ConeGeometry(0.08 * s, 0.22 * s, 12), mat);
-  nose.rotation.x = Math.PI / 2;
-  nose.position.z = -0.46 * s;
+  const nose = new THREE.Mesh(torpNoseGeo, torpMatShared);
+  nose.position.z = -0.46;
   g.add(nose);
   for (let i = 0; i < 4; i++) {
-    const fin = new THREE.Mesh(new THREE.BoxGeometry(0.02 * s, 0.16 * s, 0.12 * s), mat);
-    fin.position.z = 0.28 * s;
+    const fin = new THREE.Mesh(torpFinGeo, torpMatShared);
+    fin.position.z = 0.28;
     fin.rotation.z = (i * Math.PI) / 2;
-    fin.position.x = Math.cos((i * Math.PI) / 2) * 0.08 * s;
-    fin.position.y = Math.sin((i * Math.PI) / 2) * 0.08 * s;
+    fin.position.x = Math.cos((i * Math.PI) / 2) * 0.08;
+    fin.position.y = Math.sin((i * Math.PI) / 2) * 0.08;
     g.add(fin);
   }
-  const glow = new THREE.PointLight(0xffcc66, 0.9 * s, 5 * s);
-  g.add(glow);
+  g.scale.setScalar(s);
   return g;
 }
 
 function makePickupMesh(kind) {
   const g = new THREE.Group();
-  let lightCol = 0x3aa0c8;
   if (kind === "o2") {
     const tank = new THREE.Mesh(
       new THREE.CylinderGeometry(0.22, 0.22, 0.72, 16),
@@ -605,7 +658,6 @@ function makePickupMesh(kind) {
     cap.position.y = 0.42;
     g.add(tank);
     g.add(cap);
-    lightCol = 0x3ad0ff;
   } else if (kind === "fuel") {
     const can = new THREE.Mesh(
       new THREE.BoxGeometry(0.42, 0.55, 0.28),
@@ -619,15 +671,11 @@ function makePickupMesh(kind) {
     handle.rotation.x = Math.PI / 2;
     g.add(can);
     g.add(handle);
-    lightCol = 0xffcc44;
   } else {
     const t = makeTorpedoMesh(1.15);
     t.rotation.y = Math.PI / 2;
     g.add(t);
-    lightCol = 0xff8844;
   }
-  const light = new THREE.PointLight(lightCol, 2.2, 8);
-  g.add(light);
   g.userData.kind = kind;
   return g;
 }
@@ -1174,9 +1222,12 @@ function sharkAi(dt) {
     shark.lookAt(tmp3);
     shark.position.add(tmp2.multiplyScalar(Math.min(1, (spd * dt) / dist)));
   }
-  const wag = Math.sin(performance.now() * 0.008) * (sharkState === "attack" ? 0.55 : 0.32);
+  const nowt = performance.now() * 0.001;
+  const wag = Math.sin(nowt * 8) * (sharkState === "attack" ? 0.55 : 0.32);
   if (shark.userData.tail) shark.userData.tail.rotation.y = wag;
   if (shark.userData.jaw) shark.userData.jaw.rotation.x = sharkState === "attack" ? 0.5 : 0.08;
+  if (shark.userData.pec) shark.userData.pec.rotation.z = Math.sin(nowt * 4.1) * 0.16;
+  tickSwim(shark, nowt, sharkState === "attack" ? 1.55 : sharkState === "hunt" ? 1.2 : 1);
 }
 
 function whaleAi(dt) {
@@ -1189,7 +1240,11 @@ function whaleAi(dt) {
     w.position.lerp(tmp, Math.min(1, 0.297 * dt));
     tmp2.set(cx + Math.cos(t + 0.2) * 4, wy, cz + Math.sin(t + 0.2) * 4);
     w.lookAt(tmp2);
-    if (w.userData.tail) w.userData.tail.rotation.y = Math.sin(performance.now() * 0.004 + i) * 0.4;
+    const nowt = performance.now() * 0.001;
+    const flap = Math.sin(nowt * 2.35 + i) * 0.38;
+    if (w.userData.tail) w.userData.tail.rotation.z = flap;
+    if (w.userData.flip) w.userData.flip.rotation.z = Math.sin(nowt * 2.35 + i + 0.6) * 0.22;
+    tickSwim(w, nowt + i * 0.7, 1);
   });
 }
 
@@ -1203,7 +1258,7 @@ function updateTorps(dt) {
     if (t.position.distanceTo(shark.position) < 14) {
       t.userData.life = 0;
       t.visible = false;
-      bubbleBurst(t.position, 22);
+      bubbleBurst(t.position, 10);
       hit = true;
       sharkHp -= 1;
       sfx(90, 0.2, "triangle", 0.08);
@@ -1226,11 +1281,11 @@ function updateTorps(dt) {
         if (t.position.distanceTo(wh.position) < 12) {
           t.userData.life = 0;
           t.visible = false;
-          bubbleBurst(t.position, 18);
+          bubbleBurst(t.position, 8);
           wh.userData.hp -= 1;
           setMsg("WHALE HIT", 1.1);
           if (wh.userData.hp <= 0) {
-            bubbleBurst(wh.position, 28);
+            bubbleBurst(wh.position, 12);
             setMsg("WHALE DRIVEN OFF", 2);
             const ang = Math.random() * 6.28;
             wh.position.set(sub.position.x + Math.cos(ang) * 180, 14 + Math.random() * 20, sub.position.z + Math.sin(ang) * 180);
