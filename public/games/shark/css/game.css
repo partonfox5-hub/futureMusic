@@ -69,6 +69,9 @@ body.space-mode #start, body.space-mode #dead {
   pointer-events: none;
 }
 #hud .hint { margin-top: 8px; opacity: 0.7; }
+#hud-track { display: inline-block; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; }
+#repair-wrap { margin-top: 8px; }
+#repair-wrap[hidden] { display: none !important; }
 #hud .bar {
   width: 180px;
   height: 8px;

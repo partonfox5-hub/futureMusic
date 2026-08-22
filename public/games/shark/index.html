@@ -22,7 +22,12 @@
     <div class="bar" id="hulb"><i id="huli"></i></div>
     <div>MODE <span id="mode">PILOT</span></div>
     <div>SONAR <span id="sstat">PATROL</span></div>
-    <div class="hint">W/S thrust · A/D strafe · Q down · E up<br/>MOUSE look · LMB torpedo · F EVA / patch</div>
+    <div>RADIO <span id="hud-track">STANDBY</span></div>
+    <div id="repair-wrap" hidden>
+      REPAIR
+      <div class="bar" id="repb"><i id="repi"></i></div>
+    </div>
+    <div class="hint">W/S thrust · A/D strafe · Q down · E up<br/>MOUSE look · LMB torpedo · F hatch · R radio / hold R to patch</div>
   </div>
   <div id="minimap-wrap">
     <canvas id="minimap" width="168" height="168"></canvas>
@@ -45,7 +50,8 @@
     </div>
     <div class="actions">
       <button type="button" id="touch-fire">FIRE</button>
-      <button type="button" data-code="KeyF">EVA</button>
+      <button type="button" data-code="KeyF">HATCH</button>
+      <button type="button" data-code="KeyR">R</button>
     </div>
   </div>
   <div id="vr-slot"></div>
@@ -53,8 +59,8 @@
     <div class="panel">
       <h1>SHARK</h1>
       <p>You are sealed in a pressure cell in a sea with no surface. A giant lives in the walls. It may be hunting. Whales pass in the dark. Sonar cannot tell them apart.</p>
-      <p>Patch the hull from outside after each strike. Steal oxygen from stray tanks. Drive it off with torpedoes when it lunges.</p>
-      <p>Desktop: WASD, Q/E, mouse, click. VR: grip the wheel, lift or press for depth, push it to thrust, trigger or the red button to fire.</p>
+      <p>Patch the hull from outside after each strike. Steal oxygen from stray tanks. Drive it off with torpedoes when it lunges. Outside, you are slow. If it takes you in the open, you are gone.</p>
+      <p>F hatch. R radio in the sub. Outside, hold R near the hull to patch. Desktop: WASD, Q/E, mouse, click. VR: grip the wheel, lift or press for depth, push it to thrust, trigger or the red button to fire.</p>
       <p>Choose a cell.</p>
       <div class="modes">
         <button type="button" id="go-sea">Deep Sea</button>

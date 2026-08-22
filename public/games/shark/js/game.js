@@ -640,6 +640,10 @@ const audio = {
   ytPlayer: null,
   skipped: new Set(),
   i: 0,
+  on: true,
+  master: null,
+  hissGain: null,
+  trackTitle: "STANDBY",
 };
 
 function sfx(freq, dur, type, vol) {
@@ -656,6 +660,19 @@ function sfx(freq, dur, type, vol) {
   o.stop(audio.ctx.currentTime + dur);
 }
 
+function makeReverbIR(ctx) {
+  const rate = ctx.sampleRate;
+  const len = Math.floor(rate * 2.6);
+  const buf = ctx.createBuffer(2, len, rate);
+  for (let c = 0; c < 2; c++) {
+    const d = buf.getChannelData(c);
+    for (let i = 0; i < len; i++) {
+      d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.35);
+    }
+  }
+  return buf;
+}
+
 function startHiss(ctx) {
   const buf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
   const d = buf.getChannelData(0);
@@ -668,7 +685,8 @@ function startHiss(ctx) {
   bp.frequency.value = 1400;
   bp.Q.value = 0.7;
   const g = ctx.createGain();
-  g.gain.value = 0.11;
+  g.gain.value = 0.035;
+  audio.hissGain = g;
   src.connect(bp);
   bp.connect(g);
   g.connect(ctx.destination);
@@ -678,10 +696,10 @@ function startHiss(ctx) {
 function radioFilter(ctx, node) {
   const lp = ctx.createBiquadFilter();
   lp.type = "lowpass";
-  lp.frequency.value = 2700;
+  lp.frequency.value = 2400;
   const hp = ctx.createBiquadFilter();
   hp.type = "highpass";
-  hp.frequency.value = 280;
+  hp.frequency.value = 260;
   const dist = ctx.createWaveShaper();
   const curve = new Float32Array(256);
   for (let i = 0; i < 256; i++) {
@@ -689,10 +707,61 @@ function radioFilter(ctx, node) {
     curve[i] = Math.tanh(x * 1.7) * 0.82;
   }
   dist.curve = curve;
+  const conv = ctx.createConvolver();
+  conv.buffer = makeReverbIR(ctx);
+  const dry = ctx.createGain();
+  dry.gain.value = 0.16;
+  const wet = ctx.createGain();
+  wet.gain.value = 0.55;
+  const master = ctx.createGain();
+  master.gain.value = audio.on ? 1 : 0;
+  audio.master = master;
   node.connect(hp);
   hp.connect(lp);
   lp.connect(dist);
-  dist.connect(ctx.destination);
+  dist.connect(dry);
+  dry.connect(master);
+  dist.connect(conv);
+  conv.connect(wet);
+  wet.connect(master);
+  master.connect(ctx.destination);
+}
+
+function localTrackName(src) {
+  const raw = decodeURIComponent(String(src).split("/").pop() || "TAPE");
+  return raw.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ").trim() || "TAPE";
+}
+
+function setTrackLabel(name) {
+  audio.trackTitle = name || "STANDBY";
+  const shown = audio.on ? audio.trackTitle : "RADIO OFF";
+  const el = document.getElementById("radio-now");
+  const hud = document.getElementById("hud-track");
+  if (el) el.textContent = shown;
+  if (hud) hud.textContent = shown;
+}
+
+function setRadioOn(on) {
+  audio.on = on;
+  if (audio.master) audio.master.gain.value = on ? 1 : 0;
+  if (audio.el) audio.el.volume = on ? 0.28 : 0;
+  if (audio.ytPlayer) {
+    try {
+      if (on) {
+        audio.ytPlayer.unMute?.();
+        audio.ytPlayer.setVolume?.(22);
+      } else {
+        audio.ytPlayer.mute?.();
+        audio.ytPlayer.setVolume?.(0);
+      }
+    } catch (e) {}
+  }
+  setTrackLabel(audio.trackTitle);
+}
+
+function toggleRadio() {
+  setRadioOn(!audio.on);
+  setMsg(audio.on ? "RADIO ON" : "RADIO OFF", 1.1);
 }
 
 function playLocal(i) {
@@ -704,12 +773,13 @@ function playLocal(i) {
     audio.el.addEventListener("ended", () => playLocal(audio.i + 1));
   }
   audio.el.src = audio.tracks[audio.i];
+  audio.el.volume = audio.on ? 0.28 : 0;
   audio.el.play().catch(() => {});
   if (audio.ctx && !audio.src) {
     audio.src = audio.ctx.createMediaElementSource(audio.el);
     radioFilter(audio.ctx, audio.src);
   }
-  document.getElementById("radio-now").textContent = "TAPE " + (audio.i + 1);
+  setTrackLabel(localTrackName(audio.tracks[audio.i]));
 }
 
 function loadYtApi() {
@@ -726,14 +796,14 @@ function loadYtApi() {
 async function playYt(i) {
   if (!audio.yt.length) return;
   if (audio.skipped.size >= audio.yt.length) {
-    document.getElementById("radio-now").textContent = "NO SHORT SIGNAL";
+    setTrackLabel("NO SHORT SIGNAL");
     return;
   }
   audio.i = ((i % audio.yt.length) + audio.yt.length) % audio.yt.length;
   if (audio.skipped.has(audio.i)) return playYt(audio.i + 1);
   await loadYtApi();
   if (!window.YT || !window.YT.Player) {
-    document.getElementById("radio-now").textContent = "NO SIGNAL";
+    setTrackLabel("NO SIGNAL");
     return;
   }
   const id = audio.yt[audio.i];
@@ -743,7 +813,16 @@ async function playYt(i) {
       audio.skipped.add(audio.i);
       playYt(audio.i + 1);
     } else {
-      document.getElementById("radio-now").textContent = "YT · " + id;
+      let title = id;
+      try {
+        const data = player.getVideoData && player.getVideoData();
+        if (data && data.title) title = data.title;
+      } catch (e) {}
+      try {
+        player.setVolume?.(audio.on ? 22 : 0);
+        if (!audio.on) player.mute?.();
+      } catch (e) {}
+      setTrackLabel(title);
     }
   };
   if (!audio.ytPlayer) {
@@ -753,7 +832,13 @@ async function playYt(i) {
       videoId: id,
       playerVars: { autoplay: 1, controls: 0, disablekb: 1, fs: 0, modestbranding: 1, playsinline: 1, rel: 0 },
       events: {
-        onReady: (e) => e.target.playVideo(),
+        onReady: (e) => {
+          try {
+            e.target.setVolume(audio.on ? 22 : 0);
+            if (!audio.on) e.target.mute();
+          } catch (err) {}
+          e.target.playVideo();
+        },
         onError: () => {
           audio.skipped.add(audio.i);
           playYt(audio.i + 1);
@@ -770,7 +855,7 @@ async function playYt(i) {
 }
 
 async function startRadio() {
-  document.getElementById("radio-now").textContent = "TUNING…";
+  setTrackLabel("TUNING…");
   try {
     const r = await fetch("/api/shark/radio");
     const j = await r.json();
@@ -780,10 +865,10 @@ async function startRadio() {
     } else {
       audio.yt = j.videos || [];
       if (audio.yt.length) playYt(0);
-      else document.getElementById("radio-now").textContent = "NO SIGNAL";
+      else setTrackLabel("NO SIGNAL");
     }
   } catch (e) {
-    document.getElementById("radio-now").textContent = "NO SIGNAL";
+    setTrackLabel("NO SIGNAL");
   }
 }
 
@@ -853,6 +938,7 @@ function wallPoint(face, t, y) {
 }
 
 function sharkAi(dt) {
+  const prey = mode === "eva" ? evaDummy.position : sub.position;
   cellHelper.position.copy(sub.position);
   cellWalls.position.copy(sub.position);
   sharkTimer -= dt;
@@ -888,18 +974,22 @@ function sharkAi(dt) {
       huntPing = 1.6;
       sfx(740, 0.06, "sine", 0.04);
     }
-    want = wallPoint(sharkFace, t * 1.4, sub.position.y + 3);
-    tmp3.copy(sub.position).sub(shark.position);
-    if (shark.position.distanceTo(sub.position) < 22) {
+    want = wallPoint(sharkFace, t * 1.4, prey.y + 3);
+    if (shark.position.distanceTo(prey) < 22) {
       sharkState = "attack";
       setSharkMood();
-      setMsg("SHARK INBOUND — FIRE", 2.2);
+      setMsg(mode === "eva" ? "SHARK INBOUND — GET INSIDE" : "SHARK INBOUND — FIRE", 2.2);
       shake = 0.2;
     }
   } else {
-    want = tmp.copy(sub.position);
+    want = tmp.copy(prey);
     want.y += 0.4;
-    if (shark.position.distanceTo(sub.position) < 11) {
+    if (shark.position.distanceTo(prey) < 11) {
+      if (mode === "eva") {
+        burst(prey, 16);
+        die("Taken in the open.");
+        return;
+      }
       burst(sub.position, 16);
       damage(34);
       sharkState = "patrol";
@@ -1064,6 +1154,12 @@ function hud() {
   document.getElementById("mode").textContent = mode === "pilot" ? "PILOT" : "EVA";
   document.getElementById("sstat").textContent = sharkState.toUpperCase();
   document.getElementById("msg").textContent = msgT > 0 ? msg : "";
+  const rw = document.getElementById("repair-wrap");
+  if (rw) {
+    const show = mode === "eva" && hull < 100 && repairHold > 0;
+    rw.hidden = !show;
+    if (show) document.getElementById("repi").style.width = Math.min(100, (repairHold / 3) * 100) + "%";
+  }
 }
 
 function parentControllers(to) {
@@ -1089,7 +1185,7 @@ function enterEva() {
   exterior.visible = true;
   helm.visible = true;
   parentControllers(evaDummy);
-  setMsg("EVA — SWIM TO THE GLOW AND HOLD F", 3);
+  setMsg(hull < 100 ? "EVA — HOLD R NEAR THE HULL TO PATCH" : "EVA — F NEAR HATCH TO RE-ENTER", 3);
 }
 
 function enterPilot() {
@@ -1111,8 +1207,8 @@ function enterPilot() {
 
 function tryToggleEva() {
   if (!running || dead) return;
-  if (mode === "pilot" && hull < 100) enterEva();
-  else if (mode === "eva" && evaDummy.position.distanceTo(sub.position) < 3.1 && hull >= 100) enterPilot();
+  if (mode === "pilot") enterEva();
+  else if (mode === "eva" && evaDummy.position.distanceTo(sub.position) < 3.1) enterPilot();
 }
 
 function readXrMove(dt, move) {
@@ -1148,7 +1244,7 @@ function step(dt) {
   if (!running) return;
   dt = Math.min(0.05, dt);
   const body = mode === "pilot" ? sub : evaDummy;
-  const baseSpd = mode === "pilot" ? 11 : 5.6;
+  const baseSpd = mode === "pilot" ? 11 : 11 * 0.25;
   const spd = mode === "pilot" && hull < 100 ? baseSpd * 0.5 : baseSpd;
   const move = { ax: 0, az: 0, ay: 0 };
 
@@ -1199,15 +1295,14 @@ function step(dt) {
     }
   } else {
     cam.rotation.set(lookPitch, lookYaw, 0);
-    crack.getWorldPosition(tmp3);
-    if (keys.has("KeyF") && evaDummy.position.distanceTo(tmp3) < 1.9 && hull < 100) {
+    if (keys.has("KeyR") && hull < 100 && evaDummy.position.distanceTo(sub.position) < 3.2) {
       repairHold += dt;
       setMsg("PATCHING " + Math.min(99, Math.floor((repairHold / 3) * 100)) + "%", 0.25);
       if (repairHold > 3) {
         hull = 100;
         crack.visible = false;
         repairHold = 0;
-        setMsg("HULL SEALED — RE-ENTER", 2);
+        setMsg("HULL SEALED — F TO RE-ENTER", 2);
         sfx(300, 0.2, "sine", 0.06);
       }
     } else repairHold = 0;
@@ -1248,8 +1343,7 @@ function applyLook(dx, dy) {
 window.addEventListener("keydown", (e) => {
   keys.add(e.code);
   if (e.code === "KeyF" && !e.repeat) tryToggleEva();
-  if (e.code === "KeyR" && audio.tracks.length) playLocal(audio.i + 1);
-  if (e.code === "KeyR" && audio.yt.length) playYt(audio.i + 1);
+  if (e.code === "KeyR" && !e.repeat && mode === "pilot") toggleRadio();
 });
 window.addEventListener("keyup", (e) => keys.delete(e.code));
 window.addEventListener("blur", () => keys.clear());
@@ -1342,6 +1436,7 @@ document.querySelectorAll("#touch [data-code]").forEach((btn) => {
     e.preventDefault();
     keys.add(btn.dataset.code);
     if (btn.dataset.code === "KeyF") tryToggleEva();
+    if (btn.dataset.code === "KeyR" && mode === "pilot") toggleRadio();
   };
   const up = (e) => {
     e.preventDefault();
