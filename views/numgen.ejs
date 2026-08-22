@@ -454,7 +454,10 @@
         setStatus('');
     }
 
-    modeEl.addEventListener('change', syncMode);
+    modeEl.addEventListener('change', () => {
+        syncMode();
+        padEl.checked = modeEl.value !== 'range';
+    });
     countEl.addEventListener('input', syncGenerateLabel);
     $('btn-generate').addEventListener('click', generate);
     $('btn-copy').addEventListener('click', copyAll);
