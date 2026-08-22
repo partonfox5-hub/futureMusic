@@ -413,14 +413,14 @@
         starPos[i * 2] = Math.random() * w;
         starPos[i * 2 + 1] = Math.random() * h;
       }
-      const drift = dust ? 3 : 1.6;
+      const drift = dust ? 2.25 : 1.2;
       starVel[i * 2] = rand(-drift, drift);
       starVel[i * 2 + 1] = rand(-drift * 0.6, drift * 0.6);
       const c = starColor(i, dust);
       starData[i * 4] = c[0];
       starData[i * 4 + 1] = c[1];
       starData[i * 4 + 2] = c[2];
-      starData[i * 4 + 3] = dust ? rand(0.9, 1.7) : Math.random() > 0.985 ? rand(4.5, 8) : rand(0.8, 2.2);
+      starData[i * 4 + 3] = dust ? rand(1.125, 2.125) : Math.random() > 0.985 ? rand(5.6, 10) : rand(1.0, 2.75);
     }
 
     const planets = [];
@@ -592,7 +592,7 @@
       const t = now * 0.001;
 
       if (holding && holdIndex >= 0) {
-        holes[holdIndex].mass = Math.min(0.475, holes[holdIndex].mass + dt * 0.21);
+        holes[holdIndex].mass = Math.min(0.62, holes[holdIndex].mass + dt * 0.21);
       }
       for (let i = 0; i < MAX_HOLES; i++) {
         if (holes[i].mass > 0) holes[i].age += dt;
@@ -601,6 +601,44 @@
           if (holes[i].mass < 0.015) {
             holes[i].mass = 0;
             holes[i].age = 0;
+            holes[i].grow = false;
+          }
+        }
+      }
+
+      for (let i = 0; i < MAX_HOLES; i++) {
+        if (holes[i].mass < 0.01) continue;
+        for (let j = i + 1; j < MAX_HOLES; j++) {
+          if (holes[j].mass < 0.01) continue;
+          const a = holes[i];
+          const b = holes[j];
+          const dx = b.x - a.x;
+          const dy = b.y - a.y;
+          const dist = Math.sqrt(dx * dx + dy * dy) + 1e-5;
+          const ra = 0.006 + a.mass * 0.05;
+          const rb = 0.006 + b.mass * 0.05;
+          const near = (ra + rb) * 4.8;
+          if (dist < near) {
+            const tot = a.mass + b.mass;
+            const stepN = (0.045 * dt) / dist;
+            a.x += dx * stepN * (b.mass / tot);
+            a.y += dy * stepN * (b.mass / tot);
+            b.x -= dx * stepN * (a.mass / tot);
+            b.y -= dy * stepN * (a.mass / tot);
+          }
+          if (dist < (ra + rb) * 1.25) {
+            const keep = a.mass >= b.mass ? a : b;
+            const drop = keep === a ? b : a;
+            const dropIdx = drop === a ? i : j;
+            keep.x = (a.x * a.mass + b.x * b.mass) / (a.mass + b.mass);
+            keep.y = (a.y * a.mass + b.y * b.mass) / (a.mass + b.mass);
+            keep.mass = Math.min(0.62, Math.max(a.mass, b.mass) + 0.32 * Math.min(a.mass, b.mass));
+            keep.age = Math.max(a.age, b.age);
+            if (drop.grow) keep.grow = true;
+            if (holdIndex === dropIdx) holdIndex = keep === a ? i : j;
+            drop.mass = 0;
+            drop.age = 0;
+            drop.grow = false;
           }
         }
       }
@@ -618,7 +656,7 @@
           const dx = hole.x - p.x;
           const dy = hole.y - p.y;
           const d2 = dx * dx + dy * dy + 0.00035;
-          const f = (hole.mass * 0.38 * dt * pull) / d2;
+          const f = (hole.mass * 0.19 * dt * pull) / d2;
           p.vx += dx * f;
           p.vy += dy * f;
           const rs = 0.006 + hole.mass * 0.05;
@@ -673,7 +711,7 @@
           const dx = hx - x;
           const dy = hy - y;
           const d2 = dx * dx + dy * dy + 140;
-          const f = (hole.mass * 26000 * dt * dust * pull) / d2;
+          const f = (hole.mass * 13000 * dt * dust * pull) / d2;
           vx += dx * f;
           vy += dy * f;
           const rs = (0.006 + hole.mass * 0.05) * Math.min(w, h);
