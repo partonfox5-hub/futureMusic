@@ -6,6 +6,8 @@ import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.185.0/build/three.m
 import { fenrestToBag, loadBag, mergeBagIntoList } from "/games/shared/realm-bag.js";
 import { createVoicePair } from "/games/shared/voice-coop.js";
 import { hatHex, mountChip, paintChip, peerId, rememberPeer } from "/games/shared/coop-hat.js";
+import { anyHitsPortal, bindXrTick, gripPoints, portalHit, readHead, warpAfterXr } from "/games/shared/vr-warp.js";
+import { attachVrHands } from "/games/fenrest/js/vr-hands.js";
 
 const TOWNS = [
   { id: "fenrest", name: "Fenrest", x: 0, z: 0, r: 42, style: "thatch", econ: "farms", skip: true },
@@ -412,7 +414,7 @@ function makeLoot(defId, x, y, z) {
   return sp;
 }
 
-function tickLoot(items, dt, store) {
+function tickLoot(items, dt, store, opts = {}) {
   const cam = window.__FENREST_CAM__;
   let px = 0;
   let pz = 0;
@@ -429,7 +431,7 @@ function tickLoot(items, dt, store) {
       it.position.x += u.vx * dt;
       it.position.y += u.vy * dt;
       it.position.z += u.vz * dt;
-      it.material.rotation += u.av * dt;
+      if (it.material && "rotation" in it.material) it.material.rotation += u.av * dt;
       const gy = heightAt(it.position.x, it.position.z) + 0.45;
       if (it.position.y <= gy) {
         it.position.y = gy;
@@ -444,7 +446,7 @@ function tickLoot(items, dt, store) {
       }
     }
     const d = Math.hypot(it.position.x - px, it.position.z - pz);
-    if (d < 1.45 && store) {
+    if (!opts.vr && d < 1.45 && store) {
       const ok = store.getState().addItem(u.defId, 1);
       if (ok !== false) {
         it.visible = false;
@@ -500,8 +502,12 @@ function spawnPack(root, list, px, pz) {
 
 function tickFoes(list, dt, store, bolts, root) {
   const cam = window.__FENREST_CAM__;
-  if (!cam) return;
-  cam.getWorldPosition(tmp);
+  const hd = window.__FENREST_HEAD__;
+  if (hd && Number.isFinite(hd.x)) {
+    tmp.set(hd.x, hd.y, hd.z);
+  } else if (cam) {
+    cam.getWorldPosition(tmp);
+  } else return;
   const px = tmp.x;
   const py = tmp.y;
   const pz = tmp.z;
@@ -626,11 +632,12 @@ function makeMcPortal() {
   return g;
 }
 
-function goPortal(to) {
+function goPortal(to, gl) {
   const st = window.__FENREST__?.store?.getState?.();
   if (st) fenrestToBag(st.inventory, st.gold);
   sessionStorage.setItem("fm-realm-warp", JSON.stringify({ from: "fenrest", at: Date.now() }));
-  window.location.href = to === "neweden" ? "/neweden?portal=1" : "/fenrest?portal=1";
+  const url = to === "neweden" ? "/neweden?portal=1" : "/fenrest?portal=1";
+  warpAfterXr(gl || window.__FENREST_GL__, url);
 }
 
 function makePeerPuppet(slot, name) {
@@ -867,13 +874,59 @@ async function boot() {
   const portalGroup = new THREE.Group();
   portalGroup.visible = false;
   const mirrors = [makeMirrorPortal(), makeMirrorPortal()];
-  mirrors[0].position.set(6, heightAt(6, 8) + 1.4, 8);
-  mirrors[1].position.set(-18, heightAt(-18, -8) + 1.4, -8);
+  mirrors[0].position.set(6, heightAt(6, 8) + 1.45, 8);
+  mirrors[1].position.set(-18, heightAt(-18, -8) + 1.45, -8);
   mirrors.forEach((p) => portalGroup.add(p));
   root.add(portalGroup);
 
+  const hands = attachVrHands({
+    scene,
+    gl,
+    heightAt,
+    loot,
+    foes,
+    store,
+  });
+  const head = { x: 0, y: 1.6, z: 0 };
+  const gripPts = [];
+
   let last = performance.now();
   let warping = false;
+  let lastHandT = 0;
+
+  function stepHands(now) {
+    if (!gl?.xr?.isPresenting) return;
+    const hdt = Math.min(0.05, ((now - lastHandT) || 16) / 1000);
+    if (now - lastHandT < 8) return;
+    lastHandT = now;
+    hands.tick(hdt);
+  }
+
+  function tryWarp(now) {
+    const st = store?.getState?.();
+    const vr = !!(st?.vr || gl?.xr?.isPresenting);
+    portalGroup.visible = vr;
+    if (vr && !tryWarp.hinted) {
+      tryWarp.hinted = true;
+      store?.getState?.().setHud?.({ prompt: "Squeeze grip to pick up steel. Walk into the mirror for New Eden." });
+    }
+    if (!vr || warping) return;
+    const cam = window.__FENREST_CAM__;
+    readHead(gl, cam, null, head);
+    gripPoints(gl, THREE, gripPts);
+    const pts = [head, ...gripPts];
+    portalGroup.children.forEach((p) => {
+      if (p.userData.sw) {
+        paintSwirl(p.userData.sw, (now || performance.now()) * 0.001);
+        p.lookAt(head.x, p.position.y, head.z);
+      }
+      if (!warping && (anyHitsPortal(p, pts, 1.6) || portalHit(p, head, 1.6))) {
+        warping = true;
+        goPortal("neweden", gl);
+      }
+    });
+  }
+
   function loop(now) {
     const dt = Math.min(0.05, (now - last) / 1000);
     last = now;
@@ -881,8 +934,10 @@ async function boot() {
     const st = store?.getState?.();
     const vr = !!(st?.vr || gl?.xr?.isPresenting);
     if (cam) {
-      cam.getWorldPosition(tmp);
-      tickLoot(loot, dt, store);
+      readHead(gl, cam, null, head);
+      tmp.set(head.x, head.y, head.z);
+      window.__FENREST_HEAD__ = head;
+      tickLoot(loot, dt, store, { vr });
       tickFoes(foes, dt, store, bolts, root);
       for (let i = bolts.length - 1; i >= 0; i--) {
         const b = bolts[i];
@@ -916,19 +971,8 @@ async function boot() {
         });
       }
       trigPrev = trig;
-      portalGroup.visible = vr;
-      if (vr) {
-        portalGroup.children.forEach((p) => {
-          if (p.userData.sw) {
-            paintSwirl(p.userData.sw, now * 0.001);
-            p.lookAt(tmp.x, p.position.y, tmp.z);
-          }
-          if (!warping && p.position.distanceTo(tmp) < 1.55) {
-            warping = true;
-            goPortal("neweden");
-          }
-        });
-      }
+      tryWarp(now);
+      stepHands(now);
       root.traverse((o) => {
         if (o.userData?.kind === "sign" || (o.isMesh && o.material?.map && o.geometry?.type === "PlaneGeometry" && Math.abs((o.geometry.parameters?.width || 0) - 1.6) < 0.01)) {
           o.lookAt(tmp.x, o.position.y, tmp.z);
@@ -971,6 +1015,10 @@ async function boot() {
     requestAnimationFrame(loop);
   }
   requestAnimationFrame(loop);
+  if (gl) bindXrTick(gl, (t) => {
+    tryWarp(t);
+    stepHands(t);
+  });
 }
 
 boot();
