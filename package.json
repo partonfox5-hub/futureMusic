@@ -1,7 +1,7 @@
 {
   "name": "future-music-collective",
   "version": "1.0.0",
-  "description": "The Captain's Frequency (fenrest-melee3)",
+  "description": "The Captain's Frequency (eden-vrperf1)",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
