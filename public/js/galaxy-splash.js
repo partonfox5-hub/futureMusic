@@ -684,6 +684,9 @@
         root.setPointerCapture(e.pointerId);
       } catch (err) {}
       e.preventDefault();
+      try {
+        window.getSelection && window.getSelection().removeAllRanges();
+      } catch (err) {}
     }
 
     function onUp() {
@@ -693,6 +696,7 @@
     }
 
     function onMove(e) {
+      if (holding) e.preventDefault();
       const uv = eventUV(e);
       cursor.x = uv.x;
       cursor.y = 1 - uv.y;
@@ -700,6 +704,16 @@
       cursor.cy = e.clientY;
       cursor.on = true;
       cursor.overUi = interactiveTarget(e.target);
+    }
+
+    function onSelectStart(e) {
+      if (interactiveTarget(e.target)) return;
+      e.preventDefault();
+    }
+
+    function onContextMenu(e) {
+      if (interactiveTarget(e.target)) return;
+      e.preventDefault();
     }
 
     function onLeave() {
@@ -1173,9 +1187,12 @@
 
     initPlanets();
     resize();
-    root.addEventListener("pointerdown", onDown);
-    root.addEventListener("pointermove", onMove);
+    root.addEventListener("pointerdown", onDown, { passive: false });
+    root.addEventListener("pointermove", onMove, { passive: false });
     root.addEventListener("pointerleave", onLeave);
+    root.addEventListener("selectstart", onSelectStart);
+    root.addEventListener("dragstart", onSelectStart);
+    root.addEventListener("contextmenu", onContextMenu);
     window.addEventListener("pointerup", onUp);
     window.addEventListener("pointercancel", onUp);
     window.addEventListener("resize", onResize);
@@ -1188,6 +1205,9 @@
         root.removeEventListener("pointerdown", onDown);
         root.removeEventListener("pointermove", onMove);
         root.removeEventListener("pointerleave", onLeave);
+        root.removeEventListener("selectstart", onSelectStart);
+        root.removeEventListener("dragstart", onSelectStart);
+        root.removeEventListener("contextmenu", onContextMenu);
         window.removeEventListener("pointerup", onUp);
         window.removeEventListener("pointercancel", onUp);
         window.removeEventListener("resize", onResize);
