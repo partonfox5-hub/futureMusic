@@ -3,6 +3,7 @@
  * melee and brandish / swing them.
  */
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.185.0/build/three.module.js";
+import { makeChargeRing, paintChargeRing, makeSpellAura, SPELLS } from "/games/fenrest/js/magic.js";
 
 function leatherTex() {
   const c = document.createElement("canvas");
@@ -163,11 +164,12 @@ export function makeHeldWeapon(defId) {
     g.add(bow);
     g.userData.reach = 0.4;
     g.userData.melee = false;
-  } else if (defId === "spell-thunderbolt") {
+  } else if (String(defId).startsWith("spell-")) {
     addCyl(g, mat(0x3a2a58), 0, 0, -0.08, 0.016, 0.018, 0.28, Math.PI / 2, 0, 0);
     addBox(g, mat(0xc8e8ff), 0, 0, -0.24, 0.04, 0.04, 0.04);
     g.userData.reach = 0.4;
     g.userData.melee = false;
+    g.userData.spell = defId;
   } else {
     addBox(g, oak, 0, 0, -0.06, 0.06, 0.06, 0.12);
     g.userData.reach = 0.3;
@@ -200,7 +202,44 @@ function haptic(src, amp, ms) {
   } catch {}
 }
 
-export function attachVrHands({ scene, gl, heightAt, loot, foes, store }) {
+function triggerOf(src) {
+  const b = src?.gamepad?.buttons?.[0];
+  if (!b) return 0;
+  if (typeof b.value === "number") return b.value;
+  return b.pressed ? 1 : 0;
+}
+
+function bodyRegion(foe, hitY) {
+  const h = foe.scale?.y || 2;
+  const top = foe.position.y + h * 0.5;
+  const bot = foe.position.y - h * 0.5;
+  const t = (hitY - bot) / Math.max(0.15, top - bot);
+  if (t > 0.72) return "head";
+  if (t < 0.32) return "lower";
+  return "torso";
+}
+
+export function applyMeleeHit(foe, speed, shield) {
+  if (!foe?.userData) return false;
+  const u = foe.userData;
+  if (u.hitCool > 0) return false;
+  const spd = Math.max(0.35, Math.min(3.6, speed / 3.2));
+  let dmg = (shield ? 1.5 : 2.2) * spd;
+  const region = u.lastRegion || "torso";
+  if (region === "head") dmg *= 2;
+  if (region === "lower") {
+    u.lower = Math.max(0.25, (u.lower ?? 1) - 0.18 * spd);
+  }
+  if (region === "torso") {
+    u.stamina = Math.max(0, (u.stamina ?? 1) - dmg * 0.5 * 0.08);
+  }
+  u.hp -= dmg;
+  u.hitCool = 0.22;
+  if (u.hp <= 0) foe.visible = false;
+  return true;
+}
+
+export function attachVrHands({ scene, gl, heightAt, loot, foes, store, onCast, magic }) {
   if (!gl?.xr || !scene) return { tick() {} };
 
   const grip = [gl.xr.getControllerGrip(0), gl.xr.getControllerGrip(1)];
@@ -216,8 +255,24 @@ export function attachVrHands({ scene, gl, heightAt, loot, foes, store }) {
   const prevPos = [new THREE.Vector3(), new THREE.Vector3()];
   const tip = new THREE.Vector3();
   const gp = new THREE.Vector3();
+  const dir = new THREE.Vector3();
   let sources = [null, null];
   let prevSqueeze = [0, 0];
+  let prevTrig = [0, 0];
+  const charge = [0, 0];
+  const rings = [makeChargeRing(), makeChargeRing()];
+  grip[0].add(rings[0]);
+  grip[1].add(rings[1]);
+  const auras = [null, null];
+  const spiritMat = [];
+  gloves.forEach((glv) => {
+    glv.traverse((o) => {
+      if (o.isMesh && o.material) {
+        o.material = o.material.clone();
+        spiritMat.push(o.material);
+      }
+    });
+  });
 
   const onAdd = (ev) => {
     const src = ev.data;
@@ -243,6 +298,10 @@ export function attachVrHands({ scene, gl, heightAt, loot, foes, store }) {
   function drop(i, fling) {
     const h = held[i];
     if (!h) return;
+    if (auras[i]) {
+      auras[i].removeFromParent();
+      auras[i] = null;
+    }
     h.mesh.removeFromParent();
     const world = new THREE.Vector3();
     h.mesh.getWorldPosition(world);
@@ -261,6 +320,18 @@ export function attachVrHands({ scene, gl, heightAt, loot, foes, store }) {
     store?.getState?.().setHud?.({ prompt: "Dropped" });
   }
 
+  function attachAura(i, defId) {
+    if (auras[i]) {
+      auras[i].removeFromParent();
+      auras[i] = null;
+    }
+    const sp = SPELLS.find((s) => s.id === defId);
+    if (!sp) return;
+    const aura = makeSpellAura(sp.aura);
+    (held[i]?.mesh || gloves[i === 0 ? 0 : 1] || grip[i]).add(aura);
+    auras[i] = aura;
+  }
+
   function grab(i, item) {
     if (held[i]) drop(i);
     const mesh = makeHeldWeapon(item.userData.defId);
@@ -270,8 +341,17 @@ export function attachVrHands({ scene, gl, heightAt, loot, foes, store }) {
     try {
       store?.getState?.().addItem?.(item.userData.defId, 1);
     } catch {}
+    attachAura(i, item.userData.defId);
     store?.getState?.().setHud?.({ prompt: "Grip holds " + String(item.userData.defId).replace("-", " ") });
     haptic(sources[i], 0.7, 40);
+  }
+
+  function equipFromInventory(i, defId) {
+    if (held[i]) drop(i);
+    const mesh = makeHeldWeapon(defId);
+    grip[i].add(mesh);
+    held[i] = { mesh, loot: null, defId };
+    attachAura(i, defId);
   }
 
   function tick(dt) {
@@ -308,26 +388,74 @@ export function attachVrHands({ scene, gl, heightAt, loot, foes, store }) {
       }
 
       const h = held[i];
-      if (h?.mesh && h.mesh.userData.melee && speed > 2.4) {
+      const spellId = h?.mesh?.userData?.spell || (String(h?.defId || "").startsWith("spell-") ? h.defId : null);
+      const trig = triggerOf(sources[i]);
+      if (spellId) {
+        if (trig > 0.35) {
+          charge[i] = Math.min(1, charge[i] + dt * 0.72);
+          paintChargeRing(rings[i], charge[i], "#ffd070");
+        } else {
+          if (prevTrig[i] > 0.35 && charge[i] > 0.08) {
+            grip[i].getWorldDirection(dir);
+            dir.multiplyScalar(-1);
+            const origin = gp.clone();
+            onCast?.(spellId, charge[i], origin, dir, i);
+            haptic(sources[i], 0.6 + charge[i] * 0.4, 50);
+          }
+          charge[i] = 0;
+          rings[i].visible = false;
+        }
+      } else {
+        charge[i] = 0;
+        rings[i].visible = false;
+      }
+
+      if (auras[i]?.userData?.halo) {
+        auras[i].userData.t += dt;
+        auras[i].userData.halo.rotation.z += dt * 2.4;
+        auras[i].scale.setScalar(1 + Math.sin(auras[i].userData.t * 6) * 0.08);
+      }
+
+      if (h?.mesh && h.mesh.userData.melee && speed > 1.6) {
         if (h.mesh.userData.tip) h.mesh.userData.tip.getWorldPosition(tip);
         else {
           const reach = h.mesh.userData.reach || 0.7;
           grip[i].getWorldDirection(tip);
           tip.multiplyScalar(-reach).add(gp);
         }
-        for (const f of foes || []) {
-          if (!f.visible) continue;
-          if (f.position.distanceTo(tip) < 1.15 || f.position.distanceTo(gp) < 0.7) {
-            f.userData.hp -= 2.4 * Math.min(3, speed / 2);
-            haptic(sources[i], 0.95, 28);
-            if (f.userData.hp <= 0) f.visible = false;
+        const lists = [foes];
+        if (window.__FENREST_ALLIES__) lists.push(window.__FENREST_ALLIES__);
+        for (const list of lists) {
+          for (const f of list || []) {
+            if (!f.visible) continue;
+            const dTip = f.position.distanceTo(tip);
+            const dGp = f.position.distanceTo(gp);
+            const rad = 0.55 + (f.scale?.x || 1) * 0.45;
+            if (dTip < rad + 0.35 || dGp < rad) {
+              f.userData.lastRegion = f.userData.humanoid === false ? "torso" : bodyRegion(f, tip.y);
+              if (applyMeleeHit(f, speed, !!h.mesh.userData.block)) {
+                haptic(sources[i], 0.95, 28);
+                store?.getState?.().setHud?.({
+                  prompt:
+                    (h.mesh.userData.block ? "Shield bash " : "Cut ") +
+                    (f.userData.lastRegion || "") +
+                    (f.userData.lower < 0.9 ? " · crippled" : ""),
+                });
+              }
+            }
           }
         }
       }
       prevPos[i].copy(gp);
       prevSqueeze[i] = sq;
+      prevTrig[i] = trig;
     }
+    const spirit = magic?.skies?.();
+    spiritMat.forEach((m) => {
+      m.transparent = true;
+      m.opacity = spirit ? 0.28 : 1;
+    });
   }
 
-  return { tick, grip, gloves };
+  return { tick, grip, gloves, equipFromInventory, held };
 }

@@ -8,6 +8,8 @@ import { createVoicePair } from "/games/shared/voice-coop.js";
 import { hatHex, mountChip, paintChip, peerId, rememberPeer } from "/games/shared/coop-hat.js";
 import { anyHitsPortal, bindXrTick, gripPoints, portalHit, readHead, warpAfterXr } from "/games/shared/vr-warp.js";
 import { attachVrHands } from "/games/fenrest/js/vr-hands.js";
+import { heightAt as gridHeight, inSettlement, createChunkManager, snapToGround } from "/games/fenrest/js/world-grid.js";
+import { createMagic } from "/games/fenrest/js/magic.js";
 
 const TOWNS = [
   { id: "fenrest", name: "Fenrest", x: 0, z: 0, r: 42, style: "thatch", econ: "farms", skip: true },
@@ -38,19 +40,11 @@ const tmp2 = new THREE.Vector3();
 const up = new THREE.Vector3(0, 1, 0);
 
 function heightAt(x, z) {
-  const n = Math.hypot(x, z);
-  const r = Math.max(0, 1 - n / 36);
-  const n2 = Math.sin(x * 0.028) * Math.cos(z * 0.031) * 0.55;
-  let a = Math.max(0, n2 + 0.15) * 4.4 * (1 - r * 0.92);
-  if (n > 70) a += (n - 70) * 0.08;
-  return a;
+  return gridHeight(x, z);
 }
 
 function inTown(x, z) {
-  for (const t of TOWNS) {
-    if (Math.hypot(x - t.x, z - t.z) < t.r) return t;
-  }
-  return null;
+  return inSettlement(x, z);
 }
 
 function tex(draw, w = 64, h = 64, wrap = 4) {
@@ -494,7 +488,8 @@ function spawnPack(root, list, px, pz) {
     const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: enemySprite(def.sprite), transparent: true }));
     sp.scale.set(def.id === "spider" ? 1.6 : def.id === "basilisk" ? 2.2 : def.id === "alien" ? 2.4 : 1.2, def.id === "spider" ? 1.1 : 2.1, 1);
     sp.position.set(x, heightAt(x, z) + sp.scale.y * 0.45, z);
-    sp.userData = { foe: true, def, hp: def.hp, cool: 0 };
+    const humanoid = ["bandit", "goblin", "mage", "necromancer"].includes(def.id);
+    sp.userData = { foe: true, def, hp: def.hp, maxHp: def.hp, cool: 0, stamina: 1, lower: 1, humanoid };
     root.add(sp);
     list.push(sp);
   }
@@ -517,7 +512,13 @@ function tickFoes(list, dt, store, bolts, root) {
     const dx = px - f.position.x;
     const dz = pz - f.position.z;
     const d = Math.hypot(dx, dz) || 1;
-    const spd = u.def.spd;
+    u.hitCool = Math.max(0, (u.hitCool || 0) - dt);
+    if (u.frozen > 0) {
+      u.frozen -= dt;
+      f.position.y = heightAt(f.position.x, f.position.z) + f.scale.y * 0.45;
+      continue;
+    }
+    const spd = u.def.spd * (u.lower ?? 1);
     f.position.x += (dx / d) * spd * dt;
     f.position.z += (dz / d) * spd * dt;
     f.position.y = heightAt(f.position.x, f.position.z) + f.scale.y * 0.45;
@@ -822,20 +823,10 @@ async function boot() {
     if (merged.length !== store.getState().inventory.length) {
       store.setState({ inventory: merged });
     }
-    if (!store.getState().inventory.some((i) => i.defId === "spell-thunderbolt")) {
-      store.getState().addItem?.("spell-thunderbolt", 1);
-    }
   }
 
-  TOWNS.forEach((t) => buildTown(root, t));
-  const hub = TOWNS[0];
-  for (let i = 1; i < TOWNS.length; i++) road(root, hub, TOWNS[i]);
-  road(root, TOWNS[1], TOWNS[2]);
-  road(root, TOWNS[1], TOWNS[3]);
-  road(root, TOWNS[4], TOWNS[5]);
-  road(root, TOWNS[6], TOWNS[7]);
-  road(root, TOWNS[7], TOWNS[8]);
-  road(root, TOWNS[8], TOWNS[3]);
+  const chunks = createChunkManager(root);
+  chunks.tick(0, 0);
 
   const smithX = 16.2;
   const smithZ = -3.6;
@@ -852,7 +843,25 @@ async function boot() {
   signpost(root, 14.4, 1.2, "SMITH — TAKE STEEL");
 
   const loot = [];
-  const dropIds = ["sword-copper", "sword-iron", "sword-steel", "shield-wood", "bow-wood", "axe-stone", "spear-bone", "helm-iron", "spell-thunderbolt"];
+  const dropIds = [
+    "sword-copper",
+    "sword-iron",
+    "sword-steel",
+    "shield-wood",
+    "bow-wood",
+    "axe-stone",
+    "spear-bone",
+    "helm-iron",
+    "spell-thunderbolt",
+    "spell-fireball",
+    "spell-freeze",
+    "spell-raise-terrain",
+    "spell-meteor",
+    "spell-join-skies",
+    "spell-spawn-goblin",
+    "spell-spawn-skeleton",
+    "spell-spawn-dragon",
+  ];
   dropIds.forEach((id, i) => {
     const a = i * 0.7;
     const sp = makeLoot(id, smithX + Math.cos(a) * 1.8, smithY + 1.1, smithZ + Math.sin(a) * 1.6);
@@ -868,7 +877,12 @@ async function boot() {
   }
 
   const foes = [];
+  const allies = [];
+  window.__FENREST_ALLIES__ = allies;
   const bolts = [];
+  const magic = createMagic({ root, foes, allies, store, gl, cam: window.__FENREST_CAM__ });
+  magic.grantAll();
+  magic.seedEvils();
   let encounterIn = 80 + Math.random() * 100;
   let trigPrev = false;
   const portalGroup = new THREE.Group();
@@ -886,6 +900,8 @@ async function boot() {
     loot,
     foes,
     store,
+    magic,
+    onCast: (id, charge, origin, dir) => magic.cast(id, charge, origin, dir),
   });
   const head = { x: 0, y: 1.6, z: 0 };
   const gripPts = [];
@@ -939,6 +955,10 @@ async function boot() {
       window.__FENREST_HEAD__ = head;
       tickLoot(loot, dt, store, { vr });
       tickFoes(foes, dt, store, bolts, root);
+      magic.tick(dt, gl);
+      chunks.tick(tmp.x, tmp.z);
+      snapToGround(cam, dt);
+      store?.getState?.().setHud?.({ mp: 1 });
       for (let i = bolts.length - 1; i >= 0; i--) {
         const b = bolts[i];
         b.userData.life -= dt;

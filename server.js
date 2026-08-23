@@ -260,6 +260,10 @@ app.get(['/fenrest', '/fenrest/'], (req, res) => {
     fenrestHeaders(res);
     res.sendFile(path.join(__dirname, 'public', 'games', 'fenrest', 'index.html'));
 });
+app.get(["/test-r8k3m2qv", "/test-r8k3m2qv/"], (req, res) => {
+    fenrestHeaders(res);
+    res.sendFile(path.join(__dirname, "public", "games", "fenrest", "index.html"));
+});
 
 app.use(express.static(path.join(__dirname, 'public')));
 
