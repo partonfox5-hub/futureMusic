@@ -872,6 +872,11 @@ app.get(['/neweden', '/neweden/', '/neweden/login', '/neweden/login/'], (req, re
     res.type('html').send(html);
 });
 
+app.get(['/test-h4k9m2qx', '/test-h4k9m2qx/'], (req, res) => {
+    res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+    res.setHeader('Permissions-Policy', 'xr-spatial-tracking=(self), fullscreen=(self), gamepad=(self), accelerometer=(self), gyroscope=(self), magnetometer=(self)');
+    res.sendFile(path.join(__dirname, 'public', 'games', 'planmorpher', 'test-h4k9m2qx', 'index.html'));
+});
 app.get(['/test-m7q2n8kw', '/test-m7q2n8kw/'], (req, res) => {
     newedenHeaders(res);
     res.setHeader('X-Robots-Tag', 'noindex, nofollow');
