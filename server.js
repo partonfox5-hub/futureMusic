@@ -283,6 +283,17 @@ app.use("/games/fenrest-chess", (req, res, next) => {
     next();
 });
 
+// PLANMORPHER — unlisted Quest 3 WebXR god game. Canonical URL is /planmorpher.
+function planmorpherHeaders(res) {
+    res.setHeader("Permissions-Policy", "xr-spatial-tracking=(self), fullscreen=(self), gamepad=(self), accelerometer=(self), gyroscope=(self), magnetometer=(self)");
+    res.setHeader("X-Robots-Tag", "noindex, nofollow");
+}
+app.get(["/games/planmorpher", "/games/planmorpher/"], (req, res) => res.redirect("/planmorpher"));
+app.get(["/planmorpher", "/planmorpher/"], (req, res) => {
+    planmorpherHeaders(res);
+    res.sendFile(path.join(__dirname, "public", "games", "planmorpher", "index.html"));
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 // --- STRIPE ---
