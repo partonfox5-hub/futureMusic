@@ -696,6 +696,11 @@ app.get('/test-n8q3v6k2', (req, res) => {
     res.setHeader('Permissions-Policy', 'xr-spatial-tracking=(self), fullscreen=(self), gamepad=(self), accelerometer=(self), gyroscope=(self), magnetometer=(self)');
     res.sendFile(path.join(__dirname, 'public', 'games', 'shark-test-n8q3v6k2', 'index.html'));
 });
+app.get('/test-k4w8n2p7', (req, res) => {
+    res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+    res.setHeader('Permissions-Policy', 'xr-spatial-tracking=(self), fullscreen=(self), gamepad=(self), accelerometer=(self), gyroscope=(self), magnetometer=(self)');
+    res.sendFile(path.join(__dirname, 'public', 'games', 'shark-test-k4w8n2p7', 'index.html'));
+});
 
 const SHARK_YT_CHANNEL = 'UClOdltq7PUfU3cLyK0O-6jA';
 const SHARK_YT_FALLBACK = ['SQha9mRCsv8', 'hpUL9b0vVX8', 'DjZTj5Gv4NA', '01RVvhkRL_U', 'DGXsDgt5KZY', 'z1PFzPjj024', 'ZwGVGPxJO3E', 'KVKnZgM8_4g'];
