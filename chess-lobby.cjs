@@ -108,10 +108,10 @@ function handle(body) {
     let p = lobby.peers.get(peer);
     if (!p) {
       if (lobby.peers.size >= CAP) {
-        return { ok: false, error: "Lobby is full (2 players).", ...payload() };
+        return { ...payload(), ok: false, error: "Lobby is full (2 players)." };
       }
-      if (lobby.started && lobby.peers.size >= CAP) {
-        return { ok: false, error: "Match already underway.", ...payload() };
+      if (lobby.started) {
+        return { ...payload(), ok: false, error: "Match already underway." };
       }
       const seat = lobby.peers.size === 0 ? "w" : "b";
       p = {
@@ -137,14 +137,14 @@ function handle(body) {
     return { ok: true };
   }
   if (op === "settings") {
-    if (peer !== lobby.hostId) return { ok: false, error: "Only the host sets the board.", ...payload() };
+    if (peer !== lobby.hostId) return { ...payload(), ok: false, error: "Only the host sets the board." };
     const scale = Math.max(1, Math.min(3, Number(body.scale) || 1));
     lobby.scale = scale;
     return { ok: true, ...payload() };
   }
   if (op === "start") {
-    if (peer !== lobby.hostId) return { ok: false, error: "Only the host can start.", ...payload() };
-    if (lobby.peers.size < 2) return { ok: false, error: "Need two players.", ...payload() };
+    if (peer !== lobby.hostId) return { ...payload(), ok: false, error: "Only the host can start." };
+    if (lobby.peers.size < 2) return { ...payload(), ok: false, error: "Need two players." };
     const scale = Math.max(1, Math.min(3, Number(body.scale) || lobby.scale || 1));
     lobby.scale = scale;
     lobby.mountains = makeMountains(scale);

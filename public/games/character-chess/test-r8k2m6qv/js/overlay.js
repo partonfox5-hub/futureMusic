@@ -189,7 +189,14 @@ async function boot() {
     lobbyEl.classList.add("on");
     const portraits = ["primarch", "emberlancer", "voidseraph", "griffonair", "stormcrown"];
     const portrait = portraits[Math.floor(Math.random() * portraits.length)];
-    await post({ op: "join", peer: self, name: "Challenger " + self.slice(-3), portrait });
+    const joined = await post({ op: "join", peer: self, name: "Challenger " + self.slice(-3), portrait });
+    if (joined && joined.ok === false) {
+      inLobby = false;
+      lobbyEl.classList.remove("on");
+      shell.classList.add("on");
+      window.alert(joined.error || "Lobby is full.");
+      return;
+    }
     tickLobby();
   }
 
