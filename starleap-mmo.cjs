@@ -274,6 +274,10 @@ module.exports = function starleapMmo(req, res) {
     tickTravelers(r, now);
     return json(res, payload(r, sinceQ));
   }
+  const finish = (body) => json(res, handleBody(body || {}, sinceQ));
+  if (req.readableEnded || (req.body != null && typeof req.body === "object" && !Buffer.isBuffer(req.body))) {
+    return finish(req.body && typeof req.body === "object" && !Buffer.isBuffer(req.body) ? req.body : {});
+  }
   let buf = "";
   req.on("data", (c) => {
     buf += c;
@@ -286,8 +290,7 @@ module.exports = function starleapMmo(req, res) {
     } catch {
       return json(res, { ok: false, error: "bad json" }, 400);
     }
-    const out = handleBody(body, sinceQ);
-    return json(res, out, out && out.ok === false && out.error && out.error.startsWith("Party") ? 200 : 200);
+    return finish(body);
   });
 };
 

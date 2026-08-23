@@ -101,6 +101,13 @@ module.exports = function starleapRtc(req, res) {
     return json(res, out.body, out.status);
   }
   if (req.method !== "POST") return json(res, { error: "method not allowed" }, 405);
+  const finish = (body) => {
+    const out = handlePost(body || {});
+    return json(res, out.body, out.status);
+  };
+  if (req.readableEnded || (req.body != null && typeof req.body === "object" && !Buffer.isBuffer(req.body))) {
+    return finish(req.body && typeof req.body === "object" && !Buffer.isBuffer(req.body) ? req.body : {});
+  }
   let buf = "";
   req.on("data", (c) => {
     buf += c;
@@ -113,8 +120,7 @@ module.exports = function starleapRtc(req, res) {
     } catch {
       return json(res, { error: "invalid JSON" }, 400);
     }
-    const out = handlePost(body);
-    return json(res, out.body, out.status);
+    return finish(body);
   });
 };
 
