@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="stone" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#c4b49a"/>
+      <stop offset="100%" stop-color="#6a5e50"/>
+    </linearGradient>
+  </defs>
+  <rect x="14" y="22" width="100" height="86" rx="4" fill="url(#stone)" stroke="#3a342c" stroke-width="3"/>
+  <g fill="#3a342c" opacity="0.55">
+    <rect x="14" y="48" width="100" height="3"/>
+    <rect x="14" y="74" width="100" height="3"/>
+    <rect x="46" y="22" width="3" height="26"/>
+    <rect x="80" y="22" width="3" height="26"/>
+    <rect x="30" y="51" width="3" height="23"/>
+    <rect x="64" y="51" width="3" height="23"/>
+    <rect x="98" y="51" width="3" height="23"/>
+    <rect x="46" y="77" width="3" height="31"/>
+    <rect x="80" y="77" width="3" height="31"/>
+  </g>
+  <rect x="18" y="26" width="28" height="18" rx="1" fill="#d8cbb4" opacity="0.28"/>
+  <rect x="84" y="80" width="24" height="16" rx="1" fill="#2a241c" opacity="0.18"/>
+</svg>
