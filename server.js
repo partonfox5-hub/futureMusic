@@ -872,6 +872,25 @@ app.get(['/neweden', '/neweden/', '/neweden/login', '/neweden/login/'], (req, re
     res.type('html').send(html);
 });
 
+app.get(['/test-m7q2n8kw', '/test-m7q2n8kw/'], (req, res) => {
+    newedenHeaders(res);
+    res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+    const indexPath = path.join(__dirname, 'public', 'games', 'neweden', 'test-m7q2n8kw', 'index.html');
+    let html = fs.readFileSync(indexPath, 'utf8');
+    const sess = req.session || {};
+    const user = sess.user || (sess.userId ? { name: sess.username || sess.displayName || 'Explorer' } : null);
+    const payload = user ? { name: user.displayName || user.name || user.username || '' } : null;
+    html = html.replace(
+        '<head>',
+        `<head><script>window.__FM_USER__=${JSON.stringify(payload)};</script>`
+    );
+    res.type('html').send(html);
+});
+app.get(['/test-p3w8r6nt', '/test-p3w8r6nt/'], (req, res) => {
+    res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+    res.setHeader('Permissions-Policy', 'xr-spatial-tracking=(self), fullscreen=(self), gamepad=(self), accelerometer=(self), gyroscope=(self), magnetometer=(self)');
+    res.sendFile(path.join(__dirname, 'public', 'games', 'character-chess', 'test-m7q2n8kw', 'index.html'));
+});
 app.get('/test-v8k3n6q2', (req, res) => {
     newedenHeaders(res);
     res.setHeader('X-Robots-Tag', 'noindex, nofollow');
