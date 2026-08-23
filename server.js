@@ -619,7 +619,14 @@ function grantChessAlpha(req, res) {
         path: '/',
     });
 }
+const CHESS_ALPHA_OWNER_IPS = ['47.224.115.198'];
+function chessClientIp(req) {
+    const xf = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
+    const raw = xf || req.ip || (req.socket && req.socket.remoteAddress) || '';
+    return String(raw).replace(/^::ffff:/i, '').split('%')[0];
+}
 function hasChessAlpha(req) {
+    if (CHESS_ALPHA_OWNER_IPS.includes(chessClientIp(req))) return true;
     if (req.session && req.session.chessAlphaPack) return true;
     return readReqCookie(req, 'chess_alpha_pack') === chessAlphaToken();
 }
