@@ -245,12 +245,53 @@ function bodyRegion(foe, hitY) {
   return "torso";
 }
 
+function spriteCenter(obj, out) {
+  obj.updateWorldMatrix?.(true, false);
+  const e = obj.matrixWorld?.elements;
+  if (e) out.set(e[12], e[13], e[14]);
+  else out.copy(obj.position);
+  return out;
+}
+
+function spriteRadius(obj) {
+  if (obj.isSprite) return Math.max(0.7, (obj.scale?.x || 1) * 0.62);
+  if (obj.userData?.harvest) return 1.15;
+  if (obj.userData?.breakable) return 0.7;
+  if (obj.userData?.kind === "grass") return 0.45;
+  return Math.max(0.85, (obj.scale?.x || 1) * 0.5);
+}
+
+function spriteHalfH(obj) {
+  if (obj.isSprite) return Math.max(0.7, (obj.scale?.y || 1) * 0.58);
+  if (obj.userData?.harvest) return 1.7;
+  return 1.15;
+}
+
+function segmentHitsSprite(ax, ay, az, bx, by, bz, cx, cy, cz, radius, halfH) {
+  const abx = bx - ax;
+  const aby = by - ay;
+  const abz = bz - az;
+  const acx = cx - ax;
+  const acz = cz - az;
+  const ab2 = abx * abx + abz * abz;
+  let t = 0;
+  if (ab2 > 1e-8) t = (acx * abx + acz * abz) / ab2;
+  t = Math.max(0, Math.min(1, t));
+  const px = ax + abx * t;
+  const py = ay + aby * t;
+  const pz = az + abz * t;
+  const dx = px - cx;
+  const dz = pz - cz;
+  if (dx * dx + dz * dz > radius * radius) return false;
+  return Math.abs(py - cy) <= halfH + 0.4;
+}
+
 export function applyMeleeHit(foe, speed, shield, knock) {
   if (!foe?.userData) return false;
   const u = foe.userData;
   if (u.hitCool > 0) return false;
-  const spd = Math.max(0.45, Math.min(3.6, speed / 2.2));
-  let dmg = (shield ? 1.5 : 2.4) * spd;
+  const spd = Math.max(0.7, Math.min(4.2, speed / 1.6));
+  let dmg = (shield ? 1.6 : 2.8) * spd;
   const region = u.lastRegion || "torso";
   if (region === "head") dmg *= 2;
   if (region === "lower") {
@@ -260,15 +301,19 @@ export function applyMeleeHit(foe, speed, shield, knock) {
     u.stamina = Math.max(0, (u.stamina ?? 1) - dmg * 0.5 * 0.08);
   }
   u.hp -= dmg;
-  u.hitCool = 0.18;
-  u.flash = 0.28;
-  u.stagger = 0.38;
+  u.hitCool = 0.16;
+  u.flash = 0.35;
+  u.stagger = 0.42;
   if (knock) {
     u.kx = knock.x;
     u.kz = knock.z;
   }
-  const mat = foe.material;
-  if (mat && mat.color) {
+  const mats = [];
+  if (foe.material?.color) mats.push(foe.material);
+  foe.traverse?.((o) => {
+    if (o.isSprite && o.material?.color) mats.push(o.material);
+  });
+  for (const mat of mats) {
     if (!u._baseColor) u._baseColor = mat.color.getHex();
     mat.color.setHex(0xff2a2a);
   }
@@ -291,10 +336,13 @@ export function attachVrHands({ scene, gl, heightAt, loot, foes, store, onCast, 
   const held = [null, null];
   const lastEquip = [null, null];
   const prevPos = [new THREE.Vector3(), new THREE.Vector3()];
+  const prevTip = [new THREE.Vector3(), new THREE.Vector3()];
+  const havePrevTip = [false, false];
   const tip = new THREE.Vector3();
   const gp = new THREE.Vector3();
+  const mid = new THREE.Vector3();
+  const center = new THREE.Vector3();
   const dir = new THREE.Vector3();
-  const sample = new THREE.Vector3();
   const knock = new THREE.Vector3();
   let sources = [null, null];
   let prevSqueeze = [0, 0];
@@ -523,38 +571,70 @@ export function attachVrHands({ scene, gl, heightAt, loot, foes, store, onCast, 
         auras[i].scale.setScalar(1 + Math.sin(auras[i].userData.t * 6) * 0.08);
       }
 
-      const swinging = h?.mesh && h.mesh.userData.melee && (speed > 0.55 || trig > 0.55);
-      if (swinging) {
+      const melee = !!(h?.mesh && h.mesh.userData.melee);
+      if (melee) {
+        grip[i].updateMatrixWorld(true);
+        h.mesh.updateMatrixWorld(true);
         if (h.mesh.userData.tip) h.mesh.userData.tip.getWorldPosition(tip);
         else {
           const reach = h.mesh.userData.reach || 0.7;
           grip[i].getWorldDirection(tip);
           tip.multiplyScalar(-reach).add(gp);
         }
-        const lists = [foes, window.__FENREST_ALLIES__, window.__FENREST_HITABLES__];
-        knock.copy(tip).sub(gp);
+        mid.lerpVectors(gp, tip, 0.55);
+        const tipSpeed = havePrevTip[i] ? tip.distanceTo(prevTip[i]) / Math.max(dt, 0.001) : speed;
+        const strikeSpeed = Math.max(speed, tipSpeed, trig * 2.5);
+        knock.copy(tip).sub(havePrevTip[i] ? prevTip[i] : gp);
         knock.y = 0;
-        if (knock.lengthSq() < 0.0001) knock.set(1, 0, 0);
-        knock.normalize().multiplyScalar(2.4 + speed * 0.35);
+        if (knock.lengthSq() < 0.0001) knock.copy(tip).sub(gp).setY(0);
+        if (knock.lengthSq() < 0.0001) knock.set(0, 0, -1);
+        knock.normalize().multiplyScalar(2.6 + strikeSpeed * 0.4);
+
+        const lists = [foes, window.__FENREST_FOES__, window.__FENREST_ALLIES__, window.__FENREST_HITABLES__];
+        const seen = new Set();
         let hitSomething = false;
         for (const list of lists) {
           for (const f of list || []) {
-            if (!f || !f.visible) continue;
-            const rad = 0.7 + (f.scale?.x || 1) * 0.55;
-            let hit = false;
-            for (let s = 0; s <= 5; s++) {
-              sample.lerpVectors(gp, tip, s / 5);
-              const dx = f.position.x - sample.x;
-              const dy = f.position.y - sample.y;
-              const dz = f.position.z - sample.z;
-              if (dx * dx + dy * dy * 0.45 + dz * dz < rad * rad) {
-                hit = true;
-                break;
-              }
+            if (!f || !f.visible || seen.has(f)) continue;
+            seen.add(f);
+            spriteCenter(f, center);
+            const rad = spriteRadius(f);
+            const halfH = spriteHalfH(f);
+            let hit = segmentHitsSprite(gp.x, gp.y, gp.z, tip.x, tip.y, tip.z, center.x, center.y, center.z, rad, halfH);
+            if (!hit) hit = segmentHitsSprite(gp.x, gp.y, gp.z, mid.x, mid.y, mid.z, center.x, center.y, center.z, rad, halfH);
+            if (!hit && havePrevTip[i]) {
+              hit = segmentHitsSprite(
+                prevTip[i].x,
+                prevTip[i].y,
+                prevTip[i].z,
+                tip.x,
+                tip.y,
+                tip.z,
+                center.x,
+                center.y,
+                center.z,
+                rad * 1.08,
+                halfH + 0.15,
+              );
+            }
+            if (!hit && havePrevTip[i] && prevPos[i].distanceTo(gp) < 2.8) {
+              hit = segmentHitsSprite(
+                prevPos[i].x,
+                prevPos[i].y,
+                prevPos[i].z,
+                gp.x,
+                gp.y,
+                gp.z,
+                center.x,
+                center.y,
+                center.z,
+                rad,
+                halfH,
+              );
             }
             if (!hit) continue;
             if (f.userData?.harvest) {
-              window.__FENREST_ON_HARVEST__?.(f, h.mesh.userData, gp, speed);
+              window.__FENREST_ON_HARVEST__?.(f, h.mesh.userData, gp, strikeSpeed);
               hitSomething = true;
               continue;
             }
@@ -568,20 +648,27 @@ export function attachVrHands({ scene, gl, heightAt, loot, foes, store, onCast, 
               hitSomething = true;
               continue;
             }
+            if (!(f.userData?.foe || f.userData?.hp != null || f.userData?.kind)) continue;
             f.userData.lastRegion = f.userData.humanoid === false ? "torso" : bodyRegion(f, tip.y);
-            if (applyMeleeHit(f, Math.max(speed, trig * 3), !!h.mesh.userData.block, knock)) {
+            if (applyMeleeHit(f, strikeSpeed, !!h.mesh.userData.block, knock)) {
               hitSomething = true;
-              haptic(sources[i], 0.95, 28);
+              haptic(sources[i], 0.95, 32);
+              const who = f.userData.def?.id || f.userData.kind || "foe";
               store?.getState?.().setHud?.({
                 prompt:
                   (h.mesh.userData.block ? "Shield bash " : "Hit ") +
-                  (f.userData.lastRegion || "") +
+                  who +
+                  (f.userData.lastRegion === "head" ? " · head" : "") +
                   (f.userData.lower < 0.9 ? " · crippled" : ""),
               });
             }
           }
         }
         if (hitSomething) window.__FENREST_ON_SWING__?.(gp, tip, h.mesh.userData);
+        prevTip[i].copy(tip);
+        havePrevTip[i] = true;
+      } else {
+        havePrevTip[i] = false;
       }
       prevPos[i].copy(gp);
       prevSqueeze[i] = sq;
