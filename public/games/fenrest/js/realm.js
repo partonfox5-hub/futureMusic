@@ -4,6 +4,8 @@
  */
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.185.0/build/three.module.js";
 import { fenrestToBag, loadBag, mergeBagIntoList } from "/games/shared/realm-bag.js";
+import { createVoicePair } from "/games/shared/voice-coop.js";
+import { hatHex, mountChip, paintChip, peerId, rememberPeer } from "/games/shared/coop-hat.js";
 
 const TOWNS = [
   { id: "fenrest", name: "Fenrest", x: 0, z: 0, r: 42, style: "thatch", econ: "farms", skip: true },
@@ -631,6 +633,57 @@ function goPortal(to) {
   window.location.href = to === "neweden" ? "/neweden?portal=1" : "/fenrest?portal=1";
 }
 
+function makePeerPuppet(slot, name) {
+  const g = new THREE.Group();
+  const body = new THREE.Mesh(
+    new THREE.CapsuleGeometry(0.22, 0.9, 4, 8),
+    new THREE.MeshBasicMaterial({ color: 0x6b5344 }),
+  );
+  body.position.y = 1.05;
+  const hex = hatHex(slot, slot === 1 ? "green" : "red");
+  const brim = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.28, 0.28, 0.045, 12),
+    new THREE.MeshBasicMaterial({ color: hex }),
+  );
+  brim.position.y = 1.7;
+  const crown = new THREE.Mesh(new THREE.SphereGeometry(0.18, 10, 8), new THREE.MeshBasicMaterial({ color: hex }));
+  crown.position.y = 1.84;
+  g.add(body, brim, crown);
+  g.userData.hatMats = [brim.material, crown.material];
+  g.userData.slot = slot;
+  const c = document.createElement("canvas");
+  c.width = 256;
+  c.height = 64;
+  const ctx = c.getContext("2d");
+  ctx.fillStyle = "rgba(0,0,0,0.45)";
+  ctx.fillRect(0, 0, 256, 64);
+  ctx.fillStyle = "#f4efe4";
+  ctx.font = "28px serif";
+  ctx.textAlign = "center";
+  ctx.fillText(String(name || "Wanderer").slice(0, 18), 128, 42);
+  const tex = new THREE.CanvasTexture(c);
+  const spr = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false }));
+  spr.scale.set(1.4, 0.35, 1);
+  spr.position.y = 2.15;
+  g.add(spr);
+  return g;
+}
+
+function dyePuppetHat(g, slot, hat) {
+  const hex = hatHex(slot, hat);
+  (g.userData.hatMats || []).forEach((m) => m.color.setHex(hex));
+  g.userData.slot = slot;
+}
+
+async function mmoPost(body) {
+  const res = await fetch("/api/mmo", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  return res.json();
+}
+
 async function boot() {
   let tries = 0;
   while ((!window.__FENREST_SCENE__ || !window.__FENREST__) && tries < 80) {
@@ -644,6 +697,117 @@ async function boot() {
   const root = new THREE.Group();
   root.name = "fenrest-realm";
   scene.add(root);
+
+  const coop = {
+    selfId: peerId(),
+    joined: false,
+    snap: { cap: 2, peers: [], selfId: "", seq: 0 },
+    puppets: new Map(),
+    group: new THREE.Group(),
+    voice: null,
+    voiceStatus: "idle",
+    chip: mountChip(),
+    lastSend: 0,
+    sending: false,
+  };
+  coop.group.name = "fenrest-coop";
+  root.add(coop.group);
+  rememberPeer(coop.selfId);
+  window.addEventListener("beforeunload", () => {
+    coop.voice?.close?.();
+    if (coop.joined) mmoPost({ op: "leave", peer: coop.selfId }).catch(() => {});
+  });
+
+  async function coopJoin() {
+    const st = store?.getState?.();
+    if (!(st?.playing || st?.vr || st?.screen === "play")) return;
+    if (coop.joining) return;
+    if (Date.now() - (coop.lastJoinTry || 0) < 1500) return;
+    coop.lastJoinTry = Date.now();
+    coop.joining = true;
+    try {
+      const data = await mmoPost({
+        op: "join",
+        peer: coop.selfId,
+        name: "Fenrest",
+        fill: "none",
+        realm: "fenrest",
+        vr: !!(st?.vr || gl?.xr?.isPresenting),
+        since: 0,
+      });
+      if (data?.ok === false && data.error) {
+        coop.snap = data;
+        paintChip(coop.chip, { humans: (data.peers || []).length, cap: 2, voice: "full", realm: "Fenrest" });
+        return;
+      }
+      coop.joined = true;
+      coop.snap = data;
+      if (data.self) {
+        coop.selfId = data.self;
+        rememberPeer(data.self);
+      }
+      if (!coop.voice) {
+        coop.voice = createVoicePair({
+          selfId: coop.selfId,
+          name: "Fenrest",
+          onStatus: (s) => {
+            coop.voiceStatus = s;
+          },
+        });
+        const kick = () => coop.voice?.start?.();
+        kick();
+        window.addEventListener("pointerdown", kick, { once: true });
+      }
+    } catch {
+      /* lobby unreachable */
+    } finally {
+      coop.joining = false;
+    }
+  }
+
+  function syncPuppets(camPos) {
+    const peers = (coop.snap.peers || []).filter((p) => p.id !== coop.selfId && !p.traveler);
+    const keep = new Set();
+    for (const p of peers) {
+      if (p.realm && p.realm !== "fenrest") {
+        const stale = coop.puppets.get(p.id);
+        if (stale) {
+          coop.group.remove(stale);
+          coop.puppets.delete(p.id);
+        }
+        continue;
+      }
+      keep.add(p.id);
+      let g = coop.puppets.get(p.id);
+      if (!g) {
+        g = makePeerPuppet(p.slot ?? 0, p.name);
+        coop.group.add(g);
+        coop.puppets.set(p.id, g);
+      }
+      dyePuppetHat(g, p.slot ?? 0, p.hat);
+      const tx = p.x ?? 0;
+      const tz = p.z ?? 0;
+      const ty = (p.y ?? 0) > 0.2 ? p.y : heightAt(tx, tz);
+      g.position.lerp(tmp2.set(tx, ty, tz), 0.35);
+      if (typeof p.yaw === "number") g.rotation.y = p.yaw;
+    }
+    for (const [id, g] of coop.puppets) {
+      if (!keep.has(id)) {
+        coop.group.remove(g);
+        coop.puppets.delete(id);
+      }
+    }
+    const me = (coop.snap.peers || []).find((p) => p.id === coop.selfId);
+    const humans = (coop.snap.peers || []).filter((p) => !p.traveler && !p.bot);
+    paintChip(coop.chip, {
+      humans: humans.length,
+      cap: coop.snap.cap || 2,
+      slot: me?.slot ?? 0,
+      hat: me?.hat || "red",
+      voice: coop.voiceStatus,
+      realm: "Fenrest",
+    });
+  }
 
   if (store) {
     const bag = loadBag();
@@ -775,6 +939,35 @@ async function boot() {
       const s = store.getState();
       fenrestToBag(s.inventory, s.gold);
     }
+    if (!coop.joined) coopJoin();
+    else if (cam && now - coop.lastSend > 180 && !coop.sending) {
+      coop.lastSend = now;
+      coop.sending = true;
+      const st = store?.getState?.();
+      const vrNow = !!(st?.vr || gl?.xr?.isPresenting);
+      mmoPost({
+        op: "state",
+        peer: coop.selfId,
+        since: coop.snap.seq || 0,
+        x: tmp.x,
+        y: tmp.y,
+        z: tmp.z,
+        yaw: cam.rotation?.y || st?.yaw || 0,
+        vx: 0,
+        vz: 0,
+        fp: true,
+        realm: "fenrest",
+        vr: vrNow,
+      })
+        .then((d) => {
+          if (d?.ok !== false) coop.snap = d;
+        })
+        .catch(() => {})
+        .finally(() => {
+          coop.sending = false;
+        });
+    }
+    if (cam) syncPuppets(tmp);
     requestAnimationFrame(loop);
   }
   requestAnimationFrame(loop);

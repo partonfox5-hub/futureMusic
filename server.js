@@ -248,7 +248,7 @@ app.get(['/shark', '/shark/'], (req, res) => {
 // Not linked from homepage / projects / nav. Register before static so
 // /games/fenrest/ does not serve the pack's index.html.
 function fenrestHeaders(res) {
-    res.setHeader('Permissions-Policy', 'xr-spatial-tracking=(self), fullscreen=(self), gamepad=(self), accelerometer=(self), gyroscope=(self), magnetometer=(self)');
+    res.setHeader('Permissions-Policy', 'xr-spatial-tracking=(self), fullscreen=(self), gamepad=(self), accelerometer=(self), gyroscope=(self), magnetometer=(self), microphone=(self)');
     res.setHeader('X-Robots-Tag', 'noindex, nofollow');
 }
 app.use('/games/character-chess', (req, res, next) => {
@@ -753,19 +753,21 @@ app.get('/api/shark/radio', async (req, res) => {
     res.json({ source: 'youtube', videos, maxSeconds: 540 });
 });
 
-// New Eden (Starleap) — unlisted, not on homepage/projects. One world, 4 explorers.
+// New Eden + Fenrest — unlisted, not on homepage/projects. One combined world, 2 explorers + voice.
 try {
     const starleapMmo = require('./starleap-mmo.cjs');
     const starleapWish = require('./starleap-wish.cjs');
+    const starleapRtc = require('./starleap-rtc.cjs');
     app.all('/api/mmo', starleapMmo);
     app.all('/api/wish', starleapWish);
-    console.log('[neweden] mmo + wish mounted');
+    app.all('/api/rtc', starleapRtc);
+    console.log('[neweden] mmo + wish + rtc voice mounted');
 } catch (e) {
-    console.error('[neweden] failed to mount mmo/wish:', e.message);
+    console.error('[neweden] failed to mount mmo/wish/rtc:', e.message);
 }
 
 function newedenHeaders(res) {
-    res.setHeader('Permissions-Policy', 'xr-spatial-tracking=(self), fullscreen=(self), gamepad=(self), accelerometer=(self), gyroscope=(self), magnetometer=(self)');
+    res.setHeader('Permissions-Policy', 'xr-spatial-tracking=(self), fullscreen=(self), gamepad=(self), accelerometer=(self), gyroscope=(self), magnetometer=(self), microphone=(self)');
 }
 
 function newedenFile(rel) {
