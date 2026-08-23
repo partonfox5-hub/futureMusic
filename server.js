@@ -273,6 +273,10 @@ app.get(["/test-w7n3q9fm", "/test-w7n3q9fm/"], (req, res) => {
     fenrestHeaders(res);
     res.sendFile(path.join(__dirname, "public", "games", "fenrest", "test-w7n3q9fm", "index.html"));
 });
+app.get(["/test-n2q8k4wm", "/test-n2q8k4wm/"], (req, res) => {
+    fenrestHeaders(res);
+    res.sendFile(path.join(__dirname, "public", "games", "fenrest", "test-n2q8k4wm", "index.html"));
+});
 app.use("/games/fenrest-chess", (req, res, next) => {
     res.setHeader("Permissions-Policy", "xr-spatial-tracking=(self), fullscreen=(self), gamepad=(self), microphone=(self)");
     res.setHeader("X-Robots-Tag", "noindex, nofollow");
