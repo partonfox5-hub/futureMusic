@@ -95,7 +95,8 @@ app.use((req, res, next) => {
 
 const path = require('path');
 const fs = require('fs'); 
-const http = require('http'); 
+const http = require('http');
+const https = require('https'); 
 //const bodyParser = require('body-parser');
 //const { Storage } = require('@google-cloud/storage');
 const mysql = require('mysql2/promise');
@@ -1416,6 +1417,72 @@ app.get('/song/:id', (req, res) => {
     else res.status(404).render('404', { title: 'Signal Lost' });
 });
 
+// Hide merch whose Printify/local images 404 or return JSON errors.
+const merchImageCache = new Map();
+const MERCH_IMG_TTL_MS = 45 * 60 * 1000;
+
+function merchImageLooksOk(url) {
+    if (!url || typeof url !== 'string') return Promise.resolve(false);
+    const now = Date.now();
+    const hit = merchImageCache.get(url);
+    if (hit && now - hit.t < MERCH_IMG_TTL_MS) return Promise.resolve(hit.ok);
+
+    if (url.startsWith('/') && !url.startsWith('//')) {
+        const abs = path.join(__dirname, 'public', url.replace(/^\//, ''));
+        const ok = fs.existsSync(abs);
+        merchImageCache.set(url, { ok, t: now });
+        return Promise.resolve(ok);
+    }
+
+    return new Promise((resolve) => {
+        let settled = false;
+        const finish = (ok) => {
+            if (settled) return;
+            settled = true;
+            merchImageCache.set(url, { ok, t: Date.now() });
+            resolve(ok);
+        };
+        let parsed;
+        try { parsed = new URL(url); } catch (e) { finish(false); return; }
+        const lib = parsed.protocol === 'https:' ? https : http;
+        const req = lib.request({
+            method: 'GET',
+            hostname: parsed.hostname,
+            path: parsed.pathname + parsed.search,
+            headers: { 'User-Agent': 'futuremusic-merch-image-check', Range: 'bytes=0-128' },
+            timeout: 4000,
+        }, (res) => {
+            res.resume();
+            const code = res.statusCode || 0;
+            const type = String(res.headers['content-type'] || '');
+            const loc = res.headers.location;
+            if (code >= 300 && code < 400 && loc && (loc.startsWith('http') || loc.startsWith('/'))) {
+                const next = loc.startsWith('http') ? loc : parsed.origin + loc;
+                merchImageLooksOk(next).then(finish);
+                return;
+            }
+            finish((code === 200 || code === 206) && /image|jpeg|jpg|png|webp|gif|octet/i.test(type));
+        });
+        req.on('error', () => finish(false));
+        req.on('timeout', () => { req.destroy(); finish(true); });
+        req.end();
+    });
+}
+
+async function keepMerchWithWorkingImages(products) {
+    if (!Array.isArray(products) || !products.length) return [];
+    const flags = new Array(products.length);
+    let i = 0;
+    const workers = Array.from({ length: Math.min(12, products.length) }, async () => {
+        while (i < products.length) {
+            const idx = i++;
+            flags[idx] = await merchImageLooksOk(products[idx] && products[idx].image_url);
+        }
+    });
+    await Promise.all(workers);
+    return products.filter((_, n) => flags[n]);
+}
+
 // --- ROBUST MERCH ROUTE ---
 app.get('/merch', async (req, res) => {
     const { type, sort, maxPrice } = req.query;
@@ -1482,10 +1549,12 @@ const result = await query(sql, params);
                 return p;
             });
 
-            if (products.length === 0 && !type && !maxPrice) {
-                res.render('merch', { ...commonPayload, merch: mockMerchItems, title: 'Merch (DB Empty)', debugError: "Connected but no products found.", dbStatus: "CONNECTED (EMPTY)" });
+            const visible = await keepMerchWithWorkingImages(products);
+            if (visible.length === 0 && !type && !maxPrice) {
+                const mocks = await keepMerchWithWorkingImages(mockMerchItems);
+                res.render('merch', { ...commonPayload, merch: mocks, title: 'Merch (DB Empty)', debugError: products.length ? null : "Connected but no products found.", dbStatus: "CONNECTED (EMPTY)" });
             } else {
-                res.render('merch', { ...commonPayload, merch: products, title: 'Merch', debugError: null });
+                res.render('merch', { ...commonPayload, merch: visible, title: 'Merch', debugError: null });
             }
         } else {
             let filtered = mockMerchItems.filter(p => p.type !== 'digital');
@@ -1493,13 +1562,15 @@ const result = await query(sql, params);
             if (maxPrice) filtered = filtered.filter(p => p.price <= maxPrice);
             if (sort === 'price_asc') filtered.sort((a,b) => a.price - b.price);
             else if (sort === 'price_desc') filtered.sort((a,b) => b.price - a.price);
+            filtered = await keepMerchWithWorkingImages(filtered);
 
             res.render('merch', { ...commonPayload, merch: filtered, title: 'Merch (Offline)', debugError: dbErrorDetail || "Unknown DB Error", dbStatus: dbConnectionStatus });
         }
     } catch (err) {
         console.error("Merch Route Error:", err);
         try {
-            res.render('merch', { ...commonPayload, merch: mockMerchItems, title: 'Merch (Crash)', debugError: err.message, dbStatus: "CRASHED" });
+            const mocks = await keepMerchWithWorkingImages(mockMerchItems);
+            res.render('merch', { ...commonPayload, merch: mocks, title: 'Merch (Crash)', debugError: err.message, dbStatus: "CRASHED" });
         } catch (renderErr) {
             res.status(500).send(`<h1>Critical Error</h1><p>${err.message}</p>`);
         }
@@ -1561,6 +1632,9 @@ console.log(`SKU: ${sku} | Extracted Sizes:`, sizes);
             
         }
         if (product && typeof product.sizes === 'string') { try { product.sizes = JSON.parse(product.sizes); } catch(e) { product.sizes = []; } }
+        if (product && !(await merchImageLooksOk(product.image_url))) {
+            return res.redirect('/merch');
+        }
         if (product) res.render('product', { product: { ...product, sizes: product.sizes }, title: product.name });
         else res.status(404).render('404', { title: 'Product Not Found' });
     } catch (err) {

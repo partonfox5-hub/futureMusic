@@ -74,10 +74,10 @@
     <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
         <% if (merch.length > 0) { %>
             <% merch.forEach(item => { %>
-                <div class="glass-card rounded-xl overflow-hidden group hover:border-[#D4AF37]/50 transition-all duration-300 border border-gray-800 flex flex-col h-full">
+                <div class="merch-card glass-card rounded-xl overflow-hidden group hover:border-[#D4AF37]/50 transition-all duration-300 border border-gray-800 flex flex-col h-full">
                     <!-- Image -->
                     <div class="relative h-64 overflow-hidden">
-                        <img src="<%= item.image_url %>" alt="<%= item.name %>" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700">
+                        <img src="<%= item.image_url %>" alt="<%= item.name %>" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" onerror="this.closest('.merch-card') && this.closest('.merch-card').remove()">
                         <div class="absolute top-2 right-2 bg-black/80 backdrop-blur text-[#D4AF37] text-xs font-bold px-3 py-1 rounded-full border border-[#D4AF37]/30">
                             $<%= Number(item.price).toFixed(2) %>
                         </div>
