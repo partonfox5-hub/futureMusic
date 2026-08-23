@@ -110,7 +110,7 @@ async function boot() {
           });
         } catch {}
         sessionStorage.setItem("fm-realm-warp", JSON.stringify({ from: "neweden", at: Date.now() }));
-        warpAfterXr(gl, "/fenrest?portal=1");
+        warpAfterXr(gl, "/fenrest?portal=1&map=1");
       }
     });
   }

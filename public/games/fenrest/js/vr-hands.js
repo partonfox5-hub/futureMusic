@@ -138,16 +138,29 @@ export function makeHeldWeapon(defId) {
     addBox(g, blade, 0, 0, -0.8, 0.02, 0.008, 0.08);
     g.userData.reach = 0.88;
     g.userData.melee = true;
-  } else if (defId.startsWith("axe-")) {
+    g.userData.sharp = true;
+  } else if (defId.startsWith("axe-") || defId === "tool-axe") {
     addCyl(g, oak, 0, 0, -0.12, 0.014, 0.016, 0.42, Math.PI / 2, 0, 0);
     addBox(g, mat(0x6a6a62), 0.04, 0, -0.32, 0.16, 0.04, 0.12);
     g.userData.reach = 0.55;
     g.userData.melee = true;
+    g.userData.tool = defId.includes("wood") || defId === "tool-axe" ? "axe" : "axe";
+    g.userData.sharp = true;
+  } else if (defId.startsWith("pickaxe") || defId === "tool-pickaxe") {
+    addCyl(g, oak, 0, 0, -0.14, 0.013, 0.015, 0.46, Math.PI / 2, 0, 0);
+    addBox(g, mat(0x7a7a82), 0, 0, -0.36, 0.22, 0.03, 0.06);
+    addBox(g, mat(0x7a7a82), 0.1, 0, -0.36, 0.04, 0.03, 0.14);
+    addBox(g, mat(0x7a7a82), -0.1, 0, -0.36, 0.04, 0.03, 0.14);
+    g.userData.reach = 0.58;
+    g.userData.melee = true;
+    g.userData.tool = "pick";
+    g.userData.sharp = true;
   } else if (defId.startsWith("spear-")) {
     addCyl(g, oak, 0, 0, -0.35, 0.01, 0.012, 0.9, Math.PI / 2, 0, 0);
     addBox(g, mat(0xe8dcc0), 0, 0, -0.84, 0.03, 0.03, 0.16);
     g.userData.reach = 1.05;
     g.userData.melee = true;
+    g.userData.sharp = true;
   } else if (defId.startsWith("shield-")) {
     const disc = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.04, 16), mat(0x8a5a32));
     disc.rotation.x = Math.PI / 2;
@@ -209,6 +222,19 @@ function triggerOf(src) {
   return b.pressed ? 1 : 0;
 }
 
+function btnPressed(src, idx) {
+  const b = src?.gamepad?.buttons?.[idx];
+  return !!(b && (b.pressed || (typeof b.value === "number" && b.value > 0.6)));
+}
+
+function stickClick(src) {
+  return btnPressed(src, 3);
+}
+
+function xClick(src) {
+  return btnPressed(src, 4);
+}
+
 function bodyRegion(foe, hitY) {
   const h = foe.scale?.y || 2;
   const top = foe.position.y + h * 0.5;
@@ -219,12 +245,12 @@ function bodyRegion(foe, hitY) {
   return "torso";
 }
 
-export function applyMeleeHit(foe, speed, shield) {
+export function applyMeleeHit(foe, speed, shield, knock) {
   if (!foe?.userData) return false;
   const u = foe.userData;
   if (u.hitCool > 0) return false;
-  const spd = Math.max(0.35, Math.min(3.6, speed / 3.2));
-  let dmg = (shield ? 1.5 : 2.2) * spd;
+  const spd = Math.max(0.45, Math.min(3.6, speed / 2.2));
+  let dmg = (shield ? 1.5 : 2.4) * spd;
   const region = u.lastRegion || "torso";
   if (region === "head") dmg *= 2;
   if (region === "lower") {
@@ -234,7 +260,18 @@ export function applyMeleeHit(foe, speed, shield) {
     u.stamina = Math.max(0, (u.stamina ?? 1) - dmg * 0.5 * 0.08);
   }
   u.hp -= dmg;
-  u.hitCool = 0.22;
+  u.hitCool = 0.18;
+  u.flash = 0.28;
+  u.stagger = 0.38;
+  if (knock) {
+    u.kx = knock.x;
+    u.kz = knock.z;
+  }
+  const mat = foe.material;
+  if (mat && mat.color) {
+    if (!u._baseColor) u._baseColor = mat.color.getHex();
+    mat.color.setHex(0xff2a2a);
+  }
   if (u.hp <= 0) foe.visible = false;
   return true;
 }
@@ -252,13 +289,18 @@ export function attachVrHands({ scene, gl, heightAt, loot, foes, store, onCast, 
   grip[1].add(gloves[1]);
 
   const held = [null, null];
+  const lastEquip = [null, null];
   const prevPos = [new THREE.Vector3(), new THREE.Vector3()];
   const tip = new THREE.Vector3();
   const gp = new THREE.Vector3();
   const dir = new THREE.Vector3();
+  const sample = new THREE.Vector3();
+  const knock = new THREE.Vector3();
   let sources = [null, null];
   let prevSqueeze = [0, 0];
   let prevTrig = [0, 0];
+  let prevStick = [false, false];
+  let prevX = [false, false];
   const charge = [0, 0];
   const rings = [makeChargeRing(), makeChargeRing()];
   grip[0].add(rings[0]);
@@ -295,12 +337,27 @@ export function attachVrHands({ scene, gl, heightAt, loot, foes, store, onCast, 
     r.addEventListener("disconnected", onRemove);
   });
 
-  function drop(i, fling) {
+  function drop(i, fling, silent) {
     const h = held[i];
     if (!h) return;
+    if (h.defId) lastEquip[i] = h.defId;
     if (auras[i]) {
       auras[i].removeFromParent();
       auras[i] = null;
+    }
+    if (h.grabbed) {
+      const world = new THREE.Vector3();
+      h.mesh.getWorldPosition(world);
+      h.mesh.removeFromParent();
+      (window.__FENREST_ROOT__ || scene).add(h.mesh);
+      h.mesh.position.copy(world);
+      if (typeof heightAt === "function") h.mesh.position.y = heightAt(world.x, world.z);
+      h.mesh.userData.held = false;
+      h.mesh.userData.grounded = true;
+      h.mesh.userData.vy = 0;
+      held[i] = null;
+      if (!silent) store?.getState?.().setHud?.({ prompt: "Set down" });
+      return;
     }
     h.mesh.removeFromParent();
     const world = new THREE.Vector3();
@@ -317,7 +374,32 @@ export function attachVrHands({ scene, gl, heightAt, loot, foes, store, onCast, 
       }
     }
     held[i] = null;
-    store?.getState?.().setHud?.({ prompt: "Dropped" });
+    if (!silent) store?.getState?.().setHud?.({ prompt: "Empty hand" });
+  }
+
+  function holsterToggle(i) {
+    if (held[i]) {
+      lastEquip[i] = held[i].defId || lastEquip[i];
+      drop(i, null, true);
+      store?.getState?.().setHud?.({ prompt: "Bare hand" });
+      haptic(sources[i], 0.4, 24);
+      return;
+    }
+    if (lastEquip[i]) {
+      equipFromInventory(i, lastEquip[i]);
+      store?.getState?.().setHud?.({ prompt: "Drew " + String(lastEquip[i]).replace(/-/g, " ") });
+      haptic(sources[i], 0.55, 30);
+    }
+  }
+
+  function grabWorld(i, obj) {
+    if (held[i]) drop(i, null, true);
+    grip[i].add(obj);
+    obj.position.set(0, 0, -0.28);
+    obj.userData.held = true;
+    held[i] = { mesh: obj, loot: null, defId: obj.userData.kind || "prop", grabbed: true };
+    haptic(sources[i], 0.6, 32);
+    store?.getState?.().setHud?.({ prompt: "Dragging " + (obj.userData.label || "prop") });
   }
 
   function attachAura(i, defId) {
@@ -338,6 +420,7 @@ export function attachVrHands({ scene, gl, heightAt, loot, foes, store, onCast, 
     grip[i].add(mesh);
     item.visible = false;
     held[i] = { mesh, loot: item, defId: item.userData.defId };
+    lastEquip[i] = item.userData.defId;
     try {
       store?.getState?.().addItem?.(item.userData.defId, 1);
     } catch {}
@@ -351,6 +434,7 @@ export function attachVrHands({ scene, gl, heightAt, loot, foes, store, onCast, 
     const mesh = makeHeldWeapon(defId);
     grip[i].add(mesh);
     held[i] = { mesh, loot: null, defId };
+    lastEquip[i] = defId;
     attachAura(i, defId);
   }
 
@@ -371,7 +455,7 @@ export function attachVrHands({ scene, gl, heightAt, loot, foes, store, onCast, 
 
       if (sq > 0.7 && prevSqueeze[i] <= 0.7) {
         let best = null;
-        let bestD = 0.48;
+        let bestD = 0.52;
         for (const it of loot || []) {
           if (!it.visible || it.userData?.held) continue;
           const d = it.position.distanceTo(gp);
@@ -381,11 +465,34 @@ export function attachVrHands({ scene, gl, heightAt, loot, foes, store, onCast, 
           }
         }
         if (best) grab(i, best);
-        else if (held[i]) {
+        else if (!held[i]) {
+          const gabs = window.__FENREST_GRABBABLES__ || [];
+          let gBest = null;
+          let gD = 0.7;
+          for (const obj of gabs) {
+            if (!obj.visible || obj.userData?.held || obj.userData?.broken) continue;
+            const d = obj.position.distanceTo(gp);
+            if (d < gD) {
+              gD = d;
+              gBest = obj;
+            }
+          }
+          if (gBest) grabWorld(i, gBest);
+        } else {
           const fling = moved.multiplyScalar(1 / Math.max(dt, 0.008));
           drop(i, fling);
         }
       }
+
+      const stick = stickClick(sources[i]);
+      if (stick && !prevStick[i]) holsterToggle(i);
+      prevStick[i] = stick;
+
+      const xBtn = xClick(sources[i]);
+      if (xBtn && !prevX[i]) {
+        window.__FENREST_ON_X__?.(gp.clone(), sources[i]?.handedness || (i === 0 ? "left" : "right"));
+      }
+      prevX[i] = xBtn;
 
       const h = held[i];
       const spellId = h?.mesh?.userData?.spell || (String(h?.defId || "").startsWith("spell-") ? h.defId : null);
@@ -416,35 +523,65 @@ export function attachVrHands({ scene, gl, heightAt, loot, foes, store, onCast, 
         auras[i].scale.setScalar(1 + Math.sin(auras[i].userData.t * 6) * 0.08);
       }
 
-      if (h?.mesh && h.mesh.userData.melee && speed > 1.6) {
+      const swinging = h?.mesh && h.mesh.userData.melee && (speed > 0.55 || trig > 0.55);
+      if (swinging) {
         if (h.mesh.userData.tip) h.mesh.userData.tip.getWorldPosition(tip);
         else {
           const reach = h.mesh.userData.reach || 0.7;
           grip[i].getWorldDirection(tip);
           tip.multiplyScalar(-reach).add(gp);
         }
-        const lists = [foes];
-        if (window.__FENREST_ALLIES__) lists.push(window.__FENREST_ALLIES__);
+        const lists = [foes, window.__FENREST_ALLIES__, window.__FENREST_HITABLES__];
+        knock.copy(tip).sub(gp);
+        knock.y = 0;
+        if (knock.lengthSq() < 0.0001) knock.set(1, 0, 0);
+        knock.normalize().multiplyScalar(2.4 + speed * 0.35);
+        let hitSomething = false;
         for (const list of lists) {
           for (const f of list || []) {
-            if (!f.visible) continue;
-            const dTip = f.position.distanceTo(tip);
-            const dGp = f.position.distanceTo(gp);
-            const rad = 0.55 + (f.scale?.x || 1) * 0.45;
-            if (dTip < rad + 0.35 || dGp < rad) {
-              f.userData.lastRegion = f.userData.humanoid === false ? "torso" : bodyRegion(f, tip.y);
-              if (applyMeleeHit(f, speed, !!h.mesh.userData.block)) {
-                haptic(sources[i], 0.95, 28);
-                store?.getState?.().setHud?.({
-                  prompt:
-                    (h.mesh.userData.block ? "Shield bash " : "Cut ") +
-                    (f.userData.lastRegion || "") +
-                    (f.userData.lower < 0.9 ? " · crippled" : ""),
-                });
+            if (!f || !f.visible) continue;
+            const rad = 0.7 + (f.scale?.x || 1) * 0.55;
+            let hit = false;
+            for (let s = 0; s <= 5; s++) {
+              sample.lerpVectors(gp, tip, s / 5);
+              const dx = f.position.x - sample.x;
+              const dy = f.position.y - sample.y;
+              const dz = f.position.z - sample.z;
+              if (dx * dx + dy * dy * 0.45 + dz * dz < rad * rad) {
+                hit = true;
+                break;
               }
+            }
+            if (!hit) continue;
+            if (f.userData?.harvest) {
+              window.__FENREST_ON_HARVEST__?.(f, h.mesh.userData, gp, speed);
+              hitSomething = true;
+              continue;
+            }
+            if (f.userData?.breakable) {
+              window.__FENREST_ON_BREAK__?.(f, h.mesh.userData, knock);
+              hitSomething = true;
+              continue;
+            }
+            if (f.userData?.kind === "grass") {
+              window.__FENREST_ON_GRASS__?.(f, h.mesh.userData);
+              hitSomething = true;
+              continue;
+            }
+            f.userData.lastRegion = f.userData.humanoid === false ? "torso" : bodyRegion(f, tip.y);
+            if (applyMeleeHit(f, Math.max(speed, trig * 3), !!h.mesh.userData.block, knock)) {
+              hitSomething = true;
+              haptic(sources[i], 0.95, 28);
+              store?.getState?.().setHud?.({
+                prompt:
+                  (h.mesh.userData.block ? "Shield bash " : "Hit ") +
+                  (f.userData.lastRegion || "") +
+                  (f.userData.lower < 0.9 ? " · crippled" : ""),
+              });
             }
           }
         }
+        if (hitSomething) window.__FENREST_ON_SWING__?.(gp, tip, h.mesh.userData);
       }
       prevPos[i].copy(gp);
       prevSqueeze[i] = sq;
@@ -457,5 +594,5 @@ export function attachVrHands({ scene, gl, heightAt, loot, foes, store, onCast, 
     });
   }
 
-  return { tick, grip, gloves, equipFromInventory, held };
+  return { tick, grip, gloves, equipFromInventory, held, lastEquip };
 }

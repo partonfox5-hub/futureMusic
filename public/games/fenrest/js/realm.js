@@ -164,6 +164,13 @@ function spriteCanvas(kind) {
     g.lineTo(42, 32);
     g.lineTo(26, 40);
     g.fill();
+  } else if (kind.startsWith("pickaxe")) {
+    g.fillStyle = "#5a3a18";
+    g.fillRect(22, 16, 5, 66);
+    g.fillStyle = "#8a9098";
+    g.fillRect(12, 16, 24, 6);
+    g.fillRect(10, 10, 6, 18);
+    g.fillRect(32, 10, 6, 18);
   } else if (kind.startsWith("spell")) {
     g.fillStyle = "#3a2458";
     g.fillRect(12, 20, 24, 56);
@@ -485,11 +492,11 @@ function spawnPack(root, list, px, pz) {
     const x = px + Math.cos(a) * dist;
     const z = pz + Math.sin(a) * dist;
     if (inTown(x, z)) continue;
-    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: enemySprite(def.sprite), transparent: true }));
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: enemySprite(def.sprite), transparent: true, color: 0xffffff }));
     sp.scale.set(def.id === "spider" ? 1.6 : def.id === "basilisk" ? 2.2 : def.id === "alien" ? 2.4 : 1.2, def.id === "spider" ? 1.1 : 2.1, 1);
     sp.position.set(x, heightAt(x, z) + sp.scale.y * 0.45, z);
     const humanoid = ["bandit", "goblin", "mage", "necromancer"].includes(def.id);
-    sp.userData = { foe: true, def, hp: def.hp, maxHp: def.hp, cool: 0, stamina: 1, lower: 1, humanoid };
+    sp.userData = { foe: true, def, hp: def.hp, maxHp: def.hp, cool: 0, stamina: 1, lower: 1, humanoid, flash: 0, stagger: 0 };
     root.add(sp);
     list.push(sp);
   }
@@ -509,12 +516,26 @@ function tickFoes(list, dt, store, bolts, root) {
   for (const f of list) {
     if (!f.visible) continue;
     const u = f.userData;
+    if (u.kind === "turtle" || u.kind === "trex" || u.kind === "raptor" || u.kind === "mammoth") continue;
     const dx = px - f.position.x;
     const dz = pz - f.position.z;
     const d = Math.hypot(dx, dz) || 1;
     u.hitCool = Math.max(0, (u.hitCool || 0) - dt);
+    if (u.flash > 0) {
+      u.flash -= dt;
+      if (f.material?.color) f.material.color.setHex(u.flash > 0 ? 0xff2a2a : (u._baseColor || 0xffffff));
+    }
     if (u.frozen > 0) {
       u.frozen -= dt;
+      f.position.y = heightAt(f.position.x, f.position.z) + f.scale.y * 0.45;
+      continue;
+    }
+    if (u.stagger > 0) {
+      u.stagger -= dt;
+      f.position.x += (u.kx || 0) * dt;
+      f.position.z += (u.kz || 0) * dt;
+      u.kx = (u.kx || 0) * (1 - dt * 3);
+      u.kz = (u.kz || 0) * (1 - dt * 3);
       f.position.y = heightAt(f.position.x, f.position.z) + f.scale.y * 0.45;
       continue;
     }
@@ -637,7 +658,7 @@ function goPortal(to, gl) {
   const st = window.__FENREST__?.store?.getState?.();
   if (st) fenrestToBag(st.inventory, st.gold);
   sessionStorage.setItem("fm-realm-warp", JSON.stringify({ from: "fenrest", at: Date.now() }));
-  const url = to === "neweden" ? "/neweden?portal=1" : "/fenrest?portal=1";
+  const url = to === "neweden" ? "/neweden?portal=1&map=1" : "/fenrest?portal=1&map=1";
   warpAfterXr(gl || window.__FENREST_GL__, url);
 }
 
@@ -861,6 +882,8 @@ async function boot() {
     "spell-spawn-goblin",
     "spell-spawn-skeleton",
     "spell-spawn-dragon",
+    "axe-woodcutter",
+    "pickaxe-iron",
   ];
   dropIds.forEach((id, i) => {
     const a = i * 0.7;
@@ -903,6 +926,11 @@ async function boot() {
     magic,
     onCast: (id, charge, origin, dir) => magic.cast(id, charge, origin, dir),
   });
+  window.__FENREST_HANDS__ = hands;
+  window.__FENREST_LOOT__ = loot;
+  window.__FENREST_FOES__ = foes;
+  window.__FENREST_ROOT__ = root;
+  window.__FENREST_STORE__ = store;
   const head = { x: 0, y: 1.6, z: 0 };
   const gripPts = [];
 
@@ -956,6 +984,11 @@ async function boot() {
       tickLoot(loot, dt, store, { vr });
       tickFoes(foes, dt, store, bolts, root);
       magic.tick(dt, gl);
+      try {
+        window.__FENREST_LIFE__?.tick?.(dt, { head, gl, hands, store, cam });
+      } catch (err) {
+        console.warn("[fenrest-life]", err);
+      }
       chunks.tick(tmp.x, tmp.z);
       snapToGround(cam, dt);
       store?.getState?.().setHud?.({ mp: 1 });

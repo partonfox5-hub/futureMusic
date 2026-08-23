@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="rock" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0%" stop-color="#3a342c"/>
+      <stop offset="45%" stop-color="#6a5e4e"/>
+      <stop offset="100%" stop-color="#b8a890"/>
+    </linearGradient>
+    <linearGradient id="snow" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0%" stop-color="#d8d0c4"/>
+      <stop offset="100%" stop-color="#f6f3ee"/>
+    </linearGradient>
+  </defs>
+  <ellipse cx="64" cy="118" rx="46" ry="8" fill="#2a241c" opacity="0.35"/>
+  <path d="M14 116 L48 38 L64 58 L82 28 L114 116 Z" fill="url(#rock)" stroke="#2a2418" stroke-width="2"/>
+  <path d="M48 38 L56 52 L64 58 L58 44 Z" fill="#5a5044"/>
+  <path d="M82 28 L74 48 L64 58 L88 46 Z" fill="#7a7060"/>
+  <path d="M48 38 L54 22 L64 58 L56 40 Z" fill="url(#snow)"/>
+  <path d="M82 28 L88 16 L96 36 L82 32 Z" fill="url(#snow)"/>
+  <path d="M54 22 L58 12 L64 28 L56 24 Z" fill="#fff8f0"/>
+</svg>
