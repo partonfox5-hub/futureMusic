@@ -3,7 +3,7 @@
  * harvestable trees/ore, pushable boulders, chessboards.
  */
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.185.0/build/three.module.js";
-import { heightAt, inSettlement } from "/games/fenrest/js/world-grid.js";
+import { heightAt, inSettlement } from "/games/fenrest/js/world-grid.js?v=life1";
 
 const SPR = "/games/fenrest/sprites/";
 const TEX = {};

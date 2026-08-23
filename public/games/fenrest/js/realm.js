@@ -7,7 +7,7 @@ import { fenrestToBag, loadBag, mergeBagIntoList } from "/games/shared/realm-bag
 import { createVoicePair } from "/games/shared/voice-coop.js";
 import { hatHex, mountChip, paintChip, peerId, rememberPeer } from "/games/shared/coop-hat.js";
 import { anyHitsPortal, bindXrTick, gripPoints, portalHit, readHead, warpAfterXr } from "/games/shared/vr-warp.js";
-import { attachVrHands } from "/games/fenrest/js/vr-hands.js";
+import { attachVrHands } from "/games/fenrest/js/vr-hands.js?v=life1";
 import { heightAt as gridHeight, inSettlement, createChunkManager, snapToGround } from "/games/fenrest/js/world-grid.js";
 import { createMagic } from "/games/fenrest/js/magic.js";
 
