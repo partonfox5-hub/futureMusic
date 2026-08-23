@@ -1,6 +1,7 @@
 /**
  * Fenrest VR: leather gloves on controller grips, squeeze to pick up
  * melee and brandish / swing them.
+ * melee3: blade-vs-sprite swept cylinder hits.
  */
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.185.0/build/three.module.js";
 import { makeChargeRing, paintChargeRing, makeSpellAura, SPELLS } from "/games/fenrest/js/magic.js";
