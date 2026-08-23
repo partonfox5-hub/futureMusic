@@ -7,9 +7,10 @@ import { fenrestToBag, loadBag, mergeBagIntoList } from "/games/shared/realm-bag
 import { createVoicePair } from "/games/shared/voice-coop.js";
 import { hatHex, mountChip, paintChip, peerId, rememberPeer } from "/games/shared/coop-hat.js";
 import { anyHitsPortal, bindXrTick, gripPoints, portalHit, readHead, warpAfterXr } from "/games/shared/vr-warp.js";
-import { attachVrHands } from "/games/fenrest/js/vr-hands.js?v=melee3";
-import { heightAt as gridHeight, inSettlement, createChunkManager, snapToGround } from "/games/fenrest/js/world-grid.js";
-import { createMagic } from "/games/fenrest/js/magic.js";
+import { attachVrHands } from "/games/fenrest/js/vr-hands.js?v=melee4";
+import { heightAt as gridHeight, inSettlement, createChunkManager, snapToGround } from "/games/fenrest/js/world-grid.js?v=map2";
+import { createMagic } from "/games/fenrest/js/magic.js?v=melee4";
+import { installLife } from "/games/fenrest/js/life.js?v=map2";
 
 const TOWNS = [
   { id: "fenrest", name: "Fenrest", x: 0, z: 0, r: 42, style: "thatch", econ: "farms", skip: true },
@@ -468,11 +469,25 @@ const ENEMY_KIND = [
   { id: "alien", hp: 16, spd: 3.4, dmg: 0.18, sprite: "dragon.png", pack: [1, 1], rare: 0.82 },
 ];
 
+const SHEET4 = /^(wolf|dragon|bandit|human|woman|guard|innkeeper|lizard|lizardfolk)\.png$/i;
+
 function loadSpr(file) {
-  const t = new THREE.TextureLoader().load("/games/fenrest/sprites/" + file);
+  const t = new THREE.TextureLoader().load("/games/fenrest/sprites/" + file, (tex) => {
+    if (SHEET4.test(file)) {
+      tex.repeat.set(0.25, 0.25);
+      tex.offset.set(0, 0.75);
+      tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
+      tex.needsUpdate = true;
+    }
+  });
   t.magFilter = THREE.NearestFilter;
   t.minFilter = THREE.NearestFilter;
   t.colorSpace = THREE.SRGBColorSpace;
+  if (SHEET4.test(file)) {
+    t.repeat.set(0.25, 0.25);
+    t.offset.set(0, 0.75);
+    t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping;
+  }
   return t;
 }
 const SPR_CACHE = {};
@@ -496,10 +511,31 @@ function spawnPack(root, list, px, pz) {
     sp.scale.set(def.id === "spider" ? 1.6 : def.id === "basilisk" ? 2.2 : def.id === "alien" ? 2.4 : 1.2, def.id === "spider" ? 1.1 : 2.1, 1);
     sp.position.set(x, heightAt(x, z) + sp.scale.y * 0.45, z);
     const humanoid = ["bandit", "goblin", "mage", "necromancer"].includes(def.id);
-    sp.userData = { foe: true, def, hp: def.hp, maxHp: def.hp, cool: 0, stamina: 1, lower: 1, humanoid, flash: 0, stagger: 0 };
+    sp.userData = {
+      foe: true,
+      kind: def.id,
+      def,
+      hp: def.hp,
+      maxHp: def.hp,
+      cool: 0,
+      stamina: 1,
+      lower: 1,
+      humanoid,
+      flash: 0,
+      stagger: 0,
+      hitR: Math.max(1.3, sp.scale.x * 0.7),
+      hitH: Math.max(1.4, sp.scale.y * 0.8),
+    };
     root.add(sp);
     list.push(sp);
+    if (window.__FENREST_HITABLES__ && !window.__FENREST_HITABLES__.includes(sp)) window.__FENREST_HITABLES__.push(sp);
   }
+}
+
+function standY(f) {
+  const gy = heightAt(f.position.x, f.position.z);
+  if (f.userData?.feet || (f.center && f.center.y < 0.2)) return gy;
+  return gy + (f.scale?.y || 2) * 0.45;
 }
 
 function tickFoes(list, dt, store, bolts, root) {
@@ -514,53 +550,57 @@ function tickFoes(list, dt, store, bolts, root) {
   const py = tmp.y;
   const pz = tmp.z;
   for (const f of list) {
-    if (!f.visible) continue;
-    const u = f.userData;
-    if (u.kind === "turtle" || u.kind === "trex" || u.kind === "raptor" || u.kind === "mammoth") continue;
-    const dx = px - f.position.x;
-    const dz = pz - f.position.z;
-    const d = Math.hypot(dx, dz) || 1;
-    u.hitCool = Math.max(0, (u.hitCool || 0) - dt);
-    if (u.flash > 0) {
-      u.flash -= dt;
-      if (f.material?.color) f.material.color.setHex(u.flash > 0 ? 0xff2a2a : (u._baseColor || 0xffffff));
-    }
-    if (u.frozen > 0) {
-      u.frozen -= dt;
-      f.position.y = heightAt(f.position.x, f.position.z) + f.scale.y * 0.45;
-      continue;
-    }
-    if (u.stagger > 0) {
-      u.stagger -= dt;
-      f.position.x += (u.kx || 0) * dt;
-      f.position.z += (u.kz || 0) * dt;
-      u.kx = (u.kx || 0) * (1 - dt * 3);
-      u.kz = (u.kz || 0) * (1 - dt * 3);
-      f.position.y = heightAt(f.position.x, f.position.z) + f.scale.y * 0.45;
-      continue;
-    }
-    const spd = u.def.spd * (u.lower ?? 1);
-    f.position.x += (dx / d) * spd * dt;
-    f.position.z += (dz / d) * spd * dt;
-    f.position.y = heightAt(f.position.x, f.position.z) + f.scale.y * 0.45;
-    u.cool -= dt;
-    if (d < 1.6 && u.cool <= 0) {
-      u.cool = u.def.spell ? 1.6 : 0.9;
-      const st = store.getState();
-      store.getState().setHud({ hp: Math.max(0, (st.hp ?? 1) - u.def.dmg) });
-      if (u.def.spell) {
-        const bolt = lightning(f.position.clone(), tmp.clone());
-        root.add(bolt);
-        bolts.push(bolt);
+    try {
+      if (!f.visible) continue;
+      const u = f.userData || {};
+      if (u.lifeBeast || u.kind === "turtle" || u.kind === "trex" || u.kind === "raptor" || u.kind === "mammoth") continue;
+      const dx = px - f.position.x;
+      const dz = pz - f.position.z;
+      const d = Math.hypot(dx, dz) || 1;
+      u.hitCool = Math.max(0, (u.hitCool || 0) - dt);
+      if (u.flash > 0) {
+        u.flash -= dt;
+        if (f.material?.color) f.material.color.setHex(u.flash > 0 ? 0xff2a2a : (u._baseColor || 0xffffff));
       }
-    }
-    for (const b of bolts) {
-      if (b.userData.life > 0 && f.position.distanceTo(b.userData.hit) < 2.4) {
-        u.hp -= 4;
+      if (u.frozen > 0) {
+        u.frozen -= dt;
+        f.position.y = standY(f);
+        continue;
       }
-    }
-    if (u.hp <= 0) {
-      f.visible = false;
+      if (u.stagger > 0) {
+        u.stagger -= dt;
+        f.position.x += (u.kx || 0) * dt;
+        f.position.z += (u.kz || 0) * dt;
+        u.kx = (u.kx || 0) * (1 - dt * 3);
+        u.kz = (u.kz || 0) * (1 - dt * 3);
+        f.position.y = standY(f);
+        continue;
+      }
+      const spd = (u.def?.spd ?? 2) * (u.lower ?? 1);
+      f.position.x += (dx / d) * spd * dt;
+      f.position.z += (dz / d) * spd * dt;
+      f.position.y = standY(f);
+      u.cool = (u.cool || 0) - dt;
+      if (d < 1.6 && u.cool <= 0) {
+        u.cool = u.def?.spell ? 1.6 : 0.9;
+        const st = store?.getState?.();
+        if (st) store.getState().setHud({ hp: Math.max(0, (st.hp ?? 1) - (u.def?.dmg ?? 0.06)) });
+        if (u.def?.spell) {
+          const bolt = lightning(f.position.clone(), tmp.clone());
+          root.add(bolt);
+          bolts.push(bolt);
+        }
+      }
+      for (const b of bolts) {
+        if (b.userData.life > 0 && f.position.distanceTo(b.userData.hit) < 2.4) {
+          u.hp -= 4;
+        }
+      }
+      if (u.hp <= 0) {
+        f.visible = false;
+      }
+    } catch (err) {
+      console.warn("[fenrest-foe]", err);
     }
   }
 }
@@ -846,8 +886,14 @@ async function boot() {
     }
   }
 
-  const chunks = createChunkManager(root);
-  chunks.tick(0, 0);
+  const chunks = createChunkManager(root, {
+    onChunk(cx, cz, info) {
+      window.__FENREST_LIFE__?.scatterChunk?.(cx, cz, info);
+    },
+    onUnload() {
+      window.__FENREST_LIFE__?.pruneScatter?.();
+    },
+  });
 
   const smithX = 16.2;
   const smithZ = -3.6;
@@ -901,6 +947,7 @@ async function boot() {
 
   const foes = [];
   const allies = [];
+  window.__FENREST_FOES__ = foes;
   window.__FENREST_ALLIES__ = allies;
   const bolts = [];
   const magic = createMagic({ root, foes, allies, store, gl, cam: window.__FENREST_CAM__ });
@@ -931,6 +978,8 @@ async function boot() {
   window.__FENREST_FOES__ = foes;
   window.__FENREST_ROOT__ = root;
   window.__FENREST_STORE__ = store;
+  installLife({ root, store, loot, foes, heightAt });
+  chunks.tick(0, 0);
   const head = { x: 0, y: 1.6, z: 0 };
   const gripPts = [];
 

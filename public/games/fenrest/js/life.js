@@ -3,16 +3,30 @@
  * harvestable trees/ore, pushable boulders, chessboards.
  */
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.185.0/build/three.module.js";
-import { heightAt, inSettlement } from "/games/fenrest/js/world-grid.js?v=life1";
+import { heightAt, inSettlement, CHUNK } from "/games/fenrest/js/world-grid.js?v=map2";
+
+const SHEET4 = /^(wolf|dragon|bandit|human|woman|guard|innkeeper|lizard|lizardfolk)\.png$/i;
 
 const SPR = "/games/fenrest/sprites/";
 const TEX = {};
 function spr(file) {
   if (!TEX[file]) {
-    const t = new THREE.TextureLoader().load(SPR + file);
+    const t = new THREE.TextureLoader().load(SPR + file, (tex) => {
+      if (SHEET4.test(file)) {
+        tex.repeat.set(0.25, 0.25);
+        tex.offset.set(0, 0.75);
+        tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
+        tex.needsUpdate = true;
+      }
+    });
     t.colorSpace = THREE.SRGBColorSpace;
-    t.magFilter = THREE.LinearFilter;
-    t.minFilter = THREE.LinearFilter;
+    t.magFilter = SHEET4.test(file) ? THREE.NearestFilter : THREE.LinearFilter;
+    t.minFilter = t.magFilter;
+    if (SHEET4.test(file)) {
+      t.repeat.set(0.25, 0.25);
+      t.offset.set(0, 0.75);
+      t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping;
+    }
     TEX[file] = t;
   }
   return TEX[file];
@@ -57,7 +71,16 @@ function addResource(store, id, n) {
 }
 
 export function installLife({ root, store, loot, foes, heightAt: hAt }) {
+  if (window.__FENREST_LIFE__) return window.__FENREST_LIFE__;
   const height = hAt || heightAt;
+  if (!foes) foes = window.__FENREST_FOES__ || [];
+  if (window.__FENREST_FOES__ && foes !== window.__FENREST_FOES__) {
+    const extra = foes;
+    foes = window.__FENREST_FOES__;
+    for (const f of extra) if (!foes.includes(f)) foes.push(f);
+  } else {
+    window.__FENREST_FOES__ = foes;
+  }
   const grass = [];
   const turtles = [];
   const shells = [];
@@ -73,20 +96,21 @@ export function installLife({ root, store, loot, foes, heightAt: hAt }) {
   const hitables = [];
   const tmp = new THREE.Vector3();
   const tmp2 = new THREE.Vector3();
+  const scattered = new Set();
 
-  function placeSprite(file, x, z, w, h) {
+  function placeSprite(file, x, z, w, h, parent = root) {
     const s = billboard(spr(file), w, h);
     s.position.set(x, height(x, z) + h * 0.45, z);
-    root.add(s);
+    parent.add(s);
     return s;
   }
 
-  function spawnGrassField(cx, cz, count = 28, spread = 16) {
+  function spawnGrassField(cx, cz, count = 28, spread = 16, parent = root) {
     for (let i = 0; i < count; i++) {
       const x = cx + (Math.random() - 0.5) * spread;
       const z = cz + (Math.random() - 0.5) * spread;
       if (inSettlement(x, z)) continue;
-      const g = placeSprite("grass-tall.png", x, z, 1.4 + Math.random() * 0.6, 1.8 + Math.random() * 0.7);
+      const g = placeSprite("grass-tall.png", x, z, 1.4 + Math.random() * 0.6, 1.8 + Math.random() * 0.7, parent);
       g.userData = {
         kind: "grass",
         cut: false,
@@ -117,13 +141,18 @@ export function installLife({ root, store, loot, foes, heightAt: hAt }) {
     const s = placeSprite("turtle.png", x, z, 1.1, 1.0);
     s.userData = {
       kind: "turtle",
+      lifeBeast: true,
       hp: 2,
+      maxHp: 2,
       wander: Math.random() * 6.28,
       spd: 0.7 + Math.random() * 0.4,
       t: Math.random() * 8,
+      hitR: 1.15,
+      hitH: 1.1,
     };
     turtles.push(s);
     foes.push(s);
+    hitables.push(s);
     return s;
   }
 
@@ -145,17 +174,25 @@ export function installLife({ root, store, loot, foes, heightAt: hAt }) {
     burst(root, debris, t.position.x, t.position.y, t.position.z, 0xd4a050, 6, 2);
   }
 
-  function spawnBeast(kind, x, z) {
+  function spawnBeast(kind, x, z, parent) {
     const def = {
       trex: { file: "trex.png", w: 3.6, h: 3.2, hp: 22, spd: 2.2, dmg: 0.16, aggro: 14, humanoid: false },
       raptor: { file: "raptor.png", w: 1.8, h: 1.4, hp: 8, spd: 4.4, dmg: 0.09, aggro: 11, humanoid: false },
       mammoth: { file: "mammoth.png", w: 3.4, h: 2.6, hp: 28, spd: 1.6, dmg: 0.12, aggro: 7, humanoid: false },
+      wolf: { file: "wolf.png", w: 1.2, h: 2.1, hp: 3, spd: 4.2, dmg: 0.06, aggro: 12, humanoid: false },
+      dragon: { file: "dragon.png", w: 2.4, h: 2.1, hp: 16, spd: 3.4, dmg: 0.18, aggro: 16, humanoid: false },
     }[kind];
+    if (!def) return null;
     const s = placeSprite(def.file, x, z, def.w, def.h);
+    if (parent && parent !== root) {
+      s.removeFromParent();
+      parent.add(s);
+    }
     s.userData = {
       foe: true,
       kind,
-      def: { spd: def.spd, dmg: def.dmg, spell: null },
+      lifeBeast: true,
+      def: { id: kind, spd: def.spd, dmg: def.dmg, spell: null },
       hp: def.hp,
       maxHp: def.hp,
       cool: 0,
@@ -166,13 +203,16 @@ export function installLife({ root, store, loot, foes, heightAt: hAt }) {
       aggro: def.aggro,
       flash: 0,
       stagger: 0,
+      hitR: Math.max(1.35, def.w * 0.62),
+      hitH: Math.max(1.4, def.h * 0.78),
     };
     beasts.push(s);
     foes.push(s);
+    hitables.push(s);
     return s;
   }
 
-  function makeTree(x, z) {
+  function makeTree(x, z, parent = root) {
     const g = new THREE.Group();
     const y0 = height(x, z);
     const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.28, 2.4, 6), oakMat());
@@ -182,7 +222,7 @@ export function installLife({ root, store, loot, foes, heightAt: hAt }) {
     g.add(trunk, crown);
     g.position.set(x, y0, z);
     g.userData = { harvest: "tree", hp: 8, maxHp: 8, label: "oak", wood: 3 };
-    root.add(g);
+    parent.add(g);
     trees.push(g);
     hitables.push(g);
     return g;
@@ -373,6 +413,8 @@ export function installLife({ root, store, loot, foes, heightAt: hAt }) {
     s.add(ear, spk);
     s.userData = {
       npc: true,
+      kind: "npc",
+      foe: false,
       species: def.species,
       name: def.name,
       role: def.role,
@@ -383,9 +425,19 @@ export function installLife({ root, store, loot, foes, heightAt: hAt }) {
       talking: false,
       follow: false,
       chess: false,
+      hp: 10,
+      maxHp: 10,
+      stamina: 1,
+      lower: 1,
+      flash: 0,
+      stagger: 0,
+      humanoid: true,
+      hitR: 1.35,
+      hitH: 1.55,
     };
     root.add(s);
     npcs.push(s);
+    hitables.push(s);
     return s;
   }
 
@@ -433,11 +485,31 @@ export function installLife({ root, store, loot, foes, heightAt: hAt }) {
   spawnBeast("raptor", -18, -24);
   spawnBeast("mammoth", -26, 8);
   spawnBeast("mammoth", 32, 12);
+  spawnBeast("wolf", 18, -16);
+  spawnBeast("wolf", -22, 14);
+  spawnBeast("wolf", 8, 26);
+  spawnBeast("wolf", -14, -20);
+  spawnBeast("dragon", 48, -36);
+  spawnBeast("dragon", -52, 28);
+  spawnBeast("raptor", 40, 8);
+  spawnBeast("trex", -44, -30);
   for (let i = 0; i < 10; i++) {
     const a = Math.random() * 6.28;
     const r = 10 + Math.random() * 28;
     makeTree(Math.cos(a) * r, Math.sin(a) * r + 6);
   }
+  for (let i = 0; i < 28; i++) {
+    const a = (i / 28) * Math.PI * 2 + Math.random() * 0.15;
+    const r = 40 + Math.random() * 40;
+    const x = Math.cos(a) * r;
+    const z = Math.sin(a) * r;
+    if (inSettlement(x, z)) continue;
+    makeTree(x, z);
+  }
+  spawnGrassField(48, 36, 22, 18);
+  spawnGrassField(-44, -28, 20, 16);
+  spawnGrassField(8, 62, 18, 14);
+  spawnGrassField(-56, 22, 16, 14);
   for (let i = 0; i < 8; i++) {
     const a = Math.random() * 6.28;
     const r = 8 + Math.random() * 22;
@@ -479,6 +551,56 @@ export function installLife({ root, store, loot, foes, heightAt: hAt }) {
     12.4,
     9.2,
   );
+
+  function hash32(n) {
+    n |= 0;
+    n = Math.imul(n ^ (n >>> 16), 0x45d9f3b);
+    n = Math.imul(n ^ (n >>> 16), 0x45d9f3b);
+    return (n ^ (n >>> 16)) >>> 0;
+  }
+
+  function scatterChunk(cx, cz, info) {
+    const key = cx + "," + cz;
+    if (scattered.has(key)) return;
+    scattered.add(key);
+    const ox = info?.origin?.x ?? cx * CHUNK;
+    const oz = info?.origin?.z ?? cz * CHUNK;
+    const parent = info?.group || root;
+    const mx = ox + CHUNK / 2;
+    const mz = oz + CHUNK / 2;
+    if (Math.hypot(mx, mz) < 32) return;
+    let seed = hash32(cx * 73856093 ^ cz * 19349663);
+    const rng = () => {
+      seed = hash32(seed + 1);
+      return seed / 4294967296;
+    };
+    const nTrees = 6 + ((rng() * 6) | 0);
+    for (let i = 0; i < nTrees; i++) {
+      const x = ox + 10 + rng() * (CHUNK - 20);
+      const z = oz + 10 + rng() * (CHUNK - 20);
+      if (inSettlement(x, z)) continue;
+      if (Math.hypot(x, z) < 38) continue;
+      makeTree(x, z, parent);
+    }
+    if (rng() > 0.35) {
+      spawnGrassField(ox + CHUNK * 0.35 + rng() * CHUNK * 0.3, oz + CHUNK * 0.35 + rng() * CHUNK * 0.3, 12, 14, parent);
+    }
+  }
+
+  function pruneScatter() {
+    const drop = (arr) => {
+      for (let i = arr.length - 1; i >= 0; i--) {
+        if (!arr[i].parent) arr.splice(i, 1);
+      }
+    };
+    drop(trees);
+    drop(grass);
+    drop(hitables);
+    drop(grab);
+    for (let i = foes.length - 1; i >= 0; i--) {
+      if (!foes[i].parent && foes[i].userData?.lifeBeast) foes.splice(i, 1);
+    }
+  }
 
   window.__FENREST_GRABBABLES__ = grab;
   window.__FENREST_HITABLES__ = hitables;
@@ -621,6 +743,7 @@ export function installLife({ root, store, loot, foes, heightAt: hAt }) {
     for (const b of beasts) {
       if (!b.visible) continue;
       const u = b.userData;
+      u.hitCool = Math.max(0, (u.hitCool || 0) - dt);
       const dx = head.x - b.position.x;
       const dz = head.z - b.position.z;
       const d = Math.hypot(dx, dz) || 1;
@@ -633,14 +756,14 @@ export function installLife({ root, store, loot, foes, heightAt: hAt }) {
         b.position.x += (u.kx || 0) * dt;
         b.position.z += (u.kz || 0) * dt;
       } else if (d < u.aggro) {
-        const spd = u.def.spd * (u.lower ?? 1);
+        const spd = (u.def?.spd ?? 2) * (u.lower ?? 1);
         b.position.x += (dx / d) * spd * dt;
         b.position.z += (dz / d) * spd * dt;
         u.cool = (u.cool || 0) - dt;
         if (d < 2.1 && u.cool <= 0) {
           u.cool = 1.1;
-          const st = store.getState();
-          store.getState().setHud({ hp: Math.max(0, (st.hp ?? 1) - u.def.dmg) });
+          const st = store?.getState?.();
+          if (st) store.getState().setHud({ hp: Math.max(0, (st.hp ?? 1) - (u.def?.dmg ?? 0.08)) });
         }
       } else {
         u.wander += dt * 0.4;
@@ -650,6 +773,20 @@ export function installLife({ root, store, loot, foes, heightAt: hAt }) {
       b.position.y = height(b.position.x, b.position.z) + b.scale.y * 0.42;
     }
     for (const n of npcs) {
+      if (!n.visible) continue;
+      const nu = n.userData;
+      nu.hitCool = Math.max(0, (nu.hitCool || 0) - dt);
+      if (nu.flash > 0) {
+        nu.flash -= dt;
+        if (n.material?.color) n.material.color.setHex(nu.flash > 0 ? 0xff2a2a : nu._baseColor || 0xffffff);
+      }
+      if (nu.stagger > 0) {
+        nu.stagger -= dt;
+        n.position.x += (nu.kx || 0) * dt;
+        n.position.z += (nu.kz || 0) * dt;
+        nu.kx = (nu.kx || 0) * (1 - dt * 3);
+        nu.kz = (nu.kz || 0) * (1 - dt * 3);
+      }
       n.position.y = height(n.position.x, n.position.z) + n.scale.y * 0.48;
       if (n.userData.follow) {
         const dx = head.x - n.position.x;
@@ -682,16 +819,20 @@ export function installLife({ root, store, loot, foes, heightAt: hAt }) {
     pushBoulders(head, dt);
     tickDebris(dt);
     window.__FENREST_GRABBABLES__ = grab.filter((g) => g.visible && !g.userData.broken);
-    window.__FENREST_HITABLES__ = hitables.filter((g) => g.visible);
+    window.__FENREST_HITABLES__ = hitables;
   }
 
-  const api = { tick, grass, turtles, beasts, npcs, boards, cutGrass, stompTurtle };
+  const api = { tick, grass, turtles, beasts, npcs, boards, cutGrass, stompTurtle, scatterChunk, pruneScatter };
   window.__FENREST_LIFE__ = api;
   return api;
 }
 
 export function bootLife() {
   const t = setInterval(() => {
+    if (window.__FENREST_LIFE__) {
+      clearInterval(t);
+      return;
+    }
     if (!window.__FENREST_ROOT__ || !window.__FENREST__) return;
     clearInterval(t);
     installLife({

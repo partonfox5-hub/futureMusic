@@ -5,7 +5,7 @@
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.185.0/build/three.module.js";
 
 export const CHUNK = 148;
-export const GRID = 3;
+export const GRID = 5;
 export const WORLD = CHUNK * GRID;
 export const HALF = WORLD / 2;
 
@@ -26,6 +26,30 @@ export const HAMLETS = [
   { name: "Tulip Gate", x: 108, z: -48, r: 14, theme: "ottoman" },
   { name: "Lampwick", x: 108, z: 48, r: 14, theme: "victorian" },
   { name: "Hayward", x: 14, z: 108, r: 14, theme: "medieval" },
+  { name: "Fen Crossing", x: -36, z: -28, r: 10, theme: "thatch" },
+  { name: "Sheepfold", x: 62, z: 154, r: 12, theme: "medieval" },
+  { name: "Northwatch", x: 8, z: -286, r: 12, theme: "roman" },
+  { name: "Cedar Post", x: -286, z: -36, r: 12, theme: "japanese" },
+  { name: "Dunestone", x: -254, z: 168, r: 12, theme: "egyptian" },
+  { name: "Saffron Rise", x: 262, z: -168, r: 12, theme: "ottoman" },
+  { name: "Cogford", x: 288, z: 42, r: 12, theme: "victorian" },
+  { name: "Motte End", x: 42, z: 288, r: 12, theme: "medieval" },
+  { name: "Marshlamp", x: -72, z: 196, r: 12, theme: "thatch" },
+];
+
+export const LANDMARKS = [
+  { kind: "watchtower", name: "East Watch", x: 72, z: -64, theme: "medieval" },
+  { kind: "watchtower", name: "West Watch", x: -72, z: 64, theme: "roman" },
+  { kind: "watchtower", name: "Ridge Watch", x: 168, z: 8, theme: "victorian" },
+  { kind: "watchtower", name: "Gate Watch", x: -168, z: -8, theme: "japanese" },
+  { kind: "watchtower", name: "Crown Watch", x: 6, z: 168, theme: "medieval" },
+  { kind: "watchtower", name: "Mere Watch", x: -6, z: -168, theme: "roman" },
+  { kind: "watchtower", name: "Far North", x: -40, z: -320, theme: "roman" },
+  { kind: "watchtower", name: "Far South", x: 40, z: 320, theme: "medieval" },
+  { kind: "stone", name: "Standing Stone", x: 36, z: 28 },
+  { kind: "stone", name: "Old Menhir", x: -220, z: -220 },
+  { kind: "stone", name: "Crown Circle", x: 220, z: 180 },
+  { kind: "stone", name: "Fen Marker", x: -48, z: 40 },
 ];
 
 const RAISED = [];
@@ -223,7 +247,7 @@ function buildGroundChunk(cx, cz) {
   return mesh;
 }
 
-function roadSeg(parent, a, b) {
+function roadSeg(parent, a, b, bounds) {
   const dx = b.x - a.x;
   const dz = b.z - a.z;
   const len = Math.hypot(dx, dz);
@@ -236,9 +260,12 @@ function roadSeg(parent, a, b) {
     const z0 = a.z + dz * t0;
     const x1 = a.x + dx * t1;
     const z1 = a.z + dz * t1;
+    const mx = (x0 + x1) / 2;
+    const mz = (z0 + z1) / 2;
+    if (bounds && (mx < bounds.x || mx >= bounds.x + bounds.w || mz < bounds.z || mz >= bounds.z + bounds.d)) continue;
     const sl = Math.hypot(x1 - x0, z1 - z0);
     const m = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.08, sl + 0.2), matMap(TEX.dirt, 0x8a6a48));
-    m.position.set((x0 + x1) / 2, (heightAt(x0, z0) + heightAt(x1, z1)) / 2 + 0.05, (z0 + z1) / 2);
+    m.position.set(mx, (heightAt(x0, z0) + heightAt(x1, z1)) / 2 + 0.05, mz);
     m.rotation.y = Math.atan2(x1 - x0, z1 - z0);
     parent.add(m);
   }
@@ -378,11 +405,50 @@ function buildHamlet(parent, h) {
   const g = new THREE.Group();
   themedBuilding(g, h.x, h.z, h.theme, 5, 5, 1);
   themedBuilding(g, h.x + 6, h.z - 3, h.theme, 4, 4, 1);
+  themedBuilding(g, h.x - 5, h.z + 4, h.theme, 3.6, 3.8, 1);
   signpost(g, h.x, h.z + 8, h.name);
   parent.add(g);
 }
 
-export function createChunkManager(root) {
+function watchtower(parent, x, z, theme) {
+  const pal = THEME[theme] || THEME.medieval;
+  const y0 = heightAt(x, z);
+  const wall = matMap(pal.wall, pal.wallC);
+  const roof = matMap(pal.roof, pal.roofC);
+  parent.add(box(wall, x, y0 + 1.5, z, 3.4, 3.0, 3.4));
+  parent.add(box(wall, x, y0 + 5.4, z, 2.2, 4.8, 2.2));
+  parent.add(box(roof, x, y0 + 8.05, z, 2.7, 0.32, 2.7));
+  for (const [dx, dz] of [
+    [-1.05, -1.05],
+    [1.05, -1.05],
+    [-1.05, 1.05],
+    [1.05, 1.05],
+  ]) {
+    parent.add(box(wall, x + dx, y0 + 8.5, z + dz, 0.5, 0.72, 0.5));
+  }
+}
+
+function standingStone(parent, x, z) {
+  const y0 = heightAt(x, z);
+  const rock = matMap(TEX.stone, 0x9a968c);
+  parent.add(box(rock, x, y0 + 2.2, z, 0.72, 4.4, 0.36));
+  parent.add(box(rock, x + 1.5, y0 + 1.5, z + 0.7, 0.48, 3.0, 0.3));
+  parent.add(box(rock, x - 1.3, y0 + 1.25, z - 0.55, 0.42, 2.5, 0.28));
+  const ring = new THREE.Mesh(new THREE.CylinderGeometry(3.2, 3.2, 0.12, 12), matMap(TEX.dirt, 0x6a5a40));
+  ring.position.set(x, y0 + 0.08, z);
+  parent.add(ring);
+}
+
+function buildLandmark(parent, lm) {
+  const g = new THREE.Group();
+  g.name = "landmark-" + (lm.name || lm.kind);
+  if (lm.kind === "watchtower") watchtower(g, lm.x, lm.z, lm.theme);
+  else standingStone(g, lm.x, lm.z);
+  if (lm.name) signpost(g, lm.x, lm.z + 6, lm.name.toUpperCase());
+  parent.add(g);
+}
+
+export function createChunkManager(root, opts = {}) {
   let current = { cx: -1, cz: -1 };
   const loaded = new THREE.Group();
   loaded.name = "fenrest-chunk";
@@ -400,20 +466,36 @@ export function createChunkManager(root) {
 
   function load(cx, cz) {
     clear();
+    opts.onUnload?.(current.cx, current.cz);
     loaded.add(buildGroundChunk(cx, cz));
     const ox = cx * CHUNK - HALF;
     const oz = cz * CHUNK - HALF;
+    const bounds = { x: ox, z: oz, w: CHUNK, d: CHUNK };
     const inChunk = (p) => p.x >= ox && p.x < ox + CHUNK && p.z >= oz && p.z < oz + CHUNK;
     CITIES.filter(inChunk).forEach((c) => buildCity(loaded, c));
     HAMLETS.filter(inChunk).forEach((h) => buildHamlet(loaded, h));
+    LANDMARKS.filter(inChunk).forEach((lm) => buildLandmark(loaded, lm));
     const nodes = [...CITIES];
     for (let i = 0; i < nodes.length; i++) {
       for (let j = i + 1; j < nodes.length; j++) {
-        if (nodes[i].id === "fenrest" || nodes[j].id === "fenrest" || nodes[i].major && nodes[j].major) {
-          roadSeg(loaded, nodes[i], nodes[j]);
+        if (nodes[i].id === "fenrest" || nodes[j].id === "fenrest" || (nodes[i].major && nodes[j].major)) {
+          roadSeg(loaded, nodes[i], nodes[j], bounds);
         }
       }
     }
+    for (const h of HAMLETS) {
+      let best = CITIES[0];
+      let bd = 1e9;
+      for (const c of CITIES) {
+        const d = Math.hypot(c.x - h.x, c.z - h.z);
+        if (d < bd) {
+          bd = d;
+          best = c;
+        }
+      }
+      roadSeg(loaded, h, best, bounds);
+    }
+    opts.onChunk?.(cx, cz, { origin: { x: ox, z: oz }, group: loaded, bounds });
   }
 
   function tick(px, pz) {

@@ -1,7 +1,7 @@
 /**
  * Fenrest VR: leather gloves on controller grips, squeeze to pick up
  * melee and brandish / swing them.
- * melee3: blade-vs-sprite swept cylinder hits.
+ * melee4: wider sprite/group hit volumes so native NPCs and beasts clang.
  */
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.185.0/build/three.module.js";
 import { makeChargeRing, paintChargeRing, makeSpellAura, SPELLS } from "/games/fenrest/js/magic.js";
@@ -238,8 +238,9 @@ function xClick(src) {
 
 function bodyRegion(foe, hitY) {
   const h = foe.scale?.y || 2;
-  const top = foe.position.y + h * 0.5;
-  const bot = foe.position.y - h * 0.5;
+  const cy = foe.center?.y ?? (foe.userData?.feet ? 0 : 0.5);
+  const bot = foe.position.y - h * cy;
+  const top = bot + h;
   const t = (hitY - bot) / Math.max(0.15, top - bot);
   if (t > 0.72) return "head";
   if (t < 0.32) return "lower";
@@ -251,45 +252,75 @@ function spriteCenter(obj, out) {
   const e = obj.matrixWorld?.elements;
   if (e) out.set(e[12], e[13], e[14]);
   else out.copy(obj.position);
+  if (!obj.isSprite) out.y += obj.userData?.harvest === "tree" ? 1.4 : 0.7;
   return out;
 }
 
 function spriteRadius(obj) {
-  if (obj.isSprite) return Math.max(0.7, (obj.scale?.x || 1) * 0.62);
-  if (obj.userData?.harvest) return 1.15;
-  if (obj.userData?.breakable) return 0.7;
-  if (obj.userData?.kind === "grass") return 0.45;
-  return Math.max(0.85, (obj.scale?.x || 1) * 0.5);
+  if (obj.userData?.hitR) return obj.userData.hitR;
+  if (obj.isSprite) return Math.max(1.25, (obj.scale?.x || 1) * 0.88);
+  if (obj.userData?.harvest === "tree") return 1.85;
+  if (obj.userData?.harvest) return 1.55;
+  if (obj.userData?.breakable) return 1.15;
+  if (obj.userData?.kind === "grass") return 0.58;
+  if (obj.isGroup || obj.type === "Group") return 1.7;
+  return Math.max(1.35, (obj.scale?.x || 1) * 0.7);
 }
 
 function spriteHalfH(obj) {
-  if (obj.isSprite) return Math.max(0.7, (obj.scale?.y || 1) * 0.58);
-  if (obj.userData?.harvest) return 1.7;
-  return 1.15;
+  if (obj.userData?.hitH) return obj.userData.hitH;
+  if (obj.isSprite) {
+    const sy = obj.scale?.y || 1;
+    const cy = obj.center?.y ?? (obj.userData?.feet ? 0 : 0.5);
+    // Feet-anchored portraits: origin is at the ground, volume goes up.
+    // Mid-body sprites (wolves ~1.2x2.1, beasts, NPCs): origin is torso.
+    if (cy < 0.25) return Math.max(1.45, sy * 1.08);
+    return Math.max(1.45, sy * 0.82);
+  }
+  if (obj.userData?.harvest === "tree") return 2.6;
+  if (obj.userData?.harvest) return 1.9;
+  if (obj.isGroup || obj.type === "Group") return 2.1;
+  return 1.85;
 }
 
 function segmentHitsSprite(ax, ay, az, bx, by, bz, cx, cy, cz, radius, halfH) {
+  const slop = 0.55;
+  const r2 = radius * radius;
   const abx = bx - ax;
   const aby = by - ay;
   const abz = bz - az;
   const acx = cx - ax;
+  const acy = cy - ay;
   const acz = cz - az;
-  const ab2 = abx * abx + abz * abz;
+  // 3D closest point (stabs / diagonal swings)
+  const ab2 = abx * abx + aby * aby + abz * abz;
   let t = 0;
-  if (ab2 > 1e-8) t = (acx * abx + acz * abz) / ab2;
+  if (ab2 > 1e-8) t = (acx * abx + acy * aby + acz * abz) / ab2;
   t = Math.max(0, Math.min(1, t));
-  const px = ax + abx * t;
-  const py = ay + aby * t;
-  const pz = az + abz * t;
-  const dx = px - cx;
-  const dz = pz - cz;
-  if (dx * dx + dz * dz > radius * radius) return false;
-  return Math.abs(py - cy) <= halfH + 0.4;
+  let px = ax + abx * t;
+  let py = ay + aby * t;
+  let pz = az + abz * t;
+  let dx = px - cx;
+  let dz = pz - cz;
+  if (dx * dx + dz * dz <= r2 && Math.abs(py - cy) <= halfH + slop) return true;
+  // XZ projection (horizontal slash across a mid-body billboard)
+  const abxz = abx * abx + abz * abz;
+  let t2 = 0;
+  if (abxz > 1e-8) t2 = (acx * abx + acz * abz) / abxz;
+  t2 = Math.max(0, Math.min(1, t2));
+  px = ax + abx * t2;
+  py = ay + aby * t2;
+  pz = az + abz * t2;
+  dx = px - cx;
+  dz = pz - cz;
+  if (dx * dx + dz * dz > r2) return false;
+  return Math.abs(py - cy) <= halfH + slop;
 }
 
 export function applyMeleeHit(foe, speed, shield, knock) {
   if (!foe?.userData) return false;
   const u = foe.userData;
+  if (u.hp == null) u.hp = u.maxHp ?? 8;
   if (u.hitCool > 0) return false;
   const spd = Math.max(0.7, Math.min(4.2, speed / 1.6));
   let dmg = (shield ? 1.6 : 2.8) * spd;
@@ -591,7 +622,13 @@ export function attachVrHands({ scene, gl, heightAt, loot, foes, store, onCast, 
         if (knock.lengthSq() < 0.0001) knock.set(0, 0, -1);
         knock.normalize().multiplyScalar(2.6 + strikeSpeed * 0.4);
 
-        const lists = [foes, window.__FENREST_FOES__, window.__FENREST_ALLIES__, window.__FENREST_HITABLES__];
+        const lists = [
+          foes,
+          window.__FENREST_FOES__,
+          window.__FENREST_ALLIES__,
+          window.__FENREST_HITABLES__,
+          window.__FENREST_NPCS__,
+        ];
         const seen = new Set();
         let hitSomething = false;
         for (const list of lists) {
@@ -649,7 +686,7 @@ export function attachVrHands({ scene, gl, heightAt, loot, foes, store, onCast, 
               hitSomething = true;
               continue;
             }
-            if (!(f.userData?.foe || f.userData?.hp != null || f.userData?.kind)) continue;
+            if (!(f.userData?.foe || f.userData?.hp != null || f.userData?.kind || f.userData?.npc)) continue;
             f.userData.lastRegion = f.userData.humanoid === false ? "torso" : bodyRegion(f, tip.y);
             if (applyMeleeHit(f, strikeSpeed, !!h.mesh.userData.block, knock)) {
               hitSomething = true;

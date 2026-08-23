@@ -3,7 +3,7 @@
  * Charge-to-cast, unique auras, spawn spells, Join Skies RTS.
  */
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.185.0/build/three.module.js";
-import { heightAt, raiseTerrain, inSettlement } from "/games/fenrest/js/world-grid.js";
+import { heightAt, raiseTerrain, inSettlement } from "/games/fenrest/js/world-grid.js?v=map2";
 
 const FX_FIRE = [0, 1, 2, 3].map((i) => "/games/character-chess/sprites/fx/fire/" + i + ".png");
 const FX_ELEC = [0, 1, 2, 3].map((i) => "/games/character-chess/sprites/fx/electric/" + i + ".png");
@@ -63,18 +63,89 @@ function loadTex(url) {
 }
 
 function hsTex(file) {
-  return loadTex("/images/hero-slayer/" + file);
+  const url = "/images/hero-slayer/" + file;
+  if (TEXC[url]) return TEXC[url];
+  const t = new THREE.TextureLoader().load(url, (tex) => {
+    try {
+      keyPortraitBackdrop(tex);
+    } catch {
+      /* keep jpg if canvas keying fails */
+    }
+  });
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.magFilter = THREE.LinearFilter;
+  t.minFilter = THREE.LinearFilter;
+  TEXC[url] = t;
+  return t;
+}
+
+/** Punch edge-connected dark studio backdrop; leave interior blacks (hoods, sockets). */
+function keyPortraitBackdrop(tex) {
+  const img = tex.image;
+  if (!img || !img.width) return;
+  const w = img.width;
+  const h = img.height;
+  const c = document.createElement("canvas");
+  c.width = w;
+  c.height = h;
+  const ctx = c.getContext("2d");
+  ctx.drawImage(img, 0, 0);
+  const data = ctx.getImageData(0, 0, w, h);
+  const p = data.data;
+  const isBack = (i) => {
+    const r = p[i];
+    const g = p[i + 1];
+    const b = p[i + 2];
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    const lum = 0.3 * r + 0.59 * g + 0.11 * b;
+    return lum < 38 || (lum < 56 && max - min < 18);
+  };
+  const seen = new Uint8Array(w * h);
+  const stack = [];
+  const push = (x, y) => {
+    if (x < 0 || y < 0 || x >= w || y >= h) return;
+    const idx = y * w + x;
+    if (seen[idx]) return;
+    seen[idx] = 1;
+    if (isBack(idx * 4)) stack.push(idx);
+  };
+  for (let x = 0; x < w; x++) {
+    push(x, 0);
+    push(x, h - 1);
+  }
+  for (let y = 0; y < h; y++) {
+    push(0, y);
+    push(w - 1, y);
+  }
+  while (stack.length) {
+    const idx = stack.pop();
+    p[idx * 4 + 3] = 0;
+    const x = idx % w;
+    const y = (idx / w) | 0;
+    push(x + 1, y);
+    push(x - 1, y);
+    push(x, y + 1);
+    push(x, y - 1);
+  }
+  ctx.putImageData(data, 0, 0);
+  tex.image = c;
+  tex.needsUpdate = true;
 }
 
 export function spawnHsUnit(root, list, def, x, z, friendly) {
-  const h = 1.15 * def.scale;
-  const w = 0.85 * def.scale;
-  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: hsTex(def.file), transparent: true }));
+  const human = def.humanoid !== false;
+  const w = (human ? 1.4 : 1.65) * (def.scale / 1.1);
+  const h = (human ? 2.2 : 1.9) * (def.scale / 1.1);
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: hsTex(def.file), transparent: true, depthWrite: false }));
+  sp.center.set(0.5, 0);
   sp.scale.set(w, h, 1);
-  sp.position.set(x, heightAt(x, z) + h * 0.5, z);
+  sp.position.set(x, heightAt(x, z), z);
   sp.userData = {
     foe: !friendly,
     ally: !!friendly,
+    kind: def.id,
+    feet: true,
     humanoid: def.humanoid,
     def,
     hp: def.hp,
@@ -83,7 +154,11 @@ export function spawnHsUnit(root, list, def, x, z, friendly) {
     lower: 1,
     cool: 0,
     frozen: 0,
+    flash: 0,
+    stagger: 0,
     cmd: null,
+    hitR: Math.max(1.2, w * 0.55),
+    hitH: Math.max(1.6, h * 1.05),
   };
   root.add(sp);
   list.push(sp);
@@ -308,13 +383,14 @@ export function createMagic({ root, foes, allies, store, gl, cam }) {
         const dx = cmd.x - u.position.x;
         const dz = cmd.z - u.position.z;
         const d = Math.hypot(dx, dz) || 1;
-        const spd = (u.userData.def.spd || 2) * (u.userData.lower ?? 1);
+        const spd = (u.userData.def?.spd ?? 2) * (u.userData.lower ?? 1);
         if (d > 0.6) {
           u.position.x += (dx / d) * spd * dt;
           u.position.z += (dz / d) * spd * dt;
         } else u.userData.cmd = null;
       }
-      u.position.y = heightAt(u.position.x, u.position.z) + u.scale.y * 0.5;
+      const gy = heightAt(u.position.x, u.position.z);
+      u.position.y = u.userData.feet || (u.center && u.center.y < 0.2) ? gy : gy + u.scale.y * 0.45;
     }
   }
 
@@ -328,6 +404,10 @@ export function createMagic({ root, foes, allies, store, gl, cam }) {
       [-140, 20],
       [140, -20],
       [0, -140],
+      [220, 80],
+      [-210, -90],
+      [90, -240],
+      [-60, 250],
     ];
     const evils = HS_UNITS.filter((u) => u.evil);
     spots.forEach(([x, z], i) => {
