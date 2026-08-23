@@ -609,9 +609,17 @@ try {
 
 const CHESS_ALPHA_SKU = 'creature-chess-alpha-pack';
 const CHESS_ALPHA_PRICE_CENTS = 100;
-function chessAlphaToken() {
+const CHESS_PACKS = {
+    alpha: { sku: 'creature-chess-alpha-pack', cookie: 'chess_alpha_pack', session: 'chessAlphaPack', name: 'Creature Chess — Alpha pack' },
+    nightcourt: { sku: 'creature-chess-nightcourt-pack', cookie: 'chess_nightcourt_pack', session: 'chessNightcourtPack', name: 'Creature Chess — Night Court' },
+    primeval: { sku: 'creature-chess-primeval-pack', cookie: 'chess_primeval_pack', session: 'chessPrimevalPack', name: 'Creature Chess — Primeval' },
+};
+function chessPackToken(sku) {
     const secret = process.env.SESSION_SECRET || 'dev_secret_key_123';
-    return crypto.createHmac('sha256', secret).update(CHESS_ALPHA_SKU).digest('hex').slice(0, 32);
+    return crypto.createHmac('sha256', secret).update(sku).digest('hex').slice(0, 32);
+}
+function chessAlphaToken() {
+    return chessPackToken(CHESS_ALPHA_SKU);
 }
 function readReqCookie(req, name) {
     const raw = String(req.headers.cookie || '');
@@ -623,9 +631,10 @@ function readReqCookie(req, name) {
     }
     return '';
 }
-function grantChessAlpha(req, res) {
-    if (req.session) req.session.chessAlphaPack = true;
-    res.cookie('chess_alpha_pack', chessAlphaToken(), {
+function grantChessPack(req, res, packId) {
+    const def = CHESS_PACKS[packId] || CHESS_PACKS.alpha;
+    if (req.session) req.session[def.session] = true;
+    res.cookie(def.cookie, chessPackToken(def.sku), {
         httpOnly: true,
         sameSite: 'lax',
         secure: process.env.NODE_ENV === 'production',
@@ -633,16 +642,31 @@ function grantChessAlpha(req, res) {
         path: '/',
     });
 }
+function grantChessAlpha(req, res) {
+    grantChessPack(req, res, 'alpha');
+}
 const CHESS_ALPHA_OWNER_IPS = ['47.224.115.198'];
 function chessClientIp(req) {
     const xf = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
     const raw = xf || req.ip || (req.socket && req.socket.remoteAddress) || '';
     return String(raw).replace(/^::ffff:/i, '').split('%')[0];
 }
-function hasChessAlpha(req) {
+function hasChessPack(req, packId) {
     if (CHESS_ALPHA_OWNER_IPS.includes(chessClientIp(req))) return true;
-    if (req.session && req.session.chessAlphaPack) return true;
-    return readReqCookie(req, 'chess_alpha_pack') === chessAlphaToken();
+    const def = CHESS_PACKS[packId];
+    if (!def) return false;
+    if (req.session && req.session[def.session]) return true;
+    return readReqCookie(req, def.cookie) === chessPackToken(def.sku);
+}
+function hasChessAlpha(req) {
+    return hasChessPack(req, 'alpha');
+}
+function chessPackStatus(req) {
+    return {
+        alpha: hasChessPack(req, 'alpha'),
+        nightcourt: hasChessPack(req, 'nightcourt'),
+        primeval: hasChessPack(req, 'primeval'),
+    };
 }
 
 // Unlisted test pages (not linked from homepage / projects)
@@ -673,8 +697,9 @@ app.get('/chess', async (req, res) => {
     if (sessionId && stripe) {
         try {
             const session = await stripe.checkout.sessions.retrieve(sessionId);
-            if (session.payment_status === 'paid' && session.metadata?.sku === CHESS_ALPHA_SKU) {
-                grantChessAlpha(req, res);
+            if (session.payment_status === 'paid' && session.metadata?.sku) {
+                const packId = Object.keys(CHESS_PACKS).find((k) => CHESS_PACKS[k].sku === session.metadata.sku);
+                if (packId) grantChessPack(req, res, packId);
             }
         } catch (e) {
             console.warn('[CHESS] success verify:', e.message);
@@ -684,6 +709,7 @@ app.get('/chess', async (req, res) => {
         ...seo.page('chess'),
         sessionId,
         alphaUnlocked: hasChessAlpha(req),
+        chessPacks: chessPackStatus(req),
     });
 });
 app.get('/test-m8q2n5k7', (req, res) => {
@@ -2727,6 +2753,8 @@ app.post("/api/chess/alpha-checkout", async (req, res) => {
         return res.status(503).json({ error: "Payment gateway not configured." });
     }
     try {
+        const packId = String((req.body && req.body.pack) || "alpha");
+        const pack = CHESS_PACKS[packId] || CHESS_PACKS.alpha;
         const protocol = req.headers["x-forwarded-proto"] || req.protocol;
         const host = req.get("host");
         const domain = `${protocol}://${host}`;
@@ -2738,17 +2766,18 @@ app.post("/api/chess/alpha-checkout", async (req, res) => {
                     currency: "usd",
                     unit_amount: CHESS_ALPHA_PRICE_CENTS,
                     product_data: {
-                        name: "Creature Chess — Alpha pack",
-                        description: "Unlock extra units, four support cards, and 3D field for $1.",
+                        name: pack.name,
+                        description: "Unlock extra creatures and support cards for $1.",
                         images: [`${domain}/images/creature-chess.jpg`],
-                        metadata: { sku: CHESS_ALPHA_SKU },
+                        metadata: { sku: pack.sku },
                     },
                 },
                 quantity: 1,
             }],
             metadata: {
-                sku: CHESS_ALPHA_SKU,
-                type: "creature_chess_alpha",
+                sku: pack.sku,
+                pack: packId,
+                type: "creature_chess_pack",
                 userId: req.session.userId ? String(req.session.userId) : "",
             },
             success_url: `${domain}/chess?alpha=ok&session_id={CHECKOUT_SESSION_ID}`,
@@ -2761,7 +2790,7 @@ app.post("/api/chess/alpha-checkout", async (req, res) => {
                     `INSERT INTO orders (user_id, total, status, session_id, product_sku, product_type, description)
                      VALUES (?, ?, 'pending', ?, ?, 'digital', ?)
                      ON DUPLICATE KEY UPDATE status = status`,
-                    [req.session.userId, CHESS_ALPHA_PRICE_CENTS / 100, session.id, CHESS_ALPHA_SKU, "Creature Chess Alpha pack"]
+                    [req.session.userId, CHESS_ALPHA_PRICE_CENTS / 100, session.id, pack.sku, pack.name]
                 );
             } catch (dbErr) {
                 console.warn("[CHESS] order insert skipped:", dbErr.message);
@@ -2775,17 +2804,19 @@ app.post("/api/chess/alpha-checkout", async (req, res) => {
 });
 
 app.get("/api/chess/alpha-status", (req, res) => {
-    res.json({ unlocked: hasChessAlpha(req) });
+    const packs = chessPackStatus(req);
+    res.json({ unlocked: packs.alpha, packs });
 });
 
 app.post("/api/chess/alpha-verify", async (req, res) => {
     const sessionId = (req.body && req.body.session_id) || req.query.session_id || "";
-    if (!sessionId) return res.json({ unlocked: hasChessAlpha(req) });
+    if (!sessionId) return res.json({ unlocked: hasChessAlpha(req), packs: chessPackStatus(req) });
     if (!stripe) return res.status(503).json({ unlocked: false, error: "Payments unavailable" });
     try {
         const session = await stripe.checkout.sessions.retrieve(String(sessionId));
-        if (session.payment_status === "paid" && session.metadata?.sku === CHESS_ALPHA_SKU) {
-            grantChessAlpha(req, res);
+        const packId = Object.keys(CHESS_PACKS).find((k) => CHESS_PACKS[k].sku === session.metadata?.sku);
+        if (session.payment_status === "paid" && packId) {
+            grantChessPack(req, res, packId);
             if (pool && req.session.userId) {
                 try {
                     await pool.query(`UPDATE orders SET status = 'completed' WHERE session_id = ?`, [sessionId]);
@@ -2793,12 +2824,14 @@ app.post("/api/chess/alpha-verify", async (req, res) => {
                     console.warn("[CHESS] order complete skipped:", dbErr.message);
                 }
             }
-            return res.json({ unlocked: true });
+            const packs = chessPackStatus(req);
+            packs[packId] = true;
+            return res.json({ unlocked: packs.alpha, pack: packId, packs });
         }
-        res.json({ unlocked: hasChessAlpha(req) });
+        res.json({ unlocked: hasChessAlpha(req), packs: chessPackStatus(req) });
     } catch (e) {
         console.warn("[CHESS] verify:", e.message);
-        res.json({ unlocked: hasChessAlpha(req) });
+        res.json({ unlocked: hasChessAlpha(req), packs: chessPackStatus(req) });
     }
 });
 
