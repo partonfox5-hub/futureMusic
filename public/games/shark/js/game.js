@@ -501,9 +501,9 @@ function paintVrPlaque(ctx, w, h) {
   ctx.fillStyle = "#241c14";
   ctx.font = "28px sans-serif";
   const lines = [
-    "SQUEEZE GRIP on the wheel to drive.",
-    "  turn it  ·  push / pull for thrust",
-    "  lift / press for depth",
+    "Squeeze GRIP on the wheel.",
+    "Left stick: steer and throttle.",
+    "Right stick: depth.",
     "PUSH the red button to fire torpedoes.",
     "YELLOW lever — hatch (exit / re-enter).",
     "OUTSIDE: hold TRIGGER near the hull",
@@ -551,9 +551,9 @@ const vrGauges = makeDashScreen(768, 256, (ctx, w, h) => {
   ctx.fillStyle = "#0a100c";
   ctx.fillRect(0, 0, w, h);
 });
-vrGauges.position.set(0.02, -0.22, -0.72);
+vrGauges.position.set(0.06, -0.18, -0.7);
 vrGauges.rotation.x = -0.28;
-vrGauges.scale.set(0.85, 0.85, 0.85);
+vrGauges.scale.set(1, 1, 1);
 vrGauges.visible = false;
 cockpit.add(vrGauges);
 
@@ -561,8 +561,9 @@ function paintVrGauges() {
   const screen = vrGauges.userData.screen;
   if (!screen) return;
   const ctx = screen.userData.ctx;
-  const w = 768;
-  const h = 256;
+  const cnv = screen.userData.cnv;
+  const w = cnv ? cnv.width : 768;
+  const h = cnv ? cnv.height : 256;
   ctx.fillStyle = "#07110c";
   ctx.fillRect(0, 0, w, h);
   const rows = [
@@ -570,23 +571,99 @@ function paintVrGauges() {
     ["HULL", hull, 100, hull < 34 ? "#e05040" : hull < 70 ? "#e8c040" : "#7dffb0"],
     ["FUEL", fuel, 100, fuel < 25 ? "#e05040" : "#7dffb0"],
   ];
+  const barW = 300;
   rows.forEach((row, i) => {
-    const y = 28 + i * 52;
+    const y = 20 + i * 46;
     ctx.fillStyle = "#c8e8c0";
-    ctx.font = "22px sans-serif";
+    ctx.font = "20px sans-serif";
     ctx.textAlign = "left";
-    ctx.fillText(row[0], 24, y + 18);
+    ctx.fillText(row[0], 16, y + 18);
     ctx.fillStyle = "#122";
-    ctx.fillRect(120, y, 480, 22);
+    ctx.fillRect(88, y, barW, 20);
     ctx.fillStyle = row[3];
-    ctx.fillRect(120, y, 480 * (row[1] / row[2]), 22);
+    ctx.fillRect(88, y, barW * (row[1] / row[2]), 20);
     ctx.fillStyle = "#eef";
-    ctx.fillText(Math.round(row[1]) + "%", 616, y + 18);
+    ctx.fillText(Math.round(row[1]) + "%", 396, y + 18);
   });
   ctx.fillStyle = "#c8e8c0";
-  ctx.font = "22px sans-serif";
-  ctx.fillText("TORP  " + torpAmmo + "    " + (mode === "pilot" ? "PILOT" : "EVA") + "    " + sharkState.toUpperCase(), 24, 236);
+  ctx.font = "18px sans-serif";
+  ctx.fillText("TORP  " + torpAmmo + "  " + (mode === "pilot" ? "PILOT" : "EVA") + "  " + sharkState.toUpperCase(), 16, 172);
+  const radioShown = audio.on ? audio.trackTitle || "STANDBY" : "RADIO OFF";
+  ctx.fillStyle = "#9ec8a8";
+  ctx.font = "16px sans-serif";
+  ctx.fillText("RADIO  " + radioShown, 16, 200);
+  if (msgT > 0 && msg) {
+    ctx.fillStyle = "#e8d27a";
+    ctx.fillText(msg, 16, 228);
+  }
+
+  const cx = 636;
+  const cy = 124;
+  const rad = 108;
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cx, cy, rad, 0, Math.PI * 2);
+  ctx.fillStyle = worldMode === "space" ? "#05070e" : "#03140f";
+  ctx.fill();
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = worldMode === "space" ? "#3a5080" : "#1c5a40";
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(cx, cy, rad * 0.55, 0, Math.PI * 2);
+  ctx.strokeStyle = "rgba(125,255,176,0.2)";
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(cx - rad, cy);
+  ctx.lineTo(cx + rad, cy);
+  ctx.moveTo(cx, cy - rad);
+  ctx.lineTo(cx, cy + rad);
+  ctx.strokeStyle = "rgba(125,255,176,0.12)";
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(cx, cy);
+  ctx.arc(cx, cy, rad, sonarSweep, sonarSweep + 0.35);
+  ctx.closePath();
+  ctx.fillStyle = "rgba(125,255,176,0.08)";
+  ctx.fill();
+  ctx.strokeStyle = "rgba(125,255,176,0.4)";
+  ctx.stroke();
+  ctx.fillStyle = "#7dffb0";
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - 8);
+  ctx.lineTo(cx + 5, cy + 7);
+  ctx.lineTo(cx - 5, cy + 7);
+  ctx.fill();
+  const scale = rad / (CELL * 1.12);
+  const dx = shark.position.x - sub.position.x;
+  const dz = shark.position.z - sub.position.z;
+  const cyaw = Math.cos(yaw);
+  const syaw = Math.sin(yaw);
+  const localX = dx * cyaw - dz * syaw;
+  const localZ = -dx * syaw - dz * cyaw;
+  let px = localX * scale;
+  let py = -localZ * scale;
+  const len = Math.hypot(px, py);
+  const maxR = rad - 8;
+  if (len > maxR && len > 0.001) {
+    const k = maxR / len;
+    px *= k;
+    py *= k;
+  }
+  ctx.fillStyle = sharkState === "attack" ? "#e05040" : sharkState === "hunt" ? "#e8a040" : "#e8d27a";
+  ctx.beginPath();
+  ctx.arc(cx + px, cy + py, 6, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#7dffb0";
+  ctx.font = "12px sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText("SONAR", cx, cy + rad - 10);
+  ctx.restore();
+
   screen.userData.tex.needsUpdate = true;
+  if (xrOn) {
+    vrGauges.visible = true;
+    vrPanel.visible = true;
+  }
 }
 
 const exterior = new THREE.Group();
@@ -1016,6 +1093,7 @@ const audio = {
   master: null,
   hissGain: null,
   trackTitle: "STANDBY",
+  radioBusy: false,
 };
 
 function sfx(freq, dur, type, vol) {
@@ -1146,10 +1224,15 @@ function playLocal(i) {
   }
   audio.el.src = audio.tracks[audio.i];
   audio.el.volume = audio.on ? 0.14 : 0;
-  audio.el.play().catch(() => {});
   if (audio.ctx && !audio.src) {
     audio.src = audio.ctx.createMediaElementSource(audio.el);
     radioFilter(audio.ctx, audio.src);
+  }
+  const tryPlay = () => audio.el.play().catch(() => {});
+  if (audio.ctx && audio.ctx.state === "suspended") {
+    audio.ctx.resume().then(tryPlay).catch(tryPlay);
+  } else {
+    tryPlay();
   }
   setTrackLabel(localTrackName(audio.tracks[audio.i]));
 }
@@ -1226,7 +1309,41 @@ async function playYt(i) {
   }
 }
 
+function kickRadio() {
+  ensureAudio();
+  if (audio.ctx) {
+    audio.ctx.resume?.();
+    try {
+      const buf = audio.ctx.createBuffer(1, 1, 22050);
+      const src = audio.ctx.createBufferSource();
+      src.buffer = buf;
+      src.connect(audio.ctx.destination);
+      src.start();
+    } catch (e) {}
+  }
+  setRadioOn(true);
+  if (audio.el && audio.on) {
+    const tryPlay = () => audio.el.play().catch(() => {});
+    if (audio.ctx && audio.ctx.state === "suspended") {
+      audio.ctx.resume().then(tryPlay).catch(tryPlay);
+    } else {
+      tryPlay();
+    }
+  }
+  if (!audio.tracks.length && !audio.yt.length) startRadio();
+}
+
 async function startRadio() {
+  if (audio.radioBusy) return;
+  if (audio.tracks.length) {
+    playLocal(audio.i);
+    return;
+  }
+  if (audio.yt.length) {
+    playYt(audio.i);
+    return;
+  }
+  audio.radioBusy = true;
   setTrackLabel("TUNING…");
   try {
     const r = await fetch("/api/shark/radio");
@@ -1242,6 +1359,7 @@ async function startRadio() {
   } catch (e) {
     setTrackLabel("NO SIGNAL");
   }
+  audio.radioBusy = false;
 }
 
 function fire() {
@@ -1706,21 +1824,31 @@ function tryToggleEva() {
   else if (mode === "eva" && evaDummy.position.distanceTo(sub.position) < 3.1) enterPilot();
 }
 
+function xrStick(src) {
+  const a = src.gamepad && src.gamepad.axes;
+  if (!a || !a.length) return null;
+  if (a.length >= 4) {
+    const mag01 = Math.abs(a[0] || 0) + Math.abs(a[1] || 0);
+    const mag23 = Math.abs(a[2] || 0) + Math.abs(a[3] || 0);
+    if (mag23 >= mag01) return { x: a[2] || 0, y: a[3] || 0 };
+    return { x: a[0] || 0, y: a[1] || 0 };
+  }
+  return { x: a[0] || 0, y: a[1] || 0 };
+}
+
 function readXrMove(dt, move) {
   if (!xrOn) return;
   pollXrButtons();
   const session = renderer.xr.getSession();
   if (mode === "eva" && session) {
     for (const src of session.inputSources) {
-      const a = src.gamepad && src.gamepad.axes;
-      if (!a || !a.length) continue;
-      const sx = a.length >= 4 ? a[2] : a[0];
-      const sy = a.length >= 4 ? a[3] : a[1];
+      const st = xrStick(src);
+      if (!st) continue;
       if (src.handedness === "right") {
-        if (Math.abs(sy) > 0.18) move.ay -= sy;
+        if (Math.abs(st.y) > 0.18) move.ay -= st.y;
       } else {
-        if (Math.abs(sx) > 0.18) move.ax += sx;
-        if (Math.abs(sy) > 0.18) move.az += sy;
+        if (Math.abs(st.x) > 0.18) move.ax += st.x;
+        if (Math.abs(st.y) > 0.18) move.az += st.y;
       }
     }
   }
@@ -1728,16 +1856,39 @@ function readXrMove(dt, move) {
     const hand = nearWorld(wheel, 0.38);
     if (xrGrip && hand) {
       xrGrab = hand;
-      cockpit.worldToLocal(xrLocal.copy(hand.getWorldPosition(tmp2)));
-      const dx = xrLocal.x - wheel.position.x;
-      const dy = xrLocal.y - wheel.position.y;
-      const dz = xrLocal.z - wheel.position.z;
-      yaw += -dx * 2.8 * dt;
-      if (dz < -0.03) move.az -= clamp((-dz - 0.03) * 7, 0, 1);
-      if (dz > 0.03) move.az += clamp((dz - 0.03) * 7, 0, 1);
-      move.ay += clamp(dy * 5.5, -1, 1);
-      wheel.rotation.z = clamp(-dx * 2.4, -0.85, 0.85);
-      wheel.rotation.x = clamp(dy * 1.6, -0.55, 0.55);
+      ensureAudio();
+      if (audio.ctx && audio.ctx.state === "suspended") audio.ctx.resume?.();
+      if (audio.el && audio.el.paused && audio.on) audio.el.play().catch(() => {});
+      if (!audio.tracks.length && !audio.yt.length && !audio.radioBusy) startRadio();
+      let sx = 0;
+      let sy = 0;
+      let rsy = 0;
+      let haveLeft = false;
+      let haveRight = false;
+      if (session) {
+        for (const src of session.inputSources) {
+          const st = xrStick(src);
+          if (!st) continue;
+          if (src.handedness === "left") {
+            sx = st.x;
+            sy = st.y;
+            haveLeft = true;
+          } else if (src.handedness === "right") {
+            rsy = st.y;
+            haveRight = true;
+          } else if (!haveLeft) {
+            sx = st.x;
+            sy = st.y;
+            haveLeft = true;
+          }
+        }
+      }
+      const dead = 0.18;
+      if (Math.abs(sy) > dead) move.az += clamp(sy, -1, 1);
+      if (Math.abs(sx) > dead) yaw += -sx * 2.2 * dt;
+      wheel.rotation.z = clamp(-sx * 0.95, -0.85, 0.85);
+      wheel.rotation.x = THREE.MathUtils.damp(wheel.rotation.x, 0, 8, dt);
+      if (haveRight && Math.abs(rsy) > dead) move.ay -= clamp(rsy, -1, 1);
     } else {
       xrGrab = null;
     }
@@ -1949,9 +2100,8 @@ renderer.xr.addEventListener("sessionstart", () => {
         });
     }
   }
-  ensureAudio();
-  startRadio();
-  setMsg("GRIP THE WHEEL · RED BUTTON FIRES", 3.2);
+  kickRadio();
+  setMsg("GRIP THE WHEEL · LEFT STICK DRIVES", 3.2);
 });
 renderer.xr.addEventListener("sessionend", () => {
   xrOn = false;
@@ -1977,7 +2127,7 @@ function ensureAudio() {
     audio.ctx = new (window.AudioContext || window.webkitAudioContext)();
     startHiss(audio.ctx);
   }
-  audio.ctx.resume?.();
+  if (audio.ctx.state === "suspended") audio.ctx.resume?.();
 }
 
 function boot(nextMode) {
