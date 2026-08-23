@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Creature Chess lobby test</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <style>
+    html, body { margin: 0; height: 100%; background: #0c0c0e; color: #f2f1ee; font-family: system-ui, sans-serif; overflow: hidden; }
+    .bar {
+      position: absolute; left: 0; right: 0; top: 0; z-index: 3;
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      height: 40px; padding: 0 12px;
+      background: rgba(12,12,14,0.94); border-bottom: 1px solid #2a2a30;
+      font-size: 12px;
+    }
+    .bar a { color: #c5ccd4; text-decoration: none; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+    .bar span { color: #9a9892; }
+    iframe { position: absolute; inset: 40px 0 0 0; width: 100%; height: calc(100% - 40px); border: 0; background: #0c0c0e; }
+  </style>
+</head>
+<body>
+  <div class="bar">
+    <a href="/">Home</a>
+    <span>Creature Chess · unlisted lobby test</span>
+    <a href="/chess">Live chess</a>
+  </div>
+  <iframe
+    title="Creature Chess lobby test"
+    src="/games/character-chess/test-r8k2m6qv/"
+    allow="fullscreen; gamepad; autoplay; payment; xr-spatial-tracking"
+    allowfullscreen
+  ></iframe>
+</body>
+</html>

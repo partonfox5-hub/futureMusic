@@ -630,6 +630,18 @@ app.get('/test-bk74eh6y', (req, res) => {
 app.get('/test-c4h9n2x8', (req, res) => {
     res.redirect(301, '/chess');
 });
+app.get('/test-r8k2m6qv', (req, res) => {
+    res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+    res.setHeader('Permissions-Policy', 'xr-spatial-tracking=(self), fullscreen=(self), gamepad=(self), accelerometer=(self), gyroscope=(self), magnetometer=(self)');
+    res.render('test-r8k2m6qv');
+});
+try {
+    const chessLobby = require('./chess-lobby.cjs');
+    app.all('/api/chess-lobby', chessLobby);
+    console.log('[chess] lobby mounted');
+} catch (e) {
+    console.error('[chess] lobby mount failed:', e.message);
+}
 app.get('/chess', async (req, res) => {
     res.setHeader('Permissions-Policy', 'xr-spatial-tracking=(self), fullscreen=(self), gamepad=(self), accelerometer=(self), gyroscope=(self), magnetometer=(self)');
     const sessionId = String(req.query.session_id || '');
