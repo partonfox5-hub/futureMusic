@@ -3030,6 +3030,17 @@ app.get('/herdorama', (req, res) => {
 
 // --- FIX START: Global Error Handler ---
 
+try {
+    require('./lattice').mount(app, {
+        getPool: () => pool,
+        stripe,
+        bcrypt
+    });
+    console.log('[lattice] routes mounted at /lattice');
+} catch (e) {
+    console.error('[lattice] failed to mount:', e.message);
+}
+
 app.use((req, res, next) => res.status(404).render('404', { title: 'Signal Lost' }));
 
 const PORT = parseInt(process.env.PORT) || 8080;
