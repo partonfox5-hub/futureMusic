@@ -4,9 +4,13 @@ Site: **futuremusic.online** (Express + EJS + `public/`).
 Repo: `https://github.com/partonfox5-hub/futureMusic.git`  
 Deploy: push to `master` → Cloud Run rebuilds production.
 
-## Default deploy workflow: TEST FIRST, then production
+## Default deploy workflow: PRODUCTION FIRST (temporary)
 
-The owner tests **live on production Cloud Run**, but new work must **not** land on linked production routes first.
+**Override (2026-08-24):** the owner asked to **push straight to production** until they say otherwise. Skip the test-page workflow. Ship on the real routes, commit, and `git push origin master`.
+
+The previous default (test URL first, then promote) is paused — restore it when the owner says to go back to test-first.
+
+<!-- original: TEST FIRST, then production. The owner tests live on production Cloud Run, but new work must not land on linked production routes first. -->
 
 ### When implementing or pushing site changes
 
