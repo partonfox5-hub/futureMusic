@@ -6,6 +6,8 @@
 import * as THREE from "three";
 
 export const ATMOS = 1.22;
+/** Thicker lower-sky volume for god-game zoom (Planmorpher). RTS keeps ATMOS. */
+export const GOD_ATMOS = 1.78;
 export const ENTITY_SCALE = 0.5;
 export const SEA_DEFAULT = 0.52;
 export const SURFACE_ALT = 1.02;
@@ -165,7 +167,7 @@ export function landH(n, world) {
 }
 
 export function heightOf(world, n) {
-  const paint = world.paint ? (samplePaint(world.paint, n) - 0.5) * 0.22 : 0;
+  const paint = world.paint ? (samplePaint(world.paint, n) - 0.5) * 0.56 : 0;
   return landH(n, world) + paint;
 }
 export function seaOf(world) {
@@ -190,16 +192,23 @@ export function sit(mesh, planet, n, alt = 1) {
   if (!mesh.isSprite) mesh.quaternion.setFromUnitVectors(_up, n);
 }
 
-export function atmosR(planet) {
-  return planet.radius * ATMOS;
+export function atmosR(planet, mul = ATMOS) {
+  return planet.radius * mul;
 }
 
-export function worldContaining(worlds, pos, slack = 0.02) {
+export function waterAlt(world) {
+  const disp = world.uni?.uDisp?.value ?? 0.1;
+  const sea = world.seaLevel != null ? world.seaLevel : SEA_DEFAULT;
+  const land = world.uni?.uLand?.value ?? 1;
+  return 1 + (sea * 2 - 1) * disp * land * 0.95;
+}
+
+export function worldContaining(worlds, pos, slack = 0.02, mul = ATMOS) {
   let best = null;
   let bd = 1e9;
   for (const w of worlds) {
     const d = pos.distanceTo(w.group.position);
-    const r = atmosR(w) + slack;
+    const r = atmosR(w, mul) + slack;
     if (d < r && d < bd) {
       bd = d;
       best = w;
@@ -209,15 +218,15 @@ export function worldContaining(worlds, pos, slack = 0.02) {
 }
 
 /** Keep the player between the crust and the atmosphere ceiling. */
-export function confineToAtmos(rig, headWorld, planet) {
+export function confineToAtmos(rig, headWorld, planet, mul = ATMOS) {
   const c = planet.group.position;
   const dx = headWorld.x - c.x;
   const dy = headWorld.y - c.y;
   const dz = headWorld.z - c.z;
   const len = Math.hypot(dx, dy, dz);
   if (len < 1e-4) return;
-  const rMax = planet.radius * ATMOS * 0.985;
-  const rMin = planet.radius * 1.085;
+  const rMax = planet.radius * mul * 0.985;
+  const rMin = planet.radius * 1.09;
   let adj = 0;
   if (len > rMax) adj = rMax - len;
   else if (len < rMin) adj = rMin - len;
@@ -239,7 +248,7 @@ export function ejectNearPlanet(rig, planet, headWorld) {
     nz = 0;
     len = 1;
   }
-  const r = planet.radius * (ATMOS + 1.15);
+  const r = planet.radius * ((planet.atmosMul || ATMOS) + 1.15);
   rig.position.set(c.x + (nx / len) * r, c.y + (ny / len) * r + 0.4, c.z + (nz / len) * r);
 }
 
@@ -330,7 +339,7 @@ void main(){
   vec3 nrm = normalize(position);
   float h = landH(nrm);
   float paint = texture2D(uPaint, uv).r * 2.0 - 1.0;
-  float disp = (h*2.0-1.0)*uDisp*uLand + paint*0.12*uLand;
+  float disp = (h*2.0-1.0)*uDisp*uLand + paint*0.28*uLand;
   vec3 pos = nrm * (1.0 + disp);
   vN = normalMatrix * nrm;
   vP = pos;
@@ -343,12 +352,13 @@ varying vec3 vN; varying vec3 vP; varying vec2 vUv;
 uniform float uAge; uniform float uMolten; uniform vec3 uVeg; uniform vec3 uOcean;
 uniform float uLand; uniform float uStorm; uniform float uSeed;
 uniform float uSea; uniform float uFreq; uniform float uTpl; uniform float uRidges;
-uniform float uIce; uniform float uArid; uniform float uDetail;
+uniform float uIce; uniform float uArid; uniform float uDetail; uniform float uShellWater;
 ${GLSL_NOISE}
 void main(){
   vec3 n = normalize(vN);
   vec3 pn = normalize(vP);
-  float h = landH(pn);
+  float paint = texture2D(uPaint, vUv).r * 2.0 - 1.0;
+  float h = landH(pn) + paint * 0.28;
   float sea = uSea;
   float landMask = smoothstep(sea, sea+0.07, h) * uLand;
   vec3 lava = mix(vec3(0.12,0.02,0.0), vec3(1.0,0.38,0.08), pow(h,1.4));
@@ -365,13 +375,17 @@ void main(){
     float blade = step(0.62, noise(pn*70.0)) * (1.0-uArid) * (1.0-uIce);
     dirt = mix(dirt, uVeg*1.15, blade*0.35);
   }
+  vec3 wet = mix(rock * 0.45, vec3(0.12,0.18,0.16), 0.35);
+  wet = mix(wet, sand * 0.55, uArid * 0.4);
+  vec3 crust = mix(wet, dirt, landMask);
   vec3 ocean = mix(uOcean*0.45, uOcean, h);
   ocean = mix(ocean, vec3(0.55,0.72,0.82), uIce*0.55);
   vec3 cool = mix(rock, mix(ocean, dirt, landMask), uLand);
+  if(uShellWater > 0.5) cool = mix(rock, crust, uLand);
   vec3 col = mix(lava, cool, 1.0-uMolten);
   float ndl = max(0.12, dot(n, normalize(vec3(0.4,0.7,0.3))));
   col *= ndl * (1.0 + uStorm*0.15);
-  float spec = pow(max(0.0, dot(reflect(normalize(vec3(-0.3,-0.5,-0.2)), n), vec3(0,0,1))), 24.0) * (1.0-landMask) * uLand;
+  float spec = pow(max(0.0, dot(reflect(normalize(vec3(-0.3,-0.5,-0.2)), n), vec3(0,0,1))), 24.0) * (1.0-landMask) * uLand * (1.0-uShellWater);
   col += spec * uOcean * 0.35;
   gl_FragColor = vec4(col, 1.0);
 }
@@ -413,21 +427,90 @@ export function planetUniforms(seed, veg, ocean, paintTex, tpl, sea) {
     uArid: { value: tpl.arid },
     uRidges: { value: tpl.ridges },
     uDetail: { value: 0 },
+    uShellWater: { value: 0 },
   };
 }
 
-export function makeAtmosShell(radius, worldRef) {
+export const WATER_VERT = /* glsl */ `
+varying vec3 vN; varying vec3 vP;
+void main(){
+  vN = normalMatrix * normal;
+  vP = (modelViewMatrix * vec4(position,1.0)).xyz;
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0);
+}
+`;
+export const WATER_FRAG = /* glsl */ `
+varying vec3 vN; varying vec3 vP;
+uniform vec3 uOcean; uniform float uAlpha; uniform float uTime;
+void main(){
+  vec3 n = normalize(vN);
+  vec3 view = normalize(-vP);
+  float fres = pow(1.0 - abs(dot(n, view)), 2.4);
+  float wave = 0.5 + 0.5 * sin(vP.x * 6.0 + uTime * 0.7);
+  vec3 col = mix(uOcean * 0.55, uOcean * 1.15, fres);
+  col += vec3(0.15, 0.25, 0.3) * wave * 0.12;
+  float a = uAlpha * (0.28 + fres * 0.55);
+  gl_FragColor = vec4(col, a);
+}
+`;
+
+export function makeWaterShell(radius, oceanColor) {
+  const mesh = new THREE.Mesh(
+    new THREE.SphereGeometry(1, 48, 32),
+    new THREE.ShaderMaterial({
+      uniforms: {
+        uOcean: { value: oceanColor.clone ? oceanColor.clone() : new THREE.Color(oceanColor) },
+        uAlpha: { value: 0.72 },
+        uTime: { value: 0 },
+      },
+      vertexShader: WATER_VERT,
+      fragmentShader: WATER_FRAG,
+      transparent: true,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+    }),
+  );
+  mesh.scale.setScalar(radius);
+  mesh.userData.kind = "water";
+  return mesh;
+}
+
+export function makePlanetSky() {
+  return new THREE.Mesh(
+    new THREE.SphereGeometry(1, 28, 18),
+    new THREE.ShaderMaterial({
+      side: THREE.BackSide,
+      depthWrite: false,
+      uniforms: { uT: { value: 0 } },
+      vertexShader: `varying vec3 vP; void main(){ vP=position; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
+      fragmentShader: `varying vec3 vP; uniform float uT;
+        void main(){
+          vec3 n=normalize(vP);
+          float h = n.y * 0.5 + 0.5;
+          vec3 zen = vec3(0.25, 0.48, 0.82);
+          vec3 hor = vec3(0.62, 0.78, 0.92);
+          vec3 nad = vec3(0.12, 0.22, 0.34);
+          vec3 col = mix(nad, hor, smoothstep(0.0, 0.48, h));
+          col = mix(col, zen, smoothstep(0.48, 1.0, h));
+          col += vec3(0.08,0.06,0.02) * pow(max(0.0, n.x*0.4+n.y*0.2), 3.0);
+          gl_FragColor = vec4(col, 1.0);
+        }`,
+    }),
+  );
+}
+
+export function makeAtmosShell(radius, worldRef, mul = ATMOS) {
   const g = new THREE.Group();
   const atmos = new THREE.Mesh(
-    new THREE.SphereGeometry(ATMOS, 32, 20),
-    new THREE.MeshBasicMaterial({ color: 0x7ec8ff, transparent: true, opacity: 0.14, side: THREE.BackSide, depthWrite: false }),
+    new THREE.SphereGeometry(mul, 32, 20),
+    new THREE.MeshBasicMaterial({ color: 0x7ec8ff, transparent: true, opacity: 0.22, side: THREE.BackSide, depthWrite: false }),
   );
   atmos.scale.setScalar(radius);
   atmos.userData.world = worldRef;
   atmos.userData.kind = "atmos";
   g.add(atmos);
   const ring = new THREE.Mesh(
-    new THREE.TorusGeometry(ATMOS, 0.01, 8, 48),
+    new THREE.TorusGeometry(mul, 0.01, 8, 48),
     new THREE.MeshBasicMaterial({ color: 0x9ee7ff, transparent: true, opacity: 0.45 }),
   );
   ring.scale.setScalar(radius);

@@ -309,6 +309,10 @@ app.get(["/planmorpher-archive", "/planmorpher-archive/"], (req, res) => {
     res.sendFile(path.join(__dirname, "public", "games", "planmorpher", "archive", "index.html"));
 });
 app.get(["/test-m4p8k2nw", "/test-m4p8k2nw/"], (req, res) => res.redirect(301, "/planmorpher"));
+app.get(["/test-p9k2w7nm", "/test-p9k2w7nm/"], (req, res) => {
+    planmorpherHeaders(res);
+    res.sendFile(path.join(__dirname, "public", "games", "planmorpher", "test-p9k2w7nm", "index.html"));
+});
 
 // PLANETRY — unlisted Quest 3 WebXR orbital RTS. Canonical URL is /planetry.
 function planetryHeaders(res) {

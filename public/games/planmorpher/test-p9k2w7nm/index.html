@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="theme-color" content="#07080f" />
+    <title>Planmorpher — water, zoom, meteors</title>
+    <link rel="stylesheet" href="/games/planmorpher/test-p9k2w7nm/css/game.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Outfit:wght@400;500;600&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <canvas id="c"></canvas>
+    <div id="hud">
+      <div id="power-name">Select</div>
+      <div id="form-name">Form · unset</div>
+      <div id="hint">No power active. Point at a world and press A to open its menu. X leaves a planet's sky.</div>
+      <div id="status"></div>
+    </div>
+    <aside id="inspect" hidden>
+      <h2>Planet menu</h2>
+      <p id="insp-name">Unnamed sphere</p>
+      <p id="insp-tpl">Seed template</p>
+      <p id="insp-age">Age · Paleolithic</p>
+      <label>Sea level <input type="range" id="sealevel" min="20" max="80" value="52" /></label>
+      <label>Vegetation hue <input type="range" id="veg" min="0" max="360" value="118" /></label>
+      <label>Ocean hue <input type="range" id="oceanhue" min="0" max="360" value="205" /></label>
+      <label>Weather <input type="range" id="wx" min="0" max="100" value="20" /></label>
+      <button type="button" id="btn-grove">Grow trees miracle</button>
+      <button type="button" id="btn-close">Release gaze</button>
+    </aside>
+    <div id="start">
+      <div class="panel">
+        <p class="kicker">An ethereal god game</p>
+        <h1>Planmorpher</h1>
+        <p>
+          Worlds now seed as continents, pangea, archipelagos, mountains, deserts, and ice — each with its own sea.
+          Select nothing, open a planet, and raise or lower the water. Descend into the sky; press X to leave it.
+        </p>
+        <ul>
+          <li><b>Select</b> on the wrist gems: no power. Point at a world and press <b>A</b> (or click) for its menu and sea slider.</li>
+          <li><b>Form</b>: Fearsome, Divine, or Inspiring. Mortals flee, flock, or take heart for sixty heartbeats.</li>
+          <li>Fly close to a world — a blue sky takes over and you are in its lower atmosphere. Fly the crust. <b>X</b> hurls you back to the map. Uplift raises land through the water shell.</li>
+          <li>Villagers harvest and raise huts from paleolithic camps through later ages. Meteors crater, burn, and boom.</li>
+        </ul>
+        <div class="row">
+          <button type="button" id="go-vr">Enter VR</button>
+          <button type="button" id="go-desk" class="ghost">Begin in the void</button>
+        </div>
+      </div>
+    </div>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+        }
+      }
+    </script>
+    <script type="module" src="/games/planmorpher/test-p9k2w7nm/js/game.js?v=zoom2"></script>
+  </body>
+</html>
