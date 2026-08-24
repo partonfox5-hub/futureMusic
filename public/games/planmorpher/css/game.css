@@ -51,6 +51,18 @@ canvas {
   line-height: 1.4;
   margin-top: 4px;
 }
+#hud.atmo #status {
+  color: #cfe9ff;
+  font-weight: 600;
+  font-size: 0.95rem;
+  letter-spacing: 0.04em;
+}
+#hud.atmo #hint {
+  color: #e6c56e;
+}
+#hud.atmo #power-name {
+  text-shadow: 0 0 18px rgba(158, 231, 255, 0.55);
+}
 
 #inspect {
   position: absolute;

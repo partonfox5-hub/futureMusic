@@ -23,14 +23,17 @@ import {
   makePlanetSky,
   makePeg,
   setSurfaceLod,
+  setAtmosMode,
   setSkyDormant,
   worldContaining,
   confineToAtmos,
   ejectNearPlanet,
   waterAlt,
-} from "/games/shared/world-core.js";
+  atmosR,
+} from "/games/shared/world-core.js?v=atmo2";
 
 const canvas = document.getElementById("c");
+const hudEl = document.getElementById("hud");
 const hudPower = document.getElementById("power-name");
 const hudForm = document.getElementById("form-name");
 const hudHint = document.getElementById("hint");
@@ -325,13 +328,26 @@ class World {
     const uniforms = planetUniforms(seed, hsl(this.vegH, 0.45, 0.32), hsl(this.seaH, 0.55, 0.32), this.paint.tex, tpl, this.seaLevel);
     this.uni = uniforms;
     const segs = 56;
-    this.mesh = new THREE.Mesh(new THREE.SphereGeometry(1, segs, 40), new THREE.ShaderMaterial({ uniforms, vertexShader: PLANET_VERT, fragmentShader: PLANET_FRAG }));
+    this.mesh = new THREE.Mesh(
+      new THREE.SphereGeometry(1, segs, 40),
+      new THREE.ShaderMaterial({
+        uniforms,
+        vertexShader: PLANET_VERT,
+        fragmentShader: PLANET_FRAG,
+        transparent: false,
+        depthWrite: true,
+        depthTest: true,
+        side: THREE.FrontSide,
+        toneMapped: false,
+      }),
+    );
     this.mesh.scale.setScalar(radius);
     this.mesh.userData.world = this;
+    this.mesh.renderOrder = 0;
     this.group.add(this.mesh);
     this.uni.uShellWater.value = 1;
     this.atmosMul = GOD_ATMOS;
-    this.water = makeWaterShell(radius, this.uni.uOcean.value);
+    this.water = makeWaterShell(radius, this.uni.uOcean.value, this.uni);
     this.water.visible = false;
     this.group.add(this.water);
     this.syncWater();
@@ -383,7 +399,7 @@ class World {
     if (!this.born) return;
     this.age = Math.min(BIRTH, this.age + dt);
     const t = this.age / BIRTH;
-    const molten = t < 0.22 ? 1 - t / 0.22 : 0;
+    const molten = t < 0.38 ? 1 - t / 0.38 : 0;
     let land = 0, clouds = 0, rain = 0;
     if (t > 0.32) clouds = THREE.MathUtils.clamp((t - 0.32) / 0.22, 0, 1);
     if (t > 0.42 && t < 0.92) rain = THREE.MathUtils.clamp((t - 0.42) / 0.18, 0, 0.85) * (t < 0.78 ? 1 : 1 - (t - 0.78) / 0.14);
@@ -563,7 +579,8 @@ class World {
   }
 
   ensureDetail() {
-    if (this.detailReady || this.uni.uLand.value < 0.12) return;
+    if (this.detailReady) return;
+    if (this.uni.uLand.value < 0.12) return;
     this.detailReady = true;
     const veg = hsl(this.vegH, 0.6, 0.32);
     const grassMap = sprTex("grass-tall.png", false);
@@ -1039,10 +1056,12 @@ function makeFormPicker() {
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: false, powerPreference: "high-performance" });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25));
 renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setClearColor(0x07080f, 1);
 renderer.xr.enabled = true;
 renderer.xr.setReferenceSpaceType("local-floor");
 
 const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x07080f);
 const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.05, 280);
 const rig = new THREE.Group();
 rig.position.set(0, 1.5, 8);
@@ -1053,9 +1072,57 @@ scene.add(sky);
 const planetSky = makePlanetSky();
 planetSky.visible = false;
 scene.add(planetSky);
+
+function makeModeBadge() {
+  const c = document.createElement("canvas");
+  c.width = 640;
+  c.height = 112;
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false, depthWrite: false });
+  const s = new THREE.Sprite(mat);
+  s.scale.set(0.62, 0.11, 1);
+  s.position.set(0, 0.32, -0.92);
+  s.visible = false;
+  s.userData.ctx = c.getContext("2d");
+  s.userData.canvas = c;
+  s.userData.tex = tex;
+  camera.add(s);
+  return s;
+}
+const modeBadge = makeModeBadge();
+function setModeBadge(title, sub) {
+  if (!title) {
+    modeBadge.visible = false;
+    return;
+  }
+  const c = modeBadge.userData.canvas;
+  const g = modeBadge.userData.ctx;
+  g.clearRect(0, 0, c.width, c.height);
+  g.fillStyle = "rgba(6, 14, 28, 0.82)";
+  g.fillRect(10, 10, c.width - 20, c.height - 20);
+  g.strokeStyle = "rgba(158, 231, 255, 0.9)";
+  g.lineWidth = 4;
+  g.strokeRect(10, 10, c.width - 20, c.height - 20);
+  g.fillStyle = "#cfe9ff";
+  g.font = "bold 36px sans-serif";
+  g.textAlign = "center";
+  g.textBaseline = "middle";
+  g.fillText(title, c.width / 2, 42);
+  g.fillStyle = "#e6c56e";
+  g.font = "22px sans-serif";
+  g.fillText(sub || "", c.width / 2, 82);
+  modeBadge.userData.tex.needsUpdate = true;
+  modeBadge.visible = true;
+}
+function parentBadgeToHead() {
+  const cam = renderer.xr.isPresenting ? renderer.xr.getCamera(camera) : camera;
+  if (modeBadge.parent !== cam) cam.add(modeBadge);
+}
 const dyingUfos = [];
-scene.add(new THREE.HemisphereLight(0x8899aa, 0x110800, 0.7));
-const sun = new THREE.DirectionalLight(0xffe6c8, 0.9);
+const hemi = new THREE.HemisphereLight(0x8899aa, 0x1a2838, 0.78);
+scene.add(hemi);
+const sun = new THREE.DirectionalLight(0xffe6c8, 0.95);
 sun.position.set(8, 12, 4);
 scene.add(sun);
 
@@ -1401,33 +1468,46 @@ function enterSurface(w) {
   planetSky.position.copy(w.group.position);
   planetSky.scale.setScalar(Math.max(12, w.radius * 9));
   scene.background = new THREE.Color(0x4a7ab8);
-  scene.fog = new THREE.FogExp2(0x6aa8d8, 0.045);
+  scene.fog = new THREE.FogExp2(0x6aa8d8, 0.032);
+  hemi.intensity = 1.15;
+  sun.intensity = 1.25;
   w.ensureDetail();
   setSurfaceLod(w, true);
-  if (w.atmosShell?.userData.atmos) w.atmosShell.userData.atmos.material.opacity = 0.48;
-  camera.getWorldPosition(_v);
+  headPos();
+  _v.copy(_v3);
   _v2.copy(_v).sub(w.group.position);
+  const dist = _v2.length();
   if (_v2.lengthSq() < 1e-6) _v2.set(0, 1, 0);
   _v2.normalize();
-  rig.position.copy(w.group.position).addScaledVector(_v2, w.radius * 1.28);
+  const rMin = w.radius * 1.12;
+  const rMax = Math.max(rMin + 0.08, atmosR(w, GOD_ATMOS) * 0.96);
+  const stay = THREE.MathUtils.clamp(dist || rMax, rMin, rMax);
+  _v3.copy(_v).sub(rig.position);
+  rig.position.copy(w.group.position).addScaledVector(_v2, stay).sub(_v3);
   camera.near = 0.02;
   camera.far = 90;
   camera.updateProjectionMatrix();
-  hudHint.textContent = "Lower atmosphere. Fly the crust. Press X to shoot back to the galaxy map.";
-  hudStatus.textContent = "Entered " + w.template.name + " sky — X to leave.";
+  hudEl.classList.add("atmo");
+  setModeBadge("LOWER ATMOSPHERE", w.template.name + " · X to leave");
+  hudHint.textContent = "Lower atmosphere of " + w.template.name + ". Surface detail is on. Fly the crust. Press X to return to the galaxy.";
+  hudStatus.textContent = "LOWER ATMOSPHERE · " + w.template.name + " · detail on · X leaves";
 }
 function leaveSurface() {
   if (!lockedWorld) return;
   setSurfaceLod(lockedWorld, false);
+  setAtmosMode(lockedWorld, false);
   setSkyDormant(sky, false);
   planetSky.visible = false;
   scene.background = new THREE.Color(0x07080f);
   scene.fog = null;
-  if (lockedWorld.atmosShell?.userData.atmos) lockedWorld.atmosShell.userData.atmos.material.opacity = 0.22;
+  hemi.intensity = 0.78;
+  sun.intensity = 0.95;
   camera.near = 0.05;
   camera.far = 280;
   camera.updateProjectionMatrix();
   lockedWorld = null;
+  hudEl.classList.remove("atmo");
+  setModeBadge(null);
   hudHint.textContent = POWERS[power].hint;
 }
 function ejectOut() {
@@ -1599,6 +1679,7 @@ function loop(t) {
   moveRig(dt, xr);
 
   const head = headPos();
+  parentBadgeToHead();
   if (!lockedWorld) {
     let near = null;
     let nd = 1e9;
@@ -1610,18 +1691,23 @@ function loop(t) {
         near = w;
       }
     }
-    if (near && near.radius > 0.42) {
-      const catchR = near.radius * GOD_ATMOS + 0.9;
-      const warnR = near.radius * 2.8 + 1.4;
-      if (nd < warnR && nd >= catchR) {
-        hudHint.textContent = "Approaching " + near.template.name + " — fly closer to enter the lower sky. X later to leave.";
+    const inside = worldContaining(worlds.filter((w) => w.born && w !== growing), head, 0.04, GOD_ATMOS);
+    if (inside) {
+      enterSurface(inside);
+    } else if (near) {
+      const shell = atmosR(near, GOD_ATMOS);
+      const warnR = shell * 1.85 + 0.6;
+      if (nd < warnR) {
+        hudHint.textContent = "Approaching " + near.template.name + " atmosphere — cross the blue shell to load surface detail.";
       }
-      if (nd < catchR) enterSurface(near);
     }
   } else {
     confineToAtmos(rig, head, lockedWorld, GOD_ATMOS);
+    lockedWorld.ensureDetail();
     if (!lockedWorld.surfaceLod) setSurfaceLod(lockedWorld, true);
+    else setAtmosMode(lockedWorld, true);
     planetSky.position.copy(lockedWorld.group.position);
+    planetSky.scale.setScalar(Math.max(12, lockedWorld.radius * 9));
   }
 
   const gpR = xrGamepad(1);
@@ -1661,10 +1747,16 @@ function loop(t) {
     lives += w.life.length;
   }
   tickMeteors(dt);
-  const lockTxt = lockedWorld ? " · in " + lockedWorld.template.name + " sky" : "";
-  hudStatus.textContent = worlds.length
-    ? `${worlds.length} world${worlds.length > 1 ? "s" : ""} · ${lives} lives · ${pickSpecies.name}${lockTxt}`
-    : "Hold Forge to shape the first sphere.";
+  if (lockedWorld) {
+    hudEl.classList.add("atmo");
+    hudStatus.textContent = "LOWER ATMOSPHERE · " + lockedWorld.template.name + " · " + lives + " lives · detail on · X leaves";
+    hudHint.textContent = "Inside " + lockedWorld.template.name + "'s sky. Surface detail is loaded. Fly the crust. Press X to return to the galaxy.";
+  } else {
+    hudEl.classList.remove("atmo");
+    hudStatus.textContent = worlds.length
+      ? `${worlds.length} world${worlds.length > 1 ? "s" : ""} · ${lives} lives · ${pickSpecies.name}`
+      : "Hold Forge to shape the first sphere.";
+  }
   renderer.render(scene, camera);
 }
 renderer.setAnimationLoop(loop);
@@ -1778,6 +1870,35 @@ window.__controlsTest = {
   setKeys: (codes) => {
     keys.clear();
     (codes || []).forEach((c) => keys.add(c));
+  },
+};
+window.__pm = {
+  worlds,
+  get locked() { return lockedWorld; },
+  spawnWorld,
+  enterSurface,
+  leaveSurface,
+  rig,
+  camera,
+  scene,
+  renderer,
+  status: () => (hudStatus ? hudStatus.textContent : ""),
+  hint: () => (hudHint ? hudHint.textContent : ""),
+  placeTestWorld: (opts = {}) => {
+    const r = opts.radius || 1.4;
+    const pos = opts.pos || rig.position.clone().add(new THREE.Vector3(0, 0, -3.2));
+    const w = spawnWorld(pos, r);
+    if (!w) return null;
+    w.born = true;
+    w.age = opts.age != null ? opts.age : 0;
+    w.vel.set(0, 0, 0);
+    if (opts.land) {
+      w.uni.uLand.value = 1;
+      w.uni.uMolten.value = 0;
+      w.age = BIRTH;
+      w.syncWater();
+    }
+    return { name: w.template.name, radius: w.radius, molten: w.uni.uMolten.value, land: w.uni.uLand.value };
   },
 };
 

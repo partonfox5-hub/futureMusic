@@ -280,7 +280,11 @@ export function makePeg(color = 0xc8b48a) {
 export function setSurfaceLod(world, on) {
   world.surfaceLod = !!on;
   if (world.uni?.uDetail) world.uni.uDetail.value = on ? 1 : 0;
-  if (world.mesh) world.mesh.material.wireframe = false;
+  if (world.mesh) {
+    world.mesh.material.wireframe = false;
+    world.mesh.material.transparent = false;
+    world.mesh.material.depthWrite = true;
+  }
   for (const g of world.groundDetail || []) g.visible = on;
   for (const c of world.life || []) {
     if (c.userData.peg) c.userData.peg.visible = !on;
@@ -295,6 +299,25 @@ export function setSurfaceLod(world, on) {
     h.visible = on;
   }
   if (world.clouds) world.clouds.visible = !on;
+  setAtmosMode(world, on);
+}
+
+/** Rim atmosphere while outside; thicker haze + gold ring once you are in the lower sky. */
+export function setAtmosMode(world, inside) {
+  const atmos = world?.atmosShell?.userData?.atmos;
+  const ring = world?.atmosShell?.userData?.ring;
+  if (atmos?.material?.uniforms?.uInside) atmos.material.uniforms.uInside.value = inside ? 1 : 0;
+  if (atmos?.material?.uniforms?.uOp) atmos.material.uniforms.uOp.value = inside ? 0.62 : 0.32;
+  if (ring?.material) {
+    ring.material.color.setHex(inside ? 0xffe27a : 0x9ee7ff);
+    ring.material.opacity = inside ? 0.9 : 0.55;
+  }
+  const cage = world?.atmosShell?.userData?.cage;
+  if (cage?.material) {
+    cage.material.color.setHex(inside ? 0xffe27a : 0x9ee7ff);
+    cage.material.opacity = inside ? 0.08 : 0.1;
+    cage.visible = !inside;
+  }
 }
 
 const GLSL_NOISE = `
@@ -353,6 +376,7 @@ uniform float uAge; uniform float uMolten; uniform vec3 uVeg; uniform vec3 uOcea
 uniform float uLand; uniform float uStorm; uniform float uSeed;
 uniform float uSea; uniform float uFreq; uniform float uTpl; uniform float uRidges;
 uniform float uIce; uniform float uArid; uniform float uDetail; uniform float uShellWater;
+uniform sampler2D uPaint;
 ${GLSL_NOISE}
 void main(){
   vec3 n = normalize(vN);
@@ -361,9 +385,10 @@ void main(){
   float h = landH(pn) + paint * 0.28;
   float sea = uSea;
   float landMask = smoothstep(sea, sea+0.07, h) * uLand;
-  vec3 lava = mix(vec3(0.12,0.02,0.0), vec3(1.0,0.38,0.08), pow(h,1.4));
-  lava += vec3(1.0,0.7,0.2)*pow(max(0.0, noise(pn*18.0)-0.62),2.0)*2.2;
-  vec3 rock = mix(vec3(0.18,0.16,0.15), vec3(0.38,0.32,0.28), h);
+  vec3 lava = mix(vec3(0.62,0.09,0.01), vec3(1.0,0.48,0.07), pow(max(h,0.08),0.55));
+  lava += vec3(1.0,0.82,0.25)*pow(max(0.0, noise(pn*18.0)-0.52),1.8)*2.4;
+  lava += vec3(1.0,0.4,0.05)*pow(max(0.0, noise(pn*7.0)-0.42), 1.2);
+  vec3 rock = mix(vec3(0.22,0.18,0.16), vec3(0.42,0.34,0.28), h);
   vec3 sand = vec3(0.72,0.58,0.32);
   vec3 ice = vec3(0.86,0.92,0.96);
   vec3 dirt = mix(vec3(0.22,0.18,0.12), uVeg, smoothstep(0.55,0.78,h));
@@ -372,6 +397,7 @@ void main(){
   if(uDetail > 0.5){
     float grit = noise(pn*42.0);
     dirt *= 0.88 + grit*0.22;
+    rock *= 0.9 + grit*0.18;
     float blade = step(0.62, noise(pn*70.0)) * (1.0-uArid) * (1.0-uIce);
     dirt = mix(dirt, uVeg*1.15, blade*0.35);
   }
@@ -383,8 +409,9 @@ void main(){
   vec3 cool = mix(rock, mix(ocean, dirt, landMask), uLand);
   if(uShellWater > 0.5) cool = mix(rock, crust, uLand);
   vec3 col = mix(lava, cool, 1.0-uMolten);
-  float ndl = max(0.12, dot(n, normalize(vec3(0.4,0.7,0.3))));
-  col *= ndl * (1.0 + uStorm*0.15);
+  float ndl = max(0.16, dot(n, normalize(vec3(0.4,0.7,0.3))));
+  col *= mix(1.0, ndl, 1.0 - uMolten * 0.92) * (1.0 + uStorm*0.15);
+  col += lava * uMolten * 1.15;
   float spec = pow(max(0.0, dot(reflect(normalize(vec3(-0.3,-0.5,-0.2)), n), vec3(0,0,1))), 24.0) * (1.0-landMask) * uLand * (1.0-uShellWater);
   col += spec * uOcean * 0.35;
   gl_FragColor = vec4(col, 1.0);
@@ -432,45 +459,76 @@ export function planetUniforms(seed, veg, ocean, paintTex, tpl, sea) {
 }
 
 export const WATER_VERT = /* glsl */ `
-varying vec3 vN; varying vec3 vP;
+varying vec3 vN; varying vec3 vP; varying vec3 vObj; varying vec2 vUv;
 void main(){
+  vUv = uv;
+  vObj = position;
   vN = normalMatrix * normal;
   vP = (modelViewMatrix * vec4(position,1.0)).xyz;
   gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0);
 }
 `;
 export const WATER_FRAG = /* glsl */ `
-varying vec3 vN; varying vec3 vP;
+varying vec3 vN; varying vec3 vP; varying vec3 vObj; varying vec2 vUv;
 uniform vec3 uOcean; uniform float uAlpha; uniform float uTime;
+uniform float uSea; uniform float uLand; uniform float uMolten;
+uniform float uSeed; uniform float uFreq; uniform float uTpl; uniform float uRidges;
+uniform sampler2D uPaint;
+${GLSL_NOISE}
 void main(){
+  if(uMolten > 0.45 || uLand < 0.18) discard;
+  vec3 pn = normalize(vObj);
+  float paint = texture2D(uPaint, vUv).r * 2.0 - 1.0;
+  float h = landH(pn) + paint * 0.28;
+  float landMask = smoothstep(uSea, uSea+0.07, h) * uLand;
+  if(landMask > 0.42) discard;
   vec3 n = normalize(vN);
   vec3 view = normalize(-vP);
   float fres = pow(1.0 - abs(dot(n, view)), 2.4);
   float wave = 0.5 + 0.5 * sin(vP.x * 6.0 + uTime * 0.7);
-  vec3 col = mix(uOcean * 0.55, uOcean * 1.15, fres);
+  vec3 col = mix(uOcean * 0.5, uOcean * 1.2, fres);
   col += vec3(0.15, 0.25, 0.3) * wave * 0.12;
-  float a = uAlpha * (0.28 + fres * 0.55);
+  float a = uAlpha * (0.42 + fres * 0.5) * (1.0 - landMask);
+  if(a < 0.04) discard;
   gl_FragColor = vec4(col, a);
 }
 `;
 
-export function makeWaterShell(radius, oceanColor) {
+function fallbackPaintTex() {
+  const t = new THREE.DataTexture(new Uint8Array([128, 128, 128, 255]), 1, 1);
+  t.needsUpdate = true;
+  return t;
+}
+
+export function makeWaterShell(radius, oceanColor, crustUni) {
+  const ocean = crustUni?.uOcean?.value
+    || (oceanColor?.clone ? oceanColor.clone() : new THREE.Color(oceanColor || 0x1a4a6a));
   const mesh = new THREE.Mesh(
     new THREE.SphereGeometry(1, 48, 32),
     new THREE.ShaderMaterial({
       uniforms: {
-        uOcean: { value: oceanColor.clone ? oceanColor.clone() : new THREE.Color(oceanColor) },
-        uAlpha: { value: 0.72 },
+        uOcean: crustUni?.uOcean || { value: ocean },
+        uAlpha: { value: 0.88 },
         uTime: { value: 0 },
+        uSea: crustUni?.uSea || { value: 0.52 },
+        uLand: crustUni?.uLand || { value: 1 },
+        uMolten: crustUni?.uMolten || { value: 0 },
+        uSeed: crustUni?.uSeed || { value: 1 },
+        uFreq: crustUni?.uFreq || { value: 3.4 },
+        uTpl: crustUni?.uTpl || { value: 0 },
+        uRidges: crustUni?.uRidges || { value: 0 },
+        uPaint: crustUni?.uPaint || { value: fallbackPaintTex() },
       },
       vertexShader: WATER_VERT,
       fragmentShader: WATER_FRAG,
       transparent: true,
       depthWrite: false,
-      side: THREE.DoubleSide,
+      depthTest: true,
+      side: THREE.FrontSide,
     }),
   );
   mesh.scale.setScalar(radius);
+  mesh.renderOrder = 1;
   mesh.userData.kind = "water";
   return mesh;
 }
@@ -499,24 +557,68 @@ export function makePlanetSky() {
   );
 }
 
+export const ATMOS_VERT = /* glsl */ `
+varying vec3 vN; varying vec3 vView;
+void main(){
+  vec4 mv = modelViewMatrix * vec4(position, 1.0);
+  vN = normalize(normalMatrix * normal);
+  vView = normalize(-mv.xyz);
+  gl_Position = projectionMatrix * mv;
+}
+`;
+export const ATMOS_FRAG = /* glsl */ `
+varying vec3 vN; varying vec3 vView;
+uniform vec3 uCol; uniform float uOp; uniform float uInside;
+void main(){
+  float ndv = abs(dot(normalize(vN), normalize(vView)));
+  float fres = pow(1.0 - ndv, 2.15);
+  float a = uOp * mix(0.04 + fres * 0.96, 0.22 + fres * 0.7, uInside);
+  if(a < 0.02) discard;
+  vec3 col = mix(uCol, vec3(0.78, 0.9, 1.0), fres);
+  gl_FragColor = vec4(col, a);
+}
+`;
+
 export function makeAtmosShell(radius, worldRef, mul = ATMOS) {
   const g = new THREE.Group();
   const atmos = new THREE.Mesh(
     new THREE.SphereGeometry(mul, 32, 20),
-    new THREE.MeshBasicMaterial({ color: 0x7ec8ff, transparent: true, opacity: 0.22, side: THREE.BackSide, depthWrite: false }),
+    new THREE.ShaderMaterial({
+      uniforms: {
+        uCol: { value: new THREE.Color(0x7ec8ff) },
+        uOp: { value: 0.32 },
+        uInside: { value: 0 },
+      },
+      vertexShader: ATMOS_VERT,
+      fragmentShader: ATMOS_FRAG,
+      transparent: true,
+      depthWrite: false,
+      depthTest: true,
+      side: THREE.BackSide,
+    }),
   );
   atmos.scale.setScalar(radius);
+  atmos.renderOrder = 2;
   atmos.userData.world = worldRef;
   atmos.userData.kind = "atmos";
   g.add(atmos);
   const ring = new THREE.Mesh(
-    new THREE.TorusGeometry(mul, 0.01, 8, 48),
-    new THREE.MeshBasicMaterial({ color: 0x9ee7ff, transparent: true, opacity: 0.45 }),
+    new THREE.TorusGeometry(mul, 0.012, 8, 48),
+    new THREE.MeshBasicMaterial({ color: 0x9ee7ff, transparent: true, opacity: 0.55, depthWrite: false }),
   );
   ring.scale.setScalar(radius);
   ring.rotation.x = Math.PI / 2;
+  ring.renderOrder = 3;
   g.add(ring);
+  const cage = new THREE.Mesh(
+    new THREE.SphereGeometry(mul, 16, 12),
+    new THREE.MeshBasicMaterial({ color: 0x9ee7ff, transparent: true, opacity: 0.1, wireframe: true, depthWrite: false }),
+  );
+  cage.scale.setScalar(radius);
+  cage.renderOrder = 3;
+  g.add(cage);
   g.userData.atmos = atmos;
   g.userData.ring = ring;
+  g.userData.cage = cage;
   return g;
 }
