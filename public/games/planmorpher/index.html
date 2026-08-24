@@ -14,15 +14,19 @@
   <body>
     <canvas id="c"></canvas>
     <div id="hud">
-      <div id="power-name">Forge</div>
-      <div id="hint">Hold trigger / click to birth a world · squeeze a gem to change powers</div>
+      <div id="power-name">Select</div>
+      <div id="form-name">Form · unset</div>
+      <div id="hint">No power active. Point at a world and press A to open its menu. X leaves a planet's sky.</div>
       <div id="status"></div>
     </div>
     <aside id="inspect" hidden>
-      <h2>World configuration</h2>
+      <h2>Planet menu</h2>
       <p id="insp-name">Unnamed sphere</p>
-      <label>Vegetation <input type="range" id="veg" min="0" max="360" value="118" /></label>
-      <label>Ocean <input type="range" id="sea" min="0" max="360" value="205" /></label>
+      <p id="insp-tpl">Seed template</p>
+      <p id="insp-age">Age · Paleolithic</p>
+      <label>Sea level <input type="range" id="sealevel" min="20" max="80" value="52" /></label>
+      <label>Vegetation hue <input type="range" id="veg" min="0" max="360" value="118" /></label>
+      <label>Ocean hue <input type="range" id="oceanhue" min="0" max="360" value="205" /></label>
       <label>Weather <input type="range" id="wx" min="0" max="100" value="20" /></label>
       <button type="button" id="btn-grove">Grow trees miracle</button>
       <button type="button" id="btn-close">Release gaze</button>
@@ -32,15 +36,14 @@
         <p class="kicker">An ethereal god game</p>
         <h1>Planmorpher</h1>
         <p>
-          You are a spirit in the depth of space. Hold a world into being. Watch it cool, take rain, and raise land.
-          Then tend it — storm, lightning, life, stone, and fire from the sky.
+          Worlds now seed as continents, pangea, archipelagos, mountains, deserts, and ice — each with its own sea.
+          Select nothing, open a planet, and raise or lower the water. Descend into the sky; press X to leave it.
         </p>
         <ul>
-          <li>Hold <b>trigger / click</b> to grow a molten sphere. Longer hold, larger world.</li>
-          <li>Left stick or WASD to drift. Right stick / mouse to look. Q/E or stick up-down for height.</li>
-          <li>Point at a labeled wrist gem to pick a power. <b>Life</b> opens the bestiary.</li>
-          <li>Meteors crater worlds. Trees and creatures rise from the crust. Land walks, water swims.</li>
-          <li>Quest 3: tap Enter VR. Desktop works in the void as well.</li>
+          <li><b>Select</b> on the wrist gems: no power. Point at a world and press <b>A</b> (or click) for its menu and sea slider.</li>
+          <li><b>Form</b>: Fearsome, Divine, or Inspiring. Mortals flee, flock, or take heart for sixty heartbeats.</li>
+          <li>Fly into a world's lower atmosphere to walk the crust. The galaxy sky sleeps. <b>X</b> hurls you back to the map.</li>
+          <li>Villagers harvest and raise huts from paleolithic camps through later ages. Meteors crater, burn, and boom.</li>
         </ul>
         <div class="row">
           <button type="button" id="go-vr">Enter VR</button>
@@ -56,6 +59,6 @@
         }
       }
     </script>
-    <script type="module" src="/games/planmorpher/js/game.js?v=life2"></script>
+    <script type="module" src="/games/planmorpher/js/game.js?v=tpl2"></script>
   </body>
 </html>

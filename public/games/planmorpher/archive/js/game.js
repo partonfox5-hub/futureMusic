@@ -1,44 +1,17 @@
 import * as THREE from "three";
 import { XRButton } from "three/addons/webxr/XRButton.js";
-import {
-  ENTITY_SCALE,
-  BUILD_AGES,
-  FORMS,
-  PLANET_VERT,
-  PLANET_FRAG,
-  CLOUD_VERT,
-  CLOUD_FRAG,
-  pickTemplate,
-  rollSea,
-  isLand,
-  isOcean,
-  sit,
-  uvFromN,
-  makePaint,
-  paintAt,
-  planetUniforms,
-  makeAtmosShell,
-  makePeg,
-  setSurfaceLod,
-  setSkyDormant,
-  worldContaining,
-  confineToAtmos,
-  ejectNearPlanet,
-} from "/games/shared/world-core.js";
 
 const canvas = document.getElementById("c");
 const hudPower = document.getElementById("power-name");
-const hudForm = document.getElementById("form-name");
 const hudHint = document.getElementById("hint");
 const hudStatus = document.getElementById("status");
 const inspectEl = document.getElementById("inspect");
 const startEl = document.getElementById("start");
 
 const POWERS = [
-  { id: "select", name: "Select", hint: "No power. Point at a world and press A to open its menu." },
   { id: "forge", name: "Forge", hint: "Hold to grow a molten world. Release to set it free." },
   { id: "rain", name: "Rain", hint: "Call clouds. Rain writes oceans faster." },
-  { id: "meteor", name: "Meteors", hint: "Hurl fire. Impacts crater, burn, and boom." },
+  { id: "meteor", name: "Meteors", hint: "Hurl fire. Impacts explode and scar craters." },
   { id: "ufo", name: "Visitors", hint: "Invite a saucer to orbit the world in range." },
   { id: "raise", name: "Uplift", hint: "Raise land where you point." },
   { id: "lower", name: "Subside", hint: "Sink crust back toward the sea." },
@@ -46,32 +19,187 @@ const POWERS = [
   { id: "bolt", name: "Lightning", hint: "Strike the surface." },
   { id: "storm", name: "Weather", hint: "Spin the climate of the nearest world." },
   { id: "grove", name: "Grove", hint: "A miracle of trees rising from the soil." },
-  { id: "form", name: "Form", hint: "Set your deity: Fearsome, Divine, or Inspiring." },
+  { id: "gaze", name: "Gaze", hint: "Select a world to tint seas, forests, weather." },
 ];
 
 const SPECIES = [
-  { id: "human", name: "Human", file: "human.png", sheet: true, kind: "human", diet: "gather", w: 0.046, h: 0.08, spd: 0.55, hp: 28 },
-  { id: "woman", name: "Settler", file: "woman.png", sheet: true, kind: "human", diet: "gather", w: 0.044, h: 0.078, spd: 0.5, hp: 26 },
-  { id: "wolf", name: "Wolf", file: "wolf.png", sheet: true, kind: "animal", diet: "meat", w: 0.04, h: 0.07, spd: 0.85, hp: 22 },
-  { id: "turtle", name: "Turtle", file: "turtle.png", sheet: false, kind: "animal", diet: "plant", w: 0.05, h: 0.042, spd: 0.22, hp: 30 },
-  { id: "mammoth", name: "Mammoth", file: "mammoth.png", sheet: false, kind: "animal", diet: "plant", w: 0.12, h: 0.1, spd: 0.28, hp: 70 },
-  { id: "raptor", name: "Raptor", file: "raptor.png", sheet: false, kind: "dino", diet: "meat", w: 0.09, h: 0.07, spd: 0.95, hp: 36 },
-  { id: "trex", name: "T. rex", file: "trex.png", sheet: false, kind: "dino", diet: "meat", w: 0.14, h: 0.13, spd: 0.42, hp: 90 },
-  { id: "dragon", name: "Dragon", file: "dragon.png", sheet: true, kind: "dino", diet: "meat", w: 0.11, h: 0.1, spd: 0.7, hp: 80 },
+  { id: "human", name: "Human", file: "human.png", sheet: true, kind: "human", diet: "gather", w: 0.046, h: 0.08, spd: 0.55 },
+  { id: "woman", name: "Settler", file: "woman.png", sheet: true, kind: "human", diet: "gather", w: 0.044, h: 0.078, spd: 0.5 },
+  { id: "wolf", name: "Wolf", file: "wolf.png", sheet: true, kind: "animal", diet: "meat", w: 0.04, h: 0.07, spd: 0.85 },
+  { id: "turtle", name: "Turtle", file: "turtle.png", sheet: false, kind: "animal", diet: "plant", w: 0.05, h: 0.042, spd: 0.22 },
+  { id: "mammoth", name: "Mammoth", file: "mammoth.png", sheet: false, kind: "animal", diet: "plant", w: 0.12, h: 0.1, spd: 0.28 },
+  { id: "raptor", name: "Raptor", file: "raptor.png", sheet: false, kind: "dino", diet: "meat", w: 0.09, h: 0.07, spd: 0.95 },
+  { id: "trex", name: "T. rex", file: "trex.png", sheet: false, kind: "dino", diet: "meat", w: 0.14, h: 0.13, spd: 0.42 },
+  { id: "dragon", name: "Dragon", file: "dragon.png", sheet: true, kind: "dino", diet: "meat", w: 0.11, h: 0.1, spd: 0.7 },
 ];
 
 const MAX_WORLDS = 8;
 const BIRTH = 30;
 const MAX_LIFE = 48;
-const SPR = "/games/fenrest/sprites/";
 const _v = new THREE.Vector3();
 const _v2 = new THREE.Vector3();
 const _v3 = new THREE.Vector3();
 const _q = new THREE.Quaternion();
 const _ray = new THREE.Raycaster();
 
+const PLANET_VERT = /* glsl */ `
+varying vec3 vN; varying vec3 vP; varying vec2 vUv;
+uniform float uDisp; uniform float uSeed; uniform sampler2D uPaint; uniform float uLand;
+float hash(vec3 p){ return fract(sin(dot(p, vec3(127.1,311.7,74.7))+uSeed)*43758.5453); }
+float noise(vec3 p){
+  vec3 i=floor(p); vec3 f=fract(p); f=f*f*(3.0-2.0*f);
+  float n000=hash(i), n100=hash(i+vec3(1,0,0)), n010=hash(i+vec3(0,1,0)), n110=hash(i+vec3(1,1,0));
+  float n001=hash(i+vec3(0,0,1)), n101=hash(i+vec3(1,0,1)), n011=hash(i+vec3(0,1,1)), n111=hash(i+vec3(1,1,1));
+  return mix(mix(mix(n000,n100,f.x), mix(n010,n110,f.x), f.y), mix(mix(n001,n101,f.x), mix(n011,n111,f.x), f.y), f.z);
+}
+float fbm(vec3 p){ float a=0.5,s=0.0; for(int i=0;i<5;i++){ s+=a*noise(p); p*=2.03; a*=0.5; } return s; }
+void main(){
+  vUv = uv;
+  vec3 nrm = normalize(position);
+  float h = fbm(nrm*3.4);
+  float paint = texture2D(uPaint, uv).r * 2.0 - 1.0;
+  float disp = (h*2.0-1.0)*uDisp*uLand + paint*0.12*uLand;
+  vec3 pos = nrm * (1.0 + disp);
+  vN = normalMatrix * nrm;
+  vP = pos;
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(pos,1.0);
+}
+`;
+const PLANET_FRAG = /* glsl */ `
+varying vec3 vN; varying vec3 vP; varying vec2 vUv;
+uniform float uAge; uniform float uMolten; uniform vec3 uVeg; uniform vec3 uOcean;
+uniform float uLand; uniform float uStorm; uniform float uSeed;
+float hash(vec3 p){ return fract(sin(dot(p, vec3(127.1,311.7,74.7))+uSeed)*43758.5453); }
+float noise(vec3 p){
+  vec3 i=floor(p); vec3 f=fract(p); f=f*f*(3.0-2.0*f);
+  return mix(mix(mix(hash(i),hash(i+vec3(1,0,0)),f.x), mix(hash(i+vec3(0,1,0)),hash(i+vec3(1,1,0)),f.x),f.y),
+             mix(mix(hash(i+vec3(0,0,1)),hash(i+vec3(1,0,1)),f.x), mix(hash(i+vec3(0,1,1)),hash(i+vec3(1,1,1)),f.x),f.y), f.z);
+}
+float fbm(vec3 p){ float a=0.5,s=0.0; for(int i=0;i<5;i++){ s+=a*noise(p); p*=2.03; a*=0.5; } return s; }
+void main(){
+  vec3 n = normalize(vN);
+  float h = fbm(normalize(vP)*3.4);
+  float sea = 0.52;
+  float landMask = smoothstep(sea, sea+0.07, h) * uLand;
+  vec3 lava = mix(vec3(0.12,0.02,0.0), vec3(1.0,0.38,0.08), pow(h,1.4));
+  lava += vec3(1.0,0.7,0.2)*pow(max(0.0, noise(normalize(vP)*18.0)-0.62),2.0)*2.2;
+  vec3 rock = mix(vec3(0.18,0.16,0.15), vec3(0.38,0.32,0.28), h);
+  vec3 dirt = mix(vec3(0.22,0.18,0.12), uVeg, smoothstep(0.55,0.78,h));
+  vec3 ocean = mix(uOcean*0.45, uOcean, h);
+  vec3 cool = mix(rock, mix(ocean, dirt, landMask), uLand);
+  vec3 col = mix(lava, cool, 1.0-uMolten);
+  float ndl = max(0.12, dot(n, normalize(vec3(0.4,0.7,0.3))));
+  col *= ndl * (1.0 + uStorm*0.15);
+  float spec = pow(max(0.0, dot(reflect(normalize(vec3(-0.3,-0.5,-0.2)), n), vec3(0,0,1))), 24.0) * (1.0-landMask) * uLand;
+  col += spec * uOcean * 0.35;
+  gl_FragColor = vec4(col, 1.0);
+}
+`;
+const CLOUD_VERT = `varying vec3 vP; void main(){ vP=position; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`;
+const CLOUD_FRAG = `
+varying vec3 vP; uniform float uTime; uniform float uAlpha; uniform float uSeed; uniform float uStorm;
+float hash(vec3 p){ return fract(sin(dot(p, vec3(127.1,311.7,74.7))+uSeed)*43758.5453); }
+float noise(vec3 p){
+  vec3 i=floor(p); vec3 f=fract(p); f=f*f*(3.0-2.0*f);
+  return mix(mix(mix(hash(i),hash(i+vec3(1,0,0)),f.x), mix(hash(i+vec3(0,1,0)),hash(i+vec3(1,1,0)),f.x),f.y),
+             mix(mix(hash(i+vec3(0,0,1)),hash(i+vec3(1,0,1)),f.x), mix(hash(i+vec3(0,1,1)),hash(i+vec3(1,1,1)),f.x),f.y), f.z);
+}
+void main(){
+  vec3 p = normalize(vP)*3.2 + vec3(uTime*0.07, 0.0, uTime*0.04);
+  float n = noise(p)*0.6 + noise(p*2.2)*0.4;
+  float a = smoothstep(0.42, 0.72, n) * uAlpha * (0.55 + uStorm*0.35);
+  if(a<0.04) discard;
+  gl_FragColor = vec4(vec3(0.92,0.95,1.0)*(1.0-uStorm*0.25), a);
+}
+`;
+
 function hsl(h, s, l) {
   return new THREE.Color().setHSL((((h % 360) + 360) % 360) / 360, s, l);
+}
+function fract(x) {
+  return x - Math.floor(x);
+}
+function hash3(x, y, z, seed) {
+  return fract(Math.sin(x * 127.1 + y * 311.7 + z * 74.7 + seed) * 43758.5453);
+}
+function noise3(x, y, z, seed) {
+  const ix = Math.floor(x), iy = Math.floor(y), iz = Math.floor(z);
+  let fx = x - ix, fy = y - iy, fz = z - iz;
+  fx = fx * fx * (3 - 2 * fx);
+  fy = fy * fy * (3 - 2 * fy);
+  fz = fz * fz * (3 - 2 * fz);
+  const n000 = hash3(ix, iy, iz, seed);
+  const n100 = hash3(ix + 1, iy, iz, seed);
+  const n010 = hash3(ix, iy + 1, iz, seed);
+  const n110 = hash3(ix + 1, iy + 1, iz, seed);
+  const n001 = hash3(ix, iy, iz + 1, seed);
+  const n101 = hash3(ix + 1, iy, iz + 1, seed);
+  const n011 = hash3(ix, iy + 1, iz + 1, seed);
+  const n111 = hash3(ix + 1, iy + 1, iz + 1, seed);
+  const nx00 = n000 + (n100 - n000) * fx;
+  const nx10 = n010 + (n110 - n010) * fx;
+  const nx01 = n001 + (n101 - n001) * fx;
+  const nx11 = n011 + (n111 - n011) * fx;
+  const nxy0 = nx00 + (nx10 - nx00) * fy;
+  const nxy1 = nx01 + (nx11 - nx01) * fy;
+  return nxy0 + (nxy1 - nxy0) * fz;
+}
+function fbmN(n, seed) {
+  let a = 0.5, s = 0, x = n.x * 3.4, y = n.y * 3.4, z = n.z * 3.4;
+  for (let i = 0; i < 5; i++) {
+    s += a * noise3(x, y, z, seed);
+    x *= 2.03; y *= 2.03; z *= 2.03;
+    a *= 0.5;
+  }
+  return s;
+}
+function samplePaint(paint, n) {
+  const u = ((Math.atan2(n.z, n.x) / (Math.PI * 2) + 1) % 1);
+  const v = 0.5 - Math.asin(THREE.MathUtils.clamp(n.y, -1, 1)) / Math.PI;
+  const x = ((Math.floor(u * paint.s) % paint.s) + paint.s) % paint.s;
+  const y = ((Math.floor(v * paint.s) % paint.s) + paint.s) % paint.s;
+  return paint.data[(y * paint.s + x) * 4] / 255;
+}
+function isLand(world, n) {
+  const land = world.uni.uLand.value;
+  if (land < 0.25) return false;
+  const h = fbmN(n, world.seed) + (samplePaint(world.paint, n) - 0.5) * 0.22;
+  return h > 0.52;
+}
+
+function makePaint() {
+  const s = 64;
+  const data = new Uint8Array(s * s * 4);
+  for (let i = 0; i < s * s; i++) {
+    data[i * 4] = data[i * 4 + 1] = data[i * 4 + 2] = 128;
+    data[i * 4 + 3] = 255;
+  }
+  const tex = new THREE.DataTexture(data, s, s, THREE.RGBAFormat);
+  tex.needsUpdate = true;
+  tex.magFilter = THREE.LinearFilter;
+  tex.minFilter = THREE.LinearFilter;
+  return { tex, data, s };
+}
+function paintAt(paint, uv, amount, rad = 2) {
+  const x = ((Math.floor(uv.x * paint.s) % paint.s) + paint.s) % paint.s;
+  const y = ((Math.floor(uv.y * paint.s) % paint.s) + paint.s) % paint.s;
+  for (let j = -rad; j <= rad; j++) {
+    for (let i = -rad; i <= rad; i++) {
+      if (i * i + j * j > rad * rad) continue;
+      const xx = (x + i + paint.s) % paint.s;
+      const yy = (y + j + paint.s) % paint.s;
+      const k = (yy * paint.s + xx) * 4;
+      const v = THREE.MathUtils.clamp(paint.data[k] + amount, 0, 255);
+      paint.data[k] = paint.data[k + 1] = paint.data[k + 2] = v;
+    }
+  }
+  paint.tex.needsUpdate = true;
+}
+function uvFromN(n) {
+  return {
+    x: (Math.atan2(n.z, n.x) / (Math.PI * 2) + 1) % 1,
+    y: 0.5 - Math.asin(THREE.MathUtils.clamp(n.y, -1, 1)) / Math.PI,
+  };
 }
 
 function makeSpiritHand() {
@@ -86,7 +214,6 @@ function makeSpiritHand() {
     f.rotation.x = -0.35;
     g.add(f);
   }
-  g.userData.mat = mat;
   return g;
 }
 function makeSky() {
@@ -124,6 +251,7 @@ function makeUfo() {
   return g;
 }
 
+const SPR = "/games/fenrest/sprites/";
 const TEX = {};
 function sprTex(file, sheet) {
   const key = file + (sheet ? ":s" : "");
@@ -141,17 +269,18 @@ function sprTex(file, sheet) {
   }
   return TEX[key];
 }
+
 function labelTex(text) {
   const c = document.createElement("canvas");
-  c.width = 160;
+  c.width = 128;
   c.height = 36;
   const g = c.getContext("2d");
   g.fillStyle = "rgba(8,10,16,0.82)";
-  g.fillRect(0, 0, 160, 36);
+  g.fillRect(0, 0, 128, 36);
   g.fillStyle = "#e8e4d8";
-  g.font = "bold 15px sans-serif";
+  g.font = "bold 16px sans-serif";
   g.textAlign = "center";
-  g.fillText(text, 80, 24);
+  g.fillText(text, 64, 24);
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace;
   return t;
@@ -159,17 +288,21 @@ function labelTex(text) {
 
 function sitRadial(obj, n, r) {
   obj.position.copy(n).multiplyScalar(r);
-  if (!obj.isSprite) obj.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), n);
+  if (!obj.isSprite) {
+    obj.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), n);
+  }
 }
+
 function startRise(obj, n, rBuried, rFinal, sFinal) {
   obj.userData.n = n.clone();
   obj.userData.rise = 0;
   obj.userData.r0 = rBuried;
   obj.userData.r1 = rFinal;
-  obj.userData.s1 = sFinal || ENTITY_SCALE;
+  obj.userData.s1 = sFinal || 1;
   obj.scale.setScalar(0.02);
   sitRadial(obj, n, rBuried);
 }
+
 function tickRise(obj, dt) {
   if (obj.userData.rise == null || obj.userData.rise >= 1) return;
   obj.userData.rise = Math.min(1, obj.userData.rise + dt * 1.35);
@@ -179,129 +312,14 @@ function tickRise(obj, dt) {
   else obj.scale.setScalar(0.04 + (obj.userData.s1 - 0.04) * e);
 }
 
-let actx = null;
-function audio() {
-  if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
-  if (actx.state === "suspended") actx.resume();
-  return actx;
-}
-function boomSfx(water) {
-  try {
-    const ctx = audio();
-    const t = ctx.currentTime;
-    const len = Math.floor(ctx.sampleRate * 0.5);
-    const buf = ctx.createBuffer(1, len, ctx.sampleRate);
-    const d = buf.getChannelData(0);
-    for (let i = 0; i < len; i++) {
-      const e = 1 - i / len;
-      d[i] = (Math.random() * 2 - 1) * e * e * (water ? 0.85 : 1);
-    }
-    const src = ctx.createBufferSource();
-    src.buffer = buf;
-    const f = ctx.createBiquadFilter();
-    f.type = "lowpass";
-    f.frequency.value = water ? 380 : 180;
-    const g = ctx.createGain();
-    g.gain.setValueAtTime(water ? 0.42 : 0.55, t);
-    g.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
-    src.connect(f);
-    f.connect(g);
-    g.connect(ctx.destination);
-    src.start();
-    const o = ctx.createOscillator();
-    o.type = "sine";
-    o.frequency.setValueAtTime(water ? 96 : 48, t);
-    o.frequency.exponentialRampToValueAtTime(18, t + 0.32);
-    const g2 = ctx.createGain();
-    g2.gain.setValueAtTime(0.45, t);
-    g2.gain.exponentialRampToValueAtTime(0.001, t + 0.36);
-    o.connect(g2);
-    g2.connect(ctx.destination);
-    o.start();
-    o.stop(t + 0.4);
-  } catch {}
-}
-function screamSfx() {
-  try {
-    const ctx = audio();
-    const t = ctx.currentTime;
-    const o = ctx.createOscillator();
-    o.type = "sawtooth";
-    o.frequency.setValueAtTime(640, t);
-    o.frequency.exponentialRampToValueAtTime(160, t + 0.26);
-    const g = ctx.createGain();
-    g.gain.setValueAtTime(0.07, t);
-    g.gain.exponentialRampToValueAtTime(0.001, t + 0.28);
-    o.connect(g);
-    g.connect(ctx.destination);
-    o.start();
-    o.stop(t + 0.28);
-  } catch {}
-}
-function crumbleSfx() {
-  try {
-    const ctx = audio();
-    const t = ctx.currentTime;
-    const len = Math.floor(ctx.sampleRate * 0.35);
-    const buf = ctx.createBuffer(1, len, ctx.sampleRate);
-    const d = buf.getChannelData(0);
-    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len);
-    const src = ctx.createBufferSource();
-    src.buffer = buf;
-    const f = ctx.createBiquadFilter();
-    f.type = "bandpass";
-    f.frequency.value = 420;
-    const g = ctx.createGain();
-    g.gain.setValueAtTime(0.22, t);
-    g.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
-    src.connect(f);
-    f.connect(g);
-    g.connect(ctx.destination);
-    src.start();
-  } catch {}
-}
-
-function sayOn(obj, text) {
-  if (obj.userData.bubble) {
-    obj.remove(obj.userData.bubble);
-    obj.userData.bubble.material?.map?.dispose();
-  }
-  const c = document.createElement("canvas");
-  c.width = 256;
-  c.height = 64;
-  const g = c.getContext("2d");
-  g.fillStyle = "rgba(8,10,16,0.88)";
-  g.fillRect(0, 0, 256, 64);
-  g.fillStyle = "#f2e6c8";
-  g.font = "22px sans-serif";
-  g.textAlign = "center";
-  g.fillText(text, 128, 40);
-  const t = new THREE.CanvasTexture(c);
-  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, transparent: true, depthTest: false }));
-  s.scale.set(0.22, 0.055, 1);
-  s.position.set(0, 0.09, 0);
-  s.center.set(0.5, 0);
-  obj.add(s);
-  obj.userData.bubble = s;
-  obj.userData.bubbleT = 2.2;
-}
-
 class World {
   constructor(pos, radius, seed) {
     this.radius = radius;
     this.age = 0;
     this.born = false;
     this.seed = seed;
-    const tpl = pickTemplate();
-    this.template = tpl;
-    this.tpl = tpl.id;
-    this.freq = tpl.freq;
-    this.ridges = tpl.ridges;
-    this.arid = tpl.arid;
-    this.ice = tpl.ice;
-    this.seaLevel = rollSea(tpl);
-    this.vegH = tpl.arid > 0.5 ? 42 : tpl.ice > 0.5 ? 190 : 90 + Math.random() * 70;
-    this.seaH = tpl.ice > 0.5 ? 210 : 190 + Math.random() * 40;
+    this.vegH = 118;
+    this.seaH = 205;
     this.storm = 0.15;
     this.vel = new THREE.Vector3().randomDirection().multiplyScalar(0.15);
     this.paint = makePaint();
@@ -309,19 +327,21 @@ class World {
     this.life = [];
     this.huts = [];
     this.ufos = [];
-    this.fires = [];
-    this.craters = [];
-    this.groundDetail = [];
-    this.detailReady = false;
-    this.surfaceLod = false;
-    this.ageIndex = 0;
-    this.stores = { wood: 0, stone: 0, food: 0 };
     this.group = new THREE.Group();
     this.group.position.copy(pos);
-    const uniforms = planetUniforms(seed, hsl(this.vegH, 0.45, 0.32), hsl(this.seaH, 0.55, 0.32), this.paint.tex, tpl, this.seaLevel);
+    const uniforms = {
+      uAge: { value: 0 },
+      uMolten: { value: 1 },
+      uLand: { value: 0 },
+      uDisp: { value: 0.09 },
+      uSeed: { value: seed },
+      uStorm: { value: 0.15 },
+      uVeg: { value: hsl(this.vegH, 0.45, 0.32) },
+      uOcean: { value: hsl(this.seaH, 0.55, 0.32) },
+      uPaint: { value: this.paint.tex },
+    };
     this.uni = uniforms;
-    const segs = 56;
-    this.mesh = new THREE.Mesh(new THREE.SphereGeometry(1, segs, 40), new THREE.ShaderMaterial({ uniforms, vertexShader: PLANET_VERT, fragmentShader: PLANET_FRAG }));
+    this.mesh = new THREE.Mesh(new THREE.SphereGeometry(1, 48, 32), new THREE.ShaderMaterial({ uniforms, vertexShader: PLANET_VERT, fragmentShader: PLANET_FRAG }));
     this.mesh.scale.setScalar(radius);
     this.mesh.userData.world = this;
     this.group.add(this.mesh);
@@ -338,8 +358,6 @@ class World {
     );
     this.clouds.scale.setScalar(radius);
     this.group.add(this.clouds);
-    this.atmosShell = makeAtmosShell(radius, this);
-    this.group.add(this.atmosShell);
     const rainGeo = new THREE.BufferGeometry();
     const arr = new Float32Array(180 * 3);
     for (let i = 0; i < 180; i++) {
@@ -353,11 +371,6 @@ class World {
     this.rain = new THREE.Points(rainGeo, new THREE.PointsMaterial({ color: 0x9ec8ff, size: 0.025, transparent: true, opacity: 0, depthWrite: false }));
     this.rain.scale.setScalar(radius * 1.08);
     this.group.add(this.rain);
-  }
-
-  setSea(v) {
-    this.seaLevel = THREE.MathUtils.clamp(v, 0.18, 0.82);
-    this.uni.uSea.value = this.seaLevel;
   }
 
   stage(dt) {
@@ -375,24 +388,13 @@ class World {
     this.uni.uStorm.value = this.storm;
     this.uni.uVeg.value.copy(hsl(this.vegH, 0.48, 0.32));
     this.uni.uOcean.value.copy(hsl(this.seaH, 0.58, 0.3));
-    this.uni.uSea.value = this.seaLevel;
     this.clouds.material.uniforms.uAlpha.value = Math.max(clouds * 0.85, this.storm * 0.35);
     this.clouds.material.uniforms.uTime.value += dt;
     this.clouds.rotation.y += dt * (0.08 + this.storm * 0.12);
     this.rain.material.opacity = rain * (0.35 + this.storm * 0.4);
-    this.rain.visible = rain > 0.03 && !this.surfaceLod;
+    this.rain.visible = rain > 0.03;
     this.group.position.addScaledVector(this.vel, dt);
     this.vel.multiplyScalar(0.985);
-    this.tickFires(dt);
-  }
-
-  addPegAt(n, color) {
-    const p = makePeg(color);
-    this.group.add(p);
-    sit(p, this, n, 1.018);
-    p.scale.setScalar(ENTITY_SCALE);
-    p.visible = !this.surfaceLod;
-    return p;
   }
 
   addTree(normal) {
@@ -411,79 +413,29 @@ class World {
     c2.position.y = 0.14;
     g.add(c2);
     g.userData.food = 4;
-    g.userData.wood = 3;
     g.userData.kind = "tree";
-    g.userData.hp = 18;
     this.group.add(g);
     this.trees.push(g);
-    g.userData.peg = this.addPegAt(n, 0x2f7a3a);
-    startRise(g, n, this.radius * 0.86, this.radius * 1.015, ENTITY_SCALE);
-    g.visible = this.surfaceLod;
+    startRise(g, n, this.radius * 0.86, this.radius * 1.015, 1);
     return g;
-  }
-
-  hutStyle() {
-    return BUILD_AGES[this.ageIndex] || BUILD_AGES[0];
-  }
-
-  buildHutMesh(g, style) {
-    while (g.children.length) g.remove(g.children[0]);
-    const s = style.scale * ENTITY_SCALE;
-    const wall = new THREE.Mesh(new THREE.CylinderGeometry(0.028 * s, 0.032 * s, 0.04 * s, style.id === "paleo" ? 5 : 8), new THREE.MeshBasicMaterial({ color: style.wall }));
-    wall.position.y = 0.02 * s;
-    g.add(wall);
-    const roof = new THREE.Mesh(new THREE.ConeGeometry(0.04 * s, 0.04 * s, 6), new THREE.MeshBasicMaterial({ color: style.roof }));
-    roof.position.y = 0.05 * s;
-    g.add(roof);
-    if (this.ageIndex >= 2) {
-      const door = new THREE.Mesh(new THREE.BoxGeometry(0.012 * s, 0.018 * s, 0.004), new THREE.MeshBasicMaterial({ color: 0x2a1a10 }));
-      door.position.set(0, 0.012 * s, 0.032 * s);
-      g.add(door);
-    }
-    if (this.ageIndex >= 4) {
-      const tower = new THREE.Mesh(new THREE.CylinderGeometry(0.01 * s, 0.012 * s, 0.07 * s, 6), new THREE.MeshBasicMaterial({ color: 0x8a8a90 }));
-      tower.position.set(0.03 * s, 0.04 * s, 0);
-      g.add(tower);
-    }
   }
 
   addHut(normal) {
-    if (this.huts.length > 16) return;
+    if (this.huts.length > 12) return;
     const n = normal.clone().normalize();
     const g = new THREE.Group();
-    this.buildHutMesh(g, this.hutStyle());
+    const wall = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.032, 0.04, 6), new THREE.MeshBasicMaterial({ color: 0xc4b48a }));
+    wall.position.y = 0.02;
+    g.add(wall);
+    const roof = new THREE.Mesh(new THREE.ConeGeometry(0.04, 0.04, 6), new THREE.MeshBasicMaterial({ color: 0x6a4a28 }));
+    roof.position.y = 0.05;
+    g.add(roof);
     g.userData.kind = "hut";
     g.userData.stores = 0;
-    g.userData.hp = 40 + this.ageIndex * 18;
-    g.userData.maxHp = g.userData.hp;
     this.group.add(g);
     this.huts.push(g);
-    g.userData.peg = this.addPegAt(n, 0xc4b48a);
-    startRise(g, n, this.radius * 0.88, this.radius * 1.02, ENTITY_SCALE);
-    g.visible = this.surfaceLod;
+    startRise(g, n, this.radius * 0.88, this.radius * 1.02, 1);
     return g;
-  }
-
-  restyleHuts() {
-    const st = this.hutStyle();
-    for (const h of this.huts) {
-      if (h.userData.dead) continue;
-      this.buildHutMesh(h, st);
-      h.userData.hp = 40 + this.ageIndex * 18;
-      h.userData.maxHp = h.userData.hp;
-    }
-  }
-
-  tryAdvanceAge() {
-    const next = BUILD_AGES[this.ageIndex + 1];
-    if (!next) return;
-    if (this.stores.wood >= next.wood && this.stores.stone >= next.stone && this.stores.food >= next.food && this.huts.length >= 2) {
-      this.ageIndex++;
-      this.stores.wood = Math.max(0, this.stores.wood - next.wood * 0.4);
-      this.stores.stone = Math.max(0, this.stores.stone - next.stone * 0.4);
-      this.restyleHuts();
-      hudStatus.textContent = this.template.name + " enters the " + this.hutStyle().name + " age.";
-    }
   }
 
   addCreature(def, normal) {
@@ -496,7 +448,7 @@ class World {
       map.offset.set(0, 0.75);
     }
     const s = new THREE.Sprite(new THREE.SpriteMaterial({ map, transparent: true, depthWrite: false }));
-    const sc = (this.radius * 0.55 + 0.55) * ENTITY_SCALE;
+    const sc = this.radius * 0.55 + 0.55;
     s.scale.set(def.w * sc, def.h * sc, 1);
     s.center.set(0.5, 0);
     s.userData = {
@@ -504,21 +456,12 @@ class World {
       n,
       hunger: 0.2,
       wood: 0,
-      stone: 0,
-      food: 0,
       age: 0,
       frame: 0,
       t: Math.random() * 4,
       heading: Math.random() * 6.28,
       home: null,
       dead: false,
-      hp: def.hp || 24,
-      maxHp: def.hp || 24,
-      inspireT: 0,
-      sawGod: false,
-      screamT: 0,
-      aweT: 0,
-      ackT: 0,
     };
     this.group.add(s);
     this.life.push(s);
@@ -527,9 +470,6 @@ class World {
     const land = isLand(this, n);
     const r1 = this.radius * (land ? 1.02 : 0.995);
     startRise(s, n, this.radius * 0.9, r1, 1);
-    const pegCol = def.kind === "human" ? 0xe8d0a8 : def.diet === "meat" ? 0xaa3333 : 0x88aa66;
-    s.userData.peg = this.addPegAt(n, pegCol);
-    s.visible = this.surfaceLod;
     return s;
   }
 
@@ -541,197 +481,25 @@ class World {
     this.ufos.push(u);
   }
 
-  ensureDetail() {
-    if (this.detailReady || this.uni.uLand.value < 0.4) return;
-    this.detailReady = true;
-    const veg = hsl(this.vegH, 0.6, 0.32);
-    const grassMap = sprTex("grass-tall.png", false);
-    for (let i = 0; i < 48; i++) {
-      const n = new THREE.Vector3().randomDirection();
-      if (!isLand(this, n) || this.arid > 0.7) continue;
-      const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: grassMap, transparent: true, depthWrite: false }));
-      const sc = 0.028 * ENTITY_SCALE * (0.7 + Math.random() * 0.6);
-      s.scale.set(sc, sc * 1.3, 1);
-      s.center.set(0.5, 0);
-      this.group.add(s);
-      sitRadial(s, n, this.radius * 1.012);
-      s.userData.n = n;
-      s.visible = this.surfaceLod;
-      this.groundDetail.push(s);
-    }
-    for (let i = 0; i < 18; i++) {
-      const n = new THREE.Vector3().randomDirection();
-      if (!isLand(this, n) || this.ice > 0.7) continue;
-      const b = new THREE.Mesh(new THREE.SphereGeometry(0.018, 6, 5), new THREE.MeshBasicMaterial({ color: veg }));
-      b.scale.set(1.2, 0.7, 1);
-      this.group.add(b);
-      sit(b, this, n, 1.012);
-      b.scale.multiplyScalar(ENTITY_SCALE);
-      b.userData.n = n;
-      b.userData.kind = "bush";
-      b.userData.food = 2;
-      b.visible = this.surfaceLod;
-      this.groundDetail.push(b);
-    }
-    for (let i = 0; i < 16; i++) {
-      const n = new THREE.Vector3().randomDirection();
-      if (!isLand(this, n)) continue;
-      const r = new THREE.Mesh(new THREE.IcosahedronGeometry(0.016 + Math.random() * 0.012, 0), new THREE.MeshBasicMaterial({ color: this.arid > 0.5 ? 0xc2a070 : 0x6a6864 }));
-      this.group.add(r);
-      sit(r, this, n, 1.01);
-      r.scale.setScalar(ENTITY_SCALE);
-      r.userData.n = n;
-      r.userData.kind = "rock";
-      r.userData.stone = 3;
-      r.visible = this.surfaceLod;
-      this.groundDetail.push(r);
-    }
-  }
-
-  splash(n, death) {
-    const count = death ? 14 : 8;
-    for (let i = 0; i < count; i++) {
-      const col = i % 2 ? (death ? 0x8a8a8a : 0xff2244) : 0xaa2020;
-      const p = new THREE.Mesh(new THREE.SphereGeometry(0.01, 4, 3), new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 1 }));
-      const pos = this.group.position.clone().addScaledVector(n, this.radius * 1.03);
-      p.position.copy(pos);
-      const dir = n.clone().add(new THREE.Vector3().randomDirection().multiplyScalar(0.7)).normalize();
-      p.userData = { vel: dir.multiplyScalar((death ? 1.6 : 1.1) * (0.4 + Math.random())), life: 0.35 + Math.random() * 0.25 };
-      scene.add(p);
-      fx.push(p);
-    }
-  }
-
-  crumbleHut(h) {
-    const n = h.userData.n;
-    crumbleSfx();
-    for (let i = 0; i < 12; i++) {
-      const p = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.01, 0.01), new THREE.MeshBasicMaterial({ color: 0x6a5a44, transparent: true }));
-      p.position.copy(this.group.position).addScaledVector(n, this.radius * 1.03);
-      p.userData = { vel: n.clone().add(new THREE.Vector3().randomDirection().multiplyScalar(0.8)).normalize().multiplyScalar(0.7 + Math.random()), life: 0.7 };
-      scene.add(p);
-      fx.push(p);
-    }
-    if (h.userData.peg) this.group.remove(h.userData.peg);
-    this.group.remove(h);
-    this.huts = this.huts.filter((x) => x !== h);
-  }
-
-  hurtLife(c, dmg) {
-    const u = c.userData;
-    u.hp -= dmg;
-    this.splash(u.n, u.hp <= 0);
-    if (c.material) {
-      c.material.color.set(u.hp <= 0 ? 0x888888 : 0xff3355);
-      u.tintT = 0.35;
-    }
-    if (u.hp <= 0) {
-      if (u.peg) this.group.remove(u.peg);
-      if (u.bubble) c.remove(u.bubble);
-      this.group.remove(c);
-      this.life = this.life.filter((x) => x !== c);
-      return true;
-    }
-    return false;
-  }
-
-  addFire(n, water) {
-    const count = water ? 22 : 10;
-    for (let i = 0; i < count; i++) {
-      const col = water ? 0xb8c4cc : i < 4 ? 0xffee66 : 0xff5511;
-      const p = new THREE.Mesh(new THREE.SphereGeometry(water ? 0.03 : 0.018, 5, 4), new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: water ? 0.55 : 0.9, depthWrite: false }));
-      this.group.add(p);
-      const nn = n.clone().add(new THREE.Vector3().randomDirection().multiplyScalar(0.04)).normalize();
-      sitRadial(p, nn, this.radius * (water ? 1.04 : 1.025) + Math.random() * 0.02);
-      p.userData = { n: nn, life: water ? 1.8 + Math.random() : 4 + Math.random() * 3, water, rise: water ? 0.12 : 0.04 };
-      this.fires.push(p);
-    }
-  }
-
-  addCrater(n, power) {
-    const bowl = new THREE.Mesh(
-      new THREE.SphereGeometry(0.07 * power, 10, 8, 0, Math.PI * 2, 0, Math.PI / 2),
-      new THREE.MeshBasicMaterial({ color: 0x1a120c }),
-    );
-    this.group.add(bowl);
-    sit(bowl, this, n, 0.985);
-    bowl.scale.setScalar(power * ENTITY_SCALE * 1.4);
-    this.craters.push(bowl);
-  }
-
   crater(n, power = 1) {
-    paintAt(this.paint, uvFromN(n), -110 * power, Math.round(5 + power * 4));
-    this.addCrater(n, power);
-    const water = isOcean(this, n);
-    this.addFire(n, water);
+    paintAt(this.paint, uvFromN(n), -90 * power, Math.round(4 + power * 3));
     for (let i = this.trees.length - 1; i >= 0; i--) {
-      if (this.trees[i].userData.n && this.trees[i].userData.n.dot(n) > 0.9) {
-        if (this.trees[i].userData.peg) this.group.remove(this.trees[i].userData.peg);
+      if (this.trees[i].userData.n && this.trees[i].userData.n.dot(n) > 0.92) {
         this.group.remove(this.trees[i]);
         this.trees.splice(i, 1);
       }
     }
     for (let i = this.life.length - 1; i >= 0; i--) {
-      const c = this.life[i];
-      if (c.userData.n && c.userData.n.dot(n) > 0.91) this.hurtLife(c, 220);
-    }
-    for (let i = this.huts.length - 1; i >= 0; i--) {
-      const h = this.huts[i];
-      if (h.userData.n && h.userData.n.dot(n) > 0.9) {
-        h.userData.hp -= 200;
-        if (h.userData.hp <= 0) this.crumbleHut(h);
-      }
-    }
-    for (let i = this.groundDetail.length - 1; i >= 0; i--) {
-      const g = this.groundDetail[i];
-      if (g.userData.n && g.userData.n.dot(n) > 0.93) {
-        this.group.remove(g);
-        this.groundDetail.splice(i, 1);
+      if (this.life[i].userData.n && this.life[i].userData.n.dot(n) > 0.94) {
+        this.group.remove(this.life[i]);
+        this.life.splice(i, 1);
       }
     }
   }
 
-  tickFires(dt) {
-    for (let i = this.fires.length - 1; i >= 0; i--) {
-      const p = this.fires[i];
-      p.userData.life -= dt;
-      if (p.userData.n) {
-        sitRadial(p, p.userData.n, this.radius * 1.02 + (4 - Math.min(4, p.userData.life)) * p.userData.rise);
-      }
-      if (p.material.opacity != null) p.material.opacity = Math.max(0, p.userData.life * (p.userData.water ? 0.3 : 0.22));
-      if (p.userData.life <= 0) {
-        this.group.remove(p);
-        this.fires.splice(i, 1);
-      }
-    }
-  }
-
-  tickLife(dt, godN, formId) {
-    for (const t of this.trees) {
-      tickRise(t, dt);
-      if (t.userData.n && t.userData.rise >= 1) {
-        const dry = isLand(this, t.userData.n);
-        sitRadial(t, t.userData.n, this.radius * (dry ? 1.015 : 0.97));
-        t.visible = this.surfaceLod && dry;
-        if (t.userData.peg) {
-          sit(t.userData.peg, this, t.userData.n, dry ? 1.018 : 0.97);
-          t.userData.peg.visible = !this.surfaceLod && dry;
-        }
-      }
-    }
-    for (const h of this.huts) {
-      tickRise(h, dt);
-      if (h.userData.n && h.userData.rise >= 1) {
-        const dry = isLand(this, h.userData.n);
-        sitRadial(h, h.userData.n, this.radius * (dry ? 1.02 : 0.97));
-        h.visible = this.surfaceLod && dry;
-        if (h.userData.peg) {
-          sit(h.userData.peg, this, h.userData.n, dry ? 1.018 : 0.97);
-          h.userData.peg.visible = !this.surfaceLod && dry;
-        }
-      }
-    }
-    const nearGod = !!godN;
+  tickLife(dt) {
+    for (const t of this.trees) tickRise(t, dt);
+    for (const h of this.huts) tickRise(h, dt);
     for (const c of this.life) {
       tickRise(c, dt);
       if (c.userData.rise < 1) continue;
@@ -740,65 +508,18 @@ class World {
       u.age += dt;
       u.hunger += dt * (def.diet === "meat" ? 0.08 : 0.05);
       u.t += dt;
-      if (u.inspireT > 0) u.inspireT -= dt;
-      if (u.screamT > 0) u.screamT -= dt;
-      if (u.aweT > 0) u.aweT -= dt;
-      if (u.ackT > 0) u.ackT -= dt;
-      if (u.tintT > 0) {
-        u.tintT -= dt;
-        if (u.tintT <= 0 && c.material) c.material.color.set(0xffffff);
-      }
-      if (u.bubble) {
-        u.bubbleT -= dt;
-        if (u.bubbleT <= 0) {
-          c.remove(u.bubble);
-          u.bubble.material?.map?.dispose();
-          u.bubble = null;
-        }
-      }
       const land = isLand(this, u.n);
-      const buff = u.inspireT > 0 ? 1.45 : 1;
-      const spd = def.spd * (land ? 1 : 0.38) * (this.radius * 0.12) * buff;
-      const godClose = nearGod && godN.dot(u.n) > 0.88;
-
-      if (formId && godClose && this.surfaceLod) {
-        if (formId === "fearsome") {
-          steerToward(u, godN, -dt * 3.2);
-          if (u.screamT <= 0) {
-            u.screamT = 1.6 + Math.random();
-            screamSfx();
-            sayOn(c, ["Aaaa!", "Run!", "A monster!", "Flee!"][Math.floor(Math.random() * 4)]);
-          }
-        } else if (formId === "divine") {
-          steerToward(u, godN, dt * 2.4);
-          if (u.aweT <= 0) {
-            u.aweT = 3.2;
-            sayOn(c, ["A god!", "Bless us!", "We are seen!", "A vision!"][Math.floor(Math.random() * 4)]);
-          }
-        } else if (formId === "inspire") {
-          if (!u.sawGod) {
-            u.sawGod = true;
-            u.ackT = 1.15;
-            sayOn(c, ["A sign!", "Forward!", "For the spirit!"][Math.floor(Math.random() * 3)]);
-          }
-          if (u.ackT > 0) steerToward(u, godN, dt * 2.0);
-          if (u.inspireT <= 0) u.inspireT = 60;
-        }
-      }
-
+      const spd = def.spd * (land ? 1 : 0.38) * (this.radius * 0.12);
       if (u.t > 2.2) {
         u.heading = Math.random() * 6.28;
         u.t = 0;
       }
-      if (formId === "fearsome" && godClose) {
-        /* flee already steered */
-      } else if (def.diet === "plant") {
+      if (def.diet === "plant") {
         const tree = nearestDot(this.trees, u.n);
         if (tree && tree.userData.n.dot(u.n) > 0.96) {
           tree.userData.food -= dt * 0.8;
           u.hunger = Math.max(0, u.hunger - dt * 0.4);
           if (tree.userData.food <= 0) {
-            if (tree.userData.peg) this.group.remove(tree.userData.peg);
             this.group.remove(tree);
             this.trees = this.trees.filter((x) => x !== tree);
           }
@@ -808,67 +529,32 @@ class World {
         if (prey) {
           steerToward(u, prey.userData.n, dt * 2.2);
           if (prey.userData.n.dot(u.n) > 0.995) {
-            const dmg = 14 * (u.inspireT > 0 ? 1.5 : 1);
-            this.hurtLife(prey, dmg);
+            this.group.remove(prey);
+            this.life = this.life.filter((x) => x !== prey);
             u.hunger = 0;
           }
         }
       } else if (def.kind === "human") {
         const threat = this.life.find((o) => o.userData.def.diet === "meat" && o.userData.n.dot(u.n) > 0.97);
-        if (threat && !(formId === "divine" && godClose)) steerToward(u, threat.userData.n, -dt * 2.5);
-        else if (!(formId === "divine" && godClose) && !(formId === "inspire" && u.ackT > 0)) {
-          const gather = 0.7 * buff;
+        if (threat) steerToward(u, threat.userData.n, -dt * 2.5);
+        else {
           const tree = nearestDot(this.trees, u.n);
-          const rock = nearestKind(this.groundDetail, u.n, "rock");
-          const bush = nearestKind(this.groundDetail, u.n, "bush");
-          if (tree && u.wood < 4) {
+          if (tree && u.wood < 3) {
             steerToward(u, tree.userData.n, dt * 1.6);
             if (tree.userData.n.dot(u.n) > 0.985) {
-              u.wood += dt * gather;
-              u.food += dt * 0.2 * buff;
+              u.wood += dt * 0.7;
               u.hunger = Math.max(0, u.hunger - dt * 0.2);
               tree.userData.food -= dt * 0.4;
-              tree.userData.wood -= dt * 0.3;
             }
-          } else if (rock && u.stone < 3 && this.ageIndex >= 1) {
-            steerToward(u, rock.userData.n, dt * 1.4);
-            if (rock.userData.n.dot(u.n) > 0.985) {
-              u.stone += dt * 0.45 * buff;
-              rock.userData.stone -= dt * 0.4;
-              if (rock.userData.stone <= 0) {
-                this.group.remove(rock);
-                this.groundDetail = this.groundDetail.filter((x) => x !== rock);
-              }
-            }
-          } else if (bush && u.food < 2) {
-            steerToward(u, bush.userData.n, dt * 1.3);
-            if (bush.userData.n && bush.userData.n.dot(u.n) > 0.985) {
-              u.food += dt * 0.5 * buff;
-              u.hunger = Math.max(0, u.hunger - dt * 0.25);
-            }
-          } else if (u.wood >= 3 && this.huts.length < 10) {
+          } else if (u.wood >= 3 && this.huts.length < 8) {
             this.addHut(u.n);
-            this.stores.wood += u.wood;
-            this.stores.stone += u.stone;
-            this.stores.food += u.food;
             u.wood = 0;
-            u.stone = 0;
-            u.food = 0;
-            this.tryAdvanceAge();
-          } else if (this.huts[0]) {
-            steerToward(u, this.huts[0].userData.n, dt);
-            if (this.huts[0].userData.n.dot(u.n) > 0.98) {
-              this.stores.wood += u.wood;
-              this.stores.stone += u.stone;
-              this.stores.food += u.food;
-              u.wood = u.stone = u.food = 0;
-              this.tryAdvanceAge();
-            }
-          }
+          } else if (this.huts[0]) steerToward(u, this.huts[0].userData.n, dt);
         }
       }
       if (u.hunger > 1.6) {
-        this.hurtLife(c, 999);
+        this.group.remove(c);
+        this.life = this.life.filter((x) => x !== c);
         continue;
       }
       const axis = new THREE.Vector3().crossVectors(u.n, new THREE.Vector3(Math.cos(u.heading), 0, Math.sin(u.heading)));
@@ -878,7 +564,6 @@ class World {
       u.n.normalize();
       const r = this.radius * (land ? 1.02 : 0.992);
       sitRadial(c, u.n, r);
-      if (u.peg) sit(u.peg, this, u.n, 1.018);
       if (u.def.sheet && c.material.map) {
         const f = Math.floor(performance.now() * 0.006 + u.age) % 4;
         c.material.map.offset.x = f * 0.25;
@@ -898,18 +583,6 @@ function nearestDot(arr, n) {
   let best = null, bd = -1;
   for (const o of arr) {
     const d = o.userData.n ? o.userData.n.dot(n) : -1;
-    if (d > bd) {
-      bd = d;
-      best = o;
-    }
-  }
-  return best;
-}
-function nearestKind(arr, n, kind) {
-  let best = null, bd = -1;
-  for (const o of arr) {
-    if (o.userData.kind !== kind || !o.userData.n) continue;
-    const d = o.userData.n.dot(n);
     if (d > bd) {
       bd = d;
       best = o;
@@ -943,7 +616,7 @@ function burst(world, n, color, count, speed) {
 function makePalette() {
   const g = new THREE.Group();
   const plate = new THREE.Mesh(
-    new THREE.CircleGeometry(0.26, 28),
+    new THREE.CircleGeometry(0.22, 28),
     new THREE.MeshBasicMaterial({ color: 0x10141c, transparent: true, opacity: 0.82, side: THREE.DoubleSide }),
   );
   plate.rotation.x = -Math.PI / 2;
@@ -953,19 +626,19 @@ function makePalette() {
     const a = (i / POWERS.length) * Math.PI * 2 - Math.PI / 2;
     const wrap = new THREE.Group();
     const m = new THREE.Mesh(
-      new THREE.IcosahedronGeometry(0.016, 0),
+      new THREE.IcosahedronGeometry(0.02, 0),
       new THREE.MeshBasicMaterial({ color: new THREE.Color().setHSL(i / POWERS.length, 0.55, 0.55) }),
     );
     m.userData.power = i;
     wrap.add(m);
     const lab = new THREE.Mesh(
-      new THREE.PlaneGeometry(0.068, 0.018),
+      new THREE.PlaneGeometry(0.07, 0.02),
       new THREE.MeshBasicMaterial({ map: labelTex(p.name), transparent: true, depthTest: false, side: THREE.DoubleSide }),
     );
-    lab.position.set(0, 0.01, 0.024);
+    lab.position.set(0, 0.012, 0.028);
     lab.userData.power = i;
     wrap.add(lab);
-    wrap.position.set(Math.cos(a) * 0.185, 0.02, Math.sin(a) * 0.185);
+    wrap.position.set(Math.cos(a) * 0.155, 0.02, Math.sin(a) * 0.155);
     wrap.userData.power = i;
     g.add(wrap);
     gems.push(m, lab);
@@ -988,24 +661,6 @@ function makeBestiary() {
     );
     pl.position.set(x, y, 0.02);
     pl.userData.species = s.id;
-    g.add(pl);
-    hits.push(pl);
-  });
-  g.position.set(0.22, 0.08, 0.08);
-  return { group: g, hits };
-}
-
-function makeFormPicker() {
-  const g = new THREE.Group();
-  g.visible = false;
-  const hits = [];
-  FORMS.forEach((f, i) => {
-    const pl = new THREE.Mesh(
-      new THREE.PlaneGeometry(0.14, 0.042),
-      new THREE.MeshBasicMaterial({ map: labelTex(f.name), transparent: true, side: THREE.DoubleSide, depthTest: false }),
-    );
-    pl.position.set(0.02, 0.12 - i * 0.05, 0.02);
-    pl.userData.form = f.id;
     g.add(pl);
     hits.push(pl);
   });
@@ -1037,8 +692,6 @@ let growing = null;
 let power = 0;
 let selected = null;
 let pickSpecies = SPECIES[0];
-let deityForm = null;
-let lockedWorld = null;
 let lookYaw = 0;
 let lookPitch = 0;
 const keys = new Set();
@@ -1054,44 +707,23 @@ const ctrl = {
   g1: renderer.xr.getControllerGrip(1),
 };
 Object.values(ctrl).forEach((c) => rig.add(c));
-const handL = makeSpiritHand();
-const handR = makeSpiritHand();
-ctrl.g0.add(handL);
-ctrl.g1.add(handR);
+ctrl.g0.add(makeSpiritHand());
+ctrl.g1.add(makeSpiritHand());
 const palette = makePalette();
 ctrl.g0.add(palette.group);
 const bestiary = makeBestiary();
 ctrl.g0.add(bestiary.group);
-const formPick = makeFormPicker();
-ctrl.g0.add(formPick.group);
 const laser = new THREE.Line(
   new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, -2.8)]),
   new THREE.LineBasicMaterial({ color: 0x9ee7ff, transparent: true, opacity: 0.45 }),
 );
 ctrl[1].add(laser);
 
-function formColor() {
-  if (deityForm === "fearsome") return 0xff5533;
-  if (deityForm === "divine") return 0xffe27a;
-  if (deityForm === "inspire") return 0x7cffb0;
-  return 0x9ee7ff;
-}
-function setForm(id) {
-  deityForm = id;
-  const f = FORMS.find((x) => x.id === id);
-  hudForm.textContent = f ? "Form · " + f.name : "Form · unset";
-  hudHint.textContent = f ? f.hint : POWERS[power].hint;
-  const col = formColor();
-  handL.userData.mat.color.setHex(col);
-  handR.userData.mat.color.setHex(col);
-}
-
 function setPower(i) {
   power = (i + POWERS.length) % POWERS.length;
   hudPower.textContent = POWERS[power].name;
   hudHint.textContent = POWERS[power].hint;
   bestiary.group.visible = POWERS[power].id === "beasts";
-  formPick.group.visible = POWERS[power].id === "form";
   palette.gems.forEach((g) => {
     if (g.userData.power != null && g.geometry?.type === "IcosahedronGeometry") {
       g.scale.setScalar(g.userData.power === power ? 1.45 : 1);
@@ -1132,22 +764,9 @@ function spawnWorld(pos, r) {
   return w;
 }
 
-function openPlanetMenu(w) {
-  selected = w;
-  inspectEl.hidden = false;
-  document.getElementById("insp-name").textContent = `Sphere · radius ${w.radius.toFixed(2)} · sea ${Math.round(w.seaLevel * 100)}`;
-  document.getElementById("insp-tpl").textContent = "Template · " + w.template.name;
-  document.getElementById("insp-age").textContent = "Age · " + w.hutStyle().name;
-  document.getElementById("sealevel").value = String(Math.round(w.seaLevel * 100));
-  document.getElementById("veg").value = String(w.vegH);
-  document.getElementById("oceanhue").value = String(w.seaH);
-  document.getElementById("wx").value = String(Math.round(w.storm * 100));
-}
-
 function applyPower(w, point, normal, uv, hold) {
   if (!w) return;
   const id = POWERS[power].id;
-  if (id === "select" || id === "form") return;
   if (id === "rain") {
     w.uni.uLand.value = Math.min(1, w.uni.uLand.value + 0.12);
     w.storm = Math.min(1, w.storm + 0.08);
@@ -1184,6 +803,13 @@ function applyPower(w, point, normal, uv, hold) {
     w.storm = Math.min(1, w.storm + 0.05);
   } else if (id === "storm") {
     w.storm = hold ? Math.min(1, w.storm + 0.4) : 0.85;
+  } else if (id === "gaze") {
+    selected = w;
+    inspectEl.hidden = false;
+    document.getElementById("insp-name").textContent = `Sphere · radius ${w.radius.toFixed(2)}`;
+    document.getElementById("veg").value = String(w.vegH);
+    document.getElementById("sea").value = String(w.seaH);
+    document.getElementById("wx").value = String(Math.round(w.storm * 100));
   }
 }
 
@@ -1199,16 +825,13 @@ function holdGrow(pos, dt) {
   growing.mesh.scale.setScalar(growing.radius);
   growing.clouds.scale.setScalar(growing.radius);
   growing.rain.scale.setScalar(growing.radius * 1.08);
-  growing.atmosShell?.traverse((o) => {
-    if (o.isMesh) o.scale.setScalar(growing.radius);
-  });
   growing.group.position.lerp(pos, 0.35);
 }
 function releaseGrow(away) {
   if (!growing) return;
   growing.born = true;
   growing.vel.copy(away).multiplyScalar(0.45);
-  hudStatus.textContent = growing.template.name + " begins. Sea " + Math.round(growing.seaLevel * 100) + ".";
+  hudStatus.textContent = "A world begins. Thirty heartbeats to ocean and stone.";
   growing = null;
 }
 
@@ -1220,12 +843,12 @@ function xrGamepad(handIndex) {
   }
   return srcs[handIndex]?.gamepad || null;
 }
-const pressed = { t0: false, t1: false, a: false, x: false, b: false, y: false };
+const pressed = { t0: false, t1: false, b4: false, b5: false };
 function trigger(gp) {
   return !!(gp?.buttons?.[0]?.pressed || gp?.buttons?.[1]?.pressed);
 }
 function moveRig(dt, xr) {
-  const speed = lockedWorld ? 1.6 : 3.2;
+  const speed = 3.2;
   camera.getWorldDirection(_v);
   _v.y = 0;
   if (_v.lengthSq() < 0.0001) _v.set(0, 0, -1);
@@ -1291,13 +914,6 @@ function pokeUi(origin, dir) {
       return true;
     }
   }
-  if (formPick.group.visible) {
-    const fh = _ray.intersectObjects(formPick.hits, false);
-    if (fh[0]?.object?.userData?.form) {
-      setForm(fh[0].object.userData.form);
-      return true;
-    }
-  }
   const hits = _ray.intersectObjects(palette.gems, false);
   if (hits[0]?.object?.userData?.power != null) {
     setPower(hits[0].object.userData.power);
@@ -1309,18 +925,6 @@ function pokeUi(origin, dir) {
 function fire(origin, dir, holding, justPressed, dt) {
   if (justPressed && pokeUi(origin, dir)) return;
   const id = POWERS[power].id;
-  if (id === "select") {
-    if (justPressed) {
-      const hit = hitWorld(origin, dir);
-      const w = hit?.object?.userData?.world;
-      if (w) openPlanetMenu(w);
-    }
-    return;
-  }
-  if (id === "form") {
-    if (justPressed) pokeUi(origin, dir);
-    return;
-  }
   if (id === "forge") {
     if (holding && !growing) startGrow(origin.clone().add(dir.clone().multiplyScalar(0.4)));
     if (holding && growing) holdGrow(origin.clone().add(dir.clone().multiplyScalar(0.55 + growing.radius)), dt);
@@ -1339,43 +943,6 @@ function fire(origin, dir, holding, justPressed, dt) {
   applyPower(w, hit?.point || origin.clone().add(dir.clone().multiplyScalar(2)), n, hit?.uv, holding);
 }
 
-function tryOpenMenuFromA() {
-  if (POWERS[power].id !== "select") return;
-  const xr = renderer.xr.isPresenting;
-  const ray = xr ? rightRay() : desktopRay();
-  const hit = hitWorld(ray.o, ray.d);
-  const w = hit?.object?.userData?.world || nearestWorld(ray.o, 4);
-  if (w) openPlanetMenu(w);
-}
-
-function enterSurface(w) {
-  lockedWorld = w;
-  setSkyDormant(sky, true);
-  w.ensureDetail();
-  setSurfaceLod(w, true);
-  camera.near = 0.02;
-  camera.far = 80;
-  camera.updateProjectionMatrix();
-  hudHint.textContent = "Lower sky. The void sleeps. Press X to return to the galaxy map.";
-}
-function leaveSurface() {
-  if (!lockedWorld) return;
-  setSurfaceLod(lockedWorld, false);
-  setSkyDormant(sky, false);
-  camera.near = 0.05;
-  camera.far = 280;
-  camera.updateProjectionMatrix();
-  lockedWorld = null;
-  hudHint.textContent = POWERS[power].hint;
-}
-function ejectOut() {
-  if (!lockedWorld) return;
-  camera.getWorldPosition(_v);
-  const w = lockedWorld;
-  leaveSurface();
-  ejectNearPlanet(rig, w, _v);
-}
-
 function tickMeteors(dt) {
   for (let i = meteors.length - 1; i >= 0; i--) {
     const m = meteors[i];
@@ -1383,11 +950,9 @@ function tickMeteors(dt) {
     const w = m.userData.target;
     if (w && m.position.distanceTo(w.group.position) < w.radius * 1.04) {
       const n = m.position.clone().sub(w.group.position).normalize();
-      const water = isOcean(w, n);
-      w.crater(n, water ? 0.85 : 1.35);
-      boomSfx(water);
-      burst(w, n, 0xff5511, water ? 10 : 22, 2.8);
-      burst(w, n, water ? 0xcfe4f4 : 0xffee66, water ? 28 : 12, water ? 1.1 : 1.6);
+      w.crater(n, 1.2);
+      burst(w, n, 0xff5511, 18, 2.8);
+      burst(w, n, 0xffee66, 10, 1.6);
       scene.remove(m);
       meteors.splice(i, 1);
     }
@@ -1413,74 +978,41 @@ function tickMeteors(dt) {
   }
 }
 
-function headPos() {
-  if (renderer.xr.isPresenting) {
-    const cam = renderer.xr.getCamera(camera);
-    cam.getWorldPosition(_v3);
-    return _v3;
-  }
-  camera.getWorldPosition(_v3);
-  return _v3;
-}
-
 function loop(t) {
   const now = t * 0.001;
   const dt = Math.min(0.05, last ? now - last : 0.016);
   last = now;
   const xr = renderer.xr.isPresenting;
-  if (sky.visible) sky.material.uniforms.uT.value = now;
+  sky.material.uniforms.uT.value = now;
   moveRig(dt, xr);
-
-  const head = headPos();
-  if (!lockedWorld) {
-    const w = worldContaining(worlds, head, 0);
-    if (w && w.born && w.uni.uLand.value > 0.35) enterSurface(w);
-  } else {
-    confineToAtmos(rig, head, lockedWorld);
-    if (!lockedWorld.surfaceLod) setSurfaceLod(lockedWorld, true);
-  }
-
   const gpR = xrGamepad(1);
   const gpL = xrGamepad(0);
   const rTrig = xr ? trigger(gpR) : mouse.down;
-  const aBtn = !!(gpR?.buttons?.[4]?.pressed);
-  const xBtn = !!(gpL?.buttons?.[4]?.pressed);
-  const bBtn = !!(gpR?.buttons?.[5]?.pressed);
-  const yBtn = !!(gpL?.buttons?.[5]?.pressed);
-
   if (xr) {
     const { o, d } = rightRay();
     fire(o, d, rTrig, rTrig && !pressed.t1, dt);
     pressed.t1 = rTrig;
-    if (aBtn && !pressed.a) tryOpenMenuFromA();
-    if (xBtn && !pressed.x) ejectOut();
-    if (bBtn && !pressed.b) setPower(power + 1);
-    if (yBtn && !pressed.y) setPower(power - 1);
-    pressed.a = aBtn;
-    pressed.x = xBtn;
-    pressed.b = bBtn;
-    pressed.y = yBtn;
+    const b4 = !!(gpL?.buttons?.[4]?.pressed || gpR?.buttons?.[5]?.pressed);
+    const b5 = !!(gpR?.buttons?.[4]?.pressed);
+    if (b4 && !pressed.b4) setPower(power + 1);
+    if (b5 && !pressed.b5) setPower(power - 1);
+    pressed.b4 = b4;
+    pressed.b5 = b5;
   } else if (mouse.down || growing || pressed.t1) {
     const { o, d } = desktopRay();
     fire(o, d, mouse.down, mouse.down && !pressed.t1, dt);
     pressed.t1 = mouse.down;
   }
-
-  let godN = null;
-  if (lockedWorld) {
-    godN = head.clone().sub(lockedWorld.group.position).normalize();
-  }
   let lives = 0;
   for (const w of worlds) {
     w.stage(dt);
-    w.tickLife(dt, w === lockedWorld ? godN : null, w === lockedWorld ? deityForm : null);
+    w.tickLife(dt);
     lives += w.life.length;
   }
   tickMeteors(dt);
-  const lockTxt = lockedWorld ? " · in " + lockedWorld.template.name + " sky" : "";
   hudStatus.textContent = worlds.length
-    ? `${worlds.length} world${worlds.length > 1 ? "s" : ""} · ${lives} lives · ${pickSpecies.name}${lockTxt}`
-    : "Hold Forge to shape the first sphere.";
+    ? `${worlds.length} world${worlds.length > 1 ? "s" : ""} · ${lives} lives · placing ${pickSpecies.name}`
+    : "Hold to shape the first sphere.";
   renderer.render(scene, camera);
 }
 renderer.setAnimationLoop(loop);
@@ -1496,12 +1028,7 @@ window.addEventListener("keydown", (e) => {
   if (n >= 1 && n <= 9) setPower(n - 1);
   if (e.code === "Digit0") setPower(9);
   if (e.code === "Minus") setPower(10);
-  if (e.code === "Equal") setPower(11);
   if (e.code === "KeyR") setPower((power + 1) % POWERS.length);
-  if (e.code === "KeyX") ejectOut();
-  if (e.code === "KeyF") {
-    if (POWERS[power].id !== "form") setPower(POWERS.findIndex((p) => p.id === "form"));
-  }
 });
 window.addEventListener("keyup", (e) => keys.delete(e.code));
 window.addEventListener("blur", () => keys.clear());
@@ -1523,8 +1050,8 @@ document.addEventListener("mousemove", (e) => {
     mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
   }
 });
-window.addEventListener("mousedown", (e) => {
-  if (e.button === 0) mouse.down = true;
+window.addEventListener("mousedown", () => {
+  mouse.down = true;
 });
 window.addEventListener("mouseup", () => {
   mouse.down = false;
@@ -1536,13 +1063,8 @@ window.addEventListener("wheel", (e) => {
 document.getElementById("veg").oninput = (e) => {
   if (selected) selected.vegH = Number(e.target.value);
 };
-document.getElementById("oceanhue").oninput = (e) => {
+document.getElementById("sea").oninput = (e) => {
   if (selected) selected.seaH = Number(e.target.value);
-};
-document.getElementById("sealevel").oninput = (e) => {
-  if (!selected) return;
-  selected.setSea(Number(e.target.value) / 100);
-  document.getElementById("insp-name").textContent = `Sphere · radius ${selected.radius.toFixed(2)} · sea ${Math.round(selected.seaLevel * 100)}`;
 };
 document.getElementById("wx").oninput = (e) => {
   if (selected) selected.storm = Number(e.target.value) / 100;
@@ -1557,13 +1079,11 @@ document.getElementById("btn-close").onclick = () => {
 };
 function beginDesktop() {
   startEl.style.display = "none";
-  audio();
   canvas.requestPointerLock?.();
 }
 document.getElementById("go-desk").onclick = beginDesktop;
 document.getElementById("go-vr").onclick = async () => {
   startEl.style.display = "none";
-  audio();
   const xr = navigator.xr;
   if (!xr?.requestSession) {
     beginDesktop();
@@ -1590,10 +1110,9 @@ btn.style.display = "none";
 document.body.append(btn);
 window.__controlsTest = {
   getYaw: () => lookYaw,
-  getSpeed: () => (keys.has("KeyW") ? (lockedWorld ? 1.6 : 3.2) : 0),
+  getSpeed: () => (keys.has("KeyW") ? 3.2 : 0),
   setKeys: (codes) => {
     keys.clear();
     (codes || []).forEach((c) => keys.add(c));
   },
 };
-
