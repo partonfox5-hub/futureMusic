@@ -244,10 +244,6 @@ app.get(['/shark', '/shark/'], (req, res) => {
     sharkHeaders(res);
     res.sendFile(path.join(__dirname, 'public', 'games', 'shark', 'index.html'));
 });
-app.get(["/test-r4n8k2wm", "/test-r4n8k2wm/"], (req, res) => {
-    sharkHeaders(res);
-    res.sendFile(path.join(__dirname, "public", "games", "shark", "test-r4n8k2wm", "index.html"));
-});
 
 // FENREST — unlisted Quest 3 WebXR village. Canonical URL is /fenrest.
 // Not linked from homepage / projects / nav. Register before static so
@@ -296,6 +292,10 @@ app.get(["/games/planmorpher", "/games/planmorpher/"], (req, res) => res.redirec
 app.get(["/planmorpher", "/planmorpher/"], (req, res) => {
     planmorpherHeaders(res);
     res.sendFile(path.join(__dirname, "public", "games", "planmorpher", "index.html"));
+});
+app.get(["/test-v8n4k2qm", "/test-v8n4k2qm/"], (req, res) => {
+    planmorpherHeaders(res);
+    res.sendFile(path.join(__dirname, "public", "games", "planetry", "test-v8n4k2qm", "index.html"));
 });
 
 app.use(express.static(path.join(__dirname, 'public')));

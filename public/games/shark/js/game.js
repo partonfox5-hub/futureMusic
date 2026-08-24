@@ -56,6 +56,15 @@ let xrGrip = false;
 let xrTriggerPrev = false;
 let xrFireArmed = true;
 let xrHatchArmed = true;
+const helmHands = [
+  { squeeze: false, grabbing: false, lastAng: null, lastZ: null, handed: "", gamepad: null },
+  { squeeze: false, grabbing: false, lastAng: null, lastZ: null, handed: "", gamepad: null },
+];
+let helmHeld = false;
+let wheelSpin = 0;
+let wheelMat = null;
+const WHEEL_R = 0.28;
+const _helmLocal = new THREE.Vector3();
 const xrSeatPos = new THREE.Vector3();
 const xrSeatQuat = new THREE.Quaternion();
 const xrInvP = new THREE.Vector3();
@@ -436,19 +445,20 @@ scene.add(evaDummy);
 })();
 
 const wheel = new THREE.Group();
-wheel.position.set(0, -0.36, -0.55);
+wheel.position.set(0, -0.22, -0.40);
 cockpit.add(wheel);
 (function buildWheel() {
   const mat = new THREE.MeshStandardMaterial({ color: 0xc49a58, roughness: 0.45, metalness: 0.18, emissive: 0x2a1808 });
-  wheel.add(new THREE.Mesh(new THREE.TorusGeometry(0.26, 0.032, 10, 28), mat));
+  wheelMat = mat;
+  wheel.add(new THREE.Mesh(new THREE.TorusGeometry(WHEEL_R, 0.042, 10, 28), mat));
   for (let i = 0; i < 4; i++) {
-    const spoke = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.024, 0.024), mat);
+    const spoke = new THREE.Mesh(new THREE.BoxGeometry(WHEEL_R * 1.92, 0.028, 0.028), mat);
     spoke.rotation.z = (i * Math.PI) / 2;
     wheel.add(spoke);
   }
   const hub = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.05, 0.05, 0.06, 10),
-    new THREE.MeshStandardMaterial({ color: 0xccc4a0, metalness: 0.8 })
+    new THREE.CylinderGeometry(0.055, 0.055, 0.07, 10),
+    new THREE.MeshStandardMaterial({ color: 0xccc4a0, metalness: 0.8, emissive: 0x2a1808 })
   );
   hub.rotation.x = Math.PI / 2;
   wheel.add(hub);
@@ -501,14 +511,15 @@ function paintVrPlaque(ctx, w, h) {
   ctx.fillStyle = "#241c14";
   ctx.font = "28px sans-serif";
   const lines = [
-    "Squeeze GRIP on the wheel.",
-    "Left stick: steer and throttle.",
-    "Right stick: depth.",
+    "Squeeze GRIP on the wheel (one or both hands).",
+    "Keep holding — turn the wheel to steer.",
+    "While gripping: left stick also steers",
+    "  and throttles. Right stick: depth.",
     "PUSH the red button to fire torpedoes.",
     "YELLOW lever — hatch (exit / re-enter).",
     "OUTSIDE: hold TRIGGER near the hull",
     "  to weld with the blowtorch.",
-    "Look with the headset. Coast if you let go.",
+    "Let go of the wheel to coast.",
   ];
   lines.forEach((t, i) => ctx.fillText(t, 44, 118 + i * 40));
 }
@@ -1078,6 +1089,25 @@ ctrl1.add(torch1);
   gizmo.rotation.x = Math.PI / 2;
   gizmo.position.z = -0.05;
   c.add(gizmo);
+});
+[ctrl0, ctrl1].forEach((c, i) => {
+  c.addEventListener("squeezestart", () => {
+    helmHands[i].squeeze = true;
+  });
+  c.addEventListener("squeezeend", () => {
+    helmHands[i].squeeze = false;
+  });
+  c.addEventListener("connected", (e) => {
+    helmHands[i].handed = e.data?.handedness || "";
+    helmHands[i].gamepad = e.data?.gamepad || null;
+  });
+  c.addEventListener("disconnected", () => {
+    helmHands[i].squeeze = false;
+    helmHands[i].grabbing = false;
+    helmHands[i].gamepad = null;
+    helmHands[i].lastAng = null;
+    helmHands[i].lastZ = null;
+  });
 });
 
 const audio = {
@@ -1722,18 +1752,44 @@ function nearWorld(obj, maxd) {
   return null;
 }
 
+function squeezeFromPad(gp) {
+  if (!gp || !gp.buttons) return 0;
+  const b1 = gp.buttons[1];
+  if (!b1) return 0;
+  return Math.max(b1.pressed ? 1 : 0, b1.value || 0);
+}
+
 function pollXrButtons() {
   xrTriggerPrev = xrTrigger;
   xrTrigger = false;
   xrGrip = false;
   const session = renderer.xr.getSession();
   if (!session) return;
+  const padsByHand = { left: null, right: null, none: [] };
   for (const src of session.inputSources) {
     const gp = src.gamepad;
     if (!gp || !gp.buttons) continue;
-    if (gp.buttons[0] && gp.buttons[0].pressed) xrTrigger = true;
-    if (gp.buttons[1] && gp.buttons[1].pressed) xrGrip = true;
+    if (gp.buttons[0] && (gp.buttons[0].pressed || (gp.buttons[0].value || 0) > 0.6)) xrTrigger = true;
+    const sq = squeezeFromPad(gp);
+    if (sq > 0.35) xrGrip = true;
+    if (src.handedness === "left") padsByHand.left = gp;
+    else if (src.handedness === "right") padsByHand.right = gp;
+    else padsByHand.none.push(gp);
   }
+  const ctrls = [ctrl0, ctrl1];
+  const grips = [grip0, grip1];
+  for (let i = 0; i < 2; i++) {
+    const h = helmHands[i];
+    let gp = h.gamepad;
+    if (h.handed === "left" && padsByHand.left) gp = padsByHand.left;
+    else if (h.handed === "right" && padsByHand.right) gp = padsByHand.right;
+    else if (!h.handed && padsByHand.none[i]) gp = padsByHand.none[i];
+    const sq = squeezeFromPad(gp);
+    h.padSqueeze = sq > 0.32;
+    h._ctrl = ctrls[i];
+    h._grip = grips[i];
+  }
+  if (!xrGrip) xrGrip = helmHands.some((h) => h.squeeze || h.padSqueeze);
 }
 
 function syncXrSeat() {
@@ -1836,6 +1892,50 @@ function xrStick(src) {
   return { x: a[0] || 0, y: a[1] || 0 };
 }
 
+function handPosNearWheel(h, out) {
+  const ctrl = h._ctrl || (h === helmHands[0] ? ctrl0 : ctrl1);
+  const grip = h._grip || (h === helmHands[0] ? grip0 : grip1);
+  wheel.getWorldPosition(tmp3);
+  ctrl.getWorldPosition(tmp);
+  let best = tmp.distanceTo(tmp3);
+  out.copy(tmp);
+  if (grip) {
+    grip.getWorldPosition(tmp2);
+    const d = tmp2.distanceTo(tmp3);
+    if (d < best) {
+      best = d;
+      out.copy(tmp2);
+    }
+  }
+  return best;
+}
+
+function helmReach(h, grabbing) {
+  const dist = handPosNearWheel(h, tmp);
+  cockpit.updateMatrixWorld(true);
+  _helmLocal.copy(tmp);
+  cockpit.worldToLocal(_helmLocal);
+  const dx = _helmLocal.x - wheel.position.x;
+  const dy = _helmLocal.y - wheel.position.y;
+  const dz = _helmLocal.z - wheel.position.z;
+  const radial = Math.hypot(dx, dy);
+  const grabR = grabbing ? 0.72 : 0.52;
+  const onRim = Math.abs(radial - WHEEL_R) < 0.24 && Math.abs(dz) < 0.22;
+  const onHub = Math.hypot(dx, dy, dz) < grabR;
+  return {
+    near: onRim || onHub || dist < grabR,
+    ang: Math.atan2(dy, dx),
+    z: dz,
+    dist,
+  };
+}
+
+function paintHelmHeld(on) {
+  if (!wheelMat) return;
+  wheelMat.emissive.setHex(on ? 0x6a3a10 : 0x2a1808);
+  wheelMat.emissiveIntensity = on ? 0.85 : 0.35;
+}
+
 function readXrMove(dt, move) {
   if (!xrOn) return;
   pollXrButtons();
@@ -1853,13 +1953,61 @@ function readXrMove(dt, move) {
     }
   }
   if (mode === "pilot") {
-    const hand = nearWorld(wheel, 0.38);
-    if (xrGrip && hand) {
-      xrGrab = hand;
+    let holding = false;
+    let angDelta = 0;
+    let angN = 0;
+    let pull = 0;
+    let pullN = 0;
+    const wasHeld = helmHeld;
+    for (const h of helmHands) {
+      const squeezing = h.squeeze || h.padSqueeze;
+      const reach = helmReach(h, h.grabbing);
+      if (squeezing && reach.near) {
+        h.grabbing = true;
+      } else if (!squeezing) {
+        h.grabbing = false;
+        h.lastAng = null;
+        h.lastZ = null;
+      } else if (h.grabbing && reach.dist > 0.85) {
+        h.grabbing = false;
+        h.lastAng = null;
+        h.lastZ = null;
+      }
+      if (h.grabbing) {
+        holding = true;
+        if (h.lastAng != null) {
+          angDelta += wrapPi(reach.ang - h.lastAng);
+          angN++;
+        }
+        h.lastAng = reach.ang;
+        if (h.lastZ != null) {
+          pull += h.lastZ - reach.z;
+          pullN++;
+        }
+        h.lastZ = reach.z;
+      }
+    }
+    helmHeld = holding;
+    xrGrab = holding ? wheel : null;
+    paintHelmHeld(holding);
+
+    if (holding) {
       ensureAudio();
       if (audio.ctx && audio.ctx.state === "suspended") audio.ctx.resume?.();
       if (audio.el && audio.el.paused && audio.on) audio.el.play().catch(() => {});
       if (!audio.tracks.length && !audio.yt.length && !audio.radioBusy) startRadio();
+
+      if (angN > 0) {
+        const d = angDelta / angN;
+        yaw += d * 1.45;
+        wheelSpin = wrapPi(wheelSpin + d);
+      }
+      if (!wasHeld) setMsg("HELM — TURN THE WHEEL TO STEER  ·  LEFT STICK WHILE HOLDING", 2.4);
+      if (pullN > 0) {
+        const pz = (pull / pullN) / Math.max(dt, 0.001);
+        if (Math.abs(pz) > 0.35) move.az += clamp(-pz * 0.35, -1, 1);
+      }
+
       let sx = 0;
       let sy = 0;
       let rsy = 0;
@@ -1883,15 +2031,21 @@ function readXrMove(dt, move) {
           }
         }
       }
-      const dead = 0.18;
+      const dead = 0.16;
       if (Math.abs(sy) > dead) move.az += clamp(sy, -1, 1);
-      if (Math.abs(sx) > dead) yaw += -sx * 2.2 * dt;
-      wheel.rotation.z = clamp(-sx * 0.95, -0.85, 0.85);
-      wheel.rotation.x = THREE.MathUtils.damp(wheel.rotation.x, 0, 8, dt);
+      if (Math.abs(sx) > dead) {
+        yaw += -sx * 2.4 * dt;
+        wheelSpin = wrapPi(wheelSpin - sx * 1.8 * dt);
+      }
       if (haveRight && Math.abs(rsy) > dead) move.ay -= clamp(rsy, -1, 1);
+      wheel.rotation.z = wheelSpin;
+      wheel.rotation.x = THREE.MathUtils.damp(wheel.rotation.x, 0, 8, dt);
     } else {
-      xrGrab = null;
+      wheelSpin = THREE.MathUtils.damp(wheelSpin, 0, 5, dt);
+      wheel.rotation.z = THREE.MathUtils.damp(wheel.rotation.z, 0, 5, dt);
+      wheel.rotation.x = THREE.MathUtils.damp(wheel.rotation.x, 0, 8, dt);
     }
+
     const poking = !!nearWorld(fireBtn, 0.08);
     const aiming = !!nearWorld(fireBtn, 0.14);
     const pressed = poking || (aiming && xrTrigger);
@@ -1902,7 +2056,7 @@ function readXrMove(dt, move) {
       xrFireArmed = false;
     }
     if (!pressed) xrFireArmed = true;
-    const onHatch = !!nearWorld(hatchLever, 0.15);
+    const onHatch = !holding && !!nearWorld(hatchLever, 0.15);
     if (onHatch && (xrTrigger || xrGrip) && xrHatchArmed) {
       xrHatchArmed = false;
       tryToggleEva();
@@ -1910,6 +2064,13 @@ function readXrMove(dt, move) {
     if (!xrTrigger && !xrGrip) xrHatchArmed = true;
   } else {
     xrGrab = null;
+    helmHeld = false;
+    helmHands.forEach((h) => {
+      h.grabbing = false;
+      h.lastAng = null;
+      h.lastZ = null;
+    });
+    paintHelmHeld(false);
     if (xrGrip && evaDummy.position.distanceTo(sub.position) < 3.1) {
       if (xrHatchArmed) {
         xrHatchArmed = false;
@@ -2071,6 +2232,14 @@ document.addEventListener("pointerlockchange", () => {
 renderer.xr.addEventListener("sessionstart", () => {
   xrOn = true;
   xrGrab = null;
+  helmHeld = false;
+  wheelSpin = 0;
+  helmHands.forEach((h) => {
+    h.grabbing = false;
+    h.lastAng = null;
+    h.lastZ = null;
+    h.padSqueeze = false;
+  });
   xrFireArmed = true;
   xrHatchArmed = true;
   running = true;
@@ -2101,11 +2270,19 @@ renderer.xr.addEventListener("sessionstart", () => {
     }
   }
   kickRadio();
-  setMsg("GRIP THE WHEEL · LEFT STICK DRIVES", 3.2);
+  setMsg("SQUEEZE GRIP ON THE WHEEL — TURN TO STEER", 3.2);
 });
 renderer.xr.addEventListener("sessionend", () => {
   xrOn = false;
   xrGrab = null;
+  helmHeld = false;
+  helmHands.forEach((h) => {
+    h.squeeze = false;
+    h.grabbing = false;
+    h.padSqueeze = false;
+    h.lastAng = null;
+    h.lastZ = null;
+  });
   xrBaseRef = null;
   document.body.classList.remove("xr");
   vrPanel.visible = false;

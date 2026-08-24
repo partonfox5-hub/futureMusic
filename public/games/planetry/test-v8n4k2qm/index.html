@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="theme-color" content="#07080f" />
+    <title>Planetry — RTS test</title>
+    <link rel="stylesheet" href="/games/planetry/test-v8n4k2qm/css/game.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Outfit:wght@400;500;600&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <canvas id="c"></canvas>
+    <div id="hud">
+      <div id="brand">PLANETRY</div>
+      <div id="hint">Y strategy · A select / spawn · hold LT multi · RT command move</div>
+      <div id="status"></div>
+    </div>
+    <div id="announce" hidden></div>
+    <div id="start">
+      <div class="panel">
+        <p class="kicker">Orbital strategy</p>
+        <h1>Planetry</h1>
+        <p>
+          A young galaxy. Worlds cool from magma in thirty seconds. You do not forge them —
+          you claim them. Scout the void, land settlers, raise metal cities, and fire across the dark.
+        </p>
+        <label class="field">Your colour
+          <div id="swatches" class="swatches"></div>
+        </label>
+        <label class="field">Rival admirals
+          <select id="ai-count">
+            <option value="rand" selected>Random (1–5)</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+          </select>
+        </label>
+        <ul>
+          <li>Start with <b>500</b> materials — scout 100, settler 250.</li>
+          <li>Y opens the strategy cards. Point and press <b>A</b> to spawn.</li>
+          <li>Hold left trigger to multi-select. Right trigger commands a move.</li>
+          <li>Lower atmosphere is a sphere around each world — heli ceiling, scout strike height.</li>
+        </ul>
+        <div class="row">
+          <button type="button" id="go-vr">Enter VR</button>
+          <button type="button" id="go-desk" class="ghost">Begin in the void</button>
+        </div>
+      </div>
+    </div>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+        }
+      }
+    </script>
+    <script type="module" src="/games/planetry/test-v8n4k2qm/js/game.js?v=1"></script>
+  </body>
+</html>
