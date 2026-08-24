@@ -3,7 +3,7 @@
  * Charge-to-cast, unique auras, spawn spells, Join Skies RTS.
  */
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.185.0/build/three.module.js";
-import { heightAt, raiseTerrain, inSettlement } from "/games/fenrest/js/world-grid.js?v=map2";
+import { heightAt, raiseTerrain, inSettlement } from "/games/fenrest/js/world-grid.js?v=town2";
 
 const FX_FIRE = [0, 1, 2, 3].map((i) => "/games/character-chess/sprites/fx/fire/" + i + ".png");
 const FX_ELEC = [0, 1, 2, 3].map((i) => "/games/character-chess/sprites/fx/electric/" + i + ".png");
@@ -157,6 +157,10 @@ export function spawnHsUnit(root, list, def, x, z, friendly) {
     flash: 0,
     stagger: 0,
     cmd: null,
+    vy: 0,
+    baseH: h,
+    baseW: w,
+    _baseColor: 0xffffff,
     hitR: Math.max(1.2, w * 0.55),
     hitH: Math.max(1.6, h * 1.05),
   };
@@ -378,7 +382,12 @@ export function createMagic({ root, foes, allies, store, gl, cam }) {
     }
     for (const u of allies) {
       if (!u.visible) continue;
-      const cmd = u.userData.cmd;
+      const ud = u.userData;
+      if (ud.flash > 0) {
+        ud.flash -= dt;
+        if (u.material?.color) u.material.color.setHex(ud.flash > 0 ? 0xff2a2a : ud._baseColor || 0xffffff);
+      }
+      const cmd = ud.cmd;
       if (cmd) {
         const dx = cmd.x - u.position.x;
         const dz = cmd.z - u.position.z;

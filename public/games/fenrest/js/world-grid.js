@@ -10,7 +10,7 @@ export const WORLD = CHUNK * GRID;
 export const HALF = WORLD / 2;
 
 export const CITIES = [
-  { id: "fenrest", name: "Fenrest", x: 0, z: 0, r: 38, theme: "thatch", major: false, lore: "A thatched fen village. The old crossing still remembers kings." },
+  { id: "fenrest", name: "Fenrest", x: 0, z: 0, r: 46, theme: "thatch", major: false, lore: "A thatched fen village. The old crossing still remembers kings." },
   { id: "aurelia", name: "Aurelia", x: 0, z: -200, r: 46, theme: "roman", major: true, lore: "Marble forums and legion roads. The senate of the north." },
   { id: "kagehara", name: "Kagehara", x: -190, z: -90, r: 44, theme: "japanese", major: true, lore: "Cedar gates, paper lanterns, and a shogunate that never sleeps." },
   { id: "khemet", name: "Khemet-on-Sand", x: -190, z: 90, r: 44, theme: "egyptian", major: true, lore: "Obelisks drink the sun. The river is a god with many names." },
@@ -72,7 +72,7 @@ export function heightAt(x, z) {
   for (const t of CITIES) {
     const d = Math.hypot(x - t.x, z - t.z);
     if (d < t.r) {
-      const plat = heightAt.rawPlateau?.(t) ?? 0.4;
+      const plat = heightAt.rawPlateau?.(t) ?? (t.id === "fenrest" ? 0.52 : 0.4);
       a = THREE.MathUtils.lerp(a, plat, Math.max(0, 1 - d / t.r));
     }
   }
@@ -342,7 +342,104 @@ function themedBuilding(g, x, z, theme, w, d, stories) {
   }
 }
 
+function gridRoad(g, x0, z0, x1, z1, width = 3.6) {
+  const dx = x1 - x0;
+  const dz = z1 - z0;
+  const len = Math.hypot(dx, dz);
+  if (len < 0.4) return;
+  const y = (heightAt(x0, z0) + heightAt(x1, z1)) * 0.5 + 0.07;
+  const m = new THREE.Mesh(new THREE.BoxGeometry(width, 0.1, len + 0.15), matMap(TEX.dirt, 0x8a6a48));
+  m.position.set((x0 + x1) / 2, y, (z0 + z1) / 2);
+  m.rotation.y = Math.atan2(dx, dz);
+  g.add(m);
+}
+
+function stallRow(g, x, z, n, alongX, pal) {
+  for (let i = 0; i < n; i++) {
+    const sx = alongX ? x + i * 3.2 : x;
+    const sz = alongX ? z : z + i * 3.2;
+    const y0 = heightAt(sx, sz);
+    g.add(box(matMap(TEX.wood, pal.wallC), sx, y0 + 0.55, sz, 2.4, 1.1, 1.8));
+    const awn = new THREE.Mesh(new THREE.BoxGeometry(2.7, 0.08, 2.1), matMap(TEX.thatch, pal.roofC));
+    awn.position.set(sx, y0 + 1.25, sz);
+    g.add(awn);
+    g.add(box(matMap(TEX.wood), sx - 1.1, y0 + 1.0, sz - 0.7, 0.08, 2.0, 0.08));
+    g.add(box(matMap(TEX.wood), sx + 1.1, y0 + 1.0, sz - 0.7, 0.08, 2.0, 0.08));
+  }
+}
+
+function buildArena(g, x, z) {
+  const y0 = heightAt(x, z);
+  const sand = new THREE.Mesh(new THREE.CylinderGeometry(8.4, 8.4, 0.14, 28), matMap(TEX.sand, 0xd4b060));
+  sand.position.set(x, y0 + 0.1, z);
+  g.add(sand);
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(8.6, 0.42, 6, 28), matMap(TEX.wood, 0x6a4428));
+  ring.rotation.x = Math.PI / 2;
+  ring.position.set(x, y0 + 0.55, z);
+  g.add(ring);
+  for (let i = 0; i < 12; i++) {
+    if (i === 0 || i === 6) continue;
+    const a = (i / 12) * Math.PI * 2;
+    g.add(box(matMap(TEX.wood, 0x5a3a22), x + Math.cos(a) * 8.6, y0 + 1.15, z + Math.sin(a) * 8.6, 1.5, 1.6, 0.32));
+  }
+  signpost(g, x, z + 10.2, "ARENA");
+}
+
+function buildFenrestTown(parent, city) {
+  const pal = THEME.thatch;
+  const g = new THREE.Group();
+  g.name = "city-fenrest";
+  const cx = city.x;
+  const cz = city.z;
+  const y0 = heightAt(cx, cz);
+
+  const plaza = new THREE.Mesh(new THREE.CircleGeometry(7.2, 28), matMap(TEX.dirt, 0xb08a58));
+  plaza.rotation.x = -Math.PI / 2;
+  plaza.position.set(cx, y0 + 0.08, cz);
+  g.add(plaza);
+  const well = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.85, 0.7, 10), matMap(TEX.stone, 0x8a8680));
+  well.position.set(cx, y0 + 0.42, cz);
+  g.add(well);
+
+  const streets = [-24, -12, 0, 12, 24];
+  for (const s of streets) {
+    gridRoad(g, cx + s, cz - 28, cx + s, cz + 28, s === 0 ? 4.4 : 3.4);
+    gridRoad(g, cx - 28, cz + s, cx + 28, cz + s, s === 0 ? 4.4 : 3.4);
+  }
+
+  const lots = [
+    [-18, -18, 8, 7, 2],
+    [-18, -6, 6.5, 5.5, 1],
+    [-18, 6, 6, 5, 1],
+    [-18, 18, 7, 6, 2],
+    [6, -18, 6, 5.5, 1],
+    [-6, -18, 6, 5.5, 1],
+    [18, -6, 6, 5.5, 1],
+    [18, 6, 5.5, 5, 1],
+    [-6, 18, 6, 5.5, 1],
+    [6, 18, 6.5, 5.5, 1],
+  ];
+  lots.forEach((L) => themedBuilding(g, cx + L[0], cz + L[1], "thatch", L[2], L[3], L[4]));
+
+  stallRow(g, cx + 10.5, cz - 22, 4, true, pal);
+  stallRow(g, cx + 10.5, cz - 14.5, 4, true, pal);
+  signpost(g, cx + 16, cz - 10, "MARKET");
+  const marketPad = new THREE.Mesh(new THREE.BoxGeometry(16, 0.08, 14), matMap(TEX.dirt, 0xc4a070));
+  marketPad.position.set(cx + 16, y0 + 0.07, cz - 18);
+  g.add(marketPad);
+
+  buildArena(g, cx + 18, cz + 18);
+
+  signpost(g, cx - 18, cz - 12.2, "INN");
+  signpost(g, cx + 18, cz - 1.6, "SMITH");
+
+  signpost(g, cx, cz + city.r * 0.52, city.name.toUpperCase());
+  parent.add(g);
+  return g;
+}
+
 function buildCity(parent, city) {
+  if (city.id === "fenrest") return buildFenrestTown(parent, city);
   const pal = THEME[city.theme] || THEME.thatch;
   const g = new THREE.Group();
   g.name = "city-" + city.id;
@@ -512,28 +609,60 @@ export function createChunkManager(root, opts = {}) {
   return { tick, loaded, current: () => current };
 }
 
+export function keepAboveGround(obj, dt, extra = 0, gravity = 18) {
+  if (!obj || obj.userData?.held) return;
+  const u = obj.userData || (obj.userData = {});
+  const gy = heightAt(obj.position.x, obj.position.z) + extra;
+  u.vy = (u.vy || 0) - gravity * dt;
+  obj.position.y += u.vy * dt;
+  if (obj.position.y < gy) {
+    obj.position.y = gy;
+    u.vy = 0;
+    u.grounded = true;
+  } else {
+    u.grounded = false;
+  }
+}
+
 export function snapToGround(cam, dt) {
   if (!cam) return;
   const p = new THREE.Vector3();
   cam.getWorldPosition(p);
   const gy = heightAt(p.x, p.z);
-  const feet = gy + 1.55;
   const rig = cam.parent;
+  const presenting = !!(typeof window !== "undefined" && window.__FENREST_GL__?.xr?.isPresenting);
   if (!rig || rig === cam) {
-    if (p.y < feet) cam.position.y += (feet - p.y) * Math.min(1, dt * 8);
+    const want = gy + 1.62;
+    cam.userData.vy = (cam.userData.vy || 0) - 22 * dt;
+    cam.position.y += cam.userData.vy * dt;
+    cam.getWorldPosition(p);
+    if (p.y < want) {
+      cam.position.y += want - p.y;
+      cam.userData.vy = 0;
+    }
     return;
   }
-  const world = new THREE.Vector3();
-  rig.getWorldPosition(world);
-  const want = gy;
-  const dy = want - (p.y - 1.55);
-  if (Math.abs(dy) > 0.02) rig.position.y += dy * Math.min(1, dt * 10);
-  const step = 0.7;
-  const nx = p.x;
-  const nz = p.z;
-  const ahead = heightAt(nx, nz);
-  if (ahead - gy > 0.85) {
-    /* steep face — leave xz to locomotion, lift more */
-    rig.position.y += Math.min(0.4, (ahead - gy) * 0.4);
+  if (presenting) {
+    const want = gy;
+    if (rig.position.y < want) {
+      rig.position.y = want;
+      rig.userData.vy = 0;
+    } else {
+      rig.userData.vy = (rig.userData.vy || 0) - 26 * dt;
+      rig.position.y += rig.userData.vy * dt;
+      if (rig.position.y < want) {
+        rig.position.y = want;
+        rig.userData.vy = 0;
+      }
+    }
+  } else {
+    const want = gy + 1.62;
+    rig.userData.vy = (rig.userData.vy || 0) - 22 * dt;
+    rig.position.y += rig.userData.vy * dt;
+    cam.getWorldPosition(p);
+    if (p.y < want) {
+      rig.position.y += want - p.y;
+      rig.userData.vy = 0;
+    }
   }
 }

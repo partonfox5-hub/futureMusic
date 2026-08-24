@@ -4,7 +4,7 @@
  * melee4: wider sprite/group hit volumes so native NPCs and beasts clang.
  */
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.185.0/build/three.module.js";
-import { makeChargeRing, paintChargeRing, makeSpellAura, SPELLS } from "/games/fenrest/js/magic.js";
+import { makeChargeRing, paintChargeRing, makeSpellAura, SPELLS } from "/games/fenrest/js/magic.js?v=town2";
 
 function leatherTex() {
   const c = document.createElement("canvas");
@@ -317,13 +317,86 @@ function segmentHitsSprite(ax, ay, az, bx, by, bz, cx, cy, cz, radius, halfH) {
   return Math.abs(py - cy) <= halfH + slop;
 }
 
+/** Minimum blade/tip speed (m/s) before a graze counts as a hit. */
+export const MIN_SWING = 2.35;
+
+function hitMaterials(foe) {
+  const mats = [];
+  if (foe.material?.color) mats.push(foe.material);
+  foe.traverse?.((o) => {
+    if (o.material?.color && !mats.includes(o.material)) mats.push(o.material);
+  });
+  return mats;
+}
+
+export function paintFlash(foe, on) {
+  const u = foe?.userData;
+  if (!u) return;
+  const hex = on ? 0xff2a2a : u._baseColor || 0xffffff;
+  for (const mat of hitMaterials(foe)) {
+    if (u._baseColor == null) u._baseColor = mat.color.getHex();
+    mat.color.setHex(hex);
+  }
+}
+
+export function startDeath(foe) {
+  const u = foe?.userData;
+  if (!u || u.dying || u.dead) return;
+  u.dying = true;
+  u.dieT = 0;
+  u.hp = 0;
+  u.baseH = u.baseH || foe.scale?.y || 2;
+  u.baseW = u.baseW || foe.scale?.x || 1.2;
+  paintFlash(foe, true);
+}
+
+export function tickDeath(foe, dt, heightFn) {
+  const u = foe?.userData;
+  if (!u?.dying || u.dead) return false;
+  u.dieT += dt;
+  const k = Math.min(1, u.dieT / 0.95);
+  const gy = typeof heightFn === "function" ? heightFn(foe.position.x, foe.position.z) : foe.position.y;
+  if (foe.material) {
+    foe.material.transparent = true;
+    foe.material.opacity = 1 - k * 0.92;
+    foe.material.rotation = k * 1.35;
+  }
+  paintFlash(foe, k < 0.28);
+  const bh = u.baseH || foe.scale.y;
+  foe.scale.y = Math.max(0.12, bh * (1 - k * 0.62));
+  foe.position.y = gy + foe.scale.y * 0.22;
+  if (k >= 1) {
+    u.dead = true;
+    u.dying = false;
+    foe.visible = false;
+    return true;
+  }
+  return false;
+}
+
+export function restoreFlash(foe, dt) {
+  const u = foe?.userData;
+  if (!u) return;
+  if (u.dying || u.dead) return;
+  if (u.flash > 0) {
+    u.flash -= dt;
+    paintFlash(foe, u.flash > 0);
+    if (u.flash <= 0) {
+      u.flash = 0;
+      paintFlash(foe, false);
+    }
+  }
+}
+
 export function applyMeleeHit(foe, speed, shield, knock) {
   if (!foe?.userData) return false;
   const u = foe.userData;
+  if (u.dead || u.dying) return false;
   if (u.hp == null) u.hp = u.maxHp ?? 8;
   if (u.hitCool > 0) return false;
-  const spd = Math.max(0.7, Math.min(4.2, speed / 1.6));
-  let dmg = (shield ? 1.6 : 2.8) * spd;
+  if (!(speed >= MIN_SWING)) return false;
+  const spd = Math.max(1, Math.min(4.6, speed / 1.5));
+  let dmg = (shield ? 1.8 : 3.1) * spd;
   const region = u.lastRegion || "torso";
   if (region === "head") dmg *= 2;
   if (region === "lower") {
@@ -333,23 +406,18 @@ export function applyMeleeHit(foe, speed, shield, knock) {
     u.stamina = Math.max(0, (u.stamina ?? 1) - dmg * 0.5 * 0.08);
   }
   u.hp -= dmg;
-  u.hitCool = 0.16;
-  u.flash = 0.35;
-  u.stagger = 0.42;
+  u.hitCool = 0.22;
+  u.flash = 0.28;
+  u.stagger = 0.55;
   if (knock) {
     u.kx = knock.x;
     u.kz = knock.z;
   }
-  const mats = [];
-  if (foe.material?.color) mats.push(foe.material);
-  foe.traverse?.((o) => {
-    if (o.isSprite && o.material?.color) mats.push(o.material);
-  });
-  for (const mat of mats) {
-    if (!u._baseColor) u._baseColor = mat.color.getHex();
+  for (const mat of hitMaterials(foe)) {
+    if (u._baseColor == null) u._baseColor = mat.color.getHex() === 0xff2a2a ? 0xffffff : mat.color.getHex();
     mat.color.setHex(0xff2a2a);
   }
-  if (u.hp <= 0) foe.visible = false;
+  if (u.hp <= 0) startDeath(foe);
   return true;
 }
 
@@ -615,25 +683,22 @@ export function attachVrHands({ scene, gl, heightAt, loot, foes, store, onCast, 
         }
         mid.lerpVectors(gp, tip, 0.55);
         const tipSpeed = havePrevTip[i] ? tip.distanceTo(prevTip[i]) / Math.max(dt, 0.001) : speed;
-        const strikeSpeed = Math.max(speed, tipSpeed, trig * 2.5);
+        const strikeSpeed = Math.max(speed, tipSpeed);
+        const swinging = strikeSpeed >= MIN_SWING;
         knock.copy(tip).sub(havePrevTip[i] ? prevTip[i] : gp);
         knock.y = 0;
         if (knock.lengthSq() < 0.0001) knock.copy(tip).sub(gp).setY(0);
         if (knock.lengthSq() < 0.0001) knock.set(0, 0, -1);
         knock.normalize().multiplyScalar(2.6 + strikeSpeed * 0.4);
 
-        const lists = [
-          foes,
-          window.__FENREST_FOES__,
-          window.__FENREST_ALLIES__,
-          window.__FENREST_HITABLES__,
-          window.__FENREST_NPCS__,
-        ];
+        const lists = swinging
+          ? [foes, window.__FENREST_FOES__, window.__FENREST_ALLIES__, window.__FENREST_HITABLES__, window.__FENREST_NPCS__]
+          : [];
         const seen = new Set();
         let hitSomething = false;
         for (const list of lists) {
           for (const f of list || []) {
-            if (!f || !f.visible || seen.has(f)) continue;
+            if (!f || !f.visible || f.userData?.dead || f.userData?.dying || seen.has(f)) continue;
             seen.add(f);
             spriteCenter(f, center);
             const rad = spriteRadius(f);

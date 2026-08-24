@@ -3,13 +3,14 @@
  * harvestable trees/ore, pushable boulders, chessboards.
  */
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.185.0/build/three.module.js";
-import { heightAt, inSettlement, CHUNK } from "/games/fenrest/js/world-grid.js?v=map2";
+import { heightAt, inSettlement, CHUNK, keepAboveGround } from "/games/fenrest/js/world-grid.js?v=town2";
+import { restoreFlash, tickDeath, startDeath } from "/games/fenrest/js/vr-hands.js?v=town2";
 
 const SHEET4 = /^(wolf|dragon|bandit|human|woman|guard|innkeeper|lizard|lizardfolk)\.png$/i;
 
 const SPR = "/games/fenrest/sprites/";
 const TEX = {};
-function spr(file) {
+function spr(file, unique) {
   if (!TEX[file]) {
     const t = new THREE.TextureLoader().load(SPR + file, (tex) => {
       if (SHEET4.test(file)) {
@@ -29,13 +30,46 @@ function spr(file) {
     }
     TEX[file] = t;
   }
+  if (unique && SHEET4.test(file)) {
+    const c = TEX[file].clone();
+    c.repeat.set(0.25, 0.25);
+    c.offset.set(0, 0.75);
+    c.wrapS = c.wrapT = THREE.ClampToEdgeWrapping;
+    c.needsUpdate = true;
+    return c;
+  }
   return TEX[file];
 }
 
 function billboard(map, w, h) {
-  const m = new THREE.Sprite(new THREE.SpriteMaterial({ map, transparent: true, depthWrite: false }));
+  const m = new THREE.Sprite(
+    new THREE.SpriteMaterial({ map, transparent: true, depthWrite: false, color: 0xffffff }),
+  );
   m.scale.set(w, h, 1);
   return m;
+}
+
+function stepSheet(sprite, dt, moving, dx, dz) {
+  const map = sprite.material?.map;
+  const u = sprite.userData;
+  if (!map || !u?.sheet) return;
+  u.animT = (u.animT || 0) + dt * (moving ? 8 : 2.2);
+  const frame = Math.floor(u.animT) % 4;
+  let row = 2;
+  if (Math.abs(dx) > Math.abs(dz)) row = dx < 0 ? 1 : 2;
+  else row = dz > 0 ? 0 : 3;
+  map.repeat.set(0.25, 0.25);
+  map.offset.set(frame * 0.25, 0.75 - row * 0.25);
+}
+
+function bobBeast(sprite, dt, moving) {
+  const u = sprite.userData;
+  u.walkT = (u.walkT || 0) + dt * (moving ? 6.4 : 1.7);
+  const amp = moving ? 0.09 : 0.03;
+  u.bob = Math.sin(u.walkT) * amp;
+  if (sprite.material) sprite.material.rotation = Math.sin(u.walkT * 0.5) * (moving ? 0.12 : 0.04);
+  const s = 1 + Math.sin(u.walkT * 2) * (moving ? 0.045 : 0.015);
+  sprite.scale.x = (u.baseW || sprite.scale.x) * s;
 }
 
 function oakMat() {
@@ -98,9 +132,9 @@ export function installLife({ root, store, loot, foes, heightAt: hAt }) {
   const tmp2 = new THREE.Vector3();
   const scattered = new Set();
 
-  function placeSprite(file, x, z, w, h, parent = root) {
-    const s = billboard(spr(file), w, h);
-    s.position.set(x, height(x, z) + h * 0.45, z);
+  function placeSprite(file, x, z, w, h, parent = root, unique = false) {
+    const s = billboard(spr(file, unique), w, h);
+    s.position.set(x, height(x, z) + h * 0.5, z);
     parent.add(s);
     return s;
   }
@@ -147,6 +181,7 @@ export function installLife({ root, store, loot, foes, heightAt: hAt }) {
       wander: Math.random() * 6.28,
       spd: 0.7 + Math.random() * 0.4,
       t: Math.random() * 8,
+      vy: 0,
       hitR: 1.15,
       hitH: 1.1,
     };
@@ -183,15 +218,12 @@ export function installLife({ root, store, loot, foes, heightAt: hAt }) {
       dragon: { file: "dragon.png", w: 2.4, h: 2.1, hp: 16, spd: 3.4, dmg: 0.18, aggro: 16, humanoid: false },
     }[kind];
     if (!def) return null;
-    const s = placeSprite(def.file, x, z, def.w, def.h);
-    if (parent && parent !== root) {
-      s.removeFromParent();
-      parent.add(s);
-    }
+    const s = placeSprite(def.file, x, z, def.w, def.h, parent || root, true);
     s.userData = {
       foe: true,
       kind,
       lifeBeast: true,
+      sheet: SHEET4.test(def.file),
       def: { id: kind, spd: def.spd, dmg: def.dmg, spell: null },
       hp: def.hp,
       maxHp: def.hp,
@@ -203,6 +235,10 @@ export function installLife({ root, store, loot, foes, heightAt: hAt }) {
       aggro: def.aggro,
       flash: 0,
       stagger: 0,
+      vy: 0,
+      baseH: def.h,
+      baseW: def.w,
+      _baseColor: 0xffffff,
       hitR: Math.max(1.35, def.w * 0.62),
       hitH: Math.max(1.4, def.h * 0.78),
     };
@@ -400,8 +436,8 @@ export function installLife({ root, store, loot, foes, heightAt: hAt }) {
   }
 
   function spawnNpc(def, x, z) {
-    const s = billboard(spr(def.file), 1.15, 2.05);
-    s.position.set(x, height(x, z) + 1.0, z);
+    const s = billboard(spr(def.file, true), 1.15, 2.05);
+    s.position.set(x, height(x, z) + 1.02, z);
     const ear = canvasIcon("ear");
     const spk = canvasIcon("speak");
     ear.scale.set(0.28, 0.28, 1);
@@ -432,6 +468,11 @@ export function installLife({ root, store, loot, foes, heightAt: hAt }) {
       flash: 0,
       stagger: 0,
       humanoid: true,
+      sheet: SHEET4.test(def.file),
+      vy: 0,
+      baseH: 2.05,
+      baseW: 1.15,
+      _baseColor: 0xffffff,
       hitR: 1.35,
       hitH: 1.55,
     };
@@ -478,25 +519,30 @@ export function installLife({ root, store, loot, foes, heightAt: hAt }) {
   spawnGrassField(18, -12, 22, 16);
   spawnGrassField(-6, 22, 20, 14);
   for (let i = 0; i < 6; i++) spawnTurtle(-10 + i * 4, 16 + (i % 3) * 3);
-  spawnBeast("trex", 28, -22);
-  spawnBeast("trex", -34, 18);
-  spawnBeast("raptor", 22, 18);
-  spawnBeast("raptor", 24, 21);
-  spawnBeast("raptor", -18, -24);
-  spawnBeast("mammoth", -26, 8);
-  spawnBeast("mammoth", 32, 12);
-  spawnBeast("wolf", 18, -16);
-  spawnBeast("wolf", -22, 14);
-  spawnBeast("wolf", 8, 26);
-  spawnBeast("wolf", -14, -20);
-  spawnBeast("dragon", 48, -36);
-  spawnBeast("dragon", -52, 28);
-  spawnBeast("raptor", 40, 8);
-  spawnBeast("trex", -44, -30);
+  spawnBeast("trex", 62, -48);
+  spawnBeast("trex", -58, 52);
+  spawnBeast("raptor", 54, 44);
+  spawnBeast("raptor", 58, 50);
+  spawnBeast("raptor", -52, -46);
+  spawnBeast("mammoth", -64, 28);
+  spawnBeast("mammoth", 70, 22);
+  spawnBeast("wolf", 48, -38);
+  spawnBeast("wolf", -50, 36);
+  spawnBeast("wolf", 52, 32);
+  spawnBeast("wolf", -56, -28);
+  spawnBeast("dragon", 78, -56);
+  spawnBeast("dragon", -72, 58);
+  spawnBeast("raptor", 66, 8);
+  spawnBeast("raptor", 50, 8);
+  spawnBeast("raptor", -8, 50);
+  spawnBeast("trex", -68, -54);
   for (let i = 0; i < 10; i++) {
     const a = Math.random() * 6.28;
-    const r = 10 + Math.random() * 28;
-    makeTree(Math.cos(a) * r, Math.sin(a) * r + 6);
+    const r = 50 + Math.random() * 28;
+    const tx = Math.cos(a) * r;
+    const tz = Math.sin(a) * r + 6;
+    if (inSettlement(tx, tz)) continue;
+    makeTree(tx, tz);
   }
   for (let i = 0; i < 28; i++) {
     const a = (i / 28) * Math.PI * 2 + Math.random() * 0.15;
@@ -528,28 +574,28 @@ export function installLife({ root, store, loot, foes, heightAt: hAt }) {
   makeBoard(-7.5, 4.0);
   spawnNpc(
     { file: "innkeeper.png", name: "Mira Reed", role: "innkeeper", species: "human", lore: "Keeps the Fenrest hearth and knows every traveler's story." },
-    -3.2,
-    1.4,
+    -18,
+    -14.5,
   );
   spawnNpc(
     { file: "guard.png", name: "Calder Voss", role: "watchman", species: "human", lore: "Walks the palisade at dusk. Suspicious of raptors and of poets." },
-    3.6,
-    -1.2,
+    18,
+    8.4,
   );
   spawnNpc(
     { file: "woman.png", name: "Sela Hayward", role: "herder", species: "human", lore: "Tends sheep on the crown fields and plays creature chess in the square." },
-    1.2,
-    5.4,
+    16,
+    -16,
   );
   spawnNpc(
     { file: "human.png", name: "Bram Mill", role: "woodcutter", species: "human", lore: "Sells oak and advice. Prefers an axe to a sermon." },
-    -5.4,
-    2.8,
+    16,
+    -4,
   );
   spawnNpc(
     { file: "lizard.png", name: "Issk", role: "marsh scout", species: "lizardfolk", lore: "Marsh tongue. Hunts reed-eels." },
-    12.4,
-    9.2,
+    -6,
+    18,
   );
 
   function hash32(n) {
@@ -689,7 +735,7 @@ export function installLife({ root, store, loot, foes, heightAt: hAt }) {
       b.userData.vz *= 1 - dt * 2.4;
       b.position.x += b.userData.vx * dt;
       b.position.z += b.userData.vz * dt;
-      b.position.y = height(b.position.x, b.position.z);
+      keepAboveGround(b, dt, 0.05, 22);
     }
   }
 
@@ -710,7 +756,7 @@ export function installLife({ root, store, loot, foes, heightAt: hAt }) {
       }
       tu.position.x += Math.cos(u.wander) * u.spd * dt;
       tu.position.z += Math.sin(u.wander) * u.spd * dt;
-      tu.position.y = height(tu.position.x, tu.position.z) + tu.scale.y * 0.45;
+      keepAboveGround(tu, dt, tu.scale.y * 0.45, 16);
       const dx = head.x - tu.position.x;
       const dz = head.z - tu.position.z;
       const horiz = Math.hypot(dx, dz);
@@ -744,21 +790,32 @@ export function installLife({ root, store, loot, foes, heightAt: hAt }) {
       if (!b.visible) continue;
       const u = b.userData;
       u.hitCool = Math.max(0, (u.hitCool || 0) - dt);
+      if (u.hp <= 0 && !u.dying && !u.dead) startDeath(b);
+      if (u.dying) {
+        tickDeath(b, dt, height);
+        continue;
+      }
+      restoreFlash(b, dt);
       const dx = head.x - b.position.x;
       const dz = head.z - b.position.z;
       const d = Math.hypot(dx, dz) || 1;
-      if (u.flash > 0) {
-        u.flash -= dt;
-        if (b.material?.color) b.material.color.setHex(u.flash > 0 ? 0xff2a2a : 0xffffff);
-      }
+      let moving = false;
+      let mx = 0;
+      let mz = 0;
       if (u.stagger > 0) {
         u.stagger -= dt;
         b.position.x += (u.kx || 0) * dt;
         b.position.z += (u.kz || 0) * dt;
+        mx = u.kx || 0;
+        mz = u.kz || 0;
+        moving = true;
       } else if (d < u.aggro) {
         const spd = (u.def?.spd ?? 2) * (u.lower ?? 1);
-        b.position.x += (dx / d) * spd * dt;
-        b.position.z += (dz / d) * spd * dt;
+        mx = (dx / d) * spd;
+        mz = (dz / d) * spd;
+        b.position.x += mx * dt;
+        b.position.z += mz * dt;
+        moving = true;
         u.cool = (u.cool || 0) - dt;
         if (d < 2.1 && u.cool <= 0) {
           u.cool = 1.1;
@@ -767,19 +824,26 @@ export function installLife({ root, store, loot, foes, heightAt: hAt }) {
         }
       } else {
         u.wander += dt * 0.4;
-        b.position.x += Math.cos(u.wander) * 0.5 * dt;
-        b.position.z += Math.sin(u.wander) * 0.5 * dt;
+        mx = Math.cos(u.wander) * 0.5;
+        mz = Math.sin(u.wander) * 0.5;
+        b.position.x += mx * dt;
+        b.position.z += mz * dt;
+        moving = true;
       }
-      b.position.y = height(b.position.x, b.position.z) + b.scale.y * 0.42;
+      if (u.sheet) stepSheet(b, dt, moving, mx, mz);
+      else bobBeast(b, dt, moving);
+      keepAboveGround(b, dt, (u.baseH || b.scale.y) * 0.48 + (u.bob || 0), 20);
     }
     for (const n of npcs) {
       if (!n.visible) continue;
       const nu = n.userData;
       nu.hitCool = Math.max(0, (nu.hitCool || 0) - dt);
-      if (nu.flash > 0) {
-        nu.flash -= dt;
-        if (n.material?.color) n.material.color.setHex(nu.flash > 0 ? 0xff2a2a : nu._baseColor || 0xffffff);
+      if (nu.hp <= 0 && !nu.dying && !nu.dead) startDeath(n);
+      if (nu.dying) {
+        tickDeath(n, dt, height);
+        continue;
       }
+      restoreFlash(n, dt);
       if (nu.stagger > 0) {
         nu.stagger -= dt;
         n.position.x += (nu.kx || 0) * dt;
@@ -787,7 +851,6 @@ export function installLife({ root, store, loot, foes, heightAt: hAt }) {
         nu.kx = (nu.kx || 0) * (1 - dt * 3);
         nu.kz = (nu.kz || 0) * (1 - dt * 3);
       }
-      n.position.y = height(n.position.x, n.position.z) + n.scale.y * 0.48;
       if (n.userData.follow) {
         const dx = head.x - n.position.x;
         const dz = head.z - n.position.z;
@@ -815,6 +878,8 @@ export function installLife({ root, store, loot, foes, heightAt: hAt }) {
           }
         }
       }
+      if (nu.sheet) stepSheet(n, dt, !!nu.follow, 0, 1);
+      keepAboveGround(n, dt, (nu.baseH || n.scale.y) * 0.5, 18);
     }
     pushBoulders(head, dt);
     tickDebris(dt);

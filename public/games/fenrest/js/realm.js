@@ -7,10 +7,10 @@ import { fenrestToBag, loadBag, mergeBagIntoList } from "/games/shared/realm-bag
 import { createVoicePair } from "/games/shared/voice-coop.js";
 import { hatHex, mountChip, paintChip, peerId, rememberPeer } from "/games/shared/coop-hat.js";
 import { anyHitsPortal, bindXrTick, gripPoints, portalHit, readHead, warpAfterXr } from "/games/shared/vr-warp.js";
-import { attachVrHands } from "/games/fenrest/js/vr-hands.js?v=melee4";
-import { heightAt as gridHeight, inSettlement, createChunkManager, snapToGround } from "/games/fenrest/js/world-grid.js?v=map2";
-import { createMagic } from "/games/fenrest/js/magic.js?v=melee4";
-import { installLife } from "/games/fenrest/js/life.js?v=map2";
+import { attachVrHands, restoreFlash, tickDeath, startDeath } from "/games/fenrest/js/vr-hands.js?v=town2";
+import { heightAt as gridHeight, inSettlement, createChunkManager, snapToGround, keepAboveGround } from "/games/fenrest/js/world-grid.js?v=town2";
+import { createMagic } from "/games/fenrest/js/magic.js?v=town2";
+import { installLife } from "/games/fenrest/js/life.js?v=town2";
 
 const TOWNS = [
   { id: "fenrest", name: "Fenrest", x: 0, z: 0, r: 42, style: "thatch", econ: "farms", skip: true },
@@ -507,9 +507,16 @@ function spawnPack(root, list, px, pz) {
     const x = px + Math.cos(a) * dist;
     const z = pz + Math.sin(a) * dist;
     if (inTown(x, z)) continue;
-    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: enemySprite(def.sprite), transparent: true, color: 0xffffff }));
+    const map = enemySprite(def.sprite);
+    const sheet = SHEET4.test(def.sprite);
+    const matMap = sheet && map.clone ? map.clone() : map;
+    if (sheet) {
+      matMap.repeat.set(0.25, 0.25);
+      matMap.offset.set(0, 0.75);
+    }
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: matMap, transparent: true, color: 0xffffff }));
     sp.scale.set(def.id === "spider" ? 1.6 : def.id === "basilisk" ? 2.2 : def.id === "alien" ? 2.4 : 1.2, def.id === "spider" ? 1.1 : 2.1, 1);
-    sp.position.set(x, heightAt(x, z) + sp.scale.y * 0.45, z);
+    sp.position.set(x, heightAt(x, z) + sp.scale.y * 0.5, z);
     const humanoid = ["bandit", "goblin", "mage", "necromancer"].includes(def.id);
     sp.userData = {
       foe: true,
@@ -521,8 +528,13 @@ function spawnPack(root, list, px, pz) {
       stamina: 1,
       lower: 1,
       humanoid,
+      sheet,
       flash: 0,
       stagger: 0,
+      vy: 0,
+      baseH: sp.scale.y,
+      baseW: sp.scale.x,
+      _baseColor: 0xffffff,
       hitR: Math.max(1.3, sp.scale.x * 0.7),
       hitH: Math.max(1.4, sp.scale.y * 0.8),
     };
@@ -558,13 +570,15 @@ function tickFoes(list, dt, store, bolts, root) {
       const dz = pz - f.position.z;
       const d = Math.hypot(dx, dz) || 1;
       u.hitCool = Math.max(0, (u.hitCool || 0) - dt);
-      if (u.flash > 0) {
-        u.flash -= dt;
-        if (f.material?.color) f.material.color.setHex(u.flash > 0 ? 0xff2a2a : (u._baseColor || 0xffffff));
+      if (u.hp <= 0 && !u.dying && !u.dead) startDeath(f);
+      if (u.dying) {
+        tickDeath(f, dt, heightAt);
+        continue;
       }
+      restoreFlash(f, dt);
       if (u.frozen > 0) {
         u.frozen -= dt;
-        f.position.y = standY(f);
+        keepAboveGround(f, dt, u.feet ? 0 : (u.baseH || f.scale.y) * 0.48, 18);
         continue;
       }
       if (u.stagger > 0) {
@@ -573,13 +587,13 @@ function tickFoes(list, dt, store, bolts, root) {
         f.position.z += (u.kz || 0) * dt;
         u.kx = (u.kx || 0) * (1 - dt * 3);
         u.kz = (u.kz || 0) * (1 - dt * 3);
-        f.position.y = standY(f);
+        keepAboveGround(f, dt, u.feet ? 0 : (u.baseH || f.scale.y) * 0.48, 18);
         continue;
       }
       const spd = (u.def?.spd ?? 2) * (u.lower ?? 1);
       f.position.x += (dx / d) * spd * dt;
       f.position.z += (dz / d) * spd * dt;
-      f.position.y = standY(f);
+      keepAboveGround(f, dt, u.feet ? 0 : (u.baseH || f.scale.y) * 0.48, 18);
       u.cool = (u.cool || 0) - dt;
       if (d < 1.6 && u.cool <= 0) {
         u.cool = u.def?.spell ? 1.6 : 0.9;
@@ -596,9 +610,7 @@ function tickFoes(list, dt, store, bolts, root) {
           u.hp -= 4;
         }
       }
-      if (u.hp <= 0) {
-        f.visible = false;
-      }
+      if (u.hp <= 0 && !u.dying && !u.dead) startDeath(f);
     } catch (err) {
       console.warn("[fenrest-foe]", err);
     }
@@ -895,8 +907,8 @@ async function boot() {
     },
   });
 
-  const smithX = 16.2;
-  const smithZ = -3.6;
+  const smithX = 18;
+  const smithZ = -6;
   const smithY = heightAt(smithX, smithZ);
   furniture(root, smithX - 1.2, smithY, smithZ, "anvil");
   furniture(root, smithX + 1.6, smithY, smithZ - 1.2, "table");
