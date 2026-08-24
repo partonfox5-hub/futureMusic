@@ -8,7 +8,7 @@
     <title>ZOOM — map maker</title>
     <link rel="icon" type="image/jpeg" href="/games/zoom/og.jpg" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" />
-    <link rel="stylesheet" href="/games/zoom/css/zoom.css?v=z1" />
+    <link rel="stylesheet" href="/games/zoom/css/zoom.css?v=z2" />
     <script>
       window.ZOOM_ROUTES = { play: "/test-w3n9k7qm", maps: "/test-w3n9k7qm-maps" };
     </script>
@@ -20,17 +20,29 @@
         <span id="xy">0, 0</span>
         <span id="status">Draw to dig</span>
       </div>
+      <div id="legend">
+        <b>Map key</b>
+        <div><i class="lg flat"></i> Flat hall</div>
+        <div><i class="lg round"></i> Round tunnel</div>
+        <div><i class="lg oval"></i> Oval cave</div>
+        <div><i class="lg sphere"></i> Sphere</div>
+        <div><i class="lg spike"></i> Spike pit</div>
+        <div><i class="lg crouch"></i> Crouch tunnel</div>
+        <div><i class="lg water"></i> Water</div>
+        <div><i class="lg lava"></i> Lava</div>
+        <div><i class="lg spawn"></i> Player spawn</div>
+      </div>
     </div>
     <aside id="side">
       <h1>ZOOM</h1>
-      <p class="hint">Top-down dig. Filled shapes become rooms. Outlines become hall circuits. Right-drag pans, wheel zooms.</p>
+      <p class="hint">Only the options for the selected tool show below. Right-drag pans, wheel zooms.</p>
       <div class="row">
         <a class="btn" id="to-play" href="/test-w3n9k7qm">Play</a>
         <button type="button" id="play">Crawl this map</button>
       </div>
       <button type="button" id="play-unsaved" hidden>Preview crawl</button>
 
-      <h2>Draw</h2>
+      <h2>Carve</h2>
       <div class="tools">
         <button type="button" data-tool="dig" class="on">Dig</button>
         <button type="button" data-tool="erase">Erase</button>
@@ -39,40 +51,117 @@
         <button type="button" data-tool="sphere">Sphere</button>
         <button type="button" data-tool="fill">Bucket</button>
         <button type="button" data-tool="paint">Paint tex</button>
+        <button type="button" data-tool="crouch">Crouch tunnel</button>
+        <button type="button" data-tool="spike">Spike pit</button>
+        <button type="button" data-tool="sky">Open sky</button>
+      </div>
+      <h2>Layers</h2>
+      <div class="tools">
+        <button type="button" data-tool="elev">Elevation</button>
+        <button type="button" data-tool="water">Water</button>
+        <button type="button" data-tool="lava">Lava</button>
+      </div>
+      <h2>Place</h2>
+      <div class="tools">
+        <button type="button" data-tool="start">Spawn</button>
         <button type="button" data-tool="object">Object</button>
+        <button type="button" data-tool="pickup">Pickup</button>
         <button type="button" data-tool="spawner">Spawner</button>
-        <button type="button" data-tool="start">Start</button>
+        <button type="button" data-tool="rope">Rope</button>
+        <button type="button" data-tool="turret">Flame turret</button>
+        <button type="button" data-tool="crusher">Crusher</button>
+        <button type="button" data-tool="portal">Portal pair</button>
+        <button type="button" data-tool="key">Key</button>
+      </div>
+      <h2>Build</h2>
+      <div class="tools">
+        <button type="button" data-tool="wall">Wall</button>
+        <button type="button" data-tool="door">Door</button>
+        <button type="button" data-tool="locked">Locked door</button>
+        <button type="button" data-tool="arch">Archway</button>
+        <button type="button" data-tool="window">Window</button>
       </div>
       <p id="shape-hint"></p>
 
-      <label>Tunnel / chamber shape</label>
-      <select id="shape"></select>
-      <label>Brush size <span id="brush-v">2.2</span></label>
-      <input id="brush" type="range" min="0.5" max="16" step="0.1" value="2.2" />
-      <label>Hall height <span id="hall-v">4.2</span></label>
-      <input id="hall" type="range" min="2.4" max="8" step="0.1" value="4.2" />
-
-      <h2>Terrain</h2>
-      <div id="swatches"></div>
-      <label>Texture</label>
-      <select id="biome"></select>
-
-      <h2>Objects</h2>
-      <label>Place</label>
-      <select id="obj"></select>
-      <label>Object size <span id="oscale-v">1.00</span></label>
-      <input id="oscale" type="range" min="0.4" max="3" step="0.05" value="1" />
-
-      <h2>Spawners</h2>
-      <label>Enemy</label>
-      <select id="sp-enemy"></select>
-      <label>Spawn every <span id="sp-int-v">6.0s</span></label>
-      <input id="sp-int" type="range" min="0.5" max="30" step="0.5" value="6" />
-      <label>Roam radius <span id="sp-rad-v">8.0</span></label>
-      <input id="sp-rad" type="range" min="1" max="40" step="0.5" value="8" />
-      <label>Max alive <span id="sp-max-v">3</span></label>
-      <input id="sp-max" type="range" min="1" max="12" step="1" value="3" />
-      <p class="hint">Click to place. Drag to move. Delete removes the selection. Units stay inside the radius.</p>
+      <div class="pbox" data-show="dig,rect,outline,fill,sphere">
+        <label>Tunnel / chamber shape</label>
+        <select id="shape"></select>
+        <label>Hall height <span id="hall-v">4.2</span></label>
+        <input id="hall" type="range" min="2.4" max="8" step="0.1" value="4.2" />
+      </div>
+      <div class="pbox" data-show="dig,erase,rect,outline,sphere,fill,paint,crouch,spike,sky,elev,water,lava,wall">
+        <label>Brush size <span id="brush-v">2.2</span></label>
+        <input id="brush" type="range" min="0.5" max="16" step="0.1" value="2.2" />
+      </div>
+      <div class="pbox" data-show="dig,rect,outline,fill,sphere,paint,sky">
+        <h2>Terrain texture</h2>
+        <div id="swatches"></div>
+        <label>Texture</label>
+        <select id="biome"></select>
+      </div>
+      <div class="pbox" data-show="sky">
+        <label>Skybox</label>
+        <select id="sky-kind">
+          <option value="1">Day</option>
+          <option value="2">Night</option>
+          <option value="3">Jungle</option>
+        </select>
+      </div>
+      <div class="pbox" data-show="elev">
+        <label>Elevation (player-heights) <span id="elev-v">0</span></label>
+        <input id="elev" type="range" min="-5" max="5" step="1" value="0" />
+        <p class="hint">Each step is one player height. 0 is default. Paint over carved space.</p>
+      </div>
+      <div class="pbox" data-show="object">
+        <label>Place object</label>
+        <select id="obj"></select>
+        <label>Object size <span id="oscale-v">1.00</span></label>
+        <input id="oscale" type="range" min="0.4" max="3" step="0.05" value="1" />
+      </div>
+      <div class="pbox" data-show="pickup">
+        <label>Pickup / weapon / item</label>
+        <select id="pickup"></select>
+        <p class="hint">Weapons, jetpack, fuel tanks, medkits, and special items.</p>
+      </div>
+      <div class="pbox" data-show="spawner">
+        <label>Enemy</label>
+        <select id="sp-enemy"></select>
+        <label>Spawn every <span id="sp-int-v">6.0s</span></label>
+        <input id="sp-int" type="range" min="0.5" max="30" step="0.5" value="6" />
+        <label>Roam radius <span id="sp-rad-v">8.0</span></label>
+        <input id="sp-rad" type="range" min="1" max="40" step="0.5" value="8" />
+        <label>Max alive <span id="sp-max-v">3</span></label>
+        <input id="sp-max" type="range" min="1" max="12" step="1" value="3" />
+        <p class="hint">Click to place. Drag to move. Delete removes the selection.</p>
+      </div>
+      <div class="pbox" data-show="start">
+        <p class="hint">Click the map to set the player spawn. Drag after placing to face a direction (shown as an arrow).</p>
+      </div>
+      <div class="pbox" data-show="portal">
+        <p class="hint">Click twice — first entrance, then exit. Each pair gets its own color automatically.</p>
+      </div>
+      <div class="pbox" data-show="locked,key">
+        <p class="hint" id="key-hint">Place a locked door on a wall, then place its matching key.</p>
+      </div>
+      <div class="pbox" data-show="door,locked,arch,window">
+        <p class="hint">These only snap onto building walls, never empty ground.</p>
+      </div>
+      <div class="pbox" data-show="wall,door,locked,arch,window">
+        <label>Story</label>
+        <select id="story">
+          <option value="0">1st story</option>
+          <option value="1">2nd story</option>
+          <option value="2">3rd story</option>
+        </select>
+      </div>
+      <div class="pbox" data-show="wall">
+        <label>Wall texture</label>
+        <select id="wtex"></select>
+        <p class="hint">Draw walls. Roofs and floors fill automatically when walls enclose a room.</p>
+      </div>
+      <div class="pbox" data-show="rope,turret,crusher">
+        <p class="hint">Click carved ground to place.</p>
+      </div>
 
       <h2>Map</h2>
       <label>Name</label>
@@ -82,10 +171,10 @@
         <button type="button" id="new">New</button>
         <button type="button" id="del">Delete</button>
       </div>
-      <p class="hint">Saved maps show up as playable on the Zoom start screen. Ctrl+Z undo, Ctrl+S save. [ ] brush size.</p>
+      <p class="hint">Saved maps appear on the Zoom start screen. Ctrl+Z undo, Ctrl+S save.</p>
       <h2>Saved</h2>
       <div id="saved"></div>
     </aside>
-    <script type="module" src="/games/zoom/js/editor.js?v=z1"></script>
+    <script type="module" src="/games/zoom/js/editor.js?v=z2"></script>
   </body>
 </html>

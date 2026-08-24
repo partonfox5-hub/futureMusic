@@ -3,16 +3,28 @@
 export const CELL = 1.25;
 export const MAP_W = 96;
 export const MAP_H = 96;
+export const EYE = 1.55;
 export const SHAPE_FLAT = 0;
 export const SHAPE_ROUND = 1;
 export const SHAPE_OVAL = 2;
 export const SHAPE_SPHERE = 3;
+export const FLAG_SPIKE = 1;
+export const FLAG_CROUCH = 2;
+export const LIQ_NONE = 0;
+export const LIQ_WATER = 1;
+export const LIQ_LAVA = 2;
+export const SKY_CAVE = 0;
+export const SKY_DAY = 1;
+export const SKY_NIGHT = 2;
+export const SKY_JUNGLE = 3;
+export const STORIES = 3;
+export const STORY_H = 3.15;
 
 export const SHAPES = [
-  { id: SHAPE_FLAT, key: "flat", name: "Flat hall", hint: "Square rooms and halls — flat floor and ceiling." },
-  { id: SHAPE_ROUND, key: "round", name: "Round tunnel", hint: "Circular pipe. Thin strokes become tubes; wide fills get barrel vaults." },
-  { id: SHAPE_OVAL, key: "oval", name: "Misshapen oval", hint: "Uneven oval tunnels, lumpy organic caves." },
-  { id: SHAPE_SPHERE, key: "sphere", name: "Sphere chamber", hint: "Each stamp is a perfect sphere. Overlap them for grotto clusters." },
+  { id: SHAPE_FLAT, key: "flat", name: "Flat hall", hint: "Square rooms and halls — flat floor and ceiling.", ink: "#d8d0c0" },
+  { id: SHAPE_ROUND, key: "round", name: "Round tunnel", hint: "Circular pipe. Thin strokes become tubes; wide fills get barrel vaults.", ink: "#9ad4ff" },
+  { id: SHAPE_OVAL, key: "oval", name: "Misshapen oval", hint: "Uneven oval tunnels, lumpy organic caves.", ink: "#c4a070" },
+  { id: SHAPE_SPHERE, key: "sphere", name: "Sphere chamber", hint: "Each stamp is a perfect sphere. Overlap them for grotto clusters.", ink: "#d4a0ff" },
 ];
 
 export const BIOMES = [
@@ -27,8 +39,30 @@ export const BIOMES = [
   { id: "crystal", name: "Crystalline", swatch: "#7a4ec8", fog: 0x0c0618, ambient: 0x8a60d0 },
 ];
 
+export const WALL_TEX = [
+  { id: "castle", name: "Castle", swatch: "#8a8680" },
+  { id: "manor", name: "Manor", swatch: "#6a5040" },
+  { id: "metal", name: "Metal", swatch: "#6a7078" },
+  { id: "siding", name: "Siding", swatch: "#c4b090" },
+  { id: "straw", name: "Straw hut", swatch: "#c4a050" },
+  { id: "cabin", name: "Wood cabin", swatch: "#8a5a32" },
+  { id: "space", name: "Space metal", swatch: "#3a5070" },
+];
+
+export const SKY_KINDS = [
+  { id: SKY_DAY, name: "Day skybox" },
+  { id: SKY_NIGHT, name: "Night skybox" },
+  { id: SKY_JUNGLE, name: "Jungle canopy" },
+];
+
+export const PORTAL_COLORS = [0xff4466, 0x44ddff, 0x88ff44, 0xffaa22, 0xcc66ff, 0xffffff, 0xff66cc, 0x44ffcc];
+
 export const FEN = "/games/fenrest/sprites/";
 export const ZSPR = "/games/zoom/sprites/";
+
+function bot(id, name, color, size, move, attack, hp, spd, dmg) {
+  return { id, name, robot: true, color, size, move, attack, hp, spd, dmg, w: size, h: size * 1.65 };
+}
 
 export const ENEMIES = [
   { id: "wolf", name: "Wolf", file: FEN + "wolf.png", sheet: true, hp: 5, spd: 4.3, dmg: 9, w: 1.25, h: 1.7 },
@@ -46,6 +80,23 @@ export const ENEMIES = [
   { id: "raptor", name: "Raptor", file: FEN + "raptor.png", sheet: false, hp: 9, spd: 4.6, dmg: 13, w: 1.9, h: 1.5 },
   { id: "trex", name: "Tyrant", file: FEN + "trex.png", sheet: false, hp: 36, spd: 2.3, dmg: 24, w: 3.4, h: 3.1 },
   { id: "mammoth", name: "Mammoth", file: FEN + "mammoth.png", sheet: false, hp: 40, spd: 1.7, dmg: 20, w: 3.2, h: 2.6 },
+  bot("scout", "Scout drone", 0x44ccff, 0.7, "hover", "plasma", 6, 4.4, 8),
+  bot("sentry", "Sentry", 0xcc3344, 1.1, "patrol", "beam", 14, 1.6, 12),
+  bot("brute", "Brute", 0xff7722, 1.7, "charge", "melee", 28, 3.4, 18),
+  bot("strider", "Strider", 0xaa66ff, 1.4, "orbit", "burst", 16, 2.8, 10),
+  bot("crawler", "Crawler", 0x55aa33, 0.85, "strafe", "melee", 8, 3.8, 9),
+  bot("wasp", "Wasp", 0xffdd33, 0.65, "hover", "lunge", 5, 5.2, 8),
+  bot("tank", "Siege tank", 0x667788, 2.0, "patrol", "flame", 40, 1.4, 16),
+  bot("sniper", "Sniper", 0xe8e8f0, 1.15, "patrol", "beam", 10, 1.8, 20),
+  bot("pyro", "Pyro", 0xff4411, 1.2, "charge", "flame", 18, 3.0, 11),
+  bot("disc", "Disc drone", 0x3388ff, 0.9, "hover", "burst", 9, 3.6, 9),
+  bot("knight", "Knight", 0xd4b050, 1.35, "charge", "melee", 22, 2.7, 15),
+  bot("spider", "Spider bot", 0x222228, 1.0, "strafe", "plasma", 12, 3.5, 10),
+  bot("bomber", "Bomber", 0x8a5a32, 1.25, "lunge", "burst", 14, 2.4, 14),
+  bot("hunter", "Hunter", 0xff66aa, 1.05, "charge", "melee", 11, 4.8, 12),
+  bot("wisp", "Wisp bot", 0xccffe8, 0.75, "hover", "plasma", 7, 3.2, 9),
+  bot("bull", "Bull", 0xaa2020, 1.55, "lunge", "melee", 24, 3.9, 17),
+  bot("swarm", "Swarmling", 0x66ff88, 0.5, "strafe", "melee", 3, 5.4, 6),
 ];
 
 export const OBJECTS = [
@@ -71,8 +122,31 @@ export const OBJECTS = [
   { id: "fountain", name: "Fountain" },
 ];
 
+export const WEAPONS = [
+  { id: "pistol", name: "Plasma pistol", slot: "gun", dmg: 12, rpm: 3.5, mag: 12, spread: 0.018, pellets: 1, speed: 52, color: 0x66ccff, beam: true },
+  { id: "shotgun", name: "Scatter gun", slot: "gun", dmg: 7, rpm: 1.15, mag: 6, spread: 0.16, pellets: 7, speed: 38, color: 0xffcc66, beam: false },
+  { id: "rifle", name: "Assault rifle", slot: "gun", dmg: 9, rpm: 11, mag: 30, spread: 0.03, pellets: 1, speed: 64, color: 0x88ff66, beam: true },
+  { id: "bazooka", name: "Bazooka", slot: "gun", dmg: 48, rpm: 0.55, mag: 1, spread: 0.01, pellets: 1, speed: 22, color: 0xff4466, splash: 2.6, beam: false },
+  { id: "flamethrower", name: "Flamethrower", slot: "gun", dmg: 6, rpm: 16, mag: 50, spread: 0.12, pellets: 1, speed: 18, color: 0xff6622, flame: true, range: 7 },
+  { id: "whip", name: "Whip", slot: "melee", dmg: 14, reach: 3.3, rate: 0.45 },
+  { id: "sword", name: "Sword", slot: "melee", dmg: 18, reach: 2.2, rate: 0.38 },
+  { id: "katana", name: "Katana", slot: "melee", dmg: 22, reach: 2.55, rate: 0.28 },
+];
+
+export const PICKUPS = [
+  ...WEAPONS.map((w) => ({ id: w.id, name: w.name, cat: "weapon" })),
+  { id: "jetpack", name: "Jetpack", cat: "gear", fuel: 6 },
+  { id: "fuel", name: "Fuel tank", cat: "gear", fuel: 6 },
+  { id: "medkit", name: "Medkit", cat: "item", heal: 40 },
+  { id: "lantern", name: "Lantern", cat: "item" },
+  { id: "shield", name: "Shield shard", cat: "item" },
+  { id: "bomb", name: "Plasma bomb", cat: "item" },
+];
+
 export const ENEMY_BY_ID = Object.fromEntries(ENEMIES.map((e) => [e.id, e]));
 export const OBJECT_BY_ID = Object.fromEntries(OBJECTS.map((o) => [o.id, o]));
+export const WEAPON_BY_ID = Object.fromEntries(WEAPONS.map((w) => [w.id, w]));
+export const PICKUP_BY_ID = Object.fromEntries(PICKUPS.map((p) => [p.id, p]));
 
 export function routes() {
   return window.ZOOM_ROUTES || { play: "/zoom", maps: "/zoommaps" };

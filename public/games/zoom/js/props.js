@@ -2,6 +2,8 @@
 import * as THREE from "three";
 import { ENEMIES, ENEMY_BY_ID } from "./config.js";
 import { sdf3, floorY } from "./map.js";
+import { makeRobot } from "./robots.js";
+import { hurtFoe } from "./weapons.js";
 
 const TEX = {};
 const loader = new THREE.TextureLoader();
@@ -190,8 +192,8 @@ export function spawnFrom(spawner, map, sdf2, existing) {
     const z = spawner.z + Math.sin(a) * d;
     const y = floorY(x, z, map, sdf2);
     if (y < 0) continue;
-    const e = makeEnemy(def);
-    e.position.set(x, y + def.h * 0.48, z);
+    const e = def.robot ? makeRobot(def) : makeEnemy(def);
+    e.position.set(x, y + (def.robot ? 0 : def.h * 0.48), z);
     e.userData.home = { x: spawner.x, z: spawner.z, r };
     e.userData.spawner = spawner;
     existing.push(e);
@@ -205,7 +207,12 @@ export function tickFoes(foes, dt, player, map, sdf2, onHit) {
   const pz = player.z;
   for (const f of foes) {
     const u = f.userData;
-    if (!f.visible || u.hp <= 0) continue;
+    if (!f.visible || u.hp <= 0 || u.robot) continue;
+    if (u.recoil > 0) {
+      u.recoil -= dt;
+      f.position.x += (u.kx || 0) * dt;
+      f.position.z += (u.kz || 0) * dt;
+    }
     if (u.flash > 0) {
       u.flash -= dt;
       if (f.material?.color) f.material.color.setHex(u.flash > 0 ? 0xff3333 : 0xffffff);
@@ -249,14 +256,14 @@ export function tickFoes(foes, dt, player, map, sdf2, onHit) {
     if (fy >= 0) f.position.y = fy + (u.baseH || 2) * 0.48;
     const moving = Math.hypot(mx, mz) > 0.05;
     if (u.sheet) stepSheet(f, dt, moving, mx, mz);
-    else {
+    else if (f.material) {
       u.animT = (u.animT || 0) + dt * (moving ? 6 : 2);
       f.material.rotation = Math.sin(u.animT) * (moving ? 0.08 : 0.03);
     }
     u.cool = Math.max(0, (u.cool || 0) - dt);
     if (dist < 1.55 + u.hitR * 0.15 && u.cool <= 0) {
       u.cool = 0.9;
-      onHit(u.def.dmg);
+      onHit(u.def.dmg, u.kind);
     }
   }
 }
@@ -274,9 +281,7 @@ export function strikeFoes(foes, origin, dir, range, dmg) {
     const nd = dist || 1;
     const dot = (dx / nd) * dir.x + (dz / nd) * dir.z;
     if (dot < 0.35) continue;
-    u.hp -= dmg;
-    u.flash = 0.18;
-    if (f.material?.color) f.material.color.setHex(0xff3333);
+    hurtFoe(f, dmg, dir);
     hit++;
     if (u.hp <= 0) {
       f.visible = false;

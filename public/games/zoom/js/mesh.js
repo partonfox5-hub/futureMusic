@@ -1,6 +1,6 @@
 /** Voxelize the dug SDF and emit textured wall/floor meshes. */
 import * as THREE from "three";
-import { BIOMES, CELL } from "./config.js";
+import { BIOMES, CELL, EYE } from "./config.js";
 import { computeSdf, getTex, isCarved, sdf3 } from "./map.js";
 import { allMaterials } from "./tex.js";
 
@@ -13,17 +13,31 @@ export function prepareSdf(map) {
 export function yMax(map) {
   let m = map.hallH || 4.2;
   for (const s of map.spheres) m = Math.max(m, (s.cy || s.r * 0.55) + s.r);
-  return m + 0.6;
+  let maxE = 0;
+  let minE = 0;
+  let sky = false;
+  if (map.elev) {
+    for (let i = 0; i < map.elev.length; i++) {
+      if (map.elev[i] > maxE) maxE = map.elev[i];
+      if (map.elev[i] < minE) minE = map.elev[i];
+    }
+  }
+  if (map.sky) {
+    for (let i = 0; i < map.sky.length; i++) if (map.sky[i]) sky = true;
+  }
+  return { max: maxE * EYE + (sky ? 12 : m) + 0.8, min: minE * EYE - 1.8 };
 }
 
 export function buildDungeon(map, sdf2) {
   const group = new THREE.Group();
   group.name = "dungeon";
   const mats = allMaterials();
-  const ymax = yMax(map);
+  const yr = yMax(map);
+  const ymax = yr.max;
+  const ymin = yr.min;
   const nx = Math.ceil((map.w * CELL) / VX);
   const nz = Math.ceil((map.h * CELL) / VX);
-  const ny = Math.max(6, Math.ceil(ymax / VX));
+  const ny = Math.max(6, Math.ceil((ymax - ymin) / VX));
 
   let minx = nx, minz = nz, maxx = 0, maxz = 0;
   for (let z = 0; z < map.h; z++) {
@@ -66,7 +80,7 @@ export function buildDungeon(map, sdf2) {
       const gz = Math.max(0, Math.min(map.h - 1, Math.floor(z / CELL)));
       const t = getTex(map.cells[gz * map.w + gx]);
       for (let iy = 0; iy < ny; iy++) {
-        const y = (iy + 0.5) * VX;
+        const y = ymin + (iy + 0.5) * VX;
         if (sdf3(x, y, z, map, sdf2) < 0) {
           const i = at(ix, iy, iz);
           empty[i] = 1;
@@ -114,7 +128,7 @@ export function buildDungeon(map, sdf2) {
         if (!empty[i]) continue;
         const t = texOf[i] % BIOMES.length;
         const x0 = ix * VX;
-        const y0 = iy * VX;
+        const y0 = ymin + iy * VX;
         const z0 = iz * VX;
         const x1 = x0 + VX;
         const y1 = y0 + VX;

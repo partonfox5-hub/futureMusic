@@ -1,11 +1,16 @@
 import * as THREE from "three";
 import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
-import { BIOMES, CELL, routes } from "./config.js";
+import { BIOMES, CELL, EYE, LIQ_LAVA, LIQ_WATER, PICKUP_BY_ID, WEAPON_BY_ID, WEAPONS, routes } from "./config.js";
 import { bakedMaps } from "./defaults.js";
-import { biomeOf, countCarved, firstCarved, floorY, sdf3 } from "./map.js";
-import { buildDungeon, prepareSdf, yMax } from "./mesh.js";
+import { biomeOf, cellI, countCarved, ensureLayers, firstCarved, floorY, sdf3 } from "./map.js";
+import { buildDungeon, prepareSdf } from "./mesh.js";
 import { makeProp, spawnFrom, strikeFoes, tickFoes } from "./props.js";
 import { getMap, listMaps } from "./store.js";
+import { makeProc } from "./proc.js";
+import { breakWindows, buildingFloorY, buildWorld, makeSky, tickWorld, tryUnlock, wallBlocked } from "./world.js";
+import { addBurnDecal, fireWeapon, makePickup, makeWeapon, tickBurns, tickShots } from "./weapons.js";
+import { tickRobots } from "./robots.js";
+import { attachXr, tickXr } from "./xr.js";
 
 const $ = (id) => document.getElementById(id);
 const keys = new Set();
@@ -13,30 +18,44 @@ const tmp = new THREE.Vector3();
 const tmp2 = new THREE.Vector3();
 const lookEuler = new THREE.Euler();
 
-let renderer, scene, camera, clock, controls;
-let map, sdf2, dungeon;
-let player = { x: 0, y: 1.6, z: 0, vy: 0, hp: 100, grounded: false };
+let renderer, scene, camera, clock, controls, hands;
+let map, sdf2, dungeon, extras;
+let player = { x: 0, y: 1.6, z: 0, vy: 0, hp: 100, grounded: false, crouch: false, skate: false, fuel: 0, shield: 0 };
 let foes = [];
 let spawners = [];
 let torchLights = [];
-let hazards = [];
+let pickups = [];
+let shots = [];
+let burns = [];
+let inv = [];
+let held = null;
+let mag = 0;
+let fireCd = 0;
+let swingT = 0;
+let rope = null;
 let running = false;
 let dead = false;
-let swingT = 0;
 let hurtT = 0;
 let yaw = 0;
-let sword, flashlight, camLight;
+let viewWep, flashlight;
 let animId = 0;
+let skyMesh = null;
+let lastDeath = "the crawl";
 
 function setMsg(t) {
-  const el = $("msg");
-  el.textContent = t;
-  el.hidden = !t;
+  $("msg").textContent = t || "";
+  $("msg").hidden = !t;
 }
-
-function hpBar() {
+function hudBars() {
   $("hpi").style.width = Math.max(0, player.hp) + "%";
   $("hpv").textContent = Math.max(0, player.hp | 0);
+  const cap = Math.max(6, player.fuel);
+  $("fueli").style.width = Math.min(100, (player.fuel / cap) * 100) + "%";
+  $("fuelv").textContent = player.fuel.toFixed(1);
+  const def = held && WEAPON_BY_ID[held];
+  $("wep").textContent = def ? def.name : "unarmed";
+  $("ammo").textContent = def && def.slot === "gun" ? mag + " / " + def.mag : "";
+  $("mode").textContent = (player.skate ? "SKATE " : "") + (player.crouch ? "CROUCH " : "") + (player.fuel > 0 ? "JET " : "");
 }
 
 function drawMinimap() {
@@ -50,8 +69,7 @@ function drawMinimap() {
     for (let x = 0; x < map.w; x++) {
       const b = map.cells[z * map.w + x];
       if (b & 1) {
-        const t = (b >> 3) & 15;
-        g.fillStyle = BIOMES[t] ? BIOMES[t].swatch : "#888";
+        g.fillStyle = BIOMES[(b >> 3) & 15]?.swatch || "#888";
         g.fillRect(x * s, z * s, s + 0.4, s + 0.4);
       }
     }
@@ -60,64 +78,51 @@ function drawMinimap() {
   g.beginPath();
   g.arc((player.x / CELL) * s, (player.z / CELL) * s, 2.4, 0, 6.28);
   g.fill();
-  g.strokeStyle = "#fff56a";
-  g.beginPath();
-  g.moveTo((player.x / CELL) * s, (player.z / CELL) * s);
-  g.lineTo((player.x / CELL) * s - Math.sin(yaw) * 6, (player.z / CELL) * s - Math.cos(yaw) * 6);
-  g.stroke();
-  g.fillStyle = "#ff4a3a";
-  for (const f of foes) {
-    if (!f.visible) continue;
-    g.fillRect((f.position.x / CELL) * s - 1.2, (f.position.z / CELL) * s - 1.2, 2.4, 2.4);
-  }
 }
 
-function makeSword() {
-  const g = new THREE.Group();
-  const blade = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.05, 0.72), new THREE.MeshStandardMaterial({ color: 0xc8d0d8, metalness: 0.7, roughness: 0.25 }));
-  blade.position.set(0.18, -0.12, -0.55);
-  const guard = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.04, 0.04), new THREE.MeshStandardMaterial({ color: 0xc4a050, metalness: 0.6, roughness: 0.35 }));
-  guard.position.set(0.18, -0.12, -0.22);
-  const hilt = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.045, 0.18), new THREE.MeshStandardMaterial({ color: 0x4a3020 }));
-  hilt.position.set(0.18, -0.12, -0.12);
-  g.add(blade, guard, hilt);
-  camera.add(g);
-  return g;
+function setHeld(id) {
+  held = id;
+  mag = WEAPON_BY_ID[id]?.mag || 0;
+  if (viewWep) {
+    viewWep.removeFromParent();
+    viewWep = null;
+  }
+  if (id) {
+    viewWep = makeWeapon(id);
+    viewWep.position.set(0.22, -0.18, -0.42);
+    camera.add(viewWep);
+  }
+  hudBars();
 }
 
 function initThree() {
   if (renderer) return;
   const canvas = $("c");
   renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 1.6));
   renderer.setSize(innerWidth, innerHeight);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.55;
+  renderer.toneMappingExposure = 1.5;
   renderer.setClearColor(0x1a1814, 1);
   scene = new THREE.Scene();
-  camera = new THREE.PerspectiveCamera(72, innerWidth / innerHeight, 0.06, 80);
+  camera = new THREE.PerspectiveCamera(72, innerWidth / innerHeight, 0.06, 120);
   clock = new THREE.Clock();
   controls = new PointerLockControls(camera, $("c"));
   scene.add(controls.object);
   scene.add(new THREE.HemisphereLight(0xc8c0b0, 0x2a2018, 0.7));
-  scene.add(new THREE.AmbientLight(0x3a342c, 0.45));
-  flashlight = new THREE.SpotLight(0xffe6c0, 2.4, 16, 0.52, 0.45, 1.4);
-  flashlight.position.set(0, 0, 0);
+  scene.add(new THREE.AmbientLight(0x3a342c, 0.5));
+  flashlight = new THREE.SpotLight(0xffe6c0, 2.2, 16, 0.5, 0.45, 1.4);
   flashlight.target.position.set(0, 0, -4);
   camera.add(flashlight);
   camera.add(flashlight.target);
-  camLight = new THREE.PointLight(0xffcc88, 0.35, 4.5);
-  camera.add(camLight);
-  sword = makeSword();
+  camera.add(new THREE.PointLight(0xffcc88, 0.3, 4.2));
+  hands = attachXr(renderer, scene);
   $("c").addEventListener("click", () => {
-    if (!$("start").hidden) return;
-    if (dead) return;
+    if (!$("start").hidden || dead || !$("inv").hidden) return;
     if (!controls.isLocked) controls.lock();
-    else swing();
+    else primary();
   });
-  controls.addEventListener("lock", () => $("hint").classList.add("go"));
-  controls.addEventListener("unlock", () => $("hint").classList.remove("go"));
   addEventListener("resize", () => {
     camera.aspect = innerWidth / innerHeight;
     camera.updateProjectionMatrix();
@@ -128,33 +133,49 @@ function initThree() {
 function clearWorld() {
   if (dungeon) {
     scene.remove(dungeon);
-    dungeon.traverse((o) => {
-      if (o.geometry) o.geometry.dispose();
-    });
+    dungeon.traverse((o) => o.geometry && o.geometry.dispose());
     dungeon = null;
   }
   for (const L of torchLights) scene.remove(L);
   torchLights = [];
   for (const f of foes) scene.remove(f);
   foes = [];
-  hazards = [];
+  for (const p of pickups) scene.remove(p);
+  pickups = [];
+  shots = [];
+  extras = null;
 }
 
-function placeProps() {
-  for (const o of map.objects) {
+function placeWorld() {
+  for (const o of map.objects || []) {
     const g = makeProp(o.kind, o.s || 1);
-    const y = floorY(o.x, o.z, map, sdf2);
-    g.position.set(o.x, y < 0 ? 0 : y, o.z);
-    g.rotation.y = o.rot || 0;
+    const y = Math.max(0, floorY(o.x, o.z, map, sdf2));
+    g.position.set(o.x, y, o.z);
     dungeon.add(g);
     if (g.userData.lightColor) {
-      const L = new THREE.PointLight(g.userData.lightColor, 1.15, g.userData.lightDist || 8, 2);
-      L.position.set(o.x, (y < 0 ? 0 : y) + 1.1, o.z);
+      const L = new THREE.PointLight(g.userData.lightColor, 1.1, 8, 2);
+      L.position.set(o.x, y + 1.1, o.z);
       scene.add(L);
       torchLights.push(L);
     }
-    if (g.userData.hazard) hazards.push({ x: o.x, z: o.z, dmg: g.userData.hazard, cool: 0 });
   }
+  for (const p of map.pickups || []) {
+    const g = makePickup(p.kind);
+    const y = Math.max(0, floorY(p.x, p.z, map, sdf2));
+    g.position.set(p.x, y + 0.35, p.z);
+    scene.add(g);
+    pickups.push(g);
+  }
+  for (const k of map.keys || []) {
+    const g = makePickup("shield");
+    g.userData.pickup = "key";
+    g.userData.keyId = k.id;
+    const y = Math.max(0, floorY(k.x, k.z, map, sdf2));
+    g.position.set(k.x, y + 0.3, k.z);
+    scene.add(g);
+    pickups.push(g);
+  }
+  extras = buildWorld(map, dungeon, scene);
 }
 
 function placePlayer() {
@@ -170,10 +191,15 @@ function placePlayer() {
   const y = floorY(x, z, map, sdf2);
   player.x = x;
   player.z = z;
-  player.y = (y < 0 ? 1.2 : y) + 1.55;
+  player.y = (y < 0 ? 1.2 : y) + EYE;
   player.vy = 0;
   player.hp = 100;
   player.grounded = true;
+  player.crouch = false;
+  player.fuel = 0;
+  player.shield = 0;
+  inv = [];
+  setHeld(null);
   camera.position.set(player.x, player.y, player.z);
   camera.quaternion.setFromEuler(new THREE.Euler(0, yaw, 0, "YXZ"));
   return true;
@@ -182,17 +208,17 @@ function placePlayer() {
 async function enterMap(id) {
   setMsg("Carving the dark…");
   initThree();
-  await new Promise((r) => setTimeout(r, 40));
+  await new Promise((r) => setTimeout(r, 30));
   clearWorld();
-  let m = bakedMaps().find((x) => x.id === id);
+  let m = id === "proc" ? makeProc() : bakedMaps().find((x) => x.id === id);
   if (!m) m = await getMap(id);
   if (!m) {
     setMsg("Map missing.");
     return;
   }
-  map = m;
-  if (countCarved(map) === 0 && !(map.spheres && map.spheres.length)) {
-    setMsg("This map is solid rock. Dig it in the map maker first.");
+  map = ensureLayers(m);
+  if (countCarved(map) === 0 && !(map.spheres && map.spheres.length) && !(map.bwalls && map.bwalls[0].some(Boolean))) {
+    setMsg("This map is solid rock.");
     return;
   }
   sdf2 = prepareSdf(map);
@@ -201,17 +227,24 @@ async function enterMap(id) {
   scene.add(dungeon);
   const b = biomeOf(map, map.start?.x || 0, map.start?.z || 0);
   scene.background = new THREE.Color(b.fog);
-  scene.fog = new THREE.FogExp2(b.fog, 0.022);
-  placeProps();
-  spawners = (map.spawners || []).map((s) => ({ ...s, _t: 0.4 + Math.random(), _alive: 0 }));
+  scene.fog = new THREE.FogExp2(b.fog, 0.018);
+  if (skyMesh) {
+    scene.remove(skyMesh);
+    skyMesh = null;
+  }
+  const skyKind = (map.sky || []).find((v) => v) || 0;
+  if (skyKind) {
+    skyMesh = new THREE.Mesh(new THREE.SphereGeometry(70, 16, 12), new THREE.MeshBasicMaterial({ map: makeSky(skyKind), side: THREE.BackSide }));
+    scene.add(skyMesh);
+    scene.fog = null;
+  }
+  placeWorld();
+  spawners = (map.spawners || []).map((s) => ({ ...s, _t: 0.3, _alive: 0 }));
   for (const s of spawners) {
-    const n = Math.min(s.maxAlive || 2, 2);
-    for (let i = 0; i < n; i++) {
-      const e = spawnFrom(s, map, sdf2, foes);
-      if (e) {
-        scene.add(e);
-        s._alive++;
-      }
+    const e = spawnFrom(s, map, sdf2, foes);
+    if (e) {
+      scene.add(e);
+      s._alive++;
     }
   }
   if (!placePlayer()) {
@@ -220,142 +253,329 @@ async function enterMap(id) {
   }
   $("start").hidden = true;
   $("hud").hidden = false;
+  $("dead").hidden = true;
   $("titlemap").textContent = map.name;
   running = true;
   dead = false;
-  hpBar();
+  hudBars();
   setMsg("");
   clock.getDelta();
   if (!animId) loop();
-  window.__ZOOM__ = { map, player, dungeon, scene, camera, sdf2, foes, spawners, renderer };
+  window.__ZOOM__ = { map, player, dungeon, scene, camera, sdf2, foes, renderer };
 }
 
-function swing() {
-  if (swingT > 0 || dead) return;
-  swingT = 0.32;
-  const dir = tmp.set(0, 0, -1).applyQuaternion(camera.quaternion);
-  dir.y = 0;
-  dir.normalize();
-  const origin = camera.getWorldPosition(tmp2);
-  strikeFoes(foes, origin, dir, 2.45, 18);
-}
-
-function damage(n) {
-  if (dead) return;
-  player.hp -= n;
-  hurtT = 0.22;
-  hpBar();
-  if (player.hp <= 0) {
-    dead = true;
-    running = false;
-    controls.unlock();
-    $("dead").hidden = false;
-    $("dead-reason").textContent = "The crawl takes you.";
+function primary() {
+  const def = held && WEAPON_BY_ID[held];
+  if (!def) {
+    swingT = 0.28;
+    const dir = tmp.set(0, 0, -1).applyQuaternion(camera.quaternion);
+    strikeFoes(foes, camera.getWorldPosition(tmp2), dir, 2.2, 12);
+    return;
   }
+  if (def.slot === "melee") {
+    if (swingT > 0) return;
+    swingT = def.rate || 0.35;
+    const dir = tmp.set(0, 0, -1).applyQuaternion(camera.quaternion);
+    const origin = camera.getWorldPosition(tmp2);
+    strikeFoes(foes, origin, dir, def.reach || 2.2, def.dmg);
+    if (extras) breakWindows(extras, origin, dir, def.reach || 2.2);
+    return;
+  }
+  if (fireCd > 0) return;
+  if (mag <= 0) {
+    setMsg("Empty — R reload (or A/X on the other hand in VR)");
+    return;
+  }
+  mag--;
+  fireCd = 1 / (def.rpm || 2);
+  const origin = camera.getWorldPosition(tmp2).add(tmp.set(0, -0.08, -0.4).applyQuaternion(camera.quaternion));
+  const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+  fireWeapon(def, origin, dir, scene, shots);
+  hudBars();
 }
 
-function physics(dt) {
+function damage(n, why) {
+  if (dead) return;
+  if (player.shield > 0) n *= 0.45;
+  player.hp -= n;
+  hurtT = 0.2;
+  lastDeath = why || "the crawl";
+  hudBars();
+  if (player.hp <= 0) die(lastDeath);
+}
+
+function die(why) {
+  dead = true;
+  running = false;
+  try {
+    controls.unlock();
+  } catch {}
+  $("dead").hidden = false;
+  $("dead-reason").textContent = "You were " + (why || "taken") + ".";
+}
+
+function takePickup(p) {
+  const kind = p.userData.pickup;
+  const def = PICKUP_BY_ID[kind];
+  if (kind === "key") {
+    inv.push({ id: "key", keyId: p.userData.keyId, name: "Key " + p.userData.keyId });
+    setMsg("Picked up a key");
+  } else if (kind === "jetpack" || kind === "fuel") {
+    player.fuel += def?.fuel || 6;
+    setMsg("Fuel +" + (def?.fuel || 6) + "s");
+  } else if (WEAPON_BY_ID[kind]) {
+    if (!held) setHeld(kind);
+    else inv.push({ id: kind, name: WEAPON_BY_ID[kind].name, cat: "weapon" });
+    setMsg(WEAPON_BY_ID[kind].name);
+  } else {
+    inv.push({ id: kind, name: def?.name || kind, cat: "item" });
+    setMsg(def?.name || kind);
+  }
+  p.visible = false;
+  p.userData.taken = true;
+  hudBars();
+}
+
+function useItem(it) {
+  if (it.id === "medkit") {
+    player.hp = Math.min(100, player.hp + 40);
+    setMsg("Healed");
+  } else if (it.id === "lantern") {
+    flashlight.intensity = 4.2;
+    flashlight.distance = 24;
+    setMsg("Lantern lit");
+  } else if (it.id === "shield") {
+    player.shield = 12;
+    setMsg("Shield up");
+  } else if (it.id === "bomb") {
+    for (const f of foes) {
+      if (f.visible && f.position.distanceTo(camera.position) < 6) {
+        f.userData.hp = 0;
+        f.visible = false;
+      }
+    }
+    setMsg("Blast");
+  } else if (WEAPON_BY_ID[it.id]) {
+    if (held) inv.push({ id: held, name: WEAPON_BY_ID[held].name, cat: "weapon" });
+    setHeld(it.id);
+  }
+  hudBars();
+}
+
+function renderInv() {
+  const host = $("inv-list");
+  host.innerHTML = "";
+  if (!inv.length) host.innerHTML = "<p>Empty pack.</p>";
+  inv.forEach((it, i) => {
+    const b = document.createElement("button");
+    b.textContent = it.name || it.id;
+    b.addEventListener("click", () => {
+      useItem(it);
+      inv.splice(i, 1);
+      renderInv();
+    });
+    host.appendChild(b);
+  });
+}
+
+function physics(dt, xr) {
   const look = lookEuler.setFromQuaternion(camera.quaternion, "YXZ");
   yaw = look.y;
+  if (xr && xr.on && Math.abs(xr.lookX) > 0.25) {
+    yaw -= xr.lookX * dt * 1.8;
+    camera.quaternion.setFromEuler(lookEuler.set(look.x, yaw, 0, "YXZ"));
+  }
   const forward = tmp.set(-Math.sin(yaw), 0, -Math.cos(yaw));
   const right = tmp2.set(Math.cos(yaw), 0, -Math.sin(yaw));
   let wx = 0;
   let wz = 0;
-  if (keys.has("KeyW") || keys.has("ArrowUp")) {
-    wx += forward.x;
-    wz += forward.z;
-  }
-  if (keys.has("KeyS") || keys.has("ArrowDown")) {
-    wx -= forward.x;
-    wz -= forward.z;
-  }
-  if (keys.has("KeyD") || keys.has("ArrowRight")) {
-    wx += right.x;
-    wz += right.z;
-  }
-  if (keys.has("KeyA") || keys.has("ArrowLeft")) {
-    wx -= right.x;
-    wz -= right.z;
+  if (xr && xr.on) {
+    wx += forward.x * -(xr.moveY || 0) + right.x * (xr.moveX || 0);
+    wz += forward.z * -(xr.moveY || 0) + right.z * (xr.moveX || 0);
+    player.skate = xr.skate;
+    player.crouch = keys.has("KeyC");
+  } else {
+    if (keys.has("KeyW") || keys.has("ArrowUp")) {
+      wx += forward.x;
+      wz += forward.z;
+    }
+    if (keys.has("KeyS") || keys.has("ArrowDown")) {
+      wx -= forward.x;
+      wz -= forward.z;
+    }
+    if (keys.has("KeyD") || keys.has("ArrowRight")) {
+      wx += right.x;
+      wz += right.z;
+    }
+    if (keys.has("KeyA") || keys.has("ArrowLeft")) {
+      wx -= right.x;
+      wz -= right.z;
+    }
+    player.skate = keys.has("KeyQ");
+    player.crouch = keys.has("KeyC");
   }
   const len = Math.hypot(wx, wz);
-  const spd = (keys.has("ShiftLeft") || keys.has("ShiftRight") ? 7.2 : 4.6) * (hurtT > 0 ? 0.7 : 1);
+  let spd = player.crouch ? 2.2 : keys.has("ShiftLeft") || keys.has("ShiftRight") ? 7.2 : 4.6;
+  if (player.skate && player.grounded) spd *= 2.5;
   if (len > 0) {
     wx = (wx / len) * spd * dt;
     wz = (wz / len) * spd * dt;
   }
-  const eye = 1.55;
-  const bodyY = player.y - 0.55;
-  const footY = player.y - eye;
+  const eye = player.crouch ? 0.9 : EYE;
+  const bodyY = player.y - eye * 0.4;
   function blocked(x, y, z) {
-    return sdf3(x, y, z, map, sdf2) > -0.22;
+    if (wallBlocked(map, x, z, y)) return true;
+    return sdf3(x, y, z, map, sdf2) > -0.2;
   }
-  if (!blocked(player.x + wx, bodyY, player.z) && !blocked(player.x + wx, footY + 0.3, player.z)) player.x += wx;
-  if (!blocked(player.x, bodyY, player.z + wz) && !blocked(player.x, footY + 0.3, player.z + wz)) player.z += wz;
-  if (player.grounded && keys.has("Space")) {
-    player.vy = 5.4;
+  if (!blocked(player.x + wx, bodyY, player.z)) player.x += wx;
+  if (!blocked(player.x, bodyY, player.z + wz)) player.z += wz;
+
+  const jet = player.fuel > 0 && ((xr && xr.jet) || keys.has("KeyF") || (keys.has("Space") && !player.grounded));
+  if (player.grounded && keys.has("Space") && !(xr && xr.on)) {
+    player.vy = 5.6;
     player.grounded = false;
   }
-  player.vy -= 18 * dt;
+  if (jet) {
+    player.vy += 22 * dt;
+    player.fuel = Math.max(0, player.fuel - dt);
+    if (player.vy > 9) player.vy = 9;
+  } else player.vy -= 18 * dt;
   player.y += player.vy * dt;
-  const fy = floorY(player.x, player.z, map, sdf2);
-  const want = (fy < 0 ? 0.2 : fy) + eye;
-  if (player.y <= want && player.vy <= 0) {
-    player.y = want;
-    player.vy = 0;
-    player.grounded = fy >= 0;
-  } else player.grounded = false;
-  if (blocked(player.x, player.y, player.z)) {
-    player.y += 0.08;
-  }
-  camera.position.set(player.x, player.y, player.z);
 
-  if (sword) {
-    const k = swingT > 0 ? 1 - swingT / 0.32 : 0;
-    const a = Math.sin(k * Math.PI);
-    sword.rotation.x = -a * 0.9;
-    sword.rotation.z = a * 0.5;
-    sword.position.y = -a * 0.08;
-  }
-}
-
-function tickSpawners(dt) {
-  for (const s of spawners) {
-    s._t -= dt;
-    const cap = s.maxAlive || 3;
-    if (s._t <= 0 && (s._alive || 0) < cap) {
-      s._t = Math.max(0.6, s.interval || 6);
-      const e = spawnFrom(s, map, sdf2, foes);
-      if (e) {
-        scene.add(e);
-        s._alive = (s._alive || 0) + 1;
+  if (rope) {
+    const dx = player.x - rope.x;
+    const dz = player.z - rope.z;
+    const d = Math.hypot(dx, dz) || 0.001;
+    const max = 2.4;
+    if (d > max) {
+      player.x = rope.x + (dx / d) * max;
+      player.z = rope.z + (dz / d) * max;
+    }
+    if (keys.has("Space") || (xr && xr.jet)) rope = null;
+  } else if (extras) {
+    for (const r of extras.ropes) {
+      if (Math.hypot(player.x - r.x, player.z - r.z) < 0.9 && player.y > r.y0 && player.y < r.y0 + r.len) {
+        if (keys.has("KeyE") || (xr && xr.left && xr.left.squeeze)) rope = r;
       }
     }
   }
+
+  const fy = floorY(player.x, player.z, map, sdf2);
+  const bf = buildingFloorY(map, player.x, player.z, player.y);
+  const ground = Math.max(fy, bf);
+  const want = (ground < 0 ? 0.2 : ground) + eye;
+  if (player.y <= want && player.vy <= 0 && !jet) {
+    player.y = want;
+    player.vy = 0;
+    player.grounded = ground >= 0;
+  } else player.grounded = false;
+
+  const ci = cellI(map, player.x, player.z);
+  if (map.flags && map.flags[ci] & 1 && player.grounded && player.y < want + 0.35) die("impaled");
+  if (map.liquid && map.liquid[ci] === LIQ_LAVA) damage(18 * dt, "burned in lava");
+  if (map.liquid && map.liquid[ci] === LIQ_WATER) {
+    wx *= 0.7;
+    wz *= 0.7;
+  }
+
+  if (tryUnlock(extras || { doors: [] }, player, inv.filter((i) => i.id === "key").map((i) => i.keyId))) setMsg("Unlocked");
+
+  camera.position.set(player.x, player.y, player.z);
+  if (viewWep && swingT > 0) {
+    const a = Math.sin((1 - swingT / 0.4) * Math.PI);
+    viewWep.rotation.x = -a * 0.8;
+  } else if (viewWep) viewWep.rotation.x = 0;
 }
 
-function tickHazards(dt) {
-  for (const h of hazards) {
-    h.cool = Math.max(0, h.cool - dt);
-    if (h.cool > 0) continue;
-    if (Math.hypot(player.x - h.x, player.z - h.z) < 0.7) {
-      h.cool = 0.8;
-      damage(h.dmg);
+function tickPickups() {
+  for (const p of pickups) {
+    if (!p.visible || p.userData.taken) continue;
+    p.rotation.y += 0.03;
+    if (p.position.distanceTo(camera.position) < 1.35) takePickup(p);
+  }
+}
+
+function xrGrab(xr) {
+  if (!xr.on) return;
+  for (const h of [xr.left, xr.right]) {
+    if (!h) continue;
+    if (h.squeeze && !h.squeezePrev) {
+      for (const p of pickups) {
+        if (!p.visible) continue;
+        if (h.pos.distanceTo(p.position) < 0.38) {
+          takePickup(p);
+          if (WEAPON_BY_ID[p.userData.pickup]) {
+            const w = makeWeapon(p.userData.pickup);
+            h.con.add(w);
+            h.held = { id: p.userData.pickup, mesh: w };
+          }
+        }
+      }
+    }
+    if (!h.squeeze && h.squeezePrev && h.held) {
+      h.held.mesh.removeFromParent();
+      const drop = makePickup(h.held.id);
+      drop.position.copy(h.pos);
+      scene.add(drop);
+      pickups.push(drop);
+      h.held = null;
+    }
+    if (h.held && WEAPON_BY_ID[h.held.id]?.slot === "melee" && h.vel.length() > 4) {
+      strikeFoes(foes, h.pos, h.vel.clone().normalize(), 1.4, WEAPON_BY_ID[h.held.id].dmg);
+    }
+    if (h.held && WEAPON_BY_ID[h.held.id]?.slot === "gun" && h.trigger && !h.triggerPrev) {
+      const other = h === xr.left ? xr.right : xr.left;
+      setHeld(h.held.id);
+      primary();
+    }
+    if (h.ax && !h.axPrev) {
+      const other = h === xr.left ? xr.right : xr.left;
+      if (other && other.held && WEAPON_BY_ID[other.held.id]?.slot === "gun" && other.pos.distanceTo(h.pos) < 0.28) {
+        mag = WEAPON_BY_ID[other.held.id].mag;
+        setMsg("Reloaded");
+        hudBars();
+      }
     }
   }
+  if (xr.right && xr.right.trigger && !xr.right.triggerPrev && held) primary();
 }
 
 function loop() {
   animId = requestAnimationFrame(loop);
   const dt = Math.min(0.05, clock.getDelta());
   if (swingT > 0) swingT -= dt;
+  if (fireCd > 0) fireCd -= dt;
   if (hurtT > 0) hurtT -= dt;
-  $("hurt").style.opacity = hurtT > 0 ? String(Math.min(0.55, hurtT * 2.2)) : "0";
+  if (player.shield > 0) player.shield -= dt;
+  $("hurt").style.opacity = hurtT > 0 ? String(Math.min(0.5, hurtT * 2)) : "0";
+  const xr = hands && renderer ? tickXr(renderer, hands, dt) : { on: false };
   if (running && !dead) {
-    physics(dt);
+    physics(dt, xr);
+    xrGrab(xr);
     tickFoes(foes, dt, player, map, sdf2, damage);
-    tickSpawners(dt);
-    tickHazards(dt);
+    tickRobots(foes, dt, player, map, sdf2, damage, scene, shots, fireWeapon);
+    tickShots(shots, dt, foes, extras, damage, (p, c) => addBurnDecal(scene, burns, p, c), sdf3, map, sdf2);
+    tickBurns(burns, dt);
+    if (extras) {
+      tickWorld(extras, dt, player, foes, damage, scene);
+      const origin = camera.getWorldPosition(tmp2);
+      const dir = tmp.set(0, 0, -1).applyQuaternion(camera.quaternion);
+      if (shots.length) breakWindows(extras, origin, dir, 18);
+    }
+    for (const s of spawners) {
+      s._t -= dt;
+      if (s._t <= 0 && (s._alive || 0) < (s.maxAlive || 3)) {
+        s._t = s.interval || 6;
+        const e = spawnFrom(s, map, sdf2, foes);
+        if (e) {
+          scene.add(e);
+          s._alive++;
+        }
+      }
+    }
+    tickPickups();
     drawMinimap();
+    hudBars();
   }
   if (renderer && scene) renderer.render(scene, camera);
 }
@@ -376,12 +596,6 @@ function cardCanvas(m) {
         g.fillRect(x * s, z * s, s + 0.5, s + 0.5);
       }
     }
-  }
-  g.fillStyle = "rgba(255,220,80,0.9)";
-  for (const s2 of m.spheres || []) {
-    g.beginPath();
-    g.arc((s2.x / CELL / m.w) * 160, (s2.z / CELL / m.h) * 160, 3, 0, 6.28);
-    g.fill();
   }
   return c.toDataURL();
 }
@@ -405,26 +619,40 @@ async function showList() {
     el.querySelector("img").src = cardCanvas(m);
     el.addEventListener("click", () => enterMap(m.id));
     host.appendChild(el);
-    if (q && (q === m.id || (q === "preview" && m.id === q))) {
-      /* handled below */
-    }
   }
   $("to-maps").href = routes().maps;
-  if (q) enterMap(q);
+  if (q === "proc") enterMap("proc");
+  else if (q) enterMap(q);
 }
 
 addEventListener("keydown", (e) => {
   keys.add(e.code);
-  if (e.code === "KeyM") location.href = routes().maps;
-  if (e.code === "Escape" && dead) {
-    $("dead").hidden = true;
-    $("start").hidden = false;
+  if (e.repeat) return;
+  if (e.code === "KeyI" || e.code === "Tab") {
+    e.preventDefault();
+    const hide = !$("inv").hidden;
+    $("inv").hidden = hide;
+    if (!hide) renderInv();
+  }
+  if (e.code === "KeyR") {
+    const def = held && WEAPON_BY_ID[held];
+    if (def && def.slot === "gun") {
+      mag = def.mag;
+      setMsg("Reloaded");
+      hudBars();
+    }
+  }
+  if (e.code === "KeyE") tryUnlock(extras || { doors: [] }, player, inv.filter((i) => i.id === "key").map((i) => i.keyId));
+  const num = e.code.match(/^Digit([1-8])$/);
+  if (num) {
+    const w = WEAPONS[+num[1] - 1];
+    if (w && (held === w.id || inv.some((i) => i.id === w.id))) setHeld(w.id);
   }
 });
 addEventListener("keyup", (e) => keys.delete(e.code));
 $("again").addEventListener("click", () => {
   $("dead").hidden = true;
-  if (map) enterMap(map.id);
+  if (map) enterMap(map.id.startsWith("proc") ? "proc" : map.id);
 });
 $("dead-menu").addEventListener("click", () => {
   $("dead").hidden = true;
@@ -433,5 +661,7 @@ $("dead-menu").addEventListener("click", () => {
   running = false;
   clearWorld();
 });
+$("go-proc").addEventListener("click", () => enterMap("proc"));
+$("inv-close").addEventListener("click", () => ($("inv").hidden = true));
 
 showList();

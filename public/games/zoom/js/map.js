@@ -2,12 +2,16 @@
 import {
   BIOMES,
   CELL,
+  EYE,
+  FLAG_CROUCH,
+  FLAG_SPIKE,
   MAP_H,
   MAP_W,
   SHAPE_FLAT,
   SHAPE_OVAL,
   SHAPE_ROUND,
   SHAPE_SPHERE,
+  STORIES,
 } from "./config.js";
 
 export { CELL };
@@ -29,20 +33,39 @@ function nid() {
   return "m" + Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 6);
 }
 
+function layers(w, h) {
+  const n = w * h;
+  return {
+    elev: new Int8Array(n),
+    liquid: new Uint8Array(n),
+    sky: new Uint8Array(n),
+    flags: new Uint8Array(n),
+    bwalls: [new Uint8Array(n), new Uint8Array(n), new Uint8Array(n)],
+  };
+}
+
 export function blankMap(name = "Untitled") {
   const w = MAP_W;
   const h = MAP_H;
   return {
-    v: 1,
+    v: 2,
     id: nid(),
     name,
     w,
     h,
     hallH: 4.2,
     cells: new Uint8Array(w * h),
+    ...layers(w, h),
     spheres: [],
     objects: [],
     spawners: [],
+    pickups: [],
+    keys: [],
+    openings: [],
+    portals: [],
+    ropes: [],
+    crushers: [],
+    turrets: [],
     start: { x: (w * 0.5) * CELL, z: (h * 0.5) * CELL, yaw: 0 },
     updated: Date.now(),
   };
@@ -69,49 +92,110 @@ export function fromB64(s) {
   return u8;
 }
 
+function arrB64(a) {
+  if (!a) return "";
+  return toB64(a instanceof Uint8Array ? a : new Uint8Array(a.buffer ? new Uint8Array(a.buffer, a.byteOffset, a.byteLength) : a));
+}
+
+function u8from(raw, n) {
+  const a = typeof raw === "string" && raw ? fromB64(raw) : raw instanceof Uint8Array ? raw : new Uint8Array(raw || []);
+  const o = new Uint8Array(n);
+  o.set(a.subarray(0, n));
+  return o;
+}
+
+function i8from(raw, n) {
+  const u = u8from(raw, n);
+  return new Int8Array(u.buffer, u.byteOffset, n);
+}
+
 export function serialize(map) {
+  ensureLayers(map);
   return {
-    v: 1,
+    v: 2,
     id: map.id,
     name: map.name,
     w: map.w,
     h: map.h,
     hallH: map.hallH,
     cells: toB64(map.cells),
+    elev: arrB64(map.elev),
+    liquid: arrB64(map.liquid),
+    sky: arrB64(map.sky),
+    flags: arrB64(map.flags),
+    bwalls: (map.bwalls || []).map((b) => arrB64(b)),
     spheres: map.spheres || [],
     objects: map.objects || [],
     spawners: map.spawners || [],
+    pickups: map.pickups || [],
+    keys: map.keys || [],
+    openings: map.openings || [],
+    portals: map.portals || [],
+    ropes: map.ropes || [],
+    crushers: map.crushers || [],
+    turrets: map.turrets || [],
     start: map.start,
     updated: map.updated || Date.now(),
   };
 }
 
+export function ensureLayers(map) {
+  const n = map.w * map.h;
+  if (!map.elev || map.elev.length !== n) {
+    const a = new Int8Array(n);
+    if (map.elev) a.set(map.elev.subarray(0, n));
+    map.elev = a;
+  }
+  if (!map.liquid || map.liquid.length !== n) map.liquid = u8from(map.liquid, n);
+  if (!map.sky || map.sky.length !== n) map.sky = u8from(map.sky, n);
+  if (!map.flags || map.flags.length !== n) map.flags = u8from(map.flags, n);
+  if (!map.bwalls || map.bwalls.length < STORIES) {
+    const bw = [];
+    for (let s = 0; s < STORIES; s++) bw.push(u8from(map.bwalls && map.bwalls[s], n));
+    map.bwalls = bw;
+  }
+  map.pickups ||= [];
+  map.keys ||= [];
+  map.openings ||= [];
+  map.portals ||= [];
+  map.ropes ||= [];
+  map.crushers ||= [];
+  map.turrets ||= [];
+  return map;
+}
+
 export function deserialize(raw) {
   const o = typeof raw === "string" ? JSON.parse(raw) : raw;
-  const cells =
-    typeof o.cells === "string"
-      ? fromB64(o.cells)
-      : o.cells instanceof Uint8Array
-        ? o.cells
-        : new Uint8Array(o.cells || []);
   const w = o.w || MAP_W;
   const h = o.h || MAP_H;
-  const sized = new Uint8Array(w * h);
-  sized.set(cells.subarray(0, sized.length));
-  return {
-    v: 1,
+  const n = w * h;
+  const cells = u8from(typeof o.cells === "string" || o.cells ? o.cells : [], n);
+  return ensureLayers({
+    v: 2,
     id: o.id || nid(),
     name: o.name || "Untitled",
     w,
     h,
     hallH: o.hallH || 4.2,
-    cells: sized,
+    cells,
+    elev: i8from(o.elev, n),
+    liquid: u8from(o.liquid, n),
+    sky: u8from(o.sky, n),
+    flags: u8from(o.flags, n),
+    bwalls: [0, 1, 2].map((s) => u8from(o.bwalls && o.bwalls[s], n)),
     spheres: Array.isArray(o.spheres) ? o.spheres.map((s) => ({ ...s })) : [],
     objects: Array.isArray(o.objects) ? o.objects.map((x) => ({ ...x })) : [],
     spawners: Array.isArray(o.spawners) ? o.spawners.map((x) => ({ ...x })) : [],
+    pickups: Array.isArray(o.pickups) ? o.pickups.map((x) => ({ ...x })) : [],
+    keys: Array.isArray(o.keys) ? o.keys.map((x) => ({ ...x })) : [],
+    openings: Array.isArray(o.openings) ? o.openings.map((x) => ({ ...x })) : [],
+    portals: Array.isArray(o.portals) ? o.portals.map((x) => ({ ...x })) : [],
+    ropes: Array.isArray(o.ropes) ? o.ropes.map((x) => ({ ...x })) : [],
+    crushers: Array.isArray(o.crushers) ? o.crushers.map((x) => ({ ...x })) : [],
+    turrets: Array.isArray(o.turrets) ? o.turrets.map((x) => ({ ...x })) : [],
     start: o.start ? { ...o.start } : { x: w * 0.5 * CELL, z: h * 0.5 * CELL, yaw: 0 },
     updated: o.updated || Date.now(),
-  };
+  });
 }
 
 export function idx(map, x, z) {
@@ -254,13 +338,61 @@ export function addSphere(map, x, z, r, tex) {
 }
 
 export function eraseNear(map, x, z, r) {
-  const r2 = r * r;
-  map.spheres = map.spheres.filter((s) => {
-    const d = Math.hypot(s.x - x, s.z - z);
-    return d > r + s.r * 0.35;
-  });
+  ensureLayers(map);
+  map.spheres = map.spheres.filter((s) => Math.hypot(s.x - x, s.z - z) > r + s.r * 0.35);
   map.objects = map.objects.filter((o) => Math.hypot(o.x - x, o.z - z) > r);
   map.spawners = map.spawners.filter((s) => Math.hypot(s.x - x, s.z - z) > r);
+  map.pickups = map.pickups.filter((o) => Math.hypot(o.x - x, o.z - z) > r);
+  map.keys = map.keys.filter((o) => Math.hypot(o.x - x, o.z - z) > r);
+  map.ropes = map.ropes.filter((o) => Math.hypot(o.x - x, o.z - z) > r);
+  map.crushers = map.crushers.filter((o) => Math.hypot(o.x - x, o.z - z) > r);
+  map.turrets = map.turrets.filter((o) => Math.hypot(o.x - x, o.z - z) > r);
+  map.openings = map.openings.filter((o) => Math.hypot((o.x + 0.5) * CELL - x, (o.z + 0.5) * CELL - z) > r);
+}
+
+export function stampLayer(arr, map, cx, cz, radius, value) {
+  ensureLayers(map);
+  const r = Math.max(0.5, radius);
+  const r2 = r * r;
+  const x0 = Math.max(0, Math.floor(cx - r));
+  const x1 = Math.min(map.w - 1, Math.ceil(cx + r));
+  const z0 = Math.max(0, Math.floor(cz - r));
+  const z1 = Math.min(map.h - 1, Math.ceil(cz + r));
+  for (let z = z0; z <= z1; z++) {
+    for (let x = x0; x <= x1; x++) {
+      const dx = x + 0.5 - cx;
+      const dz = z + 0.5 - cz;
+      if (dx * dx + dz * dz <= r2 + 0.15) arr[idx(map, x, z)] = value;
+    }
+  }
+}
+
+export function stampFlags(map, cx, cz, radius, bit, on) {
+  ensureLayers(map);
+  const r = Math.max(0.5, radius);
+  const r2 = r * r;
+  const x0 = Math.max(0, Math.floor(cx - r));
+  const x1 = Math.min(map.w - 1, Math.ceil(cx + r));
+  const z0 = Math.max(0, Math.floor(cz - r));
+  const z1 = Math.min(map.h - 1, Math.ceil(cz + r));
+  for (let z = z0; z <= z1; z++) {
+    for (let x = x0; x <= x1; x++) {
+      const dx = x + 0.5 - cx;
+      const dz = z + 0.5 - cz;
+      if (dx * dx + dz * dz > r2 + 0.15) continue;
+      const i = idx(map, x, z);
+      if (on) {
+        map.flags[i] |= bit;
+        if (!isCarved(map.cells[i])) map.cells[i] = pack(1, SHAPE_FLAT, 1);
+      } else map.flags[i] &= ~bit;
+    }
+  }
+}
+
+export function cellI(map, x, z) {
+  const gx = Math.max(0, Math.min(map.w - 1, Math.floor(x / CELL)));
+  const gz = Math.max(0, Math.min(map.h - 1, Math.floor(z / CELL)));
+  return gz * map.w + gx;
 }
 
 export function hash3(x, y, z) {
@@ -359,12 +491,19 @@ function roundExtrude(d2, y, hy, R, yScale, xScale) {
  */
 export function sdf3(x, y, z, map, sdf2) {
   let dmin = 1e6;
-  const spheres = map.spheres;
+  const spheres = map.spheres || [];
+  const ci = cellI(map, x, z);
+  const elev = (map.elev && map.elev[ci]) || 0;
+  const y0 = elev * EYE;
+  const spike = map.flags && map.flags[ci] & FLAG_SPIKE;
+  const crouch = map.flags && map.flags[ci] & FLAG_CROUCH;
+  const sky = map.sky && map.sky[ci];
+  const floor = y0 - (spike ? 1.45 : 0);
   for (let i = 0; i < spheres.length; i++) {
     const s = spheres[i];
-    const cy = s.cy != null ? s.cy : s.r * 0.55;
+    const cy = (s.cy != null ? s.cy : s.r * 0.55) + y0;
     let ds = Math.hypot(x - s.x, y - cy, z - s.z) - s.r;
-    ds = Math.max(ds, 0.06 - y);
+    ds = Math.max(ds, floor + 0.06 - y);
     if (ds < dmin) dmin = ds;
   }
   const gx = x / CELL;
@@ -374,20 +513,23 @@ export function sdf3(x, y, z, map, sdf2) {
   const cell = cellAt(map, gx, gz);
   if (isCarved(cell) || d2 < CELL * 0.7) {
     const shape = getShape(cell);
-    const H = map.hallH || 4.2;
+    let H = crouch ? 1.22 : sky ? 28 : map.hallH || 4.2;
     const hy = H * 0.5;
+    const ly = y - floor;
     let d3;
-    if (shape === SHAPE_FLAT) {
-      d3 = Math.max(d2, Math.abs(y - hy) - hy, 0.05 - y);
+    if (sky) {
+      d3 = Math.max(d2, 0.05 - ly);
+    } else if (shape === SHAPE_FLAT || crouch) {
+      d3 = Math.max(d2, Math.abs(ly - hy) - hy, 0.05 - ly);
     } else if (shape === SHAPE_OVAL) {
       const R = hy * 0.64;
-      d3 = roundExtrude(d2, y, hy, R, 1.28, 0.76);
-      d3 += (hash3(x * 1.9, y * 2.2, z * 1.6) - 0.5) * 0.62;
-      d3 = Math.max(d3, 0.05 - y);
+      d3 = roundExtrude(d2, ly, hy, R, 1.28, 0.76);
+      d3 += (hash3(x * 1.9, ly * 2.2, z * 1.6) - 0.5) * 0.62;
+      d3 = Math.max(d3, 0.05 - ly);
     } else {
       const R = hy * 0.9;
-      d3 = roundExtrude(d2, y, hy, R, 1, 1);
-      d3 = Math.max(d3, 0.05 - y);
+      d3 = roundExtrude(d2, ly, hy, R, 1, 1);
+      d3 = Math.max(d3, 0.05 - ly);
     }
     if (d3 < dmin) dmin = d3;
   }
@@ -399,14 +541,18 @@ export function isEmptyAt(x, y, z, map, sdf2) {
 }
 
 export function floorY(x, z, map, sdf2, ymax) {
-  const top = ymax || Math.max(map.hallH || 4.2, 8);
+  const ci = cellI(map, x, z);
+  const elev = (map.elev && map.elev[ci]) || 0;
+  const y0 = elev * EYE - (map.flags && map.flags[ci] & FLAG_SPIKE ? 1.45 : 0);
+  const sky = map.sky && map.sky[ci];
+  const top = y0 + (ymax || (sky ? 8 : map.hallH || 4.2));
   let lastEmpty = false;
-  for (let y = top; y > 0.02; y -= 0.08) {
+  for (let y = top; y > y0 - 0.4; y -= 0.08) {
     const empty = sdf3(x, y, z, map, sdf2) < 0;
     if (lastEmpty && !empty) return y + 0.08;
     lastEmpty = empty;
   }
-  if (lastEmpty) return 0.12;
+  if (isCarved(map.cells[ci])) return y0;
   return -1;
 }
 

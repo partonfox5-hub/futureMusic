@@ -8,7 +8,7 @@
     <title>ZOOM — dungeon crawler</title>
     <link rel="icon" type="image/jpeg" href="/games/zoom/og.jpg" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" />
-    <link rel="stylesheet" href="/games/zoom/css/zoom.css?v=z1" />
+    <link rel="stylesheet" href="/games/zoom/css/zoom.css?v=z2" />
     <script>
       window.ZOOM_ROUTES = { play: "/test-w3n9k7qm", maps: "/test-w3n9k7qm-maps" };
     </script>
@@ -21,20 +21,34 @@
       <div id="titlemap">ZOOM</div>
       <div>HP <span id="hpv">100</span></div>
       <div class="bar"><i id="hpi"></i></div>
-      <div>WASD move · mouse look · click swing · shift sprint · space jump · M map maker</div>
+      <div>JET <span id="fuelv">0</span></div>
+      <div class="bar alt"><i id="fueli"></i></div>
+      <div id="wep">unarmed</div>
+      <div id="ammo"></div>
+      <div id="mode"></div>
+      <div class="tiny">WASD · mouse · click fire/swing · C crouch · hold Q skate · F jetpack · R reload · I pack · 1-8 weapons</div>
     </div>
     <div id="miniwrap"><canvas id="mini" width="148" height="148"></canvas></div>
-    <div id="hint">Click to look. Left click swings.</div>
+    <div id="hint">Click to look. Left click fires or swings.</div>
     <div id="msg" hidden></div>
+    <div id="inv" hidden>
+      <div class="panel">
+        <h1>PACK</h1>
+        <p>Click a weapon to equip, or a special item to use.</p>
+        <div id="inv-list"></div>
+        <button type="button" id="inv-close">Close</button>
+      </div>
+    </div>
     <div id="start">
       <div class="panel">
         <h1>ZOOM</h1>
         <p>
-          A dungeon you draw, then crawl. Fill a region for a room. Stroke an outline for a hallway circuit.
-          Enemies are 4-direction animated sprites. Pick a map — or open the map maker and scribble one.
+          Draw a dungeon, then crawl it. Lasers, robots, jetpack, skateboard, buildings, and traps.
+          Quest 3: ENTER VR — grip to pick up weapons, left trigger jetpack, stick-click skate, A/X reload.
         </p>
         <div class="row">
           <a class="btn" id="to-maps" href="/test-w3n9k7qm-maps">Map maker</a>
+          <button type="button" id="go-proc">Random dungeon</button>
           <a class="btn" href="/">Future Music</a>
         </div>
         <div class="cards" id="maps"></div>
@@ -58,6 +72,6 @@
         }
       }
     </script>
-    <script type="module" src="/games/zoom/js/game.js?v=z1"></script>
+    <script type="module" src="/games/zoom/js/game.js?v=z2"></script>
   </body>
 </html>
