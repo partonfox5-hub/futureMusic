@@ -1,6 +1,7 @@
 /** Weapon models, lasers/plasma, burn marks, pickups. */
 import * as THREE from "three";
 import { PICKUP_BY_ID, WEAPON_BY_ID, WEAPONS } from "./config.js";
+import { hurtTurrets } from "./world.js";
 
 function mat(hex, extra) {
   return new THREE.MeshLambertMaterial({ color: hex, ...extra });
@@ -208,10 +209,7 @@ function hitScan(s, foes, extras, onHit, addBurn) {
     }
   }
   addBurn(hitP, s.def.color);
-  if (extras) {
-    const { breakWindows } = extras._break || {};
-    if (typeof extras.breakWindows === "function") extras.breakWindows();
-  }
+  if (extras) hurtTurrets(extras, hitP, s.def.dmg);
 }
 
 function splashOrHit(s, foes, extras, onHit, addBurn) {
@@ -230,6 +228,7 @@ function splashOrHit(s, foes, extras, onHit, addBurn) {
       if (!s.def.flame) s.life = 0;
     }
   }
+  if (extras && s.mesh.position) hurtTurrets(extras, s.mesh.position, s.def.dmg);
 }
 
 export function hurtFoe(f, dmg, dir) {

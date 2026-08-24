@@ -66,6 +66,7 @@ export function blankMap(name = "Untitled") {
     ropes: [],
     crushers: [],
     turrets: [],
+    climbs: [],
     start: { x: (w * 0.5) * CELL, z: (h * 0.5) * CELL, yaw: 0 },
     updated: Date.now(),
   };
@@ -134,6 +135,7 @@ export function serialize(map) {
     ropes: map.ropes || [],
     crushers: map.crushers || [],
     turrets: map.turrets || [],
+    climbs: map.climbs || [],
     start: map.start,
     updated: map.updated || Date.now(),
   };
@@ -161,6 +163,8 @@ export function ensureLayers(map) {
   map.ropes ||= [];
   map.crushers ||= [];
   map.turrets ||= [];
+  map.climbs ||= [];
+  if (!map.collapsed || map.collapsed.length !== n) map.collapsed = new Uint8Array(n);
   return map;
 }
 
@@ -193,6 +197,7 @@ export function deserialize(raw) {
     ropes: Array.isArray(o.ropes) ? o.ropes.map((x) => ({ ...x })) : [],
     crushers: Array.isArray(o.crushers) ? o.crushers.map((x) => ({ ...x })) : [],
     turrets: Array.isArray(o.turrets) ? o.turrets.map((x) => ({ ...x })) : [],
+    climbs: Array.isArray(o.climbs) ? o.climbs.map((x) => ({ ...x })) : [],
     start: o.start ? { ...o.start } : { x: w * 0.5 * CELL, z: h * 0.5 * CELL, yaw: 0 },
     updated: o.updated || Date.now(),
   });
@@ -347,6 +352,7 @@ export function eraseNear(map, x, z, r) {
   map.ropes = map.ropes.filter((o) => Math.hypot(o.x - x, o.z - z) > r);
   map.crushers = map.crushers.filter((o) => Math.hypot(o.x - x, o.z - z) > r);
   map.turrets = map.turrets.filter((o) => Math.hypot(o.x - x, o.z - z) > r);
+  map.climbs = (map.climbs || []).filter((o) => Math.hypot(o.x - x, o.z - z) > r);
   map.openings = map.openings.filter((o) => Math.hypot((o.x + 0.5) * CELL - x, (o.z + 0.5) * CELL - z) > r);
 }
 
@@ -511,9 +517,13 @@ export function sdf3(x, y, z, map, sdf2) {
   if (gx < -1 || gz < -1 || gx > map.w + 1 || gz > map.h + 1) return dmin;
   const d2 = sampleField(sdf2, map.w, map.h, gx, gz) * CELL;
   const cell = cellAt(map, gx, gz);
+  if (map.collapsed && map.collapsed[ci]) {
+    const ly = y - floor;
+    if (ly >= -0.05 && ly < 2.15) return 0.4;
+  }
   if (isCarved(cell) || d2 < CELL * 0.7) {
     const shape = getShape(cell);
-    let H = crouch ? 1.22 : sky ? 28 : map.hallH || 4.2;
+    let H = crouch ? 1.22 : sky ? 40 : map.hallH || 4.2;
     const hy = H * 0.5;
     const ly = y - floor;
     let d3;
@@ -576,4 +586,83 @@ export function countCarved(map) {
   let n = 0;
   for (let i = 0; i < map.cells.length; i++) if (isCarved(map.cells[i])) n++;
   return n;
+}
+
+/** Interior floor mask for an enclosed building story (walls that don't leak to the map border). */
+export function enclosedFloors(map, story) {
+  ensureLayers(map);
+  const w = map.w;
+  const h = map.h;
+  const wall = map.bwalls[story];
+  const floor = new Uint8Array(w * h);
+  if (!wall) return floor;
+  const seen = new Uint8Array(w * h);
+  for (let z = 0; z < h; z++) {
+    for (let x = 0; x < w; x++) {
+      const i = z * w + x;
+      if (wall[i] || seen[i]) continue;
+      const q = [x, z];
+      seen[i] = 1;
+      const pts = [];
+      let border = false;
+      while (q.length) {
+        const cz = q.pop();
+        const cx = q.pop();
+        if (cx === 0 || cz === 0 || cx === w - 1 || cz === h - 1) border = true;
+        pts.push(cx, cz);
+        const n = [cx - 1, cz, cx + 1, cz, cx, cz - 1, cx, cz + 1];
+        for (let k = 0; k < 8; k += 2) {
+          const nx = n[k];
+          const nz = n[k + 1];
+          if (!inBounds(map, nx, nz)) {
+            border = true;
+            continue;
+          }
+          const j = nz * w + nx;
+          if (seen[j] || wall[j]) continue;
+          seen[j] = 1;
+          q.push(nx, nz);
+        }
+      }
+      if (!border && pts.length > 4) {
+        for (let p = 0; p < pts.length; p += 2) floor[pts[p + 1] * w + pts[p]] = 1;
+      }
+    }
+  }
+  return floor;
+}
+
+/** Stairs/ladders only between consecutive enclosed stories (1↔2 or 2↔3). */
+export function canPlaceClimb(map, gx, gz, from) {
+  ensureLayers(map);
+  const to = from + 1;
+  if (from < 0 || to >= STORIES) return false;
+  if (!inBounds(map, gx, gz)) return false;
+  const a = enclosedFloors(map, from);
+  const b = enclosedFloors(map, to);
+  const i = idx(map, gx, gz);
+  return !!(a[i] && b[i]);
+}
+
+export function climbAtCell(map, gx, gz) {
+  return (map.climbs || []).find((c) => Math.floor(c.x / CELL) === gx && Math.floor(c.z / CELL) === gz);
+}
+
+/** Hole in this story's floor (upper landing of a climb). */
+export function climbHoleFloor(map, gx, gz, story) {
+  return (map.climbs || []).some((c) => {
+    if (Math.floor(c.x / CELL) !== gx || Math.floor(c.z / CELL) !== gz) return false;
+    const from = c.from || 0;
+    const to = c.to || from + 1;
+    return to === story;
+  });
+}
+
+/** Hole in this story's roof (lower landing of a climb). */
+export function climbHoleRoof(map, gx, gz, story) {
+  return (map.climbs || []).some((c) => {
+    if (Math.floor(c.x / CELL) !== gx || Math.floor(c.z / CELL) !== gz) return false;
+    const from = c.from || 0;
+    return from === story;
+  });
 }

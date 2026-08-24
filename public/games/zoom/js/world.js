@@ -4,12 +4,13 @@ import {
   CELL,
   EYE,
   FLAG_SPIKE,
+  FLAG_UNSTABLE,
   PORTAL_COLORS,
   STORY_H,
   STORIES,
   WALL_TEX,
 } from "./config.js";
-import { cellI, idx, inBounds, isCarved } from "./map.js";
+import { cellI, climbHoleFloor, climbHoleRoof, enclosedFloors, idx, inBounds } from "./map.js";
 
 function mat(hex, extra) {
   return new THREE.MeshLambertMaterial({ color: hex, ...extra });
@@ -59,80 +60,267 @@ function wmat(id) {
 
 export function makeSky(kind) {
   const c = document.createElement("canvas");
-  c.width = 256;
-  c.height = 256;
+  c.width = 1024;
+  c.height = 512;
   const g = c.getContext("2d");
+  const grd = g.createLinearGradient(0, 0, 0, 512);
   if (kind === 1) {
-    const grd = g.createLinearGradient(0, 0, 0, 256);
-    grd.addColorStop(0, "#7ec8ff");
-    grd.addColorStop(1, "#d8ecff");
+    grd.addColorStop(0, "#0b1a48");
+    grd.addColorStop(0.28, "#3a7ad4");
+    grd.addColorStop(0.48, "#8ec8f4");
+    grd.addColorStop(0.58, "#d8ecff");
+    grd.addColorStop(0.62, "#f0e2b0");
+    grd.addColorStop(0.72, "#6a8a40");
+    grd.addColorStop(1, "#3a5a28");
     g.fillStyle = grd;
-    g.fillRect(0, 0, 256, 256);
-    g.fillStyle = "#fff8e0";
+    g.fillRect(0, 0, 1024, 512);
+    g.fillStyle = "#fff4c0";
     g.beginPath();
-    g.arc(200, 50, 28, 0, 6.28);
+    g.arc(780, 70, 52, 0, 6.28);
     g.fill();
+    g.fillStyle = "rgba(255,255,255,0.72)";
+    for (let i = 0; i < 14; i++) {
+      g.beginPath();
+      g.ellipse(40 + i * 72, 150 + (i % 4) * 16, 70, 18, 0, 0, 6.28);
+      g.fill();
+    }
   } else if (kind === 2) {
-    g.fillStyle = "#060814";
-    g.fillRect(0, 0, 256, 256);
+    grd.addColorStop(0, "#010106");
+    grd.addColorStop(0.45, "#0a1230");
+    grd.addColorStop(0.58, "#1c2448");
+    grd.addColorStop(0.64, "#2a2840");
+    grd.addColorStop(1, "#08080c");
+    g.fillStyle = grd;
+    g.fillRect(0, 0, 1024, 512);
     g.fillStyle = "#e8e8ff";
-    for (let i = 0; i < 80; i++) g.fillRect((i * 37) % 256, (i * 91) % 256, 2, 2);
-    g.fillStyle = "#d0d8e8";
+    for (let i = 0; i < 280; i++) g.fillRect((i * 97) % 1024, (i * 53) % 280, 1 + (i % 2), 1 + (i % 2));
+    g.fillStyle = "#f4f0d8";
     g.beginPath();
-    g.arc(40, 40, 18, 0, 6.28);
+    g.arc(160, 64, 34, 0, 6.28);
     g.fill();
   } else {
-    const grd = g.createLinearGradient(0, 0, 0, 256);
-    grd.addColorStop(0, "#6aa0c8");
-    grd.addColorStop(0.45, "#4a8a50");
-    grd.addColorStop(1, "#1a3a18");
+    grd.addColorStop(0, "#2a5588");
+    grd.addColorStop(0.38, "#5a9a68");
+    grd.addColorStop(0.55, "#2a6a30");
+    grd.addColorStop(0.7, "#163818");
+    grd.addColorStop(1, "#0c1808");
     g.fillStyle = grd;
-    g.fillRect(0, 0, 256, 256);
+    g.fillRect(0, 0, 1024, 512);
+    g.fillStyle = "rgba(18,52,16,0.72)";
+    for (let i = 0; i < 18; i++) {
+      g.beginPath();
+      g.arc(i * 60, 310, 88, 0, 3.14, true);
+      g.fill();
+    }
   }
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.mapping = THREE.EquirectangularReflectionMapping;
+  t.needsUpdate = true;
+  return t;
+}
+
+function fireTex() {
+  const c = document.createElement("canvas");
+  c.width = 64;
+  c.height = 96;
+  const g = c.getContext("2d");
+  const grd = g.createRadialGradient(32, 78, 2, 32, 40, 34);
+  grd.addColorStop(0, "rgba(255,255,230,1)");
+  grd.addColorStop(0.18, "rgba(255,220,80,0.95)");
+  grd.addColorStop(0.42, "rgba(255,120,16,0.85)");
+  grd.addColorStop(0.7, "rgba(220,30,0,0.35)");
+  grd.addColorStop(1, "rgba(20,0,0,0)");
+  g.fillStyle = grd;
+  g.beginPath();
+  g.moveTo(32, 6);
+  g.bezierCurveTo(48, 28, 56, 58, 32, 94);
+  g.bezierCurveTo(8, 58, 16, 28, 32, 6);
+  g.fill();
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace;
   return t;
 }
 
-export function enclosedFloors(map, story) {
-  const w = map.w;
-  const h = map.h;
-  const wall = map.bwalls[story];
-  const floor = new Uint8Array(w * h);
-  const seen = new Uint8Array(w * h);
-  for (let z = 0; z < h; z++) {
-    for (let x = 0; x < w; x++) {
-      const i = z * w + x;
-      if (wall[i] || seen[i]) continue;
-      const q = [x, z];
-      seen[i] = 1;
-      const pts = [];
-      let border = false;
-      while (q.length) {
-        const cz = q.pop();
-        const cx = q.pop();
-        if (cx === 0 || cz === 0 || cx === w - 1 || cz === h - 1) border = true;
-        pts.push(cx, cz);
-        const n = [cx - 1, cz, cx + 1, cz, cx, cz - 1, cx, cz + 1];
-        for (let k = 0; k < 8; k += 2) {
-          const nx = n[k];
-          const nz = n[k + 1];
-          if (!inBounds(map, nx, nz)) {
-            border = true;
-            continue;
-          }
-          const j = nz * w + nx;
-          if (seen[j] || wall[j]) continue;
-          seen[j] = 1;
-          q.push(nx, nz);
-        }
-      }
-      if (!border && pts.length > 4) {
-        for (let p = 0; p < pts.length; p += 2) floor[pts[p + 1] * w + pts[p]] = 1;
-      }
-    }
+function smokeTex() {
+  const c = document.createElement("canvas");
+  c.width = c.height = 64;
+  const g = c.getContext("2d");
+  const grd = g.createRadialGradient(32, 32, 4, 32, 32, 30);
+  grd.addColorStop(0, "rgba(40,28,22,0.45)");
+  grd.addColorStop(1, "rgba(20,16,12,0)");
+  g.fillStyle = grd;
+  g.fillRect(0, 0, 64, 64);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
+let FIRE_TEX = null;
+let SMOKE_TEX = null;
+function fireMat() {
+  FIRE_TEX ||= fireTex();
+  return new THREE.SpriteMaterial({ map: FIRE_TEX, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending });
+}
+function smokeMat() {
+  SMOKE_TEX ||= smokeTex();
+  return new THREE.SpriteMaterial({ map: SMOKE_TEX, transparent: true, depthWrite: false });
+}
+
+function hpSprite() {
+  const c = document.createElement("canvas");
+  c.width = 64;
+  c.height = 10;
+  const g = c.getContext("2d");
+  const spr = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthTest: false }));
+  spr.scale.set(0.9, 0.14, 1);
+  spr.userData.hpCanvas = c;
+  spr.userData.hpCtx = g;
+  return spr;
+}
+
+function paintHp(spr, hp, max) {
+  const g = spr.userData.hpCtx;
+  const c = spr.userData.hpCanvas;
+  g.clearRect(0, 0, 64, 10);
+  g.fillStyle = "#1a0808";
+  g.fillRect(0, 0, 64, 10);
+  g.fillStyle = "#33cc55";
+  g.fillRect(2, 2, 60 * Math.max(0, hp / max), 6);
+  g.strokeStyle = "#000";
+  g.strokeRect(0.5, 0.5, 63, 9);
+  spr.material.map.needsUpdate = true;
+}
+
+let FLUTE_MAT = null;
+function fluteMat() {
+  if (FLUTE_MAT) return FLUTE_MAT;
+  const c = document.createElement("canvas");
+  c.width = 64;
+  c.height = 128;
+  const g = c.getContext("2d");
+  g.fillStyle = "#e6ddd0";
+  g.fillRect(0, 0, 64, 128);
+  for (let i = 0; i < 20; i++) {
+    const x = i * 3.2;
+    g.fillStyle = i % 2 ? "#cfc6b4" : "#efe8dc";
+    g.fillRect(x, 0, 2.4, 128);
+    g.fillStyle = "rgba(70,58,42,0.28)";
+    g.fillRect(x, 0, 0.7, 128);
   }
-  return floor;
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.colorSpace = THREE.SRGBColorSpace;
+  FLUTE_MAT = new THREE.MeshLambertMaterial({ map: t, color: 0xf0e8dc });
+  return FLUTE_MAT;
+}
+
+function makeColumn() {
+  const g = new THREE.Group();
+  const marble = fluteMat();
+  const shade = mat(0xd4c8b4);
+  const dark = mat(0xb8aa94);
+  const plinth = new THREE.Mesh(new THREE.BoxGeometry(0.92, 0.16, 0.92), dark);
+  plinth.position.y = 0.08;
+  const plinth2 = new THREE.Mesh(new THREE.BoxGeometry(0.78, 0.1, 0.78), shade);
+  plinth2.position.y = 0.2;
+  const torus = new THREE.Mesh(new THREE.TorusGeometry(0.34, 0.055, 8, 18), shade);
+  torus.rotation.x = Math.PI / 2;
+  torus.position.y = 0.3;
+  const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.3, 2.55, 20), marble);
+  shaft.position.y = 1.62;
+  const neck = new THREE.Mesh(new THREE.TorusGeometry(0.24, 0.04, 6, 16), shade);
+  neck.rotation.x = Math.PI / 2;
+  neck.position.y = 2.9;
+  const echinus = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.26, 0.16, 14), shade);
+  echinus.position.y = 3.02;
+  const abacus = new THREE.Mesh(new THREE.BoxGeometry(0.82, 0.12, 0.82), dark);
+  abacus.position.y = 3.14;
+  g.add(plinth, plinth2, torus, shaft, neck, echinus, abacus);
+  g.userData.height = 3.22;
+  return g;
+}
+
+function makeMetalTurret() {
+  const g = new THREE.Group();
+  const iron = mat(0x5a6168);
+  const dark = mat(0x24282c);
+  const steel = mat(0x9aa2aa);
+  const rust = mat(0x6a4030);
+  const base = new THREE.Mesh(new THREE.CylinderGeometry(0.46, 0.54, 0.14, 10), dark);
+  base.position.y = 0.07;
+  for (let i = 0; i < 3; i++) {
+    const leg = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.12, 0.42), iron);
+    leg.position.set(Math.sin(i * 2.094) * 0.28, 0.08, Math.cos(i * 2.094) * 0.28);
+    leg.rotation.y = i * 2.094;
+    g.add(leg);
+  }
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.34, 0.62, 10), iron);
+  body.position.y = 0.46;
+  const tank = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.13, 0.38, 8), rust);
+  tank.position.set(-0.34, 0.42, 0);
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.26, 0.045, 6, 14), steel);
+  ring.rotation.x = Math.PI / 2;
+  ring.position.y = 0.78;
+  const head = new THREE.Group();
+  head.position.y = 0.88;
+  const housing = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.3, 0.44), iron);
+  const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.09, 0.78, 8), steel);
+  barrel.rotation.x = Math.PI / 2;
+  barrel.position.z = 0.5;
+  const shroud = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.1, 0.18, 8), dark);
+  shroud.rotation.x = Math.PI / 2;
+  shroud.position.z = 0.88;
+  const muzzle = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.07, 0.08, 8), dark);
+  muzzle.rotation.x = Math.PI / 2;
+  muzzle.position.z = 0.98;
+  const box = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.16, 0.26), dark);
+  box.position.set(0.3, -0.02, 0);
+  const rivet = new THREE.Mesh(new THREE.SphereGeometry(0.03, 6, 4), steel);
+  rivet.position.set(0.18, 0.12, 0.2);
+  head.add(housing, barrel, shroud, muzzle, box, rivet);
+  g.add(base, body, tank, ring, head);
+  const hp = hpSprite();
+  hp.position.y = 1.48;
+  hp.scale.set(1.15, 0.18, 1);
+  hp.renderOrder = 8;
+  g.add(hp);
+  g.userData.head = head;
+  g.userData.hpBar = hp;
+  g.userData.muzzle = muzzle;
+  return g;
+}
+
+function makeStairs(h) {
+  const g = new THREE.Group();
+  const wood = mat(0x8a5a32);
+  const n = Math.max(6, Math.round(h / 0.28));
+  for (let i = 0; i < n; i++) {
+    const step = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.08, 0.32), wood);
+    const t = (i + 0.5) / n;
+    step.position.set(0, t * h, (t - 0.5) * 1.1);
+    g.add(step);
+  }
+  return g;
+}
+
+function makeLadder(h) {
+  const g = new THREE.Group();
+  const iron = mat(0x6a6860);
+  const wood = mat(0x6a4424);
+  const r = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, h, 6), iron);
+  r.position.set(-0.18, h * 0.5, 0);
+  const l = r.clone();
+  l.position.x = 0.18;
+  g.add(r, l);
+  const rungs = Math.max(5, Math.round(h / 0.32));
+  for (let i = 0; i < rungs; i++) {
+    const rg = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.42, 6), wood);
+    rg.rotation.z = Math.PI / 2;
+    rg.position.y = 0.2 + (i / (rungs - 1)) * (h - 0.4);
+    g.add(rg);
+  }
+  return g;
 }
 
 function openingAt(map, x, z, story) {
@@ -142,7 +330,7 @@ function openingAt(map, x, z, story) {
 export function buildWorld(map, dungeon, scene) {
   const group = new THREE.Group();
   group.name = "world";
-  const extras = { crushers: [], turrets: [], ropes: [], portals: [], doors: [], windows: [], liquids: [], spikes: [] };
+  const extras = { crushers: [], turrets: [], ropes: [], portals: [], doors: [], windows: [], liquids: [], spikes: [], climbs: [], caveins: [], unstables: [], horizon: null };
 
   const spikeGeo = new THREE.ConeGeometry(0.12, 0.7, 5);
   const spikeMat = mat(0x8a9098, { emissive: 0x222 });
@@ -200,12 +388,16 @@ export function buildWorld(map, dungeon, scene) {
           }
         }
         if (floors[i]) {
-          const fl = new THREE.Mesh(new THREE.BoxGeometry(CELL, 0.12, CELL), wmat("cabin"));
-          fl.position.set((x + 0.5) * CELL, yBase + 0.06, (z + 0.5) * CELL);
-          group.add(fl);
-          const roof = new THREE.Mesh(new THREE.BoxGeometry(CELL, 0.1, CELL), wmat("cabin"));
-          roof.position.set((x + 0.5) * CELL, yBase + STORY_H - 0.05, (z + 0.5) * CELL);
-          group.add(roof);
+          if (!climbHoleFloor(map, x, z, story)) {
+            const fl = new THREE.Mesh(new THREE.BoxGeometry(CELL, 0.12, CELL), wmat("cabin"));
+            fl.position.set((x + 0.5) * CELL, yBase + 0.06, (z + 0.5) * CELL);
+            group.add(fl);
+          }
+          if (!climbHoleRoof(map, x, z, story)) {
+            const roof = new THREE.Mesh(new THREE.BoxGeometry(CELL, 0.1, CELL), wmat("cabin"));
+            roof.position.set((x + 0.5) * CELL, yBase + STORY_H - 0.05, (z + 0.5) * CELL);
+            group.add(roof);
+          }
         }
       }
     }
@@ -227,23 +419,87 @@ export function buildWorld(map, dungeon, scene) {
 
   for (const t of map.turrets || []) {
     const y0 = ((map.elev && map.elev[cellI(map, t.x, t.z)]) || 0) * EYE;
-    const g = new THREE.Group();
-    g.add(new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.34, 0.5, 8), mat(0x444)));
-    const head = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.22, 0.55), mat(0x8a2020, { emissive: 0x3a0800 }));
-    head.position.y = 0.45;
-    g.add(head);
+    const g = makeMetalTurret();
     g.position.set(t.x, y0, t.z);
     group.add(g);
-    extras.turrets.push({ x: t.x, z: t.z, y: y0 + 0.5, mesh: g, head, cool: 0.4 });
+    paintHp(g.userData.hpBar, 70, 70);
+    const light = new THREE.PointLight(0xff6622, 0, 9, 2);
+    light.position.set(t.x, y0 + 1.05, t.z);
+    group.add(light);
+    extras.turrets.push({
+      x: t.x,
+      z: t.z,
+      y: y0 + 0.95,
+      y0,
+      mesh: g,
+      head: g.userData.head,
+      hpBar: g.userData.hpBar,
+      muzzle: g.userData.muzzle,
+      light,
+      hp: 70,
+      maxHp: 70,
+      cool: 0.4,
+    });
   }
 
   for (const c of map.crushers || []) {
     const y0 = ((map.elev && map.elev[cellI(map, c.x, c.z)]) || 0) * EYE;
     const top = y0 + (map.hallH || 4.2);
-    const mesh = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.45, 1.4), mat(0x5a5854, { emissive: 0x221108 }));
-    mesh.position.set(c.x, y0 + 0.4, c.z);
+    const mesh = makeColumn();
+    mesh.position.set(c.x, y0, c.z);
     group.add(mesh);
-    extras.crushers.push({ x: c.x, z: c.z, y0, top, mesh, t: Math.random() * 6 });
+    const socket = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.18, 0.95), mat(0x8a8074));
+    socket.position.set(c.x, top - 0.08, c.z);
+    group.add(socket);
+    extras.crushers.push({ x: c.x, z: c.z, y0, top, mesh, t: Math.random() * 3.2, h: 3.22 });
+  }
+
+  for (const cl of map.climbs || []) {
+    const from = cl.from || 0;
+    const to = cl.to || from + 1;
+    const y0 = from * STORY_H + 0.12;
+    const y1 = to * STORY_H + 0.12;
+    const g = cl.kind === "ladder" ? makeLadder(y1 - y0) : makeStairs(y1 - y0);
+    const yaw = cl.yaw || 0;
+    g.position.set(cl.x, y0, cl.z);
+    g.rotation.y = yaw;
+    group.add(g);
+    extras.climbs.push({ kind: cl.kind, x: cl.x, z: cl.z, y0, y1, yaw, mesh: g });
+  }
+
+  if (map.flags) {
+    const crackM = mat(0x2a2218, { transparent: true, opacity: 0.55 });
+    for (let z = 0; z < map.h; z++) {
+      for (let x = 0; x < map.w; x++) {
+        const i = idx(map, x, z);
+        if (!(map.flags[i] & FLAG_UNSTABLE)) continue;
+        if (map.sky && map.sky[i]) continue;
+        const y0 = ((map.elev && map.elev[i]) || 0) * EYE;
+        const ceil = new THREE.Mesh(new THREE.PlaneGeometry(CELL * 0.96, CELL * 0.96), crackM);
+        ceil.rotation.x = Math.PI / 2;
+        ceil.position.set((x + 0.5) * CELL, y0 + (map.hallH || 4.2) - 0.06, (z + 0.5) * CELL);
+        group.add(ceil);
+        extras.unstables.push({ i, mesh: ceil, x: (x + 0.5) * CELL, z: (z + 0.5) * CELL, y0 });
+      }
+    }
+  }
+
+  let hasSky = false;
+  if (map.sky) {
+    for (let i = 0; i < map.sky.length; i++) if (map.sky[i]) {
+      hasSky = true;
+      break;
+    }
+  }
+  if (hasSky) {
+    const ground = new THREE.Mesh(
+      new THREE.CircleGeometry(220, 40),
+      new THREE.MeshLambertMaterial({ color: 0x3a5a28 }),
+    );
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.set((map.w * CELL) * 0.5, -0.4, (map.h * CELL) * 0.5);
+    group.add(ground);
+    extras.horizon = ground;
   }
 
   for (let i = 0; i < (map.portals || []).length; i++) {
@@ -370,6 +626,7 @@ export function buildingFloorY(map, x, z, y) {
   let best = -1;
   if (!map._floors) map._floors = [0, 1, 2].map((s) => enclosedFloors(map, s));
   for (let s = 0; s < STORIES; s++) {
+    if (climbHoleFloor(map, gx, gz, s)) continue;
     const fl = map._floors[s];
     if (fl && fl[idx(map, gx, gz)]) {
       const fy = s * STORY_H + 0.12;
@@ -379,41 +636,91 @@ export function buildingFloorY(map, x, z, y) {
   return best;
 }
 
-export function tickWorld(extras, dt, player, foes, onHit, scene) {
-  for (const c of extras.crushers) {
-    c.t += dt;
-    const u = (Math.sin(c.t * 1.1) + 1) * 0.5;
-    const y = c.y0 + 0.35 + u * Math.max(0.6, c.top - c.y0 - 0.8);
-    c.mesh.position.y = y;
-    if (Math.hypot(player.x - c.x, player.z - c.z) < 0.85) {
-      if (player.y < y + 0.35 && player.y > c.y0 + 0.2 && u > 0.55) onHit(40, "crushed");
+export function climbSupport(extras, player) {
+  if (!extras || !extras.climbs) return null;
+  for (const cl of extras.climbs) {
+    const dx = player.x - cl.x;
+    const dz = player.z - cl.z;
+    const d = Math.hypot(dx, dz);
+    if (cl.kind === "ladder") {
+      if (d < 0.58 && player.y > cl.y0 - 0.5 && player.y < cl.y1 + 1.7) return cl;
+    } else if (d < 1.05) {
+      const c = Math.cos(cl.yaw || 0);
+      const s = Math.sin(cl.yaw || 0);
+      const along = dx * s + dz * c;
+      const across = dx * c - dz * s;
+      if (Math.abs(across) < 0.55 && Math.abs(along) < 0.85) return cl;
     }
   }
+  return null;
+}
+
+export function tickWorld(extras, dt, player, foes, onHit, scene, camera, map) {
+  for (const c of extras.crushers) {
+    c.t += dt;
+    const T = 3.35;
+    const p = (c.t % T) / T;
+    let u;
+    if (p < 0.36) u = p / 0.36;
+    else if (p < 0.55) u = 1;
+    else if (p < 0.68) u = 1 - Math.pow((p - 0.55) / 0.13, 1.6);
+    else u = 0;
+    const travel = Math.max(1.55, (c.top - c.y0) - 1.05);
+    const goingDown = p >= 0.55 && p < 0.68;
+    c.mesh.position.y = c.y0 + u * travel;
+    const capY = c.mesh.position.y + c.h;
+    const dist = Math.hypot(player.x - c.x, player.z - c.z);
+    if (dist < 0.52 && player.y < capY && player.y > c.mesh.position.y + 0.15 && goingDown) {
+      onHit(40, "crushed by a column");
+    } else if (dist < 0.5 && player.y >= capY - 0.2 && player.y < capY + 1.65) {
+      player.y = Math.max(player.y, capY + 1.55);
+      if (capY + 1.65 > c.top - 0.1) onHit(50, "crushed by a column");
+    }
+  }
+  const muz = new THREE.Vector3();
   for (const t of extras.turrets) {
+    if (t.hp <= 0) {
+      if (t.mesh.visible) t.mesh.visible = false;
+      if (t.light) t.light.intensity = 0;
+      continue;
+    }
     t.cool -= dt;
     const dx = player.x - t.x;
     const dz = player.z - t.z;
     const d = Math.hypot(dx, dz) || 1;
     t.head.rotation.y = Math.atan2(dx, dz);
-    if (d < 14 && t.cool <= 0) {
-      t.cool = 0.18;
-      spawnFlame(scene, t.x, t.y, t.z, dx / d, dz / d, extras);
+    if (t.hpBar && camera) t.hpBar.lookAt(camera.position);
+    paintHp(t.hpBar, t.hp, t.maxHp);
+    const firing = d < 16;
+    if (t.light) t.light.intensity = firing ? 1.6 + Math.random() * 1.8 : 0.15;
+    if (firing && t.cool <= 0) {
+      t.cool = 0.05;
+      if (t.muzzle) t.muzzle.getWorldPosition(muz);
+      else muz.set(t.x, t.y, t.z);
+      spawnFlame(scene, muz.x, muz.y, muz.z, dx / d, dz / d, extras);
     }
   }
   extras._flames = extras._flames || [];
   for (let i = extras._flames.length - 1; i >= 0; i--) {
     const f = extras._flames[i];
     f.life -= dt;
-    f.mesh.position.addScaledVector(f.dir, 11 * dt);
-    if (f.mesh.position.distanceTo(new THREE.Vector3(player.x, player.y, player.z)) < 0.7) {
-      onHit(4, "burned");
-      f.life = 0;
+    f.mesh.position.addScaledVector(f.dir, (f.speed || 7) * dt);
+    f.dir.y += dt * (f.smoke ? 2.6 : 1.4);
+    f.dir.x += (Math.random() - 0.5) * dt * 1.4;
+    f.dir.z += (Math.random() - 0.5) * dt * 1.4;
+    const k = Math.max(0, f.life / (f.maxLife || 0.5));
+    const sc = (f.s0 || 0.4) * (f.smoke ? 1.4 - k * 0.4 : 0.4 + k * 0.9);
+    f.mesh.scale.set(sc * (f.sx || 1), sc * (f.sy || 1.6), 1);
+    if (f.mesh.material) f.mesh.material.opacity = f.smoke ? 0.08 + k * 0.28 : 0.2 + k * 0.8;
+    if (!f.smoke && f.mesh.position.distanceTo(new THREE.Vector3(player.x, player.y, player.z)) < 0.55 + sc * 0.35) {
+      onHit(9 * dt * 7, "burned");
     }
     if (f.life <= 0) {
       f.mesh.removeFromParent();
       extras._flames.splice(i, 1);
     }
   }
+  if (map) tickCaveIn(extras, dt, player, map, scene, onHit);
   for (const p of extras.portals) {
     p.cool = Math.max(0, p.cool - dt);
     p.a.mesh.rotation.y += dt * 1.4;
@@ -434,11 +741,143 @@ export function tickWorld(extras, dt, player, foes, onHit, scene) {
 }
 
 function spawnFlame(scene, x, y, z, dx, dz, extras) {
-  const m = new THREE.Mesh(new THREE.SphereGeometry(0.12, 6, 6), mat(0xff6622, { emissive: 0xff3300 }));
-  m.position.set(x, y, z);
-  scene.add(m);
   extras._flames = extras._flames || [];
-  extras._flames.push({ mesh: m, dir: new THREE.Vector3(dx, 0.05, dz), life: 0.7 });
+  if (extras._flames.length > 90) {
+    const old = extras._flames.shift();
+    old.mesh.removeFromParent();
+  }
+  const n = 7 + (Math.random() * 5) | 0;
+  for (let i = 0; i < n; i++) {
+    const spr = new THREE.Sprite(fireMat());
+    const s0 = 0.28 + Math.random() * 0.42;
+    spr.scale.set(s0 * 0.7, s0 * 1.7, 1);
+    spr.position.set(x + (Math.random() - 0.5) * 0.08, y + Math.random() * 0.06, z + (Math.random() - 0.5) * 0.08);
+    scene.add(spr);
+    extras._flames.push({
+      mesh: spr,
+      dir: new THREE.Vector3(dx + (Math.random() - 0.5) * 0.28, 0.18 + Math.random() * 0.45, dz + (Math.random() - 0.5) * 0.28),
+      speed: 7 + Math.random() * 6,
+      life: 0.22 + Math.random() * 0.28,
+      maxLife: 0.5,
+      s0,
+      sx: 0.7,
+      sy: 1.8,
+    });
+  }
+  if (Math.random() < 0.45) {
+    const sm = new THREE.Sprite(smokeMat());
+    const s0 = 0.5 + Math.random() * 0.4;
+    sm.scale.setScalar(s0);
+    sm.position.set(x + dx * 0.4, y + 0.1, z + dz * 0.4);
+    scene.add(sm);
+    extras._flames.push({
+      mesh: sm,
+      dir: new THREE.Vector3(dx * 0.3, 0.7, dz * 0.3),
+      speed: 2.2,
+      life: 0.7,
+      maxLife: 0.7,
+      s0,
+      smoke: true,
+    });
+  }
+}
+
+export function hurtTurrets(extras, point, dmg) {
+  let hit = false;
+  for (const t of extras.turrets || []) {
+    if (t.hp <= 0) continue;
+    if (Math.hypot(point.x - t.x, point.z - t.z) > 0.7) continue;
+    if (Math.abs(point.y - t.y) > 1.2) continue;
+    t.hp -= dmg;
+    paintHp(t.hpBar, t.hp, t.maxHp);
+    hit = true;
+    if (t.hp <= 0) {
+      t.hp = 0;
+      t.mesh.visible = false;
+      if (t.light) t.light.intensity = 0;
+    }
+  }
+  return hit;
+}
+
+function tickCaveIn(extras, dt, player, map, scene, onHit) {
+  if (!map.flags) return;
+  extras._unst = extras._unst || {};
+  const moving = Math.hypot(player.vx || 0, player.vz || 0) > 0.45;
+  const gi = Math.floor(player.x / CELL);
+  const gz = Math.floor(player.z / CELL);
+  let under = false;
+  for (let z = gz - 2; z <= gz + 2; z++) {
+    for (let x = gi - 2; x <= gi + 2; x++) {
+      if (!inBounds(map, x, z)) continue;
+      const i = idx(map, x, z);
+      if (!(map.flags[i] & FLAG_UNSTABLE)) continue;
+      if (map.collapsed && map.collapsed[i]) continue;
+      under = true;
+      if (moving && extras._unst[i] == null) extras._unst[i] = 0.25 + Math.random() * 1.75;
+    }
+  }
+  extras._warn = under && Object.keys(extras._unst).length ? "The ceiling groans…" : extras._warn;
+  for (const key of Object.keys(extras._unst)) {
+    const i = +key;
+    extras._unst[i] -= dt;
+    if (extras._unst[i] > 0) continue;
+    delete extras._unst[i];
+    collapseCell(map, extras, scene, i, player, onHit);
+    const w = map.w;
+    const x = i % w;
+    const z = (i / w) | 0;
+    for (let oz = -2; oz <= 2; oz++) {
+      for (let ox = -2; ox <= 2; ox++) {
+        if (!ox && !oz) continue;
+        if (Math.random() > 0.42) continue;
+        const nx = x + ox;
+        const nz = z + oz;
+        if (!inBounds(map, nx, nz)) continue;
+        const j = idx(map, nx, nz);
+        if (map.flags[j] & FLAG_UNSTABLE && !(map.collapsed && map.collapsed[j])) collapseCell(map, extras, scene, j, player, onHit);
+      }
+    }
+  }
+}
+
+function collapseCell(map, extras, scene, i, player, onHit) {
+  if (!map.collapsed) map.collapsed = new Uint8Array(map.w * map.h);
+  if (map.collapsed[i]) return;
+  map.collapsed[i] = 1;
+  const x = i % map.w;
+  const z = (i / map.w) | 0;
+  const y0 = ((map.elev && map.elev[i]) || 0) * EYE;
+  const crack = (extras.unstables || []).find((u) => u.i === i);
+  if (crack && crack.mesh) crack.mesh.visible = false;
+  const rock = mat(0x5a5248);
+  for (let k = 0; k < 7; k++) {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(0.35 + Math.random() * 0.45, 0.28 + Math.random() * 0.55, 0.3 + Math.random() * 0.4), rock);
+    m.position.set((x + 0.15 + Math.random() * 0.7) * CELL, y0 + 2.5 + Math.random() * 0.8, (z + 0.15 + Math.random() * 0.7) * CELL);
+    m.userData.vy = -2;
+    m.userData.floor = y0 + 0.25 + Math.random() * 0.55;
+    scene.add(m);
+    extras.caveins.push(m);
+  }
+  if (player && onHit) {
+    const d = Math.hypot(player.x - (x + 0.5) * CELL, player.z - (z + 0.5) * CELL);
+    if (d < CELL * 0.85 && player.y < y0 + 3.2) onHit(18, "crushed by a cave-in");
+  }
+}
+
+export function tickRubble(extras, dt) {
+  for (const m of extras.caveins || []) {
+    if (!m.userData.falling && m.userData.falling !== false) m.userData.falling = true;
+    if (m.position.y > m.userData.floor) {
+      m.userData.vy = (m.userData.vy || 0) - 28 * dt;
+      m.position.y += m.userData.vy * dt;
+      m.rotation.x += dt * 2;
+      if (m.position.y <= m.userData.floor) {
+        m.position.y = m.userData.floor;
+        m.userData.vy = 0;
+      }
+    }
+  }
 }
 
 export function tryUnlock(extras, player, keys) {

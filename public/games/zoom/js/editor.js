@@ -4,6 +4,7 @@ import {
   ENEMIES,
   FLAG_CROUCH,
   FLAG_SPIKE,
+  FLAG_UNSTABLE,
   LIQ_LAVA,
   LIQ_NONE,
   LIQ_WATER,
@@ -22,10 +23,11 @@ import { bakedMaps } from "./defaults.js";
 import {
   addSphere,
   blankMap,
-  cellI,
+  canPlaceClimb,
   cloneMap,
   countCarved,
   deserialize,
+  enclosedFloors,
   ensureLayers,
   eraseNear,
   flood,
@@ -72,6 +74,7 @@ let scale = 8;
 let undo = [];
 let pendingPortal = null;
 let pendingKey = null;
+let climbFrom = 0;
 
 const canvas = $("view");
 const ctx = canvas.getContext("2d");
@@ -174,6 +177,17 @@ function drawCell(x, z) {
       ctx.lineTo(x + 0.85, z + 0.7);
       ctx.stroke();
     }
+    if (map.flags && map.flags[i] & FLAG_UNSTABLE) {
+      ctx.strokeStyle = "rgba(180,90,40,0.85)";
+      ctx.lineWidth = 0.08;
+      ctx.beginPath();
+      ctx.moveTo(x + 0.1, z + 0.2);
+      ctx.lineTo(x + 0.45, z + 0.55);
+      ctx.lineTo(x + 0.35, z + 0.85);
+      ctx.moveTo(x + 0.55, z + 0.15);
+      ctx.lineTo(x + 0.9, z + 0.7);
+      ctx.stroke();
+    }
     if (map.sky && map.sky[i]) {
       ctx.fillStyle = "rgba(140,190,255,0.28)";
       ctx.fillRect(x, z, 1, 1);
@@ -273,6 +287,13 @@ function draw() {
     ctx.lineTo(r.x / CELL, r.z / CELL + 0.7);
     ctx.stroke();
   }
+  for (const cl of map.climbs || []) {
+    ctx.strokeStyle = cl.kind === "ladder" ? "#c8a070" : "#e2c070";
+    ctx.lineWidth = 0.12;
+    ctx.strokeRect(cl.x / CELL - 0.35, cl.z / CELL - 0.35, 0.7, 0.7);
+    ctx.fillStyle = cl.kind === "ladder" ? "#8a6030" : "#d4b050";
+    ctx.fillRect(cl.x / CELL - 0.18, cl.z / CELL - 0.18, 0.36, 0.36);
+  }
   for (const o of map.openings) {
     ctx.strokeStyle = o.locked ? "#c4a050" : "#eee";
     ctx.strokeRect(o.x + 0.2, o.z + 0.2, 0.6, 0.6);
@@ -333,7 +354,7 @@ canvas.addEventListener("pointerdown", (ev) => {
   }
   const c = cellFromEvent(ev);
   last = c;
-  if (["dig", "erase", "sphere", "paint", "crouch", "spike", "sky", "elev", "water", "lava", "wall"].includes(tool)) {
+  if (["dig", "erase", "sphere", "paint", "crouch", "spike", "sky", "elev", "water", "lava", "wall", "unstable"].includes(tool)) {
     pushUndo();
     drawing = true;
     strokeAt(c, true);
@@ -397,6 +418,28 @@ canvas.addEventListener("pointerdown", (ev) => {
     pushUndo();
     map.crushers.push({ x: c.wx, z: c.wz });
     draw();
+  } else if (tool === "stairs" || tool === "ladder") {
+    if (!canPlaceClimb(map, c.gx, c.gz, climbFrom)) {
+      status("Need enclosed 1st+2nd or 2nd+3rd floors here");
+      return;
+    }
+    pushUndo();
+    const fl = enclosedFloors(map, climbFrom);
+    const open = (x, z) => inBounds(map, x, z) && fl[idx(map, x, z)];
+    const ox = (open(c.gx - 1, c.gz) ? 1 : 0) + (open(c.gx + 1, c.gz) ? 1 : 0);
+    const oz = (open(c.gx, c.gz - 1) ? 1 : 0) + (open(c.gx, c.gz + 1) ? 1 : 0);
+    map.climbs = map.climbs || [];
+    map.climbs = map.climbs.filter((o) => Math.hypot(o.x - c.wx, o.z - c.wz) > CELL * 0.7);
+    map.climbs.push({
+      kind: tool === "ladder" ? "ladder" : "stairs",
+      x: c.wx,
+      z: c.wz,
+      from: climbFrom,
+      to: climbFrom + 1,
+      yaw: ox > oz ? Math.PI / 2 : 0,
+    });
+    status((tool === "ladder" ? "Ladder" : "Stairs") + " " + (climbFrom + 1) + "↔" + (climbFrom + 2));
+    draw();
   } else if (tool === "portal") {
     if (!pendingPortal) {
       pendingPortal = { ax: c.wx, az: c.wz };
@@ -446,6 +489,9 @@ function strokeAt(c, first) {
   } else if (tool === "spike") {
     stampDisk(map, c.x, c.z, brush, SHAPE_FLAT, tex, false);
     stampFlags(map, c.x, c.z, brush, FLAG_SPIKE, true);
+  } else if (tool === "unstable") {
+    stampDisk(map, c.x, c.z, brush, SHAPE_FLAT, tex, false);
+    stampFlags(map, c.x, c.z, brush, FLAG_UNSTABLE, true);
   } else if (tool === "sky") {
     stampDisk(map, c.x, c.z, brush, shape, tex, false);
     stampLayer(map.sky, map, c.x, c.z, brush, skyKind);
@@ -463,7 +509,7 @@ function strokeAt(c, first) {
       eraseNear(map, c.wx, c.wz, brush * CELL * 0.6);
       stampLayer(map.liquid, map, c.x, c.z, brush, LIQ_NONE);
       stampLayer(map.sky, map, c.x, c.z, brush, 0);
-      stampFlags(map, c.x, c.z, brush, FLAG_SPIKE | FLAG_CROUCH, false);
+      stampFlags(map, c.x, c.z, brush, FLAG_SPIKE | FLAG_CROUCH | FLAG_UNSTABLE, false);
     }
     shape = prev;
   }
@@ -498,7 +544,7 @@ canvas.addEventListener("pointermove", (ev) => {
     }
     return;
   }
-  if (["dig", "erase", "sphere", "paint", "crouch", "spike", "sky", "elev", "water", "lava", "wall"].includes(tool)) {
+  if (["dig", "erase", "sphere", "paint", "crouch", "spike", "sky", "elev", "water", "lava", "wall", "unstable"].includes(tool)) {
     strokeAt(c, false);
     last = c;
     draw();
@@ -546,7 +592,10 @@ function setTool(t) {
     paint: "Recolor existing carved cells.",
     crouch: "Low tunnels. Player must crouch (C) to pass.",
     spike: "Spike pits. Jump them or die.",
-    sky: "Open-air chambers with a skybox, no cave ceiling.",
+    unstable: "Paint a ceiling that collapses around anyone who walks under it.",
+    stairs: "Place only where 1st+2nd or 2nd+3rd stories both have enclosed floors.",
+    ladder: "Place only where consecutive stories both have enclosed floors.",
+    sky: "Open courtyard — grass floor, courtyard walls, real sky (no cave lid).",
     elev: "Raise or lower the floor by player-heights.",
     water: "Water layer on top of height.",
     lava: "Lava layer — it burns.",
@@ -602,6 +651,7 @@ $("elev").addEventListener("input", () => {
   $("elev-v").textContent = String(elev);
 });
 $("sky-kind").addEventListener("change", () => (skyKind = +$("sky-kind").value));
+$("climb-span").addEventListener("change", () => (climbFrom = +$("climb-span").value));
 $("story").addEventListener("change", () => {
   story = +$("story").value;
   draw();

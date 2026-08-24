@@ -7,7 +7,7 @@ import { buildDungeon, prepareSdf } from "./mesh.js";
 import { makeProp, spawnFrom, strikeFoes, tickFoes } from "./props.js";
 import { getMap, listMaps } from "./store.js";
 import { makeProc } from "./proc.js";
-import { breakWindows, buildingFloorY, buildWorld, makeSky, tickWorld, tryUnlock, wallBlocked } from "./world.js";
+import { breakWindows, buildingFloorY, buildWorld, climbSupport, hurtTurrets, makeSky, tickRubble, tickWorld, tryUnlock, wallBlocked } from "./world.js";
 import { addBurnDecal, fireWeapon, makeKeyModel, makePickup, makeWeapon, tickBurns, tickShots } from "./weapons.js";
 import { tickRobots } from "./robots.js";
 import { attachXr, tickXr } from "./xr.js";
@@ -43,6 +43,10 @@ let viewWep, flashlight;
 let animId = 0;
 let skyMesh = null;
 let lastDeath = "the crawl";
+let hemi, amb, sun;
+let caveFog = null;
+let skyTex = null;
+let outdoor = false;
 
 function setMsg(t) {
   $("msg").textContent = t || "";
@@ -108,12 +112,15 @@ function initThree() {
   renderer.toneMappingExposure = 1.5;
   renderer.setClearColor(0x1a1814, 1);
   scene = new THREE.Scene();
-  camera = new THREE.PerspectiveCamera(72, innerWidth / innerHeight, 0.06, 120);
+  camera = new THREE.PerspectiveCamera(72, innerWidth / innerHeight, 0.06, 480);
   clock = new THREE.Clock();
   controls = new PointerLockControls(camera, $("c"));
   scene.add(controls.object);
-  scene.add(new THREE.HemisphereLight(0xc8c0b0, 0x2a2018, 0.7));
-  scene.add(new THREE.AmbientLight(0x3a342c, 0.5));
+  hemi = new THREE.HemisphereLight(0xc8c0b0, 0x2a2018, 0.7);
+  amb = new THREE.AmbientLight(0x3a342c, 0.5);
+  sun = new THREE.DirectionalLight(0xfff2d0, 0);
+  sun.position.set(48, 90, 22);
+  scene.add(hemi, amb, sun);
   flashlight = new THREE.SpotLight(0xffe6c0, 2.2, 16, 0.5, 0.45, 1.4);
   flashlight.target.position.set(0, 0, -4);
   camera.add(flashlight);
@@ -232,17 +239,38 @@ async function enterMap(id) {
   dungeon = built.group;
   scene.add(dungeon);
   const b = biomeOf(map, map.start?.x || 0, map.start?.z || 0);
+  caveFog = new THREE.FogExp2(b.fog, 0.018);
   scene.background = new THREE.Color(b.fog);
-  scene.fog = new THREE.FogExp2(b.fog, 0.018);
+  scene.fog = caveFog;
   if (skyMesh) {
     scene.remove(skyMesh);
     skyMesh = null;
   }
+  skyTex = null;
+  outdoor = false;
   const skyKind = (map.sky || []).find((v) => v) || 0;
   if (skyKind) {
-    skyMesh = new THREE.Mesh(new THREE.SphereGeometry(70, 16, 12), new THREE.MeshBasicMaterial({ map: makeSky(skyKind), side: THREE.BackSide }));
-    scene.add(skyMesh);
+    skyTex = makeSky(skyKind);
+    scene.background = skyTex;
     scene.fog = null;
+    outdoor = true;
+    if (sun) sun.intensity = 1.35;
+    if (hemi) {
+      hemi.color.setHex(0xd8e8ff);
+      hemi.groundColor.setHex(0x3a5a28);
+      hemi.intensity = 1.15;
+    }
+    if (amb) amb.intensity = 0.55;
+    renderer.toneMappingExposure = 1.65;
+  } else {
+    if (sun) sun.intensity = 0;
+    if (hemi) {
+      hemi.color.setHex(0xc8c0b0);
+      hemi.groundColor.setHex(0x2a2018);
+      hemi.intensity = 0.7;
+    }
+    if (amb) amb.intensity = 0.5;
+    renderer.toneMappingExposure = 1.5;
   }
   placeWorld();
   spawners = (map.spawners || []).map((s) => ({ ...s, _t: 0.3, _alive: 0 }));
@@ -283,7 +311,10 @@ function primary() {
     const dir = tmp.set(0, 0, -1).applyQuaternion(camera.quaternion);
     const origin = camera.getWorldPosition(tmp2);
     strikeFoes(foes, origin, dir, def.reach || 2.2, def.dmg);
-    if (extras) breakWindows(extras, origin, dir, def.reach || 2.2);
+    if (extras) {
+      breakWindows(extras, origin, dir, def.reach || 2.2);
+      hurtTurrets(extras, origin.clone().addScaledVector(dir, 1.1), def.dmg);
+    }
     return;
   }
   if (fireCd > 0) return;
@@ -521,12 +552,40 @@ function physics(dt, xr) {
   let ground = -1;
   if (fy >= 0) ground = fy;
   if (bf >= 0) ground = Math.max(ground, bf);
+  const climb = extras ? climbSupport(extras, player) : null;
+  if (climb && !rope) {
+    if (climb.kind === "ladder") {
+      const up = keys.has("KeyW") || keys.has("ArrowUp") || (xr && xr.moveY < -0.2);
+      const down = keys.has("KeyS") || keys.has("ArrowDown") || (xr && xr.moveY > 0.2);
+      player.vy = 0;
+      if (up) player.y += 3.4 * dt;
+      if (down) player.y -= 3.4 * dt;
+      player.y = Math.max(climb.y0 + eye, Math.min(climb.y1 + eye, player.y));
+      player.x += (climb.x - player.x) * Math.min(1, dt * 8);
+      player.z += (climb.z - player.z) * Math.min(1, dt * 8);
+      player.grounded = true;
+      coyote = 0.16;
+      if (jumpQueued) {
+        player.vy = 6.2;
+        player.grounded = false;
+        jumpQueued = false;
+        coyote = 0;
+      }
+    } else {
+      const c = Math.cos(climb.yaw || 0);
+      const s = Math.sin(climb.yaw || 0);
+      const along = (player.x - climb.x) * s + (player.z - climb.z) * c;
+      const run = 1.15;
+      const t = Math.max(0, Math.min(1, along / run + 0.5));
+      ground = Math.max(ground, climb.y0 + t * (climb.y1 - climb.y0));
+    }
+  }
   if (!rope && ground >= 0 && player.y - eye <= ground + 0.08 && player.vy <= 0.4) {
     player.y = ground + eye;
     player.vy = 0;
     player.grounded = true;
     coyote = 0.12;
-  } else if (!rope) {
+  } else if (!rope && !(climb && climb.kind === "ladder")) {
     player.grounded = false;
     coyote = Math.max(0, coyote - dt);
     if (coyote <= 0) jumpQueued = false;
@@ -620,10 +679,31 @@ function loop(time) {
     tickShots(shots, dt, foes, extras, damage, (p, c) => addBurnDecal(scene, burns, p, c), sdf3, map, sdf2);
     tickBurns(burns, dt);
     if (extras) {
-      tickWorld(extras, dt, player, foes, damage, scene);
+      tickWorld(extras, dt, player, foes, damage, scene, camera, map);
+      tickRubble(extras, dt);
+      if (extras._warn) {
+        setMsg(extras._warn);
+        extras._warn = "";
+      }
       const origin = camera.getWorldPosition(tmp2);
       const dir = tmp.set(0, 0, -1).applyQuaternion(camera.quaternion);
       if (shots.length) breakWindows(extras, origin, dir, 18);
+    }
+    if (map && map.sky) {
+      const inSky = !!map.sky[cellI(map, player.x, player.z)];
+      if (inSky) {
+        scene.fog = null;
+        if (skyTex) scene.background = skyTex;
+        if (sun) sun.intensity = 1.55;
+        if (hemi) hemi.intensity = 1.2;
+        renderer.toneMappingExposure = 1.7;
+      } else if (outdoor) {
+        scene.fog = caveFog;
+        scene.background = caveFog ? caveFog.color : scene.background;
+        if (sun) sun.intensity = 0.15;
+        if (hemi) hemi.intensity = 0.7;
+        renderer.toneMappingExposure = 1.45;
+      }
     }
     for (const s of spawners) {
       s._t -= dt;

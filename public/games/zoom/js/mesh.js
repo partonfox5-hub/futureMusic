@@ -25,7 +25,9 @@ export function yMax(map) {
   if (map.sky) {
     for (let i = 0; i < map.sky.length; i++) if (map.sky[i]) sky = true;
   }
-  return { max: maxE * EYE + (sky ? 12 : m) + 0.8, min: minE * EYE - 1.8 };
+  // Sky courtyards keep the same wall height as halls, then open — a taller
+  // voxel column just makes a trench. The lid is skipped in the mesher.
+  return { max: maxE * EYE + m + (sky ? 0.35 : 0.8), min: minE * EYE - 1.8 };
 }
 
 export function buildDungeon(map, sdf2) {
@@ -94,6 +96,7 @@ export function buildDungeon(map, sdf2) {
   for (let i = 0; i < BIOMES.length; i++) {
     buckets.push({ w: [], f: [] });
   }
+  const skyFloor = [];
 
   function uv(x, y, z, nx, ny, nz) {
     if (nx) return [z * 0.38, y * 0.38];
@@ -142,8 +145,14 @@ export function buildDungeon(map, sdf2) {
             neighborEmpty = !!empty[at(nix, niy, niz)];
           }
           if (neighborEmpty) continue;
+          const gx = Math.max(0, Math.min(map.w - 1, Math.floor(((ix + 0.5) * VX) / CELL)));
+          const gz = Math.max(0, Math.min(map.h - 1, Math.floor(((iz + 0.5) * VX) / CELL)));
+          const skyHere = !!(map.sky && map.sky[gz * map.w + gx]);
+          const elevY = ((map.elev && map.elev[gz * map.w + gx]) || 0) * EYE;
+          if (skyHere && dy === 1) continue;
+          if (skyHere && dy !== -1 && y0 - elevY > 3.15) continue;
           const floorish = dy === -1;
-          const list = floorish ? buckets[t].f : buckets[t].w;
+          const list = skyHere && floorish ? skyFloor : floorish ? buckets[t].f : buckets[t].w;
           if (dx === 1) pushFace(list, x1, y0, z0, x1, y1, z0, x1, y1, z1, x1, y0, z1, -1, 0, 0);
           else if (dx === -1) pushFace(list, x0, y0, z1, x0, y1, z1, x0, y1, z0, x0, y0, z0, 1, 0, 0);
           else if (dy === 1) pushFace(list, x0, y1, z0, x0, y1, z1, x1, y1, z1, x1, y1, z0, 0, -1, 0);
@@ -171,6 +180,7 @@ export function buildDungeon(map, sdf2) {
     meshFrom(buckets[t].w, mats[t].wall);
     meshFrom(buckets[t].f, mats[t].floor);
   }
+  meshFrom(skyFloor, new THREE.MeshLambertMaterial({ color: 0x4a7a38 }));
 
   return { group, sdf2, ymax, mats };
 }

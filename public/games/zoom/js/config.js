@@ -10,6 +10,7 @@ export const SHAPE_OVAL = 2;
 export const SHAPE_SPHERE = 3;
 export const FLAG_SPIKE = 1;
 export const FLAG_CROUCH = 2;
+export const FLAG_UNSTABLE = 4;
 export const LIQ_NONE = 0;
 export const LIQ_WATER = 1;
 export const LIQ_LAVA = 2;
