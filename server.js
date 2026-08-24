@@ -365,6 +365,11 @@ app.get(["/zoommaps", "/zoommaps/", "/zoom/maps", "/zoom/maps/"], (req, res) => 
 app.get(["/test-w3n9k7qm", "/test-w3n9k7qm/"], (req, res) => res.redirect(301, "/zoom"));
 app.get(["/test-w3n9k7qm-maps", "/test-w3n9k7qm-maps/"], (req, res) => res.redirect(301, "/zoommaps"));
 app.get(["/test-v4n8k2qm", "/test-v4n8k2qm/"], (req, res) => res.redirect(301, "/zoom"));
+app.use("/games/zoom", (req, res, next) => {
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+    res.setHeader("Pragma", "no-cache");
+    next();
+});
 try {
     require("./lib/zoom").mount(app, { storage, bucketName });
     console.log("[zoom] maps api mounted");

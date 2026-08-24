@@ -1,6 +1,6 @@
 /** Baked maps so /zoom is playable before the first save. */
-import { CELL, SHAPE_FLAT, SHAPE_OVAL, SHAPE_ROUND, SHAPE_SPHERE } from "./config.js";
-import { addSphere, blankMap, stampDisk, stampRect } from "./map.js";
+import { CELL, SHAPE_FLAT, SHAPE_OVAL, SHAPE_ROUND, SHAPE_SPHERE } from "./config.js?v=psy2";
+import { addSphere, blankMap, stampDisk, stampRect } from "./map.js?v=psy2";
 
 function startOn(m, cx, cz, yaw) {
   m.start = { x: (cx + 0.5) * CELL, z: (cz + 0.5) * CELL, yaw: yaw || 0 };

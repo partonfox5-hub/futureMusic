@@ -13,7 +13,7 @@ import {
   SHAPE_SPHERE,
   STORIES,
   WALL_CRACK,
-} from "./config.js";
+} from "./config.js?v=psy2";
 
 export { CELL };
 
