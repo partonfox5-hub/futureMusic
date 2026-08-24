@@ -11,7 +11,7 @@ const FLOOR = 0;
 const CEIL = 92;
 const TORP_SPEED = 39.6;
 const TORP_CD = 0.546;
-const SUB_SPD = 9.35;
+const SUB_SPD = 11.22;
 const YT_MAX = 540;
 const SHARK_HITS = 3;
 const MAX_FUEL = 100;
@@ -54,8 +54,12 @@ let xrGrab = null;
 const xrPrev = new THREE.Vector3();
 let xrBaseRef = null;
 let xrTrigger = false;
+let xrTriggerRight = false;
+let xrX = false;
+let xrXPrev = false;
 let xrGrip = false;
 let xrTriggerPrev = false;
+let surge = 0;
 let xrFireArmed = true;
 let xrHatchArmed = true;
 const helmHands = [
@@ -323,6 +327,7 @@ function makeWhaleGeom() {
     attachSwim(skin, { amp: 0.62, freq: 0.28, speed: 2.4, lat: 0.22, vert: 1, phase: Math.random() * 4 }),
     attachSwim(pale, { amp: 0.55, freq: 0.28, speed: 2.4, lat: 0.22, vert: 1, phase: 0.2 }),
   ];
+  g.userData.baseScale = 2.15;
   g.scale.setScalar(2.15);
   return g;
 }
@@ -382,6 +387,7 @@ function makeKrakenGeom() {
   g.userData.timer = 20 + Math.random() * 14;
   g.userData.grabbing = false;
   g.userData.grabT = 0;
+  g.userData.baseScale = 1.7;
   g.scale.setScalar(1.7);
   return g;
 }
@@ -417,8 +423,8 @@ if (navigator.xr && navigator.xr.isSessionSupported) {
 }
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x010308);
-scene.fog = new THREE.FogExp2(0x031018, 0.015);
+scene.background = new THREE.Color(0x000000);
+scene.fog = new THREE.FogExp2(0x000104, 0.048);
 
 const cam = new THREE.PerspectiveCamera(80, innerWidth / innerHeight, 0.08, 900);
 cam.rotation.order = "YXZ";
@@ -441,11 +447,11 @@ const UnderwaterShader = {
     "float g=texture2D(tDiffuse, uv).g;",
     "float b=texture2D(tDiffuse, uv-chroma).b;",
     "vec3 c=vec3(r,g,b);",
-    "c *= 1.0 + cau * 0.055 * uWet;",
-    "c = mix(c, c*vec3(0.42,0.78,1.05), 0.38*uWet);",
-    "c = mix(c, vec3(dot(c,vec3(0.3,0.5,0.2))), -0.12*uWet);",
-    "float vig=smoothstep(1.05,0.22,length(uv-0.5));",
-    "c *= mix(1.0, vig, 0.5*uWet);",
+    "c *= 1.0 + cau * 0.028 * uWet;",
+    "c = mix(c, c*vec3(0.55,0.72,0.95), 0.22*uWet);",
+    "c *= mix(1.0, 0.42, 0.72*uWet);",
+    "float vig=smoothstep(0.92,0.12,length(uv-0.5));",
+    "c *= mix(1.0, vig, 0.78*uWet);",
     "gl_FragColor=vec4(c,1.0);",
     "}",
   ].join("\n"),
@@ -535,7 +541,7 @@ const fireBtn = new THREE.Mesh(
   new THREE.CylinderGeometry(0.06, 0.07, 0.055, 14),
   new THREE.MeshStandardMaterial({ color: 0xb02018, emissive: 0x501008, metalness: 0.4, roughness: 0.4 })
 );
-fireBtn.position.set(0.46, -0.4, -0.52);
+fireBtn.position.set(0.24, -0.26, -0.30);
 fireBtn.rotation.x = 0.2;
 cockpit.add(fireBtn);
 const fireBtnRestY = fireBtn.position.y;
@@ -583,9 +589,10 @@ function paintVrPlaque(ctx, w, h) {
     "Left stick: steer (X) and depth (Y).",
     "Right stick: throttle. Let go to coast.",
     "PUSH the red button to fire torpedoes.",
-    "YELLOW lever — hatch (exit / re-enter).",
-    "OUTSIDE: hold TRIGGER near the hull",
-    "  to weld with the blowtorch.",
+    "X — hatch (exit / re-enter the sub).",
+    "YELLOW lever also opens the hatch.",
+    "OUTSIDE: hold RIGHT TRIGGER near the hull",
+    "  to weld. X to climb back in.",
   ];
   lines.forEach((t, i) => ctx.fillText(t, 44, 118 + i * 40));
 }
@@ -744,6 +751,65 @@ function paintVrGauges() {
   }
 }
 
+let goArmed = true;
+let goReason = "The cell takes you.";
+const goPanel = makeDashScreen(1024, 512, (ctx, w, h) => {
+  ctx.fillStyle = "#140808";
+  ctx.fillRect(0, 0, w, h);
+});
+goPanel.visible = false;
+goPanel.scale.setScalar(2.2);
+scene.add(goPanel);
+function paintGoPanel(reason) {
+  goReason = reason || goReason;
+  const screen = goPanel.userData.screen;
+  if (!screen) return;
+  const ctx = screen.userData.ctx;
+  const cnv = screen.userData.cnv;
+  const w = cnv.width;
+  const h = cnv.height;
+  ctx.fillStyle = "#120606";
+  ctx.fillRect(0, 0, w, h);
+  ctx.strokeStyle = "#e07060";
+  ctx.lineWidth = 8;
+  ctx.strokeRect(16, 16, w - 32, h - 32);
+  ctx.fillStyle = "#e07060";
+  ctx.font = "bold 92px sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText("LOST", w / 2, 150);
+  ctx.fillStyle = "#f0d0c8";
+  ctx.font = "32px sans-serif";
+  ctx.fillText(goReason, w / 2, 230);
+  ctx.fillStyle = "#7dffb0";
+  ctx.font = "bold 36px sans-serif";
+  ctx.fillText(xrOn ? "POKE THIS PANEL  ·  AGAIN" : "CLICK AGAIN TO RESURFACE", w / 2, 360);
+  screen.userData.tex.needsUpdate = true;
+}
+function updateGoPanel() {
+  if (!dead) {
+    goPanel.visible = false;
+    return;
+  }
+  goPanel.visible = true;
+  paintGoPanel(goReason);
+  const xrCam = renderer.xr.isPresenting ? renderer.xr.getCamera() : cam;
+  xrCam.getWorldPosition(tmp);
+  xrCam.getWorldQuaternion(goPanel.quaternion);
+  goPanel.position.copy(tmp);
+  tmp2.set(0, 0, -1.55).applyQuaternion(goPanel.quaternion);
+  goPanel.position.add(tmp2);
+  if (xrOn) {
+    pollXrButtons();
+    const poking = !!nearWorld(goPanel, 0.55);
+    if ((poking && (xrTrigger || xrX)) || (xrX && !xrXPrev)) {
+      if (goArmed) {
+        goArmed = false;
+        resetGame();
+      }
+    } else goArmed = true;
+  }
+}
+
 const exterior = new THREE.Group();
 sub.add(exterior);
 (function buildExterior() {
@@ -780,26 +846,39 @@ crack.visible = false;
 crack.position.set(0.95, -0.15, 0.35);
 exterior.add(crack);
 
-const lamp = new THREE.SpotLight(0xc8deff, 48, 78, 0.46, 0.42, 1.05);
-lamp.position.set(0, 0.15, -1.6);
-lamp.target.position.set(0, -6, -28);
-sub.add(lamp);
-sub.add(lamp.target);
-const fill = new THREE.PointLight(0x4a7a5a, 2.4, 5);
+function addHeadlamp(x) {
+  const s = new THREE.SpotLight(0xffe6c0, 110, 38, 0.28, 0.62, 1.55);
+  s.position.set(x, -0.08, -1.92);
+  s.target.position.set(x * 0.35, -1.8, -26);
+  sub.add(s);
+  sub.add(s.target);
+  const beam = new THREE.Mesh(
+    new THREE.ConeGeometry(2.4, 16, 18, 1, true),
+    new THREE.MeshBasicMaterial({ color: 0xffe4b8, transparent: true, opacity: 0.045, depthWrite: false, side: THREE.DoubleSide, fog: true })
+  );
+  beam.rotation.x = Math.PI / 2;
+  beam.position.set(x, -0.35, -9.2);
+  sub.add(beam);
+  return s;
+}
+const lamp = addHeadlamp(-0.42);
+const lampR = addHeadlamp(0.42);
+const fill = new THREE.PointLight(0xffc888, 1.35, 2.4);
 fill.position.set(0, 0.12, -0.15);
 cockpit.add(fill);
-const dashLamp = new THREE.PointLight(0xffd8a0, 1.6, 2.8);
+const dashLamp = new THREE.PointLight(0xffd8a0, 1.1, 2.2);
 dashLamp.position.set(0, 0.02, -0.45);
 cockpit.add(dashLamp);
-const helm = new THREE.SpotLight(0xb8d4ff, 10, 24, 0.55, 0.45, 1.2);
+const helm = new THREE.SpotLight(0xffe0b0, 22, 16, 0.42, 0.5, 1.4);
 helm.visible = false;
 cam.add(helm);
-helm.target.position.set(0, -0.2, -10);
+helm.target.position.set(0, -0.15, -8);
 cam.add(helm.target);
-const ambient = new THREE.AmbientLight(0x0c1820, 0.28);
-const hemi = new THREE.HemisphereLight(0x152838, 0x080604, 0.22);
+const ambient = new THREE.AmbientLight(0x020508, 0.035);
+const hemi = new THREE.HemisphereLight(0x04080e, 0x000000, 0.03);
 scene.add(ambient);
 scene.add(hemi);
+const worldFills = [];
 
 const floor = new THREE.Mesh(
   new THREE.CircleGeometry(960, 64),
@@ -854,10 +933,11 @@ function scatterWorld() {
     kelp.push(k);
   }
   for (let i = 0; i < 7; i++) {
-    const p = new THREE.PointLight(0x1a6658, 1.4, 18);
+    const p = new THREE.PointLight(0x1a6658, 0.08, 8);
     const ang = (i / 7) * 6.28;
     p.position.set(Math.cos(ang) * (60 + i * 16), 2.5, Math.sin(ang) * (60 + i * 16));
     scene.add(p);
+    worldFills.push(p);
   }
 }
 scatterWorld();
@@ -897,19 +977,28 @@ const cellHelper = new THREE.LineSegments(
 );
 scene.add(cellHelper);
 
+function varyCreatureSize(obj, base) {
+  const mul = 1 + Math.random() * 0.5;
+  obj.userData.baseScale = base;
+  obj.userData.sizeMul = mul;
+  obj.scale.setScalar(base * mul);
+}
+
 const shark = makeSharkGeom();
-shark.scale.setScalar(2.55);
+varyCreatureSize(shark, 2.55);
 shark.position.set(CELL * 0.92, 22, 0);
 scene.add(shark);
 
 const whales = [makeWhaleGeom(), makeWhaleGeom(), makeWhaleGeom()];
 whales.forEach((w, i) => {
+  varyCreatureSize(w, w.userData.baseScale || 2.15);
   w.position.set((i - 1) * 96, 16 + i * 7, -80 - i * 44);
   scene.add(w);
 });
 
 const krakens = [makeKrakenGeom(), makeKrakenGeom()];
 krakens.forEach((k, i) => {
+  varyCreatureSize(k, k.userData.baseScale || 1.7);
   const ang = 1.1 + i * 2.2;
   k.position.set(Math.cos(ang) * 88, 14 + i * 6, Math.sin(ang) * 96);
   scene.add(k);
@@ -1092,9 +1181,9 @@ scene.add(starFar);
 function applyWorldMode(m) {
   worldMode = m === "space" ? "space" : "sea";
   const space = worldMode === "space";
-  scene.background = new THREE.Color(space ? 0x000005 : 0x010308);
-  scene.fog = space ? new THREE.FogExp2(0x000000, 0.0022) : new THREE.FogExp2(0x031018, 0.015);
-  renderer.toneMappingExposure = space ? 0.62 : 0.92;
+  scene.background = new THREE.Color(space ? 0x000005 : 0x000000);
+  scene.fog = space ? new THREE.FogExp2(0x000000, 0.0022) : new THREE.FogExp2(0x000104, 0.048);
+  renderer.toneMappingExposure = space ? 0.62 : 0.72;
   if (typeof underPass !== "undefined") underPass.uniforms.uWet.value = space ? 0 : 1;
   kelp.forEach((k) => {
     k.visible = !space;
@@ -1108,10 +1197,16 @@ function applyWorldMode(m) {
     if (o.material && o.material.color) o.material.color.setHex(space ? 0x101828 : 0x0c241c);
   });
   cellHelper.material.color.setHex(space ? 0x334466 : 0x14332a);
-  fill.color.setHex(space ? 0x445577 : 0x4a7a5a);
-  ambient.color.setHex(space ? 0x101018 : 0x0c1820);
-  ambient.intensity = space ? 0.22 : 0.28;
-  hemi.color.setHex(space ? 0x1a2840 : 0x152838);
+  fill.color.setHex(space ? 0x445577 : 0xffc888);
+  ambient.color.setHex(space ? 0x101018 : 0x020508);
+  ambient.intensity = space ? 0.22 : 0.035;
+  hemi.color.setHex(space ? 0x1a2840 : 0x04080e);
+  hemi.intensity = space ? 0.18 : 0.03;
+  lamp.intensity = space ? 40 : 110;
+  lampR.intensity = space ? 40 : 110;
+  worldFills.forEach((p) => {
+    p.intensity = space ? 0.4 : 0.06;
+  });
   document.body.classList.toggle("space-mode", space);
 }
 
@@ -1499,9 +1594,19 @@ function die(reason) {
   if (dead) return;
   dead = true;
   running = false;
-  document.getElementById("dead-reason").textContent = reason;
-  document.getElementById("dead").hidden = false;
+  const why = reason || "The cell takes you.";
+  const el = document.getElementById("dead-reason");
+  if (el) el.textContent = why;
+  const overlay = document.getElementById("dead");
+  if (overlay) {
+    overlay.hidden = false;
+    overlay.style.display = "flex";
+  }
+  document.getElementById("start").style.display = "none";
   if (document.pointerLockElement) document.exitPointerLock();
+  paintGoPanel(why);
+  goPanel.visible = true;
+  goArmed = true;
 }
 
 function damage(n) {
@@ -1970,7 +2075,10 @@ function squeezeFromPad(gp) {
 
 function pollXrButtons() {
   xrTriggerPrev = xrTrigger;
+  xrXPrev = xrX;
   xrTrigger = false;
+  xrTriggerRight = false;
+  xrX = false;
   xrGrip = false;
   const session = renderer.xr.getSession();
   if (!session) return;
@@ -1978,7 +2086,10 @@ function pollXrButtons() {
   for (const src of session.inputSources) {
     const gp = src.gamepad;
     if (!gp || !gp.buttons) continue;
-    if (gp.buttons[0] && (gp.buttons[0].pressed || (gp.buttons[0].value || 0) > 0.45)) xrTrigger = true;
+    const trigOn = !!(gp.buttons[0] && (gp.buttons[0].pressed || (gp.buttons[0].value || 0) > 0.45));
+    if (trigOn) xrTrigger = true;
+    if (src.handedness === "right" && trigOn) xrTriggerRight = true;
+    if (src.handedness === "left" && gp.buttons[4] && gp.buttons[4].pressed) xrX = true;
     if (squeezeFromPad(gp) > 0.12) xrGrip = true;
     if (src.handedness === "left") padsByHand.left = gp;
     else if (src.handedness === "right") padsByHand.right = gp;
@@ -2024,16 +2135,16 @@ function syncXrSeat() {
 function setTorch(on) {
   const active = on && mode === "eva";
   [torch0, torch1].forEach((t, i) => {
-    const c = i === 0 ? ctrl0 : ctrl1;
-    const using = active && xrTrigger && nearWorld(sub, 3.4) === c;
-    t.visible = !!(active && xrTrigger);
+    const h = helmHands[i];
+    const isRight = h.handed === "right" || (!h.handed && i === 1);
+    t.visible = !!(active && xrTriggerRight && isRight);
     if (t.visible) {
       const flicker = 0.85 + Math.random() * 0.35;
       t.userData.cone.scale.setScalar(flicker);
       t.userData.core.scale.set(1, flicker, 1);
     }
   });
-  if (!xrTrigger) {
+  if (!xrTriggerRight) {
     torch0.visible = false;
     torch1.visible = false;
   }
@@ -2062,7 +2173,7 @@ function enterEva() {
   cockpit.visible = false;
   exterior.visible = true;
   helm.visible = true;
-  setMsg(xrOn ? "EVA — HOLD TRIGGER NEAR THE HULL TO WELD" : "EVA — HOLD R NEAR THE HULL TO PATCH", 3);
+  setMsg(xrOn ? "EVA — HOLD RIGHT TRIGGER TO WELD  ·  X TO RE-ENTER" : "EVA — HOLD R NEAR THE HULL TO PATCH", 3);
 }
 
 function enterPilot() {
@@ -2266,11 +2377,11 @@ function readXrMove(dt, move) {
     }
     if (!pressed) xrFireArmed = true;
     const onHatch = !holding && !!nearWorld(hatchLever, 0.15);
-    if (onHatch && (xrTrigger || xrGrip) && xrHatchArmed) {
+    if (((onHatch && (xrTrigger || xrGrip)) || (xrX && !xrXPrev)) && xrHatchArmed) {
       xrHatchArmed = false;
       tryToggleEva();
     }
-    if (!xrTrigger && !xrGrip) xrHatchArmed = true;
+    if (!xrTrigger && !xrGrip && !xrX) xrHatchArmed = true;
   } else {
     xrGrab = null;
     helmHeld = false;
@@ -2280,17 +2391,18 @@ function readXrMove(dt, move) {
       h.lastZ = null;
     });
     paintHelmHeld(false);
-    if (xrGrip && evaDummy.position.distanceTo(sub.position) < 3.1) {
+    const nearSub = evaDummy.position.distanceTo(sub.position) < 3.1;
+    if ((xrX && !xrXPrev && nearSub) || (xrGrip && nearSub && xrHatchArmed)) {
       if (xrHatchArmed) {
         xrHatchArmed = false;
         tryToggleEva();
       }
-    } else if (!xrGrip) xrHatchArmed = true;
+    } else if (!xrGrip && !xrX) xrHatchArmed = true;
   }
 }
 
 function step(dt) {
-  if (!running) return;
+  if (!running || dead) return;
   dt = Math.min(0.05, dt);
   const body = mode === "pilot" ? sub : evaDummy;
   let baseSpd = mode === "pilot" ? SUB_SPD : SUB_SPD * 0.25;
@@ -2322,12 +2434,31 @@ function step(dt) {
     if (right.lengthSq() < 0.001) right.set(1, 0, 0);
   }
 
-  wishVel.copy(forward).multiplyScalar(-move.az * spd);
-  wishVel.add(tmp2.copy(right).multiplyScalar(move.ax * spd));
-  wishVel.y = move.ay * spd * 0.72;
-  const thrusting = wishVel.lengthSq() > 0.04;
-  const k = thrusting ? 16 : 1.55;
-  bodyVel.lerp(wishVel, 1 - Math.exp(-k * dt));
+  if (mode === "pilot") {
+    const maxSpd = spd;
+    const wishFwd = -move.az * maxSpd;
+    const ACCEL_FWD = maxSpd / 3;
+    const ACCEL_REV = maxSpd / 2;
+    const DECEL = maxSpd / 2;
+    if (wishFwd > surge + 0.02) {
+      const rate = surge < -0.08 ? DECEL : ACCEL_FWD;
+      surge = Math.min(wishFwd, surge + rate * dt);
+    } else if (wishFwd < surge - 0.02) {
+      const rate = surge > 0.08 ? DECEL : ACCEL_REV;
+      surge = Math.max(wishFwd, surge - rate * dt);
+    }
+    headingFrom(yaw);
+    bodyVel.copy(forward).multiplyScalar(surge);
+    bodyVel.add(tmp2.copy(right).multiplyScalar(move.ax * spd * 0.5));
+    bodyVel.y = move.ay * spd * 0.72;
+  } else {
+    wishVel.copy(forward).multiplyScalar(-move.az * spd);
+    wishVel.add(tmp2.copy(right).multiplyScalar(move.ax * spd));
+    wishVel.y = move.ay * spd * 0.72;
+    const thrusting = wishVel.lengthSq() > 0.04;
+    const k = thrusting ? 8 : 2.2;
+    bodyVel.lerp(wishVel, 1 - Math.exp(-k * dt));
+  }
   tmp.copy(bodyVel).multiplyScalar(dt);
   body.position.add(tmp);
   body.position.y = clamp(body.position.y, FLOOR + 2.2, CEIL);
@@ -2354,7 +2485,7 @@ function step(dt) {
   } else {
     if (!xrOn) cam.rotation.set(lookPitch, lookYaw, 0);
     const welding = xrOn
-      ? xrTrigger && hull < 100 && evaDummy.position.distanceTo(sub.position) < 3.2
+      ? xrTriggerRight && hull < 100 && evaDummy.position.distanceTo(sub.position) < 3.2
       : keys.has("KeyR") && hull < 100 && evaDummy.position.distanceTo(sub.position) < 3.2;
     if (welding) {
       repairHold += dt;
@@ -2363,7 +2494,7 @@ function step(dt) {
         hull = 100;
         crack.visible = false;
         repairHold = 0;
-        setMsg(xrOn ? "HULL SEALED — SQUEEZE GRIP NEAR HATCH" : "HULL SEALED — F TO RE-ENTER", 2);
+        setMsg(xrOn ? "HULL SEALED — PRESS X TO RE-ENTER" : "HULL SEALED — F TO RE-ENTER", 2);
         sfx(300, 0.2, "sine", 0.06);
       }
     } else repairHold = 0;
@@ -2393,8 +2524,25 @@ renderer.setAnimationLoop(() => {
   const now = performance.now();
   const dt = (now - last) / 1000;
   last = now;
-  step(dt);
+  if (dead) updateGoPanel();
+  else step(dt);
   if (xrOn) syncXrSeat();
+  if (mode === "eva") {
+    helm.visible = true;
+    helm.intensity = xrOn ? 18 : 10;
+    if (xrOn && renderer.xr.isPresenting) {
+      const xrCam = renderer.xr.getCamera();
+      if (helm.parent !== xrCam) {
+        xrCam.add(helm);
+        xrCam.add(helm.target);
+        helm.target.position.set(0, 0, -8);
+      }
+    }
+  } else if (helm.parent !== cam) {
+    cam.add(helm);
+    cam.add(helm.target);
+    helm.visible = false;
+  }
   underPass.uniforms.uTime.value = now * 0.001;
   if (renderer.xr.isPresenting) renderer.render(scene, cam);
   else composer.render();
@@ -2534,6 +2682,7 @@ function resetGame() {
   fuel = MAX_FUEL;
   torpAmmo = 8;
   bodyVel.set(0, 0, 0);
+  surge = 0;
   sharkHp = SHARK_HITS;
   sharkHitsLog = [];
   huntStruck = false;
@@ -2557,10 +2706,17 @@ function resetGame() {
     k.userData.timer = 20 + Math.random() * 14;
   });
   setSharkMood();
-  document.getElementById("dead").hidden = true;
+  varyCreatureSize(shark, 2.55);
+  whales.forEach((w) => varyCreatureSize(w, w.userData.baseScale || 2.15));
+  krakens.forEach((k) => varyCreatureSize(k, k.userData.baseScale || 1.7));
+  const overlay = document.getElementById("dead");
+  overlay.hidden = true;
+  overlay.style.display = "";
+  goPanel.visible = false;
   running = true;
   dead = false;
-  canvas.requestPointerLock?.();
+  goArmed = true;
+  if (!xrOn) canvas.requestPointerLock?.();
 }
 
 document.getElementById("go-sea").addEventListener("click", () => boot("sea"));
@@ -2588,6 +2744,7 @@ document.getElementById("touch-fire").addEventListener("pointerdown", (e) => {
 });
 
 window.addEventListener("resize", () => {
+  if (renderer.xr && renderer.xr.isPresenting) return;
   cam.aspect = innerWidth / innerHeight;
   cam.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight);

@@ -6,10 +6,10 @@
   <meta name="robots" content="noindex, nofollow" />
   <meta name="theme-color" content="#010308" />
   <title>SHARK — Pressure Cell</title>
-  <meta name="build" content="prod-20260824-helm4" />
+  <meta name="build" content="prod-20260824-dark1" />
   <link rel="canonical" href="https://futuremusic.online/shark" />
   <link rel="icon" type="image/svg+xml" href="/images/favicon.svg" />
-  <link rel="stylesheet" href="/games/shark/css/game.css" />
+  <link rel="stylesheet" href="/games/shark/css/game.css?v=dark1" />
   <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet" />
 </head>
 <body>
@@ -64,8 +64,8 @@
       <h1>SHARK</h1>
       <p>You are sealed in a pressure cell in a sea with no surface. A giant lives in the walls. It may be stalking, hunting, or just passing. Krakens drift and wrap the hull if you swim into their arms. Whales pass in the dark.</p>
       <p>Patch the hull from outside after each strike. Steal oxygen from stray tanks. Drive the shark off with torpedoes — three hits in a minute and it flees. Outside, you are slow. If it takes you in the open, you are gone.</p>
-      <p>F hatch. R radio in the sub. Outside, hold R near the hull to patch. Desktop: WASD, Shift down, Tab up, mouse, click. Grab fuel cans and spare torpedoes off the floor.</p>
-      <p>Quest 3: tap ENTER VR. Hold a <b>trigger</b> on the wheel to take the helm — turning your hands does nothing until you grip. Left stick X steers, Y is depth (up/down). Right stick is throttle. Poke the red button to fire. Yellow lever is the hatch. Outside, hold trigger near the hull to weld.</p>
+      <p>F hatch. R radio in the sub. Outside, hold R near the hull to patch. Desktop: WASD, Shift down, Tab up, mouse, click. Grab fuel cans and spare torpedoes off the floor. If you die, a game-over screen lets you go again.</p>
+      <p>Quest 3: tap ENTER VR. Hold a <b>trigger</b> on the wheel to take the helm. Left stick X steers, Y is depth. Right stick is throttle (3s to full speed, 2s to stop or reverse). Poke the red fire button. <b>X</b> exits and re-enters the sub (yellow lever still works). Outside, hold the <b>right trigger</b> near the hull to weld. Headlights are all that cuts the black water.</p>
       <p>Choose a cell.</p>
       <div class="modes">
         <button type="button" id="go-sea">Deep Sea</button>
@@ -77,6 +77,7 @@
     <div class="panel">
       <h1>LOST</h1>
       <p id="dead-reason">The cell takes you.</p>
+      <p>The pressure cell is gone. The dark remains.</p>
       <button type="button" id="again">There is no surface. Again.</button>
     </div>
   </div>
@@ -88,6 +89,6 @@
     }
   }
   </script>
-  <script type="module" src="/games/shark/js/game.js?v=helm4"></script>
+  <script type="module" src="/games/shark/js/game.js?v=dark1"></script>
 </body>
 </html>

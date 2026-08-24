@@ -22,7 +22,8 @@ html, body {
   align-items: center;
   justify-content: center;
   background: radial-gradient(ellipse at center, #041018 0%, #000 70%);
-  z-index: 20;
+  z-index: 50;
+  pointer-events: auto;
 }
 #dead[hidden] { display: none !important; }
 #start .panel, #dead .panel {
