@@ -12,12 +12,23 @@ import {
   SHAPE_ROUND,
   SHAPE_SPHERE,
   STORIES,
+  WALL_CRACK,
 } from "./config.js";
 
 export { CELL };
 
 export function pack(carved, shape, tex) {
   return (carved ? 1 : 0) | ((shape & 3) << 1) | ((tex & 15) << 3);
+}
+export function wallTexId(v) {
+  return v & 15;
+}
+export function wallIsCrack(v) {
+  return !!(v & WALL_CRACK);
+}
+export function packWall(tex, crack) {
+  const t = Math.max(1, tex & 15);
+  return t | (crack ? WALL_CRACK : 0);
 }
 export function isCarved(b) {
   return (b & 1) !== 0;
@@ -379,6 +390,26 @@ export function stampLayer(arr, map, cx, cz, radius, value) {
       const dx = x + 0.5 - cx;
       const dz = z + 0.5 - cz;
       if (dx * dx + dz * dz <= r2 + 0.15) arr[idx(map, x, z)] = value;
+    }
+  }
+}
+
+export function stampCrack(arr, map, cx, cz, radius, tex) {
+  ensureLayers(map);
+  const r = Math.max(0.5, radius);
+  const r2 = r * r;
+  const x0 = Math.max(0, Math.floor(cx - r));
+  const x1 = Math.min(map.w - 1, Math.ceil(cx + r));
+  const z0 = Math.max(0, Math.floor(cz - r));
+  const z1 = Math.min(map.h - 1, Math.ceil(cz + r));
+  for (let z = z0; z <= z1; z++) {
+    for (let x = x0; x <= x1; x++) {
+      const dx = x + 0.5 - cx;
+      const dz = z + 0.5 - cz;
+      if (dx * dx + dz * dz > r2 + 0.15) continue;
+      const i = idx(map, x, z);
+      const cur = arr[i];
+      arr[i] = packWall(wallTexId(cur) || tex || 1, true);
     }
   }
 }

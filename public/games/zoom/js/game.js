@@ -7,8 +7,8 @@ import { buildDungeon, prepareSdf } from "./mesh.js";
 import { makeProp, spawnFrom, strikeFoes, tickFoes } from "./props.js";
 import { getMap, listMaps } from "./store.js";
 import { makeProc } from "./proc.js";
-import { breakWindows, buildingFloorY, buildWorld, climbSupport, hurtTurrets, makeSky, tickRubble, tickWorld, tryUnlock, wallBlocked } from "./world.js";
-import { addBurnDecal, fireWeapon, makeKeyModel, makePickup, makeWeapon, setKillHook, tickBurns, tickShots } from "./weapons.js";
+import { breakWindows, buildingFloorY, buildWorld, climbSupport, hurtTurrets, makeSky, shatterCracked, tickRubble, tickWorld, tryUnlock, wallBlocked } from "./world.js";
+import { addBurnDecal, addSaberMark, fireWeapon, hurtFoe, makeDualSaber, makeKeyModel, makePickup, makeWeapon, setKillHook, tickBurns, tickShots } from "./weapons.js";
 import { tickRobots } from "./robots.js";
 import { attachXr, tickXr } from "./xr.js";
 import { loadGold, lootForEnemy, makeWristGold, paintWristGold, saveGold, showerLoot, tickLoot } from "./loot.js";
@@ -47,7 +47,13 @@ let running = false;
 let dead = false;
 let hurtT = 0;
 let yaw = 0;
+let yawOffset = 0;
 let viewWep, flashlight;
+let dualSaber = null;
+let saberOn = false;
+let psyCd = 0;
+let psyWaves = [];
+let saberPrevTips = [null, null];
 let animId = 0;
 let skyMesh = null;
 let lastDeath = "the crawl";
@@ -74,7 +80,9 @@ function hudBars() {
     (player.crouch ? "CROUCH " : "") +
     (player.fuel > 0 ? "JET " : "") +
     (player.dashT > 0 ? "DASH " : "") +
-    (player.haste > 0 ? "HASTE " : "");
+    (player.haste > 0 ? "HASTE " : "") +
+    "PSY " +
+    (saberOn ? "SABER " : "");
   if ($("goldv")) $("goldv").textContent = String(player.coins | 0);
   paintWristGold(wristGold, player.coins);
 }
@@ -209,7 +217,14 @@ function applyXrStage() {
   if (!xrPresenting || !stage) return;
   const eye = player.crouch ? 0.9 : EYE;
   const floor = (player.y || EYE) - eye;
-  stage.position.set(-(player.x || 0), -floor, -(player.z || 0));
+  const c = Math.cos(yawOffset);
+  const s = Math.sin(yawOffset);
+  stage.rotation.y = yawOffset;
+  stage.position.set(
+    -(player.x || 0) * c + (player.z || 0) * s,
+    -floor,
+    -(player.x || 0) * s - (player.z || 0) * c,
+  );
 }
 
 function clearWorld() {
@@ -295,6 +310,10 @@ function placePlayer() {
   player.rage = 0;
   inv = [];
   setHeld(null);
+  saberOn = false;
+  if (dualSaber) dualSaber.removeFromParent();
+  for (const w of psyWaves) w.mesh.removeFromParent();
+  psyWaves = [];
   camera.position.set(player.x, player.y, player.z);
   camera.quaternion.setFromEuler(new THREE.Euler(0, yaw, 0, "YXZ"));
   applyXrStage();
@@ -514,12 +533,13 @@ function renderInv() {
 function physics(dt, xr) {
   const look = lookEuler.setFromQuaternion(camera.quaternion, "YXZ");
   yaw = look.y;
-  if (xr && xr.on && Math.abs(xr.lookX) > 0.08) {
-    yaw -= xr.lookX * dt * 2.55;
-    camera.quaternion.setFromEuler(lookEuler.set(look.x, yaw, 0, "YXZ"));
+  if (xr && xr.on && Math.abs(xr.lookX) > 0.12) {
+    const mag = Math.min(1, Math.abs(xr.lookX));
+    yawOffset -= Math.sign(xr.lookX) * mag * mag * dt * 2.35;
   }
-  const forward = tmp.set(-Math.sin(yaw), 0, -Math.cos(yaw));
-  const right = tmp2.set(Math.cos(yaw), 0, -Math.sin(yaw));
+  const moveYaw = xr && xr.on ? yaw + yawOffset : yaw;
+  const forward = tmp.set(-Math.sin(moveYaw), 0, -Math.cos(moveYaw));
+  const right = tmp2.set(Math.cos(moveYaw), 0, -Math.sin(moveYaw));
   let wx = 0;
   let wz = 0;
   if (xr && xr.on) {
@@ -654,11 +674,15 @@ function physics(dt, xr) {
       if (player.vy > 9) player.vy = 9;
     } else player.vy -= GRAV * dt;
     const prevY = player.y;
-    const steps = Math.max(1, Math.ceil(Math.abs(player.vy * dt) / 0.22));
+    const steps = Math.max(1, Math.ceil(Math.abs(player.vy * dt) / 0.1));
     const stepY = (player.vy * dt) / steps;
     for (let s = 0; s < steps; s++) {
       player.y += stepY;
       if (player.vy > 0 && blocked(player.x, player.y + 0.12, player.z)) {
+        player.vy = 0;
+        break;
+      }
+      if (player.vy < 0 && sdf3(player.x, player.y - eye + 0.08, player.z, map, sdf2) > -0.04) {
         player.vy = 0;
         break;
       }
@@ -715,15 +739,15 @@ function physics(dt, xr) {
   }
   const prevFeet = (player._prevY != null ? player._prevY : player.y) - eye;
   const feet = player.y - eye;
-  if (!rope && ground > -500 && player.vy <= 1.2) {
-    const crossed = prevFeet >= ground - 0.05 && feet <= ground + 0.28;
-    const buried = feet < ground;
+  if (!rope && ground > -500) {
+    const crossed = prevFeet >= ground - 0.08 && feet <= ground + 0.38;
+    const buried = feet < ground + 0.02;
     if (crossed || buried) {
       player.y = ground + eye;
-      player.vy = 0;
+      if (player.vy < 0) player.vy = 0;
       player.grounded = true;
       player.jumps = 2;
-      coyote = 0.14;
+      coyote = 0.16;
     } else if (!(climb && climb.kind === "ladder")) {
       player.grounded = false;
       coyote = Math.max(0, coyote - dt);
@@ -731,6 +755,14 @@ function physics(dt, xr) {
   } else if (!rope && !(climb && climb.kind === "ladder")) {
     player.grounded = false;
     coyote = Math.max(0, coyote - dt);
+  }
+  if (!rope) {
+    for (let i = 0; i < 10; i++) {
+      const fy = player.y - eye + 0.12;
+      if (sdf3(player.x, fy, player.z, map, sdf2) < -0.06) break;
+      player.y += 0.08;
+      player.vy = Math.max(0, player.vy);
+    }
   }
   if (player.y < -18) die("fell");
 
@@ -837,8 +869,9 @@ function grabNearest(h) {
   }
   for (const p of pickups) {
     if (!p.visible || p.userData.taken) continue;
-    const d = h.pos.distanceTo(p.position);
-    if (d < Math.min(bd, 0.42)) {
+    p.getWorldPosition(tmp);
+    const d = h.pos.distanceTo(tmp);
+    if (d < Math.min(bd, 0.5)) {
       bd = d;
       best = p;
     }
@@ -937,11 +970,174 @@ function tickVrMenu(xr) {
   }
 }
 
-function tickPickups() {
+function tickPickups(xr) {
+  const eye = player.crouch ? 0.9 : EYE;
+  const handsList = xr && xr.on ? [xr.left, xr.right].filter(Boolean) : [];
   for (const p of pickups) {
     if (!p.visible || p.userData.taken) continue;
     p.rotation.y += 0.03;
-    if (p.position.distanceTo(camera.position) < 1.35) takePickup(p);
+    const dx = p.position.x - player.x;
+    const dy = p.position.y - (player.y - eye * 0.45);
+    const dz = p.position.z - player.z;
+    let hit = Math.hypot(dx, dz) < 0.95 && Math.abs(dy) < 1.35;
+    if (!hit) {
+      p.getWorldPosition(tmp);
+      for (const h of handsList) {
+        if (h.pos.distanceTo(tmp) < 0.32) {
+          hit = true;
+          break;
+        }
+      }
+    }
+    if (hit) takePickup(p);
+  }
+}
+
+function flingAt(pos, dir, radius, force, slam, hitSet) {
+  const r = radius;
+  for (const f of foes) {
+    if (!f.visible || f.userData.hp <= 0) continue;
+    if (hitSet && hitSet.has(f)) continue;
+    const d = f.position.distanceTo(pos);
+    if (d > r + (f.userData.hitR || 0.7)) continue;
+    if (hitSet) hitSet.add(f);
+    const u = f.userData;
+    const n = f.position.clone().sub(pos);
+    if (n.lengthSq() < 1e-6) n.copy(dir);
+    n.y += 0.45;
+    n.normalize();
+    n.addScaledVector(dir, 0.55).normalize();
+    u.flung = true;
+    u.vx = n.x * force;
+    u.vy = Math.max(4.5, n.y * force * 0.7);
+    u.vz = n.z * force;
+    u.slam = slam;
+    hurtFoe(f, Math.max(4, slam * 0.25), dir);
+  }
+  for (const g of physBodies) {
+    const p = g.userData.phys;
+    if (!p || p.held) continue;
+    if (hitSet && hitSet.has(g)) continue;
+    if (g.position.distanceTo(pos) > r + (p.r || 0.4)) continue;
+    if (hitSet) hitSet.add(g);
+    const n = g.position.clone().sub(pos);
+    if (n.lengthSq() < 1e-6) n.copy(dir);
+    n.y += 0.5;
+    n.normalize();
+    p.vx = n.x * force * 0.9;
+    p.vy = Math.max(3.5, n.y * force * 0.65);
+    p.vz = n.z * force * 0.9;
+    p.slam = slam;
+  }
+  if (extras) {
+    const bits = shatterCracked(extras, map, pos, r + 0.35, stage || scene);
+    for (const b of bits) {
+      if (b.userData.phys) physBodies.push(b);
+      else if (b.userData.flash) psyWaves.push({ mesh: b, dir: new THREE.Vector3(), speed: 0, life: 0.2, r: 0, hit: new Set(), dummy: true });
+    }
+  }
+}
+
+function firePsy(xr) {
+  if (psyCd > 0) return;
+  psyCd = 0.42;
+  const origin = new THREE.Vector3();
+  const dir = new THREE.Vector3(0, 0, -1);
+  if (xr && xr.on && xr.right) {
+    origin.copy(xr.right.pos);
+    dir.copy(tmp.set(0, 0, -1).applyQuaternion(xr.right.quat));
+  } else {
+    camera.getWorldPosition(origin);
+    dir.applyQuaternion(camera.quaternion);
+  }
+  if (stage && xrPresenting) {
+    origin.copy(stage.worldToLocal(origin.clone()));
+    const p2 = stage.worldToLocal(xr && xr.right ? xr.right.pos.clone().add(dir) : camera.position.clone().add(dir));
+    dir.copy(p2.sub(origin)).normalize();
+  }
+  for (let i = 0; i < 3; i++) {
+    const ring = new THREE.Mesh(
+      new THREE.TorusGeometry(0.16 + i * 0.04, 0.022, 8, 28),
+      new THREE.MeshBasicMaterial({ color: i % 2 ? 0x66eeff : 0xb388ff, transparent: true, opacity: 0.9, side: THREE.DoubleSide }),
+    );
+    ring.scale.set(1.45, 0.42, 1);
+    ring.position.copy(origin).addScaledVector(dir, 0.15 + i * 0.08);
+    ring.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), dir);
+    (stage || scene).add(ring);
+    psyWaves.push({ mesh: ring, dir: dir.clone(), speed: 11 + i * 1.4, life: 0.55, r: 0.35 + i * 0.08, hit: new Set() });
+  }
+  setMsg("Psyblast");
+}
+
+function tickPsy(dt) {
+  for (let i = psyWaves.length - 1; i >= 0; i--) {
+    const w = psyWaves[i];
+    w.life -= dt;
+    w.r += dt * 3.6;
+    w.mesh.position.addScaledVector(w.dir, w.speed * dt);
+    if (w.mesh.material) w.mesh.material.opacity = Math.max(0, w.life * 1.6);
+    if (w.dummy) {
+      w.mesh.scale.addScalar(dt * 6);
+    } else {
+      w.mesh.scale.set(1.45 + (0.55 - w.life) * 2.2, 0.42, 1 + (0.55 - w.life) * 1.4);
+      flingAt(w.mesh.position, w.dir, w.r, 9.5, 14, w.hit);
+    }
+    if (w.life <= 0) {
+      w.mesh.removeFromParent();
+      psyWaves.splice(i, 1);
+    }
+  }
+}
+
+function toggleSaber(xr) {
+  saberOn = !saberOn;
+  if (saberOn) {
+    if (!dualSaber) dualSaber = makeDualSaber();
+    if (xr && xr.on && xr.right) {
+      xr.right.con.add(dualSaber);
+      dualSaber.position.set(0, 0, 0);
+    } else {
+      camera.add(dualSaber);
+      dualSaber.position.set(0.28, -0.16, -0.45);
+    }
+    if (viewWep) viewWep.visible = false;
+    saberPrevTips = [null, null];
+    setMsg("Dual saber");
+  } else {
+    if (dualSaber) dualSaber.removeFromParent();
+    if (viewWep && !xrPresenting) viewWep.visible = true;
+    setMsg("Saber sheathed");
+  }
+}
+
+function tickSaber(xr, dt) {
+  if (!saberOn || !dualSaber) return;
+  const tips = dualSaber.userData.tips || [];
+  dualSaber.updateMatrixWorld(true);
+  const host = xr && xr.on && xr.right ? xr.right.con : dualSaber;
+  for (let i = 0; i < tips.length; i++) {
+    const local = new THREE.Vector3(0, 0, tips[i].z);
+    const world = host.localToWorld ? host.localToWorld(local.clone()) : dualSaber.localToWorld(local.clone());
+    const mapP = stage && xrPresenting ? stage.worldToLocal(world.clone()) : world.clone();
+    const prev = saberPrevTips[i];
+    if (prev) {
+      const mid = mapP.clone().add(prev).multiplyScalar(0.5);
+      const move = mapP.clone().sub(prev);
+      if (move.length() > 0.02) {
+        strikeFoes(foes, mid, move.clone().normalize(), 0.85, 16);
+        if (sdf3(mapP.x, mapP.y, mapP.z, map, sdf2) > -0.08 || wallBlocked(map, mapP.x, mapP.z, mapP.y)) {
+          addSaberMark(stage || scene, burns, mapP, move, tips[i].color);
+        }
+        for (const f of foes) {
+          if (!f.visible || f.userData.hp <= 0) continue;
+          if (f.position.distanceTo(mapP) < 0.55 + (f.userData.hitR || 0.5)) {
+            hurtFoe(f, 12, move);
+            addSaberMark(stage || scene, burns, mapP, move, tips[i].color);
+          }
+        }
+      }
+    }
+    saberPrevTips[i] = mapP.clone();
   }
 }
 
@@ -952,6 +1148,7 @@ function xrGrab(xr) {
     tickVrMenu(xr);
     return;
   }
+  if (xr.saberToggle) toggleSaber(xr);
   if (xr.reload) {
     const def = held && WEAPON_BY_ID[held];
     if (def && def.slot === "gun") {
@@ -997,7 +1194,7 @@ function xrGrab(xr) {
         h.held.mesh.removeFromParent();
         if (h.held.id) {
           const drop = makePickup(h.held.id);
-          drop.position.copy(h.pos);
+          drop.position.copy(stage && xrPresenting ? stage.worldToLocal(h.pos.clone()) : h.pos);
           (stage || scene).add(drop);
           pickups.push(drop);
         }
@@ -1005,7 +1202,8 @@ function xrGrab(xr) {
       h.held = null;
     }
     if (h.held && h.held.id && WEAPON_BY_ID[h.held.id]?.slot === "melee" && h.vel.length() > 4) {
-      strikeFoes(foes, h.pos, h.vel.clone().normalize(), 1.4, WEAPON_BY_ID[h.held.id].dmg);
+      const at = stage && xrPresenting ? stage.worldToLocal(h.pos.clone()) : h.pos;
+      strikeFoes(foes, at, h.vel.clone().normalize(), 1.4, WEAPON_BY_ID[h.held.id].dmg);
     }
     if (h.held && h.held.id && WEAPON_BY_ID[h.held.id]?.slot === "gun" && h.trigger && !h.triggerPrev) {
       setHeld(h.held.id);
@@ -1013,6 +1211,7 @@ function xrGrab(xr) {
     }
   }
   if (xr.dash) return;
+  if (saberOn) return;
   if (xr.right && xr.right.trigger && !xr.right.triggerPrev && held) primary();
 }
 
@@ -1074,7 +1273,11 @@ function loop(time) {
         }
       }
     }
-    tickPickups();
+    tickPickups(xr);
+    tickPsy(dt);
+    tickSaber(xr, dt);
+    if (psyCd > 0) psyCd = Math.max(0, psyCd - dt);
+    if ((xr && xr.on && xr.psyHeld && psyCd <= 0) || keys.has("KeyX") && psyCd <= 0) firePsy(xr);
     drawMinimap();
     hudBars();
   }
@@ -1140,6 +1343,8 @@ addEventListener("keydown", (e) => {
     $("inv").hidden = hide;
     if (!hide) renderInv();
   }
+  if (e.code === "KeyB") toggleSaber(hands && renderer ? { on: xrPresenting, right: hands.find((h) => h.handed === "right") } : { on: false });
+  if (e.code === "KeyX") firePsy(hands && renderer ? { on: xrPresenting, right: hands.find((h) => h.handed === "right") } : { on: false });
   if (e.code === "KeyR") {
     const def = held && WEAPON_BY_ID[held];
     if (def && def.slot === "gun") {

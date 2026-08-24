@@ -62,6 +62,21 @@ export function tickRobots(foes, dt, player, map, sdf2, onHit, scene, shots, fir
   for (const f of foes) {
     const u = f.userData;
     if (!u.robot || !f.visible || u.hp <= 0) continue;
+    if (u.flung) {
+      u.vy = (u.vy || 0) - 24 * dt;
+      f.position.x += (u.vx || 0) * dt;
+      f.position.y += u.vy * dt;
+      f.position.z += (u.vz || 0) * dt;
+      const fy = floorY(f.position.x, f.position.z, map, sdf2);
+      if (fy > -500 && f.position.y <= fy + 0.2) {
+        f.position.y = fy + 0.2;
+        if (u.vy < -3 && u.slam) hurtFoe(f, u.slam, null);
+        u.flung = false;
+        u.vy = 0;
+        u.slam = 0;
+      }
+      continue;
+    }
     if (u.flash > 0) {
       u.flash -= dt;
       f.traverse((o) => {

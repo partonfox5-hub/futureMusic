@@ -105,6 +105,49 @@ export function makeWeapon(id) {
   return g;
 }
 
+export function makeDualSaber() {
+  const g = new THREE.Group();
+  const blue = mat(0x3a6aaa, { emissive: 0x123044 });
+  const chrome = mat(0x8aa0b4, { emissive: 0x223040 });
+  const hilt = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.026, 0.22, 12), blue);
+  hilt.rotation.x = Math.PI / 2;
+  g.add(hilt);
+  const band = new THREE.Mesh(new THREE.TorusGeometry(0.028, 0.006, 6, 12), chrome);
+  band.rotation.y = Math.PI / 2;
+  g.add(band);
+  const emitterA = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.03, 10), mat(0x1a2430, { emissive: 0x111 }));
+  emitterA.rotation.x = Math.PI / 2;
+  emitterA.position.z = -0.12;
+  const emitterB = emitterA.clone();
+  emitterB.position.z = 0.12;
+  g.add(emitterA, emitterB);
+  function blade(col, sign) {
+    const b = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.016, 0.01, 0.92, 8),
+      mat(col, { emissive: col, transparent: true, opacity: 0.92 }),
+    );
+    b.rotation.x = Math.PI / 2;
+    b.position.z = sign * 0.58;
+    g.add(b);
+    const core = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.007, 0.005, 0.9, 6),
+      mat(0xffffff, { emissive: 0xffffff }),
+    );
+    core.rotation.x = Math.PI / 2;
+    core.position.z = sign * 0.58;
+    g.add(core);
+    g.add(new THREE.PointLight(col, 0.45, 2.6));
+  }
+  blade(0x33dd55, -1);
+  blade(0xff3333, 1);
+  g.userData.dualSaber = true;
+  g.userData.tips = [
+    { color: 0x33dd55, z: -1.04 },
+    { color: 0xff3333, z: 1.04 },
+  ];
+  return g;
+}
+
 export function makeKeyModel() {
   const g = new THREE.Group();
   const gold = mat(0xe2c15a, { emissive: 0x5a3a08 });
@@ -290,13 +333,29 @@ export function hurtFoe(f, dmg, dir) {
 export function addBurnDecal(scene, list, pos, color) {
   const m = new THREE.Mesh(
     new THREE.CircleGeometry(0.12, 8),
-    new THREE.MeshBasicMaterial({ color: 0x1a0a08, transparent: true, opacity: 0.85, side: THREE.DoubleSide }),
+    new THREE.MeshBasicMaterial({ color: color || 0x1a0a08, transparent: true, opacity: 0.85, side: THREE.DoubleSide }),
   );
   m.position.copy(pos);
   m.lookAt(pos.x, pos.y + 1, pos.z);
   scene.add(m);
   list.push({ mesh: m, life: 18 });
   if (list.length > 90) {
+    const old = list.shift();
+    old.mesh.removeFromParent();
+  }
+}
+
+export function addSaberMark(scene, list, pos, dir, color) {
+  const m = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.06, 0.38),
+    new THREE.MeshBasicMaterial({ color: color || 0x66ffaa, transparent: true, opacity: 0.9, side: THREE.DoubleSide }),
+  );
+  m.position.copy(pos);
+  const n = dir && dir.lengthSq() > 1e-6 ? dir.clone().normalize() : new THREE.Vector3(0, 1, 0);
+  m.lookAt(pos.x + n.x, pos.y + n.y, pos.z + n.z);
+  scene.add(m);
+  list.push({ mesh: m, life: 22 });
+  if (list.length > 120) {
     const old = list.shift();
     old.mesh.removeFromParent();
   }

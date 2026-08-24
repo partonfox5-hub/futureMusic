@@ -10,13 +10,13 @@ import {
   STORIES,
   WALL_TEX,
 } from "./config.js";
-import { cellI, climbHoleFloor, climbHoleRoof, enclosedFloors, idx, inBounds, sdf3 } from "./map.js";
+import { cellI, climbHoleFloor, climbHoleRoof, enclosedFloors, idx, inBounds, sdf3, wallIsCrack, wallTexId } from "./map.js";
 
 function mat(hex, extra) {
   return new THREE.MeshLambertMaterial({ color: hex, ...extra });
 }
 
-function wallMat(id) {
+function wallMat(id, cracked) {
   const pal = {
     castle: [0x8a8078, 0x5a5048],
     manor: [0x6a4a38, 0xc4b49a],
@@ -25,6 +25,13 @@ function wallMat(id) {
     straw: [0xc4a050, 0x8a7030],
     cabin: [0x8a5a32, 0x5a3818],
     space: [0x2a3848, 0x4ad0ff],
+    cave: [0x6a5a48, 0x3a3028],
+    granite: [0x7a7a78, 0x4a4a48],
+    mossrock: [0x4a6040, 0x2a3820],
+    ice: [0xa8d0e0, 0x6a98b0],
+    crystal: [0x6a3eb0, 0xc8a0ff],
+    sandstone: [0xc4a070, 0x8a6a40],
+    dungeon: [0x5a5048, 0x2a2420],
   }[id] || [0x888, 0x444];
   const c = document.createElement("canvas");
   c.width = c.height = 32;
@@ -32,7 +39,7 @@ function wallMat(id) {
   g.fillStyle = "#" + pal[0].toString(16).padStart(6, "0");
   g.fillRect(0, 0, 32, 32);
   g.fillStyle = "#" + pal[1].toString(16).padStart(6, "0");
-  if (id === "castle" || id === "manor") {
+  if (id === "castle" || id === "manor" || id === "dungeon") {
     for (let y = 0; y < 32; y += 8) {
       const o = (y / 8) % 2 ? 4 : 0;
       for (let x = -8; x < 32; x += 16) g.fillRect(x + o + 1, y + 1, 14, 6);
@@ -42,8 +49,36 @@ function wallMat(id) {
   } else if (id === "space") {
     g.fillRect(0, 8, 32, 1);
     g.fillRect(0, 24, 32, 1);
+  } else if (id === "ice" || id === "crystal") {
+    g.strokeStyle = "#" + pal[1].toString(16).padStart(6, "0");
+    g.lineWidth = 1;
+    for (let i = 0; i < 8; i++) {
+      g.beginPath();
+      g.moveTo((i * 11) % 32, 0);
+      g.lineTo(32, (i * 9) % 32);
+      g.stroke();
+    }
   } else {
-    for (let i = 0; i < 20; i++) g.fillRect((i * 7) % 32, (i * 11) % 32, 3, 2);
+    for (let i = 0; i < 28; i++) g.fillRect((i * 7) % 32, (i * 13) % 32, 4, 3);
+  }
+  if (cracked) {
+    g.strokeStyle = "rgba(12,8,6,0.92)";
+    g.lineWidth = 2;
+    g.beginPath();
+    g.moveTo(2, 6);
+    g.lineTo(10, 14);
+    g.lineTo(8, 22);
+    g.lineTo(18, 28);
+    g.moveTo(14, 2);
+    g.lineTo(20, 12);
+    g.lineTo(28, 10);
+    g.lineTo(30, 24);
+    g.moveTo(4, 28);
+    g.lineTo(16, 18);
+    g.stroke();
+    g.fillStyle = "rgba(8,6,4,0.45)";
+    g.fillRect(9, 12, 3, 8);
+    g.fillRect(19, 8, 2, 6);
   }
   const t = new THREE.CanvasTexture(c);
   t.wrapS = t.wrapT = THREE.RepeatWrapping;
@@ -54,8 +89,9 @@ function wallMat(id) {
 }
 
 const WMAT = {};
-function wmat(id) {
-  return (WMAT[id] ||= wallMat(id));
+function wmat(id, cracked) {
+  const key = id + (cracked ? ":c" : "");
+  return (WMAT[key] ||= wallMat(id, cracked));
 }
 
 export function makeSky(kind) {
@@ -330,7 +366,7 @@ function openingAt(map, x, z, story) {
 export function buildWorld(map, dungeon, scene) {
   const group = new THREE.Group();
   group.name = "world";
-  const extras = { crushers: [], turrets: [], ropes: [], portals: [], doors: [], windows: [], liquids: [], spikes: [], climbs: [], caveins: [], unstables: [], horizon: null, boulders: [], vendors: [], root: scene };
+  const extras = { crushers: [], turrets: [], ropes: [], portals: [], doors: [], windows: [], liquids: [], spikes: [], climbs: [], caveins: [], unstables: [], horizon: null, boulders: [], vendors: [], crackedWalls: [], root: scene };
 
   const spikeGeo = new THREE.ConeGeometry(0.12, 0.7, 5);
   const spikeMat = mat(0x8a9098, { emissive: 0x222 });
@@ -377,12 +413,23 @@ export function buildWorld(map, dungeon, scene) {
         const tid = wall[i];
         if (tid) {
           const open = openingAt(map, x, z, story);
-          const texId = WALL_TEX[(tid - 1) % WALL_TEX.length].id;
-          const wm = wmat(texId);
+          const texId = WALL_TEX[(wallTexId(tid) - 1) % WALL_TEX.length].id;
+          const cracked = wallIsCrack(tid);
+          const wm = wmat(texId, cracked);
           if (!open) {
             const box = new THREE.Mesh(new THREE.BoxGeometry(CELL, STORY_H - 0.05, CELL), wm);
             box.position.set((x + 0.5) * CELL, yBase + STORY_H * 0.5, (z + 0.5) * CELL);
             group.add(box);
+            if (cracked) {
+              extras.crackedWalls.push({
+                mesh: box,
+                gx: x,
+                gz: z,
+                story,
+                tex: wallTexId(tid),
+                yBase,
+              });
+            }
           } else {
             addOpening(group, extras, open, x, z, yBase, wm, map);
           }
@@ -1009,4 +1056,56 @@ export function breakWindows(extras, origin, dir, range) {
       w.mesh.visible = false;
     }
   }
+}
+
+export function shatterCracked(extras, map, pos, radius, parent) {
+  const out = [];
+  if (!extras?.crackedWalls) return out;
+  const r2 = radius * radius;
+  for (const w of extras.crackedWalls) {
+    if (w.gone || !w.mesh) continue;
+    const wx = (w.gx + 0.5) * CELL;
+    const wy = w.yBase + STORY_H * 0.5;
+    const wz = (w.gz + 0.5) * CELL;
+    const dx = wx - pos.x;
+    const dy = wy - pos.y;
+    const dz = wz - pos.z;
+    if (dx * dx + dy * dy + dz * dz > r2) continue;
+    w.gone = true;
+    w.mesh.visible = false;
+    if (map.bwalls && map.bwalls[w.story]) map.bwalls[w.story][idx(map, w.gx, w.gz)] = 0;
+    map._floors = null;
+    const col = 0x6a5a48;
+    for (let i = 0; i < 9; i++) {
+      const bit = new THREE.Mesh(
+        new THREE.BoxGeometry(0.18 + Math.random() * 0.22, 0.14 + Math.random() * 0.2, 0.16 + Math.random() * 0.2),
+        mat(col),
+      );
+      bit.position.set(wx + (Math.random() - 0.5) * 0.5, wy + (Math.random() - 0.4) * 0.8, wz + (Math.random() - 0.5) * 0.5);
+      bit.rotation.set(Math.random(), Math.random(), Math.random());
+      parent.add(bit);
+      bit.userData.phys = {
+        mass: 4,
+        r: 0.18,
+        h: 0.2,
+        vx: (Math.random() - 0.5) * 8,
+        vy: 3 + Math.random() * 5,
+        vz: (Math.random() - 0.5) * 8,
+        held: false,
+        slam: 0,
+      };
+      bit.userData.kind = "debris";
+      out.push(bit);
+    }
+    const flash = new THREE.Mesh(
+      new THREE.SphereGeometry(0.55, 8, 6),
+      mat(0xffcc88, { transparent: true, opacity: 0.7, emissive: 0xffaa44 }),
+    );
+    flash.position.set(wx, wy, wz);
+    flash.userData.flash = true;
+    flash.userData.life = 0.22;
+    parent.add(flash);
+    out.push(flash);
+  }
+  return out;
 }

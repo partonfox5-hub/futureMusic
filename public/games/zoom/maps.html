@@ -8,7 +8,7 @@
     <link rel="canonical" href="https://futuremusic.online/zoommaps" />
     <link rel="icon" type="image/jpeg" href="/games/zoom/og.jpg" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" />
-    <link rel="stylesheet" href="/games/zoom/css/zoom.css?v=z7" />
+    <link rel="stylesheet" href="/games/zoom/css/zoom.css?v=psy1" />
     <script>
       window.ZOOM_ROUTES = { play: "/zoom", maps: "/zoommaps" };
     </script>
@@ -32,7 +32,7 @@
         <div><i class="lg lava"></i> Lava</div>
         <div><i class="lg spawn"></i> Player spawn</div>
         <div><i class="lg sky"></i> Open sky</div>
-        <div><i class="lg unstable"></i> Unstable</div>
+        <div><i class="lg unstable"></i> Unstable / cracked wall</div>
       </div>
     </div>
     <aside id="side">
@@ -81,6 +81,7 @@
       <h2>Build</h2>
       <div class="tools">
         <button type="button" data-tool="wall">Wall</button>
+        <button type="button" data-tool="crack">Cracked wall</button>
         <button type="button" data-tool="door">Door</button>
         <button type="button" data-tool="locked">Locked door</button>
         <button type="button" data-tool="arch">Archway</button>
@@ -96,7 +97,7 @@
         <label>Hall height <span id="hall-v">4.2</span></label>
         <input id="hall" type="range" min="2.4" max="8" step="0.1" value="4.2" />
       </div>
-      <div class="pbox" data-show="dig,erase,rect,outline,sphere,fill,paint,crouch,spike,unstable,sky,elev,water,lava,wall">
+      <div class="pbox" data-show="dig,erase,rect,outline,sphere,fill,paint,crouch,spike,unstable,sky,elev,water,lava,wall,crack">
         <label>Brush size <span id="brush-v">2.2</span></label>
         <input id="brush" type="range" min="0.5" max="16" step="0.1" value="2.2" />
       </div>
@@ -153,7 +154,7 @@
       <div class="pbox" data-show="door,locked,arch,window">
         <p class="hint">These only snap onto building walls, never empty ground.</p>
       </div>
-      <div class="pbox" data-show="wall,door,locked,arch,window">
+      <div class="pbox" data-show="wall,crack,door,locked,arch,window">
         <label>Story</label>
         <select id="story">
           <option value="0">1st story</option>
@@ -161,10 +162,10 @@
           <option value="2">3rd story</option>
         </select>
       </div>
-      <div class="pbox" data-show="wall">
+      <div class="pbox" data-show="wall,crack">
         <label>Wall texture</label>
         <select id="wtex"></select>
-        <p class="hint">Draw walls. Roofs and floors fill automatically when walls enclose a room.</p>
+        <p class="hint">Draw walls, or cracked segments that a psyblast can shatter. Cavern, ice, crystal, and dungeon skins are in the list. Roofs and floors fill when walls enclose a room.</p>
       </div>
       <div class="pbox" data-show="rope,turret,crusher,vendor">
         <p class="hint">Click carved ground to place. Crushers are Roman columns that raise and slam. Flame turrets are metal guns with health bars. Vending machines sell gear for coins.</p>
@@ -196,6 +197,6 @@
       <h2>Saved</h2>
       <div id="saved"></div>
     </aside>
-    <script type="module" src="/games/zoom/js/editor.js?v=z7"></script>
+    <script type="module" src="/games/zoom/js/editor.js?v=psy1"></script>
   </body>
 </html>

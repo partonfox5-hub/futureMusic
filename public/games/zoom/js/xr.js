@@ -48,6 +48,7 @@ export function attachXr(renderer, scene, onSession) {
       triggerPrev: false,
       triggerValue: 0,
       stick: false,
+      stickPrev: false,
       aBtn: false,
       aPrev: false,
       bBtn: false,
@@ -170,6 +171,7 @@ export function tickXr(renderer, hands, dt) {
       if (trig && !h.trigger) h._trigAt = performance.now();
       h.trigger = trig;
       h.squeeze = !!(gp.buttons[1] && gp.buttons[1].pressed);
+      h.stickPrev = h.stick;
       h.stick = !!(gp.buttons[3] && gp.buttons[3].pressed);
       h.aBtn = !!(gp.buttons[4] && gp.buttons[4].pressed);
       h.bBtn = !!(gp.buttons[5] && gp.buttons[5].pressed);
@@ -206,6 +208,9 @@ export function tickXr(renderer, hands, dt) {
     moveY: left ? left.axes[1] : 0,
     jump: !!(right && right.aBtn && !right.aPrev),
     menu: !!(left && ((left.menuBtn && !left.menuPrev) || (left.bBtn && !left.bPrev))),
-    reload: !!(right && right.bBtn && !right.bPrev),
+    reload: !!(right && right.stick && !right.stickPrev),
+    psy: !!(left && left.aBtn && !left.aPrev) || !!(left && left.aBtn),
+    psyHeld: !!(left && left.aBtn),
+    saberToggle: !!(right && right.bBtn && !right.bPrev),
   };
 }

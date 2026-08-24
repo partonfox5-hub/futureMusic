@@ -38,11 +38,14 @@ import {
   isCarved,
   paintDisk,
   serialize,
+  stampCrack,
   stampDisk,
   stampFlags,
   stampLayer,
   stampRect,
   stampSegment,
+  wallIsCrack,
+  wallTexId,
 } from "./map.js";
 import { deleteMap, getMap, listMaps, saveMap, stashPreview } from "./store.js";
 
@@ -209,11 +212,23 @@ function drawCell(x, z) {
   }
   const bw = map.bwalls && map.bwalls[story] && map.bwalls[story][i];
   if (bw) {
-    ctx.fillStyle = WALL_TEX[(bw - 1) % WALL_TEX.length].swatch;
+    const texI = wallTexId(bw) || 1;
+    ctx.fillStyle = WALL_TEX[(texI - 1) % WALL_TEX.length].swatch;
     ctx.fillRect(x + 0.15, z + 0.15, 0.7, 0.7);
     ctx.strokeStyle = "#111";
     ctx.lineWidth = 0.08;
     ctx.strokeRect(x + 0.15, z + 0.15, 0.7, 0.7);
+    if (wallIsCrack(bw)) {
+      ctx.strokeStyle = "rgba(20,12,8,0.9)";
+      ctx.lineWidth = 0.1;
+      ctx.beginPath();
+      ctx.moveTo(x + 0.22, z + 0.28);
+      ctx.lineTo(x + 0.48, z + 0.55);
+      ctx.lineTo(x + 0.4, z + 0.78);
+      ctx.moveTo(x + 0.55, z + 0.22);
+      ctx.lineTo(x + 0.82, z + 0.62);
+      ctx.stroke();
+    }
   }
 }
 
@@ -376,7 +391,7 @@ canvas.addEventListener("pointerdown", (ev) => {
   }
   const c = cellFromEvent(ev);
   last = c;
-  if (["dig", "erase", "sphere", "paint", "crouch", "spike", "sky", "elev", "water", "lava", "wall", "unstable"].includes(tool)) {
+  if (["dig", "erase", "sphere", "paint", "crouch", "spike", "sky", "elev", "water", "lava", "wall", "crack", "unstable"].includes(tool)) {
     pushUndo();
     drawing = true;
     strokeAt(c, true);
@@ -535,6 +550,7 @@ function strokeAt(c, first) {
   else if (tool === "water") stampLayer(map.liquid, map, c.x, c.z, brush, LIQ_WATER);
   else if (tool === "lava") stampLayer(map.liquid, map, c.x, c.z, brush, LIQ_LAVA);
   else if (tool === "wall") stampLayer(map.bwalls[story], map, c.x, c.z, Math.max(0.6, brush * 0.45), wtex);
+  else if (tool === "crack") stampCrack(map.bwalls[story], map, c.x, c.z, Math.max(0.6, brush * 0.45), wtex);
   else if (tool === "dig" || tool === "erase" || tool === "sphere") {
     const prev = shape;
     if (tool === "sphere") shape = SHAPE_SPHERE;
@@ -588,7 +604,7 @@ canvas.addEventListener("pointermove", (ev) => {
     }
     return;
   }
-  if (["dig", "erase", "sphere", "paint", "crouch", "spike", "sky", "elev", "water", "lava", "wall", "unstable"].includes(tool)) {
+  if (["dig", "erase", "sphere", "paint", "crouch", "spike", "sky", "elev", "water", "lava", "wall", "crack", "unstable"].includes(tool)) {
     strokeAt(c, false);
     last = c;
     draw();
@@ -647,6 +663,7 @@ function setTool(t) {
     lava: "Lava layer — it burns.",
     start: "Click spawn, drag to face.",
     wall: "Draw building walls. Enclosed rooms get floors and roofs.",
+    crack: "Paint damaged, cracked wall segments. Psyblast shatters them into debris.",
     portal: "Two clicks make a colored pair.",
   };
   $("shape-hint").textContent = hints[t] || SHAPES.find((s) => s.id === shape)?.hint || "";

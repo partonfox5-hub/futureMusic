@@ -11,6 +11,7 @@ export const SHAPE_SPHERE = 3;
 export const FLAG_SPIKE = 1;
 export const FLAG_CROUCH = 2;
 export const FLAG_UNSTABLE = 4;
+export const WALL_CRACK = 128;
 export const LIQ_NONE = 0;
 export const LIQ_WATER = 1;
 export const LIQ_LAVA = 2;
@@ -48,6 +49,13 @@ export const WALL_TEX = [
   { id: "straw", name: "Straw hut", swatch: "#c4a050" },
   { id: "cabin", name: "Wood cabin", swatch: "#8a5a32" },
   { id: "space", name: "Space metal", swatch: "#3a5070" },
+  { id: "cave", name: "Cavern rock", swatch: "#6a5a48" },
+  { id: "granite", name: "Granite", swatch: "#7a7a78" },
+  { id: "mossrock", name: "Moss cave", swatch: "#4a6a40" },
+  { id: "ice", name: "Ice cave", swatch: "#a8d0e0" },
+  { id: "crystal", name: "Crystal cave", swatch: "#7a4ec8" },
+  { id: "sandstone", name: "Sandstone", swatch: "#c4a070" },
+  { id: "dungeon", name: "Dungeon brick", swatch: "#5a5048" },
 ];
 
 export const SKY_KINDS = [

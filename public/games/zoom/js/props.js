@@ -237,6 +237,27 @@ export function tickFoes(foes, dt, player, map, sdf2, onHit) {
   for (const f of foes) {
     const u = f.userData;
     if (!f.visible || u.hp <= 0 || u.robot) continue;
+    if (u.flung) {
+      u.vy = (u.vy || 0) - 24 * dt;
+      f.position.x += (u.vx || 0) * dt;
+      f.position.y += u.vy * dt;
+      f.position.z += (u.vz || 0) * dt;
+      u.vx = (u.vx || 0) * 0.99;
+      u.vz = (u.vz || 0) * 0.99;
+      const fy = floorY(f.position.x, f.position.z, map, sdf2);
+      const stand = fy + (u.baseH || 2) * 0.48;
+      if (fy > -500 && f.position.y <= stand) {
+        f.position.y = stand;
+        if (u.vy < -3 && u.slam) hurtFoe(f, u.slam, null);
+        u.vy = 0;
+        u.vx *= 0.4;
+        u.vz *= 0.4;
+        u.flung = false;
+        u.slam = 0;
+      }
+      if (u.flash > 0) u.flash -= dt;
+      continue;
+    }
     if (u.recoil > 0) {
       u.recoil -= dt;
       f.position.x += (u.kx || 0) * dt;
