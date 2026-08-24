@@ -238,6 +238,7 @@ app.get('/terrarium', (req, res) => res.render('game-landing', seo.page('terrari
 function sharkHeaders(res) {
     res.setHeader('Permissions-Policy', 'xr-spatial-tracking=(self), fullscreen=(self), gamepad=(self), accelerometer=(self), gyroscope=(self), magnetometer=(self)');
     res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
 }
 app.get(['/games/shark', '/games/shark/'], (req, res) => res.redirect('/shark'));
 app.get(['/shark', '/shark/'], (req, res) => {
@@ -295,6 +296,7 @@ app.use("/games/fenrest-chess", (req, res, next) => {
 function planmorpherHeaders(res) {
     res.setHeader("Permissions-Policy", "xr-spatial-tracking=(self), fullscreen=(self), gamepad=(self), accelerometer=(self), gyroscope=(self), magnetometer=(self)");
     res.setHeader("X-Robots-Tag", "noindex, nofollow");
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
 }
 app.get(["/games/planmorpher", "/games/planmorpher/", "/games/planmorph", "/games/planmorph/", "/planmorph", "/planmorph/"], (req, res) => res.redirect(301, "/planmorpher"));
 app.get(["/planmorpher", "/planmorpher/"], (req, res) => {
@@ -337,6 +339,7 @@ app.use("/planetry", (req, res, next) => {
 // ZOOM — dungeon crawler + map maker. Canonical URLs /zoom and /zoommaps.
 function zoomHeaders(res) {
     res.setHeader("Permissions-Policy", "xr-spatial-tracking=(self), fullscreen=(self), gamepad=(self), accelerometer=(self), gyroscope=(self), magnetometer=(self), microphone=(self)");
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
 }
 app.get(["/games/zoom", "/games/zoom/"], (req, res) => res.redirect("/zoom"));
 app.get(["/zoom", "/zoom/"], (req, res) => {
