@@ -281,6 +281,10 @@ app.get(["/test-n2q8k4wm", "/test-n2q8k4wm/"], (req, res) => {
     fenrestHeaders(res);
     res.sendFile(path.join(__dirname, "public", "games", "fenrest", "test-n2q8k4wm", "index.html"));
 });
+app.get(["/test-h3n8q5wm", "/test-h3n8q5wm/"], (req, res) => {
+    fenrestHeaders(res);
+    res.sendFile(path.join(__dirname, "public", "games", "fenrest", "test-h3n8q5wm", "index.html"));
+});
 app.use("/games/fenrest-chess", (req, res, next) => {
     res.setHeader("Permissions-Policy", "xr-spatial-tracking=(self), fullscreen=(self), gamepad=(self), microphone=(self)");
     res.setHeader("X-Robots-Tag", "noindex, nofollow");
@@ -914,6 +918,20 @@ app.get(['/neweden', '/neweden/', '/neweden/login', '/neweden/login/'], (req, re
 });
 
 
+app.get(['/test-k4v7p2nx', '/test-k4v7p2nx/'], (req, res) => {
+    newedenHeaders(res);
+    res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+    const indexPath = path.join(__dirname, 'public', 'games', 'neweden', 'test-k4v7p2nx', 'index.html');
+    let html = fs.readFileSync(indexPath, 'utf8');
+    const sess = req.session || {};
+    const user = sess.user || (sess.userId ? { name: sess.username || sess.displayName || 'Explorer' } : null);
+    const payload = user ? { name: user.displayName || user.name || user.username || '' } : null;
+    html = html.replace(
+        '<head>',
+        `<head><script>window.__FM_USER__=${JSON.stringify(payload)};</script>`
+    );
+    res.type('html').send(html);
+});
 app.get(['/test-m7q2n8kw', '/test-m7q2n8kw/'], (req, res) => {
     newedenHeaders(res);
     res.setHeader('X-Robots-Tag', 'noindex, nofollow');
