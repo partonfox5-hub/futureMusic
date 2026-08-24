@@ -283,19 +283,18 @@ app.use("/games/fenrest-chess", (req, res, next) => {
     next();
 });
 
-// PLANMORPHER — unlisted Quest 3 WebXR god game. Canonical URL is /planmorpher.
-function planmorpherHeaders(res) {
+// PLANETRY — unlisted Quest 3 WebXR orbital RTS. Canonical URL is /planetry.
+// /planmorpher redirects here (the god-game is retired).
+function planetryHeaders(res) {
     res.setHeader("Permissions-Policy", "xr-spatial-tracking=(self), fullscreen=(self), gamepad=(self), accelerometer=(self), gyroscope=(self), magnetometer=(self)");
     res.setHeader("X-Robots-Tag", "noindex, nofollow");
 }
-app.get(["/games/planmorpher", "/games/planmorpher/"], (req, res) => res.redirect("/planmorpher"));
-app.get(["/planmorpher", "/planmorpher/"], (req, res) => {
-    planmorpherHeaders(res);
-    res.sendFile(path.join(__dirname, "public", "games", "planmorpher", "index.html"));
-});
-app.get(["/test-v8n4k2qm", "/test-v8n4k2qm/"], (req, res) => {
-    planmorpherHeaders(res);
-    res.sendFile(path.join(__dirname, "public", "games", "planetry", "test-v8n4k2qm", "index.html"));
+app.get(["/games/planetry", "/games/planetry/"], (req, res) => res.redirect("/planetry"));
+app.get(["/games/planmorpher", "/games/planmorpher/"], (req, res) => res.redirect("/planetry"));
+app.get(["/planmorpher", "/planmorpher/"], (req, res) => res.redirect("/planetry"));
+app.get(["/planetry", "/planetry/"], (req, res) => {
+    planetryHeaders(res);
+    res.sendFile(path.join(__dirname, "public", "games", "planetry", "index.html"));
 });
 
 app.use(express.static(path.join(__dirname, 'public')));
@@ -891,11 +890,7 @@ app.get(['/neweden', '/neweden/', '/neweden/login', '/neweden/login/'], (req, re
     res.type('html').send(html);
 });
 
-app.get(['/test-h4k9m2qx', '/test-h4k9m2qx/'], (req, res) => {
-    res.setHeader('X-Robots-Tag', 'noindex, nofollow');
-    res.setHeader('Permissions-Policy', 'xr-spatial-tracking=(self), fullscreen=(self), gamepad=(self), accelerometer=(self), gyroscope=(self), magnetometer=(self)');
-    res.sendFile(path.join(__dirname, 'public', 'games', 'planmorpher', 'test-h4k9m2qx', 'index.html'));
-});
+
 app.get(['/test-m7q2n8kw', '/test-m7q2n8kw/'], (req, res) => {
     newedenHeaders(res);
     res.setHeader('X-Robots-Tag', 'noindex, nofollow');
