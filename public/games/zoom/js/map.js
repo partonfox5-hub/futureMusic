@@ -67,6 +67,8 @@ export function blankMap(name = "Untitled") {
     crushers: [],
     turrets: [],
     climbs: [],
+    boulders: [],
+    vendors: [],
     start: { x: (w * 0.5) * CELL, z: (h * 0.5) * CELL, yaw: 0 },
     updated: Date.now(),
   };
@@ -136,6 +138,8 @@ export function serialize(map) {
     crushers: map.crushers || [],
     turrets: map.turrets || [],
     climbs: map.climbs || [],
+    boulders: map.boulders || [],
+    vendors: map.vendors || [],
     start: map.start,
     updated: map.updated || Date.now(),
   };
@@ -164,6 +168,8 @@ export function ensureLayers(map) {
   map.crushers ||= [];
   map.turrets ||= [];
   map.climbs ||= [];
+  map.boulders ||= [];
+  map.vendors ||= [];
   if (!map.collapsed || map.collapsed.length !== n) map.collapsed = new Uint8Array(n);
   return map;
 }
@@ -198,6 +204,8 @@ export function deserialize(raw) {
     crushers: Array.isArray(o.crushers) ? o.crushers.map((x) => ({ ...x })) : [],
     turrets: Array.isArray(o.turrets) ? o.turrets.map((x) => ({ ...x })) : [],
     climbs: Array.isArray(o.climbs) ? o.climbs.map((x) => ({ ...x })) : [],
+    boulders: Array.isArray(o.boulders) ? o.boulders.map((x) => ({ ...x })) : [],
+    vendors: Array.isArray(o.vendors) ? o.vendors.map((x) => ({ ...x })) : [],
     start: o.start ? { ...o.start } : { x: w * 0.5 * CELL, z: h * 0.5 * CELL, yaw: 0 },
     updated: o.updated || Date.now(),
   });
@@ -353,6 +361,8 @@ export function eraseNear(map, x, z, r) {
   map.crushers = map.crushers.filter((o) => Math.hypot(o.x - x, o.z - z) > r);
   map.turrets = map.turrets.filter((o) => Math.hypot(o.x - x, o.z - z) > r);
   map.climbs = (map.climbs || []).filter((o) => Math.hypot(o.x - x, o.z - z) > r);
+  map.boulders = (map.boulders || []).filter((o) => Math.hypot(o.x - x, o.z - z) > r);
+  map.vendors = (map.vendors || []).filter((o) => Math.hypot(o.x - x, o.z - z) > r);
   map.openings = map.openings.filter((o) => Math.hypot((o.x + 0.5) * CELL - x, (o.z + 0.5) * CELL - z) > r);
 }
 
@@ -555,15 +565,16 @@ export function floorY(x, z, map, sdf2, ymax) {
   const elev = (map.elev && map.elev[ci]) || 0;
   const y0 = elev * EYE - (map.flags && map.flags[ci] & FLAG_SPIKE ? 1.45 : 0);
   const sky = map.sky && map.sky[ci];
-  const top = y0 + (ymax || (sky ? 8 : map.hallH || 4.2));
+  const hall = sky ? 12 : map.hallH || 4.2;
+  const top = y0 + Math.max(hall, ymax || 0, 2);
   let lastEmpty = false;
-  for (let y = top; y > y0 - 0.4; y -= 0.08) {
+  for (let y = top; y > y0 - 0.5; y -= 0.06) {
     const empty = sdf3(x, y, z, map, sdf2) < 0;
-    if (lastEmpty && !empty) return y + 0.08;
+    if (lastEmpty && !empty) return y + 0.06;
     lastEmpty = empty;
   }
   if (isCarved(map.cells[ci])) return y0;
-  return -1;
+  return -999;
 }
 
 export function firstCarved(map) {

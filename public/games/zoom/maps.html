@@ -8,7 +8,7 @@
     <link rel="canonical" href="https://futuremusic.online/zoommaps" />
     <link rel="icon" type="image/jpeg" href="/games/zoom/og.jpg" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" />
-    <link rel="stylesheet" href="/games/zoom/css/zoom.css?v=z5" />
+    <link rel="stylesheet" href="/games/zoom/css/zoom.css?v=z6" />
     <script>
       window.ZOOM_ROUTES = { play: "/zoom", maps: "/zoommaps" };
     </script>
@@ -73,6 +73,8 @@
         <button type="button" data-tool="rope">Rope</button>
         <button type="button" data-tool="turret">Flame turret</button>
         <button type="button" data-tool="crusher">Crusher</button>
+        <button type="button" data-tool="boulder">Boulder</button>
+        <button type="button" data-tool="vendor">Vending machine</button>
         <button type="button" data-tool="portal">Portal pair</button>
         <button type="button" data-tool="key">Key</button>
       </div>
@@ -126,7 +128,7 @@
       <div class="pbox" data-show="pickup">
         <label>Pickup / weapon / item</label>
         <select id="pickup"></select>
-        <p class="hint">Weapons, jetpack, fuel tanks, medkits, and special items.</p>
+        <p class="hint">Weapons (including colored lightsabers), ammo crates, jetpack, fuel, medkits, and special items.</p>
       </div>
       <div class="pbox" data-show="spawner">
         <label>Enemy</label>
@@ -164,8 +166,11 @@
         <select id="wtex"></select>
         <p class="hint">Draw walls. Roofs and floors fill automatically when walls enclose a room.</p>
       </div>
-      <div class="pbox" data-show="rope,turret,crusher">
-        <p class="hint">Click carved ground to place. Crushers are Roman columns that raise and slam. Flame turrets are metal guns with health bars.</p>
+      <div class="pbox" data-show="rope,turret,crusher,vendor">
+        <p class="hint">Click carved ground to place. Crushers are Roman columns that raise and slam. Flame turrets are metal guns with health bars. Vending machines sell gear for coins.</p>
+      </div>
+      <div class="pbox" data-show="boulder">
+        <p class="hint">Click to place, then drag to aim. The boulder sits still until the player walks into the trigger ring, then rolls that way, bounces off walls, and loses speed. It crushes on hit.</p>
       </div>
       <div class="pbox" data-show="stairs,ladder">
         <label>Connect stories</label>
@@ -191,6 +196,6 @@
       <h2>Saved</h2>
       <div id="saved"></div>
     </aside>
-    <script type="module" src="/games/zoom/js/editor.js?v=z5"></script>
+    <script type="module" src="/games/zoom/js/editor.js?v=z6"></script>
   </body>
 </html>

@@ -280,6 +280,28 @@ function draw() {
     ctx.strokeStyle = "#aaa";
     ctx.strokeRect(c.x / CELL - 0.4, c.z / CELL - 0.4, 0.8, 0.8);
   }
+  for (const b of map.boulders || []) {
+    ctx.fillStyle = "#8a7060";
+    ctx.beginPath();
+    ctx.arc(b.x / CELL, b.z / CELL, 0.45, 0, 6.28);
+    ctx.fill();
+    ctx.strokeStyle = "#ffcc66";
+    ctx.lineWidth = 0.1;
+    ctx.beginPath();
+    ctx.moveTo(b.x / CELL, b.z / CELL);
+    ctx.lineTo(b.x / CELL - Math.sin(b.yaw || 0) * 1.3, b.z / CELL - Math.cos(b.yaw || 0) * 1.3);
+    ctx.stroke();
+    ctx.strokeStyle = "rgba(200,80,40,0.5)";
+    ctx.beginPath();
+    ctx.arc(b.x / CELL, b.z / CELL, (b.trigger || 3.2) / CELL, 0, 6.28);
+    ctx.stroke();
+  }
+  for (const v of map.vendors || []) {
+    ctx.fillStyle = "#4ad";
+    ctx.fillRect(v.x / CELL - 0.35, v.z / CELL - 0.35, 0.7, 0.7);
+    ctx.fillStyle = "#ffe08a";
+    ctx.fillRect(v.x / CELL - 0.12, v.z / CELL - 0.12, 0.24, 0.24);
+  }
   for (const r of map.ropes) {
     ctx.strokeStyle = "#6a4424";
     ctx.beginPath();
@@ -418,6 +440,20 @@ canvas.addEventListener("pointerdown", (ev) => {
     pushUndo();
     map.crushers.push({ x: c.wx, z: c.wz });
     draw();
+  } else if (tool === "boulder") {
+    pushUndo();
+    map.boulders = map.boulders || [];
+    map.boulders.push({ x: c.wx, z: c.wz, yaw: 0, trigger: 3.2 });
+    selected = { type: "boulder", i: map.boulders.length - 1 };
+    drawing = true;
+    status("Boulder set — drag to aim roll direction");
+    draw();
+  } else if (tool === "vendor") {
+    pushUndo();
+    map.vendors = map.vendors || [];
+    map.vendors.push({ x: c.wx, z: c.wz });
+    status("Vending machine");
+    draw();
   } else if (tool === "stairs" || tool === "ladder") {
     if (!canPlaceClimb(map, c.gx, c.gz, climbFrom)) {
       status("Need enclosed 1st+2nd or 2nd+3rd floors here");
@@ -530,6 +566,14 @@ canvas.addEventListener("pointermove", (ev) => {
     draw();
     return;
   }
+  if (tool === "boulder" && selected && selected.type === "boulder") {
+    const b = map.boulders[selected.i];
+    if (b) {
+      b.yaw = Math.atan2(b.x - c.wx, b.z - c.wz);
+      draw();
+    }
+    return;
+  }
   if (tool === "rect" || tool === "outline") {
     last = c;
     draw();
@@ -593,6 +637,8 @@ function setTool(t) {
     crouch: "Low tunnels. Player must crouch (C) to pass.",
     spike: "Spike pits. Jump them or die.",
     unstable: "Paint a ceiling that collapses around anyone who walks under it.",
+    boulder: "Click to place a rolling boulder, then drag to set the roll direction. It starts when the player enters the trigger ring.",
+    vendor: "Vending machine. Player presses E to buy weapons, ammo, and powerups with coins.",
     stairs: "Place only where 1st+2nd or 2nd+3rd stories both have enclosed floors.",
     ladder: "Place only where consecutive stories both have enclosed floors.",
     sky: "Open courtyard — grass floor, courtyard walls, real sky (no cave lid).",

@@ -191,7 +191,7 @@ export function spawnFrom(spawner, map, sdf2, existing) {
     const x = spawner.x + Math.cos(a) * d;
     const z = spawner.z + Math.sin(a) * d;
     const y = floorY(x, z, map, sdf2);
-    if (y < 0) continue;
+    if (y < -500) continue;
     const e = def.robot ? makeRobot(def) : makeEnemy(def);
     e.position.set(x, y + (def.robot ? 0 : def.h * 0.48), z);
     e.userData.home = { x: spawner.x, z: spawner.z, r };
@@ -253,7 +253,7 @@ export function tickFoes(foes, dt, player, map, sdf2, onHit) {
       }
     }
     const fy = floorY(f.position.x, f.position.z, map, sdf2);
-    if (fy >= 0) f.position.y = fy + (u.baseH || 2) * 0.48;
+    if (fy > -500) f.position.y = fy + (u.baseH || 2) * 0.48;
     const moving = Math.hypot(mx, mz) > 0.05;
     if (u.sheet) stepSheet(f, dt, moving, mx, mz);
     else if (f.material) {
@@ -283,10 +283,6 @@ export function strikeFoes(foes, origin, dir, range, dmg) {
     if (dot < 0.35) continue;
     hurtFoe(f, dmg, dir);
     hit++;
-    if (u.hp <= 0) {
-      f.visible = false;
-      if (u.spawner) u.spawner._alive = Math.max(0, (u.spawner._alive || 1) - 1);
-    }
   }
   return hit;
 }

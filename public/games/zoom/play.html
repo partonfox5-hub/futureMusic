@@ -8,7 +8,7 @@
     <link rel="canonical" href="https://futuremusic.online/zoom" />
     <link rel="icon" type="image/jpeg" href="/games/zoom/og.jpg" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" />
-    <link rel="stylesheet" href="/games/zoom/css/zoom.css?v=z5" />
+    <link rel="stylesheet" href="/games/zoom/css/zoom.css?v=z6" />
     <script>
       window.ZOOM_ROUTES = { play: "/zoom", maps: "/zoommaps" };
     </script>
@@ -25,8 +25,9 @@
       <div class="bar alt"><i id="fueli"></i></div>
       <div id="wep">unarmed</div>
       <div id="ammo"></div>
+      <div>GOLD <span id="goldv">0</span></div>
       <div id="mode"></div>
-      <div class="tiny">WASD · mouse look · Space jump · E / walk into rope to swing · C crouch · Q skate · F jetpack · R reload · I pack</div>
+      <div class="tiny">WASD · mouse look · Space jump / double-jump · V dash · E rope / vendor · C crouch · Q skate · F jetpack · R reload · I pack</div>
     </div>
     <div id="miniwrap"><canvas id="mini" width="148" height="148"></canvas></div>
     <div id="hint">Click to look. Left click fires or swings.</div>
@@ -39,12 +40,21 @@
         <button type="button" id="inv-close">Close</button>
       </div>
     </div>
+    <div id="shop" hidden>
+      <div class="panel">
+        <h1>VENDOR</h1>
+        <p>Gold on hand: <b id="shop-gold">0</b> ◎</p>
+        <p>Weapons, ammo, and instant powerups. Enemies drop coins, bars, rubies, diamonds, and chests.</p>
+        <div id="shop-list"></div>
+        <button type="button" id="shop-close">Close</button>
+      </div>
+    </div>
     <div id="start">
       <div class="panel">
         <h1>ZOOM</h1>
         <p>
-          Draw a dungeon, then crawl it. Lasers, robots, jetpack, skateboard, buildings, and traps.
-          Space to jump. Walk into a hanging rope (or press E) to cling and swing; Space leaps off.
+          Draw a dungeon, then crawl it. Lightsabers, boulders, vending machines, coins from fallen enemies.
+          Space jump / double-jump. V dash (VR: squeeze both triggers at once). E at a vendor to shop.
         </p>
         <p id="vr-note" class="hint">
           VR needs a headset. On a PC this is desktop mode. Open this page in Meta Quest Browser to ENTER VR.
@@ -76,6 +86,6 @@
         }
       }
     </script>
-    <script type="module" src="/games/zoom/js/game.js?v=z5"></script>
+    <script type="module" src="/games/zoom/js/game.js?v=z6"></script>
   </body>
 </html>

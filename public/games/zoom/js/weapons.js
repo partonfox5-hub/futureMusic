@@ -20,7 +20,32 @@ export function makeWeapon(id) {
     return g;
   }
   if (def.slot === "melee") {
-    if (id === "whip") {
+    if (def.saber) {
+      const col = def.color || 0x3399ff;
+      const hilt = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.032, 0.18, 8), dark);
+      hilt.rotation.x = Math.PI / 2;
+      hilt.position.z = 0.06;
+      g.add(hilt);
+      const emitter = new THREE.Mesh(new THREE.CylinderGeometry(0.034, 0.034, 0.04, 8), mat(0x222, { emissive: 0x111 }));
+      emitter.rotation.x = Math.PI / 2;
+      emitter.position.z = -0.04;
+      g.add(emitter);
+      const blade = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.018, 0.012, 0.95, 8),
+        mat(col, { emissive: col, transparent: true, opacity: 0.95 }),
+      );
+      blade.rotation.x = Math.PI / 2;
+      blade.position.z = -0.54;
+      g.add(blade);
+      const core = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.008, 0.006, 0.92, 6),
+        mat(0xffffff, { emissive: 0xffffff }),
+      );
+      core.rotation.x = Math.PI / 2;
+      core.position.z = -0.54;
+      g.add(core);
+      g.add(new THREE.PointLight(col, 0.7, 3.2));
+    } else if (id === "whip") {
       const h = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.035, 0.22, 6), dark);
       h.rotation.x = Math.PI / 2;
       g.add(h);
@@ -112,6 +137,9 @@ export function makePickup(kind) {
   g.userData.cat = def?.cat || "item";
   if (kind === "key") {
     g.add(makeKeyModel());
+  } else if (kind === "ammo") {
+    g.add(new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.18, 0.22), mat(0x6a5a30)));
+    g.add(new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.08, 0.18), mat(0xc4a050, { emissive: 0x3a2a08 })));
   } else if (WEAPON_BY_ID[kind]) {
     const w = makeWeapon(kind);
     w.scale.setScalar(1.15);
@@ -231,8 +259,14 @@ function splashOrHit(s, foes, extras, onHit, addBurn) {
   if (extras && s.mesh.position) hurtTurrets(extras, s.mesh.position, s.def.dmg);
 }
 
+let killHook = null;
+export function setKillHook(fn) {
+  killHook = fn;
+}
+
 export function hurtFoe(f, dmg, dir) {
   const u = f.userData;
+  const was = u.hp;
   u.hp -= dmg;
   u.flash = 0.18;
   u.recoil = 0.16;
@@ -245,6 +279,11 @@ export function hurtFoe(f, dmg, dir) {
     f.traverse((o) => {
       if (o.material?.emissive) o.material.emissive.setHex(0xff2222);
     });
+  }
+  if (was > 0 && u.hp <= 0) {
+    f.visible = false;
+    if (u.spawner) u.spawner._alive = Math.max(0, (u.spawner._alive || 1) - 1);
+    if (killHook) killHook(f);
   }
 }
 

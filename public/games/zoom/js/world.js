@@ -10,7 +10,7 @@ import {
   STORIES,
   WALL_TEX,
 } from "./config.js";
-import { cellI, climbHoleFloor, climbHoleRoof, enclosedFloors, idx, inBounds } from "./map.js";
+import { cellI, climbHoleFloor, climbHoleRoof, enclosedFloors, idx, inBounds, sdf3 } from "./map.js";
 
 function mat(hex, extra) {
   return new THREE.MeshLambertMaterial({ color: hex, ...extra });
@@ -330,7 +330,7 @@ function openingAt(map, x, z, story) {
 export function buildWorld(map, dungeon, scene) {
   const group = new THREE.Group();
   group.name = "world";
-  const extras = { crushers: [], turrets: [], ropes: [], portals: [], doors: [], windows: [], liquids: [], spikes: [], climbs: [], caveins: [], unstables: [], horizon: null };
+  const extras = { crushers: [], turrets: [], ropes: [], portals: [], doors: [], windows: [], liquids: [], spikes: [], climbs: [], caveins: [], unstables: [], horizon: null, boulders: [], vendors: [], root: scene };
 
   const spikeGeo = new THREE.ConeGeometry(0.12, 0.7, 5);
   const spikeMat = mat(0x8a9098, { emissive: 0x222 });
@@ -513,10 +513,68 @@ export function buildWorld(map, dungeon, scene) {
     });
   }
 
+  for (const b of map.boulders || []) {
+    const y0 = ((map.elev && map.elev[cellI(map, b.x, b.z)]) || 0) * EYE;
+    const rock = mat(0x6a6054);
+    const mesh = new THREE.Mesh(new THREE.SphereGeometry(0.55, 12, 10), rock);
+    mesh.position.set(b.x, y0 + 0.55, b.z);
+    group.add(mesh);
+    const ring = new THREE.Mesh(
+      new THREE.RingGeometry(1.6, 1.85, 20),
+      mat(0xc44, { transparent: true, opacity: 0.35, side: THREE.DoubleSide }),
+    );
+    ring.rotation.x = -Math.PI / 2;
+    ring.position.set(b.x, y0 + 0.04, b.z);
+    group.add(ring);
+    const arrow = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.45, 8), mat(0xffcc66, { emissive: 0x664400 }));
+    arrow.rotation.x = Math.PI / 2;
+    arrow.position.set(b.x - Math.sin(b.yaw || 0) * 0.9, y0 + 0.7, b.z - Math.cos(b.yaw || 0) * 0.9);
+    group.add(arrow);
+    extras.boulders.push({
+      x: b.x,
+      z: b.z,
+      y: y0 + 0.55,
+      y0,
+      yaw: b.yaw || 0,
+      mesh,
+      ring,
+      vx: 0,
+      vz: 0,
+      rolling: false,
+      speed0: 9.5,
+      r: 0.55,
+      trigger: b.trigger || 3.2,
+    });
+  }
+
+  for (const v of map.vendors || []) {
+    const y0 = ((map.elev && map.elev[cellI(map, v.x, v.z)]) || 0) * EYE;
+    const g = makeVending();
+    g.position.set(v.x, y0, v.z);
+    group.add(g);
+    extras.vendors.push({ x: v.x, z: v.z, y: y0, mesh: g });
+  }
+
   map._floors = [0, 1, 2].map((s) => enclosedFloors(map, s));
-  dungeon.add(group);
   scene.add(group);
   return extras;
+}
+
+function makeVending() {
+  const g = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.BoxGeometry(0.85, 1.7, 0.7), mat(0x3a4250));
+  body.position.y = 0.85;
+  const glass = new THREE.Mesh(
+    new THREE.BoxGeometry(0.62, 0.95, 0.06),
+    mat(0x66ccff, { transparent: true, opacity: 0.35, emissive: 0x113344 }),
+  );
+  glass.position.set(0, 1.05, 0.34);
+  const slot = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.08, 0.08), mat(0xc4a050, { emissive: 0x3a2a08 }));
+  slot.position.set(0.18, 0.32, 0.36);
+  const lamp = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.08, 0.12), mat(0xffcc66, { emissive: 0xaa8800 }));
+  lamp.position.set(0, 1.66, 0.28);
+  g.add(body, glass, slot, lamp);
+  return g;
 }
 
 function addPortal(group, x, z, map, col) {
@@ -655,7 +713,7 @@ export function climbSupport(extras, player) {
   return null;
 }
 
-export function tickWorld(extras, dt, player, foes, onHit, scene, camera, map) {
+export function tickWorld(extras, dt, player, foes, onHit, scene, camera, map, sdf2) {
   for (const c of extras.crushers) {
     c.t += dt;
     const T = 3.35;
@@ -721,6 +779,7 @@ export function tickWorld(extras, dt, player, foes, onHit, scene, camera, map) {
     }
   }
   if (map) tickCaveIn(extras, dt, player, map, scene, onHit);
+  if (map) tickBoulders(extras, dt, player, map, sdf2, onHit);
   for (const p of extras.portals) {
     p.cool = Math.max(0, p.cool - dt);
     p.a.mesh.rotation.y += dt * 1.4;
@@ -752,7 +811,7 @@ function spawnFlame(scene, x, y, z, dx, dz, extras) {
     const s0 = 0.28 + Math.random() * 0.42;
     spr.scale.set(s0 * 0.7, s0 * 1.7, 1);
     spr.position.set(x + (Math.random() - 0.5) * 0.08, y + Math.random() * 0.06, z + (Math.random() - 0.5) * 0.08);
-    scene.add(spr);
+    (extras.root || scene).add(spr);
     extras._flames.push({
       mesh: spr,
       dir: new THREE.Vector3(dx + (Math.random() - 0.5) * 0.28, 0.18 + Math.random() * 0.45, dz + (Math.random() - 0.5) * 0.28),
@@ -769,7 +828,7 @@ function spawnFlame(scene, x, y, z, dx, dz, extras) {
     const s0 = 0.5 + Math.random() * 0.4;
     sm.scale.setScalar(s0);
     sm.position.set(x + dx * 0.4, y + 0.1, z + dz * 0.4);
-    scene.add(sm);
+    (extras.root || scene).add(sm);
     extras._flames.push({
       mesh: sm,
       dir: new THREE.Vector3(dx * 0.3, 0.7, dz * 0.3),
@@ -856,12 +915,51 @@ function collapseCell(map, extras, scene, i, player, onHit) {
     m.position.set((x + 0.15 + Math.random() * 0.7) * CELL, y0 + 2.5 + Math.random() * 0.8, (z + 0.15 + Math.random() * 0.7) * CELL);
     m.userData.vy = -2;
     m.userData.floor = y0 + 0.25 + Math.random() * 0.55;
-    scene.add(m);
+    (extras.root || scene).add(m);
     extras.caveins.push(m);
   }
   if (player && onHit) {
     const d = Math.hypot(player.x - (x + 0.5) * CELL, player.z - (z + 0.5) * CELL);
     if (d < CELL * 0.85 && player.y < y0 + 3.2) onHit(18, "crushed by a cave-in");
+  }
+}
+
+function tickBoulders(extras, dt, player, map, sdf2, onHit) {
+  for (const b of extras.boulders || []) {
+    const d = Math.hypot(player.x - b.mesh.position.x, player.z - b.mesh.position.z);
+    if (!b.rolling && d < b.trigger) {
+      b.rolling = true;
+      const spd = b.speed0;
+      b.vx = -Math.sin(b.yaw) * spd;
+      b.vz = -Math.cos(b.yaw) * spd;
+      if (b.ring) b.ring.visible = false;
+    }
+    if (!b.rolling) continue;
+    const damp = Math.exp(-0.55 * dt);
+    b.vx *= damp;
+    b.vz *= damp;
+    const nx = b.mesh.position.x + b.vx * dt;
+    const nz = b.mesh.position.z + b.vz * dt;
+    const y = b.y;
+    const hitX = sdf2 ? sdf3(nx, y, b.mesh.position.z, map, sdf2) > -0.2 : false;
+    const hitZ = sdf2 ? sdf3(b.mesh.position.x, y, nz, map, sdf2) > -0.2 : false;
+    if (hitX) b.vx *= -0.62;
+    else b.mesh.position.x = nx;
+    if (hitZ) b.vz *= -0.62;
+    else b.mesh.position.z = nz;
+    if (wallBlocked(map, b.mesh.position.x + Math.sign(b.vx) * 0.5, b.mesh.position.z, y)) b.vx *= -0.62;
+    if (wallBlocked(map, b.mesh.position.x, b.mesh.position.z + Math.sign(b.vz) * 0.5, y)) b.vz *= -0.62;
+    const spd = Math.hypot(b.vx, b.vz);
+    b.mesh.rotation.x += b.vz * dt * 1.4;
+    b.mesh.rotation.z -= b.vx * dt * 1.4;
+    if (spd < 0.35) {
+      b.vx = 0;
+      b.vz = 0;
+    }
+    const pd = Math.hypot(player.x - b.mesh.position.x, player.z - b.mesh.position.z);
+    if (spd > 1.2 && pd < 0.7 + b.r * 0.15 && player.y < b.y + 1.1 && player.y > b.y - 0.8) {
+      onHit(80, "crushed by a boulder");
+    }
   }
 }
 

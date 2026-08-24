@@ -122,7 +122,7 @@ export function tickRobots(foes, dt, player, map, sdf2, onHit, scene, shots, fir
     }
     if (u.def.move !== "hover") {
       const fy = floorY(f.position.x, f.position.z, map, sdf2);
-      if (fy >= 0) f.position.y = fy;
+      if (fy > -500) f.position.y = fy;
     }
     f.lookAt(px, f.position.y, pz);
     u.cool = Math.max(0, (u.cool || 0) - dt);

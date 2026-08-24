@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
-import { BIOMES, CELL, EYE, LIQ_LAVA, LIQ_WATER, PICKUP_BY_ID, WEAPON_BY_ID, WEAPONS, routes } from "./config.js";
+import { BIOMES, CELL, EYE, LIQ_LAVA, LIQ_WATER, PICKUP_BY_ID, SHOP, WEAPON_BY_ID, WEAPONS, routes } from "./config.js";
 import { bakedMaps } from "./defaults.js";
 import { biomeOf, cellI, countCarved, ensureLayers, firstCarved, floorY, sdf3 } from "./map.js";
 import { buildDungeon, prepareSdf } from "./mesh.js";
@@ -8,9 +8,10 @@ import { makeProp, spawnFrom, strikeFoes, tickFoes } from "./props.js";
 import { getMap, listMaps } from "./store.js";
 import { makeProc } from "./proc.js";
 import { breakWindows, buildingFloorY, buildWorld, climbSupport, hurtTurrets, makeSky, tickRubble, tickWorld, tryUnlock, wallBlocked } from "./world.js";
-import { addBurnDecal, fireWeapon, makeKeyModel, makePickup, makeWeapon, tickBurns, tickShots } from "./weapons.js";
+import { addBurnDecal, fireWeapon, makeKeyModel, makePickup, makeWeapon, setKillHook, tickBurns, tickShots } from "./weapons.js";
 import { tickRobots } from "./robots.js";
 import { attachXr, tickXr } from "./xr.js";
+import { loadGold, lootForEnemy, makeWristGold, paintWristGold, saveGold, showerLoot, tickLoot } from "./loot.js";
 
 const $ = (id) => document.getElementById(id);
 const keys = new Set();
@@ -18,9 +19,9 @@ const tmp = new THREE.Vector3();
 const tmp2 = new THREE.Vector3();
 const lookEuler = new THREE.Euler();
 
-let renderer, scene, camera, clock, controls, hands;
+let renderer, scene, camera, clock, controls, hands, stage;
 let map, sdf2, dungeon, extras;
-let player = { x: 0, y: 1.6, z: 0, vx: 0, vy: 0, vz: 0, hp: 100, grounded: false, crouch: false, skate: false, fuel: 0, shield: 0 };
+let player = { x: 0, y: 1.6, z: 0, vx: 0, vy: 0, vz: 0, hp: 100, grounded: false, crouch: false, skate: false, fuel: 0, shield: 0, coins: 0, jumps: 2, dashT: 0, dashCd: 0, haste: 0, rage: 0 };
 let jumpQueued = false;
 let coyote = 0;
 let foes = [];
@@ -29,7 +30,10 @@ let torchLights = [];
 let pickups = [];
 let shots = [];
 let burns = [];
+let lootBits = [];
 let inv = [];
+let wristGold = null;
+let xrPresenting = false;
 let held = null;
 let mag = 0;
 let fireCd = 0;
@@ -61,7 +65,14 @@ function hudBars() {
   const def = held && WEAPON_BY_ID[held];
   $("wep").textContent = def ? def.name : "unarmed";
   $("ammo").textContent = def && def.slot === "gun" ? mag + " / " + def.mag : "";
-  $("mode").textContent = (player.skate ? "SKATE " : "") + (player.crouch ? "CROUCH " : "") + (player.fuel > 0 ? "JET " : "");
+  $("mode").textContent =
+    (player.skate ? "SKATE " : "") +
+    (player.crouch ? "CROUCH " : "") +
+    (player.fuel > 0 ? "JET " : "") +
+    (player.dashT > 0 ? "DASH " : "") +
+    (player.haste > 0 ? "HASTE " : "");
+  if ($("goldv")) $("goldv").textContent = String(player.coins | 0);
+  paintWristGold(wristGold, player.coins);
 }
 
 function drawMinimap() {
@@ -104,7 +115,7 @@ function setHeld(id) {
 function initThree() {
   if (renderer) return;
   const canvas = $("c");
-  renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
   renderer.setPixelRatio(Math.min(devicePixelRatio, 1.6));
   renderer.setSize(innerWidth, innerHeight);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -126,10 +137,20 @@ function initThree() {
   camera.add(flashlight);
   camera.add(flashlight.target);
   camera.add(new THREE.PointLight(0xffcc88, 0.3, 4.2));
-  hands = attachXr(renderer, scene);
+  wristGold = makeWristGold();
+  camera.add(wristGold);
+  stage = new THREE.Group();
+  stage.name = "stage";
+  scene.add(stage);
+  hands = attachXr(renderer, scene, onXrSession);
   renderer.setAnimationLoop(loop);
+  setKillHook((f) => {
+    const kinds = lootForEnemy(f.userData.def);
+    const root = stage || scene;
+    showerLoot(root, lootBits, f.position.x, f.position.y, f.position.z, kinds);
+  });
   $("c").addEventListener("click", () => {
-    if (!$("start").hidden || dead || !$("inv").hidden) return;
+    if (!$("start").hidden || dead || !$("inv").hidden || ($("shop") && !$("shop").hidden)) return;
     if (!controls.isLocked) controls.lock();
     else primary();
   });
@@ -140,18 +161,42 @@ function initThree() {
   });
 }
 
+function onXrSession(on) {
+  xrPresenting = !!on;
+  if (on) {
+    if (wristGold && hands[0]) {
+      wristGold.removeFromParent();
+      wristGold.position.set(0, -0.06, 0.08);
+      wristGold.scale.set(0.18, 0.045, 1);
+      hands[0].grip.add(wristGold);
+    }
+    if (!running) {
+      const first = bakedMaps()[0];
+      enterMap(first ? first.id : "proc");
+    }
+  } else if (wristGold) {
+    wristGold.removeFromParent();
+    wristGold.position.set(-0.22, -0.26, -0.42);
+    wristGold.scale.set(0.28, 0.07, 1);
+    if (camera) camera.add(wristGold);
+    if (stage) stage.position.set(0, 0, 0);
+  }
+}
+
 function clearWorld() {
   if (dungeon) {
-    scene.remove(dungeon);
+    dungeon.removeFromParent();
     dungeon.traverse((o) => o.geometry && o.geometry.dispose());
     dungeon = null;
   }
-  for (const L of torchLights) scene.remove(L);
+  for (const L of torchLights) L.removeFromParent();
   torchLights = [];
-  for (const f of foes) scene.remove(f);
+  for (const f of foes) f.removeFromParent();
   foes = [];
-  for (const p of pickups) scene.remove(p);
+  for (const p of pickups) p.removeFromParent();
   pickups = [];
+  for (const L of lootBits) L.mesh.removeFromParent();
+  lootBits = [];
   shots = [];
   extras = null;
 }
@@ -165,15 +210,15 @@ function placeWorld() {
     if (g.userData.lightColor) {
       const L = new THREE.PointLight(g.userData.lightColor, 1.1, 8, 2);
       L.position.set(o.x, y + 1.1, o.z);
-      scene.add(L);
+      stage.add(L);
       torchLights.push(L);
     }
   }
   for (const p of map.pickups || []) {
     const g = makePickup(p.kind);
-    const y = Math.max(0, floorY(p.x, p.z, map, sdf2));
+    const y = Math.max(-20, floorY(p.x, p.z, map, sdf2));
     g.position.set(p.x, y + 0.35, p.z);
-    scene.add(g);
+    stage.add(g);
     pickups.push(g);
   }
   for (const k of map.keys || []) {
@@ -181,19 +226,19 @@ function placeWorld() {
     g.add(makeKeyModel());
     g.userData.pickup = "key";
     g.userData.keyId = k.id;
-    const y = Math.max(0, floorY(k.x, k.z, map, sdf2));
+    const y = Math.max(-20, floorY(k.x, k.z, map, sdf2));
     g.position.set(k.x, y + 0.45, k.z);
-    scene.add(g);
+    stage.add(g);
     pickups.push(g);
   }
-  extras = buildWorld(map, dungeon, scene);
+  extras = buildWorld(map, dungeon, stage);
 }
 
 function placePlayer() {
   let x = map.start?.x;
   let z = map.start?.z;
   yaw = map.start?.yaw || 0;
-  if (x == null || floorY(x, z, map, sdf2) < 0) {
+  if (x == null || floorY(x, z, map, sdf2) < -500) {
     const f = firstCarved(map);
     if (!f) return false;
     x = f.x;
@@ -211,6 +256,12 @@ function placePlayer() {
   player.crouch = false;
   player.fuel = 0;
   player.shield = 0;
+  player.coins = loadGold();
+  player.jumps = 2;
+  player.dashT = 0;
+  player.dashCd = 0;
+  player.haste = 0;
+  player.rage = 0;
   inv = [];
   setHeld(null);
   camera.position.set(player.x, player.y, player.z);
@@ -237,7 +288,7 @@ async function enterMap(id) {
   sdf2 = prepareSdf(map);
   const built = buildDungeon(map, sdf2);
   dungeon = built.group;
-  scene.add(dungeon);
+  stage.add(dungeon);
   const b = biomeOf(map, map.start?.x || 0, map.start?.z || 0);
   caveFog = new THREE.FogExp2(b.fog, 0.018);
   scene.background = new THREE.Color(b.fog);
@@ -277,7 +328,7 @@ async function enterMap(id) {
   for (const s of spawners) {
     const e = spawnFrom(s, map, sdf2, foes);
     if (e) {
-      scene.add(e);
+      stage.add(e);
       s._alive++;
     }
   }
@@ -310,7 +361,7 @@ function primary() {
     swingT = def.rate || 0.35;
     const dir = tmp.set(0, 0, -1).applyQuaternion(camera.quaternion);
     const origin = camera.getWorldPosition(tmp2);
-    strikeFoes(foes, origin, dir, def.reach || 2.2, def.dmg);
+    strikeFoes(foes, origin, dir, def.reach || 2.2, def.dmg * (player.rage > 0 ? 1.5 : 1));
     if (extras) {
       breakWindows(extras, origin, dir, def.reach || 2.2);
       hurtTurrets(extras, origin.clone().addScaledVector(dir, 1.1), def.dmg);
@@ -326,7 +377,7 @@ function primary() {
   fireCd = 1 / (def.rpm || 2);
   const origin = camera.getWorldPosition(tmp2).add(tmp.set(0, -0.08, -0.4).applyQuaternion(camera.quaternion));
   const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
-  fireWeapon(def, origin, dir, scene, shots);
+  fireWeapon(def, origin, dir, stage || scene, shots);
   hudBars();
 }
 
@@ -359,6 +410,15 @@ function takePickup(p) {
   } else if (kind === "jetpack" || kind === "fuel") {
     player.fuel += def?.fuel || 6;
     setMsg("Fuel +" + (def?.fuel || 6) + "s");
+  } else if (kind === "ammo") {
+    const def = held && WEAPON_BY_ID[held];
+    if (def && def.slot === "gun") {
+      mag = def.mag;
+      setMsg("Ammo refilled");
+    } else {
+      inv.push({ id: "ammo", name: "Ammo crate", cat: "item" });
+      setMsg("Ammo crate");
+    }
   } else if (WEAPON_BY_ID[kind]) {
     if (!held) setHeld(kind);
     else inv.push({ id: kind, name: WEAPON_BY_ID[kind].name, cat: "weapon" });
@@ -391,6 +451,10 @@ function useItem(it) {
       }
     }
     setMsg("Blast");
+  } else if (it.id === "ammo") {
+    const def = held && WEAPON_BY_ID[held];
+    if (def && def.slot === "gun") mag = def.mag;
+    setMsg("Ammo refilled");
   } else if (WEAPON_BY_ID[it.id]) {
     if (held) inv.push({ id: held, name: WEAPON_BY_ID[held].name, cat: "weapon" });
     setHeld(it.id);
@@ -450,9 +514,24 @@ function physics(dt, xr) {
     player.skate = keys.has("KeyQ");
     player.crouch = keys.has("KeyC");
   }
+  if (xr && xr.dash && player.dashCd <= 0) {
+    player.dashT = 2;
+    player.dashCd = 15;
+    setMsg("Dash");
+  } else if (keys.has("KeyV") && player.dashCd <= 0 && player.dashT <= 0) {
+    player.dashT = 2;
+    player.dashCd = 15;
+    setMsg("Dash");
+  }
+  if (player.dashT > 0) player.dashT = Math.max(0, player.dashT - dt);
+  if (player.dashCd > 0) player.dashCd = Math.max(0, player.dashCd - dt);
+  if (player.haste > 0) player.haste = Math.max(0, player.haste - dt);
+  if (player.rage > 0) player.rage = Math.max(0, player.rage - dt);
   const len = Math.hypot(wx, wz);
   let spd = player.crouch ? 2.2 : keys.has("ShiftLeft") || keys.has("ShiftRight") ? 7.2 : 4.6;
   if (player.skate && player.grounded) spd *= 2.5;
+  if (player.haste > 0) spd *= 1.45;
+  if (player.dashT > 0) spd *= 4;
   if (len > 0) {
     wx = (wx / len) * spd;
     wz = (wz / len) * spd;
@@ -466,17 +545,23 @@ function physics(dt, xr) {
     if (wallBlocked(map, x, z, y)) return true;
     return sdf3(x, y, z, map, sdf2) > -0.18;
   }
+  function walkOk(x, y, z) {
+    if (wallBlocked(map, x, z, y)) return false;
+    if (sdf3(x, y, z, map, sdf2) < -0.18 && sdf3(x, player.y - eye + 0.2, z, map, sdf2) < -0.18) return true;
+    const below = floorY(x, z, map, sdf2, player.y + 3);
+    return below > -500 && player.y - eye > below + 0.35;
+  }
   const GRAV = 24;
   const jet = player.fuel > 0 && !rope && ((xr && xr.jet) || keys.has("KeyF") || (keys.has("Space") && !player.grounded && !jumpQueued));
 
   if (!rope) {
     const nx = player.x + wx * dt;
     const nz = player.z + wz * dt;
-    if (!blocked(nx, bodyY, player.z) && !blocked(nx, player.y - eye + 0.2, player.z)) {
+    if (walkOk(nx, bodyY, player.z)) {
       player.x = nx;
       player.vx = wx;
     } else player.vx *= 0.2;
-    if (!blocked(player.x, bodyY, nz) && !blocked(player.x, player.y - eye + 0.2, nz)) {
+    if (walkOk(player.x, bodyY, nz)) {
       player.z = nz;
       player.vz = wz;
     } else player.vz *= 0.2;
@@ -519,19 +604,33 @@ function physics(dt, xr) {
       player.grounded = false;
     }
   } else {
-    if (coyote > 0 && jumpQueued && !(xr && xr.on && xr.jet)) {
-      player.vy = 7.4;
-      player.grounded = false;
-      coyote = 0;
-      jumpQueued = false;
+    if (jumpQueued && !(xr && xr.on && xr.jet && player.fuel > 0)) {
+      if (coyote > 0) player.jumps = 2;
+      if (player.jumps > 0) {
+        player.vy = player.jumps === 2 ? 9.62 : 8.4;
+        player.jumps -= 1;
+        player.grounded = false;
+        coyote = 0;
+        jumpQueued = false;
+      }
     }
     if (jet) {
       player.vy += 26 * dt;
       player.fuel = Math.max(0, player.fuel - dt);
       if (player.vy > 9) player.vy = 9;
     } else player.vy -= GRAV * dt;
-    player.y += player.vy * dt;
+    const prevY = player.y;
+    const steps = Math.max(1, Math.ceil(Math.abs(player.vy * dt) / 0.22));
+    const stepY = (player.vy * dt) / steps;
+    for (let s = 0; s < steps; s++) {
+      player.y += stepY;
+      if (player.vy > 0 && blocked(player.x, player.y + 0.12, player.z)) {
+        player.vy = 0;
+        break;
+      }
+    }
     if (player.vy > 0 && blocked(player.x, player.y + 0.12, player.z)) player.vy = 0;
+    player._prevY = prevY;
     if (extras) {
       for (const r of extras.ropes) {
         const horiz = Math.hypot(player.x - r.x, player.z - r.z);
@@ -547,11 +646,11 @@ function physics(dt, xr) {
       }
     }
   }
-  const fy = floorY(player.x, player.z, map, sdf2);
+  const fy = floorY(player.x, player.z, map, sdf2, Math.max(player.y + 2, 6));
   const bf = buildingFloorY(map, player.x, player.z, player.y);
-  let ground = -1;
-  if (fy >= 0) ground = fy;
-  if (bf >= 0) ground = Math.max(ground, bf);
+  let ground = -999;
+  if (fy > -500) ground = fy;
+  if (bf > -500) ground = Math.max(ground, bf);
   const climb = extras ? climbSupport(extras, player) : null;
   if (climb && !rope) {
     if (climb.kind === "ladder") {
@@ -580,17 +679,26 @@ function physics(dt, xr) {
       ground = Math.max(ground, climb.y0 + t * (climb.y1 - climb.y0));
     }
   }
-  if (!rope && ground >= 0 && player.y - eye <= ground + 0.08 && player.vy <= 0.4) {
-    player.y = ground + eye;
-    player.vy = 0;
-    player.grounded = true;
-    coyote = 0.12;
+  const prevFeet = (player._prevY != null ? player._prevY : player.y) - eye;
+  const feet = player.y - eye;
+  if (!rope && ground > -500 && player.vy <= 1.2) {
+    const crossed = prevFeet >= ground - 0.05 && feet <= ground + 0.28;
+    const buried = feet < ground;
+    if (crossed || buried) {
+      player.y = ground + eye;
+      player.vy = 0;
+      player.grounded = true;
+      player.jumps = 2;
+      coyote = 0.14;
+    } else if (!(climb && climb.kind === "ladder")) {
+      player.grounded = false;
+      coyote = Math.max(0, coyote - dt);
+    }
   } else if (!rope && !(climb && climb.kind === "ladder")) {
     player.grounded = false;
     coyote = Math.max(0, coyote - dt);
-    if (coyote <= 0) jumpQueued = false;
   }
-  if (player.y < -14) die("fell");
+  if (player.y < -18) die("fell");
 
   const ci = cellI(map, player.x, player.z);
   const feetY = player.y - eye;
@@ -603,7 +711,13 @@ function physics(dt, xr) {
 
   if (tryUnlock(extras || { doors: [] }, player, inv.filter((i) => i.id === "key").map((i) => i.keyId))) setMsg("Unlocked");
 
-  camera.position.set(player.x, player.y, player.z);
+  if (xrPresenting && stage) {
+    const floor = player.y - eye;
+    stage.position.set(-player.x, -floor, -player.z);
+  } else {
+    if (stage) stage.position.set(0, 0, 0);
+    camera.position.set(player.x, player.y, player.z);
+  }
   if (viewWep && swingT > 0) {
     const a = Math.sin((1 - swingT / 0.4) * Math.PI);
     viewWep.rotation.x = -a * 0.8;
@@ -657,9 +771,10 @@ function xrGrab(xr) {
         mag = WEAPON_BY_ID[other.held.id].mag;
         setMsg("Reloaded");
         hudBars();
-      }
+      } else if (nearVendor()) openShop();
     }
   }
+  if (xr.dash) return;
   if (xr.right && xr.right.trigger && !xr.right.triggerPrev && held) primary();
 }
 
@@ -675,11 +790,15 @@ function loop(time) {
     physics(dt, xr);
     xrGrab(xr);
     tickFoes(foes, dt, player, map, sdf2, damage);
-    tickRobots(foes, dt, player, map, sdf2, damage, scene, shots, fireWeapon);
-    tickShots(shots, dt, foes, extras, damage, (p, c) => addBurnDecal(scene, burns, p, c), sdf3, map, sdf2);
+    tickRobots(foes, dt, player, map, sdf2, damage, stage || scene, shots, fireWeapon);
+    tickShots(shots, dt, foes, extras, damage, (p, c) => addBurnDecal(stage || scene, burns, p, c), sdf3, map, sdf2);
     tickBurns(burns, dt);
+    tickLoot(lootBits, dt, player, (n) => {
+      player.coins = (player.coins | 0) + n;
+      saveGold(player.coins);
+    });
     if (extras) {
-      tickWorld(extras, dt, player, foes, damage, scene, camera, map);
+      tickWorld(extras, dt, player, foes, damage, stage || scene, camera, map, sdf2);
       tickRubble(extras, dt);
       if (extras._warn) {
         setMsg(extras._warn);
@@ -711,7 +830,7 @@ function loop(time) {
         s._t = s.interval || 6;
         const e = spawnFrom(s, map, sdf2, foes);
         if (e) {
-          scene.add(e);
+          stage.add(e);
           s._alive++;
         }
       }
@@ -789,7 +908,11 @@ addEventListener("keydown", (e) => {
       hudBars();
     }
   }
-  if (e.code === "KeyE") tryUnlock(extras || { doors: [] }, player, inv.filter((i) => i.id === "key").map((i) => i.keyId));
+  if (e.code === "KeyE") {
+    tryUnlock(extras || { doors: [] }, player, inv.filter((i) => i.id === "key").map((i) => i.keyId));
+    if (nearVendor()) openShop();
+  }
+  if (e.code === "Escape" && $("shop") && !$("shop").hidden) $("shop").hidden = true;
   const num = e.code.match(/^Digit([1-8])$/);
   if (num) {
     const w = WEAPONS[+num[1] - 1];
@@ -810,5 +933,63 @@ $("dead-menu").addEventListener("click", () => {
 });
 $("go-proc").addEventListener("click", () => enterMap("proc"));
 $("inv-close").addEventListener("click", () => ($("inv").hidden = true));
+if ($("shop-close")) $("shop-close").addEventListener("click", () => ($("shop").hidden = true));
+
+function nearVendor() {
+  if (!extras || !extras.vendors) return null;
+  for (const v of extras.vendors) {
+    if (Math.hypot(player.x - v.x, player.z - v.z) < 1.85) return v;
+  }
+  return null;
+}
+
+function openShop() {
+  const host = $("shop-list");
+  if (!host) return;
+  try {
+    controls.unlock();
+  } catch {}
+  host.innerHTML = "";
+  $("shop-gold").textContent = String(player.coins | 0);
+  SHOP.forEach((it) => {
+    const b = document.createElement("button");
+    b.textContent = it.name + " — " + it.cost + "◎";
+    b.addEventListener("click", () => buyItem(it));
+    host.appendChild(b);
+  });
+  $("shop").hidden = false;
+}
+
+function buyItem(it) {
+  if ((player.coins | 0) < it.cost) {
+    setMsg("Not enough gold");
+    return;
+  }
+  player.coins -= it.cost;
+  saveGold(player.coins);
+  if (it.kind === "weapon") {
+    if (!held) setHeld(it.id);
+    else inv.push({ id: it.id, name: it.name, cat: "weapon" });
+    setMsg("Bought " + it.name);
+  } else if (it.kind === "ammo" || it.id === "ammo") {
+    const def = held && WEAPON_BY_ID[held];
+    if (def && def.slot === "gun") mag = def.mag;
+    else inv.push({ id: "ammo", name: "Ammo crate", cat: "item" });
+    setMsg("Ammo");
+  } else if (it.id === "haste") {
+    player.haste = 20;
+    setMsg("Haste");
+  } else if (it.id === "rage") {
+    player.rage = 20;
+    setMsg("Rage");
+  } else if (it.id === "heal") {
+    player.hp = 100;
+    setMsg("Healed");
+  } else {
+    useItem({ id: it.id, name: it.name });
+  }
+  hudBars();
+  if ($("shop-gold")) $("shop-gold").textContent = String(player.coins | 0);
+}
 
 showList();

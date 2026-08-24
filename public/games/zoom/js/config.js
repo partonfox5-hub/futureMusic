@@ -132,6 +132,14 @@ export const WEAPONS = [
   { id: "whip", name: "Whip", slot: "melee", dmg: 14, reach: 3.3, rate: 0.45 },
   { id: "sword", name: "Sword", slot: "melee", dmg: 18, reach: 2.2, rate: 0.38 },
   { id: "katana", name: "Katana", slot: "melee", dmg: 22, reach: 2.55, rate: 0.28 },
+  { id: "saber-blue", name: "Blue saber", slot: "melee", dmg: 26, reach: 2.7, rate: 0.26, saber: true, color: 0x3399ff },
+  { id: "saber-green", name: "Green saber", slot: "melee", dmg: 26, reach: 2.7, rate: 0.26, saber: true, color: 0x33dd55 },
+  { id: "saber-red", name: "Red saber", slot: "melee", dmg: 28, reach: 2.7, rate: 0.24, saber: true, color: 0xff3333 },
+  { id: "saber-purple", name: "Purple saber", slot: "melee", dmg: 27, reach: 2.75, rate: 0.25, saber: true, color: 0xcc66ff },
+  { id: "saber-yellow", name: "Yellow saber", slot: "melee", dmg: 25, reach: 2.65, rate: 0.27, saber: true, color: 0xffee44 },
+  { id: "saber-cyan", name: "Cyan saber", slot: "melee", dmg: 26, reach: 2.7, rate: 0.26, saber: true, color: 0x44f0ff },
+  { id: "saber-orange", name: "Orange saber", slot: "melee", dmg: 27, reach: 2.7, rate: 0.25, saber: true, color: 0xff8822 },
+  { id: "saber-white", name: "White saber", slot: "melee", dmg: 30, reach: 2.8, rate: 0.22, saber: true, color: 0xf4f4ff },
 ];
 
 export const PICKUPS = [
@@ -142,6 +150,31 @@ export const PICKUPS = [
   { id: "lantern", name: "Lantern", cat: "item" },
   { id: "shield", name: "Shield shard", cat: "item" },
   { id: "bomb", name: "Plasma bomb", cat: "item" },
+  { id: "ammo", name: "Ammo crate", cat: "item", ammo: true },
+];
+
+export const LOOT = [
+  { id: "coin", name: "Coin", value: 1, file: ZSPR + "loot/coin.png", scale: 0.32 },
+  { id: "goldbar", name: "Gold bar", value: 25, file: ZSPR + "loot/goldbar.png", scale: 0.42 },
+  { id: "ruby", name: "Ruby", value: 100, file: ZSPR + "loot/ruby.png", scale: 0.4 },
+  { id: "diamond", name: "Diamond", value: 500, file: ZSPR + "loot/diamond.png", scale: 0.42 },
+  { id: "chest", name: "Treasure chest", value: 1000, file: ZSPR + "loot/chest.png", scale: 0.5 },
+];
+
+export const SHOP = [
+  { id: "ammo", name: "Ammo refill", cost: 25, kind: "ammo" },
+  { id: "medkit", name: "Medkit", cost: 40, kind: "item" },
+  { id: "fuel", name: "Fuel tank", cost: 45, kind: "item" },
+  { id: "shield", name: "Shield shard", cost: 55, kind: "item" },
+  { id: "haste", name: "Haste (20s)", cost: 80, kind: "power" },
+  { id: "rage", name: "Rage (20s)", cost: 90, kind: "power" },
+  { id: "heal", name: "Full heal", cost: 120, kind: "power" },
+  ...WEAPONS.map((w) => ({
+    id: w.id,
+    name: w.name,
+    cost: w.saber ? 180 + Math.round(w.dmg) : w.slot === "melee" ? 70 + w.dmg * 2 : 40 + Math.round((w.dmg * (w.mag || 4)) / 3),
+    kind: "weapon",
+  })),
 ];
 
 export const ENEMY_BY_ID = Object.fromEntries(ENEMIES.map((e) => [e.id, e]));

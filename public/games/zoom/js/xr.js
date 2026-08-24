@@ -2,11 +2,17 @@
 import * as THREE from "three";
 import { XRControllerModelFactory } from "three/addons/webxr/XRControllerModelFactory.js";
 
-export function attachXr(renderer, scene) {
+export function attachXr(renderer, scene, onSession) {
   renderer.xr.enabled = true;
   try {
     renderer.xr.setReferenceSpaceType("local-floor");
   } catch {}
+  renderer.xr.addEventListener("sessionstart", () => {
+    if (typeof onSession === "function") onSession(true);
+  });
+  renderer.xr.addEventListener("sessionend", () => {
+    if (typeof onSession === "function") onSession(false);
+  });
   const factory = new XRControllerModelFactory();
   const hands = [];
   for (let i = 0; i < 2; i++) {
@@ -99,7 +105,9 @@ export function tickXr(renderer, hands, dt) {
       h.squeezePrev = h.squeeze;
       h.axPrev = h.ax;
       h.triggerValue = gp.buttons[0] ? gp.buttons[0].value : 0;
-      h.trigger = !!(gp.buttons[0] && gp.buttons[0].pressed);
+      const trig = !!(gp.buttons[0] && gp.buttons[0].pressed);
+      if (trig && !h.trigger) h._trigAt = performance.now();
+      h.trigger = trig;
       h.squeeze = !!(gp.buttons[1] && gp.buttons[1].pressed);
       h.stick = !!(gp.buttons[3] && gp.buttons[3].pressed);
       h.ax = !!(gp.buttons[4] && gp.buttons[4].pressed) || !!(gp.buttons[5] && gp.buttons[5].pressed);
@@ -115,12 +123,18 @@ export function tickXr(renderer, hands, dt) {
   }
   const left = hands.find((h) => h.handed === "left") || hands[0];
   const right = hands.find((h) => h.handed === "right") || hands[1];
+  let dash = false;
+  if (left && right && left.trigger && right.trigger) {
+    const dtTrig = Math.abs((left._trigAt || 0) - (right._trigAt || 0));
+    if (dtTrig < 140 && (!left.triggerPrev || !right.triggerPrev)) dash = true;
+  }
   return {
     on,
     left,
     right,
+    dash,
     skate: !!(left && left.stick),
-    jet: !!(left && left.triggerValue > 0.28),
+    jet: !!(left && left.triggerValue > 0.28) && !(right && right.trigger),
     lookX: right ? right.axes[0] : 0,
     moveX: left ? left.axes[0] : 0,
     moveY: left ? left.axes[1] : 0,
