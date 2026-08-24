@@ -23,19 +23,19 @@
   </style>
   <script>
     if (/Quest|OculusBrowser|Oculus|Pacific/i.test(navigator.userAgent || "")) {
-      location.replace("/games/character-chess/chess-static.html?v=obf1" + (location.search ? "&" + location.search.slice(1) : ""));
+      location.replace("/games/character-chess/chess-static.html?v=packs2" + (location.search ? "&" + location.search.slice(1) : ""));
     }
   </script>
 </head>
 <body>
   <div class="bar">
     <a href="/projects">Projects</a>
-    <span>Creature Chess<%= typeof alphaUnlocked !== 'undefined' && alphaUnlocked ? ' · Alpha pack' : '' %></span>
+    <span>Creature Chess<%= typeof alphaUnlocked !== 'undefined' && alphaUnlocked ? ' · Pack unlocked' : '' %></span>
     <a href="/">Future Music</a>
   </div>
   <iframe
     title="Creature Chess"
-    src="/games/character-chess/chess-static.html?v=obf1<%= typeof sessionId !== 'undefined' && sessionId ? ('&session_id=' + encodeURIComponent(sessionId)) : '' %>"
+    src="/games/character-chess/chess-static.html?v=packs2<%= typeof sessionId !== 'undefined' && sessionId ? ('&session_id=' + encodeURIComponent(sessionId)) : '' %>"
     allow="fullscreen; gamepad; autoplay; payment; xr-spatial-tracking"
     allowfullscreen
   ></iframe>

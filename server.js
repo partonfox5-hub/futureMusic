@@ -706,11 +706,12 @@ try {
 }
 
 const CHESS_ALPHA_SKU = 'creature-chess-alpha-pack';
-const CHESS_ALPHA_PRICE_CENTS = 100;
+const CHESS_ALPHA_PRICE_CENTS = 199;
 const CHESS_PACKS = {
-    alpha: { sku: 'creature-chess-alpha-pack', cookie: 'chess_alpha_pack', session: 'chessAlphaPack', name: 'Creature Chess — Alpha pack' },
-    nightcourt: { sku: 'creature-chess-nightcourt-pack', cookie: 'chess_nightcourt_pack', session: 'chessNightcourtPack', name: 'Creature Chess — Night Court' },
-    primeval: { sku: 'creature-chess-primeval-pack', cookie: 'chess_primeval_pack', session: 'chessPrimevalPack', name: 'Creature Chess — Primeval' },
+    alpha: { sku: 'creature-chess-alpha-pack', cookie: 'chess_alpha_pack', session: 'chessAlphaPack', name: 'Creature Chess — Rites of Flame', blurb: 'Resurrection, Sacrifice, and fire / electric / normal champions.' },
+    nightcourt: { sku: 'creature-chess-nightcourt-pack', cookie: 'chess_nightcourt_pack', session: 'chessNightcourtPack', name: 'Creature Chess — Curse of Medusa', blurb: 'Petrify a unit. Dark, water, and psychic champions.' },
+    primeval: { sku: 'creature-chess-primeval-pack', cookie: 'chess_primeval_pack', session: 'chessPrimevalPack', name: 'Creature Chess — Terraform', blurb: 'Reshape the board. Rock, ground, grass, and fighting champions.' },
+    maps: { sku: 'creature-chess-maps-pack', cookie: 'chess_maps_pack', session: 'chessMapsPack', name: 'Creature Chess — Map Pack', blurb: 'Medium 16×16 fields and the 24×24 RTS theatre.' },
 };
 function chessPackToken(sku) {
     const secret = process.env.SESSION_SECRET || 'dev_secret_key_123';
@@ -764,6 +765,7 @@ function chessPackStatus(req) {
         alpha: hasChessPack(req, 'alpha'),
         nightcourt: hasChessPack(req, 'nightcourt'),
         primeval: hasChessPack(req, 'primeval'),
+        maps: hasChessPack(req, 'maps'),
     };
 }
 
@@ -2896,7 +2898,7 @@ app.post("/api/chess/alpha-checkout", async (req, res) => {
                     unit_amount: CHESS_ALPHA_PRICE_CENTS,
                     product_data: {
                         name: pack.name,
-                        description: "Unlock extra creatures and support cards for $1.",
+                        description: pack.blurb || "Unlock a Creature Chess pack for $1.99.",
                         images: [`${domain}/images/creature-chess.jpg`],
                         metadata: { sku: pack.sku },
                     },
