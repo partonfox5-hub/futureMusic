@@ -1,13 +1,12 @@
 /** WebXR hands: grip pickup, trigger fire/jetpack, A/X reload, stick-click skate. */
 import * as THREE from "three";
-import { VRButton } from "three/addons/webxr/VRButton.js";
 import { XRControllerModelFactory } from "three/addons/webxr/XRControllerModelFactory.js";
 
 export function attachXr(renderer, scene) {
   renderer.xr.enabled = true;
-  const btn = VRButton.createButton(renderer);
-  btn.style.zIndex = "40";
-  document.body.appendChild(btn);
+  try {
+    renderer.xr.setReferenceSpaceType("local-floor");
+  } catch {}
   const factory = new XRControllerModelFactory();
   const hands = [];
   for (let i = 0; i < 2; i++) {
@@ -16,7 +15,6 @@ export function attachXr(renderer, scene) {
     scene.add(grip);
     const con = renderer.xr.getController(i);
     scene.add(con);
-    const tmp = new THREE.Vector3();
     hands.push({
       i,
       grip,
@@ -36,13 +34,57 @@ export function attachXr(renderer, scene) {
       vel: new THREE.Vector3(),
       prev: new THREE.Vector3(),
       quat: new THREE.Quaternion(),
-      tmp,
     });
     con.addEventListener("connected", (ev) => {
       hands[i].handed = ev.data.handedness || hands[i].handed;
     });
   }
+  wireVrButton(renderer);
   return hands;
+}
+
+export function xrSupported() {
+  return !!(navigator.xr && navigator.xr.isSessionSupported);
+}
+
+export function wireVrButton(renderer) {
+  const btn = document.getElementById("vr-enter");
+  const note = document.getElementById("vr-note");
+  if (!btn) return;
+  const unsupported = () => {
+    btn.disabled = true;
+    btn.textContent = "VR: headset required";
+    if (note) {
+      note.hidden = false;
+      note.textContent = "On a PC this is desktop mode. Open this page in Meta Quest Browser (in the headset) to enter VR.";
+    }
+  };
+  if (!navigator.xr || !navigator.xr.isSessionSupported) {
+    unsupported();
+    return;
+  }
+  navigator.xr.isSessionSupported("immersive-vr").then((ok) => {
+    if (!ok) {
+      unsupported();
+      return;
+    }
+    btn.disabled = false;
+    btn.textContent = "ENTER VR";
+    if (note) note.hidden = true;
+    btn.onclick = async () => {
+      try {
+        const session = await navigator.xr.requestSession("immersive-vr", {
+          optionalFeatures: ["local-floor", "bounded-floor", "hand-tracking"],
+        });
+        await renderer.xr.setSession(session);
+      } catch (err) {
+        if (note) {
+          note.hidden = false;
+          note.textContent = "Could not start VR: " + (err && err.message ? err.message : "try Meta Quest Browser");
+        }
+      }
+    };
+  }).catch(unsupported);
 }
 
 export function tickXr(renderer, hands, dt) {

@@ -196,7 +196,7 @@ export function buildWorld(map, dungeon, scene) {
             box.position.set((x + 0.5) * CELL, yBase + STORY_H * 0.5, (z + 0.5) * CELL);
             group.add(box);
           } else {
-            addOpening(group, extras, open, x, z, yBase, wm);
+            addOpening(group, extras, open, x, z, yBase, wm, map);
           }
         }
         if (floors[i]) {
@@ -214,10 +214,15 @@ export function buildWorld(map, dungeon, scene) {
   for (const r of map.ropes || []) {
     const y0 = ((map.elev && map.elev[cellI(map, r.x, r.z)]) || 0) * EYE;
     const len = r.len || 4.5;
-    const mesh = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, len, 6), mat(0x6a4424));
-    mesh.position.set(r.x, y0 + len * 0.5 + 1.2, r.z);
+    const top = y0 + (map.hallH || 4.2) - 0.15;
+    const hang = Math.min(len, top - y0 - 0.2);
+    const mesh = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.04, hang, 6), mat(0x6a4424));
+    mesh.position.set(r.x, top - hang * 0.5, r.z);
     group.add(mesh);
-    extras.ropes.push({ x: r.x, z: r.z, y0: y0 + 1.2, len, mesh });
+    const knot = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 6), mat(0x4a3018));
+    knot.position.set(r.x, top - hang, r.z);
+    group.add(knot);
+    extras.ropes.push({ x: r.x, z: r.z, y0: top - hang, top, len: hang, mesh });
   }
 
   for (const t of map.turrets || []) {
@@ -269,46 +274,71 @@ function addPortal(group, x, z, map, col) {
   return { x, z, y: y0 + 1.2, mesh: ring };
 }
 
-function addOpening(group, extras, open, x, z, yBase, wm) {
+function wallFacing(map, x, z, story) {
+  const wall = map.bwalls && map.bwalls[story];
+  if (!wall) return 0;
+  const has = (gx, gz) => inBounds(map, gx, gz) && wall[idx(map, gx, gz)];
+  const alongX = (has(x - 1, z) ? 1 : 0) + (has(x + 1, z) ? 1 : 0);
+  const alongZ = (has(x, z - 1) ? 1 : 0) + (has(x, z + 1) ? 1 : 0);
+  return alongZ > alongX ? Math.PI / 2 : 0;
+}
+
+function addOpening(group, extras, open, x, z, yBase, wm, map) {
   const px = (x + 0.5) * CELL;
   const pz = (z + 0.5) * CELL;
   const h = STORY_H;
   const doorH = open.type === "window" ? h * 0.45 : h * 0.78;
   const yOff = open.type === "window" ? yBase + h * 0.55 : yBase + doorH * 0.5;
+  const yaw = wallFacing(map, x, z, open.story || 0);
   const frame = new THREE.Mesh(new THREE.BoxGeometry(CELL, 0.12, CELL), wm);
   frame.position.set(px, yBase + h - 0.06, pz);
   group.add(frame);
-  if (open.type === "arch") {
-    const sides = new THREE.Mesh(new THREE.BoxGeometry(0.18, doorH, CELL), wm);
-    sides.position.set(px - CELL * 0.4, yBase + doorH * 0.5, pz);
-    group.add(sides);
-    const sides2 = sides.clone();
-    sides2.position.x = px + CELL * 0.4;
-    group.add(sides2);
-    return;
-  }
+  const postW = 0.16;
+  const post = new THREE.BoxGeometry(postW, doorH, CELL * 0.55);
+  const p1 = new THREE.Mesh(post, wm);
+  const p2 = new THREE.Mesh(post, wm);
+  p1.position.set(px, yBase + doorH * 0.5, pz);
+  p2.position.set(px, yBase + doorH * 0.5, pz);
+  p1.rotation.y = yaw;
+  p2.rotation.y = yaw;
+  const side = CELL * 0.42;
+  p1.translateX(-side);
+  p2.translateX(side);
+  group.add(p1, p2);
+  if (open.type === "arch") return;
   if (open.type === "window") {
     const glass = new THREE.Mesh(
       new THREE.BoxGeometry(CELL * 0.7, doorH, 0.06),
       mat(0x88ccee, { transparent: true, opacity: 0.35, emissive: 0x224466 }),
     );
     glass.position.set(px, yOff, pz);
+    glass.rotation.y = yaw;
     glass.userData.window = true;
     group.add(glass);
     extras.windows.push({ mesh: glass, hp: 2, x: px, z: pz, y: yOff });
     return;
   }
+  const hinge = new THREE.Group();
+  hinge.position.set(px, yBase + doorH * 0.5, pz);
+  hinge.rotation.y = yaw;
   const door = new THREE.Mesh(
-    new THREE.BoxGeometry(CELL * 0.72, doorH, 0.08),
-    mat(open.locked ? 0x5a3020 : 0x6a4428),
+    new THREE.BoxGeometry(CELL * 0.7, doorH - 0.04, 0.07),
+    mat(open.locked ? 0x4a2818 : 0x6a4428),
   );
-  door.position.set(px, yBase + doorH * 0.5, pz);
-  group.add(door);
+  door.position.x = CELL * 0.35;
+  hinge.add(door);
+  if (open.locked) {
+    const bar = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 0.1), mat(0xc4a050, { emissive: 0x3a2a08 }));
+    bar.position.set(CELL * 0.55, 0, 0.06);
+    hinge.add(bar);
+  }
+  group.add(hinge);
   extras.doors.push({
-    mesh: door,
+    mesh: hinge,
     x: px,
     z: pz,
     y: yBase,
+    yaw,
     locked: !!open.locked,
     keyId: open.keyId,
     open: false,
@@ -420,8 +450,7 @@ export function tryUnlock(extras, player, keys) {
       d.locked = false;
       d.open = true;
       if (d.ref) d.ref._unlocked = true;
-      d.mesh.rotation.y = 1.4;
-      d.mesh.position.x += 0.4;
+      d.mesh.rotation.y = (d.yaw || 0) + 1.85;
       return d.keyId;
     }
   }

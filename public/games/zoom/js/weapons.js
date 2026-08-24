@@ -79,12 +79,39 @@ export function makeWeapon(id) {
   return g;
 }
 
+export function makeKeyModel() {
+  const g = new THREE.Group();
+  const gold = mat(0xe2c15a, { emissive: 0x5a3a08 });
+  const dark = mat(0x8a6a28);
+  const bow = new THREE.Mesh(new THREE.TorusGeometry(0.1, 0.028, 8, 18), gold);
+  bow.rotation.y = Math.PI / 2;
+  bow.position.y = 0.2;
+  g.add(bow);
+  const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.32, 8), gold);
+  shaft.position.y = -0.02;
+  g.add(shaft);
+  const bit1 = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.045, 0.024), dark);
+  bit1.position.set(0.045, -0.155, 0);
+  g.add(bit1);
+  const bit2 = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.032, 0.024), dark);
+  bit2.position.set(0.032, -0.11, 0);
+  g.add(bit2);
+  const collar = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.03, 0.05), dark);
+  collar.position.y = 0.12;
+  g.add(collar);
+  g.rotation.z = -0.55;
+  g.rotation.y = 0.4;
+  return g;
+}
+
 export function makePickup(kind) {
   const g = new THREE.Group();
   const def = PICKUP_BY_ID[kind];
   g.userData.pickup = kind;
   g.userData.cat = def?.cat || "item";
-  if (WEAPON_BY_ID[kind]) {
+  if (kind === "key") {
+    g.add(makeKeyModel());
+  } else if (WEAPON_BY_ID[kind]) {
     const w = makeWeapon(kind);
     w.scale.setScalar(1.15);
     g.add(w);

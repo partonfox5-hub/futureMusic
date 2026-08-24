@@ -267,6 +267,8 @@ input[type="range"] { width: 100%; }
 #hud .bar.alt i { background: linear-gradient(90deg, #1a4a8a, #66ccff); }
 #hud .tiny { font-size: 11px; opacity: 0.75; max-width: 360px; margin-top: 6px; }
 #wep { color: var(--gold); letter-spacing: 0.08em; }
+#vr-enter:disabled { opacity: 0.55; cursor: default; }
+#vr-note { font-size: 13px; color: var(--dim); max-width: 42em; }
 @media (max-width: 820px) {
   body.editor {
     grid-template-columns: 1fr;

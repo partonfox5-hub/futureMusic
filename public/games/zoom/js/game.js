@@ -8,7 +8,7 @@ import { makeProp, spawnFrom, strikeFoes, tickFoes } from "./props.js";
 import { getMap, listMaps } from "./store.js";
 import { makeProc } from "./proc.js";
 import { breakWindows, buildingFloorY, buildWorld, makeSky, tickWorld, tryUnlock, wallBlocked } from "./world.js";
-import { addBurnDecal, fireWeapon, makePickup, makeWeapon, tickBurns, tickShots } from "./weapons.js";
+import { addBurnDecal, fireWeapon, makeKeyModel, makePickup, makeWeapon, tickBurns, tickShots } from "./weapons.js";
 import { tickRobots } from "./robots.js";
 import { attachXr, tickXr } from "./xr.js";
 
@@ -20,7 +20,9 @@ const lookEuler = new THREE.Euler();
 
 let renderer, scene, camera, clock, controls, hands;
 let map, sdf2, dungeon, extras;
-let player = { x: 0, y: 1.6, z: 0, vy: 0, hp: 100, grounded: false, crouch: false, skate: false, fuel: 0, shield: 0 };
+let player = { x: 0, y: 1.6, z: 0, vx: 0, vy: 0, vz: 0, hp: 100, grounded: false, crouch: false, skate: false, fuel: 0, shield: 0 };
+let jumpQueued = false;
+let coyote = 0;
 let foes = [];
 let spawners = [];
 let torchLights = [];
@@ -118,6 +120,7 @@ function initThree() {
   camera.add(flashlight.target);
   camera.add(new THREE.PointLight(0xffcc88, 0.3, 4.2));
   hands = attachXr(renderer, scene);
+  renderer.setAnimationLoop(loop);
   $("c").addEventListener("click", () => {
     if (!$("start").hidden || dead || !$("inv").hidden) return;
     if (!controls.isLocked) controls.lock();
@@ -167,11 +170,12 @@ function placeWorld() {
     pickups.push(g);
   }
   for (const k of map.keys || []) {
-    const g = makePickup("shield");
+    const g = new THREE.Group();
+    g.add(makeKeyModel());
     g.userData.pickup = "key";
     g.userData.keyId = k.id;
     const y = Math.max(0, floorY(k.x, k.z, map, sdf2));
-    g.position.set(k.x, y + 0.3, k.z);
+    g.position.set(k.x, y + 0.45, k.z);
     scene.add(g);
     pickups.push(g);
   }
@@ -192,7 +196,9 @@ function placePlayer() {
   player.x = x;
   player.z = z;
   player.y = (y < 0 ? 1.2 : y) + EYE;
+  player.vx = 0;
   player.vy = 0;
+  player.vz = 0;
   player.hp = 100;
   player.grounded = true;
   player.crouch = false;
@@ -260,7 +266,6 @@ async function enterMap(id) {
   hudBars();
   setMsg("");
   clock.getDelta();
-  if (!animId) loop();
   window.__ZOOM__ = { map, player, dungeon, scene, camera, sdf2, foes, renderer };
 }
 
@@ -418,64 +423,123 @@ function physics(dt, xr) {
   let spd = player.crouch ? 2.2 : keys.has("ShiftLeft") || keys.has("ShiftRight") ? 7.2 : 4.6;
   if (player.skate && player.grounded) spd *= 2.5;
   if (len > 0) {
-    wx = (wx / len) * spd * dt;
-    wz = (wz / len) * spd * dt;
+    wx = (wx / len) * spd;
+    wz = (wz / len) * spd;
+  } else {
+    wx = 0;
+    wz = 0;
   }
   const eye = player.crouch ? 0.9 : EYE;
   const bodyY = player.y - eye * 0.4;
   function blocked(x, y, z) {
     if (wallBlocked(map, x, z, y)) return true;
-    return sdf3(x, y, z, map, sdf2) > -0.2;
+    return sdf3(x, y, z, map, sdf2) > -0.18;
   }
-  if (!blocked(player.x + wx, bodyY, player.z)) player.x += wx;
-  if (!blocked(player.x, bodyY, player.z + wz)) player.z += wz;
+  const GRAV = 24;
+  const jet = player.fuel > 0 && !rope && ((xr && xr.jet) || keys.has("KeyF") || (keys.has("Space") && !player.grounded && !jumpQueued));
 
-  const jet = player.fuel > 0 && ((xr && xr.jet) || keys.has("KeyF") || (keys.has("Space") && !player.grounded));
-  if (player.grounded && keys.has("Space") && !(xr && xr.on)) {
-    player.vy = 5.6;
-    player.grounded = false;
+  if (!rope) {
+    const nx = player.x + wx * dt;
+    const nz = player.z + wz * dt;
+    if (!blocked(nx, bodyY, player.z) && !blocked(nx, player.y - eye + 0.2, player.z)) {
+      player.x = nx;
+      player.vx = wx;
+    } else player.vx *= 0.2;
+    if (!blocked(player.x, bodyY, nz) && !blocked(player.x, player.y - eye + 0.2, nz)) {
+      player.z = nz;
+      player.vz = wz;
+    } else player.vz *= 0.2;
   }
-  if (jet) {
-    player.vy += 22 * dt;
-    player.fuel = Math.max(0, player.fuel - dt);
-    if (player.vy > 9) player.vy = 9;
-  } else player.vy -= 18 * dt;
-  player.y += player.vy * dt;
 
   if (rope) {
-    const dx = player.x - rope.x;
-    const dz = player.z - rope.z;
-    const d = Math.hypot(dx, dz) || 0.001;
-    const max = 2.4;
-    if (d > max) {
-      player.x = rope.x + (dx / d) * max;
-      player.z = rope.z + (dz / d) * max;
+    if (jumpQueued || (xr && xr.jet)) {
+      player.vy += 5.2;
+      player.vx += wx * 0.35;
+      player.vz += wz * 0.35;
+      rope = null;
+      player.grounded = false;
+      jumpQueued = false;
+      setMsg("");
+    } else {
+      const ax = rope.x;
+      const ay = rope.top;
+      const az = rope.z;
+      const L = rope.hang || Math.min(2.7, rope.len - 0.1);
+      player.vx += wx * 2.8 * dt;
+      player.vz += wz * 2.8 * dt;
+      player.vy -= GRAV * dt;
+      player.x += player.vx * dt;
+      player.y += player.vy * dt;
+      player.z += player.vz * dt;
+      let dx = player.x - ax;
+      let dy = player.y - ay;
+      let dz = player.z - az;
+      let dist = Math.hypot(dx, dy, dz) || 0.001;
+      player.x = ax + (dx / dist) * L;
+      player.y = ay + (dy / dist) * L;
+      player.z = az + (dz / dist) * L;
+      dx /= dist;
+      dy /= dist;
+      dz /= dist;
+      const vr = player.vx * dx + player.vy * dy + player.vz * dz;
+      player.vx = (player.vx - vr * dx) * 0.992;
+      player.vy = player.vy - vr * dy;
+      player.vz = (player.vz - vr * dz) * 0.992;
+      player.grounded = false;
     }
-    if (keys.has("Space") || (xr && xr.jet)) rope = null;
-  } else if (extras) {
-    for (const r of extras.ropes) {
-      if (Math.hypot(player.x - r.x, player.z - r.z) < 0.9 && player.y > r.y0 && player.y < r.y0 + r.len) {
-        if (keys.has("KeyE") || (xr && xr.left && xr.left.squeeze)) rope = r;
+  } else {
+    if (coyote > 0 && jumpQueued && !(xr && xr.on && xr.jet)) {
+      player.vy = 7.4;
+      player.grounded = false;
+      coyote = 0;
+      jumpQueued = false;
+    }
+    if (jet) {
+      player.vy += 26 * dt;
+      player.fuel = Math.max(0, player.fuel - dt);
+      if (player.vy > 9) player.vy = 9;
+    } else player.vy -= GRAV * dt;
+    player.y += player.vy * dt;
+    if (player.vy > 0 && blocked(player.x, player.y + 0.12, player.z)) player.vy = 0;
+    if (extras) {
+      for (const r of extras.ropes) {
+        const horiz = Math.hypot(player.x - r.x, player.z - r.z);
+        if (horiz < 0.9 && player.y < r.top && player.y > r.y0 - 0.2) {
+          if (!player.grounded || keys.has("KeyE") || (xr && xr.left && xr.left.squeeze)) {
+            rope = r;
+            rope.hang = Math.min(Math.max(0.85, r.top - player.y), r.len - 0.12);
+            jumpQueued = false;
+            setMsg("Swinging — WASD to pump, Space to leap off");
+            break;
+          }
+        }
       }
     }
   }
-
   const fy = floorY(player.x, player.z, map, sdf2);
   const bf = buildingFloorY(map, player.x, player.z, player.y);
-  const ground = Math.max(fy, bf);
-  const want = (ground < 0 ? 0.2 : ground) + eye;
-  if (player.y <= want && player.vy <= 0 && !jet) {
-    player.y = want;
+  let ground = -1;
+  if (fy >= 0) ground = fy;
+  if (bf >= 0) ground = Math.max(ground, bf);
+  if (!rope && ground >= 0 && player.y - eye <= ground + 0.08 && player.vy <= 0.4) {
+    player.y = ground + eye;
     player.vy = 0;
-    player.grounded = ground >= 0;
-  } else player.grounded = false;
+    player.grounded = true;
+    coyote = 0.12;
+  } else if (!rope) {
+    player.grounded = false;
+    coyote = Math.max(0, coyote - dt);
+    if (coyote <= 0) jumpQueued = false;
+  }
+  if (player.y < -14) die("fell");
 
   const ci = cellI(map, player.x, player.z);
-  if (map.flags && map.flags[ci] & 1 && player.grounded && player.y < want + 0.35) die("impaled");
+  const feetY = player.y - eye;
+  if (map.flags && map.flags[ci] & 1 && player.grounded && feetY < ground + 0.4) die("impaled");
   if (map.liquid && map.liquid[ci] === LIQ_LAVA) damage(18 * dt, "burned in lava");
-  if (map.liquid && map.liquid[ci] === LIQ_WATER) {
-    wx *= 0.7;
-    wz *= 0.7;
+  if (map.liquid && map.liquid[ci] === LIQ_WATER && player.grounded) {
+    player.vx *= 0.85;
+    player.vz *= 0.85;
   }
 
   if (tryUnlock(extras || { doors: [] }, player, inv.filter((i) => i.id === "key").map((i) => i.keyId))) setMsg("Unlocked");
@@ -540,9 +604,8 @@ function xrGrab(xr) {
   if (xr.right && xr.right.trigger && !xr.right.triggerPrev && held) primary();
 }
 
-function loop() {
-  animId = requestAnimationFrame(loop);
-  const dt = Math.min(0.05, clock.getDelta());
+function loop(time) {
+  const dt = Math.min(0.05, clock.getDelta() || 0.016);
   if (swingT > 0) swingT -= dt;
   if (fireCd > 0) fireCd -= dt;
   if (hurtT > 0) hurtT -= dt;
@@ -601,6 +664,7 @@ function cardCanvas(m) {
 }
 
 async function showList() {
+  initThree();
   const host = $("maps");
   host.innerHTML = "";
   const baked = bakedMaps();
@@ -627,9 +691,12 @@ async function showList() {
 
 addEventListener("keydown", (e) => {
   keys.add(e.code);
+  if (e.code === "Space") e.preventDefault();
   if (e.repeat) return;
+  if (e.code === "Space") jumpQueued = true;
   if (e.code === "KeyI" || e.code === "Tab") {
     e.preventDefault();
+    if ($("start") && !$("start").hidden) return;
     const hide = !$("inv").hidden;
     $("inv").hidden = hide;
     if (!hide) renderInv();
