@@ -248,6 +248,10 @@ app.get(["/test-b7k2n9qx", "/test-b7k2n9qx/"], (req, res) => {
     sharkHeaders(res);
     res.sendFile(path.join(__dirname, "public", "games", "shark", "test-b7k2n9qx", "index.html"));
 });
+app.get(["/test-h8w3k9nq", "/test-h8w3k9nq/"], (req, res) => {
+    sharkHeaders(res);
+    res.sendFile(path.join(__dirname, "public", "games", "shark", "test-h8w3k9nq", "index.html"));
+});
 
 // FENREST — unlisted Quest 3 WebXR village. Canonical URL is /fenrest.
 // Not linked from homepage / projects / nav. Register before static so
