@@ -445,23 +445,29 @@ scene.add(evaDummy);
 })();
 
 const wheel = new THREE.Group();
-wheel.position.set(0, -0.22, -0.40);
+wheel.position.set(0, -0.14, -0.30);
 cockpit.add(wheel);
 (function buildWheel() {
-  const mat = new THREE.MeshStandardMaterial({ color: 0xc49a58, roughness: 0.45, metalness: 0.18, emissive: 0x2a1808 });
+  const mat = new THREE.MeshStandardMaterial({ color: 0xc49a58, roughness: 0.45, metalness: 0.18, emissive: 0x2a1808, emissiveIntensity: 0.35 });
   wheelMat = mat;
-  wheel.add(new THREE.Mesh(new THREE.TorusGeometry(WHEEL_R, 0.042, 10, 28), mat));
+  wheel.add(new THREE.Mesh(new THREE.TorusGeometry(WHEEL_R, 0.055, 10, 28), mat));
   for (let i = 0; i < 4; i++) {
-    const spoke = new THREE.Mesh(new THREE.BoxGeometry(WHEEL_R * 1.92, 0.028, 0.028), mat);
+    const spoke = new THREE.Mesh(new THREE.BoxGeometry(WHEEL_R * 1.92, 0.032, 0.032), mat);
     spoke.rotation.z = (i * Math.PI) / 2;
     wheel.add(spoke);
   }
   const hub = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.055, 0.055, 0.07, 10),
+    new THREE.CylinderGeometry(0.06, 0.06, 0.08, 10),
     new THREE.MeshStandardMaterial({ color: 0xccc4a0, metalness: 0.8, emissive: 0x2a1808 })
   );
   hub.rotation.x = Math.PI / 2;
   wheel.add(hub);
+  const grab = new THREE.Mesh(
+    new THREE.SphereGeometry(0.38, 12, 10),
+    new THREE.MeshBasicMaterial({ visible: false })
+  );
+  grab.userData.helmGrab = true;
+  wheel.add(grab);
 })();
 
 const fireBtn = new THREE.Mesh(
@@ -511,9 +517,9 @@ function paintVrPlaque(ctx, w, h) {
   ctx.fillStyle = "#241c14";
   ctx.font = "28px sans-serif";
   const lines = [
-    "Squeeze GRIP on the wheel (one or both hands).",
-    "Keep holding — turn the wheel to steer.",
-    "While gripping: left stick also steers",
+    "PUT A HAND ON THE WHEEL to take the helm.",
+    "Turn the wheel to steer.",
+    "While holding: left stick also steers",
     "  and throttles. Right stick: depth.",
     "PUSH the red button to fire torpedoes.",
     "YELLOW lever — hatch (exit / re-enter).",
@@ -1091,12 +1097,16 @@ ctrl1.add(torch1);
   c.add(gizmo);
 });
 [ctrl0, ctrl1].forEach((c, i) => {
-  c.addEventListener("squeezestart", () => {
+  const hold = () => {
     helmHands[i].squeeze = true;
-  });
-  c.addEventListener("squeezeend", () => {
+  };
+  const release = () => {
     helmHands[i].squeeze = false;
-  });
+  };
+  c.addEventListener("squeezestart", hold);
+  c.addEventListener("squeezeend", release);
+  c.addEventListener("selectstart", hold);
+  c.addEventListener("selectend", release);
   c.addEventListener("connected", (e) => {
     helmHands[i].handed = e.data?.handedness || "";
     helmHands[i].gamepad = e.data?.gamepad || null;
@@ -1745,7 +1755,8 @@ function hud() {
 
 function nearWorld(obj, maxd) {
   obj.getWorldPosition(tmp);
-  for (const c of [ctrl0, ctrl1]) {
+  for (const c of [ctrl0, ctrl1, grip0, grip1]) {
+    if (!c) continue;
     c.getWorldPosition(tmp2);
     if (tmp.distanceTo(tmp2) < maxd) return c;
   }
@@ -1754,9 +1765,13 @@ function nearWorld(obj, maxd) {
 
 function squeezeFromPad(gp) {
   if (!gp || !gp.buttons) return 0;
-  const b1 = gp.buttons[1];
-  if (!b1) return 0;
-  return Math.max(b1.pressed ? 1 : 0, b1.value || 0);
+  let v = 0;
+  for (let i = 1; i < Math.min(gp.buttons.length, 3); i++) {
+    const b = gp.buttons[i];
+    if (!b) continue;
+    v = Math.max(v, b.pressed ? 1 : 0, b.value || 0);
+  }
+  return v;
 }
 
 function pollXrButtons() {
@@ -1769,9 +1784,8 @@ function pollXrButtons() {
   for (const src of session.inputSources) {
     const gp = src.gamepad;
     if (!gp || !gp.buttons) continue;
-    if (gp.buttons[0] && (gp.buttons[0].pressed || (gp.buttons[0].value || 0) > 0.6)) xrTrigger = true;
-    const sq = squeezeFromPad(gp);
-    if (sq > 0.35) xrGrip = true;
+    if (gp.buttons[0] && (gp.buttons[0].pressed || (gp.buttons[0].value || 0) > 0.45)) xrTrigger = true;
+    if (squeezeFromPad(gp) > 0.12) xrGrip = true;
     if (src.handedness === "left") padsByHand.left = gp;
     else if (src.handedness === "right") padsByHand.right = gp;
     else padsByHand.none.push(gp);
@@ -1785,11 +1799,13 @@ function pollXrButtons() {
     else if (h.handed === "right" && padsByHand.right) gp = padsByHand.right;
     else if (!h.handed && padsByHand.none[i]) gp = padsByHand.none[i];
     const sq = squeezeFromPad(gp);
-    h.padSqueeze = sq > 0.32;
+    const trig = gp?.buttons?.[0];
+    h.padSqueeze = sq > 0.12;
+    h.padTrigger = !!(trig && (trig.pressed || (trig.value || 0) > 0.45));
     h._ctrl = ctrls[i];
     h._grip = grips[i];
   }
-  if (!xrGrip) xrGrip = helmHands.some((h) => h.squeeze || h.padSqueeze);
+  if (!xrGrip) xrGrip = helmHands.some((h) => h.squeeze || h.padSqueeze || h.padTrigger);
 }
 
 function syncXrSeat() {
@@ -1918,12 +1934,11 @@ function helmReach(h, grabbing) {
   const dx = _helmLocal.x - wheel.position.x;
   const dy = _helmLocal.y - wheel.position.y;
   const dz = _helmLocal.z - wheel.position.z;
-  const radial = Math.hypot(dx, dy);
-  const grabR = grabbing ? 0.72 : 0.52;
-  const onRim = Math.abs(radial - WHEEL_R) < 0.24 && Math.abs(dz) < 0.22;
-  const onHub = Math.hypot(dx, dy, dz) < grabR;
+  const startR = 0.42;
+  const keepR = 0.7;
+  const r = grabbing ? keepR : startR;
   return {
-    near: onRim || onHub || dist < grabR,
+    near: dist < r,
     ang: Math.atan2(dy, dx),
     z: dz,
     dist,
@@ -1959,16 +1974,16 @@ function readXrMove(dt, move) {
     let pull = 0;
     let pullN = 0;
     const wasHeld = helmHeld;
+    const anyNear = !!nearWorld(wheel, 0.42);
+    paintHelmHeld(anyNear || helmHeld);
     for (const h of helmHands) {
-      const squeezing = h.squeeze || h.padSqueeze;
+      const squeezing = h.squeeze || h.padSqueeze || h.padTrigger;
       const reach = helmReach(h, h.grabbing);
-      if (squeezing && reach.near) {
+      if (reach.near) {
         h.grabbing = true;
-      } else if (!squeezing) {
-        h.grabbing = false;
-        h.lastAng = null;
-        h.lastZ = null;
-      } else if (h.grabbing && reach.dist > 0.85) {
+      } else if (h.grabbing && squeezing && reach.dist < 0.85) {
+        h.grabbing = true;
+      } else {
         h.grabbing = false;
         h.lastAng = null;
         h.lastZ = null;
@@ -1987,6 +2002,7 @@ function readXrMove(dt, move) {
         h.lastZ = reach.z;
       }
     }
+    if (!holding && anyNear) holding = true;
     helmHeld = holding;
     xrGrab = holding ? wheel : null;
     paintHelmHeld(holding);
@@ -2002,7 +2018,7 @@ function readXrMove(dt, move) {
         yaw += d * 1.45;
         wheelSpin = wrapPi(wheelSpin + d);
       }
-      if (!wasHeld) setMsg("HELM — TURN THE WHEEL TO STEER  ·  LEFT STICK WHILE HOLDING", 2.4);
+      if (!wasHeld) setMsg("HELM IN HAND — TURN TO STEER", 2.2);
       if (pullN > 0) {
         const pz = (pull / pullN) / Math.max(dt, 0.001);
         if (Math.abs(pz) > 0.35) move.az += clamp(-pz * 0.35, -1, 1);
@@ -2270,7 +2286,7 @@ renderer.xr.addEventListener("sessionstart", () => {
     }
   }
   kickRadio();
-  setMsg("SQUEEZE GRIP ON THE WHEEL — TURN TO STEER", 3.2);
+  setMsg("TOUCH THE WHEEL TO STEER", 3.2);
 });
 renderer.xr.addEventListener("sessionend", () => {
   xrOn = false;
