@@ -320,18 +320,21 @@ app.use("/planetry", (req, res, next) => {
     next();
 }, express.static(path.join(__dirname, "public", "games", "planetry")));
 
-// ZOOM — test dungeon crawler + map maker. Promote to /zoom and /zoommaps after QA.
+// ZOOM — dungeon crawler + map maker. Canonical URLs /zoom and /zoommaps.
 function zoomHeaders(res) {
-    res.setHeader("X-Robots-Tag", "noindex, nofollow");
+    res.setHeader("Permissions-Policy", "xr-spatial-tracking=(self), fullscreen=(self), gamepad=(self), accelerometer=(self), gyroscope=(self), magnetometer=(self), microphone=(self)");
 }
-app.get(["/test-w3n9k7qm", "/test-w3n9k7qm/"], (req, res) => {
+app.get(["/games/zoom", "/games/zoom/"], (req, res) => res.redirect("/zoom"));
+app.get(["/zoom", "/zoom/"], (req, res) => {
     zoomHeaders(res);
     res.sendFile(path.join(__dirname, "public", "games", "zoom", "play.html"));
 });
-app.get(["/test-w3n9k7qm-maps", "/test-w3n9k7qm-maps/"], (req, res) => {
+app.get(["/zoommaps", "/zoommaps/", "/zoom/maps", "/zoom/maps/"], (req, res) => {
     zoomHeaders(res);
     res.sendFile(path.join(__dirname, "public", "games", "zoom", "maps.html"));
 });
+app.get(["/test-w3n9k7qm", "/test-w3n9k7qm/"], (req, res) => res.redirect(301, "/zoom"));
+app.get(["/test-w3n9k7qm-maps", "/test-w3n9k7qm-maps/"], (req, res) => res.redirect(301, "/zoommaps"));
 try {
     require("./lib/zoom").mount(app, { storage, bucketName });
     console.log("[zoom] maps api mounted");
