@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="theme-color" content="#010308" />
+  <title>SHARK — helm grip test</title>
+  <link rel="canonical" href="https://futuremusic.online/test-r4n8k2wm" />
+  <link rel="icon" type="image/svg+xml" href="/images/favicon.svg" />
+  <link rel="stylesheet" href="/games/shark/css/game.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <a class="bar-link" href="/">Future Music</a>
+  <canvas id="c"></canvas>
+  <div id="yt"></div>
+  <div id="hud">
+    <div>O2</div>
+    <div class="bar" id="o2b"><i id="o2i"></i></div>
+    <div>HULL</div>
+    <div class="bar" id="hulb"><i id="huli"></i></div>
+    <div>FUEL</div>
+    <div class="bar" id="fuelb"><i id="fueli"></i></div>
+    <div>TORP <span id="torpi">8</span></div>
+    <div>MODE <span id="mode">PILOT</span></div>
+    <div>SONAR <span id="sstat">PATROL</span></div>
+    <div>RADIO <span id="hud-track">STANDBY</span></div>
+    <div id="repair-wrap" hidden>
+      REPAIR
+      <div class="bar" id="repb"><i id="repi"></i></div>
+    </div>
+    <div class="hint">W/S thrust · A/D strafe · SHIFT down · TAB up<br/>MOUSE look · LMB torpedo · F hatch · R radio / hold R to patch</div>
+  </div>
+  <div id="minimap-wrap">
+    <canvas id="minimap" width="168" height="168"></canvas>
+    <div class="sonar-cap">SONAR — CONTACT</div>
+  </div>
+  <div id="radio">RADIO 1 · CANNED BAND<br/><span id="radio-now">STANDBY</span></div>
+  <div id="msg"></div>
+  <div id="touch" aria-hidden="true">
+    <div class="stick">
+      <button type="button" data-code="KeyW">W</button>
+      <div class="row">
+        <button type="button" data-code="KeyA">A</button>
+        <button type="button" data-code="KeyS">S</button>
+        <button type="button" data-code="KeyD">D</button>
+      </div>
+      <div class="row">
+        <button type="button" data-code="ShiftLeft">SH</button>
+        <button type="button" data-code="Tab">TAB</button>
+      </div>
+    </div>
+    <div class="actions">
+      <button type="button" id="touch-fire">FIRE</button>
+      <button type="button" data-code="KeyF">HATCH</button>
+      <button type="button" data-code="KeyR">R</button>
+    </div>
+  </div>
+  <div id="vr-slot"></div>
+  <div id="start">
+    <div class="panel">
+      <h1>SHARK</h1>
+      <p>You are sealed in a pressure cell in a sea with no surface. A giant lives in the walls. It may be hunting. Whales pass in the dark. Sonar cannot tell them apart.</p>
+      <p>Patch the hull from outside after each strike. Steal oxygen from stray tanks. Drive it off with torpedoes when it lunges. Outside, you are slow. If it takes you in the open, you are gone.</p>
+      <p>F hatch. R radio in the sub. Outside, hold R near the hull to patch. Desktop: WASD, Shift down, Tab up, mouse, click. Grab fuel cans and spare torpedoes off the floor.</p>
+      <p>Quest 3 (browser): tap ENTER VR at the bottom. Squeeze GRIP on the wheel with one or both hands — keep holding to stay at the helm. Turn the wheel to steer. While gripping, left stick also steers and throttles; right stick is depth. Push the red button to fire. Yellow lever is the hatch. Outside, hold trigger near the hull to weld.</p>
+      <p>Choose a cell.</p>
+      <div class="modes">
+        <button type="button" id="go-sea">Deep Sea</button>
+        <button type="button" id="go-space" class="alt">Space</button>
+      </div>
+    </div>
+  </div>
+  <div id="dead" hidden>
+    <div class="panel">
+      <h1>LOST</h1>
+      <p id="dead-reason">The cell takes you.</p>
+      <button type="button" id="again">There is no surface. Again.</button>
+    </div>
+  </div>
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+    }
+  }
+  </script>
+  <script type="module" src="/games/shark/test-r4n8k2wm/js/game.js?v=helm1"></script>
+</body>
+</html>
