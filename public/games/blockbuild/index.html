@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="theme-color" content="#b8d4f0" />
+    <title>Blockbuild</title>
+    <meta name="build" content="prod-20260824-bb3" />
+    <link rel="stylesheet" href="/games/blockbuild/css/game.css?v=bb3" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Outfit:wght@400;500;600&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <canvas id="c"></canvas>
+    <div id="hud">
+      <div id="title">Blockbuild</div>
+      <div id="hud-line">Red · 2×4 Brick</div>
+      <div id="hud-hint">Trigger places. Grip picks up stray bricks. A dumps a pile. Y cannon. Hold X to melt. B rotates.</div>
+    </div>
+    <div id="start">
+      <div class="panel">
+        <p class="kicker">A quiet infinite workshop</p>
+        <h1>Blockbuild</h1>
+        <p>
+          Fly an empty sky. Snap studded bricks on a level table. They interlock when they kiss.
+          Wrist palette: outer ring is color, inner ring is size. Center tools change kind, gravity, zoom, and handedness.
+        </p>
+        <ul>
+          <li><b>Trigger</b> places the ghost brick (or a held one). Snap-to-studs when close.</li>
+          <li><b>Grip</b> picks up stray bricks. Trigger again to lock them in.</li>
+          <li><b>A</b> spills ten random pieces. <b>B</b> rotates. <b>Y</b> fires a cannonball that breaks joints.</li>
+          <li>Hold <b>X</b> and the build hand becomes a flame — melt bricks you hold it near.</li>
+          <li>Zoom until you are a giant or a speck. Toggle gravity. Swap the palette wrist for left-handed play.</li>
+          <li><b>Fig studio</b> on the palette: three carousels for head, torso, and legs. Place copies — they wander and climb stairs you build.</li>
+        </ul>
+        <p class="desk">Desktop: WASD fly, mouse look, click place, C/V/B cycle color/size/kind, R rotate, P pile, F grab, Y cannon, X melt, G gravity, [ ] zoom, H swap, M fig studio.</p>
+        <div class="row">
+          <button type="button" id="go-vr">Enter VR</button>
+          <button type="button" id="go-desk" class="ghost">Begin on desktop</button>
+        </div>
+      </div>
+    </div>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+        }
+      }
+    </script>
+    <script type="module" src="/games/blockbuild/js/game.js?v=bb3"></script>
+  </body>
+</html>

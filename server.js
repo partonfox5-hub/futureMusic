@@ -292,6 +292,18 @@ app.use("/games/fenrest-chess", (req, res, next) => {
     next();
 });
 
+// BLOCKBUILD — unlisted VR stud-brick workshop. Canonical URL is /blockbuild.
+function blockbuildHeaders(res) {
+    res.setHeader("Permissions-Policy", "xr-spatial-tracking=(self), fullscreen=(self), gamepad=(self), accelerometer=(self), gyroscope=(self), magnetometer=(self)");
+    res.setHeader("X-Robots-Tag", "noindex, nofollow");
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+}
+app.get(["/games/blockbuild", "/games/blockbuild/"], (req, res) => res.redirect(301, "/blockbuild"));
+app.get(["/blockbuild", "/blockbuild/"], (req, res) => {
+    blockbuildHeaders(res);
+    res.sendFile(path.join(__dirname, "public", "games", "blockbuild", "index.html"));
+});
+
 // PLANMORPHER — original VR god-game. Canonical URL is /planmorpher.
 function planmorpherHeaders(res) {
     res.setHeader("Permissions-Policy", "xr-spatial-tracking=(self), fullscreen=(self), gamepad=(self), accelerometer=(self), gyroscope=(self), magnetometer=(self)");
