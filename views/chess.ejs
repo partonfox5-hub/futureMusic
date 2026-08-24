@@ -23,7 +23,7 @@
   </style>
   <script>
     if (/Quest|OculusBrowser|Oculus|Pacific/i.test(navigator.userAgent || "")) {
-      location.replace("/games/character-chess/chess-static.html" + location.search);
+      location.replace("/games/character-chess/chess-static.html?v=rts3" + (location.search ? "&" + location.search.slice(1) : ""));
     }
   </script>
 </head>
@@ -35,7 +35,7 @@
   </div>
   <iframe
     title="Creature Chess"
-    src="/games/character-chess/chess-static.html<%= typeof sessionId !== 'undefined' && sessionId ? ('?session_id=' + encodeURIComponent(sessionId)) : '' %>"
+    src="/games/character-chess/chess-static.html?v=rts3<%= typeof sessionId !== 'undefined' && sessionId ? ('&session_id=' + encodeURIComponent(sessionId)) : '' %>"
     allow="fullscreen; gamepad; autoplay; payment; xr-spatial-tracking"
     allowfullscreen
   ></iframe>

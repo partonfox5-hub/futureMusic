@@ -258,6 +258,9 @@ function fenrestHeaders(res) {
 }
 app.use('/games/character-chess', (req, res, next) => {
     res.setHeader('Permissions-Policy', 'xr-spatial-tracking=(self), fullscreen=(self), gamepad=(self), accelerometer=(self), gyroscope=(self), magnetometer=(self)');
+    if (/\.html?$/.test(req.path) || req.path === '/' || req.path === '') {
+        res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+    }
     next();
 });
 app.get(['/games/fenrest', '/games/fenrest/'], (req, res) => res.redirect('/fenrest'));
@@ -760,6 +763,7 @@ try {
 }
 app.get('/chess', async (req, res) => {
     res.setHeader('Permissions-Policy', 'xr-spatial-tracking=(self), fullscreen=(self), gamepad=(self), accelerometer=(self), gyroscope=(self), magnetometer=(self)');
+    res.setHeader('Cache-Control', 'no-cache, must-revalidate');
     const sessionId = String(req.query.session_id || '');
     if (sessionId && stripe) {
         try {
