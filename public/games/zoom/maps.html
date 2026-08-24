@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="theme-color" content="#0a0908" />
+    <title>ZOOM — map maker</title>
+    <link rel="icon" type="image/jpeg" href="/games/zoom/og.jpg" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" />
+    <link rel="stylesheet" href="/games/zoom/css/zoom.css?v=z1" />
+    <script>
+      window.ZOOM_ROUTES = { play: "/test-w3n9k7qm", maps: "/test-w3n9k7qm-maps" };
+    </script>
+  </head>
+  <body class="editor">
+    <div id="stage">
+      <canvas id="view"></canvas>
+      <div id="topbar">
+        <span id="xy">0, 0</span>
+        <span id="status">Draw to dig</span>
+      </div>
+    </div>
+    <aside id="side">
+      <h1>ZOOM</h1>
+      <p class="hint">Top-down dig. Filled shapes become rooms. Outlines become hall circuits. Right-drag pans, wheel zooms.</p>
+      <div class="row">
+        <a class="btn" id="to-play" href="/test-w3n9k7qm">Play</a>
+        <button type="button" id="play">Crawl this map</button>
+      </div>
+      <button type="button" id="play-unsaved" hidden>Preview crawl</button>
+
+      <h2>Draw</h2>
+      <div class="tools">
+        <button type="button" data-tool="dig" class="on">Dig</button>
+        <button type="button" data-tool="erase">Erase</button>
+        <button type="button" data-tool="rect">Fill rect</button>
+        <button type="button" data-tool="outline">Outline rect</button>
+        <button type="button" data-tool="sphere">Sphere</button>
+        <button type="button" data-tool="fill">Bucket</button>
+        <button type="button" data-tool="paint">Paint tex</button>
+        <button type="button" data-tool="object">Object</button>
+        <button type="button" data-tool="spawner">Spawner</button>
+        <button type="button" data-tool="start">Start</button>
+      </div>
+      <p id="shape-hint"></p>
+
+      <label>Tunnel / chamber shape</label>
+      <select id="shape"></select>
+      <label>Brush size <span id="brush-v">2.2</span></label>
+      <input id="brush" type="range" min="0.5" max="16" step="0.1" value="2.2" />
+      <label>Hall height <span id="hall-v">4.2</span></label>
+      <input id="hall" type="range" min="2.4" max="8" step="0.1" value="4.2" />
+
+      <h2>Terrain</h2>
+      <div id="swatches"></div>
+      <label>Texture</label>
+      <select id="biome"></select>
+
+      <h2>Objects</h2>
+      <label>Place</label>
+      <select id="obj"></select>
+      <label>Object size <span id="oscale-v">1.00</span></label>
+      <input id="oscale" type="range" min="0.4" max="3" step="0.05" value="1" />
+
+      <h2>Spawners</h2>
+      <label>Enemy</label>
+      <select id="sp-enemy"></select>
+      <label>Spawn every <span id="sp-int-v">6.0s</span></label>
+      <input id="sp-int" type="range" min="0.5" max="30" step="0.5" value="6" />
+      <label>Roam radius <span id="sp-rad-v">8.0</span></label>
+      <input id="sp-rad" type="range" min="1" max="40" step="0.5" value="8" />
+      <label>Max alive <span id="sp-max-v">3</span></label>
+      <input id="sp-max" type="range" min="1" max="12" step="1" value="3" />
+      <p class="hint">Click to place. Drag to move. Delete removes the selection. Units stay inside the radius.</p>
+
+      <h2>Map</h2>
+      <label>Name</label>
+      <input id="map-name" type="text" maxlength="48" value="New delve" />
+      <div class="row">
+        <button type="button" id="save">Save</button>
+        <button type="button" id="new">New</button>
+        <button type="button" id="del">Delete</button>
+      </div>
+      <p class="hint">Saved maps show up as playable on the Zoom start screen. Ctrl+Z undo, Ctrl+S save. [ ] brush size.</p>
+      <h2>Saved</h2>
+      <div id="saved"></div>
+    </aside>
+    <script type="module" src="/games/zoom/js/editor.js?v=z1"></script>
+  </body>
+</html>

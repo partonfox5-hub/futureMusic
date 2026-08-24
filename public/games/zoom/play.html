@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="theme-color" content="#0a0908" />
+    <title>ZOOM — dungeon crawler</title>
+    <link rel="icon" type="image/jpeg" href="/games/zoom/og.jpg" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" />
+    <link rel="stylesheet" href="/games/zoom/css/zoom.css?v=z1" />
+    <script>
+      window.ZOOM_ROUTES = { play: "/test-w3n9k7qm", maps: "/test-w3n9k7qm-maps" };
+    </script>
+  </head>
+  <body>
+    <canvas id="c"></canvas>
+    <div id="hurt"></div>
+    <div class="cross"></div>
+    <div id="hud" hidden>
+      <div id="titlemap">ZOOM</div>
+      <div>HP <span id="hpv">100</span></div>
+      <div class="bar"><i id="hpi"></i></div>
+      <div>WASD move · mouse look · click swing · shift sprint · space jump · M map maker</div>
+    </div>
+    <div id="miniwrap"><canvas id="mini" width="148" height="148"></canvas></div>
+    <div id="hint">Click to look. Left click swings.</div>
+    <div id="msg" hidden></div>
+    <div id="start">
+      <div class="panel">
+        <h1>ZOOM</h1>
+        <p>
+          A dungeon you draw, then crawl. Fill a region for a room. Stroke an outline for a hallway circuit.
+          Enemies are 4-direction animated sprites. Pick a map — or open the map maker and scribble one.
+        </p>
+        <div class="row">
+          <a class="btn" id="to-maps" href="/test-w3n9k7qm-maps">Map maker</a>
+          <a class="btn" href="/">Future Music</a>
+        </div>
+        <div class="cards" id="maps"></div>
+      </div>
+    </div>
+    <div id="dead" hidden>
+      <div class="panel">
+        <h1>TAKEN</h1>
+        <p id="dead-reason">The crawl takes you.</p>
+        <div class="row">
+          <button type="button" id="again">Crawl again</button>
+          <button type="button" id="dead-menu">Maps</button>
+        </div>
+      </div>
+    </div>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+        }
+      }
+    </script>
+    <script type="module" src="/games/zoom/js/game.js?v=z1"></script>
+  </body>
+</html>

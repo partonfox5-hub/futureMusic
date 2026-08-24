@@ -1,0 +1,433 @@
+/** Zoom map packing, drawing stamps, 2D SDF. */
+import {
+  BIOMES,
+  CELL,
+  MAP_H,
+  MAP_W,
+  SHAPE_FLAT,
+  SHAPE_OVAL,
+  SHAPE_ROUND,
+  SHAPE_SPHERE,
+} from "./config.js";
+
+export { CELL };
+
+export function pack(carved, shape, tex) {
+  return (carved ? 1 : 0) | ((shape & 3) << 1) | ((tex & 15) << 3);
+}
+export function isCarved(b) {
+  return (b & 1) !== 0;
+}
+export function getShape(b) {
+  return (b >> 1) & 3;
+}
+export function getTex(b) {
+  return (b >> 3) & 15;
+}
+
+function nid() {
+  return "m" + Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 6);
+}
+
+export function blankMap(name = "Untitled") {
+  const w = MAP_W;
+  const h = MAP_H;
+  return {
+    v: 1,
+    id: nid(),
+    name,
+    w,
+    h,
+    hallH: 4.2,
+    cells: new Uint8Array(w * h),
+    spheres: [],
+    objects: [],
+    spawners: [],
+    start: { x: (w * 0.5) * CELL, z: (h * 0.5) * CELL, yaw: 0 },
+    updated: Date.now(),
+  };
+}
+
+export function cloneMap(m) {
+  return deserialize(serialize(m));
+}
+
+export function toB64(u8) {
+  const bytes = u8 instanceof Uint8Array ? u8 : new Uint8Array(u8);
+  let s = "";
+  const CH = 0x8000;
+  for (let i = 0; i < bytes.length; i += CH) {
+    s += String.fromCharCode.apply(null, bytes.subarray(i, i + CH));
+  }
+  return btoa(s);
+}
+
+export function fromB64(s) {
+  const bin = atob(s);
+  const u8 = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+  return u8;
+}
+
+export function serialize(map) {
+  return {
+    v: 1,
+    id: map.id,
+    name: map.name,
+    w: map.w,
+    h: map.h,
+    hallH: map.hallH,
+    cells: toB64(map.cells),
+    spheres: map.spheres || [],
+    objects: map.objects || [],
+    spawners: map.spawners || [],
+    start: map.start,
+    updated: map.updated || Date.now(),
+  };
+}
+
+export function deserialize(raw) {
+  const o = typeof raw === "string" ? JSON.parse(raw) : raw;
+  const cells =
+    typeof o.cells === "string"
+      ? fromB64(o.cells)
+      : o.cells instanceof Uint8Array
+        ? o.cells
+        : new Uint8Array(o.cells || []);
+  const w = o.w || MAP_W;
+  const h = o.h || MAP_H;
+  const sized = new Uint8Array(w * h);
+  sized.set(cells.subarray(0, sized.length));
+  return {
+    v: 1,
+    id: o.id || nid(),
+    name: o.name || "Untitled",
+    w,
+    h,
+    hallH: o.hallH || 4.2,
+    cells: sized,
+    spheres: Array.isArray(o.spheres) ? o.spheres.map((s) => ({ ...s })) : [],
+    objects: Array.isArray(o.objects) ? o.objects.map((x) => ({ ...x })) : [],
+    spawners: Array.isArray(o.spawners) ? o.spawners.map((x) => ({ ...x })) : [],
+    start: o.start ? { ...o.start } : { x: w * 0.5 * CELL, z: h * 0.5 * CELL, yaw: 0 },
+    updated: o.updated || Date.now(),
+  };
+}
+
+export function idx(map, x, z) {
+  return z * map.w + x;
+}
+
+export function inBounds(map, x, z) {
+  return x >= 0 && z >= 0 && x < map.w && z < map.h;
+}
+
+export function worldToCell(x, z) {
+  return { cx: x / CELL, cz: z / CELL };
+}
+
+export function cellToWorld(cx, cz) {
+  return { x: (cx + 0.5) * CELL, z: (cz + 0.5) * CELL };
+}
+
+/** Stamp a disk of cells. cx/cz in cell units (float). */
+export function stampDisk(map, cx, cz, radius, shape, tex, erase) {
+  const r = Math.max(0.5, radius);
+  const r2 = r * r;
+  const x0 = Math.max(0, Math.floor(cx - r));
+  const x1 = Math.min(map.w - 1, Math.ceil(cx + r));
+  const z0 = Math.max(0, Math.floor(cz - r));
+  const z1 = Math.min(map.h - 1, Math.ceil(cz + r));
+  const p = erase ? 0 : pack(1, shape, tex);
+  for (let z = z0; z <= z1; z++) {
+    for (let x = x0; x <= x1; x++) {
+      const dx = x + 0.5 - cx;
+      const dz = z + 0.5 - cz;
+      if (dx * dx + dz * dz <= r2 + 0.15) map.cells[idx(map, x, z)] = p;
+    }
+  }
+}
+
+export function paintDisk(map, cx, cz, radius, tex) {
+  const r = Math.max(0.5, radius);
+  const r2 = r * r;
+  const x0 = Math.max(0, Math.floor(cx - r));
+  const x1 = Math.min(map.w - 1, Math.ceil(cx + r));
+  const z0 = Math.max(0, Math.floor(cz - r));
+  const z1 = Math.min(map.h - 1, Math.ceil(cz + r));
+  for (let z = z0; z <= z1; z++) {
+    for (let x = x0; x <= x1; x++) {
+      const dx = x + 0.5 - cx;
+      const dz = z + 0.5 - cz;
+      if (dx * dx + dz * dz > r2 + 0.15) continue;
+      const i = idx(map, x, z);
+      const b = map.cells[i];
+      if (isCarved(b)) map.cells[i] = pack(1, getShape(b), tex);
+    }
+  }
+}
+
+export function stampSegment(map, x0, z0, x1, z1, radius, shape, tex, erase) {
+  const dx = x1 - x0;
+  const dz = z1 - z0;
+  const len = Math.hypot(dx, dz);
+  const step = Math.max(0.35, radius * 0.4);
+  const n = Math.max(1, Math.ceil(len / step));
+  for (let i = 0; i <= n; i++) {
+    const t = i / n;
+    stampDisk(map, x0 + dx * t, z0 + dz * t, radius, shape, tex, erase);
+  }
+}
+
+export function stampRect(map, x0, z0, x1, z1, radius, shape, tex, erase, outline) {
+  let ax = Math.min(x0, x1);
+  let bx = Math.max(x0, x1);
+  let az = Math.min(z0, z1);
+  let bz = Math.max(z0, z1);
+  if (outline) {
+    const t = Math.max(0.5, radius);
+    stampRect(map, ax, az, bx, az, t, shape, tex, erase, false);
+    stampRect(map, ax, bz, bx, bz, t, shape, tex, erase, false);
+    stampRect(map, ax, az, ax, bz, t, shape, tex, erase, false);
+    stampRect(map, bx, az, bx, bz, t, shape, tex, erase, false);
+    return;
+  }
+  const r = Math.max(0, radius - 0.5);
+  ax = Math.max(0, Math.floor(ax - r));
+  bx = Math.min(map.w - 1, Math.ceil(bx + r));
+  az = Math.max(0, Math.floor(az - r));
+  bz = Math.min(map.h - 1, Math.ceil(bz + r));
+  const p = erase ? 0 : pack(1, shape, tex);
+  for (let z = az; z <= bz; z++) {
+    for (let x = ax; x <= bx; x++) map.cells[idx(map, x, z)] = p;
+  }
+}
+
+/** Flood fill. If click is rock, carve connected rock that does not touch the map border (interior pockets). If click is carved, recolor that region. */
+export function flood(map, sx, sz, shape, tex, erase) {
+  sx = Math.floor(sx);
+  sz = Math.floor(sz);
+  if (!inBounds(map, sx, sz)) return 0;
+  const start = map.cells[idx(map, sx, sz)];
+  const startCarved = isCarved(start);
+  if (erase && !startCarved) return 0;
+  const wantCarve = !erase;
+  const match = (b) => (wantCarve ? !isCarved(b) : isCarved(b) && getTex(b) === getTex(start) && getShape(b) === getShape(start));
+  if (!match(start) && !(erase && startCarved)) return 0;
+
+  const seen = new Uint8Array(map.w * map.h);
+  const q = [sx, sz];
+  seen[idx(map, sx, sz)] = 1;
+  const pts = [];
+  let hitBorder = false;
+  while (q.length) {
+    const z = q.pop();
+    const x = q.pop();
+    if (x === 0 || z === 0 || x === map.w - 1 || z === map.h - 1) hitBorder = true;
+    pts.push(x, z);
+    if (pts.length > 9000) break;
+    const nbs = [x - 1, z, x + 1, z, x, z - 1, x, z + 1];
+    for (let i = 0; i < 8; i += 2) {
+      const nx = nbs[i];
+      const nz = nbs[i + 1];
+      if (!inBounds(map, nx, nz)) continue;
+      const i2 = idx(map, nx, nz);
+      if (seen[i2]) continue;
+      if (!match(map.cells[i2])) continue;
+      seen[i2] = 1;
+      q.push(nx, nz);
+    }
+  }
+  if (wantCarve && !startCarved && hitBorder) return 0;
+  const p = erase ? 0 : pack(1, shape, tex);
+  for (let i = 0; i < pts.length; i += 2) map.cells[idx(map, pts[i], pts[i + 1])] = p;
+  return pts.length / 2;
+}
+
+export function addSphere(map, x, z, r, tex) {
+  r = Math.max(1.2, r);
+  const last = map.spheres[map.spheres.length - 1];
+  if (last && Math.hypot(last.x - x, last.z - z) < r * 0.4 && Math.abs(last.r - r) < 0.4) return last;
+  const s = { x, z, r, tex, cy: Math.max(1.15, r * 0.55) };
+  map.spheres.push(s);
+  return s;
+}
+
+export function eraseNear(map, x, z, r) {
+  const r2 = r * r;
+  map.spheres = map.spheres.filter((s) => {
+    const d = Math.hypot(s.x - x, s.z - z);
+    return d > r + s.r * 0.35;
+  });
+  map.objects = map.objects.filter((o) => Math.hypot(o.x - x, o.z - z) > r);
+  map.spawners = map.spawners.filter((s) => Math.hypot(s.x - x, s.z - z) > r);
+}
+
+export function hash3(x, y, z) {
+  const s = Math.sin(x * 127.1 + y * 311.7 + z * 74.7) * 43758.5453;
+  return s - Math.floor(s);
+}
+
+/** Chamfer distance transform. Negative inside carved cells, in cell units. */
+export function computeSdf(map) {
+  const w = map.w;
+  const h = map.h;
+  const g = new Float32Array(w * h);
+  const INF = 1e5;
+  for (let i = 0; i < g.length; i++) g[i] = isCarved(map.cells[i]) ? INF : 0;
+  const diag = 1.41421356;
+  for (let z = 0; z < h; z++) {
+    for (let x = 0; x < w; x++) {
+      const i = z * w + x;
+      if (x) g[i] = Math.min(g[i], g[i - 1] + 1);
+      if (z) g[i] = Math.min(g[i], g[i - w] + 1);
+      if (x && z) g[i] = Math.min(g[i], g[i - w - 1] + diag);
+      if (x < w - 1 && z) g[i] = Math.min(g[i], g[i - w + 1] + diag);
+    }
+  }
+  for (let z = h - 1; z >= 0; z--) {
+    for (let x = w - 1; x >= 0; x--) {
+      const i = z * w + x;
+      if (x < w - 1) g[i] = Math.min(g[i], g[i + 1] + 1);
+      if (z < h - 1) g[i] = Math.min(g[i], g[i + w] + 1);
+      if (x < w - 1 && z < h - 1) g[i] = Math.min(g[i], g[i + w + 1] + diag);
+      if (x && z < h - 1) g[i] = Math.min(g[i], g[i + w - 1] + diag);
+    }
+  }
+  const out = new Float32Array(w * h);
+  const outd = new Float32Array(w * h);
+  for (let i = 0; i < outd.length; i++) outd[i] = isCarved(map.cells[i]) ? 0 : INF;
+  for (let z = 0; z < h; z++) {
+    for (let x = 0; x < w; x++) {
+      const i = z * w + x;
+      if (x) outd[i] = Math.min(outd[i], outd[i - 1] + 1);
+      if (z) outd[i] = Math.min(outd[i], outd[i - w] + 1);
+      if (x && z) outd[i] = Math.min(outd[i], outd[i - w - 1] + diag);
+      if (x < w - 1 && z) outd[i] = Math.min(outd[i], outd[i - w + 1] + diag);
+    }
+  }
+  for (let z = h - 1; z >= 0; z--) {
+    for (let x = w - 1; x >= 0; x--) {
+      const i = z * w + x;
+      if (x < w - 1) outd[i] = Math.min(outd[i], outd[i + 1] + 1);
+      if (z < h - 1) outd[i] = Math.min(outd[i], outd[i + w] + 1);
+      if (x < w - 1 && z < h - 1) outd[i] = Math.min(outd[i], outd[i + w + 1] + diag);
+      if (x && z < h - 1) outd[i] = Math.min(outd[i], outd[i + w - 1] + diag);
+    }
+  }
+  for (let i = 0; i < out.length; i++) {
+    out[i] = isCarved(map.cells[i]) ? -g[i] : outd[i];
+  }
+  return out;
+}
+
+function sampleField(field, w, h, gx, gz) {
+  const x = Math.max(0, Math.min(w - 1.001, gx));
+  const z = Math.max(0, Math.min(h - 1.001, gz));
+  const x0 = Math.floor(x);
+  const z0 = Math.floor(z);
+  const x1 = Math.min(w - 1, x0 + 1);
+  const z1 = Math.min(h - 1, z0 + 1);
+  const tx = x - x0;
+  const tz = z - z0;
+  const a = field[z0 * w + x0];
+  const b = field[z0 * w + x1];
+  const c = field[z1 * w + x0];
+  const d = field[z1 * w + x1];
+  return a * (1 - tx) * (1 - tz) + b * tx * (1 - tz) + c * (1 - tx) * tz + d * tx * tz;
+}
+
+function cellAt(map, gx, gz) {
+  const x = Math.max(0, Math.min(map.w - 1, Math.floor(gx)));
+  const z = Math.max(0, Math.min(map.h - 1, Math.floor(gz)));
+  return map.cells[z * map.w + x];
+}
+
+function roundExtrude(d2, y, hy, R, yScale, xScale) {
+  const xs = d2 * xScale;
+  const ys = (y - hy) * yScale;
+  const qx = xs + R;
+  const qy = Math.abs(ys) - (hy - R);
+  const mx = Math.max(qx, 0);
+  const my = Math.max(qy, 0);
+  return Math.min(Math.max(qx, qy), 0) + Math.hypot(mx, my) - R;
+}
+
+/**
+ * Signed distance: negative = empty (dug), positive = rock.
+ * sdf2 is 2D field in cell units.
+ */
+export function sdf3(x, y, z, map, sdf2) {
+  let dmin = 1e6;
+  const spheres = map.spheres;
+  for (let i = 0; i < spheres.length; i++) {
+    const s = spheres[i];
+    const cy = s.cy != null ? s.cy : s.r * 0.55;
+    let ds = Math.hypot(x - s.x, y - cy, z - s.z) - s.r;
+    ds = Math.max(ds, 0.06 - y);
+    if (ds < dmin) dmin = ds;
+  }
+  const gx = x / CELL;
+  const gz = z / CELL;
+  if (gx < -1 || gz < -1 || gx > map.w + 1 || gz > map.h + 1) return dmin;
+  const d2 = sampleField(sdf2, map.w, map.h, gx, gz) * CELL;
+  const cell = cellAt(map, gx, gz);
+  if (isCarved(cell) || d2 < CELL * 0.7) {
+    const shape = getShape(cell);
+    const H = map.hallH || 4.2;
+    const hy = H * 0.5;
+    let d3;
+    if (shape === SHAPE_FLAT) {
+      d3 = Math.max(d2, Math.abs(y - hy) - hy, 0.05 - y);
+    } else if (shape === SHAPE_OVAL) {
+      const R = hy * 0.64;
+      d3 = roundExtrude(d2, y, hy, R, 1.28, 0.76);
+      d3 += (hash3(x * 1.9, y * 2.2, z * 1.6) - 0.5) * 0.62;
+      d3 = Math.max(d3, 0.05 - y);
+    } else {
+      const R = hy * 0.9;
+      d3 = roundExtrude(d2, y, hy, R, 1, 1);
+      d3 = Math.max(d3, 0.05 - y);
+    }
+    if (d3 < dmin) dmin = d3;
+  }
+  return dmin;
+}
+
+export function isEmptyAt(x, y, z, map, sdf2) {
+  return sdf3(x, y, z, map, sdf2) < 0;
+}
+
+export function floorY(x, z, map, sdf2, ymax) {
+  const top = ymax || Math.max(map.hallH || 4.2, 8);
+  let lastEmpty = false;
+  for (let y = top; y > 0.02; y -= 0.08) {
+    const empty = sdf3(x, y, z, map, sdf2) < 0;
+    if (lastEmpty && !empty) return y + 0.08;
+    lastEmpty = empty;
+  }
+  if (lastEmpty) return 0.12;
+  return -1;
+}
+
+export function firstCarved(map) {
+  for (let z = 0; z < map.h; z++) {
+    for (let x = 0; x < map.w; x++) {
+      if (isCarved(map.cells[idx(map, x, z)])) return cellToWorld(x, z);
+    }
+  }
+  return null;
+}
+
+export function biomeOf(map, x, z) {
+  const gx = x / CELL;
+  const gz = z / CELL;
+  const t = getTex(cellAt(map, gx, gz));
+  return BIOMES[Math.max(0, Math.min(BIOMES.length - 1, t))];
+}
+
+export function countCarved(map) {
+  let n = 0;
+  for (let i = 0; i < map.cells.length; i++) if (isCarved(map.cells[i])) n++;
+  return n;
+}

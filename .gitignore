@@ -2,6 +2,9 @@ node_modules/
 .env
 .DS_Store
 npm-debug.log
-# Large binary — upload to GCS / Cloud Run volume, not git
+# Large binary â€” upload to GCS / Cloud Run volume, not git
 public/downloads/hero-slayer-alpha.zip
+public/games/zoom/saved/
+public/games/zoom/_gen/
+public/games/zoom/_devserver.js
 
