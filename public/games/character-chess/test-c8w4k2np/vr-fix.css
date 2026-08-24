@@ -29,3 +29,7 @@
 button.cc-hide-title-vr {
   display: none !important;
 }
+
+.hand-card:hover,.hand-card.is-held{
+  transform:rotate(0) translateY(-3.4rem) scale(1.129);
+}
