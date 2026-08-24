@@ -292,8 +292,8 @@ function planmorpherHeaders(res) {
     res.setHeader("Permissions-Policy", "xr-spatial-tracking=(self), fullscreen=(self), gamepad=(self), accelerometer=(self), gyroscope=(self), magnetometer=(self)");
     res.setHeader("X-Robots-Tag", "noindex, nofollow");
 }
-app.get(["/games/planmorpher", "/games/planmorpher/"], (req, res) => res.redirect("/planmorpher"));
-app.get(["/planmorpher", "/planmorpher/"], (req, res) => {
+app.get(["/games/planmorpher", "/games/planmorpher/", "/games/planmorph", "/games/planmorph/"], (req, res) => res.redirect("/planmorpher"));
+app.get(["/planmorpher", "/planmorpher/", "/planmorph", "/planmorph/"], (req, res) => {
     planmorpherHeaders(res);
     res.sendFile(path.join(__dirname, "public", "games", "planmorpher", "index.html"));
 });
@@ -315,6 +315,10 @@ function sendPlanetry(req, res) {
 app.get(["/games/planetry", "/games/planetry/"], (req, res) => res.redirect("/planetry"));
 app.get(["/planetary", "/planetary/"], (req, res) => res.redirect("/planetry"));
 app.get(["/planetry", "/planetry/"], sendPlanetry);
+app.get(["/test-q8m2n5kw", "/test-q8m2n5kw/"], (req, res) => {
+    planetryHeaders(res);
+    res.sendFile(path.join(__dirname, "public", "games", "planetry", "test-q8m2n5kw", "index.html"));
+});
 app.use("/planetry", (req, res, next) => {
     planetryHeaders(res);
     next();
