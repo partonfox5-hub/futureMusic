@@ -287,15 +287,23 @@ app.use("/games/fenrest-chess", (req, res, next) => {
     next();
 });
 
+// PLANMORPHER — original VR god-game. Canonical URL is /planmorpher.
+function planmorpherHeaders(res) {
+    res.setHeader("Permissions-Policy", "xr-spatial-tracking=(self), fullscreen=(self), gamepad=(self), accelerometer=(self), gyroscope=(self), magnetometer=(self)");
+    res.setHeader("X-Robots-Tag", "noindex, nofollow");
+}
+app.get(["/games/planmorpher", "/games/planmorpher/"], (req, res) => res.redirect("/planmorpher"));
+app.get(["/planmorpher", "/planmorpher/"], (req, res) => {
+    planmorpherHeaders(res);
+    res.sendFile(path.join(__dirname, "public", "games", "planmorpher", "index.html"));
+});
+
 // PLANETRY — unlisted Quest 3 WebXR orbital RTS. Canonical URL is /planetry.
-// /planmorpher redirects here (the god-game is retired).
 function planetryHeaders(res) {
     res.setHeader("Permissions-Policy", "xr-spatial-tracking=(self), fullscreen=(self), gamepad=(self), accelerometer=(self), gyroscope=(self), magnetometer=(self)");
     res.setHeader("X-Robots-Tag", "noindex, nofollow");
 }
 app.get(["/games/planetry", "/games/planetry/"], (req, res) => res.redirect("/planetry"));
-app.get(["/games/planmorpher", "/games/planmorpher/"], (req, res) => res.redirect("/planetry"));
-app.get(["/planmorpher", "/planmorpher/"], (req, res) => res.redirect("/planetry"));
 app.get(["/planetry", "/planetry/"], (req, res) => {
     planetryHeaders(res);
     res.sendFile(path.join(__dirname, "public", "games", "planetry", "index.html"));
