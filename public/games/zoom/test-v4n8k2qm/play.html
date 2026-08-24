@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0a0908" />
+    <title>ZOOM — VR crawl test</title>
+    <link rel="canonical" href="https://futuremusic.online/zoom" />
+    <link rel="icon" type="image/jpeg" href="/games/zoom/og.jpg" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" />
+    <link rel="stylesheet" href="/games/zoom/test-v4n8k2qm/css/zoom.css?v=vrhud1" />
+    <script>
+      window.ZOOM_ROUTES = { play: "/test-v4n8k2qm", maps: "/zoommaps" };
+    </script>
+  </head>
+  <body>
+    <canvas id="c"></canvas>
+    <div id="hurt"></div>
+    <div class="cross"></div>
+    <div id="hud" hidden>
+      <div id="titlemap">ZOOM</div>
+      <div>HP <span id="hpv">100</span></div>
+      <div class="bar"><i id="hpi"></i></div>
+      <div>JET <span id="fuelv">0</span></div>
+      <div class="bar alt"><i id="fueli"></i></div>
+      <div id="wep">unarmed</div>
+      <div id="ammo"></div>
+      <div>GOLD <span id="goldv">0</span></div>
+      <div id="mode"></div>
+      <div class="tiny">WASD · mouse look · Space jump / double-jump · V dash · E rope / vendor · C crouch · Q skate · F jetpack · R reload · I pack</div>
+      <button type="button" id="hud-vr" hidden>ENTER VR</button>
+    </div>
+    <div id="miniwrap"><canvas id="mini" width="148" height="148"></canvas></div>
+    <div id="hint">Click to look. Left click fires or swings.</div>
+    <div id="msg" hidden></div>
+    <div id="inv" hidden>
+      <div class="panel">
+        <h1>PACK</h1>
+        <p>Click a weapon to equip, or a special item to use.</p>
+        <div id="inv-list"></div>
+        <button type="button" id="inv-close">Close</button>
+      </div>
+    </div>
+    <div id="shop" hidden>
+      <div class="panel">
+        <h1>VENDOR</h1>
+        <p>Gold on hand: <b id="shop-gold">0</b> ◎</p>
+        <p>Weapons, ammo, and instant powerups. Enemies drop coins, bars, rubies, diamonds, and chests.</p>
+        <div id="shop-list"></div>
+        <button type="button" id="shop-close">Close</button>
+      </div>
+    </div>
+    <div id="start">
+      <div class="panel">
+        <h1>ZOOM</h1>
+        <p>
+          Draw a dungeon, then crawl it. Lightsabers, boulders, vending machines, coins from fallen enemies.
+          Space jump / double-jump. V dash (VR: squeeze both triggers at once). E at a vendor to shop.
+          In VR: ENTER VR stays on the HUD inside a level. Right stick turns smoothly. A jumps (double-jump). Hold the left stick in (or push it fully) to skate. Grip to pick up crates, barrels, swords. Y / left menu opens the pack.
+        </p>
+        <p id="vr-note" class="hint">
+          VR needs a headset. On a PC this is desktop mode. Open this page in Meta Quest Browser to ENTER VR.
+        </p>
+        <div class="row">
+          <a class="btn" id="to-maps" href="/zoommaps">Map maker</a>
+          <button type="button" id="go-proc">Random dungeon</button>
+          <button type="button" id="vr-enter">ENTER VR</button>
+          <a class="btn" href="/">Future Music</a>
+        </div>
+        <div class="cards" id="maps"></div>
+      </div>
+    </div>
+    <div id="dead" hidden>
+      <div class="panel">
+        <h1>TAKEN</h1>
+        <p id="dead-reason">The crawl takes you.</p>
+        <div class="row">
+          <button type="button" id="again">Crawl again</button>
+          <button type="button" id="dead-menu">Maps</button>
+        </div>
+      </div>
+    </div>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+        }
+      }
+    </script>
+    <script type="module" src="/games/zoom/test-v4n8k2qm/js/game.js?v=vrhud1"></script>
+  </body>
+</html>

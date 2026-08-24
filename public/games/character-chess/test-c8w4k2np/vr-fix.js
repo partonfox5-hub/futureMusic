@@ -53,21 +53,28 @@ function race(promise, ms, message) {
   return Promise.race([promise, timeout]).finally(() => window.clearTimeout(timer));
 }
 
+function pushGl(buckets, raw) {
+  if (!raw) return;
+  try {
+    if (typeof raw.getState === "function") buckets.push(raw.getState());
+  } catch {}
+  try {
+    if (raw.store && typeof raw.store.getState === "function") buckets.push(raw.store.getState());
+  } catch {}
+  try {
+    if (raw.root && typeof raw.root.getState === "function") buckets.push(raw.root.getState());
+  } catch {}
+  try {
+    if (raw.internal?.store && typeof raw.internal.store.getState === "function") buckets.push(raw.internal.store.getState());
+  } catch {}
+  if (raw.gl) buckets.push(raw);
+}
+
 function getGl() {
   for (const canvas of document.querySelectorAll("canvas")) {
-    const raw = canvas.__r3f;
-    if (!raw) continue;
     const buckets = [];
-    try {
-      if (typeof raw.getState === "function") buckets.push(raw.getState());
-    } catch {}
-    try {
-      if (raw.store && typeof raw.store.getState === "function") buckets.push(raw.store.getState());
-    } catch {}
-    try {
-      if (raw.root && typeof raw.root.getState === "function") buckets.push(raw.root.getState());
-    } catch {}
-    if (raw.gl) buckets.push(raw);
+    pushGl(buckets, canvas.__r3f);
+    pushGl(buckets, canvas.__r3f?.root);
     for (const state of buckets) {
       if (state?.gl?.xr) return state.gl;
     }
@@ -220,6 +227,10 @@ function patchStore(store) {
         return;
       }
 
+      // Grab the already-drawn board renderer BEFORE requesting XR.
+      // Setting vrActive first remounts the canvas and deadlocks "Starting VR…".
+      let gl = getGl();
+
       let sessionPromise;
       try {
         sessionPromise = requestVrSession();
@@ -231,7 +242,6 @@ function patchStore(store) {
       store.setState({
         vrBusy: true,
         vrError: "",
-        vrActive: true,
         field3d: true,
       });
       chip("Put the headset on — starting the board in VR…");
@@ -242,7 +252,29 @@ function patchStore(store) {
           SESSION_MS,
           "The headset did not start VR. Open Creature Chess full-page (not inside the site chrome) and tap Enter VR once."
         );
-        await attachSession(store, session);
+        if (!gl) gl = await waitGl(GL_MS);
+        liveSession = session;
+        session.addEventListener("end", () => {
+          if (liveSession === session) liveSession = null;
+          const cur = store.getState();
+          if (cur.vrActive || cur.vrBusy) resetVr(store, "");
+        });
+        gl.xr.enabled = true;
+        try {
+          gl.xr.setReferenceSpaceType("local-floor");
+        } catch {}
+        try {
+          gl.xr.setFramebufferScaleFactor(1);
+        } catch {}
+        hardenRenderer(gl);
+        try {
+          const ctx = gl.getContext?.();
+          if (ctx?.makeXRCompatible) await ctx.makeXRCompatible();
+        } catch {}
+        await gl.xr.setSession(session);
+        hardenRenderer(gl);
+        store.setState({ vrBusy: false, vrActive: true, field3d: true, vrError: "" });
+        chip("");
       } catch (err) {
         try {
           await liveSession?.end();
