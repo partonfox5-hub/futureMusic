@@ -30,7 +30,7 @@
   </div>
   <iframe
     title="Creature Chess"
-    src="/games/character-chess/<%= typeof sessionId !== 'undefined' && sessionId ? ('?session_id=' + encodeURIComponent(sessionId)) : '' %>"
+    src="/games/character-chess/chess-static.html<%= typeof sessionId !== 'undefined' && sessionId ? ('?session_id=' + encodeURIComponent(sessionId)) : '' %>"
     allow="fullscreen; gamepad; autoplay; payment; xr-spatial-tracking"
   ></iframe>
 </body>
