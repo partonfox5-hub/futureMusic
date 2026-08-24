@@ -297,21 +297,28 @@ app.get(["/planmorpher", "/planmorpher/"], (req, res) => {
     planmorpherHeaders(res);
     res.sendFile(path.join(__dirname, "public", "games", "planmorpher", "index.html"));
 });
-app.get(["/test-q3m8w5nt", "/test-q3m8w5nt/"], (req, res) => {
-    planmorpherHeaders(res);
-    res.sendFile(path.join(__dirname, "public", "games", "planmorpher", "test-q3m8w5nt", "index.html"));
-});
 
 // PLANETRY — unlisted Quest 3 WebXR orbital RTS. Canonical URL is /planetry.
 function planetryHeaders(res) {
     res.setHeader("Permissions-Policy", "xr-spatial-tracking=(self), fullscreen=(self), gamepad=(self), accelerometer=(self), gyroscope=(self), magnetometer=(self)");
     res.setHeader("X-Robots-Tag", "noindex, nofollow");
 }
-app.get(["/games/planetry", "/games/planetry/"], (req, res) => res.redirect("/planetry"));
-app.get(["/planetry", "/planetry/"], (req, res) => {
+function sendPlanetry(req, res) {
     planetryHeaders(res);
-    res.sendFile(path.join(__dirname, "public", "games", "planetry", "index.html"));
-});
+    const fp = path.join(__dirname, "public", "games", "planetry", "index.html");
+    if (!fs.existsSync(fp)) {
+        console.error("[planetry] missing", fp);
+        return res.status(500).send("Planetry is missing on this server.");
+    }
+    res.sendFile(fp);
+}
+app.get(["/games/planetry", "/games/planetry/"], (req, res) => res.redirect("/planetry"));
+app.get(["/planetary", "/planetary/"], (req, res) => res.redirect("/planetry"));
+app.get(["/planetry", "/planetry/"], sendPlanetry);
+app.use("/planetry", (req, res, next) => {
+    planetryHeaders(res);
+    next();
+}, express.static(path.join(__dirname, "public", "games", "planetry")));
 
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -3131,6 +3138,8 @@ try {
 } catch (e) {
     console.error('[lattice] failed to mount:', e.message);
 }
+
+app.get(["/planetry", "/planetry/"], sendPlanetry);
 
 app.use((req, res, next) => res.status(404).render('404', { title: 'Signal Lost' }));
 
