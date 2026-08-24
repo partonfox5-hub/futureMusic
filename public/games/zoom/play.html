@@ -8,7 +8,7 @@
     <link rel="canonical" href="https://futuremusic.online/zoom" />
     <link rel="icon" type="image/jpeg" href="/games/zoom/og.jpg" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" />
-    <link rel="stylesheet" href="/games/zoom/css/zoom.css?v=z7" />
+    <link rel="stylesheet" href="/games/zoom/css/zoom.css?v=vrhud2" />
     <script>
       window.ZOOM_ROUTES = { play: "/zoom", maps: "/zoommaps" };
     </script>
@@ -28,6 +28,7 @@
       <div>GOLD <span id="goldv">0</span></div>
       <div id="mode"></div>
       <div class="tiny">WASD · mouse look · Space jump / double-jump · V dash · E rope / vendor · C crouch · Q skate · F jetpack · R reload · I pack</div>
+      <button type="button" id="hud-vr" hidden>ENTER VR</button>
     </div>
     <div id="miniwrap"><canvas id="mini" width="148" height="148"></canvas></div>
     <div id="hint">Click to look. Left click fires or swings.</div>
@@ -55,6 +56,7 @@
         <p>
           Draw a dungeon, then crawl it. Lightsabers, boulders, vending machines, coins from fallen enemies.
           Space jump / double-jump. V dash (VR: squeeze both triggers at once). E at a vendor to shop.
+          In VR: ENTER VR stays on the HUD inside a level. Right stick turns smoothly. A jumps (double-jump). Hold the left stick in (or push it fully) to skate. Grip to pick up crates, barrels, swords. Y / left menu opens the pack.
         </p>
         <p id="vr-note" class="hint">
           VR needs a headset. On a PC this is desktop mode. Open this page in Meta Quest Browser to ENTER VR.
@@ -86,6 +88,6 @@
         }
       }
     </script>
-    <script type="module" src="/games/zoom/js/game.js?v=z7"></script>
+    <script type="module" src="/games/zoom/js/game.js?v=vrhud2"></script>
   </body>
 </html>

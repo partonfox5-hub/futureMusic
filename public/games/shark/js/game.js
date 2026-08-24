@@ -31,10 +31,12 @@ let xrOn = false;
 let hull = 100;
 let oxygen = 100;
 let sharkHp = SHARK_HITS;
-let sharkState = "patrol";
-let sharkTimer = 14;
+let sharkState = "passive";
+let sharkTimer = 30;
 let sharkFace = 0;
 let retreatT = 0;
+let sharkHitsLog = [];
+let huntStruck = false;
 let msgT = 0;
 let msg = "";
 let repairHold = 0;
@@ -325,6 +327,65 @@ function makeWhaleGeom() {
   return g;
 }
 
+function makeKrakenGeom() {
+  const g = new THREE.Group();
+  const inner = new THREE.Group();
+  g.add(inner);
+  const skin = new THREE.MeshStandardMaterial({
+    color: 0x4a2440,
+    roughness: 0.52,
+    metalness: 0.08,
+    emissive: 0x1a0812,
+  });
+  const mantle = new THREE.Mesh(new THREE.SphereGeometry(3.15, 48, 36), skin);
+  mantle.scale.set(1.12, 1.32, 1.12);
+  inner.add(mantle);
+  const crown = new THREE.Mesh(new THREE.SphereGeometry(1.7, 32, 24), skin);
+  crown.position.y = 2.55;
+  inner.add(crown);
+  const beak = new THREE.Mesh(
+    new THREE.ConeGeometry(0.5, 1.05, 16),
+    new THREE.MeshStandardMaterial({ color: 0xc4a070, roughness: 0.4 })
+  );
+  beak.position.set(0, -0.35, 1.85);
+  beak.rotation.x = Math.PI / 2;
+  inner.add(beak);
+  const eyeMat = new THREE.MeshBasicMaterial({ color: 0xc8ff6a });
+  for (const s of [-1, 1]) {
+    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.28, 16, 12), eyeMat);
+    eye.position.set(s * 1.15, 1.35, 2.15);
+    inner.add(eye);
+  }
+  const tentacles = [];
+  for (let i = 0; i < 8; i++) {
+    const arm = new THREE.Group();
+    const ang = (i / 8) * Math.PI * 2;
+    arm.position.set(Math.cos(ang) * 1.55, -1.55, Math.sin(ang) * 1.55);
+    let parent = arm;
+    const segs = [];
+    for (let s = 0; s < 7; s++) {
+      const r0 = Math.max(0.07, 0.4 - s * 0.048);
+      const r1 = Math.max(0.05, 0.34 - s * 0.048);
+      const seg = new THREE.Mesh(new THREE.CylinderGeometry(r1, r0, 1.52, 12), skin);
+      seg.position.y = s === 0 ? -0.7 : -1.42;
+      parent.add(seg);
+      segs.push(seg);
+      parent = seg;
+    }
+    inner.add(arm);
+    tentacles.push({ arm, segs, ang });
+  }
+  g.userData.tentacles = tentacles;
+  g.userData.kind = "kraken";
+  g.userData.skin = skin;
+  g.userData.state = Math.random() > 0.5 ? "passive" : "stalk";
+  g.userData.timer = 20 + Math.random() * 14;
+  g.userData.grabbing = false;
+  g.userData.grabT = 0;
+  g.scale.setScalar(1.7);
+  return g;
+}
+
 function makeStatue() {
   const g = makeSharkGeom();
   g.scale.setScalar(0.55);
@@ -403,7 +464,7 @@ scene.add(sub);
 
 const cockpit = new THREE.Group();
 sub.add(cockpit);
-cam.position.set(0, 0.18, 0.04);
+cam.position.set(0, 0.16, -0.1);
 cockpit.add(cam);
 
 const evaDummy = new THREE.Group();
@@ -517,15 +578,14 @@ function paintVrPlaque(ctx, w, h) {
   ctx.fillStyle = "#241c14";
   ctx.font = "28px sans-serif";
   const lines = [
-    "PUT A HAND ON THE WHEEL to take the helm.",
-    "Turn the wheel to steer.",
-    "While holding: left stick also steers",
-    "  and throttles. Right stick: depth.",
+    "HOLD TRIGGER on the wheel to take the helm.",
+    "Turn the wheel to steer — only while gripping.",
+    "Left stick: steer (X) and depth (Y).",
+    "Right stick: throttle. Let go to coast.",
     "PUSH the red button to fire torpedoes.",
     "YELLOW lever — hatch (exit / re-enter).",
     "OUTSIDE: hold TRIGGER near the hull",
     "  to weld with the blowtorch.",
-    "Let go of the wheel to coast.",
   ];
   lines.forEach((t, i) => ctx.fillText(t, 44, 118 + i * 40));
 }
@@ -666,7 +726,8 @@ function paintVrGauges() {
     px *= k;
     py *= k;
   }
-  ctx.fillStyle = sharkState === "attack" ? "#e05040" : sharkState === "hunt" ? "#e8a040" : "#e8d27a";
+  ctx.fillStyle =
+    sharkState === "hunt" ? "#e05040" : sharkState === "stalk" ? "#e8a040" : sharkState === "flee" ? "#6a88aa" : "#e8d27a";
   ctx.beginPath();
   ctx.arc(cx + px, cy + py, 6, 0, Math.PI * 2);
   ctx.fill();
@@ -845,6 +906,13 @@ const whales = [makeWhaleGeom(), makeWhaleGeom(), makeWhaleGeom()];
 whales.forEach((w, i) => {
   w.position.set((i - 1) * 96, 16 + i * 7, -80 - i * 44);
   scene.add(w);
+});
+
+const krakens = [makeKrakenGeom(), makeKrakenGeom()];
+krakens.forEach((k, i) => {
+  const ang = 1.1 + i * 2.2;
+  k.position.set(Math.cos(ang) * 88, 14 + i * 6, Math.sin(ang) * 96);
+  scene.add(k);
 });
 
 const torpMatShared = new THREE.MeshStandardMaterial({
@@ -1452,8 +1520,45 @@ function damage(n) {
 function setSharkMood() {
   if (!shark.userData.skin) return;
   const em =
-    sharkState === "attack" ? 0x4a1808 : sharkState === "hunt" ? 0x2a1408 : 0x0a1014;
+    sharkState === "hunt"
+      ? 0x4a1808
+      : sharkState === "stalk"
+        ? 0x2a1408
+        : sharkState === "flee"
+          ? 0x081018
+          : 0x0a1014;
   shark.userData.skin.emissive.setHex(em);
+}
+
+function pruneSharkHits() {
+  const now = performance.now() * 0.001;
+  sharkHitsLog = sharkHitsLog.filter((t) => now - t < 60);
+}
+function noteSharkHit() {
+  sharkHitsLog.push(performance.now() * 0.001);
+  pruneSharkHits();
+  if (sharkHitsLog.length >= 3 && sharkState !== "flee") {
+    setSharkState("flee");
+    setMsg("IT BREAKS OFF — FLEEING", 2.6);
+    sfx(70, 0.28, "sawtooth", 0.08);
+  }
+}
+function rollSharkState(exclude) {
+  const pool = ["stalk", "hunt", "passive"].filter((s) => s !== exclude);
+  setSharkState(pool[(Math.random() * pool.length) | 0]);
+}
+function setSharkState(s) {
+  sharkState = s;
+  huntStruck = false;
+  if (s === "hunt") sharkTimer = 999;
+  else sharkTimer = 30;
+  if (s === "flee") sharkFace = (sharkFace + 1 + ((Math.random() * 2) | 0)) & 3;
+  setSharkMood();
+  if (s === "hunt") {
+    setMsg("SONAR CONTACT — HUNTING", 2.4);
+    sfx(880, 0.08, "sine", 0.05);
+  } else if (s === "stalk") setMsg("SONAR — IT IS WATCHING", 2);
+  else if (s === "passive") setMsg("SONAR — PASSIVE CONTACT", 1.6);
 }
 
 function wallPoint(face, t, y) {
@@ -1474,82 +1579,175 @@ function wallPoint(face, t, y) {
   }
 }
 
+function sharkSeesPlayer(prey, range) {
+  const d = shark.position.distanceTo(prey);
+  if (d > range) return false;
+  tmp2.copy(prey).sub(shark.position);
+  tmp2.y = 0;
+  if (tmp2.lengthSq() < 0.01) return true;
+  tmp2.normalize();
+  shark.getWorldDirection(tmp3);
+  tmp3.negate();
+  return tmp2.dot(tmp3) > 0.15;
+}
+
+function sharkBite(prey) {
+  if (mode === "eva") {
+    burst(prey, 16);
+    die("Taken in the open.");
+    return true;
+  }
+  burst(sub.position, 16);
+  damage(34);
+  huntStruck = true;
+  return false;
+}
+
 function sharkAi(dt) {
   const prey = mode === "eva" ? evaDummy.position : sub.position;
   cellHelper.position.copy(sub.position);
   cellWalls.position.copy(sub.position);
+  pruneSharkHits();
   sharkTimer -= dt;
   if (retreatT > 0) {
     retreatT -= dt;
-    sharkState = "retreat";
-    if (retreatT <= 0) {
-      sharkState = "patrol";
-      sharkHp = SHARK_HITS;
-      sharkTimer = 10 + Math.random() * 8;
-      setSharkMood();
-    }
+    if (sharkState !== "flee") setSharkState("flee");
+    if (retreatT <= 0) retreatT = 0;
   }
-  if (sharkState === "patrol" && sharkTimer < 0) {
-    sharkState = Math.random() > 0.4 ? "hunt" : "patrol";
-    sharkTimer = sharkState === "hunt" ? 7 + Math.random() * 5 : 9 + Math.random() * 10;
-    if (sharkState === "hunt") {
-      setMsg("SONAR CONTACT — IT HAS YOUR SCENT", 2.6);
-      sfx(880, 0.08, "sine", 0.05);
-    }
-    if (Math.random() > 0.5) sharkFace = (sharkFace + 1 + (Math.random() * 2) | 0) & 3;
-    setSharkMood();
+  if (sharkState === "hunt" && huntStruck) {
+    rollSharkState("hunt");
+  } else if ((sharkState === "passive" || sharkState === "stalk" || sharkState === "flee") && sharkTimer <= 0) {
+    rollSharkState(sharkState);
   }
 
   const t = performance.now() * 0.00018;
   const y = clamp(sub.position.y + Math.sin(t * 0.7) * 7, FLOOR + 8, CEIL - 8);
+  const distPrey = shark.position.distanceTo(prey);
   let want;
-  if (sharkState === "patrol" || sharkState === "retreat") {
-    want = wallPoint(sharkFace, t, y);
+  let lunging = false;
+  if (sharkState === "flee") {
+    tmp.copy(shark.position).sub(prey);
+    if (tmp.lengthSq() < 0.2) tmp.set(Math.cos(t * 8), 0, Math.sin(t * 8));
+    tmp.normalize();
+    want = tmp2.copy(shark.position).addScaledVector(tmp, 90);
+    want.y = clamp(y + 6, FLOOR + 10, CEIL - 8);
+  } else if (sharkState === "stalk") {
+    const orbit = 52 + Math.sin(t * 2.2) * 8;
+    const ang = t * 1.15 + sharkFace;
+    want = tmp.set(prey.x + Math.cos(ang) * orbit, prey.y + 4, prey.z + Math.sin(ang) * orbit);
   } else if (sharkState === "hunt") {
     huntPing -= dt;
     if (huntPing <= 0) {
       huntPing = 1.6;
       sfx(740, 0.06, "sine", 0.04);
     }
-    want = wallPoint(sharkFace, t * 1.4, prey.y + 3);
-    if (shark.position.distanceTo(prey) < 22) {
-      sharkState = "attack";
-      setSharkMood();
-      setMsg(mode === "eva" ? "SHARK INBOUND — GET INSIDE" : "SHARK INBOUND — FIRE", 2.2);
-      shake = 0.2;
-    }
-  } else {
+    lunging = distPrey < 28;
     want = tmp.copy(prey);
     want.y += 0.4;
-    if (shark.position.distanceTo(prey) < 11) {
-      if (mode === "eva") {
-        burst(prey, 16);
-        die("Taken in the open.");
-        return;
+    if (distPrey < 22 && distPrey > 11) {
+      setMsg(mode === "eva" ? "SHARK INBOUND — GET INSIDE" : "SHARK INBOUND — FIRE", 2.2);
+      shake = Math.max(shake, 0.18);
+    }
+    if (distPrey < 11) {
+      if (sharkBite(prey)) return;
+    }
+  } else {
+    want = wallPoint(sharkFace, t, y);
+    if (sharkSeesPlayer(prey, 34)) {
+      lunging = true;
+      want = tmp.copy(prey);
+      want.y += 0.3;
+      if (distPrey < 11) {
+        if (sharkBite(prey)) return;
+        if (Math.random() > 0.4) sharkFace = (sharkFace + 1) & 3;
       }
-      burst(sub.position, 16);
-      damage(34);
-      sharkState = "patrol";
-      sharkTimer = 11;
-      sharkFace = (sharkFace + 1) & 3;
-      setSharkMood();
     }
   }
 
   tmp2.copy(want).sub(shark.position);
   const dist = tmp2.length();
-  const spd = (sharkState === "attack" ? 24 : sharkState === "hunt" ? 13 : sharkState === "retreat" ? 16 : 8.5) * 0.85;
+  const spd =
+    (sharkState === "hunt" && lunging
+      ? 24
+      : sharkState === "hunt"
+        ? 15
+        : sharkState === "flee"
+          ? 18
+          : sharkState === "stalk"
+            ? 9
+            : lunging
+              ? 16
+              : 8.5) * 0.85;
   if (dist > 0.08) {
     tmp3.copy(shark.position).add(tmp2);
     shark.lookAt(tmp3);
     shark.position.add(tmp2.multiplyScalar(Math.min(1, (spd * dt) / dist)));
   }
   const nowt = performance.now() * 0.001;
-  const wag = Math.sin(nowt * 8) * (sharkState === "attack" ? 0.55 : 0.32);
+  const hot = sharkState === "hunt" || lunging;
+  const wag = Math.sin(nowt * 8) * (hot ? 0.55 : 0.32);
   if (shark.userData.tail) shark.userData.tail.rotation.y = wag;
-  if (shark.userData.jaw) shark.userData.jaw.rotation.x = sharkState === "attack" ? 0.5 : 0.08;
+  if (shark.userData.jaw) shark.userData.jaw.rotation.x = hot && distPrey < 16 ? 0.5 : 0.08;
   if (shark.userData.pec) shark.userData.pec.rotation.z = Math.sin(nowt * 4.1) * 0.16;
-  tickSwim(shark, nowt, sharkState === "attack" ? 1.55 : sharkState === "hunt" ? 1.2 : 1);
+  tickSwim(shark, nowt, hot ? 1.45 : sharkState === "flee" ? 1.3 : 1);
+}
+
+function krakenAi(dt) {
+  const prey = mode === "eva" ? evaDummy.position : sub.position;
+  const nowt = performance.now() * 0.001;
+  krakens.forEach((k, i) => {
+    k.userData.timer = (k.userData.timer || 30) - dt;
+    if (!k.userData.grabbing && k.userData.timer <= 0) {
+      k.userData.state = k.userData.state === "stalk" ? "passive" : Math.random() > 0.45 ? "stalk" : "passive";
+      k.userData.timer = 30;
+    }
+    const tents = k.userData.tentacles || [];
+    const grabPose = k.userData.grabbing;
+    tents.forEach((arm, ai) => {
+      arm.arm.rotation.x = (grabPose ? 1.05 : 0.42) + Math.sin(nowt * (grabPose ? 3.2 : 1.4) + ai) * (grabPose ? 0.22 : 0.38);
+      arm.arm.rotation.z = Math.sin(nowt * 0.9 + ai * 0.7) * 0.25;
+      arm.segs.forEach((seg, s) => {
+        seg.rotation.x = (grabPose ? 0.38 : 0.12) + Math.sin(nowt * 2.2 + s + ai) * (grabPose ? 0.28 : 0.16);
+        seg.rotation.z = Math.sin(nowt * 1.6 + s * 0.4) * 0.14;
+      });
+    });
+    const reach = 16;
+    const dist = k.position.distanceTo(prey);
+    if (k.userData.grabbing) {
+      k.userData.grabT -= dt;
+      tmp.copy(k.position);
+      tmp.y = THREE.MathUtils.damp(k.position.y, prey.y + 1.2, 2.2, dt);
+      k.position.y = tmp.y;
+      if (k.userData.grabT <= 0) {
+        k.userData.grabbing = false;
+        k.userData.timer = 8 + Math.random() * 10;
+        setMsg("THE ARMS SLACK", 1.8);
+      } else if (Math.floor(k.userData.grabT * 2) !== Math.floor((k.userData.grabT + dt) * 2)) {
+        setMsg("HELD " + Math.ceil(k.userData.grabT) + "s", 0.35);
+      }
+      return;
+    }
+    const t = nowt * 0.09 + i * 2.4;
+    let orbit;
+    if (k.userData.state === "stalk") {
+      orbit = 58 + Math.sin(t) * 8;
+      tmp.set(prey.x + Math.cos(t * 0.7 + i) * orbit, 16 + Math.sin(t * 1.1) * 6, prey.z + Math.sin(t * 0.7 + i) * orbit);
+    } else {
+      orbit = 92 + i * 28;
+      tmp.set(sub.position.x + Math.cos(t) * orbit, 12 + Math.sin(t * 1.3) * 8, sub.position.z + Math.sin(t * 0.8) * orbit);
+    }
+    k.position.lerp(tmp, Math.min(1, 0.18 * dt));
+    tmp2.copy(k.userData.state === "stalk" ? prey : tmp).add(new THREE.Vector3(Math.cos(t + 0.4), 0, Math.sin(t + 0.4)));
+    k.lookAt(tmp2);
+    if (dist < reach) {
+      k.userData.grabbing = true;
+      k.userData.grabT = 2.4 + Math.random() * 7.5;
+      damage(22);
+      shake = 0.45;
+      sfx(70, 0.4, "sawtooth", 0.1);
+      setMsg("KRAKEN HAS THE HULL — " + k.userData.grabT.toFixed(0) + "s", 2.4);
+    }
+  });
 }
 
 function whaleAi(dt) {
@@ -1582,19 +1780,10 @@ function updateTorps(dt) {
       t.visible = false;
       bubbleBurst(t.position, 10);
       hit = true;
-      sharkHp -= 1;
+      sharkHp = Math.max(0, sharkHp - 1);
+      noteSharkHit();
       sfx(90, 0.2, "triangle", 0.08);
-      setMsg("HIT " + sharkHp, 1.1);
-      if (sharkHp <= 0) {
-        sharkState = "retreat";
-        retreatT = 26 + Math.random() * 18;
-        sharkHp = SHARK_HITS;
-        setSharkMood();
-        setMsg("IT TURNS AWAY… FOR NOW", 3);
-      } else if (sharkState === "attack") {
-        sharkState = "hunt";
-        setSharkMood();
-      }
+      setMsg("HIT " + sharkHitsLog.length + " / 3 IN 60s", 1.1);
     }
     if (!hit) {
       for (let w = 0; w < whales.length; w++) {
@@ -1718,11 +1907,15 @@ function drawMap() {
   g.lineTo(-5, 6);
   g.fill();
   g.restore();
-  const blips = [shark.position, ...whales.map((w) => w.position)];
-  g.fillStyle = "#e8d27a";
-  blips.forEach((p) => {
-    const dx = (p.x - sub.position.x) * scale;
-    const dz = (p.z - sub.position.z) * scale;
+  const blips = [
+    { p: shark.position, c: sharkState === "hunt" ? "#e05040" : "#e8d27a" },
+    ...whales.map((w) => ({ p: w.position, c: "#7ec8e8" })),
+    ...krakens.map((k) => ({ p: k.position, c: "#e070a0" })),
+  ];
+  blips.forEach((b) => {
+    g.fillStyle = b.c;
+    const dx = (b.p.x - sub.position.x) * scale;
+    const dz = (b.p.z - sub.position.z) * scale;
     if (dx * dx + dz * dz > 76 * 76) return;
     g.beginPath();
     g.arc(84 + dx, 84 + dz, 4, 0, Math.PI * 2);
@@ -1742,7 +1935,8 @@ function hud() {
   const fb = document.getElementById("fuelb");
   if (fb) fb.className = "bar" + (fuel < 25 ? " bad" : fuel < 50 ? " warn" : "");
   document.getElementById("mode").textContent = mode === "pilot" ? "PILOT" : "EVA";
-  document.getElementById("sstat").textContent = sharkState.toUpperCase();
+  document.getElementById("sstat").textContent =
+    sharkState === "stalk" ? "STALKING" : sharkState === "passive" ? "PASSIVE" : sharkState.toUpperCase();
   document.getElementById("msg").textContent = msgT > 0 ? msg : "";
   const rw = document.getElementById("repair-wrap");
   if (rw) {
@@ -1812,7 +2006,7 @@ function syncXrSeat() {
   if (!xrOn || !xrBaseRef || !renderer.xr.isPresenting) return;
   const seat = mode === "pilot" ? cockpit : evaDummy;
   seat.updateMatrixWorld(true);
-  xrSeatPos.set(0, mode === "pilot" ? 0.12 : 0, mode === "pilot" ? 0.02 : 0);
+  xrSeatPos.set(0, mode === "pilot" ? 0.1 : 0, mode === "pilot" ? -0.14 : 0);
   seat.localToWorld(xrSeatPos);
   seat.getWorldQuaternion(xrSeatQuat);
   xrInvQ.copy(xrSeatQuat).invert();
@@ -1876,7 +2070,7 @@ function enterPilot() {
   mode = "pilot";
   desktopCam(cockpit);
   if (!xrOn) {
-    cam.position.set(0, 0.18, 0.04);
+    cam.position.set(0, 0.16, -0.1);
     cam.rotation.set(0, 0, 0);
   }
   lookPitch = 0;
@@ -1977,11 +2171,11 @@ function readXrMove(dt, move) {
     const anyNear = !!nearWorld(wheel, 0.42);
     paintHelmHeld(anyNear || helmHeld);
     for (const h of helmHands) {
-      const squeezing = h.squeeze || h.padSqueeze || h.padTrigger;
+      const gripping = h.squeeze || h.padSqueeze || h.padTrigger;
       const reach = helmReach(h, h.grabbing);
-      if (reach.near) {
+      if (reach.near && gripping) {
         h.grabbing = true;
-      } else if (h.grabbing && squeezing && reach.dist < 0.85) {
+      } else if (h.grabbing && gripping && reach.dist < 0.85) {
         h.grabbing = true;
       } else {
         h.grabbing = false;
@@ -2002,7 +2196,6 @@ function readXrMove(dt, move) {
         h.lastZ = reach.z;
       }
     }
-    if (!holding && anyNear) holding = true;
     helmHeld = holding;
     xrGrab = holding ? wheel : null;
     paintHelmHeld(holding);
@@ -2018,7 +2211,7 @@ function readXrMove(dt, move) {
         yaw += d * 1.45;
         wheelSpin = wrapPi(wheelSpin + d);
       }
-      if (!wasHeld) setMsg("HELM IN HAND — TURN TO STEER", 2.2);
+      if (!wasHeld) setMsg("HELM IN HAND — HOLD TRIGGER TO STEER", 2.2);
       if (pullN > 0) {
         const pz = (pull / pullN) / Math.max(dt, 0.001);
         if (Math.abs(pz) > 0.35) move.az += clamp(-pz * 0.35, -1, 1);
@@ -2048,12 +2241,12 @@ function readXrMove(dt, move) {
         }
       }
       const dead = 0.16;
-      if (Math.abs(sy) > dead) move.az += clamp(sy, -1, 1);
+      if (Math.abs(sy) > dead) move.ay -= clamp(sy, -1, 1);
       if (Math.abs(sx) > dead) {
         yaw += -sx * 2.4 * dt;
         wheelSpin = wrapPi(wheelSpin - sx * 1.8 * dt);
       }
-      if (haveRight && Math.abs(rsy) > dead) move.ay -= clamp(rsy, -1, 1);
+      if (haveRight && Math.abs(rsy) > dead) move.az += clamp(rsy, -1, 1);
       wheel.rotation.z = wheelSpin;
       wheel.rotation.x = THREE.MathUtils.damp(wheel.rotation.x, 0, 8, dt);
     } else {
@@ -2153,9 +2346,9 @@ function step(dt) {
       if (shake > 0) {
         shake = Math.max(0, shake - dt);
         cam.position.x = (Math.random() - 0.5) * shake * 0.12;
-        cam.position.y = 0.18 + (Math.random() - 0.5) * shake * 0.08;
+        cam.position.y = 0.16 + (Math.random() - 0.5) * shake * 0.08;
       } else {
-        cam.position.set(0, 0.18, 0.04);
+        cam.position.set(0, 0.16, -0.1);
       }
     } else if (shake > 0) shake = Math.max(0, shake - dt);
   } else {
@@ -2187,6 +2380,7 @@ function step(dt) {
   msgT = Math.max(0, msgT - dt);
   sharkAi(dt);
   whaleAi(dt);
+  krakenAi(dt);
   updateTorps(dt);
   updatePickups();
   updateFx(dt);
@@ -2286,7 +2480,7 @@ renderer.xr.addEventListener("sessionstart", () => {
     }
   }
   kickRadio();
-  setMsg("TOUCH THE WHEEL TO STEER", 3.2);
+  setMsg("HOLD TRIGGER ON THE WHEEL TO STEER", 3.2);
 });
 renderer.xr.addEventListener("sessionend", () => {
   xrOn = false;
@@ -2311,7 +2505,7 @@ renderer.xr.addEventListener("sessionend", () => {
     cam.position.set(0, 0, 0);
   } else {
     cockpit.add(cam);
-    cam.position.set(0, 0.18, 0.04);
+    cam.position.set(0, 0.16, -0.1);
   }
 });
 
@@ -2341,8 +2535,9 @@ function resetGame() {
   torpAmmo = 8;
   bodyVel.set(0, 0, 0);
   sharkHp = SHARK_HITS;
-  sharkState = "patrol";
-  sharkTimer = 14;
+  sharkHitsLog = [];
+  huntStruck = false;
+  setSharkState("passive");
   retreatT = 0;
   shake = 0;
   if (mode === "eva") enterPilot();
@@ -2353,6 +2548,14 @@ function resetGame() {
   lookPitch = 0.08;
   crack.visible = false;
   shark.position.set(CELL * 0.92, 22, 0);
+  krakens.forEach((k, i) => {
+    const ang = 1.1 + i * 2.2;
+    k.position.set(Math.cos(ang) * 88, 14 + i * 6, Math.sin(ang) * 96);
+    k.userData.grabbing = false;
+    k.userData.grabT = 0;
+    k.userData.state = Math.random() > 0.5 ? "passive" : "stalk";
+    k.userData.timer = 20 + Math.random() * 14;
+  });
   setSharkMood();
   document.getElementById("dead").hidden = true;
   running = true;

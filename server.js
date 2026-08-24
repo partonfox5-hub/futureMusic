@@ -248,10 +248,7 @@ app.get(["/test-b7k2n9qx", "/test-b7k2n9qx/"], (req, res) => {
     sharkHeaders(res);
     res.sendFile(path.join(__dirname, "public", "games", "shark", "test-b7k2n9qx", "index.html"));
 });
-app.get(["/test-h8w3k9nq", "/test-h8w3k9nq/"], (req, res) => {
-    sharkHeaders(res);
-    res.sendFile(path.join(__dirname, "public", "games", "shark", "test-h8w3k9nq", "index.html"));
-});
+app.get(["/test-h8w3k9nq", "/test-h8w3k9nq/"], (req, res) => res.redirect(301, "/shark"));
 
 // FENREST — unlisted Quest 3 WebXR village. Canonical URL is /fenrest.
 // Not linked from homepage / projects / nav. Register before static so
@@ -309,10 +306,7 @@ app.get(["/planmorpher-archive", "/planmorpher-archive/"], (req, res) => {
     res.sendFile(path.join(__dirname, "public", "games", "planmorpher", "archive", "index.html"));
 });
 app.get(["/test-m4p8k2nw", "/test-m4p8k2nw/"], (req, res) => res.redirect(301, "/planmorpher"));
-app.get(["/test-p9k2w7nm", "/test-p9k2w7nm/"], (req, res) => {
-    planmorpherHeaders(res);
-    res.sendFile(path.join(__dirname, "public", "games", "planmorpher", "test-p9k2w7nm", "index.html"));
-});
+app.get(["/test-p9k2w7nm", "/test-p9k2w7nm/"], (req, res) => res.redirect(301, "/planmorpher"));
 
 // PLANETRY — unlisted Quest 3 WebXR orbital RTS. Canonical URL is /planetry.
 function planetryHeaders(res) {
@@ -355,10 +349,7 @@ app.get(["/zoommaps", "/zoommaps/", "/zoom/maps", "/zoom/maps/"], (req, res) => 
 });
 app.get(["/test-w3n9k7qm", "/test-w3n9k7qm/"], (req, res) => res.redirect(301, "/zoom"));
 app.get(["/test-w3n9k7qm-maps", "/test-w3n9k7qm-maps/"], (req, res) => res.redirect(301, "/zoommaps"));
-app.get(["/test-v4n8k2qm", "/test-v4n8k2qm/"], (req, res) => {
-    zoomHeaders(res);
-    res.sendFile(path.join(__dirname, "public", "games", "zoom", "test-v4n8k2qm", "play.html"));
-});
+app.get(["/test-v4n8k2qm", "/test-v4n8k2qm/"], (req, res) => res.redirect(301, "/zoom"));
 try {
     require("./lib/zoom").mount(app, { storage, bucketName });
     console.log("[zoom] maps api mounted");

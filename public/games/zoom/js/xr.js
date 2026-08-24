@@ -1,4 +1,4 @@
-/** WebXR hands: grip pickup, trigger fire/jetpack, A/X reload, stick-click skate. */
+/** WebXR hands: grip pickup, trigger fire/jetpack, A jump, Y/menu pack, stick-click skate. */
 import * as THREE from "three";
 import { XRControllerModelFactory } from "three/addons/webxr/XRControllerModelFactory.js";
 
@@ -21,6 +21,7 @@ export function attachXr(renderer, scene, onSession) {
       renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 1.5));
     } catch {}
     if (typeof onSession === "function") onSession(false);
+    syncVrButtons(false);
   });
   const factory = new XRControllerModelFactory();
   const hands = [];
@@ -30,10 +31,16 @@ export function attachXr(renderer, scene, onSession) {
     scene.add(grip);
     const con = renderer.xr.getController(i);
     scene.add(con);
+    const beam = new THREE.Line(
+      new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, -1.6)]),
+      new THREE.LineBasicMaterial({ color: 0xe8dcc0, transparent: true, opacity: 0.35 }),
+    );
+    con.add(beam);
     hands.push({
       i,
       grip,
       con,
+      beam,
       held: null,
       squeeze: false,
       squeezePrev: false,
@@ -41,8 +48,12 @@ export function attachXr(renderer, scene, onSession) {
       triggerPrev: false,
       triggerValue: 0,
       stick: false,
-      ax: false,
-      axPrev: false,
+      aBtn: false,
+      aPrev: false,
+      bBtn: false,
+      bPrev: false,
+      menuBtn: false,
+      menuPrev: false,
       axes: [0, 0],
       handed: i === 0 ? "left" : "right",
       pos: new THREE.Vector3(),
@@ -62,13 +73,45 @@ export function xrSupported() {
   return !!(navigator.xr && navigator.xr.isSessionSupported);
 }
 
+function vrButtons() {
+  return [document.getElementById("vr-enter"), document.getElementById("hud-vr")].filter(Boolean);
+}
+
+function syncVrButtons(presenting) {
+  for (const btn of vrButtons()) {
+    btn.disabled = false;
+    btn.textContent = presenting ? "EXIT VR" : "ENTER VR";
+  }
+}
+
+export async function startVr(renderer) {
+  const gl = renderer.getContext();
+  if (gl && gl.makeXRCompatible) await gl.makeXRCompatible();
+  renderer.xr.enabled = true;
+  try {
+    renderer.xr.setReferenceSpaceType("local-floor");
+  } catch {}
+  let session;
+  try {
+    session = await navigator.xr.requestSession("immersive-vr", { optionalFeatures: ["local-floor"] });
+  } catch {
+    session = await navigator.xr.requestSession("immersive-vr");
+  }
+  await renderer.xr.setSession(session);
+  session.addEventListener("end", () => syncVrButtons(false));
+  syncVrButtons(true);
+  return session;
+}
+
 export function wireVrButton(renderer) {
-  const btn = document.getElementById("vr-enter");
   const note = document.getElementById("vr-note");
-  if (!btn) return;
+  const btns = vrButtons();
+  if (!btns.length) return;
   const unsupported = () => {
-    btn.disabled = true;
-    btn.textContent = "VR: headset required";
+    for (const btn of btns) {
+      btn.disabled = true;
+      btn.textContent = "VR: headset required";
+    }
     if (note) {
       note.hidden = false;
       note.textContent = "On a PC this is desktop mode. Open this page in Meta Quest Browser (in the headset) to enter VR.";
@@ -83,36 +126,29 @@ export function wireVrButton(renderer) {
       unsupported();
       return;
     }
-    btn.disabled = false;
-    btn.textContent = "ENTER VR";
-    if (note) note.hidden = true;
-    btn.onclick = async () => {
-      btn.disabled = true;
-      try {
-        const gl = renderer.getContext();
-        if (gl && gl.makeXRCompatible) await gl.makeXRCompatible();
-        renderer.xr.enabled = true;
-        try {
-          renderer.xr.setReferenceSpaceType("local-floor");
-        } catch {}
-        let session;
-        try {
-          session = await navigator.xr.requestSession("immersive-vr", { optionalFeatures: ["local-floor"] });
-        } catch {
-          session = await navigator.xr.requestSession("immersive-vr");
+    for (const btn of btns) {
+      btn.disabled = false;
+      btn.textContent = renderer.xr.isPresenting ? "EXIT VR" : "ENTER VR";
+      btn.onclick = async () => {
+        if (renderer.xr.isPresenting) {
+          try {
+            await renderer.xr.getSession()?.end();
+          } catch {}
+          return;
         }
-        await renderer.xr.setSession(session);
-        session.addEventListener("end", () => {
+        btn.disabled = true;
+        try {
+          await startVr(renderer);
+        } catch (err) {
           btn.disabled = false;
-        });
-      } catch (err) {
-        btn.disabled = false;
-        if (note) {
-          note.hidden = false;
-          note.textContent = "Could not start VR: " + (err && err.message ? err.message : "try Meta Quest Browser");
+          if (note) {
+            note.hidden = false;
+            note.textContent = "Could not start VR: " + (err && err.message ? err.message : "try Meta Quest Browser");
+          }
         }
-      }
-    };
+      };
+    }
+    if (note) note.hidden = true;
   }).catch(unsupported);
 }
 
@@ -123,17 +159,21 @@ export function tickXr(renderer, hands, dt) {
     for (const src of session.inputSources) {
       const h = hands.find((x) => x.handed === src.handedness) || (src.handedness === "left" ? hands[0] : hands[1]);
       const gp = src.gamepad;
-      if (!gp) continue;
+      if (!gp || !h) continue;
       h.triggerPrev = h.trigger;
       h.squeezePrev = h.squeeze;
-      h.axPrev = h.ax;
+      h.aPrev = h.aBtn;
+      h.bPrev = h.bBtn;
+      h.menuPrev = h.menuBtn;
       h.triggerValue = gp.buttons[0] ? gp.buttons[0].value : 0;
       const trig = !!(gp.buttons[0] && gp.buttons[0].pressed);
       if (trig && !h.trigger) h._trigAt = performance.now();
       h.trigger = trig;
       h.squeeze = !!(gp.buttons[1] && gp.buttons[1].pressed);
       h.stick = !!(gp.buttons[3] && gp.buttons[3].pressed);
-      h.ax = !!(gp.buttons[4] && gp.buttons[4].pressed) || !!(gp.buttons[5] && gp.buttons[5].pressed);
+      h.aBtn = !!(gp.buttons[4] && gp.buttons[4].pressed);
+      h.bBtn = !!(gp.buttons[5] && gp.buttons[5].pressed);
+      h.menuBtn = !!(gp.buttons[2] && gp.buttons[2].pressed);
       const ax = gp.axes || [];
       h.axes = [ax[2] != null ? ax[2] : ax[0] || 0, ax[3] != null ? ax[3] : ax[1] || 0];
     }
@@ -151,15 +191,21 @@ export function tickXr(renderer, hands, dt) {
     const dtTrig = Math.abs((left._trigAt || 0) - (right._trigAt || 0));
     if (dtTrig < 140 && (!left.triggerPrev || !right.triggerPrev)) dash = true;
   }
+  const lx = left ? left.axes[0] : 0;
+  const ly = left ? left.axes[1] : 0;
+  const mag = Math.hypot(lx, ly);
   return {
     on,
     left,
     right,
     dash,
-    skate: !!(left && left.stick),
+    skate: !!(left && (left.stick || mag > 0.88)),
     jet: !!(left && left.triggerValue > 0.28) && !(right && right.trigger),
     lookX: right ? right.axes[0] : 0,
     moveX: left ? left.axes[0] : 0,
     moveY: left ? left.axes[1] : 0,
+    jump: !!(right && right.aBtn && !right.aPrev),
+    menu: !!(left && ((left.menuBtn && !left.menuPrev) || (left.bBtn && !left.bPrev))),
+    reload: !!(right && right.bBtn && !right.bPrev),
   };
 }

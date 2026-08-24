@@ -136,6 +136,35 @@ export function makeProp(kind, scale) {
   }
   g.scale.setScalar(s);
   g.userData.kind = kind;
+  const PHYS = {
+    crate: { mass: 6, r: 0.42, h: 0.7 },
+    barrel: { mass: 7, r: 0.36, h: 0.82 },
+    chest: { mass: 10, r: 0.48, h: 0.55 },
+    table: { mass: 14, r: 0.62, h: 0.8 },
+    chair: { mass: 4, r: 0.28, h: 0.9 },
+    coffin: { mass: 16, r: 0.55, h: 0.55 },
+    cage: { mass: 11, r: 0.5, h: 1.5 },
+    anvil: { mass: 22, r: 0.4, h: 0.55 },
+    bones: { mass: 3, r: 0.28, h: 0.4 },
+    bookshelf: { mass: 18, r: 0.55, h: 1.8 },
+    campfire: { mass: 5, r: 0.4, h: 0.4 },
+    mushroom: { mass: 2, r: 0.22, h: 0.5 },
+    crystal: { mass: 8, r: 0.3, h: 0.9 },
+    fountain: { mass: 20, r: 0.7, h: 0.7 },
+    altar: { mass: 24, r: 0.7, h: 0.9 },
+  };
+  const spec = PHYS[kind];
+  if (spec) {
+    g.userData.phys = {
+      mass: spec.mass,
+      r: spec.r * s,
+      h: spec.h * s,
+      vx: 0,
+      vy: 0,
+      vz: 0,
+      held: false,
+    };
+  }
   return g;
 }
 

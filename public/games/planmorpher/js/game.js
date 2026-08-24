@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { XRButton } from "three/addons/webxr/XRButton.js";
 import {
   ENTITY_SCALE,
+  GOD_ATMOS,
   BUILD_AGES,
   FORMS,
   PLANET_VERT,
@@ -18,12 +19,15 @@ import {
   paintAt,
   planetUniforms,
   makeAtmosShell,
+  makeWaterShell,
+  makePlanetSky,
   makePeg,
   setSurfaceLod,
   setSkyDormant,
   worldContaining,
   confineToAtmos,
   ejectNearPlanet,
+  waterAlt,
 } from "/games/shared/world-core.js";
 
 const canvas = document.getElementById("c");
@@ -325,6 +329,12 @@ class World {
     this.mesh.scale.setScalar(radius);
     this.mesh.userData.world = this;
     this.group.add(this.mesh);
+    this.uni.uShellWater.value = 1;
+    this.atmosMul = GOD_ATMOS;
+    this.water = makeWaterShell(radius, this.uni.uOcean.value);
+    this.water.visible = false;
+    this.group.add(this.water);
+    this.syncWater();
     this.clouds = new THREE.Mesh(
       new THREE.SphereGeometry(1.06, 32, 20),
       new THREE.ShaderMaterial({
@@ -338,7 +348,7 @@ class World {
     );
     this.clouds.scale.setScalar(radius);
     this.group.add(this.clouds);
-    this.atmosShell = makeAtmosShell(radius, this);
+    this.atmosShell = makeAtmosShell(radius, this, GOD_ATMOS);
     this.group.add(this.atmosShell);
     const rainGeo = new THREE.BufferGeometry();
     const arr = new Float32Array(180 * 3);
@@ -355,9 +365,18 @@ class World {
     this.group.add(this.rain);
   }
 
+  syncWater() {
+    if (!this.water) return;
+    const a = waterAlt(this);
+    this.water.scale.setScalar(this.radius * a);
+    this.water.visible = this.uni.uLand.value > 0.2 && this.uni.uMolten.value < 0.65;
+    if (this.water.material.uniforms?.uOcean) this.water.material.uniforms.uOcean.value.copy(this.uni.uOcean.value);
+  }
+
   setSea(v) {
     this.seaLevel = THREE.MathUtils.clamp(v, 0.18, 0.82);
     this.uni.uSea.value = this.seaLevel;
+    this.syncWater();
   }
 
   stage(dt) {
@@ -376,6 +395,8 @@ class World {
     this.uni.uVeg.value.copy(hsl(this.vegH, 0.48, 0.32));
     this.uni.uOcean.value.copy(hsl(this.seaH, 0.58, 0.3));
     this.uni.uSea.value = this.seaLevel;
+    this.syncWater();
+    if (this.water?.material.uniforms?.uTime) this.water.material.uniforms.uTime.value += dt;
     this.clouds.material.uniforms.uAlpha.value = Math.max(clouds * 0.85, this.storm * 0.35);
     this.clouds.material.uniforms.uTime.value += dt;
     this.clouds.rotation.y += dt * (0.08 + this.storm * 0.12);
@@ -542,7 +563,7 @@ class World {
   }
 
   ensureDetail() {
-    if (this.detailReady || this.uni.uLand.value < 0.4) return;
+    if (this.detailReady || this.uni.uLand.value < 0.12) return;
     this.detailReady = true;
     const veg = hsl(this.vegH, 0.6, 0.32);
     const grassMap = sprTex("grass-tall.png", false);
@@ -885,7 +906,9 @@ class World {
       }
       if (c.userData.s1w) c.scale.set(c.userData.s1w, c.userData.s1h * (land ? 1 : 0.72), 1);
     }
-    for (const u of this.ufos) {
+    for (let i = this.ufos.length - 1; i >= 0; i--) {
+      const u = this.ufos[i];
+      if (u.userData.dying) continue;
       u.userData.a += dt * 0.35;
       const r = this.radius * 1.55;
       u.position.set(Math.cos(u.userData.a) * r, Math.sin(u.userData.a * 0.7) * this.radius * 0.4, Math.sin(u.userData.a) * r);
@@ -1027,6 +1050,10 @@ scene.add(rig);
 rig.add(camera);
 const sky = makeSky();
 scene.add(sky);
+const planetSky = makePlanetSky();
+planetSky.visible = false;
+scene.add(planetSky);
+const dyingUfos = [];
 scene.add(new THREE.HemisphereLight(0x8899aa, 0x110800, 0.7));
 const sun = new THREE.DirectionalLight(0xffe6c8, 0.9);
 sun.position.set(8, 12, 4);
@@ -1163,8 +1190,8 @@ function applyPower(w, point, normal, uv, hold) {
     scene.add(m);
     meteors.push(m);
   } else if (id === "ufo") w.addUfo();
-  else if (id === "raise" && uv) paintAt(w.paint, uv, 18, 3);
-  else if (id === "lower" && uv) paintAt(w.paint, uv, -18, 3);
+  else if (id === "raise" && uv) paintAt(w.paint, uv, 42, 4);
+  else if (id === "lower" && uv) paintAt(w.paint, uv, -42, 4);
   else if (id === "beasts" && normal) {
     w.addCreature(pickSpecies, normal);
     hudStatus.textContent = "A " + pickSpecies.name + " climbs into being.";
@@ -1199,6 +1226,7 @@ function holdGrow(pos, dt) {
   growing.mesh.scale.setScalar(growing.radius);
   growing.clouds.scale.setScalar(growing.radius);
   growing.rain.scale.setScalar(growing.radius * 1.08);
+  growing.syncWater?.();
   growing.atmosShell?.traverse((o) => {
     if (o.isMesh) o.scale.setScalar(growing.radius);
   });
@@ -1225,12 +1253,8 @@ function trigger(gp) {
   return !!(gp?.buttons?.[0]?.pressed || gp?.buttons?.[1]?.pressed);
 }
 function moveRig(dt, xr) {
-  const speed = lockedWorld ? 1.6 : 3.2;
+  const speed = lockedWorld ? 1.35 : 3.2;
   camera.getWorldDirection(_v);
-  _v.y = 0;
-  if (_v.lengthSq() < 0.0001) _v.set(0, 0, -1);
-  _v.normalize();
-  _v2.crossVectors(_v, new THREE.Vector3(0, 1, 0)).normalize();
   let fx = 0, fz = 0, fy = 0, yaw = 0;
   if (keys.has("KeyW") || keys.has("ArrowUp")) fz += 1;
   if (keys.has("KeyS") || keys.has("ArrowDown")) fz -= 1;
@@ -1260,9 +1284,31 @@ function moveRig(dt, xr) {
     camera.rotation.x = lookPitch;
     camera.rotation.order = "YXZ";
   }
-  rig.position.add(_v.multiplyScalar(fz * speed * dt));
-  rig.position.add(_v2.multiplyScalar(fx * speed * dt));
-  rig.position.y += fy * speed * dt;
+  if (lockedWorld) {
+    const c = lockedWorld.group.position;
+    _v3.copy(rig.position).sub(c);
+    const r = Math.max(0.001, _v3.length());
+    _v3.multiplyScalar(1 / r);
+    camera.getWorldDirection(_v);
+    const radial = _v.dot(_v3);
+    _v.addScaledVector(_v3, -radial);
+    if (_v.lengthSq() < 1e-6) _v.crossVectors(_v3, new THREE.Vector3(0, 1, 0));
+    _v.normalize();
+    _v2.crossVectors(_v3, _v).normalize();
+    rig.position.addScaledVector(_v, fz * speed * dt);
+    rig.position.addScaledVector(_v2, fx * speed * dt);
+    const alt = THREE.MathUtils.clamp(r + fy * speed * dt, lockedWorld.radius * 1.09, lockedWorld.radius * GOD_ATMOS * 0.98);
+    _v3.copy(rig.position).sub(c).normalize();
+    rig.position.copy(c).addScaledVector(_v3, alt);
+  } else {
+    _v.y = 0;
+    if (_v.lengthSq() < 0.0001) _v.set(0, 0, -1);
+    _v.normalize();
+    _v2.crossVectors(_v, new THREE.Vector3(0, 1, 0)).normalize();
+    rig.position.add(_v.multiplyScalar(fz * speed * dt));
+    rig.position.add(_v2.multiplyScalar(fx * speed * dt));
+    rig.position.y += fy * speed * dt;
+  }
 }
 function rightRay() {
   ctrl[1].updateMatrixWorld();
@@ -1351,17 +1397,33 @@ function tryOpenMenuFromA() {
 function enterSurface(w) {
   lockedWorld = w;
   setSkyDormant(sky, true);
+  planetSky.visible = true;
+  planetSky.position.copy(w.group.position);
+  planetSky.scale.setScalar(Math.max(12, w.radius * 9));
+  scene.background = new THREE.Color(0x4a7ab8);
+  scene.fog = new THREE.FogExp2(0x6aa8d8, 0.045);
   w.ensureDetail();
   setSurfaceLod(w, true);
+  if (w.atmosShell?.userData.atmos) w.atmosShell.userData.atmos.material.opacity = 0.48;
+  camera.getWorldPosition(_v);
+  _v2.copy(_v).sub(w.group.position);
+  if (_v2.lengthSq() < 1e-6) _v2.set(0, 1, 0);
+  _v2.normalize();
+  rig.position.copy(w.group.position).addScaledVector(_v2, w.radius * 1.28);
   camera.near = 0.02;
-  camera.far = 80;
+  camera.far = 90;
   camera.updateProjectionMatrix();
-  hudHint.textContent = "Lower sky. The void sleeps. Press X to return to the galaxy map.";
+  hudHint.textContent = "Lower atmosphere. Fly the crust. Press X to shoot back to the galaxy map.";
+  hudStatus.textContent = "Entered " + w.template.name + " sky — X to leave.";
 }
 function leaveSurface() {
   if (!lockedWorld) return;
   setSurfaceLod(lockedWorld, false);
   setSkyDormant(sky, false);
+  planetSky.visible = false;
+  scene.background = new THREE.Color(0x07080f);
+  scene.fog = null;
+  if (lockedWorld.atmosShell?.userData.atmos) lockedWorld.atmosShell.userData.atmos.material.opacity = 0.22;
   camera.near = 0.05;
   camera.far = 280;
   camera.updateProjectionMatrix();
@@ -1376,22 +1438,127 @@ function ejectOut() {
   ejectNearPlanet(rig, w, _v);
 }
 
+function explodeMeteor(m, world, n, water) {
+  if (world && n) {
+    world.crater(n, water ? 0.85 : 1.35);
+    boomSfx(water);
+    burst(world, n, 0xff5511, water ? 10 : 22, 2.8);
+    burst(world, n, water ? 0xcfe4f4 : 0xffee66, water ? 28 : 12, water ? 1.1 : 1.6);
+  } else {
+    boomSfx(false);
+    const p = m.position.clone();
+    const flash = new THREE.Mesh(
+      new THREE.SphereGeometry(0.28, 10, 8),
+      new THREE.MeshBasicMaterial({ color: 0xffee88, transparent: true, opacity: 0.9, depthWrite: false }),
+    );
+    flash.position.copy(p);
+    flash.userData = { vel: new THREE.Vector3(), life: 0.28, flash: true };
+    scene.add(flash);
+    fx.push(flash);
+    for (let i = 0; i < 16; i++) {
+      const s = new THREE.Mesh(new THREE.SphereGeometry(0.02, 5, 4), new THREE.MeshBasicMaterial({ color: 0xff5511, transparent: true }));
+      s.position.copy(p);
+      s.userData = { vel: new THREE.Vector3().randomDirection().multiplyScalar(2.4), life: 0.45 };
+      scene.add(s);
+      fx.push(s);
+    }
+  }
+  scene.remove(m);
+}
+
+function strikeUfo(meteor, ufo, world) {
+  const wp = new THREE.Vector3();
+  ufo.getWorldPosition(wp);
+  if (ufo.parent) ufo.parent.remove(ufo);
+  scene.add(ufo);
+  ufo.position.copy(wp);
+  ufo.userData.dying = true;
+  ufo.userData.dieT = 3;
+  ufo.userData.spin = new THREE.Vector3().randomDirection().multiplyScalar(9);
+  ufo.userData.wvel = meteor.userData.vel.clone().multiplyScalar(0.4);
+  ufo.userData.wvel.add(new THREE.Vector3().randomDirection().multiplyScalar(1.4));
+  world.ufos = world.ufos.filter((x) => x !== ufo);
+  dyingUfos.push(ufo);
+  boomSfx(false);
+  hudStatus.textContent = "Saucer struck — spinning out.";
+  scene.remove(meteor);
+}
+
+function tickDyingUfos(dt) {
+  for (let i = dyingUfos.length - 1; i >= 0; i--) {
+    const u = dyingUfos[i];
+    u.userData.dieT -= dt;
+    u.rotation.x += u.userData.spin.x * dt;
+    u.rotation.y += u.userData.spin.y * dt;
+    u.rotation.z += u.userData.spin.z * dt;
+    if (u.userData.wvel) u.position.addScaledVector(u.userData.wvel, dt);
+    if (u.userData.dieT <= 0) {
+      boomSfx(false);
+      const flash = new THREE.Mesh(
+        new THREE.SphereGeometry(0.4, 10, 8),
+        new THREE.MeshBasicMaterial({ color: 0xffee88, transparent: true, opacity: 0.9, depthWrite: false }),
+      );
+      flash.position.copy(u.position);
+      flash.userData = { vel: new THREE.Vector3(), life: 0.3, flash: true };
+      scene.add(flash);
+      fx.push(flash);
+      for (let k = 0; k < 18; k++) {
+        const s = new THREE.Mesh(new THREE.SphereGeometry(0.022, 5, 4), new THREE.MeshBasicMaterial({ color: k % 2 ? 0x9ee7ff : 0xff6a2a, transparent: true }));
+        s.position.copy(u.position);
+        s.userData = { vel: new THREE.Vector3().randomDirection().multiplyScalar(2.8), life: 0.5 };
+        scene.add(s);
+        fx.push(s);
+      }
+      scene.remove(u);
+      dyingUfos.splice(i, 1);
+    }
+  }
+}
+
 function tickMeteors(dt) {
   for (let i = meteors.length - 1; i >= 0; i--) {
     const m = meteors[i];
     m.position.addScaledVector(m.userData.vel, dt);
-    const w = m.userData.target;
-    if (w && m.position.distanceTo(w.group.position) < w.radius * 1.04) {
-      const n = m.position.clone().sub(w.group.position).normalize();
-      const water = isOcean(w, n);
-      w.crater(n, water ? 0.85 : 1.35);
-      boomSfx(water);
-      burst(w, n, 0xff5511, water ? 10 : 22, 2.8);
-      burst(w, n, water ? 0xcfe4f4 : 0xffee66, water ? 28 : 12, water ? 1.1 : 1.6);
-      scene.remove(m);
+    m.userData.age = (m.userData.age || 0) + dt;
+    let hit = false;
+    for (const w of worlds) {
+      for (const ufo of w.ufos) {
+        if (ufo.userData.dying) continue;
+        ufo.getWorldPosition(_v);
+        if (m.position.distanceTo(_v) < 0.28) {
+          strikeUfo(m, ufo, w);
+          hit = true;
+          break;
+        }
+      }
+      if (hit) break;
+    }
+    if (hit) {
+      meteors.splice(i, 1);
+      continue;
+    }
+    for (const w of worlds) {
+      const d = m.position.distanceTo(w.group.position);
+      const waterR = w.radius * waterAlt(w) * 1.01;
+      const crustR = w.radius * 1.08;
+      if (d < Math.max(waterR, crustR)) {
+        const n = m.position.clone().sub(w.group.position).normalize();
+        const water = isOcean(w, n) || d < waterR && d > w.radius * 0.92;
+        explodeMeteor(m, w, n, water);
+        hit = true;
+        break;
+      }
+    }
+    if (hit) {
+      meteors.splice(i, 1);
+      continue;
+    }
+    if (m.userData.age > 8) {
+      explodeMeteor(m, null, null, false);
       meteors.splice(i, 1);
     }
   }
+  tickDyingUfos(dt);
   for (let i = bolts.length - 1; i >= 0; i--) {
     bolts[i].t -= dt;
     bolts[i].mesh.material.opacity = Math.max(0, bolts[i].t * 5);
@@ -1433,11 +1600,28 @@ function loop(t) {
 
   const head = headPos();
   if (!lockedWorld) {
-    const w = worldContaining(worlds, head, 0);
-    if (w && w.born && w.uni.uLand.value > 0.35) enterSurface(w);
+    let near = null;
+    let nd = 1e9;
+    for (const w of worlds) {
+      if (!w.born || w === growing) continue;
+      const d = head.distanceTo(w.group.position);
+      if (d < nd) {
+        nd = d;
+        near = w;
+      }
+    }
+    if (near && near.radius > 0.42) {
+      const catchR = near.radius * GOD_ATMOS + 0.9;
+      const warnR = near.radius * 2.8 + 1.4;
+      if (nd < warnR && nd >= catchR) {
+        hudHint.textContent = "Approaching " + near.template.name + " — fly closer to enter the lower sky. X later to leave.";
+      }
+      if (nd < catchR) enterSurface(near);
+    }
   } else {
-    confineToAtmos(rig, head, lockedWorld);
+    confineToAtmos(rig, head, lockedWorld, GOD_ATMOS);
     if (!lockedWorld.surfaceLod) setSurfaceLod(lockedWorld, true);
+    planetSky.position.copy(lockedWorld.group.position);
   }
 
   const gpR = xrGamepad(1);

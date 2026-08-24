@@ -32,8 +32,12 @@ let shots = [];
 let burns = [];
 let lootBits = [];
 let inv = [];
+let physBodies = [];
 let wristGold = null;
 let xrPresenting = false;
+let vrMenuOpen = false;
+let vrMenu = null;
+let vrMenuHover = -1;
 let held = null;
 let mag = 0;
 let fireCd = 0;
@@ -224,6 +228,7 @@ function clearWorld() {
   lootBits = [];
   shots = [];
   extras = null;
+  physBodies = [];
 }
 
 function placeWorld() {
@@ -232,6 +237,7 @@ function placeWorld() {
     const y = Math.max(0, floorY(o.x, o.z, map, sdf2));
     g.position.set(o.x, y, o.z);
     dungeon.add(g);
+    if (g.userData.phys) physBodies.push(g);
     if (g.userData.lightColor) {
       const L = new THREE.PointLight(g.userData.lightColor, 1.1, 8, 2);
       L.position.set(o.x, y + 1.1, o.z);
@@ -364,6 +370,7 @@ async function enterMap(id) {
   }
   $("start").hidden = true;
   $("hud").hidden = false;
+  if ($("hud-vr")) $("hud-vr").hidden = false;
   $("dead").hidden = true;
   $("titlemap").textContent = map.name;
   running = true;
@@ -507,8 +514,8 @@ function renderInv() {
 function physics(dt, xr) {
   const look = lookEuler.setFromQuaternion(camera.quaternion, "YXZ");
   yaw = look.y;
-  if (xr && xr.on && Math.abs(xr.lookX) > 0.25) {
-    yaw -= xr.lookX * dt * 1.8;
+  if (xr && xr.on && Math.abs(xr.lookX) > 0.08) {
+    yaw -= xr.lookX * dt * 2.55;
     camera.quaternion.setFromEuler(lookEuler.set(look.x, yaw, 0, "YXZ"));
   }
   const forward = tmp.set(-Math.sin(yaw), 0, -Math.cos(yaw));
@@ -520,6 +527,7 @@ function physics(dt, xr) {
     wz += forward.z * -(xr.moveY || 0) + right.z * (xr.moveX || 0);
     player.skate = xr.skate;
     player.crouch = keys.has("KeyC");
+    if (xr.jump) jumpQueued = true;
   } else {
     if (keys.has("KeyW") || keys.has("ArrowUp")) {
       wx += forward.x;
@@ -741,10 +749,192 @@ function physics(dt, xr) {
     if (stage) stage.position.set(0, 0, 0);
     camera.position.set(player.x, player.y, player.z);
   }
+  if (viewWep) viewWep.visible = !xrPresenting;
   if (viewWep && swingT > 0) {
     const a = Math.sin((1 - swingT / 0.4) * Math.PI);
     viewWep.rotation.x = -a * 0.8;
   } else if (viewWep) viewWep.rotation.x = 0;
+}
+
+function tickPhys(dt, xr) {
+  const eye = player.crouch ? 0.9 : EYE;
+  const pr = 0.32;
+  for (const g of physBodies) {
+    const p = g.userData.phys;
+    if (!p || p.held) continue;
+    p.vy -= 18 * dt;
+    const fy = floorY(g.position.x, g.position.z, map, sdf2);
+    g.position.x += p.vx * dt;
+    g.position.z += p.vz * dt;
+    g.position.y += p.vy * dt;
+    if (fy > -500 && g.position.y <= fy + 0.02) {
+      g.position.y = fy;
+      if (p.vy < 0) p.vy *= -0.18;
+      p.vx *= 0.82;
+      p.vz *= 0.82;
+    }
+    if (sdf3(g.position.x, g.position.y + p.h * 0.4, g.position.z, map, sdf2) > -0.12) {
+      p.vx *= -0.35;
+      p.vz *= -0.35;
+      g.position.x -= p.vx * dt * 2;
+      g.position.z -= p.vz * dt * 2;
+    }
+    const dx = g.position.x - player.x;
+    const dz = g.position.z - player.z;
+    const dist = Math.hypot(dx, dz);
+    const min = p.r + pr;
+    if (dist < min && dist > 1e-4) {
+      const nx = dx / dist;
+      const nz = dz / dist;
+      const push = min - dist;
+      g.position.x += nx * push * 0.7;
+      g.position.z += nz * push * 0.7;
+      const impulse = 2.8 / Math.max(2, p.mass);
+      p.vx += nx * impulse + player.vx * 0.45;
+      p.vz += nz * impulse + player.vz * 0.45;
+      player.x -= nx * push * 0.25;
+      player.z -= nz * push * 0.25;
+    }
+    p.vx *= 0.985;
+    p.vz *= 0.985;
+  }
+  for (let i = 0; i < physBodies.length; i++) {
+    for (let j = i + 1; j < physBodies.length; j++) {
+      const a = physBodies[i];
+      const b = physBodies[j];
+      const pa = a.userData.phys;
+      const pb = b.userData.phys;
+      if (!pa || !pb || pa.held || pb.held) continue;
+      const dx = b.position.x - a.position.x;
+      const dz = b.position.z - a.position.z;
+      const dist = Math.hypot(dx, dz);
+      const min = pa.r + pb.r;
+      if (dist < min && dist > 1e-4) {
+        const nx = dx / dist;
+        const nz = dz / dist;
+        const push = (min - dist) * 0.5;
+        a.position.x -= nx * push;
+        a.position.z -= nz * push;
+        b.position.x += nx * push;
+        b.position.z += nz * push;
+      }
+    }
+  }
+}
+
+function grabNearest(h) {
+  let best = null;
+  let bd = 0.55;
+  for (const g of physBodies) {
+    const p = g.userData.phys;
+    if (!p || p.held) continue;
+    g.getWorldPosition(tmp);
+    const d = h.pos.distanceTo(tmp);
+    if (d < bd) {
+      bd = d;
+      best = g;
+    }
+  }
+  for (const p of pickups) {
+    if (!p.visible || p.userData.taken) continue;
+    const d = h.pos.distanceTo(p.position);
+    if (d < Math.min(bd, 0.42)) {
+      bd = d;
+      best = p;
+    }
+  }
+  return best;
+}
+
+function worldDrop(mesh, pos, vel) {
+  const parent = dungeon || stage || scene;
+  parent.attach(mesh);
+  const p = mesh.userData.phys;
+  if (p) {
+    p.held = false;
+    p.vx = vel.x;
+    p.vy = vel.y;
+    p.vz = vel.z;
+  }
+}
+
+function paintVrMenu() {
+  if (!vrMenu) {
+    vrMenu = new THREE.Group();
+    const plate = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.72, 0.9),
+      new THREE.MeshBasicMaterial({ color: 0x120e0c, transparent: true, opacity: 0.88, side: THREE.DoubleSide }),
+    );
+    vrMenu.add(plate);
+    vrMenu.userData.labels = [];
+    scene.add(vrMenu);
+  }
+  for (const L of vrMenu.userData.labels) L.removeFromParent();
+  vrMenu.userData.labels = [];
+  const lines = ["PACK", ...inv.slice(0, 6).map((it) => it.name || it.id), "RESUME"];
+  lines.forEach((text, i) => {
+    const c = document.createElement("canvas");
+    c.width = 512;
+    c.height = 64;
+    const g = c.getContext("2d");
+    g.fillStyle = i === vrMenuHover ? "#d4b070" : "#1a1410";
+    g.fillRect(0, 0, 512, 64);
+    g.fillStyle = i === vrMenuHover ? "#1a1008" : "#e8dcc0";
+    g.font = "28px serif";
+    g.fillText(text, 18, 42);
+    const tex = new THREE.CanvasTexture(c);
+    const m = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.64, 0.08),
+      new THREE.MeshBasicMaterial({ map: tex, transparent: true, side: THREE.DoubleSide }),
+    );
+    m.position.set(0, 0.34 - i * 0.1, 0.01);
+    m.userData.menuI = i;
+    vrMenu.add(m);
+    vrMenu.userData.labels.push(m);
+  });
+  vrMenu.userData.lines = lines;
+}
+
+function toggleVrMenu() {
+  vrMenuOpen = !vrMenuOpen;
+  if (!vrMenuOpen) {
+    if (vrMenu) vrMenu.visible = false;
+    $("inv").hidden = true;
+    return;
+  }
+  $("inv").hidden = false;
+  renderInv();
+  paintVrMenu();
+  vrMenu.visible = true;
+  const dir = tmp.set(0, 0, -1).applyQuaternion(camera.quaternion);
+  vrMenu.position.copy(camera.position).addScaledVector(dir, 1.35);
+  vrMenu.quaternion.copy(camera.quaternion);
+  setMsg("Pack — point and trigger. Y again to close.");
+}
+
+function tickVrMenu(xr) {
+  if (!vrMenuOpen || !vrMenu || !xr.right) return;
+  const ray = new THREE.Raycaster(xr.right.pos, tmp.set(0, 0, -1).applyQuaternion(xr.right.quat));
+  const hits = ray.intersectObjects(vrMenu.userData.labels || [], false);
+  const next = hits[0] ? hits[0].object.userData.menuI : -1;
+  if (next !== vrMenuHover) {
+    vrMenuHover = next;
+    paintVrMenu();
+  }
+  if (xr.right.trigger && !xr.right.triggerPrev && vrMenuHover >= 0) {
+    const lines = vrMenu.userData.lines || [];
+    const label = lines[vrMenuHover];
+    if (label === "RESUME" || label === "PACK") toggleVrMenu();
+    else {
+      const it = inv[vrMenuHover - 1];
+      if (it) {
+        useItem(it);
+        inv.splice(vrMenuHover - 1, 1);
+        renderInv();
+        paintVrMenu();
+      }
+    }
+  }
 }
 
 function tickPickups() {
@@ -757,44 +947,69 @@ function tickPickups() {
 
 function xrGrab(xr) {
   if (!xr.on) return;
+  if (xr.menu) toggleVrMenu();
+  if (vrMenuOpen) {
+    tickVrMenu(xr);
+    return;
+  }
+  if (xr.reload) {
+    const def = held && WEAPON_BY_ID[held];
+    if (def && def.slot === "gun") {
+      mag = def.mag;
+      setMsg("Reloaded");
+      hudBars();
+    } else if (nearVendor()) openShop();
+  }
   for (const h of [xr.left, xr.right]) {
     if (!h) continue;
     if (h.squeeze && !h.squeezePrev) {
-      for (const p of pickups) {
-        if (!p.visible) continue;
-        if (h.pos.distanceTo(p.position) < 0.38) {
-          takePickup(p);
-          if (WEAPON_BY_ID[p.userData.pickup]) {
-            const w = makeWeapon(p.userData.pickup);
-            h.con.add(w);
-            h.held = { id: p.userData.pickup, mesh: w };
+      const target = grabNearest(h);
+      if (target && target.userData.phys) {
+        target.userData.phys.held = true;
+        h.con.attach(target);
+        h.held = { kind: "phys", mesh: target };
+        setMsg("Holding " + (target.userData.kind || "object"));
+      } else if (target && target.userData.pickup) {
+        takePickup(target);
+        if (WEAPON_BY_ID[target.userData.pickup]) {
+          const w = makeWeapon(target.userData.pickup);
+          h.con.add(w);
+          h.held = { id: target.userData.pickup, mesh: w, kind: "wep" };
+        }
+      } else {
+        for (const p of pickups) {
+          if (!p.visible) continue;
+          if (h.pos.distanceTo(p.position) < 0.38) {
+            takePickup(p);
+            if (WEAPON_BY_ID[p.userData.pickup]) {
+              const w = makeWeapon(p.userData.pickup);
+              h.con.add(w);
+              h.held = { id: p.userData.pickup, mesh: w, kind: "wep" };
+            }
           }
         }
       }
     }
     if (!h.squeeze && h.squeezePrev && h.held) {
-      h.held.mesh.removeFromParent();
-      const drop = makePickup(h.held.id);
-      drop.position.copy(h.pos);
-      scene.add(drop);
-      pickups.push(drop);
+      if (h.held.kind === "phys" && h.held.mesh) {
+        worldDrop(h.held.mesh, h.pos, h.vel);
+      } else if (h.held.mesh) {
+        h.held.mesh.removeFromParent();
+        if (h.held.id) {
+          const drop = makePickup(h.held.id);
+          drop.position.copy(h.pos);
+          (stage || scene).add(drop);
+          pickups.push(drop);
+        }
+      }
       h.held = null;
     }
-    if (h.held && WEAPON_BY_ID[h.held.id]?.slot === "melee" && h.vel.length() > 4) {
+    if (h.held && h.held.id && WEAPON_BY_ID[h.held.id]?.slot === "melee" && h.vel.length() > 4) {
       strikeFoes(foes, h.pos, h.vel.clone().normalize(), 1.4, WEAPON_BY_ID[h.held.id].dmg);
     }
-    if (h.held && WEAPON_BY_ID[h.held.id]?.slot === "gun" && h.trigger && !h.triggerPrev) {
-      const other = h === xr.left ? xr.right : xr.left;
+    if (h.held && h.held.id && WEAPON_BY_ID[h.held.id]?.slot === "gun" && h.trigger && !h.triggerPrev) {
       setHeld(h.held.id);
       primary();
-    }
-    if (h.ax && !h.axPrev) {
-      const other = h === xr.left ? xr.right : xr.left;
-      if (other && other.held && WEAPON_BY_ID[other.held.id]?.slot === "gun" && other.pos.distanceTo(h.pos) < 0.28) {
-        mag = WEAPON_BY_ID[other.held.id].mag;
-        setMsg("Reloaded");
-        hudBars();
-      } else if (nearVendor()) openShop();
     }
   }
   if (xr.dash) return;
@@ -811,6 +1026,7 @@ function loop(time) {
   const xr = hands && renderer ? tickXr(renderer, hands, dt) : { on: false };
   if (running && !dead) {
     physics(dt, xr);
+    tickPhys(dt, xr);
     xrGrab(xr);
     tickFoes(foes, dt, player, map, sdf2, damage);
     tickRobots(foes, dt, player, map, sdf2, damage, stage || scene, shots, fireWeapon);
@@ -951,6 +1167,7 @@ $("again").addEventListener("click", () => {
 $("dead-menu").addEventListener("click", () => {
   $("dead").hidden = true;
   $("hud").hidden = true;
+  if ($("hud-vr")) $("hud-vr").hidden = true;
   $("start").hidden = false;
   running = false;
   clearWorld();
