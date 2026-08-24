@@ -1,0 +1,31 @@
+#cc-vr-chip {
+  position: fixed;
+  left: 50%;
+  bottom: max(1rem, env(safe-area-inset-bottom));
+  z-index: 80;
+  max-width: min(92vw, 28rem);
+  transform: translateX(-50%);
+  padding: 0.7rem 1rem;
+  border: 1px solid #f2f1ee38;
+  border-radius: 12px;
+  background: #141416f0;
+  color: #f2f1ee;
+  font-family: Outfit, "Segoe UI", system-ui, sans-serif;
+  font-size: 13px;
+  line-height: 1.35;
+  text-align: center;
+  pointer-events: none;
+  box-shadow: 0 12px 32px #0008;
+}
+#cc-vr-chip[data-kind="err"] {
+  border-color: #c45c5c80;
+  color: #f2d0d0;
+}
+#cc-vr-chip[hidden] {
+  display: none !important;
+}
+
+/* Title-menu "VR field" only — field HUD uses aria-label Enter/Exit VR with no text. */
+button.cc-hide-title-vr {
+  display: none !important;
+}

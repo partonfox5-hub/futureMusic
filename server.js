@@ -951,6 +951,11 @@ app.get(['/test-p3w8r6nt', '/test-p3w8r6nt/'], (req, res) => {
     res.setHeader('Permissions-Policy', 'xr-spatial-tracking=(self), fullscreen=(self), gamepad=(self), accelerometer=(self), gyroscope=(self), magnetometer=(self)');
     res.sendFile(path.join(__dirname, 'public', 'games', 'character-chess', 'test-m7q2n8kw', 'index.html'));
 });
+app.get(['/test-c8w4k2np', '/test-c8w4k2np/'], (req, res) => {
+    res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+    res.setHeader('Permissions-Policy', 'xr-spatial-tracking=(self), fullscreen=(self), gamepad=(self), accelerometer=(self), gyroscope=(self), magnetometer=(self)');
+    res.sendFile(path.join(__dirname, 'public', 'games', 'character-chess', 'test-c8w4k2np', 'index.html'));
+});
 app.get('/test-v8k3n6q2', (req, res) => {
     newedenHeaders(res);
     res.setHeader('X-Robots-Tag', 'noindex, nofollow');
