@@ -1,5 +1,15 @@
 import * as THREE from "three";
 import { XRButton } from "three/addons/webxr/XRButton.js";
+import {
+  ATMOS,
+  ENTITY_SCALE,
+  sit,
+  makePeg,
+  setSkyDormant,
+  worldContaining,
+  confineToAtmos,
+  ejectNearPlanet,
+} from "/games/shared/world-core.js";
 
 const canvas = document.getElementById("c");
 const hudHint = document.getElementById("hint");
@@ -8,7 +18,6 @@ const startEl = document.getElementById("start");
 const announceEl = document.getElementById("announce");
 
 const BIRTH = 30;
-const ATMOS = 1.22;
 const COST = { scout: 100, settler: 250, miner: 80, tank: 150, heli: 180, warship: 600, cannon: 500 };
 const HP = { scout: 40, settler: 55, miner: 35, tank: 70, heli: 50, warship: 200, cannon: 120, dome: 200, tower: 140, flag: 80 };
 const SEA = 0.52;
@@ -301,6 +310,7 @@ function modelMiner(col) {
   box(g, mat(0x222), 0.05, 0.02, 0.04, 0.04, 0.04, 0.16);
   box(g, mat(0x222), -0.05, 0.02, 0.04, 0.04, 0.04, 0.16);
   g.userData.lights = [];
+  g.scale.setScalar(ENTITY_SCALE);
   return g;
 }
 function modelTank(col) {
@@ -314,6 +324,7 @@ function modelTank(col) {
   g.userData.turret = tur;
   g.userData.gun = gun;
   g.userData.lights = [];
+  g.scale.setScalar(ENTITY_SCALE);
   return g;
 }
 function modelHeli(col) {
@@ -341,6 +352,7 @@ function modelCannon(col) {
   const glow = engineGlow(0x66ddff);
   box(g, glow, 0, 0.14, 0.02, 0.04, 0.08, 0.04);
   g.userData.lights = [glow];
+  g.scale.setScalar(ENTITY_SCALE);
   return g;
 }
 function modelDome(col) {
@@ -348,6 +360,7 @@ function modelDome(col) {
   const dome = new THREE.Mesh(new THREE.SphereGeometry(0.09, 10, 8, 0, Math.PI * 2, 0, Math.PI / 2), mat(0x9aa3ad));
   g.add(dome);
   box(g, mat(col), 0, 0.01, 0, 0.12, 0.02, 0.12);
+  g.scale.setScalar(ENTITY_SCALE);
   return g;
 }
 function modelTower(col) {
@@ -357,6 +370,7 @@ function modelTower(col) {
   box(g, win, 0, 0.28, 0.052, 0.06, 0.22, 0.01);
   box(g, mat(col), 0, 0.46, 0, 0.12, 0.04, 0.12);
   g.userData.lights = [win];
+  g.scale.setScalar(ENTITY_SCALE);
   return g;
 }
 function modelFlag(col) {
@@ -364,6 +378,7 @@ function modelFlag(col) {
   box(g, mat(0xccc8b8), 0, 0.16, 0, 0.012, 0.32, 0.012);
   const cloth = box(g, mat(col), 0.06, 0.26, 0, 0.1, 0.07, 0.01);
   g.userData.cloth = cloth;
+  g.scale.setScalar(ENTITY_SCALE);
   return g;
 }
 
@@ -443,13 +458,6 @@ function fbm3(x, y, z, seed) {
   return s;
 }
 
-function sit(mesh, planet, n, alt) {
-  const local = n.clone().multiplyScalar(planet.radius * alt);
-  if (mesh.parent === planet.group) mesh.position.copy(local);
-  else mesh.position.copy(planet.group.position).add(local);
-  mesh.quaternion.setFromUnitVectors(_up, n);
-}
-
 class World {
   constructor(pos, radius, seed) {
     this.radius = radius;
@@ -466,6 +474,9 @@ class World {
     this.critters = [];
     this.treeT = 1.2;
     this.lifeT = 2.4;
+    this.surfaceLod = false;
+    this.groundDetail = [];
+    this.detailReady = false;
     this.group = new THREE.Group();
     this.group.position.copy(pos);
     const uniforms = {
@@ -607,6 +618,7 @@ class World {
       const marker = new THREE.Mesh(new THREE.OctahedronGeometry(0.05, 0), mat(0xc4a050));
       this.group.add(marker);
       sit(marker, this, nor, 1.03);
+      marker.scale.setScalar(ENTITY_SCALE);
       marker.userData.mine = true;
       marker.userData.normal = nor;
       marker.userData.world = this;
@@ -648,7 +660,16 @@ class World {
         }
       }
       sit(c.mesh, this, c.n, c.alt);
+      if (c.peg) sit(c.peg, this, c.n, 1.018);
     }
+  }
+  attachPeg(n, color) {
+    const p = makePeg(color);
+    this.group.add(p);
+    sit(p, this, n, 1.018);
+    p.scale.setScalar(ENTITY_SCALE);
+    p.visible = !this.surfaceLod;
+    return p;
   }
   plantTree(n) {
     const g = new THREE.Group();
@@ -660,6 +681,10 @@ class World {
     g.add(trunk, leaf);
     this.group.add(g);
     sit(g, this, n, 1.0);
+    g.scale.multiplyScalar(ENTITY_SCALE);
+    g.userData.n = n.clone();
+    g.userData.peg = this.attachPeg(n, 0x2f7a3a);
+    g.visible = this.surfaceLod;
     this.trees.push(g);
   }
   spawnCritter(kind) {
@@ -689,14 +714,63 @@ class World {
     this.group.add(g);
     const alt = ocean ? (kind === "whale" ? 1.015 : 1.008) : 1.0;
     sit(g, this, n, alt);
+    g.scale.multiplyScalar(ENTITY_SCALE);
+    g.visible = this.surfaceLod;
+    const peg = this.attachPeg(n, ocean ? 0x3aa0c8 : 0x8a5a32);
     this.critters.push({
       mesh: g,
       kind,
       n,
       ocean,
       alt,
+      peg,
       spd: kind === "whale" ? 0.08 : kind === "fish" ? 0.22 : kind === "monkey" ? 0.18 : 0.12,
     });
+  }
+  ensureDetail() {
+    if (this.detailReady || this.uni.uLand.value < 0.4) return;
+    this.detailReady = true;
+    for (let i = 0; i < 36; i++) {
+      const n = this.randLandNormal();
+      const blade = new THREE.Mesh(new THREE.ConeGeometry(0.008, 0.02, 4), mat(0x3a8a3a));
+      this.group.add(blade);
+      sit(blade, this, n, 1.012);
+      blade.scale.multiplyScalar(ENTITY_SCALE);
+      blade.visible = this.surfaceLod;
+      this.groundDetail.push(blade);
+    }
+    for (let i = 0; i < 12; i++) {
+      const n = this.randLandNormal();
+      const bush = new THREE.Mesh(new THREE.SphereGeometry(0.016, 6, 5), mat(0x2f6a32));
+      bush.scale.set(1.1, 0.7, 1);
+      this.group.add(bush);
+      sit(bush, this, n, 1.012);
+      bush.scale.multiplyScalar(ENTITY_SCALE);
+      bush.visible = this.surfaceLod;
+      this.groundDetail.push(bush);
+    }
+    for (let i = 0; i < 10; i++) {
+      const n = this.randLandNormal();
+      const rock = new THREE.Mesh(new THREE.IcosahedronGeometry(0.014, 0), mat(0x6a6864));
+      this.group.add(rock);
+      sit(rock, this, n, 1.01);
+      rock.scale.multiplyScalar(ENTITY_SCALE);
+      rock.visible = this.surfaceLod;
+      this.groundDetail.push(rock);
+    }
+  }
+  setLod(on) {
+    this.surfaceLod = !!on;
+    for (const t of this.trees) {
+      t.visible = on;
+      if (t.userData.peg) t.userData.peg.visible = !on;
+    }
+    for (const c of this.critters) {
+      c.mesh.visible = on;
+      if (c.peg) c.peg.visible = !on;
+    }
+    for (const g of this.groundDetail) g.visible = on;
+    if (this.clouds) this.clouds.visible = !on;
   }
 }
 
@@ -711,6 +785,7 @@ let strategyOpen = false;
 let cityMenu = null;
 let lookYaw = 0;
 let lookPitch = 0;
+let lockedWorld = null;
 const keys = new Set();
 const mouse = { x: 0, y: 0, down: false, right: false, locked: false };
 let last = 0;
@@ -1080,7 +1155,43 @@ function stickXY(gp) {
   if (a.length >= 4) return { x: a[2] || 0, y: a[3] || 0 };
   return { x: a[0] || 0, y: a[1] || 0 };
 }
-const pressed = { a: false, y: false, lt: false, rt: false, rmb: false };
+const pressed = { a: false, y: false, lt: false, rt: false, rmb: false, x: false };
+
+function headPos() {
+  if (renderer.xr.isPresenting) {
+    renderer.xr.getCamera(camera).getWorldPosition(_v3);
+    return _v3;
+  }
+  camera.getWorldPosition(_v3);
+  return _v3;
+}
+function enterSurface(w) {
+  lockedWorld = w;
+  setSkyDormant(sky, true);
+  w.ensureDetail();
+  w.setLod(true);
+  camera.near = 0.02;
+  camera.far = 90;
+  camera.updateProjectionMatrix();
+  hudHint.textContent = "Lower sky. Galaxy sky sleeps. Press X to return to the map.";
+}
+function leaveSurface() {
+  if (!lockedWorld) return;
+  lockedWorld.setLod(false);
+  setSkyDormant(sky, false);
+  camera.near = 0.05;
+  camera.far = 640;
+  camera.updateProjectionMatrix();
+  lockedWorld = null;
+  hudHint.textContent = "Y strategy · A select / spawn · hold LT multi · RT command move · X leaves a planet";
+}
+function ejectOut() {
+  if (!lockedWorld) return;
+  const w = lockedWorld;
+  const h = headPos().clone();
+  leaveSurface();
+  ejectNearPlanet(rig, w, h);
+}
 
 function rightRay() {
   ctrl[1].updateMatrixWorld();
@@ -1704,18 +1815,26 @@ function loop(t) {
   const now = t * 0.001;
   const dt = Math.min(0.05, last ? now - last : 0.016);
   last = now;
-  sky.material.uniforms.uT.value = now;
+  if (sky.visible) sky.material.uniforms.uT.value = now;
   if (!running) {
     renderer.render(scene, camera);
     return;
   }
   const xr = renderer.xr.isPresenting;
   moveRig(dt, xr);
+  const head = headPos();
+  if (!lockedWorld) {
+    const w = worldContaining(worlds, head, 0);
+    if (w && w.uni.uLand.value > 0.35) enterSurface(w);
+  } else {
+    confineToAtmos(rig, head, lockedWorld);
+  }
   tickMusic(now);
 
   const gpR = xrGamepad(1);
   const gpL = xrGamepad(0);
-  const aBtn = !!(gpR?.buttons?.[4]?.pressed || gpL?.buttons?.[4]?.pressed);
+  const aBtn = !!(gpR?.buttons?.[4]?.pressed);
+  const xBtn = !!(gpL?.buttons?.[4]?.pressed);
   const yBtn = !!(gpL?.buttons?.[5]?.pressed);
   const lt = !!(gpL?.buttons?.[0]?.pressed);
   const rt = !!(gpR?.buttons?.[0]?.pressed);
@@ -1728,9 +1847,11 @@ function loop(t) {
       if (strategyOpen) buildStratCards();
     }
     if (aBtn && !pressed.a) trySelect(ray.o, ray.d, lt);
+    if (xBtn && !pressed.x) ejectOut();
     if (rt && !pressed.rt && selectedUnits.length) commandMove(ray.o, ray.d);
     pressed.y = yBtn;
     pressed.a = aBtn;
+    pressed.x = xBtn;
     pressed.rt = rt;
     pressed.lt = lt;
   }
@@ -1790,6 +1911,7 @@ window.addEventListener("keydown", (e) => {
   }
   if (e.code === "Digit1") spawnFromStrat("scout", camera.getWorldPosition(new THREE.Vector3()), camera.getWorldDirection(new THREE.Vector3()));
   if (e.code === "Digit2") spawnFromStrat("settler", camera.getWorldPosition(new THREE.Vector3()), camera.getWorldDirection(new THREE.Vector3()));
+  if (e.code === "KeyX") ejectOut();
 });
 window.addEventListener("keyup", (e) => keys.delete(e.code));
 window.addEventListener("blur", () => keys.clear());
