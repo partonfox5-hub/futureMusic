@@ -52,6 +52,12 @@
         pointer-events: none;
         letter-spacing: 0.28em;
     }
+    /* Home splash only: hide the bottom control hint on mobile viewports. */
+    @media (max-width: 767px) {
+        #hero-section.galaxy-hero > p.galaxy-hint {
+            display: none;
+        }
+    }
 </style>
 
 <section id="hero-section" class="galaxy-hero min-h-[85vh] flex flex-col items-center justify-center text-center relative overflow-hidden perspective-1000 bg-black">
@@ -87,7 +93,7 @@
             </div>
         </div>
     </div>
-    <p class="galaxy-hint absolute bottom-10 left-0 right-0 text-[#D4AF37] text-[10px] md:text-xs uppercase z-10">
+    <p class="galaxy-hint absolute bottom-10 left-0 right-0 text-[#D4AF37] text-[10px] md:text-xs uppercase z-10 hidden md:block">
         Move to part the stars · click to pull · hold to birth a black hole
     </p>
     <div class="absolute bottom-4 animate-pulse text-[#D4AF37] z-10 pointer-events-none">
