@@ -7,10 +7,19 @@ export function attachXr(renderer, scene, onSession) {
   try {
     renderer.xr.setReferenceSpaceType("local-floor");
   } catch {}
+  try {
+    renderer.xr.setFramebufferScaleFactor(1);
+  } catch {}
   renderer.xr.addEventListener("sessionstart", () => {
+    try {
+      renderer.setPixelRatio(1);
+    } catch {}
     if (typeof onSession === "function") onSession(true);
   });
   renderer.xr.addEventListener("sessionend", () => {
+    try {
+      renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 1.5));
+    } catch {}
     if (typeof onSession === "function") onSession(false);
   });
   const factory = new XRControllerModelFactory();
@@ -78,12 +87,26 @@ export function wireVrButton(renderer) {
     btn.textContent = "ENTER VR";
     if (note) note.hidden = true;
     btn.onclick = async () => {
+      btn.disabled = true;
       try {
-        const session = await navigator.xr.requestSession("immersive-vr", {
-          optionalFeatures: ["local-floor", "bounded-floor", "hand-tracking"],
-        });
+        const gl = renderer.getContext();
+        if (gl && gl.makeXRCompatible) await gl.makeXRCompatible();
+        renderer.xr.enabled = true;
+        try {
+          renderer.xr.setReferenceSpaceType("local-floor");
+        } catch {}
+        let session;
+        try {
+          session = await navigator.xr.requestSession("immersive-vr", { optionalFeatures: ["local-floor"] });
+        } catch {
+          session = await navigator.xr.requestSession("immersive-vr");
+        }
         await renderer.xr.setSession(session);
+        session.addEventListener("end", () => {
+          btn.disabled = false;
+        });
       } catch (err) {
+        btn.disabled = false;
         if (note) {
           note.hidden = false;
           note.textContent = "Could not start VR: " + (err && err.message ? err.message : "try Meta Quest Browser");

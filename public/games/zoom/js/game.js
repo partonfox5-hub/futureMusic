@@ -115,13 +115,19 @@ function setHeld(id) {
 function initThree() {
   if (renderer) return;
   const canvas = $("c");
-  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 1.6));
+  renderer = new THREE.WebGLRenderer({
+    canvas,
+    antialias: false,
+    alpha: false,
+    powerPreference: "high-performance",
+    xrCompatible: true,
+  });
+  renderer.setPixelRatio(1);
   renderer.setSize(innerWidth, innerHeight);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
-  renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.5;
-  renderer.setClearColor(0x1a1814, 1);
+  renderer.toneMapping = THREE.NoToneMapping;
+  renderer.toneMappingExposure = 1;
+  renderer.setClearColor(0x3a342c, 1);
   scene = new THREE.Scene();
   camera = new THREE.PerspectiveCamera(72, innerWidth / innerHeight, 0.06, 480);
   clock = new THREE.Clock();
@@ -155,6 +161,7 @@ function initThree() {
     else primary();
   });
   addEventListener("resize", () => {
+    if (renderer.xr && renderer.xr.isPresenting) return;
     camera.aspect = innerWidth / innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(innerWidth, innerHeight);
@@ -164,12 +171,23 @@ function initThree() {
 function onXrSession(on) {
   xrPresenting = !!on;
   if (on) {
+    if (scene) {
+      scene.fog = null;
+      scene.background = new THREE.Color(0x6a90b4);
+    }
+    if (hemi) hemi.intensity = 1.35;
+    if (amb) amb.intensity = 0.9;
+    if (sun) sun.intensity = Math.max(sun.intensity, 0.6);
+    renderer.setClearColor(0x6a90b4, 1);
+    if ($("start")) $("start").hidden = true;
+    if ($("hud")) $("hud").hidden = false;
     if (wristGold && hands[0]) {
       wristGold.removeFromParent();
       wristGold.position.set(0, -0.06, 0.08);
       wristGold.scale.set(0.18, 0.045, 1);
       hands[0].grip.add(wristGold);
     }
+    applyXrStage();
     if (!running) {
       const first = bakedMaps()[0];
       enterMap(first ? first.id : "proc");
@@ -181,6 +199,13 @@ function onXrSession(on) {
     if (camera) camera.add(wristGold);
     if (stage) stage.position.set(0, 0, 0);
   }
+}
+
+function applyXrStage() {
+  if (!xrPresenting || !stage) return;
+  const eye = player.crouch ? 0.9 : EYE;
+  const floor = (player.y || EYE) - eye;
+  stage.position.set(-(player.x || 0), -floor, -(player.z || 0));
 }
 
 function clearWorld() {
@@ -266,6 +291,7 @@ function placePlayer() {
   setHeld(null);
   camera.position.set(player.x, player.y, player.z);
   camera.quaternion.setFromEuler(new THREE.Euler(0, yaw, 0, "YXZ"));
+  applyXrStage();
   return true;
 }
 
@@ -711,10 +737,7 @@ function physics(dt, xr) {
 
   if (tryUnlock(extras || { doors: [] }, player, inv.filter((i) => i.id === "key").map((i) => i.keyId))) setMsg("Unlocked");
 
-  if (xrPresenting && stage) {
-    const floor = player.y - eye;
-    stage.position.set(-player.x, -floor, -player.z);
-  } else {
+  if (!xrPresenting) {
     if (stage) stage.position.set(0, 0, 0);
     camera.position.set(player.x, player.y, player.z);
   }
@@ -839,6 +862,7 @@ function loop(time) {
     drawMinimap();
     hudBars();
   }
+  if (xrPresenting) applyXrStage();
   if (renderer && scene) renderer.render(scene, camera);
 }
 

@@ -21,6 +21,11 @@
       iframe { inset: 48px 0 0 0; height: calc(100% - 48px); }
     }
   </style>
+  <script>
+    if (/Quest|OculusBrowser|Oculus|Pacific/i.test(navigator.userAgent || "")) {
+      location.replace("/games/character-chess/chess-static.html" + location.search);
+    }
+  </script>
 </head>
 <body>
   <div class="bar">

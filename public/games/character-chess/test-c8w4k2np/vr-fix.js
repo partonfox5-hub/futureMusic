@@ -1,12 +1,13 @@
 /**
- * Creature Chess field VR: drop the title-menu "VR field" button, and start
- * WebXR on the same click as the field HUD button (Quest drops the gesture if
- * we wait for the 3D canvas first). No DOM overlay — that hangs or blacks out
- * in the Quest browser.
+ * Creature Chess Quest VR:
+ * - Request the session on the same tap (Quest drops the gesture if we wait).
+ * - Never use DOM overlay (hangs / blacks out in Quest Browser).
+ * - Break out of the /chess iframe before starting XR.
+ * - Freeze renderer setSize/pixelRatio while presenting so the XR layer stays valid.
  */
-const TEST_PATH = window.location.pathname || "/games/character-chess/chess-static.html";
+const FULL_PATH = "/games/character-chess/chess-static.html";
 const SESSION_MS = 25000;
-const GL_MS = 20000;
+const GL_MS = 25000;
 
 let liveSession = null;
 let patched = false;
@@ -27,16 +28,19 @@ function chip(text, kind) {
   el.textContent = text;
 }
 
+function isVrButton(btn) {
+  if (!btn) return false;
+  const aria = (btn.getAttribute("aria-label") || "").trim();
+  if (aria === "Enter VR" || aria === "Exit VR") return true;
+  const label = (btn.textContent || "").replace(/\s+/g, " ").trim();
+  return label === "VR field" || label === "Starting VR…" || label === "Starting VR..." || label === "Exit VR" || label === "ENTER VR";
+}
+
 function hideTitleVr() {
   for (const btn of document.querySelectorAll("button")) {
-    if (btn.getAttribute("aria-label") === "Enter VR" || btn.getAttribute("aria-label") === "Exit VR") {
-      continue;
-    }
     const label = (btn.textContent || "").replace(/\s+/g, " ").trim();
-    if (label === "VR field" || label === "Starting VR…" || label === "Starting VR..." || label === "Exit VR") {
+    if (label === "VR field" || label === "Starting VR…" || label === "Starting VR...") {
       btn.classList.add("cc-hide-title-vr");
-      btn.hidden = true;
-      btn.setAttribute("aria-hidden", "true");
     }
   }
 }
@@ -81,7 +85,7 @@ function waitGl(ms) {
         return;
       }
       if (Date.now() - start > ms) {
-        reject(new Error("The 3D field did not finish loading. Stay on the field and try Enter VR again."));
+        reject(new Error("The 3D board did not finish loading. Stay on the field and tap Enter VR again."));
         return;
       }
       requestAnimationFrame(tick);
@@ -96,7 +100,7 @@ function stripOverlay(xr) {
   const orig = xr.requestSession.bind(xr);
   xr.requestSession = function (mode, opts) {
     const next = Object.assign({}, opts || {});
-    const extra = [...(next.optionalFeatures || [])].filter((f) => f !== "dom-overlay");
+    const extra = [...(next.optionalFeatures || [])].filter((f) => f !== "dom-overlay" && f !== "hand-tracking");
     if (!extra.includes("local-floor")) extra.push("local-floor");
     next.optionalFeatures = extra;
     delete next.domOverlay;
@@ -132,6 +136,37 @@ function waitGame() {
   });
 }
 
+function inIframe() {
+  try {
+    return window.top !== window;
+  } catch {
+    return true;
+  }
+}
+
+function breakOutForVr() {
+  const url = `${window.location.origin}${FULL_PATH}?vr=1`;
+  try {
+    window.top.location.href = url;
+  } catch {
+    window.location.href = url;
+  }
+}
+
+function hardenRenderer(gl) {
+  try {
+    gl.setPixelRatio(1);
+  } catch {}
+  if (!gl.__ccSizeGuard && typeof gl.setSize === "function") {
+    gl.__ccSizeGuard = true;
+    const orig = gl.setSize.bind(gl);
+    gl.setSize = function (...args) {
+      if (gl.xr && gl.xr.isPresenting) return;
+      return orig(...args);
+    };
+  }
+}
+
 function resetVr(store, error) {
   const alpha = !!store.getState().alphaUnlocked;
   liveSession = null;
@@ -157,20 +192,17 @@ async function attachSession(store, session) {
     gl.xr.setReferenceSpaceType("local-floor");
   } catch {}
   try {
+    gl.xr.setFramebufferScaleFactor(1);
+  } catch {}
+  hardenRenderer(gl);
+  try {
     const ctx = gl.getContext?.();
     if (ctx?.makeXRCompatible) await ctx.makeXRCompatible();
   } catch {}
   await gl.xr.setSession(session);
+  hardenRenderer(gl);
   store.setState({ vrBusy: false, vrActive: true, field3d: true, vrError: "" });
   chip("");
-}
-
-function inIframe() {
-  try {
-    return window.top !== window;
-  } catch {
-    return true;
-  }
 }
 
 function patchStore(store) {
@@ -184,11 +216,7 @@ function patchStore(store) {
       if (st.vrBusy || st.vrActive) return;
 
       if (inIframe()) {
-        try {
-          window.top.location.href = `${window.location.origin}${TEST_PATH}`;
-        } catch {
-          resetVr(store, "VR needs this full page. Open the test URL directly in the Quest browser.");
-        }
+        breakOutForVr();
         return;
       }
 
@@ -206,13 +234,13 @@ function patchStore(store) {
         vrActive: true,
         field3d: true,
       });
-      chip("Look at the headset prompt, then keep the field on screen…");
+      chip("Put the headset on — starting the board in VR…");
 
       try {
         const session = await race(
           sessionPromise,
           SESSION_MS,
-          "The headset did not start VR. Use this full-page test (not the framed /chess window) and tap Enter VR once."
+          "The headset did not start VR. Open Creature Chess full-page (not inside the site chrome) and tap Enter VR once."
         );
         await attachSession(store, session);
       } catch (err) {
@@ -241,14 +269,19 @@ document.addEventListener(
   "click",
   (ev) => {
     const btn = ev.target.closest?.("button");
-    if (!btn) return;
-    const aria = btn.getAttribute("aria-label");
-    if (aria === "Enter VR" || aria === "Exit VR") return;
+    if (!isVrButton(btn)) return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    const store = window.__game;
+    if (!store?.getState) return;
+    const st = store.getState();
+    const aria = (btn.getAttribute("aria-label") || "").trim();
     const label = (btn.textContent || "").replace(/\s+/g, " ").trim();
-    if (label === "VR field" || label === "Starting VR…" || label === "Starting VR...") {
-      ev.preventDefault();
-      ev.stopPropagation();
+    if (st.vrActive || aria === "Exit VR" || label === "Exit VR") {
+      st.exitVr?.();
+      return;
     }
+    st.enterVr?.();
   },
   true
 );
@@ -261,4 +294,8 @@ waitGame().then((store) => {
   if (navigator.xr) store.setState({ vrSupported: true });
   patchStore(store);
   hideTitleVr();
+  const q = new URLSearchParams(location.search);
+  if (q.get("vr") === "1" && navigator.xr) {
+    window.setTimeout(() => store.getState().enterVr?.(), 400);
+  }
 });

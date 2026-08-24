@@ -768,6 +768,11 @@ app.get('/chess', async (req, res) => {
             console.warn('[CHESS] success verify:', e.message);
         }
     }
+    const ua = String(req.get('user-agent') || '');
+    if (/Quest|OculusBrowser|Oculus|Pacific/i.test(ua)) {
+        const q = sessionId ? ('?session_id=' + encodeURIComponent(sessionId)) : '';
+        return res.redirect('/games/character-chess/chess-static.html' + q);
+    }
     res.render('chess', {
         ...seo.page('chess'),
         sessionId,
