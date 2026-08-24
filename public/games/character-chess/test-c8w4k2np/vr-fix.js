@@ -4,7 +4,7 @@
  * we wait for the 3D canvas first). No DOM overlay — that hangs or blacks out
  * in the Quest browser.
  */
-const TEST_PATH = "/test-c8w4k2np";
+const TEST_PATH = window.location.pathname || "/games/character-chess/chess-static.html";
 const SESSION_MS = 25000;
 const GL_MS = 20000;
 
