@@ -94,6 +94,12 @@ const FN = {
   cycle() {
     beep("square", 520, 0.06, 0.04, 780);
   },
+  key() { beep("sine", 980, 0.12, 0.09, 1480); beep("triangle", 1320, 0.1, 0.05, 1760); },
+  wep() { beep("square", 280, 0.1, 0.07, 420); beep("sine", 660, 0.12, 0.05, 880); },
+  orb() { beep("sine", 520, 0.14, 0.08, 1040); beep("triangle", 880, 0.16, 0.05, 1480); },
+  splash() { noise(0.16, 0.08, 480); beep("sine", 220, 0.12, 0.04, 90); },
+  charge() { beep("sawtooth", 180, 0.08, 0.04, 420); },
+  talk() { beep("sine", 340, 0.08, 0.05, 280); },
   fire() {
     noise(0.12, 0.06, 500);
     beep("sawtooth", 310, 0.1, 0.05, 120);

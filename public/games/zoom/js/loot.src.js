@@ -1,6 +1,6 @@
 /** Coin/gem showers, chime, wrist gold counter. */
 import * as THREE from "three";
-import { LOOT } from "./config.js?v=sw1";
+import { LOOT } from "./config.js?v=sw2";
 
 const LS = "zoom.gold";
 const TEX = {};
@@ -53,7 +53,7 @@ export function lootForEnemy(def) {
   const power = (def?.hp || 5) + (def?.dmg || 8);
   const drops = [];
   const coins = 4 + Math.floor(power * 0.7) + ((Math.random() * 5) | 0);
-  for (let i = 0; i < coins; i++) drops.push("coin");
+  for (let i = 0; i < coins; i++) drops.push(Math.random() < 0.16 ? "psyorb" : "coin");
   const bars = Math.min(8, Math.floor(power / 12) + (Math.random() < power / 40 ? 1 : 0));
   for (let i = 0; i < bars; i++) drops.push("goldbar");
   if (power > 22 && Math.random() < Math.min(0.55, power / 80)) drops.push("ruby");
@@ -63,13 +63,39 @@ export function lootForEnemy(def) {
   return drops;
 }
 
+function makePsyOrbTex() {
+  if (makePsyOrbTex._t) return makePsyOrbTex._t;
+  const c = document.createElement("canvas");
+  c.width = c.height = 64;
+  const g = c.getContext("2d");
+  const grd = g.createRadialGradient(32, 32, 4, 32, 32, 30);
+  grd.addColorStop(0, "#f4e8ff");
+  grd.addColorStop(0.35, "#88a0ff");
+  grd.addColorStop(1, "rgba(40,20,90,0)");
+  g.fillStyle = grd;
+  g.beginPath();
+  g.arc(32, 32, 30, 0, Math.PI * 2);
+  g.fill();
+  const t = new THREE.CanvasTexture(c);
+  makePsyOrbTex._t = t;
+  return t;
+}
+
 export function showerLoot(scene, list, x, y, z, kinds) {
   for (const id of kinds) {
-    const def = LOOT.find((l) => l.id === id);
-    if (!def) continue;
-    const mat = new THREE.SpriteMaterial({ map: texOf(id), transparent: true, depthWrite: false });
-    const spr = new THREE.Sprite(mat);
-    const s = def.scale || 0.35;
+    let spr;
+    let value = 0;
+    let s = 0.35;
+    if (id === "psyorb") {
+      spr = new THREE.Sprite(new THREE.SpriteMaterial({ map: makePsyOrbTex(), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+      s = 0.38;
+    } else {
+      const def = LOOT.find((l) => l.id === id);
+      if (!def) continue;
+      value = def.value;
+      s = def.scale || 0.35;
+      spr = new THREE.Sprite(new THREE.SpriteMaterial({ map: texOf(id), transparent: true, depthWrite: false }));
+    }
     spr.scale.set(s, s, 1);
     spr.position.set(x + (Math.random() - 0.5) * 0.2, y + 0.4 + Math.random() * 0.3, z + (Math.random() - 0.5) * 0.2);
     scene.add(spr);
@@ -78,7 +104,7 @@ export function showerLoot(scene, list, x, y, z, kinds) {
     list.push({
       mesh: spr,
       id,
-      value: def.value,
+      value,
       vx: Math.cos(ang) * sp,
       vy: 5.5 + Math.random() * 4.5,
       vz: Math.sin(ang) * sp,
@@ -112,10 +138,19 @@ export function tickLoot(list, dt, player, onPickup) {
     L.mesh.material.rotation = (L.mesh.material.rotation || 0) + dt * 3;
     const d = Math.hypot(L.mesh.position.x - px, L.mesh.position.z - pz);
     const dy = Math.abs(L.mesh.position.y - (py - 0.6));
-    if (d < 1.15 && dy < 1.4) {
+    const mag = 1.85;
+    if (d < mag && d > 0.12) {
+      const pull = (mag - d) * 9 * dt;
+      L.mesh.position.x += ((px - L.mesh.position.x) / (d || 1)) * pull;
+      L.mesh.position.z += ((pz - L.mesh.position.z) / (d || 1)) * pull;
+      L.mesh.position.y += ((py - 0.5 - L.mesh.position.y) * 0.08);
+      L.grounded = false;
+    }
+    if (d < 0.95 && dy < 1.4) {
       L.taken = true;
-      chime(L.value);
-      onPickup(L.value);
+      if (L.id === "psyorb") chime(90);
+      else chime(L.value);
+      onPickup(L);
       L.mesh.removeFromParent();
       list.splice(i, 1);
       continue;

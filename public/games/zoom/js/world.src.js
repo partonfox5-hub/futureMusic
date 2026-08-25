@@ -5,12 +5,14 @@ import {
   EYE,
   FLAG_SPIKE,
   FLAG_UNSTABLE,
+  LIQ_LAVA,
+  LIQ_WATER,
   PORTAL_COLORS,
   STORY_H,
   STORIES,
   WALL_TEX,
-} from "./config.js?v=sw1";
-import { cellI, climbHoleFloor, climbHoleRoof, enclosedFloors, idx, inBounds, sdf3, wallIsCrack, wallTexId } from "./map.js?v=sw1";
+} from "./config.js?v=sw2";
+import { cellI, climbHoleFloor, climbHoleRoof, enclosedFloors, idx, inBounds, sdf3, wallIsCrack, wallTexId } from "./map.js?v=sw2";
 
 function mat(hex, extra) {
   return new THREE.MeshLambertMaterial({ color: hex, ...extra });
@@ -373,7 +375,7 @@ function openingAt(map, x, z, story) {
 export function buildWorld(map, dungeon, scene) {
   const group = new THREE.Group();
   group.name = "world";
-  const extras = { crushers: [], turrets: [], ropes: [], portals: [], doors: [], windows: [], liquids: [], spikes: [], climbs: [], caveins: [], unstables: [], horizon: null, boulders: [], vendors: [], crackedWalls: [], rumbles: [], root: group };
+  const extras = { crushers: [], turrets: [], ropes: [], portals: [], doors: [], windows: [], liquids: [], spikes: [], climbs: [], caveins: [], unstables: [], horizon: null, boulders: [], vendors: [], crackedWalls: [], rumbles: [], ripples: [], root: group, liqT: 0 };
 
   const spikeGeo = new THREE.ConeGeometry(0.12, 0.7, 5);
   const spikeMat = mat(0x8a9098, { emissive: 0x222 });
@@ -392,19 +394,19 @@ export function buildWorld(map, dungeon, scene) {
     }
   }
 
-  const waterM = mat(0x2a6aaa, { transparent: true, opacity: 0.55, emissive: 0x123050 });
-  const lavaM = mat(0xff5511, { emissive: 0xff2200, transparent: true, opacity: 0.88 });
+  const waterM = waterMat();
+  const lavaM = lavaMat();
   if (map.liquid) {
     for (let z = 0; z < map.h; z++) {
       for (let x = 0; x < map.w; x++) {
         const liq = map.liquid[idx(map, x, z)];
         if (!liq) continue;
         const y0 = ((map.elev && map.elev[idx(map, x, z)]) || 0) * EYE;
-        const m = new THREE.Mesh(new THREE.PlaneGeometry(CELL, CELL), liq === 2 ? lavaM : waterM);
+        const m = new THREE.Mesh(new THREE.PlaneGeometry(CELL, CELL, 4, 4), liq === 2 ? lavaM : waterM);
         m.rotation.x = -Math.PI / 2;
         m.position.set((x + 0.5) * CELL, y0 + 0.12, (z + 0.5) * CELL);
         group.add(m);
-        extras.liquids.push({ x: (x + 0.5) * CELL, z: (z + 0.5) * CELL, kind: liq, y: y0 + 0.12 });
+        extras.liquids.push({ x: (x + 0.5) * CELL, z: (z + 0.5) * CELL, kind: liq, y: y0 + 0.12, mesh: m });
       }
     }
   }
@@ -435,6 +437,8 @@ export function buildWorld(map, dungeon, scene) {
                 story,
                 tex: wallTexId(tid),
                 yBase,
+                hp: 3,
+                maxHp: 3,
               });
             }
           } else {
@@ -606,6 +610,8 @@ export function buildWorld(map, dungeon, scene) {
       speed0: 7.125,
       r: 0.92,
       trigger: b.trigger || 5.2,
+      hp: 4,
+      maxHp: 4,
     });
   }
 
@@ -624,18 +630,41 @@ export function buildWorld(map, dungeon, scene) {
 
 function makeVending() {
   const g = new THREE.Group();
-  const body = new THREE.Mesh(new THREE.BoxGeometry(0.85, 1.7, 0.7), mat(0x3a4250));
-  body.position.y = 0.85;
+  const body = new THREE.Mesh(new THREE.BoxGeometry(1.35, 2.45, 0.95), mat(0x1e2a38));
+  body.position.y = 1.22;
+  const stripe = new THREE.Mesh(new THREE.BoxGeometry(1.38, 0.18, 0.98), mat(0xc42b2b, { emissive: 0x400000 }));
+  stripe.position.y = 2.28;
+  const brand = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.16, 0.08), mat(0xffee88, { emissive: 0x665500 }));
+  brand.position.set(0, 2.28, 0.48);
   const glass = new THREE.Mesh(
-    new THREE.BoxGeometry(0.62, 0.95, 0.06),
-    mat(0x66ccff, { transparent: true, opacity: 0.35, emissive: 0x113344 }),
+    new THREE.BoxGeometry(1.05, 1.35, 0.05),
+    mat(0x88d8ff, { transparent: true, opacity: 0.28, emissive: 0x113344 }),
   );
-  glass.position.set(0, 1.05, 0.34);
-  const slot = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.08, 0.08), mat(0xc4a050, { emissive: 0x3a2a08 }));
-  slot.position.set(0.18, 0.32, 0.36);
-  const lamp = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.08, 0.12), mat(0xffcc66, { emissive: 0xaa8800 }));
-  lamp.position.set(0, 1.66, 0.28);
-  g.add(body, glass, slot, lamp);
+  glass.position.set(0, 1.35, 0.48);
+  const cols = [0xff4466, 0x44ddaa, 0xffcc44, 0x6688ff];
+  for (let row = 0; row < 4; row++) {
+    for (let col = 0; col < 3; col++) {
+      const can = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.18, 8), mat(cols[(row + col) % cols.length], { emissive: 0x111 }));
+      can.position.set(-0.32 + col * 0.32, 1.78 - row * 0.28, 0.38);
+      g.add(can);
+    }
+  }
+  const tray = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.12, 0.22), mat(0x111418));
+  tray.position.set(0, 0.42, 0.48);
+  const keypad = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.42, 0.06), mat(0x2a3038));
+  keypad.position.set(0.48, 0.72, 0.5);
+  for (let i = 0; i < 9; i++) {
+    const btn = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 0.03), mat(i === 4 ? 0xffcc66 : 0x8899aa, { emissive: i === 4 ? 0x664400 : 0 }));
+    btn.position.set(0.42 + (i % 3) * 0.07, 0.86 - Math.floor(i / 3) * 0.08, 0.54);
+    g.add(btn);
+  }
+  const coin = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.04, 0.04), mat(0xc4a050, { emissive: 0x3a2a08 }));
+  coin.position.set(0.48, 0.48, 0.52);
+  const lamp = new THREE.PointLight(0xffcc88, 0.7, 5, 2);
+  lamp.position.set(0, 2.2, 0.6);
+  const base = new THREE.Mesh(new THREE.BoxGeometry(1.42, 0.12, 1.02), mat(0x12161c));
+  base.position.y = 0.06;
+  g.add(body, stripe, brand, glass, tray, keypad, coin, lamp, base);
   return g;
 }
 
@@ -656,7 +685,7 @@ function wallFacing(map, x, z, story) {
   const has = (gx, gz) => inBounds(map, gx, gz) && wall[idx(map, gx, gz)];
   const alongX = (has(x - 1, z) ? 1 : 0) + (has(x + 1, z) ? 1 : 0);
   const alongZ = (has(x, z - 1) ? 1 : 0) + (has(x, z + 1) ? 1 : 0);
-  return alongZ > alongX ? Math.PI / 2 : 0;
+  return alongZ > alongX ? 0 : Math.PI / 2;
 }
 
 function addOpening(group, extras, open, x, z, yBase, wm, map) {
@@ -705,15 +734,16 @@ function addOpening(group, extras, open, x, z, yBase, wm, map) {
   hinge.position.set(px, yBase + doorH * 0.5, pz);
   hinge.rotation.y = yaw;
   const door = new THREE.Mesh(
-    new THREE.BoxGeometry(CELL * 0.7, doorH - 0.04, 0.07),
+    new THREE.BoxGeometry(CELL * 0.96, doorH - 0.04, 0.09),
     mat(open.locked ? 0x4a2818 : 0x6a4428),
   );
-  door.position.x = CELL * 0.35;
+  door.position.x = 0;
   hinge.add(door);
+  let lockIcon = null;
   if (open.locked) {
-    const bar = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 0.1), mat(0xc4a050, { emissive: 0x3a2a08 }));
-    bar.position.set(CELL * 0.55, 0, 0.06);
-    hinge.add(bar);
+    lockIcon = makeLockIcon();
+    lockIcon.position.set(0, 0.12, 0.42);
+    hinge.add(lockIcon);
   }
   group.add(hinge);
   extras.doors.push({
@@ -727,7 +757,86 @@ function addOpening(group, extras, open, x, z, yBase, wm, map) {
     open: false,
     story: open.story || 0,
     ref: open,
+    lockIcon,
   });
+}
+
+function makeLockIcon() {
+  const g = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.14, 0.08), mat(0xc4a050, { emissive: 0x5a3a08 }));
+  const shackle = new THREE.Mesh(
+    new THREE.TorusGeometry(0.07, 0.018, 6, 12, Math.PI),
+    mat(0xe8d080, { emissive: 0x664400 }),
+  );
+  shackle.rotation.x = Math.PI;
+  shackle.position.y = 0.1;
+  const keyhole = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.09, 8), mat(0x1a1008));
+  keyhole.rotation.x = Math.PI / 2;
+  keyhole.position.z = 0.02;
+  g.add(body, shackle, keyhole);
+  g.userData.bob = Math.random() * 6;
+  return g;
+}
+
+const _liqU = { t: { value: 0 } };
+function waterMat() {
+  return new THREE.ShaderMaterial({
+    transparent: true,
+    depthWrite: false,
+    uniforms: { uT: _liqU.t },
+    vertexShader: `uniform float uT; varying vec2 vUv; varying float vW;
+      void main(){
+        vUv = uv;
+        vec3 p = position;
+        vW = sin(uv.x * 12.0 + uT * 1.6) * 0.03 + sin(uv.y * 9.0 + uT * 1.1) * 0.025;
+        p.z += vW;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(p,1.0);
+      }`,
+    fragmentShader: `uniform float uT; varying vec2 vUv; varying float vW;
+      void main(){
+        float r = sin(vUv.x * 18.0 + uT * 2.2) * sin(vUv.y * 14.0 + uT * 1.7);
+        vec3 col = mix(vec3(0.12,0.32,0.48), vec3(0.22,0.48,0.62), 0.5 + 0.5 * r);
+        col += vec3(0.18,0.28,0.32) * vW * 4.0;
+        gl_FragColor = vec4(col, 0.78);
+      }`,
+  });
+}
+function lavaMat() {
+  return new THREE.ShaderMaterial({
+    transparent: true,
+    uniforms: { uT: _liqU.t },
+    vertexShader: `uniform float uT; varying vec2 vUv;
+      void main(){
+        vUv = uv;
+        vec3 p = position;
+        p.z += sin(uv.x * 8.0 + uT * 0.9) * 0.04;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(p,1.0);
+      }`,
+    fragmentShader: `uniform float uT; varying vec2 vUv;
+      void main(){
+        float n = sin(vUv.x * 10.0 + uT * 1.4) * sin(vUv.y * 7.0 - uT * 0.8);
+        float n2 = sin((vUv.x + vUv.y) * 16.0 + uT * 2.1);
+        vec3 dark = vec3(0.18,0.02,0.0);
+        vec3 hot = vec3(1.0,0.42,0.05);
+        vec3 glow = vec3(1.0,0.78,0.25);
+        vec3 col = mix(dark, hot, 0.45 + 0.45 * n);
+        col = mix(col, glow, max(0.0, n2) * 0.35);
+        gl_FragColor = vec4(col, 0.94);
+      }`,
+  });
+}
+
+export function spawnRipple(extras, x, y, z) {
+  if (!extras) return;
+  const ring = new THREE.Mesh(
+    new THREE.RingGeometry(0.08, 0.16, 20),
+    mat(0xa8d8ee, { transparent: true, opacity: 0.55, side: THREE.DoubleSide }),
+  );
+  ring.rotation.x = -Math.PI / 2;
+  ring.position.set(x, y + 0.02, z);
+  (extras.root || ring).add(ring);
+  extras.ripples = extras.ripples || [];
+  extras.ripples.push({ mesh: ring, life: 0.7, max: 0.7 });
 }
 
 export function wallBlocked(map, x, z, y) {
@@ -851,8 +960,50 @@ export function tickWorld(extras, dt, player, foes, onHit, scene, camera, map, s
       extras._flames.splice(i, 1);
     }
   }
+  extras.liqT = (extras.liqT || 0) + dt;
+  _liqU.t.value = extras.liqT;
   if (map) tickCaveIn(extras, dt, player, map, scene, onHit);
   if (map) tickBoulders(extras, dt, player, map, sdf2, onHit);
+  for (const d of extras.doors || []) {
+    if (d.lockIcon && d.lockIcon.visible) {
+      d.lockIcon.userData.bob = (d.lockIcon.userData.bob || 0) + dt;
+      d.lockIcon.position.y = 0.12 + Math.sin(d.lockIcon.userData.bob * 2.4) * 0.06;
+      d.lockIcon.rotation.y += dt * 1.2;
+    }
+  }
+  extras.ripples = extras.ripples || [];
+  for (let i = extras.ripples.length - 1; i >= 0; i--) {
+    const r = extras.ripples[i];
+    r.life -= dt;
+    const k = 1 - r.life / r.max;
+    r.mesh.scale.setScalar(1 + k * 6);
+    if (r.mesh.material) r.mesh.material.opacity = Math.max(0, 0.5 * (1 - k));
+    if (r.life <= 0) {
+      r.mesh.removeFromParent();
+      extras.ripples.splice(i, 1);
+    }
+  }
+  if (Math.random() < dt * 2.2) {
+    const lavas = (extras.liquids || []).filter((L) => L.kind === LIQ_LAVA);
+    if (lavas.length) {
+      const L = lavas[(Math.random() * lavas.length) | 0];
+      const spr = new THREE.Mesh(
+        new THREE.SphereGeometry(0.04 + Math.random() * 0.05, 6, 5),
+        mat(0xffcc66, { emissive: 0xff6600 }),
+      );
+      spr.position.set(L.x + (Math.random() - 0.5) * 0.7, L.y + 0.05, L.z + (Math.random() - 0.5) * 0.7);
+      (extras.root || scene).add(spr);
+      extras._flames = extras._flames || [];
+      extras._flames.push({
+        mesh: spr,
+        dir: new THREE.Vector3((Math.random() - 0.5) * 0.4, 1.4 + Math.random(), (Math.random() - 0.5) * 0.4),
+        speed: 1.6,
+        life: 0.45 + Math.random() * 0.35,
+        maxLife: 0.7,
+        s0: 0.2,
+      });
+    }
+  }
   for (const p of extras.portals) {
     p.cool = Math.max(0, p.cool - dt);
     p.a.mesh.rotation.y += dt * 1.4;
@@ -1109,6 +1260,7 @@ function collapseCell(map, extras, scene, i, player, onHit) {
 
 function tickBoulders(extras, dt, player, map, sdf2, onHit) {
   for (const b of extras.boulders || []) {
+    if (b.gone || !b.mesh) continue;
     const d = Math.hypot(player.x - b.mesh.position.x, player.z - b.mesh.position.z);
     if (!b.rolling && d < b.trigger) {
       b.rolling = true;
@@ -1171,6 +1323,7 @@ export function tryUnlock(extras, player, keys) {
       d.open = true;
       if (d.ref) d.ref._unlocked = true;
       d.mesh.rotation.y = (d.yaw || 0) + 1.85;
+      if (d.lockIcon) d.lockIcon.visible = false;
       return d.keyId;
     }
   }
@@ -1194,12 +1347,46 @@ export function breakWindows(extras, origin, dir, range, parent) {
   return out;
 }
 
-export function shatterCracked(extras, map, pos, radius, parent) {
+function spawnDebris(parent, x, y, z, n, col, force) {
   const out = [];
-  if (!extras?.crackedWalls) return out;
-  const r2 = radius * radius;
-  for (const w of extras.crackedWalls) {
+  for (let i = 0; i < n; i++) {
+    const bit = new THREE.Mesh(
+      new THREE.BoxGeometry(0.16 + Math.random() * 0.28, 0.12 + Math.random() * 0.24, 0.14 + Math.random() * 0.24),
+      mat(col),
+    );
+    bit.position.set(x + (Math.random() - 0.5) * 0.55, y + (Math.random() - 0.4) * 0.7, z + (Math.random() - 0.5) * 0.55);
+    bit.rotation.set(Math.random(), Math.random(), Math.random());
+    parent.add(bit);
+    bit.userData.phys = {
+      mass: 4,
+      r: 0.18,
+      h: 0.2,
+      vx: (Math.random() - 0.5) * force,
+      vy: 2.5 + Math.random() * 4.5,
+      vz: (Math.random() - 0.5) * force,
+      held: false,
+      slam: 0,
+    };
+    bit.userData.kind = "debris";
+    out.push(bit);
+  }
+  return out;
+}
+
+export function shatterCracked(extras, map, pos, radius, parent) {
+  return hurtBreakables(extras, map, pos, radius, 1, parent);
+}
+
+export function hurtBreakables(extras, map, pos, radius, dmg, parent, hitSet) {
+  const out = [];
+  if (!extras) return out;
+  const r = radius || 1.2;
+  const r2 = r * r;
+  const hit = dmg == null ? 1 : dmg;
+  const host = parent || extras.root;
+  for (const w of extras.crackedWalls || []) {
     if (w.gone || !w.mesh) continue;
+    if (hitSet && hitSet.has(w)) continue;
     const wx = (w.gx + 0.5) * CELL;
     const wy = w.yBase + STORY_H * 0.5;
     const wz = (w.gz + 0.5) * CELL;
@@ -1207,41 +1394,34 @@ export function shatterCracked(extras, map, pos, radius, parent) {
     const dy = wy - pos.y;
     const dz = wz - pos.z;
     if (dx * dx + dy * dy + dz * dz > r2) continue;
+    if (hitSet) hitSet.add(w);
+    w.hp = (w.hp == null ? 3 : w.hp) - hit;
+    if (w.mesh.material) {
+      w.mesh.material = w.mesh.material.clone();
+      w.mesh.material.color.multiplyScalar(0.78);
+    }
+    if (w.hp > 0) continue;
     w.gone = true;
     w.mesh.visible = false;
-    if (map.bwalls && map.bwalls[w.story]) map.bwalls[w.story][idx(map, w.gx, w.gz)] = 0;
-    map._floors = null;
-    const col = 0x6a5a48;
-    for (let i = 0; i < 9; i++) {
-      const bit = new THREE.Mesh(
-        new THREE.BoxGeometry(0.18 + Math.random() * 0.22, 0.14 + Math.random() * 0.2, 0.16 + Math.random() * 0.2),
-        mat(col),
-      );
-      bit.position.set(wx + (Math.random() - 0.5) * 0.5, wy + (Math.random() - 0.4) * 0.8, wz + (Math.random() - 0.5) * 0.5);
-      bit.rotation.set(Math.random(), Math.random(), Math.random());
-      parent.add(bit);
-      bit.userData.phys = {
-        mass: 4,
-        r: 0.18,
-        h: 0.2,
-        vx: (Math.random() - 0.5) * 8,
-        vy: 3 + Math.random() * 5,
-        vz: (Math.random() - 0.5) * 8,
-        held: false,
-        slam: 0,
-      };
-      bit.userData.kind = "debris";
-      out.push(bit);
-    }
-    const flash = new THREE.Mesh(
-      new THREE.SphereGeometry(0.55, 8, 6),
-      mat(0xffcc88, { transparent: true, opacity: 0.7, emissive: 0xffaa44 }),
-    );
-    flash.position.set(wx, wy, wz);
-    flash.userData.flash = true;
-    flash.userData.life = 0.22;
-    parent.add(flash);
-    out.push(flash);
+    if (map?.bwalls && map.bwalls[w.story]) map.bwalls[w.story][idx(map, w.gx, w.gz)] = 0;
+    if (map) map._floors = null;
+    if (host) out.push(...spawnDebris(host, wx, wy, wz, 9, 0x6a5a48, 8));
+  }
+  for (const b of extras.boulders || []) {
+    if (b.gone || !b.mesh) continue;
+    if (hitSet && hitSet.has(b)) continue;
+    const dx = b.mesh.position.x - pos.x;
+    const dy = b.mesh.position.y - pos.y;
+    const dz = b.mesh.position.z - pos.z;
+    if (dx * dx + dy * dy + dz * dz > (r + b.r) * (r + b.r)) continue;
+    if (hitSet) hitSet.add(b);
+    b.hp = (b.hp == null ? 4 : b.hp) - hit;
+    b.rolling = true;
+    if (b.hp > 0) continue;
+    b.gone = true;
+    b.mesh.visible = false;
+    if (b.ring) b.ring.visible = false;
+    if (host) out.push(...spawnDebris(host, b.mesh.position.x, b.mesh.position.y, b.mesh.position.z, 11, 0x6a6054, 9));
   }
   return out;
 }

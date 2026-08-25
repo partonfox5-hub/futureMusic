@@ -219,6 +219,8 @@ export function tickXr(renderer, hands, dt) {
     reload: !!(right && right.stick && !right.stickPrev),
     psy: !!(left && left.trigger && !left.triggerPrev),
     psyHeld: !!(left && left.triggerValue > 0.38),
+    psyRelease: !!(left && left.triggerPrev && !left.trigger),
+    psyMode: !!(left && left.aBtn && !left.aPrev),
     saberToggle: !!(right && right.bBtn && !right.bPrev),
     squeezeOn: !!(
       (left && left.squeezeValue > 0.2) ||

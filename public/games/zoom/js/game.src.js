@@ -1,18 +1,19 @@
 import * as THREE from "three";
 import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
-import { BIOMES, CELL, EYE, FLAG_RUMBLE, LIQ_LAVA, LIQ_WATER, PICKUP_BY_ID, SHOP, WEAPON_BY_ID, WEAPONS, routes } from "./config.js?v=sw1";
-import { bakedMaps } from "./defaults.js?v=sw1";
-import { biomeOf, cellI, countCarved, ensureLayers, firstCarved, floorY, sdf3 } from "./map.js?v=sw1";
-import { buildDungeon, prepareSdf } from "./mesh.js?v=sw1";
-import { makeProp, spawnFrom, strikeFoes, tickFoes } from "./props.js?v=sw1";
-import { getMap, listMaps } from "./store.js?v=sw1";
-import { makeProc } from "./proc.js?v=sw1";
-import { buildingFloorY, buildWorld, climbSupport, hurtTurrets, impulseBoulders, layoutRope, makeSky, shatterCracked, smashGlass, tickRubble, tickWorld, tryUnlock, wallBlocked } from "./world.js?v=sw1";
-import { addBurnDecal, addSaberMark, fireWeapon, hurtFoe, makeDualSaber, makeKeyModel, makePickup, makeWeapon, setKillHook, tickBurns, tickShots } from "./weapons.js?v=sw1";
-import { tickRobots } from "./robots.js?v=sw1";
-import { attachXr, tickXr } from "./xr.js?v=sw1";
-import { loadGold, lootForEnemy, makeWristGold, paintWristGold, saveGold, showerLoot, tickLoot } from "./loot.js?v=sw1";
-import { sfx, sfxUnlock } from "./sfx.js?v=sw1";
+import { BIOMES, CELL, EYE, FLAG_RUMBLE, LIQ_LAVA, LIQ_WATER, PICKUP_BY_ID, SHOP, WEAPON_BY_ID, WEAPONS, routes } from "./config.js?v=sw2";
+import { bakedMaps } from "./defaults.js?v=sw2";
+import { biomeOf, cellI, countCarved, ensureLayers, firstCarved, floorY, sdf3 } from "./map.js?v=sw2";
+import { buildDungeon, prepareSdf } from "./mesh.js?v=sw2";
+import { makeProp, spawnFrom, strikeFoes, tickFoes } from "./props.js?v=sw2";
+import { getMap, listMaps } from "./store.js?v=sw2";
+import { makeProc } from "./proc.js?v=sw2";
+import { buildingFloorY, buildWorld, climbSupport, hurtBreakables, hurtTurrets, impulseBoulders, layoutRope, makeSky, smashGlass, spawnRipple, tickRubble, tickWorld, tryUnlock, wallBlocked } from "./world.js?v=sw2";
+import { addBurnDecal, addSaberMark, fireWeapon, hurtFoe, makeDualSaber, makeKeyModel, makePickup, makeWeapon, setKillHook, tickBurns, tickShots } from "./weapons.js?v=sw2";
+import { tickRobots } from "./robots.js?v=sw2";
+import { attachXr, tickXr } from "./xr.js?v=sw2";
+import { loadGold, lootForEnemy, makeWristGold, paintWristGold, saveGold, showerLoot, tickLoot } from "./loot.js?v=sw2";
+import { sfx, sfxUnlock } from "./sfx.js?v=sw2";
+import { makeNpc, nearNpc, tickNpcPose } from "./npcs.js?v=sw2";
 
 const $ = (id) => document.getElementById(id);
 const keys = new Set();
@@ -22,7 +23,7 @@ const lookEuler = new THREE.Euler();
 
 let renderer, scene, camera, clock, controls, hands, stage;
 let map, sdf2, dungeon, extras;
-let player = { x: 0, y: 1.6, z: 0, vx: 0, vy: 0, vz: 0, hp: 100, grounded: false, crouch: false, skate: false, fuel: 0, shield: 0, coins: 0, jumps: 2, dashT: 0, dashCd: 0, haste: 0, rage: 0 };
+let player = { x: 0, y: 1.6, z: 0, vx: 0, vy: 0, vz: 0, hp: 100, grounded: false, crouch: false, skate: false, fuel: 0, shield: 0, coins: 0, jumps: 2, dashT: 0, dashCd: 0, haste: 0, rage: 0, psy: 20 };
 let jumpQueued = false;
 let coyote = 0;
 let foes = [];
@@ -63,6 +64,13 @@ let camShake = 0;
 let rumbleCd = 0;
 let psyCd = 0;
 let psyWaves = [];
+let psyCharge = 0;
+let psyCharging = false;
+let psyMode = "blast";
+let psyChargeMesh = null;
+let talk = null;
+let npcs = [];
+let wasInWater = false;
 let saberPrevTips = [null, null];
 let animId = 0;
 let skyMesh = null;
@@ -91,9 +99,11 @@ function hudBars() {
     (player.fuel > 0 ? "JET " : "") +
     (player.dashT > 0 ? "DASH " : "") +
     (player.haste > 0 ? "HASTE " : "") +
-    "PSY " +
+    "PSY " + (player.psy | 0) + " " + psyMode.toUpperCase() + " " +
     (saberOn ? "SABER " : sheathed ? "HANDS " : "");
   if ($("goldv")) $("goldv").textContent = String(player.coins | 0);
+  if ($("psyv")) $("psyv").textContent = String(player.psy | 0);
+  if ($("psyi")) $("psyi").style.width = Math.min(100, ((player.psy || 20) / 1000) * 100) + "%";
   paintWristGold(wristGold, player.coins);
 }
 
@@ -334,6 +344,15 @@ function placeWorld() {
     pickups.push(g);
   }
   extras = buildWorld(map, dungeon, stage);
+  npcs = [];
+  for (const n of map.npcs || []) {
+    const mesh = makeNpc(n);
+    const y = Math.max(0, floorY(n.x, n.z, map, sdf2));
+    mesh.position.set(n.x, y, n.z);
+    mesh.rotation.y = n.yaw || 0;
+    dungeon.add(mesh);
+    npcs.push({ ...n, mesh, x: n.x, z: n.z, y });
+  }
 }
 
 function placePlayer() {
@@ -364,6 +383,12 @@ function placePlayer() {
   player.dashCd = 0;
   player.haste = 0;
   player.rage = 0;
+  player.psy = 20;
+  psyCharge = 0;
+  psyCharging = false;
+  psyMode = "blast";
+  talk = null;
+  if ($("talk")) $("talk").hidden = true;
   inv = [];
   ownedWeps = [];
   loadoutSlot = 0;
@@ -556,6 +581,7 @@ function takePickup(p) {
   if (kind === "key") {
     inv.push({ id: "key", keyId: p.userData.keyId, name: "Key " + p.userData.keyId });
     setMsg("Picked up a key");
+    sfx("key");
   } else if (kind === "jetpack" || kind === "fuel") {
     player.fuel += def?.fuel || 6;
     setMsg("Fuel +" + (def?.fuel || 6) + "s");
@@ -573,7 +599,7 @@ function takePickup(p) {
     if (!held) { sheathed = false; setHeld(kind); }
     else inv.push({ id: kind, name: WEAPON_BY_ID[kind].name, cat: "weapon" });
     setMsg(WEAPON_BY_ID[kind].name);
-    sfx("grab");
+    sfx("wep");
   } else {
     inv.push({ id: kind, name: def?.name || kind, cat: "item" });
     setMsg(def?.name || kind);
@@ -940,10 +966,26 @@ function physics(dt, xr) {
   if (camShake > 0) camShake = Math.max(0, camShake - dt * 4.2);
   if (rumbleCd > 0) rumbleCd -= dt;
   if (ropeCd > 0) ropeCd -= dt;
-  if (map.liquid && map.liquid[ci] === LIQ_WATER && player.grounded) {
+  let inWater = map.liquid && map.liquid[ci] === LIQ_WATER;
+  if (!inWater && extras?.liquids) {
+    for (const L of extras.liquids) {
+      if (L.kind === LIQ_WATER && Math.hypot(player.x - L.x, player.z - L.z) < CELL * 0.62 && feetY < L.y + 0.35) {
+        inWater = true;
+        break;
+      }
+    }
+  }
+  if (inWater && player.grounded) {
     player.vx *= 0.85;
     player.vz *= 0.85;
   }
+  if (inWater && !wasInWater) {
+    sfx("splash");
+    const L = (extras?.liquids || []).find((q) => q.kind === LIQ_WATER && Math.hypot(player.x - q.x, player.z - q.z) < CELL);
+    spawnRipple(extras, player.x, L ? L.y : feetY, player.z);
+  }
+  wasInWater = !!inWater;
+  player._prevY = player.y;
 
   if (tryUnlock(extras || { doors: [] }, player, inv.filter((i) => i.id === "key").map((i) => i.keyId))) setMsg("Unlocked");
 
@@ -1140,7 +1182,7 @@ function tickVrMenu(xr) {
   }
 }
 
-function tickPickups(xr) {
+function tickPickups(xr, dt = 0.016) {
   const eye = player.crouch ? 0.9 : EYE;
   const handsList = xr && xr.on ? [xr.left, xr.right].filter(Boolean) : [];
   for (const p of pickups) {
@@ -1149,7 +1191,14 @@ function tickPickups(xr) {
     const dx = p.position.x - player.x;
     const dy = p.position.y - (player.y - eye * 0.45);
     const dz = p.position.z - player.z;
-    let hit = Math.hypot(dx, dz) < 0.95 && Math.abs(dy) < 1.35;
+    const dist = Math.hypot(dx, dz);
+    const magR = 1.85;
+    if (dist < magR && dist > 0.12) {
+      const pull = (magR - dist) * 8 * dt;
+      p.position.x -= (dx / dist) * pull;
+      p.position.z -= (dz / dist) * pull;
+    }
+    let hit = dist < 0.95 && Math.abs(dy) < 1.35;
     if (!hit) {
       p.getWorldPosition(tmp);
       for (const h of handsList) {
@@ -1205,7 +1254,7 @@ function flingAt(pos, dir, radius, force, slam, hitSet) {
     for (const b of glass) if (b.userData.phys) physBodies.push(b);
     if (glass.length) sfx("glass");
     if (impulseBoulders(extras, pos, dir, 9 + slam * 0.2, r + 1.1)) sfx("boom");
-    const bits = shatterCracked(extras, map, pos, r + 0.35, stage || scene);
+    const bits = hurtBreakables(extras, map, pos, r + 0.55, 1, stage || scene);
     for (const b of bits) {
       if (b.userData.phys) physBodies.push(b);
       else if (b.userData.flash) psyWaves.push({ mesh: b, dir: new THREE.Vector3(), speed: 0, life: 0.2, r: 0, hit: new Set(), dummy: true });
@@ -1223,9 +1272,63 @@ function orientPsyRing(ring, dir) {
   ring.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(xAxis, yAxis, d));
 }
 
-function firePsy(xr) {
-  if (psyCd > 0) return;
-  psyCd = 0.42;
+function unlockedPsyModes() {
+  const m = ["blast"];
+  if ((player.psy | 0) >= 100) m.push("beam");
+  if ((player.psy | 0) >= 200) m.push("tide");
+  return m;
+}
+
+function cyclePsyMode() {
+  const m = unlockedPsyModes();
+  const i = Math.max(0, m.indexOf(psyMode));
+  psyMode = m[(i + 1) % m.length];
+  sfx("cycle");
+  setMsg("Psy: " + (psyMode === "blast" ? "rings" : psyMode === "beam" ? "beam" : "tidal wave"));
+}
+
+function tickPsyInput(xr, dt) {
+  const holding = (xr && xr.on && xr.psyHeld && !xr.dash) || keys.has("KeyX");
+  const released = (xr && xr.on && xr.psyRelease) || (!holding && psyCharging);
+  if (talk) return;
+  if (psyMode === "beam" && (player.psy | 0) >= 100) {
+    if (holding && psyCd <= 0) firePsy(xr, 0);
+    psyCharging = false;
+    psyCharge = 0;
+    if (psyChargeMesh) psyChargeMesh.visible = false;
+    return;
+  }
+  if (holding) {
+    if (!psyCharging) sfx("charge");
+    psyCharging = true;
+    psyCharge = Math.min(3, psyCharge + dt);
+    const { origin, dir } = psyAim(xr);
+    if (!psyChargeMesh) {
+      psyChargeMesh = new THREE.Mesh(
+        new THREE.TorusGeometry(0.16, 0.02, 8, 24),
+        new THREE.MeshBasicMaterial({ color: 0xb388ff, transparent: true, opacity: 0.7, side: THREE.DoubleSide }),
+      );
+      (stage || scene).add(psyChargeMesh);
+    }
+    psyChargeMesh.visible = true;
+    const k = 0.4 + (psyCharge / 3) * 1.4;
+    psyChargeMesh.scale.setScalar(k);
+    psyChargeMesh.position.copy(origin).addScaledVector(dir, 0.25);
+    orientPsyRing(psyChargeMesh, dir);
+  } else if (released && psyCharging) {
+    const ch = psyCharge;
+    psyCharging = false;
+    psyCharge = 0;
+    if (psyChargeMesh) psyChargeMesh.visible = false;
+    firePsy(xr, ch);
+  } else {
+    psyCharging = false;
+    psyCharge = 0;
+    if (psyChargeMesh) psyChargeMesh.visible = false;
+  }
+}
+
+function psyAim(xr) {
   const origin = new THREE.Vector3();
   const dir = new THREE.Vector3(0, 0, -1);
   const hand = xr && xr.on && xr.left;
@@ -1242,19 +1345,74 @@ function firePsy(xr) {
     const p2 = stage.worldToLocal(worldTip);
     dir.copy(p2.sub(origin)).normalize();
   }
+  return { origin, dir };
+}
+
+function effectivePsy(charge) {
+  const p = Math.max(20, Math.min(1000, player.psy || 20));
+  const mul = 1 + 2 * Math.max(0, Math.min(1, charge / 3));
+  return p * mul;
+}
+
+function firePsy(xr, charge = 0) {
+  if (psyCd > 0) return;
+  const p = effectivePsy(charge);
+  const scale = p / 100;
+  const originDir = psyAim(xr);
+  const origin = originDir.origin;
+  const dir = originDir.dir;
+  psyCd = Math.max(0.14, 0.55 * (80 / p));
+  if (psyMode === "beam" && (player.psy | 0) >= 100) {
+    const beam = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.04 * scale, 0.02 * scale, 9 * Math.min(2.4, 0.7 + scale), 8),
+      new THREE.MeshBasicMaterial({ color: 0x99eeff, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false }),
+    );
+    beam.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
+    beam.position.copy(origin).addScaledVector(dir, 4.5 * Math.min(1.2, 0.5 + scale * 0.3));
+    (stage || scene).add(beam);
+    psyWaves.push({ mesh: beam, dir: dir.clone(), speed: 0, life: 0.12, r: 0.35 * scale, hit: new Set(), dummy: false, slam: 8 + p * 0.06, force: 6 + scale * 4, beam: true });
+    sfx("psy");
+    setMsg("Psybeam");
+    return;
+  }
+  if (psyMode === "tide" && (player.psy | 0) >= 200) {
+    const disc = new THREE.Mesh(
+      new THREE.RingGeometry(0.2, 0.55 * scale, 28),
+      new THREE.MeshBasicMaterial({ color: 0x66a0ff, transparent: true, opacity: 0.8, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false }),
+    );
+    disc.rotation.x = -Math.PI / 2;
+    disc.position.copy(origin);
+    disc.position.y -= 0.2;
+    (stage || scene).add(disc);
+    psyWaves.push({ mesh: disc, dir: new THREE.Vector3(0, 0, 0), speed: 0, life: 0.7, r: 0.6 * scale, hit: new Set(), dummy: false, slam: 12 + p * 0.08, force: 10 + scale * 5, tide: true, grow: 9 * scale });
+    sfx("psy");
+    setMsg("Psionic tide");
+    return;
+  }
   for (let i = 0; i < 3; i++) {
     const ring = new THREE.Mesh(
-      new THREE.TorusGeometry(0.18 + i * 0.05, 0.024, 8, 28),
+      new THREE.TorusGeometry((0.18 + i * 0.05) * scale, 0.024 * Math.max(0.35, scale), 8, 28),
       new THREE.MeshBasicMaterial({ color: i % 2 ? 0x66eeff : 0xb388ff, transparent: true, opacity: 0.9, side: THREE.DoubleSide }),
     );
-    ring.scale.set(0.42, 1.55, 1);
+    ring.scale.set(0.42 * scale, 1.55 * scale, 1);
     ring.position.copy(origin).addScaledVector(dir, 0.12 + i * 0.09);
     orientPsyRing(ring, dir);
     (stage || scene).add(ring);
-    psyWaves.push({ mesh: ring, dir: dir.clone(), speed: 12 + i * 1.2, life: 0.58, r: 0.38 + i * 0.08, hit: new Set() });
+    psyWaves.push({
+      mesh: ring,
+      dir: dir.clone(),
+      speed: (12 + i * 1.2) * (0.55 + scale * 0.45),
+      life: 0.58,
+      r: (0.38 + i * 0.08) * scale,
+      hit: new Set(),
+      slam: 8 + p * 0.07,
+      force: 6 + scale * 4,
+      s0: 0.42 * scale,
+      s1: 1.55 * scale,
+    });
   }
   sfx("psy");
-  setMsg("Psyblast");
+  setMsg(charge >= 2.7 ? "Charged psyblast" : "Psyblast");
 }
 
 function tickPsy(dt) {
@@ -1266,10 +1424,21 @@ function tickPsy(dt) {
     if (w.mesh.material) w.mesh.material.opacity = Math.max(0, w.life * 1.6);
     if (w.dummy) {
       w.mesh.scale.addScalar(dt * 6);
+    } else if (w.tide) {
+      w.r += dt * (w.grow || 8);
+      const s = Math.max(0.2, w.r);
+      w.mesh.scale.set(s, s, 1);
+      flingAt(w.mesh.position, new THREE.Vector3(0, 1, 0), w.r, w.force || 10, w.slam || 14, w.hit);
+    } else if (w.beam) {
+      flingAt(w.mesh.position, w.dir, w.r + 0.4, w.force || 8, w.slam || 12, w.hit);
     } else {
       const grow = 1 + (0.58 - w.life) * 1.8;
-      w.mesh.scale.set(0.42 * grow, 1.55 * grow, 1);
-      flingAt(w.mesh.position, w.dir, w.r, 9.5, 14, w.hit);
+      w.mesh.scale.set((w.s0 || 0.42) * grow, (w.s1 || 1.55) * grow, 1);
+      flingAt(w.mesh.position, w.dir, w.r, w.force || 9.5, w.slam || 14, w.hit);
+    }
+    if (extras && !w.dummy) {
+      const bits = hurtBreakables(extras, map, w.mesh.position, (w.r || 0.5) + 0.45, 1, stage || scene, w.hit);
+      for (const b of bits) if (b.userData?.phys) physBodies.push(b);
     }
     if (w.life <= 0) {
       w.mesh.removeFromParent();
@@ -1444,6 +1613,11 @@ function xrGrab(xr) {
   for (const h of [xr.left, xr.right]) {
     if (!h) continue;
     if (h.squeeze && !h.squeezePrev) {
+      const n = nearNpc(npcs, player);
+      if (n && !grabNearest(h)) {
+        openTalk(n);
+        continue;
+      }
       const target = grabNearest(h);
       if (target && target.userData.phys) {
         target.userData.phys.held = true;
@@ -1451,21 +1625,23 @@ function xrGrab(xr) {
         h.held = { kind: "phys", mesh: target };
         setMsg("Holding " + (target.userData.kind || "object"));
       } else if (target && target.userData.pickup) {
+        const kind = target.userData.pickup;
         takePickup(target);
-        if (WEAPON_BY_ID[target.userData.pickup]) {
-          const w = makeWeapon(target.userData.pickup);
-          h.con.add(w);
-          h.held = { id: target.userData.pickup, mesh: w, kind: "wep" };
+        if (WEAPON_BY_ID[kind] && (!held || sheathed)) {
+          sheathed = false;
+          setHeld(kind);
+          attachHandWep(xr, kind);
         }
       } else {
         for (const p of pickups) {
           if (!p.visible) continue;
           if (h.pos.distanceTo(p.position) < 0.38) {
+            const kind = p.userData.pickup;
             takePickup(p);
-            if (WEAPON_BY_ID[p.userData.pickup]) {
-              const w = makeWeapon(p.userData.pickup);
-              h.con.add(w);
-              h.held = { id: p.userData.pickup, mesh: w, kind: "wep" };
+            if (WEAPON_BY_ID[kind] && (!held || sheathed)) {
+              sheathed = false;
+              setHeld(kind);
+              attachHandWep(xr, kind);
             }
           }
         }
@@ -1520,9 +1696,18 @@ function loop(time) {
     tickRobots(foes, dt, player, map, sdf2, damage, stage || scene, shots, fireWeapon);
     tickShots(shots, dt, foes, extras, damage, (p, c) => addBurnDecal(stage || scene, burns, p, c), sdf3, map, sdf2);
     tickBurns(burns, dt);
-    tickLoot(lootBits, dt, player, (n) => {
-      player.coins = (player.coins | 0) + n;
-      saveGold(player.coins);
+    tickLoot(lootBits, dt, player, (L) => {
+      if (L && L.id === "psyorb") {
+        const before = player.psy | 0;
+        player.psy = Math.min(1000, (player.psy || 20) + 1);
+        sfx("orb");
+        if (before < 100 && player.psy >= 100) setMsg("Psybeam unlocked — X hold / cycle with G");
+        else if (before < 200 && player.psy >= 200) setMsg("Psionic tide unlocked");
+        else setMsg("Psypower " + (player.psy | 0));
+      } else {
+        player.coins = (player.coins | 0) + (typeof L === "number" ? L : L.value || 0);
+        saveGold(player.coins);
+      }
     });
     if (extras) {
       tickWorld(extras, dt, player, foes, damage, stage || scene, camera, map, sdf2);
@@ -1563,14 +1748,18 @@ function loop(time) {
         }
       }
     }
-    tickPickups(xr);
+    tickPickups(xr, dt);
+    for (const n of npcs) tickNpcPose(n.mesh, performance.now() * 0.001);
     tickPsy(dt);
     tickSaber(xr, dt);
     if (psyCd > 0) psyCd = Math.max(0, psyCd - dt);
+    if (xr && xr.on && xr.psyMode) cyclePsyMode();
     if (xr && xr.on && xr.dash) {
-      /* both triggers = dash, skip psy */
-    } else if (xr && xr.on && xr.psyHeld && psyCd <= 0) firePsy(xr);
-    else if (keys.has("KeyX") && psyCd <= 0) firePsy(xr);
+      psyCharging = false;
+      psyCharge = 0;
+    } else {
+      tickPsyInput(xr, dt);
+    }
     drawMinimap();
     hudBars();
   }
@@ -1638,7 +1827,7 @@ addEventListener("keydown", (e) => {
     if (!hide) renderInv();
   }
   if (e.code === "KeyB") cycleLoadout(hands && renderer ? { on: xrPresenting, right: hands.find((h) => h.handed === "right") } : { on: false });
-  if (e.code === "KeyX") firePsy(hands && renderer ? { on: xrPresenting, right: hands.find((h) => h.handed === "right") } : { on: false });
+  if (e.code === "KeyG") cyclePsyMode();
   if (e.code === "KeyR") {
     const def = held && WEAPON_BY_ID[held];
     if (def && def.slot === "gun") {
@@ -1648,6 +1837,9 @@ addEventListener("keydown", (e) => {
     }
   }
   if (e.code === "KeyE") {
+    if (talk) { closeTalk(); return; }
+    const n = nearNpc(npcs, player);
+    if (n) { openTalk(n); return; }
     tryUnlock(extras || { doors: [] }, player, inv.filter((i) => i.id === "key").map((i) => i.keyId));
     if (nearVendor()) openShop();
   }
@@ -1675,10 +1867,53 @@ $("go-proc").addEventListener("click", () => enterMap("proc"));
 $("inv-close").addEventListener("click", () => ($("inv").hidden = true));
 if ($("shop-close")) $("shop-close").addEventListener("click", () => ($("shop").hidden = true));
 
+function openTalk(n, node) {
+  talk = { npc: n, node: node || { opener: n.opener, options: n.options || [] } };
+  sfx("talk");
+  const host = $("talk");
+  if (!host) return;
+  host.hidden = false;
+  $("talk-name").textContent = n.name || "NPC";
+  $("talk-line").textContent = talk.node.opener || talk.node.reply || "";
+  const box = $("talk-opts");
+  box.innerHTML = "";
+  const opts = (talk.node.options || []).filter((o) => o.text).slice(0, 3);
+  opts.forEach((op) => {
+    const b = document.createElement("button");
+    b.textContent = op.text;
+    b.onclick = () => {
+      const next = { opener: op.reply, reply: op.reply, options: op.options || [] };
+      if ((op.options || []).some((x) => x.text)) openTalk(n, next);
+      else {
+        $("talk-line").textContent = op.reply || "";
+        box.innerHTML = "";
+        const done = document.createElement("button");
+        done.textContent = "Leave";
+        done.onclick = closeTalk;
+        box.appendChild(done);
+      }
+    };
+    box.appendChild(b);
+  });
+  if (!opts.length) {
+    const done = document.createElement("button");
+    done.textContent = "Leave";
+    done.onclick = closeTalk;
+    box.appendChild(done);
+  }
+  try { controls.unlock(); } catch {}
+}
+
+function closeTalk() {
+  talk = null;
+  if ($("talk")) $("talk").hidden = true;
+  if (running && !dead && !xrPresenting) try { controls.lock(); } catch {}
+}
+
 function nearVendor() {
   if (!extras || !extras.vendors) return null;
   for (const v of extras.vendors) {
-    if (Math.hypot(player.x - v.x, player.z - v.z) < 1.85) return v;
+    if (Math.hypot(player.x - v.x, player.z - v.z) < 2.4) return v;
   }
   return null;
 }

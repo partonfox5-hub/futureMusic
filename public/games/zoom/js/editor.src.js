@@ -19,8 +19,8 @@ import {
   SHAPES,
   WALL_TEX,
   routes,
-} from "./config.js?v=sw1";
-import { bakedMaps } from "./defaults.js?v=sw1";
+} from "./config.js?v=sw2";
+import { bakedMaps } from "./defaults.js?v=sw2";
 import {
   addSphere,
   blankMap,
@@ -47,8 +47,9 @@ import {
   stampSegment,
   wallIsCrack,
   wallTexId,
-} from "./map.js?v=sw1";
-import { deleteMap, getMap, listMaps, saveMap, stashPreview } from "./store.js?v=sw1";
+} from "./map.js?v=sw2";
+import { deleteMap, getMap, listMaps, saveMap, stashPreview } from "./store.js?v=sw2";
+import { defaultNpc } from "./npcs.js?v=sw2";
 
 const $ = (id) => document.getElementById(id);
 
@@ -323,6 +324,15 @@ function draw() {
     ctx.fillStyle = "#ffe08a";
     ctx.fillRect(v.x / CELL - 0.12, v.z / CELL - 0.12, 0.24, 0.24);
   }
+  for (const n of map.npcs || []) {
+    ctx.fillStyle = "#d4a0ff";
+    ctx.beginPath();
+    ctx.arc(n.x / CELL, n.z / CELL, 0.32, 0, 6.28);
+    ctx.fill();
+    ctx.fillStyle = "#ffe8c8";
+    ctx.font = (8 / scale) * 1.2 + "px sans-serif";
+    ctx.fillText((n.name || "NPC").slice(0, 10), n.x / CELL - 0.4, n.z / CELL - 0.45);
+  }
   for (const r of map.ropes) {
     ctx.strokeStyle = "#6a4424";
     ctx.beginPath();
@@ -381,6 +391,9 @@ function hitAt(c) {
   }
   for (let i = (map.pickups || []).length - 1; i >= 0; i--) {
     if (Math.hypot(map.pickups[i].x - c.wx, map.pickups[i].z - c.wz) < 1.1) return { type: "pickup", i };
+  }
+  for (let i = (map.npcs || []).length - 1; i >= 0; i--) {
+    if (Math.hypot(map.npcs[i].x - c.wx, map.npcs[i].z - c.wz) < 1.2) return { type: "npc", i };
   }
   return null;
 }
@@ -481,6 +494,21 @@ canvas.addEventListener("pointerdown", (ev) => {
     map.vendors = map.vendors || [];
     map.vendors.push({ x: c.wx, z: c.wz });
     status("Vending machine");
+    draw();
+  } else if (tool === "npc") {
+    const hit = hitAt(c);
+    if (hit && hit.type === "npc") {
+      selected = hit;
+      fillNpcForm();
+      status("Editing " + (map.npcs[hit.i].name || "NPC"));
+    } else {
+      pushUndo();
+      map.npcs = map.npcs || [];
+      map.npcs.push(defaultNpc(c.wx, c.wz));
+      selected = { type: "npc", i: map.npcs.length - 1 };
+      fillNpcForm();
+      status("NPC placed — set name and dialogue");
+    }
     draw();
   } else if (tool === "stairs" || tool === "ladder") {
     if (!canPlaceClimb(map, c.gx, c.gz, climbFrom)) {
@@ -653,6 +681,59 @@ canvas.addEventListener(
   { passive: false },
 );
 
+function optSlot(op, i, prefix) {
+  op = op || { text: "", reply: "", options: [] };
+  const nest = (op.options || []).slice(0, 3);
+  while (nest.length < 3) nest.push({ text: "", reply: "", options: [] });
+  return `<div class="npc-opt" data-i="${i}" data-p="${prefix}">
+    <label>Player choice ${i + 1}</label>
+    <input data-k="text" type="text" maxlength="80" value="${(op.text || "").replace(/"/g, "&quot;")}" />
+    <label>NPC reply</label>
+    <textarea data-k="reply" rows="2" maxlength="240">${(op.reply || "").replace(/</g, "&lt;")}</textarea>
+    ${nest.map((n, j) => `<label>Then ${j + 1}</label>
+      <input data-k="ntext" data-j="${j}" type="text" maxlength="80" value="${(n.text || "").replace(/"/g, "&quot;")}" placeholder="follow-up choice" />
+      <textarea data-k="nreply" data-j="${j}" rows="2" maxlength="240" placeholder="follow-up reply">${(n.reply || "").replace(/</g, "&lt;")}</textarea>`).join("")}
+  </div>`;
+}
+
+function fillNpcForm() {
+  const host = $("npc-opts");
+  const n = selected?.type === "npc" ? map.npcs[selected.i] : null;
+  if ($("npc-name")) $("npc-name").value = n?.name || "";
+  if ($("npc-open")) $("npc-open").value = n?.opener || "";
+  if (!host) return;
+  const opts = (n?.options || []).slice(0, 3);
+  while (opts.length < 3) opts.push({ text: "", reply: "", options: [] });
+  host.innerHTML = opts.map((op, i) => optSlot(op, i, "")).join("");
+  host.querySelectorAll("input, textarea").forEach((el) => el.addEventListener("input", readNpcForm));
+  if ($("npc-name") && !$("npc-name")._wired) {
+    $("npc-name")._wired = true;
+    $("npc-name").addEventListener("input", readNpcForm);
+    $("npc-open").addEventListener("input", readNpcForm);
+  }
+}
+
+function readNpcForm() {
+  if (selected?.type !== "npc") return;
+  const n = map.npcs[selected.i];
+  if (!n) return;
+  n.name = ($("npc-name")?.value || "Wanderer").slice(0, 32);
+  n.opener = ($("npc-open")?.value || "").slice(0, 240);
+  const boxes = [...document.querySelectorAll("#npc-opts .npc-opt")];
+  n.options = boxes.map((box) => {
+    const text = box.querySelector('[data-k="text"]')?.value || "";
+    const reply = box.querySelector('[data-k="reply"]')?.value || "";
+    const nest = [];
+    box.querySelectorAll('[data-k="ntext"]').forEach((inp) => {
+      const j = +inp.dataset.j;
+      const ta = box.querySelector(`[data-k="nreply"][data-j="${j}"]`);
+      nest[j] = { text: inp.value || "", reply: ta?.value || "", options: [] };
+    });
+    return { text, reply, options: nest.filter((o) => o.text || o.reply) };
+  }).filter((o) => o.text || o.reply);
+  draw();
+}
+
 function setTool(t) {
   tool = t;
   if (t === "sphere") shape = SHAPE_SPHERE;
@@ -673,6 +754,7 @@ function setTool(t) {
     drone: "Place a flying sentry drone. It weaves through vertical space and fires lasers.",
     rumble: "Paint invisible rumble tiles. Walking over them shakes the camera and controllers.",
     vendor: "Vending machine. Player presses E to buy weapons, ammo, and powerups with coins.",
+    npc: "Place a talking NPC. Set their name, opening line, and up to 3 player replies (each with a nested follow-up).",
     stairs: "Place only where 1st+2nd or 2nd+3rd stories both have enclosed floors.",
     ladder: "Place only where consecutive stories both have enclosed floors.",
     sky: "Open courtyard — grass floor, courtyard walls, real sky (no cave lid).",
@@ -809,6 +891,7 @@ addEventListener("keydown", (e) => {
       if (selected.type === "obj") map.objects.splice(selected.i, 1);
       else if (selected.type === "spawner") map.spawners.splice(selected.i, 1);
       else if (selected.type === "pickup") map.pickups.splice(selected.i, 1);
+      else if (selected.type === "npc") map.npcs.splice(selected.i, 1);
       selected = null;
       draw();
     }

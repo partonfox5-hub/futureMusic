@@ -13,7 +13,7 @@ import {
   SHAPE_SPHERE,
   STORIES,
   WALL_CRACK,
-} from "./config.js?v=sw1";
+} from "./config.js?v=sw2";
 
 export { CELL };
 
@@ -80,6 +80,7 @@ export function blankMap(name = "Untitled") {
     climbs: [],
     boulders: [],
     vendors: [],
+    npcs: [],
     start: { x: (w * 0.5) * CELL, z: (h * 0.5) * CELL, yaw: 0 },
     updated: Date.now(),
   };
@@ -151,6 +152,7 @@ export function serialize(map) {
     climbs: map.climbs || [],
     boulders: map.boulders || [],
     vendors: map.vendors || [],
+    npcs: map.npcs || [],
     start: map.start,
     updated: map.updated || Date.now(),
   };
@@ -181,6 +183,7 @@ export function ensureLayers(map) {
   map.climbs ||= [];
   map.boulders ||= [];
   map.vendors ||= [];
+  map.npcs ||= [];
   if (!map.collapsed || map.collapsed.length !== n) map.collapsed = new Uint8Array(n);
   return map;
 }
@@ -217,6 +220,7 @@ export function deserialize(raw) {
     climbs: Array.isArray(o.climbs) ? o.climbs.map((x) => ({ ...x })) : [],
     boulders: Array.isArray(o.boulders) ? o.boulders.map((x) => ({ ...x })) : [],
     vendors: Array.isArray(o.vendors) ? o.vendors.map((x) => ({ ...x })) : [],
+    npcs: Array.isArray(o.npcs) ? o.npcs.map((x) => ({ ...x, options: Array.isArray(x.options) ? x.options.map((op) => ({ ...op, options: Array.isArray(op.options) ? op.options.map((n) => ({ ...n })) : [] })) : [] })) : [],
     start: o.start ? { ...o.start } : { x: w * 0.5 * CELL, z: h * 0.5 * CELL, yaw: 0 },
     updated: o.updated || Date.now(),
   });
@@ -374,6 +378,7 @@ export function eraseNear(map, x, z, r) {
   map.climbs = (map.climbs || []).filter((o) => Math.hypot(o.x - x, o.z - z) > r);
   map.boulders = (map.boulders || []).filter((o) => Math.hypot(o.x - x, o.z - z) > r);
   map.vendors = (map.vendors || []).filter((o) => Math.hypot(o.x - x, o.z - z) > r);
+  map.npcs = (map.npcs || []).filter((o) => Math.hypot(o.x - x, o.z - z) > r);
   map.openings = map.openings.filter((o) => Math.hypot((o.x + 0.5) * CELL - x, (o.z + 0.5) * CELL - z) > r);
 }
 

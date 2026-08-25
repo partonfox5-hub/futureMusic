@@ -99,6 +99,7 @@ const extras = [
   "public/games/zoom/js/store.js",
   "public/games/zoom/js/defaults.js",
   "public/games/zoom/js/editor.js",
+  "public/games/zoom/js/npcs.js",
 ];
 
 for (const rel of extras) {

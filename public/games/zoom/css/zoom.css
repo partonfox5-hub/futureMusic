@@ -235,6 +235,34 @@ input[type="range"] { width: 100%; }
 }
 .pbox[hidden] { display: none !important; }
 .pbox h2 { margin-top: 8px; }
+textarea {
+  width: 100%;
+  background: #1a1410;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  padding: 6px 8px;
+  font: inherit;
+  resize: vertical;
+}
+.npc-opt {
+  border: 1px solid var(--line);
+  padding: 8px;
+  margin: 8px 0;
+  background: #120e0c;
+}
+.npc-opt label { margin-top: 4px; }
+#talk {
+  position: absolute; inset: 0; z-index: 9; display: flex; align-items: flex-end; justify-content: center;
+  background: linear-gradient(transparent 40%, rgba(8,6,4,0.72));
+  pointer-events: none;
+}
+#talk[hidden] { display: none !important; }
+#talk .panel { pointer-events: auto; width: min(520px, 92vw); margin-bottom: 8vh; }
+#talk .kicker, .kicker { letter-spacing: 0.22em; text-transform: uppercase; font-size: 11px; color: var(--gold); margin: 0 0 6px; }
+#talk-opts { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+#talk-opts button { text-align: left; }
+#hud .bar.psy i { background: linear-gradient(90deg, #3a2088, #88e0ff); }
+#psyv { color: #b388ff; }
 #legend {
   position: absolute;
   left: 10px;
