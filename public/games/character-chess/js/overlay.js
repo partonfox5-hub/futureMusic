@@ -411,6 +411,9 @@ function liveGame(game) {
   return window.__game || game;
 }
 
+let shopKey = null;
+let shopIgnoreOpen = false;
+
 function hideStockTitle() {
   document.body.classList.add("cc-hide-stock-title");
   document.documentElement.classList.add("cc-hide-stock-title");
@@ -525,12 +528,15 @@ function renderShop(game, packId) {
   }
   shop.classList.add("on");
   document.body.classList.add("cc-shop-on");
+  shopKey = packId || "";
+  shopIgnoreOpen = false;
 }
 
 function openCloseup(pack, card) {
   const box = document.getElementById("cc-closeup");
   const art = card.art ? CARD + card.art : SPR + card.id + ".png";
   box.innerHTML = `<div class="cc-closeup-card">
+    <button type="button" class="cc-x" data-closeup-x aria-label="Close">×</button>
     <img src="${art}" alt="">
     <div>
       <p class="kicker">${card.kind || card.role || "Card"}</p>
@@ -569,12 +575,26 @@ async function buyPack(packId, game) {
 }
 
 function closeShop(game) {
+  shopIgnoreOpen = true;
+  shopKey = null;
   document.getElementById("cc-shop")?.classList.remove("on");
   document.getElementById("cc-closeup")?.classList.remove("on");
   document.body.classList.remove("cc-shop-on");
   try {
-    game.getState().closeAlphaModal?.();
+    liveGame(game).getState().closeAlphaModal?.();
   } catch {}
+}
+
+function showNewMenu(game, inLobby) {
+  if (inLobby) return;
+  hideStockTitle();
+  const g = liveGame(game);
+  const phase = g?.getState?.()?.phase;
+  if (phase && phase !== "title") {
+    try { g.getState().toTitle?.(); } catch {}
+  }
+  document.getElementById("cc-shell")?.classList.add("on");
+  document.getElementById("cc-lobby")?.classList.remove("on");
 }
 
 function refreshPackBadges(game) {
@@ -633,9 +653,13 @@ async function boot() {
     hideStockTitle();
     shell.classList.toggle("on", title && !inLobby);
     if (!title) lobbyEl.classList.remove("on");
-    if (s.alphaModalOpen) {
-      renderShop(game, s.packModal || null);
-    } else {
+    if (s.alphaModalOpen && !shopIgnoreOpen) {
+      const key = s.packModal || "";
+      if (shopKey !== key) renderShop(liveGame(game), s.packModal || null);
+      else document.getElementById("cc-shop")?.classList.add("on");
+    } else if (!s.alphaModalOpen) {
+      shopIgnoreOpen = false;
+      shopKey = null;
       document.getElementById("cc-shop")?.classList.remove("on");
       document.getElementById("cc-closeup")?.classList.remove("on");
       document.body.classList.remove("cc-shop-on");
@@ -657,17 +681,24 @@ async function boot() {
     else if (act === "multi") openLobby();
     else if (act.startsWith("pack:")) {
       const id = act.slice(5);
+      shopIgnoreOpen = false;
       st.openPackModal?.(id);
       renderShop(liveGame(game), id);
     }
   });
 
   document.getElementById("cc-shop").addEventListener("click", (ev) => {
-    const close = ev.target.closest("[data-shop='close']");
-    if (close) return closeShop(game);
+    if (ev.target.id === "cc-shop" || ev.target.closest("[data-shop='close']")) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      closeShop(game);
+      return;
+    }
     const pick = ev.target.closest("[data-shop]");
     if (pick && pick.dataset.shop && pick.dataset.shop !== "close") {
-      game.getState().openPackModal(pick.dataset.shop);
+      shopIgnoreOpen = false;
+      liveGame(game).getState().openPackModal(pick.dataset.shop);
+      renderShop(liveGame(game), pick.dataset.shop);
       return;
     }
     const buy = ev.target.closest("[data-buy]");
@@ -685,6 +716,33 @@ async function boot() {
       document.getElementById("cc-closeup").classList.remove("on");
     }
   });
+
+  document.addEventListener("click", (ev) => {
+    if (ev.target.closest("[data-howto-x]") || ev.target.id === "cc-howto") {
+      document.getElementById("cc-howto")?.classList.remove("on");
+    }
+    const back = ev.target.closest("button");
+    if (!back || back.closest("#cc-shell, #cc-lobby, #cc-shop, #cc-closeup, #cc-howto")) return;
+    const label = (back.getAttribute("aria-label") || back.textContent || "").replace(/\s+/g, " ").trim();
+    if (label !== "Back" && !/^←?\s*back$/i.test(label)) return;
+    setTimeout(() => {
+      inLobby = false;
+      showNewMenu(game, false);
+    }, 0);
+  });
+
+  setInterval(() => {
+    const g = liveGame(game);
+    if (!g?.getState) return;
+    const s = g.getState();
+    if (s.phase === "title" && !inLobby) {
+      hideStockTitle();
+      if (!document.getElementById("cc-shop")?.classList.contains("on") &&
+          !document.getElementById("cc-howto")?.classList.contains("on")) {
+        shell.classList.add("on");
+      }
+    }
+  }, 300);
 
   async function openLobby() {
     inLobby = true;

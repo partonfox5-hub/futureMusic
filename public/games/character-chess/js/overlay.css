@@ -348,7 +348,7 @@ body.cc-shop-on #root .fixed.inset-0 {
 
 /* ── pack shop ── */
 #cc-shop {
-  position: absolute;
+  position: fixed;
   inset: 0;
   z-index: 200;
   display: none;
@@ -391,6 +391,9 @@ body.cc-shop-on #root .fixed.inset-0 {
   width: 44px; height: 44px; flex-shrink: 0;
   border: 1px solid #c4a45a; background: transparent; color: #f4efe4;
   cursor: pointer; font-size: 20px;
+  pointer-events: auto;
+  z-index: 5;
+  position: relative;
 }
 .cc-pack-list {
   display: grid;
@@ -486,7 +489,7 @@ body.cc-shop-on #root .fixed.inset-0 {
 .cc-ok { color: #7dffb0; font-size: 14px; margin-top: 10px; }
 
 #cc-closeup {
-  position: absolute;
+  position: fixed;
   inset: 0;
   z-index: 210;
   display: none;
@@ -503,6 +506,11 @@ body.cc-shop-on #root .fixed.inset-0 {
   border: 1px solid rgba(214, 186, 122, 0.5);
   padding: 22px;
   position: relative;
+}
+.cc-closeup-card > .cc-x {
+  position: absolute;
+  top: 12px;
+  right: 12px;
 }
 .cc-closeup-card img {
   width: 100%;
@@ -538,9 +546,9 @@ body.cc-shop-on #root .fixed.inset-0 {
 
 #cc-howto {
   display: none;
-  position: absolute;
+  position: fixed;
   inset: 0;
-  z-index: 140;
+  z-index: 220;
   align-items: center;
   justify-content: center;
   background: rgba(8, 6, 4, 0.86);
