@@ -47,6 +47,7 @@ export function attachXr(renderer, scene, onSession) {
       trigger: false,
       triggerPrev: false,
       triggerValue: 0,
+      squeezeValue: 0,
       stick: false,
       stickPrev: false,
       aBtn: false,
@@ -167,10 +168,11 @@ export function tickXr(renderer, hands, dt) {
       h.bPrev = h.bBtn;
       h.menuPrev = h.menuBtn;
       h.triggerValue = gp.buttons[0] ? gp.buttons[0].value : 0;
-      const trig = !!(gp.buttons[0] && gp.buttons[0].pressed);
+      const trig = !!(gp.buttons[0] && (gp.buttons[0].pressed || h.triggerValue > 0.22));
       if (trig && !h.trigger) h._trigAt = performance.now();
       h.trigger = trig;
-      h.squeeze = !!(gp.buttons[1] && gp.buttons[1].pressed);
+      h.squeezeValue = gp.buttons[1] ? gp.buttons[1].value : 0;
+      h.squeeze = !!(gp.buttons[1] && (gp.buttons[1].pressed || h.squeezeValue > 0.18));
       h.stickPrev = h.stick;
       h.stick = !!(gp.buttons[3] && gp.buttons[3].pressed);
       h.gp = gp;
@@ -206,8 +208,8 @@ export function tickXr(renderer, hands, dt) {
     left,
     right,
     dash,
-    skate: !!(left && (left.stick || mag > 0.88)),
-    jet: !!(left && left.triggerValue > 0.28) && !(right && right.trigger),
+    skate: mag > 0.88,
+    jet: !!(left && left.stick),
     lookX: right ? right.axes[0] : 0,
     moveX: left ? left.axes[0] : 0,
     moveY: left ? left.axes[1] : 0,
@@ -215,8 +217,18 @@ export function tickXr(renderer, hands, dt) {
     jumpTap: !!(right && right.aBtn && !right.aPrev),
     menu: !!(left && ((left.menuBtn && !left.menuPrev) || (left.bBtn && !left.bPrev))),
     reload: !!(right && right.stick && !right.stickPrev),
-    psy: !!(left && left.aBtn && !left.aPrev) || !!(left && left.aBtn),
-    psyHeld: !!(left && left.aBtn),
+    psy: !!(left && left.trigger && !left.triggerPrev),
+    psyHeld: !!(left && left.triggerValue > 0.38),
     saberToggle: !!(right && right.bBtn && !right.bPrev),
+    squeezeOn: !!(
+      (left && left.squeezeValue > 0.2) ||
+      (right && right.squeezeValue > 0.2)
+    ),
+    squeezeOff: !!(
+      left &&
+      right &&
+      left.squeezeValue < 0.12 &&
+      right.squeezeValue < 0.12
+    ),
   };
 }

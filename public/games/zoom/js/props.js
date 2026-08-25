@@ -1,9 +1,9 @@
 /** Props, 4-direction enemy sprites, spawners. */
 import * as THREE from "three";
-import { ENEMIES, ENEMY_BY_ID } from "./config.js?v=psy4";
-import { sdf3, floorY } from "./map.js?v=psy4";
-import { makeRobot } from "./robots.js?v=psy4";
-import { hurtFoe } from "./weapons.js?v=psy4";
+import { ENEMIES, ENEMY_BY_ID } from "./config.js?v=sw1";
+import { sdf3, floorY } from "./map.js?v=sw1";
+import { makeRobot } from "./robots.js?v=sw1";
+import { hurtFoe } from "./weapons.js?v=sw1";
 
 const TEX = {};
 const loader = new THREE.TextureLoader();
@@ -58,14 +58,22 @@ export function makeProp(kind, scale) {
   } else if (kind === "crate") {
     add(new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.7, 0.7), wood), 0, 0.35, 0);
     add(new THREE.Mesh(new THREE.BoxGeometry(0.74, 0.06, 0.74), dark), 0, 0.35, 0);
+    add(new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.72, 0.08), iron), 0.32, 0.35, 0.32);
+    add(new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.72, 0.08), iron), -0.32, 0.35, 0.32);
+    add(new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.72, 0.08), iron), 0.32, 0.35, -0.32);
+    add(new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.72, 0.08), iron), -0.32, 0.35, -0.32);
   } else if (kind === "barrel") {
-    add(new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.34, 0.8, 10), wood), 0, 0.4, 0);
+    add(new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.34, 0.8, 12), wood), 0, 0.4, 0);
     add(new THREE.Mesh(new THREE.TorusGeometry(0.33, 0.03, 6, 12), iron), 0, 0.18, 0).rotation.x = Math.PI / 2;
+    add(new THREE.Mesh(new THREE.TorusGeometry(0.33, 0.03, 6, 12), iron), 0, 0.4, 0).rotation.x = Math.PI / 2;
     add(new THREE.Mesh(new THREE.TorusGeometry(0.33, 0.03, 6, 12), iron), 0, 0.62, 0).rotation.x = Math.PI / 2;
+    add(new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 0.06, 8), iron), 0, 0.82, 0);
   } else if (kind === "chest") {
     add(new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.4, 0.55), wood), 0, 0.22, 0);
     add(new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.22, 0.55), wood), 0, 0.52, 0);
+    add(new THREE.Mesh(new THREE.BoxGeometry(0.88, 0.04, 0.58), dark), 0, 0.42, 0);
     add(new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.16, 0.08), gold), 0, 0.4, 0.28);
+    add(new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.05, 0.08), iron), 0, 0.08, 0.24);
   } else if (kind === "pillar") {
     add(new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.28, 3.4, 8), stone), 0, 1.7, 0);
     add(new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.34, 0.18, 8), stone), 0, 0.1, 0);

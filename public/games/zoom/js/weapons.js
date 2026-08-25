@@ -1,7 +1,7 @@
 /** Weapon models, lasers/plasma, burn marks, pickups. */
 import * as THREE from "three";
-import { PICKUP_BY_ID, WEAPON_BY_ID, WEAPONS } from "./config.js?v=psy4";
-import { hurtTurrets } from "./world.js?v=psy4";
+import { PICKUP_BY_ID, WEAPON_BY_ID, WEAPONS } from "./config.js?v=sw1";
+import { hurtTurrets, impulseBoulders, smashGlass } from "./world.js?v=sw1";
 
 function mat(hex, extra) {
   return new THREE.MeshLambertMaterial({ color: hex, ...extra });
@@ -280,7 +280,11 @@ function hitScan(s, foes, extras, onHit, addBurn) {
     }
   }
   addBurn(hitP, s.def.color);
-  if (extras) hurtTurrets(extras, hitP, s.def.dmg);
+  if (extras) {
+    hurtTurrets(extras, hitP, s.def.dmg, 1.5);
+    smashGlass(extras, hitP, 1.1, extras.root);
+    impulseBoulders(extras, hitP, s.dir, 8 + (s.def.dmg || 8) * 0.15, 1.8);
+  }
 }
 
 function splashOrHit(s, foes, extras, onHit, addBurn) {
@@ -299,7 +303,11 @@ function splashOrHit(s, foes, extras, onHit, addBurn) {
       if (!s.def.flame) s.life = 0;
     }
   }
-  if (extras && s.mesh.position) hurtTurrets(extras, s.mesh.position, s.def.dmg);
+  if (extras && s.mesh.position) {
+    hurtTurrets(extras, s.mesh.position, s.def.dmg, 1.5);
+    smashGlass(extras, s.mesh.position, 1.05, extras.root);
+    impulseBoulders(extras, s.mesh.position, s.dir, 8 + (s.def.dmg || 8) * 0.15, 1.8);
+  }
 }
 
 let killHook = null;

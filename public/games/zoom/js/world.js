@@ -9,8 +9,8 @@ import {
   STORY_H,
   STORIES,
   WALL_TEX,
-} from "./config.js?v=psy4";
-import { cellI, climbHoleFloor, climbHoleRoof, enclosedFloors, idx, inBounds, sdf3, wallIsCrack, wallTexId } from "./map.js?v=psy4";
+} from "./config.js?v=sw1";
+import { cellI, climbHoleFloor, climbHoleRoof, enclosedFloors, idx, inBounds, sdf3, wallIsCrack, wallTexId } from "./map.js?v=sw1";
 
 function mat(hex, extra) {
   return new THREE.MeshLambertMaterial({ color: hex, ...extra });
@@ -314,7 +314,14 @@ function makeMetalTurret() {
   box.position.set(0.3, -0.02, 0);
   const rivet = new THREE.Mesh(new THREE.SphereGeometry(0.03, 6, 4), steel);
   rivet.position.set(0.18, 0.12, 0.2);
-  head.add(housing, barrel, shroud, muzzle, box, rivet);
+  const sight = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.08, 0.16), dark);
+  sight.position.set(0, 0.2, 0.12);
+  const hose = new THREE.Mesh(new THREE.TorusGeometry(0.16, 0.025, 5, 10, Math.PI), rust);
+  hose.rotation.z = Math.PI / 2;
+  hose.position.set(-0.22, 0.02, 0.08);
+  const vent = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.04, 0.12), dark);
+  vent.position.set(0, 0.14, -0.18);
+  head.add(housing, barrel, shroud, muzzle, box, rivet, sight, hose, vent);
   g.add(base, body, tank, ring, head);
   const hp = hpSprite();
   hp.position.y = 1.48;
@@ -455,13 +462,22 @@ export function buildWorld(map, dungeon, scene) {
     const len = r.len || 4.5;
     const top = y0 + (map.hallH || 4.2) - 0.15;
     const hang = Math.min(len, top - y0 - 0.2);
-    const mesh = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.04, hang, 6), mat(0x6a4424));
+    const hook = new THREE.Mesh(new THREE.TorusGeometry(0.11, 0.025, 6, 10), mat(0x8a8680, { metalness: 0.4 }));
+    hook.rotation.x = Math.PI / 2;
+    hook.position.set(r.x, top + 0.04, r.z);
+    group.add(hook);
+    const plate = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.04, 8), mat(0x5a5854));
+    plate.position.set(r.x, top + 0.08, r.z);
+    group.add(plate);
+    const mesh = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.042, 1, 8), mat(0x6a4424));
     mesh.position.set(r.x, top - hang * 0.5, r.z);
     group.add(mesh);
-    const knot = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 6), mat(0x4a3018));
+    const knot = new THREE.Mesh(new THREE.SphereGeometry(0.09, 10, 8), mat(0x4a3018));
     knot.position.set(r.x, top - hang, r.z);
     group.add(knot);
-    extras.ropes.push({ x: r.x, z: r.z, y0: top - hang, top, len: hang, mesh });
+    const rec = { x: r.x, z: r.z, y0: top - hang, top, len: hang, mesh, knot, hook, restLen: hang };
+    layoutRope(rec, r.x, top - hang, r.z);
+    extras.ropes.push(rec);
   }
 
   for (const t of map.turrets || []) {
@@ -562,8 +578,7 @@ export function buildWorld(map, dungeon, scene) {
 
   for (const b of map.boulders || []) {
     const y0 = ((map.elev && map.elev[cellI(map, b.x, b.z)]) || 0) * EYE;
-    const rock = mat(0x6a6054);
-    const mesh = new THREE.Mesh(new THREE.SphereGeometry(0.92, 12, 10), rock);
+    const mesh = makeBoulderMesh();
     mesh.position.set(b.x, y0 + 0.92, b.z);
     group.add(mesh);
     const ring = new THREE.Mesh(
@@ -669,14 +684,21 @@ function addOpening(group, extras, open, x, z, yBase, wm, map) {
   if (open.type === "arch") return;
   if (open.type === "window") {
     const glass = new THREE.Mesh(
-      new THREE.BoxGeometry(CELL * 0.7, doorH, 0.06),
-      mat(0x88ccee, { transparent: true, opacity: 0.35, emissive: 0x224466 }),
+      new THREE.BoxGeometry(CELL * 0.68, doorH - 0.06, 0.04),
+      mat(0xa8dff5, { transparent: true, opacity: 0.32, emissive: 0x226688, roughness: 0.08 }),
     );
     glass.position.set(px, yOff, pz);
     glass.rotation.y = yaw;
     glass.userData.window = true;
     group.add(glass);
-    extras.windows.push({ mesh: glass, hp: 2, x: px, z: pz, y: yOff });
+    const barH = new THREE.Mesh(new THREE.BoxGeometry(CELL * 0.7, 0.045, 0.07), wm);
+    barH.position.set(px, yOff, pz);
+    barH.rotation.y = yaw;
+    const barV = new THREE.Mesh(new THREE.BoxGeometry(0.045, doorH - 0.04, 0.07), wm);
+    barV.position.set(px, yOff, pz);
+    barV.rotation.y = yaw;
+    group.add(barH, barV);
+    extras.windows.push({ mesh: glass, hp: 1, x: px, z: pz, y: yOff, yaw, w: CELL * 0.68, h: doorH - 0.06 });
     return;
   }
   const hinge = new THREE.Group();
@@ -897,12 +919,15 @@ function spawnFlame(scene, x, y, z, dx, dz, extras) {
   }
 }
 
-export function hurtTurrets(extras, point, dmg) {
+export function hurtTurrets(extras, point, dmg, radius = 1.45) {
   let hit = false;
+  const r = radius == null ? 1.45 : radius;
   for (const t of extras.turrets || []) {
     if (t.hp <= 0) continue;
-    if (Math.hypot(point.x - t.x, point.z - t.z) > 0.7) continue;
-    if (Math.abs(point.y - t.y) > 1.2) continue;
+    const dx = point.x - t.x;
+    const dz = point.z - t.z;
+    if (dx * dx + dz * dz > r * r) continue;
+    if (Math.abs(point.y - t.y) > r + 0.85) continue;
     t.hp -= dmg;
     paintHp(t.hpBar, t.hp, t.maxHp);
     hit = true;
@@ -913,6 +938,108 @@ export function hurtTurrets(extras, point, dmg) {
     }
   }
   return hit;
+}
+
+function makeBoulderMesh() {
+  const g = new THREE.Group();
+  const geo = new THREE.IcosahedronGeometry(0.92, 1);
+  const pos = geo.attributes.position;
+  for (let i = 0; i < pos.count; i++) {
+    const n = 0.86 + ((i * 17) % 13) * 0.018;
+    pos.setXYZ(i, pos.getX(i) * n, pos.getY(i) * n, pos.getZ(i) * n);
+  }
+  geo.computeVertexNormals();
+  g.add(new THREE.Mesh(geo, mat(0x6a6054)));
+  const moss = mat(0x3a5a32);
+  for (let i = 0; i < 6; i++) {
+    const a = i * 1.1;
+    const p = new THREE.Mesh(new THREE.SphereGeometry(0.16 + (i % 3) * 0.05, 6, 5), moss);
+    p.position.set(Math.sin(a) * 0.62, (i % 2 ? 0.28 : -0.18), Math.cos(a) * 0.55);
+    g.add(p);
+  }
+  const crack = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.7, 0.08), mat(0x2a241c));
+  crack.rotation.z = 0.4;
+  crack.position.set(0.2, 0.05, 0.55);
+  g.add(crack);
+  return g;
+}
+
+const _up = new THREE.Vector3(0, 1, 0);
+const _dir = new THREE.Vector3();
+export function layoutRope(r, x, y, z) {
+  if (!r?.mesh) return;
+  const dx = x - r.x;
+  const dy = y - r.top;
+  const dz = z - r.z;
+  const len = Math.max(0.2, Math.hypot(dx, dy, dz));
+  r.mesh.position.set((r.x + x) * 0.5, (r.top + y) * 0.5, (r.z + z) * 0.5);
+  _dir.set(dx, dy, dz).normalize();
+  r.mesh.quaternion.setFromUnitVectors(_up, _dir);
+  r.mesh.scale.set(1, len, 1);
+  if (r.knot) r.knot.position.set(x, y, z);
+}
+
+export function smashGlass(extras, point, radius, parent) {
+  const out = [];
+  if (!extras?.windows) return out;
+  const r = radius || 1.2;
+  for (const w of extras.windows) {
+    if (w.broken) continue;
+    const dx = w.x - point.x;
+    const dy = w.y - point.y;
+    const dz = w.z - point.z;
+    if (dx * dx + dy * dy + dz * dz > r * r) continue;
+    w.broken = true;
+    w.hp = 0;
+    if (w.mesh) w.mesh.visible = false;
+    const host = parent || extras.root;
+    if (!host) continue;
+    for (let i = 0; i < 10; i++) {
+      const bit = new THREE.Mesh(
+        new THREE.BoxGeometry(0.08 + Math.random() * 0.14, 0.07 + Math.random() * 0.16, 0.02 + Math.random() * 0.03),
+        mat(0xa8dff5, { transparent: true, opacity: 0.55, emissive: 0x226688 }),
+      );
+      bit.position.set(w.x + (Math.random() - 0.5) * 0.45, w.y + (Math.random() - 0.5) * 0.4, w.z + (Math.random() - 0.5) * 0.2);
+      bit.rotation.set(Math.random(), w.yaw || 0, Math.random());
+      host.add(bit);
+      bit.userData.phys = {
+        mass: 1.2,
+        r: 0.1,
+        h: 0.08,
+        vx: (Math.random() - 0.5) * 7,
+        vy: 2 + Math.random() * 4,
+        vz: (Math.random() - 0.5) * 7,
+        held: false,
+        slam: 0,
+      };
+      bit.userData.kind = "glass";
+      out.push(bit);
+      extras.physQueue = extras.physQueue || [];
+      extras.physQueue.push(bit);
+    }
+  }
+  return out;
+}
+
+export function impulseBoulders(extras, point, dir, force, radius) {
+  let n = 0;
+  const r = radius || 1.6;
+  const f = force || 7;
+  for (const b of extras.boulders || []) {
+    const dx = point.x - b.mesh.position.x;
+    const dz = point.z - b.mesh.position.z;
+    if (dx * dx + dz * dz > (r + b.r) * (r + b.r)) continue;
+    if (Math.abs(point.y - b.y) > 1.7) continue;
+    b.rolling = true;
+    const nx = dir && dir.x != null ? dir.x : -dx;
+    const nz = dir && dir.z != null ? dir.z : -dz;
+    const len = Math.hypot(nx, nz) || 1;
+    b.vx = (b.vx || 0) + (nx / len) * f;
+    b.vz = (b.vz || 0) + (nz / len) * f;
+    if (b.ring) b.ring.visible = false;
+    n++;
+  }
+  return n;
 }
 
 function tickCaveIn(extras, dt, player, map, scene, onHit) {
@@ -1050,7 +1177,9 @@ export function tryUnlock(extras, player, keys) {
   return null;
 }
 
-export function breakWindows(extras, origin, dir, range) {
+export function breakWindows(extras, origin, dir, range, parent) {
+  const out = [];
+  if (!extras?.windows) return out;
   for (const w of extras.windows) {
     if (w.broken) continue;
     const dx = w.x - origin.x;
@@ -1058,13 +1187,11 @@ export function breakWindows(extras, origin, dir, range) {
     const dz = w.z - origin.z;
     const d = Math.hypot(dx, dy, dz);
     if (d > range) continue;
-    if ((dx * dir.x + dz * dir.z) / (d || 1) < 0.45) continue;
-    w.hp--;
-    if (w.hp <= 0) {
-      w.broken = true;
-      w.mesh.visible = false;
-    }
+    const aim = dir ? (dx * dir.x + dy * (dir.y || 0) + dz * dir.z) / (d || 1) : 1;
+    if (aim < 0.28) continue;
+    out.push(...smashGlass(extras, { x: w.x, y: w.y, z: w.z }, 0.4, parent));
   }
+  return out;
 }
 
 export function shatterCracked(extras, map, pos, radius, parent) {
