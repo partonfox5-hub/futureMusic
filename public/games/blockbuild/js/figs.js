@@ -174,39 +174,121 @@ export function figFootOffset() {
  * Walk a fig across a height field. heightAt(x,z) returns local Y of the walkable top.
  * canStep(fromY, toY) allows stairs / 1-2 plate rises.
  */
-export function tickFig(fig, dt, heightAt, wanderR) {
+function pickRoomPoint(room) {
+  const pad = STUD * 2;
+  return new THREE.Vector3(
+    THREE.MathUtils.lerp(room.xmin + pad, room.xmax - pad, Math.random()),
+    0,
+    THREE.MathUtils.lerp(room.zmin + pad, room.zmax - pad, Math.random()),
+  );
+}
+
+const ROOM_ACTS = {
+  kitchen: ["cook", "sink", "pace"],
+  living: ["sit", "pace", "window"],
+  bedroom: ["sleep", "pace", "sit"],
+  bath: ["sink", "pace"],
+  dining: ["eat", "sit", "pace"],
+  garden: ["wander", "look"],
+  workshop: ["build", "pace"],
+};
+
+export function tickFig(fig, dt, heightAt, wanderR, rooms) {
   const u = fig.userData;
   if (u.held) return;
+  const s = u.baseScale || fig.scale.x || 1;
+  u.baseScale = s;
+  const meltK = u.melt ? Math.max(0.05, 1 - u.melt) : 1;
+  const bobWalk = 1 + Math.sin((u.walkT || 0) * 8.2) * 0.04;
+  const applyScale = (walk) => {
+    const by = walk ? bobWalk : 1;
+    fig.scale.set(s * meltK, s * by * meltK, s * meltK);
+  };
+
+  if (u.toss) {
+    applyScale(false);
+    return;
+  }
+
+  if (!u.spd) u.spd = STUD * (4.2 + Math.random() * 1.8) * Math.sqrt(Math.max(0.35, s));
+
+  u.actT = (u.actT || 0) - dt;
+  u.pauseT = Math.max(0, (u.pauseT || 0) - dt);
   u.walkT = (u.walkT || 0) + dt;
-  if (!u.dest || fig.position.distanceTo(u.dest) < STUD * 0.4 || u.walkT > 6) {
-    const a = Math.random() * Math.PI * 2;
-    const r = (0.2 + Math.random() * 0.8) * wanderR;
-    u.dest = new THREE.Vector3(
-      THREE.MathUtils.clamp((u.origin?.x || 0) + Math.cos(a) * r, -wanderR, wanderR),
-      0,
-      THREE.MathUtils.clamp((u.origin?.z || 0) + Math.sin(a) * r, -wanderR, wanderR),
-    );
+
+  if (rooms && rooms.length && u.actT <= 0) {
+    u.room = rooms[Math.floor(Math.random() * rooms.length)];
+    const acts = ROOM_ACTS[u.room.type] || ["pace"];
+    u.act = acts[Math.floor(Math.random() * acts.length)];
+    u.actT = 6 + Math.random() * 8;
+    u.dest = pickRoomPoint(u.room);
+    u.pauseT = 0.2 + Math.random() * 0.5;
+    u.sit = false;
+    u.sleep = false;
+    fig.rotation.x = 0;
+  }
+
+  if (u.pauseT > 0) {
+    const y = heightAt(fig.position.x, fig.position.z);
+    fig.position.y = THREE.MathUtils.damp(fig.position.y, y, 8, dt);
+    if (u.sit) fig.rotation.x = THREE.MathUtils.damp(fig.rotation.x, 0.55, 6, dt);
+    else if (u.sleep) fig.rotation.x = THREE.MathUtils.damp(fig.rotation.x, 1.35, 4, dt);
+    else {
+      fig.rotation.x = THREE.MathUtils.damp(fig.rotation.x, 0, 8, dt);
+      fig.rotation.y += Math.sin(u.walkT * 1.6) * 0.55 * dt;
+    }
+    applyScale(false);
+    return;
+  }
+
+  if (u.dest && Math.hypot(u.dest.x - fig.position.x, u.dest.z - fig.position.z) < STUD * 1.1 * Math.max(1, Math.sqrt(s))) {
+    const busy = u.act && u.act !== "pace" && u.act !== "wander";
+    u.pauseT = busy ? 1.8 + Math.random() * 3.2 : 0.7 + Math.random() * 1.8;
+    u.sit = u.act === "sit" || u.act === "eat";
+    u.sleep = u.act === "sleep";
+    u.dest = null;
+    applyScale(false);
+    return;
+  }
+
+  if (!u.dest) {
+    if (u.room) {
+      u.dest = pickRoomPoint(u.room);
+    } else {
+      const a = Math.random() * Math.PI * 2;
+      const r = (0.2 + Math.random() * 0.75) * wanderR;
+      const ox = u.origin?.x || 0;
+      const oz = u.origin?.z || 0;
+      u.dest = new THREE.Vector3(
+        THREE.MathUtils.clamp(ox + Math.cos(a) * r, ox - wanderR, ox + wanderR),
+        0,
+        THREE.MathUtils.clamp(oz + Math.sin(a) * r, oz - wanderR, oz + wanderR),
+      );
+    }
     u.walkT = 0;
   }
+
   const pos = fig.position;
   const dx = u.dest.x - pos.x;
   const dz = u.dest.z - pos.z;
   const len = Math.hypot(dx, dz) || 1;
-  const spd = STUD * 4.5;
-  const nx = pos.x + (dx / len) * spd * dt;
-  const nz = pos.z + (dz / len) * spd * dt;
+  const nx = pos.x + (dx / len) * u.spd * dt;
+  const nz = pos.z + (dz / len) * u.spd * dt;
   const y0 = heightAt(pos.x, pos.z);
   const y1 = heightAt(nx, nz);
   const step = y1 - y0;
-  const maxStep = PLATE * 2.4;
-  if (step <= maxStep && step >= -PLATE * 6) {
+  const maxStep = PLATE * 2.8 * s;
+  if (step <= maxStep && step >= -PLATE * 8 * s) {
     pos.x = nx;
     pos.z = nz;
     pos.y = THREE.MathUtils.damp(pos.y, y1, 8, dt);
-    fig.rotation.y = Math.atan2(dx, dz);
-    const bob = 1 + Math.sin(u.walkT * 10) * 0.04;
-    fig.scale.y = bob;
+    const wantY = Math.atan2(dx, dz);
+    fig.rotation.y = THREE.MathUtils.damp(fig.rotation.y, wantY, 8, dt);
+    fig.rotation.x = THREE.MathUtils.damp(fig.rotation.x, 0, 8, dt);
+    applyScale(true);
   } else {
     u.dest = null;
+    u.pauseT = 0.4 + Math.random() * 0.6;
+    applyScale(false);
   }
 }

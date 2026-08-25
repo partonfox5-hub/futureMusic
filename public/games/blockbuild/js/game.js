@@ -4,10 +4,10 @@ import {
   STUD, PLATE, COLORS, KINDS, DIMS,
   colorOf, dimOf, kindOf, shapeSpec, makeBrickMesh,
   rotatedDims, gridToLocal, localToGrid, cellsOf, randomSpec, platesFor,
-} from "./bricks.js?v=bb5";
+} from "./bricks.js?v=bb8";
 import {
   FIG_HEADS, FIG_TORSOS, FIG_LEGS, defaultFigConfig, makeFig, tickFig,
-} from "./figs.js?v=bb5";
+} from "./figs.js?v=bb8";
 
 const canvas = document.getElementById("c");
 const hudEl = document.getElementById("hud");
@@ -180,16 +180,43 @@ function labelTex(text, w = 160, h = 36) {
   const c = document.createElement("canvas");
   c.width = w; c.height = h;
   const g = c.getContext("2d");
-  g.fillStyle = "rgba(16,18,24,0.82)";
+  g.direction = "ltr";
+  g.fillStyle = "#2a3140";
   g.fillRect(0, 0, w, h);
+  g.strokeStyle = "#e6b35c";
+  g.lineWidth = 3;
+  g.strokeRect(1.5, 1.5, w - 3, h - 3);
   g.fillStyle = "#f4efe4";
-  g.font = "bold 16px sans-serif";
+  g.font = `bold ${Math.max(18, Math.round(h * 0.52))}px sans-serif`;
   g.textAlign = "center";
   g.textBaseline = "middle";
   g.fillText(text, w / 2, h / 2 + 1);
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace;
+  t.flipY = true;
+  t.needsUpdate = true;
   return t;
+}
+
+function uiMat(map, color) {
+  return new THREE.MeshBasicMaterial({
+    map: map || null,
+    color: color != null ? color : 0xffffff,
+    side: THREE.DoubleSide,
+    depthTest: false,
+    depthWrite: false,
+    transparent: !!map,
+  });
+}
+
+/** Panel +Z faces the player so canvas text is not mirrored. */
+function facePlayer(group, dist) {
+  camera.updateMatrixWorld();
+  camera.getWorldPosition(_v);
+  camera.getWorldDirection(_v2);
+  group.position.copy(_v).addScaledVector(_v2, dist || 0.75);
+  group.lookAt(_v);
+  group.visible = true;
 }
 
 let colorI = 2;
@@ -209,6 +236,8 @@ const bricks = [];
 const figs = [];
 const balls = [];
 const fx = [];
+const beacons = [];
+let beaconKind = "kitchen";
 
 const _v = new THREE.Vector3();
 const _v2 = new THREE.Vector3();
@@ -419,10 +448,12 @@ function rebuildGhost() {
     ghost = null;
   }
   if (handMode === "hands") return;
-  if (handMode === "fig") ghost = makeFig(figCfg, true);
+  if (handMode === "beacon") ghost = makeBeaconMesh(beaconKind, true);
+  else if (handMode === "fig") ghost = makeFig(figCfg, true);
   else ghost = makeBrickMesh(currentSpec(), currentCol(), true);
   if (ghost) {
     ghost.scale.setScalar(pieceScale);
+    if (ghost.userData) ghost.userData.baseScale = pieceScale;
     buildRoot.add(ghost);
   }
 }
@@ -436,7 +467,9 @@ function setHud() {
     ? `${c} · ${d} ${k}`
     : handMode === "fig"
       ? `Fig · ${FIG_HEADS[figCfg.head].name}`
-      : "Empty-handed";
+      : handMode === "beacon"
+        ? `Beacon · ${beaconKind}`
+        : "Empty-handed";
   hudLine.textContent = `${mode} · brick ${pieceScale.toFixed(1)}× · table ${worldScale.toFixed(1)}× · gravity ${gravityOn ? "ON" : "OFF"}`;
 }
 
@@ -459,10 +492,23 @@ const keys = new Set();
 const mouse = { x: 0, y: 0, down: false, locked: false };
 let lookYaw = 0;
 let lookPitch = -0.42;
-const pressed = { t0: false, t1: false, g0: false, g1: false, a: false, b: false, x: false, y: false, rsc: false, lsc: false, lmenu: false };
+const pressed = { t0: false, t1: false, g0: false, g1: false, a: false, b: false, x: false, y: false, rsc: false, lsc: false, lmenu: false, ltrig: false };
 let xHold = 0;
 const handVel = new THREE.Vector3();
+const handVelWorld = new THREE.Vector3();
+const velBuf = [];
 let handPrev = null;
+let handPrevW = null;
+
+function peakHandWorld() {
+  let best = handVelWorld.clone();
+  let bestL = best.lengthSq();
+  for (const v of velBuf) {
+    const L = v.lengthSq();
+    if (L > bestL) { bestL = L; best = v; }
+  }
+  return best;
+}
 
 function buildCtrl() {
   return paletteHand === 0 ? ctrl[1] : ctrl[0];
@@ -488,6 +534,25 @@ function aimLocal(originW, dirW) {
   }
   const len = d.length() || 1;
   return o.addScaledVector(d, 0.08 / len);
+}
+
+function pushOutFromPlayer(pos, spec) {
+  const { bw, bd } = spec ? rotatedDims(spec.w, spec.d, rot) : { bw: 2, bd: 2 };
+  const half = Math.max(bw, bd) * STUD * Math.max(pieceScale, 0.2) * 0.55;
+  const minDist = half + 0.48 / Math.max(0.25, worldScale);
+  const camL = worldToLocal(camera.getWorldPosition(new THREE.Vector3()));
+  const away = pos.clone().sub(camL);
+  away.y = 0;
+  if (away.lengthSq() < 1e-8) away.set(0, 0, 1);
+  away.normalize();
+  const along = pos.clone().sub(camL);
+  along.y = 0;
+  const dist = along.dot(away);
+  if (dist < minDist) {
+    pos.x = camL.x + away.x * minDist;
+    pos.z = camL.z + away.z * minDist;
+  }
+  return pos;
 }
 
 function occupancy() {
@@ -677,6 +742,7 @@ function addFigAt(localPos, yaw) {
   f.position.set(localPos.x, y, localPos.z);
   f.rotation.y = yaw || 0;
   f.scale.setScalar(pieceScale);
+  f.userData.baseScale = pieceScale;
   f.userData.origin = f.position.clone();
   f.userData.held = false;
   f.userData.loose = false;
@@ -714,15 +780,129 @@ function heightAt(x, z) {
   return best;
 }
 
+function wallCellSet() {
+  const cells = new Set();
+  for (const b of bricks) {
+    if (b.loose || b.held || b.spec.h < 3) continue;
+    const { bw, bd } = rotatedDims(b.spec.w, b.spec.d, b.rot);
+    for (let i = 0; i < bw; i++) {
+      for (let j = 0; j < bd; j++) cells.add((b.gx + i) + "," + (b.gz + j));
+    }
+  }
+  return cells;
+}
+
+function roomAt(gx, gz) {
+  const walls = wallCellSet();
+  const key = (x, z) => x + "," + z;
+  if (walls.has(key(gx, gz))) return null;
+  const seen = new Set();
+  const q = [[gx, gz]];
+  seen.add(key(gx, gz));
+  let xmin = gx, xmax = gx, zmin = gz, zmax = gz;
+  while (q.length) {
+    if (seen.size > 420) return null;
+    const [x, z] = q.pop();
+    xmin = Math.min(xmin, x); xmax = Math.max(xmax, x);
+    zmin = Math.min(zmin, z); zmax = Math.max(zmax, z);
+    const nbs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+    for (const [dx, dz] of nbs) {
+      const nx = x + dx, nz = z + dz;
+      const k = key(nx, nz);
+      if (seen.has(k) || walls.has(k)) continue;
+      if (Math.abs(nx - gx) > 16 || Math.abs(nz - gz) > 16) return null;
+      seen.add(k);
+      q.push([nx, nz]);
+    }
+  }
+  if (seen.size < 6) return null;
+  const spanX = xmax - xmin + 1;
+  const spanZ = zmax - zmin + 1;
+  const edge = (cells) => {
+    let w = 0;
+    for (const [x, z] of cells) if (walls.has(key(x, z))) w++;
+    return cells.length ? w / cells.length : 0;
+  };
+  const north = [], south = [], east = [], west = [];
+  for (let x = xmin; x <= xmax; x++) {
+    north.push([x, zmax + 1]);
+    south.push([x, zmin - 1]);
+  }
+  for (let z = zmin; z <= zmax; z++) {
+    east.push([xmax + 1, z]);
+    west.push([xmin - 1, z]);
+  }
+  if ([north, south, east, west].some((s) => edge(s) < 0.7)) return null;
+  return {
+    xmin: xmin * STUD, xmax: (xmax + 1) * STUD,
+    zmin: zmin * STUD, zmax: (zmax + 1) * STUD,
+    gx, gz, spanX, spanZ,
+  };
+}
+
+function makeBeaconMesh(kind, ghost = false) {
+  const def = BEACONS.find((b) => b.id === kind) || BEACONS[0];
+  const g = new THREE.Group();
+  const pole = new THREE.Mesh(new THREE.CylinderGeometry(STUD * 0.12, STUD * 0.14, STUD * 3.2, 8), new THREE.MeshLambertMaterial({ color: 0xeeeeee }));
+  pole.position.y = STUD * 1.6;
+  const lamp = new THREE.Mesh(new THREE.SphereGeometry(STUD * 0.45, 10, 8), new THREE.MeshBasicMaterial({ color: def.col }));
+  lamp.position.y = STUD * 3.4;
+  const flag = new THREE.Mesh(
+    new THREE.PlaneGeometry(STUD * 2.2, STUD * 1.1),
+    new THREE.MeshBasicMaterial({ map: labelTex(def.name, 220, 80), side: THREE.DoubleSide, depthTest: false }),
+  );
+  flag.position.set(STUD * 1.1, STUD * 2.6, 0);
+  g.add(pole, lamp, flag);
+  if (ghost) {
+    g.traverse((o) => {
+      if (o.material) {
+        o.material = o.material.clone();
+        o.material.transparent = true;
+        o.material.opacity = 0.55;
+      }
+    });
+  }
+  g.userData.kind = "beacon";
+  g.userData.beacon = def.id;
+  return g;
+}
+
+function placeBeacon(localPos) {
+  const gx = Math.round(localPos.x / STUD);
+  const gz = Math.round(localPos.z / STUD);
+  const room = roomAt(gx, gz);
+  if (!room) {
+    hudHint.textContent = "Need four connected walls (up to 30% gaps) to plant a room beacon.";
+    return false;
+  }
+  const mesh = makeBeaconMesh(beaconKind);
+  mesh.position.set(gx * STUD, heightAt(gx * STUD, gz * STUD), gz * STUD);
+  buildRoot.add(mesh);
+  room.type = beaconKind;
+  beacons.push({
+    type: beaconKind,
+    mesh,
+    gx, gz,
+    xmin: room.xmin, xmax: room.xmax, zmin: room.zmin, zmax: room.zmax,
+    room,
+  });
+  hudHint.textContent = beaconKind + " beacon set — figs will visit this room.";
+  return true;
+}
+
 function placeFromLocal(localPos, yaw) {
   if (handMode === "hands") return;
+  if (handMode === "beacon") {
+    placeBeacon(pushOutFromPlayer(localPos.clone(), { w: 2, d: 2 }));
+    return;
+  }
   if (handMode === "fig" || KINDS[kindI].id === "fig") {
-    addFigAt(localPos, yaw);
+    addFigAt(pushOutFromPlayer(localPos.clone(), { w: 2, d: 2 }), yaw);
     hudHint.textContent = "Fig placed — they wander and climb stairs.";
     return;
   }
   const spec = currentSpec();
-  const snap = snapPose(localPos, spec, rot);
+  const snap = snapPose(pushOutFromPlayer(localPos.clone(), spec), spec, rot);
   addBrick(spec, currentCol(), snap.gx, snap.gy, snap.gz, snap.rot, !snap.joined && !gravityOn);
 }
 
@@ -790,19 +970,23 @@ function grab(localPos, any = false) {
 }
 function dropHeld(snapJoin) {
   if (!held) return;
-  const toss = handVel.length() > 0.38;
+  const worldV = peakHandWorld();
+  const worldSpd = worldV.length();
+  const toss = worldSpd > 0.55;
   if (snapJoin == null) snapJoin = !toss;
+  const localV = worldV.clone().multiplyScalar(4 / Math.max(0.25, worldScale));
   if (held.userData?.kind === "fig") {
     held.userData.held = false;
     if (!snapJoin && toss) {
       held.userData.toss = true;
-      held.userData.vel = handVel.clone().multiplyScalar(0.45);
-      held.userData.vel.y += 0.18;
+      held.userData.vel = localV.clone();
+      held.userData.vel.y += 0.28 + worldSpd * 0.08;
     } else {
       const y = heightAt(held.position.x, held.position.z);
       held.position.y = y;
       held.userData.origin = held.position.clone();
       held.userData.toss = false;
+      held.userData.vel = new THREE.Vector3();
     }
     held = null;
     return;
@@ -821,9 +1005,11 @@ function dropHeld(snapJoin) {
   } else {
     held.held = false;
     held.loose = true;
-    if (handVel.length() > 0.08) {
-      held.vel.copy(handVel).multiplyScalar(0.5);
-      held.vel.y += 0.12;
+    if (toss) {
+      held.vel.copy(localV);
+      held.vel.y += 0.22 + worldSpd * 0.06;
+    } else {
+      held.vel.set(0, 0, 0);
     }
   }
   held = null;
@@ -850,6 +1036,18 @@ function explodeBall(ball) {
     if (b.group.position.distanceTo(origin) < STUD * 6) hit.push(b.id);
   }
   if (hit.length) breakApart(hit, 1.15, origin);
+  for (const f of figs) {
+    if (f.userData.held) continue;
+    const sc = f.userData.baseScale || 1;
+    if (f.position.distanceTo(origin) < STUD * 7 * Math.max(1, sc)) {
+      f.userData.toss = true;
+      const dir = f.position.clone().sub(origin);
+      dir.y += 0.02;
+      if (dir.lengthSq() < 1e-8) dir.set(Math.random() - 0.5, 1, Math.random() - 0.5);
+      f.userData.vel = dir.normalize().multiplyScalar(0.95);
+      f.userData.vel.y += 0.45;
+    }
+  }
   for (let i = 0; i < 10; i++) {
     const s = new THREE.Mesh(
       new THREE.SphereGeometry(0.004, 5, 4),
@@ -922,6 +1120,30 @@ function meltNear(localPos, dt) {
       b.mesh.material.emissive = new THREE.Color(0xff3300);
       b.mesh.material.emissiveIntensity = Math.min(1.4, b.melt * 1.4);
       if (b.melt >= 1) removeBrick(b);
+    }
+  }
+  for (let i = figs.length - 1; i >= 0; i--) {
+    const f = figs[i];
+    if (f.userData.held) continue;
+    const sc = f.userData.baseScale || 1;
+    if (f.position.distanceTo(localPos) < STUD * 5.5 * Math.max(1, sc)) {
+      f.userData.melt = (f.userData.melt || 0) + dt * 1.6;
+      const k = Math.max(0.05, 1 - f.userData.melt);
+      f.scale.setScalar((f.userData.baseScale || 1) * k);
+      f.traverse((o) => {
+        if (o.material && o.material.emissive) {
+          if (!o.material.userData.cloned) {
+            o.material = o.material.clone();
+            o.material.userData.cloned = true;
+          }
+          o.material.emissive = new THREE.Color(0xff3300);
+          o.material.emissiveIntensity = Math.min(1.4, f.userData.melt * 1.4);
+        }
+      });
+      if (f.userData.melt >= 1) {
+        buildRoot.remove(f);
+        figs.splice(i, 1);
+      }
     }
   }
 }
@@ -1063,6 +1285,13 @@ function tickPhysics(dt) {
       if (b.held) continue;
       if (b.group.position.distanceTo(ball.mesh.position) < STUD * 3.2) { hit = true; break; }
     }
+    if (!hit) {
+      for (const f of figs) {
+        if (f.userData.held) continue;
+        const sc = f.userData.baseScale || 1;
+        if (f.position.distanceTo(ball.mesh.position) < STUD * 3.4 * Math.max(1, sc)) { hit = true; break; }
+      }
+    }
     if (hit || ball.life <= 0 || ball.mesh.position.y < floorY - 0.2) {
       if (hit) explodeBall(ball);
       else buildRoot.remove(ball.mesh);
@@ -1093,7 +1322,7 @@ function tickPhysics(dt) {
       }
       continue;
     }
-    tickFig(f, dt, heightAt, wander);
+    tickFig(f, dt, heightAt, wander, beacons.map((b) => b.room).filter(Boolean));
   }
 }
 
@@ -1126,24 +1355,44 @@ function updateGhost() {
     return;
   }
   ghost.visible = true;
+  let handDir = new THREE.Vector3(0, 0, -1);
   if (xr) {
     const h = handLocal(buildCtrl());
-    local = h.local;
+    local = h.local.clone();
+    handDir = h.dir || handDir;
     const e = new THREE.Euler().setFromQuaternion(buildCtrl().getWorldQuaternion(_q), "YXZ");
     yaw = e.y;
   } else {
     camera.getWorldPosition(_v);
     camera.getWorldDirection(_v2);
     local = aimLocal(_v, _v2);
+    handDir = _v2.clone();
   }
-  if (handMode === "fig" || KINDS[kindI].id === "fig") {
+  if (handMode === "beacon") {
+    local = pushOutFromPlayer(local, { w: 2, d: 2 });
     local.y = heightAt(local.x, local.z);
     ghost.position.copy(local);
     ghost.rotation.y = yaw;
+    const gx = Math.round(local.x / STUD);
+    const gz = Math.round(local.z / STUD);
+    const ok = !!roomAt(gx, gz);
+    ghost.traverse((o) => {
+      if (o.material && o.material.color && o.geometry?.type === "SphereGeometry") {
+        o.material.color.setHex(ok ? 0x44ee66 : 0xee3344);
+      }
+    });
+  } else if (handMode === "fig" || KINDS[kindI].id === "fig") {
+    local = pushOutFromPlayer(local, { w: 2, d: 2 });
+    local.y = heightAt(local.x, local.z);
+    ghost.position.copy(local);
+    ghost.rotation.y = yaw;
+    ghost.scale.setScalar(pieceScale);
   } else {
+    local = pushOutFromPlayer(local, currentSpec());
     const snap = snapPose(local, currentSpec(), rot);
     ghost.position.copy(snap.pos);
     ghost.rotation.y = rot * Math.PI / 2;
+    ghost.scale.setScalar(pieceScale);
     ghost.material && (ghost.material.opacity = snap.joined ? 0.72 : 0.35);
     if (ghost.material) ghost.material.color.setHex(snap.joined ? currentCol().hex : 0x9ee7ff);
   }
@@ -1179,72 +1428,99 @@ const KIND_TABS = [
   { id: "round", name: "Round", kinds: ["round", "cone", "cylinder"] },
   { id: "build", name: "Build", kinds: ["arch", "stairs", "jumper", "grille", "corner", "window", "door", "log", "base"] },
   { id: "fig", name: "Figs", kinds: ["fig"] },
+  { id: "rooms", name: "Rooms", kinds: [], beacons: true },
 ];
 let catalogTab = 0;
 
 function spawnWorldPanel(group, dist) {
-  camera.getWorldPosition(_v);
-  camera.getWorldDirection(_v2);
-  group.position.copy(_v).addScaledVector(_v2, dist || 0.85);
-  group.position.y = _v.y;
-  group.lookAt(_v);
-  group.rotateY(Math.PI);
-  group.visible = true;
+  facePlayer(group, dist || 0.7);
 }
+
+const BEACONS = [
+  { id: "kitchen", name: "Kitchen", col: 0xff9944 },
+  { id: "living", name: "Living", col: 0x44aaff },
+  { id: "bedroom", name: "Bedroom", col: 0xcc77ee },
+  { id: "bath", name: "Bath", col: 0x66dde8 },
+  { id: "dining", name: "Dining", col: 0xe8c44a },
+  { id: "garden", name: "Garden", col: 0x44cc66 },
+  { id: "workshop", name: "Workshop", col: 0xaa7744 },
+];
 
 function makeCatalog() {
   const root = new THREE.Group();
   root.visible = false;
-  const board = new THREE.Mesh(
-    new THREE.PlaneGeometry(0.62, 0.52),
-    new THREE.MeshLambertMaterial({ color: 0x16181f, side: THREE.DoubleSide }),
-  );
-  root.add(board);
+  root.frustumCulled = false;
+  const frame = new THREE.Mesh(new THREE.PlaneGeometry(0.78, 0.64), uiMat(null, 0xe6b35c));
+  frame.position.z = -0.004;
+  const board = new THREE.Mesh(new THREE.PlaneGeometry(0.74, 0.60), uiMat(null, 0x4d5d73));
+  board.position.z = 0;
+  const title = new THREE.Mesh(new THREE.PlaneGeometry(0.42, 0.05), uiMat(labelTex("PIECE CATALOG", 320, 48)));
+  title.position.set(0, 0.265, 0.012);
+  title.renderOrder = 8;
+  root.add(frame, board, title);
   const hits = [];
-  const tabs = [];
   KIND_TABS.forEach((tab, i) => {
-    const pl = new THREE.Mesh(
-      new THREE.PlaneGeometry(0.11, 0.04),
-      new THREE.MeshBasicMaterial({ map: labelTex(tab.name, 160, 48), transparent: true, side: THREE.DoubleSide }),
-    );
-    pl.position.set(-0.24 + i * 0.12, 0.22, 0.008);
+    const pl = new THREE.Mesh(new THREE.PlaneGeometry(0.115, 0.048), uiMat(labelTex(tab.name, 220, 64)));
+    pl.position.set(-0.28 + i * 0.115, 0.21, 0.012);
+    pl.renderOrder = 8;
     pl.userData.catTab = i;
     root.add(pl);
     hits.push(pl);
-    tabs.push(pl);
   });
   const items = [];
   function fill() {
     while (items.length) {
       const m = items.pop();
+      m.traverse((o) => {
+        const ix = hits.indexOf(o);
+        if (ix >= 0) hits.splice(ix, 1);
+      });
       m.parent?.remove(m);
-      const ix = hits.indexOf(m);
-      if (ix >= 0) hits.splice(ix, 1);
     }
     const tab = KIND_TABS[catalogTab];
-    tab.kinds.forEach((id, i) => {
+    const list = tab.beacons ? BEACONS.map((b) => ({ id: "beacon:" + b.id, name: b.name })) : tab.kinds.map((id) => {
       const k = KINDS.find((x) => x.id === id);
-      const pl = new THREE.Mesh(
-        new THREE.PlaneGeometry(0.18, 0.055),
-        new THREE.MeshBasicMaterial({ map: labelTex(k ? k.name : id, 200, 48), transparent: true, side: THREE.DoubleSide }),
-      );
-      pl.position.set(-0.18 + (i % 3) * 0.2, 0.12 - Math.floor(i / 3) * 0.07, 0.008);
-      pl.userData.catKind = id;
-      root.add(pl);
-      hits.push(pl);
-      items.push(pl);
+      return { id, name: k ? k.name : id };
+    });
+    list.forEach((it, i) => {
+      const wrap = new THREE.Group();
+      const bg = new THREE.Mesh(new THREE.PlaneGeometry(0.22, 0.068), uiMat(null, 0x243044));
+      const pl = new THREE.Mesh(new THREE.PlaneGeometry(0.21, 0.062), uiMat(labelTex(it.name, 240, 72)));
+      pl.position.z = 0.002;
+      wrap.add(bg, pl);
+      wrap.position.set(-0.22 + (i % 3) * 0.22, 0.12 - Math.floor(i / 3) * 0.078, 0.012);
+      wrap.renderOrder = 8;
+      if (it.id.startsWith("beacon:")) {
+        pl.userData.catBeacon = it.id.slice(7);
+        bg.userData.catBeacon = it.id.slice(7);
+      } else {
+        pl.userData.catKind = it.id;
+        bg.userData.catKind = it.id;
+      }
+      root.add(wrap);
+      hits.push(pl, bg);
+      items.push(wrap);
     });
   }
   fill();
   scene.add(root);
-  return { root, hits, fill };
+  return {
+    root,
+    hits,
+    fill,
+    setTab(i) {
+      catalogTab = i;
+      fill();
+    },
+  };
 }
 const catalog = makeCatalog();
 
 function hsvCanvas() {
   const c = document.createElement("canvas");
-  c.width = 256; c.height = 200;
+  c.width = 256; c.height = 176;
   const g = c.getContext("2d");
+  g.direction = "ltr";
   for (let x = 0; x < 256; x++) {
     for (let y = 0; y < 176; y++) {
       const h = x / 256;
@@ -1266,27 +1542,33 @@ function hsvCanvas() {
       g.fillRect(x, y, 1, 1);
     }
   }
-  g.fillStyle = "#111";
-  g.fillRect(0, 176, 256, 24);
-  g.fillStyle = "#eee";
-  g.font = "14px sans-serif";
-  g.textAlign = "center";
-  g.fillText("tap a color", 128, 193);
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
+  tex.flipY = true;
+  tex.needsUpdate = true;
   return { canvas: c, tex };
 }
 
 function makeHexPicker() {
   const root = new THREE.Group();
   root.visible = false;
+  root.frustumCulled = false;
   const hsv = hsvCanvas();
-  const pl = new THREE.Mesh(
-    new THREE.PlaneGeometry(0.42, 0.33),
-    new THREE.MeshBasicMaterial({ map: hsv.tex, side: THREE.DoubleSide }),
-  );
+  const frame = new THREE.Mesh(new THREE.PlaneGeometry(0.46, 0.42), uiMat(null, 0xe6b35c));
+  frame.position.z = -0.003;
+  const pl = new THREE.Mesh(new THREE.PlaneGeometry(0.42, 0.29), uiMat(hsv.tex));
+  pl.position.y = 0.03;
+  pl.position.z = 0.004;
   pl.userData.hexPick = true;
-  root.add(pl);
+  const cap = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: labelTex("tap a color", 280, 48),
+    depthTest: false,
+    depthWrite: false,
+  }));
+  cap.position.set(0, -0.175, 0.03);
+  cap.scale.set(0.36, 0.06, 1);
+  cap.renderOrder = 9;
+  root.add(frame, pl, cap);
   scene.add(root);
   return { root, hits: [pl], canvas: hsv.canvas };
 }
@@ -1295,20 +1577,71 @@ const hexPicker = makeHexPicker();
 function makeSizeSlider() {
   const root = new THREE.Group();
   root.visible = false;
-  const bar = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.02, 0.02), new THREE.MeshLambertMaterial({ color: 0x222 }));
-  const knob = new THREE.Mesh(new THREE.SphereGeometry(0.028, 10, 8), new THREE.MeshLambertMaterial({ color: 0xe6b35c }));
-  knob.position.x = 0;
-  const lab = new THREE.Mesh(
-    new THREE.PlaneGeometry(0.22, 0.05),
-    new THREE.MeshBasicMaterial({ map: labelTex("SIZE 1.0x", 200, 48), transparent: true, side: THREE.DoubleSide, depthTest: false }),
+  root.frustumCulled = false;
+  const bar = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.028, 0.028), new THREE.MeshBasicMaterial({ color: 0x1a1d24 }));
+  bar.userData.sliderBar = true;
+  const track = new THREE.Mesh(
+    new THREE.BoxGeometry(0.42, 0.14, 0.14),
+    new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.0, depthWrite: false }),
   );
-  lab.position.y = 0.06;
-  root.add(bar, knob, lab);
+  track.userData.sliderBar = true;
+  const knob = new THREE.Mesh(new THREE.SphereGeometry(0.048, 14, 12), new THREE.MeshBasicMaterial({ color: 0xe6b35c }));
+  knob.userData.sliderKnob = true;
+  const lab = new THREE.Mesh(new THREE.PlaneGeometry(0.28, 0.065), uiMat(labelTex("SIZE 1.0x", 240, 64)));
+  lab.position.set(0, 0.09, 0.02);
+  lab.renderOrder = 8;
+  root.add(bar, track, knob, lab);
   scene.add(root);
-  return { root, knob, lab };
+  return { root, knob, lab, hits: [bar, track, knob] };
 }
 const sizeSlider = makeSizeSlider();
 let sliderArmed = false;
+let sliderGrab = false;
+let sliderNear = false;
+
+function syncSliderKnob() {
+  const t = THREE.MathUtils.clamp((pieceScale - 0.1) / 9.9, 0, 1);
+  sizeSlider.knob.position.x = (t - 0.5) * 0.32;
+  if (sizeSlider.lab.material.map) sizeSlider.lab.material.map.dispose();
+  sizeSlider.lab.material.map = labelTex("SIZE " + pieceScale.toFixed(1) + "x", 240, 64);
+  sizeSlider.lab.material.needsUpdate = true;
+}
+syncSliderKnob();
+
+function showSizeSlider(xr) {
+  sliderArmed = true;
+  if (xr) {
+    const left = ctrl[0];
+    if (sizeSlider.root.parent !== left) {
+      sizeSlider.root.parent?.remove(sizeSlider.root);
+      left.add(sizeSlider.root);
+    }
+    sizeSlider.root.position.set(0, 0.08, -0.2);
+    sizeSlider.root.rotation.set(-0.55, 0, 0);
+  } else {
+    if (sizeSlider.root.parent !== scene) {
+      sizeSlider.root.parent?.remove(sizeSlider.root);
+      scene.add(sizeSlider.root);
+    }
+    spawnWorldPanel(sizeSlider.root, 0.55);
+  }
+  sizeSlider.root.visible = true;
+  syncSliderKnob();
+  hudHint.textContent = "Grab the gold knob and drag left/right to set size.";
+}
+
+function hideSizeSlider() {
+  sliderArmed = false;
+  sliderGrab = false;
+  sliderNear = false;
+  sizeSlider.root.visible = false;
+  if (sizeSlider.root.parent !== scene) {
+    sizeSlider.root.parent?.remove(sizeSlider.root);
+    scene.add(sizeSlider.root);
+  }
+  rebuildGhost();
+  setHud();
+}
 
 function applyPickedHex(hex) {
   const id = "hex" + hex.toString(16).padStart(6, "0");
@@ -1332,7 +1665,7 @@ function pokeUi(origin, dir) {
     const h = hits[0];
     if (h && h.uv) {
       const x = Math.max(0, Math.min(255, (h.uv.x * 256) | 0));
-      const y = Math.max(0, Math.min(175, ((1 - h.uv.y) * 200) | 0));
+      const y = Math.max(0, Math.min(175, ((1 - h.uv.y) * 176) | 0));
       const ctx = hexPicker.canvas.getContext("2d");
       const d = ctx.getImageData(x, y, 1, 1).data;
       applyPickedHex((d[0] << 16) | (d[1] << 8) | d[2]);
@@ -1347,11 +1680,21 @@ function pokeUi(origin, dir) {
       catalog.fill();
       return true;
     }
+    if (obj?.userData?.catBeacon) {
+      beaconKind = obj.userData.catBeacon;
+      handMode = "beacon";
+      catalog.root.visible = false;
+      rebuildGhost();
+      setHud();
+      hudHint.textContent = "Beacon: " + beaconKind + " — place in a 4-wall room (up to 30% gaps).";
+      return true;
+    }
     if (obj?.userData?.catKind) {
       const id = obj.userData.catKind;
       kindI = KINDS.findIndex((k) => k.id === id);
       if (id === "fig") handMode = "fig";
-      else if (handMode === "fig") handMode = "brick";
+      else handMode = "brick";
+      catalog.root.visible = false;
       rebuildGhost();
       setHud();
       return true;
@@ -1366,6 +1709,10 @@ function clearWorld() {
   while (figs.length) {
     const f = figs.pop();
     buildRoot.remove(f);
+  }
+  while (beacons.length) {
+    const b = beacons.pop();
+    b.mesh.parent?.remove(b.mesh);
   }
 }
 
@@ -1383,7 +1730,12 @@ function saveSlot(n) {
     })),
     figs: figs.map((f) => ({
       cfg: f.userData.cfg,
+      scale: f.userData.baseScale || 1,
       x: f.position.x, y: f.position.y, z: f.position.z, yaw: f.rotation.y,
+    })),
+    beacons: beacons.map((b) => ({
+      type: b.type, gx: b.gx, gz: b.gz,
+      xmin: b.xmin, xmax: b.xmax, zmin: b.zmin, zmax: b.zmax,
     })),
   };
   try {
@@ -1411,9 +1763,23 @@ function loadSlot(n) {
     const nb = addBrick(spec, colorOf(b.col), b.gx || 0, b.gy || 0, b.gz || 0, b.rot || 0, !!b.loose);
     if (nb && b.loose && b.x != null) nb.group.position.set(b.x, b.y, b.z);
   }
+  const keepScale = pieceScale;
   for (const f of data.figs || []) {
     figCfg = { ...defaultFigConfig(), ...(f.cfg || {}) };
+    pieceScale = f.scale || 1;
     addFigAt(new THREE.Vector3(f.x || 0, f.y || 0, f.z || 0), f.yaw || 0);
+  }
+  pieceScale = keepScale;
+  for (const b of data.beacons || []) {
+    beaconKind = b.type || "kitchen";
+    const mesh = makeBeaconMesh(beaconKind);
+    mesh.position.set((b.gx || 0) * STUD, heightAt((b.gx || 0) * STUD, (b.gz || 0) * STUD), (b.gz || 0) * STUD);
+    buildRoot.add(mesh);
+    beacons.push({
+      type: beaconKind, mesh, gx: b.gx, gz: b.gz,
+      xmin: b.xmin, xmax: b.xmax, zmin: b.zmin, zmax: b.zmax,
+      room: { xmin: b.xmin, xmax: b.xmax, zmin: b.zmin, zmax: b.zmax, type: beaconKind },
+    });
   }
   figCfg = defaultFigConfig();
   rebuildGhost();
@@ -1480,10 +1846,8 @@ function openMenu() {
   if (renderer.xr.isPresenting) {
     camera.getWorldPosition(_v);
     camera.getWorldDirection(_v2);
-    vrMenu.root.position.copy(_v).addScaledVector(_v2, 0.95);
-    vrMenu.root.position.y = _v.y;
+    vrMenu.root.position.copy(_v).addScaledVector(_v2, 0.8);
     vrMenu.root.lookAt(_v);
-    vrMenu.root.rotateY(Math.PI);
     vrMenu.root.visible = true;
     if (htmlMenu) htmlMenu.hidden = true;
   } else if (htmlMenu) {
@@ -1517,7 +1881,15 @@ if (htmlMenu) {
 
 function trackBuildHand(dt) {
   const xr = renderer.xr.isPresenting;
-  const h = xr ? handLocal(buildCtrl()) : { local: aimLocal(camera.getWorldPosition(_v), camera.getWorldDirection(_v2)) };
+  const ctrlr = buildCtrl();
+  const h = xr ? handLocal(ctrlr) : { local: aimLocal(camera.getWorldPosition(_v), camera.getWorldDirection(_v2)), world: null };
+  const world = h.world || buildRoot.localToWorld(h.local.clone());
+  if (handPrevW) {
+    handVelWorld.copy(world).sub(handPrevW).multiplyScalar(1 / Math.max(dt, 0.008));
+    velBuf.push(handVelWorld.clone());
+    if (velBuf.length > 12) velBuf.shift();
+  }
+  handPrevW = world.clone();
   if (handPrev) {
     handVel.copy(h.local).sub(handPrev).multiplyScalar(1 / Math.max(dt, 0.008));
   }
@@ -1564,26 +1936,29 @@ function loop(t) {
     const aimO = aimCtrl.getWorldPosition(_v).clone();
     const aimD = new THREE.Vector3(0, 0, -1).applyQuaternion(aimCtrl.getWorldQuaternion(_q)).normalize();
 
-    if (lTrig) {
-      if (!sliderArmed) {
-        sliderArmed = true;
-        ctrl.g0.add(sizeSlider.root);
-        sizeSlider.root.position.set(0, 0.08, -0.12);
-        sizeSlider.root.visible = true;
+    if (lTrig && !pressed.ltrig) {
+      if (sliderArmed) hideSizeSlider();
+      else showSizeSlider(true);
+    }
+    sliderNear = false;
+    if (sliderArmed && sizeSlider.root.visible) {
+      const right = ctrl[1];
+      right.updateMatrixWorld();
+      const tip = handLocal(right);
+      const local = sizeSlider.root.worldToLocal(tip.world.clone());
+      sliderNear = Math.abs(local.y) < 0.16 && Math.abs(local.z) < 0.16 && Math.abs(local.x) < 0.28;
+      if ((trig || gripB) && (sliderGrab || sliderNear)) {
+        sliderGrab = true;
+        const t = THREE.MathUtils.clamp((local.x + 0.19) / 0.38, 0, 1);
+        pieceScale = 0.1 + t * 9.9;
+        if (ghost) {
+          ghost.scale.setScalar(pieceScale);
+          if (ghost.userData) ghost.userData.baseScale = pieceScale;
+        }
+        syncSliderKnob();
+        setHud();
       }
-      const tv = gpL?.buttons?.[0]?.value || 0;
-      pieceScale = THREE.MathUtils.clamp(0.1 + tv * 9.9, 0.1, 10);
-      sizeSlider.knob.position.x = ((pieceScale - 0.1) / 9.9 - 0.5) * 0.26;
-      if (sizeSlider.lab.material.map) sizeSlider.lab.material.map.dispose();
-      sizeSlider.lab.material.map = labelTex("SIZE " + pieceScale.toFixed(1) + "x", 220, 48);
-      if (ghost) ghost.scale.setScalar(pieceScale);
-    } else if (sliderArmed) {
-      sliderArmed = false;
-      sizeSlider.root.visible = false;
-      sizeSlider.root.parent?.remove(sizeSlider.root);
-      scene.add(sizeSlider.root);
-      rebuildGhost();
-      setHud();
+      if (!trig && !gripB) sliderGrab = false;
     }
 
     if (menuOpen) {
@@ -1601,7 +1976,9 @@ function loop(t) {
         }
       }
       if (trig && !pressed.t1) {
-        if (pokeUi(aimO, aimD)) {
+        if (sliderGrab || sliderNear) {
+          /* dragging size */
+        } else if (pokeUi(aimO, aimD)) {
           /* picked */
         } else if (handMode === "hands" || held) {
           if (held) dropHeld(null);
@@ -1609,9 +1986,9 @@ function loop(t) {
         } else placeFromLocal(handLocal(buildCtrl()).local, lookYaw);
       }
       if (gripB && !pressed.g1) {
-        if (held) dropHeld(null);
-        else grab(handLocal(buildCtrl()).local, true);
+        if (!(sliderGrab || sliderNear) && !held) grab(handLocal(buildCtrl()).local, true);
       }
+      if (!gripB && pressed.g1 && held) dropHeld(null);
       if (yBtn && !pressed.y) {
         const h = handLocal(buildCtrl());
         fireCannon(h.world, h.dir);
@@ -1640,6 +2017,7 @@ function loop(t) {
     pressed.rsc = rStick;
     pressed.lsc = lStick;
     pressed.lmenu = lMenu;
+    pressed.ltrig = lTrig;
   } else if (mouse.down || pressed.t1) {
     camera.getWorldPosition(_v);
     camera.getWorldDirection(_v2);
@@ -1686,6 +2064,20 @@ window.addEventListener("keydown", (e) => {
   if (e.code === "KeyB") {
     if (catalog.root.visible) catalog.root.visible = false;
     else { catalog.fill(); spawnWorldPanel(catalog.root, 0.9); }
+  }
+  if (e.code === "KeyT") {
+    if (sliderArmed) hideSizeSlider();
+    else showSizeSlider(false);
+  }
+  if (e.code === "Comma") {
+    pieceScale = Math.max(0.1, pieceScale / 1.25);
+    if (ghost) { ghost.scale.setScalar(pieceScale); if (ghost.userData) ghost.userData.baseScale = pieceScale; }
+    syncSliderKnob(); setHud();
+  }
+  if (e.code === "Period") {
+    pieceScale = Math.min(10, pieceScale * 1.25);
+    if (ghost) { ghost.scale.setScalar(pieceScale); if (ghost.userData) ghost.userData.baseScale = pieceScale; }
+    syncSliderKnob(); setHud();
   }
   if (e.code === "KeyF") {
     const lp = worldToLocal(camera.getWorldPosition(_v).add(camera.getWorldDirection(_v2).multiplyScalar(0.4)));
@@ -1774,8 +2166,15 @@ setHud();
 })();
 
 window.__bb = {
-  bricks, figs, spawnPile, setScale, addBrick, saveSlot, loadSlot, clearWorld,
+  bricks, figs, beacons, spawnPile, setScale, addBrick, saveSlot, loadSlot, clearWorld,
+  catalog, hexPicker, sizeSlider, roomAt, placeBeacon,
   placeFig: (x, z) => addFigAt(new THREE.Vector3(x || 0, 0, z || 0), 0),
+  openCatalog: () => { catalog.fill(); spawnWorldPanel(catalog.root, 0.9); },
+  openHex: () => spawnWorldPanel(hexPicker.root, 0.7),
+  openSlider: () => showSizeSlider(false),
+  setPieceScale: (s) => { pieceScale = s; syncSliderKnob(); rebuildGhost(); setHud(); },
   get scale() { return worldScale; },
+  get pieceScale() { return pieceScale; },
   get gravity() { return gravityOn; },
+  peakHand: peakHandWorld,
 };
