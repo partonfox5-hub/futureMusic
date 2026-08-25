@@ -109,15 +109,125 @@ const crypto = require('crypto');
 // --- NEW CODE: Email Verification Setup ---
 const pendingVerifications = {};
 
-const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST || 'localhost',
-    port: process.env.SMTP_PORT || 587,
-    secure: false, // true for 465, false for other ports
-    auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS
+function buildMailTransport() {
+    const user = process.env.SMTP_USER || process.env.GMAIL_USER;
+    const pass = process.env.SMTP_PASS || process.env.GMAIL_APP_PASSWORD;
+    if (!user || !pass) return null;
+    if (process.env.SMTP_HOST) {
+        const port = Number(process.env.SMTP_PORT || 587);
+        return nodemailer.createTransport({
+            host: process.env.SMTP_HOST,
+            port,
+            secure: port === 465,
+            auth: { user, pass },
+        });
     }
-});
+    return nodemailer.createTransport({
+        service: 'gmail',
+        auth: { user, pass },
+    });
+}
+const transporter = buildMailTransport();
+const CONTACT_TO = process.env.CONTACT_TO || 'partonfox5@gmail.com';
+const CONTACT_SUBJECTS = {
+    booking: 'Booking Inquiry',
+    collaboration: 'Collaboration',
+    support: 'Merch Support',
+    fanmail: 'Fan Mail',
+};
+const contactHits = new Map();
+function contactRateOk(ip) {
+    const now = Date.now();
+    const windowMs = 60 * 60 * 1000;
+    const hits = (contactHits.get(ip) || []).filter((t) => now - t < windowMs);
+    if (hits.length >= 8) {
+        contactHits.set(ip, hits);
+        return false;
+    }
+    hits.push(now);
+    contactHits.set(ip, hits);
+    return true;
+}
+function escapeMail(s) {
+    return String(s || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+async function deliverContactMail({ name, email, subject, message, ip }) {
+    const subjectLine = `[Future Music] ${subject} — ${name}`;
+    const text =
+        `New transmission from futuremusic.online/contact\n\n` +
+        `Name: ${name}\nEmail: ${email}\nSubject: ${subject}\nIP: ${ip || 'unknown'}\n\n${message}\n`;
+    const html =
+        `<div style="font-family:Georgia,serif;background:#111;color:#f4efe4;padding:24px">` +
+        `<p style="letter-spacing:.2em;text-transform:uppercase;color:#d4af37;font-size:12px">Transmit Signal</p>` +
+        `<h2 style="margin:8px 0 16px;color:#d4af37">New contact from ${escapeMail(name)}</h2>` +
+        `<p><strong>Email:</strong> <a href="mailto:${escapeMail(email)}" style="color:#d4af37">${escapeMail(email)}</a></p>` +
+        `<p><strong>Subject:</strong> ${escapeMail(subject)}</p>` +
+        `<p style="white-space:pre-wrap;line-height:1.5;border-top:1px solid #333;padding-top:16px">${escapeMail(message)}</p>` +
+        `</div>`;
+
+    if (transporter) {
+        const fromUser = process.env.SMTP_USER || process.env.GMAIL_USER;
+        await transporter.sendMail({
+            from: `"Future Music" <${fromUser}>`,
+            to: CONTACT_TO,
+            replyTo: email,
+            subject: subjectLine,
+            text,
+            html,
+        });
+        return 'smtp';
+    }
+
+    const r = await fetch('https://formsubmit.co/ajax/' + encodeURIComponent(CONTACT_TO), {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+            Origin: 'https://futuremusic.online',
+            Referer: 'https://futuremusic.online/contact',
+        },
+        body: JSON.stringify({
+            name,
+            email,
+            _replyto: email,
+            _subject: subjectLine,
+            _template: 'table',
+            _captcha: 'false',
+            message: text,
+        }),
+    });
+    const data = await r.json().catch(() => ({}));
+    if (data.success === 'true' || data.success === true) return 'formsubmit';
+    if (String(data.message || '').toLowerCase().includes('activation')) return 'formsubmit-pending';
+    throw new Error(data.message || 'Email delivery failed');
+}
+async function storeContactMessage({ name, email, subject, message }) {
+    if (!pool) return false;
+    try {
+        await pool.query(
+            `CREATE TABLE IF NOT EXISTS contact_messages (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                name VARCHAR(255),
+                email VARCHAR(255),
+                subject VARCHAR(255),
+                message TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )`
+        );
+        await pool.query(
+            'INSERT INTO contact_messages (name, email, subject, message) VALUES (?, ?, ?, ?)',
+            [name, email, subject, message]
+        );
+        return true;
+    } catch (err) {
+        console.error('Contact DB store skipped:', err.message);
+        return false;
+    }
+}
 // --- END NEW CODE ---
 
 // --- SESSION CONFIGURATION ---
@@ -1024,7 +1134,11 @@ app.get('/domain', (req, res) => {
 });
 
 app.get('/about', (req, res) => res.render('about', { title: 'About' }));
-app.get('/contact', (req, res) => res.render('contact', { title: 'Contact' }));
+app.get('/contact', (req, res) => res.render('contact', {
+    title: 'Contact',
+    sent: String(req.query.sent || '') === '1',
+    error: String(req.query.error || ''),
+}));
 app.get('/advocacy', (req, res) => res.render('advocacy', { title: 'Advocacy' }));
 
 app.get(['/numgen', '/numgen/'], (req, res) => {
@@ -1045,25 +1159,43 @@ app.get([
 
 // Handle Contact Form Submission
 app.post('/contact', async (req, res) => {
-    const { name, email, subject, message } = req.body;
+    const honeypot = String(req.body.company || req.body.website || '').trim();
+    if (honeypot) return res.redirect('/contact?sent=1');
 
-    // Check if the database pool is initialized
-    if (!pool) {
-        return res.status(500).send('<script>alert("Database offline. Please try again later."); window.location.href="/contact";</script>');
+    const name = String(req.body.codename || req.body.name || '').trim();
+    const email = String(req.body.email || '').trim();
+    const subjectKey = String(req.body.subject || '').trim();
+    const subject = CONTACT_SUBJECTS[subjectKey] || subjectKey || 'General';
+    const message = String(req.body.message || '').trim();
+    const ip = String(req.headers['x-forwarded-for'] || req.ip || '').split(',')[0].trim();
+
+    if (!name || !email || !message) {
+        return res.redirect('/contact?error=missing');
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        return res.redirect('/contact?error=email');
+    }
+    if (!contactRateOk(ip || 'unknown')) {
+        return res.redirect('/contact?error=rate');
     }
 
     try {
-        // Insert the submission into the contact_messages table
-        await pool.query(
-            "INSERT INTO contact_messages (name, email, subject, message) VALUES (?, ?, ?, ?)",
-            [name, email, subject, message]
-        );
-        
-        // Provide feedback to the user and redirect back to the contact page
-        res.send('<script>alert("Transmission Received. Our team will review the signal."); window.location.href="/contact";</script>');
+        const via = await deliverContactMail({ name, email, subject, message, ip });
+        await storeContactMessage({ name, email, subject, message });
+        console.log('[CONTACT] delivered via', via, 'from', email);
+        return res.redirect('/contact?sent=1');
     } catch (err) {
-        console.error("Contact Form Error:", err);
-        res.status(500).send('<script>alert("Transmission Error. Please try again."); window.location.href="/contact";</script>');
+        console.error('Contact Form Error:', err);
+        try {
+            const saved = await storeContactMessage({ name, email, subject, message });
+            if (saved) {
+                console.warn('[CONTACT] mail failed, stored in database');
+                return res.redirect('/contact?sent=1');
+            }
+        } catch (dbErr) {
+            console.error('Contact fallback store failed:', dbErr.message);
+        }
+        return res.redirect('/contact?error=send');
     }
 });
 
@@ -1198,6 +1330,9 @@ app.post('/api/justice/send-verification', async (req, res) => {
     const verifyLink = `${DOMAIN}/justice/verify-email?token=${token}`;
 
     try {
+        if (!transporter) {
+            return res.status(503).json({ error: "Failed to send email. Check SMTP configuration." });
+        }
         await transporter.sendMail({
             from: `"Justice Portal" <${process.env.SMTP_USER || 'noreply@futuremusic.online'}>`,
             to: email,

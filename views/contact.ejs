@@ -4,7 +4,23 @@
 <h2 class="text-4xl md:text-6xl text-center mb-8 text-gold">TRANSMIT SIGNAL</h2>
 <p class="text-center text-gray-400 mb-12">The lines are open. Send your message directly to command.</p>
 
-<form class="space-y-6 glass-card p-8 md:p-12 rounded-xl" action="/contact" method="POST">
+<% if (typeof sent !== 'undefined' && sent) { %>
+<div class="mb-8 border border-[#D4AF37] bg-[#D4AF37]/10 p-5 text-center" role="status">
+    <p class="text-[#D4AF37] uppercase tracking-widest text-xs mb-2">Signal received</p>
+    <p class="text-gray-200">Transmission locked in. We'll read it and reply on the frequency you sent.</p>
+</div>
+<% } else if (typeof error !== 'undefined' && error) { %>
+<div class="mb-8 border border-red-500/60 bg-red-500/10 p-5 text-center" role="alert">
+    <p class="text-red-300 uppercase tracking-widest text-xs mb-2">Transmission error</p>
+    <p class="text-gray-200"><%= error === 'missing' ? 'Name, email, and a message are required.' : error === 'email' ? 'That frequency does not look like a valid email.' : error === 'rate' ? 'Too many signals from this post. Wait a bit and try again.' : 'The signal did not go through. Please try again in a moment.' %></p>
+</div>
+<% } %>
+
+<form class="relative space-y-6 glass-card p-8 md:p-12 rounded-xl" action="/contact" method="POST">
+    <div class="absolute -left-[9999px] h-0 w-0 overflow-hidden" aria-hidden="true">
+        <label for="company">Company</label>
+        <input id="company" name="company" type="text" tabindex="-1" autocomplete="off">
+    </div>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div class="space-y-2">
             <label for="codename" class="text-xs uppercase tracking-widest text-[#D4AF37]">Codename / Name</label>
