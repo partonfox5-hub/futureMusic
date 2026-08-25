@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#d8d4cc" />
     <title>THE HORDE — VR wave shooter</title>
-    <meta name="description" content="Play THE HORDE free in the browser or on Quest: an infinite white plain, doubling waves of black silhouette creatures, a pistol that starts weak, and a Y-button armory." />
-    <meta name="build" content="prod-20260825-h3" />
+    <meta name="description" content="Play THE HORDE free in the browser or on Quest: an infinite plain under a day-and-night sky, doubling waves of many-limbed silhouettes, a pistol that starts weak, and an X-button armory." />
+    <meta name="build" content="prod-20260825-h4" />
     <link rel="canonical" href="https://futuremusic.online/horde" />
     <link rel="icon" type="image/jpeg" href="/games/horde/og.jpg" />
     <meta property="og:title" content="THE HORDE — VR wave shooter" />
@@ -15,29 +15,29 @@
     <meta property="og:url" content="https://futuremusic.online/horde" />
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Outfit:wght@400;500;600;700&display=swap" />
-    <link rel="stylesheet" href="/games/horde/css/game.css?v=h3" />
+    <link rel="stylesheet" href="/games/horde/css/game.css?v=h4" />
   </head>
   <body>
     <canvas id="c"></canvas>
     <div id="hurt"></div>
     <div id="hud">
-      <div>HP <b id="hpv">100</b></div>
-      <div class="bar"><i id="hpi"></i></div>
+      <div>HP <b id="hpv">♥♥♥♥♥</b></div>
+      <div class="bar hearts"><i id="hpi"></i></div>
       <div>AMMO <b id="ammo">12 / 48</b></div>
       <div>GUN <b id="wep">Pistol</b></div>
       <div>COINS <b id="coins">0</b></div>
       <div>WAVE <b id="wave">0</b></div>
     </div>
     <div id="msg">WAVE 1</div>
-    <div id="hint">WASD · mouse · click fire · Space jump · X reload · Y shop · VR: left stick move, right stick turn, right trigger shoot, A jump, X reload, Y shop</div>
+    <div id="hint">WASD · mouse · click fire · Space jump · Y reload · X shop · VR: left stick move, right stick turn, right trigger shoot, A jump, Y reload, X shop</div>
 
     <div id="start">
       <div class="panel">
         <p class="kicker">A Future Music VR title</p>
         <h1>THE HORDE</h1>
         <p>
-          Infinite white plain. One pistol. The silhouettes come in doubling waves — 1, 2, 4, 8… — and only die when every limb is gone.
-          Coins magnet in. Y opens the armory. X reloads from a shared ammo pool.
+          Infinite hills under a 12-minute day and night. One pistol. The silhouettes come in doubling waves — 1, 2, 4, 8… — and only die when every limb is gone.
+          Later waves grow extra limbs, wings, tentacles, and the odd giant. Coins magnet in. X opens the armory. Y reloads from a shared ammo pool.
         </p>
         <div class="ini">
           <span>Initials</span>
@@ -62,7 +62,7 @@
         <p>Gold on hand: <b id="shop-gold">0</b> ◎</p>
         <div class="shopgrid" id="shopgrid"></div>
         <div class="row">
-          <button type="button" class="ghost" id="shop-close">Close (Y)</button>
+          <button type="button" class="ghost" id="shop-close">Close (X)</button>
         </div>
       </div>
     </div>
@@ -72,6 +72,7 @@
         <p class="kicker">Taken by the horde</p>
         <h1>DOWN</h1>
         <p id="over-stats"></p>
+        <p class="restart-hint">Shoot this window to restart — or click anywhere on it.</p>
         <ol id="lb-over"></ol>
         <div class="row">
           <button type="button" id="again">Crawl again</button>
@@ -88,6 +89,6 @@
         }
       }
     </script>
-    <script type="module" src="/games/horde/js/game.js?v=h3"></script>
+    <script type="module" src="/games/horde/js/game.js?v=h4"></script>
   </body>
 </html>

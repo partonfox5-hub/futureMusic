@@ -63,6 +63,10 @@ button.ghost, a.ghost { background: transparent; color: #1a1a1e; }
   border: 1px solid #1a1a1e; background: #fff; padding: 6px;
 }
 .shopgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; max-height: 54vh; overflow: auto; }
-.shopgrid button { text-align: left; background: #fff; color: #111; width: 100%; }
+.shopgrid button { text-align: left; background: #fff; color: #111; width: 100%; display: flex; gap: 10px; align-items: center; }
 .shopgrid button small { display: block; color: #666; font-weight: 500; letter-spacing: 0.04em; margin-top: 4px; }
+.shopgrid .shop-ico { width: 48px; height: 48px; flex: none; image-rendering: pixelated; background: #1a1a1e; }
+.shopgrid .shop-copy { min-width: 0; }
+#hpv { color: #c42b2b; letter-spacing: 0.12em; font-size: 18px; }
+.restart-hint { color: #c42b2b; font-weight: 600; }
 #vr-enter { min-width: 8rem; }
