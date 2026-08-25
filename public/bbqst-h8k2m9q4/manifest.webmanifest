@@ -1,0 +1,27 @@
+{
+  "id": "/bbqst-h8k2m9q4/",
+  "name": "Blockbuild",
+  "short_name": "Blockbuild",
+  "description": "Snap studded bricks in an infinite VR workshop.",
+  "start_url": "/bbqst-h8k2m9q4/",
+  "scope": "/bbqst-h8k2m9q4/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#b8d4f0",
+  "theme_color": "#b8d4f0",
+  "theme_color_dark": "#1c1e24",
+  "icons": [
+    {
+      "src": "/bbqst-h8k2m9q4/icons/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any"
+    },
+    {
+      "src": "/bbqst-h8k2m9q4/icons/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ]
+}

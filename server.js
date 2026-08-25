@@ -504,6 +504,24 @@ app.get(["/horde", "/horde/"], (req, res) => {
     res.sendFile(path.join(__dirname, "public", "games", "horde", "index.html"));
 });
 
+// BLOCKBUILD Quest Store exclusive — unlisted private URL, not home-gated.
+const BBQST = "/bbqst-h8k2m9q4";
+app.use(BBQST, (req, res, next) => {
+    res.setHeader("Permissions-Policy", "xr-spatial-tracking=(self), fullscreen=(self), gamepad=(self), accelerometer=(self), gyroscope=(self), magnetometer=(self)");
+    res.setHeader("X-Robots-Tag", "noindex, nofollow, noarchive");
+    next();
+});
+app.get([BBQST, BBQST + "/"], (req, res) => {
+    res.setHeader("Permissions-Policy", "xr-spatial-tracking=(self), fullscreen=(self), gamepad=(self), accelerometer=(self), gyroscope=(self), magnetometer=(self)");
+    res.setHeader("X-Robots-Tag", "noindex, nofollow, noarchive");
+    res.sendFile(path.join(__dirname, "public", "bbqst-h8k2m9q4", "index.html"));
+});
+app.get(BBQST + "/manifest.webmanifest", (req, res) => {
+    res.type("application/manifest+json");
+    res.setHeader("X-Robots-Tag", "noindex, nofollow, noarchive");
+    res.sendFile(path.join(__dirname, "public", "bbqst-h8k2m9q4", "manifest.webmanifest"));
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 // --- STRIPE ---

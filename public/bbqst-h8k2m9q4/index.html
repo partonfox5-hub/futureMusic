@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="robots" content="noindex, nofollow, noarchive" />
+    <meta name="theme-color" content="#b8d4f0" />
+    <title>Blockbuild</title>
+    <meta name="build" content="quest-store-qs1" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png" />
+    <link rel="apple-touch-icon" href="./icons/icon-512.png" />
+    <link rel="stylesheet" href="./css/game.css?v=qs1" />
+  </head>
+  <body>
+    <canvas id="c"></canvas>
+    <div id="hud">
+      <div id="title">Blockbuild</div>
+      <div id="hud-line">Red · 2×4 Brick</div>
+      <div id="hud-hint">Boots into VR. Left stick-click workshop menu.</div>
+    </div>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "./vendor/three/three.module.js",
+          "three/addons/": "./vendor/three/addons/"
+        }
+      }
+    </script>
+    <div id="bb-menu" hidden>
+      <div class="panel">
+        <p class="kicker">Workshop</p>
+        <h2>Map &amp; tools</h2>
+        <div class="menu-grid">
+          <button type="button" data-m="resume">Resume</button>
+          <button type="button" data-m="save1">Save slot 1</button>
+          <button type="button" data-m="save2">Save slot 2</button>
+          <button type="button" data-m="save3">Save slot 3</button>
+          <button type="button" data-m="load1">Load slot 1</button>
+          <button type="button" data-m="load2">Load slot 2</button>
+          <button type="button" data-m="load3">Load slot 3</button>
+          <button type="button" data-m="pile">Dump a pile</button>
+          <button type="button" data-m="new">New table</button>
+          <button type="button" data-m="grav">Toggle gravity</button>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="./js/game.js?v=qs1"></script>
+  </body>
+</html>
