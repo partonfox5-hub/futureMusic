@@ -4,10 +4,10 @@ import {
   STUD, PLATE, COLORS, KINDS, DIMS,
   colorOf, dimOf, kindOf, shapeSpec, makeBrickMesh,
   rotatedDims, gridToLocal, localToGrid, cellsOf, randomSpec, platesFor,
-} from "./bricks.js?v=bb8";
+} from "./bricks.js?v=bb9";
 import {
   FIG_HEADS, FIG_TORSOS, FIG_LEGS, defaultFigConfig, makeFig, tickFig,
-} from "./figs.js?v=bb8";
+} from "./figs.js?v=bb9";
 
 const canvas = document.getElementById("c");
 const hudEl = document.getElementById("hud");
@@ -207,6 +207,80 @@ function uiMat(map, color) {
     depthWrite: false,
     transparent: !!map,
   });
+}
+
+const _thumbCache = new Map();
+let _thumbR, _thumbS, _thumbCam, _thumbHold;
+function catalogThumbTex(kindId, hex) {
+  const key = kindId + ":" + (hex || 0);
+  if (_thumbCache.has(key)) return _thumbCache.get(key);
+  const c = document.createElement("canvas");
+  c.width = c.height = 128;
+  if (kindId.startsWith("beacon:")) {
+    const g = c.getContext("2d");
+    g.fillStyle = "#243044";
+    g.fillRect(0, 0, 128, 128);
+    g.fillStyle = "#" + (hex || 0x44aaff).toString(16).padStart(6, "0");
+    g.fillRect(34, 52, 60, 48);
+    g.beginPath();
+    g.moveTo(28, 52);
+    g.lineTo(64, 22);
+    g.lineTo(100, 52);
+    g.closePath();
+    g.fill();
+    g.fillStyle = "#f4efe4";
+    g.fillRect(56, 72, 16, 28);
+    const t = new THREE.CanvasTexture(c);
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.flipY = true;
+    t.needsUpdate = true;
+    _thumbCache.set(key, t);
+    return t;
+  }
+  if (!_thumbR) {
+    _thumbR = new THREE.WebGLRenderer({ canvas: c, antialias: true, alpha: true, preserveDrawingBuffer: true });
+    _thumbR.setSize(128, 128, false);
+    _thumbR.setClearColor(0x000000, 0);
+    _thumbS = new THREE.Scene();
+    _thumbS.add(new THREE.HemisphereLight(0xffffff, 0x667788, 1.15));
+    const sun = new THREE.DirectionalLight(0xffffff, 0.7);
+    sun.position.set(2, 5, 3);
+    _thumbS.add(sun);
+    _thumbCam = new THREE.PerspectiveCamera(28, 1, 0.004, 2);
+    _thumbHold = new THREE.Group();
+    _thumbS.add(_thumbHold);
+  } else {
+    _thumbR.setSize(128, 128, false);
+  }
+  while (_thumbHold.children.length) _thumbHold.remove(_thumbHold.children[0]);
+  let mesh;
+  if (kindId === "fig") {
+    mesh = makeFig(defaultFigConfig());
+    mesh.scale.setScalar(1.8);
+  } else {
+    const dim = DIMS.find((d) => d.id === "2x4") || DIMS[8];
+    const spec = shapeSpec(dim, kindId);
+    mesh = makeBrickMesh(spec, COLORS.find((c) => c.id === "red") || COLORS[2], false);
+  }
+  _thumbHold.add(mesh);
+  mesh.updateMatrixWorld(true);
+  const box = new THREE.Box3().setFromObject(mesh);
+  const size = box.getSize(new THREE.Vector3());
+  const mid = box.getCenter(new THREE.Vector3());
+  const span = Math.max(size.x, size.y, size.z, 0.01);
+  _thumbCam.position.set(mid.x + span * 1.4, mid.y + span * 1.15, mid.z + span * 1.5);
+  _thumbCam.lookAt(mid);
+  _thumbCam.updateProjectionMatrix();
+  _thumbR.render(_thumbS, _thumbCam);
+  const copy = document.createElement("canvas");
+  copy.width = copy.height = 128;
+  copy.getContext("2d").drawImage(_thumbR.domElement, 0, 0);
+  const t = new THREE.CanvasTexture(copy);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.flipY = true;
+  t.needsUpdate = true;
+  _thumbCache.set(key, t);
+  return t;
 }
 
 /** Panel +Z faces the player so canvas text is not mirrored. */
@@ -1450,18 +1524,18 @@ function makeCatalog() {
   const root = new THREE.Group();
   root.visible = false;
   root.frustumCulled = false;
-  const frame = new THREE.Mesh(new THREE.PlaneGeometry(0.78, 0.64), uiMat(null, 0xe6b35c));
+  const frame = new THREE.Mesh(new THREE.PlaneGeometry(0.82, 0.86), uiMat(null, 0xe6b35c));
   frame.position.z = -0.004;
-  const board = new THREE.Mesh(new THREE.PlaneGeometry(0.74, 0.60), uiMat(null, 0x4d5d73));
+  const board = new THREE.Mesh(new THREE.PlaneGeometry(0.78, 0.82), uiMat(null, 0x4d5d73));
   board.position.z = 0;
   const title = new THREE.Mesh(new THREE.PlaneGeometry(0.42, 0.05), uiMat(labelTex("PIECE CATALOG", 320, 48)));
-  title.position.set(0, 0.265, 0.012);
+  title.position.set(0, 0.365, 0.012);
   title.renderOrder = 8;
   root.add(frame, board, title);
   const hits = [];
   KIND_TABS.forEach((tab, i) => {
     const pl = new THREE.Mesh(new THREE.PlaneGeometry(0.115, 0.048), uiMat(labelTex(tab.name, 220, 64)));
-    pl.position.set(-0.28 + i * 0.115, 0.21, 0.012);
+    pl.position.set(-0.28 + i * 0.115, 0.3, 0.012);
     pl.renderOrder = 8;
     pl.userData.catTab = i;
     root.add(pl);
@@ -1484,21 +1558,26 @@ function makeCatalog() {
     });
     list.forEach((it, i) => {
       const wrap = new THREE.Group();
-      const bg = new THREE.Mesh(new THREE.PlaneGeometry(0.22, 0.068), uiMat(null, 0x243044));
-      const pl = new THREE.Mesh(new THREE.PlaneGeometry(0.21, 0.062), uiMat(labelTex(it.name, 240, 72)));
-      pl.position.z = 0.002;
-      wrap.add(bg, pl);
-      wrap.position.set(-0.22 + (i % 3) * 0.22, 0.12 - Math.floor(i / 3) * 0.078, 0.012);
+      const bg = new THREE.Mesh(new THREE.PlaneGeometry(0.34, 0.12), uiMat(null, 0x243044));
+      const beacon = BEACONS.find((b) => "beacon:" + b.id === it.id);
+      const thumb = new THREE.Mesh(
+        new THREE.PlaneGeometry(0.1, 0.1),
+        uiMat(catalogThumbTex(it.id, beacon?.col)),
+      );
+      thumb.position.set(-0.105, 0, 0.003);
+      const pl = new THREE.Mesh(new THREE.PlaneGeometry(0.2, 0.1), uiMat(labelTex(it.name, 260, 80)));
+      pl.position.set(0.07, 0, 0.003);
+      wrap.add(bg, thumb, pl);
+      wrap.position.set(-0.17 + (i % 2) * 0.35, 0.16 - Math.floor(i / 2) * 0.13, 0.012);
       wrap.renderOrder = 8;
-      if (it.id.startsWith("beacon:")) {
-        pl.userData.catBeacon = it.id.slice(7);
-        bg.userData.catBeacon = it.id.slice(7);
-      } else {
-        pl.userData.catKind = it.id;
-        bg.userData.catKind = it.id;
-      }
+      const tag = it.id.startsWith("beacon:")
+        ? { catBeacon: it.id.slice(7) }
+        : { catKind: it.id };
+      Object.assign(pl.userData, tag);
+      Object.assign(bg.userData, tag);
+      Object.assign(thumb.userData, tag);
       root.add(wrap);
-      hits.push(pl, bg);
+      hits.push(pl, bg, thumb);
       items.push(wrap);
     });
   }
@@ -1965,8 +2044,13 @@ function loop(t) {
       if (trig && !pressed.t1) pokeVrMenu(aimO, aimD);
     } else {
       if (aBtn && !pressed.a) {
-        if (hexPicker.root.visible) hexPicker.root.visible = false;
-        else spawnWorldPanel(hexPicker.root, 0.7);
+        if (pokeUi(aimO, aimD) || (menuOpen && pokeVrMenu(aimO, aimD)) || pokePalette(aimO, aimD)) {
+          /* A confirms whatever the laser is on */
+        } else if (hexPicker.root.visible) {
+          hexPicker.root.visible = false;
+        } else {
+          spawnWorldPanel(hexPicker.root, 0.7);
+        }
       }
       if (bBtn && !pressed.b) {
         if (catalog.root.visible) catalog.root.visible = false;

@@ -3,6 +3,16 @@
 # (docker.sock EOF / lifecycle status 62). Keep a large machine + disk.
 timeout: 1800s
 steps:
+  - name: gcr.io/cloud-builders/git
+    id: Prune
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        set -e
+        find . -name '*.src.js' -delete
+        rm -rf public/games/horde/src scripts/_dump* scripts/_scan* scripts/_patch* _hs_extract _scan_* _patch_* || true
+        echo "pruned source backups"
   - name: gcr.io/k8s-skaffold/pack
     id: Buildpack
     entrypoint: pack
