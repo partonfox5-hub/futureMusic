@@ -153,12 +153,57 @@ function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
 function wep() { return WEPS[player.wep] || WEPS.pistol; }
 
 let ac;
+const SFX_FILES = {
+  die: [
+    "/games/horde/sfx/die1.mp3",
+    "/games/horde/sfx/die2.mp3",
+    "/games/horde/sfx/die3.mp3",
+  ],
+  laser: [
+    "/games/horde/sfx/laser1.mp3",
+    "/games/horde/sfx/laser2.mp3",
+  ],
+};
+const sfxBank = { die: [], laser: [] };
+let sfxLoadStarted = false;
+
+function playSample(buf, vol) {
+  if (!ac || !buf) return false;
+  try {
+    const src = ac.createBufferSource();
+    const g = ac.createGain();
+    src.buffer = buf;
+    g.gain.setValueAtTime(Math.max(0.0001, vol), ac.currentTime);
+    src.connect(g);
+    g.connect(ac.destination);
+    src.start();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function loadSfxBank() {
+  if (!ac || sfxLoadStarted) return;
+  sfxLoadStarted = true;
+  Object.keys(SFX_FILES).forEach((kind) => {
+    SFX_FILES[kind].forEach((url, i) => {
+      fetch(url)
+        .then((r) => r.arrayBuffer())
+        .then((ab) => ac.decodeAudioData(ab.slice(0)))
+        .then((buf) => { sfxBank[kind][i] = buf; })
+        .catch(() => {});
+    });
+  });
+}
+
 function sfxUnlock() {
   try {
     const C = window.AudioContext || window.webkitAudioContext;
     if (!C) return;
     ac = ac || new C();
     if (ac.state === "suspended") ac.resume();
+    loadSfxBank();
   } catch {}
 }
 function beep(type, f, d, v, slide) {
@@ -215,6 +260,12 @@ function laserTone(from, to, dur, vol, type) {
 }
 const sfx = {
   shoot() {
+    const lasers = sfxBank.laser.filter(Boolean);
+    if (lasers.length) {
+      playSample(lasers[(rng() * lasers.length) | 0], player.wep === "shotgun" || player.wep === "nuke" ? 0.55 : 0.42);
+      if (player.wep === "shotgun" || player.wep === "nuke" || player.wep === "tank") noise(0.1, 0.1, 220);
+      return;
+    }
     const id = player.wep;
     if (id === "smg") {
       laserTone(2100, 320, 0.07, 0.11);
@@ -285,6 +336,11 @@ const sfx = {
     beep("sine", 160, 0.12, 0.06, 55);
   },
   die() {
+    const dies = sfxBank.die.filter(Boolean);
+    if (dies.length) {
+      playSample(dies[(rng() * dies.length) | 0], 0.55);
+      return;
+    }
     beep("sawtooth", 210, 0.28, 0.09, 55);
     beep("triangle", 140, 0.34, 0.07, 40);
     noise(0.2, 0.11, 180);
@@ -293,10 +349,10 @@ const sfx = {
 
 function hillsAt(x, z) {
   let h =
-    Math.sin(x * 0.031) * 1.55 +
-    Math.cos(z * 0.027) * 1.25 +
-    Math.sin(x * 0.019 + z * 0.017) * 0.95 +
-    Math.sin(x * 0.0075 + z * 0.0095) * 2.15;
+    Math.sin(x * 0.031) * 1.085 +
+    Math.cos(z * 0.027) * 0.875 +
+    Math.sin(x * 0.019 + z * 0.017) * 0.665 +
+    Math.sin(x * 0.0075 + z * 0.0095) * 1.505;
   for (const c of craters) {
     const d = Math.hypot(x - c.x, z - c.z);
     if (d < c.r) {
@@ -817,8 +873,10 @@ function makeLimb(w, asLeg, forceForm) {
       g.add(knuckle);
     }
   }
+  const joint = new THREE.Mesh(new THREE.SphereGeometry(Math.max(thick * 1.2, 0.045), 6, 5), mat(col));
+  g.add(joint);
   g.userData = {
-    len, thick, rubber, hp: 1, live: true, mesh, pad, asLeg, form,
+    len, thick, rubber, hp: 1, live: true, mesh, pad, asLeg, form, joint,
     dmg, run, fly, phase: rng() * Math.PI * 2,
   };
   return g;
@@ -826,17 +884,17 @@ function makeLimb(w, asLeg, forceForm) {
 
 function makeLimbChain(w, asLeg, forceForm) {
   const root = makeLimb(w, asLeg, forceForm);
-  const extraChance = 0.22 + Math.min(0.5, w * 0.035);
+  if (root.userData.form === "wing") return root;
+  const extraChance = 0.18 + Math.min(0.4, w * 0.03);
   if (rng() > extraChance) return root;
-  const extra = 1 + ((rng() * Math.min(3, 1 + w * 0.12)) | 0);
+  const extra = 1 + ((rng() * Math.min(2, 1 + w * 0.1)) | 0);
   let tip = root;
   let total = root.userData.len;
   let dmg = root.userData.dmg || 1;
   for (let i = 0; i < extra; i++) {
-    const next = makeLimb(w, false);
-    next.position.y = -(tip.userData.len || 0.5);
-    next.rotation.x = (rng() - 0.5) * 0.55;
-    next.rotation.z = (rng() - 0.5) * 0.4;
+    const next = makeLimb(w, false, asLeg ? pickLimbForm(w, true) : null);
+    next.position.set(0, -(tip.userData.len || 0.5), 0);
+    next.rotation.set(0, 0, 0);
     tip.add(next);
     total += next.userData.len || 0.4;
     dmg = Math.max(dmg, next.userData.dmg || 1);
@@ -851,6 +909,8 @@ function makeLimbChain(w, asLeg, forceForm) {
 function makeCore(coreR) {
   const g = new THREE.Group();
   const col = 0x111114;
+  const hub = new THREE.Mesh(new THREE.SphereGeometry(coreR * 0.88, 8, 6), mat(col));
+  g.add(hub);
   const kinds = ["shell", "torso", "squiggle", "skeletal", "thorny", "crystal", "blob", "disk"];
   const kind = kinds[(rng() * kinds.length) | 0];
   if (kind === "shell") {
@@ -903,6 +963,18 @@ function limbCountForWave(w) {
   return clamp(n, 2, maxN);
 }
 
+function pickGait(n) {
+  if (n >= 8 && rng() < 0.72) return 8;
+  if (n >= 4 && rng() < 0.62) return 4;
+  return 2;
+}
+
+function legYaw(i, nLegs) {
+  if (nLegs === 2) return i === 0 ? 1.15 : -1.15;
+  if (nLegs === 4) return [0.72, -0.72, 2.35, -2.35][i] || 0;
+  return (i / nLegs) * Math.PI * 2 + 0.2;
+}
+
 function mobScaleForWave(w) {
   if (w >= 4 && rng() < Math.min(0.14, 0.025 + w * 0.008)) return 2.2 + rng() * (1.2 + w * 0.08);
   const spread = 0.08 + w * 0.035;
@@ -916,29 +988,32 @@ function makeMob(w, ang, dist) {
   const coreR = (0.22 + rng() * 0.18) * Math.min(1.4, 0.75 + bodyScale * 0.25);
   const core = makeCore(coreR);
   group.add(core);
+  const nLegs = pickGait(n);
   const limbs = [];
   let wingsPlaced = 0;
   for (let i = 0; i < n; i++) {
-    const leg = i < Math.min(2, n);
+    const leg = i < nLegs;
     let form = pickLimbForm(w, leg);
+    if (leg && form === "wing") form = "bug";
     if (form === "wing") wingsPlaced++;
     if (!leg && wingsPlaced === 0 && i === n - 1 && rng() < Math.min(0.45, 0.12 + w * 0.03)) form = "wing";
     const limb = makeLimbChain(w, leg, form);
-    const lyaw = leg ? (i === 0 ? 0.35 : -0.35) + (rng() - 0.5) * 0.4 : rng() * Math.PI * 2;
-    const pitch = limb.userData.form === "wing"
-      ? -0.15 + rng() * 0.3
-      : leg ? 0.15 + rng() * 0.25 : -0.4 + rng() * 1.3;
+    const lyaw = leg ? legYaw(i, nLegs) : rng() * Math.PI * 2;
+    const isWing = limb.userData.form === "wing";
+    const pitch = isWing ? -0.12 + rng() * 0.22 : leg ? 0.42 + rng() * 0.18 : -0.25 + rng() * 0.7;
     limb.rotation.order = "YXZ";
     limb.userData.baseYaw = lyaw;
     limb.userData.basePitch = pitch;
+    limb.userData.baseRoll = 0;
+    limb.userData.legIndex = i;
+    limb.userData.asLeg = leg;
     limb.rotation.y = lyaw;
     limb.rotation.x = pitch;
-    const attach = coreR * 0.7;
-    const isWing = limb.userData.form === "wing";
+    const attach = coreR * 0.92;
     limb.position.set(
-      Math.sin(lyaw) * attach * (leg ? 0.6 : 1.05),
-      isWing ? coreR * 0.35 : (leg ? -coreR * 0.2 : (rng() - 0.3) * coreR),
-      Math.cos(lyaw) * attach * (leg ? 0.6 : 1.05),
+      Math.sin(lyaw) * attach,
+      isWing ? coreR * 0.42 : (leg ? -coreR * 0.52 : coreR * 0.12),
+      Math.cos(lyaw) * attach,
     );
     group.add(limb);
     limbs.push(limb);
@@ -965,6 +1040,7 @@ function makeMob(w, ang, dist) {
     hitR: (0.7 + coreR) * bodyScale,
     hitCd: 0,
     dodgeY: 0,
+    nLegs,
     alive: true,
     ranged: w >= 10 && rng() < 0.16,
     shotShape: ["ball", "cube", "pyr", "spike"][(rng() * 4) | 0],
@@ -1181,7 +1257,7 @@ function tickMobs(dt) {
     const dz = player.z - m.z;
     const dist = Math.hypot(dx, dz) || 1;
     const liveLimbs = m.limbs.filter((l) => l.userData.live);
-    const liveLegs = liveLimbs.filter((l) => l.userData.asLeg || l.userData.form === "bug");
+    const liveLegs = liveLimbs.filter((l) => l.userData.asLeg);
     const gait = liveLimbs.length ? liveLimbs : m.limbs;
     const wings = liveLimbs.filter((l) => l.userData.form === "wing");
     const nW = wings.length;
@@ -1225,19 +1301,22 @@ function tickMobs(dt) {
       if (u.form === "wing") {
         limb.rotation.z = Math.sin(m.bob * (7 + nW) + u.phase) * (0.55 + nW * 0.08);
         limb.rotation.x = u.basePitch + Math.sin(m.bob * 1.4 + u.phase) * 0.12;
+      } else if (u.asLeg) {
+        const nL = m.nLegs || 2;
+        const freq = nL >= 8 ? 6.2 : nL === 4 ? 4.6 : 3.5;
+        const amp = nL === 2 ? 0.62 : 0.4;
+        const phase = (u.legIndex || 0) * Math.PI;
+        limb.rotation.x = u.basePitch + Math.sin(m.bob * freq + phase) * amp;
+        limb.rotation.z = Math.sin(m.bob * freq * 0.5 + phase) * 0.1;
       } else if (u.form === "tentacle") {
-        limb.rotation.x = u.basePitch + Math.sin(m.bob * 2.6 + u.phase) * 0.85;
-        limb.rotation.z = Math.sin(m.bob * 1.8 + u.phase) * 0.45;
-        if (u.mesh) u.mesh.scale.y = 1 + Math.sin(m.bob * 4 + u.phase) * u.rubber;
+        limb.rotation.x = u.basePitch + Math.sin(m.bob * 2.6 + u.phase) * 0.45;
+        limb.rotation.z = Math.sin(m.bob * 1.8 + u.phase) * 0.22;
       } else if (u.form === "bug") {
-        limb.rotation.x = u.basePitch + Math.sin(m.bob * 7.2 + u.phase) * 0.72;
-        limb.rotation.z = Math.sin(m.bob * 3.4 + u.phase) * 0.18;
+        limb.rotation.x = u.basePitch + Math.sin(m.bob * 5.2 + u.phase) * 0.4;
       } else if (u.form === "spike") {
-        limb.rotation.x = u.basePitch + Math.sin(m.bob * 2.4 + u.phase) * 0.2;
+        limb.rotation.x = u.basePitch + Math.sin(m.bob * 2.4 + u.phase) * 0.12;
       } else {
-        const swing = Math.sin(m.bob * 2.2 + u.phase) * (u.asLeg || liveLegs.length === 0 ? 0.55 : 0.25);
-        limb.rotation.x = u.basePitch + swing;
-        if (u.mesh) u.mesh.scale.y = 1 + Math.sin(m.bob * 5 + u.phase) * u.rubber;
+        limb.rotation.x = u.basePitch + Math.sin(m.bob * 2.2 + u.phase) * 0.2;
       }
     }
     syncMob(m);
