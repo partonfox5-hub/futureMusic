@@ -336,6 +336,9 @@ app.use((req, res, next) => {
     next();
 });
 
+const homeGate = require('./lib/home-gate');
+app.use(homeGate.middleware);
+
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 const seo = require('./lib/seo');

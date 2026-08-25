@@ -1,5 +1,21 @@
 User-agent: *
 Allow: /
+Disallow: /horde
+Disallow: /blockbuild
+Disallow: /shark
+Disallow: /fenrest
+Disallow: /neweden
+Disallow: /planetry
+Disallow: /zoom
+Disallow: /zoommaps
+Disallow: /rampart
+Disallow: /lattice
+Disallow: /terrarium
+Disallow: /games/
+Allow: /games/character-chess
+Allow: /games/planmorpher
+Allow: /games/hero-slayer-splash
+Disallow: /test-
 
 User-agent: GPTBot
 Allow: /
