@@ -5,6 +5,7 @@ import {
   EYE,
   FLAG_CROUCH,
   FLAG_SPIKE,
+  LIQ_LAVA,
   MAP_H,
   MAP_W,
   SHAPE_FLAT,
@@ -13,7 +14,7 @@ import {
   SHAPE_SPHERE,
   STORIES,
   WALL_CRACK,
-} from "./config.js?v=sw2";
+} from "./config.js?v=sw3";
 
 export { CELL };
 
@@ -550,6 +551,7 @@ export function sdf3(x, y, z, map, sdf2) {
   const spike = map.flags && map.flags[ci] & FLAG_SPIKE;
   const crouch = map.flags && map.flags[ci] & FLAG_CROUCH;
   const sky = map.sky && map.sky[ci];
+  const lava = map.liquid && map.liquid[ci] === LIQ_LAVA;
   const floor = y0 - (spike ? 1.45 : 0);
   for (let i = 0; i < spheres.length; i++) {
     const s = spheres[i];
@@ -570,6 +572,10 @@ export function sdf3(x, y, z, map, sdf2) {
   if (isCarved(cell) || d2 < CELL * 0.7) {
     const shape = getShape(cell);
     let H = crouch ? 1.22 : sky ? 40 : map.hallH || 4.2;
+    if (!crouch && !sky) {
+      if (spike) H += 1.45 + 2.6;
+      else if (lava) H += 2.6;
+    }
     const hy = H * 0.5;
     const ly = y - floor;
     let d3;
@@ -601,7 +607,13 @@ export function floorY(x, z, map, sdf2, ymax) {
   const elev = (map.elev && map.elev[ci]) || 0;
   const y0 = elev * EYE - (map.flags && map.flags[ci] & FLAG_SPIKE ? 1.45 : 0);
   const sky = map.sky && map.sky[ci];
-  const hall = sky ? 12 : map.hallH || 4.2;
+  const lava = map.liquid && map.liquid[ci] === LIQ_LAVA;
+  const spikeHere = map.flags && map.flags[ci] & FLAG_SPIKE;
+  let hall = sky ? 12 : map.hallH || 4.2;
+  if (!sky) {
+    if (spikeHere) hall += 1.45 + 2.6;
+    else if (lava) hall += 2.6;
+  }
   const top = y0 + Math.max(hall, ymax || 0, 2);
   let lastEmpty = false;
   for (let y = top; y > y0 - 0.5; y -= 0.06) {

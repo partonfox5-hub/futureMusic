@@ -1,8 +1,8 @@
 /** Voxelize the dug SDF and emit textured wall/floor meshes. */
 import * as THREE from "three";
-import { BIOMES, CELL, EYE } from "./config.js?v=sw2";
-import { computeSdf, getTex, isCarved, sdf3 } from "./map.js?v=sw2";
-import { allMaterials } from "./tex.js?v=sw2";
+import { BIOMES, CELL, EYE, FLAG_SPIKE, LIQ_LAVA } from "./config.js?v=sw3";
+import { computeSdf, getTex, isCarved, sdf3 } from "./map.js?v=sw3";
+import { allMaterials } from "./tex.js?v=sw3";
 
 const VX = 0.42;
 
@@ -25,9 +25,16 @@ export function yMax(map) {
   if (map.sky) {
     for (let i = 0; i < map.sky.length; i++) if (map.sky[i]) sky = true;
   }
+  let trapH = 0;
+  if (map.flags) {
+    for (let i = 0; i < map.flags.length; i++) if (map.flags[i] & FLAG_SPIKE) { trapH = Math.max(trapH, 4.05); break; }
+  }
+  if (map.liquid && trapH < 2.6) {
+    for (let i = 0; i < map.liquid.length; i++) if (map.liquid[i] === LIQ_LAVA) { trapH = Math.max(trapH, 2.6); break; }
+  }
   // Sky courtyards keep the same wall height as halls, then open — a taller
   // voxel column just makes a trench. The lid is skipped in the mesher.
-  return { max: maxE * EYE + m + (sky ? 0.35 : 0.8), min: minE * EYE - 1.8 };
+  return { max: maxE * EYE + m + trapH + (sky ? 0.35 : 0.8), min: minE * EYE - 1.8 };
 }
 
 export function buildDungeon(map, sdf2) {

@@ -19,8 +19,8 @@ import {
   SHAPES,
   WALL_TEX,
   routes,
-} from "./config.js?v=sw2";
-import { bakedMaps } from "./defaults.js?v=sw2";
+} from "./config.js?v=sw3";
+import { bakedMaps } from "./defaults.js?v=sw3";
 import {
   addSphere,
   blankMap,
@@ -47,9 +47,9 @@ import {
   stampSegment,
   wallIsCrack,
   wallTexId,
-} from "./map.js?v=sw2";
-import { deleteMap, getMap, listMaps, saveMap, stashPreview } from "./store.js?v=sw2";
-import { defaultNpc } from "./npcs.js?v=sw2";
+} from "./map.js?v=sw3";
+import { deleteMap, getMap, listMaps, saveMap, stashPreview } from "./store.js?v=sw3";
+import { defaultNpc } from "./npcs.js?v=sw3";
 
 const $ = (id) => document.getElementById(id);
 
@@ -747,7 +747,7 @@ function setTool(t) {
     fill: "Bucket-fill a closed pocket.",
     paint: "Recolor existing carved cells.",
     crouch: "Low tunnels. Player must crouch (C) to pass.",
-    spike: "Spike pits. Jump them or die.",
+    spike: "Spike pits. Jump them or die. Ceiling rises so you can vault them.",
     unstable: "Paint a ceiling that collapses around anyone who walks under it.",
     boulder: "Click to place a rolling boulder, then drag to set the roll direction. It starts when the player enters the trigger ring.",
     minotaur: "Place a minotaur. Walks slowly, then charges when it sees the player.",
@@ -760,7 +760,7 @@ function setTool(t) {
     sky: "Open courtyard — grass floor, courtyard walls, real sky (no cave lid).",
     elev: "Raise or lower the floor by player-heights.",
     water: "Water layer on top of height.",
-    lava: "Lava layer — it burns.",
+    lava: "Lava layer — it burns. Ceiling rises so you can jump it.",
     start: "Click spawn, drag to face.",
     wall: "Draw building walls. Enclosed rooms get floors and roofs.",
     crack: "Paint damaged, cracked wall segments. Psyblast shatters them into debris.",

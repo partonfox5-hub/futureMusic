@@ -1,9 +1,9 @@
 /** Props, 4-direction enemy sprites, spawners. */
 import * as THREE from "three";
-import { ENEMIES, ENEMY_BY_ID } from "./config.js?v=sw2";
-import { sdf3, floorY } from "./map.js?v=sw2";
-import { makeRobot } from "./robots.js?v=sw2";
-import { hurtFoe } from "./weapons.js?v=sw2";
+import { ENEMIES, ENEMY_BY_ID } from "./config.js?v=sw3";
+import { sdf3, floorY } from "./map.js?v=sw3";
+import { makeRobot } from "./robots.js?v=sw3";
+import { hurtFoe } from "./weapons.js?v=sw3";
 
 const TEX = {};
 const loader = new THREE.TextureLoader();

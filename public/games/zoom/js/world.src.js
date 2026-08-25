@@ -11,8 +11,8 @@ import {
   STORY_H,
   STORIES,
   WALL_TEX,
-} from "./config.js?v=sw2";
-import { cellI, climbHoleFloor, climbHoleRoof, enclosedFloors, idx, inBounds, sdf3, wallIsCrack, wallTexId } from "./map.js?v=sw2";
+} from "./config.js?v=sw3";
+import { cellI, climbHoleFloor, climbHoleRoof, enclosedFloors, idx, inBounds, sdf3, wallIsCrack, wallTexId } from "./map.js?v=sw3";
 
 function mat(hex, extra) {
   return new THREE.MeshLambertMaterial({ color: hex, ...extra });

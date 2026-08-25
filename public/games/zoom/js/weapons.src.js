@@ -1,7 +1,7 @@
 /** Weapon models, lasers/plasma, burn marks, pickups. */
 import * as THREE from "three";
-import { PICKUP_BY_ID, WEAPON_BY_ID, WEAPONS } from "./config.js?v=sw2";
-import { hurtTurrets, impulseBoulders, smashGlass } from "./world.js?v=sw2";
+import { PICKUP_BY_ID, WEAPON_BY_ID, WEAPONS } from "./config.js?v=sw3";
+import { hurtTurrets, impulseBoulders, smashGlass } from "./world.js?v=sw3";
 
 function mat(hex, extra) {
   return new THREE.MeshLambertMaterial({ color: hex, ...extra });
