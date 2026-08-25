@@ -106,6 +106,8 @@ let reloadMax = 0;
 let hurtT = 0;
 let iFrame = 0;
 let yaw = 0;
+let lastFwdX = 0;
+let lastFwdZ = -1;
 let jumpQueued = false;
 let sprintQueued = false;
 let ammoT = 0;
@@ -1354,10 +1356,21 @@ function tickLoot(dt) {
 }
 
 function facingXZ() {
+  lookFlat();
+  return tmp;
+}
+
+/** Camera forward on the ground plane. Ignores pitch so WASD never flips when you look up or down. */
+function lookFlat() {
   camera.getWorldDirection(tmp);
   tmp.y = 0;
+  if (tmp.lengthSq() < 1e-6) tmp.set(lastFwdX, 0, lastFwdZ);
   if (tmp.lengthSq() < 1e-6) tmp.set(0, 0, -1);
   tmp.normalize();
+  lastFwdX = tmp.x;
+  lastFwdZ = tmp.z;
+  tmp2.set(-tmp.z, 0, tmp.x);
+  yaw = Math.atan2(-tmp.x, -tmp.z);
   return tmp;
 }
 
@@ -2919,14 +2932,9 @@ function physics(dt, xr) {
       if (keys.has("KeyS") || keys.has("ArrowDown")) fwd -= 1;
       wishX = -Math.sin(tankYaw) * fwd;
       wishZ = -Math.cos(tankYaw) * fwd;
-      yaw = camera.rotation.y;
     }
   } else if (xrOn) {
-    camera.getWorldDirection(tmp);
-    tmp.y = 0;
-    if (tmp.lengthSq() < 1e-6) tmp.set(0, 0, -1);
-    tmp.normalize();
-    tmp2.set(-tmp.z, 0, tmp.x);
+    lookFlat();
     const mx = shopOpen ? 0 : xr.moveX;
     const my = shopOpen ? 0 : xr.moveY;
     wishX = tmp.x * -my + tmp2.x * mx;
@@ -2935,17 +2943,11 @@ function physics(dt, xr) {
     rig.rotation.y = yaw;
     rig.position.set(player.x, player.y - 1.6, player.z);
   } else {
-    let mx = 0, mz = 0;
-    if (keys.has("KeyW") || keys.has("ArrowUp")) mz -= 1;
-    if (keys.has("KeyS") || keys.has("ArrowDown")) mz += 1;
-    if (keys.has("KeyA") || keys.has("ArrowLeft")) mx -= 1;
-    if (keys.has("KeyD") || keys.has("ArrowRight")) mx += 1;
-    const mag = Math.hypot(mx, mz);
-    if (mag > 1) { mx /= mag; mz /= mag; }
-    yaw = camera.rotation.y;
-    const cy = Math.cos(yaw), sy = Math.sin(yaw);
-    wishX = mx * cy + mz * sy;
-    wishZ = -mx * sy + mz * cy;
+    lookFlat();
+    const fwd = (keys.has("KeyW") || keys.has("ArrowUp") ? 1 : 0) + (keys.has("KeyS") || keys.has("ArrowDown") ? -1 : 0);
+    const str = (keys.has("KeyD") || keys.has("ArrowRight") ? 1 : 0) + (keys.has("KeyA") || keys.has("ArrowLeft") ? -1 : 0);
+    wishX = tmp.x * fwd + tmp2.x * str;
+    wishZ = tmp.z * fwd + tmp2.z * str;
   }
   const mag = Math.hypot(wishX, wishZ);
   if (mag > 1) { wishX /= mag; wishZ /= mag; }
