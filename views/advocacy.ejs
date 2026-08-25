@@ -438,12 +438,12 @@
     #metricCards::-webkit-scrollbar-thumb { background: rgba(212,175,55,0.3); border-radius: 10px; }
 </style>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>
 <script>
     const state = {
         alcohol: 1, tobacco: 0, vape: 0, sugar: 25, mj: 0, mjvape: 0, shs: 0,
         yearsActive: 5, weight: 175, height: 70, gender: 'male', // New properties
-        visibleMetrics: ['income', 'memory', 'happiness', 'lifespan', 'mortality'],
+        visibleMetrics: ['focus', 'energy', 'thinking', 'memory', 'happiness', 'sexDrive', 'income', 'mortality', 'lifespan'],
         selectedYear: 40
     };
 
@@ -570,7 +570,6 @@
         metrics.forEach(m => {
             const btn = document.createElement('button');
             btn.id = `toggle-${m.id}`;
-            btn.className = `px-3 py-1 rounded-full text-[9px] font-bold border border-white/10 transition-all uppercase tracking-widest ${state.visibleMetrics.includes(m.id) ? 'bg-[#D4AF37] text-black' : 'bg-white/5 text-gray-500'}`;
             btn.textContent = m.name;
             btn.onclick = () => {
                 if (state.visibleMetrics.includes(m.id)) state.visibleMetrics = state.visibleMetrics.filter(id => id !== m.id);
@@ -597,7 +596,13 @@
 
         metrics.forEach(m => {
             const btn = document.getElementById(`toggle-${m.id}`);
-            if (btn) btn.className = `px-3 py-1 rounded-full text-[9px] font-bold border border-white/10 transition-all uppercase tracking-widest ${state.visibleMetrics.includes(m.id) ? 'bg-[#D4AF37] text-black' : 'bg-white/5 text-gray-500'}`;
+            if (!btn) return;
+            const on = state.visibleMetrics.includes(m.id);
+            btn.className = 'px-3 py-1 rounded-full text-[9px] font-bold border transition-all uppercase tracking-widest';
+            btn.style.background = on ? m.color : 'rgba(255,255,255,0.05)';
+            btn.style.color = on ? '#0a0a0a' : '#6b7280';
+            btn.style.borderColor = m.color;
+            btn.style.opacity = on ? '1' : '0.45';
         });
 
         const cardContainer = document.getElementById('metricCards');
@@ -614,7 +619,7 @@
             div.innerHTML = `
                 <div class="flex-1 min-w-0">
                     <div class="flex justify-between items-center mb-2">
-                        <span class="font-bold text-gray-400 text-[9px] uppercase tracking-widest brand-font">${m.name}</span>
+                        <span class="font-bold text-[9px] uppercase tracking-widest brand-font" style="color:${m.color}">${m.name}</span>
                         <span class="text-sm font-black text-white">${displayVal}</span>
                     </div>
                     <div class="w-full h-1 bg-white/5 rounded-full overflow-hidden">
@@ -637,9 +642,22 @@
         const commonOptions = {
             responsive: true, maintainAspectRatio: false,
             interaction: { intersect: false, mode: 'index' },
-            plugins: { 
-                legend: { display: true, position: 'bottom', labels: { boxWidth: 10, color: '#fff', font: { size: 9, family: 'Raleway' } } },
-                tooltip: { backgroundColor: '#111', titleFont: { family: 'Cinzel' }, bodyFont: { family: 'Raleway' }, borderColor: '#D4AF37', borderWidth: 1 } 
+            plugins: {
+                colors: { enabled: false },
+                legend: {
+                    display: true,
+                    position: 'bottom',
+                    labels: {
+                        usePointStyle: true,
+                        pointStyle: 'rectRounded',
+                        boxWidth: 12,
+                        boxHeight: 12,
+                        padding: 12,
+                        color: '#e5e7eb',
+                        font: { size: 10, family: 'Raleway' }
+                    }
+                },
+                tooltip: { backgroundColor: '#111', titleFont: { family: 'Cinzel' }, bodyFont: { family: 'Raleway' }, borderColor: '#D4AF37', borderWidth: 1 }
             },
             scales: {
                 x: { grid: { color: chartColor }, ticks: { color: textMainColor, font: { size: 9 } } },
@@ -647,10 +665,27 @@
             }
         };
 
-        // Capacity Chart
-        const capacityDatasets = metrics.filter(m => m.type === 'perf' && state.visibleMetrics.includes(m.id)).map(m => ({
-            label: m.name, data: data.map(d => d[m.id]), borderColor: m.color, borderWidth: 2, tension: 0.4, pointRadius: 0
-        }));
+        function lineDataset(m, extra) {
+            return {
+                label: m.name,
+                data: data.map(d => d[m.id]),
+                borderColor: m.color,
+                backgroundColor: m.color,
+                pointBackgroundColor: m.color,
+                pointBorderColor: m.color,
+                borderWidth: 2.5,
+                tension: 0.35,
+                pointRadius: 2,
+                pointHoverRadius: 4,
+                fill: false,
+                spanGaps: true,
+                ...extra
+            };
+        }
+
+        const capacityDatasets = metrics
+            .filter(m => m.type === 'perf' && state.visibleMetrics.includes(m.id))
+            .map(m => lineDataset(m));
 
         if (capacityChart) capacityChart.destroy();
         capacityChart = new Chart(document.getElementById('capacityChart'), {
@@ -658,12 +693,14 @@
             options: { ...commonOptions, scales: { ...commonOptions.scales, y: { ...commonOptions.scales.y, min: 0, max: 100 } } }
         });
 
-        // Vitality Chart
-        const vitalityDatasets = [
-            { label: 'Mortality HR Increase %', data: data.map(d => d.mortality), borderColor: '#f43f5e', yAxisID: 'y1', pointRadius: 0, hidden: !state.visibleMetrics.includes('mortality') },
-            { label: 'Projected Lifespan (y)', data: data.map(d => d.lifespan), borderColor: '#20B2AA', yAxisID: 'y2', pointRadius: 0, hidden: !state.visibleMetrics.includes('lifespan') },
-            { label: 'Annual Income ($)', data: data.map(d => d.income), borderColor: '#D4AF37', yAxisID: 'y3', borderDash: [5,5], pointRadius: 0, hidden: !state.visibleMetrics.includes('income') }
+        const vitalityMeta = [
+            { id: 'mortality', name: 'Mortality HR Increase %', color: '#f43f5e', axis: 'y1' },
+            { id: 'lifespan', name: 'Projected Lifespan (y)', color: '#20B2AA', axis: 'y2' },
+            { id: 'income', name: 'Annual Income ($)', color: '#D4AF37', axis: 'y3', extra: { borderDash: [5, 5] } }
         ];
+        const vitalityDatasets = vitalityMeta
+            .filter(m => state.visibleMetrics.includes(m.id))
+            .map(m => lineDataset(m, { yAxisID: m.axis, ...(m.extra || {}) }));
 
         if (vitalityChart) vitalityChart.destroy();
         vitalityChart = new Chart(document.getElementById('vitalityChart'), {
@@ -696,6 +733,10 @@
     }
 
     window.addEventListener('load', () => {
+        if (typeof Chart !== 'undefined') {
+            Chart.defaults.color = '#e5e7eb';
+            if (Chart.defaults.plugins) Chart.defaults.plugins.colors = { enabled: false };
+        }
         init();
         calculateRecovery();
     });
