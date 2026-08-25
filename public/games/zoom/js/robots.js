@@ -1,8 +1,8 @@
 /** Procedural colored robots with movement + attack styles. */
 import * as THREE from "three";
-import { ENEMIES, ENEMY_BY_ID } from "./config.js?v=psy2";
-import { hurtFoe } from "./weapons.js?v=psy2";
-import { floorY, sdf3 } from "./map.js?v=psy2";
+import { ENEMIES, ENEMY_BY_ID } from "./config.js?v=psy3";
+import { hurtFoe } from "./weapons.js?v=psy3";
+import { floorY, sdf3 } from "./map.js?v=psy3";
 
 function mat(hex, extra) {
   return new THREE.MeshLambertMaterial({ color: hex, emissive: hex, emissiveIntensity: 0.18, ...extra });

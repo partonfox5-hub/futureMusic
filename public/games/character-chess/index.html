@@ -13,12 +13,22 @@
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Outfit:wght@400;500;600;700&display=swap"
     />
-    <link rel="stylesheet" crossorigin href="/games/character-chess/assets/chess-static-niQZQqjL.css?v=packs2">
-    <link rel="stylesheet" href="/games/character-chess/js/overlay.css?v=packs2">
-    <link rel="stylesheet" href="/games/character-chess/test-c8w4k2np/vr-fix.css?v=packs2">
-    <script type="module" crossorigin src="/games/character-chess/assets/chess-static-c8w4k2np.js?v=packs2"></script>
-    <script type="module" src="/games/character-chess/js/overlay.js?v=packs2"></script>
-    <script type="module" src="/games/character-chess/test-c8w4k2np/vr-fix.js?v=packs2"></script>
+    <link rel="stylesheet" crossorigin href="/games/character-chess/assets/chess-static-niQZQqjL.css?v=mapsrow">
+    <link rel="stylesheet" href="/games/character-chess/js/overlay.css?v=mapsrow4">
+    <link rel="stylesheet" href="/games/character-chess/test-c8w4k2np/vr-fix.css?v=mapsrow">
+    <script>
+      (function () {
+        var ua = navigator.userAgent || "";
+        if (/Quest|OculusBrowser|Oculus|Pacific/i.test(ua)) return;
+        var iPad = /iPad/i.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+        var phone = /iPhone|iPod|Android.+Mobile|webOS|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+        var androidTab = /Android/i.test(ua) && !/Mobile/i.test(ua);
+        if (phone || iPad || androidTab) document.documentElement.classList.add("cc-mobile-soon");
+      })();
+    </script>
+    <script type="module" crossorigin src="/games/character-chess/assets/chess-static-c8w4k2np.js?v=mapsrow"></script>
+    <script type="module" src="/games/character-chess/js/overlay.js?v=mapsrow4"></script>
+    <script type="module" src="/games/character-chess/test-c8w4k2np/vr-fix.js?v=mapsrow"></script>
   </head>
   <body>
     <div id="root"></div>

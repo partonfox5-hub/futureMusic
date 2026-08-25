@@ -6,8 +6,8 @@
     <meta name="robots" content="noindex, nofollow" />
     <meta name="theme-color" content="#b8d4f0" />
     <title>Blockbuild</title>
-    <meta name="build" content="prod-20260824-bb3" />
-    <link rel="stylesheet" href="/games/blockbuild/css/game.css?v=bb3" />
+    <meta name="build" content="prod-20260824-bb4" />
+    <link rel="stylesheet" href="/games/blockbuild/css/game.css?v=bb4" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Outfit:wght@400;500;600&display=swap" rel="stylesheet" />
@@ -17,7 +17,7 @@
     <div id="hud">
       <div id="title">Blockbuild</div>
       <div id="hud-line">Red · 2×4 Brick</div>
-      <div id="hud-hint">Trigger places. Grip picks up stray bricks. A dumps a pile. Y cannon. Hold X to melt. B rotates.</div>
+      <div id="hud-hint">A color · B piece · right stick-click brick / fig / hands. Left stick-click opens the workshop menu.</div>
     </div>
     <div id="start">
       <div class="panel">
@@ -25,17 +25,16 @@
         <h1>Blockbuild</h1>
         <p>
           Fly an empty sky. Snap studded bricks on a level table. They interlock when they kiss.
-          Wrist palette: outer ring is color, inner ring is size. Center tools change kind, gravity, zoom, and handedness.
+          No wrist palette — A, B, and the right stick-click run the kit. Left stick-click opens a 3D workshop menu to save and load maps.
         </p>
         <ul>
-          <li><b>Trigger</b> places the ghost brick (or a held one). Snap-to-studs when close.</li>
-          <li><b>Grip</b> picks up stray bricks. Trigger again to lock them in.</li>
-          <li><b>A</b> spills ten random pieces. <b>B</b> rotates. <b>Y</b> fires a cannonball that breaks joints.</li>
-          <li>Hold <b>X</b> and the build hand becomes a flame — melt bricks you hold it near.</li>
-          <li>Zoom until you are a giant or a speck. Toggle gravity. Swap the palette wrist for left-handed play.</li>
-          <li><b>Fig studio</b> on the palette: three carousels for head, torso, and legs. Place copies — they wander and climb stairs you build.</li>
+          <li><b>Trigger</b> places the ghost brick or fig. Snap-to-studs when close.</li>
+          <li><b>A</b> cycles colors. <b>B</b> cycles piece types. Right <b>stick-click</b> toggles brick placing, minifig placing, and empty-handed.</li>
+          <li>Empty-handed: grab existing bricks to move them, pick up figs and toss them.</li>
+          <li>Left <b>stick-click</b> opens the VR menu: save/load three map slots, dump a pile, new table, gravity.</li>
+          <li>Hold <b>X</b> to melt. Tap X to rotate. <b>Y</b> fires a cannonball that breaks joints. [ ] zooms the table.</li>
         </ul>
-        <p class="desk">Desktop: WASD fly, mouse look, click place, C/V/B cycle color/size/kind, R rotate, P pile, F grab, Y cannon, X melt, G gravity, [ ] zoom, H swap, M fig studio.</p>
+        <p class="desk">Desktop: WASD fly, mouse look, click place, Tab mode, C/B color/kind, R rotate, Esc menu, 1–3 save, 4–6 load, P pile, F grab, Y cannon, X melt, G gravity.</p>
         <div class="row">
           <button type="button" id="go-vr">Enter VR</button>
           <button type="button" id="go-desk" class="ghost">Begin on desktop</button>
@@ -50,6 +49,24 @@
         }
       }
     </script>
-    <script type="module" src="/games/blockbuild/js/game.js?v=bb3"></script>
+    <div id="bb-menu" hidden>
+      <div class="panel">
+        <p class="kicker">Workshop</p>
+        <h2>Map &amp; tools</h2>
+        <div class="menu-grid">
+          <button type="button" data-m="resume">Resume</button>
+          <button type="button" data-m="save1">Save slot 1</button>
+          <button type="button" data-m="save2">Save slot 2</button>
+          <button type="button" data-m="save3">Save slot 3</button>
+          <button type="button" data-m="load1">Load slot 1</button>
+          <button type="button" data-m="load2">Load slot 2</button>
+          <button type="button" data-m="load3">Load slot 3</button>
+          <button type="button" data-m="pile">Dump a pile</button>
+          <button type="button" data-m="new">New table</button>
+          <button type="button" data-m="grav">Toggle gravity</button>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="/games/blockbuild/js/game.js?v=bb4"></script>
   </body>
 </html>

@@ -109,17 +109,19 @@ export function makeFig(cfg, ghost = false) {
   const torsoH = PLATE * 3.2;
   const headR = STUD * 0.72;
 
-  const hip = new THREE.Mesh(new THREE.BoxGeometry(STUD * 1.6, hipH * 0.55, STUD * 0.9), lamb(legs.col));
-  hip.position.y = hipH * 0.35;
+  const hipBoxH = hipH * 0.5;
+  const hip = new THREE.Mesh(new THREE.BoxGeometry(STUD * 1.62, hipBoxH, STUD * 0.92), lamb(legs.col));
+  hip.position.y = hipH - hipBoxH * 0.28;
   g.add(hip);
-  const legL = new THREE.Mesh(new THREE.BoxGeometry(STUD * 0.7, hipH * 0.7, STUD * 0.8), lamb(legs.col));
+  const legH = hipH * 0.9;
+  const legL = new THREE.Mesh(new THREE.BoxGeometry(STUD * 0.74, legH, STUD * 0.84), lamb(legs.col));
   const legR = legL.clone();
-  legL.position.set(-STUD * 0.42, hipH * 0.32, 0);
-  legR.position.set(STUD * 0.42, hipH * 0.32, 0);
+  legL.position.set(-STUD * 0.44, legH * 0.5, 0);
+  legR.position.set(STUD * 0.44, legH * 0.5, 0);
   g.add(legL, legR);
 
   const bod = new THREE.Mesh(new THREE.BoxGeometry(STUD * 1.55, torsoH, STUD * 0.85), lamb(torso.col));
-  bod.position.y = hipH + torsoH * 0.5;
+  bod.position.y = hipH + torsoH * 0.46;
   g.add(bod);
   const print = new THREE.Mesh(new THREE.BoxGeometry(STUD * 0.7, torsoH * 0.45, 0.0006), lamb(torso.accent));
   print.position.set(0, hipH + torsoH * 0.55, STUD * 0.43);

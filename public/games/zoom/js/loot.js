@@ -1,6 +1,6 @@
 /** Coin/gem showers, chime, wrist gold counter. */
 import * as THREE from "three";
-import { LOOT } from "./config.js?v=psy2";
+import { LOOT } from "./config.js?v=psy3";
 
 const LS = "zoom.gold";
 const TEX = {};

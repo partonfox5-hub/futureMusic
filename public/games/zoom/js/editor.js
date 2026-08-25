@@ -18,8 +18,8 @@ import {
   SHAPES,
   WALL_TEX,
   routes,
-} from "./config.js?v=psy2";
-import { bakedMaps } from "./defaults.js?v=psy2";
+} from "./config.js?v=psy3";
+import { bakedMaps } from "./defaults.js?v=psy3";
 import {
   addSphere,
   blankMap,
@@ -46,8 +46,8 @@ import {
   stampSegment,
   wallIsCrack,
   wallTexId,
-} from "./map.js?v=psy2";
-import { deleteMap, getMap, listMaps, saveMap, stashPreview } from "./store.js?v=psy2";
+} from "./map.js?v=psy3";
+import { deleteMap, getMap, listMaps, saveMap, stashPreview } from "./store.js?v=psy3";
 
 const $ = (id) => document.getElementById(id);
 

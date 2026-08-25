@@ -84,7 +84,7 @@ const PACKS = [
   {
     id: "maps",
     cls: "cc-maps",
-    img: "azurecolossus.png",
+    img: "/games/character-chess/sprites/terrain/mountain.png",
     label: "Map Pack",
     sub: "Medium field + RTS theatre",
     name: "Map Pack",
@@ -104,9 +104,31 @@ const TILES = [
   { id: "hot", cls: "cc-hot", img: "wizardcat.png", label: "Pass & play", sub: "One device" },
   { id: "multi", cls: "cc-multi", img: "primarch.png", label: "Two-player lobby", sub: "See your rival at once" },
   { id: "how", cls: "cc-how", img: "frogseer.png", label: "How to play", sub: "Draft · move · battle" },
-  { id: "vr", cls: "cc-vr", img: "skyrazor.png", label: "VR table", sub: "Quest browser" },
-  ...PACKS.map((p) => ({ id: "pack:" + p.id, cls: p.cls, img: p.img, label: p.label, sub: p.sub, price: "$1.99" })),
+  { id: "pack:maps", cls: "cc-maps", img: "/games/character-chess/sprites/terrain/mountain.png", label: "Map Pack", sub: "16×16 mountains + RTS", price: "$1.99" },
+  ...PACKS.filter((p) => p.id !== "maps").map((p) => ({ id: "pack:" + p.id, cls: p.cls, img: p.img, label: p.label, sub: p.sub, price: "$1.99" })),
 ];
+
+function isChessMobileSoon() {
+  const ua = navigator.userAgent || "";
+  if (/Quest|OculusBrowser|Oculus|Pacific|PicoBrowser|Wolvic/i.test(ua)) return false;
+  const iPad = /iPad/i.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const phone = /iPhone|iPod|Android.+Mobile|webOS|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+  const androidTab = /Android/i.test(ua) && !/Mobile/i.test(ua);
+  return !!(phone || iPad || androidTab);
+}
+
+function mountMobileSoon() {
+  if (document.getElementById("cc-mobile-soon")) return;
+  document.documentElement.classList.add("cc-mobile-soon");
+  document.body.classList.add("cc-mobile-soon");
+  document.body.append(el(`<div id="cc-mobile-soon">
+    <div class="cc-soon-sign">
+      <p class="kicker">Aetherboard rest hall</p>
+      <h1>Coming soon</h1>
+      <p>Phone play for Creature Chess is not ready yet. Open this page on a computer or a Quest headset.</p>
+    </div>
+  </div>`));
+}
 
 function peerId() {
   try {
@@ -293,8 +315,9 @@ function ownedMap(game) {
 function tileMarkup(t, owned) {
   const packId = t.id.startsWith("pack:") ? t.id.slice(5) : "";
   const has = packId && owned[packId];
+  const art = t.img.startsWith("/") ? t.img : SPR + t.img;
   return `<button type="button" class="cc-tile ${t.cls}" data-act="${t.id}">
-    <img class="art" src="${SPR}${t.img}" alt="">
+    <img class="art" src="${art}" alt="">
     <span class="shade"></span>
     ${t.price ? `<span class="price${has ? " owned" : ""}">${has ? "Owned" : t.price}</span>` : ""}
     <span class="label">${t.label}<span class="sub">${t.sub}</span></span>
@@ -384,15 +407,75 @@ function applyBoardConfig(scale, mountains) {
   window.__CC_MOUNTAINS = mountains || [];
 }
 
+function liveGame(game) {
+  return window.__game || game;
+}
+
+function hideStockTitle() {
+  document.body.classList.add("cc-hide-stock-title");
+  document.documentElement.classList.add("cc-hide-stock-title");
+}
+
+function syncOverlayShell(game, inLobby) {
+  const g = liveGame(game);
+  const phase = g?.getState?.()?.phase;
+  const shell = document.getElementById("cc-shell");
+  if (!shell) return;
+  hideStockTitle();
+  const onTitle = !phase || phase === "title";
+  shell.classList.toggle("on", onTitle && !inLobby);
+}
+
 function startLocal(game, mode, ruleset) {
   window.__CC_MULTI = false;
   window.__CC_SEAT = null;
   window.__CC_N = 8;
   window.__CC_FILES = "abcdefgh";
   window.__CC_MOUNTAINS = [];
-  document.getElementById("cc-shell").classList.remove("on");
-  document.getElementById("cc-lobby").classList.remove("on");
-  game.getState().startDraft(mode, ruleset);
+  const g = liveGame(game);
+  const st = g.getState();
+  if (typeof st.startDraft !== "function") {
+    openHowTo("Could not start that mode from this build.");
+    return;
+  }
+  hideStockTitle();
+  try {
+    st.startDraft(mode, ruleset || "classic");
+  } catch {
+    openHowTo("Could not start that mode from this build.");
+    return;
+  }
+  syncOverlayShell(g, false);
+  requestAnimationFrame(() => syncOverlayShell(g, false));
+  setTimeout(() => syncOverlayShell(g, false), 80);
+  setTimeout(() => syncOverlayShell(g, false), 250);
+}
+
+function openHowTo(note) {
+  let box = document.getElementById("cc-howto");
+  if (!box) {
+    box = document.createElement("div");
+    box.id = "cc-howto";
+    document.body.appendChild(box);
+  }
+  box.innerHTML = `<div class="cc-howto-panel">
+    <button type="button" class="cc-x" data-howto-x aria-label="Close">×</button>
+    <p class="kicker">Tutorial</p>
+    <h2>How to play</h2>
+    ${note ? `<p class="cc-err">${note}</p>` : ""}
+    <ol>
+      <li><b>Draft.</b> Each side names their champions onto the back rank and pawns. White drafts first.</li>
+      <li><b>Move.</b> Pieces walk like chess. Click a unit, then a legal square.</li>
+      <li><b>Battle.</b> Captures open a duel. HP, type, and spells decide the clash — not the chess value alone.</li>
+      <li><b>Spells & traps.</b> Bonus rules add a hand of spells. Traps sit on tiles until someone steps on them.</li>
+      <li><b>Packs.</b> Terraform, Curse of Medusa, and Rites of Flame each add a court and a signature spell. Map Pack unlocks 16×16 mountains and the 24×24 RTS field.</li>
+    </ol>
+    <button type="button" data-howto-x>Got it</button>
+  </div>`;
+  box.classList.add("on");
+  box.onclick = (ev) => {
+    if (ev.target.closest("[data-howto-x]") || ev.target.id === "cc-howto") box.classList.remove("on");
+  };
 }
 
 function renderShop(game, packId) {
@@ -511,6 +594,10 @@ function refreshPackBadges(game) {
 }
 
 async function boot() {
+  if (isChessMobileSoon()) {
+    mountMobileSoon();
+    return;
+  }
   mount();
   startCinematic();
   const game = await waitGame();
@@ -543,8 +630,8 @@ async function boot() {
       window.__CC_MOUNTAINS = [];
       window.__CC_SEAT = null;
     }
+    hideStockTitle();
     shell.classList.toggle("on", title && !inLobby);
-    document.body.classList.toggle("cc-hide-stock-title", title);
     if (!title) lobbyEl.classList.remove("on");
     if (s.alphaModalOpen) {
       renderShop(game, s.packModal || null);
@@ -556,20 +643,23 @@ async function boot() {
     refreshPackBadges(game);
   }
   syncChrome(game.getState());
-  game.subscribe((s) => syncChrome(s));
+  game.subscribe(() => syncChrome(liveGame(game).getState()));
 
   shell.addEventListener("click", (ev) => {
     const btn = ev.target.closest("[data-act]");
     if (!btn) return;
     const act = btn.dataset.act;
-    const st = game.getState();
+    const st = liveGame(game).getState();
     if (act === "cpu") startLocal(game, "cpu", "classic");
     else if (act === "bonus") startLocal(game, "cpu", "bonus");
     else if (act === "hot") startLocal(game, "hotseat", "classic");
-    else if (act === "how") st.setHowTo(true);
-    else if (act === "vr") (st.vrActive ? st.exitVr : st.enterVr)();
+    else if (act === "how") openHowTo();
     else if (act === "multi") openLobby();
-    else if (act.startsWith("pack:")) st.openPackModal(act.slice(5));
+    else if (act.startsWith("pack:")) {
+      const id = act.slice(5);
+      st.openPackModal?.(id);
+      renderShop(liveGame(game), id);
+    }
   });
 
   document.getElementById("cc-shop").addEventListener("click", (ev) => {

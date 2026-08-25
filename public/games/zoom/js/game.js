@@ -1,17 +1,17 @@
 import * as THREE from "three";
 import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
-import { BIOMES, CELL, EYE, LIQ_LAVA, LIQ_WATER, PICKUP_BY_ID, SHOP, WEAPON_BY_ID, WEAPONS, routes } from "./config.js?v=psy2";
-import { bakedMaps } from "./defaults.js?v=psy2";
-import { biomeOf, cellI, countCarved, ensureLayers, firstCarved, floorY, sdf3 } from "./map.js?v=psy2";
-import { buildDungeon, prepareSdf } from "./mesh.js?v=psy2";
-import { makeProp, spawnFrom, strikeFoes, tickFoes } from "./props.js?v=psy2";
-import { getMap, listMaps } from "./store.js?v=psy2";
-import { makeProc } from "./proc.js?v=psy2";
-import { breakWindows, buildingFloorY, buildWorld, climbSupport, hurtTurrets, makeSky, shatterCracked, tickRubble, tickWorld, tryUnlock, wallBlocked } from "./world.js?v=psy2";
-import { addBurnDecal, addSaberMark, fireWeapon, hurtFoe, makeDualSaber, makeKeyModel, makePickup, makeWeapon, setKillHook, tickBurns, tickShots } from "./weapons.js?v=psy2";
-import { tickRobots } from "./robots.js?v=psy2";
-import { attachXr, tickXr } from "./xr.js?v=psy2";
-import { loadGold, lootForEnemy, makeWristGold, paintWristGold, saveGold, showerLoot, tickLoot } from "./loot.js?v=psy2";
+import { BIOMES, CELL, EYE, LIQ_LAVA, LIQ_WATER, PICKUP_BY_ID, SHOP, WEAPON_BY_ID, WEAPONS, routes } from "./config.js?v=psy3";
+import { bakedMaps } from "./defaults.js?v=psy3";
+import { biomeOf, cellI, countCarved, ensureLayers, firstCarved, floorY, sdf3 } from "./map.js?v=psy3";
+import { buildDungeon, prepareSdf } from "./mesh.js?v=psy3";
+import { makeProp, spawnFrom, strikeFoes, tickFoes } from "./props.js?v=psy3";
+import { getMap, listMaps } from "./store.js?v=psy3";
+import { makeProc } from "./proc.js?v=psy3";
+import { breakWindows, buildingFloorY, buildWorld, climbSupport, hurtTurrets, makeSky, shatterCracked, tickRubble, tickWorld, tryUnlock, wallBlocked } from "./world.js?v=psy3";
+import { addBurnDecal, addSaberMark, fireWeapon, hurtFoe, makeDualSaber, makeKeyModel, makePickup, makeWeapon, setKillHook, tickBurns, tickShots } from "./weapons.js?v=psy3";
+import { tickRobots } from "./robots.js?v=psy3";
+import { attachXr, tickXr } from "./xr.js?v=psy3";
+import { loadGold, lootForEnemy, makeWristGold, paintWristGold, saveGold, showerLoot, tickLoot } from "./loot.js?v=psy3";
 
 const $ = (id) => document.getElementById(id);
 const keys = new Set();
@@ -48,6 +48,7 @@ let dead = false;
 let hurtT = 0;
 let yaw = 0;
 let yawOffset = 0;
+let xrYaw = null;
 let viewWep, flashlight;
 let dualSaber = null;
 let saberOn = false;
@@ -145,6 +146,8 @@ function initThree() {
   clock = new THREE.Clock();
   controls = new PointerLockControls(camera, $("c"));
   scene.add(controls.object);
+  xrYaw = new THREE.Group();
+  scene.add(xrYaw);
   hemi = new THREE.HemisphereLight(0xc8c0b0, 0x2a2018, 0.7);
   amb = new THREE.AmbientLight(0x3a342c, 0.5);
   sun = new THREE.DirectionalLight(0xfff2d0, 0);
@@ -193,6 +196,15 @@ function onXrSession(on) {
     renderer.setClearColor(0x6a90b4, 1);
     if ($("start")) $("start").hidden = true;
     if ($("hud")) $("hud").hidden = false;
+    if (xrYaw) {
+      xrYaw.add(camera);
+      if (hands) {
+        for (const h of hands) {
+          xrYaw.add(h.grip);
+          xrYaw.add(h.con);
+        }
+      }
+    }
     if (wristGold && hands[0]) {
       wristGold.removeFromParent();
       wristGold.position.set(0, -0.06, 0.08);
@@ -204,12 +216,27 @@ function onXrSession(on) {
       const first = bakedMaps()[0];
       enterMap(first ? first.id : "proc");
     }
-  } else if (wristGold) {
-    wristGold.removeFromParent();
-    wristGold.position.set(-0.22, -0.26, -0.42);
-    wristGold.scale.set(0.28, 0.07, 1);
-    if (camera) camera.add(wristGold);
-    if (stage) stage.position.set(0, 0, 0);
+  } else {
+    if (xrYaw && camera) {
+      scene.add(controls.object || camera);
+      xrYaw.rotation.y = 0;
+    }
+    if (hands) {
+      for (const h of hands) {
+        scene.add(h.grip);
+        scene.add(h.con);
+      }
+    }
+    if (wristGold) {
+      wristGold.removeFromParent();
+      wristGold.position.set(-0.22, -0.26, -0.42);
+      wristGold.scale.set(0.28, 0.07, 1);
+      if (camera) camera.add(wristGold);
+    }
+    if (stage) {
+      stage.rotation.y = 0;
+      stage.position.set(0, 0, 0);
+    }
   }
 }
 
@@ -217,14 +244,9 @@ function applyXrStage() {
   if (!xrPresenting || !stage) return;
   const eye = player.crouch ? 0.9 : EYE;
   const floor = (player.y || EYE) - eye;
-  const c = Math.cos(yawOffset);
-  const s = Math.sin(yawOffset);
-  stage.rotation.y = yawOffset;
-  stage.position.set(
-    -(player.x || 0) * c + (player.z || 0) * s,
-    -floor,
-    -(player.x || 0) * s - (player.z || 0) * c,
-  );
+  stage.rotation.y = 0;
+  stage.position.set(-(player.x || 0), -floor, -(player.z || 0));
+  if (xrYaw) xrYaw.rotation.y = yawOffset;
 }
 
 function clearWorld() {
@@ -444,13 +466,34 @@ function damage(n, why) {
 }
 
 function die(why) {
-  dead = true;
-  running = false;
-  try {
-    controls.unlock();
-  } catch {}
-  $("dead").hidden = false;
-  $("dead-reason").textContent = "You were " + (why || "taken") + ".";
+  setMsg("You were " + (why || "taken") + " — back at spawn.");
+  player.hp = 100;
+  player.vx = 0;
+  player.vy = 0;
+  player.vz = 0;
+  player.shield = 0;
+  dead = false;
+  running = true;
+  rope = null;
+  if ($("dead")) $("dead").hidden = true;
+  let x = map?.start?.x;
+  let z = map?.start?.z;
+  if (x == null || (map && floorY(x, z, map, sdf2) < -500)) {
+    const f = firstCarved(map);
+    if (f) {
+      x = f.x;
+      z = f.z;
+    }
+  }
+  if (x != null) {
+    const y = floorY(x, z, map, sdf2);
+    player.x = x;
+    player.z = z;
+    player.y = (y < 0 ? 1.2 : y) + EYE;
+    player.grounded = true;
+    player.jumps = 2;
+  }
+  hudBars();
 }
 
 function takePickup(p) {
@@ -533,16 +576,21 @@ function renderInv() {
 function physics(dt, xr) {
   const look = lookEuler.setFromQuaternion(camera.quaternion, "YXZ");
   yaw = look.y;
-  if (xr && xr.on && Math.abs(xr.lookX) > 0.12) {
-    const mag = Math.min(1, Math.abs(xr.lookX));
-    yawOffset -= Math.sign(xr.lookX) * mag * mag * dt * 2.35;
+  if (xr && xr.on && Math.abs(xr.lookX) > 0.14) {
+    yawOffset -= xr.lookX * dt * 1.85;
   }
-  const moveYaw = xr && xr.on ? yaw + yawOffset : yaw;
-  const forward = tmp.set(-Math.sin(moveYaw), 0, -Math.cos(moveYaw));
-  const right = tmp2.set(Math.cos(moveYaw), 0, -Math.sin(moveYaw));
+  if (xrYaw && xrPresenting) xrYaw.rotation.y = yawOffset;
+  const forward = tmp.set(-Math.sin(yaw), 0, -Math.cos(yaw));
+  const right = tmp2.set(Math.cos(yaw), 0, -Math.sin(yaw));
   let wx = 0;
   let wz = 0;
   if (xr && xr.on) {
+    camera.getWorldDirection(tmp);
+    tmp.y = 0;
+    if (tmp.lengthSq() < 1e-6) tmp.set(0, 0, -1);
+    tmp.normalize();
+    forward.copy(tmp);
+    right.set(forward.z, 0, -forward.x);
     wx += forward.x * -(xr.moveY || 0) + right.x * (xr.moveX || 0);
     wz += forward.z * -(xr.moveY || 0) + right.z * (xr.moveX || 0);
     player.skate = xr.skate;
@@ -597,13 +645,22 @@ function physics(dt, xr) {
   const bodyY = player.y - eye * 0.4;
   function blocked(x, y, z) {
     if (wallBlocked(map, x, z, y)) return true;
-    return sdf3(x, y, z, map, sdf2) > -0.18;
+    return sdf3(x, y, z, map, sdf2) > -0.2;
   }
   function walkOk(x, y, z) {
-    if (wallBlocked(map, x, z, y)) return false;
-    if (sdf3(x, y, z, map, sdf2) < -0.18 && sdf3(x, player.y - eye + 0.2, z, map, sdf2) < -0.18) return true;
-    const below = floorY(x, z, map, sdf2, player.y + 3);
-    return below > -500 && player.y - eye > below + 0.35;
+    const r = 0.24;
+    const samples = [
+      [x, y, z],
+      [x, player.y - 0.22, z],
+      [x + r, y, z],
+      [x - r, y, z],
+      [x, y, z + r],
+      [x, y, z - r],
+    ];
+    for (const [sx, sy, sz] of samples) {
+      if (blocked(sx, sy, sz)) return false;
+    }
+    return true;
   }
   const GRAV = 24;
   const jet = player.fuel > 0 && !rope && ((xr && xr.jet) || keys.has("KeyF") || (keys.has("Space") && !player.grounded && !jumpQueued));
@@ -755,14 +812,6 @@ function physics(dt, xr) {
   } else if (!rope && !(climb && climb.kind === "ladder")) {
     player.grounded = false;
     coyote = Math.max(0, coyote - dt);
-  }
-  if (!rope) {
-    for (let i = 0; i < 10; i++) {
-      const fy = player.y - eye + 0.12;
-      if (sdf3(player.x, fy, player.z, map, sdf2) < -0.06) break;
-      player.y += 0.08;
-      player.vy = Math.max(0, player.vy);
-    }
   }
   if (player.y < -18) die("fell");
 
@@ -1038,33 +1087,45 @@ function flingAt(pos, dir, radius, force, slam, hitSet) {
   }
 }
 
+function orientPsyRing(ring, dir) {
+  const d = dir.clone().normalize();
+  const up = new THREE.Vector3(0, 1, 0);
+  let xAxis = new THREE.Vector3().crossVectors(d, up);
+  if (xAxis.lengthSq() < 1e-6) xAxis.set(1, 0, 0);
+  xAxis.normalize();
+  const yAxis = new THREE.Vector3().crossVectors(xAxis, d).normalize();
+  ring.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(xAxis, yAxis, d));
+}
+
 function firePsy(xr) {
   if (psyCd > 0) return;
   psyCd = 0.42;
   const origin = new THREE.Vector3();
   const dir = new THREE.Vector3(0, 0, -1);
-  if (xr && xr.on && xr.right) {
-    origin.copy(xr.right.pos);
-    dir.copy(tmp.set(0, 0, -1).applyQuaternion(xr.right.quat));
+  const hand = xr && xr.on && (xr.left || xr.right);
+  if (hand) {
+    origin.copy(hand.pos);
+    dir.copy(tmp.set(0, 0, -1).applyQuaternion(hand.quat));
   } else {
     camera.getWorldPosition(origin);
     dir.applyQuaternion(camera.quaternion);
   }
   if (stage && xrPresenting) {
+    const worldTip = origin.clone().add(dir);
     origin.copy(stage.worldToLocal(origin.clone()));
-    const p2 = stage.worldToLocal(xr && xr.right ? xr.right.pos.clone().add(dir) : camera.position.clone().add(dir));
+    const p2 = stage.worldToLocal(worldTip);
     dir.copy(p2.sub(origin)).normalize();
   }
   for (let i = 0; i < 3; i++) {
     const ring = new THREE.Mesh(
-      new THREE.TorusGeometry(0.16 + i * 0.04, 0.022, 8, 28),
+      new THREE.TorusGeometry(0.18 + i * 0.05, 0.024, 8, 28),
       new THREE.MeshBasicMaterial({ color: i % 2 ? 0x66eeff : 0xb388ff, transparent: true, opacity: 0.9, side: THREE.DoubleSide }),
     );
-    ring.scale.set(1.45, 0.42, 1);
-    ring.position.copy(origin).addScaledVector(dir, 0.15 + i * 0.08);
-    ring.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), dir);
+    ring.scale.set(0.42, 1.55, 1);
+    ring.position.copy(origin).addScaledVector(dir, 0.12 + i * 0.09);
+    orientPsyRing(ring, dir);
     (stage || scene).add(ring);
-    psyWaves.push({ mesh: ring, dir: dir.clone(), speed: 11 + i * 1.4, life: 0.55, r: 0.35 + i * 0.08, hit: new Set() });
+    psyWaves.push({ mesh: ring, dir: dir.clone(), speed: 12 + i * 1.2, life: 0.58, r: 0.38 + i * 0.08, hit: new Set() });
   }
   setMsg("Psyblast");
 }
@@ -1079,7 +1140,8 @@ function tickPsy(dt) {
     if (w.dummy) {
       w.mesh.scale.addScalar(dt * 6);
     } else {
-      w.mesh.scale.set(1.45 + (0.55 - w.life) * 2.2, 0.42, 1 + (0.55 - w.life) * 1.4);
+      const grow = 1 + (0.58 - w.life) * 1.8;
+      w.mesh.scale.set(0.42 * grow, 1.55 * grow, 1);
       flingAt(w.mesh.position, w.dir, w.r, 9.5, 14, w.hit);
     }
     if (w.life <= 0) {

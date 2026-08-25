@@ -110,6 +110,47 @@ h1 {
 
 button:not(:disabled), [role="button"] { cursor: pointer; }
 
+#bb-menu {
+  position: absolute;
+  inset: 0;
+  z-index: 12;
+  display: grid;
+  place-items: center;
+  background: rgba(18, 22, 30, 0.48);
+}
+#bb-menu[hidden] { display: none !important; }
+#bb-menu .panel {
+  width: min(420px, 92vw);
+  padding: 22px 22px 18px;
+  background: rgba(255,255,255,0.88);
+  border-radius: 16px;
+  border: 1px solid rgba(28,30,36,0.1);
+}
+#bb-menu h2 {
+  font-family: Fredoka, sans-serif;
+  margin: 4px 0 12px;
+  color: var(--brick);
+}
+#bb-menu .menu-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+#bb-menu button {
+  min-height: 44px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--ink);
+  color: #fff;
+  font-weight: 600;
+  font-family: Outfit, sans-serif;
+}
+#bb-menu button[data-m="resume"],
+#bb-menu button[data-m="new"] {
+  grid-column: 1 / -1;
+  background: var(--brick);
+}
+
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; }
 }

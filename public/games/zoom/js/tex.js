@@ -1,6 +1,6 @@
 /** Procedural tileable biome textures. */
 import * as THREE from "three";
-import { BIOMES } from "./config.js?v=psy2";
+import { BIOMES } from "./config.js?v=psy3";
 
 function n2(x, y) {
   const s = Math.sin(x * 127.1 + y * 311.7) * 43758.5453;

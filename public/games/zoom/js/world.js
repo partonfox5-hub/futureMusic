@@ -9,8 +9,8 @@ import {
   STORY_H,
   STORIES,
   WALL_TEX,
-} from "./config.js?v=psy2";
-import { cellI, climbHoleFloor, climbHoleRoof, enclosedFloors, idx, inBounds, sdf3, wallIsCrack, wallTexId } from "./map.js?v=psy2";
+} from "./config.js?v=psy3";
+import { cellI, climbHoleFloor, climbHoleRoof, enclosedFloors, idx, inBounds, sdf3, wallIsCrack, wallTexId } from "./map.js?v=psy3";
 
 function mat(hex, extra) {
   return new THREE.MeshLambertMaterial({ color: hex, ...extra });

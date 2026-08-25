@@ -4,10 +4,10 @@ import {
   STUD, PLATE, COLORS, KINDS, DIMS,
   colorOf, dimOf, kindOf, shapeSpec, makeBrickMesh,
   rotatedDims, gridToLocal, localToGrid, cellsOf, randomSpec, platesFor,
-} from "./bricks.js";
+} from "./bricks.js?v=bb4";
 import {
   FIG_HEADS, FIG_TORSOS, FIG_LEGS, defaultFigConfig, makeFig, tickFig,
-} from "./figs.js";
+} from "./figs.js?v=bb4";
 
 const canvas = document.getElementById("c");
 const hudEl = document.getElementById("hud");
@@ -172,7 +172,11 @@ let gravityOn = true;
 let paletteHand = 0;
 let figCfg = defaultFigConfig();
 let figPanelOpen = false;
+let handMode = "brick";
+const HAND_MODES = ["brick", "fig", "hands"];
+let menuOpen = false;
 let nextId = 1;
+const SAVE_PREFIX = "blockbuild-slot-";
 const bricks = [];
 const figs = [];
 const balls = [];
@@ -346,9 +350,10 @@ ctrl.g0.add(handL);
 ctrl.g1.add(handR);
 
 function attachPalette() {
-  const grip = paletteHand === 0 ? ctrl.g0 : ctrl.g1;
-  grip.add(palette.group);
-  grip.add(figPanel.group);
+  palette.group.visible = false;
+  figPanel.group.visible = false;
+  palette.group.parent?.remove(palette.group);
+  figPanel.group.parent?.remove(figPanel.group);
 }
 attachPalette();
 
@@ -385,12 +390,10 @@ function rebuildGhost() {
     ghost.parent?.remove(ghost);
     ghost = null;
   }
-  if (KINDS[kindI].id === "fig") {
-    ghost = makeFig(figCfg, true);
-  } else {
-    ghost = makeBrickMesh(currentSpec(), currentCol(), true);
-  }
-  buildRoot.add(ghost);
+  if (handMode === "hands") return;
+  if (handMode === "fig") ghost = makeFig(figCfg, true);
+  else ghost = makeBrickMesh(currentSpec(), currentCol(), true);
+  if (ghost) buildRoot.add(ghost);
 }
 rebuildGhost();
 
@@ -398,7 +401,12 @@ function setHud() {
   const k = KINDS[kindI].name;
   const d = DIMS[dimI].id;
   const c = COLORS[colorI].name;
-  hudLine.textContent = `${c} · ${d} ${k} · scale ${worldScale.toFixed(1)}× · gravity ${gravityOn ? "ON" : "OFF"}`;
+  const mode = handMode === "brick"
+    ? `${c} · ${d} ${k}`
+    : handMode === "fig"
+      ? `Fig · ${FIG_HEADS[figCfg.head].name}`
+      : "Empty-handed";
+  hudLine.textContent = `${mode} · scale ${worldScale.toFixed(1)}× · gravity ${gravityOn ? "ON" : "OFF"}`;
 }
 
 function xrGamepad(i) {
@@ -420,7 +428,10 @@ const keys = new Set();
 const mouse = { x: 0, y: 0, down: false, locked: false };
 let lookYaw = 0;
 let lookPitch = -0.42;
-const pressed = { t0: false, t1: false, g0: false, g1: false, a: false, b: false, x: false, y: false };
+const pressed = { t0: false, t1: false, g0: false, g1: false, a: false, b: false, x: false, y: false, rsc: false, lsc: false };
+let xHold = 0;
+const handVel = new THREE.Vector3();
+let handPrev = null;
 
 function buildCtrl() {
   return paletteHand === 0 ? ctrl[1] : ctrl[0];
@@ -671,7 +682,8 @@ function heightAt(x, z) {
 }
 
 function placeFromLocal(localPos, yaw) {
-  if (KINDS[kindI].id === "fig") {
+  if (handMode === "hands") return;
+  if (handMode === "fig" || KINDS[kindI].id === "fig") {
     addFigAt(localPos, yaw);
     hudHint.textContent = "Fig placed — they wander and climb stairs.";
     return;
@@ -700,10 +712,11 @@ function spawnPile() {
   hudHint.textContent = "A pile of ten random bricks drops on the table.";
 }
 
-function nearestLoose(localPos, max = 0.04) {
+function nearestThing(localPos, max = 0.04, looseOnly = false) {
   let best = null, bd = max;
   for (const b of bricks) {
-    if (!b.loose || b.held) continue;
+    if (b.held) continue;
+    if (looseOnly && !b.loose) continue;
     const d = b.group.position.distanceTo(localPos);
     if (d < bd) { bd = d; best = b; }
   }
@@ -715,15 +728,28 @@ function nearestLoose(localPos, max = 0.04) {
   return best;
 }
 
+function detachBrick(b) {
+  for (const n of [...(b.links || [])]) {
+    const o = bricks.find((x) => x.id === n);
+    if (o) o.links.delete(b.id);
+  }
+  b.links = new Set();
+  b.onTable = false;
+  b.loose = true;
+}
+
 let held = null;
-function grab(localPos) {
+function grab(localPos, any = false) {
   if (held) return;
-  const n = nearestLoose(localPos, STUD * 8);
+  const n = nearestThing(localPos, STUD * 8, !any);
   if (!n) return;
   if (n.userData?.kind === "fig") {
     n.userData.held = true;
+    n.userData.toss = false;
+    n.userData.vel = new THREE.Vector3();
     held = n;
   } else {
+    detachBrick(n);
     n.held = true;
     n.loose = true;
     held = n;
@@ -733,9 +759,16 @@ function dropHeld(snapJoin) {
   if (!held) return;
   if (held.userData?.kind === "fig") {
     held.userData.held = false;
-    const y = heightAt(held.position.x, held.position.z);
-    held.position.y = y;
-    held.userData.origin = held.position.clone();
+    if (!snapJoin && handVel.length() > 0.12) {
+      held.userData.toss = true;
+      held.userData.vel = handVel.clone().multiplyScalar(0.45);
+      held.userData.vel.y += 0.18;
+    } else {
+      const y = heightAt(held.position.x, held.position.z);
+      held.position.y = y;
+      held.userData.origin = held.position.clone();
+      held.userData.toss = false;
+    }
     held = null;
     return;
   }
@@ -753,6 +786,10 @@ function dropHeld(snapJoin) {
   } else {
     held.held = false;
     held.loose = true;
+    if (handVel.length() > 0.08) {
+      held.vel.copy(handVel).multiplyScalar(0.5);
+      held.vel.y += 0.12;
+    }
   }
   held = null;
 }
@@ -963,18 +1000,44 @@ function tickPhysics(dt) {
   const wander = table.userData.half * 0.9;
   for (const f of figs) {
     if (f.userData.held) continue;
+    if (f.userData.toss) {
+      const vel = f.userData.vel || new THREE.Vector3();
+      vel.y -= g * dt;
+      vel.multiplyScalar(0.995);
+      f.position.addScaledVector(vel, dt);
+      f.rotation.y += vel.x * dt * 4;
+      const ground = heightAt(f.position.x, f.position.z);
+      if (f.position.y <= ground) {
+        f.position.y = ground;
+        f.userData.toss = false;
+        vel.set(0, 0, 0);
+        f.userData.origin = f.position.clone();
+      }
+      continue;
+    }
     tickFig(f, dt, heightAt, wander);
   }
 }
 
 function updateGhost() {
-  if (!ghost) return;
+  if (handMode === "hands" || !ghost) {
+    if (ghost) ghost.visible = false;
+    if (held) {
+      const h = renderer.xr.isPresenting ? handLocal(buildCtrl()) : { local: aimLocal(camera.getWorldPosition(_v), camera.getWorldDirection(_v2)) };
+      if (held.userData?.kind === "fig") held.position.copy(h.local);
+      else {
+        held.group.position.copy(h.local);
+        held.group.rotation.y = held.rot * Math.PI / 2;
+      }
+    }
+    return;
+  }
   const xr = renderer.xr.isPresenting;
   let local;
   let yaw = lookYaw;
   if (held) {
     ghost.visible = false;
-    const h = handLocal(buildCtrl());
+    const h = xr ? handLocal(buildCtrl()) : { local: aimLocal(camera.getWorldPosition(_v), camera.getWorldDirection(_v2)) };
     if (held.userData?.kind === "fig") {
       held.position.copy(h.local);
     } else {
@@ -995,7 +1058,7 @@ function updateGhost() {
     camera.getWorldDirection(_v2);
     local = aimLocal(_v, _v2);
   }
-  if (KINDS[kindI].id === "fig") {
+  if (handMode === "fig" || KINDS[kindI].id === "fig") {
     local.y = heightAt(local.x, local.z);
     ghost.position.copy(local);
     ghost.rotation.y = yaw;
@@ -1012,17 +1075,201 @@ function cycle(arrI, arr, d) {
   return (arrI + d + arr.length) % arr.length;
 }
 
+function brickKindIndex(dir) {
+  const ids = KINDS.filter((k) => k.id !== "fig");
+  let i = ids.findIndex((k) => k.id === KINDS[kindI].id);
+  if (i < 0) i = 0;
+  i = (i + dir + ids.length) % ids.length;
+  kindI = KINDS.findIndex((k) => k.id === ids[i].id);
+}
+
+function cycleHandMode() {
+  handMode = HAND_MODES[(HAND_MODES.indexOf(handMode) + 1) % HAND_MODES.length];
+  if (held) dropHeld(false);
+  rebuildGhost();
+  setHud();
+  hudHint.textContent = handMode === "brick"
+    ? "Brick placing — A color, B piece type."
+    : handMode === "fig"
+      ? "Minifig placing — A head, B torso."
+      : "Empty-handed — grab bricks, toss figs.";
+}
+
+function clearWorld() {
+  if (held) dropHeld(false);
+  while (bricks.length) removeBrick(bricks[0]);
+  while (figs.length) {
+    const f = figs.pop();
+    buildRoot.remove(f);
+  }
+}
+
+function saveSlot(n) {
+  const data = {
+    v: 1,
+    scale: worldScale,
+    gravity: gravityOn,
+    bricks: bricks.map((b) => ({
+      dim: b.spec.dimId,
+      kind: b.spec.kind,
+      col: b.col,
+      gx: b.gx, gy: b.gy, gz: b.gz, rot: b.rot, loose: !!b.loose,
+      x: b.group.position.x, y: b.group.position.y, z: b.group.position.z,
+    })),
+    figs: figs.map((f) => ({
+      cfg: f.userData.cfg,
+      x: f.position.x, y: f.position.y, z: f.position.z, yaw: f.rotation.y,
+    })),
+  };
+  try {
+    localStorage.setItem(SAVE_PREFIX + n, JSON.stringify(data));
+    hudHint.textContent = "Saved map to slot " + n + ".";
+    return true;
+  } catch {
+    hudHint.textContent = "Could not save (storage full).";
+    return false;
+  }
+}
+
+function loadSlot(n) {
+  let data;
+  try { data = JSON.parse(localStorage.getItem(SAVE_PREFIX + n) || "null"); } catch { data = null; }
+  if (!data) {
+    hudHint.textContent = "Slot " + n + " is empty.";
+    return false;
+  }
+  clearWorld();
+  if (data.scale) setScale(data.scale);
+  gravityOn = data.gravity !== false;
+  for (const b of data.bricks || []) {
+    const spec = shapeSpec(dimOf(b.dim || "2x4"), b.kind || "brick");
+    const nb = addBrick(spec, colorOf(b.col), b.gx || 0, b.gy || 0, b.gz || 0, b.rot || 0, !!b.loose);
+    if (nb && b.loose && b.x != null) nb.group.position.set(b.x, b.y, b.z);
+  }
+  for (const f of data.figs || []) {
+    figCfg = { ...defaultFigConfig(), ...(f.cfg || {}) };
+    addFigAt(new THREE.Vector3(f.x || 0, f.y || 0, f.z || 0), f.yaw || 0);
+  }
+  figCfg = defaultFigConfig();
+  rebuildGhost();
+  setHud();
+  hudHint.textContent = "Loaded map from slot " + n + ".";
+  return true;
+}
+
+const MENU_ITEMS = [
+  { id: "resume", label: "Resume" },
+  { id: "save1", label: "Save slot 1" },
+  { id: "save2", label: "Save slot 2" },
+  { id: "save3", label: "Save slot 3" },
+  { id: "load1", label: "Load slot 1" },
+  { id: "load2", label: "Load slot 2" },
+  { id: "load3", label: "Load slot 3" },
+  { id: "pile", label: "Dump a pile" },
+  { id: "new", label: "New table" },
+  { id: "grav", label: "Toggle gravity" },
+];
+
+function makeVrMenu() {
+  const root = new THREE.Group();
+  root.visible = false;
+  const board = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.56, 0.78),
+    new THREE.MeshLambertMaterial({ color: 0x1a1d24, side: THREE.DoubleSide }),
+  );
+  root.add(board);
+  const title = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.4, 0.05),
+    new THREE.MeshBasicMaterial({ map: labelTex("WORKSHOP MENU", 320, 48), transparent: true, side: THREE.DoubleSide }),
+  );
+  title.position.set(0, 0.34, 0.008);
+  root.add(title);
+  const hits = [];
+  MENU_ITEMS.forEach((it, i) => {
+    const pl = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.46, 0.052),
+      new THREE.MeshBasicMaterial({ map: labelTex(it.label, 320, 48), transparent: true, side: THREE.DoubleSide }),
+    );
+    pl.position.set(0, 0.27 - i * 0.058, 0.008);
+    pl.userData.menu = it.id;
+    root.add(pl);
+    hits.push(pl);
+  });
+  scene.add(root);
+  return { root, hits };
+}
+const vrMenu = makeVrMenu();
+const htmlMenu = document.getElementById("bb-menu");
+
+function onMenuPick(id) {
+  if (id === "resume") { closeMenu(); return; }
+  if (id === "pile") spawnPile();
+  if (id === "new") { clearWorld(); closeMenu(); return; }
+  if (id === "grav") { gravityOn = !gravityOn; setHud(); }
+  if (id.startsWith("save")) saveSlot(Number(id.slice(4)));
+  if (id.startsWith("load")) { loadSlot(Number(id.slice(4))); closeMenu(); }
+}
+
+function openMenu() {
+  menuOpen = true;
+  if (renderer.xr.isPresenting) {
+    camera.getWorldPosition(_v);
+    camera.getWorldDirection(_v2);
+    vrMenu.root.position.copy(_v).addScaledVector(_v2, 0.95);
+    vrMenu.root.position.y = _v.y;
+    vrMenu.root.lookAt(_v);
+    vrMenu.root.rotateY(Math.PI);
+    vrMenu.root.visible = true;
+    if (htmlMenu) htmlMenu.hidden = true;
+  } else if (htmlMenu) {
+    htmlMenu.hidden = false;
+    document.exitPointerLock?.();
+  }
+}
+
+function closeMenu() {
+  menuOpen = false;
+  vrMenu.root.visible = false;
+  if (htmlMenu) htmlMenu.hidden = true;
+}
+
+function pokeVrMenu(origin, dir) {
+  _ray.set(origin, dir);
+  _ray.far = 2.4;
+  const hits = _ray.intersectObjects(vrMenu.hits, false);
+  const h = hits[0];
+  if (!h?.object?.userData?.menu) return false;
+  onMenuPick(h.object.userData.menu);
+  return true;
+}
+
+if (htmlMenu) {
+  htmlMenu.addEventListener("click", (ev) => {
+    const b = ev.target.closest("[data-m]");
+    if (b) onMenuPick(b.dataset.m);
+  });
+}
+
+function trackBuildHand(dt) {
+  const xr = renderer.xr.isPresenting;
+  const h = xr ? handLocal(buildCtrl()) : { local: aimLocal(camera.getWorldPosition(_v), camera.getWorldDirection(_v2)) };
+  if (handPrev) {
+    handVel.copy(h.local).sub(handPrev).multiplyScalar(1 / Math.max(dt, 0.008));
+  }
+  handPrev = h.local.clone();
+}
+
 let last = 0;
 function loop(t) {
   const now = t * 0.001;
   const dt = Math.min(0.05, last ? now - last : 0.016);
   last = now;
   const xr = renderer.xr.isPresenting;
-  moveRig(dt, xr);
+  if (!menuOpen) moveRig(dt, xr);
+  trackBuildHand(dt);
 
   const gpR = xrGamepad(1);
   const gpL = xrGamepad(0);
-  const palGp = paletteHand === 0 ? gpL : gpR;
   const bldGp = paletteHand === 0 ? gpR : gpL;
   const trig = !!(bldGp?.buttons?.[0]?.pressed) || (!xr && mouse.down);
   const gripB = !!(bldGp?.buttons?.[1]?.pressed);
@@ -1030,51 +1277,70 @@ function loop(t) {
   const bBtn = !!(gpR?.buttons?.[5]?.pressed);
   const xBtn = !!(gpL?.buttons?.[4]?.pressed);
   const yBtn = !!(gpL?.buttons?.[5]?.pressed);
-
-  if (xr && palGp?.axes) {
-    const ps = stickXY(palGp);
-    if (Math.abs(ps.x) > 0.65 && !pressed.psx) {
-      dimI = cycle(dimI, DIMS, ps.x > 0 ? 1 : -1);
-      rebuildGhost(); setHud();
-    }
-    if (Math.abs(ps.y) > 0.65 && !pressed.psy) {
-      colorI = cycle(colorI, COLORS, ps.y > 0 ? 1 : -1);
-      rebuildGhost(); setHud();
-    }
-    pressed.psx = Math.abs(ps.x) > 0.65;
-    pressed.psy = Math.abs(ps.y) > 0.65;
-  }
+  const rStick = !!(gpR?.buttons?.[3]?.pressed);
+  const lStick = !!(gpL?.buttons?.[3]?.pressed);
 
   if (xr) {
-    const pal = paletteCtrl();
-    pal.updateMatrixWorld();
-    const o = pal.getWorldPosition(_v).clone();
-    const d = new THREE.Vector3(0, 0, -1).applyQuaternion(pal.getWorldQuaternion(_q)).normalize();
-    if (trig && !pressed.t1) {
-      if (!pokePalette(o, d) && !held) placeFromLocal(handLocal(buildCtrl()).local, lookYaw);
-      else if (held) dropHeld(true);
+    if (lStick && !pressed.lsc) {
+      if (menuOpen) closeMenu();
+      else openMenu();
     }
-    if (gripB && !pressed.g1) {
-      if (held) dropHeld(false);
-      else grab(handLocal(buildCtrl()).local);
-    }
-    if (aBtn && !pressed.a) spawnPile();
-    if (bBtn && !pressed.b) {
-      rot = (rot + 1) % 4;
-      if (held && held.rot != null) held.rot = rot;
-      rebuildGhost();
-    }
-    if (yBtn && !pressed.y) {
-      const h = handLocal(buildCtrl());
-      fireCannon(h.world, h.dir);
-    }
-    flame.visible = xBtn;
-    if (xBtn) {
-      flame.children.forEach((c, i) => {
-        c.position.y = 0.01 + Math.abs(Math.sin(now * 8 + i)) * 0.05;
-        c.scale.setScalar(0.6 + Math.sin(now * 12 + i) * 0.3);
-      });
-      meltNear(handLocal(buildCtrl()).local, dt);
+    if (rStick && !pressed.rsc && !menuOpen) cycleHandMode();
+
+    if (menuOpen) {
+      const c = buildCtrl();
+      c.updateMatrixWorld();
+      const o = c.getWorldPosition(_v).clone();
+      const d = new THREE.Vector3(0, 0, -1).applyQuaternion(c.getWorldQuaternion(_q)).normalize();
+      if (trig && !pressed.t1) pokeVrMenu(o, d);
+    } else {
+      if (aBtn && !pressed.a) {
+        if (handMode === "fig") figCfg.head = (figCfg.head + 1) % FIG_HEADS.length;
+        else if (gripB) dimI = cycle(dimI, DIMS, 1);
+        else colorI = cycle(colorI, COLORS, 1);
+        rebuildGhost(); setHud();
+      }
+      if (bBtn && !pressed.b) {
+        if (handMode === "fig") {
+          figCfg.torso = (figCfg.torso + 1) % FIG_TORSOS.length;
+          if (figCfg.torso === 0) figCfg.legs = (figCfg.legs + 1) % FIG_LEGS.length;
+        } else brickKindIndex(1);
+        rebuildGhost(); setHud();
+      }
+      if (trig && !pressed.t1) {
+        if (handMode === "hands") {
+          if (held) dropHeld(false);
+          else grab(handLocal(buildCtrl()).local, true);
+        } else if (held) dropHeld(true);
+        else placeFromLocal(handLocal(buildCtrl()).local, lookYaw);
+      }
+      if (gripB && !pressed.g1) {
+        if (held) dropHeld(handMode === "hands" ? false : true);
+        else grab(handLocal(buildCtrl()).local, handMode === "hands");
+      }
+      if (yBtn && !pressed.y) {
+        const h = handLocal(buildCtrl());
+        fireCannon(h.world, h.dir);
+      }
+      if (xBtn) {
+        xHold += dt;
+        flame.visible = xHold > 0.28;
+        if (xHold > 0.28) {
+          flame.children.forEach((c, i) => {
+            c.position.y = 0.01 + Math.abs(Math.sin(now * 8 + i)) * 0.05;
+            c.scale.setScalar(0.6 + Math.sin(now * 12 + i) * 0.3);
+          });
+          meltNear(handLocal(buildCtrl()).local, dt);
+        }
+      } else {
+        if (pressed.x && xHold > 0 && xHold < 0.28) {
+          rot = (rot + 1) % 4;
+          if (held && held.rot != null) held.rot = rot;
+          rebuildGhost();
+        }
+        xHold = 0;
+        flame.visible = false;
+      }
     }
     pressed.t1 = trig;
     pressed.g1 = gripB;
@@ -1082,11 +1348,18 @@ function loop(t) {
     pressed.b = bBtn;
     pressed.x = xBtn;
     pressed.y = yBtn;
+    pressed.rsc = rStick;
+    pressed.lsc = lStick;
   } else if (mouse.down || pressed.t1) {
     camera.getWorldPosition(_v);
     camera.getWorldDirection(_v2);
-    if (mouse.down && !pressed.t1) {
-      if (!pokePalette(_v.clone(), _v2.clone())) placeFromLocal(aimLocal(_v.clone(), _v2.clone()), lookYaw);
+    if (mouse.down && !pressed.t1 && !menuOpen) {
+      const lp = aimLocal(_v.clone(), _v2.clone());
+      if (handMode === "hands") {
+        if (held) dropHeld(false);
+        else grab(lp, true);
+      } else if (held) dropHeld(true);
+      else placeFromLocal(lp, lookYaw);
     }
     pressed.t1 = mouse.down;
   }
@@ -1104,18 +1377,31 @@ window.addEventListener("resize", () => {
 });
 window.addEventListener("keydown", (e) => {
   keys.add(e.code);
+  if (e.code === "Escape") { if (menuOpen) closeMenu(); else openMenu(); return; }
+  if (menuOpen) return;
+  if (e.code === "Tab") { e.preventDefault(); cycleHandMode(); return; }
   if (e.code === "BracketLeft" || e.code === "Minus") setScale(worldScale / 1.2);
   if (e.code === "BracketRight" || e.code === "Equal") setScale(worldScale * 1.2);
   if (e.code === "KeyG") { gravityOn = !gravityOn; setHud(); }
   if (e.code === "KeyH") swapHands();
   if (e.code === "KeyR") { rot = (rot + 1) % 4; rebuildGhost(); }
-  if (e.code === "KeyC") { colorI = cycle(colorI, COLORS, 1); rebuildGhost(); setHud(); }
+  if (e.code === "KeyC") {
+    if (handMode === "fig") figCfg.head = (figCfg.head + 1) % FIG_HEADS.length;
+    else colorI = cycle(colorI, COLORS, 1);
+    rebuildGhost(); setHud();
+  }
   if (e.code === "KeyV") { dimI = cycle(dimI, DIMS, 1); rebuildGhost(); setHud(); }
-  if (e.code === "KeyB") { kindI = cycle(kindI, KINDS, 1); rebuildGhost(); setHud(); }
+  if (e.code === "KeyB") {
+    if (handMode === "fig") {
+      figCfg.torso = (figCfg.torso + 1) % FIG_TORSOS.length;
+      if (figCfg.torso === 0) figCfg.legs = (figCfg.legs + 1) % FIG_LEGS.length;
+    } else brickKindIndex(1);
+    rebuildGhost(); setHud();
+  }
   if (e.code === "KeyF") {
     const lp = worldToLocal(camera.getWorldPosition(_v).add(camera.getWorldDirection(_v2).multiplyScalar(0.4)));
-    if (held) dropHeld(true);
-    else grab(lp);
+    if (held) dropHeld(handMode === "hands" ? false : true);
+    else grab(lp, handMode === "hands");
   }
   if (e.code === "KeyY") {
     camera.getWorldPosition(_v);
@@ -1128,16 +1414,18 @@ window.addEventListener("keydown", (e) => {
     meltNear(worldToLocal(_v.addScaledVector(_v2, 0.4)), 0.4);
   }
   if (e.code === "KeyP" || e.code === "Digit0") spawnPile();
-  if (e.code === "KeyM") {
-    figPanelOpen = !figPanelOpen;
-    figPanel.group.visible = figPanelOpen;
-    if (figPanelOpen) refreshFigPanel();
-  }
+  if (e.code === "KeyM") { if (menuOpen) closeMenu(); else openMenu(); }
+  if (e.code === "Digit1") saveSlot(1);
+  if (e.code === "Digit2") saveSlot(2);
+  if (e.code === "Digit3") saveSlot(3);
+  if (e.code === "Digit4") loadSlot(1);
+  if (e.code === "Digit5") loadSlot(2);
+  if (e.code === "Digit6") loadSlot(3);
 });
 window.addEventListener("keyup", (e) => keys.delete(e.code));
 window.addEventListener("blur", () => keys.clear());
 canvas.addEventListener("click", () => {
-  if (startEl.style.display === "none") canvas.requestPointerLock?.();
+  if (startEl.style.display === "none" && !menuOpen) canvas.requestPointerLock?.();
 });
 document.addEventListener("pointerlockchange", () => {
   mouse.locked = document.pointerLockElement === canvas;
@@ -1197,7 +1485,7 @@ setHud();
 })();
 
 window.__bb = {
-  bricks, figs, spawnPile, setScale, addBrick,
+  bricks, figs, spawnPile, setScale, addBrick, saveSlot, loadSlot, clearWorld,
   placeFig: (x, z) => addFigAt(new THREE.Vector3(x || 0, 0, z || 0), 0),
   get scale() { return worldScale; },
   get gravity() { return gravityOn; },

@@ -16,15 +16,56 @@
     .bar a { color: #c5ccd4; text-decoration: none; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
     .bar span { color: #9a9892; }
     iframe { position: absolute; inset: 40px 0 0 0; width: 100%; height: calc(100% - 40px); border: 0; background: #0c0c0e; }
+    .soon {
+      display: none;
+      position: absolute; inset: 40px 0 0 0;
+      align-items: center; justify-content: center;
+      padding: 28px 18px;
+      background: #070605;
+    }
+    .soon .sign {
+      width: min(420px, 100%);
+      text-align: center;
+      padding: 28px 22px;
+      background: #16120e;
+      border: 1px solid rgba(214, 186, 122, 0.55);
+      box-shadow: inset 0 0 0 6px rgba(20, 16, 12, 0.8);
+    }
+    .soon .kicker {
+      margin: 0;
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+      font-size: 11px;
+      color: #d7c08a;
+    }
+    .soon h1 {
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(36px, 10vw, 52px);
+      margin: 8px 0 12px;
+      line-height: 0.92;
+      font-weight: 600;
+    }
+    .soon p { margin: 0; color: #d5cbbd; font-size: 15px; line-height: 1.5; }
+    html.cc-mobile-soon iframe { display: none; }
+    html.cc-mobile-soon .soon { display: flex; }
     @media (pointer: coarse) {
       .bar { height: 48px; }
       iframe { inset: 48px 0 0 0; height: calc(100% - 48px); }
+      .soon { inset: 48px 0 0 0; }
     }
   </style>
   <script>
-    if (/Quest|OculusBrowser|Oculus|Pacific/i.test(navigator.userAgent || "")) {
-      location.replace("/games/character-chess/chess-static.html?v=packs2" + (location.search ? "&" + location.search.slice(1) : ""));
-    }
+    (function () {
+      var ua = navigator.userAgent || "";
+      if (/Quest|OculusBrowser|Oculus|Pacific/i.test(ua)) {
+        location.replace("/games/character-chess/chess-static.html?v=mapsrow4" + (location.search ? "&" + location.search.slice(1) : ""));
+        return;
+      }
+      var iPad = /iPad/i.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+      var phone = /iPhone|iPod|Android.+Mobile|webOS|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+      var androidTab = /Android/i.test(ua) && !/Mobile/i.test(ua);
+      if (phone || iPad || androidTab) document.documentElement.classList.add("cc-mobile-soon");
+    })();
   </script>
 </head>
 <body>
@@ -33,9 +74,16 @@
     <span>Creature Chess<%= typeof alphaUnlocked !== 'undefined' && alphaUnlocked ? ' · Pack unlocked' : '' %></span>
     <a href="/">Future Music</a>
   </div>
+  <div class="soon">
+    <div class="sign">
+      <p class="kicker">Aetherboard rest hall</p>
+      <h1>Coming soon</h1>
+      <p>Phone play for Creature Chess is not ready yet. Open this page on a computer or a Quest headset.</p>
+    </div>
+  </div>
   <iframe
     title="Creature Chess"
-    src="/games/character-chess/chess-static.html?v=packs2<%= typeof sessionId !== 'undefined' && sessionId ? ('&session_id=' + encodeURIComponent(sessionId)) : '' %>"
+    src="/games/character-chess/chess-static.html?v=mapsrow4<%= typeof sessionId !== 'undefined' && sessionId ? ('&session_id=' + encodeURIComponent(sessionId)) : '' %>"
     allow="fullscreen; gamepad; autoplay; payment; xr-spatial-tracking"
     allowfullscreen
   ></iframe>
