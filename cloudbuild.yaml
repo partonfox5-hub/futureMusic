@@ -1,27 +1,15 @@
-# Cloud Run (europe-west1) — used by the GitHub `master` trigger.
-# Default e2-standard-2 workers OOM while pack exports this ~1GB+ image
-# (docker.sock EOF / lifecycle status 62). Keep a large machine + disk.
+# Cloud Run (europe-west1) — GitHub `master` trigger.
+# pack/buildpacks OOM on export (docker.sock EOF / lifecycle 62) for this ~1GB app.
+# Docker build streams layers and is reliable here.
 timeout: 1800s
 steps:
-  - name: gcr.io/cloud-builders/git
-    id: Prune
-    entrypoint: bash
-    args:
-      - -c
-      - |
-        set -e
-        find . -name '*.src.js' -delete
-        rm -rf public/games/horde/src scripts/_dump* scripts/_scan* scripts/_patch* _hs_extract _scan_* _patch_* || true
-        echo "pruned source backups"
-  - name: gcr.io/k8s-skaffold/pack
-    id: Buildpack
-    entrypoint: pack
+  - name: gcr.io/cloud-builders/docker
+    id: Build
     args:
       - build
+      - -t
       - $_AR_HOSTNAME/$_AR_PROJECT_ID/$_AR_REPOSITORY/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA
-      - --builder=gcr.io/buildpacks/builder:latest
-      - --network=cloudbuild
-      - --path=.
+      - .
   - name: gcr.io/cloud-builders/docker
     id: Push
     args:
