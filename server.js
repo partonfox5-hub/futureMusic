@@ -312,6 +312,10 @@ reqAuth.end();
 app.disable('etag');
 app.disable('view cache');
 app.use((req, res, next) => {
+    const p = req.path || '';
+    if (/\.src\.js$/i.test(p) || /\/games\/[^/]+\/src\//i.test(p)) {
+        return res.status(404).type('text/plain').send('Not found');
+    }
     res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     res.set('Pragma', 'no-cache');
     res.set('Expires', '0');
@@ -486,6 +490,16 @@ try {
 } catch (e) {
     console.error("[zoom] api failed", e.message);
 }
+
+function hordeHeaders(res) {
+    res.setHeader("Permissions-Policy", "xr-spatial-tracking=(self), fullscreen=(self), gamepad=(self), accelerometer=(self), gyroscope=(self), magnetometer=(self)");
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+}
+app.get(["/games/horde", "/games/horde/"], (req, res) => res.redirect("/horde"));
+app.get(["/horde", "/horde/"], (req, res) => {
+    hordeHeaders(res);
+    res.sendFile(path.join(__dirname, "public", "games", "horde", "index.html"));
+});
 
 app.use(express.static(path.join(__dirname, 'public')));
 

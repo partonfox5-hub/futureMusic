@@ -1,0 +1,68 @@
+:root {
+  --ink: #0c0c10;
+  --paper: #f4f1ea;
+  --gold: #d4af37;
+  --mute: #8a8680;
+}
+html, body { margin: 0; height: 100%; background: #d8d4cc; color: var(--ink); font-family: "Outfit", system-ui, sans-serif; overflow: hidden; }
+canvas#c { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+#hud {
+  position: absolute; left: 16px; top: 16px; z-index: 4;
+  pointer-events: none; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase;
+  color: #1a1a1e; text-shadow: 0 1px 0 #fff8;
+}
+#hud b { color: #111; }
+#hurt {
+  position: absolute; inset: 0; z-index: 3; pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 40%, rgba(120,0,0,0.45) 100%);
+  opacity: 0; transition: opacity 0.08s;
+}
+.bar { width: 160px; height: 8px; background: rgba(0,0,0,0.12); margin: 4px 0 10px; }
+.bar i { display: block; height: 100%; background: #1a1a1e; width: 100%; }
+#msg {
+  position: absolute; left: 50%; top: 18%; transform: translateX(-50%);
+  z-index: 5; font-family: "Cinzel", serif; font-size: clamp(28px, 6vw, 72px);
+  letter-spacing: 0.12em; color: #111; text-shadow: 0 2px 0 #fff, 0 18px 40px rgba(0,0,0,0.18);
+  pointer-events: none; opacity: 0; transition: opacity 0.2s;
+}
+#msg.on { opacity: 1; }
+#hint {
+  position: absolute; right: 16px; bottom: 16px; z-index: 4;
+  font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #333; max-width: 22rem; text-align: right;
+}
+@media (max-width: 640px) {
+  #hint { display: none; }
+  .panel h1 { font-size: 32px; }
+  .shopgrid { grid-template-columns: 1fr; }
+}
+#start, #over, #shop {
+  position: absolute; inset: 0; z-index: 8; display: flex; align-items: center; justify-content: center;
+  background: rgba(244,241,234,0.92);
+}
+#shop { background: rgba(12,12,16,0.55); }
+#start[hidden], #over[hidden], #shop[hidden] { display: none !important; }
+.panel {
+  width: min(560px, 92vw); background: #f7f4ee; border: 1px solid #cfc8b8; padding: 28px 30px 24px;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.12);
+}
+.panel h1 { font-family: "Cinzel", serif; font-size: 42px; margin: 0 0 6px; letter-spacing: 0.08em; }
+.kicker { letter-spacing: 0.28em; text-transform: uppercase; font-size: 11px; color: var(--gold); margin: 0; }
+.panel p { color: #444; line-height: 1.45; font-size: 14px; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+button, .btn {
+  cursor: pointer; border: 1px solid #1a1a1e; background: #1a1a1e; color: #f4f1ea;
+  padding: 10px 14px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; font-size: 12px;
+  text-decoration: none;
+}
+button.ghost, a.ghost { background: transparent; color: #1a1a1e; }
+#lb { list-style: none; padding: 0; margin: 12px 0 0; font-variant-numeric: tabular-nums; }
+#lb li { display: flex; justify-content: space-between; border-bottom: 1px solid #e6e0d4; padding: 6px 0; font-size: 13px; }
+.ini { display: flex; gap: 6px; margin-top: 10px; align-items: center; }
+.ini input {
+  width: 2.2rem; text-align: center; text-transform: uppercase; font-size: 20px; font-family: "Cinzel", serif;
+  border: 1px solid #1a1a1e; background: #fff; padding: 6px;
+}
+.shopgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; max-height: 54vh; overflow: auto; }
+.shopgrid button { text-align: left; background: #fff; color: #111; width: 100%; }
+.shopgrid button small { display: block; color: #666; font-weight: 500; letter-spacing: 0.04em; margin-top: 4px; }
+#vr-enter { min-width: 8rem; }
