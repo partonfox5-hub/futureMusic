@@ -3,6 +3,7 @@ import {
   CELL,
   ENEMIES,
   FLAG_CROUCH,
+  FLAG_RUMBLE,
   FLAG_SPIKE,
   FLAG_UNSTABLE,
   LIQ_LAVA,
@@ -18,8 +19,8 @@ import {
   SHAPES,
   WALL_TEX,
   routes,
-} from "./config.js?v=psy3";
-import { bakedMaps } from "./defaults.js?v=psy3";
+} from "./config.js?v=psy4";
+import { bakedMaps } from "./defaults.js?v=psy4";
 import {
   addSphere,
   blankMap,
@@ -46,8 +47,8 @@ import {
   stampSegment,
   wallIsCrack,
   wallTexId,
-} from "./map.js?v=psy3";
-import { deleteMap, getMap, listMaps, saveMap, stashPreview } from "./store.js?v=psy3";
+} from "./map.js?v=psy4";
+import { deleteMap, getMap, listMaps, saveMap, stashPreview } from "./store.js?v=psy4";
 
 const $ = (id) => document.getElementById(id);
 
@@ -180,6 +181,11 @@ function drawCell(x, z) {
       ctx.lineTo(x + 0.85, z + 0.7);
       ctx.stroke();
     }
+    if (map.flags && map.flags[i] & FLAG_RUMBLE) {
+      ctx.strokeStyle = "rgba(200,160,80,0.55)";
+      ctx.lineWidth = 0.07;
+      ctx.strokeRect(x + 0.18, z + 0.18, 0.64, 0.64);
+    }
     if (map.flags && map.flags[i] & FLAG_UNSTABLE) {
       ctx.strokeStyle = "rgba(180,90,40,0.85)";
       ctx.lineWidth = 0.08;
@@ -272,9 +278,9 @@ function draw() {
     ctx.strokeStyle = "rgba(255,80,70,0.55)";
     ctx.lineWidth = 1.4 / scale;
     ctx.stroke();
-    ctx.fillStyle = "#ff5a4a";
+    ctx.fillStyle = s.enemy === "minotaur" ? "#8a4a18" : s.enemy === "sentrydrone" ? "#4ad0ff" : "#ff5a4a";
     ctx.beginPath();
-    ctx.arc(s.x / CELL, s.z / CELL, 0.4, 0, 6.28);
+    ctx.arc(s.x / CELL, s.z / CELL, s.enemy === "minotaur" ? 0.55 : 0.4, 0, 6.28);
     ctx.fill();
   }
   (map.portals || []).forEach((p, i) => {
@@ -391,7 +397,7 @@ canvas.addEventListener("pointerdown", (ev) => {
   }
   const c = cellFromEvent(ev);
   last = c;
-  if (["dig", "erase", "sphere", "paint", "crouch", "spike", "sky", "elev", "water", "lava", "wall", "crack", "unstable"].includes(tool)) {
+  if (["dig", "erase", "sphere", "paint", "crouch", "spike", "sky", "elev", "water", "lava", "wall", "crack", "unstable", "rumble"].includes(tool)) {
     pushUndo();
     drawing = true;
     strokeAt(c, true);
@@ -446,6 +452,13 @@ canvas.addEventListener("pointerdown", (ev) => {
   } else if (tool === "rope") {
     pushUndo();
     map.ropes.push({ x: c.wx, z: c.wz, len: 4.5 });
+    draw();
+  } else if (tool === "minotaur" || tool === "drone") {
+    pushUndo();
+    const enemy = tool === "minotaur" ? "minotaur" : "sentrydrone";
+    map.spawners.push({ x: c.wx, z: c.wz, enemy, interval: 8, radius: 10, maxAlive: 2 });
+    selected = { type: "spawner", i: map.spawners.length - 1 };
+    status(tool === "minotaur" ? "Minotaur" : "Sentry drone");
     draw();
   } else if (tool === "turret") {
     pushUndo();
@@ -543,6 +556,8 @@ function strokeAt(c, first) {
   } else if (tool === "unstable") {
     stampDisk(map, c.x, c.z, brush, SHAPE_FLAT, tex, false);
     stampFlags(map, c.x, c.z, brush, FLAG_UNSTABLE, true);
+  } else if (tool === "rumble") {
+    stampFlags(map, c.x, c.z, brush, FLAG_RUMBLE, true);
   } else if (tool === "sky") {
     stampDisk(map, c.x, c.z, brush, shape, tex, false);
     stampLayer(map.sky, map, c.x, c.z, brush, skyKind);
@@ -561,7 +576,7 @@ function strokeAt(c, first) {
       eraseNear(map, c.wx, c.wz, brush * CELL * 0.6);
       stampLayer(map.liquid, map, c.x, c.z, brush, LIQ_NONE);
       stampLayer(map.sky, map, c.x, c.z, brush, 0);
-      stampFlags(map, c.x, c.z, brush, FLAG_SPIKE | FLAG_CROUCH | FLAG_UNSTABLE, false);
+      stampFlags(map, c.x, c.z, brush, FLAG_SPIKE | FLAG_CROUCH | FLAG_UNSTABLE | FLAG_RUMBLE, false);
     }
     shape = prev;
   }
@@ -604,7 +619,7 @@ canvas.addEventListener("pointermove", (ev) => {
     }
     return;
   }
-  if (["dig", "erase", "sphere", "paint", "crouch", "spike", "sky", "elev", "water", "lava", "wall", "crack", "unstable"].includes(tool)) {
+  if (["dig", "erase", "sphere", "paint", "crouch", "spike", "sky", "elev", "water", "lava", "wall", "crack", "unstable", "rumble"].includes(tool)) {
     strokeAt(c, false);
     last = c;
     draw();
@@ -654,6 +669,9 @@ function setTool(t) {
     spike: "Spike pits. Jump them or die.",
     unstable: "Paint a ceiling that collapses around anyone who walks under it.",
     boulder: "Click to place a rolling boulder, then drag to set the roll direction. It starts when the player enters the trigger ring.",
+    minotaur: "Place a minotaur. Walks slowly, then charges when it sees the player.",
+    drone: "Place a flying sentry drone. It weaves through vertical space and fires lasers.",
+    rumble: "Paint invisible rumble tiles. Walking over them shakes the camera and controllers.",
     vendor: "Vending machine. Player presses E to buy weapons, ammo, and powerups with coins.",
     stairs: "Place only where 1st+2nd or 2nd+3rd stories both have enclosed floors.",
     ladder: "Place only where consecutive stories both have enclosed floors.",

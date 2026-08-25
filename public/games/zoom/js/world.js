@@ -9,8 +9,8 @@ import {
   STORY_H,
   STORIES,
   WALL_TEX,
-} from "./config.js?v=psy3";
-import { cellI, climbHoleFloor, climbHoleRoof, enclosedFloors, idx, inBounds, sdf3, wallIsCrack, wallTexId } from "./map.js?v=psy3";
+} from "./config.js?v=psy4";
+import { cellI, climbHoleFloor, climbHoleRoof, enclosedFloors, idx, inBounds, sdf3, wallIsCrack, wallTexId } from "./map.js?v=psy4";
 
 function mat(hex, extra) {
   return new THREE.MeshLambertMaterial({ color: hex, ...extra });
@@ -366,7 +366,7 @@ function openingAt(map, x, z, story) {
 export function buildWorld(map, dungeon, scene) {
   const group = new THREE.Group();
   group.name = "world";
-  const extras = { crushers: [], turrets: [], ropes: [], portals: [], doors: [], windows: [], liquids: [], spikes: [], climbs: [], caveins: [], unstables: [], horizon: null, boulders: [], vendors: [], crackedWalls: [], root: scene };
+  const extras = { crushers: [], turrets: [], ropes: [], portals: [], doors: [], windows: [], liquids: [], spikes: [], climbs: [], caveins: [], unstables: [], horizon: null, boulders: [], vendors: [], crackedWalls: [], rumbles: [], root: group };
 
   const spikeGeo = new THREE.ConeGeometry(0.12, 0.7, 5);
   const spikeMat = mat(0x8a9098, { emissive: 0x222 });
@@ -563,11 +563,11 @@ export function buildWorld(map, dungeon, scene) {
   for (const b of map.boulders || []) {
     const y0 = ((map.elev && map.elev[cellI(map, b.x, b.z)]) || 0) * EYE;
     const rock = mat(0x6a6054);
-    const mesh = new THREE.Mesh(new THREE.SphereGeometry(0.55, 12, 10), rock);
-    mesh.position.set(b.x, y0 + 0.55, b.z);
+    const mesh = new THREE.Mesh(new THREE.SphereGeometry(0.92, 12, 10), rock);
+    mesh.position.set(b.x, y0 + 0.92, b.z);
     group.add(mesh);
     const ring = new THREE.Mesh(
-      new THREE.RingGeometry(1.6, 1.85, 20),
+      new THREE.RingGeometry(2.6, 2.95, 24),
       mat(0xc44, { transparent: true, opacity: 0.35, side: THREE.DoubleSide }),
     );
     ring.rotation.x = -Math.PI / 2;
@@ -580,7 +580,7 @@ export function buildWorld(map, dungeon, scene) {
     extras.boulders.push({
       x: b.x,
       z: b.z,
-      y: y0 + 0.55,
+      y: y0 + 0.92,
       y0,
       yaw: b.yaw || 0,
       mesh,
@@ -588,9 +588,9 @@ export function buildWorld(map, dungeon, scene) {
       vx: 0,
       vz: 0,
       rolling: false,
-      speed0: 9.5,
-      r: 0.55,
-      trigger: b.trigger || 3.2,
+      speed0: 7.125,
+      r: 0.92,
+      trigger: b.trigger || 5.2,
     });
   }
 
@@ -796,13 +796,17 @@ export function tickWorld(extras, dt, player, foes, onHit, scene, camera, map, s
     t.head.rotation.y = Math.atan2(dx, dz);
     if (t.hpBar && camera) t.hpBar.lookAt(camera.position);
     paintHp(t.hpBar, t.hp, t.maxHp);
-    const firing = d < 16;
-    if (t.light) t.light.intensity = firing ? 1.6 + Math.random() * 1.8 : 0.15;
+    const firing = d < 18;
+    if (t.light) t.light.intensity = firing ? 2.4 + Math.random() * 2.2 : 0.15;
     if (firing && t.cool <= 0) {
-      t.cool = 0.05;
+      t.cool = 0.032;
       if (t.muzzle) t.muzzle.getWorldPosition(muz);
       else muz.set(t.x, t.y, t.z);
-      spawnFlame(scene, muz.x, muz.y, muz.z, dx / d, dz / d, extras);
+      const root = extras.root;
+      if (root?.worldToLocal) root.worldToLocal(muz);
+      const hx = Math.sin(t.head.rotation.y);
+      const hz = Math.cos(t.head.rotation.y);
+      spawnFlame(scene, muz.x, muz.y, muz.z, hx, hz, extras);
     }
   }
   extras._flames = extras._flames || [];
@@ -817,8 +821,8 @@ export function tickWorld(extras, dt, player, foes, onHit, scene, camera, map, s
     const sc = (f.s0 || 0.4) * (f.smoke ? 1.4 - k * 0.4 : 0.4 + k * 0.9);
     f.mesh.scale.set(sc * (f.sx || 1), sc * (f.sy || 1.6), 1);
     if (f.mesh.material) f.mesh.material.opacity = f.smoke ? 0.08 + k * 0.28 : 0.2 + k * 0.8;
-    if (!f.smoke && f.mesh.position.distanceTo(new THREE.Vector3(player.x, player.y, player.z)) < 0.55 + sc * 0.35) {
-      onHit(9 * dt * 7, "burned");
+    if (!f.smoke && f.mesh.position.distanceTo(new THREE.Vector3(player.x, player.y, player.z)) < 0.7 + sc * 0.45) {
+      onHit(14 * dt * 8, "burned");
     }
     if (f.life <= 0) {
       f.mesh.removeFromParent();
@@ -852,22 +856,27 @@ function spawnFlame(scene, x, y, z, dx, dz, extras) {
     const old = extras._flames.shift();
     old.mesh.removeFromParent();
   }
-  const n = 7 + (Math.random() * 5) | 0;
+  const n = 14 + (Math.random() * 8) | 0;
   for (let i = 0; i < n; i++) {
     const spr = new THREE.Sprite(fireMat());
-    const s0 = 0.28 + Math.random() * 0.42;
-    spr.scale.set(s0 * 0.7, s0 * 1.7, 1);
-    spr.position.set(x + (Math.random() - 0.5) * 0.08, y + Math.random() * 0.06, z + (Math.random() - 0.5) * 0.08);
+    const s0 = 0.42 + Math.random() * 0.7;
+    spr.scale.set(s0 * 0.85, s0 * 2.1, 1);
+    const along = Math.random() * 0.35;
+    spr.position.set(
+      x + dx * along + (Math.random() - 0.5) * 0.16,
+      y + Math.random() * 0.1,
+      z + dz * along + (Math.random() - 0.5) * 0.16,
+    );
     (extras.root || scene).add(spr);
     extras._flames.push({
       mesh: spr,
-      dir: new THREE.Vector3(dx + (Math.random() - 0.5) * 0.28, 0.18 + Math.random() * 0.45, dz + (Math.random() - 0.5) * 0.28),
-      speed: 7 + Math.random() * 6,
-      life: 0.22 + Math.random() * 0.28,
-      maxLife: 0.5,
+      dir: new THREE.Vector3(dx + (Math.random() - 0.5) * 0.42, 0.08 + Math.random() * 0.28, dz + (Math.random() - 0.5) * 0.42),
+      speed: 9 + Math.random() * 7,
+      life: 0.45 + Math.random() * 0.4,
+      maxLife: 0.85,
       s0,
-      sx: 0.7,
-      sy: 1.8,
+      sx: 0.85,
+      sy: 2.2,
     });
   }
   if (Math.random() < 0.45) {
@@ -1004,7 +1013,7 @@ function tickBoulders(extras, dt, player, map, sdf2, onHit) {
       b.vz = 0;
     }
     const pd = Math.hypot(player.x - b.mesh.position.x, player.z - b.mesh.position.z);
-    if (spd > 1.2 && pd < 0.7 + b.r * 0.15 && player.y < b.y + 1.1 && player.y > b.y - 0.8) {
+    if (spd > 0.9 && pd < 0.85 + b.r * 0.55 && player.y < b.y + 1.4 && player.y > b.y - 1.0) {
       onHit(80, "crushed by a boulder");
     }
   }

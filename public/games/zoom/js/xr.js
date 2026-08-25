@@ -173,9 +173,14 @@ export function tickXr(renderer, hands, dt) {
       h.squeeze = !!(gp.buttons[1] && gp.buttons[1].pressed);
       h.stickPrev = h.stick;
       h.stick = !!(gp.buttons[3] && gp.buttons[3].pressed);
+      h.gp = gp;
       h.aBtn = !!(gp.buttons[4] && gp.buttons[4].pressed);
       h.bBtn = !!(gp.buttons[5] && gp.buttons[5].pressed);
-      h.menuBtn = !!(gp.buttons[2] && gp.buttons[2].pressed);
+      h.menuBtn = !!(
+        (gp.buttons[2] && gp.buttons[2].pressed) ||
+        (gp.buttons[6] && gp.buttons[6].pressed) ||
+        (gp.buttons[16] && gp.buttons[16].pressed)
+      );
       const ax = gp.axes || [];
       h.axes = [ax[2] != null ? ax[2] : ax[0] || 0, ax[3] != null ? ax[3] : ax[1] || 0];
     }
@@ -206,7 +211,8 @@ export function tickXr(renderer, hands, dt) {
     lookX: right ? right.axes[0] : 0,
     moveX: left ? left.axes[0] : 0,
     moveY: left ? left.axes[1] : 0,
-    jump: !!(right && right.aBtn && !right.aPrev),
+    jump: !!(right && right.aBtn),
+    jumpTap: !!(right && right.aBtn && !right.aPrev),
     menu: !!(left && ((left.menuBtn && !left.menuPrev) || (left.bBtn && !left.bPrev))),
     reload: !!(right && right.stick && !right.stickPrev),
     psy: !!(left && left.aBtn && !left.aPrev) || !!(left && left.aBtn),

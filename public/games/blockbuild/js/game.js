@@ -4,10 +4,10 @@ import {
   STUD, PLATE, COLORS, KINDS, DIMS,
   colorOf, dimOf, kindOf, shapeSpec, makeBrickMesh,
   rotatedDims, gridToLocal, localToGrid, cellsOf, randomSpec, platesFor,
-} from "./bricks.js?v=bb4";
+} from "./bricks.js?v=bb5";
 import {
   FIG_HEADS, FIG_TORSOS, FIG_LEGS, defaultFigConfig, makeFig, tickFig,
-} from "./figs.js?v=bb4";
+} from "./figs.js?v=bb5";
 
 const canvas = document.getElementById("c");
 const hudEl = document.getElementById("hud");
@@ -73,6 +73,7 @@ buildRoot.position.set(0, TABLE_Y, -0.35);
 scene.add(buildRoot);
 
 let worldScale = 8;
+let pieceScale = 1;
 buildRoot.scale.setScalar(worldScale);
 
 function makeTable() {
@@ -100,8 +101,9 @@ function makeTable() {
   g.add(gridMesh);
   const floor = new THREE.Mesh(
     new THREE.CylinderGeometry(topW * 1.8, topW * 1.8, 0.012, 32),
-    new THREE.MeshLambertMaterial({ color: 0xd5dde6 }),
+    new THREE.MeshLambertMaterial({ color: 0x3aaa3a }),
   );
+  floor.visible = false;
   g.add(floor);
   g.userData.floor = floor;
   g.userData.topY = 0;
@@ -147,6 +149,32 @@ function layoutFurniture() {
   table.userData.floor.position.y = -TABLE_Y / worldScale;
 }
 layoutFurniture();
+
+(function makeLegoField() {
+  const c = document.createElement("canvas");
+  c.width = c.height = 128;
+  const g = c.getContext("2d");
+  g.fillStyle = "#2f9a3a";
+  g.fillRect(0, 0, 128, 128);
+  g.fillStyle = "#3cb54a";
+  g.fillRect(4, 4, 120, 120);
+  g.fillStyle = "#268832";
+  g.beginPath(); g.arc(64, 64, 18, 0, 7); g.fill();
+  g.fillStyle = "#46c456";
+  g.beginPath(); g.arc(64, 64, 12, 0, 7); g.fill();
+  const tex = new THREE.CanvasTexture(c);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(220, 220);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  const field = new THREE.Mesh(
+    new THREE.PlaneGeometry(280, 280),
+    new THREE.MeshLambertMaterial({ map: tex, color: 0xffffff }),
+  );
+  field.rotation.x = -Math.PI / 2;
+  field.position.y = 0.002;
+  scene.add(field);
+})();
+rig.position.set(1.65, 0, 0.15);
 
 function labelTex(text, w = 160, h = 36) {
   const c = document.createElement("canvas");
@@ -393,7 +421,10 @@ function rebuildGhost() {
   if (handMode === "hands") return;
   if (handMode === "fig") ghost = makeFig(figCfg, true);
   else ghost = makeBrickMesh(currentSpec(), currentCol(), true);
-  if (ghost) buildRoot.add(ghost);
+  if (ghost) {
+    ghost.scale.setScalar(pieceScale);
+    buildRoot.add(ghost);
+  }
 }
 rebuildGhost();
 
@@ -406,7 +437,7 @@ function setHud() {
     : handMode === "fig"
       ? `Fig · ${FIG_HEADS[figCfg.head].name}`
       : "Empty-handed";
-  hudLine.textContent = `${mode} · scale ${worldScale.toFixed(1)}× · gravity ${gravityOn ? "ON" : "OFF"}`;
+  hudLine.textContent = `${mode} · brick ${pieceScale.toFixed(1)}× · table ${worldScale.toFixed(1)}× · gravity ${gravityOn ? "ON" : "OFF"}`;
 }
 
 function xrGamepad(i) {
@@ -428,7 +459,7 @@ const keys = new Set();
 const mouse = { x: 0, y: 0, down: false, locked: false };
 let lookYaw = 0;
 let lookPitch = -0.42;
-const pressed = { t0: false, t1: false, g0: false, g1: false, a: false, b: false, x: false, y: false, rsc: false, lsc: false };
+const pressed = { t0: false, t1: false, g0: false, g1: false, a: false, b: false, x: false, y: false, rsc: false, lsc: false, lmenu: false };
 let xHold = 0;
 const handVel = new THREE.Vector3();
 let handPrev = null;
@@ -617,9 +648,10 @@ function addBrick(spec, col, gx, gy, gz, rotQ, loose = false) {
   group.rotation.y = rotQ * Math.PI / 2;
   const pos = gridToLocal(gx, gy, gz, spec, rotQ);
   group.position.copy(pos);
+  group.scale.setScalar(pieceScale);
   buildRoot.add(group);
   const b = {
-    id: nextId++, spec, col: col.id, gx, gy, gz, rot: rotQ,
+    id: nextId++, spec, col: col.id, gx, gy, gz, rot: rotQ, scale: pieceScale,
     group, mesh, loose, held: false, onTable: false,
     vel: new THREE.Vector3(), spin: new THREE.Vector3(), melt: 0, links: new Set(),
   };
@@ -644,6 +676,7 @@ function addFigAt(localPos, yaw) {
   const y = heightAt(localPos.x, localPos.z);
   f.position.set(localPos.x, y, localPos.z);
   f.rotation.y = yaw || 0;
+  f.scale.setScalar(pieceScale);
   f.userData.origin = f.position.clone();
   f.userData.held = false;
   f.userData.loose = false;
@@ -657,7 +690,7 @@ function heightAt(x, z) {
   const gz = Math.floor(z / STUD + TABLE_N / 2) - TABLE_N / 2;
   let best = 0;
   const half = TABLE_N / 2;
-  if (gx < -half || gx >= half || gz < -half || gz >= half) best = -TABLE_Y + 0.01;
+  if (gx < -half || gx >= half || gz < -half || gz >= half) best = -TABLE_Y / worldScale;
   for (const b of bricks) {
     if (b.loose || b.held) continue;
     const { bw, bd } = rotatedDims(b.spec.w, b.spec.d, b.rot);
@@ -757,9 +790,11 @@ function grab(localPos, any = false) {
 }
 function dropHeld(snapJoin) {
   if (!held) return;
+  const toss = handVel.length() > 0.38;
+  if (snapJoin == null) snapJoin = !toss;
   if (held.userData?.kind === "fig") {
     held.userData.held = false;
-    if (!snapJoin && handVel.length() > 0.12) {
+    if (!snapJoin && toss) {
       held.userData.toss = true;
       held.userData.vel = handVel.clone().multiplyScalar(0.45);
       held.userData.vel.y += 0.18;
@@ -829,7 +864,50 @@ function explodeBall(ball) {
   buildRoot.remove(ball.mesh);
 }
 
+function collapseTable() {
+  if (table.userData.dead) return;
+  table.userData.dead = true;
+  hudHint.textContent = "The table legs give out — it collapses.";
+  const start = performance.now();
+  const y0 = buildRoot.position.y;
+  function fall() {
+    const t = Math.min(1, (performance.now() - start) / 900);
+    buildRoot.position.y = y0 - t * 0.85;
+    table.traverse((o) => {
+      if (o.material && o.material.opacity != null) {
+        o.material.transparent = true;
+        o.material.opacity = 1 - t;
+      }
+    });
+    if (t < 1) requestAnimationFrame(fall);
+    else table.visible = false;
+  }
+  fall();
+}
+
 function meltNear(localPos, dt) {
+  const world = buildRoot.localToWorld(localPos.clone());
+  let standing = 0;
+  for (const leg of worldLegs) {
+    if (!leg.visible) continue;
+    if (leg.position.distanceTo(world) < 0.16) {
+      leg.userData.melt = (leg.userData.melt || 0) + dt * 1.15;
+      const s = Math.max(0.08, 1 - leg.userData.melt);
+      leg.scale.x = s;
+      leg.scale.z = s;
+      if (leg.material && !leg.material.userData.cloned) {
+        leg.material = leg.material.clone();
+        leg.material.userData.cloned = true;
+      }
+      if (leg.material) {
+        leg.material.emissive = new THREE.Color(0xff3300);
+        leg.material.emissiveIntensity = Math.min(1.4, (leg.userData.melt || 0) * 1.4);
+      }
+      if (leg.userData.melt >= 1) leg.visible = false;
+    }
+    if (leg.visible) standing++;
+  }
+  if (standing === 0) collapseTable();
   for (let i = bricks.length - 1; i >= 0; i--) {
     const b = bricks[i];
     if (b.held) continue;
@@ -1089,10 +1167,197 @@ function cycleHandMode() {
   rebuildGhost();
   setHud();
   hudHint.textContent = handMode === "brick"
-    ? "Brick placing — A color, B piece type."
+    ? "Brick placing — A color picker, B piece catalog."
     : handMode === "fig"
-      ? "Minifig placing — A head, B torso."
-      : "Empty-handed — grab bricks, toss figs.";
+      ? "Minifig placing — A color, B catalog."
+      : "Empty-handed — grab, toss if you swing, else place.";
+}
+
+const KIND_TABS = [
+  { id: "basic", name: "Basic", kinds: ["brick", "plate", "tile"] },
+  { id: "slopes", name: "Slopes", kinds: ["slope", "invslope", "cheese", "wedge"] },
+  { id: "round", name: "Round", kinds: ["round", "cone", "cylinder"] },
+  { id: "build", name: "Build", kinds: ["arch", "stairs", "jumper", "grille", "corner", "window", "door", "log", "base"] },
+  { id: "fig", name: "Figs", kinds: ["fig"] },
+];
+let catalogTab = 0;
+
+function spawnWorldPanel(group, dist) {
+  camera.getWorldPosition(_v);
+  camera.getWorldDirection(_v2);
+  group.position.copy(_v).addScaledVector(_v2, dist || 0.85);
+  group.position.y = _v.y;
+  group.lookAt(_v);
+  group.rotateY(Math.PI);
+  group.visible = true;
+}
+
+function makeCatalog() {
+  const root = new THREE.Group();
+  root.visible = false;
+  const board = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.62, 0.52),
+    new THREE.MeshLambertMaterial({ color: 0x16181f, side: THREE.DoubleSide }),
+  );
+  root.add(board);
+  const hits = [];
+  const tabs = [];
+  KIND_TABS.forEach((tab, i) => {
+    const pl = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.11, 0.04),
+      new THREE.MeshBasicMaterial({ map: labelTex(tab.name, 160, 48), transparent: true, side: THREE.DoubleSide }),
+    );
+    pl.position.set(-0.24 + i * 0.12, 0.22, 0.008);
+    pl.userData.catTab = i;
+    root.add(pl);
+    hits.push(pl);
+    tabs.push(pl);
+  });
+  const items = [];
+  function fill() {
+    while (items.length) {
+      const m = items.pop();
+      m.parent?.remove(m);
+      const ix = hits.indexOf(m);
+      if (ix >= 0) hits.splice(ix, 1);
+    }
+    const tab = KIND_TABS[catalogTab];
+    tab.kinds.forEach((id, i) => {
+      const k = KINDS.find((x) => x.id === id);
+      const pl = new THREE.Mesh(
+        new THREE.PlaneGeometry(0.18, 0.055),
+        new THREE.MeshBasicMaterial({ map: labelTex(k ? k.name : id, 200, 48), transparent: true, side: THREE.DoubleSide }),
+      );
+      pl.position.set(-0.18 + (i % 3) * 0.2, 0.12 - Math.floor(i / 3) * 0.07, 0.008);
+      pl.userData.catKind = id;
+      root.add(pl);
+      hits.push(pl);
+      items.push(pl);
+    });
+  }
+  fill();
+  scene.add(root);
+  return { root, hits, fill };
+}
+const catalog = makeCatalog();
+
+function hsvCanvas() {
+  const c = document.createElement("canvas");
+  c.width = 256; c.height = 200;
+  const g = c.getContext("2d");
+  for (let x = 0; x < 256; x++) {
+    for (let y = 0; y < 176; y++) {
+      const h = x / 256;
+      const s = 1;
+      const v = 1 - y / 176;
+      const i = Math.floor(h * 6);
+      const f = h * 6 - i;
+      const p = v * (1 - s);
+      const q = v * (1 - f * s);
+      const t = v * (1 - (1 - f) * s);
+      let r, gc, b;
+      if (i % 6 === 0) { r = v; gc = t; b = p; }
+      else if (i % 6 === 1) { r = q; gc = v; b = p; }
+      else if (i % 6 === 2) { r = p; gc = v; b = t; }
+      else if (i % 6 === 3) { r = p; gc = q; b = v; }
+      else if (i % 6 === 4) { r = t; gc = p; b = v; }
+      else { r = v; gc = p; b = q; }
+      g.fillStyle = `rgb(${(r * 255) | 0},${(gc * 255) | 0},${(b * 255) | 0})`;
+      g.fillRect(x, y, 1, 1);
+    }
+  }
+  g.fillStyle = "#111";
+  g.fillRect(0, 176, 256, 24);
+  g.fillStyle = "#eee";
+  g.font = "14px sans-serif";
+  g.textAlign = "center";
+  g.fillText("tap a color", 128, 193);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return { canvas: c, tex };
+}
+
+function makeHexPicker() {
+  const root = new THREE.Group();
+  root.visible = false;
+  const hsv = hsvCanvas();
+  const pl = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.42, 0.33),
+    new THREE.MeshBasicMaterial({ map: hsv.tex, side: THREE.DoubleSide }),
+  );
+  pl.userData.hexPick = true;
+  root.add(pl);
+  scene.add(root);
+  return { root, hits: [pl], canvas: hsv.canvas };
+}
+const hexPicker = makeHexPicker();
+
+function makeSizeSlider() {
+  const root = new THREE.Group();
+  root.visible = false;
+  const bar = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.02, 0.02), new THREE.MeshLambertMaterial({ color: 0x222 }));
+  const knob = new THREE.Mesh(new THREE.SphereGeometry(0.028, 10, 8), new THREE.MeshLambertMaterial({ color: 0xe6b35c }));
+  knob.position.x = 0;
+  const lab = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.22, 0.05),
+    new THREE.MeshBasicMaterial({ map: labelTex("SIZE 1.0x", 200, 48), transparent: true, side: THREE.DoubleSide, depthTest: false }),
+  );
+  lab.position.y = 0.06;
+  root.add(bar, knob, lab);
+  scene.add(root);
+  return { root, knob, lab };
+}
+const sizeSlider = makeSizeSlider();
+let sliderArmed = false;
+
+function applyPickedHex(hex) {
+  const id = "hex" + hex.toString(16).padStart(6, "0");
+  let col = COLORS.find((c) => c.id === id);
+  if (!col) {
+    col = { id, name: "#" + id.slice(3), hex };
+    COLORS.push(col);
+  }
+  colorI = COLORS.indexOf(col);
+  hexPicker.root.visible = false;
+  rebuildGhost();
+  setHud();
+  hudHint.textContent = "Color set to " + col.name;
+}
+
+function pokeUi(origin, dir) {
+  _ray.set(origin, dir);
+  _ray.far = 2.6;
+  if (hexPicker.root.visible) {
+    const hits = _ray.intersectObjects(hexPicker.hits, false);
+    const h = hits[0];
+    if (h && h.uv) {
+      const x = Math.max(0, Math.min(255, (h.uv.x * 256) | 0));
+      const y = Math.max(0, Math.min(175, ((1 - h.uv.y) * 200) | 0));
+      const ctx = hexPicker.canvas.getContext("2d");
+      const d = ctx.getImageData(x, y, 1, 1).data;
+      applyPickedHex((d[0] << 16) | (d[1] << 8) | d[2]);
+      return true;
+    }
+  }
+  if (catalog.root.visible) {
+    const hits = _ray.intersectObjects(catalog.hits, false);
+    const obj = hits[0]?.object;
+    if (obj?.userData?.catTab != null) {
+      catalogTab = obj.userData.catTab;
+      catalog.fill();
+      return true;
+    }
+    if (obj?.userData?.catKind) {
+      const id = obj.userData.catKind;
+      kindI = KINDS.findIndex((k) => k.id === id);
+      if (id === "fig") handMode = "fig";
+      else if (handMode === "fig") handMode = "brick";
+      rebuildGhost();
+      setHud();
+      return true;
+    }
+  }
+  return false;
 }
 
 function clearWorld() {
@@ -1279,44 +1544,73 @@ function loop(t) {
   const yBtn = !!(gpL?.buttons?.[5]?.pressed);
   const rStick = !!(gpR?.buttons?.[3]?.pressed);
   const lStick = !!(gpL?.buttons?.[3]?.pressed);
+  const lMenu = !!(gpL?.buttons?.[2]?.pressed || gpL?.buttons?.[6]?.pressed || gpL?.buttons?.[16]?.pressed);
+  const lTrig = !!(gpL?.buttons?.[0]?.pressed);
 
   if (xr) {
-    if (lStick && !pressed.lsc) {
+    if (lMenu && !pressed.lmenu) {
       if (menuOpen) closeMenu();
       else openMenu();
     }
+    if (lStick && !pressed.lsc && !menuOpen) {
+      rot = (rot + 1) % 4;
+      if (held && held.rot != null) held.rot = rot;
+      rebuildGhost();
+    }
     if (rStick && !pressed.rsc && !menuOpen) cycleHandMode();
 
+    const aimCtrl = buildCtrl();
+    aimCtrl.updateMatrixWorld();
+    const aimO = aimCtrl.getWorldPosition(_v).clone();
+    const aimD = new THREE.Vector3(0, 0, -1).applyQuaternion(aimCtrl.getWorldQuaternion(_q)).normalize();
+
+    if (lTrig) {
+      if (!sliderArmed) {
+        sliderArmed = true;
+        ctrl.g0.add(sizeSlider.root);
+        sizeSlider.root.position.set(0, 0.08, -0.12);
+        sizeSlider.root.visible = true;
+      }
+      const tv = gpL?.buttons?.[0]?.value || 0;
+      pieceScale = THREE.MathUtils.clamp(0.1 + tv * 9.9, 0.1, 10);
+      sizeSlider.knob.position.x = ((pieceScale - 0.1) / 9.9 - 0.5) * 0.26;
+      if (sizeSlider.lab.material.map) sizeSlider.lab.material.map.dispose();
+      sizeSlider.lab.material.map = labelTex("SIZE " + pieceScale.toFixed(1) + "x", 220, 48);
+      if (ghost) ghost.scale.setScalar(pieceScale);
+    } else if (sliderArmed) {
+      sliderArmed = false;
+      sizeSlider.root.visible = false;
+      sizeSlider.root.parent?.remove(sizeSlider.root);
+      scene.add(sizeSlider.root);
+      rebuildGhost();
+      setHud();
+    }
+
     if (menuOpen) {
-      const c = buildCtrl();
-      c.updateMatrixWorld();
-      const o = c.getWorldPosition(_v).clone();
-      const d = new THREE.Vector3(0, 0, -1).applyQuaternion(c.getWorldQuaternion(_q)).normalize();
-      if (trig && !pressed.t1) pokeVrMenu(o, d);
+      if (trig && !pressed.t1) pokeVrMenu(aimO, aimD);
     } else {
       if (aBtn && !pressed.a) {
-        if (handMode === "fig") figCfg.head = (figCfg.head + 1) % FIG_HEADS.length;
-        else if (gripB) dimI = cycle(dimI, DIMS, 1);
-        else colorI = cycle(colorI, COLORS, 1);
-        rebuildGhost(); setHud();
+        if (hexPicker.root.visible) hexPicker.root.visible = false;
+        else spawnWorldPanel(hexPicker.root, 0.7);
       }
       if (bBtn && !pressed.b) {
-        if (handMode === "fig") {
-          figCfg.torso = (figCfg.torso + 1) % FIG_TORSOS.length;
-          if (figCfg.torso === 0) figCfg.legs = (figCfg.legs + 1) % FIG_LEGS.length;
-        } else brickKindIndex(1);
-        rebuildGhost(); setHud();
+        if (catalog.root.visible) catalog.root.visible = false;
+        else {
+          catalog.fill();
+          spawnWorldPanel(catalog.root, 0.9);
+        }
       }
       if (trig && !pressed.t1) {
-        if (handMode === "hands") {
-          if (held) dropHeld(false);
+        if (pokeUi(aimO, aimD)) {
+          /* picked */
+        } else if (handMode === "hands" || held) {
+          if (held) dropHeld(null);
           else grab(handLocal(buildCtrl()).local, true);
-        } else if (held) dropHeld(true);
-        else placeFromLocal(handLocal(buildCtrl()).local, lookYaw);
+        } else placeFromLocal(handLocal(buildCtrl()).local, lookYaw);
       }
       if (gripB && !pressed.g1) {
-        if (held) dropHeld(handMode === "hands" ? false : true);
-        else grab(handLocal(buildCtrl()).local, handMode === "hands");
+        if (held) dropHeld(null);
+        else grab(handLocal(buildCtrl()).local, true);
       }
       if (yBtn && !pressed.y) {
         const h = handLocal(buildCtrl());
@@ -1333,11 +1627,6 @@ function loop(t) {
           meltNear(handLocal(buildCtrl()).local, dt);
         }
       } else {
-        if (pressed.x && xHold > 0 && xHold < 0.28) {
-          rot = (rot + 1) % 4;
-          if (held && held.rot != null) held.rot = rot;
-          rebuildGhost();
-        }
         xHold = 0;
         flame.visible = false;
       }
@@ -1350,16 +1639,20 @@ function loop(t) {
     pressed.y = yBtn;
     pressed.rsc = rStick;
     pressed.lsc = lStick;
+    pressed.lmenu = lMenu;
   } else if (mouse.down || pressed.t1) {
     camera.getWorldPosition(_v);
     camera.getWorldDirection(_v2);
     if (mouse.down && !pressed.t1 && !menuOpen) {
       const lp = aimLocal(_v.clone(), _v2.clone());
-      if (handMode === "hands") {
-        if (held) dropHeld(false);
+      if (hexPicker.root.visible || catalog.root.visible) {
+        camera.getWorldPosition(_v);
+        camera.getWorldDirection(_v2);
+        pokeUi(_v.clone(), _v2.clone());
+      } else if (handMode === "hands" || held) {
+        if (held) dropHeld(null);
         else grab(lp, true);
-      } else if (held) dropHeld(true);
-      else placeFromLocal(lp, lookYaw);
+      } else placeFromLocal(lp, lookYaw);
     }
     pressed.t1 = mouse.down;
   }
@@ -1386,17 +1679,13 @@ window.addEventListener("keydown", (e) => {
   if (e.code === "KeyH") swapHands();
   if (e.code === "KeyR") { rot = (rot + 1) % 4; rebuildGhost(); }
   if (e.code === "KeyC") {
-    if (handMode === "fig") figCfg.head = (figCfg.head + 1) % FIG_HEADS.length;
-    else colorI = cycle(colorI, COLORS, 1);
-    rebuildGhost(); setHud();
+    if (hexPicker.root.visible) hexPicker.root.visible = false;
+    else spawnWorldPanel(hexPicker.root, 0.7);
   }
   if (e.code === "KeyV") { dimI = cycle(dimI, DIMS, 1); rebuildGhost(); setHud(); }
   if (e.code === "KeyB") {
-    if (handMode === "fig") {
-      figCfg.torso = (figCfg.torso + 1) % FIG_TORSOS.length;
-      if (figCfg.torso === 0) figCfg.legs = (figCfg.legs + 1) % FIG_LEGS.length;
-    } else brickKindIndex(1);
-    rebuildGhost(); setHud();
+    if (catalog.root.visible) catalog.root.visible = false;
+    else { catalog.fill(); spawnWorldPanel(catalog.root, 0.9); }
   }
   if (e.code === "KeyF") {
     const lp = worldToLocal(camera.getWorldPosition(_v).add(camera.getWorldDirection(_v2).multiplyScalar(0.4)));

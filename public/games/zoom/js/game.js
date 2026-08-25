@@ -1,17 +1,17 @@
 import * as THREE from "three";
 import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
-import { BIOMES, CELL, EYE, LIQ_LAVA, LIQ_WATER, PICKUP_BY_ID, SHOP, WEAPON_BY_ID, WEAPONS, routes } from "./config.js?v=psy3";
-import { bakedMaps } from "./defaults.js?v=psy3";
-import { biomeOf, cellI, countCarved, ensureLayers, firstCarved, floorY, sdf3 } from "./map.js?v=psy3";
-import { buildDungeon, prepareSdf } from "./mesh.js?v=psy3";
-import { makeProp, spawnFrom, strikeFoes, tickFoes } from "./props.js?v=psy3";
-import { getMap, listMaps } from "./store.js?v=psy3";
-import { makeProc } from "./proc.js?v=psy3";
-import { breakWindows, buildingFloorY, buildWorld, climbSupport, hurtTurrets, makeSky, shatterCracked, tickRubble, tickWorld, tryUnlock, wallBlocked } from "./world.js?v=psy3";
-import { addBurnDecal, addSaberMark, fireWeapon, hurtFoe, makeDualSaber, makeKeyModel, makePickup, makeWeapon, setKillHook, tickBurns, tickShots } from "./weapons.js?v=psy3";
-import { tickRobots } from "./robots.js?v=psy3";
-import { attachXr, tickXr } from "./xr.js?v=psy3";
-import { loadGold, lootForEnemy, makeWristGold, paintWristGold, saveGold, showerLoot, tickLoot } from "./loot.js?v=psy3";
+import { BIOMES, CELL, EYE, FLAG_RUMBLE, LIQ_LAVA, LIQ_WATER, PICKUP_BY_ID, SHOP, WEAPON_BY_ID, WEAPONS, routes } from "./config.js?v=psy4";
+import { bakedMaps } from "./defaults.js?v=psy4";
+import { biomeOf, cellI, countCarved, ensureLayers, firstCarved, floorY, sdf3 } from "./map.js?v=psy4";
+import { buildDungeon, prepareSdf } from "./mesh.js?v=psy4";
+import { makeProp, spawnFrom, strikeFoes, tickFoes } from "./props.js?v=psy4";
+import { getMap, listMaps } from "./store.js?v=psy4";
+import { makeProc } from "./proc.js?v=psy4";
+import { breakWindows, buildingFloorY, buildWorld, climbSupport, hurtTurrets, makeSky, shatterCracked, tickRubble, tickWorld, tryUnlock, wallBlocked } from "./world.js?v=psy4";
+import { addBurnDecal, addSaberMark, fireWeapon, hurtFoe, makeDualSaber, makeKeyModel, makePickup, makeWeapon, setKillHook, tickBurns, tickShots } from "./weapons.js?v=psy4";
+import { tickRobots } from "./robots.js?v=psy4";
+import { attachXr, tickXr } from "./xr.js?v=psy4";
+import { loadGold, lootForEnemy, makeWristGold, paintWristGold, saveGold, showerLoot, tickLoot } from "./loot.js?v=psy4";
 
 const $ = (id) => document.getElementById(id);
 const keys = new Set();
@@ -52,6 +52,9 @@ let xrYaw = null;
 let viewWep, flashlight;
 let dualSaber = null;
 let saberOn = false;
+let sheathed = false;
+let camShake = 0;
+let rumbleCd = 0;
 let psyCd = 0;
 let psyWaves = [];
 let saberPrevTips = [null, null];
@@ -83,7 +86,7 @@ function hudBars() {
     (player.dashT > 0 ? "DASH " : "") +
     (player.haste > 0 ? "HASTE " : "") +
     "PSY " +
-    (saberOn ? "SABER " : "");
+    (saberOn ? "SABER " : sheathed ? "HANDS " : "");
   if ($("goldv")) $("goldv").textContent = String(player.coins | 0);
   paintWristGold(wristGold, player.coins);
 }
@@ -247,6 +250,10 @@ function applyXrStage() {
   stage.rotation.y = 0;
   stage.position.set(-(player.x || 0), -floor, -(player.z || 0));
   if (xrYaw) xrYaw.rotation.y = yawOffset;
+  if (camShake > 0 && camera) {
+    camera.position.x += (Math.random() - 0.5) * camShake * 0.045;
+    camera.position.y += (Math.random() - 0.5) * camShake * 0.03;
+  }
 }
 
 function clearWorld() {
@@ -515,7 +522,7 @@ function takePickup(p) {
       setMsg("Ammo crate");
     }
   } else if (WEAPON_BY_ID[kind]) {
-    if (!held) setHeld(kind);
+    if (!held) { sheathed = false; setHeld(kind); }
     else inv.push({ id: kind, name: WEAPON_BY_ID[kind].name, cat: "weapon" });
     setMsg(WEAPON_BY_ID[kind].name);
   } else {
@@ -590,12 +597,12 @@ function physics(dt, xr) {
     if (tmp.lengthSq() < 1e-6) tmp.set(0, 0, -1);
     tmp.normalize();
     forward.copy(tmp);
-    right.set(forward.z, 0, -forward.x);
+    right.set(-forward.z, 0, forward.x);
     wx += forward.x * -(xr.moveY || 0) + right.x * (xr.moveX || 0);
     wz += forward.z * -(xr.moveY || 0) + right.z * (xr.moveX || 0);
     player.skate = xr.skate;
     player.crouch = keys.has("KeyC");
-    if (xr.jump) jumpQueued = true;
+    if (xr.jumpTap || (xr.jump && player.grounded && player.vy <= 0.05)) jumpQueued = true;
   } else {
     if (keys.has("KeyW") || keys.has("ArrowUp")) {
       wx += forward.x;
@@ -630,7 +637,7 @@ function physics(dt, xr) {
   if (player.haste > 0) player.haste = Math.max(0, player.haste - dt);
   if (player.rage > 0) player.rage = Math.max(0, player.rage - dt);
   const len = Math.hypot(wx, wz);
-  let spd = player.crouch ? 2.2 : keys.has("ShiftLeft") || keys.has("ShiftRight") ? 7.2 : 4.6;
+  let spd = player.crouch ? 1.54 : keys.has("ShiftLeft") || keys.has("ShiftRight") ? 5.04 : 3.22;
   if (player.skate && player.grounded) spd *= 2.5;
   if (player.haste > 0) spd *= 1.45;
   if (player.dashT > 0) spd *= 4;
@@ -648,14 +655,19 @@ function physics(dt, xr) {
     return sdf3(x, y, z, map, sdf2) > -0.2;
   }
   function walkOk(x, y, z) {
-    const r = 0.24;
+    const r = 0.32;
     const samples = [
       [x, y, z],
       [x, player.y - 0.22, z],
+      [x, y + 0.35, z],
       [x + r, y, z],
       [x - r, y, z],
       [x, y, z + r],
       [x, y, z - r],
+      [x + r * 0.7, y, z + r * 0.7],
+      [x - r * 0.7, y, z + r * 0.7],
+      [x + r * 0.7, y, z - r * 0.7],
+      [x - r * 0.7, y, z - r * 0.7],
     ];
     for (const [sx, sy, sz] of samples) {
       if (blocked(sx, sy, sz)) return false;
@@ -668,14 +680,36 @@ function physics(dt, xr) {
   if (!rope) {
     const nx = player.x + wx * dt;
     const nz = player.z + wz * dt;
-    if (walkOk(nx, bodyY, player.z)) {
+    const okX = walkOk(nx, bodyY, player.z);
+    const okZ = walkOk(player.x, bodyY, nz);
+    const okBoth = walkOk(nx, bodyY, nz);
+    if (okBoth) {
+      player.x = nx;
+      player.z = nz;
+      player.vx = wx;
+      player.vz = wz;
+    } else if (okX) {
       player.x = nx;
       player.vx = wx;
-    } else player.vx *= 0.2;
-    if (walkOk(player.x, bodyY, nz)) {
+      player.vz *= 0.12;
+    } else if (okZ) {
       player.z = nz;
       player.vz = wz;
-    } else player.vz *= 0.2;
+      player.vx *= 0.12;
+    } else {
+      player.vx *= 0.08;
+      player.vz *= 0.08;
+    }
+    if (blocked(player.x, bodyY, player.z)) {
+      const push = [[0.28, 0], [-0.28, 0], [0, 0.28], [0, -0.28], [0.22, 0.22], [-0.22, 0.22], [0.22, -0.22], [-0.22, -0.22]];
+      for (const [px, pz] of push) {
+        if (walkOk(player.x + px, bodyY, player.z + pz)) {
+          player.x += px;
+          player.z += pz;
+          break;
+        }
+      }
+    }
   }
 
   if (rope) {
@@ -715,7 +749,7 @@ function physics(dt, xr) {
       player.grounded = false;
     }
   } else {
-    if (jumpQueued && !(xr && xr.on && xr.jet && player.fuel > 0)) {
+    if (jumpQueued && !(xr && xr.on && xr.jet && player.fuel > 0 && !player.grounded)) {
       if (coyote > 0) player.jumps = 2;
       if (player.jumps > 0) {
         player.vy = player.jumps === 2 ? 9.62 : 8.4;
@@ -799,7 +833,7 @@ function physics(dt, xr) {
   if (!rope && ground > -500) {
     const crossed = prevFeet >= ground - 0.08 && feet <= ground + 0.38;
     const buried = feet < ground + 0.02;
-    if (crossed || buried) {
+    if ((crossed || buried) && player.vy <= 0.2) {
       player.y = ground + eye;
       if (player.vy < 0) player.vy = 0;
       player.grounded = true;
@@ -818,7 +852,19 @@ function physics(dt, xr) {
   const ci = cellI(map, player.x, player.z);
   const feetY = player.y - eye;
   if (map.flags && map.flags[ci] & 1 && player.grounded && feetY < ground + 0.4) die("impaled");
-  if (map.liquid && map.liquid[ci] === LIQ_LAVA) damage(18 * dt, "burned in lava");
+  let inLava = map.liquid && map.liquid[ci] === LIQ_LAVA;
+  if (!inLava && extras?.liquids) {
+    for (const L of extras.liquids) {
+      if (L.kind === LIQ_LAVA && Math.hypot(player.x - L.x, player.z - L.z) < CELL * 0.62 && feetY < L.y + 0.45) {
+        inLava = true;
+        break;
+      }
+    }
+  }
+  if (inLava) die("burned in lava");
+  if (map.flags && map.flags[ci] & FLAG_RUMBLE) triggerRumble(xr);
+  if (camShake > 0) camShake = Math.max(0, camShake - dt * 4.2);
+  if (rumbleCd > 0) rumbleCd -= dt;
   if (map.liquid && map.liquid[ci] === LIQ_WATER && player.grounded) {
     player.vx *= 0.85;
     player.vz *= 0.85;
@@ -1151,6 +1197,85 @@ function tickPsy(dt) {
   }
 }
 
+function pulseHands(xr, mag, ms) {
+  for (const h of [xr?.left, xr?.right]) {
+    const gp = h?.gp;
+    if (!gp) continue;
+    try {
+      if (gp.hapticActuators && gp.hapticActuators[0]) gp.hapticActuators[0].pulse(mag, ms);
+      else if (gp.vibrationActuator) gp.vibrationActuator.playEffect("dual-rumble", { duration: ms, strongMagnitude: mag, weakMagnitude: mag * 0.6 });
+    } catch {}
+  }
+}
+
+function triggerRumble(xr) {
+  if (rumbleCd > 0) return;
+  rumbleCd = 0.45;
+  camShake = Math.min(1.6, camShake + 1.15);
+  pulseHands(xr, 0.95, 220);
+  if (extras && stage) {
+    const y0 = player.y + 1.6;
+    for (let k = 0; k < 5; k++) {
+      const m = new THREE.Mesh(
+        new THREE.BoxGeometry(0.12 + Math.random() * 0.18, 0.08 + Math.random() * 0.16, 0.1 + Math.random() * 0.14),
+        new THREE.MeshLambertMaterial({ color: 0x5a5248 }),
+      );
+      m.position.set(player.x + (Math.random() - 0.5) * 1.4, y0 + Math.random() * 0.5, player.z + (Math.random() - 0.5) * 1.4);
+      m.userData.vy = -1.2;
+      m.userData.floor = player.y - (player.crouch ? 0.9 : EYE) + 0.05;
+      m.userData.falling = true;
+      stage.add(m);
+      extras.caveins = extras.caveins || [];
+      extras.caveins.push(m);
+    }
+  }
+  setMsg("The floor shudders");
+}
+
+function placeRumble() {
+  if (!map?.flags) return;
+  const ci = cellI(map, player.x, player.z);
+  if (ci < 0) return;
+  map.flags[ci] |= FLAG_RUMBLE;
+  setMsg("Rumble tile set");
+}
+
+function cycleLoadout(xr) {
+  const weps = [];
+  if (held && WEAPON_BY_ID[held]) weps.push(held);
+  for (const it of inv) {
+    if (WEAPON_BY_ID[it.id] && !weps.includes(it.id)) weps.push(it.id);
+  }
+  if (saberOn) {
+    toggleSaber(xr);
+    if (weps.length) {
+      sheathed = false;
+      setHeld(weps[0]);
+      setMsg(WEAPON_BY_ID[weps[0]].name);
+    } else {
+      sheathed = true;
+      setHeld(null);
+      setMsg("Empty-handed — rumble tiles");
+    }
+    return;
+  }
+  if (held) {
+    const i = weps.indexOf(held);
+    if (i >= 0 && i < weps.length - 1) {
+      setHeld(weps[i + 1]);
+      sheathed = false;
+      setMsg(WEAPON_BY_ID[weps[i + 1]].name);
+    } else {
+      setHeld(null);
+      sheathed = true;
+      setMsg("Empty-handed — rumble tiles");
+    }
+    return;
+  }
+  sheathed = false;
+  toggleSaber(xr);
+}
+
 function toggleSaber(xr) {
   saberOn = !saberOn;
   if (saberOn) {
@@ -1210,7 +1335,7 @@ function xrGrab(xr) {
     tickVrMenu(xr);
     return;
   }
-  if (xr.saberToggle) toggleSaber(xr);
+  if (xr.saberToggle) cycleLoadout(xr);
   if (xr.reload) {
     const def = held && WEAPON_BY_ID[held];
     if (def && def.slot === "gun") {
@@ -1274,6 +1399,10 @@ function xrGrab(xr) {
   }
   if (xr.dash) return;
   if (saberOn) return;
+  if (sheathed && xr.right && xr.right.trigger && !xr.right.triggerPrev) {
+    placeRumble();
+    return;
+  }
   if (xr.right && xr.right.trigger && !xr.right.triggerPrev && held) primary();
 }
 
@@ -1405,7 +1534,7 @@ addEventListener("keydown", (e) => {
     $("inv").hidden = hide;
     if (!hide) renderInv();
   }
-  if (e.code === "KeyB") toggleSaber(hands && renderer ? { on: xrPresenting, right: hands.find((h) => h.handed === "right") } : { on: false });
+  if (e.code === "KeyB") cycleLoadout(hands && renderer ? { on: xrPresenting, right: hands.find((h) => h.handed === "right") } : { on: false });
   if (e.code === "KeyX") firePsy(hands && renderer ? { on: xrPresenting, right: hands.find((h) => h.handed === "right") } : { on: false });
   if (e.code === "KeyR") {
     const def = held && WEAPON_BY_ID[held];

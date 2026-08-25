@@ -8,7 +8,7 @@
     <link rel="canonical" href="https://futuremusic.online/zoommaps" />
     <link rel="icon" type="image/jpeg" href="/games/zoom/og.jpg" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" />
-    <link rel="stylesheet" href="/games/zoom/css/zoom.css?v=psy2" />
+    <link rel="stylesheet" href="/games/zoom/css/zoom.css?v=psy4" />
     <script>
       window.ZOOM_ROUTES = { play: "/zoom", maps: "/zoommaps" };
     </script>
@@ -70,6 +70,9 @@
         <button type="button" data-tool="object">Object</button>
         <button type="button" data-tool="pickup">Pickup</button>
         <button type="button" data-tool="spawner">Spawner</button>
+        <button type="button" data-tool="minotaur">Minotaur</button>
+        <button type="button" data-tool="drone">Sentry drone</button>
+        <button type="button" data-tool="rumble">Rumble tile</button>
         <button type="button" data-tool="rope">Rope</button>
         <button type="button" data-tool="turret">Flame turret</button>
         <button type="button" data-tool="crusher">Crusher</button>
@@ -130,6 +133,12 @@
         <label>Pickup / weapon / item</label>
         <select id="pickup"></select>
         <p class="hint">Weapons (including colored lightsabers), ammo crates, jetpack, fuel, medkits, and special items.</p>
+      </div>
+      <div class="pbox" data-show="minotaur,drone">
+        <p class="hint">Places a 3D enemy spawner: minotaur (slow then charge) or flying sentry drone (weave + lasers).</p>
+      </div>
+      <div class="pbox" data-show="rumble">
+        <p class="hint">Invisible rumble tiles. The player can also paint these empty-handed in VR.</p>
       </div>
       <div class="pbox" data-show="spawner">
         <label>Enemy</label>
@@ -197,6 +206,6 @@
       <h2>Saved</h2>
       <div id="saved"></div>
     </aside>
-    <script type="module" src="/games/zoom/js/editor.js?v=psy2"></script>
+    <script type="module" src="/games/zoom/js/editor.js?v=psy4"></script>
   </body>
 </html>

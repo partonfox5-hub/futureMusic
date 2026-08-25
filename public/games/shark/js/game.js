@@ -58,6 +58,7 @@ let xrTriggerRight = false;
 let xrX = false;
 let xrXPrev = false;
 let xrGrip = false;
+let xrAny = false;
 let xrTriggerPrev = false;
 let surge = 0;
 let xrFireArmed = true;
@@ -69,7 +70,7 @@ const helmHands = [
 let helmHeld = false;
 let wheelSpin = 0;
 let wheelMat = null;
-const WHEEL_R = 0.28;
+const WHEEL_R = 0.196;
 const _helmLocal = new THREE.Vector3();
 const xrSeatPos = new THREE.Vector3();
 const xrSeatQuat = new THREE.Quaternion();
@@ -541,7 +542,7 @@ const fireBtn = new THREE.Mesh(
   new THREE.CylinderGeometry(0.06, 0.07, 0.055, 14),
   new THREE.MeshStandardMaterial({ color: 0xb02018, emissive: 0x501008, metalness: 0.4, roughness: 0.4 })
 );
-fireBtn.position.set(0.24, -0.26, -0.30);
+fireBtn.position.set(0.32, -0.26, -0.30);
 fireBtn.rotation.x = 0.2;
 cockpit.add(fireBtn);
 const fireBtnRestY = fireBtn.position.y;
@@ -801,7 +802,7 @@ function updateGoPanel() {
   if (xrOn) {
     pollXrButtons();
     const poking = !!nearWorld(goPanel, 0.55);
-    if ((poking && (xrTrigger || xrX)) || (xrX && !xrXPrev)) {
+    if (xrAny || (poking && (xrTrigger || xrX)) || (xrX && !xrXPrev)) {
       if (goArmed) {
         goArmed = false;
         resetGame();
@@ -814,6 +815,34 @@ const exterior = new THREE.Group();
 sub.add(exterior);
 (function buildExterior() {
   const hullMat = new THREE.MeshStandardMaterial({ color: 0x2a3840, metalness: 0.75, roughness: 0.38 });
+  const dark = new THREE.MeshStandardMaterial({ color: 0x151c22, metalness: 0.8, roughness: 0.32 });
+  const hull = new THREE.Mesh(new THREE.CylinderGeometry(0.72, 0.62, 3.4, 18), hullMat);
+  hull.rotation.x = Math.PI / 2;
+  hull.position.set(0, -0.12, 0.05);
+  exterior.add(hull);
+  const nose = new THREE.Mesh(new THREE.SphereGeometry(0.62, 14, 10), hullMat);
+  nose.scale.set(1, 1, 1.35);
+  nose.position.set(0, -0.12, -1.55);
+  exterior.add(nose);
+  const tail = new THREE.Mesh(new THREE.SphereGeometry(0.52, 12, 8), hullMat);
+  tail.scale.set(1, 1, 1.2);
+  tail.position.set(0, -0.08, 1.62);
+  exterior.add(tail);
+  const tower = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.34, 0.55, 12), dark);
+  tower.position.set(0, 0.42, 0.15);
+  exterior.add(tower);
+  const sail = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.38, 0.55), dark);
+  sail.position.set(0, 0.72, 0.12);
+  exterior.add(sail);
+  for (const s of [-1, 1]) {
+    const port = new THREE.Mesh(new THREE.CircleGeometry(0.11, 12), new THREE.MeshStandardMaterial({ color: 0x88c8e8, emissive: 0x224466, metalness: 0.4, roughness: 0.2 }));
+    port.position.set(s * 0.72, 0.05, -0.55);
+    port.rotation.y = s * Math.PI / 2;
+    exterior.add(port);
+    const plane = new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.06, 0.38), hullMat);
+    plane.position.set(s * 0.85, -0.05, 0.9);
+    exterior.add(plane);
+  }
   const keel = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.22, 2.4), hullMat);
   keel.position.set(0, -0.72, 0.15);
   exterior.add(keel);
@@ -827,7 +856,7 @@ sub.add(exterior);
     new THREE.BoxGeometry(0.08, 1.05, 0.22),
     new THREE.MeshStandardMaterial({ color: 0x8899aa, metalness: 0.8 })
   );
-  prop.position.set(0, -0.35, 1.55);
+  prop.position.set(0, -0.35, 1.85);
   exterior.add(prop);
   exterior.userData.prop = prop;
   for (const s of [-1, 1]) {
@@ -847,14 +876,14 @@ crack.position.set(0.95, -0.15, 0.35);
 exterior.add(crack);
 
 function addHeadlamp(x) {
-  const s = new THREE.SpotLight(0xffe6c0, 110, 38, 0.28, 0.62, 1.55);
+  const s = new THREE.SpotLight(0xffe6c0, 143, 49, 0.32, 0.62, 1.55);
   s.position.set(x, -0.08, -1.92);
-  s.target.position.set(x * 0.35, -1.8, -26);
+  s.target.position.set(x * 0.35, -1.8, -34);
   sub.add(s);
   sub.add(s.target);
   const beam = new THREE.Mesh(
-    new THREE.ConeGeometry(2.4, 16, 18, 1, true),
-    new THREE.MeshBasicMaterial({ color: 0xffe4b8, transparent: true, opacity: 0.045, depthWrite: false, side: THREE.DoubleSide, fog: true })
+    new THREE.ConeGeometry(3.12, 20.8, 18, 1, true),
+    new THREE.MeshBasicMaterial({ color: 0xffe4b8, transparent: true, opacity: 0.0315, depthWrite: false, side: THREE.DoubleSide, fog: true })
   );
   beam.rotation.x = Math.PI / 2;
   beam.position.set(x, -0.35, -9.2);
@@ -1240,10 +1269,14 @@ function makeTorch() {
   );
   core.rotation.x = -Math.PI / 2;
   core.position.z = -0.14;
-  g.add(handle, cone, core);
+  const lamp = new THREE.SpotLight(0xffe6c0, 8.5, 18, 0.42, 0.45, 1.2);
+  lamp.position.set(0, 0, -0.08);
+  lamp.target.position.set(0, 0, -8);
+  g.add(handle, cone, core, lamp, lamp.target);
   g.visible = false;
   g.userData.cone = cone;
   g.userData.core = core;
+  g.userData.lamp = lamp;
   return g;
 }
 const torch0 = makeTorch();
@@ -1606,7 +1639,7 @@ function die(reason) {
   if (document.pointerLockElement) document.exitPointerLock();
   paintGoPanel(why);
   goPanel.visible = true;
-  goArmed = true;
+  goArmed = false;
 }
 
 function damage(n) {
@@ -2080,6 +2113,7 @@ function pollXrButtons() {
   xrTriggerRight = false;
   xrX = false;
   xrGrip = false;
+  xrAny = false;
   const session = renderer.xr.getSession();
   if (!session) return;
   const padsByHand = { left: null, right: null, none: [] };
@@ -2090,6 +2124,9 @@ function pollXrButtons() {
     if (trigOn) xrTrigger = true;
     if (src.handedness === "right" && trigOn) xrTriggerRight = true;
     if (src.handedness === "left" && gp.buttons[4] && gp.buttons[4].pressed) xrX = true;
+    for (const b of gp.buttons) {
+      if (b && (b.pressed || (b.value || 0) > 0.5)) xrAny = true;
+    }
     if (squeezeFromPad(gp) > 0.12) xrGrip = true;
     if (src.handedness === "left") padsByHand.left = gp;
     else if (src.handedness === "right") padsByHand.right = gp;
@@ -2133,21 +2170,18 @@ function syncXrSeat() {
 }
 
 function setTorch(on) {
-  const active = on && mode === "eva";
+  const active = mode === "eva";
   [torch0, torch1].forEach((t, i) => {
     const h = helmHands[i];
-    const isRight = h.handed === "right" || (!h.handed && i === 1);
-    t.visible = !!(active && xrTriggerRight && isRight);
+    const isLeft = h.handed === "left" || (!h.handed && i === 0);
+    t.visible = !!(active && isLeft);
+    if (t.userData.lamp) t.userData.lamp.visible = t.visible;
     if (t.visible) {
       const flicker = 0.85 + Math.random() * 0.35;
       t.userData.cone.scale.setScalar(flicker);
       t.userData.core.scale.set(1, flicker, 1);
     }
   });
-  if (!xrTriggerRight) {
-    torch0.visible = false;
-    torch1.visible = false;
-  }
 }
 
 function desktopCam(parent) {
@@ -2524,10 +2558,13 @@ renderer.setAnimationLoop(() => {
   const now = performance.now();
   const dt = (now - last) / 1000;
   last = now;
-  if (dead) updateGoPanel();
-  else step(dt);
+  if (dead) {
+    updateGoPanel();
+    if (xrOn) pollXrButtons();
+  } else step(dt);
   if (xrOn) syncXrSeat();
   if (mode === "eva") {
+    setTorch(true);
     helm.visible = true;
     helm.intensity = xrOn ? 18 : 10;
     if (xrOn && renderer.xr.isPresenting) {
@@ -2555,6 +2592,7 @@ function applyLook(dx, dy) {
 }
 
 window.addEventListener("keydown", (e) => {
+  if (dead) { e.preventDefault(); if (goArmed) { goArmed = false; resetGame(); } return; }
   if (e.code === "Tab") e.preventDefault();
   keys.add(e.code);
   if (e.code === "KeyF" && !e.repeat) tryToggleEva();
@@ -2563,7 +2601,8 @@ window.addEventListener("keydown", (e) => {
 window.addEventListener("keyup", (e) => keys.delete(e.code));
 window.addEventListener("blur", () => keys.clear());
 window.addEventListener("mousedown", (e) => {
-  if (!running || dead) return;
+  if (dead) { if (goArmed) { goArmed = false; resetGame(); } return; }
+  if (!running) return;
   if (e.button === 0 && mode === "pilot") fire();
 });
 canvas.addEventListener("mousemove", (e) => {

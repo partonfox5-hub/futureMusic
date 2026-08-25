@@ -11,6 +11,7 @@ export const SHAPE_SPHERE = 3;
 export const FLAG_SPIKE = 1;
 export const FLAG_CROUCH = 2;
 export const FLAG_UNSTABLE = 4;
+export const FLAG_RUMBLE = 8;
 export const WALL_CRACK = 128;
 export const LIQ_NONE = 0;
 export const LIQ_WATER = 1;
@@ -106,6 +107,8 @@ export const ENEMIES = [
   bot("wisp", "Wisp bot", 0xccffe8, 0.75, "hover", "plasma", 7, 3.2, 9),
   bot("bull", "Bull", 0xaa2020, 1.55, "lunge", "melee", 24, 3.9, 17),
   bot("swarm", "Swarmling", 0x66ff88, 0.5, "strafe", "melee", 3, 5.4, 6),
+  { id: "minotaur", name: "Minotaur", robot: true, model: "minotaur", color: 0x6a3a18, size: 1.85, move: "charge", attack: "melee", hp: 46, spd: 1.15, dmg: 22, w: 1.8, h: 2.7 },
+  { id: "sentrydrone", name: "Sentry drone", robot: true, model: "drone", color: 0x4a6a78, size: 1.05, move: "weave", attack: "beam", hp: 18, spd: 3.4, dmg: 11, w: 1.2, h: 1.1 },
 ];
 
 export const OBJECTS = [
