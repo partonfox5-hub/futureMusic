@@ -50,6 +50,26 @@ export const KINDS = [
   { id: "door", name: "Door" },
   { id: "log", name: "Log" },
   { id: "base", name: "Base" },
+  { id: "bow", name: "Bow" },
+  { id: "roof", name: "Roof" },
+  { id: "dish", name: "Dish" },
+  { id: "macaroni", name: "Macaroni" },
+  { id: "pillar", name: "Pillar" },
+  { id: "wheel", name: "Wheel" },
+  { id: "invarch", name: "Inv. arch" },
+  { id: "panel", name: "Panel" },
+  { id: "fence", name: "Fence" },
+  { id: "windshield", name: "Windscreen" },
+  { id: "hinge", name: "Hinge" },
+  { id: "sidestud", name: "Headlight" },
+  { id: "technic", name: "Technic" },
+  { id: "clip", name: "Clip" },
+  { id: "antenna", name: "Antenna" },
+  { id: "bar", name: "Bar" },
+  { id: "bracket", name: "Bracket" },
+  { id: "leaf", name: "Leaf" },
+  { id: "flower", name: "Flower" },
+  { id: "wing", name: "Wing" },
   { id: "fig", name: "Fig" },
 ];
 
@@ -92,15 +112,34 @@ export function platesFor(kind, d = 2) {
     case "grille":
     case "base":
     case "cheese":
+    case "clip":
+    case "dish":
+    case "macaroni":
+    case "leaf":
+    case "flower":
+    case "wing":
+    case "bow":
       return 1;
     case "window":
+    case "panel":
+    case "antenna":
+    case "pillar":
       return 6;
     case "door":
       return 9;
     case "stairs":
       return Math.max(3, d);
     case "arch":
+    case "invarch":
+    case "fence":
+    case "windshield":
+    case "hinge":
+    case "roof":
       return 3;
+    case "bar":
+      return 8;
+    case "wheel":
+      return 2;
     case "fig":
       return 8;
     default:
@@ -127,15 +166,12 @@ export function brickMaterial(col) {
 }
 
 function studPositions(w, d, kind) {
-  if (kind === "tile" || kind === "grille" || kind === "slope" || kind === "invslope" || kind === "cheese" || kind === "cone" || kind === "arch" || kind === "window" || kind === "door") {
-    if (kind === "slope" || kind === "cone" || kind === "arch") return [];
+  const none = new Set(["tile", "grille", "slope", "invslope", "cheese", "cone", "arch", "window", "door", "bow", "roof", "windshield", "antenna", "leaf", "flower", "fence", "panel", "bar", "wheel", "invarch"]);
+  if (none.has(kind)) {
+    if (kind === "dish" || kind === "macaroni" || kind === "pillar") return [{ i: (w - 1) / 2, j: (d - 1) / 2 }];
+    if (kind === "slope" || kind === "cone" || kind === "arch" || kind === "bow" || kind === "roof" || kind === "windshield" || kind === "antenna" || kind === "leaf" || kind === "flower" || kind === "bar" || kind === "wheel") return [];
   }
-  if (kind === "jumper") return [{ i: (w - 1) / 2, j: (d - 1) / 2 }];
-  if (kind === "round" || kind === "cylinder") {
-    const out = [];
-    for (let i = 0; i < w; i++) for (let j = 0; j < d; j++) out.push({ i, j });
-    return out;
-  }
+  if (kind === "jumper" || kind === "dish" || kind === "macaroni" || kind === "pillar" || kind === "clip") return [{ i: (w - 1) / 2, j: (d - 1) / 2 }];
   const out = [];
   for (let i = 0; i < w; i++) for (let j = 0; j < d; j++) out.push({ i, j });
   return out;
@@ -213,15 +249,22 @@ function invWedgeGeo(w, h, d) {
 export function shapeSpec(dim, kindId) {
   const kind = kindId;
   let w = dim.w, d = dim.d;
-  if (kind === "cheese") { w = 1; d = 1; }
+  if (kind === "cheese" || kind === "macaroni" || kind === "leaf" || kind === "flower" || kind === "antenna" || kind === "bar" || kind === "clip") {
+    w = 1; d = 1;
+  }
   if (kind === "door") { w = Math.max(1, w); d = Math.max(2, Math.min(d, 4)); }
   if (kind === "window") { w = Math.max(1, w); d = Math.max(2, d); }
   if (kind === "stairs") { w = Math.max(4, w); d = Math.max(4, d); }
-  if (kind === "arch") { d = Math.max(3, d); w = Math.max(1, w); }
+  if (kind === "arch" || kind === "invarch") { d = Math.max(3, d); w = Math.max(1, w); }
   if (kind === "base") { w = Math.max(8, w); d = Math.max(8, d); }
-  if (kind === "cone" || kind === "round" || kind === "cylinder") {
+  if (kind === "cone" || kind === "round" || kind === "cylinder" || kind === "dish" || kind === "wheel" || kind === "pillar") {
     w = Math.max(1, w); d = w;
   }
+  if (kind === "bow") { w = 1; d = Math.max(3, d); }
+  if (kind === "fence") { w = 1; d = Math.max(4, d); }
+  if (kind === "windshield") { w = Math.max(2, w); d = Math.max(2, d); }
+  if (kind === "wing") { w = Math.max(2, w); d = Math.max(4, d); }
+  if (kind === "panel") { w = 1; d = Math.max(2, d); }
   const h = platesFor(kind, d);
   const studs = studPositions(w, d, kind);
   return { w, d, h, kind, studs, dimId: dim.id };
@@ -294,12 +337,107 @@ function buildGeometry(spec) {
       const z = (i + 0.5) * STUD - D / 2;
       geos.push(boxAt(W * 0.12, H, STUD * 0.2, 0, H / 2, z));
     }
+  } else if (k === "bow") {
+    const bow = new THREE.CylinderGeometry(D, D, W, 12, 1, false, 0, Math.PI / 2);
+    bow.rotateZ(Math.PI / 2);
+    bow.translate(0, 0, 0);
+    geos.push(bow);
+  } else if (k === "roof") {
+    geos.push(wedgeGeo(W, H * 1.35, D));
+  } else if (k === "dish") {
+    const dish = new THREE.SphereGeometry(W * 0.52, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.46);
+    dish.translate(0, H * 0.15, 0);
+    geos.push(dish);
+  } else if (k === "macaroni") {
+    const mac = new THREE.TorusGeometry(W * 0.42, W * 0.22, 8, 10, Math.PI / 2);
+    mac.rotateX(Math.PI / 2);
+    mac.translate(W * 0.2, H * 0.5, W * 0.2);
+    geos.push(mac);
+  } else if (k === "pillar") {
+    geos.push(cylAt(W * 0.38, H, 0, H / 2, 0, "y", 10));
+    geos.push(cylAt(W * 0.48, H * 0.12, 0, H * 0.06, 0, "y", 10));
+    geos.push(cylAt(W * 0.48, H * 0.12, 0, H - H * 0.06, 0, "y", 10));
+  } else if (k === "wheel") {
+    const tire = new THREE.CylinderGeometry(W * 0.48, W * 0.48, W * 0.38, 14);
+    tire.rotateZ(Math.PI / 2);
+    tire.translate(0, H * 0.5, 0);
+    geos.push(tire);
+    geos.push(cylAt(W * 0.16, W * 0.46, 0, H * 0.5, 0, "x", 8));
+  } else if (k === "invarch") {
+    const t = WALL * 2.2;
+    geos.push(boxAt(W, t * 1.4, D, 0, t * 0.7, 0));
+    geos.push(boxAt(W, H, t, 0, H / 2, -D / 2 + t / 2));
+    geos.push(boxAt(W, H, t, 0, H / 2, D / 2 - t / 2));
+  } else if (k === "panel") {
+    geos.push(boxAt(W * 0.28, H, D, 0, H / 2, 0));
+  } else if (k === "fence") {
+    const posts = Math.max(2, spec.d);
+    for (let i = 0; i < posts; i++) {
+      const z = (i / (posts - 1) - 0.5) * D;
+      geos.push(boxAt(W * 0.28, H, STUD * 0.22, 0, H / 2, z));
+    }
+    geos.push(boxAt(W * 0.18, STUD * 0.18, D, 0, H * 0.35, 0));
+    geos.push(boxAt(W * 0.18, STUD * 0.18, D, 0, H * 0.7, 0));
+  } else if (k === "windshield") {
+    const pane = boxAt(W, H * 0.16, D * 1.05, 0, H * 0.5, 0);
+    pane.rotateX(-0.55);
+    pane.translate(0, H * 0.2, 0);
+    geos.push(pane);
+    geos.push(boxAt(W, H * 0.18, D * 0.2, 0, H * 0.1, -D * 0.35));
+  } else if (k === "hinge") {
+    geos.push(boxAt(W, H * 0.55, D * 0.45, 0, H * 0.28, -D * 0.25));
+    geos.push(boxAt(W, H * 0.55, D * 0.45, 0, H * 0.72, D * 0.25));
+    geos.push(cylAt(STUD * 0.22, W * 0.9, 0, H * 0.5, 0, "x", 8));
+  } else if (k === "sidestud") {
+    geos.push(boxAt(W, H, D, 0, H / 2, 0));
+    geos.push(cylAt(STUD_R, STUD_H, 0, H / 2, D / 2 + STUD_H / 2, "z", 7));
+  } else if (k === "technic") {
+    geos.push(boxAt(W, H, D, 0, H / 2, 0));
+    const holes = Math.max(1, spec.d);
+    for (let i = 0; i < holes; i++) {
+      const z = (i + 0.5) * STUD - D / 2;
+      geos.push(cylAt(STUD * 0.22, W * 1.05, 0, H * 0.5, z, "x", 8));
+    }
+  } else if (k === "clip") {
+    geos.push(boxAt(W, H, D, 0, H / 2, 0));
+    geos.push(boxAt(W * 0.22, H * 1.6, D * 0.22, -W * 0.35, H * 1.1, 0));
+    geos.push(boxAt(W * 0.22, H * 1.6, D * 0.22, W * 0.35, H * 1.1, 0));
+    geos.push(boxAt(W * 0.9, H * 0.22, D * 0.22, 0, H * 1.85, 0));
+  } else if (k === "antenna") {
+    geos.push(boxAt(W, PLATE, D, 0, PLATE / 2, 0));
+    geos.push(cylAt(STUD * 0.08, H, 0, H / 2, 0, "y", 6));
+  } else if (k === "bar") {
+    geos.push(cylAt(STUD * 0.12, H, 0, H / 2, 0, "y", 6));
+  } else if (k === "bracket") {
+    geos.push(boxAt(W, H * 0.4, D, 0, H * 0.2, 0));
+    geos.push(boxAt(W, H, D * 0.35, 0, H / 2, -D / 2 + D * 0.18));
+  } else if (k === "leaf") {
+    const leaf = new THREE.SphereGeometry(W * 0.7, 8, 6);
+    leaf.scale(1.4, 0.18, 0.7);
+    leaf.translate(0, H * 0.4, D * 0.15);
+    geos.push(leaf);
+    geos.push(cylAt(STUD * 0.08, H * 0.8, 0, H * 0.4, 0, "y", 5));
+  } else if (k === "flower") {
+    geos.push(cylAt(STUD * 0.08, H * 1.4, 0, H * 0.7, 0, "y", 5));
+    for (let i = 0; i < 5; i++) {
+      const a = (i / 5) * Math.PI * 2;
+      const petal = new THREE.SphereGeometry(STUD * 0.28, 6, 5);
+      petal.translate(Math.cos(a) * STUD * 0.38, H * 1.35, Math.sin(a) * STUD * 0.38);
+      geos.push(petal);
+    }
+    const bud = new THREE.SphereGeometry(STUD * 0.22, 6, 5);
+    bud.translate(0, H * 1.35, 0);
+    geos.push(bud);
+  } else if (k === "wing") {
+    geos.push(wedgeGeo(W, H * 0.7, D));
+    geos.push(boxAt(W * 0.4, H, D * 0.25, 0, H / 2, -D / 2 + D * 0.12));
   } else {
     geos.push(boxAt(W, H, D, 0, H / 2, 0));
   }
 
+  const noStud = new Set(["tile", "grille", "slope", "invslope", "cheese", "cone", "arch", "window", "door", "bow", "roof", "windshield", "antenna", "leaf", "flower", "fence", "panel", "bar", "wheel", "invarch", "technic"]);
   const manyStuds = spec.studs.length > 64;
-  if (!manyStuds && k !== "tile" && k !== "grille" && k !== "slope" && k !== "invslope" && k !== "cheese" && k !== "cone" && k !== "arch" && k !== "window" && k !== "door") {
+  if (!manyStuds && !noStud.has(k)) {
     for (const s of spec.studs) {
       const x = (s.i + 0.5) * STUD - W / 2;
       const z = (s.j + 0.5) * STUD - D / 2;

@@ -4,10 +4,11 @@ import {
   STUD, PLATE, COLORS, KINDS, DIMS,
   colorOf, dimOf, kindOf, shapeSpec, makeBrickMesh,
   rotatedDims, gridToLocal, localToGrid, cellsOf, randomSpec, platesFor,
-} from "./bricks.js?v=bb10";
+} from "./bricks.js?v=bb11";
 import {
-  FIG_HEADS, FIG_TORSOS, FIG_LEGS, defaultFigConfig, makeFig, tickFig,
-} from "./figs.js?v=bb10";
+  FIG_HEADS, FIG_TORSOS, FIG_LEGS, FIG_PRESETS, defaultFigConfig, makeFig, tickFig,
+  figFromPreset, presetOf,
+} from "./figs.js?v=bb11";
 
 const canvas = document.getElementById("c");
 const hudEl = document.getElementById("hud");
@@ -263,8 +264,9 @@ function catalogThumbTex(kindId, hex) {
   }
   while (_thumbHold.children.length) _thumbHold.remove(_thumbHold.children[0]);
   let mesh;
-  if (kindId === "fig") {
-    mesh = makeFig(defaultFigConfig());
+  if (kindId === "fig" || kindId.startsWith("fig:")) {
+    const cfg = kindId.startsWith("fig:") ? figFromPreset(kindId.slice(4)) : defaultFigConfig();
+    mesh = makeFig(cfg);
     mesh.scale.setScalar(1.8);
   } else {
     const dim = DIMS.find((d) => d.id === "2x4") || DIMS[8];
@@ -498,14 +500,94 @@ function attachPalette() {
 attachPalette();
 
 const laser = new THREE.Line(
-  new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, -0.55)]),
-  new THREE.LineBasicMaterial({ color: 0x2a2a30, transparent: true, opacity: 0.45 }),
+  new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, -2.25)]),
+  new THREE.LineBasicMaterial({ color: 0x2a2a30, transparent: true, opacity: 0.55 }),
 );
 function attachLaser() {
   const c = paletteHand === 0 ? ctrl[1] : ctrl[0];
   c.add(laser);
 }
 attachLaser();
+
+function makeMenuReticle() {
+  const g = new THREE.Group();
+  const rim = new THREE.Mesh(
+    new THREE.RingGeometry(0.011, 0.0145, 28),
+    new THREE.MeshBasicMaterial({ color: 0x1a1d24, side: THREE.DoubleSide, depthTest: false, depthWrite: false }),
+  );
+  const ring = new THREE.Mesh(
+    new THREE.RingGeometry(0.0072, 0.0112, 28),
+    new THREE.MeshBasicMaterial({ color: 0xf4efe4, side: THREE.DoubleSide, depthTest: false, depthWrite: false }),
+  );
+  const core = new THREE.Mesh(
+    new THREE.RingGeometry(0.0018, 0.0042, 20),
+    new THREE.MeshBasicMaterial({ color: 0xe6b35c, side: THREE.DoubleSide, depthTest: false, depthWrite: false }),
+  );
+  rim.renderOrder = 23;
+  ring.renderOrder = 24;
+  core.renderOrder = 25;
+  g.add(rim, ring, core);
+  g.visible = false;
+  scene.add(g);
+  return g;
+}
+const menuReticle = makeMenuReticle();
+let hoverUiMesh = null;
+let hoverUiColor = 0;
+
+function clearUiHover() {
+  if (hoverUiMesh?.material?.color && hoverUiColor != null) {
+    hoverUiMesh.material.color.setHex(hoverUiColor);
+  }
+  hoverUiMesh = null;
+}
+function setUiHover(obj) {
+  if (obj === hoverUiMesh) return;
+  clearUiHover();
+  if (!obj?.material?.color) return;
+  const u = obj.userData || {};
+  if (!(u.catKind || u.catFig || u.catBeacon || u.catTab != null || u.catDim != null || u.menu)) return;
+  hoverUiMesh = obj;
+  hoverUiColor = obj.material.color.getHex();
+  obj.material.color.setHex(0x7ec8ee);
+}
+function menuAimObjects() {
+  const objs = [];
+  if (catalog.root.visible) objs.push(...catalog.hits);
+  if (hexPicker.root.visible) objs.push(...hexPicker.hits);
+  if (menuOpen && vrMenu.root.visible) objs.push(...vrMenu.hits);
+  return objs;
+}
+function anyMenuVisible() {
+  return catalog.root.visible || hexPicker.root.visible || (menuOpen && vrMenu.root.visible);
+}
+function updateMenuAim(origin, dir) {
+  const objs = menuAimObjects();
+  if (!objs.length) {
+    menuReticle.visible = false;
+    clearUiHover();
+    return;
+  }
+  _ray.set(origin, dir);
+  _ray.far = 3.4;
+  const hits = _ray.intersectObjects(objs, false);
+  const h = hits[0];
+  if (!h) {
+    menuReticle.visible = false;
+    clearUiHover();
+    return;
+  }
+  menuReticle.visible = true;
+  menuReticle.position.copy(h.point).addScaledVector(dir, -0.008);
+  menuReticle.lookAt(origin);
+  setUiHover(h.object);
+}
+function pokeAnyMenu(origin, dir) {
+  if (menuOpen && vrMenu.root.visible && pokeVrMenu(origin, dir)) return true;
+  if (pokeUi(origin, dir)) return true;
+  if (pokePalette(origin, dir)) return true;
+  return false;
+}
 
 const flame = new THREE.Group();
 for (let i = 0; i < 16; i++) {
@@ -544,11 +626,11 @@ function rebuildGhost() {
     ghost = null;
   }
   if (handMode === "hands") return;
-  if (handMode === "beacon") ghost = makeBeaconMesh(beaconKind, true);
+  if (handMode === "beacon") ghost = makeBeaconMesh(beaconKind, true, beaconHalfStuds(), pieceScale);
   else if (handMode === "fig") ghost = makeFig(figCfg, true);
   else ghost = makeBrickMesh(currentSpec(), currentCol(), true);
   if (ghost) {
-    ghost.scale.setScalar(pieceScale);
+    if (handMode !== "beacon") ghost.scale.setScalar(pieceScale);
     if (ghost.userData) ghost.userData.baseScale = pieceScale;
     buildRoot.add(ghost);
   }
@@ -562,7 +644,7 @@ function setHud() {
   const mode = handMode === "brick"
     ? `${c} · ${d} ${k}`
     : handMode === "fig"
-      ? `Fig · ${FIG_HEADS[figCfg.head].name}`
+      ? `Fig · ${presetOf(figCfg)?.name || FIG_HEADS[figCfg.head % FIG_HEADS.length].name}`
       : handMode === "beacon"
         ? `Beacon · ${beaconKind}`
         : "Empty-handed";
@@ -724,7 +806,15 @@ function snapPose(localPos, spec, rotQ) {
   const gz = Math.round(localPos.z / STUD - bd / 2);
   let gy = Math.round(localPos.y / PLATE);
   const sup = supportY(gx, gz, bw, bd);
-  if (sup != null && localPos.y < sup * PLATE + PLATE * 10) gy = sup;
+  const snapH = PLATE * 2.5 * Math.max(1, Math.sqrt(pieceScale));
+  let nearSupport = false;
+  if (sup != null) {
+    const supY = sup * PLATE;
+    if (localPos.y <= supY + snapH) {
+      gy = sup;
+      nearSupport = true;
+    }
+  }
   gy = Math.max(0, gy);
   if (collides(gx, gy, gz, spec, rotQ)) {
     for (let lift = 1; lift <= 6; lift++) {
@@ -736,7 +826,8 @@ function snapPose(localPos, spec, rotQ) {
   }
   const p = gridToLocal(gx, gy, gz, spec, rotQ);
   const dist = p.distanceTo(localPos);
-  const joined = dist < STUD * 1.35;
+  const joinDist = STUD * 1.8 * Math.max(1, Math.min(pieceScale, 2.2));
+  const joined = nearSupport && dist < joinDist;
   return { gx, gy, gz, rot: rotQ, spec, pos: p, joined, dist };
 }
 
@@ -948,9 +1039,51 @@ function roomAt(gx, gz) {
   };
 }
 
-function makeBeaconMesh(kind, ghost = false) {
+function beaconHalfStuds() {
+  const dim = DIMS[dimI];
+  return Math.max(3, Math.round(Math.max(dim.w, dim.d) * pieceScale * 2));
+}
+
+function roomFromFlag(gx, gz, half, type) {
+  const xmin = (gx - half) * STUD;
+  const xmax = (gx + half) * STUD;
+  const zmin = (gz - half) * STUD;
+  const zmax = (gz + half) * STUD;
+  return { xmin, xmax, zmin, zmax, gx, gz, type, half };
+}
+
+function addRoomSquare(g, halfStuds, col, ghost) {
+  const half = halfStuds * STUD;
+  const side = half * 2;
+  const pts = [
+    new THREE.Vector3(-half, 0.004, -half),
+    new THREE.Vector3(half, 0.004, -half),
+    new THREE.Vector3(half, 0.004, half),
+    new THREE.Vector3(-half, 0.004, half),
+  ];
+  const sq = new THREE.LineLoop(
+    new THREE.BufferGeometry().setFromPoints(pts),
+    new THREE.LineBasicMaterial({ color: col, transparent: true, opacity: ghost ? 0.95 : 0.8 }),
+  );
+  const plane = new THREE.Mesh(
+    new THREE.PlaneGeometry(side, side),
+    new THREE.MeshBasicMaterial({
+      color: col,
+      transparent: true,
+      opacity: ghost ? 0.22 : 0.12,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+    }),
+  );
+  plane.rotation.x = -Math.PI / 2;
+  plane.position.y = 0.002;
+  g.add(sq, plane);
+}
+
+function makeBeaconMesh(kind, ghost = false, halfStuds = 0, bodyScale = 1) {
   const def = BEACONS.find((b) => b.id === kind) || BEACONS[0];
   const g = new THREE.Group();
+  const body = new THREE.Group();
   const pole = new THREE.Mesh(new THREE.CylinderGeometry(STUD * 0.12, STUD * 0.14, STUD * 3.2, 8), new THREE.MeshLambertMaterial({ color: 0xeeeeee }));
   pole.position.y = STUD * 1.6;
   const lamp = new THREE.Mesh(new THREE.SphereGeometry(STUD * 0.45, 10, 8), new THREE.MeshBasicMaterial({ color: def.col }));
@@ -960,41 +1093,41 @@ function makeBeaconMesh(kind, ghost = false) {
     new THREE.MeshBasicMaterial({ map: labelTex(def.name, 220, 80), side: THREE.DoubleSide, depthTest: false }),
   );
   flag.position.set(STUD * 1.1, STUD * 2.6, 0);
-  g.add(pole, lamp, flag);
+  body.add(pole, lamp, flag);
+  body.scale.setScalar(bodyScale);
+  g.add(body);
+  if (halfStuds > 0) addRoomSquare(g, halfStuds, def.col, ghost);
   if (ghost) {
     g.traverse((o) => {
       if (o.material) {
         o.material = o.material.clone();
         o.material.transparent = true;
-        o.material.opacity = 0.55;
+        o.material.opacity = Math.min(o.material.opacity ?? 1, 0.55);
       }
     });
   }
   g.userData.kind = "beacon";
   g.userData.beacon = def.id;
+  g.userData.half = halfStuds;
   return g;
 }
 
 function placeBeacon(localPos) {
   const gx = Math.round(localPos.x / STUD);
   const gz = Math.round(localPos.z / STUD);
-  const room = roomAt(gx, gz);
-  if (!room) {
-    hudHint.textContent = "Need four connected walls (up to 30% gaps) to plant a room beacon.";
-    return false;
-  }
-  const mesh = makeBeaconMesh(beaconKind);
+  const half = beaconHalfStuds();
+  const room = roomFromFlag(gx, gz, half, beaconKind);
+  const mesh = makeBeaconMesh(beaconKind, false, half, pieceScale);
   mesh.position.set(gx * STUD, heightAt(gx * STUD, gz * STUD), gz * STUD);
   buildRoot.add(mesh);
-  room.type = beaconKind;
   beacons.push({
     type: beaconKind,
     mesh,
-    gx, gz,
+    gx, gz, half,
     xmin: room.xmin, xmax: room.xmax, zmin: room.zmin, zmax: room.zmax,
     room,
   });
-  hudHint.textContent = beaconKind + " beacon set — figs will visit this room.";
+  hudHint.textContent = beaconKind + " flag set — square is the room figs will use. Size/dimension grows the radius.";
   return true;
 }
 
@@ -1006,12 +1139,21 @@ function placeFromLocal(localPos, yaw) {
   }
   if (handMode === "fig" || KINDS[kindI].id === "fig") {
     addFigAt(pushOutFromPlayer(localPos.clone(), { w: 2, d: 2 }), yaw);
-    hudHint.textContent = "Fig placed — they wander and climb stairs.";
+    hudHint.textContent = "Fig placed — they wander rooms and climb stairs.";
     return;
   }
   const spec = currentSpec();
-  const snap = snapPose(pushOutFromPlayer(localPos.clone(), spec), spec, rot);
-  addBrick(spec, currentCol(), snap.gx, snap.gy, snap.gz, snap.rot, !snap.joined && !gravityOn);
+  const local = pushOutFromPlayer(localPos.clone(), spec);
+  const snap = snapPose(local, spec, rot);
+  if (snap.joined) {
+    addBrick(spec, currentCol(), snap.gx, snap.gy, snap.gz, snap.rot, false);
+  } else {
+    const b = addBrick(spec, currentCol(), snap.gx, snap.gy, snap.gz, snap.rot, true);
+    if (b) {
+      b.group.position.copy(local);
+      if (gravityOn) b.vel.set(0, -0.04, 0);
+    }
+  }
 }
 
 function spawnPile() {
@@ -1104,12 +1246,18 @@ function dropHeld(snapJoin) {
   if (snapJoin) {
     const snap = snapPose(lp, spec, held.rot);
     held.gx = snap.gx; held.gy = snap.gy; held.gz = snap.gz; held.rot = snap.rot;
-    held.group.position.copy(snap.pos);
     held.group.rotation.y = snap.rot * Math.PI / 2;
     held.held = false;
-    held.loose = !snap.joined;
-    held.vel.set(0, 0, 0);
-    if (snap.joined) connectNew(held);
+    if (snap.joined) {
+      held.group.position.copy(snap.pos);
+      held.loose = false;
+      held.vel.set(0, 0, 0);
+      connectNew(held);
+    } else {
+      held.group.position.copy(lp);
+      held.loose = true;
+      held.vel.set(0, gravityOn ? -0.04 : 0, 0);
+    }
   } else {
     held.held = false;
     held.loose = true;
@@ -1340,7 +1488,8 @@ function nearestSizeStep(s) {
 function applyPieceScale(s) {
   pieceScale = s;
   sizeStepI = nearestSizeStep(s);
-  if (ghost) {
+  if (handMode === "beacon") rebuildGhost();
+  else if (ghost) {
     ghost.scale.setScalar(pieceScale);
     if (ghost.userData) ghost.userData.baseScale = pieceScale;
   }
@@ -1517,14 +1666,6 @@ function updateGhost() {
     local.y = heightAt(local.x, local.z);
     ghost.position.copy(local);
     ghost.rotation.y = yaw;
-    const gx = Math.round(local.x / STUD);
-    const gz = Math.round(local.z / STUD);
-    const ok = !!roomAt(gx, gz);
-    ghost.traverse((o) => {
-      if (o.material && o.material.color && o.geometry?.type === "SphereGeometry") {
-        o.material.color.setHex(ok ? 0x44ee66 : 0xee3344);
-      }
-    });
   } else if (handMode === "fig" || KINDS[kindI].id === "fig") {
     local = pushOutFromPlayer(local, { w: 2, d: 2 });
     local.y = heightAt(local.x, local.z);
@@ -1534,10 +1675,10 @@ function updateGhost() {
   } else {
     local = pushOutFromPlayer(local, currentSpec());
     const snap = snapPose(local, currentSpec(), rot);
-    ghost.position.copy(snap.pos);
+    ghost.position.copy(snap.joined ? snap.pos : local);
     ghost.rotation.y = rot * Math.PI / 2;
     ghost.scale.setScalar(pieceScale);
-    ghost.material && (ghost.material.opacity = snap.joined ? 0.72 : 0.35);
+    ghost.material && (ghost.material.opacity = snap.joined ? 0.72 : 0.38);
     if (ghost.material) ghost.material.color.setHex(snap.joined ? currentCol().hex : 0x9ee7ff);
   }
 }
@@ -1567,11 +1708,12 @@ function cycleHandMode() {
 }
 
 const KIND_TABS = [
-  { id: "basic", name: "Basic", kinds: ["brick", "plate", "tile"] },
-  { id: "slopes", name: "Slopes", kinds: ["slope", "invslope", "cheese", "wedge"] },
-  { id: "round", name: "Round", kinds: ["round", "cone", "cylinder"] },
-  { id: "build", name: "Build", kinds: ["arch", "stairs", "jumper", "grille", "corner", "window", "door", "log", "base"] },
-  { id: "fig", name: "Figs", kinds: ["fig"] },
+  { id: "basic", name: "Basic", kinds: ["brick", "plate", "tile", "jumper", "grille"] },
+  { id: "slopes", name: "Slopes", kinds: ["slope", "invslope", "cheese", "wedge", "bow", "roof", "windshield"] },
+  { id: "round", name: "Round", kinds: ["round", "cone", "cylinder", "dish", "macaroni", "pillar", "wheel"] },
+  { id: "build", name: "Build", kinds: ["arch", "invarch", "stairs", "corner", "window", "door", "log", "base", "panel", "fence", "hinge"] },
+  { id: "parts", name: "Parts", kinds: ["sidestud", "technic", "clip", "antenna", "bar", "bracket", "leaf", "flower", "wing"] },
+  { id: "fig", name: "Figs", kinds: [], figs: true },
   { id: "rooms", name: "Rooms", kinds: [], beacons: true },
 ];
 let catalogTab = 0;
@@ -1594,25 +1736,35 @@ function makeCatalog() {
   const root = new THREE.Group();
   root.visible = false;
   root.frustumCulled = false;
-  const frame = new THREE.Mesh(new THREE.PlaneGeometry(0.82, 0.86), uiMat(null, 0xe6b35c));
+  const frame = new THREE.Mesh(new THREE.PlaneGeometry(0.94, 0.98), uiMat(null, 0xe6b35c));
   frame.position.z = -0.004;
-  const board = new THREE.Mesh(new THREE.PlaneGeometry(0.78, 0.82), uiMat(null, 0x4d5d73));
+  const board = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 0.94), uiMat(null, 0x4d5d73));
   board.position.z = 0;
   const title = new THREE.Mesh(new THREE.PlaneGeometry(0.42, 0.05), uiMat(labelTex("PIECE CATALOG", 320, 48)));
-  title.position.set(0, 0.365, 0.012);
+  title.position.set(0, 0.43, 0.012);
   title.renderOrder = 8;
   root.add(frame, board, title);
   const hits = [];
   KIND_TABS.forEach((tab, i) => {
-    const pl = new THREE.Mesh(new THREE.PlaneGeometry(0.115, 0.048), uiMat(labelTex(tab.name, 220, 64)));
-    pl.position.set(-0.28 + i * 0.115, 0.3, 0.012);
+    const pl = new THREE.Mesh(new THREE.PlaneGeometry(0.118, 0.044), uiMat(labelTex(tab.name, 220, 64)));
+    pl.position.set(-0.36 + i * 0.12, 0.365, 0.012);
     pl.renderOrder = 8;
     pl.userData.catTab = i;
     root.add(pl);
     hits.push(pl);
   });
+  DIMS.forEach((d, i) => {
+    const pl = new THREE.Mesh(new THREE.PlaneGeometry(0.052, 0.028), uiMat(labelTex(d.id, 120, 48)));
+    pl.position.set(-0.38 + i * 0.054, 0.318, 0.012);
+    pl.renderOrder = 8;
+    pl.userData.catDim = i;
+    root.add(pl);
+    hits.push(pl);
+  });
+  hits.push(board);
   const items = [];
   function fill() {
+    clearUiHover();
     while (items.length) {
       const m = items.pop();
       m.traverse((o) => {
@@ -1622,27 +1774,40 @@ function makeCatalog() {
       m.parent?.remove(m);
     }
     const tab = KIND_TABS[catalogTab];
-    const list = tab.beacons ? BEACONS.map((b) => ({ id: "beacon:" + b.id, name: b.name })) : tab.kinds.map((id) => {
-      const k = KINDS.find((x) => x.id === id);
-      return { id, name: k ? k.name : id };
-    });
+    let list;
+    if (tab.beacons) list = BEACONS.map((b) => ({ id: "beacon:" + b.id, name: b.name }));
+    else if (tab.figs) list = FIG_PRESETS.map((p) => ({ id: "fig:" + p.id, name: p.name }));
+    else {
+      list = tab.kinds.map((id) => {
+        const k = KINDS.find((x) => x.id === id);
+        return { id, name: k ? k.name : id };
+      });
+    }
+    const cols = list.length > 10 ? 3 : 2;
+    const cellW = cols === 3 ? 0.28 : 0.4;
+    const cellH = list.length > 12 ? 0.086 : 0.115;
     list.forEach((it, i) => {
       const wrap = new THREE.Group();
-      const bg = new THREE.Mesh(new THREE.PlaneGeometry(0.34, 0.12), uiMat(null, 0x243044));
+      const bg = new THREE.Mesh(new THREE.PlaneGeometry(cellW - 0.02, cellH - 0.008), uiMat(null, 0x243044));
       const beacon = BEACONS.find((b) => "beacon:" + b.id === it.id);
+      const thumbS = Math.min(0.09, cellH - 0.012);
       const thumb = new THREE.Mesh(
-        new THREE.PlaneGeometry(0.1, 0.1),
+        new THREE.PlaneGeometry(thumbS, thumbS),
         uiMat(catalogThumbTex(it.id, beacon?.col)),
       );
-      thumb.position.set(-0.105, 0, 0.003);
-      const pl = new THREE.Mesh(new THREE.PlaneGeometry(0.2, 0.1), uiMat(labelTex(it.name, 260, 80)));
-      pl.position.set(0.07, 0, 0.003);
+      thumb.position.set(-cellW * 0.32, 0, 0.003);
+      const pl = new THREE.Mesh(new THREE.PlaneGeometry(cellW * 0.55, cellH - 0.016), uiMat(labelTex(it.name, 260, 80)));
+      pl.position.set(cellW * 0.14, 0, 0.003);
       wrap.add(bg, thumb, pl);
-      wrap.position.set(-0.17 + (i % 2) * 0.35, 0.16 - Math.floor(i / 2) * 0.13, 0.012);
+      const col = i % cols;
+      const row = Math.floor(i / cols);
+      wrap.position.set(-0.3 + col * (0.9 / cols), 0.255 - row * cellH, 0.012);
       wrap.renderOrder = 8;
       const tag = it.id.startsWith("beacon:")
         ? { catBeacon: it.id.slice(7) }
-        : { catKind: it.id };
+        : it.id.startsWith("fig:")
+          ? { catFig: it.id.slice(4) }
+          : { catKind: it.id };
       Object.assign(pl.userData, tag);
       Object.assign(bg.userData, tag);
       Object.assign(thumb.userData, tag);
@@ -1829,13 +1994,31 @@ function pokeUi(origin, dir) {
       catalog.fill();
       return true;
     }
+    if (obj?.userData?.catDim != null) {
+      dimI = obj.userData.catDim;
+      rebuildGhost();
+      setHud();
+      hudHint.textContent = "Dimension " + DIMS[dimI].id + (handMode === "beacon" ? " — room square grew with the flag." : "");
+      return true;
+    }
     if (obj?.userData?.catBeacon) {
       beaconKind = obj.userData.catBeacon;
       handMode = "beacon";
       catalog.root.visible = false;
       rebuildGhost();
       setHud();
-      hudHint.textContent = "Beacon: " + beaconKind + " — place in a 4-wall room (up to 30% gaps).";
+      hudHint.textContent = "Room flag: " + beaconKind + " — plant anywhere. Y / dimension grows the square.";
+      return true;
+    }
+    if (obj?.userData?.catFig) {
+      figCfg = figFromPreset(obj.userData.catFig);
+      kindI = KINDS.findIndex((k) => k.id === "fig");
+      if (kindI < 0) kindI = 0;
+      handMode = "fig";
+      catalog.root.visible = false;
+      rebuildGhost();
+      setHud();
+      hudHint.textContent = "Fig: " + (presetOf(figCfg)?.name || obj.userData.catFig);
       return true;
     }
     if (obj?.userData?.catKind) {
@@ -1883,7 +2066,7 @@ function saveSlot(n) {
       x: f.position.x, y: f.position.y, z: f.position.z, yaw: f.rotation.y,
     })),
     beacons: beacons.map((b) => ({
-      type: b.type, gx: b.gx, gz: b.gz,
+      type: b.type, gx: b.gx, gz: b.gz, half: b.half,
       xmin: b.xmin, xmax: b.xmax, zmin: b.zmin, zmax: b.zmax,
     })),
   };
@@ -1921,13 +2104,22 @@ function loadSlot(n) {
   pieceScale = keepScale;
   for (const b of data.beacons || []) {
     beaconKind = b.type || "kitchen";
-    const mesh = makeBeaconMesh(beaconKind);
-    mesh.position.set((b.gx || 0) * STUD, heightAt((b.gx || 0) * STUD, (b.gz || 0) * STUD), (b.gz || 0) * STUD);
+    let half = b.half;
+    if (half == null && b.xmin != null && b.xmax != null) {
+      half = Math.max(3, Math.round(((b.xmax - b.xmin) / STUD) / 2));
+    }
+    if (half == null) half = 8;
+    const gx = b.gx || 0, gz = b.gz || 0;
+    const room = b.xmin != null
+      ? { xmin: b.xmin, xmax: b.xmax, zmin: b.zmin, zmax: b.zmax, type: beaconKind, half }
+      : roomFromFlag(gx, gz, half, beaconKind);
+    const mesh = makeBeaconMesh(beaconKind, false, half, 1);
+    mesh.position.set(gx * STUD, heightAt(gx * STUD, gz * STUD), gz * STUD);
     buildRoot.add(mesh);
     beacons.push({
-      type: beaconKind, mesh, gx: b.gx, gz: b.gz,
-      xmin: b.xmin, xmax: b.xmax, zmin: b.zmin, zmax: b.zmax,
-      room: { xmin: b.xmin, xmax: b.xmax, zmin: b.zmin, zmax: b.zmax, type: beaconKind },
+      type: beaconKind, mesh, gx, gz, half,
+      xmin: room.xmin, xmax: room.xmax, zmin: room.zmin, zmax: room.zmax,
+      room,
     });
   }
   figCfg = defaultFigConfig();
@@ -1992,6 +2184,8 @@ function onMenuPick(id) {
 
 function openMenu() {
   menuOpen = true;
+  catalog.root.visible = false;
+  hexPicker.root.visible = false;
   if (renderer.xr.isPresenting) {
     camera.getWorldPosition(_v);
     camera.getWorldDirection(_v2);
@@ -2100,14 +2294,18 @@ function loop(t) {
       if (!trig && !gripB) sliderGrab = false;
     }
 
+    updateMenuAim(aimO, aimD);
+
     if (menuOpen) {
-      if (trig && !pressed.t1) pokeVrMenu(aimO, aimD);
+      if ((trig && !pressed.t1) || (aBtn && !pressed.a)) pokeVrMenu(aimO, aimD);
     } else {
       if (aBtn && !pressed.a) {
-        if (pokeUi(aimO, aimD) || (menuOpen && pokeVrMenu(aimO, aimD)) || pokePalette(aimO, aimD)) {
-          /* A confirms whatever the laser is on */
+        if (pokeAnyMenu(aimO, aimD)) {
+          /* A presses the menu button under the reticle */
         } else if (hexPicker.root.visible) {
           hexPicker.root.visible = false;
+        } else if (catalog.root.visible) {
+          /* miss on catalog — stay in the catalog */
         } else {
           spawnWorldPanel(hexPicker.root, 0.7);
         }
@@ -2122,8 +2320,10 @@ function loop(t) {
       if (trig && !pressed.t1) {
         if (sliderGrab || sliderNear) {
           /* dragging size */
-        } else if (pokeUi(aimO, aimD)) {
-          /* picked */
+        } else if (pokeAnyMenu(aimO, aimD)) {
+          /* trigger presses the same menu buttons as A */
+        } else if (anyMenuVisible()) {
+          /* don't place through an open panel */
         } else if (lTrig && paletteHand === 1) {
           /* left trigger is cannon when swapped onto the build hand */
         } else if (handMode === "hands" || held) {
@@ -2196,6 +2396,12 @@ function loop(t) {
       } else placeFromLocal(lp, lookYaw);
     }
     pressed.t1 = mouse.down;
+  }
+
+  if (!xr) {
+    camera.getWorldPosition(_v);
+    camera.getWorldDirection(_v2);
+    updateMenuAim(_v.clone(), _v2.clone());
   }
 
   updateGhost();
@@ -2316,10 +2522,16 @@ setHud();
   put("2x8", "plate", "green", -6, 2);
   put("6x6", "stairs", "tan", 4, 4);
   put("2x4", "slope", "orange", -8, 4, 1);
-  figCfg = { head: 0, torso: 0, legs: 0 };
+  put("1x4", "bow", "azur", -4, 6);
+  put("2x2", "dish", "white", 6, -6);
+  put("1x4", "fence", "brown", 8, 0);
+  put("1x1", "flower", "pink", -2, 8);
+  figCfg = figFromPreset("surfer");
   addFigAt(new THREE.Vector3(0.05, 0, 0.06), 0.4);
-  figCfg = { head: 2, torso: 3, legs: 1 };
+  figCfg = figFromPreset("fireman");
   addFigAt(new THREE.Vector3(-0.04, 0, 0.03), -0.6);
+  figCfg = figFromPreset("doctor");
+  addFigAt(new THREE.Vector3(0.02, 0, -0.05), 1.1);
   figCfg = defaultFigConfig();
 })();
 
