@@ -320,7 +320,7 @@ function heightAt(x, z, y) {
   for (const p of hexes) {
     if (!inHex(x, z, p)) continue;
     if (p.float) {
-      if (y == null || (y >= p.top - 1.55 && y <= p.top + 0.55)) h = Math.max(h, p.top);
+      if (y != null && y >= p.top - 0.45 && y <= p.top + 0.55) h = Math.max(h, p.top);
     } else {
       h = Math.max(h, p.top);
     }
@@ -1370,7 +1370,7 @@ function lookFlat() {
   lastFwdX = tmp.x;
   lastFwdZ = tmp.z;
   tmp2.set(-tmp.z, 0, tmp.x);
-  yaw = Math.atan2(-tmp.x, -tmp.z);
+  if (!xrOn) yaw = Math.atan2(-tmp.x, -tmp.z);
   return tmp;
 }
 
@@ -1712,6 +1712,7 @@ function resetRun() {
   flagGen = 0;
   sprintBuys = 0;
   cryT = 0;
+  hexSpawnCd = 0;
   owned = new Set(["pistol"]);
   stats = { speed: 1, jump: 1, maxHp: MAX_HP0, reload: 1, magnet: 2.4, jumps: 1, sprint: 0, sprintCd: 10, sprintMul: 1, wheelie: 0 };
   player = { x: 0, y: 1.6, z: 0, vx: 0, vy: 0, vz: 0, hp: MAX_HP0, grounded: true, coins: 0, ammo: 48, mag: 12, wep: "pistol", tank: false, jumpsLeft: 1, sprinting: false, sprintT: 0, sprintCdT: 0, mom: 0, pounding: false, bike: false };
@@ -1741,6 +1742,8 @@ function startRun() {
   spawnWave();
   placeFlag();
   for (let i = 0; i < 4; i++) spawnHexCluster();
+  player.y = hillsAt(player.x, player.z) + 1.6;
+  player.grounded = true;
   if (!xrOn) controls.lock();
 }
 
@@ -2031,7 +2034,12 @@ function hexMats() {
   hexTopMat = new THREE.MeshLambertMaterial({ color: 0xc4d4a0 });
 }
 
+function hexClearance(x, z, r) {
+  return Math.hypot(x - player.x, z - player.z) - (r || 0);
+}
+
 function addHex(x, z, r, steps, float) {
+  if (hexClearance(x, z, r) < 14) return null;
   hexMats();
   const base = hillsAt(x, z);
   const rise = steps * JUMP1;
@@ -2053,30 +2061,38 @@ function addHex(x, z, r, steps, float) {
   return p;
 }
 
+let hexSpawnCd = 0;
 function spawnHexCluster() {
-  const ang = rng() * Math.PI * 2;
-  const dist = 16 + rng() * 42;
-  const cx = player.x + Math.cos(ang) * dist;
-  const cz = player.z + Math.sin(ang) * dist;
-  const r = 3.2 + rng() * 2.4;
-  const roll = rng();
-  if (roll < 0.12) {
-    addHex(cx, cz, r * 0.85, 2 + ((rng() * 2) | 0), true);
-    if (rng() < 0.4) addHex(cx + r * 1.8, cz + r * 0.4, r * 0.7, 3, true);
-  } else if (roll < 0.42) {
-    const dirx = Math.cos(ang + 1.2), dirz = Math.sin(ang + 1.2);
-    const steps = [1, 2, 3, 3];
-    for (let i = 0; i < 4; i++) addHex(cx + dirx * i * r * 1.65, cz + dirz * i * r * 1.65, r * 0.9, steps[i], false);
-  } else {
-    const n = 1 + ((rng() * 3) | 0);
-    for (let i = 0; i < n; i++) {
-      const a = (i / n) * Math.PI * 2;
-      addHex(cx + Math.cos(a) * r * 1.4, cz + Math.sin(a) * r * 1.4, r, 1 + ((rng() * 3) | 0), false);
+  for (let attempt = 0; attempt < 10; attempt++) {
+    const ang = rng() * Math.PI * 2;
+    const dist = 24 + rng() * 40;
+    const cx = player.x + Math.cos(ang) * dist;
+    const cz = player.z + Math.sin(ang) * dist;
+    const r = 3.2 + rng() * 2.4;
+    if (hexClearance(cx, cz, r) < 20) continue;
+    const roll = rng();
+    if (roll < 0.12) {
+      addHex(cx, cz, r * 0.85, 2 + ((rng() * 2) | 0), true);
+      if (rng() < 0.4) addHex(cx + r * 1.8, cz + r * 0.4, r * 0.7, 3, true);
+    } else if (roll < 0.42) {
+      const len = Math.hypot(cx - player.x, cz - player.z) || 1;
+      const dirx = (cx - player.x) / len;
+      const dirz = (cz - player.z) / len;
+      const steps = [1, 2, 3, 3];
+      for (let i = 0; i < 4; i++) addHex(cx + dirx * i * r * 1.65, cz + dirz * i * r * 1.65, r * 0.9, steps[i], false);
+    } else {
+      const n = 1 + ((rng() * 3) | 0);
+      for (let i = 0; i < n; i++) {
+        const a = (i / n) * Math.PI * 2;
+        addHex(cx + Math.cos(a) * r * 1.4, cz + Math.sin(a) * r * 1.4, r, 1 + ((rng() * 3) | 0), false);
+      }
     }
+    return;
   }
 }
 
-function ensureHexes() {
+function ensureHexes(dt) {
+  hexSpawnCd = Math.max(0, hexSpawnCd - (dt || 0.016));
   for (let i = hexes.length - 1; i >= 0; i--) {
     const p = hexes[i];
     if (Math.hypot(p.x - player.x, p.z - player.z) > 170) {
@@ -2084,7 +2100,10 @@ function ensureHexes() {
       hexes.splice(i, 1);
     }
   }
-  if (hexes.length < 10) spawnHexCluster();
+  if (hexes.length < 10 && hexSpawnCd <= 0) {
+    spawnHexCluster();
+    hexSpawnCd = 1.4;
+  }
 }
 
 function clearHexes() {
@@ -3015,7 +3034,7 @@ function physics(dt, xr) {
     bikeMesh.position.set(player.x, stand - 1.6, player.z);
     bikeMesh.rotation.y = yaw;
   } else if (bikeMesh) bikeMesh.visible = false;
-  ensureHexes();
+  ensureHexes(dt);
   recenterFloor();
   if (!xrOn) {
     camera.position.set(player.x, player.y, player.z);
