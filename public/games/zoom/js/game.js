@@ -284,15 +284,15 @@ function initThree() {
   camera.add(flashlight.target);
   camFill = new THREE.PointLight(0xffcc88, 0, 4.2);
   camera.add(camFill);
-  psyLight = new THREE.PointLight(0xfff6d8, 0, 20, 1.15);
+  psyLight = new THREE.PointLight(0xfff4d4, 0, 32, 1);
   camera.add(psyLight);
   lightBall = new THREE.Mesh(
-    new THREE.IcosahedronGeometry(0.09, 1),
-    new THREE.MeshBasicMaterial({ color: 0xfff4c8, transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending, depthWrite: false }),
+    new THREE.IcosahedronGeometry(0.13, 1),
+    new THREE.MeshBasicMaterial({ color: 0xfff6d0, transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending, depthWrite: false }),
   );
   lightBall.visible = false;
   camera.add(lightBall);
-  lightBall.position.set(0.22, -0.12, -0.35);
+  lightBall.position.set(-0.2, -0.12, -0.34);
   wristGold = makeWristGold();
   camera.add(wristGold);
   stage = new THREE.Group();
@@ -1598,42 +1598,42 @@ function psyLabel(mode) {
 
 function tickLightPsy(xr, holding) {
   if (!psyLight) {
-    psyLight = new THREE.PointLight(0xfff6d8, 0, 20, 1.15);
+    psyLight = new THREE.PointLight(0xfff4d4, 0, 32, 1);
     camera.add(psyLight);
   }
   if (!lightBall) {
     lightBall = new THREE.Mesh(
-      new THREE.IcosahedronGeometry(0.09, 1),
-      new THREE.MeshBasicMaterial({ color: 0xfff4c8, transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending, depthWrite: false }),
+      new THREE.IcosahedronGeometry(0.13, 1),
+      new THREE.MeshBasicMaterial({ color: 0xfff6d0, transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending, depthWrite: false }),
     );
     camera.add(lightBall);
-    lightBall.position.set(0.22, -0.12, -0.35);
+    lightBall.position.set(-0.2, -0.12, -0.34);
   }
   const on = !!holding;
-  psyLight.intensity = on ? 11.5 : 0;
-  psyLight.distance = on ? 22 : 0;
+  psyLight.intensity = on ? 95 : 0;
+  psyLight.distance = on ? 32 : 0;
+  psyLight.decay = 1;
   lightBall.visible = on;
-  const pulse = 0.85 + Math.sin(performance.now() * 0.012) * 0.12;
+  const pulse = 0.9 + Math.sin(performance.now() * 0.012) * 0.14;
   lightBall.scale.setScalar(on ? pulse : 1);
-  if (on && xr && xr.on && xr.right && xr.right.pos && stage) {
-    const p = xrPresenting ? stage.worldToLocal(xr.right.pos.clone()) : xr.right.pos;
-    lightBall.parent === camera && camera.remove(lightBall);
-    if (lightBall.parent !== stage) stage.add(lightBall);
-    lightBall.position.copy(p);
-    psyLight.parent === camera && camera.remove(psyLight);
-    if (psyLight.parent !== stage) stage.add(psyLight);
-    psyLight.position.copy(p);
+  const left = xr && xr.on && xr.left;
+  const host = left && (left.grip || left.con);
+  if (on && host) {
+    if (lightBall.parent !== host) host.add(lightBall);
+    if (psyLight.parent !== host) host.add(psyLight);
+    lightBall.position.set(0, 0.02, 0.05);
+    psyLight.position.set(0, 0.02, 0.05);
   } else if (on) {
     if (lightBall.parent !== camera) {
       lightBall.removeFromParent();
       camera.add(lightBall);
-      lightBall.position.set(0.22, -0.12, -0.35);
     }
     if (psyLight.parent !== camera) {
       psyLight.removeFromParent();
       camera.add(psyLight);
-      psyLight.position.set(0, 0, 0);
     }
+    lightBall.position.set(-0.2, -0.12, -0.34);
+    psyLight.position.set(-0.2, -0.12, -0.34);
   }
 }
 
@@ -2395,8 +2395,13 @@ function loop(time) {
     if (ridge || (xr && xr.on && xr.dash)) {
       psyCharging = false;
       psyCharge = 0;
-      if (lightBall) lightBall.visible = false;
-      if (psyLight) psyLight.intensity = 0;
+      if (psyMode === "light") {
+        const holding = (xr && xr.on && xr.psyHeld && !xr.dash) || keys.has("KeyX");
+        tickLightPsy(xr, holding);
+      } else {
+        if (lightBall) lightBall.visible = false;
+        if (psyLight) psyLight.intensity = 0;
+      }
     } else {
       tickPsyInput(xr, dt);
     }
