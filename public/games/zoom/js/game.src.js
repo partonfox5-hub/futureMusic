@@ -1,19 +1,19 @@
 import * as THREE from "three";
 import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
-import { BIOMES, CELL, EYE, FLAG_COLLAPSE, FLAG_RUMBLE, LIQ_LAVA, LIQ_WATER, PICKUP_BY_ID, SHOP, SKY_DAY, SKY_JUNGLE, SKY_NIGHT, WEAPON_BY_ID, WEAPONS, routes } from "./config.js?v=zm10";
-import { bakedMaps, storyMaps } from "./defaults.js?v=zm10";
-import { biomeOf, cellI, countCarved, ensureLayers, firstCarved, floorY, sdf3 } from "./map.js?v=zm10";
-import { buildDungeon, prepareSdf } from "./mesh.js?v=zm10";
-import { makeProp, spawnFrom, strikeFoes, tickFoes } from "./props.js?v=zm10";
-import { getMap, listMaps } from "./store.js?v=zm10";
-import { makeProc } from "./proc.js?v=zm10";
-import { buildingFloorY, buildWorld, climbSupport, hurtBreakables, hurtTurrets, impulseBoulders, layoutRope, makeSky, makeSkyDome, ridgeNear, smashGlass, spawnRipple, tickRubble, tickWorld, tryUnlock, wallBlocked } from "./world.js?v=zm10";
-import { addBurnDecal, addSaberMark, addSaberTrail, fireWeapon, hurtFoe, makeDualSaber, makeKeyModel, makePickup, makeWeapon, setKillHook, tickBurns, tickShots } from "./weapons.js?v=zm10";
-import { tickRobots } from "./robots.js?v=zm10";
-import { attachXr, tickXr } from "./xr.js?v=zm10";
-import { loadStoryPsy, lootForEnemy, makeWristGold, paintWristGold, saveStoryPsy, showerLoot, tickLoot } from "./loot.js?v=zm10";
-import { sfx, sfxUnlock } from "./sfx.js?v=zm10";
-import { makeNpc, nearNpc, tickNpcPose } from "./npcs.js?v=zm10";
+import { BIOMES, CELL, EYE, FLAG_COLLAPSE, FLAG_RUMBLE, LIQ_LAVA, LIQ_WATER, PICKUP_BY_ID, SHOP, SKY_DAY, SKY_JUNGLE, SKY_NIGHT, WEAPON_BY_ID, WEAPONS, routes } from "./config.js?v=zm11";
+import { bakedMaps, storyMaps } from "./defaults.js?v=zm11";
+import { biomeOf, cellI, countCarved, ensureLayers, firstCarved, floorY, sdf3 } from "./map.js?v=zm11";
+import { buildDungeon, prepareSdf } from "./mesh.js?v=zm11";
+import { makeProp, spawnFrom, strikeFoes, tickFoes } from "./props.js?v=zm11";
+import { getMap, listMaps } from "./store.js?v=zm11";
+import { makeProc } from "./proc.js?v=zm11";
+import { buildingFloorY, buildWorld, climbSupport, hurtBreakables, hurtTurrets, impulseBoulders, layoutRope, makeSky, makeSkyDome, ridgeNear, smashGlass, spawnRipple, tickRubble, tickWorld, tryUnlock, wallBlocked } from "./world.js?v=zm11";
+import { addBurnDecal, addSaberMark, addSaberTrail, fireWeapon, hurtFoe, makeDualSaber, makeKeyModel, makePickup, makeWeapon, setKillHook, tickBurns, tickShots } from "./weapons.js?v=zm11";
+import { tickRobots } from "./robots.js?v=zm11";
+import { attachXr, tickXr } from "./xr.js?v=zm11";
+import { loadStoryPsy, lootForEnemy, makeWristGold, paintWristGold, saveStoryPsy, showerLoot, tickLoot } from "./loot.js?v=zm11";
+import { sfx, sfxUnlock } from "./sfx.js?v=zm11";
+import { makeNpc, nearNpc, tickNpcPose } from "./npcs.js?v=zm11";
 
 const $ = (id) => document.getElementById(id);
 const keys = new Set();
@@ -85,7 +85,7 @@ let saberPrevTips = [null, null];
 let animId = 0;
 let skyMesh = null;
 let lastDeath = "the crawl";
-let hemi, amb, sun;
+let hemi, amb, sun, skyHemi, skySun;
 let caveFog = null;
 let skyTex = null;
 let outdoor = false;
@@ -277,9 +277,26 @@ function initThree() {
   amb = new THREE.AmbientLight(0x1a1612, 0.028);
   sun = new THREE.DirectionalLight(0xfff2d0, 0);
   sun.position.set(48, 90, 22);
-  scene.add(hemi, amb, sun);
+  hemi.layers.enable(0);
+  hemi.layers.disable(1);
+  amb.layers.enable(0);
+  amb.layers.disable(1);
+  sun.layers.enable(0);
+  sun.layers.disable(1);
+  skyHemi = new THREE.HemisphereLight(0xd8e8ff, 0x3a5a28, 0);
+  skySun = new THREE.DirectionalLight(0xfff2d0, 0);
+  skySun.position.set(48, 90, 22);
+  skyHemi.layers.disable(0);
+  skyHemi.layers.enable(1);
+  skySun.layers.disable(0);
+  skySun.layers.enable(1);
+  camera.layers.enable(0);
+  camera.layers.enable(1);
+  scene.add(hemi, amb, sun, skyHemi, skySun);
   flashlight = new THREE.SpotLight(0xffe6c0, 0, 16, 0.5, 0.45, 1.4);
   flashlight.target.position.set(0, 0, -4);
+  flashlight.layers.enable(0);
+  flashlight.layers.enable(1);
   camera.add(flashlight);
   camera.add(flashlight.target);
   camFill = new THREE.PointLight(0xffcc88, 0, 4.2);
@@ -599,6 +616,12 @@ async function enterMap(id, rev) {
     hemi.intensity = 0.045;
   }
   if (amb) amb.intensity = 0.028;
+  if (skyHemi) {
+    skyHemi.intensity = skyKind ? 1.18 : 0;
+    skyHemi.color.setHex(skyKind === SKY_JUNGLE ? 0x88aa70 : skyKind === SKY_NIGHT ? 0x334466 : 0xd8e8ff);
+    skyHemi.groundColor.setHex(skyKind === SKY_JUNGLE ? 0x142010 : skyKind === SKY_NIGHT ? 0x0a0c12 : 0x3a5a28);
+  }
+  if (skySun) skySun.intensity = skyKind === SKY_DAY ? 1.25 : skyKind === SKY_JUNGLE ? 0.28 : skyKind === SKY_NIGHT ? 0.04 : 0;
   renderer.toneMappingExposure = 1.15;
   if (flashlight) flashlight.intensity = 0;
   placeWorld();
@@ -910,15 +933,25 @@ function physics(dt, xr) {
   if (player.dashCd > 0) player.dashCd = Math.max(0, player.dashCd - dt);
   if (player.haste > 0) player.haste = Math.max(0, player.haste - dt);
   if (player.rage > 0) player.rage = Math.max(0, player.rage - dt);
+  player.fwdX = forward.x;
+  player.fwdZ = forward.z;
   const len = Math.hypot(wx, wz);
-  let spd = player.crouch ? 1.54 : keys.has("ShiftLeft") || keys.has("ShiftRight") ? 5.04 : 3.22;
-  if (carpetOn) spd = 3.22 * 2.25;
+  let spd = player.crouch ? 1.771 : keys.has("ShiftLeft") || keys.has("ShiftRight") ? 5.796 : 3.703;
+  if (carpetOn) spd = 3.703 * 2.25;
   if (player.skate && !carpetOn) spd *= 2.5;
   if (player.haste > 0) spd *= 1.45;
   if (player.dashT > 0) spd *= 4;
   if (len > 0) {
     wx = (wx / len) * spd;
     wz = (wz / len) * spd;
+    if (!player.crouch && spd > 2) {
+      player._runT = (player._runT || 0) + dt * (7.2 + spd * 0.35);
+      const px = -wz / spd;
+      const pz = wx / spd;
+      const wob = spd * 0.042;
+      wx += px * Math.sin(player._runT) * wob;
+      wz += pz * Math.sin(player._runT * 0.83 + 0.5) * wob * 0.7;
+    }
   } else {
     wx = 0;
     wz = 0;
@@ -938,8 +971,19 @@ function physics(dt, xr) {
     wx = player.vx;
     wz = player.vz;
   } else {
-    player.vx = wx;
-    player.vz = wz;
+    const cur = Math.hypot(player.vx, player.vz);
+    const wish = Math.hypot(wx, wz);
+    let rate = wish > 0.15 ? 8.6 : 11.2;
+    if (wish > 0.4 && cur > 1.1) {
+      const d = (player.vx * wx + player.vz * wz) / (cur * wish);
+      if (d < 0.22) rate = 4.4;
+      else if (d < 0.58) rate = 6.2;
+    }
+    const k = 1 - Math.exp(-rate * dt);
+    player.vx += (wx - player.vx) * k;
+    player.vz += (wz - player.vz) * k;
+    wx = player.vx;
+    wz = player.vz;
   }
   const eye = eyeH();
   const bodyY = player.y - eye * 0.4;
@@ -1109,7 +1153,8 @@ function physics(dt, xr) {
     if (jumpQueued && !(xr && xr.on && xr.jet && player.fuel > 0 && !player.grounded)) {
       if (coyote > 0) player.jumps = 2;
       if (player.jumps > 0) {
-        player.vy = player.jumps === 2 ? 9.62 * 0.6 : 8.4 * 0.6;
+        const jmul = 1.05 * (1 + (player.psy | 0) * 0.001);
+        player.vy = (player.jumps === 2 ? 9.62 * 0.6 : 8.4 * 0.6) * jmul;
         player.jumps -= 1;
         player.grounded = false;
         coyote = 0;
@@ -2352,40 +2397,12 @@ function loop(time) {
       camera.getWorldPosition(tmp);
       skyMesh.position.copy(tmp);
     }
-    if (map) {
-      const sky = map.sky ? map.sky[cellI(map, player.x, player.z)] : 0;
-      let hemiI = 0.045;
-      let ambI = 0.028;
-      let sunI = 0;
-      if (sky === SKY_DAY) {
-        hemiI = 1.2;
-        ambI = 0.42;
-        sunI = 1.3;
-      } else if (sky === SKY_JUNGLE) {
-        hemiI = 0.32;
-        ambI = 0.14;
-        sunI = 0.22;
-      } else if (sky === SKY_NIGHT) {
-        hemiI = 0.05;
-        ambI = 0.018;
-        sunI = 0;
-      }
-      if (hemi) hemi.intensity += (hemiI - hemi.intensity) * Math.min(1, dt * 4);
-      if (amb) amb.intensity += (ambI - amb.intensity) * Math.min(1, dt * 4);
-      if (sun) sun.intensity += (sunI - sun.intensity) * Math.min(1, dt * 4);
-      if (sky === SKY_DAY && hemi) {
-        hemi.color.setHex(0xd8e8ff);
-        hemi.groundColor.setHex(0x3a5a28);
-      } else if (sky === SKY_JUNGLE && hemi) {
-        hemi.color.setHex(0x88aa70);
-        hemi.groundColor.setHex(0x142010);
-      } else if (hemi) {
-        hemi.color.setHex(0x6a6860);
-        hemi.groundColor.setHex(0x080604);
-      }
-      if (skyTex && sky) scene.background = skyTex;
-      if (scene.fog && caveFog) scene.fog.density = sky === SKY_DAY ? 0.006 : sky === SKY_JUNGLE ? 0.012 : 0.024;
+    if (renderer.xr && renderer.xr.isPresenting) {
+      const xrc = renderer.xr.getCamera();
+      xrc.layers.enable(1);
+      if (xrc.cameras) for (const c of xrc.cameras) c.layers.enable(1);
     }
+    if (map && skyTex) scene.background = skyTex;
     for (const s of spawners) {
       s._t -= dt;
       if (s._t <= 0 && (s._alive || 0) < (s.maxAlive || 3)) {

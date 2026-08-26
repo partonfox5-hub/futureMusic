@@ -1,10 +1,10 @@
 /** Props, 4-direction enemy sprites, spawners. */
 import * as THREE from "three";
-import { ENEMIES, ENEMY_BY_ID } from "./config.js?v=zm10";
-import { sdf3, floorY } from "./map.js?v=zm10";
-import { makeRobot } from "./robots.js?v=zm10";
-import { hurtFoe } from "./weapons.js?v=zm10";
-import { sfx } from "./sfx.js?v=zm10";
+import { ENEMIES, ENEMY_BY_ID } from "./config.js?v=zm11";
+import { sdf3, floorY } from "./map.js?v=zm11";
+import { doomSteer, makeRobot } from "./robots.js?v=zm11";
+import { hurtFoe } from "./weapons.js?v=zm11";
+import { sfx } from "./sfx.js?v=zm11";
 
 const TEX = {};
 const loader = new THREE.TextureLoader();
@@ -455,8 +455,9 @@ export function tickFoes(foes, dt, player, map, sdf2, onHit) {
     let mz = 0;
     const spd = u.def.spd;
     if (inRadius && dist < 22) {
-      mx = (dx / dist) * spd;
-      mz = (dz / dist) * spd;
+      const st = doomSteer(u, dx, dz, dist, dt, spd, player);
+      mx = st.mx;
+      mz = st.mz;
     } else if (home) {
       const hx = home.x - f.position.x;
       const hz = home.z - f.position.z;
@@ -472,8 +473,11 @@ export function tickFoes(foes, dt, player, map, sdf2, onHit) {
     }
     const nx = f.position.x + mx * dt;
     const nz = f.position.z + mz * dt;
-    if (sdf3(nx, f.position.y, f.position.z, map, sdf2) < -0.2) f.position.x = nx;
-    if (sdf3(f.position.x, f.position.y, nz, map, sdf2) < -0.2) f.position.z = nz;
+    const okX = sdf3(nx, f.position.y, f.position.z, map, sdf2) < -0.2;
+    const okZ = sdf3(f.position.x, f.position.y, nz, map, sdf2) < -0.2;
+    if (okX) f.position.x = nx;
+    if (okZ) f.position.z = nz;
+    if ((!okX || !okZ) && inRadius) u.moveT = 0;
     if (home) {
       const hd = Math.hypot(f.position.x - home.x, f.position.z - home.z);
       if (hd > home.r) {
@@ -482,7 +486,7 @@ export function tickFoes(foes, dt, player, map, sdf2, onHit) {
       }
     }
     const fy = floorY(f.position.x, f.position.z, map, sdf2, undefined, f.position.y);
-    if (fy > -500) f.position.y = fy;
+    if (fy > -500) f.position.y = fy + (u.floatY || 0);
     else {
       f.position.y -= 16 * dt;
       if (f.position.y < -12) {

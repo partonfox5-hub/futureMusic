@@ -1,10 +1,73 @@
 /** Procedural colored robots with movement + attack styles. */
 import * as THREE from "three";
-import { ENEMIES, ENEMY_BY_ID } from "./config.js?v=zm10";
-import { hurtFoe } from "./weapons.js?v=zm10";
-import { floorY, sdf3 } from "./map.js?v=zm10";
-import { wallBlocked } from "./world.js?v=zm10";
-import { sfx } from "./sfx.js?v=zm10";
+import { ENEMIES, ENEMY_BY_ID } from "./config.js?v=zm11";
+import { hurtFoe } from "./weapons.js?v=zm11";
+import { floorY, sdf3 } from "./map.js?v=zm11";
+import { wallBlocked } from "./world.js?v=zm11";
+import { sfx } from "./sfx.js?v=zm11";
+
+/** Doom-like kinematic chase: hold a heading, zigzag, flank, and dodge without becoming unhittable. */
+export function doomSteer(u, dx, dz, dist, dt, baseSpd, player) {
+  const spd = baseSpd * 1.24;
+  u.aiT = (u.aiT || Math.random() * 8) + dt;
+  u.moveT = (u.moveT || 0) - dt;
+  u.bobT = (u.bobT || Math.random() * 6) + dt;
+  u.flankSwap = (u.flankSwap || 0) - dt;
+  if (!u.flankSign) u.flankSign = Math.random() < 0.5 ? 1 : -1;
+  if (u.flankSwap <= 0) {
+    if (Math.random() < 0.18) u.flankSign *= -1;
+    u.flankSwap = 1.2 + Math.random() * 2.4;
+  }
+  const inv = dist || 1;
+  const nx = dx / inv;
+  const nz = dz / inv;
+  const sx = -nz * u.flankSign;
+  const sz = nx * u.flankSign;
+  let facing = 0;
+  if (player) {
+    const fx = player.fwdX;
+    const fz = player.fwdZ;
+    if (fx != null && fz != null) facing = fx * -nx + fz * -nz;
+  }
+  if (u.moveT <= 0) {
+    const roll = Math.random();
+    if (dist < 2.35) u.mode = "circle";
+    else if (dist < 7.5 && roll < 0.4) u.mode = "flank";
+    else if (facing > 0.52 && roll < 0.26) u.mode = "dodge";
+    else if (roll < 0.16) u.mode = "dash";
+    else u.mode = "chase";
+    u.moveT = u.mode === "dodge" ? 0.16 + Math.random() * 0.16
+      : u.mode === "dash" ? 0.12 + Math.random() * 0.12
+      : 0.2 + Math.random() * 0.36;
+    const toward = Math.atan2(dx, dz);
+    const zig = (Math.random() - 0.5) * 1.05;
+    const cut = roll < 0.2 ? (Math.random() < 0.5 ? 1.15 : -1.15) : 0;
+    u.headAng = toward + zig + cut;
+  }
+  const hx = Math.sin(u.headAng || 0);
+  const hz = Math.cos(u.headAng || 0);
+  let mx = 0;
+  let mz = 0;
+  if (u.mode === "circle") {
+    const keep = dist < 1.28 ? -0.42 : dist > 2.05 ? 0.5 : 0.08;
+    mx = sx * spd * 1.18 + nx * spd * keep;
+    mz = sz * spd * 1.18 + nz * spd * keep;
+  } else if (u.mode === "flank") {
+    mx = (nx * 0.42 + sx * 0.95) * spd * 1.18;
+    mz = (nz * 0.42 + sz * 0.95) * spd * 1.18;
+  } else if (u.mode === "dodge") {
+    mx = sx * spd * 1.62;
+    mz = sz * spd * 1.62;
+  } else if (u.mode === "dash") {
+    mx = hx * spd * 1.78;
+    mz = hz * spd * 1.78;
+  } else {
+    mx = hx * spd;
+    mz = hz * spd;
+  }
+  u.floatY = Math.sin(u.bobT * 7.4) * 0.04 + Math.sin(u.bobT * 3.05) * 0.018;
+  return { mx, mz, floatY: u.floatY };
+}
 
 function mat(hex, extra) {
   return new THREE.MeshLambertMaterial({ color: hex, emissive: hex, emissiveIntensity: 0.18, ...extra });
@@ -234,25 +297,7 @@ export function tickRobots(foes, dt, player, map, sdf2, onHit, scene, shots, fir
       let mz = 0;
       const spd = u.def.spd;
       const mv = u.def.move;
-      if (mv === "orbit") {
-        mx = -dz / dist * spd * 0.8 + (dx / dist) * spd * 0.2;
-        mz = dx / dist * spd * 0.8 + (dz / dist) * spd * 0.2;
-      } else if (mv === "strafe") {
-        mx = Math.cos(u.phase * 2) * spd + (dx / dist) * spd * 0.35;
-        mz = Math.sin(u.phase * 2) * spd + (dz / dist) * spd * 0.35;
-      } else if (mv === "lunge") {
-        if (u.phase % 2.2 < 0.45) {
-          mx = (dx / dist) * spd * 2.4;
-          mz = (dz / dist) * spd * 2.4;
-        } else {
-          mx = (dx / dist) * spd * 0.2;
-          mz = (dz / dist) * spd * 0.2;
-        }
-      } else if (mv === "hover") {
-        mx = (dx / dist) * spd * 0.7;
-        mz = (dz / dist) * spd * 0.7;
-        f.position.y += Math.sin(u.phase * 3) * 0.01;
-      } else if (mv === "charge") {
+      if (mv === "charge") {
         let see = dist < 22;
         if (see && dist > 2.4) {
           const n = Math.max(2, Math.ceil(dist / 0.7));
@@ -283,9 +328,9 @@ export function tickRobots(foes, dt, player, map, sdf2, onHit, scene, shots, fir
           u.aggro = false;
         }
         if (u.aware) {
-          const run = spd * 4.1;
-          mx = (dx / dist) * run;
-          mz = (dz / dist) * run;
+          const st = doomSteer(u, dx, dz, dist, dt, spd * 2.35, player);
+          mx = st.mx;
+          mz = st.mz;
           u.running = true;
         } else {
           u.running = false;
@@ -294,26 +339,45 @@ export function tickRobots(foes, dt, player, map, sdf2, onHit, scene, shots, fir
         }
       } else if (mv === "weave") {
         if (!u.baseY) u.baseY = f.position.y + 1.35;
-        mx = (dx / dist) * spd * 0.45 + Math.cos(u.phase * 2.6) * spd * 1.25;
-        mz = (dz / dist) * spd * 0.45 + Math.sin(u.phase * 3.4) * spd * 1.15;
+        const st = doomSteer(u, dx, dz, dist, dt, spd, player);
+        mx = st.mx * 0.55 + Math.cos(u.phase * 2.6) * spd * 0.85;
+        mz = st.mz * 0.55 + Math.sin(u.phase * 3.4) * spd * 0.75;
         const wantY = u.baseY + Math.sin(u.phase * 2.1) * 1.35 + Math.cos(u.phase * 1.15) * 0.7;
         f.position.y += (wantY - f.position.y) * Math.min(1, dt * 3.2);
       } else if (mv === "patrol" && dist > 12) {
         mx = Math.cos(u.phase * 0.4) * spd * 0.4;
         mz = Math.sin(u.phase * 0.4) * spd * 0.4;
+      } else if (mv === "hover") {
+        const st = doomSteer(u, dx, dz, dist, dt, spd * 0.85, player);
+        mx = st.mx;
+        mz = st.mz;
+        f.position.y += Math.sin(u.phase * 3) * 0.012;
+      } else if (mv === "lunge") {
+        if (u.phase % 2.2 < 0.45) {
+          mx = (dx / dist) * spd * 2.4;
+          mz = (dz / dist) * spd * 2.4;
+        } else {
+          const st = doomSteer(u, dx, dz, dist, dt, spd * 0.7, player);
+          mx = st.mx;
+          mz = st.mz;
+        }
       } else {
-        mx = (dx / dist) * spd;
-        mz = (dz / dist) * spd;
+        const st = doomSteer(u, dx, dz, dist, dt, spd, player);
+        mx = st.mx;
+        mz = st.mz;
       }
       const nx = f.position.x + mx * dt;
       const nz = f.position.z + mz * dt;
       const by = f.position.y + 0.95;
-      if (sdf3(nx, by, f.position.z, map, sdf2) < 0.08) f.position.x = nx;
-      if (sdf3(f.position.x, by, nz, map, sdf2) < 0.08) f.position.z = nz;
+      const okX = sdf3(nx, by, f.position.z, map, sdf2) < 0.08;
+      const okZ = sdf3(f.position.x, by, nz, map, sdf2) < 0.08;
+      if (okX) f.position.x = nx;
+      if (okZ) f.position.z = nz;
+      if (!okX || !okZ) u.moveT = 0;
     }
     if (u.def.move !== "hover" && u.def.move !== "weave" && !u.fly) {
       const fy = floorY(f.position.x, f.position.z, map, sdf2, undefined, f.position.y);
-      if (fy > -500) f.position.y = fy;
+      if (fy > -500) f.position.y = fy + (u.floatY || 0);
     }
     f.lookAt(px, f.position.y, pz);
     u.cool = Math.max(0, (u.cool || 0) - dt);

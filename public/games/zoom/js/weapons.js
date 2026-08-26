@@ -1,8 +1,8 @@
 /** Weapon models, lasers/plasma, burn marks, pickups. */
 import * as THREE from "three";
-import { PICKUP_BY_ID, WEAPON_BY_ID, WEAPONS } from "./config.js?v=zm10";
-import { hurtBreakables, hurtTurrets, impulseBoulders, smashGlass } from "./world.js?v=zm10";
-import { makeAsteriskMesh, makePsyOrbMesh } from "./loot.js?v=zm10";
+import { PICKUP_BY_ID, WEAPON_BY_ID, WEAPONS } from "./config.js?v=zm11";
+import { hurtBreakables, hurtTurrets, impulseBoulders, smashGlass } from "./world.js?v=zm11";
+import { makeAsteriskMesh, makePsyOrbMesh } from "./loot.js?v=zm11";
 
 function mat(hex, extra) {
   return new THREE.MeshLambertMaterial({ color: hex, ...extra });

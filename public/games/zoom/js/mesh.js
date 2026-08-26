@@ -1,8 +1,8 @@
 /** Voxelize the dug SDF and emit textured wall/floor meshes. */
 import * as THREE from "three";
-import { BIOMES, CELL, EYE, FLAG_SPIKE, LIQ_LAVA } from "./config.js?v=zm10";
-import { bakeSlopes, computeSdf, getTex, isCarved, sdf3 } from "./map.js?v=zm10";
-import { allMaterials } from "./tex.js?v=zm10";
+import { BIOMES, CELL, EYE, FLAG_SPIKE, LIQ_LAVA } from "./config.js?v=zm11";
+import { bakeSlopes, computeSdf, getTex, isCarved, sdf3 } from "./map.js?v=zm11";
+import { allMaterials } from "./tex.js?v=zm11";
 
 const VX = 0.42;
 
@@ -102,9 +102,8 @@ export function buildDungeon(map, sdf2) {
 
   const buckets = [];
   for (let i = 0; i < BIOMES.length; i++) {
-    buckets.push({ w: [], f: [] });
+    buckets.push({ w: [], f: [], sw: [], sf: [] });
   }
-  const skyFloor = [];
 
   function uv(x, y, z, nx, ny, nz) {
     if (nx) return [z * 0.38, y * 0.38];
@@ -167,7 +166,7 @@ export function buildDungeon(map, sdf2) {
           if (skyNear && dy === 1) continue;
           if (skyHere && dy !== -1 && y0 - elevY > 3.15) continue;
           const floorish = dy === -1;
-          const list = skyHere && floorish ? skyFloor : floorish ? buckets[t].f : buckets[t].w;
+          const list = skyHere && floorish ? buckets[t].sf : skyHere ? buckets[t].sw : floorish ? buckets[t].f : buckets[t].w;
           if (dx === 1) pushFace(list, x1, y0, z0, x1, y1, z0, x1, y1, z1, x1, y0, z1, -1, 0, 0);
           else if (dx === -1) pushFace(list, x0, y0, z1, x0, y1, z1, x0, y1, z0, x0, y0, z0, 1, 0, 0);
           else if (dy === 1) pushFace(list, x0, y1, z0, x0, y1, z1, x1, y1, z1, x1, y1, z0, 0, -1, 0);
@@ -179,7 +178,7 @@ export function buildDungeon(map, sdf2) {
     }
   }
 
-  function meshFrom(list, mat) {
+  function meshFrom(list, mat, layer) {
     if (!list.length) return;
     const geo = new THREE.BufferGeometry();
     geo.setAttribute("position", new THREE.Float32BufferAttribute(list, 3));
@@ -188,14 +187,23 @@ export function buildDungeon(map, sdf2) {
     const mesh = new THREE.Mesh(geo, mat);
     mesh.castShadow = false;
     mesh.receiveShadow = true;
+    if (layer) mesh.layers.set(layer);
     group.add(mesh);
+  }
+
+  function sunlit(src, emHex, emI) {
+    const m = src.clone();
+    m.emissive = new THREE.Color(emHex);
+    m.emissiveIntensity = emI;
+    return m;
   }
 
   for (let t = 0; t < BIOMES.length; t++) {
     meshFrom(buckets[t].w, mats[t].wall);
     meshFrom(buckets[t].f, mats[t].floor);
+    meshFrom(buckets[t].sw, sunlit(mats[t].wall, 0x665538, 0.42), 1);
+    meshFrom(buckets[t].sf, sunlit(mats[t].floor, 0x3a5828, 0.7), 1);
   }
-  meshFrom(skyFloor, new THREE.MeshLambertMaterial({ color: 0x4a7a38 }));
 
   return { group, sdf2, ymax, mats };
 }
