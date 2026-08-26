@@ -1,8 +1,14 @@
 /** Local + remote map persistence. */
-import { deserialize, serialize } from "./map.js?v=zm7";
+import { deserialize, serialize } from "./map.js?v=zm9";
 
 const LS = "zoom.maps.v1";
 const API = "/api/zoom/maps";
+
+function bust(path) {
+  return path + (path.includes("?") ? "&" : "?") + "t=" + Date.now();
+}
+
+const FETCH_OPTS = { cache: "no-store", headers: { "Cache-Control": "no-cache", Pragma: "no-cache" } };
 
 function readLocal() {
   try {
@@ -22,7 +28,7 @@ export async function listMaps() {
   const local = readLocal();
   let remote = [];
   try {
-    const r = await fetch(API, { cache: "no-store" });
+    const r = await fetch(bust(API), FETCH_OPTS);
     if (r.ok) {
       const data = await r.json();
       remote = (data.maps || data || []).map((m) => deserialize(m));
@@ -48,7 +54,7 @@ export async function getMap(id) {
   }
   const local = readLocal().find((m) => m.id === id);
   try {
-    const r = await fetch(API + "/" + encodeURIComponent(id), { cache: "no-store" });
+    const r = await fetch(bust(API + "/" + encodeURIComponent(id)), FETCH_OPTS);
     if (r.ok) {
       const m = deserialize(await r.json());
       if (!local || (m.updated || 0) >= (local.updated || 0)) return m;
@@ -64,16 +70,17 @@ export async function saveMap(map) {
   local.unshift(deserialize(payload));
   writeLocal(local);
   try {
-    const r = await fetch(API, {
+    const r = await fetch(bust(API), {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      cache: "no-store",
+      headers: { "Content-Type": "application/json", "Cache-Control": "no-cache" },
       body: JSON.stringify(payload),
     });
-    if (!r.ok) return { ok: true, remote: false, map };
+    if (!r.ok) return { ok: false, remote: false, status: r.status, map };
     const body = await r.json().catch(() => ({}));
     return { ok: true, remote: !!body.remote, map, body };
   } catch {
-    return { ok: true, remote: false, map };
+    return { ok: false, remote: false, map };
   }
 }
 

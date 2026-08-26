@@ -12,6 +12,7 @@ import {
   LIQ_LAVA,
   LIQ_NONE,
   LIQ_WATER,
+  OBJECT_BY_ID,
   OBJECTS,
   PICKUPS,
   PORTAL_COLORS,
@@ -22,8 +23,8 @@ import {
   SHAPES,
   WALL_TEX,
   routes,
-} from "./config.js?v=zm7";
-import { bakedMaps } from "./defaults.js?v=zm7";
+} from "./config.js?v=zm9";
+import { bakedMaps } from "./defaults.js?v=zm9";
 import {
   addSphere,
   blankMap,
@@ -52,9 +53,9 @@ import {
   uid,
   wallIsCrack,
   wallTexId,
-} from "./map.js?v=zm7";
-import { deleteMap, getMap, listMaps, saveMap, stashPreview } from "./store.js?v=zm7";
-import { defaultNpc } from "./npcs.js?v=zm7";
+} from "./map.js?v=zm9";
+import { deleteMap, getMap, listMaps, saveMap, stashPreview } from "./store.js?v=zm9";
+import { defaultNpc } from "./npcs.js?v=zm9";
 
 const $ = (id) => document.getElementById(id);
 
@@ -286,8 +287,30 @@ function draw() {
     ctx.stroke();
   }
   for (const o of map.objects) {
-    ctx.fillStyle = "#f0d080";
-    ctx.fillRect(o.x / CELL - 0.3, o.z / CELL - 0.3, 0.6, 0.6);
+    const ox = o.x / CELL;
+    const oz = o.z / CELL;
+    const lit = !!(OBJECT_BY_ID[o.kind]?.light || /torch|lamp|light|chandelier|campfire/.test(o.kind || ""));
+    if (lit) {
+      ctx.fillStyle = "rgba(255, 210, 80, 0.35)";
+      ctx.beginPath();
+      ctx.arc(ox, oz, 0.72, 0, 6.28);
+      ctx.fill();
+      ctx.fillStyle = o.kind === "walllamp" ? "#dce8ff" : o.kind === "ceilinglight" ? "#f4f0e0" : o.kind === "chandelier" ? "#ffd090" : "#ffb040";
+      ctx.beginPath();
+      ctx.arc(ox, oz, 0.28, 0, 6.28);
+      ctx.fill();
+      ctx.strokeStyle = "#ffe08a";
+      ctx.lineWidth = 0.08;
+      ctx.beginPath();
+      ctx.moveTo(ox, oz - 0.55);
+      ctx.lineTo(ox, oz + 0.55);
+      ctx.moveTo(ox - 0.55, oz);
+      ctx.lineTo(ox + 0.55, oz);
+      ctx.stroke();
+    } else {
+      ctx.fillStyle = "#f0d080";
+      ctx.fillRect(ox - 0.3, oz - 0.3, 0.6, 0.6);
+    }
   }
   for (const p of map.pickups) {
     ctx.fillStyle = "#88f";
@@ -523,14 +546,15 @@ canvas.addEventListener("pointerdown", (ev) => {
     if (hit && hit.type === "obj") selected = hit;
     else if (objKind === "walllamp") {
       const snapped = snapArrow(c);
-      if (!snapped) {
-        status("Place wall lamps on a wall or hall edge");
-        return;
-      }
       pushUndo();
-      map.objects.push({ kind: "walllamp", x: snapped.x, z: snapped.z, s: objScale, rot: snapped.yaw });
+      if (snapped) {
+        map.objects.push({ kind: "walllamp", x: snapped.x, z: snapped.z, s: objScale, rot: snapped.yaw });
+        status("Wall lamp on wall");
+      } else {
+        map.objects.push({ kind: "walllamp", x: c.wx, z: c.wz, s: objScale, rot: 0 });
+        status("Wall lamp");
+      }
       selected = { type: "obj", i: map.objects.length - 1 };
-      status("Wall lamp");
     } else {
       pushUndo();
       map.objects.push({ kind: objKind, x: c.wx, z: c.wz, s: objScale, rot: 0 });
@@ -585,7 +609,7 @@ canvas.addEventListener("pointerdown", (ev) => {
   } else if (tool === "minotaur" || tool === "drone") {
     pushUndo();
     const enemy = tool === "minotaur" ? "minotaur" : "sentrydrone";
-    map.spawners.push({ x: c.wx, z: c.wz, enemy, interval: 9999, radius: 4, maxAlive: 1 });
+    map.spawners.push({ x: c.wx, z: c.wz, enemy, interval: 9999, radius: enemy === "minotaur" ? 28 : 10, maxAlive: 1 });
     selected = { type: "spawner", i: map.spawners.length - 1 };
     status(tool === "minotaur" ? "Minotaur" : "Sentry drone");
     draw();
@@ -1101,7 +1125,9 @@ $("map-name").addEventListener("input", () => (map.name = $("map-name").value ||
 $("save").addEventListener("click", async () => {
   map.name = $("map-name").value || "Untitled";
   const r = await saveMap(map);
-  status(r.remote ? "Saved to Zoom (all devices)" : "Saved on this device");
+  if (r.remote) status("Saved to Zoom — headset will load this version");
+  else if (r.ok) status("Saved on this device only — Save again for the headset");
+  else status("Save failed (" + (r.status || "offline") + "). Headset will keep the old version.");
   refreshList();
 });
 $("play").addEventListener("click", () => {

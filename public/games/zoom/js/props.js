@@ -1,10 +1,10 @@
 /** Props, 4-direction enemy sprites, spawners. */
 import * as THREE from "three";
-import { ENEMIES, ENEMY_BY_ID } from "./config.js?v=zm7";
-import { sdf3, floorY } from "./map.js?v=zm7";
-import { makeRobot } from "./robots.js?v=zm7";
-import { hurtFoe } from "./weapons.js?v=zm7";
-import { sfx } from "./sfx.js?v=zm7";
+import { ENEMIES, ENEMY_BY_ID } from "./config.js?v=zm9";
+import { sdf3, floorY } from "./map.js?v=zm9";
+import { makeRobot } from "./robots.js?v=zm9";
+import { hurtFoe } from "./weapons.js?v=zm9";
+import { sfx } from "./sfx.js?v=zm9";
 
 const TEX = {};
 const loader = new THREE.TextureLoader();
@@ -34,6 +34,26 @@ function loadTex(url, sheet) {
 
 function mat(hex, extra) {
   return new THREE.MeshStandardMaterial({ color: hex, roughness: 0.72, metalness: 0.08, ...extra });
+}
+
+function lit(hex) {
+  return new THREE.MeshBasicMaterial({ color: hex });
+}
+
+function addGlow(g, y, color, scale) {
+  const s = new THREE.Sprite(
+    new THREE.SpriteMaterial({
+      color,
+      transparent: true,
+      opacity: 0.7,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    }),
+  );
+  s.position.y = y;
+  s.scale.set(scale, scale, 1);
+  g.add(s);
+  return s;
 }
 
 function crackOverlay(g, h) {
@@ -140,11 +160,12 @@ export function makeProp(kind, scale) {
   };
   if (kind === "torch") {
     add(new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.05, 0.7, 6), wood), 0, 0.45, 0);
-    const flame = add(new THREE.Mesh(new THREE.SphereGeometry(0.11, 8, 6), mat(0xffaa40, { emissive: 0xff6600, roughness: 1 })), 0, 0.88, 0);
+    const flame = add(new THREE.Mesh(new THREE.SphereGeometry(0.11, 8, 6), lit(0xffcc66)), 0, 0.88, 0);
     flame.userData.flame = true;
+    addGlow(g, 0.9, 0xffaa55, 0.85);
     g.userData.lightColor = 0xffaa66;
-    g.userData.lightDist = 10;
-    g.userData.lightIntensity = 3.8;
+    g.userData.lightDist = 12;
+    g.userData.lightIntensity = 70;
     g.userData.lightY = 1.1;
   } else if (kind === "crate") {
     add(new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.7, 0.7), wood), 0, 0.35, 0);
@@ -217,20 +238,22 @@ export function makeProp(kind, scale) {
   } else if (kind === "walllamp") {
     add(new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.28, 0.08), iron), 0, 1.35, -0.12);
     add(new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.08, 0.1), dark), 0, 1.5, -0.08);
-    const bulb = add(new THREE.Mesh(new THREE.SphereGeometry(0.09, 10, 8), mat(0xf4f8ff, { emissive: 0xe8f0ff, emissiveIntensity: 1.4 })), 0, 1.38, 0.02);
+    const bulb = add(new THREE.Mesh(new THREE.SphereGeometry(0.09, 10, 8), lit(0xf4f8ff)), 0, 1.38, 0.02);
     bulb.userData.flame = true;
     add(new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.04, 0.16), iron), 0, 1.22, 0);
+    addGlow(g, 1.38, 0xe8f0ff, 0.9);
     g.userData.lightColor = 0xe8f0ff;
-    g.userData.lightDist = 12;
-    g.userData.lightIntensity = 5.2;
+    g.userData.lightDist = 14;
+    g.userData.lightIntensity = 90;
     g.userData.lightY = 1.4;
   } else if (kind === "ceilinglight") {
     add(new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.18, 0.08, 12), iron), 0, 0.04, 0);
-    add(new THREE.Mesh(new THREE.CircleGeometry(0.28, 16), mat(0xf8f4e8, { emissive: 0xfff6d8, emissiveIntensity: 1.2 })), 0, 0, 0).rotation.x = Math.PI / 2;
+    add(new THREE.Mesh(new THREE.CircleGeometry(0.28, 16), lit(0xfff6d8)), 0, 0, 0).rotation.x = Math.PI / 2;
     add(new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.18, 6), dark), 0, 0.14, 0);
+    addGlow(g, -0.02, 0xfff4cc, 1.15);
     g.userData.lightColor = 0xf4f0e0;
-    g.userData.lightDist = 14;
-    g.userData.lightIntensity = 5.8;
+    g.userData.lightDist = 16;
+    g.userData.lightIntensity = 110;
     g.userData.lightY = "ceil";
   } else if (kind === "chandelier") {
     add(new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.7, 6), iron), 0, 0.4, 0);
@@ -238,19 +261,21 @@ export function makeProp(kind, scale) {
     add(new THREE.Mesh(new THREE.TorusGeometry(0.22, 0.025, 6, 12), gold), 0, 0.22, 0).rotation.x = Math.PI / 2;
     for (let i = 0; i < 6; i++) {
       const a = (i / 6) * Math.PI * 2;
-      add(new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 6), mat(0xffe8a0, { emissive: 0xffcc66, emissiveIntensity: 1.1 })), Math.cos(a) * 0.42, 0.02, Math.sin(a) * 0.42);
+      add(new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 6), lit(0xffe8a0)), Math.cos(a) * 0.42, 0.02, Math.sin(a) * 0.42);
       add(new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.02, 0.16, 5), dark), Math.cos(a) * 0.42, 0.12, Math.sin(a) * 0.42);
     }
+    addGlow(g, 0.08, 0xffd090, 1.4);
     g.userData.lightColor = 0xffd090;
-    g.userData.lightDist = 16;
-    g.userData.lightIntensity = 7.4;
+    g.userData.lightDist = 20;
+    g.userData.lightIntensity = 140;
     g.userData.lightY = "hang";
   } else if (kind === "campfire") {
     add(new THREE.Mesh(new THREE.TorusGeometry(0.35, 0.08, 6, 10), stone), 0, 0.08, 0).rotation.x = Math.PI / 2;
-    add(new THREE.Mesh(new THREE.ConeGeometry(0.18, 0.45, 6), mat(0xff6620, { emissive: 0xff3300 })), 0, 0.3, 0);
+    add(new THREE.Mesh(new THREE.ConeGeometry(0.18, 0.45, 6), lit(0xff6620)), 0, 0.3, 0);
+    addGlow(g, 0.35, 0xff7722, 1.0);
     g.userData.lightColor = 0xff8844;
-    g.userData.lightDist = 10;
-    g.userData.lightIntensity = 3.4;
+    g.userData.lightDist = 12;
+    g.userData.lightIntensity = 65;
     g.userData.lightY = 0.45;
   } else if (kind === "anvil") {
     add(new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.3, 0.35), iron), 0, 0.2, 0);

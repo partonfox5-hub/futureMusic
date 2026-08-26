@@ -83,7 +83,7 @@ app.use(cors({
 
 
 // --- FIX START: Body Parsers & Logging ---
-app.use(express.json());
+app.use(express.json({ limit: "8mb" }));
 app.use(express.urlencoded({ extended: true }));
 
 // Log every request to console (Visible in Google Cloud Logs)

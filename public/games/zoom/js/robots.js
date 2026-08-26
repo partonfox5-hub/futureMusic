@@ -1,10 +1,10 @@
 /** Procedural colored robots with movement + attack styles. */
 import * as THREE from "three";
-import { ENEMIES, ENEMY_BY_ID } from "./config.js?v=zm7";
-import { hurtFoe } from "./weapons.js?v=zm7";
-import { floorY, sdf3 } from "./map.js?v=zm7";
-import { wallBlocked } from "./world.js?v=zm7";
-import { sfx } from "./sfx.js?v=zm7";
+import { ENEMIES, ENEMY_BY_ID } from "./config.js?v=zm9";
+import { hurtFoe } from "./weapons.js?v=zm9";
+import { floorY, sdf3 } from "./map.js?v=zm9";
+import { wallBlocked } from "./world.js?v=zm9";
+import { sfx } from "./sfx.js?v=zm9";
 
 function mat(hex, extra) {
   return new THREE.MeshLambertMaterial({ color: hex, emissive: hex, emissiveIntensity: 0.18, ...extra });
@@ -221,9 +221,13 @@ export function tickRobots(foes, dt, player, map, sdf2, onHit, scene, shots, fir
     const dz = pz - f.position.z;
     const dist = Math.hypot(dx, dz) || 1;
     const home = u.home;
-    if (home && Math.hypot(f.position.x - home.x, f.position.z - home.z) > home.r) {
-      f.position.x += ((home.x - f.position.x) / dist) * u.def.spd * dt;
-      f.position.z += ((home.z - f.position.z) / dist) * u.def.spd * dt;
+    const chasing = !!(u.aware || u.aggro);
+    if (home && !chasing && Math.hypot(f.position.x - home.x, f.position.z - home.z) > Math.max(home.r || 8, 12)) {
+      const hx = home.x - f.position.x;
+      const hz = home.z - f.position.z;
+      const hd = Math.hypot(hx, hz) || 1;
+      f.position.x += (hx / hd) * u.def.spd * dt;
+      f.position.z += (hz / hd) * u.def.spd * dt;
     } else {
       u.phase = (u.phase || 0) + dt;
       let mx = 0;
@@ -249,27 +253,32 @@ export function tickRobots(foes, dt, player, map, sdf2, onHit, scene, shots, fir
         mz = (dz / dist) * spd * 0.7;
         f.position.y += Math.sin(u.phase * 3) * 0.01;
       } else if (mv === "charge") {
-        let see = dist < 18;
-        if (see) {
-          const n = Math.max(2, Math.ceil(dist / 0.65));
+        let see = dist < 22;
+        if (see && dist > 2.4) {
+          const n = Math.max(2, Math.ceil(dist / 0.7));
+          const sy = f.position.y + 1.05;
           for (let i = 1; i < n; i++) {
             const t = i / n;
             const sx = f.position.x + dx * t;
             const sz = f.position.z + dz * t;
-            const sy = f.position.y + 1.15;
-            if (sdf3(sx, sy, sz, map, sdf2) > -0.05 || wallBlocked(map, sx, sz, sy)) {
+            if (wallBlocked(map, sx, sz, sy)) {
+              see = false;
+              break;
+            }
+            if (sdf3(sx, sy, sz, map, sdf2) > 0.35) {
               see = false;
               break;
             }
           }
         }
+        if (dist < 9) see = true;
         if (see) {
           if (!u.aggro) {
             u.aggro = true;
             if (u.def?.id === "minotaur" || u.def?.model === "minotaur") sfx("roar");
           }
           u.aware = true;
-        } else if (u.aware && dist > 26) {
+        } else if (u.aware && dist > 28) {
           u.aware = false;
           u.aggro = false;
         }
@@ -280,8 +289,8 @@ export function tickRobots(foes, dt, player, map, sdf2, onHit, scene, shots, fir
           u.running = true;
         } else {
           u.running = false;
-          mx = Math.cos(u.phase * 0.55) * spd * 0.45;
-          mz = Math.sin(u.phase * 0.55) * spd * 0.45;
+          mx = Math.cos(u.phase * 0.7) * spd * 0.85;
+          mz = Math.sin(u.phase * 0.55) * spd * 0.85;
         }
       } else if (mv === "weave") {
         if (!u.baseY) u.baseY = f.position.y + 1.35;
@@ -298,8 +307,9 @@ export function tickRobots(foes, dt, player, map, sdf2, onHit, scene, shots, fir
       }
       const nx = f.position.x + mx * dt;
       const nz = f.position.z + mz * dt;
-      if (sdf3(nx, f.position.y, f.position.z, map, sdf2) < -0.15) f.position.x = nx;
-      if (sdf3(f.position.x, f.position.y, nz, map, sdf2) < -0.15) f.position.z = nz;
+      const by = f.position.y + 0.95;
+      if (sdf3(nx, by, f.position.z, map, sdf2) < 0.08) f.position.x = nx;
+      if (sdf3(f.position.x, by, nz, map, sdf2) < 0.08) f.position.z = nz;
     }
     if (u.def.move !== "hover" && u.def.move !== "weave" && !u.fly) {
       const fy = floorY(f.position.x, f.position.z, map, sdf2, undefined, f.position.y);
