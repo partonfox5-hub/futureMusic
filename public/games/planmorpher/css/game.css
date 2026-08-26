@@ -107,6 +107,63 @@ canvas {
 }
 #inspect button#btn-close { background: transparent; color: var(--ink); border: 1px solid #334; }
 
+#studio {
+  position: absolute;
+  left: 16px;
+  top: 16px;
+  z-index: 6;
+  width: min(340px, 94vw);
+  max-height: 78vh;
+  overflow: auto;
+  padding: 14px 16px;
+  background: rgba(10, 12, 20, 0.9);
+  border: 1px solid rgba(158, 231, 255, 0.35);
+  border-radius: 12px;
+  pointer-events: auto;
+}
+#studio h2 {
+  font-family: "Cormorant Garamond", serif;
+  margin: 0 0 6px;
+  font-size: 1.25rem;
+}
+#studio p { margin: 0 0 8px; font-size: 0.78rem; color: var(--mute); }
+#studio-slots { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
+#studio-slots button {
+  border: 1px solid #445;
+  background: #151820;
+  color: var(--ink);
+  border-radius: 6px;
+  padding: 4px 7px;
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+#studio-slots button.on { background: var(--spirit); color: #081018; }
+.studio-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+.studio-row button {
+  flex: 1;
+  min-height: 34px;
+  border: 0;
+  border-radius: 8px;
+  background: #2a3344;
+  color: var(--ink);
+  cursor: pointer;
+  font-size: 0.75rem;
+}
+.studio-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.studio-parts, .studio-socks { display: flex; flex-direction: column; gap: 4px; }
+.studio-parts button, .sock {
+  border: 1px dashed rgba(158,231,255,0.4);
+  background: #12161f;
+  color: var(--ink);
+  border-radius: 6px;
+  padding: 6px;
+  font-size: 0.75rem;
+  cursor: grab;
+  text-align: center;
+}
+.sock { min-height: 36px; cursor: copy; }
+.tiny { font-size: 0.7rem !important; }
+
 #start {
   position: absolute;
   inset: 0;

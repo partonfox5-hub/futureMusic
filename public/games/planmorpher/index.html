@@ -6,8 +6,8 @@
     <meta name="robots" content="noindex, nofollow" />
     <meta name="theme-color" content="#07080f" />
     <title>Planmorpher</title>
-    <meta name="build" content="prod-20260824-atmo2" />
-    <link rel="stylesheet" href="/games/planmorpher/css/game.css?v=atmo2" />
+    <meta name="build" content="prod-20260826-pm1" />
+    <link rel="stylesheet" href="/games/planmorpher/css/game.css?v=pm1" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Outfit:wght@400;500;600&display=swap" rel="stylesheet" />
@@ -20,6 +20,28 @@
       <div id="hint">No power active. Point at a world and press A to open its menu. X leaves a planet's sky.</div>
       <div id="status"></div>
     </div>
+    <aside id="studio" hidden>
+      <h2>Spore studio</h2>
+      <p>Drag a limb onto a socket, or tap a part then a socket. Ten saved species — each civ scores on its own.</p>
+      <div id="studio-slots"></div>
+      <p id="studio-civ">Civ score 0</p>
+      <p id="studio-rel">Peace</p>
+      <div class="studio-row">
+        <button type="button" id="studio-random">Randomize</button>
+        <button type="button" id="studio-save">Save all 10</button>
+        <button type="button" id="studio-war">Toggle war vs slot 2</button>
+      </div>
+      <div class="studio-grid">
+        <div class="studio-parts" id="studio-parts"></div>
+        <div class="studio-socks">
+          <div class="sock" data-sock="head">Head</div>
+          <div class="sock" data-sock="torso">Torso</div>
+          <div class="sock" data-sock="arm">Arms</div>
+          <div class="sock" data-sock="leg">Legs</div>
+        </div>
+      </div>
+      <p class="tiny">Place with Life on a world. Scout / Settler ships serve the selected spore. Laser carves rivers. Lightning actually strikes.</p>
+    </aside>
     <aside id="inspect" hidden>
       <h2>Planet menu</h2>
       <p id="insp-name">Unnamed sphere</p>
@@ -44,7 +66,8 @@
           <li><b>Select</b> on the wrist gems: no power. Point at a world and press <b>A</b> (or click) for its menu and sea slider.</li>
           <li><b>Form</b>: Fearsome, Divine, or Inspiring. Mortals flee, flock, or take heart for sixty heartbeats.</li>
           <li>Fly close to a world — a blue sky takes over and you are in its lower atmosphere. Fly the crust. <b>X</b> hurls you back to the map. Uplift raises land through the water shell.</li>
-          <li>Villagers harvest and raise huts from paleolithic camps through later ages. Meteors crater, burn, and boom.</li>
+          <li><b>Life</b> opens the spore studio — snap Horde-style limbs onto a torso, save ten species, each with its own civ score.</li>
+          <li>Lightning actually strikes. Laser carves riverbeds and burns ships. Scout and settler fly as in Planetry; settlers found cities for the selected spore.</li>
         </ul>
         <div class="row">
           <button type="button" id="go-vr">Enter VR</button>
@@ -60,6 +83,6 @@
         }
       }
     </script>
-    <script type="module" src="/games/planmorpher/js/game.js?v=obf1"></script>
+    <script type="module" src="/games/planmorpher/js/game.js?v=pm1"></script>
   </body>
 </html>
