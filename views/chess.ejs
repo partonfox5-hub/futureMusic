@@ -58,7 +58,7 @@
     (function () {
       var ua = navigator.userAgent || "";
       if (/Quest|OculusBrowser|Oculus|Pacific/i.test(ua)) {
-        location.replace("/games/character-chess/chess-static.html?v=mapsrow5" + (location.search ? "&" + location.search.slice(1) : ""));
+        location.replace("/games/character-chess/chess-static.html?v=vrwarm1" + (location.search ? "&" + location.search.slice(1) : ""));
         return;
       }
       var iPad = /iPad/i.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
@@ -83,7 +83,7 @@
   </div>
   <iframe
     title="Creature Chess"
-    src="/games/character-chess/chess-static.html?v=mapsrow5<%= typeof sessionId !== 'undefined' && sessionId ? ('&session_id=' + encodeURIComponent(sessionId)) : '' %>"
+    src="/games/character-chess/chess-static.html?v=vrwarm1<%= typeof sessionId !== 'undefined' && sessionId ? ('&session_id=' + encodeURIComponent(sessionId)) : '' %>"
     allow="fullscreen; gamepad; autoplay; payment; xr-spatial-tracking"
     allowfullscreen
   ></iframe>
