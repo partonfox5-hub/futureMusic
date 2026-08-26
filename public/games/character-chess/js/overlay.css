@@ -22,6 +22,9 @@ body.cc-shop-on #root .fixed.inset-0 {
   overflow: hidden;
 }
 #cc-shell.on { display: block; }
+.piece-stone {
+  filter: grayscale(1) contrast(1.18) brightness(0.82) sepia(0.5) !important;
+}
 #cc-shell * { box-sizing: border-box; }
 
 /* ── cinematic board ── */
