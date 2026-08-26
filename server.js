@@ -522,6 +522,12 @@ app.get(BBQST + "/manifest.webmanifest", (req, res) => {
     res.sendFile(path.join(__dirname, "public", "bbqst-h8k2m9q4", "manifest.webmanifest"));
 });
 
+// Digital Asset Links for the Blockbuild Quest TWA. express.static ignores dotfiles.
+app.get("/.well-known/assetlinks.json", (req, res) => {
+    res.type("application/json");
+    res.sendFile(path.join(__dirname, "public", ".well-known", "assetlinks.json"));
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 // --- STRIPE ---

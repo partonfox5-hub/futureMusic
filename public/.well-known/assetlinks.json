@@ -1,1 +1,14 @@
-[]
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "online.futuremusic.blockbuild",
+      "sha256_cert_fingerprints": [
+        "E8:04:FB:1F:74:A4:6D:42:27:C0:9D:7E:A4:01:91:59:D0:53:3F:AE:A2:76:93:1A:A4:FD:3B:30:36:32:8E:2C"
+      ]
+    }
+  }
+]
