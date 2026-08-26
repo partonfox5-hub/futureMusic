@@ -2,7 +2,8 @@
  * Creature Chess Quest VR:
  * The 3D WebGL canvas only mounts when vrActive is true. Requesting an
  * immersive session first, then creating that canvas, deadlocks Quest Browser
- * (infinite headset loading). Warm the canvas behind 2D, then attach XR.
+ * (infinite headset loading). Warm the canvas behind 2D on Quest only, then attach XR.
+ * Desktop/PC never preloads the Three.js board.
  */
 const BOARD3D = "/games/character-chess/assets/Board3D-c8w4k2np.js?v=vrwarm1";
 const FULL_PATH = "/games/character-chess/chess-static.html";
@@ -12,6 +13,10 @@ const GL_MS = 20000;
 let liveSession = null;
 let patched = false;
 let getContextPatched = false;
+
+function isHeadsetBrowser() {
+  return /Quest|OculusBrowser|Oculus|Pacific/i.test(navigator.userAgent || "");
+}
 
 function chip(msg, kind) {
   let el = document.getElementById("cc-vr-chip");
@@ -271,42 +276,41 @@ function patchStore(game) {
   });
 }
 
-patchGetContext();
-import(/* webpackIgnore: true */ BOARD3D).catch(() => {});
-
-hideTitleVr();
-const watch = new MutationObserver(hideTitleVr);
-watch.observe(document.documentElement, { childList: true, subtree: true });
-
-document.addEventListener(
-  "click",
-  (e) => {
-    const btn = e.target.closest?.("button");
-    if (!isVrButton(btn)) return;
-    e.preventDefault();
-    e.stopPropagation();
-    const game = window.__game;
-    if (!game?.getState) return;
-    const st = game.getState();
-    const aria = (btn.getAttribute("aria-label") || "").trim();
-    const text = (btn.textContent || "").replace(/\s+/g, " ").trim();
-    if (st.vrActive || aria === "Exit VR" || text === "Exit VR") st.exitVr?.();
-    else st.enterVr?.();
-  },
-  true,
-);
-
-waitGame().then((game) => {
-  if (!game) {
-    chip("Creature Chess did not finish loading.", "err");
-    return;
-  }
-  if (navigator.xr) game.setState({ vrSupported: true });
-  patchStore(game);
+if (isHeadsetBrowser()) {
+  patchGetContext();
+  import(/* webpackIgnore: true */ BOARD3D).catch(() => {});
   hideTitleVr();
-  warmBoard(game);
-  game.subscribe?.(() => warmBoard(game));
-  if (new URLSearchParams(location.search).get("vr") === "1" && navigator.xr) {
-    window.setTimeout(() => game.getState().enterVr?.(), 500);
-  }
-});
+  const watch = new MutationObserver(hideTitleVr);
+  watch.observe(document.documentElement, { childList: true, subtree: true });
+  document.addEventListener(
+    "click",
+    (e) => {
+      const btn = e.target.closest?.("button");
+      if (!isVrButton(btn)) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const game = window.__game;
+      if (!game?.getState) return;
+      const st = game.getState();
+      const aria = (btn.getAttribute("aria-label") || "").trim();
+      const text = (btn.textContent || "").replace(/\s+/g, " ").trim();
+      if (st.vrActive || aria === "Exit VR" || text === "Exit VR") st.exitVr?.();
+      else st.enterVr?.();
+    },
+    true,
+  );
+  waitGame().then((game) => {
+    if (!game) {
+      chip("Creature Chess did not finish loading.", "err");
+      return;
+    }
+    game.setState({ vrSupported: true });
+    patchStore(game);
+    hideTitleVr();
+    warmBoard(game);
+    game.subscribe?.(() => warmBoard(game));
+    if (new URLSearchParams(location.search).get("vr") === "1") {
+      window.setTimeout(() => game.getState().enterVr?.(), 500);
+    }
+  });
+}
