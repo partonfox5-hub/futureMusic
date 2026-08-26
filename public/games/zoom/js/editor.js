@@ -22,8 +22,8 @@ import {
   SHAPES,
   WALL_TEX,
   routes,
-} from "./config.js?v=zm6";
-import { bakedMaps } from "./defaults.js?v=zm6";
+} from "./config.js?v=zm7";
+import { bakedMaps } from "./defaults.js?v=zm7";
 import {
   addSphere,
   blankMap,
@@ -52,9 +52,9 @@ import {
   uid,
   wallIsCrack,
   wallTexId,
-} from "./map.js?v=zm6";
-import { deleteMap, getMap, listMaps, saveMap, stashPreview } from "./store.js?v=zm6";
-import { defaultNpc } from "./npcs.js?v=zm6";
+} from "./map.js?v=zm7";
+import { deleteMap, getMap, listMaps, saveMap, stashPreview } from "./store.js?v=zm7";
+import { defaultNpc } from "./npcs.js?v=zm7";
 
 const $ = (id) => document.getElementById(id);
 
@@ -86,6 +86,7 @@ let pendingPortal = null;
 let pendingKey = null;
 let climbFrom = 0;
 let boulderSize = 1;
+let boulderTrigger = 8;
 let ridgeElev = 1;
 let pendingUlti = null;
 
@@ -339,20 +340,23 @@ function draw() {
     ctx.strokeStyle = "#aaa";
     ctx.strokeRect(c.x / CELL - 0.4, c.z / CELL - 0.4, 0.8, 0.8);
   }
-  for (const b of map.boulders || []) {
-    ctx.fillStyle = "#8a7060";
+  for (let bi = 0; bi < (map.boulders || []).length; bi++) {
+    const b = map.boulders[bi];
+    const on = selected && selected.type === "boulder" && selected.i === bi;
+    ctx.fillStyle = on ? "#c4a070" : "#8a7060";
     ctx.beginPath();
     ctx.arc(b.x / CELL, b.z / CELL, 0.32 + (b.size || 1) * 0.18, 0, 6.28);
     ctx.fill();
-    ctx.strokeStyle = "#ffcc66";
-    ctx.lineWidth = 0.1;
+    ctx.strokeStyle = on ? "#ffe08a" : "#ffcc66";
+    ctx.lineWidth = on ? 0.16 : 0.1;
     ctx.beginPath();
     ctx.moveTo(b.x / CELL, b.z / CELL);
-    ctx.lineTo(b.x / CELL - Math.sin(b.yaw || 0) * 1.3, b.z / CELL - Math.cos(b.yaw || 0) * 1.3);
+    ctx.lineTo(b.x / CELL - Math.sin(b.yaw || 0) * 1.8, b.z / CELL - Math.cos(b.yaw || 0) * 1.8);
     ctx.stroke();
-    ctx.strokeStyle = "rgba(200,80,40,0.5)";
+    ctx.strokeStyle = on ? "rgba(255,180,60,0.85)" : "rgba(200,80,40,0.5)";
+    ctx.lineWidth = on ? 0.12 : 0.08;
     ctx.beginPath();
-    ctx.arc(b.x / CELL, b.z / CELL, (b.trigger || 3.2) / CELL, 0, 6.28);
+    ctx.arc(b.x / CELL, b.z / CELL, (b.trigger || 8) / CELL, 0, 6.28);
     ctx.stroke();
   }
   for (const v of map.vendors || []) {
@@ -449,6 +453,11 @@ function hitAt(c) {
   }
   for (let i = (map.npcs || []).length - 1; i >= 0; i--) {
     if (Math.hypot(map.npcs[i].x - c.wx, map.npcs[i].z - c.wz) < 1.2) return { type: "npc", i };
+  }
+  for (let i = (map.boulders || []).length - 1; i >= 0; i--) {
+    const b = map.boulders[i];
+    const r = 0.7 + (b.size || 1) * 0.45;
+    if (Math.hypot(b.x - c.wx, b.z - c.wz) < r) return { type: "boulder", i };
   }
   return null;
 }
@@ -601,12 +610,26 @@ canvas.addEventListener("pointerdown", (ev) => {
     map.crushers.push({ x: c.wx, z: c.wz });
     draw();
   } else if (tool === "boulder") {
-    pushUndo();
-    map.boulders = map.boulders || [];
-    map.boulders.push({ x: c.wx, z: c.wz, yaw: 0, trigger: 3.2, size: boulderSize });
-    selected = { type: "boulder", i: map.boulders.length - 1 };
-    drawing = true;
-    status("Boulder set — drag to aim roll direction");
+    const hit = hitAt(c);
+    if (hit && hit.type === "boulder") {
+      selected = hit;
+      const b = map.boulders[hit.i];
+      boulderSize = b.size || 1;
+      boulderTrigger = b.trigger || 8;
+      if ($("bsize")) $("bsize").value = String(boulderSize);
+      if ($("bsize-v")) $("bsize-v").textContent = boulderSize.toFixed(2);
+      if ($("btrig")) $("btrig").value = String(boulderTrigger);
+      if ($("btrig-v")) $("btrig-v").textContent = boulderTrigger.toFixed(1);
+      drawing = true;
+      status("Selected — drag to change roll direction");
+    } else {
+      pushUndo();
+      map.boulders = map.boulders || [];
+      map.boulders.push({ x: c.wx, z: c.wz, yaw: 0, trigger: boulderTrigger, size: boulderSize });
+      selected = { type: "boulder", i: map.boulders.length - 1 };
+      drawing = true;
+      status("Boulder set — drag to aim roll direction");
+    }
     draw();
   } else if (tool === "vendor") {
     pushUndo();
@@ -898,7 +921,7 @@ function setTool(t) {
     crouch: "Low tunnels. Player must crouch (C) to pass.",
     spike: "Spike pits. Jump them or die. Ceiling rises so you can vault them.",
     unstable: "Paint a ceiling that collapses around anyone who walks under it.",
-    boulder: "Click to place a rolling boulder, then drag to set the roll direction. Size is set with the slider. It rolls down slopes and knocks the player back when fast.",
+    boulder: "Click to place, drag to aim. Click an existing boulder and drag to change direction. Size and activation radius sliders edit the selected boulder.",
     minotaur: "Place a minotaur. Walks slowly until it sees you, then roars and charges.",
     chain: "Hanging chain. Same grip as rope, metal clink, looks like links.",
     slope: "Paint a stripe between two elevation levels. The ramp is calculated from those heights and the distance.",
@@ -974,6 +997,20 @@ if ($("bsize")) {
   $("bsize").addEventListener("input", () => {
     boulderSize = +$("bsize").value;
     $("bsize-v").textContent = boulderSize.toFixed(2);
+    if (selected?.type === "boulder" && map.boulders[selected.i]) {
+      map.boulders[selected.i].size = boulderSize;
+      draw();
+    }
+  });
+}
+if ($("btrig")) {
+  $("btrig").addEventListener("input", () => {
+    boulderTrigger = +$("btrig").value;
+    $("btrig-v").textContent = boulderTrigger.toFixed(1);
+    if (selected?.type === "boulder" && map.boulders[selected.i]) {
+      map.boulders[selected.i].trigger = boulderTrigger;
+      draw();
+    }
   });
 }
 if ($("ridge-elev")) {
@@ -1045,6 +1082,9 @@ function syncSliders() {
   $("oscale-v").textContent = objScale.toFixed(2);
   $("elev-v").textContent = String(elev);
   if ($("bsize-v")) $("bsize-v").textContent = boulderSize.toFixed(2);
+  if ($("bsize")) $("bsize").value = String(boulderSize);
+  if ($("btrig-v")) $("btrig-v").textContent = boulderTrigger.toFixed(1);
+  if ($("btrig")) $("btrig").value = String(boulderTrigger);
   if ($("ridge-v")) $("ridge-v").textContent = String(ridgeElev);
   refreshUltiList();
   $("sp-int-v").textContent = spawnInterval.toFixed(1) + "s";
@@ -1100,6 +1140,7 @@ addEventListener("keydown", (e) => {
       else if (selected.type === "spawner") map.spawners.splice(selected.i, 1);
       else if (selected.type === "pickup") map.pickups.splice(selected.i, 1);
       else if (selected.type === "npc") map.npcs.splice(selected.i, 1);
+      else if (selected.type === "boulder") map.boulders.splice(selected.i, 1);
       selected = null;
       draw();
     }

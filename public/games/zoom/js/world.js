@@ -14,9 +14,9 @@ import {
   STORY_H,
   STORIES,
   WALL_TEX,
-} from "./config.js?v=zm6";
-import { cellI, climbHoleFloor, climbHoleRoof, enclosedFloors, idx, inBounds, isCarved, sdf3, slopeGrad, terrainY, wallIsCrack, wallTexId } from "./map.js?v=zm6";
-import { sfx } from "./sfx.js?v=zm6";
+} from "./config.js?v=zm7";
+import { cellI, climbHoleFloor, climbHoleRoof, enclosedFloors, idx, inBounds, isCarved, sdf3, slopeGrad, terrainY, wallIsCrack, wallTexId } from "./map.js?v=zm7";
+import { sfx } from "./sfx.js?v=zm7";
 
 function mat(hex, extra) {
   return new THREE.MeshLambertMaterial({ color: hex, ...extra });
@@ -870,9 +870,10 @@ export function buildWorld(map, dungeon, scene) {
     mesh.scale.setScalar(size);
     mesh.position.set(b.x, y0 + r, b.z);
     group.add(mesh);
+    const tr = Math.max(1.6, b.trigger || 8);
     const ring = new THREE.Mesh(
-      new THREE.RingGeometry(2.6, 2.95, 24),
-      mat(0xc44, { transparent: true, opacity: 0.35, side: THREE.DoubleSide }),
+      new THREE.RingGeometry(Math.max(0.4, tr - 0.28), tr, 48),
+      mat(0xc44, { transparent: true, opacity: 0.32, side: THREE.DoubleSide }),
     );
     ring.rotation.x = -Math.PI / 2;
     ring.position.set(b.x, y0 + 0.04, b.z);
@@ -896,7 +897,7 @@ export function buildWorld(map, dungeon, scene) {
       speed0: 7.125,
       r,
       size,
-      trigger: b.trigger || 5.2,
+      trigger: b.trigger || 8,
       hp: 4 + Math.round(size * 2),
       maxHp: 4 + Math.round(size * 2),
     });
@@ -1951,6 +1952,7 @@ function collapseCell(map, extras, scene, i, player, onHit) {
 
 function tickBoulders(extras, dt, player, map, sdf2, onHit) {
   const HIT_SPD = 3.15;
+  const GRAV = 26;
   for (const b of extras.boulders || []) {
     if (b.gone || !b.mesh) continue;
     const px = b.mesh.position.x;
@@ -1958,25 +1960,37 @@ function tickBoulders(extras, dt, player, map, sdf2, onHit) {
     const d = Math.hypot(player.x - px, player.z - pz);
     const g = map ? slopeGrad(map, px, pz) : { gx: 0, gz: 0 };
     const glen = Math.hypot(g.gx, g.gz);
-    if (!b.rolling && (d < b.trigger || glen > 0.12)) {
+    let downX = 0;
+    let downZ = 0;
+    if (glen > 0.0008) {
+      downX = -g.gx / glen;
+      downZ = -g.gz / glen;
+    }
+    const onSlope = glen > 0.035;
+    if (!b.rolling && (d < b.trigger || onSlope)) {
       b.rolling = true;
       if (d < b.trigger) {
         const spd = b.speed0 || 7.125;
-        b.vx = -Math.sin(b.yaw) * spd;
-        b.vz = -Math.cos(b.yaw) * spd;
+        b.vx = (b.vx || 0) - Math.sin(b.yaw) * spd;
+        b.vz = (b.vz || 0) - Math.cos(b.yaw) * spd;
       }
       if (b.ring) b.ring.visible = false;
     }
-    if (!b.rolling) continue;
-    if (glen > 0.001) {
+    if (!b.rolling && !onSlope) continue;
+    if (glen > 0.0008) {
       const sinT = glen / Math.sqrt(1 + glen * glen);
-      const ax = (-g.gx / glen) * 18 * sinT;
-      const az = (-g.gz / glen) * 18 * sinT;
-      b.vx = (b.vx || 0) + ax * dt;
-      b.vz = (b.vz || 0) + az * dt;
+      const grav = GRAV * sinT;
+      b.vx = (b.vx || 0) + downX * grav * dt;
+      b.vz = (b.vz || 0) + downZ * grav * dt;
+      const vAlong = (b.vx || 0) * downX + (b.vz || 0) * downZ;
+      if (vAlong < 0) {
+        const drag = Math.exp(-3.1 * dt);
+        b.vx *= drag;
+        b.vz *= drag;
+      }
     }
     let spd = Math.hypot(b.vx || 0, b.vz || 0);
-    const mu = glen < 0.05 ? 5.8 : glen < 0.12 ? 1.6 : 0.45;
+    const mu = onSlope ? 0.38 : 5.2;
     if (spd > 0.001) {
       const f = Math.min(spd, mu * dt * 8);
       b.vx -= (b.vx / spd) * f;
@@ -1988,19 +2002,19 @@ function tickBoulders(extras, dt, player, map, sdf2, onHit) {
     const y = b.y;
     const hitX = sdf2 ? sdf3(nx, y, pz, map, sdf2) > -0.2 : false;
     const hitZ = sdf2 ? sdf3(px, y, nz, map, sdf2) > -0.2 : false;
-    if (hitX) b.vx *= -0.62;
+    if (hitX) b.vx *= -0.55;
     else b.mesh.position.x = nx;
-    if (hitZ) b.vz *= -0.62;
+    if (hitZ) b.vz *= -0.55;
     else b.mesh.position.z = nz;
-    if (wallBlocked(map, b.mesh.position.x + Math.sign(b.vx || 0) * 0.5, b.mesh.position.z, y)) b.vx *= -0.62;
-    if (wallBlocked(map, b.mesh.position.x, b.mesh.position.z + Math.sign(b.vz || 0) * 0.5, y)) b.vz *= -0.62;
+    if (wallBlocked(map, b.mesh.position.x + Math.sign(b.vx || 0) * 0.5, b.mesh.position.z, y)) b.vx *= -0.55;
+    if (wallBlocked(map, b.mesh.position.x, b.mesh.position.z + Math.sign(b.vz || 0) * 0.5, y)) b.vz *= -0.55;
     const ty = map ? terrainY(map, b.mesh.position.x, b.mesh.position.z) : b.y0;
     b.y = ty + b.r;
     b.mesh.position.y = b.y;
     spd = Math.hypot(b.vx || 0, b.vz || 0);
     b.mesh.rotation.x += (b.vz || 0) * dt * 1.4;
     b.mesh.rotation.z -= (b.vx || 0) * dt * 1.4;
-    if (spd < 0.28 && glen < 0.06) {
+    if (spd < 0.18 && !onSlope) {
       b.vx = 0;
       b.vz = 0;
     }

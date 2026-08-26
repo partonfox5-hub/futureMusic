@@ -18,7 +18,7 @@ import {
   SHAPE_SPHERE,
   STORIES,
   WALL_CRACK,
-} from "./config.js?v=zm6";
+} from "./config.js?v=zm7";
 
 export { CELL };
 
