@@ -2275,7 +2275,7 @@ function loop(t) {
       if (menuOpen) closeMenu();
       else openMenu();
     }
-    if (lStick && !pressed.lsc && !menuOpen) {
+    if (xBtn && !pressed.x && !menuOpen) {
       rot = (rot + 1) % 4;
       if (held && held.rot != null) held.rot = rot;
       rebuildGhost();
@@ -2350,7 +2350,7 @@ function loop(t) {
         const h = handLocal(leftCtrl());
         fireCannon(h.world, h.dir);
       }
-      if (xBtn) {
+      if (lStick) {
         xHold += dt;
         const power = THREE.MathUtils.clamp((xHold - 0.12) / 2.05, 0, 1);
         flame.visible = xHold > 0.12;
@@ -2432,7 +2432,7 @@ window.addEventListener("keydown", (e) => {
   if (e.code === "BracketRight" || e.code === "Equal") setScale(worldScale * 1.2);
   if (e.code === "KeyG") { gravityOn = !gravityOn; setHud(); }
   if (e.code === "KeyH") swapHands();
-  if (e.code === "KeyR") { rot = (rot + 1) % 4; rebuildGhost(); }
+  if (e.code === "KeyX") { rot = (rot + 1) % 4; rebuildGhost(); }
   if (e.code === "KeyC") {
     if (hexPicker.root.visible) hexPicker.root.visible = false;
     else spawnWorldPanel(hexPicker.root, 0.7);
@@ -2461,7 +2461,7 @@ window.addEventListener("keydown", (e) => {
     camera.getWorldDirection(_v2);
     fireCannon(_v.clone(), _v2.clone());
   }
-  if (e.code === "KeyX") {
+  if (e.code === "KeyR") {
     camera.getWorldPosition(_v);
     camera.getWorldDirection(_v2);
     meltNear(worldToLocal(_v.addScaledVector(_v2, 0.4)), 0.4);

@@ -669,7 +669,7 @@ function setHud() {
       : handMode === "beacon"
         ? `Beacon · ${beaconKind}`
         : "Empty-handed";
-  hudLine.textContent = `${mode} · brick ${fmtScale(pieceScale)}× · table ${worldScale.toFixed(1)}× · gravity ${gravityOn ? "ON" : "OFF"}` + (bpRecording ? " · REC " + bpDraft.length : "");
+  hudLine.textContent = `${mode} · brick ${fmtScale(pieceScale)}× · table ${worldScale.toFixed(1)}× · gravity ${gravityOn ? "ON" : "OFF"}` + (bpRecording ? " · REC " + bpDraft.length : "") + (pendingPrint ? " · STAMP " + pendingPrint.name : "");
 }
 
 function xrGamepad(i) {
@@ -802,7 +802,12 @@ function brickCells(b) {
   return cells;
 }
 
+let occGen = 0;
+let occBuilt = -1;
+let occMap = null;
+function bumpOcc() { occGen++; }
 function occupancy() {
+  if (occMap && occBuilt === occGen) return occMap;
   const map = new Map();
   const add = (x, z, y0, y1, id) => {
     const k = x + "," + z;
@@ -810,9 +815,11 @@ function occupancy() {
     map.get(k).push({ y0, y1, id });
   };
   for (const b of bricks) {
-    if (b.loose || b.held) continue;
+    if (!b?.spec || b.loose || b.held) continue;
     for (const c of brickCells(b)) add(c.x, c.z, c.y0, c.y1, b.id);
   }
+  occMap = map;
+  occBuilt = occGen;
   return map;
 }
 
@@ -964,6 +971,7 @@ function breakApart(ids, impulse, origin) {
       b.spin = new THREE.Vector3(0, Math.random() - 0.5, 0);
     }
   }
+  bumpOcc();
 }
 
 function addBrick(spec, col, gx, gy, gz, rotQ, loose = false, scale) {
@@ -983,6 +991,7 @@ function addBrick(spec, col, gx, gy, gz, rotQ, loose = false, scale) {
     vel: new THREE.Vector3(), spin: new THREE.Vector3(), melt: 0, links: new Set(),
   };
   bricks.push(b);
+  bumpOcc();
   if (!loose) {
     connectNew(b);
     recordBrick(b);
@@ -998,6 +1007,7 @@ function removeBrick(b) {
   buildRoot.remove(b.group);
   const i = bricks.indexOf(b);
   if (i >= 0) bricks.splice(i, 1);
+  bumpOcc();
 }
 
 function addFigAt(localPos, yaw) {
@@ -1017,27 +1027,31 @@ function addFigAt(localPos, yaw) {
 }
 
 function heightAt(x, z) {
+  if (!Number.isFinite(x) || !Number.isFinite(z)) return 0;
   const gx = Math.floor(x / STUD);
   const gz = Math.floor(z / STUD);
   let best = 0;
   const half = TABLE_N / 2;
   if (gx < -half || gx >= half || gz < -half || gz >= half) best = groundGy() * PLATE;
   for (const b of bricks) {
-    if (b.loose || b.held) continue;
+    if (!b?.spec || !b.group || b.loose || b.held) continue;
     const f = scaledFoot(b.spec, b.rot, b.scale || 1);
     if (gx < b.gx || gx >= b.gx + f.bw || gz < b.gz || gz >= b.gz + f.bd) continue;
     let top = (b.gy + f.h) * PLATE;
     if (b.spec.kind === "stairs") {
-      let u = (gx - b.gx) / Math.max(1, bw);
-      let v = (gz - b.gz) / Math.max(1, bd);
+      let u = (gx - b.gx) / Math.max(1, f.bw);
+      let v = (gz - b.gz) / Math.max(1, f.bd);
       if (b.rot % 4 === 1) v = u;
       else if (b.rot % 4 === 2) v = 1 - v;
       else if (b.rot % 4 === 3) v = 1 - u;
-      if (b.rot % 4 === 0) { /* v as-is, rise along +z */ }
+      v = Math.max(0, Math.min(1, v));
       top = b.gy * PLATE + v * b.spec.h * PLATE;
     } else if (b.spec.kind === "slope") {
-      let v = (gz - b.gz) / Math.max(1, bd);
-      if (b.rot % 4 === 1) v = (gx - b.gx) / Math.max(1, bw);
+      let v = (gz - b.gz) / Math.max(1, f.bd);
+      if (b.rot % 4 === 1) v = (gx - b.gx) / Math.max(1, f.bw);
+      else if (b.rot % 4 === 2) v = 1 - (gz - b.gz) / Math.max(1, f.bd);
+      else if (b.rot % 4 === 3) v = 1 - (gx - b.gx) / Math.max(1, f.bw);
+      v = Math.max(0, Math.min(1, v));
       top = b.gy * PLATE + v * b.spec.h * PLATE;
     }
     if (top > best) best = top;
@@ -1204,8 +1218,7 @@ function placeFromLocal(localPos, yaw) {
     const local = pushOutFromPlayer(localPos.clone(), spec);
     const snap = snapPose(local, spec, rot);
     const n = stampPrint(pendingPrint, snap.gx, snap.gy, snap.gz);
-    hudHint.textContent = "Stamped " + pendingPrint.name + " (" + n + " bricks).";
-    pendingPrint = null;
+    hudHint.textContent = "Stamped " + pendingPrint.name + " (" + n + "). Still selected — catalog → Prints → Stop to deselect.";
     return;
   }
   if (handMode === "beacon") {
@@ -1265,7 +1278,7 @@ function nearestThing(localPos, max = 0.04, looseOnly = false) {
   }
   for (const b of bricks) {
     if (b.held) continue;
-    if (looseOnly && !b.loose) continue;
+    if (!b?.group || (looseOnly && !b.loose)) continue;
     const sc = b.scale || 1;
     const reach = Math.max(max, STUD * 6 * Math.max(1, sc));
     const d = b.group.position.distanceTo(localPos);
@@ -1282,6 +1295,7 @@ function detachBrick(b) {
   b.links = new Set();
   b.onTable = false;
   b.loose = true;
+  bumpOcc();
 }
 
 let held = null;
@@ -1352,6 +1366,7 @@ function dropHeld(snapJoin) {
     }
   }
   held = null;
+  bumpOcc();
 }
 
 function fireCannon(originWorld, dirWorld) {
@@ -1371,7 +1386,7 @@ function explodeBall(ball) {
   const origin = ball.mesh.position.clone();
   const hit = [];
   for (const b of bricks) {
-    if (b.held) continue;
+    if (!b?.group || b.held) continue;
     if (b.group.position.distanceTo(origin) < STUD * 6) hit.push(b.id);
   }
   if (hit.length) breakApart(hit, 1.15, origin);
@@ -1622,11 +1637,19 @@ function moveRig(dt, xr) {
 }
 
 function tickPhysics(dt) {
+  try {
+    tickPhysicsInner(dt);
+  } catch (err) {
+    console.warn("blockbuild physics", err);
+  }
+}
+function tickPhysicsInner(dt) {
   const g = gravityOn ? 2.4 : 0;
   const floorY = -TABLE_Y + 0.012;
   const half = table.userData.half;
   for (const b of bricks) {
-    if (b.held || !b.loose) continue;
+    if (!b?.group || !b.vel || b.held || !b.loose) continue;
+    if (!b.spin) b.spin = new THREE.Vector3();
     b.vel.y -= g * dt;
     b.vel.multiplyScalar(0.992);
     b.group.position.addScaledVector(b.vel, dt);
@@ -1658,12 +1681,12 @@ function tickPhysics(dt) {
     ball.life -= dt;
     let hit = false;
     for (const b of bricks) {
-      if (b.held) continue;
+      if (!b?.group || b.held) continue;
       if (b.group.position.distanceTo(ball.mesh.position) < STUD * 3.2) { hit = true; break; }
     }
     if (!hit) {
       for (const f of figs) {
-        if (f.userData.held) continue;
+        if (!f?.userData || f.userData.held) continue;
         const sc = f.userData.baseScale || 1;
         if (f.position.distanceTo(ball.mesh.position) < STUD * 3.4 * Math.max(1, sc)) { hit = true; break; }
       }
@@ -1682,7 +1705,7 @@ function tickPhysics(dt) {
   }
   const wander = table.userData.half * 0.9;
   for (const f of figs) {
-    if (f.userData.held) continue;
+    if (!f?.userData || f.userData.held) continue;
     if (f.userData.toss) {
       const vel = f.userData.vel || new THREE.Vector3();
       vel.y -= g * dt;
@@ -1809,7 +1832,18 @@ function loadPrints() {
   try { return JSON.parse(localStorage.getItem(PRINTS_KEY) || "[]"); } catch { return []; }
 }
 function savePrints(list) {
-  try { localStorage.setItem(PRINTS_KEY, JSON.stringify(list)); } catch {}
+  try { localStorage.setItem(PRINTS_KEY, JSON.stringify(list)); return true; } catch { return false; }
+}
+function nextPrintName(prints) {
+  let n = 0;
+  for (const p of prints) {
+    const m = /Print\s+(\d+)/i.exec(p.name || "");
+    if (m) n = Math.max(n, parseInt(m[1], 10) || 0);
+  }
+  return "Print " + (n + 1);
+}
+function newPrintId() {
+  return "p" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 }
 function recordBrick(b) {
   if (!bpRecording || !b || b.loose) return;
@@ -1831,10 +1865,14 @@ function toggleBlueprint() {
     bpRecording = false;
     if (bpDraft.length >= 2) {
       const prints = loadPrints();
-      const rec = { id: "p" + Date.now().toString(36), name: "Print " + (prints.length + 1), pieces: bpDraft.slice() };
+      const rec = { id: newPrintId(), name: nextPrintName(prints), pieces: bpDraft.slice() };
       prints.push(rec);
-      savePrints(prints);
-      hudHint.textContent = "Saved " + rec.name + " (" + rec.pieces.length + " bricks) — Piece catalog → Prints.";
+      if (!savePrints(prints)) {
+        hudHint.textContent = "Print list is full — could not save " + rec.name + ".";
+      } else {
+        hudHint.textContent = "Saved " + rec.name + " (" + rec.pieces.length + " bricks) as a new print — catalog → Prints.";
+        if (catalog?.fill) catalog.fill();
+      }
     } else {
       hudHint.textContent = "Blueprint cancelled (need 2+ bricks).";
     }
@@ -1927,9 +1965,11 @@ function makeCatalog() {
     else if (tab.figs) list = FIG_PRESETS.map((p) => ({ id: "fig:" + p.id, name: p.name }));
     else if (tab.prints) {
       const prints = loadPrints();
-      list = prints.length
-        ? prints.map((p) => ({ id: "print:" + p.id, name: p.name + " (" + p.pieces.length + ")" }))
-        : [{ id: "print:none", name: "Left bumper records" }];
+      list = [{ id: "print:none", name: pendingPrint ? ("Stop stamping · " + pendingPrint.name) : "Record: left bumper" }];
+      for (const p of prints) {
+        const on = pendingPrint && pendingPrint.id === p.id;
+        list.push({ id: "print:" + p.id, name: (on ? "● " : "") + p.name + " (" + p.pieces.length + ")" });
+      }
     }
     else {
       list = tab.kinds.map((id) => {
@@ -2158,6 +2198,7 @@ function pokeUi(origin, dir) {
       return true;
     }
     if (obj?.userData?.catBeacon) {
+      pendingPrint = null;
       beaconKind = obj.userData.catBeacon;
       handMode = "beacon";
       catalog.root.visible = false;
@@ -2168,15 +2209,31 @@ function pokeUi(origin, dir) {
     }
     if (obj?.userData?.catPrint) {
       if (obj.userData.catPrint === "none") {
-        hudHint.textContent = "Left bumper records a print while you place bricks.";
+        const wasOn = !!pendingPrint;
+        pendingPrint = null;
+        hudHint.textContent = wasOn
+          ? "Print cleared — placing single bricks again."
+          : "Left bumper records a print while you place bricks.";
+        catalog.fill();
+        setHud();
         return true;
       }
-      pendingPrint = loadPrints().find((p) => p.id === obj.userData.catPrint) || null;
-      catalog.root.visible = false;
-      hudHint.textContent = pendingPrint ? ("Stamp " + pendingPrint.name + " — trigger to place.") : "Print missing.";
+      const next = loadPrints().find((p) => p.id === obj.userData.catPrint) || null;
+      if (pendingPrint && next && pendingPrint.id === next.id) {
+        pendingPrint = null;
+        hudHint.textContent = "Print cleared — placing single bricks again.";
+      } else {
+        pendingPrint = next;
+        hudHint.textContent = pendingPrint
+          ? ("Stamping " + pendingPrint.name + " — trigger keeps placing it. Catalog → Prints → Stop to deselect.")
+          : "Print missing.";
+      }
+      catalog.fill();
+      setHud();
       return true;
     }
     if (obj?.userData?.catFig) {
+      pendingPrint = null;
       figCfg = figFromPreset(obj.userData.catFig);
       kindI = KINDS.findIndex((k) => k.id === "fig");
       if (kindI < 0) kindI = 0;
@@ -2188,6 +2245,7 @@ function pokeUi(origin, dir) {
       return true;
     }
     if (obj?.userData?.catKind) {
+      pendingPrint = null;
       const id = obj.userData.catKind;
       kindI = KINDS.findIndex((k) => k.id === id);
       if (id === "fig") handMode = "fig";
@@ -2437,7 +2495,7 @@ function loop(t) {
     if (lGrip && !pressed.lg0 && paletteHand === 0 && !held && !sliderGrab) {
       toggleBlueprint();
     }
-    if (lStick && !pressed.lsc && !menuOpen) {
+    if (xBtn && !pressed.x && !menuOpen) {
       rot = (rot + 1) % 4;
       if (held && held.rot != null) held.rot = rot;
       rebuildGhost();
@@ -2512,7 +2570,7 @@ function loop(t) {
         const h = handLocal(leftCtrl());
         fireCannon(h.world, h.dir);
       }
-      if (xBtn) {
+      if (lStick) {
         xHold += dt;
         const power = THREE.MathUtils.clamp((xHold - 0.12) / 2.05, 0, 1);
         flame.visible = xHold > 0.12;
@@ -2595,7 +2653,7 @@ window.addEventListener("keydown", (e) => {
   if (e.code === "BracketRight" || e.code === "Equal") setScale(worldScale * 1.2);
   if (e.code === "KeyG") { gravityOn = !gravityOn; setHud(); }
   if (e.code === "KeyH") swapHands();
-  if (e.code === "KeyR") { rot = (rot + 1) % 4; rebuildGhost(); }
+  if (e.code === "KeyX") { rot = (rot + 1) % 4; rebuildGhost(); }
   if (e.code === "KeyC") {
     if (hexPicker.root.visible) hexPicker.root.visible = false;
     else spawnWorldPanel(hexPicker.root, 0.7);
@@ -2624,7 +2682,7 @@ window.addEventListener("keydown", (e) => {
     camera.getWorldDirection(_v2);
     fireCannon(_v.clone(), _v2.clone());
   }
-  if (e.code === "KeyX") {
+  if (e.code === "KeyR") {
     camera.getWorldPosition(_v);
     camera.getWorldDirection(_v2);
     meltNear(worldToLocal(_v.addScaledVector(_v2, 0.4)), 0.4);

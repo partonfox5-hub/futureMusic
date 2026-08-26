@@ -107,6 +107,9 @@ let shopStickLatch = 0;
 let wave = 0;
 let waveLeft = 0;
 let pending = 0;
+let dripTotal = 0;
+let dripLeft = 0;
+let dripElapsed = 0;
 let announcing = 0;
 let fireCd = 0;
 let reloadT = 0;
@@ -720,7 +723,9 @@ function makeSky() {
 }
 
 function tickSky(dt) {
-  dayT = (dayT + dt / DAY_LEN) % 1;
+  const darkNow = skyPalette(dayT).dark;
+  const nightSpeed = darkNow > 0.45 ? (1 / 0.7) : 1;
+  dayT = (dayT + (dt / DAY_LEN) * nightSpeed) % 1;
   const pal = skyPalette(dayT);
   const ang = (dayT - 0.25) * Math.PI * 2;
   const sunDir = new THREE.Vector3(Math.cos(ang), Math.sin(ang), 0.22).normalize();
@@ -1322,11 +1327,107 @@ function makeCentipede(w, ang, dist) {
     sepJit: 0.9,
     jabPhase: 0,
     jabLimb: null,
+    slither: rng() * 6,
+    threatCd: 1.5 + rng() * 4,
+    threatPose: 0,
+    threatT: 0,
+    threatDur: 1,
+  };
+}
+
+function makeSpider(w, ang, dist) {
+  const group = new THREE.Group();
+  const s = 0.82 + rng() * 0.35 + Math.min(0.55, w * 0.03);
+  const col = 0x111114;
+  const coreR = 0.22 * s;
+  const ceph = new THREE.Mesh(new THREE.SphereGeometry(coreR * 1.15, 8, 6), mat(col));
+  ceph.scale.set(1.35, 0.55, 1.15);
+  ceph.position.y = 0.16;
+  group.add(ceph);
+  const abdomen = new THREE.Mesh(new THREE.SphereGeometry(coreR * 1.35, 8, 6), mat(col));
+  abdomen.scale.set(1.1, 0.72, 1.45);
+  abdomen.position.set(0, 0.2, -coreR * 2.1);
+  group.add(abdomen);
+  const fangs = new THREE.Mesh(new THREE.ConeGeometry(coreR * 0.22, coreR * 0.55, 4), mat(col));
+  fangs.rotation.x = Math.PI;
+  fangs.position.set(0, 0.06, coreR * 1.15);
+  group.add(fangs);
+  const limbs = [];
+  const yaws = [0.52, 1.05, 2.12, 2.62, -0.52, -1.05, -2.12, -2.62];
+  for (let i = 0; i < 8; i++) {
+    const leg = makeLimb(w, true, "bug");
+    const lyaw = yaws[i];
+    const pitch = 0.72 + rng() * 0.12;
+    leg.rotation.order = "YXZ";
+    leg.userData.asLeg = true;
+    leg.userData.legIndex = i;
+    leg.userData.baseYaw = lyaw;
+    leg.userData.basePitch = pitch;
+    leg.userData.baseRoll = 0;
+    leg.rotation.y = lyaw;
+    leg.rotation.x = pitch;
+    const along = i % 4;
+    leg.position.set(
+      Math.sin(lyaw) * coreR * 1.15,
+      0.02,
+      Math.cos(lyaw) * coreR * 0.85 + (along < 2 ? coreR * 0.15 : -coreR * 0.35),
+    );
+    group.add(leg);
+    limbs.push(leg);
+  }
+  for (const side of [-1, 1]) {
+    const palp = makeLimb(w, false, "spike");
+    palp.userData.asLeg = false;
+    palp.userData.baseYaw = side * 0.45;
+    palp.userData.basePitch = -0.35;
+    palp.userData.baseRoll = 0;
+    palp.rotation.order = "YXZ";
+    palp.rotation.y = side * 0.45;
+    palp.rotation.x = -0.35;
+    palp.position.set(side * coreR * 0.55, 0.14, coreR * 0.85);
+    group.add(palp);
+    limbs.push(palp);
+  }
+  const bodyScale = s;
+  group.scale.setScalar(1);
+  const x = player.x + Math.cos(ang) * dist;
+  const z = player.z + Math.sin(ang) * dist;
+  const walkH = heightAt(x, z) + 0.28 * bodyScale;
+  group.position.set(x, walkH, z);
+  scene.add(group);
+  return {
+    mesh: group,
+    core: ceph,
+    limbs,
+    hpLimbs: limbs.filter((l) => l.userData.live).length,
+    x, z, y: walkH,
+    spd: (2.05 + w * 0.09) / Math.sqrt(bodyScale),
+    boost: 1.2,
+    bodyScale,
+    bob: rng() * 6,
+    hitR: (0.85 + coreR) * bodyScale,
+    hitCd: 0,
+    dodgeY: 0,
+    nLegs: 8,
+    alive: true,
+    spider: true,
+    ranged: false,
+    fireCd: 0,
+    orbit: rng() * Math.PI * 2,
+    orbitR: 0.8 + rng() * 2.2,
+    sepJit: 0.7,
+    jabPhase: 0,
+    jabLimb: null,
+    threatCd: 1.2 + rng() * 3.5,
+    threatPose: 0,
+    threatT: 0,
+    threatDur: 1,
   };
 }
 
 function makeMob(w, ang, dist) {
   if (w >= 3 && rng() < Math.min(0.2, 0.06 + w * 0.012)) return makeCentipede(w, ang, dist);
+  if (w >= 2 && rng() < Math.min(0.18, 0.055 + w * 0.012)) return makeSpider(w, ang, dist);
   const n = limbCountForWave(w);
   const bodyScale = mobScaleForWave(w);
   const group = new THREE.Group();
@@ -1395,6 +1496,10 @@ function makeMob(w, ang, dist) {
     sepJit: 0.65 + rng() * 0.7,
     jabPhase: 0,
     jabLimb: null,
+    threatCd: 1.8 + rng() * 4.2,
+    threatPose: 0,
+    threatT: 0,
+    threatDur: 1,
   };
 }
 
@@ -1456,14 +1561,27 @@ function spawnWave() {
   noteBestWave();
   const dw = diffWave();
   const count = Math.pow(2, dw - 1);
-  pending = count;
+  const half = Math.max(1, Math.ceil(count / 2));
+  const later = Math.max(0, count - half);
+  pending = half;
+  dripTotal = 0;
+  dripLeft = 0;
+  dripElapsed = 0;
   waveLeft = count;
   announcing = 2.6;
   showBanner("WAVE " + wave);
   applyPlanetTex(false);
   sfx.wave();
   sfx.groan();
-  dripSpawn();
+  dripSpawn(0);
+  if (wave >= 5 && later > 0) {
+    dripTotal = later;
+    dripLeft = later;
+    dripElapsed = 0;
+  } else {
+    pending += later;
+    dripSpawn(0);
+  }
   if (rng() < 0.22) {
     const ang = rng() * Math.PI * 2;
     const dist = 10 + rng() * 22;
@@ -1476,7 +1594,22 @@ function spawnWave() {
   }
 }
 
-function dripSpawn() {
+function dripSpawn(dt) {
+  dt = dt || 0;
+  if (dripLeft > 0) {
+    dripElapsed += dt;
+    const released = Math.floor((Math.min(dripElapsed, 60) / 60) * dripTotal);
+    const already = dripTotal - dripLeft;
+    const more = Math.max(0, released - already);
+    if (more > 0) {
+      pending += more;
+      dripLeft = Math.max(0, dripLeft - more);
+    }
+    if (dripElapsed >= 60 && dripLeft > 0) {
+      pending += dripLeft;
+      dripLeft = 0;
+    }
+  }
   while (pending > 0 && mobs.filter((m) => m.alive).length < MAX_LIVE) {
     const ang = rng() * Math.PI * 2;
     const dist = SPAWN_MIN + rng() * (SPAWN_MAX - SPAWN_MIN);
@@ -1757,7 +1890,7 @@ function incomingDodge(m) {
 }
 
 function tickMobs(dt) {
-  dripSpawn();
+  dripSpawn(dt);
   for (const m of mobs) {
     if (!m.alive) continue;
     if (m.hitCd > 0) m.hitCd -= dt;
@@ -1797,9 +1930,15 @@ function tickMobs(dt) {
     vx += sepX * (2.8 + m.spd * 0.35);
     vz += sepZ * (2.8 + m.spd * 0.35);
     if (m.centipede) {
-      vx = (dx / dist) * m.spd * runMul * (dist < 4.2 ? 1.55 : 1) + sepX * 2.2;
-      vz = (dz / dist) * m.spd * runMul * (dist < 4.2 ? 1.55 : 1) + sepZ * 2.2;
-      m.heading = Math.atan2(dx, dz);
+      const closeK = dist < 9 ? clamp((9 - dist) / 7, 0, 1) : 0;
+      m.slither = (m.slither || 0) + dt * (2.8 + closeK * 4.6);
+      const side = Math.sin(m.slither) * (0.22 + closeK * 1.25);
+      const px = -dz / dist;
+      const pz = dx / dist;
+      const rush = dist < 4.2 ? 1.4 : 1;
+      vx = (dx / dist) * m.spd * runMul * rush + px * side * m.spd + sepX * 2.2;
+      vz = (dz / dist) * m.spd * runMul * rush + pz * side * m.spd + sepZ * 2.2;
+      m.heading = Math.atan2(dx, dz) + Math.sin(m.slither) * 0.55 * closeK;
     }
     if (dodge.threat) {
       const mag = Math.hypot(dodge.dodgeX, dodge.dodgeZ) || 1;
@@ -1814,7 +1953,9 @@ function tickMobs(dt) {
     const sample = (liveLegs[0] || gait[0] || m.limbs[0]).userData;
     const lift = m.centipede
       ? (0.34 + (m.rear || 0) * 0.55) * (m.bodyScale || 1)
-      : (0.38 + (sample?.len || 0.5) * 0.38) * (m.bodyScale || 1);
+      : m.spider
+        ? (0.22 + Math.abs(Math.sin(m.bob * 9.5)) * 0.05) * (m.bodyScale || 1)
+        : (0.38 + (sample?.len || 0.5) * 0.38) * (m.bodyScale || 1);
     const groundY = heightAt(m.x, m.z) + lift;
     let hover = groundY;
     if (nW === 1) {
@@ -1831,6 +1972,22 @@ function tickMobs(dt) {
     const climb = nW ? 2.2 + nW * 1.1 : 8;
     m.y += (hover - m.y) * Math.min(1, dt * climb);
     if (m.y < groundY) m.y = groundY;
+    m.threatCd = (m.threatCd || 2) - dt;
+    if (!m.threatPose && m.threatCd <= 0) {
+      if (rng() < 0.42) {
+        m.threatPose = 1;
+        m.threatT = 0;
+        m.threatDur = 0.75 + rng() * 0.85;
+      }
+      m.threatCd = 2.2 + rng() * 4.8;
+    }
+    if (m.threatPose) {
+      m.threatT = (m.threatT || 0) + dt;
+      if (m.threatT >= m.threatDur) m.threatPose = 0;
+    }
+    const threatHold = m.threatPose
+      ? (m.threatT < m.threatDur - 0.22 ? Math.min(1, m.threatT * 6) : Math.max(0, (m.threatDur - m.threatT) / 0.22))
+      : 0;
     for (const limb of m.limbs) {
       if (!limb.userData.live) continue;
       const u = limb.userData;
@@ -1839,11 +1996,11 @@ function tickMobs(dt) {
         limb.rotation.x = u.basePitch + Math.sin(m.bob * 1.4 + u.phase) * 0.12;
       } else if (u.asLeg) {
         const nL = m.nLegs || 2;
-        const freq = nL >= 8 ? 6.2 : nL === 4 ? 4.6 : 3.5;
-        const amp = nL === 2 ? 0.62 : 0.4;
-        const phase = (u.legIndex || 0) * Math.PI;
+        const freq = m.spider ? 8.4 : nL >= 8 ? 6.2 : nL === 4 ? 4.6 : 3.5;
+        const amp = m.spider ? 0.72 : nL === 2 ? 0.62 : 0.4;
+        const phase = m.spider ? (u.legIndex || 0) * 0.85 + ((u.legIndex || 0) % 2) * Math.PI : (u.legIndex || 0) * Math.PI;
         limb.rotation.x = u.basePitch + Math.sin(m.bob * freq + phase) * amp;
-        limb.rotation.z = Math.sin(m.bob * freq * 0.5 + phase) * 0.1;
+        limb.rotation.z = Math.sin(m.bob * freq * 0.5 + phase) * (m.spider ? 0.22 : 0.1);
         if (u.baseYaw != null) limb.rotation.y = u.baseYaw;
       } else if (u.form === "tentacle") {
         limb.rotation.x = u.basePitch + Math.sin(m.bob * 2.6 + u.phase) * 0.45;
@@ -1855,16 +2012,24 @@ function tickMobs(dt) {
       } else {
         limb.rotation.x = u.basePitch + Math.sin(m.bob * 2.2 + u.phase) * 0.2;
       }
-      if (limb !== m.jabLimb) overlayLimbFlourish(limb, m, dt);
+      if (threatHold > 0.02 && u.form !== "torso" && limb !== m.jabLimb) {
+        const raiseX = u.asLeg ? -1.08 : -1.58;
+        limb.rotation.x = limb.rotation.x * (1 - threatHold) + raiseX * threatHold;
+        limb.rotation.z = (limb.rotation.z || 0) + Math.sin(m.bob * 9 + (u.phase || 0)) * 0.1 * threatHold;
+      } else if (limb !== m.jabLimb) overlayLimbFlourish(limb, m, dt);
     }
     if (m.centipede && m.segs) {
       m.rear = dist < 3.6 ? Math.min(1, (m.rear || 0) + dt * 2.4) : Math.max(0, (m.rear || 0) - dt * 1.5);
+      const closeK = dist < 9 ? clamp((9 - dist) / 7, 0, 1) : 0;
       for (let i = 0; i < m.segs.length; i++) {
         const seg = m.segs[i];
         const wave = Math.sin(m.bob * 3.6 + i * 0.82) * 0.07;
         const up = m.rear * Math.max(0, 1 - i / 4.4) * 0.58;
+        const weave = Math.sin((m.slither || m.bob) + i * 0.58) * (0.05 + closeK * 0.16);
         seg.position.y = wave + up;
+        seg.position.x = weave;
         seg.rotation.x = -m.rear * Math.max(0, 0.72 - i * 0.13);
+        seg.rotation.y = Math.cos((m.slither || m.bob) + i * 0.58) * 0.22 * (0.35 + closeK);
       }
     }
     syncMob(m);
@@ -1912,7 +2077,7 @@ function tickMobs(dt) {
     }
   }
   mobs = mobs.filter((m) => m.alive);
-  if (running && !dead && waveLeft <= 0 && pending <= 0 && wave > 0) {
+  if (running && !dead && waveLeft <= 0 && pending <= 0 && dripLeft <= 0 && wave > 0) {
     spawnWave();
   }
 }
@@ -2425,6 +2590,9 @@ function resetRun() {
   wave = 0;
   waveLeft = 0;
   pending = 0;
+  dripTotal = 0;
+  dripLeft = 0;
+  dripElapsed = 0;
   ammoT = 3;
   healthT = 16;
   reloadT = 0;

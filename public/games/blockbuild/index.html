@@ -6,8 +6,8 @@
     <meta name="robots" content="noindex, nofollow" />
     <meta name="theme-color" content="#b8d4f0" />
     <title>Blockbuild</title>
-    <meta name="build" content="prod-20260825-bb12" />
-    <link rel="stylesheet" href="/games/blockbuild/css/game.css?v=bb12" />
+    <meta name="build" content="prod-20260826-bb14" />
+    <link rel="stylesheet" href="/games/blockbuild/css/game.css?v=bb14" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Outfit:wght@400;500;600&display=swap" rel="stylesheet" />
@@ -17,7 +17,7 @@
     <div id="hud">
       <div id="title">Blockbuild</div>
       <div id="hud-line">Red · 2×4 Brick</div>
-      <div id="hud-hint">A or trigger clicks a menu (ring shows aim) · B catalog · Y cycles size · left trigger cannon · hold X to melt · air bricks fall · flags plant anywhere (size grows the square).</div>
+      <div id="hud-hint">A or trigger clicks a menu (ring shows aim) · B catalog · Y cycles size · left trigger cannon · X rotates · hold left stick-click to melt · air bricks fall · flags plant anywhere (size grows the square).</div>
     </div>
     <div id="start">
       <div class="panel">
@@ -31,10 +31,10 @@
           <li><b>Trigger</b> places the ghost brick or fig (air drops fall with gravity). Snap-to-studs when close. Trigger and <b>A</b> both click whatever the aim ring is on.</li>
           <li><b>A</b> opens the color picker when you are not pointing at a menu. <b>B</b> opens the piece catalog (figs, flags, extra parts). Right <b>stick-click</b> toggles brick, minifig, and empty-handed.</li>
           <li>Empty-handed: grab existing bricks to move them, pick up figs and toss them.</li>
-          <li>Left <b>stick-click</b> opens the VR menu: save/load three map slots, dump a pile, new table, gravity.</li>
-          <li>Hold <b>X</b> (left) to melt — hold longer for a bigger, farther jet. <b>Y</b> cycles piece size (0.25×, 0.5×, 1×, 2×, 5×). Left <b>trigger</b> fires a cannonball. [ ] zooms the table.</li>
+          <li>Left <b>menu</b> opens the VR workshop: save/load three map slots, dump a pile, new table, gravity.</li>
+          <li><b>X</b> rotates the ghost piece. Hold left <b>stick-click</b> to melt — hold longer for a bigger, farther jet. <b>Y</b> cycles piece size (0.25×, 0.5×, 1×, 2×, 5×). Left <b>trigger</b> fires a cannonball. [ ] zooms the table.</li>
         </ul>
-        <p class="desk">Desktop: WASD fly, mouse look, click place, Tab mode, C/B color/kind, R rotate, T size, Esc menu, 1–3 save, 4–6 load, P pile, F grab, Y cannon, X melt, G gravity.</p>
+        <p class="desk">Desktop: WASD fly, mouse look, click place, Tab mode, C/B color/kind, X rotate, T size, Esc menu, 1–3 save, 4–6 load, P pile, F grab, Y cannon, R melt, G gravity.</p>
         <div class="row">
           <button type="button" id="go-vr">Enter VR</button>
           <button type="button" id="go-desk" class="ghost">Begin on desktop</button>
@@ -67,6 +67,6 @@
         </div>
       </div>
     </div>
-    <script type="module" src="/games/blockbuild/js/game.js?v=bb12"></script>
+    <script type="module" src="/games/blockbuild/js/game.js?v=bb14"></script>
   </body>
 </html>
