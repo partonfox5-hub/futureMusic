@@ -14,6 +14,7 @@ const MAX_HP0 = HEARTS * 2;
 const WEPS = {
   pistol: { id: "pistol", name: "Pistol", dmg: 1, rpm: 3.2, mag: 12, speed: 62, spread: 0.012, pellets: 1, cost: 0, reload: 8 },
   smg: { id: "smg", name: "SMG", dmg: 1, rpm: 9.5, mag: 28, speed: 70, spread: 0.045, pellets: 1, cost: 90, reload: 4.96 },
+  ar: { id: "ar", name: "Assault rifle", dmg: 1, rpm: 7.4, mag: 40, speed: 120, spread: 0.016, pellets: 1, hitscan: true, pierce: 1, laser: true, cost: 170, reload: 6.4 },
   shotgun: { id: "shotgun", name: "Scattergun", dmg: 1, rpm: 1.15, mag: 6, speed: 48, spread: 0.14, pellets: 7, cost: 140, reload: 6.72 },
   rail: { id: "rail", name: "Rail", dmg: 6, rpm: 1.15, mag: 5, speed: 180, spread: 0, pellets: 1, hitscan: true, pierce: 4, cost: 220, reload: 9.6 },
   thunder: { id: "thunder", name: "Thunder", dmg: 8, rpm: 0.52, mag: 3, speed: 40, spread: 0, pellets: 1, spell: true, aoe: 10.8, lightning: true, knock: 2.8, cost: 160, reload: 7.36 },
@@ -29,10 +30,11 @@ const WEPS = {
 const SHOP = [
   { kind: "wep", id: "pistol", name: "Pistol", cost: 0, blurb: "Starter iron. 8s reload." },
   { kind: "wep", id: "smg", name: "SMG", cost: 90, blurb: "Fast fire. Reloads quicker than the pistol." },
+  { kind: "wep", id: "ar", name: "Assault rifle", cost: 170, blurb: "Laser carbine. Tighter than the SMG, 40-round mag, slower reload." },
   { kind: "wep", id: "shotgun", name: "Scattergun", cost: 140, blurb: "Seven pellets. Close range." },
   { kind: "wep", id: "rail", name: "Rail", cost: 220, blurb: "Fat beam. Heavy hitscan. Five shots." },
-  { kind: "wep", id: "thunder", name: "Thunder spell", cost: 160, blurb: "Call a lightning strike from the sky. Huge blast." },
-  { kind: "wep", id: "nova", name: "Nova spell", cost: 280, blurb: "Giant fireball. Leaves a wall of fire that keeps burning." },
+  { kind: "wep", id: "thunder", name: "Thunder spell", cost: 160, blurb: "Lightning from the sky. Huge blast. No ammo — reloads for free." },
+  { kind: "wep", id: "nova", name: "Nova spell", cost: 280, blurb: "Giant fireball and a wall of fire. No ammo — reloads for free." },
   { kind: "wep", id: "plasma", name: "Plasma beam", cost: 650, blurb: "Hot hitscan. Tears through two foes." },
   { kind: "turret", id: "turret", name: "Stone turret", cost: 480, blurb: "Drops a WWII nest where you stand. 360° gun. Night beacon. Jump on the roof." },
   { kind: "drone", id: "drone", name: "Gun drone", cost: 420, blurb: "Hovers and fires a pistol. 2 hearts." },
@@ -181,6 +183,13 @@ function waveSpeedMul(w) {
 function rng() { return Math.random(); }
 function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
 function wep() { return WEPS[player.wep] || WEPS.pistol; }
+function isSpell(def = wep()) { return !!(def && def.spell); }
+function shopCatalog() { return SHOP.filter((it) => it.kind !== "ammo"); }
+function ammoOffer() { return SHOP.find((it) => it.kind === "ammo"); }
+function ammoLabel() {
+  if (isSpell()) return player.mag + " / ∞";
+  return player.mag + " / " + player.ammo;
+}
 
 let ac;
 const SFX_FILES = {
@@ -866,6 +875,21 @@ function makeGun(id) {
     mag.position.set(0, -0.1, -0.02);
     g.add(body, stock, mag);
     g.userData.muzzle = new THREE.Vector3(0, 0.02, -0.26);
+  } else if (id === "ar") {
+    const laser = mat(0x44e8ff, { emissive: 0x116688 });
+    const body = new THREE.Mesh(new THREE.BoxGeometry(0.046, 0.072, 0.34), iron);
+    body.position.set(0, 0.03, -0.12);
+    const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.01, 0.22, 8), laser);
+    barrel.rotation.x = Math.PI / 2;
+    barrel.position.set(0, 0.042, -0.32);
+    const stock = new THREE.Mesh(new THREE.BoxGeometry(0.034, 0.055, 0.12), dark);
+    stock.position.set(0, 0.01, 0.1);
+    const mag = new THREE.Mesh(new THREE.BoxGeometry(0.028, 0.18, 0.05), iron);
+    mag.position.set(0, -0.1, -0.04);
+    const rail = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.012, 0.16), gold);
+    rail.position.set(0, 0.072, -0.16);
+    g.add(body, barrel, stock, mag, rail);
+    g.userData.muzzle = new THREE.Vector3(0, 0.042, -0.44);
   } else if (id === "shotgun") {
     const b1 = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.016, 0.32, 8), iron);
     b1.rotation.x = Math.PI / 2;
@@ -966,7 +990,7 @@ function makeGun(id) {
     g.add(slide, bar, mag, bead);
     g.userData.muzzle = new THREE.Vector3(0, 0.02, -0.2);
   }
-  const tipCol = id === "nova" ? 0xff6622 : id === "thunder" ? 0xaaccff : id === "rail" ? 0x66eeff : 0x44ddff;
+  const tipCol = id === "nova" ? 0xff6622 : id === "thunder" ? 0xaaccff : id === "rail" || id === "ar" ? 0x66eeff : 0x44ddff;
   const tip = new THREE.Mesh(new THREE.SphereGeometry(0.012, 6, 5), new THREE.MeshBasicMaterial({ color: tipCol }));
   tip.position.copy(g.userData.muzzle);
   g.add(tip);
@@ -2439,7 +2463,7 @@ function paintHud3d() {
   }
   hudCtx.fillStyle = "#111";
   hudCtx.font = "700 24px Outfit, sans-serif";
-  hudCtx.fillText("AMMO " + player.mag + " / " + player.ammo, 16, 108);
+  hudCtx.fillText((isSpell() ? "SPELL " : "AMMO ") + ammoLabel(), 16, 108);
   hudCtx.fillText("W" + wave + "   " + (player.coins | 0) + " ◎   " + wep().name, 16, 142);
   if (reloadT > 0 && reloadMax > 0) {
     hudCtx.fillStyle = "#d4af37";
@@ -2489,7 +2513,7 @@ function heartGlyphs() {
 function hud() {
   if ($("hpv")) $("hpv").textContent = heartGlyphs();
   if ($("hpi")) $("hpi").style.width = (100 * player.hp) / stats.maxHp + "%";
-  $("ammo").textContent = player.mag + " / " + player.ammo;
+  $("ammo").textContent = ammoLabel();
   $("wep").textContent = wep().name;
   $("coins").textContent = String(player.coins | 0);
   $("wave").textContent = String(wave);
@@ -3244,7 +3268,7 @@ function fireFrom(origin, quat) {
   const def = wep();
   if (reloadT > 0) return;
   if (player.mag <= 0) {
-    showBanner(shopOnX ? "RELOAD  Y" : "RELOAD  X");
+    showBanner(isSpell(def) ? (shopOnX ? "RECHARGE  Y" : "RECHARGE  X") : (shopOnX ? "RELOAD  Y" : "RELOAD  X"));
     announcing = 0.8;
     return;
   }
@@ -3275,7 +3299,7 @@ function fireFrom(origin, quat) {
   }
   sfx.shoot();
   const n = def.pellets || 1;
-  const col = def.id === "rail" || def.id === "plasma" ? 0x66f0ff : def.id === "ripple" ? 0xff66dd : def.id === "nuke" ? 0x66ff66 : 0x44ddff;
+  const col = def.id === "rail" || def.id === "plasma" || def.id === "ar" ? 0x66f0ff : def.id === "ripple" ? 0xff66dd : def.id === "nuke" ? 0x66ff66 : 0x44ddff;
   for (let i = 0; i < n; i++) {
     const dir = dir0.clone();
     if (def.spread) {
@@ -3288,9 +3312,10 @@ function fireFrom(origin, quat) {
     if (def.hitscan) {
       rayKill(origin, dir, def.id === "rail" ? 72 : 56, def);
       const rail = def.id === "rail";
-      const beam = makeBolt(rail ? 0xe8f4ff : col, rail ? 0.16 : def.id === "plasma" ? 0.07 : 0.045);
-      beam.position.copy(origin).addScaledVector(dir, rail ? 11 : 8);
-      beam.scale.set(rail ? 4.2 : def.id === "plasma" ? 2.1 : 1.4, rail ? 4.2 : def.id === "plasma" ? 2.1 : 1.4, rail ? 18 : 12);
+      const ar = def.id === "ar";
+      const beam = makeBolt(rail ? 0xe8f4ff : col, rail ? 0.16 : def.id === "plasma" ? 0.07 : ar ? 0.05 : 0.045);
+      beam.position.copy(origin).addScaledVector(dir, rail ? 11 : ar ? 9 : 8);
+      beam.scale.set(rail ? 4.2 : def.id === "plasma" ? 2.1 : ar ? 1.7 : 1.4, rail ? 4.2 : def.id === "plasma" ? 2.1 : ar ? 1.7 : 1.4, rail ? 18 : ar ? 14 : 12);
       aimBolt(beam, dir);
       scene.add(beam);
       shots.push({ mesh: beam, life: rail ? 0.22 : 0.14, dummy: true });
@@ -4069,24 +4094,30 @@ function tickTank() {
 function reload() {
   if (dead || !running) return;
   if (reloadT > 0) return;
-  const cap = wep().mag;
+  const def = wep();
+  const cap = def.mag;
   if (player.mag >= cap) return;
-  if (player.ammo <= 0) {
+  if (!isSpell(def) && player.ammo <= 0) {
     showBanner("NO AMMO");
     announcing = 0.9;
     return;
   }
-  reloadMax = Math.max(0.35, (wep().reload || 10) / Math.max(0.35, stats.reload));
+  reloadMax = Math.max(0.35, (def.reload || 10) / Math.max(0.35, stats.reload));
   reloadT = reloadMax;
   sfx.reload();
 }
 
 function finishReload() {
-  const cap = wep().mag;
-  const need = cap - player.mag;
-  const take = Math.min(need, player.ammo);
-  player.ammo -= take;
-  player.mag += take;
+  const def = wep();
+  const cap = def.mag;
+  if (isSpell(def)) {
+    player.mag = cap;
+  } else {
+    const need = cap - player.mag;
+    const take = Math.min(need, player.ammo);
+    player.ammo -= take;
+    player.mag += take;
+  }
   reloadT = 0;
   reloadMax = 0;
   sfx.chime();
@@ -4261,6 +4292,13 @@ function drawShopIcon(ctx, it, x, y, s) {
     ctx.fillRect(-s * 0.34, -s * 0.08, s * 0.7, s * 0.16);
     ctx.fillRect(s * 0.1, -s * 0.22, s * 0.1, s * 0.14);
     ctx.fillRect(-s * 0.06, 0.04 * s, s * 0.1, s * 0.28);
+  } else if (id === "ar") {
+    ctx.fillRect(-s * 0.38, -s * 0.08, s * 0.78, s * 0.14);
+    ctx.fillStyle = "#66e0ff";
+    ctx.fillRect(s * 0.08, -s * 0.12, s * 0.34, s * 0.08);
+    ctx.fillStyle = "#d4af37";
+    ctx.fillRect(-s * 0.06, 0.04 * s, s * 0.1, s * 0.3);
+    ctx.fillRect(-s * 0.38, -s * 0.04, s * 0.14, s * 0.2);
   } else if (id === "shotgun") {
     ctx.fillRect(-s * 0.38, -s * 0.14, s * 0.72, s * 0.1);
     ctx.fillRect(-s * 0.38, 0.02 * s, s * 0.72, s * 0.1);
@@ -4374,11 +4412,26 @@ function paintShopCard(it, i, highlight) {
   return c;
 }
 
+function paintAmmoOrb() {
+  const orb = $("ammo-orb");
+  if (!orb) return;
+  const it = ammoOffer();
+  if (!it) {
+    orb.hidden = true;
+    return;
+  }
+  orb.hidden = false;
+  orb.disabled = player.coins < it.cost;
+  const costEl = orb.querySelector(".ammo-orb-cost");
+  if (costEl) costEl.textContent = it.cost + "◎";
+  orb.onclick = () => buy(it);
+}
+
 function paintShop() {
   const host = $("shopgrid");
   if (!host) return;
   host.innerHTML = "";
-  for (const it of SHOP) {
+  for (const it of shopCatalog()) {
     const equipped = it.kind === "wep" && player.wep === it.id;
     const have = it.kind === "wep" && owned.has(it.id);
     const b = document.createElement("button");
@@ -4396,13 +4449,13 @@ function paintShop() {
     wrap.innerHTML = `<b>${it.name}</b> · ${price}${equipped ? " · EQUIPPED" : ""}<small>${locked ? "Requires " + (it.needLabel || "another upgrade") + ". " : ""}${it.blurb}</small>`;
     b.appendChild(ico);
     b.appendChild(wrap);
-    const canAmmo = it.kind === "ammo" && player.coins >= it.cost;
     const canBind = it.kind === "bind";
-    b.disabled = locked || equipped || (!have && !canAmmo && !canBind && player.coins < it.cost);
+    b.disabled = locked || equipped || (!have && !canBind && player.coins < it.cost);
     b.onclick = () => buy(it);
     host.appendChild(b);
   }
-  $("shop-gold").textContent = String(player.coins | 0);
+  if ($("shop-gold")) $("shop-gold").textContent = String(player.coins | 0);
+  paintAmmoOrb();
 }
 
 function rebuildShopCards() {
@@ -4441,7 +4494,8 @@ function rebuildShopCards() {
   );
   title.position.set(0, 0.8, 0.01);
   shopRoot.add(title);
-  SHOP.forEach((it, i) => {
+  const catalog = shopCatalog();
+  catalog.forEach((it, i) => {
     const col = i % 4;
     const row = (i / 4) | 0;
     const c = paintShopCard(it, i, i === shopSel);
@@ -4456,6 +4510,36 @@ function rebuildShopCards() {
     shopRoot.add(mesh);
     shopHits.push(mesh);
   });
+  const ammoIt = ammoOffer();
+  if (ammoIt) {
+    const ac = document.createElement("canvas");
+    ac.width = ac.height = 256;
+    const ax = ac.getContext("2d");
+    ax.beginPath();
+    ax.arc(128, 128, 122, 0, Math.PI * 2);
+    ax.fillStyle = shopSel < 0 ? "#111111" : "#1a1a1e";
+    ax.fill();
+    ax.lineWidth = 10;
+    ax.strokeStyle = "#d4af37";
+    ax.stroke();
+    drawShopIcon(ax, ammoIt, 128, 108, 96);
+    ax.fillStyle = "#d4af37";
+    ax.font = "700 28px Outfit, sans-serif";
+    ax.textAlign = "center";
+    ax.fillText("AMMO", 128, 188);
+    ax.font = "600 22px Outfit, sans-serif";
+    ax.fillText(ammoIt.cost + "◎  +40", 128, 216);
+    const atex = new THREE.CanvasTexture(ac);
+    const disc = new THREE.Mesh(
+      new THREE.CircleGeometry(0.11, 32),
+      new THREE.MeshBasicMaterial({ map: atex, side: THREE.DoubleSide, transparent: true }),
+    );
+    disc.position.set(0, -0.94, 0.03);
+    disc.userData.shopItem = ammoIt;
+    disc.userData.shopIndex = -1;
+    shopRoot.add(disc);
+    shopHits.push(disc);
+  }
   tintShopSel();
 }
 
@@ -4894,13 +4978,15 @@ function doFire(xr) {
 function tickShopStick(dt, xr) {
   if (!shopOpen) return;
   shopStickLatch = Math.max(0, shopStickLatch - dt);
+  const n = shopCatalog().length;
+  if (!n) return;
   if (xrOn) {
     if (xr.moveY > 0.55 && shopStickLatch <= 0) {
-      shopSel = (shopSel + 1) % SHOP.length;
+      shopSel = shopSel < 0 ? 0 : (shopSel + 1) % n;
       shopStickLatch = 0.22;
       tintShopSel();
     } else if (xr.moveY < -0.55 && shopStickLatch <= 0) {
-      shopSel = (shopSel + SHOP.length - 1) % SHOP.length;
+      shopSel = shopSel < 0 ? n - 1 : (shopSel + n - 1) % n;
       shopStickLatch = 0.22;
       tintShopSel();
     }
@@ -5140,14 +5226,19 @@ addEventListener("keydown", (e) => {
     else toggleMainMenu();
   }
   if (shopOpen && (e.code === "ArrowDown" || e.code === "KeyS")) {
-    shopSel = (shopSel + 1) % SHOP.length;
+    const n = shopCatalog().length;
+    shopSel = shopSel < 0 ? 0 : (shopSel + 1) % n;
     paintShop3d();
   }
   if (shopOpen && (e.code === "ArrowUp" || e.code === "KeyW")) {
-    shopSel = (shopSel + SHOP.length - 1) % SHOP.length;
+    const n = shopCatalog().length;
+    shopSel = shopSel < 0 ? n - 1 : (shopSel + n - 1) % n;
     paintShop3d();
   }
-  if (shopOpen && (e.code === "Enter" || e.code === "Space")) buy(SHOP[shopSel]);
+  if (shopOpen && (e.code === "Enter" || e.code === "Space")) {
+    if (shopSel < 0) buy(ammoOffer());
+    else buy(shopCatalog()[shopSel]);
+  }
 });
 addEventListener("keyup", (e) => keys.delete(e.code));
 addEventListener("mousedown", (e) => { if (e.button === 0) mouseDown = true; });
