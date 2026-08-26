@@ -1,19 +1,19 @@
 import * as THREE from "three";
 import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
-import { BIOMES, CELL, EYE, FLAG_RUMBLE, LIQ_LAVA, LIQ_WATER, PICKUP_BY_ID, SHOP, WEAPON_BY_ID, WEAPONS, routes } from "./config.js?v=zm3";
-import { bakedMaps, storyMaps } from "./defaults.js?v=zm3";
-import { biomeOf, cellI, countCarved, ensureLayers, firstCarved, floorY, sdf3 } from "./map.js?v=zm3";
-import { buildDungeon, prepareSdf } from "./mesh.js?v=zm3";
-import { makeProp, spawnFrom, strikeFoes, tickFoes } from "./props.js?v=zm3";
-import { getMap, listMaps } from "./store.js?v=zm3";
-import { makeProc } from "./proc.js?v=zm3";
-import { buildingFloorY, buildWorld, climbSupport, hurtBreakables, hurtTurrets, impulseBoulders, layoutRope, makeSky, smashGlass, spawnRipple, tickRubble, tickWorld, tryUnlock, wallBlocked } from "./world.js?v=zm3";
-import { addBurnDecal, addSaberMark, fireWeapon, hurtFoe, makeDualSaber, makeKeyModel, makePickup, makeWeapon, setKillHook, tickBurns, tickShots } from "./weapons.js?v=zm3";
-import { tickRobots } from "./robots.js?v=zm3";
-import { attachXr, tickXr } from "./xr.js?v=zm3";
-import { loadStoryPsy, lootForEnemy, makeWristGold, paintWristGold, saveStoryPsy, showerLoot, tickLoot } from "./loot.js?v=zm3";
-import { sfx, sfxUnlock } from "./sfx.js?v=zm3";
-import { makeNpc, nearNpc, tickNpcPose } from "./npcs.js?v=zm3";
+import { BIOMES, CELL, EYE, FLAG_RUMBLE, LIQ_LAVA, LIQ_WATER, PICKUP_BY_ID, SHOP, WEAPON_BY_ID, WEAPONS, routes } from "./config.js?v=zm4";
+import { bakedMaps, storyMaps } from "./defaults.js?v=zm4";
+import { biomeOf, cellI, countCarved, ensureLayers, firstCarved, floorY, sdf3 } from "./map.js?v=zm4";
+import { buildDungeon, prepareSdf } from "./mesh.js?v=zm4";
+import { makeProp, spawnFrom, strikeFoes, tickFoes } from "./props.js?v=zm4";
+import { getMap, listMaps } from "./store.js?v=zm4";
+import { makeProc } from "./proc.js?v=zm4";
+import { buildingFloorY, buildWorld, climbSupport, hurtBreakables, hurtTurrets, impulseBoulders, layoutRope, makeSky, smashGlass, spawnRipple, tickRubble, tickWorld, tryUnlock, wallBlocked } from "./world.js?v=zm4";
+import { addBurnDecal, addSaberMark, fireWeapon, hurtFoe, makeDualSaber, makeKeyModel, makePickup, makeWeapon, setKillHook, tickBurns, tickShots } from "./weapons.js?v=zm4";
+import { tickRobots } from "./robots.js?v=zm4";
+import { attachXr, tickXr } from "./xr.js?v=zm4";
+import { loadStoryPsy, lootForEnemy, makeWristGold, paintWristGold, saveStoryPsy, showerLoot, tickLoot } from "./loot.js?v=zm4";
+import { sfx, sfxUnlock } from "./sfx.js?v=zm4";
+import { makeNpc, nearNpc, tickNpcPose } from "./npcs.js?v=zm4";
 
 const $ = (id) => document.getElementById(id);
 const keys = new Set();
@@ -42,6 +42,8 @@ let vrMenu = null;
 let vrMenuHover = -1;
 let held = null;
 let mag = 0;
+let reloadT = 0;
+let reloadMax = 0;
 let fireCd = 0;
 let swingT = 0;
 let rope = null;
@@ -99,7 +101,7 @@ function hudBars() {
   $("fuelv").textContent = player.fuel.toFixed(1);
   const def = held && WEAPON_BY_ID[held];
   $("wep").textContent = def ? def.name : "unarmed";
-  $("ammo").textContent = def && def.slot === "gun" ? mag + " / " + def.mag : "";
+  $("ammo").textContent = def && def.slot === "gun" ? (reloadT > 0 ? "RELOAD" : mag + " / " + def.mag) : "";
   $("mode").textContent =
     (player.skate ? "SKATE " : "") +
     (player.crouch ? "CROUCH " : "") +
@@ -141,6 +143,12 @@ function rememberWeapon(id) {
   if (!ownedWeps.includes(id)) ownedWeps.push(id);
 }
 
+function applyWepHoldRot(mesh, id) {
+  if (!mesh) return;
+  if (WEAPON_BY_ID[id]?.saber) mesh.rotation.set(Math.PI / 2, 0, 0);
+  else mesh.rotation.set(-0.12, 0, 0);
+}
+
 function attachHandWep(xr, id) {
   if (handWep) {
     handWep.removeFromParent();
@@ -151,13 +159,15 @@ function attachHandWep(xr, id) {
     handWep = makeWeapon(id);
     xr.right.con.add(handWep);
     handWep.position.set(0, 0, -0.07);
-    handWep.rotation.set(-0.12, 0, 0);
+    applyWepHoldRot(handWep, id);
   }
 }
 
 function setHeld(id) {
   held = id;
   mag = WEAPON_BY_ID[id]?.mag || 0;
+  reloadT = 0;
+  reloadMax = 0;
   if (viewWep) {
     viewWep.removeFromParent();
     viewWep = null;
@@ -165,8 +175,73 @@ function setHeld(id) {
   if (id) {
     viewWep = makeWeapon(id);
     viewWep.position.set(0.22, -0.18, -0.42);
+    applyWepHoldRot(viewWep, id);
     camera.add(viewWep);
     viewWep.visible = !xrPresenting;
+  }
+  hudBars();
+}
+
+function gunReloadTime(def) {
+  return Math.max(0.55, def.reload || (0.75 + (def.mag || 8) * 0.035));
+}
+
+function beginReload() {
+  const def = held && WEAPON_BY_ID[held];
+  if (!def || def.slot !== "gun") return;
+  if (reloadT > 0) return;
+  if (mag >= (def.mag || 0)) return;
+  reloadMax = gunReloadTime(def);
+  reloadT = reloadMax;
+  sfx("reload");
+  setMsg("Reloading");
+  syncReloadBar();
+  hudBars();
+}
+
+function finishReload() {
+  const def = held && WEAPON_BY_ID[held];
+  reloadT = 0;
+  reloadMax = 0;
+  if (def && def.slot === "gun") mag = def.mag;
+  setMsg("");
+  syncReloadBar();
+  hudBars();
+}
+
+function syncReloadBar() {
+  const guns = [viewWep, handWep];
+  for (const g of guns) {
+    if (!g?.userData?.reloadBar) continue;
+    const on = reloadT > 0 && reloadMax > 0;
+    g.userData.reloadBar.visible = on;
+    if (!on) continue;
+    const p = Math.max(0, Math.min(1, 1 - reloadT / reloadMax));
+    g.userData.reloadFill.scale.x = Math.max(0.04, p);
+    g.userData.reloadFill.position.x = -0.07 * (1 - p);
+  }
+}
+
+const CROUCH_EYE = 0.9;
+function eyeH() {
+  return player.crouch ? CROUCH_EYE : EYE;
+}
+
+function tryToggleCrouch() {
+  const feet = player.y - eyeH();
+  if (player.crouch) {
+    const standY = feet + EYE;
+    if (map && (sdf3(player.x, standY - 0.1, player.z, map, sdf2) > -0.18 || wallBlocked(map, player.x, player.z, standY - 0.1))) {
+      setMsg("Too low to stand");
+      return;
+    }
+    player.crouch = false;
+    player.y = standY;
+    setMsg("");
+  } else {
+    player.crouch = true;
+    player.y = feet + CROUCH_EYE;
+    setMsg("Crouch");
   }
   hudBars();
 }
@@ -295,10 +370,11 @@ function onXrSession(on) {
 
 function applyXrStage() {
   if (!xrPresenting || !stage) return;
-  const eye = player.crouch ? 0.9 : EYE;
+  const eye = eyeH();
   const floor = (player.y || EYE) - eye;
+  const duck = player.crouch ? EYE - CROUCH_EYE : 0;
   stage.rotation.y = 0;
-  stage.position.set(-(player.x || 0), -floor, -(player.z || 0));
+  stage.position.set(-(player.x || 0), -floor + duck, -(player.z || 0));
   if (xrYaw) xrYaw.rotation.y = yawOffset;
   if (camShake > 0 && camera) {
     camera.position.x += (Math.random() - 0.5) * camShake * 0.045;
@@ -552,9 +628,10 @@ function primary() {
     sfx("swing");
     return;
   }
+  if (reloadT > 0) return;
   if (fireCd > 0) return;
   if (mag <= 0) {
-    setMsg("Empty — R reload (or A/X on the other hand in VR)");
+    beginReload();
     return;
   }
   mag--;
@@ -563,6 +640,7 @@ function primary() {
   fireWeapon(def, muzzle.origin, muzzle.dir, stage || scene, shots);
   sfx("gun");
   hudBars();
+  if (mag <= 0) beginReload();
 }
 
 function smashAt(origin, dir, reach, dmg) {
@@ -573,6 +651,8 @@ function smashAt(origin, dir, reach, dmg) {
   if (bits.length) sfx("glass");
   if (hurtTurrets(extras, tip, dmg || 12, 1.6)) sfx("hit");
   if (impulseBoulders(extras, tip, dir, 7 + (dmg || 10) * 0.12, 1.8)) sfx("boom");
+  const cracked = hurtBreakables(extras, map, tip, Math.max(1.15, reach * 0.5), 1, stage || scene);
+  for (const b of cracked) if (b.userData?.phys) physBodies.push(b);
 }
 
 function damage(n, why) {
@@ -630,6 +710,9 @@ function takePickup(p) {
     const def = held && WEAPON_BY_ID[held];
     if (def && def.slot === "gun") {
       mag = def.mag;
+      reloadT = 0;
+      reloadMax = 0;
+      syncReloadBar();
       setMsg("Ammo refilled");
     } else {
       inv.push({ id: "ammo", name: "Ammo crate", cat: "item" });
@@ -671,7 +754,12 @@ function useItem(it) {
     setMsg("Blast");
   } else if (it.id === "ammo") {
     const def = held && WEAPON_BY_ID[held];
-    if (def && def.slot === "gun") mag = def.mag;
+    if (def && def.slot === "gun") {
+      mag = def.mag;
+      reloadT = 0;
+      reloadMax = 0;
+      syncReloadBar();
+    }
     setMsg("Ammo refilled");
   } else if (WEAPON_BY_ID[it.id]) {
     if (held) inv.push({ id: held, name: WEAPON_BY_ID[held].name, cat: "weapon" });
@@ -717,7 +805,7 @@ function physics(dt, xr) {
     wx += forward.x * -(xr.moveY || 0) + right.x * (xr.moveX || 0);
     wz += forward.z * -(xr.moveY || 0) + right.z * (xr.moveX || 0);
     player.skate = xr.skate;
-    player.crouch = !!(xr.crouch || keys.has("KeyC"));
+    if (xr.crouchTap) tryToggleCrouch();
     if (xr.skate && Math.hypot(wx, wz) < 0.12) {
       wx += forward.x;
       wz += forward.z;
@@ -741,7 +829,6 @@ function physics(dt, xr) {
       wz -= right.z;
     }
     player.skate = keys.has("KeyQ");
-    player.crouch = keys.has("KeyC");
   }
   if (xr && xr.dash && player.dashCd <= 0) {
     player.dashT = 2;
@@ -786,7 +873,7 @@ function physics(dt, xr) {
     player.vx = wx;
     player.vz = wz;
   }
-  const eye = player.crouch ? 0.9 : EYE;
+  const eye = eyeH();
   const bodyY = player.y - eye * 0.4;
   function blocked(x, y, z) {
     if (wallBlocked(map, x, z, y)) return true;
@@ -910,7 +997,7 @@ function physics(dt, xr) {
     if (jumpQueued && !(xr && xr.on && xr.jet && player.fuel > 0 && !player.grounded)) {
       if (coyote > 0) player.jumps = 2;
       if (player.jumps > 0) {
-        player.vy = player.jumps === 2 ? 9.62 : 8.4;
+        player.vy = player.jumps === 2 ? 9.62 * 0.6 : 8.4 * 0.6;
         player.jumps -= 1;
         player.grounded = false;
         coyote = 0;
@@ -1086,14 +1173,16 @@ function physics(dt, xr) {
     camera.position.set(player.x, player.y, player.z);
   }
   if (viewWep) viewWep.visible = !xrPresenting;
+  const saberUp = !!(held && WEAPON_BY_ID[held]?.saber);
+  const baseX = saberUp ? Math.PI / 2 : -0.12;
   if (viewWep && swingT > 0) {
     const a = Math.sin((1 - swingT / 0.4) * Math.PI);
-    viewWep.rotation.x = -a * 0.8;
-  } else if (viewWep) viewWep.rotation.x = 0;
+    viewWep.rotation.x = baseX - a * 0.8;
+  } else if (viewWep) viewWep.rotation.x = baseX;
 }
 
 function tickPhys(dt, xr) {
-  const eye = player.crouch ? 0.9 : EYE;
+  const eye = eyeH();
   const pr = 0.32;
   for (const g of physBodies) {
     const p = g.userData.phys;
@@ -1275,7 +1364,7 @@ function tickVrMenu(xr) {
 }
 
 function tickPickups(xr, dt = 0.016) {
-  const eye = player.crouch ? 0.9 : EYE;
+  const eye = eyeH();
   const handsList = xr && xr.on ? [xr.left, xr.right].filter(Boolean) : [];
   for (const p of pickups) {
     if (!p.visible || p.userData.taken) continue;
@@ -1383,11 +1472,13 @@ function psyLabel(mode) {
 
 function cyclePsyMode() {
   const m = unlockedPsyModes();
-  const i = Math.max(0, m.indexOf(psyMode));
-  psyMode = m[(i + 1) % m.length];
+  if (!m.length) return;
+  if (!m.includes(psyMode)) psyMode = m[0];
+  else psyMode = m[(m.indexOf(psyMode) + 1) % m.length];
   carpetOn = psyMode === "carpet";
   sfx("cycle");
-  setMsg("Psy: " + psyLabel(psyMode));
+  const more = m.length < 5 ? " — more unlock with psy orbs" : "";
+  setMsg("Psy: " + psyLabel(psyMode) + " · left trigger fires" + more);
 }
 
 function tickPsyInput(xr, dt) {
@@ -1472,7 +1563,7 @@ function psyAim(xr) {
 }
 
 function tickCarpet(dt, xr) {
-  const eye = player.crouch ? 0.9 : EYE;
+  const eye = eyeH();
   if (!carpetMesh) {
     const g = new THREE.Group();
     const geo = new THREE.PlaneGeometry(1.7, 2.4, 10, 14);
@@ -1791,7 +1882,7 @@ function triggerRumble(xr) {
       );
       m.position.set(player.x + (Math.random() - 0.5) * 1.4, y0 + Math.random() * 0.5, player.z + (Math.random() - 0.5) * 1.4);
       m.userData.vy = -1.2;
-      m.userData.floor = player.y - (player.crouch ? 0.9 : EYE) + 0.05;
+      m.userData.floor = player.y - eyeH() + 0.05;
       m.userData.falling = true;
       stage.add(m);
       extras.caveins = extras.caveins || [];
@@ -1865,9 +1956,11 @@ function toggleSaber(xr) {
     if (xr && xr.on && xr.right) {
       xr.right.con.add(dualSaber);
       dualSaber.position.set(0, 0, 0);
+      dualSaber.rotation.set(Math.PI / 2, 0, 0);
     } else {
       camera.add(dualSaber);
       dualSaber.position.set(0.28, -0.16, -0.45);
+      dualSaber.rotation.set(Math.PI / 2, 0, 0);
     }
     if (viewWep) viewWep.visible = false;
     saberPrevTips = [null, null];
@@ -1883,10 +1976,9 @@ function tickSaber(xr, dt) {
   if (!saberOn || !dualSaber) return;
   const tips = dualSaber.userData.tips || [];
   dualSaber.updateMatrixWorld(true);
-  const host = xr && xr.on && xr.right ? xr.right.con : dualSaber;
   for (let i = 0; i < tips.length; i++) {
     const local = new THREE.Vector3(0, 0, tips[i].z);
-    const world = host.localToWorld ? host.localToWorld(local.clone()) : dualSaber.localToWorld(local.clone());
+    const world = dualSaber.localToWorld(local.clone());
     const mapP = stage && xrPresenting ? stage.worldToLocal(world.clone()) : world.clone();
     const prev = saberPrevTips[i];
     if (prev) {
@@ -1923,11 +2015,8 @@ function xrGrab(xr) {
   if (xr.psy || xr.psyHeld) return;
   if (xr.reload) {
     const def = held && WEAPON_BY_ID[held];
-    if (def && def.slot === "gun") {
-      mag = def.mag;
-      setMsg("Reloaded");
-      hudBars();
-    } else if (nearVendor()) openShop();
+    if (def && def.slot === "gun") beginReload();
+    else if (nearVendor()) openShop();
   }
   for (const h of [xr.left, xr.right]) {
     if (!h) continue;
@@ -2003,6 +2092,11 @@ function loop(time) {
   const dt = Math.min(0.05, clock.getDelta() || 0.016);
   if (swingT > 0) swingT -= dt;
   if (fireCd > 0) fireCd -= dt;
+  if (reloadT > 0) {
+    reloadT -= dt;
+    if (reloadT <= 0) finishReload();
+    else syncReloadBar();
+  }
   if (hurtT > 0) hurtT -= dt;
   if (player.shield > 0) player.shield -= dt;
   $("hurt").style.opacity = hurtT > 0 ? String(Math.min(0.5, hurtT * 2)) : "0";
@@ -2021,10 +2115,10 @@ function loop(time) {
         player.psy = Math.min(1000, (player.psy || 0) + 1);
         if (runMode === "story") saveStoryPsy(player.psy);
         sfx("orb");
-        if (before < 100 && player.psy >= 100) setMsg("Psybeam unlocked — hold X / cycle with G");
-        else if (before < 150 && player.psy >= 150) setMsg("Magic carpet unlocked — cycle with G");
-        else if (before < 200 && player.psy >= 200) setMsg("Psionic tide unlocked");
-        else if (before < 250 && player.psy >= 250) setMsg("Mini black hole unlocked — hold X");
+        if (before < 100 && player.psy >= 100) setMsg("Psybeam unlocked — X / G cycle, left trigger fires");
+        else if (before < 150 && player.psy >= 150) setMsg("Magic carpet unlocked — X / G cycle");
+        else if (before < 200 && player.psy >= 200) setMsg("Psionic tide unlocked — X / G cycle");
+        else if (before < 250 && player.psy >= 250) setMsg("Mini black hole unlocked — X / G cycle, hold left trigger");
         else setMsg("Psypower " + (player.psy | 0));
       } else {
         player.coins = (player.coins | 0) + (typeof L === "number" ? L : L.value || 0);
@@ -2263,13 +2357,12 @@ addEventListener("keydown", (e) => {
   }
   if (e.code === "KeyB") cycleLoadout(hands && renderer ? { on: xrPresenting, right: hands.find((h) => h.handed === "right") } : { on: false });
   if (e.code === "KeyG") cyclePsyMode();
+  if (e.code === "KeyC") {
+    if (!carpetOn) tryToggleCrouch();
+  }
   if (e.code === "KeyR") {
     const def = held && WEAPON_BY_ID[held];
-    if (def && def.slot === "gun") {
-      mag = def.mag;
-      setMsg("Reloaded");
-      hudBars();
-    }
+    if (def && def.slot === "gun") beginReload();
   }
   if (e.code === "KeyE") {
     if (talk) { closeTalk(); return; }
@@ -2393,8 +2486,12 @@ function buyItem(it) {
     setMsg("Bought " + it.name);
   } else if (it.kind === "ammo" || it.id === "ammo") {
     const def = held && WEAPON_BY_ID[held];
-    if (def && def.slot === "gun") mag = def.mag;
-    else inv.push({ id: "ammo", name: "Ammo crate", cat: "item" });
+    if (def && def.slot === "gun") {
+      mag = def.mag;
+      reloadT = 0;
+      reloadMax = 0;
+      syncReloadBar();
+    } else inv.push({ id: "ammo", name: "Ammo crate", cat: "item" });
     setMsg("Ammo");
   } else if (it.id === "haste") {
     player.haste = 20;

@@ -154,6 +154,11 @@ export function wireVrButton(renderer) {
   }).catch(unsupported);
 }
 
+function facePressed(gp, i) {
+  const b = gp && gp.buttons && gp.buttons[i];
+  return !!(b && (b.pressed || b.value > 0.55));
+}
+
 export function tickXr(renderer, hands, dt) {
   const session = renderer.xr.getSession && renderer.xr.getSession();
   const on = renderer.xr.isPresenting;
@@ -176,8 +181,8 @@ export function tickXr(renderer, hands, dt) {
       h.stickPrev = h.stick;
       h.stick = !!(gp.buttons[3] && gp.buttons[3].pressed);
       h.gp = gp;
-      h.aBtn = !!(gp.buttons[4] && gp.buttons[4].pressed);
-      h.bBtn = !!(gp.buttons[5] && gp.buttons[5].pressed);
+      h.aBtn = facePressed(gp, 4);
+      h.bBtn = facePressed(gp, 5);
       h.menuBtn = !!(
         (gp.buttons[2] && gp.buttons[2].pressed) ||
         (gp.buttons[6] && gp.buttons[6].pressed) ||
@@ -217,6 +222,7 @@ export function tickXr(renderer, hands, dt) {
     jump: !!(right && right.aBtn),
     jumpTap: !!(right && right.aBtn && !right.aPrev),
     crouch: !!(left && left.bBtn),
+    crouchTap: !!(left && left.bBtn && !left.bPrev),
     menu: !!(left && left.menuBtn && !left.menuPrev),
     reload: !!(right && right.stick && !right.stickPrev),
     psy: !!(left && left.trigger && !left.triggerPrev),

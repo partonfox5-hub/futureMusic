@@ -1,7 +1,7 @@
 /** Weapon models, lasers/plasma, burn marks, pickups. */
 import * as THREE from "three";
-import { PICKUP_BY_ID, WEAPON_BY_ID, WEAPONS } from "./config.js?v=zm3";
-import { hurtTurrets, impulseBoulders, smashGlass } from "./world.js?v=zm3";
+import { PICKUP_BY_ID, WEAPON_BY_ID, WEAPONS } from "./config.js?v=zm4";
+import { hurtBreakables, hurtTurrets, impulseBoulders, smashGlass } from "./world.js?v=zm4";
 
 function mat(hex, extra) {
   return new THREE.MeshLambertMaterial({ color: hex, ...extra });
@@ -102,7 +102,28 @@ export function makeWeapon(id) {
     grip.position.set(0, -0.08, 0.04);
     g.add(grip);
   }
+  if (def.slot === "gun") attachReloadBar(g);
   return g;
+}
+
+function attachReloadBar(g) {
+  const bar = new THREE.Group();
+  const track = new THREE.Mesh(
+    new THREE.BoxGeometry(0.14, 0.012, 0.012),
+    new THREE.MeshBasicMaterial({ color: 0x111114, transparent: true, opacity: 0.85, depthTest: false }),
+  );
+  const fill = new THREE.Mesh(
+    new THREE.BoxGeometry(0.14, 0.01, 0.01),
+    new THREE.MeshBasicMaterial({ color: 0xd4af37, depthTest: false }),
+  );
+  fill.position.z = 0.001;
+  bar.add(track, fill);
+  bar.position.set(0, 0.1, -0.08);
+  bar.visible = false;
+  bar.renderOrder = 20;
+  g.add(bar);
+  g.userData.reloadBar = bar;
+  g.userData.reloadFill = fill;
 }
 
 export function makeDualSaber() {
@@ -289,9 +310,10 @@ export function tickShots(list, dt, foes, extras, onHit, addBurn, sdf3, map, sdf
       });
       if (sdf3 && sdf3(s.mesh.position.x, s.mesh.position.y, s.mesh.position.z, map, sdf2) > -0.05) {
         addBurn(s.mesh.position.clone(), s.def.color);
+        if (extras) crackShot(extras, map, s.mesh.position, s.dir, s.def);
         s.life = 0;
       } else {
-        splashOrHit(s, foes, extras, onHit, addBurn);
+        splashOrHit(s, foes, extras, onHit, addBurn, map);
       }
     }
     if (s.life <= 0) {
@@ -302,7 +324,7 @@ export function tickShots(list, dt, foes, extras, onHit, addBurn, sdf3, map, sdf
   }
 }
 
-function hitScan(s, foes, extras, onHit, addBurn) {
+function hitScan(s, foes, extras, onHit, addBurn, map) {
   let best = s.range;
   let hitP = s.origin.clone().addScaledVector(s.dir, s.range);
   for (const f of foes) {
@@ -326,10 +348,17 @@ function hitScan(s, foes, extras, onHit, addBurn) {
     hurtTurrets(extras, hitP, s.def.dmg, 1.5);
     smashGlass(extras, hitP, 1.1, extras.root);
     impulseBoulders(extras, hitP, s.dir, 8 + (s.def.dmg || 8) * 0.15, 1.8);
+    crackShot(extras, map, hitP, s.dir, s.def);
   }
 }
 
-function splashOrHit(s, foes, extras, onHit, addBurn) {
+function crackShot(extras, map, pos, dir, def) {
+  if (!extras || !pos) return;
+  const r = Math.max(1.15, def?.splash || 1.05);
+  hurtBreakables(extras, map, pos, r, 1, extras.root);
+}
+
+function splashOrHit(s, foes, extras, onHit, addBurn, map) {
   for (const f of foes) {
     if (!f.visible || f.userData.hp <= 0) continue;
     const d = f.position.distanceTo(s.mesh.position);
@@ -349,6 +378,7 @@ function splashOrHit(s, foes, extras, onHit, addBurn) {
     hurtTurrets(extras, s.mesh.position, s.def.dmg, 1.5);
     smashGlass(extras, s.mesh.position, 1.05, extras.root);
     impulseBoulders(extras, s.mesh.position, s.dir, 8 + (s.def.dmg || 8) * 0.15, 1.8);
+    crackShot(extras, map, s.mesh.position, s.dir, s.def);
   }
 }
 

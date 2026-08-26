@@ -13,9 +13,9 @@ import {
   STORY_H,
   STORIES,
   WALL_TEX,
-} from "./config.js?v=zm3";
-import { cellI, climbHoleFloor, climbHoleRoof, enclosedFloors, idx, inBounds, sdf3, wallIsCrack, wallTexId } from "./map.js?v=zm3";
-import { sfx } from "./sfx.js?v=zm3";
+} from "./config.js?v=zm4";
+import { cellI, climbHoleFloor, climbHoleRoof, enclosedFloors, idx, inBounds, sdf3, wallIsCrack, wallTexId } from "./map.js?v=zm4";
+import { sfx } from "./sfx.js?v=zm4";
 
 function mat(hex, extra) {
   return new THREE.MeshLambertMaterial({ color: hex, ...extra });
@@ -1729,6 +1729,44 @@ export function hurtBreakables(extras, map, pos, radius, dmg, parent, hitSet) {
     b.mesh.visible = false;
     if (b.ring) b.ring.visible = false;
     if (host) out.push(...spawnDebris(host, b.mesh.position.x, b.mesh.position.y, b.mesh.position.z, 11, 0x6a6054, 9));
+  }
+  for (const h of extras.hovers || []) {
+    if (!h.collapse || !h.mesh || !h.mesh.visible) continue;
+    if (map?.collapsed && map.collapsed[h.i]) continue;
+    if (hitSet && hitSet.has(h)) continue;
+    const hx = h.x;
+    const hy = h.mesh.position.y;
+    const hz = h.z;
+    const dx = hx - pos.x;
+    const dz = hz - pos.z;
+    if (dx * dx + dz * dz > r2) continue;
+    if (Math.abs(hy - pos.y) > Math.max(r * 2.2, 2.4)) continue;
+    if (hitSet) hitSet.add(h);
+    h.hp = (h.hp == null ? 2 : h.hp) - hit;
+    if (h.mesh.material) {
+      h.mesh.material = h.mesh.material.clone();
+      h.mesh.material.color.multiplyScalar(0.78);
+    }
+    if (h.hp > 0) continue;
+    dropFloorCell(map, extras, host, h.i, null, null);
+  }
+  for (const u of extras.unstables || []) {
+    if (!u.mesh || !u.mesh.visible) continue;
+    if (map?.collapsed && map.collapsed[u.i]) continue;
+    if (hitSet && hitSet.has(u)) continue;
+    const uy = u.mesh.position.y;
+    const dx = u.x - pos.x;
+    const dz = u.z - pos.z;
+    if (dx * dx + dz * dz > r2) continue;
+    if (Math.abs(uy - pos.y) > Math.max(r * 2.4, 3.2)) continue;
+    if (hitSet) hitSet.add(u);
+    u.hp = (u.hp == null ? 2 : u.hp) - hit;
+    if (u.mesh.material) {
+      u.mesh.material = u.mesh.material.clone();
+      u.mesh.material.opacity = Math.max(0.15, (u.mesh.material.opacity || 0.55) * 0.7);
+    }
+    if (u.hp > 0) continue;
+    collapseCell(map, extras, host, u.i, null, null);
   }
   return out;
 }

@@ -50,10 +50,10 @@ const SHOP = [
   { kind: "ammo", id: "ammo", name: "Ammo crate", cost: 28, blurb: "+40 reserve rounds. Buy as often as you like." },
   { kind: "bind", id: "bind", name: "Swap X / Y", cost: 0, blurb: "Shop on X and reload on Y, or the reverse." },
   { kind: "up", id: "sprint", name: "Sprint", cost: 85, blurb: "Click the left stick while moving. 3s burst, 10s rest." },
-  { kind: "up", id: "sprintcd", name: "Longer wind", cost: 50, blurb: "−1s sprint cooldown. Ten buys = infinite sprint." },
-  { kind: "up", id: "wheelie", name: "Wheelies", cost: 140, blurb: "Needs sprint. 1.5× sprint speed. Hop to keep momentum." },
+  { kind: "up", id: "sprintcd", name: "Longer wind", cost: 50, blurb: "−1s sprint cooldown. Ten buys = infinite sprint.", need: "sprint", needLabel: "Sprint" },
+  { kind: "up", id: "wheelie", name: "Wheelies", cost: 140, blurb: "Needs sprint. 1.5× sprint speed. Hop to keep momentum.", need: "sprint", needLabel: "Sprint" },
   { kind: "up", id: "jump2", name: "Double jump", cost: 110, blurb: "Jump again in the air." },
-  { kind: "up", id: "jump3", name: "Triple jump", cost: 190, blurb: "Needs double jump. A third hop." },
+  { kind: "up", id: "jump3", name: "Triple jump", cost: 190, blurb: "Needs double jump. A third hop.", need: "jump2", needLabel: "Double jump" },
   { kind: "bike", id: "bike", name: "Dirt bike", cost: 520, blurb: "Ride. Fast. You can still jump." },
   { kind: "wep", id: "noodle", name: "Laser noodle", cost: 8200, blurb: "A whip of light. Grows, shortens, carves a fence. Very dear." },
 ];
@@ -135,6 +135,12 @@ let hexes = [];
 let flagGen = 0;
 let sprintBuys = 0;
 let cryT = 0;
+let oofLock = 0;
+let musicGain = null;
+let musicNodes = [];
+let meleePrev = new THREE.Vector3();
+let meleeHave = false;
+let meleeCd = 0;
 let noodleMesh = null;
 let bikeMesh = null;
 let shopOnX = true;
@@ -332,19 +338,28 @@ const sfx = {
     beep("sine", 90, 0.36, 0.1, 32);
   },
   cry(kind) {
+    this.oof(kind);
+  },
+  groan() {
+    noise(0.55, 0.12, 140);
+    beep("sawtooth", 120, 0.7, 0.09, 48);
+    beep("triangle", 90, 0.62, 0.07, 36);
+    beep("sine", 70, 0.8, 0.06, 28);
+  },
+  oof(kind) {
     const k = kind % 3;
     if (k === 0) {
-      beep("sawtooth", 180, 0.42, 0.07, 90);
-      beep("triangle", 310, 0.38, 0.055, 140);
-      beep("sine", 520, 0.28, 0.04, 220);
+      beep("sawtooth", 210, 0.16, 0.09, 70);
+      beep("sine", 140, 0.2, 0.07, 55);
+      noise(0.08, 0.07, 280);
     } else if (k === 1) {
-      beep("square", 90, 0.5, 0.08, 46);
-      beep("sawtooth", 140, 0.36, 0.05, 70);
-      noise(0.22, 0.08, 220);
+      beep("square", 95, 0.18, 0.1, 42);
+      beep("triangle", 160, 0.14, 0.06, 70);
+      noise(0.1, 0.08, 180);
     } else {
-      beep("triangle", 740, 0.22, 0.07, 1480);
-      beep("sine", 980, 0.18, 0.05, 420);
-      beep("sawtooth", 220, 0.16, 0.04, 110);
+      beep("sawtooth", 260, 0.12, 0.08, 90);
+      beep("sine", 80, 0.22, 0.07, 40);
+      noise(0.07, 0.06, 420);
     }
   },
   impact() {
@@ -363,6 +378,96 @@ const sfx = {
     noise(0.2, 0.11, 180);
   },
 };
+
+function maybeOof() {
+  if (oofLock > 0) return;
+  if (rng() > 0.3) return;
+  oofLock = 5;
+  sfx.oof((rng() * 3) | 0);
+}
+
+function stopMusic() {
+  for (const n of musicNodes) {
+    try { n.stop?.(); } catch {}
+    try { n.disconnect?.(); } catch {}
+  }
+  musicNodes = [];
+  if (musicGain) {
+    try { musicGain.disconnect(); } catch {}
+    musicGain = null;
+  }
+}
+
+function startMusic() {
+  stopMusic();
+  sfxUnlock();
+  if (!ac) return;
+  const master = ac.createGain();
+  master.gain.value = 0.048;
+  master.connect(ac.destination);
+  musicGain = master;
+  function osc(type, freq, dest) {
+    const o = ac.createOscillator();
+    o.type = type;
+    o.frequency.value = freq;
+    o.connect(dest);
+    o.start();
+    musicNodes.push(o);
+    return o;
+  }
+  const bassF = ac.createBiquadFilter();
+  bassF.type = "lowpass";
+  bassF.frequency.value = 220;
+  bassF.Q.value = 0.7;
+  bassF.connect(master);
+  musicNodes.push(bassF);
+  osc("sawtooth", 49, bassF);
+  osc("triangle", 73.5, bassF);
+  const pulse = ac.createOscillator();
+  pulse.type = "square";
+  pulse.frequency.value = 1.83;
+  const pulseG = ac.createGain();
+  pulseG.gain.value = 40;
+  pulse.connect(pulseG);
+  pulseG.connect(bassF.frequency);
+  pulse.start();
+  musicNodes.push(pulse, pulseG);
+  const leadF = ac.createBiquadFilter();
+  leadF.type = "bandpass";
+  leadF.frequency.value = 740;
+  leadF.Q.value = 4;
+  const leadG = ac.createGain();
+  leadG.gain.value = 0.22;
+  leadF.connect(leadG);
+  leadG.connect(master);
+  musicNodes.push(leadF, leadG);
+  const lead = osc("triangle", 196, leadF);
+  const lfo = ac.createOscillator();
+  lfo.frequency.value = 0.11;
+  const lfoG = ac.createGain();
+  lfoG.gain.value = 28;
+  lfo.connect(lfoG);
+  lfoG.connect(lead.frequency);
+  lfo.start();
+  musicNodes.push(lfo, lfoG);
+  const hat = ac.createBufferSource();
+  const nlen = ac.sampleRate * 2;
+  const buf = ac.createBuffer(1, nlen, ac.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < nlen; i++) data[i] = (Math.random() * 2 - 1) * (i % 2200 < 180 ? 0.35 : 0.02);
+  hat.buffer = buf;
+  hat.loop = true;
+  const hatF = ac.createBiquadFilter();
+  hatF.type = "highpass";
+  hatF.frequency.value = 2400;
+  const hatG = ac.createGain();
+  hatG.gain.value = 0.08;
+  hat.connect(hatF);
+  hatF.connect(hatG);
+  hatG.connect(master);
+  hat.start();
+  musicNodes.push(hat, hatF, hatG);
+}
 
 function hillsAt(x, z) {
   let h =
@@ -1107,6 +1212,9 @@ function makeMob(w, ang, dist) {
     ranged: w >= 10 && rng() < 0.16,
     shotShape: ["ball", "cube", "pyr", "spike"][(rng() * 4) | 0],
     fireCd: 0.8 + rng() * 1.8,
+    orbit: rng() * Math.PI * 2,
+    orbitR: 1.4 + rng() * 4.2,
+    sepJit: 0.65 + rng() * 0.7,
   };
 }
 
@@ -1127,6 +1235,7 @@ function spawnWave() {
   showBanner("WAVE " + wave);
   applyPlanetTex(false);
   sfx.wave();
+  sfx.groan();
   dripSpawn();
   if (rng() < 0.22) {
     const ang = rng() * Math.PI * 2;
@@ -1327,8 +1436,29 @@ function tickMobs(dt) {
       ? liveLimbs.reduce((s, l) => s + (l.userData.run || 1), 0) / liveLimbs.length
       : 0.35;
     const dodge = incomingDodge(m);
-    let vx = (dx / dist) * m.spd * runMul;
-    let vz = (dz / dist) * m.spd * runMul;
+    const hold = Math.min(8, m.orbitR || 2);
+    const ox = player.x + Math.cos(m.orbit + m.bob * 0.12) * hold * 0.35;
+    const oz = player.z + Math.sin(m.orbit + m.bob * 0.12) * hold * 0.35;
+    const tdx = ox - m.x;
+    const tdz = oz - m.z;
+    const td = Math.hypot(tdx, tdz) || 1;
+    let vx = (tdx / td) * m.spd * runMul;
+    let vz = (tdz / td) * m.spd * runMul;
+    let sepX = 0, sepZ = 0;
+    for (const o of mobs) {
+      if (o === m || !o.alive) continue;
+      const ddx = m.x - o.x;
+      const ddz = m.z - o.z;
+      const d2 = ddx * ddx + ddz * ddz;
+      const minD = (m.hitR + o.hitR) * 1.35 * (m.sepJit || 1);
+      if (d2 < 1e-4 || d2 > minD * minD) continue;
+      const d = Math.sqrt(d2);
+      const push = (minD - d) / minD;
+      sepX += (ddx / d) * push;
+      sepZ += (ddz / d) * push;
+    }
+    vx += sepX * (2.8 + m.spd * 0.35);
+    vz += sepZ * (2.8 + m.spd * 0.35);
     if (dodge.threat) {
       const mag = Math.hypot(dodge.dodgeX, dodge.dodgeZ) || 1;
       const dodgeScale = 0.2 + 0.8 * Math.min(1, (diffWave() - 1) / 99);
@@ -1678,26 +1808,27 @@ function hud() {
 
 function makeFlagMesh() {
   const g = new THREE.Group();
+  const col = COLORS[(rng() * COLORS.length) | 0];
   const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.05, 3.1, 6), mat(0x3a342c));
   pole.position.y = 1.55;
   const cloth = new THREE.Mesh(
     new THREE.PlaneGeometry(1.35, 0.82),
-    new THREE.MeshLambertMaterial({ color: 0xffe066, side: THREE.DoubleSide, emissive: 0xffaa22, emissiveIntensity: 1.35 }),
+    new THREE.MeshLambertMaterial({ color: col, side: THREE.DoubleSide, emissive: col, emissiveIntensity: 1.35 }),
   );
   cloth.position.set(0.68, 2.55, 0);
-  const ball = new THREE.Mesh(new THREE.SphereGeometry(0.12, 10, 8), new THREE.MeshBasicMaterial({ color: 0xfff3a0 }));
+  const ball = new THREE.Mesh(new THREE.SphereGeometry(0.12, 10, 8), new THREE.MeshBasicMaterial({ color: col }));
   ball.position.y = 3.12;
   const glow = new THREE.Mesh(
     new THREE.SphereGeometry(0.55, 12, 10),
-    new THREE.MeshBasicMaterial({ color: 0xffee88, transparent: true, opacity: 0.28, blending: THREE.AdditiveBlending, depthWrite: false }),
+    new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.28, blending: THREE.AdditiveBlending, depthWrite: false }),
   );
   glow.position.y = 2.55;
-  const light = new THREE.PointLight(0xffee88, 3.2, 18, 1.4);
+  const light = new THREE.PointLight(col, 3.2, 18, 1.4);
   light.position.y = 2.6;
   const beam = new THREE.Mesh(
     new THREE.CylinderGeometry(0.18, 1.15, 92, 10, 1, true),
     new THREE.MeshBasicMaterial({
-      color: 0xfff1a8, transparent: true, opacity: 0.2, blending: THREE.AdditiveBlending,
+      color: col, transparent: true, opacity: 0.2, blending: THREE.AdditiveBlending,
       depthWrite: false, side: THREE.DoubleSide,
     }),
   );
@@ -1705,7 +1836,7 @@ function makeFlagMesh() {
   const core = new THREE.Mesh(
     new THREE.CylinderGeometry(0.045, 0.16, 110, 8, 1, true),
     new THREE.MeshBasicMaterial({
-      color: 0xfffbe6, transparent: true, opacity: 0.42, blending: THREE.AdditiveBlending,
+      color: col, transparent: true, opacity: 0.42, blending: THREE.AdditiveBlending,
       depthWrite: false, side: THREE.DoubleSide,
     }),
   );
@@ -1801,6 +1932,7 @@ function hitPanel(mesh, origin, dir) {
 function gameOver() {
   dead = true;
   running = false;
+  stopMusic();
   shopOpen = false;
   $("shop").hidden = true;
   if (shopRoot) shopRoot.visible = false;
@@ -1856,6 +1988,10 @@ function resetRun() {
   flagGen = 0;
   sprintBuys = 0;
   cryT = 0;
+  oofLock = 0;
+  meleeHave = false;
+  meleeCd = 0;
+  stopMusic();
   hexSpawnCd = 0;
   owned = new Set(["pistol"]);
   stats = { speed: 1, jump: 1, maxHp: MAX_HP0, reload: 1, magnet: 2.4, jumps: 1, sprint: 0, sprintCd: 10, sprintMul: 1, wheelie: 0 };
@@ -1883,6 +2019,7 @@ function startRun() {
   $("start").hidden = true;
   $("over").hidden = true;
   running = true;
+  startMusic();
   spawnWave();
   placeFlag();
   for (let i = 0; i < 4; i++) spawnHexCluster();
@@ -2245,6 +2382,13 @@ function tickFx(dt) {
         const live = m.limbs.filter((l) => l.userData.live);
         if (live[0]) hitLimb(live[0], m);
       }
+    } else if (f.kind === "meteorblast") {
+      const k = Math.max(0, f.life / 0.55);
+      f.mesh.scale.setScalar(0.7 + (1 - k) * 2.4);
+      f.mesh.traverse((ch) => {
+        if (ch.material && ch.material.opacity != null) ch.material.opacity = k * 0.85;
+        if (ch.isLight) ch.intensity = 14 * k;
+      });
     }
     if (f.life <= 0) {
       f.mesh.removeFromParent();
@@ -2391,6 +2535,7 @@ function rayKill(origin, dir, range, def) {
     seen.add(h.m);
     const dmg = def.dmg || 1;
     for (let k = 0; k < dmg && h.limb.userData.live; k++) hitLimb(h.limb, h.m);
+    maybeOof();
     n++;
     if (n >= pierce) break;
   }
@@ -2463,6 +2608,7 @@ function tickShots(dt) {
         if (hit) break;
       }
       if (hit) {
+        maybeOof();
         s.pierce = (s.pierce || 1) - 1;
         if (s.pierce <= 0 || s.def?.aoe) s.life = 0;
       }
@@ -2549,14 +2695,7 @@ function tickEshots(dt) {
 }
 
 function tickCries(dt) {
-  const n = mobs.filter((m) => m.alive).length;
-  cryT -= dt;
-  if (n <= 0) return;
-  const rate = 0.12 + n * 0.038;
-  if (cryT <= 0) {
-    sfx.cry((rng() * 3) | 0);
-    cryT = (0.55 + rng() * 0.9) / rate;
-  }
+  oofLock = Math.max(0, oofLock - dt);
 }
 
 let cliffMat = null;
@@ -2903,14 +3042,34 @@ function tickMeteors(dt) {
     if (m.mesh.position.y <= hy + rad * 0.48 || m.life <= 0) {
       const p = m.mesh.position.clone();
       p.y = hy;
-      craterAt(p.x, p.z, rad * 1.55 + rng() * 1.2, 2.2 + rad * 0.45);
-      aoeAt(p, 6.5 + rad * 1.15, { dmg: 6, knock: 2.2 });
+      craterAt(p.x, p.z, (rad * 1.55 + rng() * 1.2) * 0.7, (2.2 + rad * 0.45) * 0.7);
+      spawnMeteorBlast(p, rad);
+      aoeAt(p, 10.4 + rad * 1.85, { dmg: 8, knock: 3.4 });
       dropLoot(p.x, p.y, p.z, 28 + ((rng() * 18) | 0));
       sfx.meteor();
       m.mesh.removeFromParent();
       meteors.splice(i, 1);
     }
   }
+}
+
+function spawnMeteorBlast(pos, rad) {
+  const r = (rad || 3) * 2.35;
+  const g = new THREE.Group();
+  const ball = new THREE.Mesh(
+    new THREE.SphereGeometry(r * 0.55, 14, 12),
+    new THREE.MeshBasicMaterial({ color: 0xff6622, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false }),
+  );
+  const shock = new THREE.Mesh(
+    new THREE.RingGeometry(r * 0.2, r * 0.85, 24),
+    new THREE.MeshBasicMaterial({ color: 0xffee88, transparent: true, opacity: 0.7, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }),
+  );
+  shock.rotation.x = -Math.PI / 2;
+  const flash = new THREE.PointLight(0xff8833, 14, r * 8, 1.2);
+  g.add(ball, shock, flash);
+  g.position.copy(pos);
+  scene.add(g);
+  fx.push({ mesh: g, kind: "meteorblast", life: 0.55, r0: r });
 }
 
 function craterAt(x, z, r, depth) {
@@ -2972,7 +3131,19 @@ function syncReloadBar() {
   }
 }
 
+function prereqMet(it) {
+  if (!it?.need) return true;
+  if (it.need === "sprint") return !!stats.sprint;
+  if (it.need === "jump2") return stats.jumps >= 2;
+  return true;
+}
+
 function buy(it) {
+  if (!prereqMet(it)) {
+    showBanner("LOCKED — buy " + (it.needLabel || "the prerequisite") + " first");
+    announcing = 1.4;
+    return false;
+  }
   if (it.kind === "wep") {
     if (owned.has(it.id)) {
       equip(it.id);
@@ -3187,13 +3358,14 @@ function paintShopCard(it, i, highlight) {
   const ctx = c.getContext("2d");
   const equipped = it.kind === "wep" && player.wep === it.id;
   const have = it.kind === "wep" && owned.has(it.id);
-  ctx.fillStyle = highlight ? "#111111" : "#f7f4ee";
+  const locked = !prereqMet(it);
+  ctx.fillStyle = locked ? "#2a2a2e" : highlight ? "#111111" : "#f7f4ee";
   ctx.fillRect(0, 0, 512, 160);
   ctx.strokeStyle = highlight ? "#d4af37" : "#cfc8b8";
   ctx.lineWidth = 6;
   ctx.strokeRect(3, 3, 506, 154);
   drawShopIcon(ctx, it, 80, 80, 108);
-  ctx.fillStyle = highlight ? "#f7f4ee" : "#111";
+  ctx.fillStyle = locked ? "#c8c4bc" : highlight ? "#f7f4ee" : "#111";
   ctx.font = "700 32px Outfit, sans-serif";
   ctx.fillText(it.name, 150, 58);
   ctx.font = "600 22px Outfit, sans-serif";
@@ -3207,6 +3379,7 @@ function paintShopCard(it, i, highlight) {
   if (it.id === "jump2" && stats.jumps >= 2) price = "OWNED";
   if (it.id === "jump3" && stats.jumps >= 3) price = "OWNED";
   if (it.kind === "bike" && player.bike) price = "OWNED";
+  if (!prereqMet(it)) price = "LOCKED — buy " + (it.needLabel || "prereq") + " first";
   ctx.fillText(price, 150, 92);
   ctx.font = "500 18px Outfit, sans-serif";
   ctx.fillText(it.blurb, 150, 122);
@@ -3230,13 +3403,14 @@ function paintShop() {
     drawShopIcon(icx, it, 64, 64, 104);
     const wrap = document.createElement("span");
     wrap.className = "shop-copy";
-    const price = have ? "OWNED" : it.cost + "◎";
-    wrap.innerHTML = `<b>${it.name}</b> · ${price}${equipped ? " · EQUIPPED" : ""}<small>${it.blurb}</small>`;
+    const locked = !prereqMet(it);
+    const price = locked ? "LOCKED" : have ? "OWNED" : it.cost + "◎";
+    wrap.innerHTML = `<b>${it.name}</b> · ${price}${equipped ? " · EQUIPPED" : ""}<small>${locked ? "Requires " + (it.needLabel || "another upgrade") + ". " : ""}${it.blurb}</small>`;
     b.appendChild(ico);
     b.appendChild(wrap);
     const canAmmo = it.kind === "ammo" && player.coins >= it.cost;
     const canBind = it.kind === "bind";
-    b.disabled = equipped || (!have && !canAmmo && !canBind && player.coins < it.cost);
+    b.disabled = locked || equipped || (!have && !canAmmo && !canBind && player.coins < it.cost);
     b.onclick = () => buy(it);
     host.appendChild(b);
   }
@@ -3632,6 +3806,41 @@ function placeDesktopGun() {
   gunMesh.visible = !xrOn;
 }
 
+function tickMelee(dt) {
+  meleeCd = Math.max(0, meleeCd - dt);
+  const g = xrOn ? vrGun : gunMesh;
+  if (!g || shopOpen || dead) {
+    meleeHave = false;
+    return;
+  }
+  g.updateMatrixWorld(true);
+  const p = tmp4.setFromMatrixPosition(g.matrixWorld);
+  if (!meleeHave) {
+    meleePrev.copy(p);
+    meleeHave = true;
+    return;
+  }
+  const vel = tmp.copy(p).sub(meleePrev).multiplyScalar(dt > 1e-4 ? 1 / dt : 0);
+  meleePrev.copy(p);
+  const spd = vel.length();
+  const tip = tmp2.copy(p).addScaledVector(new THREE.Vector3(0, 0, -1).applyQuaternion(g.getWorldQuaternion(new THREE.Quaternion())), 0.28);
+  const need = xrOn ? 2.8 : 7.5;
+  if (spd < need || meleeCd > 0) return;
+  for (const m of mobs) {
+    if (!m.alive) continue;
+    const d = Math.hypot(m.x - tip.x, m.z - tip.z);
+    if (d > m.hitR + 0.7) continue;
+    if (Math.abs(m.y - tip.y) > 1.6) continue;
+    const limb = nearestLiveLimb(m, tip);
+    if (!limb) continue;
+    const swings = Math.max(1, wep().dmg || 1);
+    for (let k = 0; k < swings && limb.userData.live; k++) hitLimb(limb, m);
+    meleeCd = 0.16;
+    sfx.hit();
+    break;
+  }
+}
+
 function doFire(xr) {
   if (dead) {
     tryOverShot(xr);
@@ -3706,6 +3915,7 @@ function loop() {
         tickGrab(dt, firing, aim.origin, aim.dir);
       } else grabMob = null;
       tickMobs(dt);
+      tickMelee(dt);
       tickShots(dt);
       tickEshots(dt);
       tickCries(dt);

@@ -142,11 +142,11 @@ export const OBJECTS = [
 ];
 
 export const WEAPONS = [
-  { id: "pistol", name: "Plasma pistol", slot: "gun", dmg: 12, rpm: 3.5, mag: 12, spread: 0.018, pellets: 1, speed: 52, color: 0x66ccff, beam: true },
-  { id: "shotgun", name: "Scatter gun", slot: "gun", dmg: 7, rpm: 1.15, mag: 6, spread: 0.16, pellets: 7, speed: 38, color: 0xffcc66, beam: false },
-  { id: "rifle", name: "Assault rifle", slot: "gun", dmg: 9, rpm: 11, mag: 30, spread: 0.03, pellets: 1, speed: 64, color: 0x88ff66, beam: true },
-  { id: "bazooka", name: "Bazooka", slot: "gun", dmg: 48, rpm: 0.55, mag: 1, spread: 0.01, pellets: 1, speed: 22, color: 0xff4466, splash: 2.6, beam: false },
-  { id: "flamethrower", name: "Flamethrower", slot: "gun", dmg: 6, rpm: 16, mag: 50, spread: 0.12, pellets: 1, speed: 18, color: 0xff6622, flame: true, range: 7 },
+  { id: "pistol", name: "Plasma pistol", slot: "gun", dmg: 12, rpm: 3.5, mag: 12, reload: 1.05, spread: 0.018, pellets: 1, speed: 52, color: 0x66ccff, beam: true },
+  { id: "shotgun", name: "Scatter gun", slot: "gun", dmg: 7, rpm: 1.15, mag: 6, reload: 1.35, spread: 0.16, pellets: 7, speed: 38, color: 0xffcc66, beam: false },
+  { id: "rifle", name: "Assault rifle", slot: "gun", dmg: 9, rpm: 11, mag: 30, reload: 1.55, spread: 0.03, pellets: 1, speed: 64, color: 0x88ff66, beam: true },
+  { id: "bazooka", name: "Bazooka", slot: "gun", dmg: 48, rpm: 0.55, mag: 1, reload: 1.9, spread: 0.01, pellets: 1, speed: 22, color: 0xff4466, splash: 2.6, beam: false },
+  { id: "flamethrower", name: "Flamethrower", slot: "gun", dmg: 6, rpm: 16, mag: 50, reload: 2.1, spread: 0.12, pellets: 1, speed: 18, color: 0xff6622, flame: true, range: 7 },
   { id: "whip", name: "Whip", slot: "melee", dmg: 14, reach: 3.3, rate: 0.45 },
   { id: "sword", name: "Sword", slot: "melee", dmg: 18, reach: 2.2, rate: 0.38 },
   { id: "katana", name: "Katana", slot: "melee", dmg: 22, reach: 2.55, rate: 0.28 },

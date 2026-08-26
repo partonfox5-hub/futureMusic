@@ -83,6 +83,10 @@ const FN = {
     noise(0.09, 0.12, 700);
     beep("square", 140, 0.07, 0.06, 70);
   },
+  reload() {
+    beep("triangle", 220, 0.16, 0.05, 480);
+    beep("sine", 160, 0.22, 0.04, 90);
+  },
   hit() {
     noise(0.08, 0.1, 400);
     beep("sawtooth", 90, 0.1, 0.08, 50);

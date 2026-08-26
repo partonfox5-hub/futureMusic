@@ -4,11 +4,11 @@ import {
   STUD, PLATE, COLORS, KINDS, DIMS,
   colorOf, dimOf, kindOf, shapeSpec, makeBrickMesh,
   rotatedDims, gridToLocal, localToGrid, cellsOf, randomSpec, platesFor,
-} from "./bricks.js?v=bb11";
+} from "./bricks.js?v=bb12";
 import {
   FIG_HEADS, FIG_TORSOS, FIG_LEGS, FIG_PRESETS, defaultFigConfig, makeFig, tickFig,
   figFromPreset, presetOf,
-} from "./figs.js?v=bb11";
+} from "./figs.js?v=bb12";
 
 const canvas = document.getElementById("c");
 const hudEl = document.getElementById("hud");
@@ -247,6 +247,23 @@ function catalogThumbTex(kindId, hex) {
     _thumbCache.set(key, t);
     return t;
   }
+  if (kindId.startsWith("print:")) {
+    const g = c.getContext("2d");
+    g.fillStyle = "#243044";
+    g.fillRect(0, 0, 128, 128);
+    g.fillStyle = "#c45c26";
+    g.fillRect(28, 70, 72, 28);
+    g.fillStyle = "#0055bf";
+    g.fillRect(40, 46, 48, 24);
+    g.fillStyle = "#f5cd2f";
+    g.fillRect(52, 28, 24, 18);
+    const t = new THREE.CanvasTexture(c);
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.flipY = true;
+    t.needsUpdate = true;
+    _thumbCache.set(key, t);
+    return t;
+  }
   if (!_thumbR) {
     _thumbR = new THREE.WebGLRenderer({ canvas: c, antialias: true, alpha: true, preserveDrawingBuffer: true });
     _thumbR.setSize(128, 128, false);
@@ -315,6 +332,10 @@ let figPanelOpen = false;
 let handMode = "brick";
 const HAND_MODES = ["brick", "fig", "hands"];
 let menuOpen = false;
+let bpRecording = false;
+let bpOrigin = null;
+let bpDraft = [];
+let pendingPrint = null;
 let nextId = 1;
 const SAVE_PREFIX = "blockbuild-slot-";
 const bricks = [];
@@ -648,7 +669,7 @@ function setHud() {
       : handMode === "beacon"
         ? `Beacon · ${beaconKind}`
         : "Empty-handed";
-  hudLine.textContent = `${mode} · brick ${fmtScale(pieceScale)}× · table ${worldScale.toFixed(1)}× · gravity ${gravityOn ? "ON" : "OFF"}`;
+  hudLine.textContent = `${mode} · brick ${fmtScale(pieceScale)}× · table ${worldScale.toFixed(1)}× · gravity ${gravityOn ? "ON" : "OFF"}` + (bpRecording ? " · REC " + bpDraft.length : "");
 }
 
 function xrGamepad(i) {
@@ -670,7 +691,16 @@ const keys = new Set();
 const mouse = { x: 0, y: 0, down: false, locked: false };
 let lookYaw = 0;
 let lookPitch = -0.42;
-const pressed = { t0: false, t1: false, g0: false, g1: false, a: false, b: false, x: false, y: false, rsc: false, lsc: false, lmenu: false, ltrig: false };
+const pressed = { t0: false, t1: false, g0: false, g1: false, a: false, b: false, x: false, y: false, rsc: false, lsc: false, lmenu: false, ltrig: false, lg0: false };
+
+function leftMenuPressed(gp) {
+  if (!gp?.buttons) return false;
+  for (let i = 0; i < gp.buttons.length; i++) {
+    if (i === 0 || i === 1 || i === 3 || i === 4 || i === 5) continue;
+    if (gp.buttons[i]?.pressed) return true;
+  }
+  return false;
+}
 let xHold = 0;
 const handVel = new THREE.Vector3();
 const handVelWorld = new THREE.Vector3();
@@ -745,6 +775,33 @@ function pushOutFromPlayer(pos, spec) {
   return pos;
 }
 
+function scaledFoot(spec, rotQ, scale) {
+  const { bw, bd } = rotatedDims(spec.w, spec.d, rotQ);
+  const s = Math.max(0.15, scale == null ? pieceScale : scale);
+  return {
+    bw: Math.max(1, Math.round(bw * s)),
+    bd: Math.max(1, Math.round(bd * s)),
+    h: Math.max(1, Math.round(spec.h * s)),
+  };
+}
+function groundGy() {
+  return Math.round((-TABLE_Y / Math.max(0.2, worldScale)) / PLATE);
+}
+function gridPos(gx, gy, gz, spec, rotQ, scale) {
+  const f = scaledFoot(spec, rotQ, scale);
+  return new THREE.Vector3((gx + f.bw / 2) * STUD, gy * PLATE, (gz + f.bd / 2) * STUD);
+}
+function brickCells(b) {
+  const f = scaledFoot(b.spec, b.rot, b.scale || 1);
+  const cells = [];
+  for (let i = 0; i < f.bw; i++) {
+    for (let j = 0; j < f.bd; j++) {
+      cells.push({ x: b.gx + i, z: b.gz + j, y0: b.gy, y1: b.gy + f.h });
+    }
+  }
+  return cells;
+}
+
 function occupancy() {
   const map = new Map();
   const add = (x, z, y0, y1, id) => {
@@ -754,18 +811,21 @@ function occupancy() {
   };
   for (const b of bricks) {
     if (b.loose || b.held) continue;
-    for (const c of cellsOf(b.gx, b.gy, b.gz, b.spec, b.rot)) add(c.x, c.z, c.y0, c.y1, b.id);
+    for (const c of brickCells(b)) add(c.x, c.z, c.y0, c.y1, b.id);
   }
   return map;
 }
 
-function collides(gx, gy, gz, spec, rot, ignoreId) {
+function collides(gx, gy, gz, spec, rot, ignoreId, scale) {
   const occ = occupancy();
-  for (const c of cellsOf(gx, gy, gz, spec, rot)) {
-    const list = occ.get(c.x + "," + c.z) || [];
-    for (const o of list) {
-      if (o.id === ignoreId) continue;
-      if (c.y0 < o.y1 && c.y1 > o.y0) return true;
+  const f = scaledFoot(spec, rot, scale);
+  for (let i = 0; i < f.bw; i++) {
+    for (let j = 0; j < f.bd; j++) {
+      const list = occ.get((gx + i) + "," + (gz + j)) || [];
+      for (const o of list) {
+        if (o.id === ignoreId) continue;
+        if (gy < o.y1 && gy + f.h > o.y0) return true;
+      }
     }
   }
   return false;
@@ -783,15 +843,16 @@ function overTable(gx, gz, bw, bd) {
 }
 
 function supportY(gx, gz, bw, bd) {
-  let best = overTable(gx, gz, bw, bd) ? 0 : null;
+  const onTab = overTable(gx, gz, bw, bd);
+  let best = onTab ? 0 : groundGy();
   for (const b of bricks) {
     if (b.loose || b.held) continue;
-    const { bw: ow, bd: od } = rotatedDims(b.spec.w, b.spec.d, b.rot);
+    const f = scaledFoot(b.spec, b.rot, b.scale || 1);
     for (let i = 0; i < bw; i++) {
       for (let j = 0; j < bd; j++) {
         const x = gx + i, z = gz + j;
-        if (x >= b.gx && x < b.gx + ow && z >= b.gz && z < b.gz + od) {
-          const top = b.gy + b.spec.h;
+        if (x >= b.gx && x < b.gx + f.bw && z >= b.gz && z < b.gz + f.bd) {
+          const top = b.gy + f.h;
           if (best == null || top > best) best = top;
         }
       }
@@ -800,13 +861,16 @@ function supportY(gx, gz, bw, bd) {
   return best;
 }
 
-function snapPose(localPos, spec, rotQ) {
-  const { bw, bd } = rotatedDims(spec.w, spec.d, rotQ);
-  const gx = Math.round(localPos.x / STUD - bw / 2);
-  const gz = Math.round(localPos.z / STUD - bd / 2);
+function snapPose(localPos, spec, rotQ, scale) {
+  const sc = scale == null ? pieceScale : scale;
+  const f = scaledFoot(spec, rotQ, sc);
+  const gx = Math.round(localPos.x / STUD - f.bw / 2);
+  const gz = Math.round(localPos.z / STUD - f.bd / 2);
   let gy = Math.round(localPos.y / PLATE);
-  const sup = supportY(gx, gz, bw, bd);
-  const snapH = PLATE * 2.5 * Math.max(1, Math.sqrt(pieceScale));
+  const onTab = overTable(gx, gz, f.bw, f.bd);
+  const floorGy = onTab ? 0 : groundGy();
+  const sup = supportY(gx, gz, f.bw, f.bd);
+  const snapH = PLATE * 3.2 * Math.max(1, Math.sqrt(sc));
   let nearSupport = false;
   if (sup != null) {
     const supY = sup * PLATE;
@@ -815,39 +879,37 @@ function snapPose(localPos, spec, rotQ) {
       nearSupport = true;
     }
   }
-  gy = Math.max(0, gy);
-  if (collides(gx, gy, gz, spec, rotQ)) {
-    for (let lift = 1; lift <= 6; lift++) {
-      if (!collides(gx, gy + lift, gz, spec, rotQ)) {
+  gy = Math.max(floorGy, gy);
+  if (collides(gx, gy, gz, spec, rotQ, null, sc)) {
+    for (let lift = 1; lift <= 8; lift++) {
+      if (!collides(gx, gy + lift, gz, spec, rotQ, null, sc)) {
         gy += lift;
         break;
       }
     }
   }
-  const p = gridToLocal(gx, gy, gz, spec, rotQ);
+  const p = gridPos(gx, gy, gz, spec, rotQ, sc);
   const dist = p.distanceTo(localPos);
-  const joinDist = STUD * 1.8 * Math.max(1, Math.min(pieceScale, 2.2));
-  const joined = nearSupport && dist < joinDist;
+  const joinDist = STUD * 1.8 * Math.max(1, Math.min(sc, 2.4)) * Math.max(f.bw, f.bd) * 0.22;
+  const joined = nearSupport && dist < Math.max(STUD * 1.4, joinDist);
   return { gx, gy, gz, rot: rotQ, spec, pos: p, joined, dist };
 }
 
 function connectNew(b) {
   b.links = new Set();
-  if (b.gy === 0 && overTable(b.gx, b.gz, rotatedDims(b.spec.w, b.spec.d, b.rot).bw, rotatedDims(b.spec.w, b.spec.d, b.rot).bd)) {
-    b.onTable = true;
-  }
+  const f = scaledFoot(b.spec, b.rot, b.scale || 1);
+  if (b.gy === 0 && overTable(b.gx, b.gz, f.bw, f.bd)) b.onTable = true;
+  if (b.gy <= groundGy() + 1 && !overTable(b.gx, b.gz, f.bw, f.bd)) b.onTable = true;
   const topNeed = b.gy;
   for (const o of bricks) {
     if (o === b || o.loose || o.held) continue;
-    const oTop = o.gy + o.spec.h;
-    if (oTop !== topNeed && b.gy + b.spec.h !== o.gy) continue;
-    const { bw, bd } = rotatedDims(b.spec.w, b.spec.d, b.rot);
-    const od = rotatedDims(o.spec.w, o.spec.d, o.rot);
+    const of = scaledFoot(o.spec, o.rot, o.scale || 1);
+    if (o.gy + of.h !== topNeed && b.gy + f.h !== o.gy) continue;
     let overlap = false;
-    for (let i = 0; i < bw && !overlap; i++) {
-      for (let j = 0; j < bd; j++) {
+    for (let i = 0; i < f.bw && !overlap; i++) {
+      for (let j = 0; j < f.bd; j++) {
         const x = b.gx + i, z = b.gz + j;
-        if (x >= o.gx && x < o.gx + od.bw && z >= o.gz && z < o.gz + od.bd) { overlap = true; break; }
+        if (x >= o.gx && x < o.gx + of.bw && z >= o.gz && z < o.gz + of.bd) { overlap = true; break; }
       }
     }
     if (overlap) {
@@ -904,23 +966,27 @@ function breakApart(ids, impulse, origin) {
   }
 }
 
-function addBrick(spec, col, gx, gy, gz, rotQ, loose = false) {
+function addBrick(spec, col, gx, gy, gz, rotQ, loose = false, scale) {
   if (bricks.length >= MAX_BRICKS) return null;
+  const sc = scale == null ? pieceScale : scale;
   const mesh = makeBrickMesh(spec, col, false);
   const group = new THREE.Group();
   group.add(mesh);
   group.rotation.y = rotQ * Math.PI / 2;
-  const pos = gridToLocal(gx, gy, gz, spec, rotQ);
+  const pos = gridPos(gx, gy, gz, spec, rotQ, sc);
   group.position.copy(pos);
-  group.scale.setScalar(pieceScale);
+  group.scale.setScalar(sc);
   buildRoot.add(group);
   const b = {
-    id: nextId++, spec, col: col.id, gx, gy, gz, rot: rotQ, scale: pieceScale,
+    id: nextId++, spec, col: col.id, gx, gy, gz, rot: rotQ, scale: sc,
     group, mesh, loose, held: false, onTable: false,
     vel: new THREE.Vector3(), spin: new THREE.Vector3(), melt: 0, links: new Set(),
   };
   bricks.push(b);
-  if (!loose) connectNew(b);
+  if (!loose) {
+    connectNew(b);
+    recordBrick(b);
+  }
   return b;
 }
 
@@ -951,16 +1017,16 @@ function addFigAt(localPos, yaw) {
 }
 
 function heightAt(x, z) {
-  const gx = Math.floor(x / STUD + TABLE_N / 2) - TABLE_N / 2;
-  const gz = Math.floor(z / STUD + TABLE_N / 2) - TABLE_N / 2;
+  const gx = Math.floor(x / STUD);
+  const gz = Math.floor(z / STUD);
   let best = 0;
   const half = TABLE_N / 2;
-  if (gx < -half || gx >= half || gz < -half || gz >= half) best = -TABLE_Y / worldScale;
+  if (gx < -half || gx >= half || gz < -half || gz >= half) best = groundGy() * PLATE;
   for (const b of bricks) {
     if (b.loose || b.held) continue;
-    const { bw, bd } = rotatedDims(b.spec.w, b.spec.d, b.rot);
-    if (gx < b.gx || gx >= b.gx + bw || gz < b.gz || gz >= b.gz + bd) continue;
-    let top = (b.gy + b.spec.h) * PLATE;
+    const f = scaledFoot(b.spec, b.rot, b.scale || 1);
+    if (gx < b.gx || gx >= b.gx + f.bw || gz < b.gz || gz >= b.gz + f.bd) continue;
+    let top = (b.gy + f.h) * PLATE;
     if (b.spec.kind === "stairs") {
       let u = (gx - b.gx) / Math.max(1, bw);
       let v = (gz - b.gz) / Math.max(1, bd);
@@ -1133,6 +1199,15 @@ function placeBeacon(localPos) {
 
 function placeFromLocal(localPos, yaw) {
   if (handMode === "hands") return;
+  if (pendingPrint) {
+    const spec = currentSpec();
+    const local = pushOutFromPlayer(localPos.clone(), spec);
+    const snap = snapPose(local, spec, rot);
+    const n = stampPrint(pendingPrint, snap.gx, snap.gy, snap.gz);
+    hudHint.textContent = "Stamped " + pendingPrint.name + " (" + n + " bricks).";
+    pendingPrint = null;
+    return;
+  }
   if (handMode === "beacon") {
     placeBeacon(pushOutFromPlayer(localPos.clone(), { w: 2, d: 2 }));
     return;
@@ -1175,18 +1250,26 @@ function spawnPile() {
   hudHint.textContent = "A pile of ten random bricks drops on the table.";
 }
 
+function isFig(o) {
+  return !!(o && o.userData && o.userData.kind === "fig");
+}
+
 function nearestThing(localPos, max = 0.04, looseOnly = false) {
   let best = null, bd = max;
+  for (const f of figs) {
+    if (f.userData.held) continue;
+    const sc = f.userData.baseScale || 1;
+    const reach = Math.max(max, 0.04 * sc, STUD * 10 * Math.max(1, sc));
+    const d = f.position.distanceTo(localPos);
+    if (d < reach && d <= bd) { bd = d; best = f; }
+  }
   for (const b of bricks) {
     if (b.held) continue;
     if (looseOnly && !b.loose) continue;
+    const sc = b.scale || 1;
+    const reach = Math.max(max, STUD * 6 * Math.max(1, sc));
     const d = b.group.position.distanceTo(localPos);
-    if (d < bd) { bd = d; best = b; }
-  }
-  for (const f of figs) {
-    if (f.userData.held) continue;
-    const d = f.position.distanceTo(localPos);
-    if (d < bd) { bd = d; best = f; }
+    if (d < reach && d < bd) { bd = d; best = b; }
   }
   return best;
 }
@@ -1204,14 +1287,14 @@ function detachBrick(b) {
 let held = null;
 function grab(localPos, any = false) {
   if (held) return;
-  const n = nearestThing(localPos, STUD * 8, !any);
+  const n = nearestThing(localPos, STUD * 10, !any);
   if (!n) return;
-  if (n.userData?.kind === "fig") {
+  if (isFig(n)) {
     n.userData.held = true;
     n.userData.toss = false;
     n.userData.vel = new THREE.Vector3();
     held = n;
-  } else {
+  } else if (n.group && n.spec) {
     detachBrick(n);
     n.held = true;
     n.loose = true;
@@ -1225,7 +1308,7 @@ function dropHeld(snapJoin) {
   const toss = worldSpd > 0.55;
   if (snapJoin == null) snapJoin = !toss;
   const localV = worldV.clone().multiplyScalar(4 / Math.max(0.25, worldScale));
-  if (held.userData?.kind === "fig") {
+  if (isFig(held)) {
     held.userData.held = false;
     if (!snapJoin && toss) {
       held.userData.toss = true;
@@ -1244,7 +1327,7 @@ function dropHeld(snapJoin) {
   const spec = held.spec;
   const lp = held.group.position.clone();
   if (snapJoin) {
-    const snap = snapPose(lp, spec, held.rot);
+    const snap = snapPose(lp, spec, held.rot, held.scale);
     held.gx = snap.gx; held.gy = snap.gy; held.gz = snap.gz; held.rot = snap.rot;
     held.group.rotation.y = snap.rot * Math.PI / 2;
     held.held = false;
@@ -1624,8 +1707,10 @@ function updateGhost() {
     if (ghost) ghost.visible = false;
     if (held) {
       const h = renderer.xr.isPresenting ? placeHand(buildCtrl()) : { local: aimLocal(camera.getWorldPosition(_v), camera.getWorldDirection(_v2)) };
-      if (held.userData?.kind === "fig") held.position.copy(h.local);
-      else {
+      if (isFig(held)) {
+        held.position.copy(h.local);
+        held.position.y -= (held.userData.height || 0.05) * (held.userData.baseScale || 1) * 0.5;
+      } else {
         held.group.position.copy(h.local);
         held.group.rotation.y = held.rot * Math.PI / 2;
       }
@@ -1638,10 +1723,11 @@ function updateGhost() {
   if (held) {
     ghost.visible = false;
     const h = xr ? placeHand(buildCtrl()) : { local: aimLocal(camera.getWorldPosition(_v), camera.getWorldDirection(_v2)) };
-    if (held.userData?.kind === "fig") {
+    if (isFig(held)) {
       held.position.copy(h.local);
+      held.position.y -= (held.userData.height || 0.05) * (held.userData.baseScale || 1) * 0.5;
     } else {
-      const snap = snapPose(h.local, held.spec, held.rot);
+      const snap = snapPose(h.local, held.spec, held.rot, held.scale);
       held.group.position.copy(snap.joined ? snap.pos : h.local);
       held.group.rotation.y = held.rot * Math.PI / 2;
     }
@@ -1715,7 +1801,69 @@ const KIND_TABS = [
   { id: "parts", name: "Parts", kinds: ["sidestud", "technic", "clip", "antenna", "bar", "bracket", "leaf", "flower", "wing"] },
   { id: "fig", name: "Figs", kinds: [], figs: true },
   { id: "rooms", name: "Rooms", kinds: [], beacons: true },
+  { id: "prints", name: "Prints", kinds: [], prints: true },
 ];
+const PRINTS_KEY = "blockbuild-prints";
+
+function loadPrints() {
+  try { return JSON.parse(localStorage.getItem(PRINTS_KEY) || "[]"); } catch { return []; }
+}
+function savePrints(list) {
+  try { localStorage.setItem(PRINTS_KEY, JSON.stringify(list)); } catch {}
+}
+function recordBrick(b) {
+  if (!bpRecording || !b || b.loose) return;
+  if (!bpOrigin) bpOrigin = { gx: b.gx, gy: b.gy, gz: b.gz };
+  bpDraft.push({
+    dx: b.gx - bpOrigin.gx,
+    dy: b.gy - bpOrigin.gy,
+    dz: b.gz - bpOrigin.gz,
+    rot: b.rot,
+    kind: b.spec.kind,
+    dim: b.spec.dimId,
+    col: b.col,
+    scale: b.scale || 1,
+  });
+  hudHint.textContent = "Recording print… " + bpDraft.length + " bricks. Left bumper to save.";
+}
+function toggleBlueprint() {
+  if (bpRecording) {
+    bpRecording = false;
+    if (bpDraft.length >= 2) {
+      const prints = loadPrints();
+      const rec = { id: "p" + Date.now().toString(36), name: "Print " + (prints.length + 1), pieces: bpDraft.slice() };
+      prints.push(rec);
+      savePrints(prints);
+      hudHint.textContent = "Saved " + rec.name + " (" + rec.pieces.length + " bricks) — Piece catalog → Prints.";
+    } else {
+      hudHint.textContent = "Blueprint cancelled (need 2+ bricks).";
+    }
+    bpDraft = [];
+    bpOrigin = null;
+  } else {
+    bpRecording = true;
+    bpDraft = [];
+    bpOrigin = null;
+    pendingPrint = null;
+    hudHint.textContent = "Recording blueprint — place bricks, left bumper again to save.";
+  }
+  setHud();
+}
+function stampPrint(print, gx, gy, gz) {
+  if (!print?.pieces?.length) return 0;
+  const keep = pieceScale;
+  let n = 0;
+  for (const p of print.pieces) {
+    const spec = shapeSpec(dimOf(p.dim || "2x4"), p.kind || "brick");
+    const was = bpRecording;
+    bpRecording = false;
+    const nb = addBrick(spec, colorOf(p.col), gx + (p.dx || 0), gy + (p.dy || 0), gz + (p.dz || 0), p.rot || 0, false, p.scale || 1);
+    bpRecording = was;
+    if (nb) n++;
+  }
+  pieceScale = keep;
+  return n;
+}
 let catalogTab = 0;
 
 function spawnWorldPanel(group, dist) {
@@ -1746,8 +1894,8 @@ function makeCatalog() {
   root.add(frame, board, title);
   const hits = [];
   KIND_TABS.forEach((tab, i) => {
-    const pl = new THREE.Mesh(new THREE.PlaneGeometry(0.118, 0.044), uiMat(labelTex(tab.name, 220, 64)));
-    pl.position.set(-0.36 + i * 0.12, 0.365, 0.012);
+    const pl = new THREE.Mesh(new THREE.PlaneGeometry(0.098, 0.044), uiMat(labelTex(tab.name, 220, 64)));
+    pl.position.set(-0.41 + i * 0.103, 0.365, 0.012);
     pl.renderOrder = 8;
     pl.userData.catTab = i;
     root.add(pl);
@@ -1777,6 +1925,12 @@ function makeCatalog() {
     let list;
     if (tab.beacons) list = BEACONS.map((b) => ({ id: "beacon:" + b.id, name: b.name }));
     else if (tab.figs) list = FIG_PRESETS.map((p) => ({ id: "fig:" + p.id, name: p.name }));
+    else if (tab.prints) {
+      const prints = loadPrints();
+      list = prints.length
+        ? prints.map((p) => ({ id: "print:" + p.id, name: p.name + " (" + p.pieces.length + ")" }))
+        : [{ id: "print:none", name: "Left bumper records" }];
+    }
     else {
       list = tab.kinds.map((id) => {
         const k = KINDS.find((x) => x.id === id);
@@ -1807,7 +1961,9 @@ function makeCatalog() {
         ? { catBeacon: it.id.slice(7) }
         : it.id.startsWith("fig:")
           ? { catFig: it.id.slice(4) }
-          : { catKind: it.id };
+          : it.id.startsWith("print:")
+            ? { catPrint: it.id.slice(6) }
+            : { catKind: it.id };
       Object.assign(pl.userData, tag);
       Object.assign(bg.userData, tag);
       Object.assign(thumb.userData, tag);
@@ -2010,6 +2166,16 @@ function pokeUi(origin, dir) {
       hudHint.textContent = "Room flag: " + beaconKind + " — plant anywhere. Y / dimension grows the square.";
       return true;
     }
+    if (obj?.userData?.catPrint) {
+      if (obj.userData.catPrint === "none") {
+        hudHint.textContent = "Left bumper records a print while you place bricks.";
+        return true;
+      }
+      pendingPrint = loadPrints().find((p) => p.id === obj.userData.catPrint) || null;
+      catalog.root.visible = false;
+      hudHint.textContent = pendingPrint ? ("Stamp " + pendingPrint.name + " — trigger to place.") : "Print missing.";
+      return true;
+    }
     if (obj?.userData?.catFig) {
       figCfg = figFromPreset(obj.userData.catFig);
       kindI = KINDS.findIndex((k) => k.id === "fig");
@@ -2057,7 +2223,7 @@ function saveSlot(n) {
       dim: b.spec.dimId,
       kind: b.spec.kind,
       col: b.col,
-      gx: b.gx, gy: b.gy, gz: b.gz, rot: b.rot, loose: !!b.loose,
+      gx: b.gx, gy: b.gy, gz: b.gz, rot: b.rot, loose: !!b.loose, scale: b.scale || 1,
       x: b.group.position.x, y: b.group.position.y, z: b.group.position.z,
     })),
     figs: figs.map((f) => ({
@@ -2092,7 +2258,7 @@ function loadSlot(n) {
   gravityOn = data.gravity !== false;
   for (const b of data.bricks || []) {
     const spec = shapeSpec(dimOf(b.dim || "2x4"), b.kind || "brick");
-    const nb = addBrick(spec, colorOf(b.col), b.gx || 0, b.gy || 0, b.gz || 0, b.rot || 0, !!b.loose);
+    const nb = addBrick(spec, colorOf(b.col), b.gx || 0, b.gy || 0, b.gz || 0, b.rot || 0, !!b.loose, b.scale);
     if (nb && b.loose && b.x != null) nb.group.position.set(b.x, b.y, b.z);
   }
   const keepScale = pieceScale;
@@ -2147,7 +2313,7 @@ function makeVrMenu() {
   root.visible = false;
   const board = new THREE.Mesh(
     new THREE.PlaneGeometry(0.56, 0.78),
-    new THREE.MeshLambertMaterial({ color: 0x1a1d24, side: THREE.DoubleSide }),
+    new THREE.MeshBasicMaterial({ color: 0x1a1d24, side: THREE.DoubleSide }),
   );
   root.add(board);
   const title = new THREE.Mesh(
@@ -2259,13 +2425,17 @@ function loop(t) {
   const yBtn = !!(gpL?.buttons?.[5]?.pressed);
   const rStick = !!(gpR?.buttons?.[3]?.pressed);
   const lStick = !!(gpL?.buttons?.[3]?.pressed);
-  const lMenu = !!(gpL?.buttons?.[2]?.pressed || gpL?.buttons?.[6]?.pressed || gpL?.buttons?.[16]?.pressed);
+  const lMenu = leftMenuPressed(gpL);
   const lTrig = !!(gpL?.buttons?.[0]?.pressed);
+  const lGrip = !!(gpL?.buttons?.[1]?.pressed);
 
   if (xr) {
     if (lMenu && !pressed.lmenu) {
       if (menuOpen) closeMenu();
       else openMenu();
+    }
+    if (lGrip && !pressed.lg0 && paletteHand === 0 && !held && !sliderGrab) {
+      toggleBlueprint();
     }
     if (lStick && !pressed.lsc && !menuOpen) {
       rot = (rot + 1) % 4;
@@ -2381,6 +2551,7 @@ function loop(t) {
     pressed.lsc = lStick;
     pressed.lmenu = lMenu;
     pressed.ltrig = lTrig;
+    pressed.lg0 = lGrip;
   } else if (mouse.down || pressed.t1) {
     camera.getWorldPosition(_v);
     camera.getWorldDirection(_v2);
@@ -2459,6 +2630,7 @@ window.addEventListener("keydown", (e) => {
     meltNear(worldToLocal(_v.addScaledVector(_v2, 0.4)), 0.4);
   }
   if (e.code === "KeyP" || e.code === "Digit0") spawnPile();
+  if (e.code === "KeyL") toggleBlueprint();
   if (e.code === "KeyM") { if (menuOpen) closeMenu(); else openMenu(); }
   if (e.code === "Digit1") saveSlot(1);
   if (e.code === "Digit2") saveSlot(2);
