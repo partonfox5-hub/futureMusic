@@ -170,6 +170,14 @@ function diffWave() {
   return Math.min(Math.max(1, wave), 100);
 }
 
+function waveSizeMul(w) {
+  return 1 + clamp((w - 1) / 99, 0, 1);
+}
+
+function waveSpeedMul(w) {
+  return 1 + 0.005 * Math.max(0, w - 1);
+}
+
 function rng() { return Math.random(); }
 function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
 function wep() { return WEPS[player.wep] || WEPS.pistol; }
@@ -1252,9 +1260,10 @@ function legYaw(i, nLegs) {
 }
 
 function mobScaleForWave(w) {
-  if (w >= 4 && rng() < Math.min(0.14, 0.025 + w * 0.008)) return 2.2 + rng() * (1.2 + w * 0.08);
+  const grow = waveSizeMul(w);
+  if (w >= 4 && rng() < Math.min(0.14, 0.025 + w * 0.008)) return (2.2 + rng() * (1.2 + w * 0.08)) * grow;
   const spread = 0.08 + w * 0.035;
-  return clamp(1 + (rng() - 0.5) * 2 * spread, 0.72, 1.35 + w * 0.03);
+  return clamp(1 + (rng() - 0.5) * 2 * spread, 0.72, 1.35 + w * 0.03) * grow;
 }
 
 function makeCentipede(w, ang, dist) {
@@ -1294,7 +1303,7 @@ function makeCentipede(w, ang, dist) {
     segs.push(seg);
   }
   const core = segs[0];
-  const bodyScale = 1.05 + rng() * 0.45 + Math.min(0.8, w * 0.04);
+  const bodyScale = (1.05 + rng() * 0.45 + Math.min(0.8, w * 0.04)) * waveSizeMul(w);
   group.scale.setScalar(bodyScale);
   const x = player.x + Math.cos(ang) * dist;
   const z = player.z + Math.sin(ang) * dist;
@@ -1308,7 +1317,7 @@ function makeCentipede(w, ang, dist) {
     segs,
     hpLimbs: limbs.filter((l) => l.userData.live).length,
     x, z, y: walkH,
-    spd: (1.35 + w * 0.07) / Math.sqrt(bodyScale),
+    spd: (1.35 + w * 0.07) * waveSpeedMul(w) / Math.sqrt(bodyScale),
     boost: 1.15,
     bodyScale,
     bob: rng() * 6,
@@ -1337,7 +1346,7 @@ function makeCentipede(w, ang, dist) {
 
 function makeSpider(w, ang, dist) {
   const group = new THREE.Group();
-  const s = 0.82 + rng() * 0.35 + Math.min(0.55, w * 0.03);
+  const s = (0.82 + rng() * 0.35 + Math.min(0.55, w * 0.03)) * waveSizeMul(w);
   const col = 0x111114;
   const coreR = 0.22 * s;
   const ceph = new THREE.Mesh(new THREE.SphereGeometry(coreR * 1.15, 8, 6), mat(col));
@@ -1401,7 +1410,7 @@ function makeSpider(w, ang, dist) {
     limbs,
     hpLimbs: limbs.filter((l) => l.userData.live).length,
     x, z, y: walkH,
-    spd: (2.05 + w * 0.09) / Math.sqrt(bodyScale),
+    spd: (2.05 + w * 0.09) * waveSpeedMul(w) / Math.sqrt(bodyScale),
     boost: 1.2,
     bodyScale,
     bob: rng() * 6,
@@ -1479,7 +1488,7 @@ function makeMob(w, ang, dist) {
     limbs,
     hpLimbs: n,
     x, z, y: walkH,
-    spd: (1.55 + w * 0.08) * boost * runMul / Math.max(1, Math.sqrt(bodyScale)),
+    spd: (1.55 + w * 0.08) * boost * runMul * waveSpeedMul(w) / Math.max(1, Math.sqrt(bodyScale)),
     boost,
     bodyScale,
     bob: rng() * 6,
