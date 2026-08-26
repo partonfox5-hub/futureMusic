@@ -81,9 +81,13 @@ export function bootMobilePlay(game) {
       el(`<div id="cc-mob" hidden>
         <div class="cc-mob-hud">
           <p class="cc-mob-turn" id="cc-mob-turn">White</p>
-          <button type="button" id="cc-mob-iso" aria-pressed="false">3D field</button>
-          <button type="button" id="cc-mob-fit">Fit</button>
-          <button type="button" id="cc-mob-back">Menu</button>
+          <div class="cc-mob-hud-row">
+            <span class="cc-mob-ap" id="cc-mob-ap">Actions 2/2</span>
+            <button type="button" id="cc-mob-end">End turn</button>
+            <button type="button" id="cc-mob-iso" aria-pressed="false">3D field</button>
+            <button type="button" id="cc-mob-fit">Fit</button>
+            <button type="button" id="cc-mob-back">Menu</button>
+          </div>
         </div>
         <div class="cc-mob-port" id="cc-mob-port">
           <div class="cc-mob-world" id="cc-mob-world">
@@ -96,10 +100,25 @@ export function bootMobilePlay(game) {
   }
 
   const root = document.getElementById("cc-mob");
+  if (root && !document.getElementById("cc-mob-end")) {
+    const hud = root.querySelector(".cc-mob-hud");
+    if (hud) {
+      hud.innerHTML = `<p class="cc-mob-turn" id="cc-mob-turn">White</p>
+          <div class="cc-mob-hud-row">
+            <span class="cc-mob-ap" id="cc-mob-ap">Actions 2/2</span>
+            <button type="button" id="cc-mob-end">End turn</button>
+            <button type="button" id="cc-mob-iso" aria-pressed="false">3D field</button>
+            <button type="button" id="cc-mob-fit">Fit</button>
+            <button type="button" id="cc-mob-back">Menu</button>
+          </div>`;
+    }
+  }
   const port = document.getElementById("cc-mob-port");
   const world = document.getElementById("cc-mob-world");
   const boardEl = document.getElementById("cc-mob-board");
   const isoBtn = document.getElementById("cc-mob-iso");
+  const apEl = document.getElementById("cc-mob-ap");
+  const endBtn = document.getElementById("cc-mob-end");
   let iso = false;
   let panX = 0;
   let panY = 0;
@@ -111,11 +130,15 @@ export function bootMobilePlay(game) {
   let lastPaint = "";
 
   function applyXform() {
-    world.style.transform = `translate(${panX}px, ${panY}px) scale(${zoom})`;
+    const z = iso ? zoom * 0.72 : zoom;
+    const isoPart = iso ? " rotateX(58deg) rotateZ(-45deg)" : "";
+    world.style.transform = `translate(${panX}px, ${panY}px) scale(${z})${isoPart}`;
     boardEl.classList.toggle("iso", iso);
-    isoBtn.setAttribute("aria-pressed", iso ? "true" : "false");
-    isoBtn.classList.toggle("on", iso);
+    root.classList.toggle("iso", iso);
+    isoBtn?.setAttribute("aria-pressed", iso ? "true" : "false");
+    isoBtn?.classList.toggle("on", iso);
     document.documentElement.classList.toggle("cc-mob-iso", iso);
+    document.body.classList.toggle("cc-mob-iso", iso);
   }
 
   function fit() {
@@ -213,33 +236,66 @@ export function bootMobilePlay(game) {
     const hand = (st.hands && st.hands[handSide]) || [];
     const showHand = (st.ruleset === "bonus" || st.boardScale === "quad") && (st.phase === "playing" || st.phase === "battle") && hand.length;
     root.classList.toggle("cc-mob-has-hand", !!showHand);
+    const showAp = st.ruleset === "bonus" || st.boardScale === "quad";
+    if (apEl) {
+      const key = st.turn === "b" ? "b" : "w";
+      const extra = st.extraAp?.[key] ?? 0;
+      const ap = st.ap?.[key] ?? 0;
+      apEl.textContent = `Actions ${ap}/${2 + extra}`;
+      apEl.hidden = !showAp;
+    }
+    if (endBtn) endBtn.hidden = !showAp;
     document.getElementById("cc-mob-msg").textContent = st.busy || st.thinking ? "…" : "";
   }
 
-  function toggleIso() {
-    iso = !iso;
-    applyXform();
-  }
-  isoBtn.onclick = toggleIso;
-  document.addEventListener(
-    "click",
-    (ev) => {
-      const btn = ev.target.closest("button");
-      if (!btn || btn.id === "cc-mob-iso") return;
-      if (!is3dFieldButton(btn)) return;
+  function onFieldTap(ev) {
+    if (ev.pointerType === "mouse" && ev.button !== 0) return;
+    const btn = ev.target.closest("button");
+    if (!btn) return;
+    if (btn.id === "cc-mob-iso" || is3dFieldButton(btn)) {
       ev.preventDefault();
       ev.stopPropagation();
       ev.stopImmediatePropagation();
-      toggleIso();
-    },
-    true,
-  );
-  document.getElementById("cc-mob-fit").onclick = fit;
-  document.getElementById("cc-mob-back").onclick = () => {
+      iso = !iso;
+      applyXform();
+    }
+  }
+  if (!window.__ccMobIsoListen) {
+    window.__ccMobIsoListen = true;
+    document.addEventListener("pointerup", onFieldTap, true);
+    document.addEventListener(
+      "click",
+      (ev) => {
+        const btn = ev.target.closest("button");
+        if (!btn) return;
+        if (btn.id === "cc-mob-iso" || is3dFieldButton(btn)) {
+          ev.preventDefault();
+          ev.stopPropagation();
+          ev.stopImmediatePropagation();
+        }
+      },
+      true,
+    );
+  }
+  endBtn?.addEventListener("pointerup", (ev) => {
+    ev.preventDefault();
+    ev.stopPropagation();
     try {
-      game.getState().toTitle?.();
+      (window.__game || game).getState().endTurn?.();
     } catch {}
-  };
+  });
+  document.getElementById("cc-mob-fit").addEventListener("pointerup", (ev) => {
+    ev.preventDefault();
+    ev.stopPropagation();
+    fit();
+  });
+  document.getElementById("cc-mob-back").addEventListener("pointerup", (ev) => {
+    ev.preventDefault();
+    ev.stopPropagation();
+    try {
+      (window.__game || game).getState().toTitle?.();
+    } catch {}
+  });
 
   boardEl.addEventListener("click", (ev) => {
     if (dragged) return;
