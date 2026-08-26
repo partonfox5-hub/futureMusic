@@ -1,10 +1,10 @@
 /** Props, 4-direction enemy sprites, spawners. */
 import * as THREE from "three";
-import { ENEMIES, ENEMY_BY_ID } from "./config.js?v=zm5";
-import { sdf3, floorY } from "./map.js?v=zm5";
-import { makeRobot } from "./robots.js?v=zm5";
-import { hurtFoe } from "./weapons.js?v=zm5";
-import { sfx } from "./sfx.js?v=zm5";
+import { ENEMIES, ENEMY_BY_ID } from "./config.js?v=zm6";
+import { sdf3, floorY } from "./map.js?v=zm6";
+import { makeRobot } from "./robots.js?v=zm6";
+import { hurtFoe } from "./weapons.js?v=zm6";
+import { sfx } from "./sfx.js?v=zm6";
 
 const TEX = {};
 const loader = new THREE.TextureLoader();
@@ -36,6 +36,94 @@ function mat(hex, extra) {
   return new THREE.MeshStandardMaterial({ color: hex, roughness: 0.72, metalness: 0.08, ...extra });
 }
 
+function crackOverlay(g, h) {
+  const cracks = [];
+  const dark = new THREE.MeshBasicMaterial({
+    color: 0x1a120c,
+    transparent: true,
+    opacity: 0,
+    depthWrite: false,
+  });
+  for (let i = 0; i < 5; i++) {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(0.04 + i * 0.01, h * (0.28 + i * 0.08), 0.05), dark.clone());
+    m.position.set((i % 2 ? 0.18 : -0.16) + i * 0.02, h * (0.25 + i * 0.12), 0.22 + (i % 3) * 0.04);
+    m.rotation.z = (i - 2) * 0.22;
+    m.visible = false;
+    g.add(m);
+    cracks.push(m);
+  }
+  g.userData.cracks = cracks;
+  g.userData.statue = true;
+  g.userData.hp = 12;
+  g.userData.maxHp = 12;
+}
+
+function buildStatue(g, kind, add, s) {
+  const marble = mat(kind === "statue-angel" ? 0xd8d0c4 : kind === "statue-gargoyle" ? 0x5a584e : kind === "statue-idol" ? 0xc4a060 : kind === "statue-serpent" ? 0x6a7a58 : 0x9a968c);
+  const dark = mat(0x3a3832);
+  const bronze = mat(0x8a6a30, { metalness: 0.45 });
+  if (kind === "statue-knight") {
+    add(new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.38, 0.16, 8), marble), 0, 0.08, 0);
+    add(new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.7, 0.28), marble), 0, 0.62, 0);
+    add(new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.18, 0.22), marble), 0, 1.08, 0);
+    add(new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.16, 0.24), marble), 0, 1.22, 0.02);
+    add(new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.12, 0.18), marble), 0, 1.34, 0.04);
+    add(new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.55, 0.06), bronze), -0.32, 0.7, 0.06);
+    add(new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.7, 0.06), dark), 0.28, 0.72, 0);
+    add(new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.22, 0.04), dark), 0.28, 1.12, 0);
+    add(new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.55, 0.12), marble), -0.12, 0.28, 0);
+    add(new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.55, 0.12), marble), 0.12, 0.28, 0);
+  } else if (kind === "statue-angel") {
+    add(new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.42, 0.14, 10), marble), 0, 0.07, 0);
+    add(new THREE.Mesh(new THREE.ConeGeometry(0.34, 1.05, 10), marble), 0, 0.68, 0);
+    add(new THREE.Mesh(new THREE.SphereGeometry(0.16, 10, 8), marble), 0, 1.28, 0);
+    const wingL = add(new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.7, 0.55), marble), -0.38, 1.05, -0.08);
+    wingL.rotation.z = 0.45;
+    wingL.rotation.y = 0.35;
+    const wingR = add(new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.7, 0.55), marble), 0.38, 1.05, -0.08);
+    wingR.rotation.z = -0.45;
+    wingR.rotation.y = -0.35;
+    add(new THREE.Mesh(new THREE.CapsuleGeometry(0.05, 0.42, 4, 8), marble), -0.28, 1.35, 0).rotation.z = 0.8;
+    add(new THREE.Mesh(new THREE.CapsuleGeometry(0.05, 0.42, 4, 8), marble), 0.28, 1.35, 0).rotation.z = -0.8;
+  } else if (kind === "statue-gargoyle") {
+    add(new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.22, 0.5), dark), 0, 0.12, 0);
+    add(new THREE.Mesh(new THREE.SphereGeometry(0.28, 10, 8), marble), 0, 0.42, 0.04).scale.set(1.15, 0.7, 1);
+    add(new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.32, 0.14), marble), -0.18, 0.22, 0.12);
+    add(new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.32, 0.14), marble), 0.18, 0.22, 0.12);
+    add(new THREE.Mesh(new THREE.SphereGeometry(0.16, 10, 8), marble), 0, 0.72, 0.18);
+    add(new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.22, 6), marble), -0.1, 0.9, 0.12).rotation.z = 0.4;
+    add(new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.22, 6), marble), 0.1, 0.9, 0.12).rotation.z = -0.4;
+    add(new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.28, 6), marble), 0, 0.66, 0.34).rotation.x = 1.2;
+    const gwL = add(new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.55, 0.7), dark), -0.34, 0.62, -0.12);
+    gwL.rotation.y = 0.4;
+    gwL.rotation.z = 0.35;
+    const gwR = add(new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.55, 0.7), dark), 0.34, 0.62, -0.12);
+    gwR.rotation.y = -0.4;
+    gwR.rotation.z = -0.35;
+  } else if (kind === "statue-idol") {
+    add(new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.48, 0.16, 10), bronze), 0, 0.08, 0);
+    add(new THREE.Mesh(new THREE.SphereGeometry(0.38, 12, 10), marble), 0, 0.48, 0).scale.set(1.15, 0.7, 1);
+    add(new THREE.Mesh(new THREE.SphereGeometry(0.22, 10, 8), marble), 0, 0.95, 0);
+    add(new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.26, 0.16, 8), bronze), 0, 1.16, 0);
+    add(new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.08, 0.08), bronze), 0, 1.26, 0);
+    add(new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 6), marble), -0.32, 0.62, 0.16);
+    add(new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 6), marble), 0.32, 0.62, 0.16);
+    add(new THREE.Mesh(new THREE.TorusGeometry(0.12, 0.03, 6, 12), bronze), 0, 0.88, 0.2);
+  } else {
+    add(new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.4, 0.14, 10), marble), 0, 0.07, 0);
+    for (let i = 0; i < 5; i++) {
+      const coil = add(new THREE.Mesh(new THREE.TorusGeometry(0.22 - i * 0.012, 0.08, 8, 16), marble), 0, 0.22 + i * 0.16, 0);
+      coil.rotation.x = Math.PI / 2;
+      coil.rotation.z = i * 0.5;
+    }
+    add(new THREE.Mesh(new THREE.SphereGeometry(0.14, 10, 8), marble), 0.08, 1.12, 0.18);
+    add(new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.18, 6), dark), 0.08, 1.22, 0.32).rotation.x = 1.1;
+    add(new THREE.Mesh(new THREE.SphereGeometry(0.025, 6, 6), mat(0x201008, { emissive: 0x441800 })), 0.02, 1.16, 0.28);
+    add(new THREE.Mesh(new THREE.SphereGeometry(0.025, 6, 6), mat(0x201008, { emissive: 0x441800 })), 0.14, 1.16, 0.28);
+  }
+  crackOverlay(g, kind === "statue-gargoyle" ? 1.1 : kind === "statue-idol" ? 1.35 : 1.55);
+}
+
 export function makeProp(kind, scale) {
   const g = new THREE.Group();
   const s = scale || 1;
@@ -55,7 +143,9 @@ export function makeProp(kind, scale) {
     const flame = add(new THREE.Mesh(new THREE.SphereGeometry(0.11, 8, 6), mat(0xffaa40, { emissive: 0xff6600, roughness: 1 })), 0, 0.88, 0);
     flame.userData.flame = true;
     g.userData.lightColor = 0xffaa66;
-    g.userData.lightDist = 9;
+    g.userData.lightDist = 10;
+    g.userData.lightIntensity = 3.8;
+    g.userData.lightY = 1.1;
   } else if (kind === "crate") {
     add(new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.7, 0.7), wood), 0, 0.35, 0);
     add(new THREE.Mesh(new THREE.BoxGeometry(0.74, 0.06, 0.74), dark), 0, 0.35, 0);
@@ -89,6 +179,8 @@ export function makeProp(kind, scale) {
     add(new THREE.Mesh(new THREE.OctahedronGeometry(0.22, 0), cmat), 0.18, 0.35, 0.1).scale.set(0.5, 1.2, 0.5);
     g.userData.lightColor = 0xaa66ff;
     g.userData.lightDist = 6;
+    g.userData.lightIntensity = 1.6;
+    g.userData.lightY = 0.55;
   } else if (kind === "table") {
     add(new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.08, 0.7), wood), 0, 0.72, 0);
     for (const [x, z] of [[-0.45, -0.25], [0.45, -0.25], [-0.45, 0.25], [0.45, 0.25]]) {
@@ -122,11 +214,44 @@ export function makeProp(kind, scale) {
     add(new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.8, 0.35), wood), 0, 0.9, 0);
     add(new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.7, 0.12), mat(0x4a2030)), 0, 1.2, 0.12);
     add(new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.55, 0.12), mat(0x2a3048)), 0, 0.5, 0.12);
+  } else if (kind === "walllamp") {
+    add(new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.28, 0.08), iron), 0, 1.35, -0.12);
+    add(new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.08, 0.1), dark), 0, 1.5, -0.08);
+    const bulb = add(new THREE.Mesh(new THREE.SphereGeometry(0.09, 10, 8), mat(0xf4f8ff, { emissive: 0xe8f0ff, emissiveIntensity: 1.4 })), 0, 1.38, 0.02);
+    bulb.userData.flame = true;
+    add(new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.04, 0.16), iron), 0, 1.22, 0);
+    g.userData.lightColor = 0xe8f0ff;
+    g.userData.lightDist = 12;
+    g.userData.lightIntensity = 5.2;
+    g.userData.lightY = 1.4;
+  } else if (kind === "ceilinglight") {
+    add(new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.18, 0.08, 12), iron), 0, 0.04, 0);
+    add(new THREE.Mesh(new THREE.CircleGeometry(0.28, 16), mat(0xf8f4e8, { emissive: 0xfff6d8, emissiveIntensity: 1.2 })), 0, 0, 0).rotation.x = Math.PI / 2;
+    add(new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.18, 6), dark), 0, 0.14, 0);
+    g.userData.lightColor = 0xf4f0e0;
+    g.userData.lightDist = 14;
+    g.userData.lightIntensity = 5.8;
+    g.userData.lightY = "ceil";
+  } else if (kind === "chandelier") {
+    add(new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.7, 6), iron), 0, 0.4, 0);
+    add(new THREE.Mesh(new THREE.TorusGeometry(0.42, 0.03, 6, 16), gold), 0, 0.08, 0).rotation.x = Math.PI / 2;
+    add(new THREE.Mesh(new THREE.TorusGeometry(0.22, 0.025, 6, 12), gold), 0, 0.22, 0).rotation.x = Math.PI / 2;
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * Math.PI * 2;
+      add(new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 6), mat(0xffe8a0, { emissive: 0xffcc66, emissiveIntensity: 1.1 })), Math.cos(a) * 0.42, 0.02, Math.sin(a) * 0.42);
+      add(new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.02, 0.16, 5), dark), Math.cos(a) * 0.42, 0.12, Math.sin(a) * 0.42);
+    }
+    g.userData.lightColor = 0xffd090;
+    g.userData.lightDist = 16;
+    g.userData.lightIntensity = 7.4;
+    g.userData.lightY = "hang";
   } else if (kind === "campfire") {
     add(new THREE.Mesh(new THREE.TorusGeometry(0.35, 0.08, 6, 10), stone), 0, 0.08, 0).rotation.x = Math.PI / 2;
     add(new THREE.Mesh(new THREE.ConeGeometry(0.18, 0.45, 6), mat(0xff6620, { emissive: 0xff3300 })), 0, 0.3, 0);
     g.userData.lightColor = 0xff8844;
     g.userData.lightDist = 10;
+    g.userData.lightIntensity = 3.4;
+    g.userData.lightY = 0.45;
   } else if (kind === "anvil") {
     add(new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.3, 0.35), iron), 0, 0.2, 0);
     add(new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.22, 0.32), iron), 0, 0.45, 0);
@@ -140,6 +265,8 @@ export function makeProp(kind, scale) {
     add(new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.75, 0.25, 12), stone), 0, 0.12, 0);
     add(new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.7, 8), stone), 0, 0.55, 0);
     add(new THREE.Mesh(new THREE.CircleGeometry(0.55, 12), mat(0x3a6aaa, { roughness: 0.2 })), 0, 0.26, 0).rotation.x = -Math.PI / 2;
+  } else if (kind && kind.startsWith("statue-")) {
+    buildStatue(g, kind, add, s);
   } else {
     add(new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.4, 0.4), stone), 0, 0.2, 0);
   }

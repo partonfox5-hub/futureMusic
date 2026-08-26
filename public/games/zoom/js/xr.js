@@ -240,5 +240,7 @@ export function tickXr(renderer, hands, dt) {
       left.squeezeValue < 0.12 &&
       right.squeezeValue < 0.12
     ),
+    leftTrig: left ? left.triggerValue || 0 : 0,
+    rightTrig: right ? right.triggerValue || 0 : 0,
   };
 }

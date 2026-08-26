@@ -1,19 +1,19 @@
 import * as THREE from "three";
 import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
-import { BIOMES, CELL, EYE, FLAG_COLLAPSE, FLAG_RUMBLE, LIQ_LAVA, LIQ_WATER, PICKUP_BY_ID, SHOP, WEAPON_BY_ID, WEAPONS, routes } from "./config.js?v=zm5";
-import { bakedMaps, storyMaps } from "./defaults.js?v=zm5";
-import { biomeOf, cellI, countCarved, ensureLayers, firstCarved, floorY, sdf3 } from "./map.js?v=zm5";
-import { buildDungeon, prepareSdf } from "./mesh.js?v=zm5";
-import { makeProp, spawnFrom, strikeFoes, tickFoes } from "./props.js?v=zm5";
-import { getMap, listMaps } from "./store.js?v=zm5";
-import { makeProc } from "./proc.js?v=zm5";
-import { buildingFloorY, buildWorld, climbSupport, hurtBreakables, hurtTurrets, impulseBoulders, layoutRope, makeSky, makeSkyDome, smashGlass, spawnRipple, tickRubble, tickWorld, tryUnlock, wallBlocked } from "./world.js?v=zm5";
-import { addBurnDecal, addSaberMark, addSaberTrail, fireWeapon, hurtFoe, makeDualSaber, makeKeyModel, makePickup, makeWeapon, setKillHook, tickBurns, tickShots } from "./weapons.js?v=zm5";
-import { tickRobots } from "./robots.js?v=zm5";
-import { attachXr, tickXr } from "./xr.js?v=zm5";
-import { loadStoryPsy, lootForEnemy, makeWristGold, paintWristGold, saveStoryPsy, showerLoot, tickLoot } from "./loot.js?v=zm5";
-import { sfx, sfxUnlock } from "./sfx.js?v=zm5";
-import { makeNpc, nearNpc, tickNpcPose } from "./npcs.js?v=zm5";
+import { BIOMES, CELL, EYE, FLAG_COLLAPSE, FLAG_RUMBLE, LIQ_LAVA, LIQ_WATER, PICKUP_BY_ID, SHOP, SKY_DAY, SKY_JUNGLE, SKY_NIGHT, WEAPON_BY_ID, WEAPONS, routes } from "./config.js?v=zm6";
+import { bakedMaps, storyMaps } from "./defaults.js?v=zm6";
+import { biomeOf, cellI, countCarved, ensureLayers, firstCarved, floorY, sdf3 } from "./map.js?v=zm6";
+import { buildDungeon, prepareSdf } from "./mesh.js?v=zm6";
+import { makeProp, spawnFrom, strikeFoes, tickFoes } from "./props.js?v=zm6";
+import { getMap, listMaps } from "./store.js?v=zm6";
+import { makeProc } from "./proc.js?v=zm6";
+import { buildingFloorY, buildWorld, climbSupport, hurtBreakables, hurtTurrets, impulseBoulders, layoutRope, makeSky, makeSkyDome, ridgeNear, smashGlass, spawnRipple, tickRubble, tickWorld, tryUnlock, wallBlocked } from "./world.js?v=zm6";
+import { addBurnDecal, addSaberMark, addSaberTrail, fireWeapon, hurtFoe, makeDualSaber, makeKeyModel, makePickup, makeWeapon, setKillHook, tickBurns, tickShots } from "./weapons.js?v=zm6";
+import { tickRobots } from "./robots.js?v=zm6";
+import { attachXr, tickXr } from "./xr.js?v=zm6";
+import { loadStoryPsy, lootForEnemy, makeWristGold, paintWristGold, saveStoryPsy, showerLoot, tickLoot } from "./loot.js?v=zm6";
+import { sfx, sfxUnlock } from "./sfx.js?v=zm6";
+import { makeNpc, nearNpc, tickNpcPose } from "./npcs.js?v=zm6";
 
 const $ = (id) => document.getElementById(id);
 const keys = new Set();
@@ -62,6 +62,7 @@ let loadoutSlot = 0;
 let handWep = null;
 let ropeSqueeze = false;
 let ropeCd = 0;
+let ridge = null;
 let camShake = 0;
 let rumbleCd = 0;
 let psyCd = 0;
@@ -88,6 +89,9 @@ let hemi, amb, sun;
 let caveFog = null;
 let skyTex = null;
 let outdoor = false;
+let psyLight = null;
+let lightBall = null;
+let camFill = null;
 
 function setMsg(t) {
   $("msg").textContent = t || "";
@@ -261,7 +265,7 @@ function initThree() {
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.NoToneMapping;
   renderer.toneMappingExposure = 1;
-  renderer.setClearColor(0x3a342c, 1);
+  renderer.setClearColor(0x050403, 1);
   scene = new THREE.Scene();
   camera = new THREE.PerspectiveCamera(72, innerWidth / innerHeight, 0.06, 480);
   clock = new THREE.Clock();
@@ -269,16 +273,26 @@ function initThree() {
   scene.add(controls.object);
   xrYaw = new THREE.Group();
   scene.add(xrYaw);
-  hemi = new THREE.HemisphereLight(0xc8c0b0, 0x2a2018, 0.7);
-  amb = new THREE.AmbientLight(0x3a342c, 0.5);
+  hemi = new THREE.HemisphereLight(0x6a6860, 0x080604, 0.045);
+  amb = new THREE.AmbientLight(0x1a1612, 0.028);
   sun = new THREE.DirectionalLight(0xfff2d0, 0);
   sun.position.set(48, 90, 22);
   scene.add(hemi, amb, sun);
-  flashlight = new THREE.SpotLight(0xffe6c0, 2.2, 16, 0.5, 0.45, 1.4);
+  flashlight = new THREE.SpotLight(0xffe6c0, 0, 16, 0.5, 0.45, 1.4);
   flashlight.target.position.set(0, 0, -4);
   camera.add(flashlight);
   camera.add(flashlight.target);
-  camera.add(new THREE.PointLight(0xffcc88, 0.3, 4.2));
+  camFill = new THREE.PointLight(0xffcc88, 0, 4.2);
+  camera.add(camFill);
+  psyLight = new THREE.PointLight(0xfff6d8, 0, 20, 1.15);
+  camera.add(psyLight);
+  lightBall = new THREE.Mesh(
+    new THREE.IcosahedronGeometry(0.09, 1),
+    new THREE.MeshBasicMaterial({ color: 0xfff4c8, transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending, depthWrite: false }),
+  );
+  lightBall.visible = false;
+  camera.add(lightBall);
+  lightBall.position.set(0.22, -0.12, -0.35);
   wristGold = makeWristGold();
   camera.add(wristGold);
   stage = new THREE.Group();
@@ -314,13 +328,10 @@ function onXrSession(on) {
   xrPresenting = !!on;
   if (on) {
     if (scene) {
-      scene.fog = null;
-      scene.background = new THREE.Color(0x6a90b4);
+      if (caveFog) scene.fog = caveFog;
+      if (!skyTex) scene.background = new THREE.Color(0x050403);
     }
-    if (hemi) hemi.intensity = 1.35;
-    if (amb) amb.intensity = 0.9;
-    if (sun) sun.intensity = Math.max(sun.intensity, 0.6);
-    renderer.setClearColor(0x6a90b4, 1);
+    renderer.setClearColor(0x050403, 1);
     if ($("start")) $("start").hidden = true;
     if ($("hud")) $("hud").hidden = !!running;
     if (xrYaw) {
@@ -402,15 +413,41 @@ function clearWorld() {
 }
 
 function placeWorld() {
+  const statueQueue = [];
   for (const o of map.objects || []) {
     const g = makeProp(o.kind, o.s || 1);
     const y = Math.max(0, floorY(o.x, o.z, map, sdf2));
     g.position.set(o.x, y, o.z);
+    if (o.rot) g.rotation.y = o.rot;
+    if (g.userData.lightY === "ceil") g.position.y = y + (map.hallH || 4.2) - 0.22;
+    else if (g.userData.lightY === "hang") g.position.y = y + (map.hallH || 4.2) - 0.95;
     dungeon.add(g);
     if (g.userData.phys) physBodies.push(g);
+    if (g.userData.statue) {
+      statueQueue.push({
+        mesh: g,
+        x: o.x,
+        z: o.z,
+        y,
+        hp: g.userData.hp || 12,
+        maxHp: g.userData.maxHp || 12,
+        kind: o.kind,
+        cracks: g.userData.cracks || [],
+      });
+    }
     if (g.userData.lightColor) {
-      const L = new THREE.PointLight(g.userData.lightColor, 1.1, 8, 2);
-      L.position.set(o.x, y + 1.1, o.z);
+      const ly = g.userData.lightY === "ceil"
+        ? g.position.y
+        : g.userData.lightY === "hang"
+          ? g.position.y + 0.1
+          : y + (typeof g.userData.lightY === "number" ? g.userData.lightY : 1.1);
+      const L = new THREE.PointLight(
+        g.userData.lightColor,
+        g.userData.lightIntensity || 3.6,
+        g.userData.lightDist || 10,
+        1.4,
+      );
+      L.position.set(o.x, ly, o.z);
       stage.add(L);
       torchLights.push(L);
     }
@@ -418,7 +455,9 @@ function placeWorld() {
   for (const p of map.pickups || []) {
     const g = makePickup(p.kind);
     const y = Math.max(-20, floorY(p.x, p.z, map, sdf2));
-    g.position.set(p.x, y + 0.35, p.z);
+    const lift = p.kind === "asterisk" ? 1.55 : p.kind === "psyorb" ? 0.55 : 0.35;
+    g.position.set(p.x, y + lift, p.z);
+    g.userData.baseY = y + lift;
     stage.add(g);
     pickups.push(g);
   }
@@ -433,6 +472,8 @@ function placeWorld() {
     pickups.push(g);
   }
   extras = buildWorld(map, dungeon, stage);
+  extras.statues = extras.statues || [];
+  for (const st of statueQueue) extras.statues.push(st);
   npcs = [];
   for (const n of map.npcs || []) {
     const mesh = makeNpc(n);
@@ -523,7 +564,7 @@ async function enterMap(id) {
   dungeon = built.group;
   stage.add(dungeon);
   const b = biomeOf(map, map.start?.x || 0, map.start?.z || 0);
-  caveFog = new THREE.FogExp2(b.fog, 0.018);
+  caveFog = new THREE.FogExp2(b.fog, 0.024);
   scene.background = new THREE.Color(b.fog);
   scene.fog = caveFog;
   if (skyMesh) {
@@ -539,24 +580,16 @@ async function enterMap(id) {
     scene.add(skyMesh);
     scene.background = skyTex;
     outdoor = true;
-    if (sun) sun.intensity = 0.85;
-    if (hemi) {
-      hemi.color.setHex(0xd8e8ff);
-      hemi.groundColor.setHex(0x3a5a28);
-      hemi.intensity = 0.95;
-    }
-    if (amb) amb.intensity = 0.5;
-    renderer.toneMappingExposure = 1.55;
-  } else {
-    if (sun) sun.intensity = 0;
-    if (hemi) {
-      hemi.color.setHex(0xc8c0b0);
-      hemi.groundColor.setHex(0x2a2018);
-      hemi.intensity = 0.7;
-    }
-    if (amb) amb.intensity = 0.5;
-    renderer.toneMappingExposure = 1.5;
   }
+  if (sun) sun.intensity = 0;
+  if (hemi) {
+    hemi.color.setHex(0x6a6860);
+    hemi.groundColor.setHex(0x080604);
+    hemi.intensity = 0.045;
+  }
+  if (amb) amb.intensity = 0.028;
+  renderer.toneMappingExposure = 1.15;
+  if (flashlight) flashlight.intensity = 0;
   placeWorld();
   spawners = (map.spawners || []).map((s) => ({ ...s, _t: 0.3, _alive: 0 }));
   for (const s of spawners) {
@@ -677,6 +710,7 @@ function die(why) {
   dead = false;
   running = true;
   rope = null;
+  ridge = null;
   if ($("dead")) $("dead").hidden = true;
   let x = map?.start?.x;
   let z = map?.start?.z;
@@ -705,6 +739,12 @@ function takePickup(p) {
     inv.push({ id: "key", keyId: p.userData.keyId, name: "Key " + p.userData.keyId });
     setMsg("Picked up a key");
     sfx("key");
+  } else if (kind === "psyorb" || kind === "asterisk") {
+    const n = kind === "asterisk" ? 10 : 1;
+    player.psy = Math.min(1000, (player.psy || 0) + n);
+    if (runMode === "story") saveStoryPsy(player.psy);
+    sfx("orb");
+    setMsg(kind === "asterisk" ? "Energy asterisk +10 psy" : "Psy orb +1");
   } else if (kind === "jetpack" || kind === "fuel") {
     player.fuel += def?.fuel || 6;
     setMsg("Fuel +" + (def?.fuel || 6) + "s");
@@ -786,6 +826,20 @@ function renderInv() {
   });
 }
 
+function nearestRidgeAt(extras, x, z, y) {
+  let best = null;
+  let bestD = 1.45;
+  for (const rg of extras.ridges || []) {
+    if (Math.abs((rg.y || 0) - y) > 0.85) continue;
+    const d = Math.hypot(x - rg.x, z - rg.z);
+    if (d < bestD) {
+      best = rg;
+      bestD = d;
+    }
+  }
+  return best;
+}
+
 function physics(dt, xr) {
   const look = lookEuler.setFromQuaternion(camera.quaternion, "YXZ");
   yaw = look.y;
@@ -858,8 +912,9 @@ function physics(dt, xr) {
     wx = 0;
     wz = 0;
   }
-  const airborne = !player.grounded && !carpetOn && !rope;
-  if (airborne) {
+  const airborne = !player.grounded && !carpetOn && !rope && !ridge;
+  if (player.knockT > 0) player.knockT = Math.max(0, player.knockT - dt);
+  if (airborne || player.knockT > 0) {
     if (len > 0.12) {
       const cur = Math.hypot(player.vx, player.vz);
       const nx = player.vx + wx * 10 * dt;
@@ -902,13 +957,8 @@ function physics(dt, xr) {
     return true;
   }
   const GRAV = 24;
-  const jet = player.fuel > 0 && !rope && !carpetOn && (
-    keys.has("KeyF") ||
-    (keys.has("Space") && !player.grounded && !jumpQueued) ||
-    (xr && xr.on && xr.jump && !player.grounded)
-  );
 
-  if (!rope) {
+  if (!rope && !ridge) {
     const nx = player.x + wx * dt;
     const nz = player.z + wz * dt;
     const okX = walkOk(nx, bodyY, player.z);
@@ -945,7 +995,56 @@ function physics(dt, xr) {
     }
   }
 
-  if (rope) {
+  const jet = player.fuel > 0 && !rope && !ridge && !carpetOn && (
+    keys.has("KeyF") ||
+    (keys.has("Space") && !player.grounded && !jumpQueued) ||
+    (xr && xr.on && xr.jump && !player.grounded)
+  );
+
+  if (ridge) {
+    if (!keys.has("KeyE")) ridge._waitE = false;
+    const letGo =
+      jumpQueued ||
+      (keys.has("KeyE") && !ridge._waitE) ||
+      (ropeSqueeze && xr && xr.squeezeOff) ||
+      (xr && xr.jet);
+    if (letGo) {
+      player.vy += 4.2;
+      ridge = null;
+      ropeSqueeze = false;
+      ropeCd = 0.22;
+      player.grounded = false;
+      jumpQueued = false;
+      sfx("release");
+      setMsg("");
+    } else {
+      const tx = -ridge.fz;
+      const tz = ridge.fx;
+      let inch = 0;
+      if (xr && xr.on) {
+        inch += (xr.rightTrig || 0) - (xr.leftTrig || 0);
+        inch += (xr.moveX || 0) * 0.55;
+      } else {
+        if (keys.has("KeyD") || keys.has("ArrowRight")) inch += 1;
+        if (keys.has("KeyA") || keys.has("ArrowLeft")) inch -= 1;
+        inch += wx * tx + wz * tz;
+      }
+      if (Math.abs(inch) > 1) inch = Math.sign(inch);
+      const nx = player.x + tx * inch * 1.7 * dt;
+      const nz = player.z + tz * inch * 1.7 * dt;
+      const next = extras ? nearestRidgeAt(extras, nx, nz, ridge.y) : ridge;
+      if (next) {
+        ridge = next;
+        player.x = ridge.x + ridge.fx * 0.45;
+        player.z = ridge.z + ridge.fz * 0.45;
+        player.y = ridge.y + 0.18;
+      }
+      player.vx = tx * inch * 1.7;
+      player.vz = tz * inch * 1.7;
+      player.vy = 0;
+      player.grounded = false;
+    }
+  } else if (rope) {
     if (!keys.has("KeyE")) rope._waitE = false;
     const letGo =
       jumpQueued ||
@@ -1043,6 +1142,21 @@ function physics(dt, xr) {
     player._prevY = prevY;
     if (extras && ropeCd <= 0) {
       const wantGrab = keys.has("KeyE") || (xr && xr.squeezeOn);
+      const ledge = ridgeNear(extras, player, 1.45);
+      if (ledge && wantGrab) {
+        ridge = ledge;
+        ridge._waitE = keys.has("KeyE");
+        ropeSqueeze = !!(xr && xr.squeezeOn);
+        jumpQueued = false;
+        player.x = ridge.x + ridge.fx * 0.45;
+        player.z = ridge.z + ridge.fz * 0.45;
+        player.y = ridge.y + 0.18;
+        player.vx = 0;
+        player.vz = 0;
+        player.vy = 0;
+        sfx("grab");
+        setMsg("Ridge — hold grip, use triggers to inch across");
+      } else {
       for (const r of extras.ropes) {
         let near = Math.hypot(player.x - r.x, player.z - r.z) < 1.65 && player.y < r.top + 0.45 && player.y > r.y0 - 1.15;
         if (!near && xr && xr.on && stage) {
@@ -1060,10 +1174,11 @@ function physics(dt, xr) {
           ropeSqueeze = !!(xr && xr.squeezeOn);
           jumpQueued = false;
           layoutRope(rope, player.x, player.y - 0.35, player.z);
-          sfx("grab");
-          setMsg("Swinging — move to pump, jump or release grip to leap");
+          sfx(r.kind === "chain" ? "clink" : "grab");
+          setMsg(r.kind === "chain" ? "Chain — grip to hold, jump or release to leap" : "Swinging — move to pump, jump or release grip to leap");
           break;
         }
+      }
       }
     }
   }
@@ -1073,7 +1188,7 @@ function physics(dt, xr) {
   if (fy > -500) ground = fy;
   if (bf > -500) ground = Math.max(ground, bf);
   const climb = extras ? climbSupport(extras, player) : null;
-  if (climb && !rope) {
+  if (climb && !rope && !ridge) {
     if (climb.kind === "ladder") {
       const up = keys.has("KeyW") || keys.has("ArrowUp") || (xr && xr.moveY < -0.2);
       const down = keys.has("KeyS") || keys.has("ArrowDown") || (xr && xr.moveY > 0.2);
@@ -1102,7 +1217,7 @@ function physics(dt, xr) {
   }
   const prevFeet = (player._prevY != null ? player._prevY : player.y) - eye;
   const feet = player.y - eye;
-  if (!rope && ground > -500) {
+  if (!rope && !ridge && ground > -500) {
     if (carpetOn) {
       if (feet < ground + 0.04) {
         player.y = ground + eye;
@@ -1124,7 +1239,7 @@ function physics(dt, xr) {
         coyote = Math.max(0, coyote - dt);
       }
     }
-  } else if (!rope && !(climb && climb.kind === "ladder")) {
+  } else if (!rope && !ridge && !(climb && climb.kind === "ladder")) {
     player.grounded = false;
     coyote = Math.max(0, coyote - dt);
   }
@@ -1374,6 +1489,11 @@ function tickPickups(xr, dt = 0.016) {
   for (const p of pickups) {
     if (!p.visible || p.userData.taken) continue;
     p.rotation.y += 0.03;
+    if (p.userData.pickup === "asterisk" || p.userData.float) {
+      p.rotation.z += 0.02;
+      const base = p.userData.baseY != null ? p.userData.baseY : p.position.y;
+      p.position.y = base + Math.sin(performance.now() * 0.003 + p.position.x) * 0.14;
+    }
     const dx = p.position.x - player.x;
     const dy = p.position.y - (player.y - eye * 0.45);
     const dz = p.position.z - player.z;
@@ -1459,7 +1579,7 @@ function orientPsyRing(ring, dir) {
 }
 
 function unlockedPsyModes() {
-  const m = ["blast"];
+  const m = ["blast", "light"];
   if ((player.psy | 0) >= 100) m.push("beam");
   if ((player.psy | 0) >= 150) m.push("carpet");
   if ((player.psy | 0) >= 200) m.push("tide");
@@ -1468,11 +1588,53 @@ function unlockedPsyModes() {
 }
 
 function psyLabel(mode) {
+  if (mode === "light") return "light";
   if (mode === "beam") return "beam";
   if (mode === "carpet") return "magic carpet";
   if (mode === "tide") return "tidal wave";
   if (mode === "hole") return "mini black hole";
   return "rings";
+}
+
+function tickLightPsy(xr, holding) {
+  if (!psyLight) {
+    psyLight = new THREE.PointLight(0xfff6d8, 0, 20, 1.15);
+    camera.add(psyLight);
+  }
+  if (!lightBall) {
+    lightBall = new THREE.Mesh(
+      new THREE.IcosahedronGeometry(0.09, 1),
+      new THREE.MeshBasicMaterial({ color: 0xfff4c8, transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending, depthWrite: false }),
+    );
+    camera.add(lightBall);
+    lightBall.position.set(0.22, -0.12, -0.35);
+  }
+  const on = !!holding;
+  psyLight.intensity = on ? 11.5 : 0;
+  psyLight.distance = on ? 22 : 0;
+  lightBall.visible = on;
+  const pulse = 0.85 + Math.sin(performance.now() * 0.012) * 0.12;
+  lightBall.scale.setScalar(on ? pulse : 1);
+  if (on && xr && xr.on && xr.right && xr.right.pos && stage) {
+    const p = xrPresenting ? stage.worldToLocal(xr.right.pos.clone()) : xr.right.pos;
+    lightBall.parent === camera && camera.remove(lightBall);
+    if (lightBall.parent !== stage) stage.add(lightBall);
+    lightBall.position.copy(p);
+    psyLight.parent === camera && camera.remove(psyLight);
+    if (psyLight.parent !== stage) stage.add(psyLight);
+    psyLight.position.copy(p);
+  } else if (on) {
+    if (lightBall.parent !== camera) {
+      lightBall.removeFromParent();
+      camera.add(lightBall);
+      lightBall.position.set(0.22, -0.12, -0.35);
+    }
+    if (psyLight.parent !== camera) {
+      psyLight.removeFromParent();
+      camera.add(psyLight);
+      psyLight.position.set(0, 0, 0);
+    }
+  }
 }
 
 function cyclePsyMode() {
@@ -1482,8 +1644,8 @@ function cyclePsyMode() {
   else psyMode = m[(m.indexOf(psyMode) + 1) % m.length];
   carpetOn = psyMode === "carpet";
   sfx("cycle");
-  const more = m.length < 5 ? " — more unlock with psy orbs" : "";
-  setMsg("Psy: " + psyLabel(psyMode) + " · left trigger fires" + more);
+  const more = m.length < 6 ? " — more unlock with psy orbs" : "";
+  setMsg("Psy: " + psyLabel(psyMode) + (psyMode === "light" ? " · hold to light your hand" : " · left trigger fires") + more);
 }
 
 function tickPsyInput(xr, dt) {
@@ -1510,6 +1672,15 @@ function tickPsyInput(xr, dt) {
     dissipateHole(true);
   }
   if (holeBeam) holeBeam.visible = false;
+  if (psyMode === "light") {
+    tickLightPsy(xr, holding);
+    psyCharging = false;
+    psyCharge = 0;
+    if (psyChargeMesh) psyChargeMesh.visible = false;
+    return;
+  }
+  if (lightBall) lightBall.visible = false;
+  if (psyLight) psyLight.intensity = 0;
   if (psyMode === "beam" && (player.psy | 0) >= 100) {
     if (holding && psyCd <= 0) firePsy(xr, 0);
     psyCharging = false;
@@ -2027,6 +2198,7 @@ function xrGrab(xr) {
   for (const h of [xr.left, xr.right]) {
     if (!h) continue;
     if (h.squeeze && !h.squeezePrev) {
+      if (ridge || rope || (extras && ridgeNear(extras, player, 1.45))) continue;
       const n = nearNpc(npcs, player);
       if (n && !grabNearest(h)) {
         openTalk(n);
@@ -2091,6 +2263,7 @@ function xrGrab(xr) {
     placeRumble();
     return;
   }
+  if (ridge) return;
   if (xr.right && xr.right.trigger && !xr.right.triggerPrev && held) primary();
 }
 
@@ -2113,12 +2286,25 @@ function loop(time) {
     xrGrab(xr);
     tickFoes(foes, dt, player, map, sdf2, damage);
     tickRobots(foes, dt, player, map, sdf2, damage, stage || scene, shots, fireWeapon);
+    for (const f of foes) {
+      const u = f.userData;
+      if (!u || !u.running || (u.def?.id !== "minotaur" && u.kind !== "minotaur")) continue;
+      const md = Math.hypot(player.x - f.position.x, player.z - f.position.z);
+      if (md < 8.5) {
+        const k = 1 - md / 8.5;
+        camShake = Math.min(1.15, camShake + dt * (1.4 + k * 2.2));
+        if (rumbleCd <= 0) {
+          rumbleCd = 0.16;
+          pulseHands(xr, 0.18 + k * 0.32, 70);
+        }
+      }
+    }
     tickShots(shots, dt, foes, extras, damage, (p, c) => addBurnDecal(stage || scene, burns, p, c), sdf3, map, sdf2);
     tickBurns(burns, dt);
     tickLoot(lootBits, dt, player, (L) => {
-      if (L && L.id === "psyorb") {
+      if (L && (L.id === "psyorb" || L.id === "asterisk")) {
         const before = player.psy | 0;
-        player.psy = Math.min(1000, (player.psy || 0) + 1);
+        player.psy = Math.min(1000, (player.psy || 0) + (L.id === "asterisk" ? 10 : 1));
         if (runMode === "story") saveStoryPsy(player.psy);
         sfx("orb");
         if (before < 100 && player.psy >= 100) setMsg("Psybeam unlocked — X / G cycle, left trigger fires");
@@ -2132,6 +2318,15 @@ function loop(time) {
     });
     if (extras) {
       tickWorld(extras, dt, player, foes, damage, stage || scene, camera, map, sdf2);
+      if (extras._knock) {
+        player.vx = extras._knock.vx;
+        player.vz = extras._knock.vz;
+        player.vy = Math.max(player.vy, 4.4);
+        player.knockT = 0.48;
+        player.grounded = false;
+        extras._knock = null;
+        camShake = Math.min(1.6, camShake + 0.7);
+      }
       tickRubble(extras, dt);
       if (extras._warn) {
         setMsg(extras._warn);
@@ -2146,12 +2341,39 @@ function loop(time) {
       camera.getWorldPosition(tmp);
       skyMesh.position.copy(tmp);
     }
-    if (map && map.sky && outdoor) {
-      const inSky = !!map.sky[cellI(map, player.x, player.z)];
-      if (sun) sun.intensity = inSky ? 1.35 : 0.55;
-      if (hemi) hemi.intensity = inSky ? 1.1 : 0.8;
-      renderer.toneMappingExposure = inSky ? 1.65 : 1.48;
-      if (skyTex) scene.background = skyTex;
+    if (map) {
+      const sky = map.sky ? map.sky[cellI(map, player.x, player.z)] : 0;
+      let hemiI = 0.045;
+      let ambI = 0.028;
+      let sunI = 0;
+      if (sky === SKY_DAY) {
+        hemiI = 1.2;
+        ambI = 0.42;
+        sunI = 1.3;
+      } else if (sky === SKY_JUNGLE) {
+        hemiI = 0.32;
+        ambI = 0.14;
+        sunI = 0.22;
+      } else if (sky === SKY_NIGHT) {
+        hemiI = 0.05;
+        ambI = 0.018;
+        sunI = 0;
+      }
+      if (hemi) hemi.intensity += (hemiI - hemi.intensity) * Math.min(1, dt * 4);
+      if (amb) amb.intensity += (ambI - amb.intensity) * Math.min(1, dt * 4);
+      if (sun) sun.intensity += (sunI - sun.intensity) * Math.min(1, dt * 4);
+      if (sky === SKY_DAY && hemi) {
+        hemi.color.setHex(0xd8e8ff);
+        hemi.groundColor.setHex(0x3a5a28);
+      } else if (sky === SKY_JUNGLE && hemi) {
+        hemi.color.setHex(0x88aa70);
+        hemi.groundColor.setHex(0x142010);
+      } else if (hemi) {
+        hemi.color.setHex(0x6a6860);
+        hemi.groundColor.setHex(0x080604);
+      }
+      if (skyTex && sky) scene.background = skyTex;
+      if (scene.fog && caveFog) scene.fog.density = sky === SKY_DAY ? 0.006 : sky === SKY_JUNGLE ? 0.012 : 0.024;
     }
     for (const s of spawners) {
       s._t -= dt;
@@ -2170,9 +2392,11 @@ function loop(time) {
     tickSaber(xr, dt);
     if (psyCd > 0) psyCd = Math.max(0, psyCd - dt);
     if (xr && xr.on && xr.psyMode) cyclePsyMode();
-    if (xr && xr.on && xr.dash) {
+    if (ridge || (xr && xr.on && xr.dash)) {
       psyCharging = false;
       psyCharge = 0;
+      if (lightBall) lightBall.visible = false;
+      if (psyLight) psyLight.intensity = 0;
     } else {
       tickPsyInput(xr, dt);
     }

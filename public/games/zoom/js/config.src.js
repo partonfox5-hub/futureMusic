@@ -15,6 +15,7 @@ export const FLAG_UNSTABLE = 4;
 export const FLAG_RUMBLE = 8;
 export const FLAG_COLLAPSE = 16;
 export const FLAG_HOVER = 32;
+export const FLAG_SLOPE = 64;
 export const WALL_CRACK = 128;
 export const LIQ_NONE = 0;
 export const LIQ_WATER = 1;
@@ -120,6 +121,9 @@ export const ENEMIES = [
 
 export const OBJECTS = [
   { id: "torch", name: "Torch", light: true },
+  { id: "walllamp", name: "Electric wall lamp", light: true },
+  { id: "ceilinglight", name: "Ceiling light", light: true },
+  { id: "chandelier", name: "Chandelier", light: true },
   { id: "crate", name: "Crate" },
   { id: "barrel", name: "Barrel" },
   { id: "chest", name: "Chest" },
@@ -139,6 +143,11 @@ export const OBJECTS = [
   { id: "anvil", name: "Anvil" },
   { id: "spikes", name: "Spike trap" },
   { id: "fountain", name: "Fountain" },
+  { id: "statue-knight", name: "Knight statue" },
+  { id: "statue-angel", name: "Angel statue" },
+  { id: "statue-gargoyle", name: "Gargoyle statue" },
+  { id: "statue-idol", name: "Temple idol" },
+  { id: "statue-serpent", name: "Serpent statue" },
 ];
 
 export const WEAPONS = [
@@ -169,6 +178,8 @@ export const PICKUPS = [
   { id: "shield", name: "Shield shard", cat: "item" },
   { id: "bomb", name: "Plasma bomb", cat: "item" },
   { id: "ammo", name: "Ammo crate", cat: "item", ammo: true },
+  { id: "psyorb", name: "Psy orb", cat: "item", psy: 1 },
+  { id: "asterisk", name: "Energy asterisk", cat: "item", psy: 10 },
 ];
 
 export const LOOT = [

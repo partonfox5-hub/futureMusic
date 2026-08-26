@@ -5,6 +5,7 @@ import {
   EYE,
   FLAG_COLLAPSE,
   FLAG_HOVER,
+  FLAG_SLOPE,
   FLAG_SPIKE,
   FLAG_UNSTABLE,
   LIQ_LAVA,
@@ -13,13 +14,16 @@ import {
   STORY_H,
   STORIES,
   WALL_TEX,
-} from "./config.js?v=zm5";
-import { cellI, climbHoleFloor, climbHoleRoof, enclosedFloors, idx, inBounds, sdf3, wallIsCrack, wallTexId } from "./map.js?v=zm5";
-import { sfx } from "./sfx.js?v=zm5";
+} from "./config.js?v=zm6";
+import { cellI, climbHoleFloor, climbHoleRoof, enclosedFloors, idx, inBounds, isCarved, sdf3, slopeGrad, terrainY, wallIsCrack, wallTexId } from "./map.js?v=zm6";
+import { sfx } from "./sfx.js?v=zm6";
 
 function mat(hex, extra) {
   return new THREE.MeshLambertMaterial({ color: hex, ...extra });
 }
+
+const _up = new THREE.Vector3(0, 1, 0);
+const _dir = new THREE.Vector3();
 
 function wallMat(id, cracked) {
   const pal = {
@@ -366,6 +370,146 @@ function makeMetalTurret() {
   return g;
 }
 
+function makeGunTurret() {
+  const g = new THREE.Group();
+  const iron = mat(0x4a5058);
+  const dark = mat(0x1c2024);
+  const steel = mat(0xb8c0c8);
+  const olive = mat(0x4a5a38);
+  const base = new THREE.Mesh(new THREE.CylinderGeometry(0.48, 0.56, 0.14, 10), dark);
+  base.position.y = 0.07;
+  for (let i = 0; i < 3; i++) {
+    const leg = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.12, 0.46), iron);
+    leg.position.set(Math.sin(i * 2.094) * 0.3, 0.08, Math.cos(i * 2.094) * 0.3);
+    leg.rotation.y = i * 2.094;
+    g.add(leg);
+  }
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.36, 0.7, 10), olive);
+  body.position.y = 0.5;
+  const ammo = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.22, 0.22), dark);
+  ammo.position.set(0.36, 0.58, 0);
+  const head = new THREE.Group();
+  head.position.y = 0.96;
+  const housing = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.26, 0.42), iron);
+  const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.055, 1.15, 8), steel);
+  barrel.rotation.x = Math.PI / 2;
+  barrel.position.z = 0.72;
+  const sleeve = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.55, 8), dark);
+  sleeve.rotation.x = Math.PI / 2;
+  sleeve.position.z = 0.52;
+  const muzzle = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.05, 0.1, 8), dark);
+  muzzle.rotation.x = Math.PI / 2;
+  muzzle.position.z = 1.28;
+  const sight = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.1, 0.18), dark);
+  sight.position.set(0, 0.18, 0.08);
+  const mag = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.28, 0.18), dark);
+  mag.position.set(-0.22, -0.08, 0.04);
+  head.add(housing, barrel, sleeve, muzzle, sight, mag);
+  g.add(base, body, ammo, head);
+  const hp = hpSprite();
+  hp.position.y = 1.55;
+  hp.scale.set(1.15, 0.18, 1);
+  hp.renderOrder = 8;
+  g.add(hp);
+  g.userData.head = head;
+  g.userData.hpBar = hp;
+  g.userData.muzzle = muzzle;
+  g.userData.kind = "gun";
+  return g;
+}
+
+function losReach(map, sdf2, x0, y0, z0, dx, dz, maxDist) {
+  if (!map) return maxDist;
+  const step = 0.22;
+  let last = maxDist;
+  for (let d = step; d <= maxDist; d += step) {
+    const x = x0 + dx * d;
+    const z = z0 + dz * d;
+    if (wallBlocked(map, x, z, y0)) return Math.max(0.12, d - step);
+    if (sdf2 && sdf3(x, y0, z, map, sdf2) > -0.08) return Math.max(0.12, d - step);
+    last = d;
+  }
+  return last;
+}
+
+function labDoorMat() {
+  const c = document.createElement("canvas");
+  c.width = 64;
+  c.height = 64;
+  const g = c.getContext("2d");
+  g.fillStyle = "#9aa4ac";
+  g.fillRect(0, 0, 64, 64);
+  g.fillStyle = "#c4ccd2";
+  for (let y = 0; y < 64; y += 8) g.fillRect(0, y, 64, 2);
+  g.fillStyle = "#6a7278";
+  g.fillRect(0, 0, 4, 64);
+  g.fillRect(60, 0, 4, 64);
+  for (let y = 0; y < 64; y += 16) {
+    g.fillStyle = y % 32 ? "#e8c420" : "#1a1a12";
+    g.fillRect(6, y, 8, 16);
+    g.fillRect(50, y, 8, 16);
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.repeat.set(2, 3);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.magFilter = THREE.NearestFilter;
+  return new THREE.MeshLambertMaterial({ map: t, color: 0xe8eef2 });
+}
+
+function makeLabDoorLeaf(width, height, teethOnTop) {
+  const g = new THREE.Group();
+  const steel = labDoorMat();
+  const plate = new THREE.Mesh(new THREE.BoxGeometry(width, height, 0.18), steel);
+  g.add(plate);
+  const caution = mat(0xe8c420);
+  const stripe = new THREE.Mesh(new THREE.BoxGeometry(width * 0.98, 0.16, 0.2), caution);
+  stripe.position.y = teethOnTop ? height * 0.28 : -height * 0.28;
+  g.add(stripe);
+  const n = Math.max(4, Math.round(width / 0.26));
+  const gap = width / n;
+  const toothW = gap * 0.52;
+  const tm = mat(0xc8d2d8);
+  for (let i = 0; i < n; i++) {
+    if (i % 2) continue;
+    const tooth = new THREE.Mesh(new THREE.BoxGeometry(toothW, 0.18, 0.16), tm);
+    tooth.position.set(-width * 0.5 + (i + 0.5) * gap, teethOnTop ? height * 0.5 + 0.09 : -height * 0.5 - 0.09, 0);
+    g.add(tooth);
+  }
+  return g;
+}
+
+function makeChainMesh() {
+  const g = new THREE.Group();
+  const steel = mat(0x9aa2aa);
+  const dark = mat(0x4a5058);
+  const links = [];
+  const n = 14;
+  for (let i = 0; i < n; i++) {
+    const link = new THREE.Mesh(new THREE.TorusGeometry(0.055, 0.016, 6, 10), i % 2 ? dark : steel);
+    g.add(link);
+    links.push(link);
+  }
+  g.userData.links = links;
+  return g;
+}
+
+function layoutChain(r, x, y, z) {
+  const links = r.mesh?.userData?.links;
+  if (!links) return;
+  const n = links.length;
+  for (let i = 0; i < n; i++) {
+    const t = (i + 0.5) / n;
+    links[i].position.set(r.x + (x - r.x) * t, r.top + (y - r.top) * t, r.z + (z - r.z) * t);
+    _dir.set(x - r.x, y - r.top, z - r.z);
+    if (_dir.lengthSq() < 1e-6) _dir.set(0, -1, 0);
+    _dir.normalize();
+    links[i].quaternion.setFromUnitVectors(_up, _dir);
+    if (i % 2) links[i].rotateX(Math.PI / 2);
+  }
+  if (r.knot) r.knot.position.set(x, y, z);
+}
+
 function makeStairs(h) {
   const g = new THREE.Group();
   const wood = mat(0x8a5a32);
@@ -464,7 +608,7 @@ function makeFlameStream() {
 export function buildWorld(map, dungeon, scene) {
   const group = new THREE.Group();
   group.name = "world";
-  const extras = { crushers: [], turrets: [], arrows: [], darts: [], hovers: [], ropes: [], portals: [], doors: [], windows: [], liquids: [], spikes: [], climbs: [], caveins: [], unstables: [], horizon: null, boulders: [], vendors: [], crackedWalls: [], rumbles: [], ripples: [], root: group, liqT: 0 };
+  const extras = { crushers: [], turrets: [], arrows: [], darts: [], hovers: [], ropes: [], portals: [], doors: [], windows: [], liquids: [], spikes: [], climbs: [], caveins: [], unstables: [], horizon: null, boulders: [], vendors: [], crackedWalls: [], rumbles: [], ripples: [], ridges: [], ultimatums: [], statues: [], turretShots: [], root: group, liqT: 0, map };
 
   const spikeGeo = new THREE.ConeGeometry(0.16, 0.92, 5);
   const spikeMat = mat(0xb8c0c8, { emissive: 0x4a2010, emissiveIntensity: 0.35 });
@@ -562,35 +706,42 @@ export function buildWorld(map, dungeon, scene) {
   }
 
   for (const r of map.ropes || []) {
-    const y0 = ((map.elev && map.elev[cellI(map, r.x, r.z)]) || 0) * EYE;
+    const y0 = terrainY(map, r.x, r.z);
     const len = r.len || 4.5;
     const top = y0 + (map.hallH || 4.2) - 0.15;
     const hang = Math.min(len, top - y0 - 0.2);
-    const hook = new THREE.Mesh(new THREE.TorusGeometry(0.11, 0.025, 6, 10), mat(0x8a8680, { metalness: 0.4 }));
+    const chain = r.kind === "chain";
+    const hook = new THREE.Mesh(new THREE.TorusGeometry(0.11, 0.025, 6, 10), mat(chain ? 0x8a9098 : 0x8a8680));
     hook.rotation.x = Math.PI / 2;
     hook.position.set(r.x, top + 0.04, r.z);
     group.add(hook);
-    const plate = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.04, 8), mat(0x5a5854));
+    const plate = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.04, 8), mat(chain ? 0x5a6068 : 0x5a5854));
     plate.position.set(r.x, top + 0.08, r.z);
     group.add(plate);
-    const mesh = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.042, 1, 8), mat(0x6a4424));
+    const mesh = chain
+      ? makeChainMesh()
+      : new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.042, 1, 8), mat(0x6a4424));
     mesh.position.set(r.x, top - hang * 0.5, r.z);
     group.add(mesh);
-    const knot = new THREE.Mesh(new THREE.SphereGeometry(0.09, 10, 8), mat(0x4a3018));
+    const knot = new THREE.Mesh(
+      chain ? new THREE.TorusGeometry(0.07, 0.02, 6, 10) : new THREE.SphereGeometry(0.09, 10, 8),
+      mat(chain ? 0x8a9098 : 0x4a3018),
+    );
     knot.position.set(r.x, top - hang, r.z);
     group.add(knot);
-    const rec = { x: r.x, z: r.z, y0: top - hang, top, len: hang, mesh, knot, hook, restLen: hang };
+    const rec = { x: r.x, z: r.z, y0: top - hang, top, len: hang, mesh, knot, hook, restLen: hang, kind: chain ? "chain" : "rope" };
     layoutRope(rec, r.x, top - hang, r.z);
     extras.ropes.push(rec);
   }
 
   for (const t of map.turrets || []) {
-    const y0 = ((map.elev && map.elev[cellI(map, t.x, t.z)]) || 0) * EYE;
-    const g = makeMetalTurret();
+    const y0 = terrainY(map, t.x, t.z);
+    const kind = t.kind || "flame";
+    const g = kind === "gun" ? makeGunTurret() : makeMetalTurret();
     g.position.set(t.x, y0, t.z);
     group.add(g);
     paintHp(g.userData.hpBar, 70, 70);
-    const light = new THREE.PointLight(0xff6622, 0, 9, 2);
+    const light = new THREE.PointLight(kind === "gun" ? 0xffcc66 : 0xff6622, 0, 9, 2);
     light.position.set(t.x, y0 + 1.05, t.z);
     group.add(light);
     extras.turrets.push({
@@ -598,6 +749,7 @@ export function buildWorld(map, dungeon, scene) {
       z: t.z,
       y: y0 + 0.95,
       y0,
+      kind,
       mesh: g,
       head: g.userData.head,
       hpBar: g.userData.hpBar,
@@ -607,6 +759,11 @@ export function buildWorld(map, dungeon, scene) {
       maxHp: 70,
       cool: 0.4,
       jitter: (Math.random() - 0.5) * 0.2,
+      range: kind === "gun" ? 23.4 : 18,
+      reach: kind === "gun" ? 9.36 : 7.2,
+      mag: kind === "gun" ? 24 : 0,
+      magMax: 24,
+      reload: 0,
     });
   }
 
@@ -643,7 +800,7 @@ export function buildWorld(map, dungeon, scene) {
     const socket = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.22, 1.9), mat(0x8a8074));
     socket.position.set(c.x, top - 0.1, c.z);
     group.add(socket);
-    extras.crushers.push({ x: c.x, z: c.z, y0, top, mesh, t: Math.random() * 3.2, h: 6.44, r: 1.05 });
+    extras.crushers.push({ x: c.x, z: c.z, y0, top, mesh, t: Math.random() * 2.8, h: 6.44, r: 1.05 });
   }
 
   for (const cl of map.climbs || []) {
@@ -706,9 +863,12 @@ export function buildWorld(map, dungeon, scene) {
   }
 
   for (const b of map.boulders || []) {
-    const y0 = ((map.elev && map.elev[cellI(map, b.x, b.z)]) || 0) * EYE;
+    const size = Math.max(0.4, Math.min(3, b.size || 1));
+    const r = 0.92 * size;
+    const y0 = terrainY(map, b.x, b.z);
     const mesh = makeBoulderMesh();
-    mesh.position.set(b.x, y0 + 0.92, b.z);
+    mesh.scale.setScalar(size);
+    mesh.position.set(b.x, y0 + r, b.z);
     group.add(mesh);
     const ring = new THREE.Mesh(
       new THREE.RingGeometry(2.6, 2.95, 24),
@@ -719,33 +879,146 @@ export function buildWorld(map, dungeon, scene) {
     group.add(ring);
     const arrow = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.45, 8), mat(0xffcc66, { emissive: 0x664400 }));
     arrow.rotation.x = Math.PI / 2;
-    arrow.position.set(b.x - Math.sin(b.yaw || 0) * 0.9, y0 + 0.7, b.z - Math.cos(b.yaw || 0) * 0.9);
+    arrow.position.set(b.x - Math.sin(b.yaw || 0) * 0.9, y0 + r * 0.75, b.z - Math.cos(b.yaw || 0) * 0.9);
     group.add(arrow);
     extras.boulders.push({
       x: b.x,
       z: b.z,
-      y: y0 + 0.92,
+      y: y0 + r,
       y0,
       yaw: b.yaw || 0,
       mesh,
       ring,
       vx: 0,
       vz: 0,
+      vy: 0,
       rolling: false,
       speed0: 7.125,
-      r: 0.92,
+      r,
+      size,
       trigger: b.trigger || 5.2,
-      hp: 4,
-      maxHp: 4,
+      hp: 4 + Math.round(size * 2),
+      maxHp: 4 + Math.round(size * 2),
     });
   }
 
   for (const v of map.vendors || []) {
-    const y0 = ((map.elev && map.elev[cellI(map, v.x, v.z)]) || 0) * EYE;
+    const y0 = terrainY(map, v.x, v.z);
     const g = makeVending();
     g.position.set(v.x, y0, v.z);
     group.add(g);
     extras.vendors.push({ x: v.x, z: v.z, y: y0, mesh: g });
+  }
+
+  if (map.flags) {
+    const slopeM = mat(0x7a7468);
+    for (let z = 0; z < map.h; z++) {
+      for (let x = 0; x < map.w; x++) {
+        const i = idx(map, x, z);
+        if (!(map.flags[i] & FLAG_SLOPE) || !isCarved(map.cells[i])) continue;
+        const x0 = x * CELL;
+        const z0 = z * CELL;
+        const y00 = terrainY(map, x0, z0);
+        const y10 = terrainY(map, x0 + CELL, z0);
+        const y01 = terrainY(map, x0, z0 + CELL);
+        const y11 = terrainY(map, x0 + CELL, z0 + CELL);
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute(
+          "position",
+          new THREE.BufferAttribute(
+            new Float32Array([
+              x0, y00 + 0.02, z0,
+              x0 + CELL, y10 + 0.02, z0,
+              x0, y01 + 0.02, z0 + CELL,
+              x0 + CELL, y11 + 0.02, z0 + CELL,
+            ]),
+            3,
+          ),
+        );
+        geo.setIndex([0, 2, 1, 1, 2, 3]);
+        geo.computeVertexNormals();
+        const m = new THREE.Mesh(geo, slopeM);
+        group.add(m);
+      }
+    }
+  }
+
+  const stoneLedge = mat(0x6a6054);
+  for (const rg of map.ridges || []) {
+    const y = (rg.elev != null ? rg.elev : 1) * EYE;
+    const yaw = rg.yaw || 0;
+    const fx = -Math.sin(yaw);
+    const fz = -Math.cos(yaw);
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(CELL * 0.95, 0.12, 0.34), stoneLedge);
+    mesh.position.set(rg.x + fx * 0.22, y, rg.z + fz * 0.22);
+    mesh.rotation.y = yaw;
+    group.add(mesh);
+    extras.ridges.push({
+      x: rg.x,
+      z: rg.z,
+      y,
+      yaw,
+      fx,
+      fz,
+      mesh,
+      elev: rg.elev != null ? rg.elev : 1,
+    });
+  }
+
+  if (!map._ultiClosed || map._ultiClosed.length !== map.w * map.h) map._ultiClosed = new Uint8Array(map.w * map.h);
+  for (const u of map.ultimatums || []) {
+    const cells = u.cells || [];
+    if (!cells.length) continue;
+    let sx = 0;
+    let sz = 0;
+    for (const c of cells) {
+      sx += (c.x + 0.5) * CELL;
+      sz += (c.z + 0.5) * CELL;
+    }
+    const cx = sx / cells.length;
+    const cz = sz / cells.length;
+    const minx = Math.min(...cells.map((c) => c.x));
+    const maxx = Math.max(...cells.map((c) => c.x));
+    const minz = Math.min(...cells.map((c) => c.z));
+    const maxz = Math.max(...cells.map((c) => c.z));
+    const alongX = maxx - minx >= maxz - minz;
+    const yaw = alongX ? 0 : Math.PI / 2;
+    const nx = alongX ? 0 : 1;
+    const nz = alongX ? 1 : 0;
+    const halfW = (Math.max(maxx - minx, maxz - minz) + 1) * CELL * 0.5;
+    const y0 = terrainY(map, cx, cz);
+    const hall = map.hallH || 4.2;
+    const leafH = hall * 0.52;
+    const width = Math.max(CELL, halfW * 2);
+    const floorLeaf = makeLabDoorLeaf(width, leafH, true);
+    const ceilLeaf = makeLabDoorLeaf(width, leafH, false);
+    floorLeaf.position.set(cx, y0 - leafH * 0.5 - 0.05, cz);
+    ceilLeaf.position.set(cx, y0 + hall + leafH * 0.5 + 0.05, cz);
+    floorLeaf.rotation.y = yaw;
+    ceilLeaf.rotation.y = yaw;
+    floorLeaf.visible = false;
+    ceilLeaf.visible = false;
+    group.add(floorLeaf, ceilLeaf);
+    extras.ultimatums.push({
+      id: u.id,
+      cells,
+      x: cx,
+      z: cz,
+      y0,
+      hall,
+      yaw,
+      nx,
+      nz,
+      halfW,
+      leafH,
+      floorMesh: floorLeaf,
+      ceilMesh: ceilLeaf,
+      closed: false,
+      slamming: false,
+      t: 0,
+      prevSide: 0,
+      dispelled: false,
+    });
   }
 
   map._floors = [0, 1, 2].map((s) => enclosedFloors(map, s));
@@ -965,12 +1238,14 @@ export function spawnRipple(extras, x, y, z) {
 }
 
 export function wallBlocked(map, x, z, y) {
-  if (!map.bwalls) return false;
+  if (!map) return false;
   const gx = Math.floor(x / CELL);
   const gz = Math.floor(z / CELL);
   if (!inBounds(map, gx, gz)) return false;
-  const story = Math.max(0, Math.min(STORIES - 1, Math.floor(y / STORY_H)));
   const i = idx(map, gx, gz);
+  if (map._ultiClosed && map._ultiClosed[i]) return true;
+  if (!map.bwalls) return false;
+  const story = Math.max(0, Math.min(STORIES - 1, Math.floor(y / STORY_H)));
   if (!map.bwalls[story][i]) return false;
   const open = openingAt(map, gx, gz, story);
   if (!open) return true;
@@ -1019,7 +1294,7 @@ export function climbSupport(extras, player) {
 export function tickWorld(extras, dt, player, foes, onHit, scene, camera, map, sdf2) {
   for (const c of extras.crushers) {
     c.t += dt;
-    const T = 3.35;
+    const T = 3.35 / 1.15;
     const p = (c.t % T) / T;
     let u;
     if (p < 0.36) u = p / 0.36;
@@ -1044,12 +1319,15 @@ export function tickWorld(extras, dt, player, foes, onHit, scene, camera, map, s
     }
   }
   const muz = new THREE.Vector3();
+  extras.turretShots = extras.turretShots || [];
   for (const t of extras.turrets) {
     if (t.hp <= 0) {
       if (!t.exploded) explodeTurret(t, extras, extras.root || scene);
+      if (t.stream) t.stream.visible = false;
       continue;
     }
     t.cool -= dt;
+    if (t.reload > 0) t.reload -= dt;
     const dx = player.x - t.x;
     const dz = player.z - t.z;
     const d = Math.hypot(dx, dz) || 1;
@@ -1057,34 +1335,83 @@ export function tickWorld(extras, dt, player, foes, onHit, scene, camera, map, s
     t.head.rotation.y = Math.atan2(dx, dz) + t.jitter;
     if (t.hpBar && camera) t.hpBar.lookAt(camera.position);
     paintHp(t.hpBar, t.hp, t.maxHp);
-    const firing = d < 18;
-    if (t.light) t.light.intensity = firing ? 2.2 + Math.sin(performance.now() * 0.04) * 0.6 : 0.12;
-    if (!t.stream) {
-      t.stream = makeFlameStream();
-      (extras.root || scene).add(t.stream);
-    }
+    const range = t.range || 18;
+    const reachMax = t.reach || 7.2;
+    const inRange = d < range;
     const hx = Math.sin(t.head.rotation.y);
     const hz = Math.cos(t.head.rotation.y);
     if (t.muzzle) t.muzzle.getWorldPosition(muz);
     else muz.set(t.x, t.y, t.z);
     if (extras.root?.worldToLocal) extras.root.worldToLocal(muz);
-    t.stream.visible = firing;
-    if (firing) {
-      const dir = new THREE.Vector3(hx, 0.04, hz).normalize();
-      t.stream.position.copy(muz).addScaledVector(dir, 3.55);
-      t.stream.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), dir);
-      const pulse = 1 + Math.sin(performance.now() * 0.03) * 0.06;
-      t.stream.scale.set(pulse, pulse, 1);
-      const along = ((player.x - muz.x) * hx + (player.z - muz.z) * hz);
-      const px = muz.x + hx * Math.max(0, Math.min(7.2, along));
-      const pz = muz.z + hz * Math.max(0, Math.min(7.2, along));
-      const off = Math.hypot(player.x - px, player.z - pz);
-      if (along > 0.2 && along < 7.2 && off < 0.55 && Math.abs(player.y - muz.y) < 1.4) {
-        if ((t._sfxT || 0) <= 0) { try { sfx("flame"); } catch {} t._sfxT = 0.18; }
-        onHit(22 * dt, "burned");
+    const wallDist = losReach(map, sdf2, muz.x, muz.y, muz.z, hx, hz, reachMax);
+    if (t.kind === "gun") {
+      if (t.stream) t.stream.visible = false;
+      if (t.light) t.light.intensity = inRange ? 0.8 + Math.sin(performance.now() * 0.05) * 0.3 : 0.08;
+      if (inRange && t.reload <= 0 && t.cool <= 0 && t.mag > 0) {
+        t.cool = 0.1;
+        t.mag -= 1;
+        try { sfx("gun"); } catch {}
+        const shot = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.025, 0.018, 0.42, 5),
+          mat(0xffee88, { emissive: 0xffcc44, emissiveIntensity: 0.9 }),
+        );
+        shot.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(hx, 0, hz));
+        shot.position.copy(muz);
+        (extras.root || scene).add(shot);
+        extras.turretShots.push({
+          mesh: shot,
+          vx: hx * 42,
+          vz: hz * 42,
+          y: muz.y,
+          life: wallDist / 42,
+          dmg: 9,
+        });
+        if (t.light) t.light.intensity = 3.2;
+        if (t.mag <= 0) {
+          t.reload = 5;
+          t.mag = t.magMax || 24;
+        }
+      }
+    } else {
+      if (t.light) t.light.intensity = inRange ? 2.2 + Math.sin(performance.now() * 0.04) * 0.6 : 0.12;
+      if (!t.stream) {
+        t.stream = makeFlameStream();
+        (extras.root || scene).add(t.stream);
+      }
+      const firing = inRange && wallDist > 0.25;
+      t.stream.visible = firing;
+      if (firing) {
+        const dir = new THREE.Vector3(hx, 0.04, hz).normalize();
+        t.stream.position.copy(muz).addScaledVector(dir, wallDist * 0.5);
+        t.stream.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), dir);
+        const pulse = 1 + Math.sin(performance.now() * 0.03) * 0.06;
+        t.stream.scale.set(pulse, pulse, Math.max(0.08, wallDist / 7.2));
+        const along = (player.x - muz.x) * hx + (player.z - muz.z) * hz;
+        const px = muz.x + hx * Math.max(0, Math.min(wallDist, along));
+        const pz = muz.z + hz * Math.max(0, Math.min(wallDist, along));
+        const off = Math.hypot(player.x - px, player.z - pz);
+        if (along > 0.2 && along < wallDist && off < 0.55 && Math.abs(player.y - muz.y) < 1.4) {
+          if ((t._sfxT || 0) <= 0) { try { sfx("flame"); } catch {} t._sfxT = 0.18; }
+          onHit(22 * dt, "burned");
+        }
       }
     }
     if (t._sfxT > 0) t._sfxT -= dt;
+  }
+  for (let i = extras.turretShots.length - 1; i >= 0; i--) {
+    const s = extras.turretShots[i];
+    s.life -= dt;
+    s.mesh.position.x += s.vx * dt;
+    s.mesh.position.z += s.vz * dt;
+    const hitWall = map && (wallBlocked(map, s.mesh.position.x, s.mesh.position.z, s.y) || (sdf2 && sdf3(s.mesh.position.x, s.y, s.mesh.position.z, map, sdf2) > -0.08));
+    if (Math.hypot(player.x - s.mesh.position.x, player.z - s.mesh.position.z) < 0.42 && Math.abs(player.y - s.y) < 1.2) {
+      onHit(s.dmg || 9, "shot by a turret");
+      s.life = 0;
+    }
+    if (hitWall || s.life <= 0) {
+      s.mesh.removeFromParent();
+      extras.turretShots.splice(i, 1);
+    }
   }
   extras._flames = extras._flames || [];
   for (let i = extras._flames.length - 1; i >= 0; i--) {
@@ -1098,6 +1425,9 @@ export function tickWorld(extras, dt, player, foes, onHit, scene, camera, map, s
     const sc = (f.s0 || 0.4) * (f.smoke ? 1.4 - k * 0.4 : 0.4 + k * 0.9);
     f.mesh.scale.set(sc * (f.sx || 1), sc * (f.sy || 1.6), 1);
     if (f.mesh.material) f.mesh.material.opacity = f.smoke ? 0.08 + k * 0.28 : 0.2 + k * 0.8;
+    if (map && (wallBlocked(map, f.mesh.position.x, f.mesh.position.z, f.mesh.position.y) || (sdf2 && sdf3(f.mesh.position.x, f.mesh.position.y, f.mesh.position.z, map, sdf2) > -0.05))) {
+      f.life = 0;
+    }
     if (!f.smoke && f.mesh.position.distanceTo(new THREE.Vector3(player.x, player.y, player.z)) < 0.7 + sc * 0.45) {
       onHit(14 * dt * 8, "burned");
     }
@@ -1112,6 +1442,7 @@ export function tickWorld(extras, dt, player, foes, onHit, scene, camera, map, s
   if (map) tickCollapseFloors(extras, dt, player, foes, map, scene, onHit);
   if (map) tickArrows(extras, dt, player, map, scene, onHit);
   if (map) tickBoulders(extras, dt, player, map, sdf2, onHit);
+  if (map) tickUltimatums(extras, dt, player, map);
   for (const d of extras.doors || []) {
     if (d.lockIcon && d.lockIcon.visible) {
       d.lockIcon.userData.bob = (d.lockIcon.userData.bob || 0) + dt;
@@ -1321,10 +1652,12 @@ function makeBoulderMesh() {
   return g;
 }
 
-const _up = new THREE.Vector3(0, 1, 0);
-const _dir = new THREE.Vector3();
 export function layoutRope(r, x, y, z) {
   if (!r?.mesh) return;
+  if (r.kind === "chain") {
+    layoutChain(r, x, y, z);
+    return;
+  }
   const dx = x - r.x;
   const dy = y - r.top;
   const dz = z - r.z;
@@ -1617,41 +1950,129 @@ function collapseCell(map, extras, scene, i, player, onHit) {
 }
 
 function tickBoulders(extras, dt, player, map, sdf2, onHit) {
+  const HIT_SPD = 3.15;
   for (const b of extras.boulders || []) {
     if (b.gone || !b.mesh) continue;
-    const d = Math.hypot(player.x - b.mesh.position.x, player.z - b.mesh.position.z);
-    if (!b.rolling && d < b.trigger) {
+    const px = b.mesh.position.x;
+    const pz = b.mesh.position.z;
+    const d = Math.hypot(player.x - px, player.z - pz);
+    const g = map ? slopeGrad(map, px, pz) : { gx: 0, gz: 0 };
+    const glen = Math.hypot(g.gx, g.gz);
+    if (!b.rolling && (d < b.trigger || glen > 0.12)) {
       b.rolling = true;
-      const spd = b.speed0;
-      b.vx = -Math.sin(b.yaw) * spd;
-      b.vz = -Math.cos(b.yaw) * spd;
+      if (d < b.trigger) {
+        const spd = b.speed0 || 7.125;
+        b.vx = -Math.sin(b.yaw) * spd;
+        b.vz = -Math.cos(b.yaw) * spd;
+      }
       if (b.ring) b.ring.visible = false;
     }
     if (!b.rolling) continue;
-    const damp = Math.exp(-0.55 * dt);
-    b.vx *= damp;
-    b.vz *= damp;
-    const nx = b.mesh.position.x + b.vx * dt;
-    const nz = b.mesh.position.z + b.vz * dt;
+    if (glen > 0.001) {
+      const sinT = glen / Math.sqrt(1 + glen * glen);
+      const ax = (-g.gx / glen) * 18 * sinT;
+      const az = (-g.gz / glen) * 18 * sinT;
+      b.vx = (b.vx || 0) + ax * dt;
+      b.vz = (b.vz || 0) + az * dt;
+    }
+    let spd = Math.hypot(b.vx || 0, b.vz || 0);
+    const mu = glen < 0.05 ? 5.8 : glen < 0.12 ? 1.6 : 0.45;
+    if (spd > 0.001) {
+      const f = Math.min(spd, mu * dt * 8);
+      b.vx -= (b.vx / spd) * f;
+      b.vz -= (b.vz / spd) * f;
+      spd = Math.hypot(b.vx, b.vz);
+    }
+    const nx = px + b.vx * dt;
+    const nz = pz + b.vz * dt;
     const y = b.y;
-    const hitX = sdf2 ? sdf3(nx, y, b.mesh.position.z, map, sdf2) > -0.2 : false;
-    const hitZ = sdf2 ? sdf3(b.mesh.position.x, y, nz, map, sdf2) > -0.2 : false;
+    const hitX = sdf2 ? sdf3(nx, y, pz, map, sdf2) > -0.2 : false;
+    const hitZ = sdf2 ? sdf3(px, y, nz, map, sdf2) > -0.2 : false;
     if (hitX) b.vx *= -0.62;
     else b.mesh.position.x = nx;
     if (hitZ) b.vz *= -0.62;
     else b.mesh.position.z = nz;
-    if (wallBlocked(map, b.mesh.position.x + Math.sign(b.vx) * 0.5, b.mesh.position.z, y)) b.vx *= -0.62;
-    if (wallBlocked(map, b.mesh.position.x, b.mesh.position.z + Math.sign(b.vz) * 0.5, y)) b.vz *= -0.62;
-    const spd = Math.hypot(b.vx, b.vz);
-    b.mesh.rotation.x += b.vz * dt * 1.4;
-    b.mesh.rotation.z -= b.vx * dt * 1.4;
-    if (spd < 0.35) {
+    if (wallBlocked(map, b.mesh.position.x + Math.sign(b.vx || 0) * 0.5, b.mesh.position.z, y)) b.vx *= -0.62;
+    if (wallBlocked(map, b.mesh.position.x, b.mesh.position.z + Math.sign(b.vz || 0) * 0.5, y)) b.vz *= -0.62;
+    const ty = map ? terrainY(map, b.mesh.position.x, b.mesh.position.z) : b.y0;
+    b.y = ty + b.r;
+    b.mesh.position.y = b.y;
+    spd = Math.hypot(b.vx || 0, b.vz || 0);
+    b.mesh.rotation.x += (b.vz || 0) * dt * 1.4;
+    b.mesh.rotation.z -= (b.vx || 0) * dt * 1.4;
+    if (spd < 0.28 && glen < 0.06) {
       b.vx = 0;
       b.vz = 0;
     }
     const pd = Math.hypot(player.x - b.mesh.position.x, player.z - b.mesh.position.z);
-    if (spd > 0.9 && pd < 0.85 + b.r * 0.55 && player.y < b.y + 1.4 && player.y > b.y - 1.0) {
-      onHit(80, "crushed by a boulder");
+    if (spd > HIT_SPD && pd < 0.55 + b.r && player.y < b.y + 1.4 && player.y > b.y - 1.0) {
+      const dmg = Math.round(18 + (b.size || 1) * 16);
+      onHit(dmg, "struck by a boulder");
+      extras._knock = { vx: (b.vx || 0) * 1.15, vz: (b.vz || 0) * 1.15, spd };
+    }
+  }
+}
+
+function tickUltimatums(extras, dt, player, map) {
+  if (!map._ultiClosed || map._ultiClosed.length !== map.w * map.h) map._ultiClosed = new Uint8Array(map.w * map.h);
+  for (const u of extras.ultimatums || []) {
+    if (u.dispelled) continue;
+    const across = (player.x - u.x) * u.nx + (player.z - u.z) * u.nz;
+    const along = (player.x - u.x) * -u.nz + (player.z - u.z) * u.nx;
+    const near = Math.abs(along) < u.halfW + 0.7 && Math.abs(across) < 2.8 && Math.abs(player.y - (u.y0 + 1.2)) < u.hall + 1;
+    const side = across > 0.08 ? 1 : across < -0.08 ? -1 : 0;
+    if (!u.closed && !u.slamming && near && u.prevSide && side && u.prevSide !== side) {
+      u.slamming = true;
+      u.t = 0;
+      u.floorMesh.visible = true;
+      u.ceilMesh.visible = true;
+      try { sfx("slam"); } catch {}
+    }
+    if (side) u.prevSide = side;
+    if (u.slamming) {
+      u.t += dt;
+      const k = Math.min(1, u.t / 0.55);
+      const ease = 1 - Math.pow(1 - k, 3);
+      u.floorMesh.position.y = u.y0 - u.leafH * 0.5 - 0.05 + ease * (u.leafH * 0.5 + 0.05);
+      u.ceilMesh.position.y = u.y0 + u.hall + u.leafH * 0.5 + 0.05 - ease * (u.leafH * 0.5 + 0.05);
+      if (k >= 1) {
+        u.slamming = false;
+        u.closed = true;
+        for (const c of u.cells || []) {
+          if (inBounds(map, c.x, c.z)) map._ultiClosed[idx(map, c.x, c.z)] = 1;
+        }
+      }
+    }
+  }
+}
+
+export function ridgeNear(extras, player, reach) {
+  if (!extras?.ridges?.length) return null;
+  const r = reach || 1.35;
+  let best = null;
+  let bestD = r;
+  for (const rg of extras.ridges) {
+    const d = Math.hypot(player.x - rg.x, player.z - rg.z);
+    if (d > r) continue;
+    if (Math.abs(player.y - rg.y) > 1.05) continue;
+    if (d < bestD) {
+      best = rg;
+      bestD = d;
+    }
+  }
+  return best;
+}
+
+export function dispelUltimatum(u, extras, map) {
+  if (!u || u.dispelled) return;
+  u.dispelled = true;
+  u.closed = false;
+  u.slamming = false;
+  if (u.floorMesh) u.floorMesh.visible = false;
+  if (u.ceilMesh) u.ceilMesh.visible = false;
+  if (map?._ultiClosed) {
+    for (const c of u.cells || []) {
+      if (inBounds(map, c.x, c.z)) map._ultiClosed[idx(map, c.x, c.z)] = 0;
     }
   }
 }
@@ -1673,7 +2094,15 @@ export function tickRubble(extras, dt) {
 
 export function tryUnlock(extras, player, keys) {
   const have = new Set((keys || []).map((k) => k.id || k));
-  for (const d of extras.doors) {
+  let got = null;
+  for (const u of extras.ultimatums || []) {
+    if (u.dispelled) continue;
+    if (have.has(u.id)) {
+      dispelUltimatum(u, extras, extras.map);
+      got = u.id;
+    }
+  }
+  for (const d of extras.doors || []) {
     if (!d.locked || d.open) continue;
     if (Math.hypot(player.x - d.x, player.z - d.z) > 1.6) continue;
     if (d.keyId && have.has(d.keyId)) {
@@ -1685,7 +2114,7 @@ export function tryUnlock(extras, player, keys) {
       return d.keyId;
     }
   }
-  return null;
+  return got;
 }
 
 export function breakWindows(extras, origin, dir, range, parent) {
@@ -1731,6 +2160,39 @@ function spawnDebris(parent, x, y, z, n, col, force) {
   return out;
 }
 
+function destroyArrowsOnWall(extras, gx, gz) {
+  if (!extras?.arrows) return;
+  for (const a of extras.arrows) {
+    if (a.gone) continue;
+    const ax = Math.floor((a.x || 0) / CELL);
+    const az = Math.floor((a.z || 0) / CELL);
+    if (ax !== gx || az !== gz) continue;
+    a.gone = true;
+    a.cool = 9999;
+    if (a.mesh) a.mesh.visible = false;
+  }
+}
+
+function paintStatueCracks(st) {
+  const max = st.maxHp || 12;
+  const t = 1 - Math.max(0, st.hp) / max;
+  const cracks = st.mesh?.userData?.cracks || st.cracks || [];
+  cracks.forEach((m, i) => {
+    const appear = t > (i + 1) / (cracks.length + 1) * 0.35;
+    m.visible = appear;
+    if (m.material) {
+      m.material.transparent = true;
+      m.material.opacity = appear ? Math.min(0.95, 0.25 + t * 0.9) : 0;
+    }
+  });
+  st.mesh?.traverse((o) => {
+    if (o.material && o.material.color && !cracks.includes(o)) {
+      const base = st._base || 0.9;
+      o.material.color?.offsetHSL?.(0, 0, -0.02);
+    }
+  });
+}
+
 export function shatterCracked(extras, map, pos, radius, parent) {
   return hurtBreakables(extras, map, pos, radius, 1, parent);
 }
@@ -1763,7 +2225,23 @@ export function hurtBreakables(extras, map, pos, radius, dmg, parent, hitSet) {
     w.mesh.visible = false;
     if (map?.bwalls && map.bwalls[w.story]) map.bwalls[w.story][idx(map, w.gx, w.gz)] = 0;
     if (map) map._floors = null;
+    destroyArrowsOnWall(extras, w.gx, w.gz);
     if (host) out.push(...spawnDebris(host, wx, wy, wz, 9, 0x6a5a48, 8));
+  }
+  for (const st of extras.statues || []) {
+    if (st.gone || !st.mesh) continue;
+    if (hitSet && hitSet.has(st)) continue;
+    const dx = st.x - pos.x;
+    const dy = (st.y + 0.8) - pos.y;
+    const dz = st.z - pos.z;
+    if (dx * dx + dy * dy + dz * dz > (r + 0.55) * (r + 0.55)) continue;
+    if (hitSet) hitSet.add(st);
+    st.hp = (st.hp == null ? 12 : st.hp) - hit;
+    paintStatueCracks(st);
+    if (st.hp > 0) continue;
+    st.gone = true;
+    st.mesh.visible = false;
+    if (host) out.push(...spawnDebris(host, st.x, st.y + 0.7, st.z, 14, 0x9a968c, 10));
   }
   for (const b of extras.boulders || []) {
     if (b.gone || !b.mesh) continue;

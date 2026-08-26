@@ -1,5 +1,5 @@
 /** Local + remote map persistence. */
-import { deserialize, serialize } from "./map.js?v=zm5";
+import { deserialize, serialize } from "./map.js?v=zm6";
 
 const LS = "zoom.maps.v1";
 const API = "/api/zoom/maps";

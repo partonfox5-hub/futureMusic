@@ -1,9 +1,10 @@
 /** Procedural colored robots with movement + attack styles. */
 import * as THREE from "three";
-import { ENEMIES, ENEMY_BY_ID } from "./config.js?v=zm5";
-import { hurtFoe } from "./weapons.js?v=zm5";
-import { floorY, sdf3 } from "./map.js?v=zm5";
-import { sfx } from "./sfx.js?v=zm5";
+import { ENEMIES, ENEMY_BY_ID } from "./config.js?v=zm6";
+import { hurtFoe } from "./weapons.js?v=zm6";
+import { floorY, sdf3 } from "./map.js?v=zm6";
+import { wallBlocked } from "./world.js?v=zm6";
+import { sfx } from "./sfx.js?v=zm6";
 
 function mat(hex, extra) {
   return new THREE.MeshLambertMaterial({ color: hex, emissive: hex, emissiveIntensity: 0.18, ...extra });
@@ -248,11 +249,40 @@ export function tickRobots(foes, dt, player, map, sdf2, onHit, scene, shots, fir
         mz = (dz / dist) * spd * 0.7;
         f.position.y += Math.sin(u.phase * 3) * 0.01;
       } else if (mv === "charge") {
-        if (dist < 15 && !u.aggro) { u.aggro = true; sfx("roar"); }
-        if (dist < 15) u.aggro = true;
-        const run = u.aggro ? spd * 4.1 : spd * 0.55;
-        mx = (dx / dist) * run;
-        mz = (dz / dist) * run;
+        let see = dist < 18;
+        if (see) {
+          const n = Math.max(2, Math.ceil(dist / 0.65));
+          for (let i = 1; i < n; i++) {
+            const t = i / n;
+            const sx = f.position.x + dx * t;
+            const sz = f.position.z + dz * t;
+            const sy = f.position.y + 1.15;
+            if (sdf3(sx, sy, sz, map, sdf2) > -0.05 || wallBlocked(map, sx, sz, sy)) {
+              see = false;
+              break;
+            }
+          }
+        }
+        if (see) {
+          if (!u.aggro) {
+            u.aggro = true;
+            if (u.def?.id === "minotaur" || u.def?.model === "minotaur") sfx("roar");
+          }
+          u.aware = true;
+        } else if (u.aware && dist > 26) {
+          u.aware = false;
+          u.aggro = false;
+        }
+        if (u.aware) {
+          const run = spd * 4.1;
+          mx = (dx / dist) * run;
+          mz = (dz / dist) * run;
+          u.running = true;
+        } else {
+          u.running = false;
+          mx = Math.cos(u.phase * 0.55) * spd * 0.45;
+          mz = Math.sin(u.phase * 0.55) * spd * 0.45;
+        }
       } else if (mv === "weave") {
         if (!u.baseY) u.baseY = f.position.y + 1.35;
         mx = (dx / dist) * spd * 0.45 + Math.cos(u.phase * 2.6) * spd * 1.25;

@@ -1,6 +1,6 @@
 /** Coin/gem showers, chime, wrist gold counter. */
 import * as THREE from "three";
-import { LOOT } from "./config.js?v=zm5";
+import { LOOT } from "./config.js?v=zm6";
 
 const LS = "zoom.gold";
 const TEX = {};
@@ -70,7 +70,7 @@ export function lootForEnemy(def) {
   return drops;
 }
 
-function makePsyOrbTex() {
+export function makePsyOrbTex() {
   if (makePsyOrbTex._t) return makePsyOrbTex._t;
   const c = document.createElement("canvas");
   c.width = c.height = 64;
@@ -88,6 +88,66 @@ function makePsyOrbTex() {
   return t;
 }
 
+export function makePsyOrbMesh() {
+  const g = new THREE.Group();
+  const spr = new THREE.Sprite(
+    new THREE.SpriteMaterial({
+      map: makePsyOrbTex(),
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    }),
+  );
+  spr.scale.set(0.44, 0.44, 1);
+  g.add(spr);
+  const core = new THREE.Mesh(
+    new THREE.SphereGeometry(0.09, 12, 10),
+    new THREE.MeshBasicMaterial({ color: 0xc8b8ff, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false }),
+  );
+  g.add(core);
+  g.add(new THREE.PointLight(0x88a0ff, 0.9, 3.8));
+  g.userData.pickup = "psyorb";
+  return g;
+}
+
+export function makeAsteriskMesh() {
+  const g = new THREE.Group();
+  const mat = new THREE.MeshBasicMaterial({
+    color: 0xc8ff88,
+    transparent: true,
+    opacity: 0.92,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+  });
+  for (let i = 0; i < 6; i++) {
+    const arm = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.58, 0.055), mat);
+    arm.rotation.z = (i / 6) * Math.PI;
+    g.add(arm);
+  }
+  for (let i = 0; i < 4; i++) {
+    const arm = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.4, 0.04), mat);
+    arm.rotation.x = 0.85;
+    arm.rotation.z = i * 0.8 + 0.3;
+    g.add(arm);
+  }
+  const haze = new THREE.Sprite(
+    new THREE.SpriteMaterial({
+      map: makePsyOrbTex(),
+      color: 0xa8ff66,
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      opacity: 0.55,
+    }),
+  );
+  haze.scale.set(0.7, 0.7, 1);
+  g.add(haze);
+  g.add(new THREE.PointLight(0xa8ff66, 1.35, 5));
+  g.userData.pickup = "asterisk";
+  g.userData.float = true;
+  return g;
+}
+
 export function showerLoot(scene, list, x, y, z, kinds, floorYval) {
   const ground = floorYval != null && floorYval > -500 ? floorYval : y - 1.1;
   for (const id of kinds) {
@@ -97,6 +157,9 @@ export function showerLoot(scene, list, x, y, z, kinds, floorYval) {
     if (id === "psyorb") {
       spr = new THREE.Sprite(new THREE.SpriteMaterial({ map: makePsyOrbTex(), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
       s = 0.38;
+    } else if (id === "asterisk") {
+      spr = makeAsteriskMesh();
+      s = 0.55;
     } else {
       const def = LOOT.find((l) => l.id === id);
       if (!def) continue;
@@ -119,7 +182,7 @@ export function showerLoot(scene, list, x, y, z, kinds, floorYval) {
       life: 8,
       taken: false,
       floor: ground,
-      rest: Math.max(0.035, s * 0.42),
+      rest: id === "asterisk" ? 1.45 : Math.max(0.035, s * 0.42),
     });
   }
 }
@@ -145,7 +208,9 @@ export function tickLoot(list, dt, player, onPickup) {
       L.vz *= 0.7;
       if (Math.abs(L.vy) < 1.2) L.vy = 0;
     }
-    L.mesh.material.rotation = (L.mesh.material.rotation || 0) + dt * 3;
+    if (L.mesh.material) L.mesh.material.rotation = (L.mesh.material.rotation || 0) + dt * 3;
+    else L.mesh.rotation.y += dt * 1.8;
+    if (L.id === "asterisk") L.mesh.rotation.z += dt * 0.9;
     const d = Math.hypot(L.mesh.position.x - px, L.mesh.position.z - pz);
     const dy = Math.abs(L.mesh.position.y - (py - 0.6));
     const mag = 1.85;
@@ -159,6 +224,7 @@ export function tickLoot(list, dt, player, onPickup) {
     if (d < 0.95 && dy < 1.4) {
       L.taken = true;
       if (L.id === "psyorb") chime(90);
+      else if (L.id === "asterisk") chime(1320);
       else chime(L.value);
       onPickup(L);
       L.mesh.removeFromParent();

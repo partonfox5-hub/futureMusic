@@ -6,6 +6,7 @@ import {
   FLAG_COLLAPSE,
   FLAG_CROUCH,
   FLAG_HOVER,
+  FLAG_SLOPE,
   FLAG_SPIKE,
   LIQ_LAVA,
   MAP_H,
@@ -17,7 +18,7 @@ import {
   SHAPE_SPHERE,
   STORIES,
   WALL_CRACK,
-} from "./config.js?v=zm5";
+} from "./config.js?v=zm6";
 
 export { CELL };
 
@@ -86,6 +87,8 @@ export function blankMap(name = "Untitled", w = MAP_W, h = MAP_H) {
     boulders: [],
     vendors: [],
     npcs: [],
+    ridges: [],
+    ultimatums: [],
     start: { x: (w * 0.5) * CELL, z: (h * 0.5) * CELL, yaw: 0 },
     updated: Date.now(),
   };
@@ -159,6 +162,8 @@ export function serialize(map) {
     boulders: map.boulders || [],
     vendors: map.vendors || [],
     npcs: map.npcs || [],
+    ridges: map.ridges || [],
+    ultimatums: map.ultimatums || [],
     start: map.start,
     updated: map.updated || Date.now(),
   };
@@ -191,6 +196,8 @@ export function ensureLayers(map) {
   map.boulders ||= [];
   map.vendors ||= [];
   map.npcs ||= [];
+  map.ridges ||= [];
+  map.ultimatums ||= [];
   if (!map.collapsed || map.collapsed.length !== n) map.collapsed = new Uint8Array(n);
   return map;
 }
@@ -229,6 +236,8 @@ export function deserialize(raw) {
     boulders: Array.isArray(o.boulders) ? o.boulders.map((x) => ({ ...x })) : [],
     vendors: Array.isArray(o.vendors) ? o.vendors.map((x) => ({ ...x })) : [],
     npcs: Array.isArray(o.npcs) ? o.npcs.map((x) => ({ ...x, options: Array.isArray(x.options) ? x.options.map((op) => ({ ...op, options: Array.isArray(op.options) ? op.options.map((n) => ({ ...n })) : [] })) : [] })) : [],
+    ridges: Array.isArray(o.ridges) ? o.ridges.map((x) => ({ ...x })) : [],
+    ultimatums: Array.isArray(o.ultimatums) ? o.ultimatums.map((x) => ({ ...x, cells: Array.isArray(x.cells) ? x.cells.map((c) => ({ ...c })) : [] })) : [],
     start: o.start ? { ...o.start } : { x: w * 0.5 * CELL, z: h * 0.5 * CELL, yaw: 0 },
     updated: o.updated || Date.now(),
   });
@@ -387,6 +396,11 @@ export function eraseNear(map, x, z, r) {
   map.boulders = (map.boulders || []).filter((o) => Math.hypot(o.x - x, o.z - z) > r);
   map.vendors = (map.vendors || []).filter((o) => Math.hypot(o.x - x, o.z - z) > r);
   map.npcs = (map.npcs || []).filter((o) => Math.hypot(o.x - x, o.z - z) > r);
+  map.ridges = (map.ridges || []).filter((o) => Math.hypot(o.x - x, o.z - z) > r);
+  map.ultimatums = (map.ultimatums || []).map((u) => {
+    const cells = (u.cells || []).filter((c) => Math.hypot((c.x + 0.5) * CELL - x, (c.z + 0.5) * CELL - z) > r);
+    return { ...u, cells };
+  }).filter((u) => (u.cells && u.cells.length) || Math.hypot((u.x || 0) - x, (u.z || 0) - z) > r);
   map.openings = map.openings.filter((o) => Math.hypot((o.x + 0.5) * CELL - x, (o.z + 0.5) * CELL - z) > r);
   map.arrows = (map.arrows || []).filter((o) => Math.hypot(o.x - x, o.z - z) > r);
 }
@@ -431,6 +445,11 @@ export function resizeMap(map, w, h) {
   next.boulders = copyList(map.boulders);
   next.vendors = copyList(map.vendors);
   next.npcs = copyList(map.npcs);
+  next.ridges = copyList(map.ridges);
+  next.ultimatums = (map.ultimatums || []).map((u) => ({
+    ...u,
+    cells: (u.cells || []).filter((c) => c.x >= 0 && c.z >= 0 && c.x < w && c.z < h),
+  })).filter((u) => u.cells && u.cells.length);
   next.openings = (map.openings || []).filter((o) => o.x >= 0 && o.z >= 0 && o.x < w && o.z < h);
   next.portals = (map.portals || []).filter((p) => inW(p.ax, p.az) && inW(p.bx, p.bz));
   if (map.start && inW(map.start.x, map.start.z)) next.start = { ...map.start };
@@ -473,6 +492,89 @@ export function stampCrack(arr, map, cx, cz, radius, tex) {
       arr[i] = packWall(wallTexId(cur) || tex || 1, true);
     }
   }
+}
+
+export function uid(prefix = "u") {
+  return prefix + Math.random().toString(36).slice(2, 10);
+}
+
+function cellFloorY(map, i) {
+  let y = ((map.elev && map.elev[i]) || 0) * EYE;
+  if (map.flags && (map.flags[i] & FLAG_SPIKE) && !(map.flags[i] & FLAG_SLOPE)) y -= 1.45;
+  return y;
+}
+
+/** Interpolate slope-cell heights from neighboring non-slope banks. */
+export function bakeSlopes(map) {
+  ensureLayers(map);
+  const n = map.w * map.h;
+  const y = new Float32Array(n);
+  for (let i = 0; i < n; i++) y[i] = cellFloorY(map, i);
+  const dirs = [
+    [1, 0],
+    [-1, 0],
+    [0, 1],
+    [0, -1],
+    [1, 1],
+    [1, -1],
+    [-1, 1],
+    [-1, -1],
+  ];
+  for (let z = 0; z < map.h; z++) {
+    for (let x = 0; x < map.w; x++) {
+      const i = z * map.w + x;
+      if (!(map.flags[i] & FLAG_SLOPE)) continue;
+      if (!isCarved(map.cells[i])) continue;
+      let wsum = 0;
+      let ysum = 0;
+      for (const [dx, dz] of dirs) {
+        for (let k = 1; k <= 28; k++) {
+          const nx = x + dx * k;
+          const nz = z + dz * k;
+          if (!inBounds(map, nx, nz)) break;
+          const j = nz * map.w + nx;
+          if (!isCarved(map.cells[j])) continue;
+          if (map.flags[j] & FLAG_SLOPE) continue;
+          const d = k * (dx && dz ? 1.414 : 1);
+          const w = 1 / (d * d);
+          ysum += y[j] * w;
+          wsum += w;
+          break;
+        }
+      }
+      if (wsum > 0) y[i] = ysum / wsum;
+    }
+  }
+  map._slopeY = y;
+  return y;
+}
+
+export function terrainY(map, wx, wz) {
+  if (!map._slopeY || map._slopeY.length !== map.w * map.h) bakeSlopes(map);
+  const gx = wx / CELL - 0.5;
+  const gz = wz / CELL - 0.5;
+  const x = Math.max(0, Math.min(map.w - 1.001, gx));
+  const z = Math.max(0, Math.min(map.h - 1.001, gz));
+  const x0 = Math.floor(x);
+  const z0 = Math.floor(z);
+  const x1 = Math.min(map.w - 1, x0 + 1);
+  const z1 = Math.min(map.h - 1, z0 + 1);
+  const tx = x - x0;
+  const tz = z - z0;
+  const Y = map._slopeY;
+  const a = Y[z0 * map.w + x0];
+  const b = Y[z0 * map.w + x1];
+  const c = Y[z1 * map.w + x0];
+  const d = Y[z1 * map.w + x1];
+  return a * (1 - tx) * (1 - tz) + b * tx * (1 - tz) + c * (1 - tx) * tz + d * tx * tz;
+}
+
+export function slopeGrad(map, wx, wz) {
+  const e = 0.22;
+  return {
+    gx: (terrainY(map, wx + e, wz) - terrainY(map, wx - e, wz)) / (2 * e),
+    gz: (terrainY(map, wx, wz + e) - terrainY(map, wx, wz - e)) / (2 * e),
+  };
 }
 
 export function stampFlags(map, cx, cz, radius, bit, on) {
@@ -601,14 +703,13 @@ export function sdf3(x, y, z, map, sdf2) {
   let dmin = 1e6;
   const spheres = map.spheres || [];
   const ci = cellI(map, x, z);
-  const elev = (map.elev && map.elev[ci]) || 0;
-  const y0 = elev * EYE;
   const spike = map.flags && map.flags[ci] & FLAG_SPIKE;
   const crouch = map.flags && map.flags[ci] & FLAG_CROUCH;
   const hover = map.flags && map.flags[ci] & FLAG_HOVER;
   const sky = map.sky && map.sky[ci];
   const lava = map.liquid && map.liquid[ci] === LIQ_LAVA;
-  const floor = hover ? 0.05 : y0 - (spike ? 1.45 : 0);
+  const y0 = hover ? ((map.elev && map.elev[ci]) || 0) * EYE : terrainY(map, x, z);
+  const floor = hover ? 0.05 : y0;
   for (let i = 0; i < spheres.length; i++) {
     const s = spheres[i];
     const cy = (s.cy != null ? s.cy : s.r * 0.55) + y0;
@@ -689,7 +790,8 @@ export function floorY(x, z, map, sdf2, ymax, atY) {
     if (hint > slabTop - 0.45) return slabTop;
     return 0.05;
   }
-  const y0 = elev * EYE - (map.flags && map.flags[ci] & FLAG_SPIKE ? 1.45 : 0);
+  if (map.flags && map.flags[ci] & FLAG_SLOPE) return terrainY(map, x, z);
+  const y0 = terrainY(map, x, z);
   const sky = map.sky && map.sky[ci];
   const lava = map.liquid && map.liquid[ci] === LIQ_LAVA;
   const spikeHere = map.flags && map.flags[ci] & FLAG_SPIKE;

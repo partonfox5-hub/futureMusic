@@ -1,7 +1,8 @@
 /** Weapon models, lasers/plasma, burn marks, pickups. */
 import * as THREE from "three";
-import { PICKUP_BY_ID, WEAPON_BY_ID, WEAPONS } from "./config.js?v=zm5";
-import { hurtBreakables, hurtTurrets, impulseBoulders, smashGlass } from "./world.js?v=zm5";
+import { PICKUP_BY_ID, WEAPON_BY_ID, WEAPONS } from "./config.js?v=zm6";
+import { hurtBreakables, hurtTurrets, impulseBoulders, smashGlass } from "./world.js?v=zm6";
+import { makeAsteriskMesh, makePsyOrbMesh } from "./loot.js?v=zm6";
 
 function mat(hex, extra) {
   return new THREE.MeshLambertMaterial({ color: hex, ...extra });
@@ -230,6 +231,11 @@ export function makePickup(kind) {
     g.add(new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.04, 0.06), mat(0xffffff)));
   } else if (kind === "lantern") {
     g.add(new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 0.22, 8), mat(0xffcc66, { emissive: 0xffaa22 })));
+  } else if (kind === "psyorb") {
+    g.add(makePsyOrbMesh());
+  } else if (kind === "asterisk") {
+    g.add(makeAsteriskMesh());
+    g.userData.float = true;
   } else if (kind === "shield") {
     g.add(new THREE.Mesh(new THREE.SphereGeometry(0.16, 10, 8), mat(0x66aaff, { transparent: true, opacity: 0.7, emissive: 0x2244aa })));
   } else if (kind === "bomb") {

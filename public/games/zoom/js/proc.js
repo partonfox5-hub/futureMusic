@@ -1,6 +1,6 @@
 /** Random dungeon generator. */
-import { CELL, ENEMIES, PICKUPS, SHAPE_FLAT, SHAPE_OVAL, SHAPE_ROUND, SHAPE_SPHERE } from "./config.js?v=zm5";
-import { addSphere, blankMap, pack, stampRect } from "./map.js?v=zm5";
+import { CELL, ENEMIES, PICKUPS, SHAPE_FLAT, SHAPE_OVAL, SHAPE_ROUND, SHAPE_SPHERE } from "./config.js?v=zm6";
+import { addSphere, blankMap, pack, stampRect } from "./map.js?v=zm6";
 
 function rand(a, b) {
   return a + Math.random() * (b - a);

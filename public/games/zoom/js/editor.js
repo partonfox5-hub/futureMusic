@@ -6,6 +6,7 @@ import {
   FLAG_CROUCH,
   FLAG_HOVER,
   FLAG_RUMBLE,
+  FLAG_SLOPE,
   FLAG_SPIKE,
   FLAG_UNSTABLE,
   LIQ_LAVA,
@@ -21,8 +22,8 @@ import {
   SHAPES,
   WALL_TEX,
   routes,
-} from "./config.js?v=zm5";
-import { bakedMaps } from "./defaults.js?v=zm5";
+} from "./config.js?v=zm6";
+import { bakedMaps } from "./defaults.js?v=zm6";
 import {
   addSphere,
   blankMap,
@@ -48,11 +49,12 @@ import {
   stampLayer,
   stampRect,
   stampSegment,
+  uid,
   wallIsCrack,
   wallTexId,
-} from "./map.js?v=zm5";
-import { deleteMap, getMap, listMaps, saveMap, stashPreview } from "./store.js?v=zm5";
-import { defaultNpc } from "./npcs.js?v=zm5";
+} from "./map.js?v=zm6";
+import { deleteMap, getMap, listMaps, saveMap, stashPreview } from "./store.js?v=zm6";
+import { defaultNpc } from "./npcs.js?v=zm6";
 
 const $ = (id) => document.getElementById(id);
 
@@ -83,6 +85,9 @@ let undo = [];
 let pendingPortal = null;
 let pendingKey = null;
 let climbFrom = 0;
+let boulderSize = 1;
+let ridgeElev = 1;
+let pendingUlti = null;
 
 const canvas = $("view");
 const ctx = canvas.getContext("2d");
@@ -210,6 +215,14 @@ function drawCell(x, z) {
       ctx.fillStyle = "rgba(180,70,40,0.45)";
       ctx.fillRect(x + 0.2, z + 0.2, 0.6, 0.6);
     }
+    if (map.flags && map.flags[i] & FLAG_SLOPE) {
+      ctx.strokeStyle = "rgba(200,160,80,0.9)";
+      ctx.lineWidth = 0.08;
+      ctx.beginPath();
+      ctx.moveTo(x + 0.1, z + 0.85);
+      ctx.lineTo(x + 0.9, z + 0.15);
+      ctx.stroke();
+    }
     if (map.sky && map.sky[i]) {
       ctx.fillStyle = "rgba(140,190,255,0.28)";
       ctx.fillRect(x, z, 1, 1);
@@ -307,7 +320,7 @@ function draw() {
     ctx.stroke();
   });
   for (const t of map.turrets) {
-    ctx.fillStyle = "#c33";
+    ctx.fillStyle = t.kind === "gun" ? "#c8a050" : "#c33";
     ctx.fillRect(t.x / CELL - 0.3, t.z / CELL - 0.3, 0.6, 0.6);
   }
   for (const a of map.arrows || []) {
@@ -329,7 +342,7 @@ function draw() {
   for (const b of map.boulders || []) {
     ctx.fillStyle = "#8a7060";
     ctx.beginPath();
-    ctx.arc(b.x / CELL, b.z / CELL, 0.45, 0, 6.28);
+    ctx.arc(b.x / CELL, b.z / CELL, 0.32 + (b.size || 1) * 0.18, 0, 6.28);
     ctx.fill();
     ctx.strokeStyle = "#ffcc66";
     ctx.lineWidth = 0.1;
@@ -358,11 +371,29 @@ function draw() {
     ctx.fillText((n.name || "NPC").slice(0, 10), n.x / CELL - 0.4, n.z / CELL - 0.45);
   }
   for (const r of map.ropes) {
-    ctx.strokeStyle = "#6a4424";
+    ctx.strokeStyle = r.kind === "chain" ? "#9aa2aa" : "#6a4424";
+    ctx.lineWidth = r.kind === "chain" ? 0.14 : 0.08;
     ctx.beginPath();
     ctx.moveTo(r.x / CELL, r.z / CELL);
     ctx.lineTo(r.x / CELL, r.z / CELL + 0.7);
     ctx.stroke();
+  }
+  for (const rg of map.ridges || []) {
+    ctx.strokeStyle = "#c4a070";
+    ctx.lineWidth = 0.12;
+    ctx.beginPath();
+    ctx.moveTo(rg.x / CELL - 0.4, rg.z / CELL);
+    ctx.lineTo(rg.x / CELL + 0.4, rg.z / CELL);
+    ctx.stroke();
+    ctx.fillStyle = "#ffe08a";
+    ctx.fillRect(rg.x / CELL - 0.12, rg.z / CELL - 0.12, 0.24, 0.24);
+  }
+  for (const u of map.ultimatums || []) {
+    ctx.fillStyle = "rgba(232,196,32,0.45)";
+    for (const c of u.cells || []) ctx.fillRect(c.x + 0.15, c.z + 0.15, 0.7, 0.7);
+    ctx.strokeStyle = "#e8c420";
+    ctx.lineWidth = 0.1;
+    ctx.strokeRect((u.cells?.[0]?.x || 0) + 0.1, (u.cells?.[0]?.z || 0) + 0.1, 0.8, 0.8);
   }
   for (const cl of map.climbs || []) {
     ctx.strokeStyle = cl.kind === "ladder" ? "#c8a070" : "#e2c070";
@@ -464,7 +495,7 @@ canvas.addEventListener("pointerdown", (ev) => {
   }
   const c = cellFromEvent(ev);
   last = c;
-  if (["dig", "erase", "sphere", "paint", "crouch", "spike", "sky", "elev", "water", "lava", "wall", "crack", "unstable", "rumble", "hover", "collapse"].includes(tool)) {
+  if (["dig", "erase", "sphere", "paint", "crouch", "spike", "sky", "elev", "water", "lava", "wall", "crack", "unstable", "rumble", "hover", "collapse", "slope", "ultimatum"].includes(tool)) {
     pushUndo();
     drawing = true;
     strokeAt(c, true);
@@ -481,7 +512,17 @@ canvas.addEventListener("pointerdown", (ev) => {
   } else if (tool === "object") {
     const hit = hitAt(c);
     if (hit && hit.type === "obj") selected = hit;
-    else {
+    else if (objKind === "walllamp") {
+      const snapped = snapArrow(c);
+      if (!snapped) {
+        status("Place wall lamps on a wall or hall edge");
+        return;
+      }
+      pushUndo();
+      map.objects.push({ kind: "walllamp", x: snapped.x, z: snapped.z, s: objScale, rot: snapped.yaw });
+      selected = { type: "obj", i: map.objects.length - 1 };
+      status("Wall lamp");
+    } else {
       pushUndo();
       map.objects.push({ kind: objKind, x: c.wx, z: c.wz, s: objScale, rot: 0 });
       selected = { type: "obj", i: map.objects.length - 1 };
@@ -516,9 +557,21 @@ canvas.addEventListener("pointerdown", (ev) => {
     drawing = true;
     status("Spawn set — drag to face");
     draw();
-  } else if (tool === "rope") {
+  } else if (tool === "rope" || tool === "chain") {
     pushUndo();
-    map.ropes.push({ x: c.wx, z: c.wz, len: 4.5 });
+    map.ropes.push({ x: c.wx, z: c.wz, len: 4.5, kind: tool === "chain" ? "chain" : "rope" });
+    status(tool === "chain" ? "Chain" : "Rope");
+    draw();
+  } else if (tool === "ridge") {
+    const snapped = snapArrow(c);
+    if (!snapped) {
+      status("Place ridges on a wall or hall edge");
+      return;
+    }
+    pushUndo();
+    map.ridges = map.ridges || [];
+    map.ridges.push({ x: snapped.x, z: snapped.z, yaw: snapped.yaw, elev: ridgeElev });
+    status("Ridge at height " + ridgeElev);
     draw();
   } else if (tool === "minotaur" || tool === "drone") {
     pushUndo();
@@ -527,9 +580,10 @@ canvas.addEventListener("pointerdown", (ev) => {
     selected = { type: "spawner", i: map.spawners.length - 1 };
     status(tool === "minotaur" ? "Minotaur" : "Sentry drone");
     draw();
-  } else if (tool === "turret") {
+  } else if (tool === "turret" || tool === "gunturret") {
     pushUndo();
-    map.turrets.push({ x: c.wx, z: c.wz });
+    map.turrets.push({ x: c.wx, z: c.wz, kind: tool === "gunturret" ? "gun" : "flame" });
+    status(tool === "gunturret" ? "Gun turret" : "Flame turret");
     draw();
   } else if (tool === "arrow") {
     const snapped = snapArrow(c);
@@ -549,7 +603,7 @@ canvas.addEventListener("pointerdown", (ev) => {
   } else if (tool === "boulder") {
     pushUndo();
     map.boulders = map.boulders || [];
-    map.boulders.push({ x: c.wx, z: c.wz, yaw: 0, trigger: 3.2 });
+    map.boulders.push({ x: c.wx, z: c.wz, yaw: 0, trigger: 3.2, size: boulderSize });
     selected = { type: "boulder", i: map.boulders.length - 1 };
     drawing = true;
     status("Boulder set — drag to aim roll direction");
@@ -655,6 +709,20 @@ function strokeAt(c, first) {
     stampDisk(map, c.x, c.z, brush, shape, tex, false);
     stampFlags(map, c.x, c.z, brush, FLAG_HOVER, true);
     stampLayer(map.elev, map, c.x, c.z, brush, elev);
+  } else if (tool === "slope") {
+    stampDisk(map, c.x, c.z, brush, SHAPE_FLAT, tex, false);
+    stampFlags(map, c.x, c.z, brush, FLAG_SLOPE, true);
+  } else if (tool === "ultimatum") {
+    const gx = Math.floor(c.x);
+    const gz = Math.floor(c.z);
+    if (!inBounds(map, gx, gz)) return;
+    map.ultimatums = map.ultimatums || [];
+    if (!pendingUlti) {
+      pendingUlti = { id: uid("u"), cells: [] };
+      map.ultimatums.push(pendingUlti);
+    }
+    if (!pendingUlti.cells.some((p) => p.x === gx && p.z === gz)) pendingUlti.cells.push({ x: gx, z: gz });
+    refreshUltiList();
   } else if (tool === "collapse") {
     stampDisk(map, c.x, c.z, brush, shape, tex, false);
     stampFlags(map, c.x, c.z, brush, FLAG_COLLAPSE, true);
@@ -680,7 +748,7 @@ function strokeAt(c, first) {
       eraseNear(map, c.wx, c.wz, brush * CELL * 0.6);
       stampLayer(map.liquid, map, c.x, c.z, brush, LIQ_NONE);
       stampLayer(map.sky, map, c.x, c.z, brush, 0);
-      stampFlags(map, c.x, c.z, brush, FLAG_SPIKE | FLAG_CROUCH | FLAG_UNSTABLE | FLAG_RUMBLE | FLAG_COLLAPSE | FLAG_HOVER, false);
+      stampFlags(map, c.x, c.z, brush, FLAG_SPIKE | FLAG_CROUCH | FLAG_UNSTABLE | FLAG_RUMBLE | FLAG_COLLAPSE | FLAG_HOVER | FLAG_SLOPE, false);
     }
     shape = prev;
   }
@@ -723,7 +791,7 @@ canvas.addEventListener("pointermove", (ev) => {
     }
     return;
   }
-  if (["dig", "erase", "sphere", "paint", "crouch", "spike", "sky", "elev", "water", "lava", "wall", "crack", "unstable", "rumble", "hover", "collapse"].includes(tool)) {
+  if (["dig", "erase", "sphere", "paint", "crouch", "spike", "sky", "elev", "water", "lava", "wall", "crack", "unstable", "rumble", "hover", "collapse", "slope", "ultimatum"].includes(tool)) {
     strokeAt(c, false);
     last = c;
     draw();
@@ -737,6 +805,11 @@ function endDraw() {
   if ((tool === "rect" || tool === "outline") && rectA && last) {
     stampRect(map, rectA.x, rectA.z, last.x, last.z, brush, shape, tex, false, tool === "outline");
   }
+  if (tool === "ultimatum" && pendingUlti && pendingUlti.cells.length) {
+    status("Ultimatum door " + pendingUlti.id.slice(0, 6) + " — use the list to place its recovery key");
+    refreshUltiList();
+  }
+  pendingUlti = null;
   rectA = null;
   last = null;
   draw();
@@ -825,8 +898,13 @@ function setTool(t) {
     crouch: "Low tunnels. Player must crouch (C) to pass.",
     spike: "Spike pits. Jump them or die. Ceiling rises so you can vault them.",
     unstable: "Paint a ceiling that collapses around anyone who walks under it.",
-    boulder: "Click to place a rolling boulder, then drag to set the roll direction. It starts when the player enters the trigger ring.",
-    minotaur: "Place a minotaur. Walks slowly, then charges when it sees the player.",
+    boulder: "Click to place a rolling boulder, then drag to set the roll direction. Size is set with the slider. It rolls down slopes and knocks the player back when fast.",
+    minotaur: "Place a minotaur. Walks slowly until it sees you, then roars and charges.",
+    chain: "Hanging chain. Same grip as rope, metal clink, looks like links.",
+    slope: "Paint a stripe between two elevation levels. The ramp is calculated from those heights and the distance.",
+    ridge: "Wall ledge. Set elevation, snap to a wall. Grip to stick, triggers to inch across.",
+    ultimatum: "Draw across a hallway. After the player passes, lab doors slam shut. Place a recovery key from the list.",
+    gunturret: "Machine-gun turret. Same tracking as flame, 30% more range, 5 second reload.",
     drone: "Place a flying sentry drone. It weaves through vertical space and fires lasers.",
     rumble: "Paint invisible rumble tiles. Walking over them shakes the camera and controllers.",
     hover: "Short floating slabs. Set elevation, then paint. Open air under them so you can walk beneath.",
@@ -892,6 +970,35 @@ $("elev").addEventListener("input", () => {
   elev = +$("elev").value;
   $("elev-v").textContent = String(elev);
 });
+if ($("bsize")) {
+  $("bsize").addEventListener("input", () => {
+    boulderSize = +$("bsize").value;
+    $("bsize-v").textContent = boulderSize.toFixed(2);
+  });
+}
+if ($("ridge-elev")) {
+  $("ridge-elev").addEventListener("input", () => {
+    ridgeElev = +$("ridge-elev").value;
+    if ($("ridge-v")) $("ridge-v").textContent = String(ridgeElev);
+  });
+}
+
+function refreshUltiList() {
+  const host = $("ulti-list");
+  if (!host) return;
+  const list = map.ultimatums || [];
+  host.innerHTML = list.length
+    ? list.map((u, i) => `<div class="row"><span>Door ${i + 1}</span><button type="button" data-ukey="${u.id}">Place recovery key</button></div>`).join("")
+    : "<p class='hint'>No ultimatum doors yet.</p>";
+  host.querySelectorAll("[data-ukey]").forEach((b) => {
+    b.addEventListener("click", () => {
+      pendingKey = b.dataset.ukey;
+      setTool("key");
+      if ($("key-hint")) $("key-hint").textContent = "Click to drop the recovery key for door " + b.dataset.ukey.slice(0, 6);
+      status("Place recovery key for " + b.dataset.ukey.slice(0, 6));
+    });
+  });
+}
 if ($("msize")) {
   $("msize").addEventListener("input", () => {
     const n = +$("msize").value;
@@ -937,6 +1044,9 @@ function syncSliders() {
   $("hall").value = map.hallH || 4.2;
   $("oscale-v").textContent = objScale.toFixed(2);
   $("elev-v").textContent = String(elev);
+  if ($("bsize-v")) $("bsize-v").textContent = boulderSize.toFixed(2);
+  if ($("ridge-v")) $("ridge-v").textContent = String(ridgeElev);
+  refreshUltiList();
   $("sp-int-v").textContent = spawnInterval.toFixed(1) + "s";
   $("sp-rad-v").textContent = spawnRadius.toFixed(1);
   $("sp-max-v").textContent = String(spawnMax);

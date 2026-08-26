@@ -135,6 +135,16 @@ const FN = {
     noise(0.22, 0.14, 160);
     beep("sawtooth", 90, 0.24, 0.1, 40);
   },
+  clink() {
+    beep("triangle", 720, 0.06, 0.07, 420);
+    beep("square", 380, 0.08, 0.05, 180);
+    noise(0.07, 0.05, 1800);
+  },
+  slam() {
+    noise(0.32, 0.16, 90);
+    beep("sine", 48, 0.4, 0.14, 28);
+    beep("square", 110, 0.12, 0.06, 50);
+  },
   oof() {
     playOof();
     beep("sine", 180, 0.16, 0.08, 70);
