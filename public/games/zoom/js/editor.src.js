@@ -23,8 +23,8 @@ import {
   SHAPES,
   WALL_TEX,
   routes,
-} from "./config.js?v=zm9";
-import { bakedMaps } from "./defaults.js?v=zm9";
+} from "./config.js?v=zm10";
+import { bakedMaps } from "./defaults.js?v=zm10";
 import {
   addSphere,
   blankMap,
@@ -53,9 +53,9 @@ import {
   uid,
   wallIsCrack,
   wallTexId,
-} from "./map.js?v=zm9";
-import { deleteMap, getMap, listMaps, saveMap, stashPreview } from "./store.js?v=zm9";
-import { defaultNpc } from "./npcs.js?v=zm9";
+} from "./map.js?v=zm10";
+import { deleteMap, getMap, listMaps, saveMap, stashPreview } from "./store.js?v=zm10";
+import { defaultNpc } from "./npcs.js?v=zm10";
 
 const $ = (id) => document.getElementById(id);
 
@@ -1125,14 +1125,15 @@ $("map-name").addEventListener("input", () => (map.name = $("map-name").value ||
 $("save").addEventListener("click", async () => {
   map.name = $("map-name").value || "Untitled";
   const r = await saveMap(map);
-  if (r.remote) status("Saved to Zoom — headset will load this version");
-  else if (r.ok) status("Saved on this device only — Save again for the headset");
+  if (r.remote) status("Saved r" + (map.rev || r.body?.rev || "") + " to Zoom — play and headset will load this version");
+  else if (r.ok) status("Saved r" + (map.rev || "") + " on this device only — Save again so the headset sees it");
   else status("Save failed (" + (r.status || "offline") + "). Headset will keep the old version.");
   refreshList();
 });
 $("play").addEventListener("click", () => {
   stashPreview(map);
-  location.href = routes().play + "?map=preview";
+  const q = map.id ? "?map=" + encodeURIComponent(map.id) + (map.rev ? "&r=" + map.rev : "") + "&preview=1" : "?map=preview";
+  location.href = routes().play + q;
 });
 $("new").addEventListener("click", () => {
   pushUndo();

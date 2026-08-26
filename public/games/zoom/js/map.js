@@ -18,7 +18,7 @@ import {
   SHAPE_SPHERE,
   STORIES,
   WALL_CRACK,
-} from "./config.js?v=zm9";
+} from "./config.js?v=zm10";
 
 export { CELL };
 
@@ -166,6 +166,7 @@ export function serialize(map) {
     ultimatums: map.ultimatums || [],
     start: map.start,
     updated: map.updated || Date.now(),
+    rev: map.rev || 0,
   };
 }
 
@@ -240,6 +241,7 @@ export function deserialize(raw) {
     ultimatums: Array.isArray(o.ultimatums) ? o.ultimatums.map((x) => ({ ...x, cells: Array.isArray(x.cells) ? x.cells.map((c) => ({ ...c })) : [] })) : [],
     start: o.start ? { ...o.start } : { x: w * 0.5 * CELL, z: h * 0.5 * CELL, yaw: 0 },
     updated: o.updated || Date.now(),
+    rev: o.rev || 0,
   });
 }
 

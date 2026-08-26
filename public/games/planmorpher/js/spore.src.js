@@ -211,11 +211,11 @@ export function makeCreatureMesh(dna, scale = 1) {
 }
 
 export function civBlank() {
-  return { ageIndex: 0, stores: { wood: 0, stone: 0, food: 0 }, score: 0 };
+  return { ageIndex: 0, stores: { wood: 0, stone: 0, food: 0, gold: 0 }, bonus: 0, score: 0 };
 }
 
 export function civScore(civ, pop, buildings) {
-  return (buildings || 0) * 12 + (pop || 0) * 8 + ((civ.stores.wood + civ.stores.stone + civ.stores.food) | 0);
+  return (buildings || 0) * 12 + (pop || 0) * 8 + ((civ.stores.wood + civ.stores.stone + civ.stores.food + (civ.stores.gold || 0)) | 0) + (civ.bonus | 0);
 }
 
 export function ageOf(civ) {

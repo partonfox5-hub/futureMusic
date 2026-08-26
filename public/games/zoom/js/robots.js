@@ -1,10 +1,10 @@
 /** Procedural colored robots with movement + attack styles. */
 import * as THREE from "three";
-import { ENEMIES, ENEMY_BY_ID } from "./config.js?v=zm9";
-import { hurtFoe } from "./weapons.js?v=zm9";
-import { floorY, sdf3 } from "./map.js?v=zm9";
-import { wallBlocked } from "./world.js?v=zm9";
-import { sfx } from "./sfx.js?v=zm9";
+import { ENEMIES, ENEMY_BY_ID } from "./config.js?v=zm10";
+import { hurtFoe } from "./weapons.js?v=zm10";
+import { floorY, sdf3 } from "./map.js?v=zm10";
+import { wallBlocked } from "./world.js?v=zm10";
+import { sfx } from "./sfx.js?v=zm10";
 
 function mat(hex, extra) {
   return new THREE.MeshLambertMaterial({ color: hex, emissive: hex, emissiveIntensity: 0.18, ...extra });

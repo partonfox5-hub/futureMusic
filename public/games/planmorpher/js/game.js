@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { XRButton } from "three/addons/webxr/XRButton.js";
 import {
   ENTITY_SCALE,
+  ATMOS,
   GOD_ATMOS,
   BUILD_AGES,
   FORMS,
@@ -56,7 +57,7 @@ import {
   modelScout,
   modelSettler,
   labelCanvas,
-} from "./spore.js?v=pm1";
+} from "./spore.js?v=pm2";
 
 const canvas = document.getElementById("c");
 const hudEl = document.getElementById("hud");
@@ -82,6 +83,10 @@ const POWERS = [
   { id: "settler", name: "Settler", hint: "Spawn a settler. It lands and founds a city for the selected spore." },
   { id: "storm", name: "Weather", hint: "Spin the climate of the nearest world." },
   { id: "grove", name: "Grove", hint: "A miracle of trees rising from the soil." },
+  { id: "boulder", name: "Boulder", hint: "Place stone. Creatures harvest rock and gold ore." },
+  { id: "volcano", name: "Volcano", hint: "A cone grows and spews lava from that point." },
+  { id: "tornado", name: "Tornado", hint: "Spin a funnel that scuttles across the crust." },
+  { id: "monolith", name: "Monolith", hint: "A slab of night. A spore civ that discovers it gains 100 civ score." },
   { id: "form", name: "Form", hint: "Set your deity: Fearsome, Divine, or Inspiring." },
 ];
 
@@ -357,6 +362,12 @@ class World {
     this.fires = [];
     this.craters = [];
     this.groundDetail = [];
+    this.boulders = [];
+    this.volcanoes = [];
+    this.tornadoes = [];
+    this.monoliths = [];
+    this.wrecks = [];
+    this.carts = [];
     this.detailReady = false;
     this.surfaceLod = false;
     this.ageIndex = 0;
@@ -494,6 +505,7 @@ class World {
     g.userData.peg = this.addPegAt(n, 0x2f7a3a);
     startRise(g, n, this.radius * 0.86, this.radius * 1.015, ENTITY_SCALE);
     g.visible = this.surfaceLod;
+    if (g.userData.peg) g.userData.peg.visible = !this.surfaceLod;
     return g;
   }
 
@@ -555,6 +567,7 @@ class World {
     const b = this.huts.filter((h) => h.userData.speciesId === sid).length;
     civ.score = civScore(civ, this.popOf(sid), b);
     this.ageIndex = Math.max(this.ageIndex, civ.ageIndex);
+    for (const city of this.cities) if (city.speciesId === sid) this.syncCity(city);
   }
 
   tryAdvanceAge(sid) {
@@ -625,8 +638,276 @@ class World {
       const off = base.clone().add(new THREE.Vector3().randomDirection().multiplyScalar(0.12)).normalize();
       this.addHut(off, sid);
     }
-    this.cities.push({ n: base.clone(), speciesId: sid });
+    const flag = this.addFlag(base, sid);
+    const city = {
+      n: base.clone(),
+      speciesId: sid,
+      range: 0.1,
+      flag,
+      ring: null,
+      paint: null,
+      carts: 0,
+    };
+    city.ring = this.addTerritoryRing(city);
+    city.paint = this.addTerritoryPaint(city);
+    this.cities.push(city);
+    this.refreshCiv(sid);
+    this.syncCity(city);
+    this.spawnCart(city);
     hudStatus.textContent = (CREATURE_SLOTS[sid]?.name || "Spore") + " founds a city.";
+    return city;
+  }
+
+  addFlag(n, sid) {
+    const col = CREATURE_SLOTS[sid]?.col || 0xc4b48a;
+    const g = new THREE.Group();
+    const pole = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.0035, 0.0055, 0.14, 6),
+      new THREE.MeshLambertMaterial({ color: 0xc8b48a }),
+    );
+    pole.position.y = 0.05;
+    g.add(pole);
+    const cloth = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.055, 0.032),
+      new THREE.MeshBasicMaterial({ color: col, side: THREE.DoubleSide }),
+    );
+    cloth.position.set(0.028, 0.105, 0);
+    g.add(cloth);
+    g.userData.kind = "flag";
+    g.userData.n = n.clone();
+    g.userData.speciesId = sid;
+    this.group.add(g);
+    sit(g, this, n, 0.988);
+    g.scale.setScalar(ENTITY_SCALE);
+    g.visible = true;
+    return g;
+  }
+
+  cityRange(city) {
+    const civ = this.civOf(city.speciesId);
+    return 0.09 + Math.min(0.42, (civ.score || 0) * 0.0018 + (this.huts.filter((h) => h.userData.speciesId === city.speciesId).length) * 0.012);
+  }
+
+  addTerritoryRing(city) {
+    const segs = 48;
+    const geo = new THREE.BufferGeometry();
+    const pos = new Float32Array(segs * 3);
+    geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+    const mat = new THREE.LineDashedMaterial({
+      color: CREATURE_SLOTS[city.speciesId]?.col || 0xe6c56e,
+      dashSize: 0.018,
+      gapSize: 0.012,
+      transparent: true,
+      opacity: 0.92,
+    });
+    const line = new THREE.LineLoop(geo, mat);
+    line.userData.kind = "territory";
+    this.group.add(line);
+    return line;
+  }
+
+  addTerritoryPaint(city) {
+    const geo = new THREE.CircleGeometry(1, 40);
+    const col = new THREE.Color(CREATURE_SLOTS[city.speciesId]?.col || 0xe6c56e);
+    const mesh = new THREE.Mesh(
+      geo,
+      new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.28, side: THREE.DoubleSide, depthWrite: false }),
+    );
+    mesh.userData.kind = "territoryPaint";
+    this.group.add(mesh);
+    return mesh;
+  }
+
+  syncCity(city) {
+    city.range = this.cityRange(city);
+    const n = city.n.clone().normalize();
+    const tangent = new THREE.Vector3(0, 1, 0).cross(n);
+    if (tangent.lengthSq() < 1e-8) tangent.set(1, 0, 0);
+    tangent.normalize();
+    if (city.flag) {
+      sit(city.flag, this, n, 0.988);
+      city.flag.scale.setScalar(ENTITY_SCALE);
+      city.flag.visible = true;
+    }
+    if (city.ring) {
+      const segs = city.ring.geometry.attributes.position.count;
+      const pos = city.ring.geometry.attributes.position.array;
+      const ang = city.range;
+      for (let i = 0; i < segs; i++) {
+        const a = (i / segs) * Math.PI * 2;
+        const q = new THREE.Quaternion().setFromAxisAngle(n, a);
+        const dir = n.clone().multiplyScalar(Math.cos(ang)).add(tangent.clone().applyQuaternion(q).multiplyScalar(Math.sin(ang))).normalize();
+        pos[i * 3] = dir.x * this.radius * 1.012;
+        pos[i * 3 + 1] = dir.y * this.radius * 1.012;
+        pos[i * 3 + 2] = dir.z * this.radius * 1.012;
+      }
+      city.ring.geometry.attributes.position.needsUpdate = true;
+      city.ring.computeLineDistances();
+      city.ring.visible = true;
+    }
+    if (city.paint) {
+      const r = Math.sin(city.range) * this.radius * 1.01;
+      city.paint.scale.setScalar(r);
+      sit(city.paint, this, n, 1.006);
+      city.paint.visible = true;
+    }
+  }
+
+  addBoulder(normal) {
+    const n = normal.clone().normalize();
+    const g = new THREE.Group();
+    const rock = new THREE.Mesh(
+      new THREE.IcosahedronGeometry(0.028, 0),
+      new THREE.MeshLambertMaterial({ color: 0x6a6864 }),
+    );
+    g.add(rock);
+    const gold = new THREE.Mesh(
+      new THREE.IcosahedronGeometry(0.01, 0),
+      new THREE.MeshBasicMaterial({ color: 0xd4af37 }),
+    );
+    gold.position.set(0.012, 0.01, 0.006);
+    g.add(gold);
+    g.userData.kind = "boulder";
+    g.userData.n = n;
+    g.userData.stone = 8;
+    g.userData.gold = 3;
+    g.userData.hp = 40;
+    this.group.add(g);
+    this.boulders.push(g);
+    sit(g, this, n, 1.012);
+    g.scale.setScalar(ENTITY_SCALE);
+    g.visible = this.surfaceLod;
+    g.userData.peg = this.addPegAt(n, 0x8a8680);
+    return g;
+  }
+
+  addVolcano(normal) {
+    const n = normal.clone().normalize();
+    const g = new THREE.Group();
+    const cone = new THREE.Mesh(
+      new THREE.ConeGeometry(0.055, 0.09, 8),
+      new THREE.MeshLambertMaterial({ color: 0x3a2a22 }),
+    );
+    cone.position.y = 0.03;
+    g.add(cone);
+    const glow = new THREE.Mesh(
+      new THREE.SphereGeometry(0.016, 8, 6),
+      new THREE.MeshBasicMaterial({ color: 0xff5511 }),
+    );
+    glow.position.y = 0.072;
+    g.add(glow);
+    g.userData.kind = "volcano";
+    g.userData.n = n;
+    g.userData.grow = 0.12;
+    g.userData.t = 0;
+    this.group.add(g);
+    this.volcanoes.push(g);
+    sit(g, this, n, 0.995);
+    g.scale.setScalar(ENTITY_SCALE * 0.12);
+    g.visible = true;
+    return g;
+  }
+
+  addTornado(normal) {
+    const n = normal.clone().normalize();
+    const g = new THREE.Group();
+    for (let i = 0; i < 5; i++) {
+      const ring = new THREE.Mesh(
+        new THREE.TorusGeometry(0.012 + i * 0.006, 0.0025, 6, 16),
+        new THREE.MeshBasicMaterial({ color: 0xc8d4e0, transparent: true, opacity: 0.45, side: THREE.DoubleSide }),
+      );
+      ring.rotation.x = Math.PI / 2;
+      ring.position.y = 0.02 + i * 0.022;
+      g.add(ring);
+    }
+    g.userData.kind = "tornado";
+    g.userData.n = n;
+    g.userData.heading = Math.random() * 6.28;
+    g.userData.t = 0;
+    this.group.add(g);
+    this.tornadoes.push(g);
+    sit(g, this, n, 1.02);
+    g.scale.setScalar(ENTITY_SCALE);
+    g.visible = true;
+    return g;
+  }
+
+  addMonolith(normal) {
+    const n = normal.clone().normalize();
+    const g = new THREE.Mesh(
+      new THREE.BoxGeometry(0.028, 0.11, 0.012),
+      new THREE.MeshLambertMaterial({ color: 0x1a1c22, emissive: 0x142028, emissiveIntensity: 0.4 }),
+    );
+    g.userData.kind = "monolith";
+    g.userData.n = n;
+    g.userData.civ = 100;
+    g.userData.found = {};
+    this.group.add(g);
+    this.monoliths.push(g);
+    sit(g, this, n, 1.02);
+    g.scale.setScalar(ENTITY_SCALE);
+    g.visible = true;
+    g.userData.peg = this.addPegAt(n, 0x334455);
+    return g;
+  }
+
+  addWreck(normal, col) {
+    const n = normal.clone().normalize();
+    const g = new THREE.Group();
+    const hull = new THREE.Mesh(
+      new THREE.ConeGeometry(0.03, 0.08, 6),
+      new THREE.MeshLambertMaterial({ color: col || 0x6a7080 }),
+    );
+    hull.rotation.z = 0.9;
+    hull.position.y = 0.02;
+    g.add(hull);
+    const shard = new THREE.Mesh(
+      new THREE.BoxGeometry(0.04, 0.008, 0.018),
+      new THREE.MeshLambertMaterial({ color: 0x445566 }),
+    );
+    shard.position.set(0.02, 0.01, 0);
+    shard.rotation.y = 0.4;
+    g.add(shard);
+    g.userData.kind = "wreck";
+    g.userData.n = n;
+    g.userData.civ = 25;
+    g.userData.found = {};
+    this.group.add(g);
+    this.wrecks.push(g);
+    sit(g, this, n, 1.01);
+    g.scale.setScalar(ENTITY_SCALE);
+    g.visible = this.surfaceLod;
+    g.userData.peg = this.addPegAt(n, 0x8899aa);
+    return g;
+  }
+
+  spawnCart(city) {
+    if (!city) return null;
+    const n = city.n.clone().add(new THREE.Vector3().randomDirection().multiplyScalar(0.04)).normalize();
+    const g = new THREE.Group();
+    const bed = new THREE.Mesh(new THREE.BoxGeometry(0.034, 0.014, 0.022), new THREE.MeshLambertMaterial({ color: 0x6a4a28 }));
+    bed.position.y = 0.012;
+    g.add(bed);
+    for (const sx of [-1, 1]) {
+      const w = new THREE.Mesh(new THREE.CylinderGeometry(0.007, 0.007, 0.004, 8), new THREE.MeshLambertMaterial({ color: 0x2a2a28 }));
+      w.rotation.z = Math.PI / 2;
+      w.position.set(sx * 0.012, 0.007, 0.01);
+      g.add(w);
+    }
+    g.userData.kind = "cart";
+    g.userData.n = n;
+    g.userData.speciesId = city.speciesId;
+    g.userData.wood = 0;
+    g.userData.stone = 0;
+    g.userData.food = 0;
+    g.userData.heldBy = null;
+    this.group.add(g);
+    this.carts.push(g);
+    city.carts = (city.carts || 0) + 1;
+    sit(g, this, n, 1.016);
+    g.scale.setScalar(ENTITY_SCALE);
+    g.visible = this.surfaceLod;
+    return g;
   }
 
   addUfo() {
@@ -809,13 +1090,13 @@ class World {
   tickLife(dt, godN, formId) {
     for (const t of this.trees) {
       tickRise(t, dt);
-      if (t.userData.n && t.userData.rise >= 1) {
+      if (t.userData.n && (t.userData.rise == null || t.userData.rise >= 1)) {
         const dry = isLand(this, t.userData.n);
-        sitRadial(t, t.userData.n, this.radius * (dry ? 1.015 : 0.97));
-        t.visible = this.surfaceLod && dry;
+        sitRadial(t, t.userData.n, this.radius * (dry ? 1.015 : 1.002));
+        t.visible = this.surfaceLod;
         if (t.userData.peg) {
-          sit(t.userData.peg, this, t.userData.n, dry ? 1.018 : 0.97);
-          t.userData.peg.visible = !this.surfaceLod && dry;
+          sit(t.userData.peg, this, t.userData.n, dry ? 1.018 : 1.004);
+          t.userData.peg.visible = !this.surfaceLod;
         }
       }
     }
@@ -904,9 +1185,7 @@ class World {
           tree.userData.food -= dt * 0.8;
           u.hunger = Math.max(0, u.hunger - dt * 0.4);
           if (tree.userData.food <= 0) {
-            if (tree.userData.peg) this.group.remove(tree.userData.peg);
-            this.group.remove(tree);
-            this.trees = this.trees.filter((x) => x !== tree);
+            tree.userData.food = 0.01;
           }
         } else if (tree) steerToward(u, tree.userData.n, dt * 1.4);
       } else if (def.diet === "meat") {
@@ -938,31 +1217,55 @@ class World {
         if (threat && !(formId === "divine" && godClose)) steerToward(u, threat.userData.n, -dt * 2.5);
         else if (!foe && !(formId === "divine" && godClose) && !(formId === "inspire" && u.ackT > 0)) {
           const civ = this.civOf(u.speciesId);
-          const gather = 0.7 * buff;
+          const gather = 0.7 * buff * (u.cart ? 2.2 : 1);
+          const cap = u.cart ? 10 : 4;
           const tree = nearestDot(this.trees, u.n);
+          const boulder = nearestDot(this.boulders, u.n);
           const rock = nearestKind(this.groundDetail, u.n, "rock");
           const bush = nearestKind(this.groundDetail, u.n, "bush");
+          const mono = nearestDot(this.monoliths.filter((m) => !m.userData.found[u.speciesId]), u.n);
+          const wreck = nearestDot(this.wrecks.filter((m) => !m.userData.found[u.speciesId]), u.n);
           const home = this.huts.find((h) => h.userData.speciesId === u.speciesId) || this.huts[0];
-          if (tree && u.wood < 4) {
+          const city = this.cities.find((c) => c.speciesId === u.speciesId);
+          if (mono && mono.userData.n.dot(u.n) > 0.92) {
+            steerToward(u, mono.userData.n, dt * 1.8);
+            if (mono.userData.n.dot(u.n) > 0.988) {
+              mono.userData.found[u.speciesId] = true;
+              civ.bonus = (civ.bonus || 0) + (mono.userData.civ || 100);
+              this.refreshCiv(u.speciesId);
+              hudStatus.textContent = (CREATURE_SLOTS[u.speciesId]?.name || "Spore") + " discovers a monolith (+100 civ).";
+            }
+          } else if (wreck && wreck.userData.n.dot(u.n) > 0.92) {
+            steerToward(u, wreck.userData.n, dt * 1.7);
+            if (wreck.userData.n.dot(u.n) > 0.988) {
+              wreck.userData.found[u.speciesId] = true;
+              civ.bonus = (civ.bonus || 0) + (wreck.userData.civ || 25);
+              this.refreshCiv(u.speciesId);
+              hudStatus.textContent = (CREATURE_SLOTS[u.speciesId]?.name || "Spore") + " scavenges a wreck (+25 civ).";
+            }
+          } else if (tree && u.wood < cap) {
             steerToward(u, tree.userData.n, dt * 1.6);
             if (tree.userData.n.dot(u.n) > 0.985) {
               u.wood += dt * gather;
               u.food += dt * 0.2 * buff;
               u.hunger = Math.max(0, u.hunger - dt * 0.2);
-              tree.userData.food -= dt * 0.4;
-              tree.userData.wood -= dt * 0.3;
+              tree.userData.food = Math.max(0.2, (tree.userData.food || 4) - dt * 0.25);
+              tree.userData.wood = Math.max(0.2, (tree.userData.wood || 3) - dt * 0.2);
             }
-          } else if (rock && u.stone < 3 && civ.ageIndex >= 1) {
-            steerToward(u, rock.userData.n, dt * 1.4);
-            if (rock.userData.n.dot(u.n) > 0.985) {
-              u.stone += dt * 0.45 * buff;
-              rock.userData.stone -= dt * 0.4;
-              if (rock.userData.stone <= 0) {
-                this.group.remove(rock);
-                this.groundDetail = this.groundDetail.filter((x) => x !== rock);
+          } else if (boulder && (u.stone < cap || (u.gold || 0) < 2)) {
+            steerToward(u, boulder.userData.n, dt * 1.5);
+            if (boulder.userData.n.dot(u.n) > 0.985) {
+              u.stone += dt * 0.5 * buff;
+              u.gold = (u.gold || 0) + dt * 0.18 * buff;
+              boulder.userData.stone -= dt * 0.35;
+              boulder.userData.gold -= dt * 0.12;
+              if (boulder.userData.stone <= 0 && boulder.userData.gold <= 0) {
+                if (boulder.userData.peg) this.group.remove(boulder.userData.peg);
+                this.group.remove(boulder);
+                this.boulders = this.boulders.filter((x) => x !== boulder);
               }
             }
-          } else if (bush && u.food < 2) {
+          } else if (rock && u.stone < cap && civ.ageIndex >= 1) {
             steerToward(u, bush.userData.n, dt * 1.3);
             if (bush.userData.n && bush.userData.n.dot(u.n) > 0.985) {
               u.food += dt * 0.5 * buff;
@@ -973,18 +1276,35 @@ class World {
             civ.stores.wood += u.wood;
             civ.stores.stone += u.stone;
             civ.stores.food += u.food;
+            civ.stores.gold = (civ.stores.gold || 0) + (u.gold || 0);
             u.wood = 0;
             u.stone = 0;
             u.food = 0;
+            u.gold = 0;
             this.tryAdvanceAge(u.speciesId);
+            if (city) this.syncCity(city);
           } else if (home) {
+            const freeCart = this.carts.find((k) => k.userData.speciesId === u.speciesId && !k.userData.heldBy && k.userData.n.dot(u.n) > 0.9);
+            if (freeCart && !u.cart) {
+              steerToward(u, freeCart.userData.n, dt * 1.5);
+              if (freeCart.userData.n.dot(u.n) > 0.99) {
+                u.cart = freeCart;
+                freeCart.userData.heldBy = c;
+              }
+            }
             steerToward(u, home.userData.n, dt);
             if (home.userData.n.dot(u.n) > 0.98) {
               civ.stores.wood += u.wood;
               civ.stores.stone += u.stone;
               civ.stores.food += u.food;
+              civ.stores.gold = (civ.stores.gold || 0) + (u.gold || 0);
               u.wood = u.stone = u.food = 0;
+              u.gold = 0;
               this.tryAdvanceAge(u.speciesId);
+              if (city) {
+                this.syncCity(city);
+                if ((city.carts || 0) < 1 + Math.floor((civ.score || 0) / 80)) this.spawnCart(city);
+              }
             }
           }
         }
@@ -1001,6 +1321,13 @@ class World {
       const r = this.radius * (land ? 1.02 : 0.992);
       sitRadial(c, u.n, r);
       if (u.peg) sit(u.peg, this, u.n, 1.018);
+      if (u.cart) {
+        u.cart.userData.n.copy(u.n);
+        sit(u.cart, this, u.n, 1.016);
+        u.cart.visible = this.surfaceLod;
+      }
+      c.visible = this.surfaceLod;
+      if (u.peg) u.peg.visible = !this.surfaceLod;
       if (u.def.sheet && c.material?.map) {
         const f = Math.floor(performance.now() * 0.006 + u.age) % 4;
         c.material.map.offset.x = f * 0.25;
@@ -1018,6 +1345,69 @@ class World {
       const r = this.radius * 1.55;
       u.position.set(Math.cos(u.userData.a) * r, Math.sin(u.userData.a * 0.7) * this.radius * 0.4, Math.sin(u.userData.a) * r);
       u.lookAt(0, 0, 0);
+    }
+    this.tickHazards(dt);
+    for (const city of this.cities) this.syncCity(city);
+  }
+
+  tickHazards(dt) {
+    for (const v of this.volcanoes) {
+      v.userData.grow = Math.min(1, v.userData.grow + dt * 0.18);
+      v.userData.t += dt;
+      sit(v, this, v.userData.n, 0.995);
+      v.scale.setScalar(ENTITY_SCALE * (0.35 + v.userData.grow * 1.1));
+      v.visible = true;
+      if (v.userData.grow > 0.35 && (v.userData.t % 0.28) < dt + 0.02) {
+        const p = new THREE.Mesh(
+          new THREE.SphereGeometry(0.01, 5, 4),
+          new THREE.MeshBasicMaterial({ color: Math.random() < 0.4 ? 0xffee66 : 0xff4411, transparent: true, opacity: 0.9 }),
+        );
+        this.group.add(p);
+        const nn = v.userData.n.clone().add(new THREE.Vector3().randomDirection().multiplyScalar(0.04)).normalize();
+        sitRadial(p, nn, this.radius * 1.05);
+        p.userData = { n: nn, life: 1.4 + Math.random(), water: false, rise: 0.12 };
+        this.fires.push(p);
+        paintAt(this.paint, uvFromN(v.userData.n), -8, 2);
+        for (const c of this.life) {
+          if (c.userData.n && c.userData.n.dot(v.userData.n) > 0.985) this.hurtLife(c, 8 * dt);
+        }
+      }
+    }
+    for (const t of this.tornadoes) {
+      t.userData.t += dt;
+      t.userData.heading += dt * 0.35;
+      const axis = new THREE.Vector3().crossVectors(t.userData.n, new THREE.Vector3(Math.cos(t.userData.heading), 0, Math.sin(t.userData.heading)));
+      if (axis.lengthSq() < 1e-6) axis.set(1, 0, 0);
+      t.userData.n.applyAxisAngle(axis.normalize(), dt * 0.22);
+      t.userData.n.normalize();
+      t.rotation.y += dt * 8;
+      sit(t, this, t.userData.n, 1.02);
+      t.visible = true;
+      for (const c of this.life) {
+        if (c.userData.n && c.userData.n.dot(t.userData.n) > 0.97) {
+          steerToward(c.userData, t.userData.n, -dt * 2.4);
+          this.hurtLife(c, 3 * dt);
+        }
+      }
+    }
+    for (const b of this.boulders) {
+      if (b.userData.n) sit(b, this, b.userData.n, 1.012);
+      b.visible = this.surfaceLod;
+      if (b.userData.peg) b.userData.peg.visible = !this.surfaceLod;
+    }
+    for (const m of this.monoliths) {
+      if (m.userData.n) sit(m, this, m.userData.n, 1.02);
+      m.visible = this.surfaceLod;
+      if (m.userData.peg) m.userData.peg.visible = !this.surfaceLod;
+    }
+    for (const w of this.wrecks) {
+      if (w.userData.n) sit(w, this, w.userData.n, 1.01);
+      w.visible = this.surfaceLod;
+      if (w.userData.peg) w.userData.peg.visible = !this.surfaceLod;
+    }
+    for (const k of this.carts) {
+      if (k.userData.n) sit(k, this, k.userData.n, 1.016);
+      k.visible = this.surfaceLod;
     }
   }
 }
@@ -1156,23 +1546,36 @@ function makeStudio() {
     hits.push(pl);
     sockets.push(pl);
   });
+  const FORM_LABEL = { club: "Limb · club", tentacle: "Limb · tentacle", wing: "Limb · wing", bug: "Limb · insect", spike: "Limb · spike" };
+  const TORSO_LABEL = { torso: "Body · upright", blob: "Body · blob", shell: "Body · shell", disk: "Body · disk" };
+  const HEAD_LABEL = { sphere: "Head · round", crystal: "Head · crystal", disk: "Head · disk", horn: "Head · horns" };
   PART_FORMS.forEach((f, i) => {
     const pl = new THREE.Mesh(
-      new THREE.PlaneGeometry(0.11, 0.032),
-      new THREE.MeshBasicMaterial({ map: labelCanvas(f, 180, 48), transparent: true, side: THREE.DoubleSide }),
+      new THREE.PlaneGeometry(0.16, 0.032),
+      new THREE.MeshBasicMaterial({ map: labelCanvas(FORM_LABEL[f] || f, 240, 48), transparent: true, side: THREE.DoubleSide }),
     );
-    pl.position.set(0.18, 0.16 - i * 0.038, 0.012);
+    pl.position.set(0.2, 0.18 - i * 0.036, 0.012);
     pl.userData.partForm = f;
     g.add(pl);
     hits.push(pl);
   });
   TORSO_KINDS.forEach((t, i) => {
     const pl = new THREE.Mesh(
-      new THREE.PlaneGeometry(0.1, 0.028),
-      new THREE.MeshBasicMaterial({ map: labelCanvas("body " + t, 200, 48), transparent: true, side: THREE.DoubleSide }),
+      new THREE.PlaneGeometry(0.16, 0.028),
+      new THREE.MeshBasicMaterial({ map: labelCanvas(TORSO_LABEL[t] || t, 240, 48), transparent: true, side: THREE.DoubleSide }),
     );
-    pl.position.set(0.18, -0.05 - i * 0.032, 0.012);
+    pl.position.set(0.2, -0.02 - i * 0.03, 0.012);
     pl.userData.torsoKind = t;
+    g.add(pl);
+    hits.push(pl);
+  });
+  HEAD_KINDS.forEach((h, i) => {
+    const pl = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.16, 0.028),
+      new THREE.MeshBasicMaterial({ map: labelCanvas(HEAD_LABEL[h] || h, 240, 48), transparent: true, side: THREE.DoubleSide }),
+    );
+    pl.position.set(-0.2, 0.16 - i * 0.032, 0.012);
+    pl.userData.headKind = h;
     g.add(pl);
     hits.push(pl);
   });
@@ -1197,8 +1600,16 @@ function makeStudio() {
   warB.userData.studioAct = "war";
   g.add(saveB, rndB, warB);
   hits.push(saveB, rndB, warB);
-  g.position.set(0.28, 0.12, 0.16);
-  return { group: g, hits, preview, rebuildPreview, sockets };
+  const glow = new THREE.Mesh(
+    new THREE.RingGeometry(0.01, 0.018, 28),
+    new THREE.MeshBasicMaterial({ color: 0x9ee7ff, transparent: true, opacity: 0.95, side: THREE.DoubleSide, depthTest: false }),
+  );
+  glow.visible = false;
+  glow.renderOrder = 20;
+  g.add(glow);
+  g.position.set(0.08, 0.34, -0.22);
+  g.rotation.set(-0.35, 0.18, 0);
+  return { group: g, hits, preview, rebuildPreview, sockets, glow };
 }
 
 function makeFormPicker() {
@@ -1473,8 +1884,21 @@ function applyPower(w, point, normal, uv, hold) {
     for (let i = 0; i < 5; i++) {
       const n = normal.clone().normalize();
       n.add(_v2.set((Math.random() - 0.5) * 0.22, (Math.random() - 0.5) * 0.22, (Math.random() - 0.5) * 0.22)).normalize();
+      if (!isLand(w, n)) continue;
       w.addTree(n);
     }
+  } else if (id === "boulder" && normal) {
+    w.addBoulder(normal);
+    hudStatus.textContent = "Stone and gold wait in the crust.";
+  } else if (id === "volcano" && normal) {
+    w.addVolcano(normal);
+    hudStatus.textContent = "A volcano rises.";
+  } else if (id === "tornado" && normal) {
+    w.addTornado(normal);
+    hudStatus.textContent = "A funnel walks the sphere.";
+  } else if (id === "monolith" && normal) {
+    w.addMonolith(normal);
+    hudStatus.textContent = "A monolith is set. Civs that find it gain 100 score.";
   } else if (id === "bolt" && (point || normal)) {
     strikeLightning(w, point, normal);
   } else if (id === "storm") {
@@ -1594,6 +2018,27 @@ function desktopRay() {
   return { o: _ray.ray.origin.clone(), d: _ray.ray.direction.clone() };
 }
 
+function tickStudioAim() {
+  if (!studio.glow) return;
+  if (!studio.group.visible) {
+    studio.glow.visible = false;
+    return;
+  }
+  const xr = renderer.xr.isPresenting;
+  const ray = xr ? rightRay() : desktopRay();
+  _ray.set(ray.o, ray.d);
+  const hits = _ray.intersectObjects(studio.hits, false);
+  if (!hits[0]) {
+    studio.glow.visible = false;
+    return;
+  }
+  const local = studio.group.worldToLocal(hits[0].point.clone());
+  studio.glow.position.copy(local);
+  studio.glow.position.z += 0.006;
+  studio.glow.visible = true;
+  studio.glow.scale.setScalar(1 + Math.sin(performance.now() * 0.01) * 0.12);
+}
+
 function pokeUi(origin, dir) {
   _ray.set(origin, dir);
   if (studio.group.visible) {
@@ -1608,6 +2053,13 @@ function pokeUi(origin, dir) {
       if (ud.torsoKind) {
         CREATURE_SLOTS[selSlot].torso = ud.torsoKind;
         studio.rebuildPreview();
+        hudStatus.textContent = "Body set to " + ud.torsoKind + ".";
+        return true;
+      }
+      if (ud.headKind) {
+        CREATURE_SLOTS[selSlot].head = ud.headKind;
+        studio.rebuildPreview();
+        hudStatus.textContent = "Head set to " + ud.headKind + ".";
         return true;
       }
       if (ud.socket === "head") {
@@ -1807,8 +2259,30 @@ function damageShip(sh, dmg) {
     flash.userData = { vel: new THREE.Vector3(), life: 0.3, flash: true };
     scene.add(flash);
     fx.push(flash);
+    crashShip(sh);
     scene.remove(sh.mesh);
   }
+}
+
+function crashShip(sh) {
+  let planet = sh.planet;
+  if (!planet) {
+    let bd = 1e9;
+    for (const w of worlds) {
+      const d = sh.mesh.position.distanceTo(w.group.position);
+      if (d < bd) {
+        bd = d;
+        planet = w;
+      }
+    }
+    if (planet && bd > planet.radius * 1.35) planet = null;
+  }
+  if (!planet) return;
+  const n = sh.mesh.position.clone().sub(planet.group.position);
+  if (n.lengthSq() < 1e-8) n.set(0, 1, 0);
+  n.normalize();
+  planet.addWreck(n, CREATURE_SLOTS[sh.speciesId]?.col);
+  hudStatus.textContent = "A ship wrecks on " + planet.template.name + ".";
 }
 
 function tickShips(dt) {
@@ -1856,11 +2330,34 @@ function tickShips(dt) {
           fx.push({ mesh: bolt, vel: to.multiplyScalar(8), life: 0.7, shot: true, from: sh });
         }
       } else if (sh.planet) {
-        const dest = sh.planet.group.position.clone().add(new THREE.Vector3(0, sh.planet.radius * 1.8, 0));
-        sh.vel.lerp(dest.sub(sh.mesh.position).normalize().multiplyScalar(2.2), 0.06);
+        const planet = sh.planet;
+        const center = planet.group.position;
+        const rel = sh.mesh.position.clone().sub(center);
+        if (rel.lengthSq() < 1e-8) rel.set(1, 0.2, 0);
+        if (!sh.orbitAxis) {
+          sh.orbitAxis = rel.clone().cross(new THREE.Vector3(0, 1, 0));
+          if (sh.orbitAxis.lengthSq() < 1e-8) sh.orbitAxis.set(1, 0, 0);
+          sh.orbitAxis.normalize();
+        }
+        const orbitR = atmosR(planet, ATMOS);
+        rel.normalize();
+        const tangent = new THREE.Vector3().crossVectors(sh.orbitAxis, rel);
+        if (tangent.lengthSq() < 1e-8) tangent.crossVectors(rel, new THREE.Vector3(0, 0, 1));
+        tangent.normalize();
+        const desired = center.clone().addScaledVector(rel, orbitR);
+        const toShell = desired.sub(sh.mesh.position);
+        sh.vel.lerp(tangent.multiplyScalar(2.15).addScaledVector(toShell, 1.6), 0.08);
       }
     }
     sh.mesh.position.addScaledVector(sh.vel, dt);
+    if (sh.kind === "scout" && sh.planet && !sh.dead) {
+      const d = sh.mesh.position.distanceTo(sh.planet.group.position);
+      if (d < sh.planet.radius * 1.06) {
+        sh.hp = 0;
+        damageShip(sh, 999);
+        continue;
+      }
+    }
     if (sh.vel.lengthSq() > 1e-6) sh.mesh.lookAt(sh.mesh.position.clone().add(sh.vel));
   }
 }
@@ -1931,7 +2428,6 @@ function enterSurface(w) {
   hemi.intensity = 1.15;
   sun.intensity = 1.25;
   w.ensureDetail();
-  setSurfaceLod(w, true);
   headPos();
   _v.copy(_v3);
   _v2.copy(_v).sub(w.group.position);
@@ -1947,9 +2443,9 @@ function enterSurface(w) {
   camera.far = 90;
   camera.updateProjectionMatrix();
   hudEl.classList.add("atmo");
-  setModeBadge("LOWER ATMOSPHERE", w.template.name + " · X to leave");
-  hudHint.textContent = "Lower atmosphere of " + w.template.name + ". Surface detail is on. Fly the crust. Press X to return to the galaxy.";
-  hudStatus.textContent = "LOWER ATMOSPHERE · " + w.template.name + " · detail on · X leaves";
+  setModeBadge("PLANET SKY", w.template.name + " · X to leave");
+  hudHint.textContent = "Inside " + w.template.name + "'s sky. Cross the inner shell for full spore models on the crust. Press X to return to the galaxy.";
+  hudStatus.textContent = "ATMOSPHERE · " + w.template.name + " · X leaves";
 }
 function leaveSurface() {
   if (!lockedWorld) return;
@@ -2175,11 +2671,15 @@ function loop(t) {
   } else {
     confineToAtmos(rig, head, lockedWorld, GOD_ATMOS);
     lockedWorld.ensureDetail();
-    if (!lockedWorld.surfaceLod) setSurfaceLod(lockedWorld, true);
-    else setAtmosMode(lockedWorld, true);
+    const dist = head.distanceTo(lockedWorld.group.position);
+    const lower = atmosR(lockedWorld, ATMOS);
+    const wantLod = dist < lower + 0.05;
+    if (lockedWorld.surfaceLod !== wantLod) setSurfaceLod(lockedWorld, wantLod);
+    else setAtmosMode(lockedWorld, wantLod);
     planetSky.position.copy(lockedWorld.group.position);
     planetSky.scale.setScalar(Math.max(12, lockedWorld.radius * 9));
   }
+  tickStudioAim();
 
   const gpR = xrGamepad(1);
   const gpL = xrGamepad(0);
@@ -2221,8 +2721,11 @@ function loop(t) {
   tickShips(dt);
   if (lockedWorld) {
     hudEl.classList.add("atmo");
-    hudStatus.textContent = "LOWER ATMOSPHERE · " + lockedWorld.template.name + " · " + lives + " lives · detail on · X leaves";
-    hudHint.textContent = "Inside " + lockedWorld.template.name + "'s sky. Surface detail is loaded. Fly the crust. Press X to return to the galaxy.";
+    const inner = lockedWorld.surfaceLod;
+    hudStatus.textContent = (inner ? "LOWER ATMOSPHERE" : "UPPER SKY") + " · " + lockedWorld.template.name + " · " + lives + " lives · " + (inner ? "full models" : "pegs") + " · X leaves";
+    hudHint.textContent = inner
+      ? "Lower atmosphere of " + lockedWorld.template.name + ". Complete spore creatures are on the crust. Press X to leave."
+      : "Upper sky of " + lockedWorld.template.name + ". Cross the inner shell to load full spore models.";
   } else {
     hudEl.classList.remove("atmo");
     hudStatus.textContent = worlds.length
@@ -2341,9 +2844,9 @@ function wireStudioHtml() {
     b.onclick = fn;
     parts.appendChild(b);
   };
-  PART_FORMS.forEach((f) => addBtn(f, () => { heldPart = { form: f }; hudStatus.textContent = "Holding " + f; }, f));
-  TORSO_KINDS.forEach((t) => addBtn("body " + t, () => { CREATURE_SLOTS[selSlot].torso = t; studio.rebuildPreview(); }, null));
-  HEAD_KINDS.forEach((h) => addBtn("head " + h, () => { CREATURE_SLOTS[selSlot].head = h; studio.rebuildPreview(); }, null));
+  PART_FORMS.forEach((f) => addBtn("Limb · " + f, () => { heldPart = { form: f }; hudStatus.textContent = "Holding " + f + " limb"; }, f));
+  TORSO_KINDS.forEach((t) => addBtn("Body · " + t, () => { CREATURE_SLOTS[selSlot].torso = t; studio.rebuildPreview(); hudStatus.textContent = "Body set to " + t; }, null));
+  HEAD_KINDS.forEach((h) => addBtn("Head · " + h, () => { CREATURE_SLOTS[selSlot].head = h; studio.rebuildPreview(); hudStatus.textContent = "Head set to " + h; }, null));
   document.querySelectorAll(".sock").forEach((el) => {
     el.addEventListener("dragover", (e) => e.preventDefault());
     el.addEventListener("drop", (e) => {

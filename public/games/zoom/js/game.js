@@ -1,19 +1,19 @@
 import * as THREE from "three";
 import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
-import { BIOMES, CELL, EYE, FLAG_COLLAPSE, FLAG_RUMBLE, LIQ_LAVA, LIQ_WATER, PICKUP_BY_ID, SHOP, SKY_DAY, SKY_JUNGLE, SKY_NIGHT, WEAPON_BY_ID, WEAPONS, routes } from "./config.js?v=zm9";
-import { bakedMaps, storyMaps } from "./defaults.js?v=zm9";
-import { biomeOf, cellI, countCarved, ensureLayers, firstCarved, floorY, sdf3 } from "./map.js?v=zm9";
-import { buildDungeon, prepareSdf } from "./mesh.js?v=zm9";
-import { makeProp, spawnFrom, strikeFoes, tickFoes } from "./props.js?v=zm9";
-import { getMap, listMaps } from "./store.js?v=zm9";
-import { makeProc } from "./proc.js?v=zm9";
-import { buildingFloorY, buildWorld, climbSupport, hurtBreakables, hurtTurrets, impulseBoulders, layoutRope, makeSky, makeSkyDome, ridgeNear, smashGlass, spawnRipple, tickRubble, tickWorld, tryUnlock, wallBlocked } from "./world.js?v=zm9";
-import { addBurnDecal, addSaberMark, addSaberTrail, fireWeapon, hurtFoe, makeDualSaber, makeKeyModel, makePickup, makeWeapon, setKillHook, tickBurns, tickShots } from "./weapons.js?v=zm9";
-import { tickRobots } from "./robots.js?v=zm9";
-import { attachXr, tickXr } from "./xr.js?v=zm9";
-import { loadStoryPsy, lootForEnemy, makeWristGold, paintWristGold, saveStoryPsy, showerLoot, tickLoot } from "./loot.js?v=zm9";
-import { sfx, sfxUnlock } from "./sfx.js?v=zm9";
-import { makeNpc, nearNpc, tickNpcPose } from "./npcs.js?v=zm9";
+import { BIOMES, CELL, EYE, FLAG_COLLAPSE, FLAG_RUMBLE, LIQ_LAVA, LIQ_WATER, PICKUP_BY_ID, SHOP, SKY_DAY, SKY_JUNGLE, SKY_NIGHT, WEAPON_BY_ID, WEAPONS, routes } from "./config.js?v=zm10";
+import { bakedMaps, storyMaps } from "./defaults.js?v=zm10";
+import { biomeOf, cellI, countCarved, ensureLayers, firstCarved, floorY, sdf3 } from "./map.js?v=zm10";
+import { buildDungeon, prepareSdf } from "./mesh.js?v=zm10";
+import { makeProp, spawnFrom, strikeFoes, tickFoes } from "./props.js?v=zm10";
+import { getMap, listMaps } from "./store.js?v=zm10";
+import { makeProc } from "./proc.js?v=zm10";
+import { buildingFloorY, buildWorld, climbSupport, hurtBreakables, hurtTurrets, impulseBoulders, layoutRope, makeSky, makeSkyDome, ridgeNear, smashGlass, spawnRipple, tickRubble, tickWorld, tryUnlock, wallBlocked } from "./world.js?v=zm10";
+import { addBurnDecal, addSaberMark, addSaberTrail, fireWeapon, hurtFoe, makeDualSaber, makeKeyModel, makePickup, makeWeapon, setKillHook, tickBurns, tickShots } from "./weapons.js?v=zm10";
+import { tickRobots } from "./robots.js?v=zm10";
+import { attachXr, tickXr } from "./xr.js?v=zm10";
+import { loadStoryPsy, lootForEnemy, makeWristGold, paintWristGold, saveStoryPsy, showerLoot, tickLoot } from "./loot.js?v=zm10";
+import { sfx, sfxUnlock } from "./sfx.js?v=zm10";
+import { makeNpc, nearNpc, tickNpcPose } from "./npcs.js?v=zm10";
 
 const $ = (id) => document.getElementById(id);
 const keys = new Set();
@@ -544,15 +544,21 @@ function placePlayer() {
   return true;
 }
 
-async function enterMap(id) {
+async function enterMap(id, rev) {
   setMsg("Carving the dark…");
   initThree();
   await new Promise((r) => setTimeout(r, 30));
   clearWorld();
   let m = null;
-  if (id === "proc") m = makeProc();
+  const params = new URLSearchParams(location.search);
+  const wantRev = rev != null ? rev : params.get("r") || params.get("rev");
+  const forcePreview = params.get("preview") === "1" || id === "preview";
+  if (forcePreview && id !== "proc") {
+    m = await getMap("preview");
+    if (!m && id && id !== "preview") m = await getMap(id, wantRev);
+  } else if (id === "proc") m = makeProc();
   else if (storyMaps().some((x) => x.id === id)) m = storyMaps().find((x) => x.id === id);
-  else m = await getMap(id);
+  else m = await getMap(id, wantRev);
   if (!m) m = bakedMaps().find((x) => x.id === id);
   if (!m) {
     setMsg("Map missing.");
@@ -2512,6 +2518,7 @@ async function refreshLobbyMaps() {
     card.position.set(-2.05 + col * 1.05, 0.78 - row * 0.72, -2.05);
     card.userData.lobby = "map";
     card.userData.mapId = m.id;
+    card.userData.mapRev = m.rev || 0;
     lobby.add(card);
     lobby.userData.mapHits.push(card);
   });
@@ -2541,7 +2548,7 @@ function tickLobby(xr) {
     runMode = "custom";
     customStart.psy = Math.max(0, Math.min(1000, +($("custom-psy")?.value || 20)));
     customStart.gold = Math.max(0, Math.min(99999, +($("custom-gold")?.value || 0)));
-    enterMap(hit.object.userData.mapId);
+    enterMap(hit.object.userData.mapId, hit.object.userData.mapRev);
   }
 }
 
@@ -2580,7 +2587,7 @@ function fillCards(host, maps, mode) {
         customStart.psy = Math.max(0, Math.min(1000, +($("custom-psy")?.value || 20)));
         customStart.gold = Math.max(0, +($("custom-gold")?.value || 0));
       }
-      enterMap(m.id);
+      enterMap(m.id, m.rev);
     });
     host.appendChild(el);
   }
@@ -2612,13 +2619,15 @@ async function showList() {
   fillCards($("maps"), all, "custom");
   if ($("to-maps")) $("to-maps").href = routes().maps;
   setMenuTab("story");
-  const q = new URLSearchParams(location.search).get("map");
+  const params = new URLSearchParams(location.search);
+  const q = params.get("map");
+  const rev = params.get("r") || params.get("rev");
   if (q === "proc") {
     runMode = "custom";
     enterMap("proc");
   } else if (q) {
     runMode = storyMaps().some((m) => m.id === q) ? "story" : "custom";
-    enterMap(q);
+    enterMap(q, rev);
   }
 }
 

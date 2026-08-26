@@ -14,9 +14,9 @@ import {
   STORY_H,
   STORIES,
   WALL_TEX,
-} from "./config.js?v=zm9";
-import { cellI, climbHoleFloor, climbHoleRoof, enclosedFloors, idx, inBounds, isCarved, sdf3, slopeGrad, terrainY, wallIsCrack, wallTexId } from "./map.js?v=zm9";
-import { sfx } from "./sfx.js?v=zm9";
+} from "./config.js?v=zm10";
+import { cellI, climbHoleFloor, climbHoleRoof, enclosedFloors, idx, inBounds, isCarved, sdf3, slopeGrad, terrainY, wallIsCrack, wallTexId } from "./map.js?v=zm10";
+import { sfx } from "./sfx.js?v=zm10";
 
 function mat(hex, extra) {
   return new THREE.MeshLambertMaterial({ color: hex, ...extra });

@@ -406,6 +406,47 @@ function maybeOof() {
 let musicBeat = 0;
 let musicNext = 0;
 let musicNoiseBuf = null;
+let musicStyle = 0;
+const MUSIC_STYLES = [
+  {
+    step: 0.125,
+    bass: [55, 55, 65.41, 41.2, 55, 73.42, 65.41, 49],
+    kick: [0, 8],
+    snare: [4, 12],
+    hat: "even",
+    openHat: [6, 14],
+    stab: [0, 10],
+    notes: [220, 261.63, 293.66],
+  },
+  {
+    step: 0.11,
+    bass: [41.2, 49, 55, 61.74, 73.42, 55, 49, 36.71],
+    kick: [0, 3, 8, 11],
+    snare: [6, 14],
+    hat: "all",
+    openHat: [7, 15],
+    stab: [4, 12],
+    notes: [196, 233.08, 311.13],
+  },
+  {
+    step: 0.136,
+    bass: [82.41, 61.74, 55, 46.25, 82.41, 73.42, 55, 41.2],
+    kick: [0, 6, 10],
+    snare: [4, 8, 13],
+    hat: "odd",
+    openHat: [5, 13],
+    stab: [2, 10],
+    notes: [174.61, 220, 261.63],
+  },
+];
+function pickMusicStyle(force) {
+  if (force != null) musicStyle = force % MUSIC_STYLES.length;
+  else {
+    let next = (Math.random() * MUSIC_STYLES.length) | 0;
+    if (next === musicStyle) next = (next + 1) % MUSIC_STYLES.length;
+    musicStyle = next;
+  }
+}
 
 function stopMusic() {
   for (const n of musicNodes) {
@@ -449,6 +490,7 @@ function startMusic() {
   musicNodes.push(master, comp);
   musicBeat = 0;
   musicNext = ac.currentTime + 0.04;
+  pickMusicStyle();
 }
 
 function musicKick(t) {
@@ -537,9 +579,9 @@ function musicBass(t, freq) {
   o2.stop(t + 0.3);
 }
 
-function musicStab(t) {
+function musicStab(t, chord) {
   if (!ac || !musicGain) return;
-  const notes = [220, 261.63, 293.66];
+  const notes = chord || [220, 261.63, 293.66];
   for (let i = 0; i < 3; i++) {
     const o = ac.createOscillator();
     const g = ac.createGain();
@@ -561,16 +603,19 @@ function musicStab(t) {
 function tickMusic() {
   if (!ac || !musicGain || !running || dead) return;
   const now = ac.currentTime;
-  const step = 0.125;
-  const bass = [55, 55, 65.41, 41.2, 55, 73.42, 65.41, 49];
+  const st = MUSIC_STYLES[musicStyle] || MUSIC_STYLES[0];
+  const step = st.step;
+  const bass = st.bass;
   while (musicNext < now + 0.22) {
     const s = musicBeat & 15;
-    if (s === 0 || s === 8) musicKick(musicNext);
-    if (s === 4 || s === 12) musicSnare(musicNext);
-    if ((s & 1) === 0) musicHat(musicNext, s === 6 || s === 14);
+    if (st.kick.includes(s)) musicKick(musicNext);
+    if (st.snare.includes(s)) musicSnare(musicNext);
+    const hatOn = st.hat === "all" ? true : st.hat === "odd" ? (s & 1) === 1 : (s & 1) === 0;
+    if (hatOn) musicHat(musicNext, st.openHat.includes(s));
     if ((s & 1) === 0) musicBass(musicNext, bass[s >> 1]);
-    if (s === 0 || s === 10) musicStab(musicNext);
+    if (st.stab.includes(s)) musicStab(musicNext, st.notes);
     musicBeat++;
+    if ((musicBeat & 63) === 0) pickMusicStyle();
     musicNext += step;
   }
 }
@@ -1276,14 +1321,16 @@ function makeCentipede(w, ang, dist) {
   const spacing = coreR * 1.85;
   for (let i = 0; i < nSeg; i++) {
     const seg = new THREE.Group();
+    const torso = new THREE.Group();
     const body = new THREE.Mesh(new THREE.CapsuleGeometry(coreR * (1.05 - i * 0.02), coreR * 1.15, 3, 6), mat(col));
     body.rotation.z = Math.PI / 2;
-    seg.add(body);
+    torso.add(body);
     const plate = new THREE.Mesh(new THREE.SphereGeometry(coreR * 0.72, 6, 5), mat(col));
     plate.position.y = coreR * 0.15;
-    seg.add(plate);
-    body.userData = { live: true, thick: coreR, dmg: 2, len: coreR * 1.4, asLeg: false, form: "torso", run: 1.05, phase: i * 0.7 };
-    limbs.push(body);
+    torso.add(plate);
+    torso.userData = { live: true, thick: coreR * 1.35, dmg: 2, len: coreR * 1.4, asLeg: false, form: "torso", run: 1.05, phase: i * 0.7, seg: i };
+    seg.add(torso);
+    limbs.push(torso);
     for (const side of [-1, 1]) {
       const leg = makeLimb(w, true, "bug");
       leg.userData.asLeg = true;
@@ -1291,6 +1338,7 @@ function makeCentipede(w, ang, dist) {
       leg.userData.baseYaw = side * 1.15;
       leg.userData.basePitch = 0.55;
       leg.userData.baseRoll = 0;
+      leg.userData.seg = i;
       leg.rotation.order = "YXZ";
       leg.rotation.y = side * 1.15;
       leg.rotation.x = 0.55;
@@ -1303,7 +1351,7 @@ function makeCentipede(w, ang, dist) {
     segs.push(seg);
   }
   const core = segs[0];
-  const bodyScale = (1.05 + rng() * 0.45 + Math.min(0.8, w * 0.04)) * waveSizeMul(w);
+  const bodyScale = (1.05 + rng() * 0.45 + Math.min(0.8, w * 0.04)) * waveSizeMul(w) * 0.5;
   group.scale.setScalar(bodyScale);
   const x = player.x + Math.cos(ang) * dist;
   const z = player.z + Math.sin(ang) * dist;
@@ -1434,8 +1482,79 @@ function makeSpider(w, ang, dist) {
   };
 }
 
+function makeScuttler(w, ang, dist) {
+  const group = new THREE.Group();
+  const s = (0.82 + rng() * 0.35 + Math.min(0.55, w * 0.03)) * waveSizeMul(w) * 0.4;
+  const col = 0x161618;
+  const coreR = 0.2 * s;
+  const nLegs = 6 + ((rng() * 3) | 0);
+  const ceph = new THREE.Mesh(new THREE.SphereGeometry(coreR * 1.05, 7, 5), mat(col));
+  ceph.scale.set(1.25, 0.48, 1.05);
+  ceph.position.y = 0.1;
+  group.add(ceph);
+  const abdomen = new THREE.Mesh(new THREE.SphereGeometry(coreR * 1.15, 7, 5), mat(col));
+  abdomen.scale.set(1.05, 0.62, 1.35);
+  abdomen.position.set(0, 0.12, -coreR * 1.9);
+  group.add(abdomen);
+  const limbs = [];
+  for (let i = 0; i < nLegs; i++) {
+    const side = i < nLegs / 2 ? 1 : -1;
+    const along = i % (nLegs / 2);
+    const lyaw = side * (0.45 + along * 0.55);
+    const leg = makeLimb(w, true, "bug");
+    leg.rotation.order = "YXZ";
+    leg.userData.asLeg = true;
+    leg.userData.legIndex = i;
+    leg.userData.baseYaw = lyaw;
+    leg.userData.basePitch = 0.78;
+    leg.userData.baseRoll = 0;
+    leg.rotation.y = lyaw;
+    leg.rotation.x = 0.78;
+    leg.position.set(Math.sin(lyaw) * coreR * 1.1, 0.01, Math.cos(lyaw) * coreR * 0.7);
+    group.add(leg);
+    limbs.push(leg);
+  }
+  const bodyScale = s;
+  const x = player.x + Math.cos(ang) * dist;
+  const z = player.z + Math.sin(ang) * dist;
+  const walkH = heightAt(x, z) + 0.16 * bodyScale;
+  group.position.set(x, walkH, z);
+  scene.add(group);
+  return {
+    mesh: group,
+    core: ceph,
+    limbs,
+    hpLimbs: 1,
+    x, z, y: walkH,
+    spd: (2.05 + w * 0.09) * 1.4 * waveSpeedMul(w) / Math.sqrt(Math.max(0.35, bodyScale)),
+    boost: 1.25,
+    bodyScale,
+    bob: rng() * 6,
+    hitR: (0.55 + coreR) * bodyScale,
+    hitCd: 0,
+    dodgeY: 0,
+    nLegs,
+    alive: true,
+    spider: true,
+    scuttler: true,
+    fragile: true,
+    ranged: false,
+    fireCd: 0,
+    orbit: rng() * Math.PI * 2,
+    orbitR: 0.5 + rng() * 1.6,
+    sepJit: 0.55,
+    jabPhase: 0,
+    jabLimb: null,
+    threatCd: 0.8 + rng() * 2.2,
+    threatPose: 0,
+    threatT: 0,
+    threatDur: 0.7,
+  };
+}
+
 function makeMob(w, ang, dist) {
   if (w >= 3 && rng() < Math.min(0.2, 0.06 + w * 0.012)) return makeCentipede(w, ang, dist);
+  if (w >= 1 && rng() < Math.min(0.22, 0.08 + w * 0.014)) return makeScuttler(w, ang, dist);
   if (w >= 2 && rng() < Math.min(0.18, 0.055 + w * 0.012)) return makeSpider(w, ang, dist);
   const n = limbCountForWave(w);
   const bodyScale = mobScaleForWave(w);
@@ -1751,7 +1870,23 @@ function detachLimb(m, limb, force) {
 }
 
 function hitLimb(limb, m) {
-  detachLimb(m, limb, 5);
+  if (!m.alive) return;
+  if (m.fragile) {
+    for (const l of m.limbs) {
+      if (l.userData.live) detachLimb(m, l, 6);
+    }
+    killMob(m, false);
+    return;
+  }
+  if (m.centipede && limb.userData.form === "torso") {
+    const seg = limb.userData.seg;
+    for (const l of m.limbs) {
+      if (!l.userData.live) continue;
+      if (l === limb || l.userData.seg === seg) detachLimb(m, l, 5);
+    }
+  } else {
+    detachLimb(m, limb, 5);
+  }
   if (m.hpLimbs <= 0) killMob(m, false);
 }
 
@@ -1962,7 +2097,9 @@ function tickMobs(dt) {
     const sample = (liveLegs[0] || gait[0] || m.limbs[0]).userData;
     const lift = m.centipede
       ? (0.34 + (m.rear || 0) * 0.55) * (m.bodyScale || 1)
-      : m.spider
+      : m.scuttler
+        ? (0.14 + Math.max(0, Math.sin(m.bob * 11.5)) * 0.22) * (m.bodyScale || 1)
+        : m.spider
         ? (0.22 + Math.abs(Math.sin(m.bob * 9.5)) * 0.05) * (m.bodyScale || 1)
         : (0.38 + (sample?.len || 0.5) * 0.38) * (m.bodyScale || 1);
     const groundY = heightAt(m.x, m.z) + lift;
@@ -2005,11 +2142,11 @@ function tickMobs(dt) {
         limb.rotation.x = u.basePitch + Math.sin(m.bob * 1.4 + u.phase) * 0.12;
       } else if (u.asLeg) {
         const nL = m.nLegs || 2;
-        const freq = m.spider ? 8.4 : nL >= 8 ? 6.2 : nL === 4 ? 4.6 : 3.5;
-        const amp = m.spider ? 0.72 : nL === 2 ? 0.62 : 0.4;
-        const phase = m.spider ? (u.legIndex || 0) * 0.85 + ((u.legIndex || 0) % 2) * Math.PI : (u.legIndex || 0) * Math.PI;
+        const freq = m.scuttler ? 14 : m.spider ? 8.4 : nL >= 8 ? 6.2 : nL === 4 ? 4.6 : 3.5;
+        const amp = m.scuttler ? 0.95 : m.spider ? 0.72 : nL === 2 ? 0.62 : 0.4;
+        const phase = m.spider || m.scuttler ? (u.legIndex || 0) * 0.85 + ((u.legIndex || 0) % 2) * Math.PI : (u.legIndex || 0) * Math.PI;
         limb.rotation.x = u.basePitch + Math.sin(m.bob * freq + phase) * amp;
-        limb.rotation.z = Math.sin(m.bob * freq * 0.5 + phase) * (m.spider ? 0.22 : 0.1);
+        limb.rotation.z = Math.sin(m.bob * freq * 0.5 + phase) * (m.scuttler ? 0.32 : m.spider ? 0.22 : 0.1);
         if (u.baseYaw != null) limb.rotation.y = u.baseYaw;
       } else if (u.form === "tentacle") {
         limb.rotation.x = u.basePitch + Math.sin(m.bob * 2.6 + u.phase) * 0.45;
@@ -4747,8 +4884,10 @@ function doFire(xr) {
     tryShopShot(xr);
     return;
   }
-  if (!player.grounded && !player.tank) player.pounding = true;
-  const { origin, quat } = aimFromGun(xr);
+  const { origin, quat, dir } = aimFromGun(xr);
+  const stand = heightAt(player.x, player.z, player.y) + 1.6;
+  const airborne = !player.grounded && player.y > stand + 0.55;
+  player.pounding = !!(airborne && !player.tank && dir.y < -0.62);
   fireFrom(origin, quat);
 }
 
