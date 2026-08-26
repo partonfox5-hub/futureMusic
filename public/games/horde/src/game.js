@@ -7,7 +7,7 @@ const SPAWN_MIN = 52;
 const SPAWN_MAX = 78;
 const MAX_LIVE = 72;
 const COLORS = [0xff3355, 0x33ddaa, 0xffcc22, 0x6688ff, 0xff66dd, 0x44e0ff, 0xff8822];
-const DAY_LEN = 720;
+const DAY_LEN = 504;
 const HEARTS = 5;
 const MAX_HP0 = HEARTS * 2;
 
@@ -386,6 +386,10 @@ function maybeOof() {
   sfx.oof((rng() * 3) | 0);
 }
 
+let musicBeat = 0;
+let musicNext = 0;
+let musicNoiseBuf = null;
+
 function stopMusic() {
   for (const n of musicNodes) {
     try { n.stop?.(); } catch {}
@@ -396,6 +400,18 @@ function stopMusic() {
     try { musicGain.disconnect(); } catch {}
     musicGain = null;
   }
+  musicBeat = 0;
+  musicNext = 0;
+}
+
+function musicNoise() {
+  if (musicNoiseBuf) return musicNoiseBuf;
+  const n = Math.floor(ac.sampleRate * 0.18);
+  const buf = ac.createBuffer(1, n, ac.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+  musicNoiseBuf = buf;
+  return buf;
 }
 
 function startMusic() {
@@ -403,70 +419,143 @@ function startMusic() {
   sfxUnlock();
   if (!ac) return;
   const master = ac.createGain();
-  master.gain.value = 0.048;
-  master.connect(ac.destination);
+  master.gain.value = 0.042;
+  const comp = ac.createDynamicsCompressor();
+  comp.threshold.value = -22;
+  comp.knee.value = 12;
+  comp.ratio.value = 3.2;
+  comp.attack.value = 0.003;
+  comp.release.value = 0.12;
+  master.connect(comp);
+  comp.connect(ac.destination);
   musicGain = master;
-  function osc(type, freq, dest) {
+  musicNodes.push(master, comp);
+  musicBeat = 0;
+  musicNext = ac.currentTime + 0.04;
+}
+
+function musicKick(t) {
+  if (!ac || !musicGain) return;
+  const o = ac.createOscillator();
+  const g = ac.createGain();
+  o.type = "sine";
+  o.frequency.setValueAtTime(148, t);
+  o.frequency.exponentialRampToValueAtTime(38, t + 0.14);
+  g.gain.setValueAtTime(0.85, t);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.2);
+  o.connect(g);
+  g.connect(musicGain);
+  o.start(t);
+  o.stop(t + 0.22);
+}
+
+function musicSnare(t) {
+  if (!ac || !musicGain) return;
+  const src = ac.createBufferSource();
+  src.buffer = musicNoise();
+  const f = ac.createBiquadFilter();
+  f.type = "bandpass";
+  f.frequency.value = 1800;
+  f.Q.value = 0.7;
+  const g = ac.createGain();
+  g.gain.setValueAtTime(0.22, t);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.12);
+  src.connect(f);
+  f.connect(g);
+  g.connect(musicGain);
+  src.start(t);
+  src.stop(t + 0.14);
+  const o = ac.createOscillator();
+  o.type = "triangle";
+  o.frequency.setValueAtTime(180, t);
+  o.frequency.exponentialRampToValueAtTime(90, t + 0.08);
+  const og = ac.createGain();
+  og.gain.setValueAtTime(0.12, t);
+  og.gain.exponentialRampToValueAtTime(0.0001, t + 0.1);
+  o.connect(og);
+  og.connect(musicGain);
+  o.start(t);
+  o.stop(t + 0.12);
+}
+
+function musicHat(t, open) {
+  if (!ac || !musicGain) return;
+  const src = ac.createBufferSource();
+  src.buffer = musicNoise();
+  const f = ac.createBiquadFilter();
+  f.type = "highpass";
+  f.frequency.value = open ? 4200 : 6500;
+  const g = ac.createGain();
+  g.gain.setValueAtTime(open ? 0.07 : 0.045, t);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + (open ? 0.09 : 0.035));
+  src.connect(f);
+  f.connect(g);
+  g.connect(musicGain);
+  src.start(t);
+  src.stop(t + 0.1);
+}
+
+function musicBass(t, freq) {
+  if (!ac || !musicGain) return;
+  const o = ac.createOscillator();
+  const o2 = ac.createOscillator();
+  const f = ac.createBiquadFilter();
+  const g = ac.createGain();
+  o.type = "sawtooth";
+  o2.type = "square";
+  o.frequency.setValueAtTime(freq, t);
+  o2.frequency.setValueAtTime(freq * 0.5, t);
+  f.type = "lowpass";
+  f.frequency.setValueAtTime(420, t);
+  f.frequency.exponentialRampToValueAtTime(160, t + 0.2);
+  g.gain.setValueAtTime(0.22, t);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.28);
+  o.connect(f);
+  o2.connect(f);
+  f.connect(g);
+  g.connect(musicGain);
+  o.start(t);
+  o2.start(t);
+  o.stop(t + 0.3);
+  o2.stop(t + 0.3);
+}
+
+function musicStab(t) {
+  if (!ac || !musicGain) return;
+  const notes = [220, 261.63, 293.66];
+  for (let i = 0; i < 3; i++) {
     const o = ac.createOscillator();
-    o.type = type;
-    o.frequency.value = freq;
-    o.connect(dest);
-    o.start();
-    musicNodes.push(o);
-    return o;
+    const g = ac.createGain();
+    o.type = "sawtooth";
+    o.frequency.value = notes[i];
+    const f = ac.createBiquadFilter();
+    f.type = "lowpass";
+    f.frequency.value = 900;
+    g.gain.setValueAtTime(0.05, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.35);
+    o.connect(f);
+    f.connect(g);
+    g.connect(musicGain);
+    o.start(t);
+    o.stop(t + 0.38);
   }
-  const bassF = ac.createBiquadFilter();
-  bassF.type = "lowpass";
-  bassF.frequency.value = 220;
-  bassF.Q.value = 0.7;
-  bassF.connect(master);
-  musicNodes.push(bassF);
-  osc("sawtooth", 49, bassF);
-  osc("triangle", 73.5, bassF);
-  const pulse = ac.createOscillator();
-  pulse.type = "square";
-  pulse.frequency.value = 1.83;
-  const pulseG = ac.createGain();
-  pulseG.gain.value = 40;
-  pulse.connect(pulseG);
-  pulseG.connect(bassF.frequency);
-  pulse.start();
-  musicNodes.push(pulse, pulseG);
-  const leadF = ac.createBiquadFilter();
-  leadF.type = "bandpass";
-  leadF.frequency.value = 740;
-  leadF.Q.value = 4;
-  const leadG = ac.createGain();
-  leadG.gain.value = 0.22;
-  leadF.connect(leadG);
-  leadG.connect(master);
-  musicNodes.push(leadF, leadG);
-  const lead = osc("triangle", 196, leadF);
-  const lfo = ac.createOscillator();
-  lfo.frequency.value = 0.11;
-  const lfoG = ac.createGain();
-  lfoG.gain.value = 28;
-  lfo.connect(lfoG);
-  lfoG.connect(lead.frequency);
-  lfo.start();
-  musicNodes.push(lfo, lfoG);
-  const hat = ac.createBufferSource();
-  const nlen = ac.sampleRate * 2;
-  const buf = ac.createBuffer(1, nlen, ac.sampleRate);
-  const data = buf.getChannelData(0);
-  for (let i = 0; i < nlen; i++) data[i] = (Math.random() * 2 - 1) * (i % 2200 < 180 ? 0.35 : 0.02);
-  hat.buffer = buf;
-  hat.loop = true;
-  const hatF = ac.createBiquadFilter();
-  hatF.type = "highpass";
-  hatF.frequency.value = 2400;
-  const hatG = ac.createGain();
-  hatG.gain.value = 0.08;
-  hat.connect(hatF);
-  hatF.connect(hatG);
-  hatG.connect(master);
-  hat.start();
-  musicNodes.push(hat, hatF, hatG);
+}
+
+function tickMusic() {
+  if (!ac || !musicGain || !running || dead) return;
+  const now = ac.currentTime;
+  const step = 0.125;
+  const bass = [55, 55, 65.41, 41.2, 55, 73.42, 65.41, 49];
+  while (musicNext < now + 0.22) {
+    const s = musicBeat & 15;
+    if (s === 0 || s === 8) musicKick(musicNext);
+    if (s === 4 || s === 12) musicSnare(musicNext);
+    if ((s & 1) === 0) musicHat(musicNext, s === 6 || s === 14);
+    if ((s & 1) === 0) musicBass(musicNext, bass[s >> 1]);
+    if (s === 0 || s === 10) musicStab(musicNext);
+    musicBeat++;
+    musicNext += step;
+  }
 }
 
 function hillsAt(x, z) {
@@ -1761,7 +1850,7 @@ function paintHud3d() {
   hudCtx.font = "600 18px Outfit, sans-serif";
   hudCtx.fillText("L stick move     R stick turn", 16, 192);
   hudCtx.fillText("R trigger laser  A jump", 16, 220);
-  hudCtx.fillText((shopOnX ? "Y reload         X shop" : "X reload         Y shop") + "  R3 guns", 16, 248);
+  hudCtx.fillText((shopOnX ? "Y reload         X shop" : "X reload         Y shop") + "  B guns", 16, 248);
   hudCtx.fillText("L trigger flashlight", 16, 276);
   hudCtx.fillStyle = "#d4af37";
   hudCtx.font = "600 16px Outfit, sans-serif";
@@ -1849,12 +1938,14 @@ function makeFlagMesh() {
 }
 
 function placeFlag() {
+  const ox = flag ? flag.x : player.x;
+  const oz = flag ? flag.z : player.z;
   if (flag?.mesh) flag.mesh.removeFromParent();
   flagGen++;
   const ang = rng() * Math.PI * 2;
-  const dist = Math.min(148, 24 + flagGen * 10 + rng() * 18);
-  const x = player.x + Math.cos(ang) * dist;
-  const z = player.z + Math.sin(ang) * dist;
+  const dist = Math.min(222, 36 + flagGen * 15 + rng() * 27);
+  const x = ox + Math.cos(ang) * dist;
+  const z = oz + Math.sin(ang) * dist;
   const mesh = makeFlagMesh();
   mesh.position.set(x, heightAt(x, z, 4), z);
   scene.add(mesh);
@@ -3640,7 +3731,7 @@ function syncVrGun() {
 
 function pollXr() {
   const session = renderer.xr.getSession && renderer.xr.getSession();
-  if (!session) return { moveX: 0, moveY: 0, lookX: 0, jump: false, fire: false, fireTap: false, reload: false, shop: false, lClick: false, rClick: false, flash: false, right: null };
+  if (!session) return { moveX: 0, moveY: 0, lookX: 0, jump: false, fire: false, fireTap: false, reload: false, shop: false, lClick: false, rClick: false, flash: false, cycle: false, right: null };
   for (const src of session.inputSources) {
     const h = hands.find((x) => x.handed === src.handedness) || (src.handedness === "left" ? hands[0] : hands[1]);
     const gp = src.gamepad;
@@ -3675,6 +3766,7 @@ function pollXr() {
     lClick: !!(left && left.stick && !left.stickPrev),
     rClick: !!(right && right.stick && !right.stickPrev),
     flash: !!(left && left.trigger && !left.triggerPrev),
+    cycle: !!(right && right.bBtn && !right.bPrev),
     right,
   };
 }
@@ -3788,10 +3880,21 @@ function physics(dt, xr) {
   }
 }
 
+function ownedGuns() {
+  return Object.keys(WEPS).filter((id) => owned.has(id));
+}
+
 function cycleOwned() {
-  const ids = [...owned].filter((id) => WEPS[id]);
-  if (ids.length < 2) return;
-  const i = Math.max(0, ids.indexOf(player.wep));
+  const ids = ownedGuns();
+  if (!ids.length) return;
+  if (ids.length === 1) {
+    if (player.wep !== ids[0]) equip(ids[0]);
+    showBanner(wep().name.toUpperCase());
+    announcing = 0.55;
+    return;
+  }
+  let i = ids.indexOf(player.wep);
+  if (i < 0) i = 0;
   equip(ids[(i + 1) % ids.length]);
   showBanner(wep().name.toUpperCase());
   announcing = 0.7;
@@ -3887,11 +3990,12 @@ function loop() {
     if (bannerSpr) bannerSpr.material.opacity = clamp(announcing, 0, 1);
     if (announcing <= 0) hideBanner();
   }
-  const xr = xrOn ? pollXr() : { moveX: 0, moveY: 0, lookX: 0, jump: false, fire: false, fireTap: false, reload: false, shop: false, lClick: false, rClick: false, flash: false, right: null };
+  const xr = xrOn ? pollXr() : { moveX: 0, moveY: 0, lookX: 0, jump: false, fire: false, fireTap: false, reload: false, shop: false, lClick: false, rClick: false, flash: false, cycle: false, right: null };
   if (!dead && xr.shop) toggleShop();
   if (!dead && xr.reload) reload();
-  if (!dead && xr.rClick) cycleOwned();
+  if (!dead && (xr.cycle || xr.rClick)) cycleOwned();
   if (!dead && xr.flash) toggleFlash();
+  tickMusic();
   syncFlashlight();
   tickFx(dt);
   syncVrGun();
@@ -4092,7 +4196,7 @@ addEventListener("keydown", (e) => {
     if (shopOnX) toggleShop();
     else reload();
   }
-  if (e.code === "KeyQ" || e.code === "KeyC") cycleOwned();
+  if (e.code === "KeyQ" || e.code === "KeyC" || e.code === "KeyB") cycleOwned();
   if (e.code === "KeyF" || e.code === "KeyL") toggleFlash();
   if (e.code === "ShiftLeft" || e.code === "ShiftRight") sprintQueued = true;
   if (e.code === "Escape" && shopOpen) toggleShop();
