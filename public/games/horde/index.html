@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#d8d4cc" />
     <title>THE HORDE — VR wave shooter</title>
     <meta name="description" content="Play THE HORDE free in the browser or on Quest: an infinite plain under a day-and-night sky, doubling waves of many-limbed silhouettes, a pistol that starts weak, and an X-button armory." />
-    <meta name="build" content="prod-20260826-h13" />
+    <meta name="build" content="prod-20260826-h14" />
     <link rel="canonical" href="https://futuremusic.online/horde" />
     <link rel="icon" type="image/jpeg" href="/games/horde/og.jpg" />
     <meta property="og:title" content="THE HORDE — VR wave shooter" />
@@ -15,7 +15,7 @@
     <meta property="og:url" content="https://futuremusic.online/horde" />
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Outfit:wght@400;500;600;700&display=swap" />
-    <link rel="stylesheet" href="/games/horde/css/game.css?v=h13" />
+    <link rel="stylesheet" href="/games/horde/css/game.css?v=h14" />
   </head>
   <body>
     <canvas id="c"></canvas>
@@ -29,7 +29,7 @@
       <div>WAVE <b id="wave">0</b></div>
     </div>
     <div id="msg">WAVE 1</div>
-    <div id="hint">WASD · click fire · Space jump · Shift sprint · Q / B cycle guns · Y reload · X shop (swap in armory) · F flashlight · VR: B cycles every gun you own, left trigger flashlight, left stick click sprint, right trigger shoot / air pound, A jump</div>
+    <div id="hint">WASD · click fire · Space jump · Shift sprint · Q / B cycle guns · Y reload · X shop (swap in armory) · F flashlight · Esc menu · VR: left menu or left grip opens the main menu (new game + unlocked wave starts), B cycles every gun you own, left trigger flashlight, left stick click sprint, right trigger shoot / air pound, A jump</div>
 
     <div id="start">
       <div class="panel">
@@ -37,7 +37,7 @@
         <h1>THE HORDE</h1>
         <p>
           Infinite hills under an 8-minute day and night — after sunset it goes truly dark, so bring a flashlight. One pistol. Doubling waves to 100, then the fight goes on at peak difficulty.
-          Every five waves the ground shifts to another world in the solar system. Meteors streak the sky. X opens the armory — drones, forcefield orbs, ripple ray, zero-point gun, mini nuke, a dirt bike, and a laser noodle if you can afford them. B cycles every gun you own. After wave ten, some of the horde start throwing.
+          Every five waves the ground shifts to another world in the solar system. Meteors streak the sky. X opens the armory — drones, a WWII stone turret you can double-jump onto, forcefield orbs, ripple ray, zero-point gun, mini nuke, a dirt bike, and a laser noodle if you can afford them. B cycles every gun you own. After wave ten, some of the horde start throwing. Centipedes rear up. Limbs jab, whip, and stay raised.
         </p>
         <div class="ini">
           <span>Initials</span>
@@ -46,8 +46,11 @@
           <input data-ini="2" maxlength="1" value="A" aria-label="Initial 3" />
         </div>
         <ol id="lb"></ol>
+        <p id="starts-note" hidden>You've reached later waves — skip in with +50 ◎ per wave.</p>
+        <div class="starts" id="start-waves" hidden></div>
         <div class="row">
-          <button type="button" id="play">Play desktop</button>
+          <button type="button" id="play">New game</button>
+          <button type="button" id="resume" hidden>Resume</button>
           <button type="button" id="vr-enter">ENTER VR</button>
           <a class="btn ghost" href="/projects">Projects</a>
         </div>
@@ -72,10 +75,11 @@
         <p class="kicker">Taken by the horde</p>
         <h1>DOWN</h1>
         <p id="over-stats"></p>
-        <p class="restart-hint">Shoot this window to restart — or click anywhere on it.</p>
+        <p class="restart-hint">Shoot New Game on the panel, or pick an unlocked wave. +50 ◎ per wave if you skip in.</p>
+        <div class="starts" id="over-waves" hidden></div>
         <ol id="lb-over"></ol>
         <div class="row">
-          <button type="button" id="again">Crawl again</button>
+          <button type="button" id="again">New game</button>
           <button type="button" class="ghost" id="to-menu">Menu</button>
         </div>
       </div>
@@ -89,6 +93,6 @@
         }
       }
     </script>
-    <script type="module" src="/games/horde/js/game.js?v=h13"></script>
+    <script type="module" src="/games/horde/js/game.js?v=h14"></script>
   </body>
 </html>

@@ -42,9 +42,16 @@ canvas#c { position: absolute; inset: 0; width: 100%; height: 100%; display: blo
 #shop { background: rgba(12,12,16,0.55); }
 #start[hidden], #over[hidden], #shop[hidden] { display: none !important; }
 .panel {
-  width: min(560px, 92vw); background: #f7f4ee; border: 1px solid #cfc8b8; padding: 28px 30px 24px;
+  width: min(640px, 92vw); background: #f7f4ee; border: 1px solid #cfc8b8; padding: 28px 30px 24px;
   box-shadow: 0 24px 60px rgba(0,0,0,0.12);
+  max-height: 92vh; overflow: auto;
 }
+.starts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.starts[hidden] { display: none !important; }
+.starts button, button.wave-start {
+  background: #111; color: #d4af37; border-color: #d4af37; font-size: 11px; padding: 8px 10px;
+}
+#starts-note { margin: 12px 0 0; color: #6a655c; font-size: 13px; }
 .panel h1 { font-family: "Cinzel", serif; font-size: 42px; margin: 0 0 6px; letter-spacing: 0.08em; }
 .kicker { letter-spacing: 0.28em; text-transform: uppercase; font-size: 11px; color: var(--gold); margin: 0; }
 .panel p { color: #444; line-height: 1.45; font-size: 14px; }

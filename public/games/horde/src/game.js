@@ -12,28 +12,29 @@ const HEARTS = 5;
 const MAX_HP0 = HEARTS * 2;
 
 const WEPS = {
-  pistol: { id: "pistol", name: "Pistol", dmg: 1, rpm: 3.2, mag: 12, speed: 62, spread: 0.012, pellets: 1, cost: 0, reload: 10 },
-  smg: { id: "smg", name: "SMG", dmg: 1, rpm: 9.5, mag: 28, speed: 70, spread: 0.045, pellets: 1, cost: 90, reload: 6.2 },
-  shotgun: { id: "shotgun", name: "Scattergun", dmg: 1, rpm: 1.15, mag: 6, speed: 48, spread: 0.14, pellets: 7, cost: 140, reload: 8.4 },
-  rail: { id: "rail", name: "Rail", dmg: 3, rpm: 1.4, mag: 4, speed: 160, spread: 0, pellets: 1, hitscan: true, cost: 220, reload: 12 },
-  thunder: { id: "thunder", name: "Thunder", dmg: 8, rpm: 0.52, mag: 3, speed: 40, spread: 0, pellets: 1, spell: true, aoe: 10.8, lightning: true, knock: 2.8, cost: 160, reload: 9.2 },
-  nova: { id: "nova", name: "Nova", dmg: 4, rpm: 0.38, mag: 2, speed: 18, spread: 0, pellets: 1, spell: true, aoe: 5.6, fireball: true, wall: true, knock: 1.8, cost: 280, reload: 11.4 },
-  plasma: { id: "plasma", name: "Plasma beam", dmg: 4, rpm: 3.6, mag: 18, speed: 140, spread: 0, pellets: 1, hitscan: true, pierce: 2, cost: 650, reload: 8.5 },
-  ripple: { id: "ripple", name: "Ripple ray", dmg: 2, rpm: 1.6, mag: 8, speed: 22, spread: 0.08, pellets: 11, pierce: 3, ripple: true, cost: 1400, reload: 9.8 },
-  gravity: { id: "gravity", name: "Zero-point gun", dmg: 2, rpm: 8, mag: 40, speed: 40, spread: 0, pellets: 1, gravity: true, cost: 1800, reload: 7.5 },
-  nuke: { id: "nuke", name: "Mini nuke", dmg: 8, rpm: 0.32, mag: 1, speed: 18, spread: 0, pellets: 1, aoe: 12, nuke: true, cost: 2800, reload: 16 },
-  tank: { id: "tank", name: "Cyber tank", dmg: 6, rpm: 0.48, mag: 4, speed: 28, spread: 0.01, pellets: 1, aoe: 7.5, tank: true, cost: 4500, reload: 14 },
-  noodle: { id: "noodle", name: "Laser noodle", dmg: 2, rpm: 18, mag: 99, speed: 0, spread: 0, pellets: 1, noodle: true, cost: 8200, reload: 3.5 },
+  pistol: { id: "pistol", name: "Pistol", dmg: 1, rpm: 3.2, mag: 12, speed: 62, spread: 0.012, pellets: 1, cost: 0, reload: 8 },
+  smg: { id: "smg", name: "SMG", dmg: 1, rpm: 9.5, mag: 28, speed: 70, spread: 0.045, pellets: 1, cost: 90, reload: 4.96 },
+  shotgun: { id: "shotgun", name: "Scattergun", dmg: 1, rpm: 1.15, mag: 6, speed: 48, spread: 0.14, pellets: 7, cost: 140, reload: 6.72 },
+  rail: { id: "rail", name: "Rail", dmg: 6, rpm: 1.15, mag: 5, speed: 180, spread: 0, pellets: 1, hitscan: true, pierce: 4, cost: 220, reload: 9.6 },
+  thunder: { id: "thunder", name: "Thunder", dmg: 8, rpm: 0.52, mag: 3, speed: 40, spread: 0, pellets: 1, spell: true, aoe: 10.8, lightning: true, knock: 2.8, cost: 160, reload: 7.36 },
+  nova: { id: "nova", name: "Nova", dmg: 4, rpm: 0.38, mag: 2, speed: 18, spread: 0, pellets: 1, spell: true, aoe: 5.6, fireball: true, wall: true, knock: 1.8, cost: 280, reload: 9.12 },
+  plasma: { id: "plasma", name: "Plasma beam", dmg: 4, rpm: 3.6, mag: 18, speed: 140, spread: 0, pellets: 1, hitscan: true, pierce: 2, cost: 650, reload: 6.8 },
+  ripple: { id: "ripple", name: "Ripple ray", dmg: 2, rpm: 1.6, mag: 8, speed: 22, spread: 0.08, pellets: 11, pierce: 3, ripple: true, cost: 1400, reload: 7.84 },
+  gravity: { id: "gravity", name: "Zero-point gun", dmg: 2, rpm: 8, mag: 40, speed: 40, spread: 0, pellets: 1, gravity: true, cost: 1800, reload: 6 },
+  nuke: { id: "nuke", name: "Mini nuke", dmg: 8, rpm: 0.32, mag: 1, speed: 18, spread: 0, pellets: 1, aoe: 12, nuke: true, cost: 2800, reload: 12.8 },
+  tank: { id: "tank", name: "Cyber tank", dmg: 6, rpm: 0.48, mag: 4, speed: 28, spread: 0.01, pellets: 1, aoe: 7.5, tank: true, cost: 4500, reload: 11.2 },
+  noodle: { id: "noodle", name: "Laser noodle", dmg: 2, rpm: 18, mag: 99, speed: 0, spread: 0, pellets: 1, noodle: true, cost: 8200, reload: 2.8 },
 };
 
 const SHOP = [
-  { kind: "wep", id: "pistol", name: "Pistol", cost: 0, blurb: "Starter iron. 10s reload." },
+  { kind: "wep", id: "pistol", name: "Pistol", cost: 0, blurb: "Starter iron. 8s reload." },
   { kind: "wep", id: "smg", name: "SMG", cost: 90, blurb: "Fast fire. Reloads quicker than the pistol." },
   { kind: "wep", id: "shotgun", name: "Scattergun", cost: 140, blurb: "Seven pellets. Close range." },
-  { kind: "wep", id: "rail", name: "Rail", cost: 220, blurb: "Hitscan. Tears several limbs." },
+  { kind: "wep", id: "rail", name: "Rail", cost: 220, blurb: "Fat beam. Heavy hitscan. Five shots." },
   { kind: "wep", id: "thunder", name: "Thunder spell", cost: 160, blurb: "Call a lightning strike from the sky. Huge blast." },
   { kind: "wep", id: "nova", name: "Nova spell", cost: 280, blurb: "Giant fireball. Leaves a wall of fire that keeps burning." },
   { kind: "wep", id: "plasma", name: "Plasma beam", cost: 650, blurb: "Hot hitscan. Tears through two foes." },
+  { kind: "turret", id: "turret", name: "Stone turret", cost: 480, blurb: "Drops a WWII nest where you stand. 360° gun. Night beacon. Jump on the roof." },
   { kind: "drone", id: "drone", name: "Gun drone", cost: 420, blurb: "Hovers and fires a pistol. 2 hearts." },
   { kind: "ball", id: "ball-s", name: "Guard orb", cost: 280, blurb: "Small forcefield. 4 hearts.", hp: 8 },
   { kind: "ball", id: "ball-m", name: "Aegis orb", cost: 620, blurb: "Stout forcefield. 8 hearts.", hp: 16 },
@@ -128,6 +129,7 @@ let loot = [];
 let shots = [];
 let eShots = [];
 let drones = [];
+let turrets = [];
 let balls = [];
 let meteors = [];
 let craters = [];
@@ -145,6 +147,10 @@ let noodleMesh = null;
 let bikeMesh = null;
 let shopOnX = true;
 try { shopOnX = localStorage.getItem("horde.shopx") !== "0"; } catch {}
+const LS_BEST = "horde.bestWave";
+let menuOpen = false;
+let paused = false;
+let menuHits = [];
 const JUMP1 = 1.18;
 let grabMob = null;
 let tankMesh = null;
@@ -592,6 +598,11 @@ function heightAt(x, z, y) {
       h = Math.max(h, p.top);
     }
   }
+  for (const t of turrets) {
+    if (Math.hypot(x - t.x, z - t.z) > t.r) continue;
+    if (y != null && y < t.top - 0.5) continue;
+    h = Math.max(h, t.top);
+  }
   return h;
 }
 
@@ -690,9 +701,11 @@ function makeSky() {
         col += vec3(1.0, 0.86, 0.55) * (sun * 1.2 + sunG);
         col += vec3(0.75, 0.82, 1.0) * (moon * 1.4);
         float stars = 0.0;
-        if (uMoonI > 0.18 && vP.y > 0.04) {
-          float n = fract(sin(dot(vP.xy * 80.0, vec2(12.9898,78.233))) * 43758.5453);
-          stars = step(0.987, n) * (uMoonI - 0.12);
+        if (uMoonI > 0.28 && vP.y > 0.14) {
+          vec3 sp = normalize(vP);
+          float n = fract(sin(dot(sp * 37.0, vec3(12.9898, 78.233, 37.719))) * 43758.5453);
+          float n2 = fract(sin(dot(sp * 71.0, vec3(39.346, 11.135, 73.217))) * 23421.631);
+          stars = step(0.9972, n) * step(0.42, n2) * (uMoonI - 0.2) * 0.75;
         }
         col += vec3(stars);
         gl_FragColor = vec4(col, 1.0);
@@ -1134,6 +1147,8 @@ function makeLimb(w, asLeg, forceForm) {
   g.userData = {
     len, thick, rubber, hp: 1, live: true, mesh, pad, asLeg, form, joint,
     dmg, run, fly, phase: rng() * Math.PI * 2,
+    flourish: "none", flourishCd: rng() * 1.6, flourishT: 0, flourishDur: 1,
+    flourishAmp: 1, flourishSpin: 1, baseRoll: 0,
   };
   return g;
 }
@@ -1237,7 +1252,81 @@ function mobScaleForWave(w) {
   return clamp(1 + (rng() - 0.5) * 2 * spread, 0.72, 1.35 + w * 0.03);
 }
 
+function makeCentipede(w, ang, dist) {
+  const group = new THREE.Group();
+  const nSeg = 7 + ((rng() * 5) | 0) + Math.min(4, (w / 5) | 0);
+  const coreR = 0.16 + rng() * 0.06;
+  const col = 0x111114;
+  const limbs = [];
+  const segs = [];
+  const spacing = coreR * 1.85;
+  for (let i = 0; i < nSeg; i++) {
+    const seg = new THREE.Group();
+    const body = new THREE.Mesh(new THREE.CapsuleGeometry(coreR * (1.05 - i * 0.02), coreR * 1.15, 3, 6), mat(col));
+    body.rotation.z = Math.PI / 2;
+    seg.add(body);
+    const plate = new THREE.Mesh(new THREE.SphereGeometry(coreR * 0.72, 6, 5), mat(col));
+    plate.position.y = coreR * 0.15;
+    seg.add(plate);
+    body.userData = { live: true, thick: coreR, dmg: 2, len: coreR * 1.4, asLeg: false, form: "torso", run: 1.05, phase: i * 0.7 };
+    limbs.push(body);
+    for (const side of [-1, 1]) {
+      const leg = makeLimb(w, true, "bug");
+      leg.userData.asLeg = true;
+      leg.userData.legIndex = i * 2 + (side < 0 ? 0 : 1);
+      leg.userData.baseYaw = side * 1.15;
+      leg.userData.basePitch = 0.55;
+      leg.userData.baseRoll = 0;
+      leg.rotation.order = "YXZ";
+      leg.rotation.y = side * 1.15;
+      leg.rotation.x = 0.55;
+      leg.position.set(0, -coreR * 0.35, side * coreR * 0.85);
+      seg.add(leg);
+      limbs.push(leg);
+    }
+    seg.position.z = -i * spacing;
+    group.add(seg);
+    segs.push(seg);
+  }
+  const core = segs[0];
+  const bodyScale = 1.05 + rng() * 0.45 + Math.min(0.8, w * 0.04);
+  group.scale.setScalar(bodyScale);
+  const x = player.x + Math.cos(ang) * dist;
+  const z = player.z + Math.sin(ang) * dist;
+  const walkH = heightAt(x, z) + 0.42 * bodyScale;
+  group.position.set(x, walkH, z);
+  scene.add(group);
+  return {
+    mesh: group,
+    core,
+    limbs,
+    segs,
+    hpLimbs: limbs.filter((l) => l.userData.live).length,
+    x, z, y: walkH,
+    spd: (1.35 + w * 0.07) / Math.sqrt(bodyScale),
+    boost: 1.15,
+    bodyScale,
+    bob: rng() * 6,
+    hitR: (0.55 + nSeg * 0.12) * bodyScale,
+    hitCd: 0,
+    dodgeY: 0,
+    nLegs: nSeg * 2,
+    alive: true,
+    centipede: true,
+    rear: 0,
+    heading: ang + Math.PI,
+    ranged: false,
+    fireCd: 0,
+    orbit: rng() * 6,
+    orbitR: 1.2,
+    sepJit: 0.9,
+    jabPhase: 0,
+    jabLimb: null,
+  };
+}
+
 function makeMob(w, ang, dist) {
+  if (w >= 3 && rng() < Math.min(0.2, 0.06 + w * 0.012)) return makeCentipede(w, ang, dist);
   const n = limbCountForWave(w);
   const bodyScale = mobScaleForWave(w);
   const group = new THREE.Group();
@@ -1304,6 +1393,8 @@ function makeMob(w, ang, dist) {
     orbit: rng() * Math.PI * 2,
     orbitR: 1.4 + rng() * 4.2,
     sepJit: 0.65 + rng() * 0.7,
+    jabPhase: 0,
+    jabLimb: null,
   };
 }
 
@@ -1311,11 +1402,58 @@ function syncMob(m) {
   m.mesh.position.set(m.x, m.y, m.z);
   const dx = player.x - m.x;
   const dz = player.z - m.z;
-  m.mesh.rotation.y = Math.atan2(dx, dz);
+  m.mesh.rotation.y = m.centipede && m.heading != null ? m.heading : Math.atan2(dx, dz);
+}
+
+function loadBestWave() {
+  let best = 0;
+  try { best = Math.max(0, parseInt(localStorage.getItem(LS_BEST) || "0", 10) || 0); } catch {}
+  for (const r of loadLb()) best = Math.max(best, r.wave | 0);
+  return best;
+}
+
+function noteBestWave() {
+  const best = loadBestWave();
+  if (wave > best) {
+    try { localStorage.setItem(LS_BEST, String(wave)); } catch {}
+  }
+  paintWaveButtons();
+}
+
+function unlockedStarts() {
+  const best = loadBestWave();
+  const out = [];
+  for (let w = 5; w <= best; w += 5) out.push(w);
+  return out;
+}
+
+function paintWaveButtons() {
+  const waves = unlockedStarts();
+  const fill = (id) => {
+    const el = $(id);
+    if (!el) return;
+    el.innerHTML = "";
+    el.hidden = !waves.length;
+    for (const w of waves) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "wave-start";
+      b.textContent = "Wave " + w + "  ·  +" + (w * 50) + "◎";
+      b.onclick = (ev) => { ev.stopPropagation(); startRunFrom(w); };
+      el.appendChild(b);
+    }
+  };
+  fill("start-waves");
+  fill("over-waves");
+  const note = $("starts-note");
+  if (note) note.hidden = !waves.length;
+  const resume = $("resume");
+  if (resume) resume.hidden = !paused;
 }
 
 function spawnWave() {
   wave += 1;
+  noteBestWave();
   const dw = diffWave();
   const count = Math.pow(2, dw - 1);
   pending = count;
@@ -1487,6 +1625,116 @@ function nearestLiveLimb(m, point) {
   return best;
 }
 
+function pickLimbFlourish(u) {
+  const r = rng();
+  if (u.form === "wing") {
+    if (r < 0.62) return "none";
+    if (r < 0.84) return "hold";
+    if (r < 0.94) return "swing";
+    return "raise";
+  }
+  if (u.asLeg) {
+    if (r < 0.42) return "none";
+    if (r < 0.70) return "hold";
+    if (r < 0.82) return "raise";
+    if (r < 0.93) return "swing";
+    return "whip";
+  }
+  if (r < 0.12) return "none";
+  if (r < 0.54) return "hold";
+  if (r < 0.72) return "raise";
+  if (r < 0.88) return "swing";
+  return "whip";
+}
+
+function flourishDur(kind) {
+  if (kind === "hold") return 1.35 + rng() * 2.4;
+  if (kind === "raise") return 0.42 + rng() * 0.7;
+  if (kind === "swing") return 0.65 + rng() * 1.15;
+  if (kind === "whip") return 0.28 + rng() * 0.55;
+  return 0.3 + rng() * 0.85;
+}
+
+function resetChainPose(limb) {
+  limb.traverse((ch) => {
+    if (ch === limb || !ch.userData?.len) return;
+    ch.rotation.x *= 0.55;
+    ch.rotation.z *= 0.55;
+  });
+}
+
+function overlayLimbFlourish(limb, m, dt) {
+  const u = limb.userData;
+  if (!u.live || u.form === "torso") return;
+  u.flourishCd = (u.flourishCd || 0) - dt;
+  if (!u.flourish || u.flourish === "none") {
+    if (u.baseYaw != null) limb.rotation.y = u.baseYaw;
+    resetChainPose(limb);
+    if (u.flourishCd <= 0) {
+      u.flourish = pickLimbFlourish(u);
+      u.flourishT = 0;
+      u.flourishDur = flourishDur(u.flourish);
+      u.flourishAmp = 0.55 + rng() * 0.75;
+      u.flourishSpin = (rng() < 0.5 ? -1 : 1) * (1.8 + rng() * 2.6);
+      u.flourishCd = u.flourish === "none" ? 0.35 + rng() * 1.05 : 0.12 + rng() * 0.4;
+    }
+    return;
+  }
+  u.flourishT = (u.flourishT || 0) + dt;
+  const dur = Math.max(0.08, u.flourishDur || 1);
+  const t = u.flourishT / dur;
+  const amp = u.flourishAmp || 0.8;
+  const k = u.form === "wing" ? 0.45 : u.asLeg ? 0.62 : 1;
+  const raiseX = (u.asLeg ? -0.92 : -1.42) * (0.7 + 0.45 * amp) * k;
+  const yaw0 = u.baseYaw != null ? u.baseYaw : limb.rotation.y;
+  const roll0 = u.baseRoll || 0;
+  const endFlourish = (next) => {
+    u.flourish = next || "none";
+    u.flourishT = 0;
+    u.flourishDur = flourishDur(u.flourish);
+    u.flourishCd = 0.18 + rng() * 0.7;
+  };
+  if (u.flourish === "raise") {
+    const ease = Math.sin(Math.min(1, t) * Math.PI * 0.5);
+    limb.rotation.x = limb.rotation.x * (1 - ease) + raiseX * ease;
+    limb.rotation.z = roll0 + Math.sin(m.bob * 2.1 + u.phase) * 0.1 * k;
+    limb.rotation.y = yaw0;
+    if (t >= 1) endFlourish(rng() < 0.68 ? "hold" : rng() < 0.45 ? "swing" : "none");
+  } else if (u.flourish === "hold") {
+    const blend = Math.min(1, u.flourishT * 5.5);
+    limb.rotation.x = limb.rotation.x * (1 - blend) + (raiseX + Math.sin(m.bob * 1.35 + u.phase) * 0.08) * blend;
+    limb.rotation.z = roll0 + Math.sin(m.bob * 1.7 + u.phase) * 0.14 * k;
+    limb.rotation.y = yaw0 + Math.sin(m.bob * 0.7 + u.phase) * 0.09;
+    if (t >= 1) {
+      const r = rng();
+      if (r < 0.42) endFlourish("hold");
+      else if (r < 0.58) endFlourish("whip");
+      else if (r < 0.76) endFlourish("swing");
+      else endFlourish("none");
+    }
+  } else if (u.flourish === "swing") {
+    const swing = Math.sin(u.flourishT * (3.8 + amp * 2.4)) * amp * k;
+    limb.rotation.x = (u.basePitch || 0) * 0.28 + raiseX * 0.42 + swing * 0.7;
+    limb.rotation.z = roll0 + swing * 0.95;
+    limb.rotation.y = yaw0 + swing * 0.32;
+    if (t >= 1) endFlourish(rng() < 0.4 ? "hold" : "none");
+  } else if (u.flourish === "whip") {
+    const w = Math.sin(u.flourishT * (11 + amp * 7) * (u.flourishSpin || 2));
+    const w2 = Math.cos(u.flourishT * 13.5 + u.phase);
+    limb.rotation.x = (u.basePitch || 0) + w * 1.22 * k * amp;
+    limb.rotation.z = roll0 + w2 * 1.05 * k;
+    limb.rotation.y = yaw0 + w * 0.62;
+    limb.traverse((ch) => {
+      if (ch === limb || !ch.userData?.len) return;
+      ch.rotation.x = Math.sin(u.flourishT * 12.5 + (ch.userData.phase || 0)) * 0.62;
+      ch.rotation.z = Math.cos(u.flourishT * 9.4 + (ch.userData.phase || 0)) * 0.48;
+    });
+    if (t >= 1) endFlourish(rng() < 0.32 ? "hold" : rng() < 0.4 ? "swing" : "none");
+  } else {
+    endFlourish("none");
+  }
+}
+
 function incomingDodge(m) {
   let dodgeX = 0, dodgeZ = 0, dodgeY = 0, threat = 0;
   for (const s of shots) {
@@ -1548,6 +1796,11 @@ function tickMobs(dt) {
     }
     vx += sepX * (2.8 + m.spd * 0.35);
     vz += sepZ * (2.8 + m.spd * 0.35);
+    if (m.centipede) {
+      vx = (dx / dist) * m.spd * runMul * (dist < 4.2 ? 1.55 : 1) + sepX * 2.2;
+      vz = (dz / dist) * m.spd * runMul * (dist < 4.2 ? 1.55 : 1) + sepZ * 2.2;
+      m.heading = Math.atan2(dx, dz);
+    }
     if (dodge.threat) {
       const mag = Math.hypot(dodge.dodgeX, dodge.dodgeZ) || 1;
       const dodgeScale = 0.2 + 0.8 * Math.min(1, (diffWave() - 1) / 99);
@@ -1558,8 +1811,10 @@ function tickMobs(dt) {
     m.x += vx * dt;
     m.z += vz * dt;
     m.bob += dt * (4 + m.spd + nW * 2);
-    const sample = (liveLegs[0] || gait[0]).userData;
-    const lift = (0.38 + sample.len * 0.38) * (m.bodyScale || 1);
+    const sample = (liveLegs[0] || gait[0] || m.limbs[0]).userData;
+    const lift = m.centipede
+      ? (0.34 + (m.rear || 0) * 0.55) * (m.bodyScale || 1)
+      : (0.38 + (sample?.len || 0.5) * 0.38) * (m.bodyScale || 1);
     const groundY = heightAt(m.x, m.z) + lift;
     let hover = groundY;
     if (nW === 1) {
@@ -1589,6 +1844,7 @@ function tickMobs(dt) {
         const phase = (u.legIndex || 0) * Math.PI;
         limb.rotation.x = u.basePitch + Math.sin(m.bob * freq + phase) * amp;
         limb.rotation.z = Math.sin(m.bob * freq * 0.5 + phase) * 0.1;
+        if (u.baseYaw != null) limb.rotation.y = u.baseYaw;
       } else if (u.form === "tentacle") {
         limb.rotation.x = u.basePitch + Math.sin(m.bob * 2.6 + u.phase) * 0.45;
         limb.rotation.z = Math.sin(m.bob * 1.8 + u.phase) * 0.22;
@@ -1599,15 +1855,48 @@ function tickMobs(dt) {
       } else {
         limb.rotation.x = u.basePitch + Math.sin(m.bob * 2.2 + u.phase) * 0.2;
       }
+      if (limb !== m.jabLimb) overlayLimbFlourish(limb, m, dt);
+    }
+    if (m.centipede && m.segs) {
+      m.rear = dist < 3.6 ? Math.min(1, (m.rear || 0) + dt * 2.4) : Math.max(0, (m.rear || 0) - dt * 1.5);
+      for (let i = 0; i < m.segs.length; i++) {
+        const seg = m.segs[i];
+        const wave = Math.sin(m.bob * 3.6 + i * 0.82) * 0.07;
+        const up = m.rear * Math.max(0, 1 - i / 4.4) * 0.58;
+        seg.position.y = wave + up;
+        seg.rotation.x = -m.rear * Math.max(0, 0.72 - i * 0.13);
+      }
     }
     syncMob(m);
-    const reach = 0.85 + m.hitR * 0.35;
-    if (dist < reach && m.hitCd <= 0 && iFrame <= 0) {
-      const dmg = liveLimbs.reduce((mx, l) => Math.max(mx, l.userData.dmg || 1), 1);
-      damage(dmg);
-      m.hitCd = 0.9;
-      m.x -= (dx / dist) * 1.6;
-      m.z -= (dz / dist) * 1.6;
+    const reach = 0.95 + m.hitR * 0.32;
+    const close = dist < reach + 0.55;
+    if (close) {
+      vx = (dx / dist) * m.spd * 1.6;
+      vz = (dz / dist) * m.spd * 1.6;
+      if (!m.jabLimb || !m.jabLimb.userData.live) {
+        m.jabLimb = liveLimbs[(rng() * Math.max(1, liveLimbs.length)) | 0] || null;
+        m.jabPhase = 0;
+      }
+      m.jabPhase = (m.jabPhase || 0) + dt * 3.8;
+      const jab = Math.sin(Math.min(Math.PI, m.jabPhase * Math.PI));
+      if (m.jabLimb?.userData.live) {
+        m.jabLimb.rotation.x = (m.jabLimb.userData.basePitch || 0.35) + jab * 1.25;
+        m.jabLimb.rotation.z = (m.jabLimb.userData.baseRoll || 0) + jab * 0.35;
+      }
+      if (m.jabPhase >= 0.42 && dist < reach && m.hitCd <= 0 && iFrame <= 0) {
+        const dmg = (m.jabLimb?.userData.dmg || 1);
+        damage(dmg);
+        m.hitCd = 0.62;
+        m.x -= (dx / dist) * 0.85;
+        m.z -= (dz / dist) * 0.85;
+      }
+      if (m.jabPhase >= 1) {
+        m.jabLimb = null;
+        m.jabPhase = 0;
+      }
+    } else {
+      m.jabLimb = null;
+      m.jabPhase = 0;
     }
     if (m.ranged) {
       m.fireCd = (m.fireCd || 0) - dt;
@@ -1780,6 +2069,7 @@ function paintRadar() {
   for (const m of mobs) {
     if (m.alive) plot(m.x, m.z, "#ff3344", 4, false);
   }
+  for (const t of turrets) plot(t.x, t.z, "#c8b070", 6, true);
   if (flag) plot(flag.x, flag.z, "#d4af37", 7, true);
   radarCtx.fillStyle = "#f4f1ea";
   radarCtx.beginPath();
@@ -1978,26 +2268,84 @@ function damage(n) {
   if (player.hp <= 0) gameOver();
 }
 
-function paintOver3d() {
+function addMenuHit(x, y, w, h, kind, waveN) {
+  menuHits.push({ x, y, w, h, kind, wave: waveN || 1 });
+}
+
+function drawMenuBtn(ctx, x, y, w, h, label, fill, ink) {
+  ctx.fillStyle = fill || "#1a1a1e";
+  ctx.fillRect(x, y, w, h);
+  ctx.strokeStyle = "#d4af37";
+  ctx.lineWidth = 3;
+  ctx.strokeRect(x + 1.5, y + 1.5, w - 3, h - 3);
+  ctx.fillStyle = ink || "#f4f1ea";
+  ctx.font = "700 26px Outfit, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(label, x + w / 2, y + h / 2 + 1);
+  ctx.textAlign = "left";
+  ctx.textBaseline = "alphabetic";
+}
+
+function paintMenu3d(kind) {
   if (!overCtx) return;
-  const w = 1024, h = 512;
+  const w = 1024, h = 768;
+  menuHits = [];
   overCtx.fillStyle = "#f7f4ee";
   overCtx.fillRect(0, 0, w, h);
-  overCtx.fillStyle = "#d4af37";
-  overCtx.font = "600 28px Outfit, sans-serif";
-  overCtx.fillText("TAKEN BY THE HORDE", 48, 64);
-  overCtx.fillStyle = "#111";
-  overCtx.font = "700 96px Cinzel, serif";
-  overCtx.fillText("DOWN", 48, 180);
-  overCtx.font = "500 32px Outfit, sans-serif";
-  overCtx.fillText("Wave " + wave + "  ·  " + (player.coins | 0) + " coins  ·  " + initials.join(""), 48, 250);
-  overCtx.fillStyle = "#c42b2b";
-  overCtx.font = "700 36px Outfit, sans-serif";
-  overCtx.fillText("SHOOT THIS WINDOW TO RESTART", 48, 340);
-  overCtx.fillStyle = "#6a655c";
-  overCtx.font = "500 24px Outfit, sans-serif";
-  overCtx.fillText("Point anywhere on this panel and pull the trigger.", 48, 400);
+  const waves = unlockedStarts();
+  if (kind === "over") {
+    overCtx.fillStyle = "#d4af37";
+    overCtx.font = "600 26px Outfit, sans-serif";
+    overCtx.fillText("TAKEN BY THE HORDE", 40, 48);
+    overCtx.fillStyle = "#111";
+    overCtx.font = "700 72px Cinzel, serif";
+    overCtx.fillText("DOWN", 40, 128);
+    overCtx.font = "500 26px Outfit, sans-serif";
+    overCtx.fillText("Wave " + wave + "  ·  " + (player.coins | 0) + " ◎  ·  " + initials.join(""), 40, 172);
+    drawMenuBtn(overCtx, 40, 200, 460, 64, "NEW GAME  ·  WAVE 1", "#1a1a1e", "#f4f1ea");
+    addMenuHit(40, 200, 460, 64, "start", 1);
+  } else {
+    overCtx.fillStyle = "#d4af37";
+    overCtx.font = "600 26px Outfit, sans-serif";
+    overCtx.fillText("THE HORDE", 40, 48);
+    overCtx.fillStyle = "#111";
+    overCtx.font = "700 64px Cinzel, serif";
+    overCtx.fillText("MAIN MENU", 40, 118);
+    overCtx.font = "500 22px Outfit, sans-serif";
+    overCtx.fillStyle = "#6a655c";
+    overCtx.fillText("Shoot a start. Jump-in waves pay +50 ◎ per wave.", 40, 158);
+    drawMenuBtn(overCtx, 40, 184, 420, 60, "NEW GAME  ·  WAVE 1", "#1a1a1e", "#f4f1ea");
+    addMenuHit(40, 184, 420, 60, "start", 1);
+    if (paused) {
+      drawMenuBtn(overCtx, 480, 184, 280, 60, "RESUME", "#d4af37", "#111");
+      addMenuHit(480, 184, 280, 60, "resume", 0);
+    }
+  }
+  const top = kind === "over" ? 284 : 264;
+  if (waves.length) {
+    overCtx.fillStyle = "#6a655c";
+    overCtx.font = "600 20px Outfit, sans-serif";
+    overCtx.fillText("UNLOCKED STARTS", 40, top);
+    const cols = 4, bw = 230, bh = 52, gap = 12;
+    waves.forEach((wv, i) => {
+      const c = i % cols;
+      const r = (i / cols) | 0;
+      const x = 40 + c * (bw + gap);
+      const y = top + 16 + r * (bh + gap);
+      drawMenuBtn(overCtx, x, y, bw, bh, "W" + wv + "  +" + (wv * 50) + "◎", "#111", "#d4af37");
+      addMenuHit(x, y, bw, bh, "start", wv);
+    });
+  } else {
+    overCtx.fillStyle = "#8a8680";
+    overCtx.font = "500 20px Outfit, sans-serif";
+    overCtx.fillText("Reach wave 5 to unlock skip starts.", 40, top + 8);
+  }
   overTex.needsUpdate = true;
+}
+
+function paintOver3d() {
+  paintMenu3d("over");
 }
 
 function placeOver3d() {
@@ -2007,8 +2355,8 @@ function placeOver3d() {
   tmp2.y = 0;
   if (tmp2.lengthSq() < 1e-4) tmp2.set(0, 0, -1);
   tmp2.normalize();
-  overMesh.position.copy(tmp).addScaledVector(tmp2, 1.7);
-  overMesh.position.y = tmp.y + 0.05;
+  overMesh.position.copy(tmp).addScaledVector(tmp2, 1.85);
+  overMesh.position.y = tmp.y + 0.02;
   overMesh.lookAt(tmp);
 }
 
@@ -2023,10 +2371,13 @@ function hitPanel(mesh, origin, dir) {
 function gameOver() {
   dead = true;
   running = false;
+  paused = false;
+  menuOpen = false;
   stopMusic();
   shopOpen = false;
   $("shop").hidden = true;
   if (shopRoot) shopRoot.visible = false;
+  noteBestWave();
   const ini = initials.join("");
   const rows = loadLb();
   rows.push({ ini, wave, coins: player.coins | 0, t: Date.now() });
@@ -2034,6 +2385,7 @@ function gameOver() {
   saveLb(rows);
   $("over-stats").textContent = "Wave " + wave + " · " + (player.coins | 0) + " coins · " + ini;
   paintLb();
+  paintWaveButtons();
   paintOver3d();
   if (xrOn) {
     $("over").hidden = true;
@@ -2051,6 +2403,7 @@ function resetRun() {
   for (const c of loot) c.mesh.removeFromParent();
   for (const s of shots) s.mesh.removeFromParent();
   for (const d of drones) d.mesh.removeFromParent();
+  for (const t of turrets) t.mesh.removeFromParent();
   for (const b of balls) b.mesh.removeFromParent();
   for (const m of meteors) m.mesh.removeFromParent();
   for (const s of eShots) s.mesh.removeFromParent();
@@ -2065,7 +2418,7 @@ function resetRun() {
   skyFlash = 0;
   clearHexes();
   mobs = []; debris = []; loot = []; shots = []; eShots = [];
-  drones = []; balls = []; meteors = []; craters = [];
+  drones = []; turrets = []; balls = []; meteors = []; craters = [];
   grabMob = null;
   planetId = "";
   meteorT = 10;
@@ -2105,11 +2458,24 @@ function resetRun() {
 }
 
 function startRun() {
+  startRunFrom(1);
+}
+
+function startRunFrom(startWave) {
+  startWave = Math.max(1, startWave | 0);
   sfxUnlock();
   resetRun();
+  menuOpen = false;
+  paused = false;
   $("start").hidden = true;
   $("over").hidden = true;
+  if (overMesh) overMesh.visible = false;
   running = true;
+  if (startWave > 1) {
+    wave = startWave - 1;
+    player.coins = startWave * 50;
+    applyPlanetTex(true);
+  }
   startMusic();
   spawnWave();
   placeFlag();
@@ -2117,6 +2483,53 @@ function startRun() {
   player.y = hillsAt(player.x, player.z) + 1.6;
   player.grounded = true;
   if (!xrOn) controls.lock();
+}
+
+function openMainMenu() {
+  menuOpen = true;
+  shopOpen = false;
+  $("shop").hidden = true;
+  if (shopRoot) shopRoot.visible = false;
+  if (running && !dead) {
+    paused = true;
+    running = false;
+    stopMusic();
+  }
+  if (dead) {
+    dead = false;
+    paused = false;
+    resetRun();
+  }
+  paintWaveButtons();
+  paintMenu3d("main");
+  if (xrOn) {
+    $("start").hidden = true;
+    $("over").hidden = true;
+    if (overMesh) overMesh.visible = true;
+  } else {
+    $("start").hidden = false;
+    $("over").hidden = true;
+    if (overMesh) overMesh.visible = false;
+    if (controls?.isLocked) controls.unlock();
+  }
+}
+
+function resumeRun() {
+  if (!paused) return;
+  menuOpen = false;
+  paused = false;
+  running = true;
+  $("start").hidden = true;
+  $("over").hidden = true;
+  if (overMesh) overMesh.visible = false;
+  startMusic();
+  if (!xrOn) controls.lock();
+}
+
+function toggleMainMenu() {
+  if (menuOpen && paused) resumeRun();
+  else if (menuOpen && !paused && !running && !dead) return;
+  else openMainMenu();
 }
 
 function makeBolt(color, thick) {
@@ -2559,13 +2972,14 @@ function fireFrom(origin, quat) {
     }
     dir.normalize();
     if (def.hitscan) {
-      rayKill(origin, dir, 56, def);
-      const beam = makeBolt(col, def.id === "plasma" ? 0.07 : 0.045);
-      beam.position.copy(origin).addScaledVector(dir, 8);
-      beam.scale.set(def.id === "plasma" ? 2.1 : 1.4, def.id === "plasma" ? 2.1 : 1.4, 12);
+      rayKill(origin, dir, def.id === "rail" ? 72 : 56, def);
+      const rail = def.id === "rail";
+      const beam = makeBolt(rail ? 0xe8f4ff : col, rail ? 0.16 : def.id === "plasma" ? 0.07 : 0.045);
+      beam.position.copy(origin).addScaledVector(dir, rail ? 11 : 8);
+      beam.scale.set(rail ? 4.2 : def.id === "plasma" ? 2.1 : 1.4, rail ? 4.2 : def.id === "plasma" ? 2.1 : 1.4, rail ? 18 : 12);
       aimBolt(beam, dir);
       scene.add(beam);
-      shots.push({ mesh: beam, life: 0.14, dummy: true });
+      shots.push({ mesh: beam, life: rail ? 0.22 : 0.14, dummy: true });
     } else if (def.ripple) {
       const ring = new THREE.Mesh(
         new THREE.TorusGeometry(0.12 + i * 0.03, 0.018, 6, 18),
@@ -2980,6 +3394,161 @@ function spawnDrone() {
   return true;
 }
 
+const TURRET_DECK = 2.22;
+const TURRET_R = 1.82;
+
+function makeTurretMesh(col) {
+  hexMats();
+  const g = new THREE.Group();
+  const stone = mat(0x8a8478);
+  const stone2 = mat(0x6a6458);
+  const sand = mat(0x9a8864);
+  const steel = mat(0x2a2e2c);
+  const h = TURRET_DECK;
+  const r = TURRET_R;
+  const wall = new THREE.Mesh(new THREE.CylinderGeometry(r, r * 1.08, h, 8), [
+    cliffMat || stone,
+    stone2,
+    cliffMat || stone,
+  ]);
+  wall.position.y = h * 0.5;
+  const slit = new THREE.Mesh(new THREE.TorusGeometry(r * 0.92, 0.07, 5, 16), steel);
+  slit.rotation.x = Math.PI / 2;
+  slit.position.y = h * 0.62;
+  const bags = new THREE.Mesh(new THREE.TorusGeometry(r * 0.84, 0.2, 6, 14), sand);
+  bags.rotation.x = Math.PI / 2;
+  bags.position.y = h - 0.14;
+  const roof = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.94, r * 0.94, 0.18, 8), stone2);
+  roof.position.y = h;
+  const hatch = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 0.08, 10), steel);
+  hatch.position.y = h + 0.12;
+  const gun = new THREE.Group();
+  gun.position.y = h + 0.28;
+  const mount = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.34, 0.2, 10), steel);
+  const shield = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.32, 0.05), steel);
+  shield.position.set(0, 0.18, -0.26);
+  const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.038, 0.03, 1.22, 8), mat(0x1a1c1a));
+  barrel.rotation.x = Math.PI / 2;
+  barrel.position.set(0, 0.14, -0.78);
+  const sleeve = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.048, 0.28, 8), steel);
+  sleeve.rotation.x = Math.PI / 2;
+  sleeve.position.set(0, 0.14, -0.38);
+  const box = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.1, 0.1), mat(0x3a3224));
+  box.position.set(0.18, 0.08, -0.08);
+  gun.add(mount, shield, barrel, sleeve, box);
+  const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.05, 1.2, 6), steel);
+  mast.position.set(0.62, h + 0.62, 0.58);
+  const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.15, 10, 8), new THREE.MeshBasicMaterial({ color: col }));
+  lamp.position.set(0.62, h + 1.22, 0.58);
+  const glow = new THREE.Mesh(
+    new THREE.SphereGeometry(0.4, 10, 8),
+    new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.28, blending: THREE.AdditiveBlending, depthWrite: false }),
+  );
+  glow.position.copy(lamp.position);
+  const beam = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.14, 2.6, 88, 10, 1, true),
+    new THREE.MeshBasicMaterial({
+      color: col, transparent: true, opacity: 0.2, blending: THREE.AdditiveBlending,
+      depthWrite: false, side: THREE.DoubleSide,
+    }),
+  );
+  beam.position.set(0.62, h + 45, 0.58);
+  const sweep = new THREE.Mesh(
+    new THREE.BoxGeometry(0.1, 0.08, 26),
+    new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.16, blending: THREE.AdditiveBlending, depthWrite: false }),
+  );
+  sweep.position.copy(lamp.position);
+  const light = new THREE.PointLight(col, 0, 32, 1.25);
+  light.position.copy(lamp.position);
+  g.add(wall, slit, bags, roof, hatch, gun, mast, lamp, glow, beam, sweep, light);
+  g.userData.gun = gun;
+  g.userData.beacon = { lamp, glow, beam, sweep, light };
+  return g;
+}
+
+function spawnTurret() {
+  if (turrets.length >= 5) {
+    showBanner("TOO MANY NESTS");
+    announcing = 1.2;
+    return false;
+  }
+  const x = player.x;
+  const z = player.z;
+  const base = hillsAt(x, z);
+  const col = COLORS[(rng() * COLORS.length) | 0];
+  const mesh = makeTurretMesh(col);
+  mesh.position.set(x, base, z);
+  scene.add(mesh);
+  const top = base + TURRET_DECK;
+  const t = { mesh, x, z, r: TURRET_R * 0.92, top, hp: 28, cool: 0, yaw: 0, col };
+  turrets.push(t);
+  player.y = top + 1.6;
+  player.vy = 0;
+  player.grounded = true;
+  if (xrOn && rig) rig.position.set(player.x, player.y - 1.6, player.z);
+  else camera.position.set(player.x, player.y, player.z);
+  showBanner("NEST DROPPED  ·  DOUBLE JUMP THE ROOF");
+  announcing = 1.5;
+  return true;
+}
+
+function tickTurrets(dt) {
+  for (let i = turrets.length - 1; i >= 0; i--) {
+    const t = turrets[i];
+    if (t.hp <= 0) {
+      t.mesh.removeFromParent();
+      turrets.splice(i, 1);
+      continue;
+    }
+    const night = clamp(lastDark, 0, 1);
+    const b = t.mesh.userData.beacon;
+    if (b) {
+      if (b.light) b.light.intensity = night * 7.2;
+      if (b.glow?.material) b.glow.material.opacity = night * 0.34;
+      if (b.beam?.material) b.beam.material.opacity = night * 0.22;
+      if (b.sweep) {
+        b.sweep.visible = night > 0.18;
+        if (b.sweep.material) b.sweep.material.opacity = night * 0.18;
+        b.sweep.rotation.y += dt * 1.15;
+      }
+    }
+    t.cool -= dt;
+    let best = null, bd = 30;
+    for (const m of mobs) {
+      if (!m.alive) continue;
+      const dist = Math.hypot(m.x - t.x, m.z - t.z);
+      if (dist < 1.1 + m.hitR && (m.hitCd || 0) <= 0) {
+        t.hp -= 1;
+        m.hitCd = 0.55;
+      }
+      if (dist < bd) { bd = dist; best = m; }
+    }
+    const gun = t.mesh.userData.gun;
+    if (best && gun) {
+      const dx = best.x - t.x;
+      const dz = best.z - t.z;
+      const want = Math.atan2(dx, dz) + Math.PI;
+      let dAng = want - t.yaw;
+      while (dAng > Math.PI) dAng -= Math.PI * 2;
+      while (dAng < -Math.PI) dAng += Math.PI * 2;
+      t.yaw += dAng * Math.min(1, dt * 8);
+      gun.rotation.y = t.yaw;
+      if (t.cool <= 0 && bd < 28) {
+        t.cool = 0.09;
+        const origin = new THREE.Vector3();
+        gun.getWorldPosition(origin);
+        origin.y += 0.14;
+        const dir = new THREE.Vector3(best.x - origin.x, best.y - origin.y, best.z - origin.z).normalize();
+        const bolt = makeBolt(0xffcc66, 0.022);
+        bolt.position.copy(origin);
+        aimBolt(bolt, dir);
+        scene.add(bolt);
+        shots.push({ mesh: bolt, dir, speed: 78, life: 0.48, def: WEPS.smg, pierce: 1, hitSet: new Set() });
+      }
+    }
+  }
+}
+
 function spawnBall(hp) {
   if (balls.length >= 5) return false;
   const r = hp >= 32 ? 0.55 : hp >= 16 ? 0.4 : 0.28;
@@ -3300,6 +3869,10 @@ function buy(it) {
     if (player.coins < it.cost) return false;
     if (!spawnDrone()) return false;
     player.coins -= it.cost;
+  } else if (it.kind === "turret") {
+    if (player.coins < it.cost) return false;
+    if (!spawnTurret()) return false;
+    player.coins -= it.cost;
   } else if (it.kind === "ball") {
     if (player.coins < it.cost) return false;
     if (!spawnBall(it.hp || 8)) return false;
@@ -3406,6 +3979,16 @@ function drawShopIcon(ctx, it, x, y, s) {
     ctx.fill();
     ctx.fillStyle = "#d4af37";
     ctx.fillRect(-s * 0.36, -s * 0.05, s * 0.32, s * 0.1);
+  } else if (it.kind === "turret" || id === "turret") {
+    ctx.fillStyle = "#8a8478";
+    ctx.fillRect(-s * 0.32, -s * 0.02, s * 0.64, s * 0.34);
+    ctx.fillStyle = "#6a6458";
+    ctx.fillRect(-s * 0.28, -s * 0.12, s * 0.56, s * 0.12);
+    ctx.fillStyle = "#2a2e2c";
+    ctx.fillRect(-s * 0.06, -s * 0.22, s * 0.12, s * 0.18);
+    ctx.fillRect(-s * 0.04, -s * 0.28, s * 0.38, s * 0.07);
+    ctx.fillStyle = "#66e0ff";
+    ctx.beginPath(); ctx.arc(s * 0.22, -s * 0.32, s * 0.07, 0, 7); ctx.fill();
   } else if (it.kind === "drone" || id === "drone") {
     ctx.beginPath(); ctx.arc(0, 0, s * 0.18, 0, Math.PI * 2); ctx.fill();
     ctx.strokeStyle = "#66eeff"; ctx.lineWidth = 5;
@@ -3636,13 +4219,27 @@ function tryShopShot(xr) {
 
 function tryOverShot(xr) {
   const { origin, dir } = aimFromGun(xr);
-  if (hitPanel(overMesh, origin, dir)) {
-    $("over").hidden = true;
-    if (overMesh) overMesh.visible = false;
-    startRun();
+  if (!overMesh?.visible) return false;
+  _ray.set(origin, dir);
+  _ray.far = 8;
+  const hits = _ray.intersectObject(overMesh, true);
+  if (!hits.length) return false;
+  const uv = hits[0].uv;
+  if (uv && menuHits.length) {
+    const x = uv.x * 1024;
+    const y = (1 - uv.y) * 768;
+    for (const hit of menuHits) {
+      if (x >= hit.x && x <= hit.x + hit.w && y >= hit.y && y <= hit.y + hit.h) {
+        if (hit.kind === "resume") resumeRun();
+        else startRunFrom(hit.wave || 1);
+        return true;
+      }
+    }
     return true;
   }
-  return false;
+  if (paused) resumeRun();
+  else startRunFrom(1);
+  return true;
 }
 
 function toggleShop() {
@@ -3687,6 +4284,8 @@ function attachXr() {
       trigger: false, triggerPrev: false, triggerValue: 0,
       aBtn: false, aPrev: false, bBtn: false, bPrev: false,
       stick: false, stickPrev: false,
+      gripBtn: false, gripPrev: false,
+      menuBtn: false, menuPrev: false,
       handed: i === 0 ? "left" : "right",
       axes: [0, 0],
       pos: new THREE.Vector3(),
@@ -3704,7 +4303,11 @@ function attachXr() {
     $("vr-enter").textContent = "EXIT VR";
     $("start").hidden = true;
     if (shopRoot) shopRoot.visible = shopOpen;
-    if (overMesh) overMesh.visible = dead;
+    if (!running && !dead) {
+      menuOpen = true;
+      paintMenu3d("main");
+    }
+    if (overMesh) overMesh.visible = dead || menuOpen;
   });
   renderer.xr.addEventListener("sessionend", () => {
     xrOn = false;
@@ -3716,6 +4319,7 @@ function attachXr() {
     if (overMesh) overMesh.visible = false;
     if (shopOpen) $("shop").hidden = false;
     if (dead) $("over").hidden = false;
+    else if (!running || menuOpen) $("start").hidden = false;
   });
 }
 
@@ -3731,7 +4335,7 @@ function syncVrGun() {
 
 function pollXr() {
   const session = renderer.xr.getSession && renderer.xr.getSession();
-  if (!session) return { moveX: 0, moveY: 0, lookX: 0, jump: false, fire: false, fireTap: false, reload: false, shop: false, lClick: false, rClick: false, flash: false, cycle: false, right: null };
+  if (!session) return { moveX: 0, moveY: 0, lookX: 0, jump: false, fire: false, fireTap: false, reload: false, shop: false, lClick: false, rClick: false, flash: false, cycle: false, menu: false, right: null };
   for (const src of session.inputSources) {
     const h = hands.find((x) => x.handed === src.handedness) || (src.handedness === "left" ? hands[0] : hands[1]);
     const gp = src.gamepad;
@@ -3740,11 +4344,19 @@ function pollXr() {
     h.aPrev = h.aBtn;
     h.bPrev = h.bBtn;
     h.stickPrev = h.stick;
+    h.gripPrev = h.gripBtn;
+    h.menuPrev = h.menuBtn;
     h.triggerValue = gp.buttons[0] ? gp.buttons[0].value : 0;
     h.trigger = !!(gp.buttons[0] && (gp.buttons[0].pressed || h.triggerValue > 0.35));
     h.aBtn = !!(gp.buttons[4] && gp.buttons[4].pressed);
     h.bBtn = !!(gp.buttons[5] && gp.buttons[5].pressed);
     h.stick = !!(gp.buttons[3] && gp.buttons[3].pressed);
+    h.gripBtn = !!(gp.buttons[1] && gp.buttons[1].pressed);
+    let menuDown = !!(gp.buttons[2] && gp.buttons[2].pressed);
+    for (let bi = 7; bi < (gp.buttons.length || 0); bi++) {
+      if (gp.buttons[bi] && gp.buttons[bi].pressed) menuDown = true;
+    }
+    h.menuBtn = menuDown;
     const ax = gp.axes || [];
     h.axes = [ax[2] != null ? ax[2] : ax[0] || 0, ax[3] != null ? ax[3] : ax[1] || 0];
     h.con.getWorldPosition(h.pos);
@@ -3754,6 +4366,10 @@ function pollXr() {
   const right = hands.find((h) => h.handed === "right") || hands[1];
   const xTap = !!(left && left.aBtn && !left.aPrev);
   const yTap = !!(left && left.bBtn && !left.bPrev);
+  const menuTap = !!(left && (
+    (left.menuBtn && !left.menuPrev) ||
+    (left.gripBtn && !left.gripPrev)
+  ));
   return {
     moveX: left ? left.axes[0] : 0,
     moveY: left ? left.axes[1] : 0,
@@ -3767,6 +4383,7 @@ function pollXr() {
     rClick: !!(right && right.stick && !right.stickPrev),
     flash: !!(left && left.trigger && !left.triggerPrev),
     cycle: !!(right && right.bBtn && !right.bPrev),
+    menu: menuTap,
     right,
   };
 }
@@ -3945,7 +4562,7 @@ function tickMelee(dt) {
 }
 
 function doFire(xr) {
-  if (dead) {
+  if (dead || menuOpen) {
     tryOverShot(xr);
     return;
   }
@@ -3990,11 +4607,12 @@ function loop() {
     if (bannerSpr) bannerSpr.material.opacity = clamp(announcing, 0, 1);
     if (announcing <= 0) hideBanner();
   }
-  const xr = xrOn ? pollXr() : { moveX: 0, moveY: 0, lookX: 0, jump: false, fire: false, fireTap: false, reload: false, shop: false, lClick: false, rClick: false, flash: false, cycle: false, right: null };
-  if (!dead && xr.shop) toggleShop();
-  if (!dead && xr.reload) reload();
-  if (!dead && (xr.cycle || xr.rClick)) cycleOwned();
-  if (!dead && xr.flash) toggleFlash();
+  const xr = xrOn ? pollXr() : { moveX: 0, moveY: 0, lookX: 0, jump: false, fire: false, fireTap: false, reload: false, shop: false, lClick: false, rClick: false, flash: false, cycle: false, menu: false, right: null };
+  if (xr.menu) toggleMainMenu();
+  if (!dead && !menuOpen && xr.shop) toggleShop();
+  if (!dead && !menuOpen && xr.reload) reload();
+  if (!dead && !menuOpen && (xr.cycle || xr.rClick)) cycleOwned();
+  if (!dead && !menuOpen && xr.flash) toggleFlash();
   tickMusic();
   syncFlashlight();
   tickFx(dt);
@@ -4003,7 +4621,7 @@ function loop() {
   syncReloadBar();
   tickShopStick(dt, xr);
   placeShop3d();
-  if (dead) {
+  if (dead || menuOpen) {
     placeOver3d();
     if (xrOn && xr.fireTap) doFire(xr);
   } else if (running) {
@@ -4024,6 +4642,7 @@ function loop() {
       tickEshots(dt);
       tickCries(dt);
       tickDrones(dt);
+      tickTurrets(dt);
       tickBalls(dt);
       tickMeteors(dt);
       tickTank();
@@ -4118,11 +4737,11 @@ function init() {
   scene.add(shopRoot);
 
   const oc = document.createElement("canvas");
-  oc.width = 1024; oc.height = 512;
+  oc.width = 1024; oc.height = 768;
   overCtx = oc.getContext("2d");
   overTex = new THREE.CanvasTexture(oc);
   overMesh = new THREE.Mesh(
-    new THREE.PlaneGeometry(1.55, 0.78),
+    new THREE.PlaneGeometry(1.7, 1.28),
     new THREE.MeshBasicMaterial({ map: overTex, side: THREE.DoubleSide }),
   );
   overMesh.visible = false;
@@ -4133,6 +4752,7 @@ function init() {
   placeDesktopGun();
   renderer.setAnimationLoop(loop);
   paintLb();
+  paintWaveButtons();
   wireVr();
   $("c").addEventListener("click", () => {
     sfxUnlock();
@@ -4167,7 +4787,7 @@ function wireVr() {
         if (gl.makeXRCompatible) await gl.makeXRCompatible();
         const session = await navigator.xr.requestSession("immersive-vr", { optionalFeatures: ["local-floor"] });
         await renderer.xr.setSession(session);
-        if (!running) startRun();
+        if (!running) openMainMenu();
       } catch (err) {
         if (note) {
           note.hidden = false;
@@ -4199,7 +4819,10 @@ addEventListener("keydown", (e) => {
   if (e.code === "KeyQ" || e.code === "KeyC" || e.code === "KeyB") cycleOwned();
   if (e.code === "KeyF" || e.code === "KeyL") toggleFlash();
   if (e.code === "ShiftLeft" || e.code === "ShiftRight") sprintQueued = true;
-  if (e.code === "Escape" && shopOpen) toggleShop();
+  if (e.code === "Escape") {
+    if (shopOpen) toggleShop();
+    else toggleMainMenu();
+  }
   if (shopOpen && (e.code === "ArrowDown" || e.code === "KeyS")) {
     shopSel = (shopSel + 1) % SHOP.length;
     paintShop3d();
@@ -4214,15 +4837,16 @@ addEventListener("keyup", (e) => keys.delete(e.code));
 addEventListener("mousedown", (e) => { if (e.button === 0) mouseDown = true; });
 addEventListener("mouseup", (e) => { if (e.button === 0) mouseDown = false; });
 
-$("play").onclick = () => startRun();
-$("again").onclick = () => { $("over").hidden = true; startRun(); };
+$("play").onclick = () => startRunFrom(1);
+$("again").onclick = () => { $("over").hidden = true; startRunFrom(1); };
+if ($("resume")) $("resume").onclick = () => resumeRun();
 $("over").addEventListener("click", (e) => {
   if (!dead) return;
-  if (e.target.closest("#to-menu")) return;
+  if (e.target.closest("#to-menu, #over-waves, .wave-start")) return;
   $("over").hidden = true;
-  startRun();
+  startRunFrom(1);
 });
-$("to-menu").onclick = () => { $("over").hidden = true; $("start").hidden = false; resetRun(); };
+$("to-menu").onclick = () => { $("over").hidden = true; openMainMenu(); };
 $("shop-close").onclick = () => toggleShop();
 document.querySelectorAll("[data-ini]").forEach((inp) => {
   inp.addEventListener("input", () => {
