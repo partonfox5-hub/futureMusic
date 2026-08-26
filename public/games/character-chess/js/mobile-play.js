@@ -305,9 +305,20 @@ export function bootMobilePlay(game) {
     { passive: false },
   );
 
+  function safePaint() {
+    try {
+      paint((window.__game || game).getState());
+    } catch (err) {
+      console.warn("cc-mob paint", err);
+    }
+  }
   applyXform();
-  paint(game.getState());
-  game.subscribe(() => paint(game.getState()));
+  safePaint();
+  game.subscribe(safePaint);
+  if (window.__game && window.__game !== game && typeof window.__game.subscribe === "function") {
+    window.__game.subscribe(safePaint);
+  }
+  setInterval(safePaint, 400);
   const mo = new MutationObserver(hideBigMapButtons);
   mo.observe(document.body, { childList: true, subtree: true });
   hideBigMapButtons();

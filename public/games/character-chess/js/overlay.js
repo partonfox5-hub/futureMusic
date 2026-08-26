@@ -1,5 +1,5 @@
 import { makeGame } from "./nx-chess.js";
-import { isChessMobile, bootMobilePlay } from "./mobile-play.js?v=mob2";
+import { isChessMobile, bootMobilePlay } from "./mobile-play.js?v=mob3";
 
 const SPR = "/games/character-chess/sprites/characters/";
 const CARD = "/games/character-chess/sprites/cards/";
