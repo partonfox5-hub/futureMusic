@@ -792,11 +792,12 @@ function gridPos(gx, gy, gz, spec, rotQ, scale) {
   return new THREE.Vector3((gx + f.bw / 2) * STUD, gy * PLATE, (gz + f.bd / 2) * STUD);
 }
 function brickCells(b) {
-  const f = scaledFoot(b.spec, b.rot, b.scale || 1);
+  const p = brickPose(b);
+  const f = p.f;
   const cells = [];
   for (let i = 0; i < f.bw; i++) {
     for (let j = 0; j < f.bd; j++) {
-      cells.push({ x: b.gx + i, z: b.gz + j, y0: b.gy, y1: b.gy + f.h });
+      cells.push({ x: p.gx + i, z: p.gz + j, y0: p.gy, y1: p.gy + f.h });
     }
   }
   return cells;
@@ -806,6 +807,31 @@ let occGen = 0;
 let occBuilt = -1;
 let occMap = null;
 function bumpOcc() { occGen++; }
+function snappable(b) {
+  if (!b?.spec || !b.group || b.held) return false;
+  if (b.loose && gravityOn) return false;
+  return true;
+}
+
+function brickPose(b) {
+  const sc = b.scale || 1;
+  const f = scaledFoot(b.spec, b.rot, sc);
+  if (!b.loose) return { gx: b.gx, gy: b.gy, gz: b.gz, f, rot: b.rot, sc };
+  const p = b.group.position;
+  return {
+    gx: Math.round(p.x / STUD - f.bw / 2),
+    gy: Math.round(p.y / PLATE),
+    gz: Math.round(p.z / STUD - f.bd / 2),
+    f,
+    rot: b.rot,
+    sc,
+  };
+}
+
+function footprintsOverlap(ax, az, aw, ad, bx, bz, bw, bd) {
+  return ax < bx + bw && ax + aw > bx && az < bz + bd && az + ad > bz;
+}
+
 function occupancy() {
   if (occMap && occBuilt === occGen) return occMap;
   const map = new Map();
@@ -815,7 +841,7 @@ function occupancy() {
     map.get(k).push({ y0, y1, id });
   };
   for (const b of bricks) {
-    if (!b?.spec || b.loose || b.held) continue;
+    if (!snappable(b)) continue;
     for (const c of brickCells(b)) add(c.x, c.z, c.y0, c.y1, b.id);
   }
   occMap = map;
@@ -853,13 +879,14 @@ function supportY(gx, gz, bw, bd) {
   const onTab = overTable(gx, gz, bw, bd);
   let best = onTab ? 0 : groundGy();
   for (const b of bricks) {
-    if (b.loose || b.held) continue;
-    const f = scaledFoot(b.spec, b.rot, b.scale || 1);
+    if (!snappable(b)) continue;
+    const p = brickPose(b);
+    const f = p.f;
     for (let i = 0; i < bw; i++) {
       for (let j = 0; j < bd; j++) {
         const x = gx + i, z = gz + j;
-        if (x >= b.gx && x < b.gx + f.bw && z >= b.gz && z < b.gz + f.bd) {
-          const top = b.gy + f.h;
+        if (x >= p.gx && x < p.gx + f.bw && z >= p.gz && z < p.gz + f.bd) {
+          const top = p.gy + f.h;
           if (best == null || top > best) best = top;
         }
       }
@@ -871,22 +898,52 @@ function supportY(gx, gz, bw, bd) {
 function snapPose(localPos, spec, rotQ, scale) {
   const sc = scale == null ? pieceScale : scale;
   const f = scaledFoot(spec, rotQ, sc);
-  const gx = Math.round(localPos.x / STUD - f.bw / 2);
-  const gz = Math.round(localPos.z / STUD - f.bd / 2);
+  let gx = Math.round(localPos.x / STUD - f.bw / 2);
+  let gz = Math.round(localPos.z / STUD - f.bd / 2);
   let gy = Math.round(localPos.y / PLATE);
   const onTab = overTable(gx, gz, f.bw, f.bd);
   const floorGy = onTab ? 0 : groundGy();
-  const sup = supportY(gx, gz, f.bw, f.bd);
-  const snapH = PLATE * 3.2 * Math.max(1, Math.sqrt(sc));
-  let nearSupport = false;
-  if (sup != null) {
-    const supY = sup * PLATE;
-    if (localPos.y <= supY + snapH) {
-      gy = sup;
-      nearSupport = true;
+  const snapR = STUD * 1.85 * Math.max(1, Math.min(sc, 2.6));
+  let best = { gx, gz, gy, err: Infinity, near: false };
+  const consider = (ngx, ngy, ngz, err) => {
+    if (err < best.err && err <= snapR * (gravityOn ? 1 : 1.25)) {
+      best = { gx: ngx, gz: ngz, gy: ngy, err, near: true };
+    }
+  };
+  if (onTab) {
+    const pos = gridPos(gx, 0, gz, spec, rotQ, sc);
+    consider(gx, 0, gz, pos.distanceTo(localPos));
+  }
+  for (const b of bricks) {
+    if (!snappable(b)) continue;
+    const p = brickPose(b);
+    const bcx = (p.gx + p.f.bw / 2) * STUD;
+    const bcz = (p.gz + p.f.bd / 2) * STUD;
+    const xz = Math.hypot(localPos.x - bcx, localPos.z - bcz);
+    const reach = STUD * (Math.max(f.bw, p.f.bw) * 0.55 + 1.8) * Math.max(1, Math.min(sc, 2.4));
+    if (xz > reach) continue;
+    const gxs = [gx];
+    const gzs = [gz];
+    if (!footprintsOverlap(gx, gz, f.bw, f.bd, p.gx, p.gz, p.f.bw, p.f.bd)) {
+      gxs.push(Math.round(THREE.MathUtils.clamp(gx, p.gx - f.bw + 1, p.gx + p.f.bw - 1)));
+      gzs.push(Math.round(THREE.MathUtils.clamp(gz, p.gz - f.bd + 1, p.gz + p.f.bd - 1)));
+    }
+    for (const sx of gxs) {
+      for (const sz of gzs) {
+        if (!footprintsOverlap(sx, sz, f.bw, f.bd, p.gx, p.gz, p.f.bw, p.f.bd)) continue;
+        const topGy = p.gy + p.f.h;
+        consider(sx, topGy, sz, gridPos(sx, topGy, sz, spec, rotQ, sc).distanceTo(localPos));
+        const hangGy = p.gy - f.h;
+        consider(sx, hangGy, sz, gridPos(sx, hangGy, sz, spec, rotQ, sc).distanceTo(localPos));
+      }
     }
   }
-  gy = Math.max(floorGy, gy);
+  if (best.near) {
+    gx = best.gx;
+    gy = best.gy;
+    gz = best.gz;
+  }
+  if (gravityOn || onTab) gy = Math.max(floorGy, gy);
   if (collides(gx, gy, gz, spec, rotQ, null, sc)) {
     for (let lift = 1; lift <= 8; lift++) {
       if (!collides(gx, gy + lift, gz, spec, rotQ, null, sc)) {
@@ -898,8 +955,56 @@ function snapPose(localPos, spec, rotQ, scale) {
   const p = gridPos(gx, gy, gz, spec, rotQ, sc);
   const dist = p.distanceTo(localPos);
   const joinDist = STUD * 1.8 * Math.max(1, Math.min(sc, 2.4)) * Math.max(f.bw, f.bd) * 0.22;
-  const joined = nearSupport && dist < Math.max(STUD * 1.4, joinDist);
+  const joined = best.near && dist < Math.max(STUD * 1.4, joinDist, snapR);
   return { gx, gy, gz, rot: rotQ, spec, pos: p, joined, dist };
+}
+
+function freezeToGrid(b) {
+  if (!b?.spec || !b.group || b.held) return;
+  const p = brickPose(b);
+  b.gx = p.gx;
+  b.gy = p.gy;
+  b.gz = p.gz;
+  b.group.position.copy(gridPos(b.gx, b.gy, b.gz, b.spec, b.rot, b.scale || 1));
+  b.group.rotation.x = 0;
+  b.group.rotation.z = 0;
+  b.group.rotation.y = b.rot * Math.PI / 2;
+  b.vel.set(0, 0, 0);
+  if (b.spin) b.spin.set(0, 0, 0);
+  b.loose = false;
+}
+
+function wouldLink(o, gx, gy, gz, spec, rot, scale) {
+  const f = scaledFoot(spec, rot, scale);
+  const p = brickPose(o);
+  if (p.gy + p.f.h !== gy && gy + f.h !== p.gy) return false;
+  return footprintsOverlap(gx, gz, f.bw, f.bd, p.gx, p.gz, p.f.bw, p.f.bd);
+}
+
+function freezePartners(gx, gy, gz, spec, rot, scale) {
+  for (const o of bricks) {
+    if (o.held) continue;
+    if (!wouldLink(o, gx, gy, gz, spec, rot, scale)) continue;
+    if (o.loose) freezeToGrid(o);
+  }
+  bumpOcc();
+}
+
+function setGravity(on) {
+  gravityOn = !!on;
+  if (gravityOn) {
+    const g = groundedIds();
+    for (const b of bricks) {
+      if (b.held || b.loose) continue;
+      if (!g.has(b.id)) {
+        b.loose = true;
+        b.vel = new THREE.Vector3(0, -0.02, 0);
+        b.spin = new THREE.Vector3();
+      }
+    }
+    bumpOcc();
+  }
+  setHud();
 }
 
 function connectNew(b) {
@@ -1034,25 +1139,26 @@ function heightAt(x, z) {
   const half = TABLE_N / 2;
   if (gx < -half || gx >= half || gz < -half || gz >= half) best = groundGy() * PLATE;
   for (const b of bricks) {
-    if (!b?.spec || !b.group || b.loose || b.held) continue;
-    const f = scaledFoot(b.spec, b.rot, b.scale || 1);
-    if (gx < b.gx || gx >= b.gx + f.bw || gz < b.gz || gz >= b.gz + f.bd) continue;
-    let top = (b.gy + f.h) * PLATE;
+    if (!snappable(b)) continue;
+    const p = brickPose(b);
+    const f = p.f;
+    if (gx < p.gx || gx >= p.gx + f.bw || gz < p.gz || gz >= p.gz + f.bd) continue;
+    let top = (p.gy + f.h) * PLATE;
     if (b.spec.kind === "stairs") {
-      let u = (gx - b.gx) / Math.max(1, f.bw);
-      let v = (gz - b.gz) / Math.max(1, f.bd);
+      let u = (gx - p.gx) / Math.max(1, f.bw);
+      let v = (gz - p.gz) / Math.max(1, f.bd);
       if (b.rot % 4 === 1) v = u;
       else if (b.rot % 4 === 2) v = 1 - v;
       else if (b.rot % 4 === 3) v = 1 - u;
       v = Math.max(0, Math.min(1, v));
-      top = b.gy * PLATE + v * b.spec.h * PLATE;
+      top = p.gy * PLATE + v * b.spec.h * PLATE;
     } else if (b.spec.kind === "slope") {
-      let v = (gz - b.gz) / Math.max(1, f.bd);
-      if (b.rot % 4 === 1) v = (gx - b.gx) / Math.max(1, f.bw);
-      else if (b.rot % 4 === 2) v = 1 - (gz - b.gz) / Math.max(1, f.bd);
-      else if (b.rot % 4 === 3) v = 1 - (gx - b.gx) / Math.max(1, f.bw);
+      let v = (gz - p.gz) / Math.max(1, f.bd);
+      if (b.rot % 4 === 1) v = (gx - p.gx) / Math.max(1, f.bw);
+      else if (b.rot % 4 === 2) v = 1 - (gz - p.gz) / Math.max(1, f.bd);
+      else if (b.rot % 4 === 3) v = 1 - (gx - p.gx) / Math.max(1, f.bw);
       v = Math.max(0, Math.min(1, v));
-      top = b.gy * PLATE + v * b.spec.h * PLATE;
+      top = p.gy * PLATE + v * b.spec.h * PLATE;
     }
     if (top > best) best = top;
   }
@@ -1234,6 +1340,7 @@ function placeFromLocal(localPos, yaw) {
   const local = pushOutFromPlayer(localPos.clone(), spec);
   const snap = snapPose(local, spec, rot);
   if (snap.joined) {
+    freezePartners(snap.gx, snap.gy, snap.gz, spec, snap.rot, pieceScale);
     addBrick(spec, currentCol(), snap.gx, snap.gy, snap.gz, snap.rot, false);
   } else {
     const b = addBrick(spec, currentCol(), snap.gx, snap.gy, snap.gz, snap.rot, true);
@@ -1349,6 +1456,7 @@ function dropHeld(snapJoin) {
       held.group.position.copy(snap.pos);
       held.loose = false;
       held.vel.set(0, 0, 0);
+      freezePartners(held.gx, held.gy, held.gz, spec, held.rot, held.scale);
       connectNew(held);
     } else {
       held.group.position.copy(lp);
@@ -1519,7 +1627,7 @@ function pokePalette(origin, dir) {
   else if (p.type === "dim") dimI = p.i;
   else if (p.type === "tool") {
     if (p.id === "kind") kindI = (kindI + 1) % KINDS.length;
-    else if (p.id === "grav") gravityOn = !gravityOn;
+    else if (p.id === "grav") setGravity(!gravityOn);
     else if (p.id === "swap") swapHands();
     else if (p.id === "zin") setScale(worldScale * 1.25);
     else if (p.id === "zout") setScale(worldScale / 1.25);
@@ -2401,7 +2509,7 @@ function onMenuPick(id) {
   if (id === "resume") { closeMenu(); return; }
   if (id === "pile") spawnPile();
   if (id === "new") { clearWorld(); closeMenu(); return; }
-  if (id === "grav") { gravityOn = !gravityOn; setHud(); }
+  if (id === "grav") { setGravity(!gravityOn); }
   if (id.startsWith("save")) saveSlot(Number(id.slice(4)));
   if (id.startsWith("load")) { loadSlot(Number(id.slice(4))); closeMenu(); }
 }
@@ -2651,7 +2759,7 @@ window.addEventListener("keydown", (e) => {
   if (e.code === "Tab") { e.preventDefault(); cycleHandMode(); return; }
   if (e.code === "BracketLeft" || e.code === "Minus") setScale(worldScale / 1.2);
   if (e.code === "BracketRight" || e.code === "Equal") setScale(worldScale * 1.2);
-  if (e.code === "KeyG") { gravityOn = !gravityOn; setHud(); }
+  if (e.code === "KeyG") { setGravity(!gravityOn); }
   if (e.code === "KeyH") swapHands();
   if (e.code === "KeyX") { rot = (rot + 1) % 4; rebuildGhost(); }
   if (e.code === "KeyC") {
