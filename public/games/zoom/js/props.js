@@ -1,6 +1,353 @@
-import*as _0x24d640 from'three';
-import{ENEMIES,ENEMY_BY_ID}from'./config.js?v=sw3';
-import{sdf3,floorY}from'./map.js?v=sw3';
-import{makeRobot}from'./robots.js?v=sw3';
-import{hurtFoe}from'./weapons.js?v=sw3';
-const _0x322144=_0x5458;(function(_0x31e3e2,_0x558039){const _0x5e4f62=_0x5458,_0x4e7263=_0x31e3e2();while(!![]){try{const _0x122def=parseInt(_0x5e4f62(0xc4))/0x1+-parseInt(_0x5e4f62(0xcc))/0x2*(parseInt(_0x5e4f62(0xea))/0x3)+parseInt(_0x5e4f62(0xe2))/0x4*(parseInt(_0x5e4f62(0x9f))/0x5)+parseInt(_0x5e4f62(0xdf))/0x6+-parseInt(_0x5e4f62(0xeb))/0x7+-parseInt(_0x5e4f62(0xd4))/0x8+-parseInt(_0x5e4f62(0x9c))/0x9*(-parseInt(_0x5e4f62(0xa9))/0xa);if(_0x122def===_0x558039)break;else _0x4e7263['push'](_0x4e7263['shift']());}catch(_0x34d376){_0x4e7263['push'](_0x4e7263['shift']());}}}(_0x592a,0x888c3));function _0x5458(_0x4ddc6f,_0x37d9c6){_0x4ddc6f=_0x4ddc6f-0x9a;const _0x592a0b=_0x592a();let _0x545866=_0x592a0b[_0x4ddc6f];return _0x545866;}const TEX={},loader=new _0x24d640[(_0x322144(0xc6))]();function _0x592a(){const _0x2930d4=['transparent','robot','LinearFilter','1097266eZyrNS','color','TextureLoader','cool','flung','slam','OctahedronGeometry','max','384LaqDAd','animT','random','clone','mushroom','DoubleSide','SRGBColorSpace','crate','7041472tlYmcy','pillar','add','campfire','load','wrapS','banner','magFilter','BoxGeometry','phys','ClampToEdgeWrapping','881604detLZI','kind','abs','1940872OHiylW','colorSpace','bookshelf','hypot','dmg','offset','needsUpdate','material','14502IVkxGk','7446376yJAofq','sin','cage','251109gxENPi','hitR','scale','5hanhGC','ConeGeometry','CylinderGeometry','setHex','Group','userData','bones','sheet','repeat','position','610whujJc','NearestFilter','SpriteMaterial','stalagmite','recoil','Mesh','torch','setScalar','baseH','coffin','SphereGeometry','spawner','visible','table','wrapT','lightColor','PlaneGeometry','set','flame','enemy','lightDist','TorusGeometry','wander','rotation'];_0x592a=function(){return _0x2930d4;};return _0x592a();}function loadTex(_0x87e71f,_0x11bd7d){const _0x4d202d=_0x322144;if(TEX[_0x87e71f])return TEX[_0x87e71f];const _0x1bd1e7=loader[_0x4d202d(0xd8)](_0x87e71f,_0x16682e=>{const _0x69de87=_0x4d202d;_0x11bd7d&&(_0x16682e[_0x69de87(0xa7)][_0x69de87(0xba)](0.25,0.25),_0x16682e['offset']['set'](0x0,0.75),_0x16682e[_0x69de87(0xd9)]=_0x16682e[_0x69de87(0xb7)]=_0x24d640['ClampToEdgeWrapping'],_0x16682e['needsUpdate']=!![]);});return _0x1bd1e7[_0x4d202d(0xe3)]=_0x24d640[_0x4d202d(0xd2)],_0x1bd1e7[_0x4d202d(0xdb)]=_0x11bd7d?_0x24d640[_0x4d202d(0xaa)]:_0x24d640[_0x4d202d(0xc3)],_0x1bd1e7['minFilter']=_0x1bd1e7[_0x4d202d(0xdb)],_0x1bd1e7[_0x4d202d(0xc1)]=!![],_0x11bd7d&&(_0x1bd1e7[_0x4d202d(0xa7)][_0x4d202d(0xba)](0.25,0.25),_0x1bd1e7[_0x4d202d(0xe7)][_0x4d202d(0xba)](0x0,0.75),_0x1bd1e7['wrapS']=_0x1bd1e7['wrapT']=_0x24d640[_0x4d202d(0xde)]),TEX[_0x87e71f]=_0x1bd1e7,_0x1bd1e7;}function mat(_0x55f7b2,_0x18859c){return new _0x24d640['MeshStandardMaterial']({'color':_0x55f7b2,'roughness':0.72,'metalness':0.08,..._0x18859c});}export function makeProp(_0x5b6b51,_0x5c28d0){const _0x4a6b35=_0x322144,_0x350a76=new _0x24d640[(_0x4a6b35(0xa3))](),_0x15815e=_0x5c28d0||0x1,_0xf80fec=mat(0x6a4424),_0x7183e3=mat(0x2a2218),_0x6f615=mat(0x6a6e74,{'metalness':0.55,'roughness':0.4}),_0x43871f=mat(0xc4a050,{'metalness':0.6,'roughness':0.35}),_0x1395a5=mat(0x7a7870),_0x1af184=mat(0xd8d0c0),_0x361a36=(_0x3697b9,_0x3b726c,_0x4e9239,_0x58b6ca)=>{const _0x1ac6b3=_0x4a6b35;return _0x3697b9[_0x1ac6b3(0xa8)][_0x1ac6b3(0xba)](_0x3b726c,_0x4e9239,_0x58b6ca),_0x350a76[_0x1ac6b3(0xd6)](_0x3697b9),_0x3697b9;};if(_0x5b6b51===_0x4a6b35(0xaf)){_0x361a36(new _0x24d640[(_0x4a6b35(0xae))](new _0x24d640[(_0x4a6b35(0xa1))](0.04,0.05,0.7,0x6),_0xf80fec),0x0,0.45,0x0);const _0x32d651=_0x361a36(new _0x24d640[(_0x4a6b35(0xae))](new _0x24d640['SphereGeometry'](0.11,0x8,0x6),mat(0xffaa40,{'emissive':0xff6600,'roughness':0x1})),0x0,0.88,0x0);_0x32d651[_0x4a6b35(0xa4)][_0x4a6b35(0xbb)]=!![],_0x350a76['userData'][_0x4a6b35(0xb8)]=0xffaa66,_0x350a76[_0x4a6b35(0xa4)][_0x4a6b35(0xbd)]=0x9;}else{if(_0x5b6b51===_0x4a6b35(0xd3))_0x361a36(new _0x24d640['Mesh'](new _0x24d640[(_0x4a6b35(0xdc))](0.7,0.7,0.7),_0xf80fec),0x0,0.35,0x0),_0x361a36(new _0x24d640['Mesh'](new _0x24d640[(_0x4a6b35(0xdc))](0.74,0.06,0.74),_0x7183e3),0x0,0.35,0x0),_0x361a36(new _0x24d640[(_0x4a6b35(0xae))](new _0x24d640[(_0x4a6b35(0xdc))](0.08,0.72,0.08),_0x6f615),0.32,0.35,0.32),_0x361a36(new _0x24d640[(_0x4a6b35(0xae))](new _0x24d640['BoxGeometry'](0.08,0.72,0.08),_0x6f615),-0.32,0.35,0.32),_0x361a36(new _0x24d640[(_0x4a6b35(0xae))](new _0x24d640['BoxGeometry'](0.08,0.72,0.08),_0x6f615),0.32,0.35,-0.32),_0x361a36(new _0x24d640['Mesh'](new _0x24d640[(_0x4a6b35(0xdc))](0.08,0.72,0.08),_0x6f615),-0.32,0.35,-0.32);else{if(_0x5b6b51==='barrel')_0x361a36(new _0x24d640['Mesh'](new _0x24d640[(_0x4a6b35(0xa1))](0.32,0.34,0.8,0xc),_0xf80fec),0x0,0.4,0x0),_0x361a36(new _0x24d640[(_0x4a6b35(0xae))](new _0x24d640[(_0x4a6b35(0xbe))](0.33,0.03,0x6,0xc),_0x6f615),0x0,0.18,0x0)['rotation']['x']=Math['PI']/0x2,_0x361a36(new _0x24d640['Mesh'](new _0x24d640['TorusGeometry'](0.33,0.03,0x6,0xc),_0x6f615),0x0,0.4,0x0)[_0x4a6b35(0xc0)]['x']=Math['PI']/0x2,_0x361a36(new _0x24d640['Mesh'](new _0x24d640[(_0x4a6b35(0xbe))](0.33,0.03,0x6,0xc),_0x6f615),0x0,0.62,0x0)[_0x4a6b35(0xc0)]['x']=Math['PI']/0x2,_0x361a36(new _0x24d640['Mesh'](new _0x24d640[(_0x4a6b35(0xa1))](0.08,0.1,0.06,0x8),_0x6f615),0x0,0.82,0x0);else{if(_0x5b6b51==='chest')_0x361a36(new _0x24d640['Mesh'](new _0x24d640['BoxGeometry'](0.85,0.4,0.55),_0xf80fec),0x0,0.22,0x0),_0x361a36(new _0x24d640[(_0x4a6b35(0xae))](new _0x24d640['BoxGeometry'](0.85,0.22,0.55),_0xf80fec),0x0,0.52,0x0),_0x361a36(new _0x24d640['Mesh'](new _0x24d640['BoxGeometry'](0.88,0.04,0.58),_0x7183e3),0x0,0.42,0x0),_0x361a36(new _0x24d640[(_0x4a6b35(0xae))](new _0x24d640[(_0x4a6b35(0xdc))](0.12,0.16,0.08),_0x43871f),0x0,0.4,0.28),_0x361a36(new _0x24d640[(_0x4a6b35(0xae))](new _0x24d640[(_0x4a6b35(0xdc))](0.9,0.05,0.08),_0x6f615),0x0,0.08,0.24);else{if(_0x5b6b51===_0x4a6b35(0xd5))_0x361a36(new _0x24d640['Mesh'](new _0x24d640['CylinderGeometry'](0.22,0.28,3.4,0x8),_0x1395a5),0x0,1.7,0x0),_0x361a36(new _0x24d640[(_0x4a6b35(0xae))](new _0x24d640['CylinderGeometry'](0.34,0.34,0.18,0x8),_0x1395a5),0x0,0.1,0x0),_0x361a36(new _0x24d640[(_0x4a6b35(0xae))](new _0x24d640[(_0x4a6b35(0xa1))](0.32,0.32,0.16,0x8),_0x1395a5),0x0,3.35,0x0);else{if(_0x5b6b51===_0x4a6b35(0xa5))_0x361a36(new _0x24d640[(_0x4a6b35(0xae))](new _0x24d640[(_0x4a6b35(0xb3))](0.16,0x6,0x5),_0x1af184),0x0,0.18,0x0),_0x361a36(new _0x24d640[(_0x4a6b35(0xae))](new _0x24d640[(_0x4a6b35(0xa1))](0.04,0.05,0.7,0x5),_0x1af184),0.12,0.2,0.05)['rotation']['z']=0.8,_0x361a36(new _0x24d640['Mesh'](new _0x24d640[(_0x4a6b35(0xa1))](0.04,0.05,0.55,0x5),_0x1af184),-0.1,0.16,-0.08)['rotation']['z']=-0.5;else{if(_0x5b6b51==='crystal'){const _0x4ad1d7=mat(0x8844dd,{'emissive':0x331166,'roughness':0.25,'metalness':0.2,'transparent':!![],'opacity':0.92});_0x361a36(new _0x24d640[(_0x4a6b35(0xae))](new _0x24d640[(_0x4a6b35(0xca))](0.35,0x0),_0x4ad1d7),0x0,0.55,0x0)[_0x4a6b35(0x9e)][_0x4a6b35(0xba)](0.7,1.6,0.7),_0x361a36(new _0x24d640[(_0x4a6b35(0xae))](new _0x24d640[(_0x4a6b35(0xca))](0.22,0x0),_0x4ad1d7),0.18,0.35,0.1)[_0x4a6b35(0x9e)][_0x4a6b35(0xba)](0.5,1.2,0.5),_0x350a76[_0x4a6b35(0xa4)][_0x4a6b35(0xb8)]=0xaa66ff,_0x350a76[_0x4a6b35(0xa4)][_0x4a6b35(0xbd)]=0x6;}else{if(_0x5b6b51===_0x4a6b35(0xb6)){_0x361a36(new _0x24d640[(_0x4a6b35(0xae))](new _0x24d640['BoxGeometry'](1.1,0.08,0.7),_0xf80fec),0x0,0.72,0x0);for(const [_0x4bf0d0,_0x323150]of[[-0.45,-0.25],[0.45,-0.25],[-0.45,0.25],[0.45,0.25]]){_0x361a36(new _0x24d640['Mesh'](new _0x24d640[(_0x4a6b35(0xdc))](0.08,0.7,0.08),_0xf80fec),_0x4bf0d0,0.35,_0x323150);}}else{if(_0x5b6b51==='chair'){_0x361a36(new _0x24d640['Mesh'](new _0x24d640[(_0x4a6b35(0xdc))](0.42,0.07,0.42),_0xf80fec),0x0,0.42,0x0),_0x361a36(new _0x24d640[(_0x4a6b35(0xae))](new _0x24d640[(_0x4a6b35(0xdc))](0.42,0.55,0.07),_0xf80fec),0x0,0.72,-0.18);for(const [_0x5c8b6d,_0x3ae247]of[[-0.16,-0.16],[0.16,-0.16],[-0.16,0.16],[0.16,0.16]]){_0x361a36(new _0x24d640['Mesh'](new _0x24d640[(_0x4a6b35(0xdc))](0.06,0.4,0.06),_0xf80fec),_0x5c8b6d,0.2,_0x3ae247);}}else{if(_0x5b6b51===_0x4a6b35(0xda))_0x361a36(new _0x24d640['Mesh'](new _0x24d640[(_0x4a6b35(0xa1))](0.04,0.04,2.6,0x6),_0xf80fec),0x0,1.3,0x0),_0x361a36(new _0x24d640['Mesh'](new _0x24d640[(_0x4a6b35(0xb9))](0.7,1.1),mat(0x8a2028,{'side':_0x24d640[_0x4a6b35(0xd1)]})),0.05,1.55,0x0);else{if(_0x5b6b51===_0x4a6b35(0xd0))_0x361a36(new _0x24d640['Mesh'](new _0x24d640['CylinderGeometry'](0.08,0.1,0.35,0x6),mat(0xd8c8a8)),0x0,0.18,0x0),_0x361a36(new _0x24d640[(_0x4a6b35(0xae))](new _0x24d640['SphereGeometry'](0.22,0x8,0x6),mat(0xc44a3a)),0x0,0.4,0x0)['scale']['y']=0.55;else{if(_0x5b6b51===_0x4a6b35(0xac))_0x361a36(new _0x24d640[(_0x4a6b35(0xae))](new _0x24d640[(_0x4a6b35(0xa0))](0.28,1.3,0x7),_0x1395a5),0x0,0.65,0x0);else{if(_0x5b6b51==='altar')_0x361a36(new _0x24d640['Mesh'](new _0x24d640[(_0x4a6b35(0xdc))](1.2,0.7,0.7),_0x1395a5),0x0,0.35,0x0),_0x361a36(new _0x24d640['Mesh'](new _0x24d640['BoxGeometry'](1.35,0.1,0.85),_0x1395a5),0x0,0.74,0x0),_0x361a36(new _0x24d640['Mesh'](new _0x24d640['CylinderGeometry'](0.08,0.1,0.25,0x8),_0x43871f),0x0,0.92,0x0);else{if(_0x5b6b51===_0x4a6b35(0x9b))_0x361a36(new _0x24d640['Mesh'](new _0x24d640[(_0x4a6b35(0xa1))](0.45,0.45,1.5,0xa,0x1,!![]),_0x6f615),0x0,0.75,0x0),_0x361a36(new _0x24d640[(_0x4a6b35(0xae))](new _0x24d640['TorusGeometry'](0.45,0.03,0x5,0xc),_0x6f615),0x0,1.5,0x0)[_0x4a6b35(0xc0)]['x']=Math['PI']/0x2;else{if(_0x5b6b51===_0x4a6b35(0xb2))_0x361a36(new _0x24d640[(_0x4a6b35(0xae))](new _0x24d640['BoxGeometry'](0.7,0.45,1.8),_0x7183e3),0x0,0.25,0x0),_0x361a36(new _0x24d640['Mesh'](new _0x24d640['BoxGeometry'](0.74,0.08,1.84),_0xf80fec),0x0,0.5,0x0);else{if(_0x5b6b51===_0x4a6b35(0xe4))_0x361a36(new _0x24d640['Mesh'](new _0x24d640[(_0x4a6b35(0xdc))](1.2,1.8,0.35),_0xf80fec),0x0,0.9,0x0),_0x361a36(new _0x24d640[(_0x4a6b35(0xae))](new _0x24d640[(_0x4a6b35(0xdc))](1.1,0.7,0.12),mat(0x4a2030)),0x0,1.2,0.12),_0x361a36(new _0x24d640[(_0x4a6b35(0xae))](new _0x24d640[(_0x4a6b35(0xdc))](1.1,0.55,0.12),mat(0x2a3048)),0x0,0.5,0.12);else{if(_0x5b6b51===_0x4a6b35(0xd7))_0x361a36(new _0x24d640[(_0x4a6b35(0xae))](new _0x24d640[(_0x4a6b35(0xbe))](0.35,0.08,0x6,0xa),_0x1395a5),0x0,0.08,0x0)[_0x4a6b35(0xc0)]['x']=Math['PI']/0x2,_0x361a36(new _0x24d640[(_0x4a6b35(0xae))](new _0x24d640[(_0x4a6b35(0xa0))](0.18,0.45,0x6),mat(0xff6620,{'emissive':0xff3300})),0x0,0.3,0x0),_0x350a76[_0x4a6b35(0xa4)]['lightColor']=0xff8844,_0x350a76['userData'][_0x4a6b35(0xbd)]=0xa;else{if(_0x5b6b51==='anvil')_0x361a36(new _0x24d640['Mesh'](new _0x24d640['BoxGeometry'](0.5,0.3,0.35),_0x6f615),0x0,0.2,0x0),_0x361a36(new _0x24d640[(_0x4a6b35(0xae))](new _0x24d640[(_0x4a6b35(0xdc))](0.8,0.22,0.32),_0x6f615),0x0,0.45,0x0);else{if(_0x5b6b51==='spikes'){for(let _0x823507=0x0;_0x823507<0x7;_0x823507++){const _0x36825c=_0x823507/0x7*Math['PI']*0x2;_0x361a36(new _0x24d640[(_0x4a6b35(0xae))](new _0x24d640[(_0x4a6b35(0xa0))](0.05,0.45,0x4),_0x6f615),Math['cos'](_0x36825c)*0.22,0.22,Math[_0x4a6b35(0x9a)](_0x36825c)*0.22);}_0x350a76[_0x4a6b35(0xa4)]['hazard']=0xc;}else _0x5b6b51==='fountain'?(_0x361a36(new _0x24d640[(_0x4a6b35(0xae))](new _0x24d640[(_0x4a6b35(0xa1))](0.7,0.75,0.25,0xc),_0x1395a5),0x0,0.12,0x0),_0x361a36(new _0x24d640[(_0x4a6b35(0xae))](new _0x24d640['CylinderGeometry'](0.12,0.12,0.7,0x8),_0x1395a5),0x0,0.55,0x0),_0x361a36(new _0x24d640[(_0x4a6b35(0xae))](new _0x24d640['CircleGeometry'](0.55,0xc),mat(0x3a6aaa,{'roughness':0.2})),0x0,0.26,0x0)[_0x4a6b35(0xc0)]['x']=-Math['PI']/0x2):_0x361a36(new _0x24d640['Mesh'](new _0x24d640[(_0x4a6b35(0xdc))](0.4,0.4,0.4),_0x1395a5),0x0,0.2,0x0);}}}}}}}}}}}}}}}}}}_0x350a76[_0x4a6b35(0x9e)][_0x4a6b35(0xb0)](_0x15815e),_0x350a76['userData'][_0x4a6b35(0xe0)]=_0x5b6b51;const _0x4d7470={'crate':{'mass':0x6,'r':0.42,'h':0.7},'barrel':{'mass':0x7,'r':0.36,'h':0.82},'chest':{'mass':0xa,'r':0.48,'h':0.55},'table':{'mass':0xe,'r':0.62,'h':0.8},'chair':{'mass':0x4,'r':0.28,'h':0.9},'coffin':{'mass':0x10,'r':0.55,'h':0.55},'cage':{'mass':0xb,'r':0.5,'h':1.5},'anvil':{'mass':0x16,'r':0.4,'h':0.55},'bones':{'mass':0x3,'r':0.28,'h':0.4},'bookshelf':{'mass':0x12,'r':0.55,'h':1.8},'campfire':{'mass':0x5,'r':0.4,'h':0.4},'mushroom':{'mass':0x2,'r':0.22,'h':0.5},'crystal':{'mass':0x8,'r':0.3,'h':0.9},'fountain':{'mass':0x14,'r':0.7,'h':0.7},'altar':{'mass':0x18,'r':0.7,'h':0.9}},_0x20b6de=_0x4d7470[_0x5b6b51];return _0x20b6de&&(_0x350a76[_0x4a6b35(0xa4)][_0x4a6b35(0xdd)]={'mass':_0x20b6de['mass'],'r':_0x20b6de['r']*_0x15815e,'h':_0x20b6de['h']*_0x15815e,'vx':0x0,'vy':0x0,'vz':0x0,'held':![]}),_0x350a76;}export function stepSheet(_0x26a5e6,_0x3daa7f,_0x8e1f7,_0x3ecd72,_0x1d63f8){const _0x2c004f=_0x322144,_0x4eb29f=_0x26a5e6['material']?.['map'],_0x4cb2f8=_0x26a5e6[_0x2c004f(0xa4)];if(!_0x4eb29f||!_0x4cb2f8?.['sheet'])return;_0x4cb2f8[_0x2c004f(0xcd)]=(_0x4cb2f8[_0x2c004f(0xcd)]||0x0)+_0x3daa7f*(_0x8e1f7?0x8:2.2);const _0x535b67=Math['floor'](_0x4cb2f8[_0x2c004f(0xcd)])%0x4;let _0x1e30a0=0x2;if(Math[_0x2c004f(0xe1)](_0x3ecd72)>Math[_0x2c004f(0xe1)](_0x1d63f8))_0x1e30a0=_0x3ecd72<0x0?0x1:0x2;else _0x1e30a0=_0x1d63f8>0x0?0x0:0x3;_0x4eb29f['repeat']['set'](0.25,0.25),_0x4eb29f[_0x2c004f(0xe7)]['set'](_0x535b67*0.25,0.75-_0x1e30a0*0.25);}export function makeEnemy(_0x2b354d){const _0x5d0ed6=_0x322144,_0xba21fe=loadTex(_0x2b354d['file'],_0x2b354d[_0x5d0ed6(0xa6)]),_0x4ccefd=_0x2b354d[_0x5d0ed6(0xa6)]&&_0xba21fe[_0x5d0ed6(0xcf)]?_0xba21fe[_0x5d0ed6(0xcf)]():_0xba21fe;_0x2b354d['sheet']&&(_0x4ccefd['repeat']['set'](0.25,0.25),_0x4ccefd['offset']['set'](0x0,0.75),_0x4ccefd[_0x5d0ed6(0xd9)]=_0x4ccefd['wrapT']=_0x24d640[_0x5d0ed6(0xde)],_0x4ccefd[_0x5d0ed6(0xe8)]=!![]);const _0x18e2c6=new _0x24d640['Sprite'](new _0x24d640[(_0x5d0ed6(0xab))]({'map':_0x4ccefd,'transparent':!![],'depthWrite':!![],'color':0xffffff,'alphaTest':0.12}));return _0x18e2c6[_0x5d0ed6(0x9e)][_0x5d0ed6(0xba)](_0x2b354d['w'],_0x2b354d['h'],0x1),_0x18e2c6[_0x5d0ed6(0xa4)]={'foe':!![],'def':_0x2b354d,'kind':_0x2b354d['id'],'hp':_0x2b354d['hp'],'maxHp':_0x2b354d['hp'],'sheet':!!_0x2b354d['sheet'],'flash':0x0,'cool':0x0,'hitR':Math[_0x5d0ed6(0xcb)](0.7,_0x2b354d['w']*0.45),'baseW':_0x2b354d['w'],'baseH':_0x2b354d['h'],'animT':Math['random']()*0x4},_0x18e2c6;}export function spawnFrom(_0x4cba39,_0x1235ce,_0x458a35,_0x262d66){const _0x144071=_0x322144,_0x2938b7=ENEMY_BY_ID[_0x4cba39[_0x144071(0xbc)]]||ENEMIES[0x0],_0x4f1450=Math['max'](0x1,_0x4cba39['radius']||0x6);for(let _0x1c49ac=0x0;_0x1c49ac<0xa;_0x1c49ac++){const _0x1c049a=Math['random']()*Math['PI']*0x2,_0x15092e=Math[_0x144071(0xce)]()*_0x4f1450*0.85,_0xd342d2=_0x4cba39['x']+Math['cos'](_0x1c049a)*_0x15092e,_0xc032c0=_0x4cba39['z']+Math[_0x144071(0x9a)](_0x1c049a)*_0x15092e,_0x174d41=floorY(_0xd342d2,_0xc032c0,_0x1235ce,_0x458a35);if(_0x174d41<-0x1f4)continue;const _0x48947c=_0x2938b7[_0x144071(0xc2)]?makeRobot(_0x2938b7):makeEnemy(_0x2938b7);return _0x48947c[_0x144071(0xa8)]['set'](_0xd342d2,_0x174d41+(_0x2938b7[_0x144071(0xc2)]?0x0:_0x2938b7['h']*0.48),_0xc032c0),_0x48947c['userData']['home']={'x':_0x4cba39['x'],'z':_0x4cba39['z'],'r':_0x4f1450},_0x48947c['userData'][_0x144071(0xb4)]=_0x4cba39,_0x262d66['push'](_0x48947c),_0x48947c;}return null;}export function tickFoes(_0x26b273,_0x20e243,_0x322075,_0x46550b,_0x6c2619,_0x52cfe9){const _0x37a13d=_0x322144,_0x5b7391=_0x322075['x'],_0x57feb9=_0x322075['z'];for(const _0x346a5f of _0x26b273){const _0x34c1ff=_0x346a5f[_0x37a13d(0xa4)];if(!_0x346a5f['visible']||_0x34c1ff['hp']<=0x0||_0x34c1ff[_0x37a13d(0xc2)])continue;if(_0x34c1ff[_0x37a13d(0xc8)]){_0x34c1ff['vy']=(_0x34c1ff['vy']||0x0)-0x18*_0x20e243,_0x346a5f[_0x37a13d(0xa8)]['x']+=(_0x34c1ff['vx']||0x0)*_0x20e243,_0x346a5f[_0x37a13d(0xa8)]['y']+=_0x34c1ff['vy']*_0x20e243,_0x346a5f[_0x37a13d(0xa8)]['z']+=(_0x34c1ff['vz']||0x0)*_0x20e243,_0x34c1ff['vx']=(_0x34c1ff['vx']||0x0)*0.99,_0x34c1ff['vz']=(_0x34c1ff['vz']||0x0)*0.99;const _0x59d46b=floorY(_0x346a5f['position']['x'],_0x346a5f['position']['z'],_0x46550b,_0x6c2619),_0x309761=_0x59d46b+(_0x34c1ff[_0x37a13d(0xb1)]||0x2)*0.48;if(_0x59d46b>-0x1f4&&_0x346a5f[_0x37a13d(0xa8)]['y']<=_0x309761){_0x346a5f[_0x37a13d(0xa8)]['y']=_0x309761;if(_0x34c1ff['vy']<-0x3&&_0x34c1ff['slam'])hurtFoe(_0x346a5f,_0x34c1ff[_0x37a13d(0xc9)],null);_0x34c1ff['vy']=0x0,_0x34c1ff['vx']*=0.4,_0x34c1ff['vz']*=0.4,_0x34c1ff[_0x37a13d(0xc8)]=![],_0x34c1ff['slam']=0x0;}if(_0x34c1ff['flash']>0x0)_0x34c1ff['flash']-=_0x20e243;continue;}_0x34c1ff[_0x37a13d(0xad)]>0x0&&(_0x34c1ff[_0x37a13d(0xad)]-=_0x20e243,_0x346a5f['position']['x']+=(_0x34c1ff['kx']||0x0)*_0x20e243,_0x346a5f['position']['z']+=(_0x34c1ff['kz']||0x0)*_0x20e243);if(_0x34c1ff['flash']>0x0){_0x34c1ff['flash']-=_0x20e243;if(_0x346a5f['material']?.[_0x37a13d(0xc5)])_0x346a5f['material'][_0x37a13d(0xc5)][_0x37a13d(0xa2)](_0x34c1ff['flash']>0x0?0xff3333:0xffffff);}const _0x3b32d3=_0x5b7391-_0x346a5f[_0x37a13d(0xa8)]['x'],_0x16f45b=_0x57feb9-_0x346a5f['position']['z'],_0x2376c4=Math[_0x37a13d(0xe5)](_0x3b32d3,_0x16f45b)||0x1,_0x28b20c=_0x34c1ff['home'],_0x492154=!_0x28b20c||Math[_0x37a13d(0xe5)](_0x5b7391-_0x28b20c['x'],_0x57feb9-_0x28b20c['z'])<=(_0x28b20c['r']||0x8);let _0x2c04f3=0x0,_0x4e52c0=0x0;const _0x54b088=_0x34c1ff['def']['spd'];if(_0x492154&&_0x2376c4<0x16)_0x2c04f3=_0x3b32d3/_0x2376c4*_0x54b088,_0x4e52c0=_0x16f45b/_0x2376c4*_0x54b088;else{if(_0x28b20c){const _0x195373=_0x28b20c['x']-_0x346a5f[_0x37a13d(0xa8)]['x'],_0x2241e8=_0x28b20c['z']-_0x346a5f['position']['z'],_0x34ad19=Math[_0x37a13d(0xe5)](_0x195373,_0x2241e8)||0x1;_0x34ad19>_0x28b20c['r']*0.55?(_0x2c04f3=_0x195373/_0x34ad19*_0x54b088*0.55,_0x4e52c0=_0x2241e8/_0x34ad19*_0x54b088*0.55):(_0x34c1ff[_0x37a13d(0xbf)]=(_0x34c1ff['wander']||Math[_0x37a13d(0xce)]()*6.28)+_0x20e243*0.6,_0x2c04f3=Math['cos'](_0x34c1ff['wander'])*_0x54b088*0.35,_0x4e52c0=Math[_0x37a13d(0x9a)](_0x34c1ff[_0x37a13d(0xbf)])*_0x54b088*0.35);}}const _0x4af587=_0x346a5f[_0x37a13d(0xa8)]['x']+_0x2c04f3*_0x20e243,_0x2f5d7b=_0x346a5f['position']['z']+_0x4e52c0*_0x20e243;if(sdf3(_0x4af587,_0x346a5f['position']['y'],_0x346a5f[_0x37a13d(0xa8)]['z'],_0x46550b,_0x6c2619)<-0.2)_0x346a5f['position']['x']=_0x4af587;if(sdf3(_0x346a5f[_0x37a13d(0xa8)]['x'],_0x346a5f[_0x37a13d(0xa8)]['y'],_0x2f5d7b,_0x46550b,_0x6c2619)<-0.2)_0x346a5f['position']['z']=_0x2f5d7b;if(_0x28b20c){const _0x12c9dd=Math['hypot'](_0x346a5f['position']['x']-_0x28b20c['x'],_0x346a5f[_0x37a13d(0xa8)]['z']-_0x28b20c['z']);_0x12c9dd>_0x28b20c['r']&&(_0x346a5f['position']['x']=_0x28b20c['x']+(_0x346a5f['position']['x']-_0x28b20c['x'])/_0x12c9dd*_0x28b20c['r'],_0x346a5f[_0x37a13d(0xa8)]['z']=_0x28b20c['z']+(_0x346a5f['position']['z']-_0x28b20c['z'])/_0x12c9dd*_0x28b20c['r']);}const _0x506802=floorY(_0x346a5f['position']['x'],_0x346a5f[_0x37a13d(0xa8)]['z'],_0x46550b,_0x6c2619);if(_0x506802>-0x1f4)_0x346a5f[_0x37a13d(0xa8)]['y']=_0x506802+(_0x34c1ff[_0x37a13d(0xb1)]||0x2)*0.48;const _0x27fdfc=Math['hypot'](_0x2c04f3,_0x4e52c0)>0.05;if(_0x34c1ff['sheet'])stepSheet(_0x346a5f,_0x20e243,_0x27fdfc,_0x2c04f3,_0x4e52c0);else _0x346a5f[_0x37a13d(0xe9)]&&(_0x34c1ff[_0x37a13d(0xcd)]=(_0x34c1ff['animT']||0x0)+_0x20e243*(_0x27fdfc?0x6:0x2),_0x346a5f[_0x37a13d(0xe9)][_0x37a13d(0xc0)]=Math[_0x37a13d(0x9a)](_0x34c1ff['animT'])*(_0x27fdfc?0.08:0.03));_0x34c1ff['cool']=Math[_0x37a13d(0xcb)](0x0,(_0x34c1ff['cool']||0x0)-_0x20e243),_0x2376c4<1.55+_0x34c1ff['hitR']*0.15&&_0x34c1ff['cool']<=0x0&&(_0x34c1ff[_0x37a13d(0xc7)]=0.9,_0x52cfe9(_0x34c1ff['def'][_0x37a13d(0xe6)],_0x34c1ff[_0x37a13d(0xe0)]));}}export function strikeFoes(_0x507f83,_0x5296fc,_0x595592,_0x47adaa,_0x55c094){const _0x209b50=_0x322144;let _0xe89722=0x0;for(const _0x387a8d of _0x507f83){const _0x44793e=_0x387a8d[_0x209b50(0xa4)];if(!_0x387a8d[_0x209b50(0xb5)]||_0x44793e['hp']<=0x0)continue;const _0x30d153=_0x387a8d['position']['x']-_0x5296fc['x'],_0x2b4d3d=_0x387a8d['position']['y']-_0x5296fc['y'],_0x3a17d8=_0x387a8d['position']['z']-_0x5296fc['z'],_0x180c69=Math[_0x209b50(0xe5)](_0x30d153,_0x2b4d3d,_0x3a17d8);if(_0x180c69>_0x47adaa+_0x44793e[_0x209b50(0x9d)])continue;const _0x21e73a=_0x180c69||0x1,_0x3db625=_0x30d153/_0x21e73a*_0x595592['x']+_0x3a17d8/_0x21e73a*_0x595592['z'];if(_0x3db625<0.35)continue;hurtFoe(_0x387a8d,_0x55c094,_0x595592),_0xe89722++;}return _0xe89722;}
+/** Props, 4-direction enemy sprites, spawners. */
+import * as THREE from "three";
+import { ENEMIES, ENEMY_BY_ID } from "./config.js?v=zm1";
+import { sdf3, floorY } from "./map.js?v=zm1";
+import { makeRobot } from "./robots.js?v=zm1";
+import { hurtFoe } from "./weapons.js?v=zm1";
+
+const TEX = {};
+const loader = new THREE.TextureLoader();
+
+function loadTex(url, sheet) {
+  if (TEX[url]) return TEX[url];
+  const t = loader.load(url, (tex) => {
+    if (sheet) {
+      tex.repeat.set(0.25, 0.25);
+      tex.offset.set(0, 0.75);
+      tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
+      tex.needsUpdate = true;
+    }
+  });
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.magFilter = sheet ? THREE.NearestFilter : THREE.LinearFilter;
+  t.minFilter = t.magFilter;
+  t.transparent = true;
+  if (sheet) {
+    t.repeat.set(0.25, 0.25);
+    t.offset.set(0, 0.75);
+    t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping;
+  }
+  TEX[url] = t;
+  return t;
+}
+
+function mat(hex, extra) {
+  return new THREE.MeshStandardMaterial({ color: hex, roughness: 0.72, metalness: 0.08, ...extra });
+}
+
+export function makeProp(kind, scale) {
+  const g = new THREE.Group();
+  const s = scale || 1;
+  const wood = mat(0x6a4424);
+  const dark = mat(0x2a2218);
+  const iron = mat(0x6a6e74, { metalness: 0.55, roughness: 0.4 });
+  const gold = mat(0xc4a050, { metalness: 0.6, roughness: 0.35 });
+  const stone = mat(0x7a7870);
+  const bone = mat(0xd8d0c0);
+  const add = (mesh, x, y, z) => {
+    mesh.position.set(x, y, z);
+    g.add(mesh);
+    return mesh;
+  };
+  if (kind === "torch") {
+    add(new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.05, 0.7, 6), wood), 0, 0.45, 0);
+    const flame = add(new THREE.Mesh(new THREE.SphereGeometry(0.11, 8, 6), mat(0xffaa40, { emissive: 0xff6600, roughness: 1 })), 0, 0.88, 0);
+    flame.userData.flame = true;
+    g.userData.lightColor = 0xffaa66;
+    g.userData.lightDist = 9;
+  } else if (kind === "crate") {
+    add(new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.7, 0.7), wood), 0, 0.35, 0);
+    add(new THREE.Mesh(new THREE.BoxGeometry(0.74, 0.06, 0.74), dark), 0, 0.35, 0);
+    add(new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.72, 0.08), iron), 0.32, 0.35, 0.32);
+    add(new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.72, 0.08), iron), -0.32, 0.35, 0.32);
+    add(new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.72, 0.08), iron), 0.32, 0.35, -0.32);
+    add(new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.72, 0.08), iron), -0.32, 0.35, -0.32);
+  } else if (kind === "barrel") {
+    add(new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.34, 0.8, 12), wood), 0, 0.4, 0);
+    add(new THREE.Mesh(new THREE.TorusGeometry(0.33, 0.03, 6, 12), iron), 0, 0.18, 0).rotation.x = Math.PI / 2;
+    add(new THREE.Mesh(new THREE.TorusGeometry(0.33, 0.03, 6, 12), iron), 0, 0.4, 0).rotation.x = Math.PI / 2;
+    add(new THREE.Mesh(new THREE.TorusGeometry(0.33, 0.03, 6, 12), iron), 0, 0.62, 0).rotation.x = Math.PI / 2;
+    add(new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 0.06, 8), iron), 0, 0.82, 0);
+  } else if (kind === "chest") {
+    add(new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.4, 0.55), wood), 0, 0.22, 0);
+    add(new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.22, 0.55), wood), 0, 0.52, 0);
+    add(new THREE.Mesh(new THREE.BoxGeometry(0.88, 0.04, 0.58), dark), 0, 0.42, 0);
+    add(new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.16, 0.08), gold), 0, 0.4, 0.28);
+    add(new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.05, 0.08), iron), 0, 0.08, 0.24);
+  } else if (kind === "pillar") {
+    add(new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.28, 3.4, 8), stone), 0, 1.7, 0);
+    add(new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.34, 0.18, 8), stone), 0, 0.1, 0);
+    add(new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.32, 0.16, 8), stone), 0, 3.35, 0);
+  } else if (kind === "bones") {
+    add(new THREE.Mesh(new THREE.SphereGeometry(0.16, 6, 5), bone), 0, 0.18, 0);
+    add(new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.05, 0.7, 5), bone), 0.12, 0.2, 0.05).rotation.z = 0.8;
+    add(new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.05, 0.55, 5), bone), -0.1, 0.16, -0.08).rotation.z = -0.5;
+  } else if (kind === "crystal") {
+    const cmat = mat(0x8844dd, { emissive: 0x331166, roughness: 0.25, metalness: 0.2, transparent: true, opacity: 0.92 });
+    add(new THREE.Mesh(new THREE.OctahedronGeometry(0.35, 0), cmat), 0, 0.55, 0).scale.set(0.7, 1.6, 0.7);
+    add(new THREE.Mesh(new THREE.OctahedronGeometry(0.22, 0), cmat), 0.18, 0.35, 0.1).scale.set(0.5, 1.2, 0.5);
+    g.userData.lightColor = 0xaa66ff;
+    g.userData.lightDist = 6;
+  } else if (kind === "table") {
+    add(new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.08, 0.7), wood), 0, 0.72, 0);
+    for (const [x, z] of [[-0.45, -0.25], [0.45, -0.25], [-0.45, 0.25], [0.45, 0.25]]) {
+      add(new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.7, 0.08), wood), x, 0.35, z);
+    }
+  } else if (kind === "chair") {
+    add(new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.07, 0.42), wood), 0, 0.42, 0);
+    add(new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.55, 0.07), wood), 0, 0.72, -0.18);
+    for (const [x, z] of [[-0.16, -0.16], [0.16, -0.16], [-0.16, 0.16], [0.16, 0.16]]) {
+      add(new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.4, 0.06), wood), x, 0.2, z);
+    }
+  } else if (kind === "banner") {
+    add(new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 2.6, 6), wood), 0, 1.3, 0);
+    add(new THREE.Mesh(new THREE.PlaneGeometry(0.7, 1.1), mat(0x8a2028, { side: THREE.DoubleSide })), 0.05, 1.55, 0);
+  } else if (kind === "mushroom") {
+    add(new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 0.35, 6), mat(0xd8c8a8)), 0, 0.18, 0);
+    add(new THREE.Mesh(new THREE.SphereGeometry(0.22, 8, 6), mat(0xc44a3a)), 0, 0.4, 0).scale.y = 0.55;
+  } else if (kind === "stalagmite") {
+    add(new THREE.Mesh(new THREE.ConeGeometry(0.28, 1.3, 7), stone), 0, 0.65, 0);
+  } else if (kind === "altar") {
+    add(new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.7, 0.7), stone), 0, 0.35, 0);
+    add(new THREE.Mesh(new THREE.BoxGeometry(1.35, 0.1, 0.85), stone), 0, 0.74, 0);
+    add(new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 0.25, 8), gold), 0, 0.92, 0);
+  } else if (kind === "cage") {
+    add(new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, 1.5, 10, 1, true), iron), 0, 0.75, 0);
+    add(new THREE.Mesh(new THREE.TorusGeometry(0.45, 0.03, 5, 12), iron), 0, 1.5, 0).rotation.x = Math.PI / 2;
+  } else if (kind === "coffin") {
+    add(new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.45, 1.8), dark), 0, 0.25, 0);
+    add(new THREE.Mesh(new THREE.BoxGeometry(0.74, 0.08, 1.84), wood), 0, 0.5, 0);
+  } else if (kind === "bookshelf") {
+    add(new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.8, 0.35), wood), 0, 0.9, 0);
+    add(new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.7, 0.12), mat(0x4a2030)), 0, 1.2, 0.12);
+    add(new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.55, 0.12), mat(0x2a3048)), 0, 0.5, 0.12);
+  } else if (kind === "campfire") {
+    add(new THREE.Mesh(new THREE.TorusGeometry(0.35, 0.08, 6, 10), stone), 0, 0.08, 0).rotation.x = Math.PI / 2;
+    add(new THREE.Mesh(new THREE.ConeGeometry(0.18, 0.45, 6), mat(0xff6620, { emissive: 0xff3300 })), 0, 0.3, 0);
+    g.userData.lightColor = 0xff8844;
+    g.userData.lightDist = 10;
+  } else if (kind === "anvil") {
+    add(new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.3, 0.35), iron), 0, 0.2, 0);
+    add(new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.22, 0.32), iron), 0, 0.45, 0);
+  } else if (kind === "spikes") {
+    for (let i = 0; i < 7; i++) {
+      const a = (i / 7) * Math.PI * 2;
+      add(new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.45, 4), iron), Math.cos(a) * 0.22, 0.22, Math.sin(a) * 0.22);
+    }
+    g.userData.hazard = 12;
+  } else if (kind === "fountain") {
+    add(new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.75, 0.25, 12), stone), 0, 0.12, 0);
+    add(new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.7, 8), stone), 0, 0.55, 0);
+    add(new THREE.Mesh(new THREE.CircleGeometry(0.55, 12), mat(0x3a6aaa, { roughness: 0.2 })), 0, 0.26, 0).rotation.x = -Math.PI / 2;
+  } else {
+    add(new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.4, 0.4), stone), 0, 0.2, 0);
+  }
+  g.scale.setScalar(s);
+  g.userData.kind = kind;
+  const PHYS = {
+    crate: { mass: 6, r: 0.42, h: 0.7 },
+    barrel: { mass: 7, r: 0.36, h: 0.82 },
+    chest: { mass: 10, r: 0.48, h: 0.55 },
+    table: { mass: 14, r: 0.62, h: 0.8 },
+    chair: { mass: 4, r: 0.28, h: 0.9 },
+    coffin: { mass: 16, r: 0.55, h: 0.55 },
+    cage: { mass: 11, r: 0.5, h: 1.5 },
+    anvil: { mass: 22, r: 0.4, h: 0.55 },
+    bones: { mass: 3, r: 0.28, h: 0.4 },
+    bookshelf: { mass: 18, r: 0.55, h: 1.8 },
+    campfire: { mass: 5, r: 0.4, h: 0.4 },
+    mushroom: { mass: 2, r: 0.22, h: 0.5 },
+    crystal: { mass: 8, r: 0.3, h: 0.9 },
+    fountain: { mass: 20, r: 0.7, h: 0.7 },
+    altar: { mass: 24, r: 0.7, h: 0.9 },
+  };
+  const spec = PHYS[kind];
+  if (spec) {
+    g.userData.phys = {
+      mass: spec.mass,
+      r: spec.r * s,
+      h: spec.h * s,
+      vx: 0,
+      vy: 0,
+      vz: 0,
+      held: false,
+    };
+  }
+  return g;
+}
+
+export function stepSheet(sprite, dt, moving, dx, dz) {
+  const map = sprite.material?.map;
+  const u = sprite.userData;
+  if (!map || !u?.sheet) return;
+  u.animT = (u.animT || 0) + dt * (moving ? 8 : 2.2);
+  const frame = Math.floor(u.animT) % 4;
+  let row = 2;
+  if (Math.abs(dx) > Math.abs(dz)) row = dx < 0 ? 1 : 2;
+  else row = dz > 0 ? 0 : 3;
+  map.repeat.set(0.25, 0.25);
+  map.offset.set(frame * 0.25, 0.75 - row * 0.25);
+}
+
+export function makeEnemy(def) {
+  const base = loadTex(def.file, def.sheet);
+  const map = def.sheet && base.clone ? base.clone() : base;
+  if (def.sheet) {
+    map.repeat.set(0.25, 0.25);
+    map.offset.set(0, 0.75);
+    map.wrapS = map.wrapT = THREE.ClampToEdgeWrapping;
+    map.needsUpdate = true;
+  }
+  const spr = new THREE.Sprite(
+    new THREE.SpriteMaterial({ map, transparent: true, depthWrite: true, color: 0xffffff, alphaTest: 0.12 }),
+  );
+  spr.scale.set(def.w, def.h, 1);
+  spr.userData = {
+    foe: true,
+    def,
+    kind: def.id,
+    hp: def.hp,
+    maxHp: def.hp,
+    sheet: !!def.sheet,
+    flash: 0,
+    cool: 0,
+    hitR: Math.max(0.7, def.w * 0.45),
+    baseW: def.w,
+    baseH: def.h,
+    animT: Math.random() * 4,
+  };
+  return spr;
+}
+
+export function spawnFrom(spawner, map, sdf2, existing) {
+  const def = ENEMY_BY_ID[spawner.enemy] || ENEMIES[0];
+  const r = Math.max(1, spawner.radius || 6);
+  for (let k = 0; k < 10; k++) {
+    const a = Math.random() * Math.PI * 2;
+    const d = Math.random() * r * 0.85;
+    const x = spawner.x + Math.cos(a) * d;
+    const z = spawner.z + Math.sin(a) * d;
+    const y = floorY(x, z, map, sdf2);
+    if (y < -500) continue;
+    const e = def.robot ? makeRobot(def) : makeEnemy(def);
+    e.position.set(x, y + (def.robot ? 0 : def.h * 0.48), z);
+    e.userData.home = { x: spawner.x, z: spawner.z, r };
+    e.userData.spawner = spawner;
+    existing.push(e);
+    return e;
+  }
+  return null;
+}
+
+export function tickFoes(foes, dt, player, map, sdf2, onHit) {
+  const px = player.x;
+  const pz = player.z;
+  for (const f of foes) {
+    const u = f.userData;
+    if (!f.visible || u.hp <= 0 || u.robot) continue;
+    if (u.flung) {
+      u.vy = (u.vy || 0) - 24 * dt;
+      f.position.x += (u.vx || 0) * dt;
+      f.position.y += u.vy * dt;
+      f.position.z += (u.vz || 0) * dt;
+      u.vx = (u.vx || 0) * 0.99;
+      u.vz = (u.vz || 0) * 0.99;
+      const fy = floorY(f.position.x, f.position.z, map, sdf2);
+      const stand = fy + (u.baseH || 2) * 0.48;
+      if (fy > -500 && f.position.y <= stand) {
+        f.position.y = stand;
+        if (u.vy < -3 && u.slam) hurtFoe(f, u.slam, null);
+        u.vy = 0;
+        u.vx *= 0.4;
+        u.vz *= 0.4;
+        u.flung = false;
+        u.slam = 0;
+      }
+      if (u.flash > 0) u.flash -= dt;
+      continue;
+    }
+    if (u.recoil > 0) {
+      u.recoil -= dt;
+      f.position.x += (u.kx || 0) * dt;
+      f.position.z += (u.kz || 0) * dt;
+    }
+    if (u.flash > 0) {
+      u.flash -= dt;
+      if (f.material?.color) f.material.color.setHex(u.flash > 0 ? 0xff3333 : 0xffffff);
+    }
+    const dx = px - f.position.x;
+    const dz = pz - f.position.z;
+    const dist = Math.hypot(dx, dz) || 1;
+    const home = u.home;
+    const inRadius = !home || Math.hypot(px - home.x, pz - home.z) <= (home.r || 8);
+    let mx = 0;
+    let mz = 0;
+    const spd = u.def.spd;
+    if (inRadius && dist < 22) {
+      mx = (dx / dist) * spd;
+      mz = (dz / dist) * spd;
+    } else if (home) {
+      const hx = home.x - f.position.x;
+      const hz = home.z - f.position.z;
+      const hd = Math.hypot(hx, hz) || 1;
+      if (hd > home.r * 0.55) {
+        mx = (hx / hd) * spd * 0.55;
+        mz = (hz / hd) * spd * 0.55;
+      } else {
+        u.wander = (u.wander || Math.random() * 6.28) + dt * 0.6;
+        mx = Math.cos(u.wander) * spd * 0.35;
+        mz = Math.sin(u.wander) * spd * 0.35;
+      }
+    }
+    const nx = f.position.x + mx * dt;
+    const nz = f.position.z + mz * dt;
+    if (sdf3(nx, f.position.y, f.position.z, map, sdf2) < -0.2) f.position.x = nx;
+    if (sdf3(f.position.x, f.position.y, nz, map, sdf2) < -0.2) f.position.z = nz;
+    if (home) {
+      const hd = Math.hypot(f.position.x - home.x, f.position.z - home.z);
+      if (hd > home.r) {
+        f.position.x = home.x + ((f.position.x - home.x) / hd) * home.r;
+        f.position.z = home.z + ((f.position.z - home.z) / hd) * home.r;
+      }
+    }
+    const fy = floorY(f.position.x, f.position.z, map, sdf2);
+    if (fy > -500) f.position.y = fy + (u.baseH || 2) * 0.48;
+    else {
+      f.position.y -= 16 * dt;
+      if (f.position.y < -12) {
+        f.visible = false;
+        u.hp = 0;
+      }
+    }
+    const moving = Math.hypot(mx, mz) > 0.05;
+    if (u.sheet) stepSheet(f, dt, moving, mx, mz);
+    else if (f.material) {
+      u.animT = (u.animT || 0) + dt * (moving ? 6 : 2);
+      f.material.rotation = Math.sin(u.animT) * (moving ? 0.08 : 0.03);
+    }
+    u.cool = Math.max(0, (u.cool || 0) - dt);
+    if (dist < 1.55 + u.hitR * 0.15 && u.cool <= 0) {
+      u.cool = 0.9;
+      onHit(u.def.dmg, u.kind);
+    }
+  }
+}
+
+export function strikeFoes(foes, origin, dir, range, dmg) {
+  let hit = 0;
+  for (const f of foes) {
+    const u = f.userData;
+    if (!f.visible || u.hp <= 0) continue;
+    const dx = f.position.x - origin.x;
+    const dy = f.position.y - origin.y;
+    const dz = f.position.z - origin.z;
+    const dist = Math.hypot(dx, dy, dz);
+    if (dist > range + u.hitR) continue;
+    const nd = dist || 1;
+    const dot = (dx / nd) * dir.x + (dz / nd) * dir.z;
+    if (dot < 0.35) continue;
+    hurtFoe(f, dmg, dir);
+    hit++;
+  }
+  return hit;
+}

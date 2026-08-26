@@ -1,2 +1,159 @@
-import*as _0xffb2a0 from'three';
-(function(_0x127c3b,_0x2940d8){const _0x1fe433=_0x5233,_0x122bd1=_0x127c3b();while(!![]){try{const _0x1456b7=parseInt(_0x1fe433(0x121))/0x1*(parseInt(_0x1fe433(0xf9))/0x2)+-parseInt(_0x1fe433(0x111))/0x3+parseInt(_0x1fe433(0x129))/0x4+-parseInt(_0x1fe433(0x11d))/0x5*(parseInt(_0x1fe433(0x114))/0x6)+parseInt(_0x1fe433(0x101))/0x7+parseInt(_0x1fe433(0x11f))/0x8+-parseInt(_0x1fe433(0x104))/0x9*(parseInt(_0x1fe433(0x102))/0xa);if(_0x1456b7===_0x2940d8)break;else _0x122bd1['push'](_0x122bd1['shift']());}catch(_0x3f600f){_0x122bd1['push'](_0x122bd1['shift']());}}}(_0x1851,0x8e2f7));function _0x1851(){const _0x2f865c=['len','fillStyle','sin','7743652PljVcZ','30OELADO','Farewell.','4959531eaHqdI','BoxGeometry','mesh','CapsuleGeometry','Mesh','NPC','npc','add','Color','rgba(12,10,8,0.72)','scale','charCodeAt','setHSL','904026LFubXh','upper','userData','6YbvRAx','textAlign','torso','slice','lLeg','lArm','Watch\x20the\x20lava.\x20It\x20bites.','MeshLambertMaterial','CanvasTexture','3895480cytMCk','hypot','7562032RdEiZi','name','6107ltTxsN','Wanderer','#e8dcc0','random','rotation','SpriteMaterial','strokeStyle','center','3616812QEDCxp','phase','set','#d4b070','lower','SphereGeometry','Hello,\x20traveler.','fillText','getHex','Group','max','rLeg','position','118iJkiKf','width','getContext','font','Any\x20advice?'];_0x1851=function(){return _0x2f865c;};return _0x1851();}function mat(_0x13667c,_0x27fc87){const _0x503cb2=_0x5233;return new _0xffb2a0[(_0x503cb2(0x11b))]({'color':_0x13667c,..._0x27fc87});}function hashHue(_0x2b1564){const _0x4215d3=_0x5233;let _0xa23f3d=0x0;for(let _0x13d538=0x0;_0x13d538<(_0x2b1564||'')['length'];_0x13d538++)_0xa23f3d=_0xa23f3d*0x1f+_0x2b1564[_0x4215d3(0x10f)](_0x13d538)>>>0x0;return _0xa23f3d;}function limb(_0x20b60b,_0xb1599f,_0xbd16a3,_0x3d90af=0x0){const _0x52fe1e=_0x5233,_0x5c07fe=new _0xffb2a0['Mesh'](new _0xffb2a0[(_0x52fe1e(0x107))](_0xb1599f,Math[_0x52fe1e(0xf6)](0.08,_0x20b60b-_0xb1599f*0x2),0x3,0x6),mat(_0xbd16a3));_0x5c07fe['position']['y']=-_0x20b60b*0.5;const _0x26947d=new _0xffb2a0[(_0x52fe1e(0xf5))]();_0x26947d['add'](_0x5c07fe);if(_0x3d90af){const _0x313ac2=new _0xffb2a0[(_0x52fe1e(0x108))](new _0xffb2a0[(_0x52fe1e(0xf1))](_0xb1599f*0.85,0x6,0x5),mat(_0xbd16a3));_0x313ac2['position']['y']=-_0x20b60b,_0x26947d['add'](_0x313ac2);}return _0x26947d['userData'][_0x52fe1e(0xfe)]=_0x20b60b,_0x26947d;}export function defaultNpc(_0x4b17d4,_0x3062ad){const _0x48c18b=_0x5233;return{'id':'n'+Math[_0x48c18b(0x124)]()['toString'](0x24)[_0x48c18b(0x117)](0x2,0x8),'name':_0x48c18b(0x122),'x':_0x4b17d4,'z':_0x3062ad,'yaw':0x0,'opener':_0x48c18b(0xf2),'options':[{'text':'Who\x20are\x20you?','reply':'A\x20friend\x20in\x20these\x20tunnels.','options':[]},{'text':_0x48c18b(0xfd),'reply':_0x48c18b(0x11a),'options':[]},{'text':_0x48c18b(0x103),'reply':'Walk\x20in\x20light.','options':[]}]};}export function makeNpc(_0x2dc8c5){const _0x5c52c9=_0x5233,_0x5ef14c=hashHue(_0x2dc8c5[_0x5c52c9(0x120)]||_0x2dc8c5['id']||_0x5c52c9(0x10a)),_0x512632=new _0xffb2a0['Color']()[_0x5c52c9(0x110)]((_0x5ef14c%0x28+0xc)/0x168,0.28,0.55),_0x1e749c=new _0xffb2a0[(_0x5c52c9(0x10c))]()['setHSL']((_0x5ef14c>>0x5)%0x168/0x168,0.45,0.32),_0x284d21=new _0xffb2a0['Color']()[_0x5c52c9(0x110)]((_0x5ef14c>>0x9)%0x168/0x168,0.4,0.22),_0x5f312a=new _0xffb2a0['Color']()[_0x5c52c9(0x110)](0.08,0.35,_0x5ef14c%0x2?0.12:0.45),_0x1c7b78=new _0xffb2a0[(_0x5c52c9(0xf5))](),_0x55602d=new _0xffb2a0['Group']();_0x55602d[_0x5c52c9(0xf8)]['y']=0.92,_0x1c7b78['add'](_0x55602d);const _0x40efe4=new _0xffb2a0['Mesh'](new _0xffb2a0[(_0x5c52c9(0xf1))](0.13,0x8,0x6),mat(_0x284d21[_0x5c52c9(0xf4)]()));_0x55602d[_0x5c52c9(0x10b)](_0x40efe4);const _0x2300f7=new _0xffb2a0[(_0x5c52c9(0xf5))]();_0x2300f7[_0x5c52c9(0xf8)]['y']=0.16,_0x55602d[_0x5c52c9(0x10b)](_0x2300f7);const _0x398402=new _0xffb2a0[(_0x5c52c9(0x108))](new _0xffb2a0[(_0x5c52c9(0x107))](0.16,0.28,0x4,0x8),mat(_0x1e749c[_0x5c52c9(0xf4)]()));_0x398402[_0x5c52c9(0xf8)]['y']=0.22,_0x2300f7[_0x5c52c9(0x10b)](_0x398402);const _0x345f79=new _0xffb2a0[(_0x5c52c9(0xf5))]();_0x345f79[_0x5c52c9(0xf8)]['y']=0.52,_0x2300f7['add'](_0x345f79);const _0x48c6ad=new _0xffb2a0[(_0x5c52c9(0x108))](new _0xffb2a0[(_0x5c52c9(0xf1))](0.13,0x8,0x7),mat(_0x512632['getHex']())),_0x462eac=new _0xffb2a0[(_0x5c52c9(0x108))](new _0xffb2a0[(_0x5c52c9(0xf1))](0.135,0x8,0x6),mat(_0x5f312a[_0x5c52c9(0xf4)]()));_0x462eac[_0x5c52c9(0x10e)][_0x5c52c9(0x12b)](1.05,0.7,1.05),_0x462eac[_0x5c52c9(0xf8)]['y']=0.07,_0x345f79['add'](_0x48c6ad,_0x462eac);const _0x5808a5=_0x2098a8=>{const _0x14e0eb=_0x5c52c9,_0x15bb2f=new _0xffb2a0[(_0x14e0eb(0xf5))]();_0x15bb2f[_0x14e0eb(0xf8)][_0x14e0eb(0x12b)](_0x2098a8*0.22,0.34,0x0);const _0x53e247=limb(0.28,0.045,_0x512632['getHex']());_0x53e247[_0x14e0eb(0x125)]['z']=_0x2098a8*0.18;const _0xc05ecc=limb(0.26,0.04,_0x512632['getHex'](),0x1);return _0xc05ecc[_0x14e0eb(0xf8)]['y']=-0.28,_0x53e247[_0x14e0eb(0x10b)](_0xc05ecc),_0x15bb2f['add'](_0x53e247),_0x15bb2f[_0x14e0eb(0x113)]['upper']=_0x53e247,_0x15bb2f[_0x14e0eb(0x113)][_0x14e0eb(0x12d)]=_0xc05ecc,_0x2300f7['add'](_0x15bb2f),_0x15bb2f;},_0xc2d3d8=_0x5ef89c=>{const _0x1f77de=_0x5c52c9,_0x2706db=new _0xffb2a0['Group']();_0x2706db['position']['set'](_0x5ef89c*0.1,-0.04,0x0);const _0x1223c0=limb(0.34,0.055,_0x284d21[_0x1f77de(0xf4)]()),_0x1f143b=limb(0.32,0.048,_0x512632[_0x1f77de(0xf4)](),0x1);_0x1f143b[_0x1f77de(0xf8)]['y']=-0.34;const _0x4ddb35=new _0xffb2a0[(_0x1f77de(0x108))](new _0xffb2a0[(_0x1f77de(0x105))](0.1,0.07,0.16),mat(0x2a2218));return _0x4ddb35[_0x1f77de(0xf8)][_0x1f77de(0x12b)](0x0,-0.34,0.03),_0x1f143b['add'](_0x4ddb35),_0x1223c0[_0x1f77de(0x10b)](_0x1f143b),_0x2706db[_0x1f77de(0x10b)](_0x1223c0),_0x2706db[_0x1f77de(0x113)]['upper']=_0x1223c0,_0x2706db['userData']['lower']=_0x1f143b,_0x55602d['add'](_0x2706db),_0x2706db;};_0x1c7b78[_0x5c52c9(0x113)][_0x5c52c9(0x119)]=_0x5808a5(-0x1),_0x1c7b78[_0x5c52c9(0x113)]['rArm']=_0x5808a5(0x1),_0x1c7b78[_0x5c52c9(0x113)][_0x5c52c9(0x118)]=_0xc2d3d8(-0x1),_0x1c7b78[_0x5c52c9(0x113)][_0x5c52c9(0xf7)]=_0xc2d3d8(0x1),_0x1c7b78[_0x5c52c9(0x113)]['torso']=_0x2300f7,_0x1c7b78['userData']['head']=_0x345f79,_0x1c7b78['userData']['phase']=_0x5ef14c%0x64/0x10,_0x1c7b78[_0x5c52c9(0x113)]['kind']='npc',_0x1c7b78[_0x5c52c9(0x113)]['npc']=_0x2dc8c5;const _0xecfd79=makeNameTag(_0x2dc8c5['name']||_0x5c52c9(0x109));return _0xecfd79[_0x5c52c9(0xf8)]['y']=2.05,_0x1c7b78[_0x5c52c9(0x10b)](_0xecfd79),_0x1c7b78[_0x5c52c9(0x113)]['tag']=_0xecfd79,_0x1c7b78;}function _0x5233(_0x557366,_0x3696e8){_0x557366=_0x557366-0xf1;const _0x18518b=_0x1851();let _0x523370=_0x18518b[_0x557366];return _0x523370;}function makeNameTag(_0x1f3ae5){const _0x4a7fc8=_0x5233,_0x4cf5f7=document['createElement']('canvas');_0x4cf5f7[_0x4a7fc8(0xfa)]=0x100,_0x4cf5f7['height']=0x40;const _0x5ae8ee=_0x4cf5f7[_0x4a7fc8(0xfb)]('2d');_0x5ae8ee['fillStyle']=_0x4a7fc8(0x10d),_0x5ae8ee['fillRect'](0x8,0xa,0xf0,0x2c),_0x5ae8ee[_0x4a7fc8(0x127)]=_0x4a7fc8(0x12c),_0x5ae8ee['strokeRect'](0x8,0xa,0xf0,0x2c),_0x5ae8ee[_0x4a7fc8(0xff)]=_0x4a7fc8(0x123),_0x5ae8ee[_0x4a7fc8(0xfc)]='700\x2022px\x20Cinzel,\x20serif',_0x5ae8ee[_0x4a7fc8(0x115)]=_0x4a7fc8(0x128),_0x5ae8ee[_0x4a7fc8(0xf3)]((_0x1f3ae5||_0x4a7fc8(0x109))[_0x4a7fc8(0x117)](0x0,0x12),0x80,0x28);const _0x491868=new _0xffb2a0[(_0x4a7fc8(0x11c))](_0x4cf5f7),_0x59a741=new _0xffb2a0['Sprite'](new _0xffb2a0[(_0x4a7fc8(0x126))]({'map':_0x491868,'transparent':!![],'depthTest':![]}));return _0x59a741[_0x4a7fc8(0x10e)][_0x4a7fc8(0x12b)](0.7,0.18,0x1),_0x59a741;}export function tickNpcPose(_0x40e805,_0x4a6b8f){const _0x56a8e1=_0x5233;if(!_0x40e805?.[_0x56a8e1(0x113)])return;const _0x11b7de=_0x40e805[_0x56a8e1(0x113)],_0xa83727=_0x4a6b8f*2.2+(_0x11b7de[_0x56a8e1(0x12a)]||0x0);if(_0x11b7de['lArm']?.[_0x56a8e1(0x113)][_0x56a8e1(0x112)])_0x11b7de['lArm'][_0x56a8e1(0x113)][_0x56a8e1(0x112)]['rotation']['x']=Math[_0x56a8e1(0x100)](_0xa83727)*0.18;if(_0x11b7de['rArm']?.['userData'][_0x56a8e1(0x112)])_0x11b7de['rArm']['userData'][_0x56a8e1(0x112)][_0x56a8e1(0x125)]['x']=Math[_0x56a8e1(0x100)](_0xa83727+Math['PI'])*0.18;if(_0x11b7de[_0x56a8e1(0x118)]?.[_0x56a8e1(0x113)]['upper'])_0x11b7de[_0x56a8e1(0x118)]['userData']['upper']['rotation']['x']=Math[_0x56a8e1(0x100)](_0xa83727+Math['PI'])*0.08;if(_0x11b7de[_0x56a8e1(0xf7)]?.[_0x56a8e1(0x113)]['upper'])_0x11b7de[_0x56a8e1(0xf7)]['userData']['upper'][_0x56a8e1(0x125)]['x']=Math[_0x56a8e1(0x100)](_0xa83727)*0.08;if(_0x11b7de[_0x56a8e1(0x116)])_0x11b7de[_0x56a8e1(0x116)][_0x56a8e1(0x125)]['y']=Math[_0x56a8e1(0x100)](_0xa83727*0.5)*0.06;if(_0x11b7de['head'])_0x11b7de['head']['rotation']['y']=Math[_0x56a8e1(0x100)](_0xa83727*0.35)*0.12;}export function nearNpc(_0x385b14,_0x2a1395,_0x2ffbfc=1.85){const _0x284972=_0x5233;let _0x408d85=null,_0x250f4f=_0x2ffbfc;for(const _0x49ccf7 of _0x385b14||[]){if(!_0x49ccf7[_0x284972(0x106)])continue;const _0x1eacda=Math[_0x284972(0x11e)](_0x2a1395['x']-_0x49ccf7['x'],_0x2a1395['z']-_0x49ccf7['z']);_0x1eacda<_0x250f4f&&(_0x250f4f=_0x1eacda,_0x408d85=_0x49ccf7);}return _0x408d85;}
+/** Articulated NPCs and dialogue trees. */
+import * as THREE from "three";
+
+function mat(hex, extra) {
+  return new THREE.MeshLambertMaterial({ color: hex, ...extra });
+}
+
+function hashHue(s) {
+  let h = 0;
+  for (let i = 0; i < (s || "").length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return h;
+}
+
+function limb(len, thick, col, extra = 0) {
+  const m = new THREE.Mesh(new THREE.CapsuleGeometry(thick, Math.max(0.08, len - thick * 2), 3, 6), mat(col));
+  m.position.y = -len * 0.5;
+  const g = new THREE.Group();
+  g.add(m);
+  if (extra) {
+    const tip = new THREE.Mesh(new THREE.SphereGeometry(thick * 0.85, 6, 5), mat(col));
+    tip.position.y = -len;
+    g.add(tip);
+  }
+  g.userData.len = len;
+  return g;
+}
+
+export function defaultNpc(x, z) {
+  return {
+    id: "n" + Math.random().toString(36).slice(2, 8),
+    name: "Wanderer",
+    x,
+    z,
+    yaw: 0,
+    opener: "Hello, traveler.",
+    options: [
+      { text: "Who are you?", reply: "A friend in these tunnels.", options: [] },
+      { text: "Any advice?", reply: "Watch the lava. It bites.", options: [] },
+      { text: "Farewell.", reply: "Walk in light.", options: [] },
+    ],
+  };
+}
+
+export function makeNpc(def) {
+  const h = hashHue(def.name || def.id || "npc");
+  const skin = new THREE.Color().setHSL(((h % 40) + 12) / 360, 0.28, 0.55);
+  const cloth = new THREE.Color().setHSL(((h >> 5) % 360) / 360, 0.45, 0.32);
+  const cloth2 = new THREE.Color().setHSL(((h >> 9) % 360) / 360, 0.4, 0.22);
+  const hair = new THREE.Color().setHSL(0.08, 0.35, (h % 2) ? 0.12 : 0.45);
+  const g = new THREE.Group();
+  const hips = new THREE.Group();
+  hips.position.y = 0.92;
+  g.add(hips);
+  const pelvis = new THREE.Mesh(new THREE.SphereGeometry(0.13, 8, 6), mat(cloth2.getHex()));
+  hips.add(pelvis);
+  const torso = new THREE.Group();
+  torso.position.y = 0.16;
+  hips.add(torso);
+  const chest = new THREE.Mesh(new THREE.CapsuleGeometry(0.16, 0.28, 4, 8), mat(cloth.getHex()));
+  chest.position.y = 0.22;
+  torso.add(chest);
+  const head = new THREE.Group();
+  head.position.y = 0.52;
+  torso.add(head);
+  const skull = new THREE.Mesh(new THREE.SphereGeometry(0.13, 8, 7), mat(skin.getHex()));
+  const hairM = new THREE.Mesh(new THREE.SphereGeometry(0.135, 8, 6), mat(hair.getHex()));
+  hairM.scale.set(1.05, 0.7, 1.05);
+  hairM.position.y = 0.07;
+  head.add(skull, hairM);
+  const mkArm = (side) => {
+    const sh = new THREE.Group();
+    sh.position.set(side * 0.22, 0.34, 0);
+    const upper = limb(0.28, 0.045, skin.getHex());
+    upper.rotation.z = side * 0.18;
+    const lower = limb(0.26, 0.04, skin.getHex(), 1);
+    lower.position.y = -0.28;
+    upper.add(lower);
+    sh.add(upper);
+    sh.userData.upper = upper;
+    sh.userData.lower = lower;
+    torso.add(sh);
+    return sh;
+  };
+  const mkLeg = (side) => {
+    const hip = new THREE.Group();
+    hip.position.set(side * 0.1, -0.04, 0);
+    const upper = limb(0.34, 0.055, cloth2.getHex());
+    const lower = limb(0.32, 0.048, skin.getHex(), 1);
+    lower.position.y = -0.34;
+    const boot = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.07, 0.16), mat(0x2a2218));
+    boot.position.set(0, -0.34, 0.03);
+    lower.add(boot);
+    upper.add(lower);
+    hip.add(upper);
+    hip.userData.upper = upper;
+    hip.userData.lower = lower;
+    hips.add(hip);
+    return hip;
+  };
+  g.userData.lArm = mkArm(-1);
+  g.userData.rArm = mkArm(1);
+  g.userData.lLeg = mkLeg(-1);
+  g.userData.rLeg = mkLeg(1);
+  g.userData.torso = torso;
+  g.userData.head = head;
+  g.userData.phase = (h % 100) / 16;
+  g.userData.kind = "npc";
+  g.userData.npc = def;
+  const tag = makeNameTag(def.name || "NPC");
+  tag.position.y = 2.05;
+  g.add(tag);
+  g.userData.tag = tag;
+  return g;
+}
+
+function makeNameTag(name) {
+  const c = document.createElement("canvas");
+  c.width = 256;
+  c.height = 64;
+  const g = c.getContext("2d");
+  g.fillStyle = "rgba(12,10,8,0.72)";
+  g.fillRect(8, 10, 240, 44);
+  g.strokeStyle = "#d4b070";
+  g.strokeRect(8, 10, 240, 44);
+  g.fillStyle = "#e8dcc0";
+  g.font = "700 22px Cinzel, serif";
+  g.textAlign = "center";
+  g.fillText((name || "NPC").slice(0, 18), 128, 40);
+  const tex = new THREE.CanvasTexture(c);
+  const spr = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false }));
+  spr.scale.set(0.7, 0.18, 1);
+  return spr;
+}
+
+export function tickNpcPose(mesh, t) {
+  if (!mesh?.userData) return;
+  const u = mesh.userData;
+  const w = t * 2.2 + (u.phase || 0);
+  if (u.lArm?.userData.upper) u.lArm.userData.upper.rotation.x = Math.sin(w) * 0.18;
+  if (u.rArm?.userData.upper) u.rArm.userData.upper.rotation.x = Math.sin(w + Math.PI) * 0.18;
+  if (u.lLeg?.userData.upper) u.lLeg.userData.upper.rotation.x = Math.sin(w + Math.PI) * 0.08;
+  if (u.rLeg?.userData.upper) u.rLeg.userData.upper.rotation.x = Math.sin(w) * 0.08;
+  if (u.torso) u.torso.rotation.y = Math.sin(w * 0.5) * 0.06;
+  if (u.head) u.head.rotation.y = Math.sin(w * 0.35) * 0.12;
+}
+
+export function nearNpc(list, player, r = 1.85) {
+  let best = null;
+  let bd = r;
+  for (const n of list || []) {
+    if (!n.mesh) continue;
+    const d = Math.hypot(player.x - n.x, player.z - n.z);
+    if (d < bd) {
+      bd = d;
+      best = n;
+    }
+  }
+  return best;
+}

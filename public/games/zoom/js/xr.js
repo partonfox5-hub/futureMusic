@@ -1,3 +1,237 @@
-import*as _0x1e5960 from'three';
-import{XRControllerModelFactory}from'three/addons/webxr/XRControllerModelFactory.js';
-(function(_0x56fb9c,_0x25ee45){const _0x3568b1=_0x2947,_0x3ce698=_0x56fb9c();while(!![]){try{const _0x58b8e7=parseInt(_0x3568b1(0x1bb))/0x1*(-parseInt(_0x3568b1(0x1cc))/0x2)+-parseInt(_0x3568b1(0x198))/0x3+parseInt(_0x3568b1(0x193))/0x4+-parseInt(_0x3568b1(0x1cb))/0x5*(-parseInt(_0x3568b1(0x194))/0x6)+-parseInt(_0x3568b1(0x1cd))/0x7+-parseInt(_0x3568b1(0x18a))/0x8*(-parseInt(_0x3568b1(0x187))/0x9)+-parseInt(_0x3568b1(0x1b7))/0xa*(parseInt(_0x3568b1(0x1c4))/0xb);if(_0x58b8e7===_0x25ee45)break;else _0x3ce698['push'](_0x3ce698['shift']());}catch(_0x1f3376){_0x3ce698['push'](_0x3ce698['shift']());}}}(_0x2d41,0x6af2b));export function attachXr(_0x40f037,_0xb64752,_0x28f62c){const _0x1443e6=_0x2947;_0x40f037['xr']['enabled']=!![];try{_0x40f037['xr'][_0x1443e6(0x1ca)]('local-floor');}catch{}try{_0x40f037['xr'][_0x1443e6(0x18d)](0x1);}catch{}_0x40f037['xr'][_0x1443e6(0x189)]('sessionstart',()=>{const _0xbdc532=_0x1443e6;try{_0x40f037['setPixelRatio'](0x1);}catch{}if(typeof _0x28f62c===_0xbdc532(0x1b1))_0x28f62c(!![]);}),_0x40f037['xr'][_0x1443e6(0x189)](_0x1443e6(0x1b4),()=>{const _0x307a22=_0x1443e6;try{_0x40f037['setPixelRatio'](Math[_0x307a22(0x19a)](devicePixelRatio||0x1,1.5));}catch{}if(typeof _0x28f62c==='function')_0x28f62c(![]);syncVrButtons(![]);});const _0x5a4d1c=new XRControllerModelFactory(),_0x2fc35f=[];for(let _0x266358=0x0;_0x266358<0x2;_0x266358++){const _0x2ec73a=_0x40f037['xr'][_0x1443e6(0x1c6)](_0x266358);_0x2ec73a['add'](_0x5a4d1c['createControllerModel'](_0x2ec73a)),_0xb64752[_0x1443e6(0x188)](_0x2ec73a);const _0x422e0c=_0x40f037['xr']['getController'](_0x266358);_0xb64752[_0x1443e6(0x188)](_0x422e0c);const _0x108282=new _0x1e5960[(_0x1443e6(0x1c3))](new _0x1e5960['BufferGeometry']()['setFromPoints']([new _0x1e5960[(_0x1443e6(0x1a6))](0x0,0x0,0x0),new _0x1e5960[(_0x1443e6(0x1a6))](0x0,0x0,-1.6)]),new _0x1e5960['LineBasicMaterial']({'color':0xe8dcc0,'transparent':!![],'opacity':0.35}));_0x422e0c[_0x1443e6(0x188)](_0x108282),_0x2fc35f[_0x1443e6(0x1c5)]({'i':_0x266358,'grip':_0x2ec73a,'con':_0x422e0c,'beam':_0x108282,'held':null,'squeeze':![],'squeezePrev':![],'trigger':![],'triggerPrev':![],'triggerValue':0x0,'squeezeValue':0x0,'stick':![],'stickPrev':![],'aBtn':![],'aPrev':![],'bBtn':![],'bPrev':![],'menuBtn':![],'menuPrev':![],'axes':[0x0,0x0],'handed':_0x266358===0x0?_0x1443e6(0x191):'right','pos':new _0x1e5960[(_0x1443e6(0x1a6))](),'vel':new _0x1e5960[(_0x1443e6(0x1a6))](),'prev':new _0x1e5960[(_0x1443e6(0x1a6))](),'quat':new _0x1e5960[(_0x1443e6(0x1d1))]()}),_0x422e0c[_0x1443e6(0x189)](_0x1443e6(0x1b5),_0xd2733b=>{const _0x838f40=_0x1443e6;_0x2fc35f[_0x266358][_0x838f40(0x1ae)]=_0xd2733b[_0x838f40(0x192)][_0x838f40(0x1a2)]||_0x2fc35f[_0x266358][_0x838f40(0x1ae)];});}return wireVrButton(_0x40f037),_0x2fc35f;}function _0x2947(_0x138758,_0x5a673e){_0x138758=_0x138758-0x186;const _0x2d41b6=_0x2d41();let _0x294784=_0x2d41b6[_0x138758];return _0x294784;}export function xrSupported(){const _0x4277cb=_0x2947;return!!(navigator['xr']&&navigator['xr'][_0x4277cb(0x1be)]);}function vrButtons(){const _0xb4f75d=_0x2947;return[document[_0xb4f75d(0x1a9)](_0xb4f75d(0x195)),document[_0xb4f75d(0x1a9)](_0xb4f75d(0x1ac))][_0xb4f75d(0x18b)](Boolean);}function syncVrButtons(_0x40ee26){const _0x18892b=_0x2947;for(const _0x464fb0 of vrButtons()){_0x464fb0[_0x18892b(0x19b)]=![],_0x464fb0['textContent']=_0x40ee26?'EXIT\x20VR':_0x18892b(0x197);}}export async function startVr(_0x429c2f){const _0x5ba5c7=_0x2947,_0x2187c3=_0x429c2f[_0x5ba5c7(0x18e)]();if(_0x2187c3&&_0x2187c3[_0x5ba5c7(0x1ab)])await _0x2187c3[_0x5ba5c7(0x1ab)]();_0x429c2f['xr'][_0x5ba5c7(0x196)]=!![];try{_0x429c2f['xr'][_0x5ba5c7(0x1ca)](_0x5ba5c7(0x19c));}catch{}let _0x1d9c8b;try{_0x1d9c8b=await navigator['xr'][_0x5ba5c7(0x1a3)](_0x5ba5c7(0x1af),{'optionalFeatures':[_0x5ba5c7(0x19c)]});}catch{_0x1d9c8b=await navigator['xr'][_0x5ba5c7(0x1a3)]('immersive-vr');}return await _0x429c2f['xr']['setSession'](_0x1d9c8b),_0x1d9c8b['addEventListener']('end',()=>syncVrButtons(![])),syncVrButtons(!![]),_0x1d9c8b;}export function wireVrButton(_0x3e00f3){const _0x495f3f=_0x2947,_0x153a38=document['getElementById'](_0x495f3f(0x1c0)),_0x386f23=vrButtons();if(!_0x386f23['length'])return;const _0x24ee86=()=>{const _0x4967f4=_0x495f3f;for(const _0x341c3a of _0x386f23){_0x341c3a['disabled']=!![],_0x341c3a[_0x4967f4(0x1bc)]='VR:\x20headset\x20required';}_0x153a38&&(_0x153a38['hidden']=![],_0x153a38[_0x4967f4(0x1bc)]=_0x4967f4(0x1c9));};if(!navigator['xr']||!navigator['xr'][_0x495f3f(0x1be)]){_0x24ee86();return;}navigator['xr']['isSessionSupported']('immersive-vr')[_0x495f3f(0x19f)](_0x3c117f=>{const _0x4d3b10=_0x495f3f;if(!_0x3c117f){_0x24ee86();return;}for(const _0x5478ee of _0x386f23){_0x5478ee['disabled']=![],_0x5478ee['textContent']=_0x3e00f3['xr']['isPresenting']?_0x4d3b10(0x1a5):_0x4d3b10(0x197),_0x5478ee[_0x4d3b10(0x1a0)]=async()=>{const _0x2bea09=_0x4d3b10;if(_0x3e00f3['xr']['isPresenting']){try{await _0x3e00f3['xr']['getSession']()?.['end']();}catch{}return;}_0x5478ee[_0x2bea09(0x19b)]=!![];try{await startVr(_0x3e00f3);}catch(_0xbe0f38){_0x5478ee[_0x2bea09(0x19b)]=![],_0x153a38&&(_0x153a38['hidden']=![],_0x153a38['textContent']=_0x2bea09(0x1a7)+(_0xbe0f38&&_0xbe0f38['message']?_0xbe0f38['message']:'try\x20Meta\x20Quest\x20Browser'));}};}if(_0x153a38)_0x153a38['hidden']=!![];})['catch'](_0x24ee86);}export function tickXr(_0x5e90a1,_0x259a6c,_0x41c4ab){const _0x550915=_0x2947,_0x5618cf=_0x5e90a1['xr'][_0x550915(0x1d2)]&&_0x5e90a1['xr'][_0x550915(0x1d2)](),_0x2d6e5f=_0x5e90a1['xr']['isPresenting'];if(_0x5618cf)for(const _0x21648b of _0x5618cf[_0x550915(0x1b2)]){const _0x3036c2=_0x259a6c['find'](_0x5a1a24=>_0x5a1a24[_0x550915(0x1ae)]===_0x21648b['handedness'])||(_0x21648b['handedness']===_0x550915(0x191)?_0x259a6c[0x0]:_0x259a6c[0x1]),_0x57dd75=_0x21648b[_0x550915(0x1d3)];if(!_0x57dd75||!_0x3036c2)continue;_0x3036c2['triggerPrev']=_0x3036c2['trigger'],_0x3036c2['squeezePrev']=_0x3036c2['squeeze'],_0x3036c2['aPrev']=_0x3036c2[_0x550915(0x1cf)],_0x3036c2[_0x550915(0x1ba)]=_0x3036c2['bBtn'],_0x3036c2[_0x550915(0x19e)]=_0x3036c2['menuBtn'],_0x3036c2[_0x550915(0x1d0)]=_0x57dd75['buttons'][0x0]?_0x57dd75[_0x550915(0x1a1)][0x0]['value']:0x0;const _0x246977=!!(_0x57dd75[_0x550915(0x1a1)][0x0]&&(_0x57dd75[_0x550915(0x1a1)][0x0]['pressed']||_0x3036c2[_0x550915(0x1d0)]>0.22));if(_0x246977&&!_0x3036c2['trigger'])_0x3036c2[_0x550915(0x19d)]=performance[_0x550915(0x1b9)]();_0x3036c2['trigger']=_0x246977,_0x3036c2['squeezeValue']=_0x57dd75['buttons'][0x1]?_0x57dd75[_0x550915(0x1a1)][0x1][_0x550915(0x1a8)]:0x0,_0x3036c2[_0x550915(0x186)]=!!(_0x57dd75[_0x550915(0x1a1)][0x1]&&(_0x57dd75[_0x550915(0x1a1)][0x1][_0x550915(0x1b8)]||_0x3036c2['squeezeValue']>0.18)),_0x3036c2['stickPrev']=_0x3036c2['stick'],_0x3036c2[_0x550915(0x199)]=!!(_0x57dd75[_0x550915(0x1a1)][0x3]&&_0x57dd75[_0x550915(0x1a1)][0x3][_0x550915(0x1b8)]),_0x3036c2['gp']=_0x57dd75,_0x3036c2[_0x550915(0x1cf)]=!!(_0x57dd75['buttons'][0x4]&&_0x57dd75[_0x550915(0x1a1)][0x4]['pressed']),_0x3036c2['bBtn']=!!(_0x57dd75[_0x550915(0x1a1)][0x5]&&_0x57dd75[_0x550915(0x1a1)][0x5]['pressed']),_0x3036c2[_0x550915(0x1ce)]=!!(_0x57dd75[_0x550915(0x1a1)][0x2]&&_0x57dd75['buttons'][0x2][_0x550915(0x1b8)]||_0x57dd75['buttons'][0x6]&&_0x57dd75[_0x550915(0x1a1)][0x6][_0x550915(0x1b8)]||_0x57dd75['buttons'][0x10]&&_0x57dd75[_0x550915(0x1a1)][0x10]['pressed']);const _0x27755e=_0x57dd75[_0x550915(0x1c8)]||[];_0x3036c2['axes']=[_0x27755e[0x2]!=null?_0x27755e[0x2]:_0x27755e[0x0]||0x0,_0x27755e[0x3]!=null?_0x27755e[0x3]:_0x27755e[0x1]||0x0];}for(const _0x3dbbca of _0x259a6c){_0x3dbbca['con'][_0x550915(0x1ad)](_0x3dbbca['pos']),_0x3dbbca['con'][_0x550915(0x1b0)](_0x3dbbca[_0x550915(0x1bf)]),_0x3dbbca['vel']['copy'](_0x3dbbca['pos'])[_0x550915(0x1aa)](_0x3dbbca['prev'])[_0x550915(0x1bd)](_0x41c4ab>0.0001?0x1/_0x41c4ab:0x0),_0x3dbbca['prev']['copy'](_0x3dbbca['pos']);}const _0x28b0aa=_0x259a6c['find'](_0x1a5c97=>_0x1a5c97[_0x550915(0x1ae)]===_0x550915(0x191))||_0x259a6c[0x0],_0x2e93f5=_0x259a6c[_0x550915(0x1b6)](_0x1b1862=>_0x1b1862[_0x550915(0x1ae)]===_0x550915(0x18c))||_0x259a6c[0x1];let _0x201fe2=![];if(_0x28b0aa&&_0x2e93f5&&_0x28b0aa[_0x550915(0x190)]&&_0x2e93f5[_0x550915(0x190)]){const _0x3d1fb9=Math[_0x550915(0x1c7)]((_0x28b0aa['_trigAt']||0x0)-(_0x2e93f5['_trigAt']||0x0));if(_0x3d1fb9<0x8c&&(!_0x28b0aa['triggerPrev']||!_0x2e93f5['triggerPrev']))_0x201fe2=!![];}const _0xf69f9f=_0x28b0aa?_0x28b0aa[_0x550915(0x1c8)][0x0]:0x0,_0xd82af0=_0x28b0aa?_0x28b0aa['axes'][0x1]:0x0,_0x58a108=Math[_0x550915(0x1c2)](_0xf69f9f,_0xd82af0);return{'on':_0x2d6e5f,'left':_0x28b0aa,'right':_0x2e93f5,'dash':_0x201fe2,'skate':_0x58a108>0.88,'jet':!!(_0x28b0aa&&_0x28b0aa['stick']),'lookX':_0x2e93f5?_0x2e93f5[_0x550915(0x1c8)][0x0]:0x0,'moveX':_0x28b0aa?_0x28b0aa[_0x550915(0x1c8)][0x0]:0x0,'moveY':_0x28b0aa?_0x28b0aa[_0x550915(0x1c8)][0x1]:0x0,'jump':!!(_0x2e93f5&&_0x2e93f5[_0x550915(0x1cf)]),'jumpTap':!!(_0x2e93f5&&_0x2e93f5[_0x550915(0x1cf)]&&!_0x2e93f5['aPrev']),'menu':!!(_0x28b0aa&&(_0x28b0aa['menuBtn']&&!_0x28b0aa[_0x550915(0x19e)]||_0x28b0aa[_0x550915(0x18f)]&&!_0x28b0aa[_0x550915(0x1ba)])),'reload':!!(_0x2e93f5&&_0x2e93f5['stick']&&!_0x2e93f5['stickPrev']),'psy':!!(_0x28b0aa&&_0x28b0aa['trigger']&&!_0x28b0aa[_0x550915(0x1a4)]),'psyHeld':!!(_0x28b0aa&&_0x28b0aa[_0x550915(0x1d0)]>0.38),'psyRelease':!!(_0x28b0aa&&_0x28b0aa['triggerPrev']&&!_0x28b0aa[_0x550915(0x190)]),'psyMode':!!(_0x28b0aa&&_0x28b0aa['aBtn']&&!_0x28b0aa[_0x550915(0x1b3)]),'saberToggle':!!(_0x2e93f5&&_0x2e93f5['bBtn']&&!_0x2e93f5['bPrev']),'squeezeOn':!!(_0x28b0aa&&_0x28b0aa[_0x550915(0x1c1)]>0.2||_0x2e93f5&&_0x2e93f5['squeezeValue']>0.2),'squeezeOff':!!(_0x28b0aa&&_0x2e93f5&&_0x28b0aa[_0x550915(0x1c1)]<0.12&&_0x2e93f5[_0x550915(0x1c1)]<0.12)};}function _0x2d41(){const _0x1ce7f8=['inputSources','aPrev','sessionend','connected','find','989100EyXYLR','pressed','now','bPrev','155pUwOho','textContent','multiplyScalar','isSessionSupported','quat','vr-note','squeezeValue','hypot','Line','55sRzBco','push','getControllerGrip','abs','axes','On\x20a\x20PC\x20this\x20is\x20desktop\x20mode.\x20Open\x20this\x20page\x20in\x20Meta\x20Quest\x20Browser\x20(in\x20the\x20headset)\x20to\x20enter\x20VR.','setReferenceSpaceType','5IefZKs','1656jDXtqR','354557kflVos','menuBtn','aBtn','triggerValue','Quaternion','getSession','gamepad','squeeze','36EUBlPq','add','addEventListener','73672pmZeoe','filter','right','setFramebufferScaleFactor','getContext','bBtn','trigger','left','data','1526752LbYnvb','4180962wkpmUp','vr-enter','enabled','ENTER\x20VR','11253wBRLHr','stick','min','disabled','local-floor','_trigAt','menuPrev','then','onclick','buttons','handedness','requestSession','triggerPrev','EXIT\x20VR','Vector3','Could\x20not\x20start\x20VR:\x20','value','getElementById','sub','makeXRCompatible','hud-vr','getWorldPosition','handed','immersive-vr','getWorldQuaternion','function'];_0x2d41=function(){return _0x1ce7f8;};return _0x2d41();}
+/** WebXR hands: grip pickup, trigger fire/jetpack, A jump, Y/menu pack, stick-click skate. */
+import * as THREE from "three";
+import { XRControllerModelFactory } from "three/addons/webxr/XRControllerModelFactory.js";
+
+export function attachXr(renderer, scene, onSession) {
+  renderer.xr.enabled = true;
+  try {
+    renderer.xr.setReferenceSpaceType("local-floor");
+  } catch {}
+  try {
+    renderer.xr.setFramebufferScaleFactor(1);
+  } catch {}
+  renderer.xr.addEventListener("sessionstart", () => {
+    try {
+      renderer.setPixelRatio(1);
+    } catch {}
+    if (typeof onSession === "function") onSession(true);
+  });
+  renderer.xr.addEventListener("sessionend", () => {
+    try {
+      renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 1.5));
+    } catch {}
+    if (typeof onSession === "function") onSession(false);
+    syncVrButtons(false);
+  });
+  const factory = new XRControllerModelFactory();
+  const hands = [];
+  for (let i = 0; i < 2; i++) {
+    const grip = renderer.xr.getControllerGrip(i);
+    grip.add(factory.createControllerModel(grip));
+    scene.add(grip);
+    const con = renderer.xr.getController(i);
+    scene.add(con);
+    const beam = new THREE.Line(
+      new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, -4.8)]),
+      new THREE.LineBasicMaterial({ color: 0xe8dcc0, transparent: true, opacity: 0.35 }),
+    );
+    con.add(beam);
+    hands.push({
+      i,
+      grip,
+      con,
+      beam,
+      held: null,
+      squeeze: false,
+      squeezePrev: false,
+      trigger: false,
+      triggerPrev: false,
+      triggerValue: 0,
+      squeezeValue: 0,
+      stick: false,
+      stickPrev: false,
+      aBtn: false,
+      aPrev: false,
+      bBtn: false,
+      bPrev: false,
+      menuBtn: false,
+      menuPrev: false,
+      axes: [0, 0],
+      handed: i === 0 ? "left" : "right",
+      pos: new THREE.Vector3(),
+      vel: new THREE.Vector3(),
+      prev: new THREE.Vector3(),
+      quat: new THREE.Quaternion(),
+    });
+    con.addEventListener("connected", (ev) => {
+      hands[i].handed = ev.data.handedness || hands[i].handed;
+    });
+  }
+  wireVrButton(renderer);
+  return hands;
+}
+
+export function xrSupported() {
+  return !!(navigator.xr && navigator.xr.isSessionSupported);
+}
+
+function vrButtons() {
+  return [document.getElementById("vr-enter"), document.getElementById("hud-vr")].filter(Boolean);
+}
+
+function syncVrButtons(presenting) {
+  for (const btn of vrButtons()) {
+    btn.disabled = false;
+    btn.textContent = presenting ? "EXIT VR" : "ENTER VR";
+  }
+}
+
+export async function startVr(renderer) {
+  const gl = renderer.getContext();
+  if (gl && gl.makeXRCompatible) await gl.makeXRCompatible();
+  renderer.xr.enabled = true;
+  try {
+    renderer.xr.setReferenceSpaceType("local-floor");
+  } catch {}
+  let session;
+  try {
+    session = await navigator.xr.requestSession("immersive-vr", { optionalFeatures: ["local-floor"] });
+  } catch {
+    session = await navigator.xr.requestSession("immersive-vr");
+  }
+  await renderer.xr.setSession(session);
+  session.addEventListener("end", () => syncVrButtons(false));
+  syncVrButtons(true);
+  return session;
+}
+
+export function wireVrButton(renderer) {
+  const note = document.getElementById("vr-note");
+  const btns = vrButtons();
+  if (!btns.length) return;
+  const unsupported = () => {
+    for (const btn of btns) {
+      btn.disabled = true;
+      btn.textContent = "VR: headset required";
+    }
+    if (note) {
+      note.hidden = false;
+      note.textContent = "On a PC this is desktop mode. Open this page in Meta Quest Browser (in the headset) to enter VR.";
+    }
+  };
+  if (!navigator.xr || !navigator.xr.isSessionSupported) {
+    unsupported();
+    return;
+  }
+  navigator.xr.isSessionSupported("immersive-vr").then((ok) => {
+    if (!ok) {
+      unsupported();
+      return;
+    }
+    for (const btn of btns) {
+      btn.disabled = false;
+      btn.textContent = renderer.xr.isPresenting ? "EXIT VR" : "ENTER VR";
+      btn.onclick = async () => {
+        if (renderer.xr.isPresenting) {
+          try {
+            await renderer.xr.getSession()?.end();
+          } catch {}
+          return;
+        }
+        btn.disabled = true;
+        try {
+          await startVr(renderer);
+        } catch (err) {
+          btn.disabled = false;
+          if (note) {
+            note.hidden = false;
+            note.textContent = "Could not start VR: " + (err && err.message ? err.message : "try Meta Quest Browser");
+          }
+        }
+      };
+    }
+    if (note) note.hidden = true;
+  }).catch(unsupported);
+}
+
+export function tickXr(renderer, hands, dt) {
+  const session = renderer.xr.getSession && renderer.xr.getSession();
+  const on = renderer.xr.isPresenting;
+  if (session) {
+    for (const src of session.inputSources) {
+      const h = hands.find((x) => x.handed === src.handedness) || (src.handedness === "left" ? hands[0] : hands[1]);
+      const gp = src.gamepad;
+      if (!gp || !h) continue;
+      h.triggerPrev = h.trigger;
+      h.squeezePrev = h.squeeze;
+      h.aPrev = h.aBtn;
+      h.bPrev = h.bBtn;
+      h.menuPrev = h.menuBtn;
+      h.triggerValue = gp.buttons[0] ? gp.buttons[0].value : 0;
+      const trig = !!(gp.buttons[0] && (gp.buttons[0].pressed || h.triggerValue > 0.22));
+      if (trig && !h.trigger) h._trigAt = performance.now();
+      h.trigger = trig;
+      h.squeezeValue = gp.buttons[1] ? gp.buttons[1].value : 0;
+      h.squeeze = !!(gp.buttons[1] && (gp.buttons[1].pressed || h.squeezeValue > 0.18));
+      h.stickPrev = h.stick;
+      h.stick = !!(gp.buttons[3] && gp.buttons[3].pressed);
+      h.gp = gp;
+      h.aBtn = !!(gp.buttons[4] && gp.buttons[4].pressed);
+      h.bBtn = !!(gp.buttons[5] && gp.buttons[5].pressed);
+      h.menuBtn = !!(
+        (gp.buttons[2] && gp.buttons[2].pressed) ||
+        (gp.buttons[6] && gp.buttons[6].pressed) ||
+        (gp.buttons[16] && gp.buttons[16].pressed)
+      );
+      const ax = gp.axes || [];
+      h.axes = [ax[2] != null ? ax[2] : ax[0] || 0, ax[3] != null ? ax[3] : ax[1] || 0];
+    }
+  }
+  for (const h of hands) {
+    h.con.getWorldPosition(h.pos);
+    h.con.getWorldQuaternion(h.quat);
+    h.vel.copy(h.pos).sub(h.prev).multiplyScalar(dt > 1e-4 ? 1 / dt : 0);
+    h.prev.copy(h.pos);
+  }
+  const left = hands.find((h) => h.handed === "left") || hands[0];
+  const right = hands.find((h) => h.handed === "right") || hands[1];
+  let dash = false;
+  if (left && right && left.trigger && right.trigger) {
+    const dtTrig = Math.abs((left._trigAt || 0) - (right._trigAt || 0));
+    if (dtTrig < 140 && (!left.triggerPrev || !right.triggerPrev)) dash = true;
+  }
+  const lx = left ? left.axes[0] : 0;
+  const ly = left ? left.axes[1] : 0;
+  const mag = Math.hypot(lx, ly);
+  return {
+    on,
+    left,
+    right,
+    dash,
+    skate: mag > 0.88,
+    jet: !!(left && left.stick),
+    lookX: right ? right.axes[0] : 0,
+    lookY: right ? right.axes[1] : 0,
+    moveX: left ? left.axes[0] : 0,
+    moveY: left ? left.axes[1] : 0,
+    jump: !!(right && right.aBtn),
+    jumpTap: !!(right && right.aBtn && !right.aPrev),
+    menu: !!(left && ((left.menuBtn && !left.menuPrev) || (left.bBtn && !left.bPrev))),
+    reload: !!(right && right.stick && !right.stickPrev),
+    psy: !!(left && left.trigger && !left.triggerPrev),
+    psyHeld: !!(left && left.triggerValue > 0.38),
+    psyRelease: !!(left && left.triggerPrev && !left.trigger),
+    psyMode: !!(left && left.aBtn && !left.aPrev),
+    saberToggle: !!(right && right.bBtn && !right.bPrev),
+    squeezeOn: !!(
+      (left && left.squeezeValue > 0.2) ||
+      (right && right.squeezeValue > 0.2)
+    ),
+    squeezeOff: !!(
+      left &&
+      right &&
+      left.squeezeValue < 0.12 &&
+      right.squeezeValue < 0.12
+    ),
+  };
+}

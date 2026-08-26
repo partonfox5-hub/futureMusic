@@ -3,6 +3,8 @@ import * as THREE from "three";
 import {
   CELL,
   EYE,
+  FLAG_COLLAPSE,
+  FLAG_HOVER,
   FLAG_SPIKE,
   FLAG_UNSTABLE,
   LIQ_LAVA,
@@ -11,8 +13,8 @@ import {
   STORY_H,
   STORIES,
   WALL_TEX,
-} from "./config.js?v=sw3";
-import { cellI, climbHoleFloor, climbHoleRoof, enclosedFloors, idx, inBounds, sdf3, wallIsCrack, wallTexId } from "./map.js?v=sw3";
+} from "./config.js?v=zm1";
+import { cellI, climbHoleFloor, climbHoleRoof, enclosedFloors, idx, inBounds, sdf3, wallIsCrack, wallTexId } from "./map.js?v=zm1";
 
 function mat(hex, extra) {
   return new THREE.MeshLambertMaterial({ color: hex, ...extra });
@@ -34,6 +36,8 @@ function wallMat(id, cracked) {
     crystal: [0x6a3eb0, 0xc8a0ff],
     sandstone: [0xc4a070, 0x8a6a40],
     dungeon: [0x5a5048, 0x2a2420],
+    lab: [0x1a3844, 0x44d8ff],
+    temple: [0x8a6a38, 0xe8d090],
   }[id] || [0x888, 0x444];
   const c = document.createElement("canvas");
   c.width = c.height = 32;
@@ -41,7 +45,16 @@ function wallMat(id, cracked) {
   g.fillStyle = "#" + pal[0].toString(16).padStart(6, "0");
   g.fillRect(0, 0, 32, 32);
   g.fillStyle = "#" + pal[1].toString(16).padStart(6, "0");
-  if (id === "castle" || id === "manor" || id === "dungeon") {
+  if (id === "lab") {
+    g.fillRect(0, 10, 32, 1);
+    g.fillRect(0, 22, 32, 1);
+    g.fillRect(14, 0, 2, 32);
+  } else if (id === "temple") {
+    for (let y = 0; y < 32; y += 16) {
+      const o = (y / 16) % 2 ? 8 : 0;
+      for (let x = -16; x < 32; x += 32) g.fillRect(x + o + 1, y + 1, 30, 14);
+    }
+  } else if (id === "castle" || id === "manor" || id === "dungeon") {
     for (let y = 0; y < 32; y += 8) {
       const o = (y / 8) % 2 ? 4 : 0;
       for (let x = -8; x < 32; x += 16) g.fillRect(x + o + 1, y + 1, 14, 6);
@@ -372,10 +385,69 @@ function openingAt(map, x, z, story) {
   return (map.openings || []).find((o) => o.x === x && o.z === z && (o.story || 0) === story);
 }
 
+function makeArrowTrap(group, a, map) {
+  const yaw = a.yaw || 0;
+  const y = (a.y != null ? a.y : ((map.elev && map.elev[cellI(map, a.x, a.z)]) || 0) * EYE) + 1.15;
+  const g = new THREE.Group();
+  const stone = mat(0x4a443c);
+  const dark = mat(0x0a0806);
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.16, 0.04, 6, 12), stone);
+  ring.rotation.y = yaw;
+  const hole = new THREE.Mesh(new THREE.CircleGeometry(0.12, 10), dark);
+  hole.rotation.y = yaw;
+  hole.position.z = 0.02;
+  g.add(ring, hole);
+  const fx = -Math.sin(yaw);
+  const fz = -Math.cos(yaw);
+  g.position.set(a.x + fx * 0.02, y, a.z + fz * 0.02);
+  g.rotation.y = yaw;
+  group.add(g);
+  return {
+    x: a.x,
+    z: a.z,
+    y,
+    yaw,
+    fx,
+    fz,
+    mesh: g,
+    cool: 0,
+    fired: 0,
+  };
+}
+
+function makeFlameStream() {
+  const g = new THREE.Group();
+  const glow = new THREE.MeshLambertMaterial({
+    color: 0xff6622,
+    emissive: 0xff3300,
+    emissiveIntensity: 1.4,
+    transparent: true,
+    opacity: 0.88,
+    depthWrite: false,
+  });
+  const core = new THREE.MeshLambertMaterial({
+    color: 0xffee88,
+    emissive: 0xffcc44,
+    emissiveIntensity: 1.8,
+    transparent: true,
+    opacity: 0.95,
+    depthWrite: false,
+  });
+  const outer = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.32, 7.2, 8, 1, true), glow);
+  outer.rotation.x = Math.PI / 2;
+  const inner = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.14, 7.0, 6, 1, true), core);
+  inner.rotation.x = Math.PI / 2;
+  g.add(outer, inner);
+  g.userData.outer = outer;
+  g.userData.inner = inner;
+  g.visible = false;
+  return g;
+}
+
 export function buildWorld(map, dungeon, scene) {
   const group = new THREE.Group();
   group.name = "world";
-  const extras = { crushers: [], turrets: [], ropes: [], portals: [], doors: [], windows: [], liquids: [], spikes: [], climbs: [], caveins: [], unstables: [], horizon: null, boulders: [], vendors: [], crackedWalls: [], rumbles: [], ripples: [], root: group, liqT: 0 };
+  const extras = { crushers: [], turrets: [], arrows: [], darts: [], hovers: [], ropes: [], portals: [], doors: [], windows: [], liquids: [], spikes: [], climbs: [], caveins: [], unstables: [], horizon: null, boulders: [], vendors: [], crackedWalls: [], rumbles: [], ripples: [], root: group, liqT: 0 };
 
   const spikeGeo = new THREE.ConeGeometry(0.12, 0.7, 5);
   const spikeMat = mat(0x8a9098, { emissive: 0x222 });
@@ -506,7 +578,30 @@ export function buildWorld(map, dungeon, scene) {
       hp: 70,
       maxHp: 70,
       cool: 0.4,
+      jitter: (Math.random() - 0.5) * 0.2,
     });
+  }
+
+  for (const a of map.arrows || []) {
+    extras.arrows.push(makeArrowTrap(group, a, map));
+  }
+
+  if (map.flags) {
+    const slab = mat(0x8a9aa8, { emissive: 0x223344, emissiveIntensity: 0.35 });
+    const crackF = mat(0x6a5040, { emissive: 0x331800, emissiveIntensity: 0.2 });
+    for (let z = 0; z < map.h; z++) {
+      for (let x = 0; x < map.w; x++) {
+        const i = idx(map, x, z);
+        const hover = map.flags[i] & FLAG_HOVER;
+        const coll = map.flags[i] & FLAG_COLLAPSE;
+        if (!hover && !coll) continue;
+        const y0 = ((map.elev && map.elev[i]) || 0) * EYE;
+        const m = new THREE.Mesh(new THREE.BoxGeometry(CELL * 0.96, hover ? 0.14 : 0.08, CELL * 0.96), hover ? slab.clone() : crackF.clone());
+        m.position.set((x + 0.5) * CELL, y0 + (hover ? 0.07 : 0.04), (z + 0.5) * CELL);
+        group.add(m);
+        extras.hovers.push({ i, mesh: m, x: (x + 0.5) * CELL, z: (z + 0.5) * CELL, y: y0, hover: !!hover, collapse: !!coll });
+      }
+    }
   }
 
   for (const c of map.crushers || []) {
@@ -918,26 +1013,42 @@ export function tickWorld(extras, dt, player, foes, onHit, scene, camera, map, s
     if (t.hp <= 0) {
       if (t.mesh.visible) t.mesh.visible = false;
       if (t.light) t.light.intensity = 0;
+      if (t.stream) t.stream.visible = false;
       continue;
     }
     t.cool -= dt;
     const dx = player.x - t.x;
     const dz = player.z - t.z;
     const d = Math.hypot(dx, dz) || 1;
-    t.head.rotation.y = Math.atan2(dx, dz);
+    t.jitter = (t.jitter || 0) * 0.9 + (Math.random() - 0.5) * 0.18;
+    t.head.rotation.y = Math.atan2(dx, dz) + t.jitter;
     if (t.hpBar && camera) t.hpBar.lookAt(camera.position);
     paintHp(t.hpBar, t.hp, t.maxHp);
     const firing = d < 18;
-    if (t.light) t.light.intensity = firing ? 2.4 + Math.random() * 2.2 : 0.15;
-    if (firing && t.cool <= 0) {
-      t.cool = 0.032;
-      if (t.muzzle) t.muzzle.getWorldPosition(muz);
-      else muz.set(t.x, t.y, t.z);
-      const root = extras.root;
-      if (root?.worldToLocal) root.worldToLocal(muz);
-      const hx = Math.sin(t.head.rotation.y);
-      const hz = Math.cos(t.head.rotation.y);
-      spawnFlame(scene, muz.x, muz.y, muz.z, hx, hz, extras);
+    if (t.light) t.light.intensity = firing ? 2.2 + Math.sin(performance.now() * 0.04) * 0.6 : 0.12;
+    if (!t.stream) {
+      t.stream = makeFlameStream();
+      (extras.root || scene).add(t.stream);
+    }
+    const hx = Math.sin(t.head.rotation.y);
+    const hz = Math.cos(t.head.rotation.y);
+    if (t.muzzle) t.muzzle.getWorldPosition(muz);
+    else muz.set(t.x, t.y, t.z);
+    if (extras.root?.worldToLocal) extras.root.worldToLocal(muz);
+    t.stream.visible = firing;
+    if (firing) {
+      const dir = new THREE.Vector3(hx, 0.04, hz).normalize();
+      t.stream.position.copy(muz).addScaledVector(dir, 3.55);
+      t.stream.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), dir);
+      const pulse = 1 + Math.sin(performance.now() * 0.03) * 0.06;
+      t.stream.scale.set(pulse, pulse, 1);
+      const along = ((player.x - muz.x) * hx + (player.z - muz.z) * hz);
+      const px = muz.x + hx * Math.max(0, Math.min(7.2, along));
+      const pz = muz.z + hz * Math.max(0, Math.min(7.2, along));
+      const off = Math.hypot(player.x - px, player.z - pz);
+      if (along > 0.2 && along < 7.2 && off < 0.55 && Math.abs(player.y - muz.y) < 1.4) {
+        onHit(22 * dt, "burned");
+      }
     }
   }
   extras._flames = extras._flames || [];
@@ -963,6 +1074,8 @@ export function tickWorld(extras, dt, player, foes, onHit, scene, camera, map, s
   extras.liqT = (extras.liqT || 0) + dt;
   _liqU.t.value = extras.liqT;
   if (map) tickCaveIn(extras, dt, player, map, scene, onHit);
+  if (map) tickCollapseFloors(extras, dt, player, foes, map, scene, onHit);
+  if (map) tickArrows(extras, dt, player, map, scene, onHit);
   if (map) tickBoulders(extras, dt, player, map, sdf2, onHit);
   for (const d of extras.doors || []) {
     if (d.lockIcon && d.lockIcon.visible) {
@@ -1230,6 +1343,143 @@ function tickCaveIn(extras, dt, player, map, scene, onHit) {
         const j = idx(map, nx, nz);
         if (map.flags[j] & FLAG_UNSTABLE && !(map.collapsed && map.collapsed[j])) collapseCell(map, extras, scene, j, player, onHit);
       }
+    }
+  }
+}
+
+function tickCollapseFloors(extras, dt, player, foes, map, scene, onHit) {
+  if (!map.flags) return;
+  extras._cfall = extras._cfall || {};
+  const walkers = [{ x: player.x, z: player.z, vx: player.vx, vz: player.vz, grounded: player.grounded, isP: true }];
+  for (const f of foes || []) {
+    if (!f.visible || f.userData.hp <= 0) continue;
+    walkers.push({ x: f.position.x, z: f.position.z, vx: f.userData.vx || 0, vz: f.userData.vz || 0, grounded: true, isP: false });
+  }
+  for (const w of walkers) {
+    const gi = Math.floor(w.x / CELL);
+    const gz = Math.floor(w.z / CELL);
+    if (!inBounds(map, gi, gz)) continue;
+    const i = idx(map, gi, gz);
+    if (!(map.flags[i] & FLAG_COLLAPSE)) continue;
+    if (map.collapsed && map.collapsed[i]) continue;
+    const moving = Math.hypot(w.vx || 0, w.vz || 0) > 0.35 || w.grounded;
+    if (moving && extras._cfall[i] == null) extras._cfall[i] = 0.28 + Math.random() * 0.45;
+    extras._warn = extras._warn || "The floor rumbles…";
+  }
+  for (const h of extras.hovers || []) {
+    if (!h.collapse || (map.collapsed && map.collapsed[h.i])) continue;
+    if (extras._cfall[h.i] != null && extras._cfall[h.i] > 0 && h.mesh) {
+      h.mesh.position.x = h.x + Math.sin(performance.now() * 0.04) * 0.04;
+      h.mesh.position.z = h.z + Math.cos(performance.now() * 0.05) * 0.04;
+    }
+  }
+  for (const key of Object.keys(extras._cfall)) {
+    const i = +key;
+    extras._cfall[i] -= dt;
+    if (extras._cfall[i] > 0) continue;
+    delete extras._cfall[i];
+    dropFloorCell(map, extras, scene, i, player, onHit);
+    maybeDropThin(map, extras, scene, i, player, onHit);
+  }
+}
+
+function dropFloorCell(map, extras, scene, i, player, onHit) {
+  if (!map.collapsed) map.collapsed = new Uint8Array(map.w * map.h);
+  if (map.collapsed[i]) return;
+  map.collapsed[i] = 1;
+  const x = i % map.w;
+  const z = (i / map.w) | 0;
+  const y0 = ((map.elev && map.elev[i]) || 0) * EYE;
+  const slab = (extras.hovers || []).find((h) => h.i === i);
+  if (slab && slab.mesh) slab.mesh.visible = false;
+  const dust = mat(0x6a5a48);
+  for (let k = 0; k < 5; k++) {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(0.18 + Math.random() * 0.28, 0.08 + Math.random() * 0.12, 0.16 + Math.random() * 0.22), dust);
+    m.position.set((x + 0.2 + Math.random() * 0.6) * CELL, y0 + 0.2, (z + 0.2 + Math.random() * 0.6) * CELL);
+    m.userData.vy = -1.5;
+    m.userData.floor = y0 - 2;
+    m.userData.falling = true;
+    (extras.root || scene).add(m);
+    extras.caveins = extras.caveins || [];
+    extras.caveins.push(m);
+  }
+  if (player && onHit) {
+    const d = Math.hypot(player.x - (x + 0.5) * CELL, player.z - (z + 0.5) * CELL);
+    if (d < CELL * 0.55) extras._warn = "The floor gives way";
+  }
+}
+
+function maybeDropThin(map, extras, scene, seed, player, onHit) {
+  const w = map.w;
+  const seen = new Set();
+  const q = [seed];
+  seen.add(seed);
+  while (q.length) {
+    const i = q.pop();
+    const x = i % w;
+    const z = (i / w) | 0;
+    for (const [ox, oz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const nx = x + ox;
+      const nz = z + oz;
+      if (!inBounds(map, nx, nz)) continue;
+      const j = idx(map, nx, nz);
+      if (seen.has(j)) continue;
+      if (!(map.flags[j] & FLAG_COLLAPSE)) continue;
+      if (map.collapsed && map.collapsed[j]) continue;
+      seen.add(j);
+      q.push(j);
+    }
+  }
+  let xmin = 1e9, xmax = -1e9, zmin = 1e9, zmax = -1e9;
+  for (const i of seen) {
+    const x = i % w;
+    const z = (i / w) | 0;
+    xmin = Math.min(xmin, x); xmax = Math.max(xmax, x);
+    zmin = Math.min(zmin, z); zmax = Math.max(zmax, z);
+  }
+  const spanX = xmax - xmin + 1;
+  const spanZ = zmax - zmin + 1;
+  const thin = seen.size <= 3 || Math.min(spanX, spanZ) <= 1;
+  if (!thin) return;
+  for (const i of seen) dropFloorCell(map, extras, scene, i, player, onHit);
+}
+
+function tickArrows(extras, dt, player, map, scene, onHit) {
+  extras.darts = extras.darts || [];
+  for (const a of extras.arrows || []) {
+    a.cool = Math.max(0, (a.cool || 0) - dt);
+    const fx = a.fx != null ? a.fx : -Math.sin(a.yaw || 0);
+    const fz = a.fz != null ? a.fz : -Math.cos(a.yaw || 0);
+    const relx = player.x - a.x;
+    const relz = player.z - a.z;
+    const along = relx * fx + relz * fz;
+    const side = relx * (-fz) + relz * fx;
+    const inLane = along > 0.15 && along < 5.4 && Math.abs(side) < 0.48 && Math.abs(player.y - a.y) < 1.35;
+    const moving = Math.hypot(player.vx || 0, player.vz || 0) > 0.4;
+    if (inLane && moving && a.cool <= 0) {
+      a.cool = 3;
+      const dart = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.03, 0.015, 0.55, 6),
+        mat(0xc8b090, { emissive: 0x442200, emissiveIntensity: 0.4 }),
+      );
+      dart.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(fx, 0, fz));
+      dart.position.set(a.x + fx * 0.2, a.y, a.z + fz * 0.2);
+      (extras.root || scene).add(dart);
+      extras.darts.push({ mesh: dart, vx: fx * 28, vz: fz * 28, life: 1.1, x: dart.position.x, y: a.y, z: dart.position.z });
+    }
+  }
+  for (let i = extras.darts.length - 1; i >= 0; i--) {
+    const d = extras.darts[i];
+    d.life -= dt;
+    d.mesh.position.x += d.vx * dt;
+    d.mesh.position.z += d.vz * dt;
+    if (Math.hypot(player.x - d.mesh.position.x, player.z - d.mesh.position.z) < 0.38 && Math.abs(player.y - d.mesh.position.y) < 1.1) {
+      onHit(34, "struck by a dart");
+      d.life = 0;
+    }
+    if (d.life <= 0) {
+      d.mesh.removeFromParent();
+      extras.darts.splice(i, 1);
     }
   }
 }

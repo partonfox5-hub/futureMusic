@@ -1,2 +1,789 @@
-import{BIOMES,CELL,EYE,FLAG_CROUCH,FLAG_SPIKE,LIQ_LAVA,MAP_H,MAP_W,SHAPE_FLAT,SHAPE_OVAL,SHAPE_ROUND,SHAPE_SPHERE,STORIES,WALL_CRACK}from'./config.js?v=sw3';
-const _0x256baa=_0x2fdc;(function(_0x5c06e1,_0x144b89){const _0xf05d0b=_0x2fdc,_0x153481=_0x5c06e1();while(!![]){try{const _0x560c6d=parseInt(_0xf05d0b(0x1ad))/0x1+parseInt(_0xf05d0b(0x1b0))/0x2+-parseInt(_0xf05d0b(0x1af))/0x3*(-parseInt(_0xf05d0b(0x18a))/0x4)+-parseInt(_0xf05d0b(0x19f))/0x5*(parseInt(_0xf05d0b(0x1b5))/0x6)+parseInt(_0xf05d0b(0x1a1))/0x7*(-parseInt(_0xf05d0b(0x1a5))/0x8)+-parseInt(_0xf05d0b(0x184))/0x9*(-parseInt(_0xf05d0b(0x198))/0xa)+-parseInt(_0xf05d0b(0x1a8))/0xb;if(_0x560c6d===_0x144b89)break;else _0x153481['push'](_0x153481['shift']());}catch(_0x360224){_0x153481['push'](_0x153481['shift']());}}}(_0x4bab,0xf0293));export{CELL};export function pack(_0x16c06e,_0xd52b4c,_0x2dc28e){return(_0x16c06e?0x1:0x0)|(_0xd52b4c&0x3)<<0x1|(_0x2dc28e&0xf)<<0x3;}function _0x4bab(){const _0x4c480d=['spawners','random','string','max','options','30vvWfkE','floor','4850419cnTTUC','spheres','abs','min','8kSnfsx','objects','hypot','31059831mhqJQc','vendors','byteLength','hallH','bwalls','1627507gYyBpv','openings','107691BNIZOa','2351694tApDHF','updated','byteOffset','sin','pop','311550lSyaQI','pickups','crushers','toString','keys','liquid','subarray','collapsed','apply','cells','isArray','charCodeAt','boulders','npcs','find','697293pDaIho','map','elev','buffer','ropes','from','172WEiUHf','push','Untitled','some','start','fromCharCode','ceil','filter','length','flags','climbs','sky','now','portals','60tCXTmW','turrets'];_0x4bab=function(){return _0x4c480d;};return _0x4bab();}export function wallTexId(_0x38dd9a){return _0x38dd9a&0xf;}export function wallIsCrack(_0x27b068){return!!(_0x27b068&WALL_CRACK);}export function packWall(_0x57692f,_0x16a61f){const _0x16a2bc=_0x2fdc,_0x32385c=Math[_0x16a2bc(0x19d)](0x1,_0x57692f&0xf);return _0x32385c|(_0x16a61f?WALL_CRACK:0x0);}export function isCarved(_0x5eb47b){return(_0x5eb47b&0x1)!==0x0;}export function getShape(_0x9b3162){return _0x9b3162>>0x1&0x3;}export function getTex(_0x1dd5b1){return _0x1dd5b1>>0x3&0xf;}function nid(){const _0x144c7d=_0x2fdc;return'm'+Math[_0x144c7d(0x19b)]()[_0x144c7d(0x1b8)](0x24)['slice'](0x2,0xa)+Math['random']()[_0x144c7d(0x1b8)](0x24)['slice'](0x2,0x6);}function layers(_0x11dc5,_0x4159f7){const _0x1567d6=_0x11dc5*_0x4159f7;return{'elev':new Int8Array(_0x1567d6),'liquid':new Uint8Array(_0x1567d6),'sky':new Uint8Array(_0x1567d6),'flags':new Uint8Array(_0x1567d6),'bwalls':[new Uint8Array(_0x1567d6),new Uint8Array(_0x1567d6),new Uint8Array(_0x1567d6)]};}export function blankMap(_0x5917c0=_0x256baa(0x18c)){const _0x2c16c7=MAP_W,_0x57ee7a=MAP_H;return{'v':0x2,'id':nid(),'name':_0x5917c0,'w':_0x2c16c7,'h':_0x57ee7a,'hallH':4.2,'cells':new Uint8Array(_0x2c16c7*_0x57ee7a),...layers(_0x2c16c7,_0x57ee7a),'spheres':[],'objects':[],'spawners':[],'pickups':[],'keys':[],'openings':[],'portals':[],'ropes':[],'crushers':[],'turrets':[],'climbs':[],'boulders':[],'vendors':[],'npcs':[],'start':{'x':_0x2c16c7*0.5*CELL,'z':_0x57ee7a*0.5*CELL,'yaw':0x0},'updated':Date['now']()};}export function cloneMap(_0x4cddfd){return deserialize(serialize(_0x4cddfd));}export function toB64(_0x4cf87e){const _0x5b459b=_0x256baa,_0x1d9677=_0x4cf87e instanceof Uint8Array?_0x4cf87e:new Uint8Array(_0x4cf87e);let _0x32812c='';const _0x5e203d=0x8000;for(let _0x4846a5=0x0;_0x4846a5<_0x1d9677[_0x5b459b(0x192)];_0x4846a5+=_0x5e203d){_0x32812c+=String[_0x5b459b(0x18f)][_0x5b459b(0x17d)](null,_0x1d9677['subarray'](_0x4846a5,_0x4846a5+_0x5e203d));}return btoa(_0x32812c);}export function fromB64(_0xdde9f4){const _0x287649=_0x256baa,_0x3b43e3=atob(_0xdde9f4),_0x18cb61=new Uint8Array(_0x3b43e3[_0x287649(0x192)]);for(let _0xc048e1=0x0;_0xc048e1<_0x3b43e3[_0x287649(0x192)];_0xc048e1++)_0x18cb61[_0xc048e1]=_0x3b43e3[_0x287649(0x180)](_0xc048e1);return _0x18cb61;}function arrB64(_0x13e283){const _0x19c05b=_0x256baa;if(!_0x13e283)return'';return toB64(_0x13e283 instanceof Uint8Array?_0x13e283:new Uint8Array(_0x13e283[_0x19c05b(0x187)]?new Uint8Array(_0x13e283[_0x19c05b(0x187)],_0x13e283[_0x19c05b(0x1b2)],_0x13e283[_0x19c05b(0x1aa)]):_0x13e283));}function u8from(_0xf6a98d,_0x4fce43){const _0x3b72d5=_0x256baa,_0x1ca008=typeof _0xf6a98d==='string'&&_0xf6a98d?fromB64(_0xf6a98d):_0xf6a98d instanceof Uint8Array?_0xf6a98d:new Uint8Array(_0xf6a98d||[]),_0x410fab=new Uint8Array(_0x4fce43);return _0x410fab['set'](_0x1ca008[_0x3b72d5(0x1bb)](0x0,_0x4fce43)),_0x410fab;}function i8from(_0x56b8d0,_0xffccd7){const _0x1f84db=_0x256baa,_0x755c7=u8from(_0x56b8d0,_0xffccd7);return new Int8Array(_0x755c7[_0x1f84db(0x187)],_0x755c7['byteOffset'],_0xffccd7);}export function serialize(_0xed78e5){const _0x39dca3=_0x256baa;return ensureLayers(_0xed78e5),{'v':0x2,'id':_0xed78e5['id'],'name':_0xed78e5['name'],'w':_0xed78e5['w'],'h':_0xed78e5['h'],'hallH':_0xed78e5[_0x39dca3(0x1ab)],'cells':toB64(_0xed78e5['cells']),'elev':arrB64(_0xed78e5[_0x39dca3(0x186)]),'liquid':arrB64(_0xed78e5['liquid']),'sky':arrB64(_0xed78e5[_0x39dca3(0x195)]),'flags':arrB64(_0xed78e5['flags']),'bwalls':(_0xed78e5[_0x39dca3(0x1ac)]||[])[_0x39dca3(0x185)](_0x24ac4d=>arrB64(_0x24ac4d)),'spheres':_0xed78e5[_0x39dca3(0x1a2)]||[],'objects':_0xed78e5['objects']||[],'spawners':_0xed78e5['spawners']||[],'pickups':_0xed78e5[_0x39dca3(0x1b6)]||[],'keys':_0xed78e5['keys']||[],'openings':_0xed78e5[_0x39dca3(0x1ae)]||[],'portals':_0xed78e5['portals']||[],'ropes':_0xed78e5[_0x39dca3(0x188)]||[],'crushers':_0xed78e5[_0x39dca3(0x1b7)]||[],'turrets':_0xed78e5['turrets']||[],'climbs':_0xed78e5[_0x39dca3(0x194)]||[],'boulders':_0xed78e5['boulders']||[],'vendors':_0xed78e5['vendors']||[],'npcs':_0xed78e5['npcs']||[],'start':_0xed78e5['start'],'updated':_0xed78e5[_0x39dca3(0x1b1)]||Date[_0x39dca3(0x196)]()};}export function ensureLayers(_0x72e97e){const _0x27110c=_0x256baa,_0x420a23=_0x72e97e['w']*_0x72e97e['h'];if(!_0x72e97e[_0x27110c(0x186)]||_0x72e97e[_0x27110c(0x186)][_0x27110c(0x192)]!==_0x420a23){const _0x58dc36=new Int8Array(_0x420a23);if(_0x72e97e['elev'])_0x58dc36['set'](_0x72e97e[_0x27110c(0x186)]['subarray'](0x0,_0x420a23));_0x72e97e['elev']=_0x58dc36;}if(!_0x72e97e['liquid']||_0x72e97e['liquid']['length']!==_0x420a23)_0x72e97e['liquid']=u8from(_0x72e97e[_0x27110c(0x1ba)],_0x420a23);if(!_0x72e97e['sky']||_0x72e97e['sky'][_0x27110c(0x192)]!==_0x420a23)_0x72e97e[_0x27110c(0x195)]=u8from(_0x72e97e[_0x27110c(0x195)],_0x420a23);if(!_0x72e97e[_0x27110c(0x193)]||_0x72e97e[_0x27110c(0x193)][_0x27110c(0x192)]!==_0x420a23)_0x72e97e[_0x27110c(0x193)]=u8from(_0x72e97e['flags'],_0x420a23);if(!_0x72e97e[_0x27110c(0x1ac)]||_0x72e97e[_0x27110c(0x1ac)][_0x27110c(0x192)]<STORIES){const _0x5240d0=[];for(let _0x166e9d=0x0;_0x166e9d<STORIES;_0x166e9d++)_0x5240d0[_0x27110c(0x18b)](u8from(_0x72e97e[_0x27110c(0x1ac)]&&_0x72e97e['bwalls'][_0x166e9d],_0x420a23));_0x72e97e['bwalls']=_0x5240d0;}_0x72e97e[_0x27110c(0x1b6)]||=[],_0x72e97e['keys']||=[],_0x72e97e['openings']||=[],_0x72e97e['portals']||=[],_0x72e97e[_0x27110c(0x188)]||=[],_0x72e97e[_0x27110c(0x1b7)]||=[],_0x72e97e[_0x27110c(0x199)]||=[],_0x72e97e[_0x27110c(0x194)]||=[],_0x72e97e[_0x27110c(0x181)]||=[],_0x72e97e[_0x27110c(0x1a9)]||=[],_0x72e97e[_0x27110c(0x182)]||=[];if(!_0x72e97e[_0x27110c(0x17c)]||_0x72e97e[_0x27110c(0x17c)]['length']!==_0x420a23)_0x72e97e[_0x27110c(0x17c)]=new Uint8Array(_0x420a23);return _0x72e97e;}export function deserialize(_0x2a0c1e){const _0x4d0d80=_0x256baa,_0x453499=typeof _0x2a0c1e==='string'?JSON['parse'](_0x2a0c1e):_0x2a0c1e,_0x4b4b42=_0x453499['w']||MAP_W,_0x25d3c8=_0x453499['h']||MAP_H,_0x3fcc02=_0x4b4b42*_0x25d3c8,_0x5eb35e=u8from(typeof _0x453499['cells']===_0x4d0d80(0x19c)||_0x453499[_0x4d0d80(0x17e)]?_0x453499[_0x4d0d80(0x17e)]:[],_0x3fcc02);return ensureLayers({'v':0x2,'id':_0x453499['id']||nid(),'name':_0x453499['name']||_0x4d0d80(0x18c),'w':_0x4b4b42,'h':_0x25d3c8,'hallH':_0x453499['hallH']||4.2,'cells':_0x5eb35e,'elev':i8from(_0x453499[_0x4d0d80(0x186)],_0x3fcc02),'liquid':u8from(_0x453499[_0x4d0d80(0x1ba)],_0x3fcc02),'sky':u8from(_0x453499[_0x4d0d80(0x195)],_0x3fcc02),'flags':u8from(_0x453499['flags'],_0x3fcc02),'bwalls':[0x0,0x1,0x2]['map'](_0x515dbb=>u8from(_0x453499[_0x4d0d80(0x1ac)]&&_0x453499[_0x4d0d80(0x1ac)][_0x515dbb],_0x3fcc02)),'spheres':Array[_0x4d0d80(0x17f)](_0x453499['spheres'])?_0x453499[_0x4d0d80(0x1a2)][_0x4d0d80(0x185)](_0x57ab29=>({..._0x57ab29})):[],'objects':Array[_0x4d0d80(0x17f)](_0x453499['objects'])?_0x453499[_0x4d0d80(0x1a6)]['map'](_0x1ac610=>({..._0x1ac610})):[],'spawners':Array[_0x4d0d80(0x17f)](_0x453499['spawners'])?_0x453499[_0x4d0d80(0x19a)][_0x4d0d80(0x185)](_0x22a25c=>({..._0x22a25c})):[],'pickups':Array[_0x4d0d80(0x17f)](_0x453499['pickups'])?_0x453499['pickups']['map'](_0x3bf4fd=>({..._0x3bf4fd})):[],'keys':Array['isArray'](_0x453499[_0x4d0d80(0x1b9)])?_0x453499[_0x4d0d80(0x1b9)][_0x4d0d80(0x185)](_0x320fb2=>({..._0x320fb2})):[],'openings':Array['isArray'](_0x453499[_0x4d0d80(0x1ae)])?_0x453499[_0x4d0d80(0x1ae)]['map'](_0xbd4a07=>({..._0xbd4a07})):[],'portals':Array['isArray'](_0x453499['portals'])?_0x453499[_0x4d0d80(0x197)][_0x4d0d80(0x185)](_0x568e2a=>({..._0x568e2a})):[],'ropes':Array['isArray'](_0x453499['ropes'])?_0x453499[_0x4d0d80(0x188)][_0x4d0d80(0x185)](_0x3f1a7f=>({..._0x3f1a7f})):[],'crushers':Array[_0x4d0d80(0x17f)](_0x453499['crushers'])?_0x453499[_0x4d0d80(0x1b7)]['map'](_0x53fe98=>({..._0x53fe98})):[],'turrets':Array['isArray'](_0x453499[_0x4d0d80(0x199)])?_0x453499['turrets'][_0x4d0d80(0x185)](_0x44c648=>({..._0x44c648})):[],'climbs':Array[_0x4d0d80(0x17f)](_0x453499['climbs'])?_0x453499[_0x4d0d80(0x194)][_0x4d0d80(0x185)](_0x1fd403=>({..._0x1fd403})):[],'boulders':Array['isArray'](_0x453499[_0x4d0d80(0x181)])?_0x453499[_0x4d0d80(0x181)][_0x4d0d80(0x185)](_0x4029c1=>({..._0x4029c1})):[],'vendors':Array[_0x4d0d80(0x17f)](_0x453499[_0x4d0d80(0x1a9)])?_0x453499[_0x4d0d80(0x1a9)]['map'](_0x1eb53d=>({..._0x1eb53d})):[],'npcs':Array[_0x4d0d80(0x17f)](_0x453499[_0x4d0d80(0x182)])?_0x453499[_0x4d0d80(0x182)]['map'](_0x1757a8=>({..._0x1757a8,'options':Array[_0x4d0d80(0x17f)](_0x1757a8['options'])?_0x1757a8[_0x4d0d80(0x19e)][_0x4d0d80(0x185)](_0x94645c=>({..._0x94645c,'options':Array['isArray'](_0x94645c[_0x4d0d80(0x19e)])?_0x94645c[_0x4d0d80(0x19e)]['map'](_0x57b9bb=>({..._0x57b9bb})):[]})):[]})):[],'start':_0x453499['start']?{..._0x453499[_0x4d0d80(0x18e)]}:{'x':_0x4b4b42*0.5*CELL,'z':_0x25d3c8*0.5*CELL,'yaw':0x0},'updated':_0x453499['updated']||Date[_0x4d0d80(0x196)]()});}export function idx(_0x2fa5c6,_0x60dff7,_0x45332c){return _0x45332c*_0x2fa5c6['w']+_0x60dff7;}function _0x2fdc(_0x351ba0,_0x3f899c){_0x351ba0=_0x351ba0-0x17c;const _0x4babf4=_0x4bab();let _0x2fdc9f=_0x4babf4[_0x351ba0];return _0x2fdc9f;}export function inBounds(_0x5d4c5e,_0x40ec3a,_0x33d80c){return _0x40ec3a>=0x0&&_0x33d80c>=0x0&&_0x40ec3a<_0x5d4c5e['w']&&_0x33d80c<_0x5d4c5e['h'];}export function worldToCell(_0x1ab423,_0x4ea5a2){return{'cx':_0x1ab423/CELL,'cz':_0x4ea5a2/CELL};}export function cellToWorld(_0x335ab9,_0x45b119){return{'x':(_0x335ab9+0.5)*CELL,'z':(_0x45b119+0.5)*CELL};}export function stampDisk(_0x2df038,_0x35549f,_0x1d9a94,_0x54e8ca,_0x427d15,_0x362588,_0x3610a2){const _0x2b1f8e=_0x256baa,_0x41c4b5=Math[_0x2b1f8e(0x19d)](0.5,_0x54e8ca),_0x16efbd=_0x41c4b5*_0x41c4b5,_0x3fed9a=Math[_0x2b1f8e(0x19d)](0x0,Math[_0x2b1f8e(0x1a0)](_0x35549f-_0x41c4b5)),_0x17e058=Math[_0x2b1f8e(0x1a4)](_0x2df038['w']-0x1,Math[_0x2b1f8e(0x190)](_0x35549f+_0x41c4b5)),_0x8ec52f=Math[_0x2b1f8e(0x19d)](0x0,Math[_0x2b1f8e(0x1a0)](_0x1d9a94-_0x41c4b5)),_0x435e77=Math['min'](_0x2df038['h']-0x1,Math['ceil'](_0x1d9a94+_0x41c4b5)),_0xff1dc5=_0x3610a2?0x0:pack(0x1,_0x427d15,_0x362588);for(let _0x1291da=_0x8ec52f;_0x1291da<=_0x435e77;_0x1291da++){for(let _0x583c27=_0x3fed9a;_0x583c27<=_0x17e058;_0x583c27++){const _0x5d8e93=_0x583c27+0.5-_0x35549f,_0x45dcac=_0x1291da+0.5-_0x1d9a94;if(_0x5d8e93*_0x5d8e93+_0x45dcac*_0x45dcac<=_0x16efbd+0.15)_0x2df038[_0x2b1f8e(0x17e)][idx(_0x2df038,_0x583c27,_0x1291da)]=_0xff1dc5;}}}export function paintDisk(_0x43cbba,_0x106cf3,_0x5b0909,_0x528025,_0x4c2b88){const _0x666435=_0x256baa,_0x71255c=Math[_0x666435(0x19d)](0.5,_0x528025),_0x36e841=_0x71255c*_0x71255c,_0xd9401a=Math[_0x666435(0x19d)](0x0,Math[_0x666435(0x1a0)](_0x106cf3-_0x71255c)),_0x27ab85=Math['min'](_0x43cbba['w']-0x1,Math['ceil'](_0x106cf3+_0x71255c)),_0xf89bc6=Math[_0x666435(0x19d)](0x0,Math[_0x666435(0x1a0)](_0x5b0909-_0x71255c)),_0x1cfacc=Math[_0x666435(0x1a4)](_0x43cbba['h']-0x1,Math[_0x666435(0x190)](_0x5b0909+_0x71255c));for(let _0x47abce=_0xf89bc6;_0x47abce<=_0x1cfacc;_0x47abce++){for(let _0x5b5625=_0xd9401a;_0x5b5625<=_0x27ab85;_0x5b5625++){const _0x84455c=_0x5b5625+0.5-_0x106cf3,_0x2d1b18=_0x47abce+0.5-_0x5b0909;if(_0x84455c*_0x84455c+_0x2d1b18*_0x2d1b18>_0x36e841+0.15)continue;const _0x1ef44f=idx(_0x43cbba,_0x5b5625,_0x47abce),_0x140f4e=_0x43cbba[_0x666435(0x17e)][_0x1ef44f];if(isCarved(_0x140f4e))_0x43cbba[_0x666435(0x17e)][_0x1ef44f]=pack(0x1,getShape(_0x140f4e),_0x4c2b88);}}}export function stampSegment(_0x38bd37,_0x4c03a4,_0x54fc97,_0x5587c2,_0x596828,_0x2ed551,_0x133e00,_0xf9cb93,_0x1d2fe4){const _0x3dc4f7=_0x256baa,_0x5e9d86=_0x5587c2-_0x4c03a4,_0x4ac57c=_0x596828-_0x54fc97,_0x234680=Math['hypot'](_0x5e9d86,_0x4ac57c),_0x1b96f5=Math[_0x3dc4f7(0x19d)](0.35,_0x2ed551*0.4),_0x33d359=Math['max'](0x1,Math['ceil'](_0x234680/_0x1b96f5));for(let _0x43c7ea=0x0;_0x43c7ea<=_0x33d359;_0x43c7ea++){const _0x11d466=_0x43c7ea/_0x33d359;stampDisk(_0x38bd37,_0x4c03a4+_0x5e9d86*_0x11d466,_0x54fc97+_0x4ac57c*_0x11d466,_0x2ed551,_0x133e00,_0xf9cb93,_0x1d2fe4);}}export function stampRect(_0x5a2037,_0x25e1d9,_0xdf92f3,_0x2b1f43,_0x3b6333,_0x5e8062,_0x4c2b3e,_0x53b449,_0x1e34e0,_0x35de33){const _0x5edb11=_0x256baa;let _0x553589=Math[_0x5edb11(0x1a4)](_0x25e1d9,_0x2b1f43),_0x1d771b=Math[_0x5edb11(0x19d)](_0x25e1d9,_0x2b1f43),_0x225891=Math['min'](_0xdf92f3,_0x3b6333),_0x2bc1ec=Math[_0x5edb11(0x19d)](_0xdf92f3,_0x3b6333);if(_0x35de33){const _0x2835b3=Math[_0x5edb11(0x19d)](0.5,_0x5e8062);stampRect(_0x5a2037,_0x553589,_0x225891,_0x1d771b,_0x225891,_0x2835b3,_0x4c2b3e,_0x53b449,_0x1e34e0,![]),stampRect(_0x5a2037,_0x553589,_0x2bc1ec,_0x1d771b,_0x2bc1ec,_0x2835b3,_0x4c2b3e,_0x53b449,_0x1e34e0,![]),stampRect(_0x5a2037,_0x553589,_0x225891,_0x553589,_0x2bc1ec,_0x2835b3,_0x4c2b3e,_0x53b449,_0x1e34e0,![]),stampRect(_0x5a2037,_0x1d771b,_0x225891,_0x1d771b,_0x2bc1ec,_0x2835b3,_0x4c2b3e,_0x53b449,_0x1e34e0,![]);return;}const _0x35a648=Math['max'](0x0,_0x5e8062-0.5);_0x553589=Math[_0x5edb11(0x19d)](0x0,Math['floor'](_0x553589-_0x35a648)),_0x1d771b=Math[_0x5edb11(0x1a4)](_0x5a2037['w']-0x1,Math[_0x5edb11(0x190)](_0x1d771b+_0x35a648)),_0x225891=Math[_0x5edb11(0x19d)](0x0,Math['floor'](_0x225891-_0x35a648)),_0x2bc1ec=Math['min'](_0x5a2037['h']-0x1,Math[_0x5edb11(0x190)](_0x2bc1ec+_0x35a648));const _0xaf3147=_0x1e34e0?0x0:pack(0x1,_0x4c2b3e,_0x53b449);for(let _0x587d01=_0x225891;_0x587d01<=_0x2bc1ec;_0x587d01++){for(let _0x43c0cc=_0x553589;_0x43c0cc<=_0x1d771b;_0x43c0cc++)_0x5a2037['cells'][idx(_0x5a2037,_0x43c0cc,_0x587d01)]=_0xaf3147;}}export function flood(_0x41ebd4,_0x30147c,_0xb16619,_0x3e65b1,_0x5c0997,_0x1a8e2b){const _0x29534f=_0x256baa;_0x30147c=Math[_0x29534f(0x1a0)](_0x30147c),_0xb16619=Math[_0x29534f(0x1a0)](_0xb16619);if(!inBounds(_0x41ebd4,_0x30147c,_0xb16619))return 0x0;const _0xec1a2b=_0x41ebd4[_0x29534f(0x17e)][idx(_0x41ebd4,_0x30147c,_0xb16619)],_0x3b1c8c=isCarved(_0xec1a2b);if(_0x1a8e2b&&!_0x3b1c8c)return 0x0;const _0x4354f4=!_0x1a8e2b,_0x5cc3d6=_0x64268d=>_0x4354f4?!isCarved(_0x64268d):isCarved(_0x64268d)&&getTex(_0x64268d)===getTex(_0xec1a2b)&&getShape(_0x64268d)===getShape(_0xec1a2b);if(!_0x5cc3d6(_0xec1a2b)&&!(_0x1a8e2b&&_0x3b1c8c))return 0x0;const _0x40d176=new Uint8Array(_0x41ebd4['w']*_0x41ebd4['h']),_0x5790fc=[_0x30147c,_0xb16619];_0x40d176[idx(_0x41ebd4,_0x30147c,_0xb16619)]=0x1;const _0x501eac=[];let _0x5ce4af=![];while(_0x5790fc[_0x29534f(0x192)]){const _0x31058d=_0x5790fc['pop'](),_0x97f780=_0x5790fc['pop']();if(_0x97f780===0x0||_0x31058d===0x0||_0x97f780===_0x41ebd4['w']-0x1||_0x31058d===_0x41ebd4['h']-0x1)_0x5ce4af=!![];_0x501eac[_0x29534f(0x18b)](_0x97f780,_0x31058d);if(_0x501eac['length']>0x2328)break;const _0x5c0ef7=[_0x97f780-0x1,_0x31058d,_0x97f780+0x1,_0x31058d,_0x97f780,_0x31058d-0x1,_0x97f780,_0x31058d+0x1];for(let _0x48321e=0x0;_0x48321e<0x8;_0x48321e+=0x2){const _0xa9836e=_0x5c0ef7[_0x48321e],_0x545d7a=_0x5c0ef7[_0x48321e+0x1];if(!inBounds(_0x41ebd4,_0xa9836e,_0x545d7a))continue;const _0x6ff039=idx(_0x41ebd4,_0xa9836e,_0x545d7a);if(_0x40d176[_0x6ff039])continue;if(!_0x5cc3d6(_0x41ebd4['cells'][_0x6ff039]))continue;_0x40d176[_0x6ff039]=0x1,_0x5790fc[_0x29534f(0x18b)](_0xa9836e,_0x545d7a);}}if(_0x4354f4&&!_0x3b1c8c&&_0x5ce4af)return 0x0;const _0x249511=_0x1a8e2b?0x0:pack(0x1,_0x3e65b1,_0x5c0997);for(let _0x47bd33=0x0;_0x47bd33<_0x501eac[_0x29534f(0x192)];_0x47bd33+=0x2)_0x41ebd4[_0x29534f(0x17e)][idx(_0x41ebd4,_0x501eac[_0x47bd33],_0x501eac[_0x47bd33+0x1])]=_0x249511;return _0x501eac[_0x29534f(0x192)]/0x2;}export function addSphere(_0x1c0bb9,_0x2fffe3,_0x37a631,_0x101a14,_0x359334){const _0x4b0060=_0x256baa;_0x101a14=Math[_0x4b0060(0x19d)](1.2,_0x101a14);const _0x125bfc=_0x1c0bb9[_0x4b0060(0x1a2)][_0x1c0bb9[_0x4b0060(0x1a2)][_0x4b0060(0x192)]-0x1];if(_0x125bfc&&Math[_0x4b0060(0x1a7)](_0x125bfc['x']-_0x2fffe3,_0x125bfc['z']-_0x37a631)<_0x101a14*0.4&&Math[_0x4b0060(0x1a3)](_0x125bfc['r']-_0x101a14)<0.4)return _0x125bfc;const _0x3f3260={'x':_0x2fffe3,'z':_0x37a631,'r':_0x101a14,'tex':_0x359334,'cy':Math[_0x4b0060(0x19d)](1.15,_0x101a14*0.55)};return _0x1c0bb9['spheres'][_0x4b0060(0x18b)](_0x3f3260),_0x3f3260;}export function eraseNear(_0x2b4f78,_0x35b5af,_0x4b3554,_0x118031){const _0x12b6eb=_0x256baa;ensureLayers(_0x2b4f78),_0x2b4f78['spheres']=_0x2b4f78['spheres']['filter'](_0x38c851=>Math[_0x12b6eb(0x1a7)](_0x38c851['x']-_0x35b5af,_0x38c851['z']-_0x4b3554)>_0x118031+_0x38c851['r']*0.35),_0x2b4f78[_0x12b6eb(0x1a6)]=_0x2b4f78['objects'][_0x12b6eb(0x191)](_0x52e500=>Math[_0x12b6eb(0x1a7)](_0x52e500['x']-_0x35b5af,_0x52e500['z']-_0x4b3554)>_0x118031),_0x2b4f78[_0x12b6eb(0x19a)]=_0x2b4f78['spawners'][_0x12b6eb(0x191)](_0x2d7110=>Math[_0x12b6eb(0x1a7)](_0x2d7110['x']-_0x35b5af,_0x2d7110['z']-_0x4b3554)>_0x118031),_0x2b4f78['pickups']=_0x2b4f78['pickups'][_0x12b6eb(0x191)](_0x61080c=>Math[_0x12b6eb(0x1a7)](_0x61080c['x']-_0x35b5af,_0x61080c['z']-_0x4b3554)>_0x118031),_0x2b4f78[_0x12b6eb(0x1b9)]=_0x2b4f78['keys'][_0x12b6eb(0x191)](_0x4b5a0d=>Math['hypot'](_0x4b5a0d['x']-_0x35b5af,_0x4b5a0d['z']-_0x4b3554)>_0x118031),_0x2b4f78['ropes']=_0x2b4f78['ropes']['filter'](_0x204a5c=>Math[_0x12b6eb(0x1a7)](_0x204a5c['x']-_0x35b5af,_0x204a5c['z']-_0x4b3554)>_0x118031),_0x2b4f78[_0x12b6eb(0x1b7)]=_0x2b4f78['crushers'][_0x12b6eb(0x191)](_0x2ff402=>Math[_0x12b6eb(0x1a7)](_0x2ff402['x']-_0x35b5af,_0x2ff402['z']-_0x4b3554)>_0x118031),_0x2b4f78[_0x12b6eb(0x199)]=_0x2b4f78[_0x12b6eb(0x199)][_0x12b6eb(0x191)](_0x1b2100=>Math['hypot'](_0x1b2100['x']-_0x35b5af,_0x1b2100['z']-_0x4b3554)>_0x118031),_0x2b4f78[_0x12b6eb(0x194)]=(_0x2b4f78[_0x12b6eb(0x194)]||[])[_0x12b6eb(0x191)](_0x441b52=>Math[_0x12b6eb(0x1a7)](_0x441b52['x']-_0x35b5af,_0x441b52['z']-_0x4b3554)>_0x118031),_0x2b4f78['boulders']=(_0x2b4f78[_0x12b6eb(0x181)]||[])[_0x12b6eb(0x191)](_0x48eee2=>Math['hypot'](_0x48eee2['x']-_0x35b5af,_0x48eee2['z']-_0x4b3554)>_0x118031),_0x2b4f78[_0x12b6eb(0x1a9)]=(_0x2b4f78[_0x12b6eb(0x1a9)]||[])['filter'](_0x16cf4a=>Math['hypot'](_0x16cf4a['x']-_0x35b5af,_0x16cf4a['z']-_0x4b3554)>_0x118031),_0x2b4f78[_0x12b6eb(0x182)]=(_0x2b4f78[_0x12b6eb(0x182)]||[])[_0x12b6eb(0x191)](_0xdc1d64=>Math[_0x12b6eb(0x1a7)](_0xdc1d64['x']-_0x35b5af,_0xdc1d64['z']-_0x4b3554)>_0x118031),_0x2b4f78['openings']=_0x2b4f78[_0x12b6eb(0x1ae)]['filter'](_0x105ff6=>Math[_0x12b6eb(0x1a7)]((_0x105ff6['x']+0.5)*CELL-_0x35b5af,(_0x105ff6['z']+0.5)*CELL-_0x4b3554)>_0x118031);}export function stampLayer(_0x34d3bd,_0x56ec69,_0xd653eb,_0x19d5c1,_0x1d39df,_0xc82e68){const _0x5b7846=_0x256baa;ensureLayers(_0x56ec69);const _0x311350=Math['max'](0.5,_0x1d39df),_0x5b0d79=_0x311350*_0x311350,_0x581bd2=Math[_0x5b7846(0x19d)](0x0,Math[_0x5b7846(0x1a0)](_0xd653eb-_0x311350)),_0x1e12a6=Math['min'](_0x56ec69['w']-0x1,Math['ceil'](_0xd653eb+_0x311350)),_0x4cc80d=Math[_0x5b7846(0x19d)](0x0,Math[_0x5b7846(0x1a0)](_0x19d5c1-_0x311350)),_0x304189=Math[_0x5b7846(0x1a4)](_0x56ec69['h']-0x1,Math[_0x5b7846(0x190)](_0x19d5c1+_0x311350));for(let _0xd0f35c=_0x4cc80d;_0xd0f35c<=_0x304189;_0xd0f35c++){for(let _0x1ac922=_0x581bd2;_0x1ac922<=_0x1e12a6;_0x1ac922++){const _0x391f31=_0x1ac922+0.5-_0xd653eb,_0x296438=_0xd0f35c+0.5-_0x19d5c1;if(_0x391f31*_0x391f31+_0x296438*_0x296438<=_0x5b0d79+0.15)_0x34d3bd[idx(_0x56ec69,_0x1ac922,_0xd0f35c)]=_0xc82e68;}}}export function stampCrack(_0x59a6c3,_0x17bde6,_0x4c099f,_0x49b42d,_0x4547ce,_0x31c0db){const _0x2448eb=_0x256baa;ensureLayers(_0x17bde6);const _0x2a47a9=Math[_0x2448eb(0x19d)](0.5,_0x4547ce),_0x1261aa=_0x2a47a9*_0x2a47a9,_0x53a098=Math[_0x2448eb(0x19d)](0x0,Math['floor'](_0x4c099f-_0x2a47a9)),_0x3c47fa=Math['min'](_0x17bde6['w']-0x1,Math[_0x2448eb(0x190)](_0x4c099f+_0x2a47a9)),_0x545844=Math[_0x2448eb(0x19d)](0x0,Math[_0x2448eb(0x1a0)](_0x49b42d-_0x2a47a9)),_0xed0ed=Math[_0x2448eb(0x1a4)](_0x17bde6['h']-0x1,Math[_0x2448eb(0x190)](_0x49b42d+_0x2a47a9));for(let _0x2b3251=_0x545844;_0x2b3251<=_0xed0ed;_0x2b3251++){for(let _0x44de54=_0x53a098;_0x44de54<=_0x3c47fa;_0x44de54++){const _0x4e2031=_0x44de54+0.5-_0x4c099f,_0x236416=_0x2b3251+0.5-_0x49b42d;if(_0x4e2031*_0x4e2031+_0x236416*_0x236416>_0x1261aa+0.15)continue;const _0x5e0f10=idx(_0x17bde6,_0x44de54,_0x2b3251),_0x170c04=_0x59a6c3[_0x5e0f10];_0x59a6c3[_0x5e0f10]=packWall(wallTexId(_0x170c04)||_0x31c0db||0x1,!![]);}}}export function stampFlags(_0x48ca4d,_0x493c00,_0x5943b7,_0x10a671,_0xca9805,_0x401a11){const _0x415cb2=_0x256baa;ensureLayers(_0x48ca4d);const _0x2cf720=Math['max'](0.5,_0x10a671),_0x24260d=_0x2cf720*_0x2cf720,_0x1ae807=Math['max'](0x0,Math['floor'](_0x493c00-_0x2cf720)),_0x2d4145=Math[_0x415cb2(0x1a4)](_0x48ca4d['w']-0x1,Math[_0x415cb2(0x190)](_0x493c00+_0x2cf720)),_0x288dd2=Math[_0x415cb2(0x19d)](0x0,Math[_0x415cb2(0x1a0)](_0x5943b7-_0x2cf720)),_0x9af903=Math['min'](_0x48ca4d['h']-0x1,Math['ceil'](_0x5943b7+_0x2cf720));for(let _0x48a246=_0x288dd2;_0x48a246<=_0x9af903;_0x48a246++){for(let _0x68fb1f=_0x1ae807;_0x68fb1f<=_0x2d4145;_0x68fb1f++){const _0x42efd4=_0x68fb1f+0.5-_0x493c00,_0xbbff9d=_0x48a246+0.5-_0x5943b7;if(_0x42efd4*_0x42efd4+_0xbbff9d*_0xbbff9d>_0x24260d+0.15)continue;const _0x43a566=idx(_0x48ca4d,_0x68fb1f,_0x48a246);if(_0x401a11){_0x48ca4d['flags'][_0x43a566]|=_0xca9805;if(!isCarved(_0x48ca4d['cells'][_0x43a566]))_0x48ca4d[_0x415cb2(0x17e)][_0x43a566]=pack(0x1,SHAPE_FLAT,0x1);}else _0x48ca4d[_0x415cb2(0x193)][_0x43a566]&=~_0xca9805;}}}export function cellI(_0xec172a,_0x5c8aa3,_0x2097e0){const _0x3dbf40=_0x256baa,_0x1864db=Math[_0x3dbf40(0x19d)](0x0,Math['min'](_0xec172a['w']-0x1,Math[_0x3dbf40(0x1a0)](_0x5c8aa3/CELL))),_0x383444=Math[_0x3dbf40(0x19d)](0x0,Math['min'](_0xec172a['h']-0x1,Math['floor'](_0x2097e0/CELL)));return _0x383444*_0xec172a['w']+_0x1864db;}export function hash3(_0x2ece19,_0x508ce9,_0x1354f3){const _0x51d702=_0x256baa,_0x38d134=Math[_0x51d702(0x1b3)](_0x2ece19*127.1+_0x508ce9*311.7+_0x1354f3*74.7)*43758.5453;return _0x38d134-Math[_0x51d702(0x1a0)](_0x38d134);}export function computeSdf(_0x1ad1a9){const _0x2b603e=_0x256baa,_0x5020ec=_0x1ad1a9['w'],_0x12094f=_0x1ad1a9['h'],_0x1ee30f=new Float32Array(_0x5020ec*_0x12094f),_0x777004=0x186a0;for(let _0x23a14f=0x0;_0x23a14f<_0x1ee30f[_0x2b603e(0x192)];_0x23a14f++)_0x1ee30f[_0x23a14f]=isCarved(_0x1ad1a9[_0x2b603e(0x17e)][_0x23a14f])?_0x777004:0x0;const _0x5c2f49=1.41421356;for(let _0x58ab0f=0x0;_0x58ab0f<_0x12094f;_0x58ab0f++){for(let _0xd50385=0x0;_0xd50385<_0x5020ec;_0xd50385++){const _0x5290c9=_0x58ab0f*_0x5020ec+_0xd50385;if(_0xd50385)_0x1ee30f[_0x5290c9]=Math['min'](_0x1ee30f[_0x5290c9],_0x1ee30f[_0x5290c9-0x1]+0x1);if(_0x58ab0f)_0x1ee30f[_0x5290c9]=Math['min'](_0x1ee30f[_0x5290c9],_0x1ee30f[_0x5290c9-_0x5020ec]+0x1);if(_0xd50385&&_0x58ab0f)_0x1ee30f[_0x5290c9]=Math['min'](_0x1ee30f[_0x5290c9],_0x1ee30f[_0x5290c9-_0x5020ec-0x1]+_0x5c2f49);if(_0xd50385<_0x5020ec-0x1&&_0x58ab0f)_0x1ee30f[_0x5290c9]=Math[_0x2b603e(0x1a4)](_0x1ee30f[_0x5290c9],_0x1ee30f[_0x5290c9-_0x5020ec+0x1]+_0x5c2f49);}}for(let _0x5c2e8e=_0x12094f-0x1;_0x5c2e8e>=0x0;_0x5c2e8e--){for(let _0x360fa5=_0x5020ec-0x1;_0x360fa5>=0x0;_0x360fa5--){const _0x1a25c6=_0x5c2e8e*_0x5020ec+_0x360fa5;if(_0x360fa5<_0x5020ec-0x1)_0x1ee30f[_0x1a25c6]=Math['min'](_0x1ee30f[_0x1a25c6],_0x1ee30f[_0x1a25c6+0x1]+0x1);if(_0x5c2e8e<_0x12094f-0x1)_0x1ee30f[_0x1a25c6]=Math[_0x2b603e(0x1a4)](_0x1ee30f[_0x1a25c6],_0x1ee30f[_0x1a25c6+_0x5020ec]+0x1);if(_0x360fa5<_0x5020ec-0x1&&_0x5c2e8e<_0x12094f-0x1)_0x1ee30f[_0x1a25c6]=Math[_0x2b603e(0x1a4)](_0x1ee30f[_0x1a25c6],_0x1ee30f[_0x1a25c6+_0x5020ec+0x1]+_0x5c2f49);if(_0x360fa5&&_0x5c2e8e<_0x12094f-0x1)_0x1ee30f[_0x1a25c6]=Math['min'](_0x1ee30f[_0x1a25c6],_0x1ee30f[_0x1a25c6+_0x5020ec-0x1]+_0x5c2f49);}}const _0x1b6291=new Float32Array(_0x5020ec*_0x12094f),_0x51b48e=new Float32Array(_0x5020ec*_0x12094f);for(let _0x592ed7=0x0;_0x592ed7<_0x51b48e[_0x2b603e(0x192)];_0x592ed7++)_0x51b48e[_0x592ed7]=isCarved(_0x1ad1a9['cells'][_0x592ed7])?0x0:_0x777004;for(let _0x3dce43=0x0;_0x3dce43<_0x12094f;_0x3dce43++){for(let _0x5bd11b=0x0;_0x5bd11b<_0x5020ec;_0x5bd11b++){const _0x3ff6e2=_0x3dce43*_0x5020ec+_0x5bd11b;if(_0x5bd11b)_0x51b48e[_0x3ff6e2]=Math['min'](_0x51b48e[_0x3ff6e2],_0x51b48e[_0x3ff6e2-0x1]+0x1);if(_0x3dce43)_0x51b48e[_0x3ff6e2]=Math[_0x2b603e(0x1a4)](_0x51b48e[_0x3ff6e2],_0x51b48e[_0x3ff6e2-_0x5020ec]+0x1);if(_0x5bd11b&&_0x3dce43)_0x51b48e[_0x3ff6e2]=Math['min'](_0x51b48e[_0x3ff6e2],_0x51b48e[_0x3ff6e2-_0x5020ec-0x1]+_0x5c2f49);if(_0x5bd11b<_0x5020ec-0x1&&_0x3dce43)_0x51b48e[_0x3ff6e2]=Math['min'](_0x51b48e[_0x3ff6e2],_0x51b48e[_0x3ff6e2-_0x5020ec+0x1]+_0x5c2f49);}}for(let _0x3e86a1=_0x12094f-0x1;_0x3e86a1>=0x0;_0x3e86a1--){for(let _0x40f83c=_0x5020ec-0x1;_0x40f83c>=0x0;_0x40f83c--){const _0x5225c2=_0x3e86a1*_0x5020ec+_0x40f83c;if(_0x40f83c<_0x5020ec-0x1)_0x51b48e[_0x5225c2]=Math['min'](_0x51b48e[_0x5225c2],_0x51b48e[_0x5225c2+0x1]+0x1);if(_0x3e86a1<_0x12094f-0x1)_0x51b48e[_0x5225c2]=Math[_0x2b603e(0x1a4)](_0x51b48e[_0x5225c2],_0x51b48e[_0x5225c2+_0x5020ec]+0x1);if(_0x40f83c<_0x5020ec-0x1&&_0x3e86a1<_0x12094f-0x1)_0x51b48e[_0x5225c2]=Math[_0x2b603e(0x1a4)](_0x51b48e[_0x5225c2],_0x51b48e[_0x5225c2+_0x5020ec+0x1]+_0x5c2f49);if(_0x40f83c&&_0x3e86a1<_0x12094f-0x1)_0x51b48e[_0x5225c2]=Math['min'](_0x51b48e[_0x5225c2],_0x51b48e[_0x5225c2+_0x5020ec-0x1]+_0x5c2f49);}}for(let _0x4c6a94=0x0;_0x4c6a94<_0x1b6291[_0x2b603e(0x192)];_0x4c6a94++){_0x1b6291[_0x4c6a94]=isCarved(_0x1ad1a9[_0x2b603e(0x17e)][_0x4c6a94])?-_0x1ee30f[_0x4c6a94]:_0x51b48e[_0x4c6a94];}return _0x1b6291;}function sampleField(_0x22d2d3,_0x2717ba,_0x3ac049,_0xb27e26,_0x2dc921){const _0x1d29b4=_0x256baa,_0x59622b=Math[_0x1d29b4(0x19d)](0x0,Math[_0x1d29b4(0x1a4)](_0x2717ba-1.001,_0xb27e26)),_0x46a629=Math[_0x1d29b4(0x19d)](0x0,Math[_0x1d29b4(0x1a4)](_0x3ac049-1.001,_0x2dc921)),_0x5165be=Math[_0x1d29b4(0x1a0)](_0x59622b),_0x5eebe3=Math[_0x1d29b4(0x1a0)](_0x46a629),_0xc76a66=Math[_0x1d29b4(0x1a4)](_0x2717ba-0x1,_0x5165be+0x1),_0x168450=Math['min'](_0x3ac049-0x1,_0x5eebe3+0x1),_0x468390=_0x59622b-_0x5165be,_0x550348=_0x46a629-_0x5eebe3,_0x4cfbf7=_0x22d2d3[_0x5eebe3*_0x2717ba+_0x5165be],_0x41e85d=_0x22d2d3[_0x5eebe3*_0x2717ba+_0xc76a66],_0x2ff2b4=_0x22d2d3[_0x168450*_0x2717ba+_0x5165be],_0x617fb3=_0x22d2d3[_0x168450*_0x2717ba+_0xc76a66];return _0x4cfbf7*(0x1-_0x468390)*(0x1-_0x550348)+_0x41e85d*_0x468390*(0x1-_0x550348)+_0x2ff2b4*(0x1-_0x468390)*_0x550348+_0x617fb3*_0x468390*_0x550348;}function cellAt(_0x352083,_0x23a11b,_0x345a0d){const _0x59f76c=_0x256baa,_0x57837f=Math['max'](0x0,Math[_0x59f76c(0x1a4)](_0x352083['w']-0x1,Math['floor'](_0x23a11b))),_0x475953=Math['max'](0x0,Math[_0x59f76c(0x1a4)](_0x352083['h']-0x1,Math[_0x59f76c(0x1a0)](_0x345a0d)));return _0x352083[_0x59f76c(0x17e)][_0x475953*_0x352083['w']+_0x57837f];}function roundExtrude(_0x2292f4,_0x5aab83,_0x108800,_0x3366d7,_0x557043,_0x1be384){const _0x2813a6=_0x256baa,_0x4b4d33=_0x2292f4*_0x1be384,_0x183219=(_0x5aab83-_0x108800)*_0x557043,_0x26296d=_0x4b4d33+_0x3366d7,_0x293dcf=Math[_0x2813a6(0x1a3)](_0x183219)-(_0x108800-_0x3366d7),_0x462ab1=Math[_0x2813a6(0x19d)](_0x26296d,0x0),_0x40e24c=Math[_0x2813a6(0x19d)](_0x293dcf,0x0);return Math['min'](Math[_0x2813a6(0x19d)](_0x26296d,_0x293dcf),0x0)+Math[_0x2813a6(0x1a7)](_0x462ab1,_0x40e24c)-_0x3366d7;}export function sdf3(_0x11005f,_0x164001,_0x4c5a99,_0x2747d3,_0x178d5e){const _0x5a5a58=_0x256baa;let _0x1ddb66=0xf4240;const _0x3dc6e4=_0x2747d3['spheres']||[],_0x336786=cellI(_0x2747d3,_0x11005f,_0x4c5a99),_0x2ff8de=_0x2747d3['elev']&&_0x2747d3[_0x5a5a58(0x186)][_0x336786]||0x0,_0x1573b5=_0x2ff8de*EYE,_0x397f44=_0x2747d3['flags']&&_0x2747d3['flags'][_0x336786]&FLAG_SPIKE,_0x4d9330=_0x2747d3[_0x5a5a58(0x193)]&&_0x2747d3['flags'][_0x336786]&FLAG_CROUCH,_0xaa384a=_0x2747d3[_0x5a5a58(0x195)]&&_0x2747d3['sky'][_0x336786],_0x520f18=_0x2747d3['liquid']&&_0x2747d3[_0x5a5a58(0x1ba)][_0x336786]===LIQ_LAVA,_0xaad69d=_0x1573b5-(_0x397f44?1.45:0x0);for(let _0x43b87c=0x0;_0x43b87c<_0x3dc6e4[_0x5a5a58(0x192)];_0x43b87c++){const _0x3ba74b=_0x3dc6e4[_0x43b87c],_0x406eb8=(_0x3ba74b['cy']!=null?_0x3ba74b['cy']:_0x3ba74b['r']*0.55)+_0x1573b5;let _0x84dcd8=Math[_0x5a5a58(0x1a7)](_0x11005f-_0x3ba74b['x'],_0x164001-_0x406eb8,_0x4c5a99-_0x3ba74b['z'])-_0x3ba74b['r'];_0x84dcd8=Math[_0x5a5a58(0x19d)](_0x84dcd8,_0xaad69d+0.06-_0x164001);if(_0x84dcd8<_0x1ddb66)_0x1ddb66=_0x84dcd8;}const _0x253e08=_0x11005f/CELL,_0x178001=_0x4c5a99/CELL;if(_0x253e08<-0x1||_0x178001<-0x1||_0x253e08>_0x2747d3['w']+0x1||_0x178001>_0x2747d3['h']+0x1)return _0x1ddb66;const _0x517243=sampleField(_0x178d5e,_0x2747d3['w'],_0x2747d3['h'],_0x253e08,_0x178001)*CELL,_0x2628da=cellAt(_0x2747d3,_0x253e08,_0x178001);if(_0x2747d3['collapsed']&&_0x2747d3[_0x5a5a58(0x17c)][_0x336786]){const _0x381685=_0x164001-_0xaad69d;if(_0x381685>=-0.05&&_0x381685<2.15)return 0.4;}if(isCarved(_0x2628da)||_0x517243<CELL*0.7){const _0x11f914=getShape(_0x2628da);let _0x2370d3=_0x4d9330?1.22:_0xaa384a?0x28:_0x2747d3[_0x5a5a58(0x1ab)]||4.2;if(!_0x4d9330&&!_0xaa384a){if(_0x397f44)_0x2370d3+=1.45+2.6;else{if(_0x520f18)_0x2370d3+=2.6;}}const _0x328e6b=_0x2370d3*0.5,_0x5b14a8=_0x164001-_0xaad69d;let _0x82c2ea;if(_0xaa384a)_0x82c2ea=Math[_0x5a5a58(0x19d)](_0x517243,0.05-_0x5b14a8);else{if(_0x11f914===SHAPE_FLAT||_0x4d9330)_0x82c2ea=Math['max'](_0x517243,Math[_0x5a5a58(0x1a3)](_0x5b14a8-_0x328e6b)-_0x328e6b,0.05-_0x5b14a8);else{if(_0x11f914===SHAPE_OVAL){const _0x110a4f=_0x328e6b*0.64;_0x82c2ea=roundExtrude(_0x517243,_0x5b14a8,_0x328e6b,_0x110a4f,1.28,0.76),_0x82c2ea+=(hash3(_0x11005f*1.9,_0x5b14a8*2.2,_0x4c5a99*1.6)-0.5)*0.62,_0x82c2ea=Math[_0x5a5a58(0x19d)](_0x82c2ea,0.05-_0x5b14a8);}else{const _0x184277=_0x328e6b*0.9;_0x82c2ea=roundExtrude(_0x517243,_0x5b14a8,_0x328e6b,_0x184277,0x1,0x1),_0x82c2ea=Math['max'](_0x82c2ea,0.05-_0x5b14a8);}}}if(_0x82c2ea<_0x1ddb66)_0x1ddb66=_0x82c2ea;}return _0x1ddb66;}export function isEmptyAt(_0x11f7cb,_0x530b8a,_0x53d7e8,_0x3dd733,_0x17badc){return sdf3(_0x11f7cb,_0x530b8a,_0x53d7e8,_0x3dd733,_0x17badc)<0x0;}export function floorY(_0x267f6a,_0x19e42f,_0x3b1e09,_0x231486,_0x64074f){const _0x36fdac=_0x256baa,_0xd6e900=cellI(_0x3b1e09,_0x267f6a,_0x19e42f),_0x482b10=_0x3b1e09[_0x36fdac(0x186)]&&_0x3b1e09['elev'][_0xd6e900]||0x0,_0x1824a2=_0x482b10*EYE-(_0x3b1e09[_0x36fdac(0x193)]&&_0x3b1e09['flags'][_0xd6e900]&FLAG_SPIKE?1.45:0x0),_0xa1b1a3=_0x3b1e09[_0x36fdac(0x195)]&&_0x3b1e09[_0x36fdac(0x195)][_0xd6e900],_0x1dc88f=_0x3b1e09[_0x36fdac(0x1ba)]&&_0x3b1e09[_0x36fdac(0x1ba)][_0xd6e900]===LIQ_LAVA,_0x3186fe=_0x3b1e09[_0x36fdac(0x193)]&&_0x3b1e09['flags'][_0xd6e900]&FLAG_SPIKE;let _0x27ef41=_0xa1b1a3?0xc:_0x3b1e09[_0x36fdac(0x1ab)]||4.2;if(!_0xa1b1a3){if(_0x3186fe)_0x27ef41+=1.45+2.6;else{if(_0x1dc88f)_0x27ef41+=2.6;}}const _0xdb65cf=_0x1824a2+Math['max'](_0x27ef41,_0x64074f||0x0,0x2);let _0x25ea31=![];for(let _0xe524dd=_0xdb65cf;_0xe524dd>_0x1824a2-0.5;_0xe524dd-=0.06){const _0x5afbc5=sdf3(_0x267f6a,_0xe524dd,_0x19e42f,_0x3b1e09,_0x231486)<0x0;if(_0x25ea31&&!_0x5afbc5)return _0xe524dd+0.06;_0x25ea31=_0x5afbc5;}if(isCarved(_0x3b1e09[_0x36fdac(0x17e)][_0xd6e900]))return _0x1824a2;return-0x3e7;}export function firstCarved(_0x3ecc84){const _0x3e33dc=_0x256baa;for(let _0x43f921=0x0;_0x43f921<_0x3ecc84['h'];_0x43f921++){for(let _0x26ba8b=0x0;_0x26ba8b<_0x3ecc84['w'];_0x26ba8b++){if(isCarved(_0x3ecc84[_0x3e33dc(0x17e)][idx(_0x3ecc84,_0x26ba8b,_0x43f921)]))return cellToWorld(_0x26ba8b,_0x43f921);}}return null;}export function biomeOf(_0x5aaa22,_0x488e83,_0x248891){const _0x4d17eb=_0x256baa,_0x29de25=_0x488e83/CELL,_0x5ee6e9=_0x248891/CELL,_0x92911f=getTex(cellAt(_0x5aaa22,_0x29de25,_0x5ee6e9));return BIOMES[Math['max'](0x0,Math[_0x4d17eb(0x1a4)](BIOMES[_0x4d17eb(0x192)]-0x1,_0x92911f))];}export function countCarved(_0x1f37aa){const _0x5dce93=_0x256baa;let _0xe4f602=0x0;for(let _0x1f736d=0x0;_0x1f736d<_0x1f37aa[_0x5dce93(0x17e)][_0x5dce93(0x192)];_0x1f736d++)if(isCarved(_0x1f37aa['cells'][_0x1f736d]))_0xe4f602++;return _0xe4f602;}export function enclosedFloors(_0x67f857,_0x374bef){const _0x59d88f=_0x256baa;ensureLayers(_0x67f857);const _0x312c18=_0x67f857['w'],_0x1523a1=_0x67f857['h'],_0x50f7ee=_0x67f857['bwalls'][_0x374bef],_0x6af55a=new Uint8Array(_0x312c18*_0x1523a1);if(!_0x50f7ee)return _0x6af55a;const _0x5328c6=new Uint8Array(_0x312c18*_0x1523a1);for(let _0x15223e=0x0;_0x15223e<_0x1523a1;_0x15223e++){for(let _0x5b7a53=0x0;_0x5b7a53<_0x312c18;_0x5b7a53++){const _0xa8d5f9=_0x15223e*_0x312c18+_0x5b7a53;if(_0x50f7ee[_0xa8d5f9]||_0x5328c6[_0xa8d5f9])continue;const _0x5b4335=[_0x5b7a53,_0x15223e];_0x5328c6[_0xa8d5f9]=0x1;const _0x4fc1bb=[];let _0x522ec8=![];while(_0x5b4335['length']){const _0x3c3839=_0x5b4335[_0x59d88f(0x1b4)](),_0x4f66d4=_0x5b4335[_0x59d88f(0x1b4)]();if(_0x4f66d4===0x0||_0x3c3839===0x0||_0x4f66d4===_0x312c18-0x1||_0x3c3839===_0x1523a1-0x1)_0x522ec8=!![];_0x4fc1bb['push'](_0x4f66d4,_0x3c3839);const _0xd226c4=[_0x4f66d4-0x1,_0x3c3839,_0x4f66d4+0x1,_0x3c3839,_0x4f66d4,_0x3c3839-0x1,_0x4f66d4,_0x3c3839+0x1];for(let _0xe9a9fc=0x0;_0xe9a9fc<0x8;_0xe9a9fc+=0x2){const _0x14db05=_0xd226c4[_0xe9a9fc],_0x1c4065=_0xd226c4[_0xe9a9fc+0x1];if(!inBounds(_0x67f857,_0x14db05,_0x1c4065)){_0x522ec8=!![];continue;}const _0x1cc4cb=_0x1c4065*_0x312c18+_0x14db05;if(_0x5328c6[_0x1cc4cb]||_0x50f7ee[_0x1cc4cb])continue;_0x5328c6[_0x1cc4cb]=0x1,_0x5b4335['push'](_0x14db05,_0x1c4065);}}if(!_0x522ec8&&_0x4fc1bb['length']>0x4){for(let _0x10d7ef=0x0;_0x10d7ef<_0x4fc1bb[_0x59d88f(0x192)];_0x10d7ef+=0x2)_0x6af55a[_0x4fc1bb[_0x10d7ef+0x1]*_0x312c18+_0x4fc1bb[_0x10d7ef]]=0x1;}}}return _0x6af55a;}export function canPlaceClimb(_0x6e00e2,_0x2237c5,_0x483c3d,_0x5c0b4d){ensureLayers(_0x6e00e2);const _0x5d7a67=_0x5c0b4d+0x1;if(_0x5c0b4d<0x0||_0x5d7a67>=STORIES)return![];if(!inBounds(_0x6e00e2,_0x2237c5,_0x483c3d))return![];const _0x51c368=enclosedFloors(_0x6e00e2,_0x5c0b4d),_0x4f10d8=enclosedFloors(_0x6e00e2,_0x5d7a67),_0x4d2453=idx(_0x6e00e2,_0x2237c5,_0x483c3d);return!!(_0x51c368[_0x4d2453]&&_0x4f10d8[_0x4d2453]);}export function climbAtCell(_0x1683fc,_0x4723c1,_0x4fb8d5){const _0x31df59=_0x256baa;return(_0x1683fc['climbs']||[])[_0x31df59(0x183)](_0x76a20c=>Math['floor'](_0x76a20c['x']/CELL)===_0x4723c1&&Math['floor'](_0x76a20c['z']/CELL)===_0x4fb8d5);}export function climbHoleFloor(_0x46a5a5,_0x2c4946,_0xca5d20,_0xac3d5){const _0x5268ac=_0x256baa;return(_0x46a5a5['climbs']||[])[_0x5268ac(0x18d)](_0x4d910c=>{const _0x40a47d=_0x5268ac;if(Math[_0x40a47d(0x1a0)](_0x4d910c['x']/CELL)!==_0x2c4946||Math['floor'](_0x4d910c['z']/CELL)!==_0xca5d20)return![];const _0x8b47da=_0x4d910c['from']||0x0,_0x910068=_0x4d910c['to']||_0x8b47da+0x1;return _0x910068===_0xac3d5;});}export function climbHoleRoof(_0x472696,_0x369319,_0x5cb84d,_0x5eaecb){const _0x441a13=_0x256baa;return(_0x472696[_0x441a13(0x194)]||[])['some'](_0x367ada=>{const _0x30d444=_0x441a13;if(Math[_0x30d444(0x1a0)](_0x367ada['x']/CELL)!==_0x369319||Math[_0x30d444(0x1a0)](_0x367ada['z']/CELL)!==_0x5cb84d)return![];const _0x83d76f=_0x367ada[_0x30d444(0x189)]||0x0;return _0x83d76f===_0x5eaecb;});}
+/** Zoom map packing, drawing stamps, 2D SDF. */
+import {
+  BIOMES,
+  CELL,
+  EYE,
+  FLAG_COLLAPSE,
+  FLAG_CROUCH,
+  FLAG_HOVER,
+  FLAG_SPIKE,
+  LIQ_LAVA,
+  MAP_H,
+  MAP_MAX,
+  MAP_W,
+  SHAPE_FLAT,
+  SHAPE_OVAL,
+  SHAPE_ROUND,
+  SHAPE_SPHERE,
+  STORIES,
+  WALL_CRACK,
+} from "./config.js?v=zm1";
+
+export { CELL };
+
+export function pack(carved, shape, tex) {
+  return (carved ? 1 : 0) | ((shape & 3) << 1) | ((tex & 15) << 3);
+}
+export function wallTexId(v) {
+  return v & 15;
+}
+export function wallIsCrack(v) {
+  return !!(v & WALL_CRACK);
+}
+export function packWall(tex, crack) {
+  const t = Math.max(1, tex & 15);
+  return t | (crack ? WALL_CRACK : 0);
+}
+export function isCarved(b) {
+  return (b & 1) !== 0;
+}
+export function getShape(b) {
+  return (b >> 1) & 3;
+}
+export function getTex(b) {
+  return (b >> 3) & 15;
+}
+
+function nid() {
+  return "m" + Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 6);
+}
+
+function layers(w, h) {
+  const n = w * h;
+  return {
+    elev: new Int8Array(n),
+    liquid: new Uint8Array(n),
+    sky: new Uint8Array(n),
+    flags: new Uint8Array(n),
+    bwalls: [new Uint8Array(n), new Uint8Array(n), new Uint8Array(n)],
+  };
+}
+
+export function blankMap(name = "Untitled", w = MAP_W, h = MAP_H) {
+  w = Math.max(16, Math.min(MAP_MAX, w | 0));
+  h = Math.max(16, Math.min(MAP_MAX, h | 0));
+  return {
+    v: 2,
+    id: nid(),
+    name,
+    w,
+    h,
+    hallH: 4.2,
+    cells: new Uint8Array(w * h),
+    ...layers(w, h),
+    spheres: [],
+    objects: [],
+    spawners: [],
+    pickups: [],
+    keys: [],
+    openings: [],
+    portals: [],
+    ropes: [],
+    crushers: [],
+    turrets: [],
+    arrows: [],
+    climbs: [],
+    boulders: [],
+    vendors: [],
+    npcs: [],
+    start: { x: (w * 0.5) * CELL, z: (h * 0.5) * CELL, yaw: 0 },
+    updated: Date.now(),
+  };
+}
+
+export function cloneMap(m) {
+  return deserialize(serialize(m));
+}
+
+export function toB64(u8) {
+  const bytes = u8 instanceof Uint8Array ? u8 : new Uint8Array(u8);
+  let s = "";
+  const CH = 0x8000;
+  for (let i = 0; i < bytes.length; i += CH) {
+    s += String.fromCharCode.apply(null, bytes.subarray(i, i + CH));
+  }
+  return btoa(s);
+}
+
+export function fromB64(s) {
+  const bin = atob(s);
+  const u8 = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+  return u8;
+}
+
+function arrB64(a) {
+  if (!a) return "";
+  return toB64(a instanceof Uint8Array ? a : new Uint8Array(a.buffer ? new Uint8Array(a.buffer, a.byteOffset, a.byteLength) : a));
+}
+
+function u8from(raw, n) {
+  const a = typeof raw === "string" && raw ? fromB64(raw) : raw instanceof Uint8Array ? raw : new Uint8Array(raw || []);
+  const o = new Uint8Array(n);
+  o.set(a.subarray(0, n));
+  return o;
+}
+
+function i8from(raw, n) {
+  const u = u8from(raw, n);
+  return new Int8Array(u.buffer, u.byteOffset, n);
+}
+
+export function serialize(map) {
+  ensureLayers(map);
+  return {
+    v: 2,
+    id: map.id,
+    name: map.name,
+    w: map.w,
+    h: map.h,
+    hallH: map.hallH,
+    cells: toB64(map.cells),
+    elev: arrB64(map.elev),
+    liquid: arrB64(map.liquid),
+    sky: arrB64(map.sky),
+    flags: arrB64(map.flags),
+    bwalls: (map.bwalls || []).map((b) => arrB64(b)),
+    spheres: map.spheres || [],
+    objects: map.objects || [],
+    spawners: map.spawners || [],
+    pickups: map.pickups || [],
+    keys: map.keys || [],
+    openings: map.openings || [],
+    portals: map.portals || [],
+    ropes: map.ropes || [],
+    crushers: map.crushers || [],
+    turrets: map.turrets || [],
+    arrows: map.arrows || [],
+    climbs: map.climbs || [],
+    boulders: map.boulders || [],
+    vendors: map.vendors || [],
+    npcs: map.npcs || [],
+    start: map.start,
+    updated: map.updated || Date.now(),
+  };
+}
+
+export function ensureLayers(map) {
+  const n = map.w * map.h;
+  if (!map.elev || map.elev.length !== n) {
+    const a = new Int8Array(n);
+    if (map.elev) a.set(map.elev.subarray(0, n));
+    map.elev = a;
+  }
+  if (!map.liquid || map.liquid.length !== n) map.liquid = u8from(map.liquid, n);
+  if (!map.sky || map.sky.length !== n) map.sky = u8from(map.sky, n);
+  if (!map.flags || map.flags.length !== n) map.flags = u8from(map.flags, n);
+  if (!map.bwalls || map.bwalls.length < STORIES) {
+    const bw = [];
+    for (let s = 0; s < STORIES; s++) bw.push(u8from(map.bwalls && map.bwalls[s], n));
+    map.bwalls = bw;
+  }
+  map.pickups ||= [];
+  map.keys ||= [];
+  map.openings ||= [];
+  map.portals ||= [];
+  map.ropes ||= [];
+  map.crushers ||= [];
+  map.turrets ||= [];
+  map.arrows ||= [];
+  map.climbs ||= [];
+  map.boulders ||= [];
+  map.vendors ||= [];
+  map.npcs ||= [];
+  if (!map.collapsed || map.collapsed.length !== n) map.collapsed = new Uint8Array(n);
+  return map;
+}
+
+export function deserialize(raw) {
+  const o = typeof raw === "string" ? JSON.parse(raw) : raw;
+  const w = o.w || MAP_W;
+  const h = o.h || MAP_H;
+  const n = w * h;
+  const cells = u8from(typeof o.cells === "string" || o.cells ? o.cells : [], n);
+  return ensureLayers({
+    v: 2,
+    id: o.id || nid(),
+    name: o.name || "Untitled",
+    w,
+    h,
+    hallH: o.hallH || 4.2,
+    cells,
+    elev: i8from(o.elev, n),
+    liquid: u8from(o.liquid, n),
+    sky: u8from(o.sky, n),
+    flags: u8from(o.flags, n),
+    bwalls: [0, 1, 2].map((s) => u8from(o.bwalls && o.bwalls[s], n)),
+    spheres: Array.isArray(o.spheres) ? o.spheres.map((s) => ({ ...s })) : [],
+    objects: Array.isArray(o.objects) ? o.objects.map((x) => ({ ...x })) : [],
+    spawners: Array.isArray(o.spawners) ? o.spawners.map((x) => ({ ...x })) : [],
+    pickups: Array.isArray(o.pickups) ? o.pickups.map((x) => ({ ...x })) : [],
+    keys: Array.isArray(o.keys) ? o.keys.map((x) => ({ ...x })) : [],
+    openings: Array.isArray(o.openings) ? o.openings.map((x) => ({ ...x })) : [],
+    portals: Array.isArray(o.portals) ? o.portals.map((x) => ({ ...x })) : [],
+    ropes: Array.isArray(o.ropes) ? o.ropes.map((x) => ({ ...x })) : [],
+    crushers: Array.isArray(o.crushers) ? o.crushers.map((x) => ({ ...x })) : [],
+    turrets: Array.isArray(o.turrets) ? o.turrets.map((x) => ({ ...x })) : [],
+    arrows: Array.isArray(o.arrows) ? o.arrows.map((x) => ({ ...x })) : [],
+    climbs: Array.isArray(o.climbs) ? o.climbs.map((x) => ({ ...x })) : [],
+    boulders: Array.isArray(o.boulders) ? o.boulders.map((x) => ({ ...x })) : [],
+    vendors: Array.isArray(o.vendors) ? o.vendors.map((x) => ({ ...x })) : [],
+    npcs: Array.isArray(o.npcs) ? o.npcs.map((x) => ({ ...x, options: Array.isArray(x.options) ? x.options.map((op) => ({ ...op, options: Array.isArray(op.options) ? op.options.map((n) => ({ ...n })) : [] })) : [] })) : [],
+    start: o.start ? { ...o.start } : { x: w * 0.5 * CELL, z: h * 0.5 * CELL, yaw: 0 },
+    updated: o.updated || Date.now(),
+  });
+}
+
+export function idx(map, x, z) {
+  return z * map.w + x;
+}
+
+export function inBounds(map, x, z) {
+  return x >= 0 && z >= 0 && x < map.w && z < map.h;
+}
+
+export function worldToCell(x, z) {
+  return { cx: x / CELL, cz: z / CELL };
+}
+
+export function cellToWorld(cx, cz) {
+  return { x: (cx + 0.5) * CELL, z: (cz + 0.5) * CELL };
+}
+
+/** Stamp a disk of cells. cx/cz in cell units (float). */
+export function stampDisk(map, cx, cz, radius, shape, tex, erase) {
+  const r = Math.max(0.5, radius);
+  const r2 = r * r;
+  const x0 = Math.max(0, Math.floor(cx - r));
+  const x1 = Math.min(map.w - 1, Math.ceil(cx + r));
+  const z0 = Math.max(0, Math.floor(cz - r));
+  const z1 = Math.min(map.h - 1, Math.ceil(cz + r));
+  const p = erase ? 0 : pack(1, shape, tex);
+  for (let z = z0; z <= z1; z++) {
+    for (let x = x0; x <= x1; x++) {
+      const dx = x + 0.5 - cx;
+      const dz = z + 0.5 - cz;
+      if (dx * dx + dz * dz <= r2 + 0.15) map.cells[idx(map, x, z)] = p;
+    }
+  }
+}
+
+export function paintDisk(map, cx, cz, radius, tex) {
+  const r = Math.max(0.5, radius);
+  const r2 = r * r;
+  const x0 = Math.max(0, Math.floor(cx - r));
+  const x1 = Math.min(map.w - 1, Math.ceil(cx + r));
+  const z0 = Math.max(0, Math.floor(cz - r));
+  const z1 = Math.min(map.h - 1, Math.ceil(cz + r));
+  for (let z = z0; z <= z1; z++) {
+    for (let x = x0; x <= x1; x++) {
+      const dx = x + 0.5 - cx;
+      const dz = z + 0.5 - cz;
+      if (dx * dx + dz * dz > r2 + 0.15) continue;
+      const i = idx(map, x, z);
+      const b = map.cells[i];
+      if (isCarved(b)) map.cells[i] = pack(1, getShape(b), tex);
+    }
+  }
+}
+
+export function stampSegment(map, x0, z0, x1, z1, radius, shape, tex, erase) {
+  const dx = x1 - x0;
+  const dz = z1 - z0;
+  const len = Math.hypot(dx, dz);
+  const step = Math.max(0.35, radius * 0.4);
+  const n = Math.max(1, Math.ceil(len / step));
+  for (let i = 0; i <= n; i++) {
+    const t = i / n;
+    stampDisk(map, x0 + dx * t, z0 + dz * t, radius, shape, tex, erase);
+  }
+}
+
+export function stampRect(map, x0, z0, x1, z1, radius, shape, tex, erase, outline) {
+  let ax = Math.min(x0, x1);
+  let bx = Math.max(x0, x1);
+  let az = Math.min(z0, z1);
+  let bz = Math.max(z0, z1);
+  if (outline) {
+    const t = Math.max(0.5, radius);
+    stampRect(map, ax, az, bx, az, t, shape, tex, erase, false);
+    stampRect(map, ax, bz, bx, bz, t, shape, tex, erase, false);
+    stampRect(map, ax, az, ax, bz, t, shape, tex, erase, false);
+    stampRect(map, bx, az, bx, bz, t, shape, tex, erase, false);
+    return;
+  }
+  const r = Math.max(0, radius - 0.5);
+  ax = Math.max(0, Math.floor(ax - r));
+  bx = Math.min(map.w - 1, Math.ceil(bx + r));
+  az = Math.max(0, Math.floor(az - r));
+  bz = Math.min(map.h - 1, Math.ceil(bz + r));
+  const p = erase ? 0 : pack(1, shape, tex);
+  for (let z = az; z <= bz; z++) {
+    for (let x = ax; x <= bx; x++) map.cells[idx(map, x, z)] = p;
+  }
+}
+
+/** Flood fill. If click is rock, carve connected rock that does not touch the map border (interior pockets). If click is carved, recolor that region. */
+export function flood(map, sx, sz, shape, tex, erase) {
+  sx = Math.floor(sx);
+  sz = Math.floor(sz);
+  if (!inBounds(map, sx, sz)) return 0;
+  const start = map.cells[idx(map, sx, sz)];
+  const startCarved = isCarved(start);
+  if (erase && !startCarved) return 0;
+  const wantCarve = !erase;
+  const match = (b) => (wantCarve ? !isCarved(b) : isCarved(b) && getTex(b) === getTex(start) && getShape(b) === getShape(start));
+  if (!match(start) && !(erase && startCarved)) return 0;
+
+  const seen = new Uint8Array(map.w * map.h);
+  const q = [sx, sz];
+  seen[idx(map, sx, sz)] = 1;
+  const pts = [];
+  let hitBorder = false;
+  while (q.length) {
+    const z = q.pop();
+    const x = q.pop();
+    if (x === 0 || z === 0 || x === map.w - 1 || z === map.h - 1) hitBorder = true;
+    pts.push(x, z);
+    if (pts.length > 9000) break;
+    const nbs = [x - 1, z, x + 1, z, x, z - 1, x, z + 1];
+    for (let i = 0; i < 8; i += 2) {
+      const nx = nbs[i];
+      const nz = nbs[i + 1];
+      if (!inBounds(map, nx, nz)) continue;
+      const i2 = idx(map, nx, nz);
+      if (seen[i2]) continue;
+      if (!match(map.cells[i2])) continue;
+      seen[i2] = 1;
+      q.push(nx, nz);
+    }
+  }
+  if (wantCarve && !startCarved && hitBorder) return 0;
+  const p = erase ? 0 : pack(1, shape, tex);
+  for (let i = 0; i < pts.length; i += 2) map.cells[idx(map, pts[i], pts[i + 1])] = p;
+  return pts.length / 2;
+}
+
+export function addSphere(map, x, z, r, tex) {
+  r = Math.max(1.2, r);
+  const last = map.spheres[map.spheres.length - 1];
+  if (last && Math.hypot(last.x - x, last.z - z) < r * 0.4 && Math.abs(last.r - r) < 0.4) return last;
+  const s = { x, z, r, tex, cy: Math.max(1.15, r * 0.55) };
+  map.spheres.push(s);
+  return s;
+}
+
+export function eraseNear(map, x, z, r) {
+  ensureLayers(map);
+  map.spheres = map.spheres.filter((s) => Math.hypot(s.x - x, s.z - z) > r + s.r * 0.35);
+  map.objects = map.objects.filter((o) => Math.hypot(o.x - x, o.z - z) > r);
+  map.spawners = map.spawners.filter((s) => Math.hypot(s.x - x, s.z - z) > r);
+  map.pickups = map.pickups.filter((o) => Math.hypot(o.x - x, o.z - z) > r);
+  map.keys = map.keys.filter((o) => Math.hypot(o.x - x, o.z - z) > r);
+  map.ropes = map.ropes.filter((o) => Math.hypot(o.x - x, o.z - z) > r);
+  map.crushers = map.crushers.filter((o) => Math.hypot(o.x - x, o.z - z) > r);
+  map.turrets = map.turrets.filter((o) => Math.hypot(o.x - x, o.z - z) > r);
+  map.climbs = (map.climbs || []).filter((o) => Math.hypot(o.x - x, o.z - z) > r);
+  map.boulders = (map.boulders || []).filter((o) => Math.hypot(o.x - x, o.z - z) > r);
+  map.vendors = (map.vendors || []).filter((o) => Math.hypot(o.x - x, o.z - z) > r);
+  map.npcs = (map.npcs || []).filter((o) => Math.hypot(o.x - x, o.z - z) > r);
+  map.openings = map.openings.filter((o) => Math.hypot((o.x + 0.5) * CELL - x, (o.z + 0.5) * CELL - z) > r);
+  map.arrows = (map.arrows || []).filter((o) => Math.hypot(o.x - x, o.z - z) > r);
+}
+
+export function resizeMap(map, w, h) {
+  w = Math.max(16, Math.min(MAP_MAX, w | 0));
+  h = Math.max(16, Math.min(MAP_MAX, h | 0));
+  if (w === map.w && h === map.h) return map;
+  const next = blankMap(map.name, w, h);
+  next.id = map.id;
+  next.hallH = map.hallH;
+  next.updated = Date.now();
+  const cw = Math.min(map.w, w);
+  const ch = Math.min(map.h, h);
+  for (let z = 0; z < ch; z++) {
+    for (let x = 0; x < cw; x++) {
+      const i = z * map.w + x;
+      const j = z * w + x;
+      next.cells[j] = map.cells[i];
+      if (map.elev) next.elev[j] = map.elev[i];
+      if (map.liquid) next.liquid[j] = map.liquid[i];
+      if (map.sky) next.sky[j] = map.sky[i];
+      if (map.flags) next.flags[j] = map.flags[i];
+      if (map.collapsed) next.collapsed[j] = map.collapsed[i];
+      for (let s = 0; s < 3; s++) {
+        if (map.bwalls && map.bwalls[s]) next.bwalls[s][j] = map.bwalls[s][i];
+      }
+    }
+  }
+  const inW = (x, z) => x >= 0 && z >= 0 && x < w * CELL && z < h * CELL;
+  const copyList = (arr) => (arr || []).filter((o) => inW(o.x != null ? o.x : (o.ax || 0), o.z != null ? o.z : (o.az || 0)));
+  next.spheres = copyList(map.spheres);
+  next.objects = copyList(map.objects);
+  next.spawners = copyList(map.spawners);
+  next.pickups = copyList(map.pickups);
+  next.keys = copyList(map.keys);
+  next.ropes = copyList(map.ropes);
+  next.crushers = copyList(map.crushers);
+  next.turrets = copyList(map.turrets);
+  next.arrows = copyList(map.arrows);
+  next.climbs = copyList(map.climbs);
+  next.boulders = copyList(map.boulders);
+  next.vendors = copyList(map.vendors);
+  next.npcs = copyList(map.npcs);
+  next.openings = (map.openings || []).filter((o) => o.x >= 0 && o.z >= 0 && o.x < w && o.z < h);
+  next.portals = (map.portals || []).filter((p) => inW(p.ax, p.az) && inW(p.bx, p.bz));
+  if (map.start && inW(map.start.x, map.start.z)) next.start = { ...map.start };
+  else next.start = { x: w * 0.5 * CELL, z: h * 0.5 * CELL, yaw: 0 };
+  return ensureLayers(next);
+}
+
+export function stampLayer(arr, map, cx, cz, radius, value) {
+  ensureLayers(map);
+  const r = Math.max(0.5, radius);
+  const r2 = r * r;
+  const x0 = Math.max(0, Math.floor(cx - r));
+  const x1 = Math.min(map.w - 1, Math.ceil(cx + r));
+  const z0 = Math.max(0, Math.floor(cz - r));
+  const z1 = Math.min(map.h - 1, Math.ceil(cz + r));
+  for (let z = z0; z <= z1; z++) {
+    for (let x = x0; x <= x1; x++) {
+      const dx = x + 0.5 - cx;
+      const dz = z + 0.5 - cz;
+      if (dx * dx + dz * dz <= r2 + 0.15) arr[idx(map, x, z)] = value;
+    }
+  }
+}
+
+export function stampCrack(arr, map, cx, cz, radius, tex) {
+  ensureLayers(map);
+  const r = Math.max(0.5, radius);
+  const r2 = r * r;
+  const x0 = Math.max(0, Math.floor(cx - r));
+  const x1 = Math.min(map.w - 1, Math.ceil(cx + r));
+  const z0 = Math.max(0, Math.floor(cz - r));
+  const z1 = Math.min(map.h - 1, Math.ceil(cz + r));
+  for (let z = z0; z <= z1; z++) {
+    for (let x = x0; x <= x1; x++) {
+      const dx = x + 0.5 - cx;
+      const dz = z + 0.5 - cz;
+      if (dx * dx + dz * dz > r2 + 0.15) continue;
+      const i = idx(map, x, z);
+      const cur = arr[i];
+      arr[i] = packWall(wallTexId(cur) || tex || 1, true);
+    }
+  }
+}
+
+export function stampFlags(map, cx, cz, radius, bit, on) {
+  ensureLayers(map);
+  const r = Math.max(0.5, radius);
+  const r2 = r * r;
+  const x0 = Math.max(0, Math.floor(cx - r));
+  const x1 = Math.min(map.w - 1, Math.ceil(cx + r));
+  const z0 = Math.max(0, Math.floor(cz - r));
+  const z1 = Math.min(map.h - 1, Math.ceil(cz + r));
+  for (let z = z0; z <= z1; z++) {
+    for (let x = x0; x <= x1; x++) {
+      const dx = x + 0.5 - cx;
+      const dz = z + 0.5 - cz;
+      if (dx * dx + dz * dz > r2 + 0.15) continue;
+      const i = idx(map, x, z);
+      if (on) {
+        map.flags[i] |= bit;
+        if (!isCarved(map.cells[i])) map.cells[i] = pack(1, SHAPE_FLAT, 1);
+      } else map.flags[i] &= ~bit;
+    }
+  }
+}
+
+export function cellI(map, x, z) {
+  const gx = Math.max(0, Math.min(map.w - 1, Math.floor(x / CELL)));
+  const gz = Math.max(0, Math.min(map.h - 1, Math.floor(z / CELL)));
+  return gz * map.w + gx;
+}
+
+export function hash3(x, y, z) {
+  const s = Math.sin(x * 127.1 + y * 311.7 + z * 74.7) * 43758.5453;
+  return s - Math.floor(s);
+}
+
+/** Chamfer distance transform. Negative inside carved cells, in cell units. */
+export function computeSdf(map) {
+  const w = map.w;
+  const h = map.h;
+  const g = new Float32Array(w * h);
+  const INF = 1e5;
+  for (let i = 0; i < g.length; i++) g[i] = isCarved(map.cells[i]) ? INF : 0;
+  const diag = 1.41421356;
+  for (let z = 0; z < h; z++) {
+    for (let x = 0; x < w; x++) {
+      const i = z * w + x;
+      if (x) g[i] = Math.min(g[i], g[i - 1] + 1);
+      if (z) g[i] = Math.min(g[i], g[i - w] + 1);
+      if (x && z) g[i] = Math.min(g[i], g[i - w - 1] + diag);
+      if (x < w - 1 && z) g[i] = Math.min(g[i], g[i - w + 1] + diag);
+    }
+  }
+  for (let z = h - 1; z >= 0; z--) {
+    for (let x = w - 1; x >= 0; x--) {
+      const i = z * w + x;
+      if (x < w - 1) g[i] = Math.min(g[i], g[i + 1] + 1);
+      if (z < h - 1) g[i] = Math.min(g[i], g[i + w] + 1);
+      if (x < w - 1 && z < h - 1) g[i] = Math.min(g[i], g[i + w + 1] + diag);
+      if (x && z < h - 1) g[i] = Math.min(g[i], g[i + w - 1] + diag);
+    }
+  }
+  const out = new Float32Array(w * h);
+  const outd = new Float32Array(w * h);
+  for (let i = 0; i < outd.length; i++) outd[i] = isCarved(map.cells[i]) ? 0 : INF;
+  for (let z = 0; z < h; z++) {
+    for (let x = 0; x < w; x++) {
+      const i = z * w + x;
+      if (x) outd[i] = Math.min(outd[i], outd[i - 1] + 1);
+      if (z) outd[i] = Math.min(outd[i], outd[i - w] + 1);
+      if (x && z) outd[i] = Math.min(outd[i], outd[i - w - 1] + diag);
+      if (x < w - 1 && z) outd[i] = Math.min(outd[i], outd[i - w + 1] + diag);
+    }
+  }
+  for (let z = h - 1; z >= 0; z--) {
+    for (let x = w - 1; x >= 0; x--) {
+      const i = z * w + x;
+      if (x < w - 1) outd[i] = Math.min(outd[i], outd[i + 1] + 1);
+      if (z < h - 1) outd[i] = Math.min(outd[i], outd[i + w] + 1);
+      if (x < w - 1 && z < h - 1) outd[i] = Math.min(outd[i], outd[i + w + 1] + diag);
+      if (x && z < h - 1) outd[i] = Math.min(outd[i], outd[i + w - 1] + diag);
+    }
+  }
+  for (let i = 0; i < out.length; i++) {
+    out[i] = isCarved(map.cells[i]) ? -g[i] : outd[i];
+  }
+  return out;
+}
+
+function sampleField(field, w, h, gx, gz) {
+  const x = Math.max(0, Math.min(w - 1.001, gx));
+  const z = Math.max(0, Math.min(h - 1.001, gz));
+  const x0 = Math.floor(x);
+  const z0 = Math.floor(z);
+  const x1 = Math.min(w - 1, x0 + 1);
+  const z1 = Math.min(h - 1, z0 + 1);
+  const tx = x - x0;
+  const tz = z - z0;
+  const a = field[z0 * w + x0];
+  const b = field[z0 * w + x1];
+  const c = field[z1 * w + x0];
+  const d = field[z1 * w + x1];
+  return a * (1 - tx) * (1 - tz) + b * tx * (1 - tz) + c * (1 - tx) * tz + d * tx * tz;
+}
+
+function cellAt(map, gx, gz) {
+  const x = Math.max(0, Math.min(map.w - 1, Math.floor(gx)));
+  const z = Math.max(0, Math.min(map.h - 1, Math.floor(gz)));
+  return map.cells[z * map.w + x];
+}
+
+function roundExtrude(d2, y, hy, R, yScale, xScale) {
+  const xs = d2 * xScale;
+  const ys = (y - hy) * yScale;
+  const qx = xs + R;
+  const qy = Math.abs(ys) - (hy - R);
+  const mx = Math.max(qx, 0);
+  const my = Math.max(qy, 0);
+  return Math.min(Math.max(qx, qy), 0) + Math.hypot(mx, my) - R;
+}
+
+/**
+ * Signed distance: negative = empty (dug), positive = rock.
+ * sdf2 is 2D field in cell units.
+ */
+export function sdf3(x, y, z, map, sdf2) {
+  let dmin = 1e6;
+  const spheres = map.spheres || [];
+  const ci = cellI(map, x, z);
+  const elev = (map.elev && map.elev[ci]) || 0;
+  const y0 = elev * EYE;
+  const spike = map.flags && map.flags[ci] & FLAG_SPIKE;
+  const crouch = map.flags && map.flags[ci] & FLAG_CROUCH;
+  const sky = map.sky && map.sky[ci];
+  const lava = map.liquid && map.liquid[ci] === LIQ_LAVA;
+  const floor = y0 - (spike ? 1.45 : 0);
+  for (let i = 0; i < spheres.length; i++) {
+    const s = spheres[i];
+    const cy = (s.cy != null ? s.cy : s.r * 0.55) + y0;
+    let ds = Math.hypot(x - s.x, y - cy, z - s.z) - s.r;
+    ds = Math.max(ds, floor + 0.06 - y);
+    if (ds < dmin) dmin = ds;
+  }
+  const gx = x / CELL;
+  const gz = z / CELL;
+  if (gx < -1 || gz < -1 || gx > map.w + 1 || gz > map.h + 1) return dmin;
+  const d2 = sampleField(sdf2, map.w, map.h, gx, gz) * CELL;
+  const cell = cellAt(map, gx, gz);
+  if (map.collapsed && map.collapsed[ci]) {
+    const ly = y - floor;
+    if (map.flags && map.flags[ci] & FLAG_COLLAPSE) {
+      /* floor hole — open downward */
+    } else if (ly >= -0.05 && ly < 2.15) return 0.4;
+  }
+  if (isCarved(cell) || d2 < CELL * 0.7) {
+    const shape = getShape(cell);
+    let H = crouch ? 1.22 : sky ? 40 : map.hallH || 4.2;
+    if (!crouch && !sky) {
+      if (spike) H += 1.45 + 2.6;
+      else if (lava) H += 2.6;
+    }
+    const hy = H * 0.5;
+    const ly = y - floor;
+    let d3;
+    if (sky) {
+      d3 = Math.max(d2, 0.05 - ly);
+    } else if (shape === SHAPE_FLAT || crouch) {
+      if (map.collapsed && map.collapsed[ci] && map.flags && map.flags[ci] & FLAG_COLLAPSE) {
+        d3 = Math.max(d2, ly - H - 0.05);
+      } else {
+        d3 = Math.max(d2, Math.abs(ly - hy) - hy, 0.05 - ly);
+      }
+    } else if (shape === SHAPE_OVAL) {
+      const R = hy * 0.64;
+      d3 = roundExtrude(d2, ly, hy, R, 1.28, 0.76);
+      d3 += (hash3(x * 1.9, ly * 2.2, z * 1.6) - 0.5) * 0.62;
+      d3 = Math.max(d3, 0.05 - ly);
+    } else {
+      const R = hy * 0.9;
+      d3 = roundExtrude(d2, ly, hy, R, 1, 1);
+      d3 = Math.max(d3, 0.05 - ly);
+    }
+    if (d3 < dmin) dmin = d3;
+  }
+  return dmin;
+}
+
+export function isEmptyAt(x, y, z, map, sdf2) {
+  return sdf3(x, y, z, map, sdf2) < 0;
+}
+
+export function floorY(x, z, map, sdf2, ymax) {
+  const ci = cellI(map, x, z);
+  if (ci >= 0 && map.collapsed && map.collapsed[ci] && map.flags && map.flags[ci] & FLAG_COLLAPSE) return -999;
+  const elev = (map.elev && map.elev[ci]) || 0;
+  const y0 = elev * EYE - (map.flags && map.flags[ci] & FLAG_SPIKE ? 1.45 : 0);
+  const sky = map.sky && map.sky[ci];
+  const lava = map.liquid && map.liquid[ci] === LIQ_LAVA;
+  const spikeHere = map.flags && map.flags[ci] & FLAG_SPIKE;
+  let hall = sky ? 12 : map.hallH || 4.2;
+  if (!sky) {
+    if (spikeHere) hall += 1.45 + 2.6;
+    else if (lava) hall += 2.6;
+  }
+  const top = y0 + Math.max(hall, ymax || 0, 2);
+  let lastEmpty = false;
+  for (let y = top; y > y0 - 0.5; y -= 0.06) {
+    const empty = sdf3(x, y, z, map, sdf2) < 0;
+    if (lastEmpty && !empty) return y + 0.06;
+    lastEmpty = empty;
+  }
+  if (isCarved(map.cells[ci])) return y0;
+  return -999;
+}
+
+export function firstCarved(map) {
+  for (let z = 0; z < map.h; z++) {
+    for (let x = 0; x < map.w; x++) {
+      if (isCarved(map.cells[idx(map, x, z)])) return cellToWorld(x, z);
+    }
+  }
+  return null;
+}
+
+export function biomeOf(map, x, z) {
+  const gx = x / CELL;
+  const gz = z / CELL;
+  const t = getTex(cellAt(map, gx, gz));
+  return BIOMES[Math.max(0, Math.min(BIOMES.length - 1, t))];
+}
+
+export function countCarved(map) {
+  let n = 0;
+  for (let i = 0; i < map.cells.length; i++) if (isCarved(map.cells[i])) n++;
+  return n;
+}
+
+/** Interior floor mask for an enclosed building story (walls that don't leak to the map border). */
+export function enclosedFloors(map, story) {
+  ensureLayers(map);
+  const w = map.w;
+  const h = map.h;
+  const wall = map.bwalls[story];
+  const floor = new Uint8Array(w * h);
+  if (!wall) return floor;
+  const seen = new Uint8Array(w * h);
+  for (let z = 0; z < h; z++) {
+    for (let x = 0; x < w; x++) {
+      const i = z * w + x;
+      if (wall[i] || seen[i]) continue;
+      const q = [x, z];
+      seen[i] = 1;
+      const pts = [];
+      let border = false;
+      while (q.length) {
+        const cz = q.pop();
+        const cx = q.pop();
+        if (cx === 0 || cz === 0 || cx === w - 1 || cz === h - 1) border = true;
+        pts.push(cx, cz);
+        const n = [cx - 1, cz, cx + 1, cz, cx, cz - 1, cx, cz + 1];
+        for (let k = 0; k < 8; k += 2) {
+          const nx = n[k];
+          const nz = n[k + 1];
+          if (!inBounds(map, nx, nz)) {
+            border = true;
+            continue;
+          }
+          const j = nz * w + nx;
+          if (seen[j] || wall[j]) continue;
+          seen[j] = 1;
+          q.push(nx, nz);
+        }
+      }
+      if (!border && pts.length > 4) {
+        for (let p = 0; p < pts.length; p += 2) floor[pts[p + 1] * w + pts[p]] = 1;
+      }
+    }
+  }
+  return floor;
+}
+
+/** Stairs/ladders only between consecutive enclosed stories (1↔2 or 2↔3). */
+export function canPlaceClimb(map, gx, gz, from) {
+  ensureLayers(map);
+  const to = from + 1;
+  if (from < 0 || to >= STORIES) return false;
+  if (!inBounds(map, gx, gz)) return false;
+  const a = enclosedFloors(map, from);
+  const b = enclosedFloors(map, to);
+  const i = idx(map, gx, gz);
+  return !!(a[i] && b[i]);
+}
+
+export function climbAtCell(map, gx, gz) {
+  return (map.climbs || []).find((c) => Math.floor(c.x / CELL) === gx && Math.floor(c.z / CELL) === gz);
+}
+
+/** Hole in this story's floor (upper landing of a climb). */
+export function climbHoleFloor(map, gx, gz, story) {
+  return (map.climbs || []).some((c) => {
+    if (Math.floor(c.x / CELL) !== gx || Math.floor(c.z / CELL) !== gz) return false;
+    const from = c.from || 0;
+    const to = c.to || from + 1;
+    return to === story;
+  });
+}
+
+/** Hole in this story's roof (lower landing of a climb). */
+export function climbHoleRoof(map, gx, gz, story) {
+  return (map.climbs || []).some((c) => {
+    if (Math.floor(c.x / CELL) !== gx || Math.floor(c.z / CELL) !== gz) return false;
+    const from = c.from || 0;
+    return from === story;
+  });
+}

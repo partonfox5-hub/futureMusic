@@ -1,19 +1,19 @@
 import * as THREE from "three";
 import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
-import { BIOMES, CELL, EYE, FLAG_RUMBLE, LIQ_LAVA, LIQ_WATER, PICKUP_BY_ID, SHOP, WEAPON_BY_ID, WEAPONS, routes } from "./config.js?v=sw3";
-import { bakedMaps } from "./defaults.js?v=sw3";
-import { biomeOf, cellI, countCarved, ensureLayers, firstCarved, floorY, sdf3 } from "./map.js?v=sw3";
-import { buildDungeon, prepareSdf } from "./mesh.js?v=sw3";
-import { makeProp, spawnFrom, strikeFoes, tickFoes } from "./props.js?v=sw3";
-import { getMap, listMaps } from "./store.js?v=sw3";
-import { makeProc } from "./proc.js?v=sw3";
-import { buildingFloorY, buildWorld, climbSupport, hurtBreakables, hurtTurrets, impulseBoulders, layoutRope, makeSky, smashGlass, spawnRipple, tickRubble, tickWorld, tryUnlock, wallBlocked } from "./world.js?v=sw3";
-import { addBurnDecal, addSaberMark, fireWeapon, hurtFoe, makeDualSaber, makeKeyModel, makePickup, makeWeapon, setKillHook, tickBurns, tickShots } from "./weapons.js?v=sw3";
-import { tickRobots } from "./robots.js?v=sw3";
-import { attachXr, tickXr } from "./xr.js?v=sw3";
-import { loadGold, lootForEnemy, makeWristGold, paintWristGold, saveGold, showerLoot, tickLoot } from "./loot.js?v=sw3";
-import { sfx, sfxUnlock } from "./sfx.js?v=sw3";
-import { makeNpc, nearNpc, tickNpcPose } from "./npcs.js?v=sw3";
+import { BIOMES, CELL, EYE, FLAG_RUMBLE, LIQ_LAVA, LIQ_WATER, PICKUP_BY_ID, SHOP, WEAPON_BY_ID, WEAPONS, routes } from "./config.js?v=zm1";
+import { bakedMaps, storyMaps } from "./defaults.js?v=zm1";
+import { biomeOf, cellI, countCarved, ensureLayers, firstCarved, floorY, sdf3 } from "./map.js?v=zm1";
+import { buildDungeon, prepareSdf } from "./mesh.js?v=zm1";
+import { makeProp, spawnFrom, strikeFoes, tickFoes } from "./props.js?v=zm1";
+import { getMap, listMaps } from "./store.js?v=zm1";
+import { makeProc } from "./proc.js?v=zm1";
+import { buildingFloorY, buildWorld, climbSupport, hurtBreakables, hurtTurrets, impulseBoulders, layoutRope, makeSky, smashGlass, spawnRipple, tickRubble, tickWorld, tryUnlock, wallBlocked } from "./world.js?v=zm1";
+import { addBurnDecal, addSaberMark, fireWeapon, hurtFoe, makeDualSaber, makeKeyModel, makePickup, makeWeapon, setKillHook, tickBurns, tickShots } from "./weapons.js?v=zm1";
+import { tickRobots } from "./robots.js?v=zm1";
+import { attachXr, tickXr } from "./xr.js?v=zm1";
+import { loadStoryPsy, lootForEnemy, makeWristGold, paintWristGold, saveStoryPsy, showerLoot, tickLoot } from "./loot.js?v=zm1";
+import { sfx, sfxUnlock } from "./sfx.js?v=zm1";
+import { makeNpc, nearNpc, tickNpcPose } from "./npcs.js?v=zm1";
 
 const $ = (id) => document.getElementById(id);
 const keys = new Set();
@@ -67,6 +67,13 @@ let psyWaves = [];
 let psyCharge = 0;
 let psyCharging = false;
 let psyMode = "blast";
+let runMode = "story";
+let customStart = { psy: 20, gold: 0 };
+let carpetOn = false;
+let carpetMesh = null;
+let blackHole = null;
+let holeBeam = null;
+let lobby = null;
 let psyChargeMesh = null;
 let talk = null;
 let npcs = [];
@@ -235,7 +242,7 @@ function onXrSession(on) {
     if (sun) sun.intensity = Math.max(sun.intensity, 0.6);
     renderer.setClearColor(0x6a90b4, 1);
     if ($("start")) $("start").hidden = true;
-    if ($("hud")) $("hud").hidden = false;
+    if ($("hud")) $("hud").hidden = !!running;
     if (xrYaw) {
       xrYaw.add(camera);
       if (hands) {
@@ -253,8 +260,8 @@ function onXrSession(on) {
     }
     applyXrStage();
     if (!running) {
-      const first = bakedMaps()[0];
-      enterMap(first ? first.id : "proc");
+      ensureLobby();
+      if (lobby) lobby.visible = true;
     }
   } else {
     if (xrYaw && camera) {
@@ -377,16 +384,22 @@ function placePlayer() {
   player.crouch = false;
   player.fuel = 0;
   player.shield = 0;
-  player.coins = loadGold();
+  player.coins = runMode === "story" ? 0 : (customStart.gold | 0);
   player.jumps = 2;
   player.dashT = 0;
   player.dashCd = 0;
   player.haste = 0;
   player.rage = 0;
-  player.psy = 20;
+  player.psy = runMode === "story" ? loadStoryPsy() : Math.max(0, Math.min(1000, customStart.psy | 0));
   psyCharge = 0;
   psyCharging = false;
   psyMode = "blast";
+  carpetOn = false;
+  if (carpetMesh) carpetMesh.visible = false;
+  if (blackHole) {
+    blackHole.mesh.removeFromParent();
+    blackHole = null;
+  }
   talk = null;
   if ($("talk")) $("talk").hidden = true;
   inv = [];
@@ -412,7 +425,7 @@ async function enterMap(id) {
   initThree();
   await new Promise((r) => setTimeout(r, 30));
   clearWorld();
-  let m = id === "proc" ? makeProc() : bakedMaps().find((x) => x.id === id);
+  let m = id === "proc" ? makeProc() : storyMaps().find((x) => x.id === id) || bakedMaps().find((x) => x.id === id);
   if (!m) m = await getMap(id);
   if (!m) {
     setMsg("Map missing.");
@@ -475,6 +488,7 @@ async function enterMap(id) {
     return;
   }
   $("start").hidden = true;
+  if (lobby) lobby.visible = false;
   $("hud").hidden = false;
   if ($("hud-vr")) $("hud-vr").hidden = false;
   $("dead").hidden = true;
@@ -713,7 +727,8 @@ function physics(dt, xr) {
   if (player.rage > 0) player.rage = Math.max(0, player.rage - dt);
   const len = Math.hypot(wx, wz);
   let spd = player.crouch ? 1.54 : keys.has("ShiftLeft") || keys.has("ShiftRight") ? 5.04 : 3.22;
-  if (player.skate && player.grounded) spd *= 2.5;
+  if (carpetOn) spd = 3.22 * 2.25;
+  if (player.skate && player.grounded && !carpetOn) spd *= 2.5;
   if (player.haste > 0) spd *= 1.45;
   if (player.dashT > 0) spd *= 4;
   if (len > 0) {
@@ -848,7 +863,17 @@ function physics(dt, xr) {
         jumpQueued = false;
       }
     }
-    if (jet) {
+    if (carpetOn) {
+      let lift = 0;
+      if (keys.has("Space") || keys.has("KeyR") || jumpQueued) lift += 1;
+      if (keys.has("KeyC") || keys.has("ControlLeft")) lift -= 1;
+      if (xr && xr.on) {
+        if (Math.abs(xr.lookY || 0) > 0.18) lift += -(xr.lookY);
+        else if (xr.jump) lift += 1;
+      }
+      player.vy = lift * 4.8;
+      jumpQueued = false;
+    } else if (jet) {
       player.vy += 26 * dt;
       player.fuel = Math.max(0, player.fuel - dt);
       if (player.vy > 9) player.vy = 9;
@@ -931,17 +956,26 @@ function physics(dt, xr) {
   const prevFeet = (player._prevY != null ? player._prevY : player.y) - eye;
   const feet = player.y - eye;
   if (!rope && ground > -500) {
-    const crossed = prevFeet >= ground - 0.08 && feet <= ground + 0.38;
-    const buried = feet < ground + 0.02;
-    if ((crossed || buried) && player.vy <= 0.2) {
-      player.y = ground + eye;
-      if (player.vy < 0) player.vy = 0;
-      player.grounded = true;
-      player.jumps = 2;
+    if (carpetOn) {
+      if (feet < ground + 0.04) {
+        player.y = ground + eye;
+        if (player.vy < 0) player.vy = 0;
+      }
+      player.grounded = feet <= ground + 0.2;
       coyote = 0.16;
-    } else if (!(climb && climb.kind === "ladder")) {
-      player.grounded = false;
-      coyote = Math.max(0, coyote - dt);
+    } else {
+      const crossed = prevFeet >= ground - 0.08 && feet <= ground + 0.38;
+      const buried = feet < ground + 0.02;
+      if ((crossed || buried) && player.vy <= 0.2) {
+        player.y = ground + eye;
+        if (player.vy < 0) player.vy = 0;
+        player.grounded = true;
+        player.jumps = 2;
+        coyote = 0.16;
+      } else if (!(climb && climb.kind === "ladder")) {
+        player.grounded = false;
+        coyote = Math.max(0, coyote - dt);
+      }
     }
   } else if (!rope && !(climb && climb.kind === "ladder")) {
     player.grounded = false;
@@ -1275,22 +1309,53 @@ function orientPsyRing(ring, dir) {
 function unlockedPsyModes() {
   const m = ["blast"];
   if ((player.psy | 0) >= 100) m.push("beam");
+  if ((player.psy | 0) >= 150) m.push("carpet");
   if ((player.psy | 0) >= 200) m.push("tide");
+  if ((player.psy | 0) >= 250) m.push("hole");
   return m;
+}
+
+function psyLabel(mode) {
+  if (mode === "beam") return "beam";
+  if (mode === "carpet") return "magic carpet";
+  if (mode === "tide") return "tidal wave";
+  if (mode === "hole") return "mini black hole";
+  return "rings";
 }
 
 function cyclePsyMode() {
   const m = unlockedPsyModes();
   const i = Math.max(0, m.indexOf(psyMode));
   psyMode = m[(i + 1) % m.length];
+  carpetOn = psyMode === "carpet";
   sfx("cycle");
-  setMsg("Psy: " + (psyMode === "blast" ? "rings" : psyMode === "beam" ? "beam" : "tidal wave"));
+  setMsg("Psy: " + psyLabel(psyMode));
 }
 
 function tickPsyInput(xr, dt) {
   const holding = (xr && xr.on && xr.psyHeld && !xr.dash) || keys.has("KeyX");
   const released = (xr && xr.on && xr.psyRelease) || (!holding && psyCharging);
   if (talk) return;
+  if (psyMode === "carpet" && (player.psy | 0) >= 150) {
+    if (blackHole) dissipateHole(false);
+    if (holeBeam) holeBeam.visible = false;
+    carpetOn = true;
+    psyCharging = false;
+    psyCharge = 0;
+    if (psyChargeMesh) psyChargeMesh.visible = false;
+    tickCarpet(dt, xr);
+    return;
+  }
+  carpetOn = false;
+  if (carpetMesh) carpetMesh.visible = false;
+  if (psyMode === "hole" && (player.psy | 0) >= 250) {
+    tickBlackHole(xr, dt, holding, released);
+    return;
+  }
+  if (blackHole) {
+    dissipateHole(true);
+  }
+  if (holeBeam) holeBeam.visible = false;
   if (psyMode === "beam" && (player.psy | 0) >= 100) {
     if (holding && psyCd <= 0) firePsy(xr, 0);
     psyCharging = false;
@@ -1346,6 +1411,202 @@ function psyAim(xr) {
     dir.copy(p2.sub(origin)).normalize();
   }
   return { origin, dir };
+}
+
+function tickCarpet(dt, xr) {
+  const eye = player.crouch ? 0.9 : EYE;
+  if (!carpetMesh) {
+    const g = new THREE.Group();
+    const geo = new THREE.PlaneGeometry(1.7, 2.4, 10, 14);
+    const mat = new THREE.MeshBasicMaterial({
+      color: 0x88ddff,
+      transparent: true,
+      opacity: 0.55,
+      side: THREE.DoubleSide,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.rotation.x = -Math.PI / 2;
+    g.add(mesh);
+    const rim = new THREE.Mesh(
+      new THREE.RingGeometry(0.7, 0.88, 24),
+      new THREE.MeshBasicMaterial({ color: 0xcc88ff, transparent: true, opacity: 0.7, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false }),
+    );
+    rim.rotation.x = -Math.PI / 2;
+    g.add(rim);
+    (stage || scene).add(g);
+    carpetMesh = g;
+    carpetMesh.userData.plane = mesh;
+  }
+  carpetMesh.visible = true;
+  const t = performance.now() * 0.003;
+  const pos = carpetMesh.userData.plane.geometry.attributes.position;
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i);
+    const y = pos.getY(i);
+    pos.setZ(i, Math.sin(x * 4.2 + t * 3.4) * 0.05 + Math.cos(y * 3.1 + t * 2.6) * 0.04);
+  }
+  pos.needsUpdate = true;
+  carpetMesh.position.set(player.x, player.y - eye + 0.08, player.z);
+  carpetMesh.rotation.y = yaw;
+}
+
+function holeTarget(xr) {
+  const { origin, dir } = psyAim(xr);
+  let hit = origin.clone().addScaledVector(dir, 18);
+  for (let s = 0.4; s < 18; s += 0.25) {
+    const p = origin.clone().addScaledVector(dir, s);
+    if (wallBlocked(map, p.x, p.z, p.y) || sdf3(p.x, p.y, p.z, map, sdf2) > -0.08) {
+      hit = origin.clone().addScaledVector(dir, Math.max(0.6, s - 0.2));
+      break;
+    }
+  }
+  return { origin, dir, hit };
+}
+
+function tickBlackHole(xr, dt, holding, released) {
+  const { origin, dir, hit } = holeTarget(xr);
+  if (!holeBeam) {
+    holeBeam = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.012, 0.012, 16, 6),
+      new THREE.MeshBasicMaterial({ color: 0x66eeff, transparent: true, opacity: 0.65, blending: THREE.AdditiveBlending, depthWrite: false }),
+    );
+    (stage || scene).add(holeBeam);
+  }
+  holeBeam.visible = true;
+  holeBeam.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
+  holeBeam.position.copy(origin).addScaledVector(dir, 8);
+  if (holding) {
+    if (!blackHole) {
+      const mesh = new THREE.Mesh(
+        new THREE.SphereGeometry(0.2, 18, 14),
+        new THREE.MeshBasicMaterial({ color: 0x050308, transparent: true, opacity: 0.92 }),
+      );
+      const halo = new THREE.Mesh(
+        new THREE.RingGeometry(0.28, 0.42, 28),
+        new THREE.MeshBasicMaterial({ color: 0xaa66ff, transparent: true, opacity: 0.8, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false }),
+      );
+      mesh.add(halo);
+      (stage || scene).add(mesh);
+      blackHole = { mesh, halo, r: 0.2, t: 0, warp: [] };
+    }
+    blackHole.t += dt;
+    blackHole.r = Math.min(3.4, 0.25 + blackHole.t * 0.85);
+    blackHole.mesh.position.copy(hit);
+    blackHole.mesh.scale.setScalar(blackHole.r / 0.2);
+    blackHole.halo.rotation.z += dt * 3.2;
+    suckEnemies(blackHole, dt);
+    warpWalls(blackHole, dt);
+    if (blackHole.t >= 4.2) dissipateHole(true);
+  } else if (blackHole && (released || !holding)) {
+    dissipateHole(blackHole.t > 0.35);
+  }
+}
+
+function suckEnemies(hole, dt) {
+  const p = hole.mesh.position;
+  for (const f of foes) {
+    if (!f.visible || f.userData.hp <= 0) continue;
+    const d = f.position.distanceTo(p);
+    if (d > hole.r * 2.8 + 1.2) continue;
+    const pull = Math.max(0.4, hole.r * 2.2 - d);
+    f.position.lerp(p, Math.min(1, dt * pull * 0.9));
+    f.rotation.y += dt * (8 + hole.r * 4);
+    f.userData.hp -= (6 + hole.r * 4) * dt;
+    f.userData.flash = 0.1;
+    if (f.userData.hp <= 0) {
+      f.visible = false;
+    }
+  }
+}
+
+function warpWalls(hole, dt) {
+  if (!extras) return;
+  extras._warp = extras._warp || [];
+  if (extras._warp.length < 14) {
+    const bit = new THREE.Mesh(
+      new THREE.BoxGeometry(0.08, 0.7, 0.08),
+      new THREE.MeshBasicMaterial({ color: 0x442266, transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending, depthWrite: false }),
+    );
+    (stage || scene).add(bit);
+    extras._warp.push(bit);
+  }
+  const p = hole.mesh.position;
+  extras._warp.forEach((b, i) => {
+    const a = i * 0.7 + performance.now() * 0.002;
+    const rad = hole.r * 1.8 + 0.6;
+    b.position.set(p.x + Math.cos(a) * rad, p.y + Math.sin(a * 1.7) * 0.4, p.z + Math.sin(a) * rad);
+    b.lookAt(p);
+    b.scale.y = 1.2 + hole.r * 0.4;
+  });
+}
+
+function shockReach(ox, oz, tx, tz, maxR) {
+  if (!map) return false;
+  const sx = Math.floor(ox / CELL);
+  const sz = Math.floor(oz / CELL);
+  const gx = Math.floor(tx / CELL);
+  const gz = Math.floor(tz / CELL);
+  const seen = new Set();
+  const q = [[sx, sz, 0]];
+  seen.add(sx + "," + sz);
+  while (q.length) {
+    const [x, z, d] = q.shift();
+    if (x === gx && z === gz) return true;
+    if (d >= maxR) continue;
+    for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const nx = x + dx;
+      const nz = z + dz;
+      const k = nx + "," + nz;
+      if (seen.has(k) || nx < 0 || nz < 0 || nx >= map.w || nz >= map.h) continue;
+      if (!(map.cells[nz * map.w + nx] & 1)) continue;
+      seen.add(k);
+      q.push([nx, nz, d + 1]);
+    }
+  }
+  return false;
+}
+
+function dissipateHole(explode) {
+  if (holeBeam) holeBeam.visible = false;
+  if (!blackHole) return;
+  const p = blackHole.mesh.position.clone();
+  const r = blackHole.r;
+  blackHole.mesh.removeFromParent();
+  blackHole = null;
+  if (extras?._warp) {
+    for (const b of extras._warp) b.removeFromParent();
+    extras._warp = [];
+  }
+  if (!explode) return;
+  const flash = new THREE.Mesh(
+    new THREE.SphereGeometry(r * 1.4, 16, 12),
+    new THREE.MeshBasicMaterial({ color: 0xe8f4ff, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending, depthWrite: false }),
+  );
+  flash.position.copy(p);
+  (stage || scene).add(flash);
+  psyWaves.push({ mesh: flash, dir: new THREE.Vector3(), speed: 0, life: 0.28, r: r * 2, hit: new Set(), dummy: true });
+  const reach = Math.max(6, r * 5);
+  for (const f of foes) {
+    if (!f.visible || f.userData.hp <= 0) continue;
+    if (!shockReach(p.x, p.z, f.position.x, f.position.z, Math.ceil(reach / CELL))) continue;
+    const d = f.position.distanceTo(p);
+    if (d > reach) continue;
+    const n = f.position.clone().sub(p);
+    n.y += 0.4;
+    n.normalize();
+    f.userData.flung = true;
+    f.userData.vx = n.x * (10 + r * 3);
+    f.userData.vy = 6 + r;
+    f.userData.vz = n.z * (10 + r * 3);
+    f.userData.slam = 18 + r * 6;
+    f.userData.hp -= 22 + r * 8;
+  }
+  flingAt(p, new THREE.Vector3(0, 1, 0), reach, 14 + r * 4, 20 + r * 5, new Set());
+  sfx("boom");
+  setMsg("Neutrino burst");
+  camShake = Math.min(1.8, camShake + 1.2);
 }
 
 function effectivePsy(charge) {
@@ -1699,14 +1960,16 @@ function loop(time) {
     tickLoot(lootBits, dt, player, (L) => {
       if (L && L.id === "psyorb") {
         const before = player.psy | 0;
-        player.psy = Math.min(1000, (player.psy || 20) + 1);
+        player.psy = Math.min(1000, (player.psy || 0) + 1);
+        if (runMode === "story") saveStoryPsy(player.psy);
         sfx("orb");
-        if (before < 100 && player.psy >= 100) setMsg("Psybeam unlocked — X hold / cycle with G");
+        if (before < 100 && player.psy >= 100) setMsg("Psybeam unlocked — hold X / cycle with G");
+        else if (before < 150 && player.psy >= 150) setMsg("Magic carpet unlocked — cycle with G");
         else if (before < 200 && player.psy >= 200) setMsg("Psionic tide unlocked");
+        else if (before < 250 && player.psy >= 250) setMsg("Mini black hole unlocked — hold X");
         else setMsg("Psypower " + (player.psy | 0));
       } else {
         player.coins = (player.coins | 0) + (typeof L === "number" ? L : L.value || 0);
-        saveGold(player.coins);
       }
     });
     if (extras) {
@@ -1760,11 +2023,98 @@ function loop(time) {
     } else {
       tickPsyInput(xr, dt);
     }
+    if (psyMode === "carpet" && (player.psy | 0) >= 150) {
+      carpetOn = true;
+      tickCarpet(dt, xr);
+    }
     drawMinimap();
     hudBars();
+  } else if (xrPresenting) {
+    ensureLobby();
+    tickLobby(xr);
   }
   if (xrPresenting) applyXrStage();
   if (renderer && scene) renderer.render(scene, camera);
+}
+
+function panelTex(title, lines, w = 512, h = 320) {
+  const c = document.createElement("canvas");
+  c.width = w;
+  c.height = h;
+  const g = c.getContext("2d");
+  g.fillStyle = "#141018";
+  g.fillRect(0, 0, w, h);
+  g.strokeStyle = "#c4a060";
+  g.lineWidth = 8;
+  g.strokeRect(6, 6, w - 12, h - 12);
+  g.strokeStyle = "#44d8ff";
+  g.lineWidth = 2;
+  g.strokeRect(16, 16, w - 32, h - 32);
+  g.fillStyle = "#e8d090";
+  g.font = "bold 36px serif";
+  g.textAlign = "center";
+  g.fillText(title, w / 2, 64);
+  g.fillStyle = "#c8e8f0";
+  g.font = "22px serif";
+  (lines || []).forEach((ln, i) => g.fillText(ln, w / 2, 110 + i * 32));
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
+function ensureLobby() {
+  if (lobby) {
+    lobby.visible = true;
+    return;
+  }
+  initThree();
+  lobby = new THREE.Group();
+  lobby.name = "lobby";
+  const floor = new THREE.Mesh(
+    new THREE.CircleGeometry(8, 32),
+    new THREE.MeshLambertMaterial({ color: 0x3a2a18, emissive: 0x102028, emissiveIntensity: 0.35 }),
+  );
+  floor.rotation.x = -Math.PI / 2;
+  lobby.add(floor);
+  for (let i = 0; i < 6; i++) {
+    const a = (i / 6) * Math.PI * 2;
+    const col = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.22, 3.2, 8), new THREE.MeshLambertMaterial({ color: 0xc4a060 }));
+    col.position.set(Math.cos(a) * 5.2, 1.6, Math.sin(a) * 5.2);
+    lobby.add(col);
+  }
+  const story = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 1.0), new THREE.MeshBasicMaterial({ map: panelTex("STORY", ["Sanctum of First Thought", "Psionics persist", "Gold does not"]) }));
+  story.position.set(-1.2, 1.5, -2.4);
+  story.userData.lobby = "story";
+  const custom = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 1.0), new THREE.MeshBasicMaterial({ map: panelTex("CUSTOM", ["Your maps", "Set start psy / gold", "Map maker on desktop"]) }));
+  custom.position.set(1.2, 1.5, -2.4);
+  custom.userData.lobby = "custom";
+  lobby.add(story, custom);
+  lobby.userData.hits = [story, custom];
+  scene.add(lobby);
+}
+
+function tickLobby(xr) {
+  if (!lobby || !lobby.visible) return;
+  const hand = xr && xr.right;
+  if (!hand || !hand.trigger || hand.triggerPrev) return;
+  const origin = hand.pos.clone();
+  const dir = tmp.set(0, 0, -1).applyQuaternion(hand.quat);
+  const ray = new THREE.Raycaster(origin, dir, 0.05, 8);
+  const hits = ray.intersectObjects(lobby.userData.hits, false);
+  const hit = hits[0];
+  if (!hit) return;
+  const kind = hit.object.userData.lobby;
+  if (kind === "story") {
+    runMode = "story";
+    const m = storyMaps()[0];
+    if (m) enterMap(m.id);
+  } else if (kind === "custom") {
+    runMode = "custom";
+    customStart.psy = Math.max(0, Math.min(1000, +($("custom-psy")?.value || 20)));
+    customStart.gold = Math.max(0, Math.min(99999, +($("custom-gold")?.value || 0)));
+    const baked = bakedMaps()[0];
+    if (baked) enterMap(baked.id);
+  }
 }
 
 function cardCanvas(m) {
@@ -1787,10 +2137,39 @@ function cardCanvas(m) {
   return c.toDataURL();
 }
 
+function fillCards(host, maps, mode) {
+  if (!host) return;
+  host.innerHTML = "";
+  for (const m of maps) {
+    const el = document.createElement("button");
+    el.type = "button";
+    el.className = "card";
+    el.innerHTML = `<img alt="" /><span>${m.name}</span>`;
+    el.querySelector("img").src = cardCanvas(m);
+    el.addEventListener("click", () => {
+      runMode = mode;
+      if (mode === "custom") {
+        customStart.psy = Math.max(0, Math.min(1000, +($("custom-psy")?.value || 20)));
+        customStart.gold = Math.max(0, +($("custom-gold")?.value || 0));
+      }
+      enterMap(m.id);
+    });
+    host.appendChild(el);
+  }
+}
+
+function setMenuTab(which) {
+  runMode = which === "custom" ? "custom" : "story";
+  if ($("tab-story")) $("tab-story").classList.toggle("on", which === "story");
+  if ($("tab-custom")) $("tab-custom").classList.toggle("on", which === "custom");
+  if ($("story-pane")) $("story-pane").hidden = which !== "story";
+  if ($("custom-pane")) $("custom-pane").hidden = which !== "custom";
+}
+
 async function showList() {
   initThree();
-  const host = $("maps");
-  host.innerHTML = "";
+  if ($("story-psy")) $("story-psy").textContent = String(loadStoryPsy());
+  fillCards($("story-maps"), storyMaps(), "story");
   const baked = bakedMaps();
   let extra = [];
   try {
@@ -1798,19 +2177,17 @@ async function showList() {
   } catch {}
   const seen = new Set(baked.map((m) => m.id));
   const all = baked.concat(extra.filter((m) => !seen.has(m.id)));
+  fillCards($("maps"), all, "custom");
+  if ($("to-maps")) $("to-maps").href = routes().maps;
+  setMenuTab("story");
   const q = new URLSearchParams(location.search).get("map");
-  for (const m of all) {
-    const el = document.createElement("button");
-    el.type = "button";
-    el.className = "card";
-    el.innerHTML = `<img alt="" /><span>${m.name}</span>`;
-    el.querySelector("img").src = cardCanvas(m);
-    el.addEventListener("click", () => enterMap(m.id));
-    host.appendChild(el);
+  if (q === "proc") {
+    runMode = "custom";
+    enterMap("proc");
+  } else if (q) {
+    runMode = storyMaps().some((m) => m.id === q) ? "story" : "custom";
+    enterMap(q);
   }
-  $("to-maps").href = routes().maps;
-  if (q === "proc") enterMap("proc");
-  else if (q) enterMap(q);
 }
 
 addEventListener("keydown", (e) => {
@@ -1861,9 +2238,18 @@ $("dead-menu").addEventListener("click", () => {
   if ($("hud-vr")) $("hud-vr").hidden = true;
   $("start").hidden = false;
   running = false;
+  if ($("story-psy")) $("story-psy").textContent = String(loadStoryPsy());
+  if (lobby) lobby.visible = xrPresenting;
   clearWorld();
 });
-$("go-proc").addEventListener("click", () => enterMap("proc"));
+if ($("go-proc")) $("go-proc").addEventListener("click", () => {
+  runMode = "custom";
+  customStart.psy = Math.max(0, Math.min(1000, +($("custom-psy")?.value || 20)));
+  customStart.gold = Math.max(0, +($("custom-gold")?.value || 0));
+  enterMap("proc");
+});
+if ($("tab-story")) $("tab-story").addEventListener("click", () => setMenuTab("story"));
+if ($("tab-custom")) $("tab-custom").addEventListener("click", () => setMenuTab("custom"));
 $("inv-close").addEventListener("click", () => ($("inv").hidden = true));
 if ($("shop-close")) $("shop-close").addEventListener("click", () => ($("shop").hidden = true));
 

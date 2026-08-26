@@ -1,2 +1,89 @@
-import{deserialize,serialize}from'./map.js?v=sw3';
-const _0x2861a1=_0x2eb4;(function(_0x551853,_0x53d61b){const _0x26a221=_0x2eb4,_0x11ea71=_0x551853();while(!![]){try{const _0x16b372=parseInt(_0x26a221(0x12e))/0x1+-parseInt(_0x26a221(0x129))/0x2*(parseInt(_0x26a221(0x137))/0x3)+-parseInt(_0x26a221(0x142))/0x4*(-parseInt(_0x26a221(0x13d))/0x5)+-parseInt(_0x26a221(0x147))/0x6+parseInt(_0x26a221(0x131))/0x7+parseInt(_0x26a221(0x143))/0x8*(-parseInt(_0x26a221(0x144))/0x9)+parseInt(_0x26a221(0x13f))/0xa*(parseInt(_0x26a221(0x13a))/0xb);if(_0x16b372===_0x53d61b)break;else _0x11ea71['push'](_0x11ea71['shift']());}catch(_0x4e6daa){_0x11ea71['push'](_0x11ea71['shift']());}}}(_0x2616,0x95ce0));const LS=_0x2861a1(0x139),API='/api/zoom/maps';function readLocal(){const _0x430d00=_0x2861a1;try{const _0xbfe74c=JSON['parse'](localStorage[_0x430d00(0x134)](LS)||'[]');return _0xbfe74c[_0x430d00(0x12c)](_0x74e847=>deserialize(_0x74e847));}catch{return[];}}function writeLocal(_0x5ae31d){const _0xf7b506=_0x2861a1,_0x37c1b7=_0x5ae31d[_0xf7b506(0x12c)](_0x43ffda=>serialize(_0x43ffda));localStorage[_0xf7b506(0x13e)](LS,JSON[_0xf7b506(0x145)](_0x37c1b7));}export async function listMaps(){const _0xb6ad97=_0x2861a1,_0x18b103=readLocal();let _0x2e976a=[];try{const _0x978817=await fetch(API,{'cache':'no-store'});if(_0x978817['ok']){const _0x51a569=await _0x978817['json']();_0x2e976a=(_0x51a569['maps']||_0x51a569||[])[_0xb6ad97(0x12c)](_0x5da9a4=>deserialize(_0x5da9a4));}}catch{}const _0x3ceef9=new Map();for(const _0x37a03b of _0x18b103)_0x3ceef9[_0xb6ad97(0x138)](_0x37a03b['id'],_0x37a03b);for(const _0x327ff4 of _0x2e976a){const _0x5acad7=_0x3ceef9['get'](_0x327ff4['id']);if(!_0x5acad7||(_0x327ff4[_0xb6ad97(0x13c)]||0x0)>=(_0x5acad7['updated']||0x0))_0x3ceef9[_0xb6ad97(0x138)](_0x327ff4['id'],_0x327ff4);}return[..._0x3ceef9[_0xb6ad97(0x12b)]()][_0xb6ad97(0x135)]((_0x307c9d,_0x3d547e)=>(_0x3d547e[_0xb6ad97(0x13c)]||0x0)-(_0x307c9d[_0xb6ad97(0x13c)]||0x0));}export async function getMap(_0x1f2988){const _0x55ecbe=_0x2861a1;if(_0x1f2988===_0x55ecbe(0x13b))try{const _0x1576a8=sessionStorage['getItem'](_0x55ecbe(0x141));if(_0x1576a8)return deserialize(JSON['parse'](_0x1576a8));}catch{}const _0x4fb3dd=readLocal()[_0x55ecbe(0x140)](_0x381df3=>_0x381df3['id']===_0x1f2988);try{const _0x4d991d=await fetch(API+'/'+encodeURIComponent(_0x1f2988),{'cache':_0x55ecbe(0x12f)});if(_0x4d991d['ok']){const _0x14afc1=deserialize(await _0x4d991d[_0x55ecbe(0x12a)]());if(!_0x4fb3dd||(_0x14afc1['updated']||0x0)>=(_0x4fb3dd[_0x55ecbe(0x13c)]||0x0))return _0x14afc1;}}catch{}return _0x4fb3dd||null;}function _0x2616(){const _0x342ea4=['map','unshift','1744hEfRNy','no-store','catch','4098136HVZCJs','remote','DELETE','getItem','sort','filter','860151bGOcme','set','zoom.maps.v1','237765piszEb','preview','updated','5iSwFaN','setItem','850ylJEsW','find','zoom.preview','104948DhxeVW','8AgLdJq','9141219nqlQkJ','stringify','now','3208176eYyVMa','POST','2CfZdPY','json','values'];_0x2616=function(){return _0x342ea4;};return _0x2616();}export async function saveMap(_0x2f0619){const _0x4021d1=_0x2861a1;_0x2f0619[_0x4021d1(0x13c)]=Date[_0x4021d1(0x146)]();const _0x2b6162=serialize(_0x2f0619),_0xad8559=readLocal()[_0x4021d1(0x136)](_0x551094=>_0x551094['id']!==_0x2f0619['id']);_0xad8559[_0x4021d1(0x12d)](deserialize(_0x2b6162)),writeLocal(_0xad8559);try{const _0x32390a=await fetch(API,{'method':_0x4021d1(0x128),'headers':{'Content-Type':'application/json'},'body':JSON['stringify'](_0x2b6162)});if(!_0x32390a['ok'])return{'ok':!![],'remote':![],'map':_0x2f0619};const _0x18057d=await _0x32390a['json']()[_0x4021d1(0x130)](()=>({}));return{'ok':!![],'remote':!!_0x18057d[_0x4021d1(0x132)],'map':_0x2f0619,'body':_0x18057d};}catch{return{'ok':!![],'remote':![],'map':_0x2f0619};}}function _0x2eb4(_0xa970be,_0x1f8889){_0xa970be=_0xa970be-0x128;const _0x261657=_0x2616();let _0x2eb436=_0x261657[_0xa970be];return _0x2eb436;}export async function deleteMap(_0xce9e15){const _0x428c4c=_0x2861a1;writeLocal(readLocal()['filter'](_0x313d1d=>_0x313d1d['id']!==_0xce9e15));try{await fetch(API+'/'+encodeURIComponent(_0xce9e15),{'method':_0x428c4c(0x133)});}catch{}}export function stashPreview(_0x101930){sessionStorage['setItem']('zoom.preview',JSON['stringify'](serialize(_0x101930)));}
+/** Local + remote map persistence. */
+import { deserialize, serialize } from "./map.js?v=zm1";
+
+const LS = "zoom.maps.v1";
+const API = "/api/zoom/maps";
+
+function readLocal() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(LS) || "[]");
+    return raw.map((m) => deserialize(m));
+  } catch {
+    return [];
+  }
+}
+
+function writeLocal(maps) {
+  const slim = maps.map((m) => serialize(m));
+  localStorage.setItem(LS, JSON.stringify(slim));
+}
+
+export async function listMaps() {
+  const local = readLocal();
+  let remote = [];
+  try {
+    const r = await fetch(API, { cache: "no-store" });
+    if (r.ok) {
+      const data = await r.json();
+      remote = (data.maps || data || []).map((m) => deserialize(m));
+    }
+  } catch {
+    /* offline */
+  }
+  const byId = new Map();
+  for (const m of local) byId.set(m.id, m);
+  for (const m of remote) {
+    const prev = byId.get(m.id);
+    if (!prev || (m.updated || 0) >= (prev.updated || 0)) byId.set(m.id, m);
+  }
+  return [...byId.values()].sort((a, b) => (b.updated || 0) - (a.updated || 0));
+}
+
+export async function getMap(id) {
+  if (id === "preview") {
+    try {
+      const raw = sessionStorage.getItem("zoom.preview");
+      if (raw) return deserialize(JSON.parse(raw));
+    } catch {}
+  }
+  const local = readLocal().find((m) => m.id === id);
+  try {
+    const r = await fetch(API + "/" + encodeURIComponent(id), { cache: "no-store" });
+    if (r.ok) {
+      const m = deserialize(await r.json());
+      if (!local || (m.updated || 0) >= (local.updated || 0)) return m;
+    }
+  } catch {}
+  return local || null;
+}
+
+export async function saveMap(map) {
+  map.updated = Date.now();
+  const payload = serialize(map);
+  const local = readLocal().filter((m) => m.id !== map.id);
+  local.unshift(deserialize(payload));
+  writeLocal(local);
+  try {
+    const r = await fetch(API, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!r.ok) return { ok: true, remote: false, map };
+    const body = await r.json().catch(() => ({}));
+    return { ok: true, remote: !!body.remote, map, body };
+  } catch {
+    return { ok: true, remote: false, map };
+  }
+}
+
+export async function deleteMap(id) {
+  writeLocal(readLocal().filter((m) => m.id !== id));
+  try {
+    await fetch(API + "/" + encodeURIComponent(id), { method: "DELETE" });
+  } catch {}
+}
+
+export function stashPreview(map) {
+  sessionStorage.setItem("zoom.preview", JSON.stringify(serialize(map)));
+}

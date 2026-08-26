@@ -1,5 +1,193 @@
-import*as _0x4c9f6e from'three';
-import{BIOMES,CELL,EYE,FLAG_SPIKE,LIQ_LAVA}from'./config.js?v=sw3';
-import{computeSdf,getTex,isCarved,sdf3}from'./map.js?v=sw3';
-import{allMaterials}from'./tex.js?v=sw3';
-(function(_0x979c3a,_0x59779e){const _0x3ee1d7=_0x11c1,_0x33335b=_0x979c3a();while(!![]){try{const _0x45d6f4=parseInt(_0x3ee1d7(0x1fc))/0x1*(-parseInt(_0x3ee1d7(0x1f2))/0x2)+-parseInt(_0x3ee1d7(0x1f9))/0x3*(parseInt(_0x3ee1d7(0x1fa))/0x4)+parseInt(_0x3ee1d7(0x209))/0x5+-parseInt(_0x3ee1d7(0x1f5))/0x6+parseInt(_0x3ee1d7(0x1fb))/0x7+parseInt(_0x3ee1d7(0x208))/0x8*(parseInt(_0x3ee1d7(0x1f8))/0x9)+-parseInt(_0x3ee1d7(0x205))/0xa*(parseInt(_0x3ee1d7(0x1ef))/0xb);if(_0x45d6f4===_0x59779e)break;else _0x33335b['push'](_0x33335b['shift']());}catch(_0x22bc85){_0x33335b['push'](_0x33335b['shift']());}}}(_0xd001,0x3b0ec));const VX=0.42;function _0x11c1(_0x2d70a9,_0x417c2c){_0x2d70a9=_0x2d70a9-0x1ef;const _0xd001d9=_0xd001();let _0x11c10a=_0xd001d9[_0x2d70a9];return _0x11c10a;}export function prepareSdf(_0xfa36a6){return computeSdf(_0xfa36a6);}export function yMax(_0x1c1007){const _0x30c3be=_0x11c1;let _0x5910c1=_0x1c1007['hallH']||4.2;for(const _0x186dfd of _0x1c1007['spheres'])_0x5910c1=Math[_0x30c3be(0x206)](_0x5910c1,(_0x186dfd['cy']||_0x186dfd['r']*0.55)+_0x186dfd['r']);let _0x3c6f8e=0x0,_0x3175ad=0x0,_0x2502ea=![];if(_0x1c1007[_0x30c3be(0x1f6)])for(let _0x399ee2=0x0;_0x399ee2<_0x1c1007[_0x30c3be(0x1f6)][_0x30c3be(0x1fe)];_0x399ee2++){if(_0x1c1007[_0x30c3be(0x1f6)][_0x399ee2]>_0x3c6f8e)_0x3c6f8e=_0x1c1007[_0x30c3be(0x1f6)][_0x399ee2];if(_0x1c1007[_0x30c3be(0x1f6)][_0x399ee2]<_0x3175ad)_0x3175ad=_0x1c1007['elev'][_0x399ee2];}if(_0x1c1007[_0x30c3be(0x1f7)]){for(let _0x55cf1b=0x0;_0x55cf1b<_0x1c1007[_0x30c3be(0x1f7)]['length'];_0x55cf1b++)if(_0x1c1007['sky'][_0x55cf1b])_0x2502ea=!![];}let _0x15aff4=0x0;if(_0x1c1007[_0x30c3be(0x20c)]){for(let _0x3f1ab2=0x0;_0x3f1ab2<_0x1c1007[_0x30c3be(0x20c)]['length'];_0x3f1ab2++)if(_0x1c1007['flags'][_0x3f1ab2]&FLAG_SPIKE){_0x15aff4=Math['max'](_0x15aff4,4.05);break;}}if(_0x1c1007[_0x30c3be(0x20b)]&&_0x15aff4<2.6){for(let _0x32e1bd=0x0;_0x32e1bd<_0x1c1007['liquid'][_0x30c3be(0x1fe)];_0x32e1bd++)if(_0x1c1007[_0x30c3be(0x20b)][_0x32e1bd]===LIQ_LAVA){_0x15aff4=Math[_0x30c3be(0x206)](_0x15aff4,2.6);break;}}return{'max':_0x3c6f8e*EYE+_0x5910c1+_0x15aff4+(_0x2502ea?0.35:0.8),'min':_0x3175ad*EYE-1.8};}export function buildDungeon(_0x5f592f,_0x3b42e1){const _0x1bb22a=_0x11c1,_0x555465=new _0x4c9f6e[(_0x1bb22a(0x202))]();_0x555465['name']='dungeon';const _0x4ff97d=allMaterials(),_0x394da6=yMax(_0x5f592f),_0x5dffde=_0x394da6['max'],_0x578e06=_0x394da6[_0x1bb22a(0x1f4)],_0x8c850a=Math['ceil'](_0x5f592f['w']*CELL/VX),_0x5bcb38=Math['ceil'](_0x5f592f['h']*CELL/VX),_0x1e8339=Math[_0x1bb22a(0x206)](0x6,Math[_0x1bb22a(0x201)]((_0x5dffde-_0x578e06)/VX));let _0x4529e2=_0x8c850a,_0x2d8bc7=_0x5bcb38,_0x37a43a=0x0,_0x506f15=0x0;for(let _0x300e77=0x0;_0x300e77<_0x5f592f['h'];_0x300e77++){for(let _0x3af881=0x0;_0x3af881<_0x5f592f['w'];_0x3af881++){if(!isCarved(_0x5f592f[_0x1bb22a(0x20a)][_0x300e77*_0x5f592f['w']+_0x3af881]))continue;const _0x1409d6=Math['floor'](_0x3af881*CELL/VX),_0x5db562=Math[_0x1bb22a(0x1f0)](_0x300e77*CELL/VX);if(_0x1409d6<_0x4529e2)_0x4529e2=_0x1409d6;if(_0x5db562<_0x2d8bc7)_0x2d8bc7=_0x5db562;if(_0x1409d6>_0x37a43a)_0x37a43a=_0x1409d6;if(_0x5db562>_0x506f15)_0x506f15=_0x5db562;}}for(const _0x3a3b0e of _0x5f592f['spheres']){const _0x3ebc19=Math['ceil']((_0x3a3b0e['r']+0.5)/VX),_0x28fa45=Math[_0x1bb22a(0x1f0)](_0x3a3b0e['x']/VX),_0x346a43=Math[_0x1bb22a(0x1f0)](_0x3a3b0e['z']/VX);_0x4529e2=Math['min'](_0x4529e2,_0x28fa45-_0x3ebc19),_0x37a43a=Math[_0x1bb22a(0x206)](_0x37a43a,_0x28fa45+_0x3ebc19),_0x2d8bc7=Math[_0x1bb22a(0x1f4)](_0x2d8bc7,_0x346a43-_0x3ebc19),_0x506f15=Math[_0x1bb22a(0x206)](_0x506f15,_0x346a43+_0x3ebc19);}_0x4529e2=Math[_0x1bb22a(0x206)](0x0,_0x4529e2-0x2),_0x2d8bc7=Math[_0x1bb22a(0x206)](0x0,_0x2d8bc7-0x2),_0x37a43a=Math[_0x1bb22a(0x1f4)](_0x8c850a-0x1,_0x37a43a+0x2),_0x506f15=Math[_0x1bb22a(0x1f4)](_0x5bcb38-0x1,_0x506f15+0x2);if(_0x37a43a<_0x4529e2)return{'group':_0x555465,'sdf2':_0x3b42e1,'ymax':_0x5dffde};const _0x17b330=_0x37a43a-_0x4529e2+0x1,_0x5059ac=_0x506f15-_0x2d8bc7+0x1,_0x3f43d6=new Uint8Array(_0x17b330*_0x1e8339*_0x5059ac),_0x3131b6=new Uint8Array(_0x17b330*_0x1e8339*_0x5059ac),_0x113829=(_0x362a86,_0x48c796,_0x4a8fe5)=>((_0x4a8fe5-_0x2d8bc7)*_0x1e8339+_0x48c796)*_0x17b330+(_0x362a86-_0x4529e2);for(let _0x222185=_0x2d8bc7;_0x222185<=_0x506f15;_0x222185++){for(let _0xfc237=_0x4529e2;_0xfc237<=_0x37a43a;_0xfc237++){const _0x118bd1=(_0xfc237+0.5)*VX,_0x3dd902=(_0x222185+0.5)*VX,_0x47d88d=Math[_0x1bb22a(0x206)](0x0,Math[_0x1bb22a(0x1f4)](_0x5f592f['w']-0x1,Math[_0x1bb22a(0x1f0)](_0x118bd1/CELL))),_0x489feb=Math[_0x1bb22a(0x206)](0x0,Math['min'](_0x5f592f['h']-0x1,Math[_0x1bb22a(0x1f0)](_0x3dd902/CELL))),_0x3c6669=getTex(_0x5f592f['cells'][_0x489feb*_0x5f592f['w']+_0x47d88d]);for(let _0xba90d5=0x0;_0xba90d5<_0x1e8339;_0xba90d5++){const _0x249b27=_0x578e06+(_0xba90d5+0.5)*VX;if(sdf3(_0x118bd1,_0x249b27,_0x3dd902,_0x5f592f,_0x3b42e1)<0x0){const _0x41d61c=_0x113829(_0xfc237,_0xba90d5,_0x222185);_0x3f43d6[_0x41d61c]=0x1,_0x3131b6[_0x41d61c]=_0x3c6669;}}}}const _0x1ebc9e=[];for(let _0x51a8c4=0x0;_0x51a8c4<BIOMES[_0x1bb22a(0x1fe)];_0x51a8c4++){_0x1ebc9e[_0x1bb22a(0x1f1)]({'w':[],'f':[]});}const _0x19816d=[];function _0x4e7ad2(_0x1b6920,_0x6dc7ee,_0xcb5c1a,_0x64744d,_0x52dbe2,_0x2fc67d){if(_0x64744d)return[_0xcb5c1a*0.38,_0x6dc7ee*0.38];if(_0x52dbe2)return[_0x1b6920*0.38,_0xcb5c1a*0.38];return[_0x1b6920*0.38,_0x6dc7ee*0.38];}function _0x3aa6b4(_0x21a3cb,_0xebf8dd,_0x2bb724,_0x20cbdf,_0x5a1cf3,_0x1df963,_0x3205f3,_0x58f537,_0x3068da,_0x1503c4,_0x58687c,_0x545334,_0x3618c9,_0xb2e916,_0x29bf4f,_0x304ef7){const _0x33477c=_0x1bb22a;_0x21a3cb['push'](_0xebf8dd,_0x2bb724,_0x20cbdf,_0x5a1cf3,_0x1df963,_0x3205f3,_0x58f537,_0x3068da,_0x1503c4,_0xebf8dd,_0x2bb724,_0x20cbdf,_0x58f537,_0x3068da,_0x1503c4,_0x58687c,_0x545334,_0x3618c9),_0x21a3cb['_n']=_0x21a3cb['_n']||[],_0x21a3cb['_uv']=_0x21a3cb[_0x33477c(0x203)]||[];for(let _0x5be59e=0x0;_0x5be59e<0x6;_0x5be59e++)_0x21a3cb['_n']['push'](_0xb2e916,_0x29bf4f,_0x304ef7);const _0x3b65be=[_0xebf8dd,_0x2bb724,_0x20cbdf,_0x5a1cf3,_0x1df963,_0x3205f3,_0x58f537,_0x3068da,_0x1503c4,_0xebf8dd,_0x2bb724,_0x20cbdf,_0x58f537,_0x3068da,_0x1503c4,_0x58687c,_0x545334,_0x3618c9];for(let _0x9cdf09=0x0;_0x9cdf09<0x6;_0x9cdf09++){const _0x3d7969=_0x4e7ad2(_0x3b65be[_0x9cdf09*0x3],_0x3b65be[_0x9cdf09*0x3+0x1],_0x3b65be[_0x9cdf09*0x3+0x2],_0xb2e916,_0x29bf4f,_0x304ef7);_0x21a3cb[_0x33477c(0x203)][_0x33477c(0x1f1)](_0x3d7969[0x0],_0x3d7969[0x1]);}}const _0x341e7e=[[0x1,0x0,0x0],[-0x1,0x0,0x0],[0x0,0x1,0x0],[0x0,-0x1,0x0],[0x0,0x0,0x1],[0x0,0x0,-0x1]];for(let _0x460e79=_0x2d8bc7;_0x460e79<=_0x506f15;_0x460e79++){for(let _0x2d29be=0x0;_0x2d29be<_0x1e8339;_0x2d29be++){for(let _0x12c589=_0x4529e2;_0x12c589<=_0x37a43a;_0x12c589++){const _0x1ee671=_0x113829(_0x12c589,_0x2d29be,_0x460e79);if(!_0x3f43d6[_0x1ee671])continue;const _0x30b48=_0x3131b6[_0x1ee671]%BIOMES[_0x1bb22a(0x1fe)],_0x320d05=_0x12c589*VX,_0x49db6f=_0x578e06+_0x2d29be*VX,_0x3536f3=_0x460e79*VX,_0x33170d=_0x320d05+VX,_0x22a93a=_0x49db6f+VX,_0x3fb56e=_0x3536f3+VX;for(const [_0x307f5e,_0x3f7b50,_0x76e367]of _0x341e7e){const _0x556767=_0x12c589+_0x307f5e,_0x44df1e=_0x2d29be+_0x3f7b50,_0x1f8e7f=_0x460e79+_0x76e367;let _0x3afe4e=![];_0x44df1e>=0x0&&_0x44df1e<_0x1e8339&&_0x556767>=_0x4529e2&&_0x556767<=_0x37a43a&&_0x1f8e7f>=_0x2d8bc7&&_0x1f8e7f<=_0x506f15&&(_0x3afe4e=!!_0x3f43d6[_0x113829(_0x556767,_0x44df1e,_0x1f8e7f)]);if(_0x3afe4e)continue;const _0x290fc5=Math['max'](0x0,Math[_0x1bb22a(0x1f4)](_0x5f592f['w']-0x1,Math['floor']((_0x12c589+0.5)*VX/CELL))),_0x3cd5e0=Math[_0x1bb22a(0x206)](0x0,Math['min'](_0x5f592f['h']-0x1,Math['floor']((_0x460e79+0.5)*VX/CELL))),_0x3d8b4c=!!(_0x5f592f[_0x1bb22a(0x1f7)]&&_0x5f592f['sky'][_0x3cd5e0*_0x5f592f['w']+_0x290fc5]),_0x12370e=(_0x5f592f['elev']&&_0x5f592f[_0x1bb22a(0x1f6)][_0x3cd5e0*_0x5f592f['w']+_0x290fc5]||0x0)*EYE;if(_0x3d8b4c&&_0x3f7b50===0x1)continue;if(_0x3d8b4c&&_0x3f7b50!==-0x1&&_0x49db6f-_0x12370e>3.15)continue;const _0x3f1f7b=_0x3f7b50===-0x1,_0x5cf2c1=_0x3d8b4c&&_0x3f1f7b?_0x19816d:_0x3f1f7b?_0x1ebc9e[_0x30b48]['f']:_0x1ebc9e[_0x30b48]['w'];if(_0x307f5e===0x1)_0x3aa6b4(_0x5cf2c1,_0x33170d,_0x49db6f,_0x3536f3,_0x33170d,_0x22a93a,_0x3536f3,_0x33170d,_0x22a93a,_0x3fb56e,_0x33170d,_0x49db6f,_0x3fb56e,-0x1,0x0,0x0);else{if(_0x307f5e===-0x1)_0x3aa6b4(_0x5cf2c1,_0x320d05,_0x49db6f,_0x3fb56e,_0x320d05,_0x22a93a,_0x3fb56e,_0x320d05,_0x22a93a,_0x3536f3,_0x320d05,_0x49db6f,_0x3536f3,0x1,0x0,0x0);else{if(_0x3f7b50===0x1)_0x3aa6b4(_0x5cf2c1,_0x320d05,_0x22a93a,_0x3536f3,_0x320d05,_0x22a93a,_0x3fb56e,_0x33170d,_0x22a93a,_0x3fb56e,_0x33170d,_0x22a93a,_0x3536f3,0x0,-0x1,0x0);else{if(_0x3f7b50===-0x1)_0x3aa6b4(_0x5cf2c1,_0x320d05,_0x49db6f,_0x3536f3,_0x33170d,_0x49db6f,_0x3536f3,_0x33170d,_0x49db6f,_0x3fb56e,_0x320d05,_0x49db6f,_0x3fb56e,0x0,0x1,0x0);else{if(_0x76e367===0x1)_0x3aa6b4(_0x5cf2c1,_0x320d05,_0x49db6f,_0x3fb56e,_0x33170d,_0x49db6f,_0x3fb56e,_0x33170d,_0x22a93a,_0x3fb56e,_0x320d05,_0x22a93a,_0x3fb56e,0x0,0x0,-0x1);else _0x3aa6b4(_0x5cf2c1,_0x320d05,_0x49db6f,_0x3536f3,_0x320d05,_0x22a93a,_0x3536f3,_0x33170d,_0x22a93a,_0x3536f3,_0x33170d,_0x49db6f,_0x3536f3,0x0,0x0,0x1);}}}}}}}}function _0x3f7553(_0x16b3df,_0x390bb2){const _0x4a51f6=_0x1bb22a;if(!_0x16b3df['length'])return;const _0x1379bc=new _0x4c9f6e[(_0x4a51f6(0x204))]();_0x1379bc[_0x4a51f6(0x1ff)](_0x4a51f6(0x200),new _0x4c9f6e['Float32BufferAttribute'](_0x16b3df,0x3)),_0x1379bc[_0x4a51f6(0x1ff)]('normal',new _0x4c9f6e['Float32BufferAttribute'](_0x16b3df['_n'],0x3)),_0x1379bc['setAttribute']('uv',new _0x4c9f6e[(_0x4a51f6(0x207))](_0x16b3df[_0x4a51f6(0x203)],0x2));const _0x4804be=new _0x4c9f6e['Mesh'](_0x1379bc,_0x390bb2);_0x4804be['castShadow']=![],_0x4804be[_0x4a51f6(0x1fd)]=!![],_0x555465['add'](_0x4804be);}for(let _0x5e01be=0x0;_0x5e01be<BIOMES[_0x1bb22a(0x1fe)];_0x5e01be++){_0x3f7553(_0x1ebc9e[_0x5e01be]['w'],_0x4ff97d[_0x5e01be][_0x1bb22a(0x1f3)]),_0x3f7553(_0x1ebc9e[_0x5e01be]['f'],_0x4ff97d[_0x5e01be][_0x1bb22a(0x1f0)]);}return _0x3f7553(_0x19816d,new _0x4c9f6e['MeshLambertMaterial']({'color':0x4a7a38})),{'group':_0x555465,'sdf2':_0x3b42e1,'ymax':_0x5dffde,'mats':_0x4ff97d};}function _0xd001(){const _0x4ce3b8=['_uv','BufferGeometry','40HcbpCN','max','Float32BufferAttribute','8PjFBEM','2284855DawrVL','cells','liquid','flags','1010812DQAlUI','floor','push','4srWDtb','wall','min','1334634mBYRso','elev','sky','3161745HrKCjb','309FqyTTQ','4916SHjJUi','2137982JRItIA','77604Nemcef','receiveShadow','length','setAttribute','position','ceil','Group'];_0xd001=function(){return _0x4ce3b8;};return _0xd001();}
+/** Voxelize the dug SDF and emit textured wall/floor meshes. */
+import * as THREE from "three";
+import { BIOMES, CELL, EYE, FLAG_SPIKE, LIQ_LAVA } from "./config.js?v=zm1";
+import { computeSdf, getTex, isCarved, sdf3 } from "./map.js?v=zm1";
+import { allMaterials } from "./tex.js?v=zm1";
+
+const VX = 0.42;
+
+export function prepareSdf(map) {
+  return computeSdf(map);
+}
+
+export function yMax(map) {
+  let m = map.hallH || 4.2;
+  for (const s of map.spheres) m = Math.max(m, (s.cy || s.r * 0.55) + s.r);
+  let maxE = 0;
+  let minE = 0;
+  let sky = false;
+  if (map.elev) {
+    for (let i = 0; i < map.elev.length; i++) {
+      if (map.elev[i] > maxE) maxE = map.elev[i];
+      if (map.elev[i] < minE) minE = map.elev[i];
+    }
+  }
+  if (map.sky) {
+    for (let i = 0; i < map.sky.length; i++) if (map.sky[i]) sky = true;
+  }
+  let trapH = 0;
+  if (map.flags) {
+    for (let i = 0; i < map.flags.length; i++) if (map.flags[i] & FLAG_SPIKE) { trapH = Math.max(trapH, 4.05); break; }
+  }
+  if (map.liquid && trapH < 2.6) {
+    for (let i = 0; i < map.liquid.length; i++) if (map.liquid[i] === LIQ_LAVA) { trapH = Math.max(trapH, 2.6); break; }
+  }
+  // Sky courtyards keep the same wall height as halls, then open — a taller
+  // voxel column just makes a trench. The lid is skipped in the mesher.
+  return { max: maxE * EYE + m + trapH + (sky ? 0.35 : 0.8), min: minE * EYE - 1.8 };
+}
+
+export function buildDungeon(map, sdf2) {
+  const group = new THREE.Group();
+  group.name = "dungeon";
+  const mats = allMaterials();
+  const yr = yMax(map);
+  const ymax = yr.max;
+  const ymin = yr.min;
+  const nx = Math.ceil((map.w * CELL) / VX);
+  const nz = Math.ceil((map.h * CELL) / VX);
+  const ny = Math.max(6, Math.ceil((ymax - ymin) / VX));
+
+  let minx = nx, minz = nz, maxx = 0, maxz = 0;
+  for (let z = 0; z < map.h; z++) {
+    for (let x = 0; x < map.w; x++) {
+      if (!isCarved(map.cells[z * map.w + x])) continue;
+      const ix = Math.floor((x * CELL) / VX);
+      const iz = Math.floor((z * CELL) / VX);
+      if (ix < minx) minx = ix;
+      if (iz < minz) minz = iz;
+      if (ix > maxx) maxx = ix;
+      if (iz > maxz) maxz = iz;
+    }
+  }
+  for (const s of map.spheres) {
+    const pad = Math.ceil((s.r + 0.5) / VX);
+    const ix = Math.floor(s.x / VX);
+    const iz = Math.floor(s.z / VX);
+    minx = Math.min(minx, ix - pad);
+    maxx = Math.max(maxx, ix + pad);
+    minz = Math.min(minz, iz - pad);
+    maxz = Math.max(maxz, iz + pad);
+  }
+  minx = Math.max(0, minx - 2);
+  minz = Math.max(0, minz - 2);
+  maxx = Math.min(nx - 1, maxx + 2);
+  maxz = Math.min(nz - 1, maxz + 2);
+  if (maxx < minx) return { group, sdf2, ymax };
+
+  const wx = maxx - minx + 1;
+  const wz = maxz - minz + 1;
+  const empty = new Uint8Array(wx * ny * wz);
+  const texOf = new Uint8Array(wx * ny * wz);
+  const at = (ix, iy, iz) => ((iz - minz) * ny + iy) * wx + (ix - minx);
+
+  for (let iz = minz; iz <= maxz; iz++) {
+    for (let ix = minx; ix <= maxx; ix++) {
+      const x = (ix + 0.5) * VX;
+      const z = (iz + 0.5) * VX;
+      const gx = Math.max(0, Math.min(map.w - 1, Math.floor(x / CELL)));
+      const gz = Math.max(0, Math.min(map.h - 1, Math.floor(z / CELL)));
+      const t = getTex(map.cells[gz * map.w + gx]);
+      for (let iy = 0; iy < ny; iy++) {
+        const y = ymin + (iy + 0.5) * VX;
+        if (sdf3(x, y, z, map, sdf2) < 0) {
+          const i = at(ix, iy, iz);
+          empty[i] = 1;
+          texOf[i] = t;
+        }
+      }
+    }
+  }
+
+  const buckets = [];
+  for (let i = 0; i < BIOMES.length; i++) {
+    buckets.push({ w: [], f: [] });
+  }
+  const skyFloor = [];
+
+  function uv(x, y, z, nx, ny, nz) {
+    if (nx) return [z * 0.38, y * 0.38];
+    if (ny) return [x * 0.38, z * 0.38];
+    return [x * 0.38, y * 0.38];
+  }
+  function pushFace(list, ax, ay, az, bx, by, bz, cx, cy, cz, dx, dy, dz, nx, ny, nz) {
+    list.push(ax, ay, az, bx, by, bz, cx, cy, cz, ax, ay, az, cx, cy, cz, dx, dy, dz);
+    list._n = list._n || [];
+    list._uv = list._uv || [];
+    for (let k = 0; k < 6; k++) list._n.push(nx, ny, nz);
+    const uvs = [ax, ay, az, bx, by, bz, cx, cy, cz, ax, ay, az, cx, cy, cz, dx, dy, dz];
+    for (let k = 0; k < 6; k++) {
+      const p = uv(uvs[k * 3], uvs[k * 3 + 1], uvs[k * 3 + 2], nx, ny, nz);
+      list._uv.push(p[0], p[1]);
+    }
+  }
+
+  const dirs = [
+    [1, 0, 0],
+    [-1, 0, 0],
+    [0, 1, 0],
+    [0, -1, 0],
+    [0, 0, 1],
+    [0, 0, -1],
+  ];
+
+  for (let iz = minz; iz <= maxz; iz++) {
+    for (let iy = 0; iy < ny; iy++) {
+      for (let ix = minx; ix <= maxx; ix++) {
+        const i = at(ix, iy, iz);
+        if (!empty[i]) continue;
+        const t = texOf[i] % BIOMES.length;
+        const x0 = ix * VX;
+        const y0 = ymin + iy * VX;
+        const z0 = iz * VX;
+        const x1 = x0 + VX;
+        const y1 = y0 + VX;
+        const z1 = z0 + VX;
+        for (const [dx, dy, dz] of dirs) {
+          const nix = ix + dx;
+          const niy = iy + dy;
+          const niz = iz + dz;
+          let neighborEmpty = false;
+          if (niy >= 0 && niy < ny && nix >= minx && nix <= maxx && niz >= minz && niz <= maxz) {
+            neighborEmpty = !!empty[at(nix, niy, niz)];
+          }
+          if (neighborEmpty) continue;
+          const gx = Math.max(0, Math.min(map.w - 1, Math.floor(((ix + 0.5) * VX) / CELL)));
+          const gz = Math.max(0, Math.min(map.h - 1, Math.floor(((iz + 0.5) * VX) / CELL)));
+          const skyHere = !!(map.sky && map.sky[gz * map.w + gx]);
+          const elevY = ((map.elev && map.elev[gz * map.w + gx]) || 0) * EYE;
+          if (skyHere && dy === 1) continue;
+          if (skyHere && dy !== -1 && y0 - elevY > 3.15) continue;
+          const floorish = dy === -1;
+          const list = skyHere && floorish ? skyFloor : floorish ? buckets[t].f : buckets[t].w;
+          if (dx === 1) pushFace(list, x1, y0, z0, x1, y1, z0, x1, y1, z1, x1, y0, z1, -1, 0, 0);
+          else if (dx === -1) pushFace(list, x0, y0, z1, x0, y1, z1, x0, y1, z0, x0, y0, z0, 1, 0, 0);
+          else if (dy === 1) pushFace(list, x0, y1, z0, x0, y1, z1, x1, y1, z1, x1, y1, z0, 0, -1, 0);
+          else if (dy === -1) pushFace(list, x0, y0, z0, x1, y0, z0, x1, y0, z1, x0, y0, z1, 0, 1, 0);
+          else if (dz === 1) pushFace(list, x0, y0, z1, x1, y0, z1, x1, y1, z1, x0, y1, z1, 0, 0, -1);
+          else pushFace(list, x0, y0, z0, x0, y1, z0, x1, y1, z0, x1, y0, z0, 0, 0, 1);
+        }
+      }
+    }
+  }
+
+  function meshFrom(list, mat) {
+    if (!list.length) return;
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute("position", new THREE.Float32BufferAttribute(list, 3));
+    geo.setAttribute("normal", new THREE.Float32BufferAttribute(list._n, 3));
+    geo.setAttribute("uv", new THREE.Float32BufferAttribute(list._uv, 2));
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.castShadow = false;
+    mesh.receiveShadow = true;
+    group.add(mesh);
+  }
+
+  for (let t = 0; t < BIOMES.length; t++) {
+    meshFrom(buckets[t].w, mats[t].wall);
+    meshFrom(buckets[t].f, mats[t].floor);
+  }
+  meshFrom(skyFloor, new THREE.MeshLambertMaterial({ color: 0x4a7a38 }));
+
+  return { group, sdf2, ymax, mats };
+}

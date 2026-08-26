@@ -1,1 +1,117 @@
-(function(_0x611c0,_0x5ec1ac){const _0x37be9e=_0xeb64,_0x3fd5b5=_0x611c0();while(!![]){try{const _0xfc4b51=parseInt(_0x37be9e(0x176))/0x1+parseInt(_0x37be9e(0x18e))/0x2+parseInt(_0x37be9e(0x183))/0x3+-parseInt(_0x37be9e(0x184))/0x4+parseInt(_0x37be9e(0x17c))/0x5*(-parseInt(_0x37be9e(0x178))/0x6)+parseInt(_0x37be9e(0x179))/0x7*(-parseInt(_0x37be9e(0x182))/0x8)+-parseInt(_0x37be9e(0x18f))/0x9*(-parseInt(_0x37be9e(0x18a))/0xa);if(_0xfc4b51===_0x5ec1ac)break;else _0x3fd5b5['push'](_0x3fd5b5['shift']());}catch(_0x4cd023){_0x3fd5b5['push'](_0x3fd5b5['shift']());}}}(_0x35c5,0x7de32));function _0xeb64(_0x11d5a5,_0x32e13e){_0x11d5a5=_0x11d5a5-0x171;const _0x35c504=_0x35c5();let _0xeb64e9=_0x35c504[_0x11d5a5];return _0xeb64e9;}function _0x35c5(){const _0x9ed23=['connect','catch','1479782QWplaa','9BVdBNq','setValueAtTime','resume','min','square','gain','createBuffer','destination','sawtooth','state','sine','start','type','267484TUpmKC','frequency','415446JRJWKx','7SJPIva','createOscillator','max','50AZQEeh','getChannelData','value','createBiquadFilter','exponentialRampToValueAtTime','triangle','5110168FAstUu','383211cVElux','2910620SQEeZY','lowpass','currentTime','AudioContext','webkitAudioContext','buffer','14393580VUuWjb','createGain'];_0x35c5=function(){return _0x9ed23;};return _0x35c5();}let ac;function ctx(){const _0x7c0d29=_0xeb64;if(ac)return ac;const _0x225fe8=window[_0x7c0d29(0x187)]||window[_0x7c0d29(0x188)];if(!_0x225fe8)return null;return ac=new _0x225fe8(),ac;}export function sfxUnlock(){const _0xb252b6=_0xeb64,_0x5f0a97=ctx();if(_0x5f0a97&&_0x5f0a97[_0xb252b6(0x172)]==='suspended')_0x5f0a97[_0xb252b6(0x191)]()[_0xb252b6(0x18d)](()=>{});}function beep(_0x416093,_0x15babc,_0x17d9cb,_0x372d6a,_0x541fbd){const _0x4b2ccc=_0xeb64,_0x3caa0b=ctx();if(!_0x3caa0b)return;const _0xea6e5e=_0x3caa0b[_0x4b2ccc(0x17a)](),_0x2696f1=_0x3caa0b[_0x4b2ccc(0x18b)](),_0x1a92dd=_0x3caa0b['createBiquadFilter']();_0xea6e5e[_0x4b2ccc(0x175)]=_0x416093,_0xea6e5e['frequency'][_0x4b2ccc(0x190)](_0x15babc,_0x3caa0b[_0x4b2ccc(0x186)]);if(_0x541fbd)_0xea6e5e[_0x4b2ccc(0x177)]['exponentialRampToValueAtTime'](Math[_0x4b2ccc(0x17b)](0x28,_0x541fbd),_0x3caa0b['currentTime']+_0x17d9cb);_0x1a92dd['type']=_0x4b2ccc(0x185),_0x1a92dd[_0x4b2ccc(0x177)][_0x4b2ccc(0x17e)]=Math[_0x4b2ccc(0x192)](0x1068,_0x15babc*0x4),_0x2696f1[_0x4b2ccc(0x194)][_0x4b2ccc(0x190)](0.0001,_0x3caa0b[_0x4b2ccc(0x186)]),_0x2696f1['gain'][_0x4b2ccc(0x180)](_0x372d6a,_0x3caa0b[_0x4b2ccc(0x186)]+0.012),_0x2696f1[_0x4b2ccc(0x194)][_0x4b2ccc(0x180)](0.0001,_0x3caa0b[_0x4b2ccc(0x186)]+_0x17d9cb),_0xea6e5e[_0x4b2ccc(0x18c)](_0x1a92dd),_0x1a92dd[_0x4b2ccc(0x18c)](_0x2696f1),_0x2696f1['connect'](_0x3caa0b['destination']),_0xea6e5e[_0x4b2ccc(0x174)](),_0xea6e5e['stop'](_0x3caa0b[_0x4b2ccc(0x186)]+_0x17d9cb+0.02);}function noise(_0x580c1b,_0x21494a,_0x47b362){const _0x17c0ce=_0xeb64,_0x37c65b=ctx();if(!_0x37c65b)return;const _0x26ed9d=Math[_0x17c0ce(0x17b)](0x1,_0x37c65b['sampleRate']*_0x580c1b|0x0),_0x568234=_0x37c65b[_0x17c0ce(0x195)](0x1,_0x26ed9d,_0x37c65b['sampleRate']),_0x33f4d9=_0x568234[_0x17c0ce(0x17d)](0x0);for(let _0x512f4c=0x0;_0x512f4c<_0x26ed9d;_0x512f4c++)_0x33f4d9[_0x512f4c]=(Math['random']()*0x2-0x1)*(0x1-_0x512f4c/_0x26ed9d);const _0x14d60d=_0x37c65b['createBufferSource']();_0x14d60d[_0x17c0ce(0x189)]=_0x568234;const _0x5d8c50=_0x37c65b[_0x17c0ce(0x17f)]();_0x5d8c50['type']='bandpass',_0x5d8c50['frequency']['value']=_0x47b362,_0x5d8c50['Q']['value']=0.7;const _0x8e9808=_0x37c65b[_0x17c0ce(0x18b)]();_0x8e9808[_0x17c0ce(0x194)][_0x17c0ce(0x190)](_0x21494a,_0x37c65b[_0x17c0ce(0x186)]),_0x8e9808[_0x17c0ce(0x194)][_0x17c0ce(0x180)](0.0001,_0x37c65b['currentTime']+_0x580c1b),_0x14d60d[_0x17c0ce(0x18c)](_0x5d8c50),_0x5d8c50[_0x17c0ce(0x18c)](_0x8e9808),_0x8e9808[_0x17c0ce(0x18c)](_0x37c65b[_0x17c0ce(0x196)]),_0x14d60d[_0x17c0ce(0x174)]();}const FN={'psy'(){const _0x237d14=_0xeb64;beep(_0x237d14(0x171),0xdc,0.22,0.09,0x5a),beep('sine',0x2a8,0.18,0.06,0xf0),noise(0.16,0.08,0x384);},'glass'(){const _0x18f580=_0xeb64;beep('triangle',0x5c8,0.12,0.07,0x1a4),beep(_0x18f580(0x193),0x398,0.08,0.04,0xc8),noise(0.18,0.11,0x960);},'grab'(){const _0x5215d0=_0xeb64;beep(_0x5215d0(0x173),0xb4,0.1,0.07,0x8c);},'release'(){const _0x3deb29=_0xeb64;beep(_0x3deb29(0x181),0xf0,0.12,0.05,0x6e);},'swing'(){const _0x142d6e=_0xeb64;noise(0.1,0.07,0x258),beep(_0x142d6e(0x171),0xa0,0.08,0.04,0x50);},'gun'(){const _0x1a65d0=_0xeb64;noise(0.09,0.12,0x2bc),beep(_0x1a65d0(0x193),0x8c,0.07,0.06,0x46);},'hit'(){const _0x5e8b07=_0xeb64;noise(0.08,0.1,0x190),beep(_0x5e8b07(0x171),0x5a,0.1,0.08,0x32);},'boom'(){const _0x3a4139=_0xeb64;noise(0.22,0.14,0xb4),beep(_0x3a4139(0x173),0x46,0.28,0.12,0x28);},'cycle'(){const _0x2bd9d1=_0xeb64;beep(_0x2bd9d1(0x193),0x208,0.06,0.04,0x30c);},'key'(){beep('sine',0x3d4,0.12,0.09,0x5c8),beep('triangle',0x528,0.1,0.05,0x6e0);},'wep'(){const _0x3d935d=_0xeb64;beep(_0x3d935d(0x193),0x118,0.1,0.07,0x1a4),beep('sine',0x294,0.12,0.05,0x370);},'orb'(){const _0x5cb963=_0xeb64;beep(_0x5cb963(0x173),0x208,0.14,0.08,0x410),beep('triangle',0x370,0.16,0.05,0x5c8);},'splash'(){const _0x30b402=_0xeb64;noise(0.16,0.08,0x1e0),beep(_0x30b402(0x173),0xdc,0.12,0.04,0x5a);},'charge'(){beep('sawtooth',0xb4,0.08,0.04,0x1a4);},'talk'(){const _0x438bef=_0xeb64;beep(_0x438bef(0x173),0x154,0.08,0.05,0x118);},'fire'(){const _0xc2e804=_0xeb64;noise(0.12,0.06,0x1f4),beep(_0xc2e804(0x171),0x136,0.1,0.05,0x78);},'land'(){noise(0.08,0.06,0xdc);}};export function sfx(_0x4da845){try{sfxUnlock(),(FN[_0x4da845]||FN['hit'])();}catch{}}
+/** Tiny WebAudio hits so ZOOM has feedback without asset files. */
+
+let ac;
+
+function ctx() {
+  if (ac) return ac;
+  const C = window.AudioContext || window.webkitAudioContext;
+  if (!C) return null;
+  ac = new C();
+  return ac;
+}
+
+export function sfxUnlock() {
+  const c = ctx();
+  if (c && c.state === "suspended") c.resume().catch(() => {});
+}
+
+function beep(type, freq, dur, vol, slide) {
+  const c = ctx();
+  if (!c) return;
+  const o = c.createOscillator();
+  const g = c.createGain();
+  const f = c.createBiquadFilter();
+  o.type = type;
+  o.frequency.setValueAtTime(freq, c.currentTime);
+  if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(40, slide), c.currentTime + dur);
+  f.type = "lowpass";
+  f.frequency.value = Math.min(4200, freq * 4);
+  g.gain.setValueAtTime(0.0001, c.currentTime);
+  g.gain.exponentialRampToValueAtTime(vol, c.currentTime + 0.012);
+  g.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + dur);
+  o.connect(f);
+  f.connect(g);
+  g.connect(c.destination);
+  o.start();
+  o.stop(c.currentTime + dur + 0.02);
+}
+
+function noise(dur, vol, freq) {
+  const c = ctx();
+  if (!c) return;
+  const n = Math.max(1, (c.sampleRate * dur) | 0);
+  const buf = c.createBuffer(1, n, c.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n);
+  const src = c.createBufferSource();
+  src.buffer = buf;
+  const f = c.createBiquadFilter();
+  f.type = "bandpass";
+  f.frequency.value = freq;
+  f.Q.value = 0.7;
+  const g = c.createGain();
+  g.gain.setValueAtTime(vol, c.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + dur);
+  src.connect(f);
+  f.connect(g);
+  g.connect(c.destination);
+  src.start();
+}
+
+const FN = {
+  psy() {
+    beep("sawtooth", 220, 0.22, 0.09, 90);
+    beep("sine", 680, 0.18, 0.06, 240);
+    noise(0.16, 0.08, 900);
+  },
+  glass() {
+    beep("triangle", 1480, 0.12, 0.07, 420);
+    beep("square", 920, 0.08, 0.04, 200);
+    noise(0.18, 0.11, 2400);
+  },
+  grab() {
+    beep("sine", 180, 0.1, 0.07, 140);
+  },
+  release() {
+    beep("triangle", 240, 0.12, 0.05, 110);
+  },
+  swing() {
+    noise(0.1, 0.07, 600);
+    beep("sawtooth", 160, 0.08, 0.04, 80);
+  },
+  gun() {
+    noise(0.09, 0.12, 700);
+    beep("square", 140, 0.07, 0.06, 70);
+  },
+  hit() {
+    noise(0.08, 0.1, 400);
+    beep("sawtooth", 90, 0.1, 0.08, 50);
+  },
+  boom() {
+    noise(0.22, 0.14, 180);
+    beep("sine", 70, 0.28, 0.12, 40);
+  },
+  cycle() {
+    beep("square", 520, 0.06, 0.04, 780);
+  },
+  key() { beep("sine", 980, 0.12, 0.09, 1480); beep("triangle", 1320, 0.1, 0.05, 1760); },
+  wep() { beep("square", 280, 0.1, 0.07, 420); beep("sine", 660, 0.12, 0.05, 880); },
+  orb() { beep("sine", 520, 0.14, 0.08, 1040); beep("triangle", 880, 0.16, 0.05, 1480); },
+  splash() { noise(0.16, 0.08, 480); beep("sine", 220, 0.12, 0.04, 90); },
+  charge() { beep("sawtooth", 180, 0.08, 0.04, 420); },
+  talk() { beep("sine", 340, 0.08, 0.05, 280); },
+  fire() {
+    noise(0.12, 0.06, 500);
+    beep("sawtooth", 310, 0.1, 0.05, 120);
+  },
+  land() {
+    noise(0.08, 0.06, 220);
+  },
+};
+
+export function sfx(name) {
+  try {
+    sfxUnlock();
+    (FN[name] || FN.hit)();
+  } catch {}
+}

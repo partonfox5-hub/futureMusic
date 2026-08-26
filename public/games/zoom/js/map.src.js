@@ -3,10 +3,13 @@ import {
   BIOMES,
   CELL,
   EYE,
+  FLAG_COLLAPSE,
   FLAG_CROUCH,
+  FLAG_HOVER,
   FLAG_SPIKE,
   LIQ_LAVA,
   MAP_H,
+  MAP_MAX,
   MAP_W,
   SHAPE_FLAT,
   SHAPE_OVAL,
@@ -14,7 +17,7 @@ import {
   SHAPE_SPHERE,
   STORIES,
   WALL_CRACK,
-} from "./config.js?v=sw3";
+} from "./config.js?v=zm1";
 
 export { CELL };
 
@@ -56,9 +59,9 @@ function layers(w, h) {
   };
 }
 
-export function blankMap(name = "Untitled") {
-  const w = MAP_W;
-  const h = MAP_H;
+export function blankMap(name = "Untitled", w = MAP_W, h = MAP_H) {
+  w = Math.max(16, Math.min(MAP_MAX, w | 0));
+  h = Math.max(16, Math.min(MAP_MAX, h | 0));
   return {
     v: 2,
     id: nid(),
@@ -78,6 +81,7 @@ export function blankMap(name = "Untitled") {
     ropes: [],
     crushers: [],
     turrets: [],
+    arrows: [],
     climbs: [],
     boulders: [],
     vendors: [],
@@ -150,6 +154,7 @@ export function serialize(map) {
     ropes: map.ropes || [],
     crushers: map.crushers || [],
     turrets: map.turrets || [],
+    arrows: map.arrows || [],
     climbs: map.climbs || [],
     boulders: map.boulders || [],
     vendors: map.vendors || [],
@@ -181,6 +186,7 @@ export function ensureLayers(map) {
   map.ropes ||= [];
   map.crushers ||= [];
   map.turrets ||= [];
+  map.arrows ||= [];
   map.climbs ||= [];
   map.boulders ||= [];
   map.vendors ||= [];
@@ -218,6 +224,7 @@ export function deserialize(raw) {
     ropes: Array.isArray(o.ropes) ? o.ropes.map((x) => ({ ...x })) : [],
     crushers: Array.isArray(o.crushers) ? o.crushers.map((x) => ({ ...x })) : [],
     turrets: Array.isArray(o.turrets) ? o.turrets.map((x) => ({ ...x })) : [],
+    arrows: Array.isArray(o.arrows) ? o.arrows.map((x) => ({ ...x })) : [],
     climbs: Array.isArray(o.climbs) ? o.climbs.map((x) => ({ ...x })) : [],
     boulders: Array.isArray(o.boulders) ? o.boulders.map((x) => ({ ...x })) : [],
     vendors: Array.isArray(o.vendors) ? o.vendors.map((x) => ({ ...x })) : [],
@@ -381,6 +388,54 @@ export function eraseNear(map, x, z, r) {
   map.vendors = (map.vendors || []).filter((o) => Math.hypot(o.x - x, o.z - z) > r);
   map.npcs = (map.npcs || []).filter((o) => Math.hypot(o.x - x, o.z - z) > r);
   map.openings = map.openings.filter((o) => Math.hypot((o.x + 0.5) * CELL - x, (o.z + 0.5) * CELL - z) > r);
+  map.arrows = (map.arrows || []).filter((o) => Math.hypot(o.x - x, o.z - z) > r);
+}
+
+export function resizeMap(map, w, h) {
+  w = Math.max(16, Math.min(MAP_MAX, w | 0));
+  h = Math.max(16, Math.min(MAP_MAX, h | 0));
+  if (w === map.w && h === map.h) return map;
+  const next = blankMap(map.name, w, h);
+  next.id = map.id;
+  next.hallH = map.hallH;
+  next.updated = Date.now();
+  const cw = Math.min(map.w, w);
+  const ch = Math.min(map.h, h);
+  for (let z = 0; z < ch; z++) {
+    for (let x = 0; x < cw; x++) {
+      const i = z * map.w + x;
+      const j = z * w + x;
+      next.cells[j] = map.cells[i];
+      if (map.elev) next.elev[j] = map.elev[i];
+      if (map.liquid) next.liquid[j] = map.liquid[i];
+      if (map.sky) next.sky[j] = map.sky[i];
+      if (map.flags) next.flags[j] = map.flags[i];
+      if (map.collapsed) next.collapsed[j] = map.collapsed[i];
+      for (let s = 0; s < 3; s++) {
+        if (map.bwalls && map.bwalls[s]) next.bwalls[s][j] = map.bwalls[s][i];
+      }
+    }
+  }
+  const inW = (x, z) => x >= 0 && z >= 0 && x < w * CELL && z < h * CELL;
+  const copyList = (arr) => (arr || []).filter((o) => inW(o.x != null ? o.x : (o.ax || 0), o.z != null ? o.z : (o.az || 0)));
+  next.spheres = copyList(map.spheres);
+  next.objects = copyList(map.objects);
+  next.spawners = copyList(map.spawners);
+  next.pickups = copyList(map.pickups);
+  next.keys = copyList(map.keys);
+  next.ropes = copyList(map.ropes);
+  next.crushers = copyList(map.crushers);
+  next.turrets = copyList(map.turrets);
+  next.arrows = copyList(map.arrows);
+  next.climbs = copyList(map.climbs);
+  next.boulders = copyList(map.boulders);
+  next.vendors = copyList(map.vendors);
+  next.npcs = copyList(map.npcs);
+  next.openings = (map.openings || []).filter((o) => o.x >= 0 && o.z >= 0 && o.x < w && o.z < h);
+  next.portals = (map.portals || []).filter((p) => inW(p.ax, p.az) && inW(p.bx, p.bz));
+  if (map.start && inW(map.start.x, map.start.z)) next.start = { ...map.start };
+  else next.start = { x: w * 0.5 * CELL, z: h * 0.5 * CELL, yaw: 0 };
+  return ensureLayers(next);
 }
 
 export function stampLayer(arr, map, cx, cz, radius, value) {
@@ -567,7 +622,9 @@ export function sdf3(x, y, z, map, sdf2) {
   const cell = cellAt(map, gx, gz);
   if (map.collapsed && map.collapsed[ci]) {
     const ly = y - floor;
-    if (ly >= -0.05 && ly < 2.15) return 0.4;
+    if (map.flags && map.flags[ci] & FLAG_COLLAPSE) {
+      /* floor hole — open downward */
+    } else if (ly >= -0.05 && ly < 2.15) return 0.4;
   }
   if (isCarved(cell) || d2 < CELL * 0.7) {
     const shape = getShape(cell);
@@ -582,7 +639,11 @@ export function sdf3(x, y, z, map, sdf2) {
     if (sky) {
       d3 = Math.max(d2, 0.05 - ly);
     } else if (shape === SHAPE_FLAT || crouch) {
-      d3 = Math.max(d2, Math.abs(ly - hy) - hy, 0.05 - ly);
+      if (map.collapsed && map.collapsed[ci] && map.flags && map.flags[ci] & FLAG_COLLAPSE) {
+        d3 = Math.max(d2, ly - H - 0.05);
+      } else {
+        d3 = Math.max(d2, Math.abs(ly - hy) - hy, 0.05 - ly);
+      }
     } else if (shape === SHAPE_OVAL) {
       const R = hy * 0.64;
       d3 = roundExtrude(d2, ly, hy, R, 1.28, 0.76);
@@ -604,6 +665,7 @@ export function isEmptyAt(x, y, z, map, sdf2) {
 
 export function floorY(x, z, map, sdf2, ymax) {
   const ci = cellI(map, x, z);
+  if (ci >= 0 && map.collapsed && map.collapsed[ci] && map.flags && map.flags[ci] & FLAG_COLLAPSE) return -999;
   const elev = (map.elev && map.elev[ci]) || 0;
   const y0 = elev * EYE - (map.flags && map.flags[ci] & FLAG_SPIKE ? 1.45 : 0);
   const sky = map.sky && map.sky[ci];

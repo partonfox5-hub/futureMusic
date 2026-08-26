@@ -1,3 +1,208 @@
-import*as _0x307b57 from'three';
-import{LOOT}from'./config.js?v=sw3';
-function _0x2d1f(_0x357424,_0x438dac){_0x357424=_0x357424-0x196;const _0x842f46=_0x842f();let _0x2d1fe7=_0x842f46[_0x357424];return _0x2d1fe7;}const _0x4b2a72=_0x2d1f;(function(_0x2a24d1,_0x5922d9){const _0x286fd1=_0x2d1f,_0x5b0c9a=_0x2a24d1();while(!![]){try{const _0x4ccf22=-parseInt(_0x286fd1(0x1c6))/0x1*(-parseInt(_0x286fd1(0x1dc))/0x2)+-parseInt(_0x286fd1(0x1d7))/0x3+-parseInt(_0x286fd1(0x1a0))/0x4*(-parseInt(_0x286fd1(0x19e))/0x5)+parseInt(_0x286fd1(0x1a9))/0x6+parseInt(_0x286fd1(0x198))/0x7+parseInt(_0x286fd1(0x1e4))/0x8+parseInt(_0x286fd1(0x1ad))/0x9*(-parseInt(_0x286fd1(0x1d0))/0xa);if(_0x4ccf22===_0x5922d9)break;else _0x5b0c9a['push'](_0x5b0c9a['shift']());}catch(_0x2adc95){_0x5b0c9a['push'](_0x5b0c9a['shift']());}}}(_0x842f,0x48a4d));const LS=_0x4b2a72(0x1c5),TEX={},loader=new _0x307b57['TextureLoader']();export function loadGold(){const _0x5656d9=_0x4b2a72;try{return Math[_0x5656d9(0x1be)](0x0,parseInt(localStorage['getItem'](LS)||'0',0xa)||0x0);}catch{return 0x0;}}export function saveGold(_0x36fbca){const _0x3a194c=_0x4b2a72;try{localStorage[_0x3a194c(0x1e0)](LS,String(Math['max'](0x0,_0x36fbca|0x0)));}catch{}}function texOf(_0x504bca){const _0x638b28=_0x4b2a72,_0x27be68=LOOT[_0x638b28(0x1e6)](_0x5e2eb5=>_0x5e2eb5['id']===_0x504bca);if(!_0x27be68)return null;if(TEX[_0x504bca])return TEX[_0x504bca];const _0xf4fb94=loader['load'](_0x27be68[_0x638b28(0x1a3)]);return _0xf4fb94['colorSpace']=_0x307b57['SRGBColorSpace'],_0xf4fb94[_0x638b28(0x1b2)]=!![],TEX[_0x504bca]=_0xf4fb94,_0xf4fb94;}function chime(_0x5b8a2e){const _0x5cc04e=_0x4b2a72;try{const _0x3a3bb4=chime[_0x5cc04e(0x1a4)]||(chime[_0x5cc04e(0x1a4)]=new(window[(_0x5cc04e(0x1e1))]||window['webkitAudioContext'])()),_0x46992d=_0x3a3bb4[_0x5cc04e(0x1da)](),_0x20eabf=_0x3a3bb4[_0x5cc04e(0x1a5)]();_0x46992d['type']=_0x5cc04e(0x1b6);const _0x389fa0=_0x5b8a2e>=0x1f4?0x528:_0x5b8a2e>=0x64?0x416:_0x5b8a2e>=0x19?0x370:0x2e4;_0x46992d['frequency'][_0x5cc04e(0x1ae)](_0x389fa0,_0x3a3bb4[_0x5cc04e(0x199)]),_0x46992d['frequency']['exponentialRampToValueAtTime'](_0x389fa0*1.35,_0x3a3bb4['currentTime']+0.08),_0x20eabf[_0x5cc04e(0x1ca)][_0x5cc04e(0x1ae)](0.0001,_0x3a3bb4[_0x5cc04e(0x199)]),_0x20eabf[_0x5cc04e(0x1ca)][_0x5cc04e(0x1aa)](_0x5b8a2e>=0x64?0.18:0.11,_0x3a3bb4['currentTime']+0.02),_0x20eabf[_0x5cc04e(0x1ca)][_0x5cc04e(0x1aa)](0.0001,_0x3a3bb4['currentTime']+0.22),_0x46992d['connect'](_0x20eabf),_0x20eabf['connect'](_0x3a3bb4[_0x5cc04e(0x1a8)]),_0x46992d[_0x5cc04e(0x19b)](),_0x46992d[_0x5cc04e(0x1d9)](_0x3a3bb4['currentTime']+0.24);}catch{}}export function lootForEnemy(_0x46c2c1){const _0x21d64d=_0x4b2a72,_0x2cd7e0=(_0x46c2c1?.['hp']||0x5)+(_0x46c2c1?.['dmg']||0x8),_0x461d68=[],_0x1660cc=0x4+Math[_0x21d64d(0x1a6)](_0x2cd7e0*0.7)+(Math[_0x21d64d(0x1df)]()*0x5|0x0);for(let _0x548e24=0x0;_0x548e24<_0x1660cc;_0x548e24++)_0x461d68['push'](Math['random']()<0.16?'psyorb':_0x21d64d(0x196));const _0x534d95=Math[_0x21d64d(0x1db)](0x8,Math[_0x21d64d(0x1a6)](_0x2cd7e0/0xc)+(Math[_0x21d64d(0x1df)]()<_0x2cd7e0/0x28?0x1:0x0));for(let _0x274390=0x0;_0x274390<_0x534d95;_0x274390++)_0x461d68['push']('goldbar');if(_0x2cd7e0>0x16&&Math['random']()<Math['min'](0.55,_0x2cd7e0/0x50))_0x461d68['push'](_0x21d64d(0x1ce));if(_0x2cd7e0>0x1c&&Math['random']()<Math[_0x21d64d(0x1db)](0.35,_0x2cd7e0/0x78))_0x461d68['push']('ruby');if(_0x2cd7e0>0x24&&Math['random']()<Math[_0x21d64d(0x1db)](0.28,_0x2cd7e0/0xa0))_0x461d68[_0x21d64d(0x1b3)]('diamond');if(_0x2cd7e0>0x30&&Math[_0x21d64d(0x1df)]()<Math[_0x21d64d(0x1db)](0.18,_0x2cd7e0/0xdc))_0x461d68['push'](_0x21d64d(0x1ba));return _0x461d68;}function makePsyOrbTex(){const _0x5dc9a5=_0x4b2a72;if(makePsyOrbTex['_t'])return makePsyOrbTex['_t'];const _0x195054=document[_0x5dc9a5(0x19f)](_0x5dc9a5(0x19a));_0x195054[_0x5dc9a5(0x1d8)]=_0x195054[_0x5dc9a5(0x1ab)]=0x40;const _0x1f8513=_0x195054['getContext']('2d'),_0x162777=_0x1f8513[_0x5dc9a5(0x1bf)](0x20,0x20,0x4,0x20,0x20,0x1e);_0x162777['addColorStop'](0x0,'#f4e8ff'),_0x162777['addColorStop'](0.35,_0x5dc9a5(0x1bc)),_0x162777[_0x5dc9a5(0x1cd)](0x1,_0x5dc9a5(0x1cb)),_0x1f8513['fillStyle']=_0x162777,_0x1f8513['beginPath'](),_0x1f8513[_0x5dc9a5(0x1bb)](0x20,0x20,0x1e,0x0,Math['PI']*0x2),_0x1f8513['fill']();const _0x2ae1b2=new _0x307b57[(_0x5dc9a5(0x1dd))](_0x195054);return makePsyOrbTex['_t']=_0x2ae1b2,_0x2ae1b2;}function _0x842f(){const _0x2ececa=['push','goldCanvas','sin','sine','userData','colorSpace','psyorb','chest','arc','#88a0ff','roundRect','max','createRadialGradient','fill','needsUpdate','hypot','goldCtx','strokeStyle','zoom.gold','67IdDXfK','material','removeFromParent','rect','gain','rgba(40,20,90,0)','SpriteMaterial','addColorStop','ruby','taken','14486430qmPGih','mesh','value','Sprite','rgba(18,12,6,0.72)','SRGBColorSpace','strokeRect','297936SXuLAp','width','stop','createOscillator','min','12372EaMDlm','CanvasTexture','goldTex','random','setItem','AudioContext','scale','set','3570072sNJgDH','position','find','clearRect','coin','length','10332savAud','currentTime','canvas','start','AdditiveBlending','abs','5GCDAAB','createElement','1765948AsjTjK','lineWidth','beginPath','file','_ac','createGain','floor','splice','destination','3250920kmeAXD','exponentialRampToValueAtTime','height','textAlign','9ZGLgSP','setValueAtTime','fillStyle','life','add','transparent'];_0x842f=function(){return _0x2ececa;};return _0x842f();}export function showerLoot(_0x5963dd,_0x5b3a2a,_0x1b7053,_0x53a657,_0x39392d,_0x558155){const _0x42da9b=_0x4b2a72;for(const _0xa66767 of _0x558155){let _0x4c2a41,_0x1741c1=0x0,_0x30c2cd=0.35;if(_0xa66767===_0x42da9b(0x1b9))_0x4c2a41=new _0x307b57[(_0x42da9b(0x1d3))](new _0x307b57[(_0x42da9b(0x1cc))]({'map':makePsyOrbTex(),'transparent':!![],'depthWrite':![],'blending':_0x307b57[_0x42da9b(0x19c)]})),_0x30c2cd=0.38;else{const _0x3e6145=LOOT['find'](_0x1f401b=>_0x1f401b['id']===_0xa66767);if(!_0x3e6145)continue;_0x1741c1=_0x3e6145[_0x42da9b(0x1d2)],_0x30c2cd=_0x3e6145[_0x42da9b(0x1e2)]||0.35,_0x4c2a41=new _0x307b57['Sprite'](new _0x307b57['SpriteMaterial']({'map':texOf(_0xa66767),'transparent':!![],'depthWrite':![]}));}_0x4c2a41['scale'][_0x42da9b(0x1e3)](_0x30c2cd,_0x30c2cd,0x1),_0x4c2a41[_0x42da9b(0x1e5)][_0x42da9b(0x1e3)](_0x1b7053+(Math[_0x42da9b(0x1df)]()-0.5)*0.2,_0x53a657+0.4+Math[_0x42da9b(0x1df)]()*0.3,_0x39392d+(Math[_0x42da9b(0x1df)]()-0.5)*0.2),_0x5963dd[_0x42da9b(0x1b1)](_0x4c2a41);const _0x20ba5f=Math['random']()*Math['PI']*0x2,_0x409209=2.4+Math[_0x42da9b(0x1df)]()*4.2;_0x5b3a2a[_0x42da9b(0x1b3)]({'mesh':_0x4c2a41,'id':_0xa66767,'value':_0x1741c1,'vx':Math['cos'](_0x20ba5f)*_0x409209,'vy':5.5+Math[_0x42da9b(0x1df)]()*4.5,'vz':Math[_0x42da9b(0x1b5)](_0x20ba5f)*_0x409209,'life':0x8,'taken':![],'floor':_0x53a657});}}export function tickLoot(_0x167dee,_0x31e312,_0x232b1d,_0x170d04){const _0x276be1=_0x4b2a72,_0x52d9f6=_0x232b1d['x'],_0x152853=_0x232b1d['y'],_0x403ec2=_0x232b1d['z'];for(let _0x3637bd=_0x167dee[_0x276be1(0x197)]-0x1;_0x3637bd>=0x0;_0x3637bd--){const _0x59b6a9=_0x167dee[_0x3637bd];if(_0x59b6a9['taken'])continue;_0x59b6a9['vy']-=0x12*_0x31e312,_0x59b6a9[_0x276be1(0x1d1)]['position']['x']+=_0x59b6a9['vx']*_0x31e312,_0x59b6a9['mesh']['position']['y']+=_0x59b6a9['vy']*_0x31e312,_0x59b6a9['mesh'][_0x276be1(0x1e5)]['z']+=_0x59b6a9['vz']*_0x31e312,_0x59b6a9['vx']*=0.98,_0x59b6a9['vz']*=0.98;if(_0x59b6a9[_0x276be1(0x1d1)][_0x276be1(0x1e5)]['y']<_0x59b6a9['floor']+0.18){_0x59b6a9[_0x276be1(0x1d1)][_0x276be1(0x1e5)]['y']=_0x59b6a9[_0x276be1(0x1a6)]+0.18,_0x59b6a9['vy']*=-0.35,_0x59b6a9['vx']*=0.7,_0x59b6a9['vz']*=0.7;if(Math[_0x276be1(0x19d)](_0x59b6a9['vy'])<1.2)_0x59b6a9['vy']=0x0;}_0x59b6a9[_0x276be1(0x1d1)][_0x276be1(0x1c7)]['rotation']=(_0x59b6a9[_0x276be1(0x1d1)][_0x276be1(0x1c7)]['rotation']||0x0)+_0x31e312*0x3;const _0x551251=Math[_0x276be1(0x1c2)](_0x59b6a9[_0x276be1(0x1d1)][_0x276be1(0x1e5)]['x']-_0x52d9f6,_0x59b6a9[_0x276be1(0x1d1)]['position']['z']-_0x403ec2),_0x5ca1a5=Math[_0x276be1(0x19d)](_0x59b6a9['mesh']['position']['y']-(_0x152853-0.6)),_0x5e7405=1.85;if(_0x551251<_0x5e7405&&_0x551251>0.12){const _0x3b4dc5=(_0x5e7405-_0x551251)*0x9*_0x31e312;_0x59b6a9[_0x276be1(0x1d1)][_0x276be1(0x1e5)]['x']+=(_0x52d9f6-_0x59b6a9['mesh'][_0x276be1(0x1e5)]['x'])/(_0x551251||0x1)*_0x3b4dc5,_0x59b6a9[_0x276be1(0x1d1)][_0x276be1(0x1e5)]['z']+=(_0x403ec2-_0x59b6a9[_0x276be1(0x1d1)]['position']['z'])/(_0x551251||0x1)*_0x3b4dc5,_0x59b6a9[_0x276be1(0x1d1)]['position']['y']+=(_0x152853-0.5-_0x59b6a9[_0x276be1(0x1d1)][_0x276be1(0x1e5)]['y'])*0.08,_0x59b6a9['grounded']=![];}if(_0x551251<0.95&&_0x5ca1a5<1.4){_0x59b6a9[_0x276be1(0x1cf)]=!![];if(_0x59b6a9['id']===_0x276be1(0x1b9))chime(0x5a);else chime(_0x59b6a9[_0x276be1(0x1d2)]);_0x170d04(_0x59b6a9),_0x59b6a9[_0x276be1(0x1d1)][_0x276be1(0x1c8)](),_0x167dee['splice'](_0x3637bd,0x1);continue;}_0x59b6a9[_0x276be1(0x1b0)]-=_0x31e312,_0x59b6a9[_0x276be1(0x1b0)]<=0x0&&(_0x59b6a9['mesh']['removeFromParent'](),_0x167dee[_0x276be1(0x1a7)](_0x3637bd,0x1));}}export function makeWristGold(){const _0x5f5566=_0x4b2a72,_0x8f54f6=document['createElement']('canvas');_0x8f54f6[_0x5f5566(0x1d8)]=0x100,_0x8f54f6['height']=0x40;const _0xd2e1d0=_0x8f54f6['getContext']('2d'),_0xce80e6=new _0x307b57['CanvasTexture'](_0x8f54f6);_0xce80e6[_0x5f5566(0x1b8)]=_0x307b57[_0x5f5566(0x1d5)];const _0x303eab=new _0x307b57['Sprite'](new _0x307b57['SpriteMaterial']({'map':_0xce80e6,'transparent':!![],'depthTest':![]}));return _0x303eab['scale']['set'](0.28,0.07,0x1),_0x303eab[_0x5f5566(0x1e5)][_0x5f5566(0x1e3)](-0.22,-0.26,-0.42),_0x303eab['renderOrder']=0x14,_0x303eab['userData'][_0x5f5566(0x1b4)]=_0x8f54f6,_0x303eab[_0x5f5566(0x1b7)][_0x5f5566(0x1c3)]=_0xd2e1d0,_0x303eab['userData']['goldTex']=_0xce80e6,_0x303eab;}export function paintWristGold(_0x2227e9,_0x5cf8f9){const _0xdc6958=_0x4b2a72;if(!_0x2227e9)return;const _0x233542=_0x2227e9['userData'][_0xdc6958(0x1c3)],_0x4b45a0=_0x2227e9[_0xdc6958(0x1b7)][_0xdc6958(0x1b4)];_0x233542[_0xdc6958(0x1e7)](0x0,0x0,0x100,0x40),_0x233542[_0xdc6958(0x1af)]=_0xdc6958(0x1d4),_0x233542[_0xdc6958(0x1a2)]();if(_0x233542[_0xdc6958(0x1bd)])_0x233542['roundRect'](0x4,0x8,0xf8,0x30,0xa);else _0x233542[_0xdc6958(0x1c9)](0x4,0x8,0xf8,0x30);_0x233542[_0xdc6958(0x1c0)](),_0x233542[_0xdc6958(0x1c4)]='#d4b070',_0x233542[_0xdc6958(0x1a1)]=0x3,_0x233542[_0xdc6958(0x1d6)](0x6,0xa,0xf4,0x2c),_0x233542[_0xdc6958(0x1af)]='#ffe08a',_0x233542['font']='bold\x2028px\x20Cinzel,\x20Georgia,\x20serif',_0x233542[_0xdc6958(0x1ac)]='center',_0x233542['fillText']('◎\x20'+(_0x5cf8f9|0x0),0x80,0x2a),_0x2227e9[_0xdc6958(0x1b7)][_0xdc6958(0x1de)][_0xdc6958(0x1c1)]=!![];}
+/** Coin/gem showers, chime, wrist gold counter. */
+import * as THREE from "three";
+import { LOOT } from "./config.js?v=zm1";
+
+const LS = "zoom.gold";
+const TEX = {};
+const loader = new THREE.TextureLoader();
+
+const STORY_PSY = "zoom.story.psy";
+
+export function loadGold() {
+  return 0;
+}
+export function saveGold(_n) {}
+
+export function loadStoryPsy() {
+  try {
+    return Math.max(0, Math.min(1000, parseInt(localStorage.getItem(STORY_PSY) || "0", 10) || 0));
+  } catch {
+    return 0;
+  }
+}
+export function saveStoryPsy(n) {
+  try {
+    localStorage.setItem(STORY_PSY, String(Math.max(0, Math.min(1000, n | 0))));
+  } catch {}
+}
+
+function texOf(id) {
+  const def = LOOT.find((l) => l.id === id);
+  if (!def) return null;
+  if (TEX[id]) return TEX[id];
+  const t = loader.load(def.file);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.transparent = true;
+  TEX[id] = t;
+  return t;
+}
+
+function chime(value) {
+  try {
+    const ac = chime._ac || (chime._ac = new (window.AudioContext || window.webkitAudioContext)());
+    const o = ac.createOscillator();
+    const g = ac.createGain();
+    o.type = "sine";
+    const hi = value >= 500 ? 1320 : value >= 100 ? 1046 : value >= 25 ? 880 : 740;
+    o.frequency.setValueAtTime(hi, ac.currentTime);
+    o.frequency.exponentialRampToValueAtTime(hi * 1.35, ac.currentTime + 0.08);
+    g.gain.setValueAtTime(0.0001, ac.currentTime);
+    g.gain.exponentialRampToValueAtTime(value >= 100 ? 0.18 : 0.11, ac.currentTime + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + 0.22);
+    o.connect(g);
+    g.connect(ac.destination);
+    o.start();
+    o.stop(ac.currentTime + 0.24);
+  } catch {}
+}
+
+export function lootForEnemy(def) {
+  const power = (def?.hp || 5) + (def?.dmg || 8);
+  const drops = [];
+  const coins = 4 + Math.floor(power * 0.7) + ((Math.random() * 5) | 0);
+  for (let i = 0; i < coins; i++) drops.push(Math.random() < 0.16 ? "psyorb" : "coin");
+  const bars = Math.min(8, Math.floor(power / 12) + (Math.random() < power / 40 ? 1 : 0));
+  for (let i = 0; i < bars; i++) drops.push("goldbar");
+  if (power > 22 && Math.random() < Math.min(0.55, power / 80)) drops.push("ruby");
+  if (power > 28 && Math.random() < Math.min(0.35, power / 120)) drops.push("ruby");
+  if (power > 36 && Math.random() < Math.min(0.28, power / 160)) drops.push("diamond");
+  if (power > 48 && Math.random() < Math.min(0.18, power / 220)) drops.push("chest");
+  return drops;
+}
+
+function makePsyOrbTex() {
+  if (makePsyOrbTex._t) return makePsyOrbTex._t;
+  const c = document.createElement("canvas");
+  c.width = c.height = 64;
+  const g = c.getContext("2d");
+  const grd = g.createRadialGradient(32, 32, 4, 32, 32, 30);
+  grd.addColorStop(0, "#f4e8ff");
+  grd.addColorStop(0.35, "#88a0ff");
+  grd.addColorStop(1, "rgba(40,20,90,0)");
+  g.fillStyle = grd;
+  g.beginPath();
+  g.arc(32, 32, 30, 0, Math.PI * 2);
+  g.fill();
+  const t = new THREE.CanvasTexture(c);
+  makePsyOrbTex._t = t;
+  return t;
+}
+
+export function showerLoot(scene, list, x, y, z, kinds) {
+  for (const id of kinds) {
+    let spr;
+    let value = 0;
+    let s = 0.35;
+    if (id === "psyorb") {
+      spr = new THREE.Sprite(new THREE.SpriteMaterial({ map: makePsyOrbTex(), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+      s = 0.38;
+    } else {
+      const def = LOOT.find((l) => l.id === id);
+      if (!def) continue;
+      value = def.value;
+      s = def.scale || 0.35;
+      spr = new THREE.Sprite(new THREE.SpriteMaterial({ map: texOf(id), transparent: true, depthWrite: false }));
+    }
+    spr.scale.set(s, s, 1);
+    spr.position.set(x + (Math.random() - 0.5) * 0.2, y + 0.4 + Math.random() * 0.3, z + (Math.random() - 0.5) * 0.2);
+    scene.add(spr);
+    const ang = Math.random() * Math.PI * 2;
+    const sp = 2.4 + Math.random() * 4.2;
+    list.push({
+      mesh: spr,
+      id,
+      value,
+      vx: Math.cos(ang) * sp,
+      vy: 5.5 + Math.random() * 4.5,
+      vz: Math.sin(ang) * sp,
+      life: 8,
+      taken: false,
+      floor: y,
+    });
+  }
+}
+
+export function tickLoot(list, dt, player, onPickup) {
+  const px = player.x;
+  const py = player.y;
+  const pz = player.z;
+  for (let i = list.length - 1; i >= 0; i--) {
+    const L = list[i];
+    if (L.taken) continue;
+    L.vy -= 18 * dt;
+    L.mesh.position.x += L.vx * dt;
+    L.mesh.position.y += L.vy * dt;
+    L.mesh.position.z += L.vz * dt;
+    L.vx *= 0.98;
+    L.vz *= 0.98;
+    if (L.mesh.position.y < L.floor + 0.18) {
+      L.mesh.position.y = L.floor + 0.18;
+      L.vy *= -0.35;
+      L.vx *= 0.7;
+      L.vz *= 0.7;
+      if (Math.abs(L.vy) < 1.2) L.vy = 0;
+    }
+    L.mesh.material.rotation = (L.mesh.material.rotation || 0) + dt * 3;
+    const d = Math.hypot(L.mesh.position.x - px, L.mesh.position.z - pz);
+    const dy = Math.abs(L.mesh.position.y - (py - 0.6));
+    const mag = 1.85;
+    if (d < mag && d > 0.12) {
+      const pull = (mag - d) * 9 * dt;
+      L.mesh.position.x += ((px - L.mesh.position.x) / (d || 1)) * pull;
+      L.mesh.position.z += ((pz - L.mesh.position.z) / (d || 1)) * pull;
+      L.mesh.position.y += ((py - 0.5 - L.mesh.position.y) * 0.08);
+      L.grounded = false;
+    }
+    if (d < 0.95 && dy < 1.4) {
+      L.taken = true;
+      if (L.id === "psyorb") chime(90);
+      else chime(L.value);
+      onPickup(L);
+      L.mesh.removeFromParent();
+      list.splice(i, 1);
+      continue;
+    }
+    L.life -= dt;
+    if (L.life <= 0) {
+      L.mesh.removeFromParent();
+      list.splice(i, 1);
+    }
+  }
+}
+
+export function makeWristGold() {
+  const c = document.createElement("canvas");
+  c.width = 256;
+  c.height = 64;
+  const g = c.getContext("2d");
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  const spr = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false }));
+  spr.scale.set(0.28, 0.07, 1);
+  spr.position.set(-0.22, -0.26, -0.42);
+  spr.renderOrder = 20;
+  spr.userData.goldCanvas = c;
+  spr.userData.goldCtx = g;
+  spr.userData.goldTex = tex;
+  return spr;
+}
+
+export function paintWristGold(spr, coins) {
+  if (!spr) return;
+  const g = spr.userData.goldCtx;
+  const c = spr.userData.goldCanvas;
+  g.clearRect(0, 0, 256, 64);
+  g.fillStyle = "rgba(18,12,6,0.72)";
+  g.beginPath();
+  if (g.roundRect) g.roundRect(4, 8, 248, 48, 10);
+  else g.rect(4, 8, 248, 48);
+  g.fill();
+  g.strokeStyle = "#d4b070";
+  g.lineWidth = 3;
+  g.strokeRect(6, 10, 244, 44);
+  g.fillStyle = "#ffe08a";
+  g.font = "bold 28px Cinzel, Georgia, serif";
+  g.textAlign = "center";
+  g.fillText("◎ " + (coins | 0), 128, 42);
+  spr.userData.goldTex.needsUpdate = true;
+}

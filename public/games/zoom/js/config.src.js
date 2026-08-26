@@ -3,6 +3,7 @@
 export const CELL = 1.25;
 export const MAP_W = 96;
 export const MAP_H = 96;
+export const MAP_MAX = 288;
 export const EYE = 1.55;
 export const SHAPE_FLAT = 0;
 export const SHAPE_ROUND = 1;
@@ -12,6 +13,8 @@ export const FLAG_SPIKE = 1;
 export const FLAG_CROUCH = 2;
 export const FLAG_UNSTABLE = 4;
 export const FLAG_RUMBLE = 8;
+export const FLAG_COLLAPSE = 16;
+export const FLAG_HOVER = 32;
 export const WALL_CRACK = 128;
 export const LIQ_NONE = 0;
 export const LIQ_WATER = 1;
@@ -40,6 +43,8 @@ export const BIOMES = [
   { id: "haunted", name: "Haunted mansion", swatch: "#5a4860", fog: 0x100c12, ambient: 0x6a5a70 },
   { id: "mossy", name: "Mossy cobblestone", swatch: "#6a7a48", fog: 0x10140c, ambient: 0x5a6a40 },
   { id: "crystal", name: "Crystalline", swatch: "#7a4ec8", fog: 0x0c0618, ambient: 0x8a60d0 },
+  { id: "lab", name: "Psychic lab", swatch: "#3a6a78", fog: 0x061018, ambient: 0x3a88aa },
+  { id: "temple", name: "Mystic temple", swatch: "#c4a060", fog: 0x181008, ambient: 0xc4a070 },
 ];
 
 export const WALL_TEX = [
@@ -57,6 +62,8 @@ export const WALL_TEX = [
   { id: "crystal", name: "Crystal cave", swatch: "#7a4ec8" },
   { id: "sandstone", name: "Sandstone", swatch: "#c4a070" },
   { id: "dungeon", name: "Dungeon brick", swatch: "#5a5048" },
+  { id: "lab", name: "Psychic lab", swatch: "#2a5a68" },
+  { id: "temple", name: "Mystic temple", swatch: "#b09050" },
 ];
 
 export const SKY_KINDS = [

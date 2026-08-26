@@ -1,6 +1,6 @@
 /** Baked maps so /zoom is playable before the first save. */
-import { CELL, SHAPE_FLAT, SHAPE_OVAL, SHAPE_ROUND, SHAPE_SPHERE } from "./config.js?v=sw3";
-import { addSphere, blankMap, stampDisk, stampRect } from "./map.js?v=sw3";
+import { CELL, SHAPE_FLAT, SHAPE_OVAL, SHAPE_ROUND, SHAPE_SPHERE } from "./config.js?v=zm1";
+import { addSphere, blankMap, stampDisk, stampRect } from "./map.js?v=zm1";
 
 function startOn(m, cx, cz, yaw) {
   m.start = { x: (cx + 0.5) * CELL, z: (cz + 0.5) * CELL, yaw: yaw || 0 };
@@ -113,6 +113,46 @@ export function makeTheDelve() {
   spawner(m, 60, 60, "skeleton", 7, 10, 3);
   m.updated = 3;
   return m;
+}
+
+export function makeStorySanctum() {
+  const m = blankMap("Sanctum of First Thought", 64, 64);
+  m.id = "story-1";
+  m.hallH = 4.4;
+  m.story = true;
+  stampRect(m, 8, 28, 56, 36, 0.2, SHAPE_FLAT, 10, false, false);
+  stampRect(m, 28, 8, 36, 56, 0.2, SHAPE_FLAT, 9, false, false);
+  stampRect(m, 22, 22, 42, 42, 0.4, SHAPE_FLAT, 10, false, false);
+  startOn(m, 12, 32, 0);
+  for (let x = 18; x <= 24; x++) {
+    const i = x + 32 * m.w;
+    m.flags[i] |= 16;
+  }
+  for (let x = 40; x <= 46; x++) {
+    for (let z = 30; z <= 34; z++) {
+      const i = x + z * m.w;
+      m.flags[i] |= 32;
+      m.elev[i] = 2;
+      m.cells[i] = m.cells[i] || (1 | (10 << 3));
+    }
+  }
+  for (let x = 40; x <= 46; x++) m.flags[x + 32 * m.w] |= 16;
+  obj(m, "altar", 32, 32, 1, 0);
+  obj(m, "torch", 24, 24, 1, 0);
+  obj(m, "torch", 40, 24, 1, 0);
+  obj(m, "torch", 24, 40, 1, 0);
+  obj(m, "torch", 40, 40, 1, 0);
+  obj(m, "crystal", 32, 18, 1, 0);
+  m.turrets.push({ x: 50 * CELL, z: 32 * CELL });
+  m.arrows = [{ x: 32 * CELL, z: 12 * CELL, yaw: Math.PI }];
+  spawner(m, 48, 32, "wraith", 10, 8, 2);
+  spawner(m, 32, 48, "skeleton", 8, 9, 2);
+  m.updated = 1;
+  return m;
+}
+
+export function storyMaps() {
+  return [makeStorySanctum()];
 }
 
 export function bakedMaps() {

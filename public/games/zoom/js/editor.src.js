@@ -2,7 +2,9 @@ import {
   BIOMES,
   CELL,
   ENEMIES,
+  FLAG_COLLAPSE,
   FLAG_CROUCH,
+  FLAG_HOVER,
   FLAG_RUMBLE,
   FLAG_SPIKE,
   FLAG_UNSTABLE,
@@ -19,8 +21,8 @@ import {
   SHAPES,
   WALL_TEX,
   routes,
-} from "./config.js?v=sw3";
-import { bakedMaps } from "./defaults.js?v=sw3";
+} from "./config.js?v=zm1";
+import { bakedMaps } from "./defaults.js?v=zm1";
 import {
   addSphere,
   blankMap,
@@ -38,6 +40,7 @@ import {
   inBounds,
   isCarved,
   paintDisk,
+  resizeMap,
   serialize,
   stampCrack,
   stampDisk,
@@ -47,9 +50,9 @@ import {
   stampSegment,
   wallIsCrack,
   wallTexId,
-} from "./map.js?v=sw3";
-import { deleteMap, getMap, listMaps, saveMap, stashPreview } from "./store.js?v=sw3";
-import { defaultNpc } from "./npcs.js?v=sw3";
+} from "./map.js?v=zm1";
+import { deleteMap, getMap, listMaps, saveMap, stashPreview } from "./store.js?v=zm1";
+import { defaultNpc } from "./npcs.js?v=zm1";
 
 const $ = (id) => document.getElementById(id);
 
@@ -198,6 +201,15 @@ function drawCell(x, z) {
       ctx.lineTo(x + 0.9, z + 0.7);
       ctx.stroke();
     }
+    if (map.flags && map.flags[i] & FLAG_HOVER) {
+      ctx.strokeStyle = "rgba(120,200,255,0.9)";
+      ctx.lineWidth = 0.1;
+      ctx.strokeRect(x + 0.12, z + 0.12, 0.76, 0.76);
+    }
+    if (map.flags && map.flags[i] & FLAG_COLLAPSE) {
+      ctx.fillStyle = "rgba(180,70,40,0.45)";
+      ctx.fillRect(x + 0.2, z + 0.2, 0.6, 0.6);
+    }
     if (map.sky && map.sky[i]) {
       ctx.fillStyle = "rgba(140,190,255,0.28)";
       ctx.fillRect(x, z, 1, 1);
@@ -297,6 +309,18 @@ function draw() {
   for (const t of map.turrets) {
     ctx.fillStyle = "#c33";
     ctx.fillRect(t.x / CELL - 0.3, t.z / CELL - 0.3, 0.6, 0.6);
+  }
+  for (const a of map.arrows || []) {
+    ctx.fillStyle = "#222";
+    ctx.beginPath();
+    ctx.arc(a.x / CELL, a.z / CELL, 0.28, 0, 6.28);
+    ctx.fill();
+    ctx.strokeStyle = "#e8c070";
+    ctx.lineWidth = 0.1;
+    ctx.beginPath();
+    ctx.moveTo(a.x / CELL, a.z / CELL);
+    ctx.lineTo(a.x / CELL - Math.sin(a.yaw || 0) * 1.1, a.z / CELL - Math.cos(a.yaw || 0) * 1.1);
+    ctx.stroke();
   }
   for (const c of map.crushers) {
     ctx.strokeStyle = "#aaa";
@@ -402,6 +426,36 @@ function onWall(gx, gz) {
   return !!(map.bwalls && map.bwalls[story] && map.bwalls[story][idx(map, gx, gz)]);
 }
 
+function snapArrow(c) {
+  const gx = c.gx;
+  const gz = c.gz;
+  const dirs = [
+    { yaw: 0, dx: 0, dz: -1 },
+    { yaw: Math.PI, dx: 0, dz: 1 },
+    { yaw: Math.PI / 2, dx: -1, dy: 0, dz: 0 },
+    { yaw: -Math.PI / 2, dx: 1, dz: 0 },
+  ];
+  if (inBounds(map, gx, gz) && onWall(gx, gz)) {
+    for (const d of dirs) {
+      const nx = gx + (d.dx || 0);
+      const nz = gz + (d.dz || 0);
+      if (inBounds(map, nx, nz) && isCarved(map.cells[idx(map, nx, nz)])) {
+        return { x: (gx + 0.5) * CELL, z: (gz + 0.5) * CELL, yaw: d.yaw };
+      }
+    }
+  }
+  if (inBounds(map, gx, gz) && isCarved(map.cells[idx(map, gx, gz)])) {
+    for (const d of dirs) {
+      const nx = gx - (d.dx || 0);
+      const nz = gz - (d.dz || 0);
+      if (inBounds(map, nx, nz) && !isCarved(map.cells[idx(map, nx, nz)])) {
+        return { x: (nx + 0.5) * CELL, z: (nz + 0.5) * CELL, yaw: d.yaw };
+      }
+    }
+  }
+  return null;
+}
+
 canvas.addEventListener("pointerdown", (ev) => {
   if (ev.button === 1 || ev.button === 2) {
     canvas.setPointerCapture(ev.pointerId);
@@ -410,7 +464,7 @@ canvas.addEventListener("pointerdown", (ev) => {
   }
   const c = cellFromEvent(ev);
   last = c;
-  if (["dig", "erase", "sphere", "paint", "crouch", "spike", "sky", "elev", "water", "lava", "wall", "crack", "unstable", "rumble"].includes(tool)) {
+  if (["dig", "erase", "sphere", "paint", "crouch", "spike", "sky", "elev", "water", "lava", "wall", "crack", "unstable", "rumble", "hover", "collapse"].includes(tool)) {
     pushUndo();
     drawing = true;
     strokeAt(c, true);
@@ -476,6 +530,17 @@ canvas.addEventListener("pointerdown", (ev) => {
   } else if (tool === "turret") {
     pushUndo();
     map.turrets.push({ x: c.wx, z: c.wz });
+    draw();
+  } else if (tool === "arrow") {
+    const snapped = snapArrow(c);
+    if (!snapped) {
+      status("Place on a wall or the side of carved dungeon space");
+      return;
+    }
+    pushUndo();
+    map.arrows = map.arrows || [];
+    map.arrows.push(snapped);
+    status("Arrow trap");
     draw();
   } else if (tool === "crusher") {
     pushUndo();
@@ -586,6 +651,17 @@ function strokeAt(c, first) {
     stampFlags(map, c.x, c.z, brush, FLAG_UNSTABLE, true);
   } else if (tool === "rumble") {
     stampFlags(map, c.x, c.z, brush, FLAG_RUMBLE, true);
+  } else if (tool === "hover") {
+    stampDisk(map, c.x, c.z, brush, shape, tex, false);
+    stampFlags(map, c.x, c.z, brush, FLAG_HOVER, true);
+    stampLayer(map.elev, map, c.x, c.z, brush, elev);
+  } else if (tool === "collapse") {
+    stampDisk(map, c.x, c.z, brush, shape, tex, false);
+    stampFlags(map, c.x, c.z, brush, FLAG_COLLAPSE, true);
+    const gx = Math.floor(c.x), gz = Math.floor(c.z);
+    if (inBounds(map, gx, gz) && map.flags[idx(map, gx, gz)] & FLAG_HOVER) {
+      stampFlags(map, c.x, c.z, brush, FLAG_HOVER, true);
+    }
   } else if (tool === "sky") {
     stampDisk(map, c.x, c.z, brush, shape, tex, false);
     stampLayer(map.sky, map, c.x, c.z, brush, skyKind);
@@ -604,7 +680,7 @@ function strokeAt(c, first) {
       eraseNear(map, c.wx, c.wz, brush * CELL * 0.6);
       stampLayer(map.liquid, map, c.x, c.z, brush, LIQ_NONE);
       stampLayer(map.sky, map, c.x, c.z, brush, 0);
-      stampFlags(map, c.x, c.z, brush, FLAG_SPIKE | FLAG_CROUCH | FLAG_UNSTABLE | FLAG_RUMBLE, false);
+      stampFlags(map, c.x, c.z, brush, FLAG_SPIKE | FLAG_CROUCH | FLAG_UNSTABLE | FLAG_RUMBLE | FLAG_COLLAPSE | FLAG_HOVER, false);
     }
     shape = prev;
   }
@@ -647,7 +723,7 @@ canvas.addEventListener("pointermove", (ev) => {
     }
     return;
   }
-  if (["dig", "erase", "sphere", "paint", "crouch", "spike", "sky", "elev", "water", "lava", "wall", "crack", "unstable", "rumble"].includes(tool)) {
+  if (["dig", "erase", "sphere", "paint", "crouch", "spike", "sky", "elev", "water", "lava", "wall", "crack", "unstable", "rumble", "hover", "collapse"].includes(tool)) {
     strokeAt(c, false);
     last = c;
     draw();
@@ -753,6 +829,9 @@ function setTool(t) {
     minotaur: "Place a minotaur. Walks slowly, then charges when it sees the player.",
     drone: "Place a flying sentry drone. It weaves through vertical space and fires lasers.",
     rumble: "Paint invisible rumble tiles. Walking over them shakes the camera and controllers.",
+    hover: "Floating platforms. Set elevation, then paint. Walkable slabs in open air.",
+    collapse: "Collapsing floor. Rumbles then drops under feet. Paint over a hover platform to make a collapsing platform.",
+    arrow: "Wall dart trap. Snaps to building walls or the sides of carved halls. 3s cooldown.",
     vendor: "Vending machine. Player presses E to buy weapons, ammo, and powerups with coins.",
     npc: "Place a talking NPC. Set their name, opening line, and up to 3 player replies (each with a nested follow-up).",
     stairs: "Place only where 1st+2nd or 2nd+3rd stories both have enclosed floors.",
@@ -813,6 +892,21 @@ $("elev").addEventListener("input", () => {
   elev = +$("elev").value;
   $("elev-v").textContent = String(elev);
 });
+if ($("msize")) {
+  $("msize").addEventListener("input", () => {
+    const n = +$("msize").value;
+    if ($("msize-v")) $("msize-v").textContent = n + "×" + n;
+  });
+  $("msize").addEventListener("change", () => {
+    const n = +$("msize").value;
+    if (n === map.w && n === map.h) return;
+    pushUndo();
+    map = resizeMap(map, n, n);
+    if ($("msize-v")) $("msize-v").textContent = map.w + "×" + map.h;
+    fit();
+    status("Map size " + map.w + "×" + map.h);
+  });
+}
 $("sky-kind").addEventListener("change", () => (skyKind = +$("sky-kind").value));
 $("climb-span").addEventListener("change", () => (climbFrom = +$("climb-span").value));
 $("story").addEventListener("change", () => {
@@ -847,6 +941,10 @@ function syncSliders() {
   $("sp-rad-v").textContent = spawnRadius.toFixed(1);
   $("sp-max-v").textContent = String(spawnMax);
   $("map-name").value = map.name;
+  if ($("msize")) {
+    $("msize").value = String(map.w);
+    if ($("msize-v")) $("msize-v").textContent = map.w + "×" + map.h;
+  }
 }
 
 $("map-name").addEventListener("input", () => (map.name = $("map-name").value || "Untitled"));

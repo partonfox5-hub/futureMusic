@@ -1,3 +1,160 @@
-import{CELL,SHAPE_FLAT,SHAPE_OVAL,SHAPE_ROUND,SHAPE_SPHERE}from'./config.js?v=sw3';
-import{addSphere,blankMap,stampDisk,stampRect}from'./map.js?v=sw3';
-(function(_0x114ac9,_0x15bd90){const _0x59b35d=_0x15fb,_0x3ef4cc=_0x114ac9();while(!![]){try{const _0x52e851=-parseInt(_0x59b35d(0x123))/0x1*(parseInt(_0x59b35d(0x120))/0x2)+-parseInt(_0x59b35d(0x116))/0x3+parseInt(_0x59b35d(0x10a))/0x4*(-parseInt(_0x59b35d(0x10e))/0x5)+parseInt(_0x59b35d(0x11f))/0x6*(-parseInt(_0x59b35d(0x101))/0x7)+parseInt(_0x59b35d(0x114))/0x8+parseInt(_0x59b35d(0xff))/0x9+parseInt(_0x59b35d(0x110))/0xa;if(_0x52e851===_0x15bd90)break;else _0x3ef4cc['push'](_0x3ef4cc['shift']());}catch(_0x23da31){_0x3ef4cc['push'](_0x3ef4cc['shift']());}}}(_0x2e2c,0xd6b7b));function _0x15fb(_0x464adb,_0x523016){_0x464adb=_0x464adb-0xfd;const _0x2e2cc0=_0x2e2c();let _0x15fbf6=_0x2e2cc0[_0x464adb];return _0x15fbf6;}function startOn(_0x264f34,_0x3925d9,_0x1e01e0,_0xb65ac){const _0x54170c=_0x15fb;_0x264f34[_0x54170c(0x10f)]={'x':(_0x3925d9+0.5)*CELL,'z':(_0x1e01e0+0.5)*CELL,'yaw':_0xb65ac||0x0};}function spawner(_0x370f53,_0x217e1a,_0x1b4aa,_0x24dbc2,_0x15eba4,_0x4ce366,_0x2e502b){_0x370f53['spawners']['push']({'x':(_0x217e1a+0.5)*CELL,'z':(_0x1b4aa+0.5)*CELL,'enemy':_0x24dbc2,'interval':_0x15eba4,'radius':_0x4ce366,'maxAlive':_0x2e502b||0x3});}function obj(_0x302ee6,_0x1dd13e,_0x171612,_0x50e5c4,_0x353952,_0x43c269){const _0x36afab=_0x15fb;_0x302ee6[_0x36afab(0x115)][_0x36afab(0x106)]({'kind':_0x1dd13e,'x':(_0x171612+0.5)*CELL,'z':(_0x50e5c4+0.5)*CELL,'s':_0x353952||0x1,'rot':_0x43c269||0x0});}export function makeTheSquare(){const _0x361f28=_0x15fb,_0x3e6227=blankMap(_0x361f28(0x112));return _0x3e6227['id']='baked-square',_0x3e6227[_0x361f28(0x11e)]=4.4,stampRect(_0x3e6227,0x1c,0x1c,0x44,0x44,0.2,SHAPE_FLAT,0x1,![],![]),startOn(_0x3e6227,0x20,0x20,0.4),obj(_0x3e6227,_0x361f28(0x109),0x1e,0x1e,0x1,0x0),obj(_0x3e6227,_0x361f28(0x109),0x42,0x1e,0x1,0x0),obj(_0x3e6227,'torch',0x1e,0x42,0x1,0x0),obj(_0x3e6227,_0x361f28(0x109),0x42,0x42,0x1,0x0),obj(_0x3e6227,_0x361f28(0x118),0x24,0x28,0x1,0.2),obj(_0x3e6227,_0x361f28(0x118),0x26,0x29,0.85,-0.4),obj(_0x3e6227,'barrel',0x3c,0x24,0x1,0x0),obj(_0x3e6227,'chest',0x30,0x3c,0x1,Math['PI']),obj(_0x3e6227,_0x361f28(0x117),0x28,0x30,0x1,0x0),obj(_0x3e6227,_0x361f28(0x117),0x38,0x30,0x1,0x0),obj(_0x3e6227,_0x361f28(0x104),0x30,0x30,0x1,0x0),spawner(_0x3e6227,0x3c,0x3c,_0x361f28(0xfd),0x7,0xa,0x3),spawner(_0x3e6227,0x24,0x3c,'skeleton',0x9,0xc,0x2),_0x3e6227['updated']=0x1,_0x3e6227;}function _0x2e2c(){const _0x5163d0=['wraith','lizardfolk','hallH','12wssVtp','163538FSxBva','skeleton','baked-delve','17KJJKTy','anvil','wolf','cage','14272317FyBWpz','The\x20Delve','2097564GRmDeP','The\x20Circuit','coffin','altar','lizard','push','fountain','bones','torch','243836KXDZhK','crystal','updated','baked-circuit','35bVLhcU','start','25887550ficxhn','bookshelf','The\x20Square','stalagmite','3325544LPmGjp','objects','3884064AFszTF','pillar','crate','campfire','table','mushroom'];_0x2e2c=function(){return _0x5163d0;};return _0x2e2c();}export function makeTheCircuit(){const _0xf538e7=_0x15fb,_0x10be06=blankMap(_0xf538e7(0x102));return _0x10be06['id']=_0xf538e7(0x10d),_0x10be06[_0xf538e7(0x11e)]=3.8,stampRect(_0x10be06,0x12,0x12,0x4e,0x4e,1.6,SHAPE_ROUND,0x1,![],!![]),startOn(_0x10be06,0x12,0x16,0x0),obj(_0x10be06,_0xf538e7(0x109),0x12,0x1e,0x1,0x0),obj(_0x10be06,'torch',0x12,0x32,0x1,0x0),obj(_0x10be06,_0xf538e7(0x109),0x12,0x46,0x1,0x0),obj(_0x10be06,'torch',0x28,0x12,0x1,0x0),obj(_0x10be06,_0xf538e7(0x109),0x3c,0x12,0x1,0x0),obj(_0x10be06,'torch',0x4e,0x28,0x1,0x0),obj(_0x10be06,_0xf538e7(0x109),0x4e,0x3c,0x1,0x0),obj(_0x10be06,_0xf538e7(0x109),0x32,0x4e,0x1,0x0),obj(_0x10be06,'banner',0x30,0x12,0x1,0x0),obj(_0x10be06,_0xf538e7(0x108),0x4e,0x30,0x1,0.5),spawner(_0x10be06,0x30,0x12,'bandit',0x8,0x9,0x2),spawner(_0x10be06,0x4e,0x30,_0xf538e7(0xfd),0x6,0x8,0x3),spawner(_0x10be06,0x30,0x4e,_0xf538e7(0x105),0x8,0x9,0x2),spawner(_0x10be06,0x12,0x30,'slime',0x5,0x7,0x4),_0x10be06['updated']=0x2,_0x10be06;}export function makeTheDelve(){const _0xd93ab6=_0x15fb,_0x13beaa=blankMap(_0xd93ab6(0x100));return _0x13beaa['id']=_0xd93ab6(0x122),_0x13beaa[_0xd93ab6(0x11e)]=4.6,stampRect(_0x13beaa,0x8,0xa,0x1c,0x1c,0.2,SHAPE_FLAT,0x5,![],![]),stampRect(_0x13beaa,0x1a,0x10,0x34,0x14,1.1,SHAPE_ROUND,0x2,![],![]),stampRect(_0x13beaa,0x32,0x8,0x48,0x1e,0.2,SHAPE_FLAT,0x6,![],![]),stampRect(_0x13beaa,0x12,0x1a,0x16,0x34,1.2,SHAPE_OVAL,0x3,![],![]),stampRect(_0x13beaa,0x10,0x32,0x28,0x48,0.2,SHAPE_FLAT,0x7,![],![]),stampRect(_0x13beaa,0x26,0x3a,0x46,0x3e,1.15,SHAPE_ROUND,0x4,![],![]),stampDisk(_0x13beaa,0x4e,0x4e,0x4,SHAPE_SPHERE,0x8,![]),addSphere(_0x13beaa,(0x4e+0.5)*CELL,(0x4e+0.5)*CELL,7.2,0x8),stampRect(_0x13beaa,0x44,0x3c,0x4e,0x4e,1.3,SHAPE_OVAL,0x8,![],![]),startOn(_0x13beaa,0xc,0xe,0.2),obj(_0x13beaa,_0xd93ab6(0x109),0xa,0xc,0x1,0x0),obj(_0x13beaa,_0xd93ab6(0x109),0x1a,0xc,0x1,0x0),obj(_0x13beaa,_0xd93ab6(0x111),0xa,0x18,0x1,0.2),obj(_0x13beaa,'chair',0xe,0x14,0x1,0.8),obj(_0x13beaa,_0xd93ab6(0x11a),0x10,0x14,0x1,0.2),obj(_0x13beaa,_0xd93ab6(0x103),0x3c,0xc,0x1,1.2),obj(_0x13beaa,'banner',0x40,0x8,0x1,0x0),obj(_0x13beaa,_0xd93ab6(0x119),0x14,0x3c,0x1,0x0),obj(_0x13beaa,_0xd93ab6(0x11b),0x16,0x40,0x1,0x0),obj(_0x13beaa,'mushroom',0x18,0x3e,0.7,0.4),obj(_0x13beaa,_0xd93ab6(0x113),0x12,0x44,0x1,0x0),obj(_0x13beaa,_0xd93ab6(0x10b),0x4e,0x4e,1.4,0x0),obj(_0x13beaa,'crystal',0x4c,0x4a,0.8,0.6),obj(_0x13beaa,'altar',0x3e,0x14,0x1,0x0),obj(_0x13beaa,_0xd93ab6(0xfe),0x36,0xe,0x1,0x0),obj(_0x13beaa,'spikes',0x28,0x3c,0x1,0x0),obj(_0x13beaa,_0xd93ab6(0x107),0x1e,0x3c,0x1,0x0),obj(_0x13beaa,_0xd93ab6(0x124),0x44,0x18,0x1,0.3),spawner(_0x13beaa,0x14,0x12,'bandit',0xa,0x8,0x2),spawner(_0x13beaa,0x3e,0x12,_0xd93ab6(0x11c),0xc,0xa,0x2),spawner(_0x13beaa,0x18,0x3e,_0xd93ab6(0x11d),0x8,0xb,0x3),spawner(_0x13beaa,0x4e,0x4e,'dragon',0x10,0x9,0x1),spawner(_0x13beaa,0x3c,0x3c,_0xd93ab6(0x121),0x7,0xa,0x3),_0x13beaa[_0xd93ab6(0x10c)]=0x3,_0x13beaa;}export function bakedMaps(){return[makeTheSquare(),makeTheCircuit(),makeTheDelve()];}
+/** Baked maps so /zoom is playable before the first save. */
+import { CELL, SHAPE_FLAT, SHAPE_OVAL, SHAPE_ROUND, SHAPE_SPHERE } from "./config.js?v=zm1";
+import { addSphere, blankMap, stampDisk, stampRect } from "./map.js?v=zm1";
+
+function startOn(m, cx, cz, yaw) {
+  m.start = { x: (cx + 0.5) * CELL, z: (cz + 0.5) * CELL, yaw: yaw || 0 };
+}
+
+function spawner(m, cx, cz, enemy, interval, radius, maxAlive) {
+  m.spawners.push({
+    x: (cx + 0.5) * CELL,
+    z: (cz + 0.5) * CELL,
+    enemy,
+    interval,
+    radius,
+    maxAlive: maxAlive || 3,
+  });
+}
+
+function obj(m, kind, cx, cz, s, rot) {
+  m.objects.push({
+    kind,
+    x: (cx + 0.5) * CELL,
+    z: (cz + 0.5) * CELL,
+    s: s || 1,
+    rot: rot || 0,
+  });
+}
+
+export function makeTheSquare() {
+  const m = blankMap("The Square");
+  m.id = "baked-square";
+  m.hallH = 4.4;
+  stampRect(m, 28, 28, 68, 68, 0.2, SHAPE_FLAT, 1, false, false);
+  startOn(m, 32, 32, 0.4);
+  obj(m, "torch", 30, 30, 1, 0);
+  obj(m, "torch", 66, 30, 1, 0);
+  obj(m, "torch", 30, 66, 1, 0);
+  obj(m, "torch", 66, 66, 1, 0);
+  obj(m, "crate", 36, 40, 1, 0.2);
+  obj(m, "crate", 38, 41, 0.85, -0.4);
+  obj(m, "barrel", 60, 36, 1, 0);
+  obj(m, "chest", 48, 60, 1, Math.PI);
+  obj(m, "pillar", 40, 48, 1, 0);
+  obj(m, "pillar", 56, 48, 1, 0);
+  obj(m, "altar", 48, 48, 1, 0);
+  spawner(m, 60, 60, "wolf", 7, 10, 3);
+  spawner(m, 36, 60, "skeleton", 9, 12, 2);
+  m.updated = 1;
+  return m;
+}
+
+export function makeTheCircuit() {
+  const m = blankMap("The Circuit");
+  m.id = "baked-circuit";
+  m.hallH = 3.8;
+  stampRect(m, 18, 18, 78, 78, 1.6, SHAPE_ROUND, 1, false, true);
+  startOn(m, 18, 22, 0);
+  obj(m, "torch", 18, 30, 1, 0);
+  obj(m, "torch", 18, 50, 1, 0);
+  obj(m, "torch", 18, 70, 1, 0);
+  obj(m, "torch", 40, 18, 1, 0);
+  obj(m, "torch", 60, 18, 1, 0);
+  obj(m, "torch", 78, 40, 1, 0);
+  obj(m, "torch", 78, 60, 1, 0);
+  obj(m, "torch", 50, 78, 1, 0);
+  obj(m, "banner", 48, 18, 1, 0);
+  obj(m, "bones", 78, 48, 1, 0.5);
+  spawner(m, 48, 18, "bandit", 8, 9, 2);
+  spawner(m, 78, 48, "wolf", 6, 8, 3);
+  spawner(m, 48, 78, "lizard", 8, 9, 2);
+  spawner(m, 18, 48, "slime", 5, 7, 4);
+  m.updated = 2;
+  return m;
+}
+
+export function makeTheDelve() {
+  const m = blankMap("The Delve");
+  m.id = "baked-delve";
+  m.hallH = 4.6;
+  stampRect(m, 8, 10, 28, 28, 0.2, SHAPE_FLAT, 5, false, false);
+  stampRect(m, 26, 16, 52, 20, 1.1, SHAPE_ROUND, 2, false, false);
+  stampRect(m, 50, 8, 72, 30, 0.2, SHAPE_FLAT, 6, false, false);
+  stampRect(m, 18, 26, 22, 52, 1.2, SHAPE_OVAL, 3, false, false);
+  stampRect(m, 16, 50, 40, 72, 0.2, SHAPE_FLAT, 7, false, false);
+  stampRect(m, 38, 58, 70, 62, 1.15, SHAPE_ROUND, 4, false, false);
+  stampDisk(m, 78, 78, 4, SHAPE_SPHERE, 8, false);
+  addSphere(m, (78 + 0.5) * CELL, (78 + 0.5) * CELL, 7.2, 8);
+  stampRect(m, 68, 60, 78, 78, 1.3, SHAPE_OVAL, 8, false, false);
+  startOn(m, 12, 14, 0.2);
+  obj(m, "torch", 10, 12, 1, 0);
+  obj(m, "torch", 26, 12, 1, 0);
+  obj(m, "bookshelf", 10, 24, 1, 0.2);
+  obj(m, "chair", 14, 20, 1, 0.8);
+  obj(m, "table", 16, 20, 1, 0.2);
+  obj(m, "coffin", 60, 12, 1, 1.2);
+  obj(m, "banner", 64, 8, 1, 0);
+  obj(m, "campfire", 20, 60, 1, 0);
+  obj(m, "mushroom", 22, 64, 1, 0);
+  obj(m, "mushroom", 24, 62, 0.7, 0.4);
+  obj(m, "stalagmite", 18, 68, 1, 0);
+  obj(m, "crystal", 78, 78, 1.4, 0);
+  obj(m, "crystal", 76, 74, 0.8, 0.6);
+  obj(m, "altar", 62, 20, 1, 0);
+  obj(m, "cage", 54, 14, 1, 0);
+  obj(m, "spikes", 40, 60, 1, 0);
+  obj(m, "fountain", 30, 60, 1, 0);
+  obj(m, "anvil", 68, 24, 1, 0.3);
+  spawner(m, 20, 18, "bandit", 10, 8, 2);
+  spawner(m, 62, 18, "wraith", 12, 10, 2);
+  spawner(m, 24, 62, "lizardfolk", 8, 11, 3);
+  spawner(m, 78, 78, "dragon", 16, 9, 1);
+  spawner(m, 60, 60, "skeleton", 7, 10, 3);
+  m.updated = 3;
+  return m;
+}
+
+export function makeStorySanctum() {
+  const m = blankMap("Sanctum of First Thought", 64, 64);
+  m.id = "story-1";
+  m.hallH = 4.4;
+  m.story = true;
+  stampRect(m, 8, 28, 56, 36, 0.2, SHAPE_FLAT, 10, false, false);
+  stampRect(m, 28, 8, 36, 56, 0.2, SHAPE_FLAT, 9, false, false);
+  stampRect(m, 22, 22, 42, 42, 0.4, SHAPE_FLAT, 10, false, false);
+  startOn(m, 12, 32, 0);
+  for (let x = 18; x <= 24; x++) {
+    const i = x + 32 * m.w;
+    m.flags[i] |= 16;
+  }
+  for (let x = 40; x <= 46; x++) {
+    for (let z = 30; z <= 34; z++) {
+      const i = x + z * m.w;
+      m.flags[i] |= 32;
+      m.elev[i] = 2;
+      m.cells[i] = m.cells[i] || (1 | (10 << 3));
+    }
+  }
+  for (let x = 40; x <= 46; x++) m.flags[x + 32 * m.w] |= 16;
+  obj(m, "altar", 32, 32, 1, 0);
+  obj(m, "torch", 24, 24, 1, 0);
+  obj(m, "torch", 40, 24, 1, 0);
+  obj(m, "torch", 24, 40, 1, 0);
+  obj(m, "torch", 40, 40, 1, 0);
+  obj(m, "crystal", 32, 18, 1, 0);
+  m.turrets.push({ x: 50 * CELL, z: 32 * CELL });
+  m.arrows = [{ x: 32 * CELL, z: 12 * CELL, yaw: Math.PI }];
+  spawner(m, 48, 32, "wraith", 10, 8, 2);
+  spawner(m, 32, 48, "skeleton", 8, 9, 2);
+  m.updated = 1;
+  return m;
+}
+
+export function storyMaps() {
+  return [makeStorySanctum()];
+}
+
+export function bakedMaps() {
+  return [makeTheSquare(), makeTheCircuit(), makeTheDelve()];
+}

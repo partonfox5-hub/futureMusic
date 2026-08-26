@@ -1,21 +1,28 @@
 /** Coin/gem showers, chime, wrist gold counter. */
 import * as THREE from "three";
-import { LOOT } from "./config.js?v=sw3";
+import { LOOT } from "./config.js?v=zm1";
 
 const LS = "zoom.gold";
 const TEX = {};
 const loader = new THREE.TextureLoader();
 
+const STORY_PSY = "zoom.story.psy";
+
 export function loadGold() {
+  return 0;
+}
+export function saveGold(_n) {}
+
+export function loadStoryPsy() {
   try {
-    return Math.max(0, parseInt(localStorage.getItem(LS) || "0", 10) || 0);
+    return Math.max(0, Math.min(1000, parseInt(localStorage.getItem(STORY_PSY) || "0", 10) || 0));
   } catch {
     return 0;
   }
 }
-export function saveGold(n) {
+export function saveStoryPsy(n) {
   try {
-    localStorage.setItem(LS, String(Math.max(0, n | 0)));
+    localStorage.setItem(STORY_PSY, String(Math.max(0, Math.min(1000, n | 0))));
   } catch {}
 }
 

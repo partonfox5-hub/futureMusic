@@ -1,6 +1,6 @@
 /** Procedural tileable biome textures. */
 import * as THREE from "three";
-import { BIOMES } from "./config.js?v=sw3";
+import { BIOMES } from "./config.js?v=zm1";
 
 function n2(x, y) {
   const s = Math.sin(x * 127.1 + y * 311.7) * 43758.5453;
@@ -171,6 +171,30 @@ function paint(kind, which) {
       g.closePath();
       g.stroke();
     }
+  } else if (kind === "lab") {
+    g.fillStyle = "#122028";
+    g.fillRect(0, 0, W, H);
+    g.strokeStyle = "#2a8898";
+    g.lineWidth = 1;
+    for (let y = 0; y < H; y += 8) g.strokeRect(0.5, y + 0.5, W - 1, 8);
+    g.fillStyle = "#44d8ff";
+    for (let i = 0; i < 12; i++) g.fillRect((i * 11) % W, (i * 5) % H, 2, 2);
+    g.fillStyle = "rgba(80,200,220,0.25)";
+    g.fillRect(0, 20, W, 2);
+    g.fillRect(0, 44, W, 1);
+  } else if (kind === "temple") {
+    g.fillStyle = "#6a4a28";
+    g.fillRect(0, 0, W, H);
+    g.fillStyle = "#c4a060";
+    for (let y = 0; y < H; y += 16) {
+      const o = (y / 16) % 2 ? 8 : 0;
+      for (let x = -16; x < W; x += 32) g.fillRect(x + o + 1, y + 1, 30, 14);
+    }
+    g.fillStyle = "#e8d090";
+    g.fillRect(0, 0, W, 2);
+    g.fillRect(30, 0, 4, H);
+    g.fillStyle = "rgba(180,40,40,0.35)";
+    g.fillRect(8, 8, 16, 16);
   } else {
     g.fillStyle = "#666";
     g.fillRect(0, 0, W, H);
@@ -201,7 +225,7 @@ export function biomeMaterial(kind, which) {
     map,
     color: 0xffffff,
     side: THREE.DoubleSide,
-    emissive: kind === "doom" ? 0x3a0800 : kind === "crystal" ? 0x2a1048 : kind === "space" ? 0x102030 : 0x1a1610,
+    emissive: kind === "doom" ? 0x3a0800 : kind === "crystal" ? 0x2a1048 : kind === "space" ? 0x102030 : kind === "lab" ? 0x083040 : kind === "temple" ? 0x3a2810 : 0x1a1610,
     emissiveIntensity: 0.55,
   });
   return mat;

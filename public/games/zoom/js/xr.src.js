@@ -32,7 +32,7 @@ export function attachXr(renderer, scene, onSession) {
     const con = renderer.xr.getController(i);
     scene.add(con);
     const beam = new THREE.Line(
-      new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, -1.6)]),
+      new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, -4.8)]),
       new THREE.LineBasicMaterial({ color: 0xe8dcc0, transparent: true, opacity: 0.35 }),
     );
     con.add(beam);
@@ -211,6 +211,7 @@ export function tickXr(renderer, hands, dt) {
     skate: mag > 0.88,
     jet: !!(left && left.stick),
     lookX: right ? right.axes[0] : 0,
+    lookY: right ? right.axes[1] : 0,
     moveX: left ? left.axes[0] : 0,
     moveY: left ? left.axes[1] : 0,
     jump: !!(right && right.aBtn),

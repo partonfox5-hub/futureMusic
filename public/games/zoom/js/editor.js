@@ -1,6 +1,1060 @@
-import{BIOMES,CELL,ENEMIES,FLAG_CROUCH,FLAG_RUMBLE,FLAG_SPIKE,FLAG_UNSTABLE,LIQ_LAVA,LIQ_NONE,LIQ_WATER,OBJECTS,PICKUPS,PORTAL_COLORS,SHAPE_FLAT,SHAPE_OVAL,SHAPE_ROUND,SHAPE_SPHERE,SHAPES,WALL_TEX,routes}from'./config.js?v=sw3';
-import{bakedMaps}from'./defaults.js?v=sw3';
-import{addSphere,blankMap,canPlaceClimb,cloneMap,countCarved,deserialize,enclosedFloors,ensureLayers,eraseNear,flood,getShape,getTex,idx,inBounds,isCarved,paintDisk,serialize,stampCrack,stampDisk,stampFlags,stampLayer,stampRect,stampSegment,wallIsCrack,wallTexId}from'./map.js?v=sw3';
-import{deleteMap,getMap,listMaps,saveMap,stashPreview}from'./store.js?v=sw3';
-import{defaultNpc}from'./npcs.js?v=sw3';
-function _0x5d60(){const _0x5a9c68=['rgba(140,190,255,0.28)','Draw\x20building\x20walls.\x20Enclosed\x20rooms\x20get\x20floors\x20and\x20roofs.','find','show','Placed\x20','2671236OuKJaI','clientX','Drag\x20a\x20filled\x20rectangle\x20—\x20a\x20room.','Need\x20enclosed\x201st+2nd\x20or\x202nd+3rd\x20floors\x20here','rgba(200,160,255,0.85)','sky-kind','Paint\x20invisible\x20rumble\x20tiles.\x20Walking\x20over\x20them\x20shakes\x20the\x20camera\x20and\x20controllers.','erase','oscale-v','appendChild','npc','sky','value','3986076ODGVDD','oscale','opener','enemy','rgba(20,12,8,0.9)','ellipse','start','stroke','#111','sp-enemy','window','kind','deltaY','target','npc-opts','elev','#c44','torch','paint','code','Vending\x20machine.\x20Player\x20presses\x20E\x20to\x20buy\x20weapons,\x20ammo,\x20and\x20powerups\x20with\x20coins.','#d4a0ff','obj','arc','replace','Spawner:\x20','wtex','className','map-name','[data-k=\x22ntext\x22]','length','#222','brush','Wanderer','sp-int','rgba(255,255,255,0.35)','top','pointerup','Filled\x20','sentrydrone','fillText','rect','indexOf','2998110rPWfxt','toString','water','max','KeyS','rumble','setTransform','radius','reply','\x20(sample)','minotaur','pickup','</label>\x0a\x20\x20\x20\x20<input\x20data-k=\x22text\x22\x20type=\x22text\x22\x20maxlength=\x2280\x22\x20value=\x22','beginPath','classList','7OSSZyq','Place\x20only\x20where\x20consecutive\x20stories\x20both\x20have\x20enclosed\x20floors.','width','flags','#f0d080','Untitled','climbs','#8a7060','rgba(80,40,120,0.8)','sp-rad','toFixed','clientWidth','[data-k=\x22reply\x22]','querySelector','outline','href','status','sp-max','join','drone','\x0a\x20\x20</div>','spawner','#aaa','pickups','push','&lt;','Stamp\x20spherical\x20chambers.','view','left','swatch','Place\x20a\x20talking\x20NPC.\x20Set\x20their\x20name,\x20opening\x20line,\x20and\x20up\x20to\x203\x20player\x20replies\x20(each\x20with\x20a\x20nested\x20follow-up).','Need\x20a\x20closed\x20outline\x20first','strokeRect','0.45px\x20sans-serif','spike','preventDefault','strokeStyle','stairs','#c4a050','6040uzbTHd','liquid','ctrlKey','startsWith','Draw\x20to\x20dig.\x20','\x22\x20rows=\x222\x22\x20maxlength=\x22240\x22\x20placeholder=\x22follow-up\x20reply\x22>','setPointerCapture','\x22\x20placeholder=\x22follow-up\x20choice\x22\x20/>\x0a\x20\x20\x20\x20\x20\x20<textarea\x20data-k=\x22nreply\x22\x20data-j=\x22','lineTo','Place\x20that\x20on\x20a\x20wall','fillStyle','NPC','crouch','\x20cells','clientHeight','addEventListener','name','sphere','filter','npcs','#d4b050','npc-name','Paint\x20carved\x20space.\x20Shape\x20+\x20texture\x20apply\x20to\x20the\x20stroke.','bwalls','options','ropes','yaw','1474419bCKTEC','atan2','parse','lava','saved','22tkWhhY','hypot','interval','button','.sw','pointerdown','\x22\x20data-p=\x22','tool','key-hint','Two\x20clicks\x20make\x20a\x20colored\x20pair.','[data-k=\x22nreply\x22][data-j=\x22','translate','Locked\x20door\x20set\x20—\x20now\x20place\x20its\x20key','to-play','get','climb-span','Click\x20to\x20place\x20a\x20rolling\x20boulder,\x20then\x20drag\x20to\x20set\x20the\x20roll\x20direction.\x20It\x20starts\x20when\x20the\x20player\x20enters\x20the\x20trigger\x20ring.','Spawn\x20set\x20—\x20drag\x20to\x20face','createElement','biome','&quot;','</option>','Low\x20tunnels.\x20Player\x20must\x20crouch\x20(C)\x20to\x20pass.','\x20placed','type','\x22>\x0a\x20\x20\x20\x20<label>Player\x20choice\x20','Stairs','pointerleave','floor','rgba(40,110,200,0.5)','text','Lava\x20layer\x20—\x20it\x20burns.\x20Ceiling\x20rises\x20so\x20you\x20can\x20jump\x20it.','Ladder','hidden','#8a4a18','Boulder\x20set\x20—\x20drag\x20to\x20aim\x20roll\x20direction','<div\x20class=\x22npc-opt\x22\x20data-i=\x22','fillRect','boulders','story','elev-v','hall','cos','portals','restore','clientY','shape','padStart','7281xhiZmq','objects','click','metaKey','</textarea>','sp-max-v','Paint\x20damaged,\x20cracked\x20wall\x20segments.\x20Psyblast\x20shatters\x20them\x20into\x20debris.','random','input','_pan','map','toggle','dig','openings','crack','innerHTML','_wired','object','keyId','arch','fill','new','forEach','</label>\x0a\x20\x20\x20\x20\x20\x20<input\x20data-k=\x22ntext\x22\x20data-j=\x22','scale','crusher','querySelectorAll','vendors','#ffd24a','npc-open','rgba(255,80,70,0.55)','hall-v','sp-rad-v','locked','ladder','slice','Pickup:\x20','save','Backspace','Water\x20layer\x20on\x20top\x20of\x20height.','change','Bucket-fill\x20a\x20closed\x20pocket.','Delete','splice','Place\x20a\x20minotaur.\x20Walks\x20slowly,\x20then\x20charges\x20when\x20it\x20sees\x20the\x20player.','[data-tool]','sp-int-v','matches','boulder','Open\x20courtyard\x20—\x20grass\x20floor,\x20courtyard\x20walls,\x20real\x20sky\x20(no\x20cave\x20lid).','#88f','9329rCNDZL','Editing\x20','contextmenu','min','stage','font','search','#4ad0ff','26117990VvMauR','wall','maxAlive','New\x20delve','Key\x20','hallH','baked','key','getBoundingClientRect','remote','Drag\x20an\x20outline\x20—\x20a\x20hallway\x20circuit.','unstable','textContent','?map=preview','spawners','style','moveTo','#ffe08a','#ffcc66','px\x20sans-serif','dataset','lineWidth','sin','crushers','#9ad4ff'];_0x5d60=function(){return _0x5a9c68;};return _0x5d60();}const _0x251f6a=_0x4111;(function(_0x33c607,_0x1b28e0){const _0x46de46=_0x4111,_0x3e1926=_0x33c607();while(!![]){try{const _0x109550=-parseInt(_0x46de46(0x2e3))/0x1*(-parseInt(_0x46de46(0x280))/0x2)+parseInt(_0x46de46(0x27b))/0x3+-parseInt(_0x46de46(0x1ff))/0x4+-parseInt(_0x46de46(0x22a))/0x5+parseInt(_0x46de46(0x1f2))/0x6*(-parseInt(_0x46de46(0x239))/0x7)+-parseInt(_0x46de46(0x260))/0x8*(parseInt(_0x46de46(0x2b0))/0x9)+parseInt(_0x46de46(0x2eb))/0xa;if(_0x109550===_0x1b28e0)break;else _0x3e1926['push'](_0x3e1926['shift']());}catch(_0x5794fa){_0x3e1926['push'](_0x3e1926['shift']());}}}(_0x5d60,0x87315));const $=_0x293aa0=>document['getElementById'](_0x293aa0);let map=blankMap('New\x20delve');function _0x4111(_0x3d091d,_0x42ed2c){_0x3d091d=_0x3d091d-0x1e2;const _0x5d609f=_0x5d60();let _0x41113e=_0x5d609f[_0x3d091d];return _0x41113e;}ensureLayers(map);let tool='dig',shape=SHAPE_FLAT,tex=0x1,brush=2.2,objKind=_0x251f6a(0x210),pickupKind='pistol',enemyId='scout',spawnInterval=0x6,spawnRadius=0x8,spawnMax=0x3,objScale=0x1,elev=0x0,skyKind=0x1,story=0x0,wtex=0x1,selected=null,drawing=![],last=null,rectA=null,pan={'x':0x0,'y':0x0},scale=0x8,undo=[],pendingPortal=null,pendingKey=null,climbFrom=0x0;const canvas=$(_0x251f6a(0x254)),ctx=canvas['getContext']('2d');function pushUndo(){const _0x3d7c4e=_0x251f6a;undo[_0x3d7c4e(0x251)](JSON['stringify'](serialize(map)));if(undo['length']>0x18)undo['shift']();}function doUndo(){const _0x37874c=_0x251f6a,_0x2763f7=undo['pop']();if(!_0x2763f7)return;const _0x1a2767=map['id'],_0x5c4797=map['name'];map=deserialize(JSON[_0x37874c(0x27d)](_0x2763f7)),map['id']=_0x1a2767,map[_0x37874c(0x270)]=_0x5c4797,selected=null,draw(),status('Undid');}function status(_0x5d1b3d){const _0x25ed0e=_0x251f6a;$(_0x25ed0e(0x249))[_0x25ed0e(0x2f7)]=_0x5d1b3d;}function cellFromEvent(_0xb59771){const _0x2266af=_0x251f6a,_0x520bf9=canvas['getBoundingClientRect'](),_0x35c4d7=(_0xb59771['clientX']-_0x520bf9[_0x2266af(0x255)]-pan['x'])/scale,_0x2e16af=(_0xb59771['clientY']-_0x520bf9[_0x2266af(0x223)]-pan['y'])/scale;return{'x':_0x35c4d7,'z':_0x2e16af,'wx':_0x35c4d7*CELL,'wz':_0x2e16af*CELL,'gx':Math[_0x2266af(0x29c)](_0x35c4d7),'gz':Math[_0x2266af(0x29c)](_0x2e16af)};}function showPanels(){const _0x501d8b=_0x251f6a;document[_0x501d8b(0x2ca)]('.pbox')[_0x501d8b(0x2c6)](_0x45040c=>{const _0x504a05=_0x501d8b,_0x41d208=(_0x45040c['dataset'][_0x504a05(0x1f0)]||'')['split'](',');_0x45040c[_0x504a05(0x2a1)]=!_0x41d208['includes'](tool);}),document['querySelectorAll'](_0x501d8b(0x2dd))[_0x501d8b(0x2c6)](_0x1fcbfa=>_0x1fcbfa[_0x501d8b(0x238)][_0x501d8b(0x2bb)]('on',_0x1fcbfa[_0x501d8b(0x1e8)]['tool']===tool));}function fit(){const _0x36eaa7=_0x251f6a,_0x19d34c=$(_0x36eaa7(0x2e7)),_0x58b028=_0x19d34c[_0x36eaa7(0x244)],_0x3429de=_0x19d34c[_0x36eaa7(0x26e)];canvas[_0x36eaa7(0x23b)]=_0x58b028*devicePixelRatio,canvas['height']=_0x3429de*devicePixelRatio,canvas[_0x36eaa7(0x1e3)][_0x36eaa7(0x23b)]=_0x58b028+'px',canvas['style']['height']=_0x3429de+'px',ctx['setTransform'](devicePixelRatio,0x0,0x0,devicePixelRatio,0x0,0x0),scale=Math[_0x36eaa7(0x2e6)](_0x58b028/map['w'],_0x3429de/map['h'])*0.92,pan['x']=(_0x58b028-map['w']*scale)/0x2,pan['y']=(_0x3429de-map['h']*scale)/0x2,draw();}function drawCell(_0x367525,_0x5d3602){const _0x5d28ec=_0x251f6a,_0x1c9ed6=idx(map,_0x367525,_0x5d3602),_0x1d2752=map['cells'][_0x1c9ed6];if(isCarved(_0x1d2752)){ctx[_0x5d28ec(0x26a)]=BIOMES[getTex(_0x1d2752)]?.[_0x5d28ec(0x256)]||'#888',ctx['fillRect'](_0x367525,_0x5d3602,1.02,1.02);const _0x18d140=getShape(_0x1d2752);ctx[_0x5d28ec(0x2d5)](),ctx['translate'](_0x367525+0.5,_0x5d3602+0.5),ctx[_0x5d28ec(0x1e9)]=0.08;if(_0x18d140===SHAPE_ROUND)ctx[_0x5d28ec(0x25d)]='rgba(20,40,70,0.7)',ctx['beginPath'](),ctx[_0x5d28ec(0x216)](0x0,0x0,0.38,0x0,6.28),ctx['stroke']();else{if(_0x18d140===SHAPE_OVAL)ctx[_0x5d28ec(0x25d)]='rgba(80,50,20,0.75)',ctx[_0x5d28ec(0x237)](),ctx[_0x5d28ec(0x204)](0x0,0x0,0.42,0.26,0.5,0x0,6.28),ctx[_0x5d28ec(0x206)]();else _0x18d140===SHAPE_SPHERE?(ctx['strokeStyle']=_0x5d28ec(0x241),ctx['beginPath'](),ctx['arc'](0x0,0x0,0.22,0x0,6.28),ctx[_0x5d28ec(0x206)](),ctx[_0x5d28ec(0x237)](),ctx['arc'](0x0,0x0,0.4,0x0,6.28),ctx[_0x5d28ec(0x206)]()):(ctx['strokeStyle']='rgba(255,255,255,0.22)',ctx['strokeRect'](-0.32,-0.32,0.64,0.64));}ctx['restore']();map[_0x5d28ec(0x23c)]&&map[_0x5d28ec(0x23c)][_0x1c9ed6]&FLAG_SPIKE&&(ctx[_0x5d28ec(0x26a)]=_0x5d28ec(0x20f),ctx['beginPath'](),ctx[_0x5d28ec(0x1e4)](_0x367525+0.5,_0x5d3602+0.15),ctx[_0x5d28ec(0x268)](_0x367525+0.78,_0x5d3602+0.85),ctx['lineTo'](_0x367525+0.22,_0x5d3602+0.85),ctx[_0x5d28ec(0x2c4)]());map[_0x5d28ec(0x23c)]&&map[_0x5d28ec(0x23c)][_0x1c9ed6]&FLAG_CROUCH&&(ctx[_0x5d28ec(0x25d)]=_0x5d28ec(0x21e),ctx[_0x5d28ec(0x1e9)]=0.1,ctx[_0x5d28ec(0x237)](),ctx[_0x5d28ec(0x1e4)](_0x367525+0.15,_0x5d3602+0.7),ctx['lineTo'](_0x367525+0.85,_0x5d3602+0.7),ctx['stroke']());map['flags']&&map[_0x5d28ec(0x23c)][_0x1c9ed6]&FLAG_RUMBLE&&(ctx['strokeStyle']='rgba(200,160,80,0.55)',ctx[_0x5d28ec(0x1e9)]=0.07,ctx['strokeRect'](_0x367525+0.18,_0x5d3602+0.18,0.64,0.64));map[_0x5d28ec(0x23c)]&&map['flags'][_0x1c9ed6]&FLAG_UNSTABLE&&(ctx[_0x5d28ec(0x25d)]='rgba(180,90,40,0.85)',ctx[_0x5d28ec(0x1e9)]=0.08,ctx['beginPath'](),ctx['moveTo'](_0x367525+0.1,_0x5d3602+0.2),ctx[_0x5d28ec(0x268)](_0x367525+0.45,_0x5d3602+0.55),ctx[_0x5d28ec(0x268)](_0x367525+0.35,_0x5d3602+0.85),ctx[_0x5d28ec(0x1e4)](_0x367525+0.55,_0x5d3602+0.15),ctx['lineTo'](_0x367525+0.9,_0x5d3602+0.7),ctx[_0x5d28ec(0x206)]());map[_0x5d28ec(0x1fd)]&&map['sky'][_0x1c9ed6]&&(ctx['fillStyle']=_0x5d28ec(0x1ed),ctx[_0x5d28ec(0x2a5)](_0x367525,_0x5d3602,0x1,0x1));const _0x54365d=map['elev']&&map['elev'][_0x1c9ed6];_0x54365d&&(ctx[_0x5d28ec(0x26a)]=_0x54365d>0x0?_0x5d28ec(0x222):'rgba(0,0,0,0.35)',ctx[_0x5d28ec(0x2a5)](_0x367525,_0x5d3602,0x1,Math['min'](0x1,Math['abs'](_0x54365d)*0.12)),scale>0x7&&(ctx['fillStyle']='#111',ctx['font']=_0x5d28ec(0x25a),ctx[_0x5d28ec(0x227)](String(_0x54365d),_0x367525+0.12,_0x5d3602+0.55)));}map['liquid']&&map[_0x5d28ec(0x261)][_0x1c9ed6]&&(ctx['fillStyle']=map[_0x5d28ec(0x261)][_0x1c9ed6]===0x2?'rgba(255,80,20,0.55)':_0x5d28ec(0x29d),ctx[_0x5d28ec(0x2a5)](_0x367525,_0x5d3602,0x1,0x1));const _0x2b8a7b=map['bwalls']&&map[_0x5d28ec(0x277)][story]&&map[_0x5d28ec(0x277)][story][_0x1c9ed6];if(_0x2b8a7b){const _0xf90b86=wallTexId(_0x2b8a7b)||0x1;ctx[_0x5d28ec(0x26a)]=WALL_TEX[(_0xf90b86-0x1)%WALL_TEX[_0x5d28ec(0x21d)]]['swatch'],ctx[_0x5d28ec(0x2a5)](_0x367525+0.15,_0x5d3602+0.15,0.7,0.7),ctx[_0x5d28ec(0x25d)]=_0x5d28ec(0x207),ctx[_0x5d28ec(0x1e9)]=0.08,ctx['strokeRect'](_0x367525+0.15,_0x5d3602+0.15,0.7,0.7),wallIsCrack(_0x2b8a7b)&&(ctx[_0x5d28ec(0x25d)]=_0x5d28ec(0x203),ctx[_0x5d28ec(0x1e9)]=0.1,ctx[_0x5d28ec(0x237)](),ctx['moveTo'](_0x367525+0.22,_0x5d3602+0.28),ctx['lineTo'](_0x367525+0.48,_0x5d3602+0.55),ctx[_0x5d28ec(0x268)](_0x367525+0.4,_0x5d3602+0.78),ctx[_0x5d28ec(0x1e4)](_0x367525+0.55,_0x5d3602+0.22),ctx[_0x5d28ec(0x268)](_0x367525+0.82,_0x5d3602+0.62),ctx['stroke']());}}function draw(){const _0x12dbf8=_0x251f6a;ensureLayers(map);const _0x23ee03=canvas[_0x12dbf8(0x244)],_0x2bb36=canvas[_0x12dbf8(0x26e)];ctx[_0x12dbf8(0x230)](devicePixelRatio,0x0,0x0,devicePixelRatio,0x0,0x0),ctx[_0x12dbf8(0x26a)]='#0b0a09',ctx[_0x12dbf8(0x2a5)](0x0,0x0,_0x23ee03,_0x2bb36),ctx[_0x12dbf8(0x2d5)](),ctx[_0x12dbf8(0x28b)](pan['x'],pan['y']),ctx[_0x12dbf8(0x2c8)](scale,scale),ctx['fillStyle']='#161310',ctx[_0x12dbf8(0x2a5)](0x0,0x0,map['w'],map['h']);for(let _0x4f13a2=0x0;_0x4f13a2<map['h'];_0x4f13a2++)for(let _0x70e685=0x0;_0x70e685<map['w'];_0x70e685++)drawCell(_0x70e685,_0x4f13a2);for(const _0x477f33 of map['spheres']){ctx['beginPath'](),ctx['arc'](_0x477f33['x']/CELL,_0x477f33['z']/CELL,_0x477f33['r']/CELL,0x0,6.28),ctx[_0x12dbf8(0x25d)]=_0x12dbf8(0x1f6),ctx[_0x12dbf8(0x1e9)]=1.5/scale,ctx['stroke']();}for(const _0x4f2c06 of map['objects']){ctx[_0x12dbf8(0x26a)]=_0x12dbf8(0x23d),ctx[_0x12dbf8(0x2a5)](_0x4f2c06['x']/CELL-0.3,_0x4f2c06['z']/CELL-0.3,0.6,0.6);}for(const _0x1fc535 of map['pickups']){ctx[_0x12dbf8(0x26a)]=_0x12dbf8(0x2e2),ctx[_0x12dbf8(0x2a5)](_0x1fc535['x']/CELL-0.28,_0x1fc535['z']/CELL-0.28,0.56,0.56);}for(const _0x4a666b of map['keys']){ctx[_0x12dbf8(0x26a)]=_0x12dbf8(0x2cc),ctx['beginPath'](),ctx[_0x12dbf8(0x216)](_0x4a666b['x']/CELL,_0x4a666b['z']/CELL,0.32,0x0,6.28),ctx[_0x12dbf8(0x2c4)]();}for(const _0x25955a of map['spawners']){ctx[_0x12dbf8(0x237)](),ctx[_0x12dbf8(0x216)](_0x25955a['x']/CELL,_0x25955a['z']/CELL,(_0x25955a[_0x12dbf8(0x231)]||0x8)/CELL,0x0,6.28),ctx[_0x12dbf8(0x25d)]=_0x12dbf8(0x2ce),ctx[_0x12dbf8(0x1e9)]=1.4/scale,ctx[_0x12dbf8(0x206)](),ctx[_0x12dbf8(0x26a)]=_0x25955a['enemy']==='minotaur'?_0x12dbf8(0x2a2):_0x25955a['enemy']===_0x12dbf8(0x226)?_0x12dbf8(0x2ea):'#ff5a4a',ctx['beginPath'](),ctx[_0x12dbf8(0x216)](_0x25955a['x']/CELL,_0x25955a['z']/CELL,_0x25955a[_0x12dbf8(0x202)]===_0x12dbf8(0x234)?0.55:0.4,0x0,6.28),ctx[_0x12dbf8(0x2c4)]();}(map[_0x12dbf8(0x2ab)]||[])['forEach']((_0x176a4a,_0x2697b2)=>{const _0x3a3dc8=_0x12dbf8;ctx['strokeStyle']='#'+PORTAL_COLORS[_0x2697b2%PORTAL_COLORS[_0x3a3dc8(0x21d)]]['toString'](0x10)[_0x3a3dc8(0x2af)](0x6,'0'),ctx[_0x3a3dc8(0x1e9)]=0.12,ctx['beginPath'](),ctx[_0x3a3dc8(0x216)](_0x176a4a['ax']/CELL,_0x176a4a['az']/CELL,0.45,0x0,6.28),ctx[_0x3a3dc8(0x206)](),ctx[_0x3a3dc8(0x237)](),ctx['arc'](_0x176a4a['bx']/CELL,_0x176a4a['bz']/CELL,0.45,0x0,6.28),ctx['stroke']();});for(const _0x1b19c2 of map['turrets']){ctx[_0x12dbf8(0x26a)]='#c33',ctx['fillRect'](_0x1b19c2['x']/CELL-0.3,_0x1b19c2['z']/CELL-0.3,0.6,0.6);}for(const _0x97c165 of map[_0x12dbf8(0x1eb)]){ctx['strokeStyle']=_0x12dbf8(0x24f),ctx[_0x12dbf8(0x259)](_0x97c165['x']/CELL-0.4,_0x97c165['z']/CELL-0.4,0.8,0.8);}for(const _0x2db1b1 of map['boulders']||[]){ctx['fillStyle']=_0x12dbf8(0x240),ctx[_0x12dbf8(0x237)](),ctx[_0x12dbf8(0x216)](_0x2db1b1['x']/CELL,_0x2db1b1['z']/CELL,0.45,0x0,6.28),ctx[_0x12dbf8(0x2c4)](),ctx[_0x12dbf8(0x25d)]=_0x12dbf8(0x1e6),ctx[_0x12dbf8(0x1e9)]=0.1,ctx[_0x12dbf8(0x237)](),ctx[_0x12dbf8(0x1e4)](_0x2db1b1['x']/CELL,_0x2db1b1['z']/CELL),ctx[_0x12dbf8(0x268)](_0x2db1b1['x']/CELL-Math[_0x12dbf8(0x1ea)](_0x2db1b1['yaw']||0x0)*1.3,_0x2db1b1['z']/CELL-Math[_0x12dbf8(0x2aa)](_0x2db1b1['yaw']||0x0)*1.3),ctx[_0x12dbf8(0x206)](),ctx['strokeStyle']='rgba(200,80,40,0.5)',ctx['beginPath'](),ctx['arc'](_0x2db1b1['x']/CELL,_0x2db1b1['z']/CELL,(_0x2db1b1['trigger']||3.2)/CELL,0x0,6.28),ctx[_0x12dbf8(0x206)]();}for(const _0x596c69 of map['vendors']||[]){ctx[_0x12dbf8(0x26a)]='#4ad',ctx[_0x12dbf8(0x2a5)](_0x596c69['x']/CELL-0.35,_0x596c69['z']/CELL-0.35,0.7,0.7),ctx[_0x12dbf8(0x26a)]='#ffe08a',ctx[_0x12dbf8(0x2a5)](_0x596c69['x']/CELL-0.12,_0x596c69['z']/CELL-0.12,0.24,0.24);}for(const _0x1913f2 of map[_0x12dbf8(0x273)]||[]){ctx[_0x12dbf8(0x26a)]=_0x12dbf8(0x214),ctx['beginPath'](),ctx[_0x12dbf8(0x216)](_0x1913f2['x']/CELL,_0x1913f2['z']/CELL,0.32,0x0,6.28),ctx[_0x12dbf8(0x2c4)](),ctx[_0x12dbf8(0x26a)]='#ffe8c8',ctx[_0x12dbf8(0x2e8)]=0x8/scale*1.2+_0x12dbf8(0x1e7),ctx[_0x12dbf8(0x227)]((_0x1913f2[_0x12dbf8(0x270)]||'NPC')['slice'](0x0,0xa),_0x1913f2['x']/CELL-0.4,_0x1913f2['z']/CELL-0.45);}for(const _0x59a851 of map['ropes']){ctx[_0x12dbf8(0x25d)]='#6a4424',ctx['beginPath'](),ctx['moveTo'](_0x59a851['x']/CELL,_0x59a851['z']/CELL),ctx[_0x12dbf8(0x268)](_0x59a851['x']/CELL,_0x59a851['z']/CELL+0.7),ctx[_0x12dbf8(0x206)]();}for(const _0x67988e of map['climbs']||[]){ctx['strokeStyle']=_0x67988e[_0x12dbf8(0x20a)]===_0x12dbf8(0x2d2)?'#c8a070':'#e2c070',ctx[_0x12dbf8(0x1e9)]=0.12,ctx[_0x12dbf8(0x259)](_0x67988e['x']/CELL-0.35,_0x67988e['z']/CELL-0.35,0.7,0.7),ctx['fillStyle']=_0x67988e[_0x12dbf8(0x20a)]===_0x12dbf8(0x2d2)?'#8a6030':_0x12dbf8(0x274),ctx[_0x12dbf8(0x2a5)](_0x67988e['x']/CELL-0.18,_0x67988e['z']/CELL-0.18,0.36,0.36);}for(const _0x30d34a of map[_0x12dbf8(0x2bd)]){ctx[_0x12dbf8(0x25d)]=_0x30d34a['locked']?_0x12dbf8(0x25f):'#eee',ctx['strokeRect'](_0x30d34a['x']+0.2,_0x30d34a['z']+0.2,0.6,0.6);}if(map['start']){ctx['fillStyle']='#7dffb0',ctx[_0x12dbf8(0x237)](),ctx[_0x12dbf8(0x216)](map[_0x12dbf8(0x205)]['x']/CELL,map[_0x12dbf8(0x205)]['z']/CELL,0.55,0x0,6.28),ctx[_0x12dbf8(0x2c4)]();const _0x62a03f=map['start']['yaw']||0x0;ctx[_0x12dbf8(0x25d)]='#7dffb0',ctx[_0x12dbf8(0x1e9)]=0.12,ctx[_0x12dbf8(0x237)](),ctx[_0x12dbf8(0x1e4)](map['start']['x']/CELL,map[_0x12dbf8(0x205)]['z']/CELL),ctx[_0x12dbf8(0x268)](map['start']['x']/CELL-Math[_0x12dbf8(0x1ea)](_0x62a03f)*1.4,map[_0x12dbf8(0x205)]['z']/CELL-Math[_0x12dbf8(0x2aa)](_0x62a03f)*1.4),ctx['stroke']();}rectA&&last&&(tool===_0x12dbf8(0x228)||tool===_0x12dbf8(0x247))&&(ctx['strokeStyle']=tool===_0x12dbf8(0x247)?_0x12dbf8(0x1ec):_0x12dbf8(0x1e5),ctx[_0x12dbf8(0x1e9)]=1.2/scale,ctx[_0x12dbf8(0x259)](Math[_0x12dbf8(0x2e6)](rectA['x'],last['x']),Math['min'](rectA['z'],last['z']),Math['abs'](last['x']-rectA['x']),Math['abs'](last['z']-rectA['z']))),ctx[_0x12dbf8(0x2ac)]();}function applyBrush(_0x38dc82,_0x4b0dbb){if(shape===SHAPE_SPHERE&&!_0x4b0dbb)stampDisk(map,_0x38dc82['x'],_0x38dc82['z'],Math['max'](1.2,brush*0.85),SHAPE_SPHERE,tex,![]),addSphere(map,_0x38dc82['wx'],_0x38dc82['wz'],brush*CELL*0.9,tex);else{stampDisk(map,_0x38dc82['x'],_0x38dc82['z'],brush,shape,tex,_0x4b0dbb);if(_0x4b0dbb)eraseNear(map,_0x38dc82['wx'],_0x38dc82['wz'],brush*CELL);}}function hitAt(_0x484557){const _0x1656b7=_0x251f6a;for(let _0x2230e1=map['spawners']['length']-0x1;_0x2230e1>=0x0;_0x2230e1--){if(Math[_0x1656b7(0x281)](map[_0x1656b7(0x1e2)][_0x2230e1]['x']-_0x484557['wx'],map[_0x1656b7(0x1e2)][_0x2230e1]['z']-_0x484557['wz'])<1.2)return{'type':_0x1656b7(0x24e),'i':_0x2230e1};}for(let _0x1662d9=map[_0x1656b7(0x2b1)][_0x1656b7(0x21d)]-0x1;_0x1662d9>=0x0;_0x1662d9--){if(Math[_0x1656b7(0x281)](map[_0x1656b7(0x2b1)][_0x1662d9]['x']-_0x484557['wx'],map[_0x1656b7(0x2b1)][_0x1662d9]['z']-_0x484557['wz'])<1.1)return{'type':'obj','i':_0x1662d9};}for(let _0x58bc7a=(map[_0x1656b7(0x250)]||[])[_0x1656b7(0x21d)]-0x1;_0x58bc7a>=0x0;_0x58bc7a--){if(Math[_0x1656b7(0x281)](map['pickups'][_0x58bc7a]['x']-_0x484557['wx'],map[_0x1656b7(0x250)][_0x58bc7a]['z']-_0x484557['wz'])<1.1)return{'type':_0x1656b7(0x235),'i':_0x58bc7a};}for(let _0x3bc8f3=(map['npcs']||[])[_0x1656b7(0x21d)]-0x1;_0x3bc8f3>=0x0;_0x3bc8f3--){if(Math[_0x1656b7(0x281)](map[_0x1656b7(0x273)][_0x3bc8f3]['x']-_0x484557['wx'],map['npcs'][_0x3bc8f3]['z']-_0x484557['wz'])<1.2)return{'type':'npc','i':_0x3bc8f3};}return null;}function onWall(_0x4a249f,_0x424dd1){const _0x2aa570=_0x251f6a;return!!(map[_0x2aa570(0x277)]&&map['bwalls'][story]&&map[_0x2aa570(0x277)][story][idx(map,_0x4a249f,_0x424dd1)]);}canvas[_0x251f6a(0x26f)](_0x251f6a(0x285),_0x45ed24=>{const _0x51ae37=_0x251f6a;if(_0x45ed24['button']===0x1||_0x45ed24[_0x51ae37(0x283)]===0x2){canvas[_0x51ae37(0x266)](_0x45ed24['pointerId']),canvas[_0x51ae37(0x2b9)]={'x':_0x45ed24['clientX']-pan['x'],'y':_0x45ed24['clientY']-pan['y']};return;}const _0x4fd195=cellFromEvent(_0x45ed24);last=_0x4fd195;if([_0x51ae37(0x2bc),'erase','sphere','paint',_0x51ae37(0x26c),'spike','sky',_0x51ae37(0x20e),'water',_0x51ae37(0x27e),_0x51ae37(0x2ec),_0x51ae37(0x2be),_0x51ae37(0x2f6),'rumble']['includes'](tool))pushUndo(),drawing=!![],strokeAt(_0x4fd195,!![]),draw();else{if(tool===_0x51ae37(0x228)||tool===_0x51ae37(0x247))pushUndo(),rectA=_0x4fd195,drawing=!![];else{if(tool===_0x51ae37(0x2c4)){pushUndo();const _0x34bef0=flood(map,_0x4fd195['x'],_0x4fd195['z'],shape,tex,![]);status(_0x34bef0?_0x51ae37(0x225)+_0x34bef0+_0x51ae37(0x26d):_0x51ae37(0x258)),draw();}else{if(tool==='object'){const _0x39be1b=hitAt(_0x4fd195);if(_0x39be1b&&_0x39be1b['type']===_0x51ae37(0x215))selected=_0x39be1b;else pushUndo(),map['objects']['push']({'kind':objKind,'x':_0x4fd195['wx'],'z':_0x4fd195['wz'],'s':objScale,'rot':0x0}),selected={'type':_0x51ae37(0x215),'i':map[_0x51ae37(0x2b1)][_0x51ae37(0x21d)]-0x1},status(_0x51ae37(0x1f1)+objKind);draw();}else{if(tool==='pickup')pushUndo(),map['pickups'][_0x51ae37(0x251)]({'kind':pickupKind,'x':_0x4fd195['wx'],'z':_0x4fd195['wz']}),status(_0x51ae37(0x2d4)+pickupKind),draw();else{if(tool===_0x51ae37(0x24e)){const _0x6782b8=hitAt(_0x4fd195);if(_0x6782b8&&_0x6782b8[_0x51ae37(0x298)]===_0x51ae37(0x24e)){selected=_0x6782b8;const _0x199165=map['spawners'][_0x6782b8['i']];$(_0x51ae37(0x208))['value']=_0x199165[_0x51ae37(0x202)],$('sp-int')[_0x51ae37(0x1fe)]=_0x199165['interval'],$(_0x51ae37(0x242))[_0x51ae37(0x1fe)]=_0x199165['radius'],$(_0x51ae37(0x24a))[_0x51ae37(0x1fe)]=_0x199165[_0x51ae37(0x2ed)],syncSliders();}else pushUndo(),map[_0x51ae37(0x1e2)][_0x51ae37(0x251)]({'x':_0x4fd195['wx'],'z':_0x4fd195['wz'],'enemy':enemyId,'interval':spawnInterval,'radius':spawnRadius,'maxAlive':spawnMax}),selected={'type':_0x51ae37(0x24e),'i':map['spawners'][_0x51ae37(0x21d)]-0x1},status(_0x51ae37(0x218)+enemyId);draw();}else{if(tool==='start')pushUndo(),map[_0x51ae37(0x205)]={'x':_0x4fd195['wx'],'z':_0x4fd195['wz'],'yaw':map[_0x51ae37(0x205)]?.[_0x51ae37(0x27a)]||0x0},drawing=!![],status(_0x51ae37(0x291)),draw();else{if(tool==='rope')pushUndo(),map[_0x51ae37(0x279)]['push']({'x':_0x4fd195['wx'],'z':_0x4fd195['wz'],'len':4.5}),draw();else{if(tool===_0x51ae37(0x234)||tool===_0x51ae37(0x24c)){pushUndo();const _0x30a306=tool==='minotaur'?'minotaur':'sentrydrone';map[_0x51ae37(0x1e2)][_0x51ae37(0x251)]({'x':_0x4fd195['wx'],'z':_0x4fd195['wz'],'enemy':_0x30a306,'interval':0x8,'radius':0xa,'maxAlive':0x2}),selected={'type':_0x51ae37(0x24e),'i':map['spawners'][_0x51ae37(0x21d)]-0x1},status(tool===_0x51ae37(0x234)?'Minotaur':'Sentry\x20drone'),draw();}else{if(tool==='turret')pushUndo(),map['turrets'][_0x51ae37(0x251)]({'x':_0x4fd195['wx'],'z':_0x4fd195['wz']}),draw();else{if(tool===_0x51ae37(0x2c9))pushUndo(),map[_0x51ae37(0x1eb)]['push']({'x':_0x4fd195['wx'],'z':_0x4fd195['wz']}),draw();else{if(tool==='boulder')pushUndo(),map['boulders']=map['boulders']||[],map['boulders']['push']({'x':_0x4fd195['wx'],'z':_0x4fd195['wz'],'yaw':0x0,'trigger':3.2}),selected={'type':_0x51ae37(0x2e0),'i':map['boulders'][_0x51ae37(0x21d)]-0x1},drawing=!![],status(_0x51ae37(0x2a3)),draw();else{if(tool==='vendor')pushUndo(),map[_0x51ae37(0x2cb)]=map['vendors']||[],map['vendors'][_0x51ae37(0x251)]({'x':_0x4fd195['wx'],'z':_0x4fd195['wz']}),status('Vending\x20machine'),draw();else{if(tool==='npc'){const _0x4da338=hitAt(_0x4fd195);_0x4da338&&_0x4da338[_0x51ae37(0x298)]===_0x51ae37(0x1fc)?(selected=_0x4da338,fillNpcForm(),status(_0x51ae37(0x2e4)+(map[_0x51ae37(0x273)][_0x4da338['i']][_0x51ae37(0x270)]||_0x51ae37(0x26b)))):(pushUndo(),map['npcs']=map[_0x51ae37(0x273)]||[],map[_0x51ae37(0x273)][_0x51ae37(0x251)](defaultNpc(_0x4fd195['wx'],_0x4fd195['wz'])),selected={'type':'npc','i':map[_0x51ae37(0x273)][_0x51ae37(0x21d)]-0x1},fillNpcForm(),status('NPC\x20placed\x20—\x20set\x20name\x20and\x20dialogue')),draw();}else{if(tool===_0x51ae37(0x25e)||tool==='ladder'){if(!canPlaceClimb(map,_0x4fd195['gx'],_0x4fd195['gz'],climbFrom)){status(_0x51ae37(0x1f5));return;}pushUndo();const _0xdf4646=enclosedFloors(map,climbFrom),_0x5f1a7e=(_0x49a0a6,_0x3a0344)=>inBounds(map,_0x49a0a6,_0x3a0344)&&_0xdf4646[idx(map,_0x49a0a6,_0x3a0344)],_0x354ea0=(_0x5f1a7e(_0x4fd195['gx']-0x1,_0x4fd195['gz'])?0x1:0x0)+(_0x5f1a7e(_0x4fd195['gx']+0x1,_0x4fd195['gz'])?0x1:0x0),_0xaaf970=(_0x5f1a7e(_0x4fd195['gx'],_0x4fd195['gz']-0x1)?0x1:0x0)+(_0x5f1a7e(_0x4fd195['gx'],_0x4fd195['gz']+0x1)?0x1:0x0);map['climbs']=map[_0x51ae37(0x23f)]||[],map['climbs']=map['climbs'][_0x51ae37(0x272)](_0x3277e9=>Math[_0x51ae37(0x281)](_0x3277e9['x']-_0x4fd195['wx'],_0x3277e9['z']-_0x4fd195['wz'])>CELL*0.7),map['climbs'][_0x51ae37(0x251)]({'kind':tool===_0x51ae37(0x2d2)?'ladder':_0x51ae37(0x25e),'x':_0x4fd195['wx'],'z':_0x4fd195['wz'],'from':climbFrom,'to':climbFrom+0x1,'yaw':_0x354ea0>_0xaaf970?Math['PI']/0x2:0x0}),status((tool===_0x51ae37(0x2d2)?_0x51ae37(0x2a0):_0x51ae37(0x29a))+'\x20'+(climbFrom+0x1)+'↔'+(climbFrom+0x2)),draw();}else{if(tool==='portal')!pendingPortal?(pendingPortal={'ax':_0x4fd195['wx'],'az':_0x4fd195['wz']},status('Portal\x20A\x20set\x20—\x20click\x20exit')):(pushUndo(),map[_0x51ae37(0x2ab)][_0x51ae37(0x251)]({'ax':pendingPortal['ax'],'az':pendingPortal['az'],'bx':_0x4fd195['wx'],'bz':_0x4fd195['wz']}),pendingPortal=null,status('Portal\x20pair\x20placed'),draw());else{if(tool===_0x51ae37(0x2f2)){pushUndo();const _0x10f4a7=pendingKey||'k'+Math[_0x51ae37(0x2b7)]()[_0x51ae37(0x22b)](0x24)[_0x51ae37(0x2d3)](0x2,0x7);map['keys'][_0x51ae37(0x251)]({'id':_0x10f4a7,'x':_0x4fd195['wx'],'z':_0x4fd195['wz']}),pendingKey=null,status(_0x51ae37(0x2ef)+_0x10f4a7+_0x51ae37(0x297)),setTool(_0x51ae37(0x2bc)),draw();}else{if(['door',_0x51ae37(0x2d1),_0x51ae37(0x2c3),_0x51ae37(0x209)]['includes'](tool)){if(!inBounds(map,_0x4fd195['gx'],_0x4fd195['gz'])||!onWall(_0x4fd195['gx'],_0x4fd195['gz'])){status(_0x51ae37(0x269));return;}pushUndo();const _0x56cdc8={'x':_0x4fd195['gx'],'z':_0x4fd195['gz'],'story':story,'type':tool===_0x51ae37(0x2d1)?'door':tool,'locked':tool==='locked'};tool==='locked'?(_0x56cdc8[_0x51ae37(0x2c2)]='k'+Math[_0x51ae37(0x2b7)]()['toString'](0x24)[_0x51ae37(0x2d3)](0x2,0x7),pendingKey=_0x56cdc8['keyId'],map[_0x51ae37(0x2bd)][_0x51ae37(0x251)](_0x56cdc8),setTool('key'),status(_0x51ae37(0x28c)),$(_0x51ae37(0x288))[_0x51ae37(0x2f7)]='Click\x20to\x20drop\x20key\x20'+_0x56cdc8[_0x51ae37(0x2c2)]):(map[_0x51ae37(0x2bd)][_0x51ae37(0x251)](_0x56cdc8),status(tool+'\x20on\x20wall')),draw();}}}}}}}}}}}}}}}}}}});function strokeAt(_0x582225,_0x1ff686){const _0x1719bf=_0x251f6a;if(tool===_0x1719bf(0x211))paintDisk(map,_0x582225['x'],_0x582225['z'],brush,tex);else{if(tool===_0x1719bf(0x26c))stampDisk(map,_0x582225['x'],_0x582225['z'],brush,SHAPE_FLAT,tex,![]),stampFlags(map,_0x582225['x'],_0x582225['z'],brush,FLAG_CROUCH,!![]);else{if(tool===_0x1719bf(0x25b))stampDisk(map,_0x582225['x'],_0x582225['z'],brush,SHAPE_FLAT,tex,![]),stampFlags(map,_0x582225['x'],_0x582225['z'],brush,FLAG_SPIKE,!![]);else{if(tool===_0x1719bf(0x2f6))stampDisk(map,_0x582225['x'],_0x582225['z'],brush,SHAPE_FLAT,tex,![]),stampFlags(map,_0x582225['x'],_0x582225['z'],brush,FLAG_UNSTABLE,!![]);else{if(tool===_0x1719bf(0x22f))stampFlags(map,_0x582225['x'],_0x582225['z'],brush,FLAG_RUMBLE,!![]);else{if(tool===_0x1719bf(0x1fd))stampDisk(map,_0x582225['x'],_0x582225['z'],brush,shape,tex,![]),stampLayer(map[_0x1719bf(0x1fd)],map,_0x582225['x'],_0x582225['z'],brush,skyKind);else{if(tool===_0x1719bf(0x20e))stampLayer(map['elev'],map,_0x582225['x'],_0x582225['z'],brush,elev);else{if(tool===_0x1719bf(0x22c))stampLayer(map[_0x1719bf(0x261)],map,_0x582225['x'],_0x582225['z'],brush,LIQ_WATER);else{if(tool===_0x1719bf(0x27e))stampLayer(map['liquid'],map,_0x582225['x'],_0x582225['z'],brush,LIQ_LAVA);else{if(tool===_0x1719bf(0x2ec))stampLayer(map[_0x1719bf(0x277)][story],map,_0x582225['x'],_0x582225['z'],Math['max'](0.6,brush*0.45),wtex);else{if(tool===_0x1719bf(0x2be))stampCrack(map['bwalls'][story],map,_0x582225['x'],_0x582225['z'],Math['max'](0.6,brush*0.45),wtex);else{if(tool===_0x1719bf(0x2bc)||tool==='erase'||tool==='sphere'){const _0x5200b4=shape;if(tool===_0x1719bf(0x271))shape=SHAPE_SPHERE;if(!_0x1ff686&&last)stampSegment(map,last['x'],last['z'],_0x582225['x'],_0x582225['z'],brush,shape,tex,tool===_0x1719bf(0x1f9));else applyBrush(_0x582225,tool==='erase');if(tool==='sphere'&&tool!==_0x1719bf(0x1f9))addSphere(map,_0x582225['wx'],_0x582225['wz'],brush*CELL*0.9,tex);tool===_0x1719bf(0x1f9)&&(eraseNear(map,_0x582225['wx'],_0x582225['wz'],brush*CELL*0.6),stampLayer(map[_0x1719bf(0x261)],map,_0x582225['x'],_0x582225['z'],brush,LIQ_NONE),stampLayer(map[_0x1719bf(0x1fd)],map,_0x582225['x'],_0x582225['z'],brush,0x0),stampFlags(map,_0x582225['x'],_0x582225['z'],brush,FLAG_SPIKE|FLAG_CROUCH|FLAG_UNSTABLE|FLAG_RUMBLE,![])),shape=_0x5200b4;}}}}}}}}}}}}}canvas[_0x251f6a(0x26f)]('pointermove',_0x281f4b=>{const _0x4d82d2=_0x251f6a;if(canvas[_0x4d82d2(0x2b9)]){pan['x']=_0x281f4b[_0x4d82d2(0x1f3)]-canvas[_0x4d82d2(0x2b9)]['x'],pan['y']=_0x281f4b[_0x4d82d2(0x2ad)]-canvas[_0x4d82d2(0x2b9)]['y'],draw();return;}const _0x39e7b7=cellFromEvent(_0x281f4b);$('xy')['textContent']=_0x39e7b7['x'][_0x4d82d2(0x243)](0x1)+',\x20'+_0x39e7b7['z'][_0x4d82d2(0x243)](0x1);if(!drawing)return;if(tool===_0x4d82d2(0x205)&&map['start']){map[_0x4d82d2(0x205)][_0x4d82d2(0x27a)]=Math[_0x4d82d2(0x27c)](map[_0x4d82d2(0x205)]['x']-_0x39e7b7['wx'],map[_0x4d82d2(0x205)]['z']-_0x39e7b7['wz']),draw();return;}if(tool===_0x4d82d2(0x2e0)&&selected&&selected[_0x4d82d2(0x298)]===_0x4d82d2(0x2e0)){const _0x2da1ca=map[_0x4d82d2(0x2a6)][selected['i']];_0x2da1ca&&(_0x2da1ca['yaw']=Math[_0x4d82d2(0x27c)](_0x2da1ca['x']-_0x39e7b7['wx'],_0x2da1ca['z']-_0x39e7b7['wz']),draw());return;}if(tool==='rect'||tool===_0x4d82d2(0x247)){last=_0x39e7b7,draw();return;}if((tool===_0x4d82d2(0x2c1)||tool===_0x4d82d2(0x24e))&&selected&&_0x281f4b['buttons']===0x1){const _0x7498f2=selected['type']===_0x4d82d2(0x215)?map['objects'][selected['i']]:map[_0x4d82d2(0x1e2)][selected['i']];_0x7498f2&&(_0x7498f2['x']=_0x39e7b7['wx'],_0x7498f2['z']=_0x39e7b7['wz'],draw());return;}[_0x4d82d2(0x2bc),_0x4d82d2(0x1f9),'sphere','paint',_0x4d82d2(0x26c),_0x4d82d2(0x25b),'sky',_0x4d82d2(0x20e),'water',_0x4d82d2(0x27e),_0x4d82d2(0x2ec),'crack',_0x4d82d2(0x2f6),'rumble']['includes'](tool)&&(strokeAt(_0x39e7b7,![]),last=_0x39e7b7,draw());});function endDraw(){const _0x33c7c8=_0x251f6a;canvas['_pan']=null;if(!drawing)return;drawing=![],(tool==='rect'||tool===_0x33c7c8(0x247))&&rectA&&last&&stampRect(map,rectA['x'],rectA['z'],last['x'],last['z'],brush,shape,tex,![],tool==='outline'),rectA=null,last=null,draw();}canvas[_0x251f6a(0x26f)](_0x251f6a(0x224),endDraw),canvas['addEventListener'](_0x251f6a(0x29b),endDraw),canvas[_0x251f6a(0x26f)](_0x251f6a(0x2e5),_0x4d37f0=>_0x4d37f0['preventDefault']()),canvas['addEventListener']('wheel',_0x30d654=>{const _0x4aa893=_0x251f6a;_0x30d654[_0x4aa893(0x25c)]();const _0x56ff3e=cellFromEvent(_0x30d654);scale=Math[_0x4aa893(0x22d)](0x3,Math[_0x4aa893(0x2e6)](0x1c,scale*(_0x30d654[_0x4aa893(0x20b)]>0x0?0.9:1.1))),pan['x']=_0x30d654[_0x4aa893(0x1f3)]-canvas[_0x4aa893(0x2f3)]()['left']-_0x56ff3e['x']*scale,pan['y']=_0x30d654['clientY']-canvas[_0x4aa893(0x2f3)]()['top']-_0x56ff3e['z']*scale,draw();},{'passive':![]});function optSlot(_0xd694f3,_0x5ce12c,_0x1b2af1){const _0x38fac8=_0x251f6a;_0xd694f3=_0xd694f3||{'text':'','reply':'','options':[]};const _0x48a649=(_0xd694f3[_0x38fac8(0x278)]||[])[_0x38fac8(0x2d3)](0x0,0x3);while(_0x48a649[_0x38fac8(0x21d)]<0x3)_0x48a649[_0x38fac8(0x251)]({'text':'','reply':'','options':[]});return _0x38fac8(0x2a4)+_0x5ce12c+_0x38fac8(0x286)+_0x1b2af1+_0x38fac8(0x299)+(_0x5ce12c+0x1)+_0x38fac8(0x236)+(_0xd694f3['text']||'')['replace'](/"/g,_0x38fac8(0x294))+'\x22\x20/>\x0a\x20\x20\x20\x20<label>NPC\x20reply</label>\x0a\x20\x20\x20\x20<textarea\x20data-k=\x22reply\x22\x20rows=\x222\x22\x20maxlength=\x22240\x22>'+(_0xd694f3[_0x38fac8(0x232)]||'')[_0x38fac8(0x217)](/</g,_0x38fac8(0x252))+'</textarea>\x0a\x20\x20\x20\x20'+_0x48a649[_0x38fac8(0x2ba)]((_0x2728ae,_0x81a3b8)=>'<label>Then\x20'+(_0x81a3b8+0x1)+_0x38fac8(0x2c7)+_0x81a3b8+'\x22\x20type=\x22text\x22\x20maxlength=\x2280\x22\x20value=\x22'+(_0x2728ae[_0x38fac8(0x29e)]||'')[_0x38fac8(0x217)](/"/g,'&quot;')+_0x38fac8(0x267)+_0x81a3b8+_0x38fac8(0x265)+(_0x2728ae['reply']||'')[_0x38fac8(0x217)](/</g,_0x38fac8(0x252))+_0x38fac8(0x2b4))[_0x38fac8(0x24b)]('')+_0x38fac8(0x24d);}function fillNpcForm(){const _0xc9a7c4=_0x251f6a,_0x5b37fa=$(_0xc9a7c4(0x20d)),_0x5dfa2d=selected?.[_0xc9a7c4(0x298)]===_0xc9a7c4(0x1fc)?map['npcs'][selected['i']]:null;if($(_0xc9a7c4(0x275)))$(_0xc9a7c4(0x275))[_0xc9a7c4(0x1fe)]=_0x5dfa2d?.[_0xc9a7c4(0x270)]||'';if($('npc-open'))$('npc-open')[_0xc9a7c4(0x1fe)]=_0x5dfa2d?.[_0xc9a7c4(0x201)]||'';if(!_0x5b37fa)return;const _0x5a2daf=(_0x5dfa2d?.['options']||[])[_0xc9a7c4(0x2d3)](0x0,0x3);while(_0x5a2daf[_0xc9a7c4(0x21d)]<0x3)_0x5a2daf[_0xc9a7c4(0x251)]({'text':'','reply':'','options':[]});_0x5b37fa[_0xc9a7c4(0x2bf)]=_0x5a2daf[_0xc9a7c4(0x2ba)]((_0x3ec912,_0x3a9dc3)=>optSlot(_0x3ec912,_0x3a9dc3,''))[_0xc9a7c4(0x24b)](''),_0x5b37fa['querySelectorAll']('input,\x20textarea')['forEach'](_0x8fcce9=>_0x8fcce9[_0xc9a7c4(0x26f)](_0xc9a7c4(0x2b8),readNpcForm)),$('npc-name')&&!$(_0xc9a7c4(0x275))[_0xc9a7c4(0x2c0)]&&($(_0xc9a7c4(0x275))['_wired']=!![],$(_0xc9a7c4(0x275))['addEventListener'](_0xc9a7c4(0x2b8),readNpcForm),$(_0xc9a7c4(0x2cd))[_0xc9a7c4(0x26f)](_0xc9a7c4(0x2b8),readNpcForm));}function readNpcForm(){const _0x2ccc35=_0x251f6a;if(selected?.[_0x2ccc35(0x298)]!==_0x2ccc35(0x1fc))return;const _0x2378f4=map[_0x2ccc35(0x273)][selected['i']];if(!_0x2378f4)return;_0x2378f4[_0x2ccc35(0x270)]=($(_0x2ccc35(0x275))?.['value']||_0x2ccc35(0x220))['slice'](0x0,0x20),_0x2378f4[_0x2ccc35(0x201)]=($('npc-open')?.[_0x2ccc35(0x1fe)]||'')[_0x2ccc35(0x2d3)](0x0,0xf0);const _0x2fdfe2=[...document['querySelectorAll']('#npc-opts\x20.npc-opt')];_0x2378f4['options']=_0x2fdfe2[_0x2ccc35(0x2ba)](_0x35b9f9=>{const _0x117a1d=_0x2ccc35,_0xc73a44=_0x35b9f9[_0x117a1d(0x246)]('[data-k=\x22text\x22]')?.['value']||'',_0x31f06d=_0x35b9f9['querySelector'](_0x117a1d(0x245))?.[_0x117a1d(0x1fe)]||'',_0x5d982c=[];return _0x35b9f9['querySelectorAll'](_0x117a1d(0x21c))[_0x117a1d(0x2c6)](_0x5c8818=>{const _0x1180da=_0x117a1d,_0x340bcb=+_0x5c8818['dataset']['j'],_0x1291c9=_0x35b9f9[_0x1180da(0x246)](_0x1180da(0x28a)+_0x340bcb+'\x22]');_0x5d982c[_0x340bcb]={'text':_0x5c8818[_0x1180da(0x1fe)]||'','reply':_0x1291c9?.[_0x1180da(0x1fe)]||'','options':[]};}),{'text':_0xc73a44,'reply':_0x31f06d,'options':_0x5d982c[_0x117a1d(0x272)](_0x4bc095=>_0x4bc095[_0x117a1d(0x29e)]||_0x4bc095['reply'])};})[_0x2ccc35(0x272)](_0x36eb3c=>_0x36eb3c[_0x2ccc35(0x29e)]||_0x36eb3c[_0x2ccc35(0x232)]),draw();}function setTool(_0x10eb0f){const _0x16f8b0=_0x251f6a;tool=_0x10eb0f;if(_0x10eb0f===_0x16f8b0(0x271))shape=SHAPE_SPHERE;showPanels();const _0x5d2ff7={'dig':_0x16f8b0(0x276),'erase':'Erase\x20carved\x20space,\x20traps,\x20pickups,\x20and\x20overlays\x20under\x20the\x20brush.','rect':_0x16f8b0(0x1f4),'outline':_0x16f8b0(0x2f5),'sphere':_0x16f8b0(0x253),'fill':_0x16f8b0(0x2d9),'paint':'Recolor\x20existing\x20carved\x20cells.','crouch':_0x16f8b0(0x296),'spike':'Spike\x20pits.\x20Jump\x20them\x20or\x20die.\x20Ceiling\x20rises\x20so\x20you\x20can\x20vault\x20them.','unstable':'Paint\x20a\x20ceiling\x20that\x20collapses\x20around\x20anyone\x20who\x20walks\x20under\x20it.','boulder':_0x16f8b0(0x290),'minotaur':_0x16f8b0(0x2dc),'drone':'Place\x20a\x20flying\x20sentry\x20drone.\x20It\x20weaves\x20through\x20vertical\x20space\x20and\x20fires\x20lasers.','rumble':_0x16f8b0(0x1f8),'vendor':_0x16f8b0(0x213),'npc':_0x16f8b0(0x257),'stairs':'Place\x20only\x20where\x201st+2nd\x20or\x202nd+3rd\x20stories\x20both\x20have\x20enclosed\x20floors.','ladder':_0x16f8b0(0x23a),'sky':_0x16f8b0(0x2e1),'elev':'Raise\x20or\x20lower\x20the\x20floor\x20by\x20player-heights.','water':_0x16f8b0(0x2d7),'lava':_0x16f8b0(0x29f),'start':'Click\x20spawn,\x20drag\x20to\x20face.','wall':_0x16f8b0(0x1ee),'crack':_0x16f8b0(0x2b6),'portal':_0x16f8b0(0x289)};$('shape-hint')[_0x16f8b0(0x2f7)]=_0x5d2ff7[_0x10eb0f]||SHAPES[_0x16f8b0(0x1ef)](_0x2216a8=>_0x2216a8['id']===shape)?.['hint']||'',status(_0x10eb0f);}document[_0x251f6a(0x2ca)]('[data-tool]')['forEach'](_0x80eb95=>_0x80eb95[_0x251f6a(0x26f)]('click',()=>setTool(_0x80eb95['dataset'][_0x251f6a(0x287)])));function fillSelect(_0x4d92a0,_0x335143,_0x48b326,_0x405b53){const _0x3d048d=_0x251f6a;if(!_0x4d92a0)return;_0x4d92a0['innerHTML']=_0x335143['map'](_0x4a5f33=>'<option\x20value=\x22'+_0x48b326(_0x4a5f33)+'\x22>'+_0x405b53(_0x4a5f33)+_0x3d048d(0x295))[_0x3d048d(0x24b)]('');}fillSelect($('shape'),SHAPES,_0x1ee358=>String(_0x1ee358['id']),_0x49106b=>_0x49106b['name']),fillSelect($('biome'),BIOMES,_0xe2ed7=>String(BIOMES['indexOf'](_0xe2ed7)),_0x4da559=>_0x4da559[_0x251f6a(0x270)]),fillSelect($(_0x251f6a(0x215)),OBJECTS,_0x22e4e0=>_0x22e4e0['id'],_0x1914d7=>_0x1914d7[_0x251f6a(0x270)]),fillSelect($('pickup'),PICKUPS,_0xd91091=>_0xd91091['id'],_0x209a62=>_0x209a62['name']),fillSelect($('sp-enemy'),ENEMIES,_0x18f0e7=>_0x18f0e7['id'],_0x3cecd4=>_0x3cecd4[_0x251f6a(0x270)]),fillSelect($(_0x251f6a(0x219)),WALL_TEX,_0x124efd=>String(WALL_TEX[_0x251f6a(0x229)](_0x124efd)+0x1),_0x8bfc71=>_0x8bfc71[_0x251f6a(0x270)]),$('shape')[_0x251f6a(0x1fe)]=String(shape),$(_0x251f6a(0x293))['value']=String(tex),$(_0x251f6a(0x215))['value']=objKind,$(_0x251f6a(0x235))[_0x251f6a(0x1fe)]=pickupKind,$(_0x251f6a(0x208))[_0x251f6a(0x1fe)]=enemyId,$(_0x251f6a(0x2ae))[_0x251f6a(0x26f)](_0x251f6a(0x2d8),()=>shape=+$(_0x251f6a(0x2ae))[_0x251f6a(0x1fe)]),$(_0x251f6a(0x293))['addEventListener']('change',()=>tex=+$(_0x251f6a(0x293))['value']),$('obj')[_0x251f6a(0x26f)]('change',()=>objKind=$('obj')['value']),$(_0x251f6a(0x235))[_0x251f6a(0x26f)]('change',()=>pickupKind=$('pickup')[_0x251f6a(0x1fe)]),$(_0x251f6a(0x208))['addEventListener'](_0x251f6a(0x2d8),()=>{const _0x33a76b=_0x251f6a;enemyId=$(_0x33a76b(0x208))['value'];if(selected?.[_0x33a76b(0x298)]===_0x33a76b(0x24e))map[_0x33a76b(0x1e2)][selected['i']]['enemy']=enemyId;}),$(_0x251f6a(0x21f))[_0x251f6a(0x26f)](_0x251f6a(0x2b8),()=>{const _0x38c860=_0x251f6a;brush=+$('brush')['value'],$('brush-v')['textContent']=brush[_0x38c860(0x243)](0x1);}),$('hall')[_0x251f6a(0x26f)](_0x251f6a(0x2b8),()=>{const _0x3e367e=_0x251f6a;map['hallH']=+$(_0x3e367e(0x2a9))['value'],$('hall-v')[_0x3e367e(0x2f7)]=map['hallH']['toFixed'](0x1);}),$(_0x251f6a(0x200))['addEventListener']('input',()=>{const _0x2c7fce=_0x251f6a;objScale=+$(_0x2c7fce(0x200))['value'],$(_0x2c7fce(0x1fa))['textContent']=objScale[_0x2c7fce(0x243)](0x2);}),$(_0x251f6a(0x20e))['addEventListener']('input',()=>{const _0x469ef3=_0x251f6a;elev=+$(_0x469ef3(0x20e))['value'],$(_0x469ef3(0x2a8))[_0x469ef3(0x2f7)]=String(elev);}),$(_0x251f6a(0x1f7))[_0x251f6a(0x26f)](_0x251f6a(0x2d8),()=>skyKind=+$(_0x251f6a(0x1f7))[_0x251f6a(0x1fe)]),$(_0x251f6a(0x28f))['addEventListener']('change',()=>climbFrom=+$(_0x251f6a(0x28f))[_0x251f6a(0x1fe)]),$('story')['addEventListener'](_0x251f6a(0x2d8),()=>{const _0x55830b=_0x251f6a;story=+$(_0x55830b(0x2a7))['value'],draw();}),$('wtex')[_0x251f6a(0x26f)](_0x251f6a(0x2d8),()=>wtex=+$(_0x251f6a(0x219))['value']),$('sp-int')[_0x251f6a(0x26f)](_0x251f6a(0x2b8),()=>{const _0x4b7084=_0x251f6a;spawnInterval=+$(_0x4b7084(0x221))['value'],$('sp-int-v')['textContent']=spawnInterval['toFixed'](0x1)+'s';if(selected?.[_0x4b7084(0x298)]===_0x4b7084(0x24e))map['spawners'][selected['i']][_0x4b7084(0x282)]=spawnInterval;}),$(_0x251f6a(0x242))[_0x251f6a(0x26f)](_0x251f6a(0x2b8),()=>{const _0x5a0673=_0x251f6a;spawnRadius=+$(_0x5a0673(0x242))[_0x5a0673(0x1fe)],$('sp-rad-v')['textContent']=spawnRadius[_0x5a0673(0x243)](0x1);if(selected?.[_0x5a0673(0x298)]===_0x5a0673(0x24e))map['spawners'][selected['i']]['radius']=spawnRadius;draw();}),$(_0x251f6a(0x24a))['addEventListener']('input',()=>{const _0x173673=_0x251f6a;spawnMax=+$('sp-max')[_0x173673(0x1fe)],$('sp-max-v')[_0x173673(0x2f7)]=String(spawnMax);if(selected?.['type']===_0x173673(0x24e))map['spawners'][selected['i']][_0x173673(0x2ed)]=spawnMax;});function syncSliders(){const _0x1dfcaf=_0x251f6a;$('brush-v')[_0x1dfcaf(0x2f7)]=brush['toFixed'](0x1),$(_0x1dfcaf(0x2cf))['textContent']=(map[_0x1dfcaf(0x2f0)]||4.2)[_0x1dfcaf(0x243)](0x1),$(_0x1dfcaf(0x2a9))['value']=map[_0x1dfcaf(0x2f0)]||4.2,$(_0x1dfcaf(0x1fa))['textContent']=objScale[_0x1dfcaf(0x243)](0x2),$('elev-v')['textContent']=String(elev),$(_0x1dfcaf(0x2de))['textContent']=spawnInterval['toFixed'](0x1)+'s',$(_0x1dfcaf(0x2d0))[_0x1dfcaf(0x2f7)]=spawnRadius['toFixed'](0x1),$(_0x1dfcaf(0x2b5))['textContent']=String(spawnMax),$('map-name')[_0x1dfcaf(0x1fe)]=map['name'];}$(_0x251f6a(0x21b))[_0x251f6a(0x26f)]('input',()=>map['name']=$(_0x251f6a(0x21b))[_0x251f6a(0x1fe)]||_0x251f6a(0x23e)),$('save')['addEventListener']('click',async()=>{const _0x119263=_0x251f6a;map['name']=$(_0x119263(0x21b))['value']||'Untitled';const _0x36b961=await saveMap(map);status(_0x36b961[_0x119263(0x2f4)]?'Saved\x20to\x20Zoom\x20(all\x20devices)':'Saved\x20on\x20this\x20device'),refreshList();}),$('play')[_0x251f6a(0x26f)]('click',()=>{const _0x5f4974=_0x251f6a;stashPreview(map),location['href']=routes()['play']+_0x5f4974(0x2f8);}),$(_0x251f6a(0x2c5))['addEventListener'](_0x251f6a(0x2b2),()=>{pushUndo(),map=blankMap('New\x20delve'),selected=null,syncSliders(),fit();}),$('del')[_0x251f6a(0x26f)](_0x251f6a(0x2b2),async()=>{const _0x2e9945=_0x251f6a;if(!confirm('Delete\x20this\x20map?'))return;await deleteMap(map['id']),map=blankMap(_0x2e9945(0x2ee)),refreshList(),fit();}),addEventListener('keydown',_0x275830=>{const _0x43678c=_0x251f6a;if(_0x275830[_0x43678c(0x20c)][_0x43678c(0x2df)]('input,\x20textarea,\x20select'))return;(_0x275830['ctrlKey']||_0x275830['metaKey'])&&_0x275830['code']==='KeyZ'&&(_0x275830[_0x43678c(0x25c)](),doUndo());(_0x275830[_0x43678c(0x262)]||_0x275830[_0x43678c(0x2b3)])&&_0x275830[_0x43678c(0x212)]===_0x43678c(0x22e)&&(_0x275830['preventDefault'](),$(_0x43678c(0x2d5))[_0x43678c(0x2b2)]());if(_0x275830['code']===_0x43678c(0x2da)||_0x275830['code']===_0x43678c(0x2d6)){if(selected){pushUndo();if(selected[_0x43678c(0x298)]==='obj')map[_0x43678c(0x2b1)]['splice'](selected['i'],0x1);else{if(selected[_0x43678c(0x298)]==='spawner')map[_0x43678c(0x1e2)][_0x43678c(0x2db)](selected['i'],0x1);else{if(selected[_0x43678c(0x298)]===_0x43678c(0x235))map[_0x43678c(0x250)][_0x43678c(0x2db)](selected['i'],0x1);else{if(selected[_0x43678c(0x298)]==='npc')map[_0x43678c(0x273)][_0x43678c(0x2db)](selected['i'],0x1);}}}selected=null,draw();}}}),BIOMES['forEach']((_0x59ddd3,_0x398323)=>{const _0x4bcd98=_0x251f6a,_0x2b13e4=document[_0x4bcd98(0x292)](_0x4bcd98(0x283));_0x2b13e4[_0x4bcd98(0x298)]=_0x4bcd98(0x283),_0x2b13e4[_0x4bcd98(0x21a)]='sw',_0x2b13e4['title']=_0x59ddd3['name'],_0x2b13e4['style']['background']=_0x59ddd3['swatch'],_0x2b13e4[_0x4bcd98(0x26f)](_0x4bcd98(0x2b2),()=>{const _0x262333=_0x4bcd98;tex=_0x398323,$('biome')['value']=String(_0x398323),document['querySelectorAll'](_0x262333(0x284))[_0x262333(0x2c6)](_0x2b0cbb=>_0x2b0cbb[_0x262333(0x238)]['remove']('on')),_0x2b13e4[_0x262333(0x238)]['add']('on');});if(_0x398323===tex)_0x2b13e4['classList']['add']('on');$('swatches')[_0x4bcd98(0x1fb)](_0x2b13e4);});async function refreshList(){const _0x48c7ec=_0x251f6a,_0x700957=$('saved');_0x700957['innerHTML']='';const _0x501b65=bakedMaps();let _0x18641d=[];try{_0x18641d=await listMaps();}catch{}const _0x39e683=new Set(),_0x1c5f1a=[..._0x501b65,..._0x18641d][_0x48c7ec(0x272)](_0x4b6ca5=>{if(_0x39e683['has'](_0x4b6ca5['id']))return![];return _0x39e683['add'](_0x4b6ca5['id']),!![];});for(const _0x25962e of _0x1c5f1a){const _0x409000=document[_0x48c7ec(0x292)](_0x48c7ec(0x283));_0x409000['type']='button',_0x409000[_0x48c7ec(0x21a)]=_0x48c7ec(0x27f),_0x409000[_0x48c7ec(0x2f7)]=_0x25962e['name']+(String(_0x25962e['id'])[_0x48c7ec(0x263)](_0x48c7ec(0x2f1))?_0x48c7ec(0x233):''),_0x409000[_0x48c7ec(0x26f)](_0x48c7ec(0x2b2),async()=>{const _0x31b9cc=_0x48c7ec,_0x1d08c9=String(_0x25962e['id'])[_0x31b9cc(0x263)](_0x31b9cc(0x2f1))?bakedMaps()['find'](_0x19053e=>_0x19053e['id']===_0x25962e['id']):await getMap(_0x25962e['id']);map=ensureLayers(_0x1d08c9?cloneMap(_0x1d08c9):cloneMap(_0x25962e));if(String(_0x25962e['id'])[_0x31b9cc(0x263)]('baked'))map['id']='m'+Math['random']()[_0x31b9cc(0x22b)](0x24)[_0x31b9cc(0x2d3)](0x2,0xa);selected=null,syncSliders(),fit();}),_0x700957[_0x48c7ec(0x1fb)](_0x409000);}}$(_0x251f6a(0x28d))[_0x251f6a(0x248)]=routes()['play'],addEventListener('resize',fit),((async()=>{const _0x5bfc65=_0x251f6a,_0x31692f=new URLSearchParams(location[_0x5bfc65(0x2e9)])[_0x5bfc65(0x28e)](_0x5bfc65(0x2ba));if(_0x31692f){const _0xd70ccc=await getMap(_0x31692f);if(_0xd70ccc)map=ensureLayers(_0xd70ccc);}syncSliders(),setTool(_0x5bfc65(0x2bc)),await refreshList(),fit(),status(_0x5bfc65(0x264)+countCarved(map)+'\x20cells\x20open.');})());
+import {
+  BIOMES,
+  CELL,
+  ENEMIES,
+  FLAG_COLLAPSE,
+  FLAG_CROUCH,
+  FLAG_HOVER,
+  FLAG_RUMBLE,
+  FLAG_SPIKE,
+  FLAG_UNSTABLE,
+  LIQ_LAVA,
+  LIQ_NONE,
+  LIQ_WATER,
+  OBJECTS,
+  PICKUPS,
+  PORTAL_COLORS,
+  SHAPE_FLAT,
+  SHAPE_OVAL,
+  SHAPE_ROUND,
+  SHAPE_SPHERE,
+  SHAPES,
+  WALL_TEX,
+  routes,
+} from "./config.js?v=zm1";
+import { bakedMaps } from "./defaults.js?v=zm1";
+import {
+  addSphere,
+  blankMap,
+  canPlaceClimb,
+  cloneMap,
+  countCarved,
+  deserialize,
+  enclosedFloors,
+  ensureLayers,
+  eraseNear,
+  flood,
+  getShape,
+  getTex,
+  idx,
+  inBounds,
+  isCarved,
+  paintDisk,
+  resizeMap,
+  serialize,
+  stampCrack,
+  stampDisk,
+  stampFlags,
+  stampLayer,
+  stampRect,
+  stampSegment,
+  wallIsCrack,
+  wallTexId,
+} from "./map.js?v=zm1";
+import { deleteMap, getMap, listMaps, saveMap, stashPreview } from "./store.js?v=zm1";
+import { defaultNpc } from "./npcs.js?v=zm1";
+
+const $ = (id) => document.getElementById(id);
+
+let map = blankMap("New delve");
+ensureLayers(map);
+let tool = "dig";
+let shape = SHAPE_FLAT;
+let tex = 1;
+let brush = 2.2;
+let objKind = "torch";
+let pickupKind = "pistol";
+let enemyId = "scout";
+let spawnInterval = 6;
+let spawnRadius = 8;
+let spawnMax = 3;
+let objScale = 1;
+let elev = 0;
+let skyKind = 1;
+let story = 0;
+let wtex = 1;
+let selected = null;
+let drawing = false;
+let last = null;
+let rectA = null;
+let pan = { x: 0, y: 0 };
+let scale = 8;
+let undo = [];
+let pendingPortal = null;
+let pendingKey = null;
+let climbFrom = 0;
+
+const canvas = $("view");
+const ctx = canvas.getContext("2d");
+
+function pushUndo() {
+  undo.push(JSON.stringify(serialize(map)));
+  if (undo.length > 24) undo.shift();
+}
+function doUndo() {
+  const raw = undo.pop();
+  if (!raw) return;
+  const id = map.id;
+  const name = map.name;
+  map = deserialize(JSON.parse(raw));
+  map.id = id;
+  map.name = name;
+  selected = null;
+  draw();
+  status("Undid");
+}
+function status(t) {
+  $("status").textContent = t;
+}
+function cellFromEvent(ev) {
+  const r = canvas.getBoundingClientRect();
+  const x = (ev.clientX - r.left - pan.x) / scale;
+  const z = (ev.clientY - r.top - pan.y) / scale;
+  return { x, z, wx: x * CELL, wz: z * CELL, gx: Math.floor(x), gz: Math.floor(z) };
+}
+
+function showPanels() {
+  document.querySelectorAll(".pbox").forEach((el) => {
+    const show = (el.dataset.show || "").split(",");
+    el.hidden = !show.includes(tool);
+  });
+  document.querySelectorAll("[data-tool]").forEach((b) => b.classList.toggle("on", b.dataset.tool === tool));
+}
+
+function fit() {
+  const wrap = $("stage");
+  const w = wrap.clientWidth;
+  const h = wrap.clientHeight;
+  canvas.width = w * devicePixelRatio;
+  canvas.height = h * devicePixelRatio;
+  canvas.style.width = w + "px";
+  canvas.style.height = h + "px";
+  ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+  scale = Math.min(w / map.w, h / map.h) * 0.92;
+  pan.x = (w - map.w * scale) / 2;
+  pan.y = (h - map.h * scale) / 2;
+  draw();
+}
+
+function drawCell(x, z) {
+  const i = idx(map, x, z);
+  const b = map.cells[i];
+  if (isCarved(b)) {
+    ctx.fillStyle = BIOMES[getTex(b)]?.swatch || "#888";
+    ctx.fillRect(x, z, 1.02, 1.02);
+    const sh = getShape(b);
+    ctx.save();
+    ctx.translate(x + 0.5, z + 0.5);
+    ctx.lineWidth = 0.08;
+    if (sh === SHAPE_ROUND) {
+      ctx.strokeStyle = "rgba(20,40,70,0.7)";
+      ctx.beginPath();
+      ctx.arc(0, 0, 0.38, 0, 6.28);
+      ctx.stroke();
+    } else if (sh === SHAPE_OVAL) {
+      ctx.strokeStyle = "rgba(80,50,20,0.75)";
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 0.42, 0.26, 0.5, 0, 6.28);
+      ctx.stroke();
+    } else if (sh === SHAPE_SPHERE) {
+      ctx.strokeStyle = "rgba(80,40,120,0.8)";
+      ctx.beginPath();
+      ctx.arc(0, 0, 0.22, 0, 6.28);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(0, 0, 0.4, 0, 6.28);
+      ctx.stroke();
+    } else {
+      ctx.strokeStyle = "rgba(255,255,255,0.22)";
+      ctx.strokeRect(-0.32, -0.32, 0.64, 0.64);
+    }
+    ctx.restore();
+    if (map.flags && map.flags[i] & FLAG_SPIKE) {
+      ctx.fillStyle = "#c44";
+      ctx.beginPath();
+      ctx.moveTo(x + 0.5, z + 0.15);
+      ctx.lineTo(x + 0.78, z + 0.85);
+      ctx.lineTo(x + 0.22, z + 0.85);
+      ctx.fill();
+    }
+    if (map.flags && map.flags[i] & FLAG_CROUCH) {
+      ctx.strokeStyle = "#222";
+      ctx.lineWidth = 0.1;
+      ctx.beginPath();
+      ctx.moveTo(x + 0.15, z + 0.7);
+      ctx.lineTo(x + 0.85, z + 0.7);
+      ctx.stroke();
+    }
+    if (map.flags && map.flags[i] & FLAG_RUMBLE) {
+      ctx.strokeStyle = "rgba(200,160,80,0.55)";
+      ctx.lineWidth = 0.07;
+      ctx.strokeRect(x + 0.18, z + 0.18, 0.64, 0.64);
+    }
+    if (map.flags && map.flags[i] & FLAG_UNSTABLE) {
+      ctx.strokeStyle = "rgba(180,90,40,0.85)";
+      ctx.lineWidth = 0.08;
+      ctx.beginPath();
+      ctx.moveTo(x + 0.1, z + 0.2);
+      ctx.lineTo(x + 0.45, z + 0.55);
+      ctx.lineTo(x + 0.35, z + 0.85);
+      ctx.moveTo(x + 0.55, z + 0.15);
+      ctx.lineTo(x + 0.9, z + 0.7);
+      ctx.stroke();
+    }
+    if (map.flags && map.flags[i] & FLAG_HOVER) {
+      ctx.strokeStyle = "rgba(120,200,255,0.9)";
+      ctx.lineWidth = 0.1;
+      ctx.strokeRect(x + 0.12, z + 0.12, 0.76, 0.76);
+    }
+    if (map.flags && map.flags[i] & FLAG_COLLAPSE) {
+      ctx.fillStyle = "rgba(180,70,40,0.45)";
+      ctx.fillRect(x + 0.2, z + 0.2, 0.6, 0.6);
+    }
+    if (map.sky && map.sky[i]) {
+      ctx.fillStyle = "rgba(140,190,255,0.28)";
+      ctx.fillRect(x, z, 1, 1);
+    }
+    const ev = map.elev && map.elev[i];
+    if (ev) {
+      ctx.fillStyle = ev > 0 ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.35)";
+      ctx.fillRect(x, z, 1, Math.min(1, Math.abs(ev) * 0.12));
+      if (scale > 7) {
+        ctx.fillStyle = "#111";
+        ctx.font = "0.45px sans-serif";
+        ctx.fillText(String(ev), x + 0.12, z + 0.55);
+      }
+    }
+  }
+  if (map.liquid && map.liquid[i]) {
+    ctx.fillStyle = map.liquid[i] === 2 ? "rgba(255,80,20,0.55)" : "rgba(40,110,200,0.5)";
+    ctx.fillRect(x, z, 1, 1);
+  }
+  const bw = map.bwalls && map.bwalls[story] && map.bwalls[story][i];
+  if (bw) {
+    const texI = wallTexId(bw) || 1;
+    ctx.fillStyle = WALL_TEX[(texI - 1) % WALL_TEX.length].swatch;
+    ctx.fillRect(x + 0.15, z + 0.15, 0.7, 0.7);
+    ctx.strokeStyle = "#111";
+    ctx.lineWidth = 0.08;
+    ctx.strokeRect(x + 0.15, z + 0.15, 0.7, 0.7);
+    if (wallIsCrack(bw)) {
+      ctx.strokeStyle = "rgba(20,12,8,0.9)";
+      ctx.lineWidth = 0.1;
+      ctx.beginPath();
+      ctx.moveTo(x + 0.22, z + 0.28);
+      ctx.lineTo(x + 0.48, z + 0.55);
+      ctx.lineTo(x + 0.4, z + 0.78);
+      ctx.moveTo(x + 0.55, z + 0.22);
+      ctx.lineTo(x + 0.82, z + 0.62);
+      ctx.stroke();
+    }
+  }
+}
+
+function draw() {
+  ensureLayers(map);
+  const w = canvas.clientWidth;
+  const h = canvas.clientHeight;
+  ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+  ctx.fillStyle = "#0b0a09";
+  ctx.fillRect(0, 0, w, h);
+  ctx.save();
+  ctx.translate(pan.x, pan.y);
+  ctx.scale(scale, scale);
+  ctx.fillStyle = "#161310";
+  ctx.fillRect(0, 0, map.w, map.h);
+  for (let z = 0; z < map.h; z++) for (let x = 0; x < map.w; x++) drawCell(x, z);
+  for (const s of map.spheres) {
+    ctx.beginPath();
+    ctx.arc(s.x / CELL, s.z / CELL, s.r / CELL, 0, 6.28);
+    ctx.strokeStyle = "rgba(200,160,255,0.85)";
+    ctx.lineWidth = 1.5 / scale;
+    ctx.stroke();
+  }
+  for (const o of map.objects) {
+    ctx.fillStyle = "#f0d080";
+    ctx.fillRect(o.x / CELL - 0.3, o.z / CELL - 0.3, 0.6, 0.6);
+  }
+  for (const p of map.pickups) {
+    ctx.fillStyle = "#88f";
+    ctx.fillRect(p.x / CELL - 0.28, p.z / CELL - 0.28, 0.56, 0.56);
+  }
+  for (const k of map.keys) {
+    ctx.fillStyle = "#ffd24a";
+    ctx.beginPath();
+    ctx.arc(k.x / CELL, k.z / CELL, 0.32, 0, 6.28);
+    ctx.fill();
+  }
+  for (const s of map.spawners) {
+    ctx.beginPath();
+    ctx.arc(s.x / CELL, s.z / CELL, (s.radius || 8) / CELL, 0, 6.28);
+    ctx.strokeStyle = "rgba(255,80,70,0.55)";
+    ctx.lineWidth = 1.4 / scale;
+    ctx.stroke();
+    ctx.fillStyle = s.enemy === "minotaur" ? "#8a4a18" : s.enemy === "sentrydrone" ? "#4ad0ff" : "#ff5a4a";
+    ctx.beginPath();
+    ctx.arc(s.x / CELL, s.z / CELL, s.enemy === "minotaur" ? 0.55 : 0.4, 0, 6.28);
+    ctx.fill();
+  }
+  (map.portals || []).forEach((p, i) => {
+    ctx.strokeStyle = "#" + PORTAL_COLORS[i % PORTAL_COLORS.length].toString(16).padStart(6, "0");
+    ctx.lineWidth = 0.12;
+    ctx.beginPath();
+    ctx.arc(p.ax / CELL, p.az / CELL, 0.45, 0, 6.28);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(p.bx / CELL, p.bz / CELL, 0.45, 0, 6.28);
+    ctx.stroke();
+  });
+  for (const t of map.turrets) {
+    ctx.fillStyle = "#c33";
+    ctx.fillRect(t.x / CELL - 0.3, t.z / CELL - 0.3, 0.6, 0.6);
+  }
+  for (const a of map.arrows || []) {
+    ctx.fillStyle = "#222";
+    ctx.beginPath();
+    ctx.arc(a.x / CELL, a.z / CELL, 0.28, 0, 6.28);
+    ctx.fill();
+    ctx.strokeStyle = "#e8c070";
+    ctx.lineWidth = 0.1;
+    ctx.beginPath();
+    ctx.moveTo(a.x / CELL, a.z / CELL);
+    ctx.lineTo(a.x / CELL - Math.sin(a.yaw || 0) * 1.1, a.z / CELL - Math.cos(a.yaw || 0) * 1.1);
+    ctx.stroke();
+  }
+  for (const c of map.crushers) {
+    ctx.strokeStyle = "#aaa";
+    ctx.strokeRect(c.x / CELL - 0.4, c.z / CELL - 0.4, 0.8, 0.8);
+  }
+  for (const b of map.boulders || []) {
+    ctx.fillStyle = "#8a7060";
+    ctx.beginPath();
+    ctx.arc(b.x / CELL, b.z / CELL, 0.45, 0, 6.28);
+    ctx.fill();
+    ctx.strokeStyle = "#ffcc66";
+    ctx.lineWidth = 0.1;
+    ctx.beginPath();
+    ctx.moveTo(b.x / CELL, b.z / CELL);
+    ctx.lineTo(b.x / CELL - Math.sin(b.yaw || 0) * 1.3, b.z / CELL - Math.cos(b.yaw || 0) * 1.3);
+    ctx.stroke();
+    ctx.strokeStyle = "rgba(200,80,40,0.5)";
+    ctx.beginPath();
+    ctx.arc(b.x / CELL, b.z / CELL, (b.trigger || 3.2) / CELL, 0, 6.28);
+    ctx.stroke();
+  }
+  for (const v of map.vendors || []) {
+    ctx.fillStyle = "#4ad";
+    ctx.fillRect(v.x / CELL - 0.35, v.z / CELL - 0.35, 0.7, 0.7);
+    ctx.fillStyle = "#ffe08a";
+    ctx.fillRect(v.x / CELL - 0.12, v.z / CELL - 0.12, 0.24, 0.24);
+  }
+  for (const n of map.npcs || []) {
+    ctx.fillStyle = "#d4a0ff";
+    ctx.beginPath();
+    ctx.arc(n.x / CELL, n.z / CELL, 0.32, 0, 6.28);
+    ctx.fill();
+    ctx.fillStyle = "#ffe8c8";
+    ctx.font = (8 / scale) * 1.2 + "px sans-serif";
+    ctx.fillText((n.name || "NPC").slice(0, 10), n.x / CELL - 0.4, n.z / CELL - 0.45);
+  }
+  for (const r of map.ropes) {
+    ctx.strokeStyle = "#6a4424";
+    ctx.beginPath();
+    ctx.moveTo(r.x / CELL, r.z / CELL);
+    ctx.lineTo(r.x / CELL, r.z / CELL + 0.7);
+    ctx.stroke();
+  }
+  for (const cl of map.climbs || []) {
+    ctx.strokeStyle = cl.kind === "ladder" ? "#c8a070" : "#e2c070";
+    ctx.lineWidth = 0.12;
+    ctx.strokeRect(cl.x / CELL - 0.35, cl.z / CELL - 0.35, 0.7, 0.7);
+    ctx.fillStyle = cl.kind === "ladder" ? "#8a6030" : "#d4b050";
+    ctx.fillRect(cl.x / CELL - 0.18, cl.z / CELL - 0.18, 0.36, 0.36);
+  }
+  for (const o of map.openings) {
+    ctx.strokeStyle = o.locked ? "#c4a050" : "#eee";
+    ctx.strokeRect(o.x + 0.2, o.z + 0.2, 0.6, 0.6);
+  }
+  if (map.start) {
+    ctx.fillStyle = "#7dffb0";
+    ctx.beginPath();
+    ctx.arc(map.start.x / CELL, map.start.z / CELL, 0.55, 0, 6.28);
+    ctx.fill();
+    const yaw = map.start.yaw || 0;
+    ctx.strokeStyle = "#7dffb0";
+    ctx.lineWidth = 0.12;
+    ctx.beginPath();
+    ctx.moveTo(map.start.x / CELL, map.start.z / CELL);
+    ctx.lineTo(map.start.x / CELL - Math.sin(yaw) * 1.4, map.start.z / CELL - Math.cos(yaw) * 1.4);
+    ctx.stroke();
+  }
+  if (rectA && last && (tool === "rect" || tool === "outline")) {
+    ctx.strokeStyle = tool === "outline" ? "#9ad4ff" : "#ffe08a";
+    ctx.lineWidth = 1.2 / scale;
+    ctx.strokeRect(Math.min(rectA.x, last.x), Math.min(rectA.z, last.z), Math.abs(last.x - rectA.x), Math.abs(last.z - rectA.z));
+  }
+  ctx.restore();
+}
+
+function applyBrush(c, erase) {
+  if (shape === SHAPE_SPHERE && !erase) {
+    stampDisk(map, c.x, c.z, Math.max(1.2, brush * 0.85), SHAPE_SPHERE, tex, false);
+    addSphere(map, c.wx, c.wz, brush * CELL * 0.9, tex);
+  } else {
+    stampDisk(map, c.x, c.z, brush, shape, tex, erase);
+    if (erase) eraseNear(map, c.wx, c.wz, brush * CELL);
+  }
+}
+
+function hitAt(c) {
+  for (let i = map.spawners.length - 1; i >= 0; i--) {
+    if (Math.hypot(map.spawners[i].x - c.wx, map.spawners[i].z - c.wz) < 1.2) return { type: "spawner", i };
+  }
+  for (let i = map.objects.length - 1; i >= 0; i--) {
+    if (Math.hypot(map.objects[i].x - c.wx, map.objects[i].z - c.wz) < 1.1) return { type: "obj", i };
+  }
+  for (let i = (map.pickups || []).length - 1; i >= 0; i--) {
+    if (Math.hypot(map.pickups[i].x - c.wx, map.pickups[i].z - c.wz) < 1.1) return { type: "pickup", i };
+  }
+  for (let i = (map.npcs || []).length - 1; i >= 0; i--) {
+    if (Math.hypot(map.npcs[i].x - c.wx, map.npcs[i].z - c.wz) < 1.2) return { type: "npc", i };
+  }
+  return null;
+}
+
+function onWall(gx, gz) {
+  return !!(map.bwalls && map.bwalls[story] && map.bwalls[story][idx(map, gx, gz)]);
+}
+
+function snapArrow(c) {
+  const gx = c.gx;
+  const gz = c.gz;
+  const dirs = [
+    { yaw: 0, dx: 0, dz: -1 },
+    { yaw: Math.PI, dx: 0, dz: 1 },
+    { yaw: Math.PI / 2, dx: -1, dy: 0, dz: 0 },
+    { yaw: -Math.PI / 2, dx: 1, dz: 0 },
+  ];
+  if (inBounds(map, gx, gz) && onWall(gx, gz)) {
+    for (const d of dirs) {
+      const nx = gx + (d.dx || 0);
+      const nz = gz + (d.dz || 0);
+      if (inBounds(map, nx, nz) && isCarved(map.cells[idx(map, nx, nz)])) {
+        return { x: (gx + 0.5) * CELL, z: (gz + 0.5) * CELL, yaw: d.yaw };
+      }
+    }
+  }
+  if (inBounds(map, gx, gz) && isCarved(map.cells[idx(map, gx, gz)])) {
+    for (const d of dirs) {
+      const nx = gx - (d.dx || 0);
+      const nz = gz - (d.dz || 0);
+      if (inBounds(map, nx, nz) && !isCarved(map.cells[idx(map, nx, nz)])) {
+        return { x: (nx + 0.5) * CELL, z: (nz + 0.5) * CELL, yaw: d.yaw };
+      }
+    }
+  }
+  return null;
+}
+
+canvas.addEventListener("pointerdown", (ev) => {
+  if (ev.button === 1 || ev.button === 2) {
+    canvas.setPointerCapture(ev.pointerId);
+    canvas._pan = { x: ev.clientX - pan.x, y: ev.clientY - pan.y };
+    return;
+  }
+  const c = cellFromEvent(ev);
+  last = c;
+  if (["dig", "erase", "sphere", "paint", "crouch", "spike", "sky", "elev", "water", "lava", "wall", "crack", "unstable", "rumble", "hover", "collapse"].includes(tool)) {
+    pushUndo();
+    drawing = true;
+    strokeAt(c, true);
+    draw();
+  } else if (tool === "rect" || tool === "outline") {
+    pushUndo();
+    rectA = c;
+    drawing = true;
+  } else if (tool === "fill") {
+    pushUndo();
+    const n = flood(map, c.x, c.z, shape, tex, false);
+    status(n ? "Filled " + n + " cells" : "Need a closed outline first");
+    draw();
+  } else if (tool === "object") {
+    const hit = hitAt(c);
+    if (hit && hit.type === "obj") selected = hit;
+    else {
+      pushUndo();
+      map.objects.push({ kind: objKind, x: c.wx, z: c.wz, s: objScale, rot: 0 });
+      selected = { type: "obj", i: map.objects.length - 1 };
+      status("Placed " + objKind);
+    }
+    draw();
+  } else if (tool === "pickup") {
+    pushUndo();
+    map.pickups.push({ kind: pickupKind, x: c.wx, z: c.wz });
+    status("Pickup: " + pickupKind);
+    draw();
+  } else if (tool === "spawner") {
+    const hit = hitAt(c);
+    if (hit && hit.type === "spawner") {
+      selected = hit;
+      const s = map.spawners[hit.i];
+      $("sp-enemy").value = s.enemy;
+      $("sp-int").value = s.interval;
+      $("sp-rad").value = s.radius;
+      $("sp-max").value = s.maxAlive;
+      syncSliders();
+    } else {
+      pushUndo();
+      map.spawners.push({ x: c.wx, z: c.wz, enemy: enemyId, interval: spawnInterval, radius: spawnRadius, maxAlive: spawnMax });
+      selected = { type: "spawner", i: map.spawners.length - 1 };
+      status("Spawner: " + enemyId);
+    }
+    draw();
+  } else if (tool === "start") {
+    pushUndo();
+    map.start = { x: c.wx, z: c.wz, yaw: map.start?.yaw || 0 };
+    drawing = true;
+    status("Spawn set — drag to face");
+    draw();
+  } else if (tool === "rope") {
+    pushUndo();
+    map.ropes.push({ x: c.wx, z: c.wz, len: 4.5 });
+    draw();
+  } else if (tool === "minotaur" || tool === "drone") {
+    pushUndo();
+    const enemy = tool === "minotaur" ? "minotaur" : "sentrydrone";
+    map.spawners.push({ x: c.wx, z: c.wz, enemy, interval: 8, radius: 10, maxAlive: 2 });
+    selected = { type: "spawner", i: map.spawners.length - 1 };
+    status(tool === "minotaur" ? "Minotaur" : "Sentry drone");
+    draw();
+  } else if (tool === "turret") {
+    pushUndo();
+    map.turrets.push({ x: c.wx, z: c.wz });
+    draw();
+  } else if (tool === "arrow") {
+    const snapped = snapArrow(c);
+    if (!snapped) {
+      status("Place on a wall or the side of carved dungeon space");
+      return;
+    }
+    pushUndo();
+    map.arrows = map.arrows || [];
+    map.arrows.push(snapped);
+    status("Arrow trap");
+    draw();
+  } else if (tool === "crusher") {
+    pushUndo();
+    map.crushers.push({ x: c.wx, z: c.wz });
+    draw();
+  } else if (tool === "boulder") {
+    pushUndo();
+    map.boulders = map.boulders || [];
+    map.boulders.push({ x: c.wx, z: c.wz, yaw: 0, trigger: 3.2 });
+    selected = { type: "boulder", i: map.boulders.length - 1 };
+    drawing = true;
+    status("Boulder set — drag to aim roll direction");
+    draw();
+  } else if (tool === "vendor") {
+    pushUndo();
+    map.vendors = map.vendors || [];
+    map.vendors.push({ x: c.wx, z: c.wz });
+    status("Vending machine");
+    draw();
+  } else if (tool === "npc") {
+    const hit = hitAt(c);
+    if (hit && hit.type === "npc") {
+      selected = hit;
+      fillNpcForm();
+      status("Editing " + (map.npcs[hit.i].name || "NPC"));
+    } else {
+      pushUndo();
+      map.npcs = map.npcs || [];
+      map.npcs.push(defaultNpc(c.wx, c.wz));
+      selected = { type: "npc", i: map.npcs.length - 1 };
+      fillNpcForm();
+      status("NPC placed — set name and dialogue");
+    }
+    draw();
+  } else if (tool === "stairs" || tool === "ladder") {
+    if (!canPlaceClimb(map, c.gx, c.gz, climbFrom)) {
+      status("Need enclosed 1st+2nd or 2nd+3rd floors here");
+      return;
+    }
+    pushUndo();
+    const fl = enclosedFloors(map, climbFrom);
+    const open = (x, z) => inBounds(map, x, z) && fl[idx(map, x, z)];
+    const ox = (open(c.gx - 1, c.gz) ? 1 : 0) + (open(c.gx + 1, c.gz) ? 1 : 0);
+    const oz = (open(c.gx, c.gz - 1) ? 1 : 0) + (open(c.gx, c.gz + 1) ? 1 : 0);
+    map.climbs = map.climbs || [];
+    map.climbs = map.climbs.filter((o) => Math.hypot(o.x - c.wx, o.z - c.wz) > CELL * 0.7);
+    map.climbs.push({
+      kind: tool === "ladder" ? "ladder" : "stairs",
+      x: c.wx,
+      z: c.wz,
+      from: climbFrom,
+      to: climbFrom + 1,
+      yaw: ox > oz ? Math.PI / 2 : 0,
+    });
+    status((tool === "ladder" ? "Ladder" : "Stairs") + " " + (climbFrom + 1) + "↔" + (climbFrom + 2));
+    draw();
+  } else if (tool === "portal") {
+    if (!pendingPortal) {
+      pendingPortal = { ax: c.wx, az: c.wz };
+      status("Portal A set — click exit");
+    } else {
+      pushUndo();
+      map.portals.push({ ax: pendingPortal.ax, az: pendingPortal.az, bx: c.wx, bz: c.wz });
+      pendingPortal = null;
+      status("Portal pair placed");
+      draw();
+    }
+  } else if (tool === "key") {
+    pushUndo();
+    const id = pendingKey || "k" + Math.random().toString(36).slice(2, 7);
+    map.keys.push({ id, x: c.wx, z: c.wz });
+    pendingKey = null;
+    status("Key " + id + " placed");
+    setTool("dig");
+    draw();
+  } else if (["door", "locked", "arch", "window"].includes(tool)) {
+    if (!inBounds(map, c.gx, c.gz) || !onWall(c.gx, c.gz)) {
+      status("Place that on a wall");
+      return;
+    }
+    pushUndo();
+    const open = { x: c.gx, z: c.gz, story, type: tool === "locked" ? "door" : tool, locked: tool === "locked" };
+    if (tool === "locked") {
+      open.keyId = "k" + Math.random().toString(36).slice(2, 7);
+      pendingKey = open.keyId;
+      map.openings.push(open);
+      setTool("key");
+      status("Locked door set — now place its key");
+      $("key-hint").textContent = "Click to drop key " + open.keyId;
+    } else {
+      map.openings.push(open);
+      status(tool + " on wall");
+    }
+    draw();
+  }
+});
+
+function strokeAt(c, first) {
+  if (tool === "paint") paintDisk(map, c.x, c.z, brush, tex);
+  else if (tool === "crouch") {
+    stampDisk(map, c.x, c.z, brush, SHAPE_FLAT, tex, false);
+    stampFlags(map, c.x, c.z, brush, FLAG_CROUCH, true);
+  } else if (tool === "spike") {
+    stampDisk(map, c.x, c.z, brush, SHAPE_FLAT, tex, false);
+    stampFlags(map, c.x, c.z, brush, FLAG_SPIKE, true);
+  } else if (tool === "unstable") {
+    stampDisk(map, c.x, c.z, brush, SHAPE_FLAT, tex, false);
+    stampFlags(map, c.x, c.z, brush, FLAG_UNSTABLE, true);
+  } else if (tool === "rumble") {
+    stampFlags(map, c.x, c.z, brush, FLAG_RUMBLE, true);
+  } else if (tool === "hover") {
+    stampDisk(map, c.x, c.z, brush, shape, tex, false);
+    stampFlags(map, c.x, c.z, brush, FLAG_HOVER, true);
+    stampLayer(map.elev, map, c.x, c.z, brush, elev);
+  } else if (tool === "collapse") {
+    stampDisk(map, c.x, c.z, brush, shape, tex, false);
+    stampFlags(map, c.x, c.z, brush, FLAG_COLLAPSE, true);
+    const gx = Math.floor(c.x), gz = Math.floor(c.z);
+    if (inBounds(map, gx, gz) && map.flags[idx(map, gx, gz)] & FLAG_HOVER) {
+      stampFlags(map, c.x, c.z, brush, FLAG_HOVER, true);
+    }
+  } else if (tool === "sky") {
+    stampDisk(map, c.x, c.z, brush, shape, tex, false);
+    stampLayer(map.sky, map, c.x, c.z, brush, skyKind);
+  } else if (tool === "elev") stampLayer(map.elev, map, c.x, c.z, brush, elev);
+  else if (tool === "water") stampLayer(map.liquid, map, c.x, c.z, brush, LIQ_WATER);
+  else if (tool === "lava") stampLayer(map.liquid, map, c.x, c.z, brush, LIQ_LAVA);
+  else if (tool === "wall") stampLayer(map.bwalls[story], map, c.x, c.z, Math.max(0.6, brush * 0.45), wtex);
+  else if (tool === "crack") stampCrack(map.bwalls[story], map, c.x, c.z, Math.max(0.6, brush * 0.45), wtex);
+  else if (tool === "dig" || tool === "erase" || tool === "sphere") {
+    const prev = shape;
+    if (tool === "sphere") shape = SHAPE_SPHERE;
+    if (!first && last) stampSegment(map, last.x, last.z, c.x, c.z, brush, shape, tex, tool === "erase");
+    else applyBrush(c, tool === "erase");
+    if (tool === "sphere" && tool !== "erase") addSphere(map, c.wx, c.wz, brush * CELL * 0.9, tex);
+    if (tool === "erase") {
+      eraseNear(map, c.wx, c.wz, brush * CELL * 0.6);
+      stampLayer(map.liquid, map, c.x, c.z, brush, LIQ_NONE);
+      stampLayer(map.sky, map, c.x, c.z, brush, 0);
+      stampFlags(map, c.x, c.z, brush, FLAG_SPIKE | FLAG_CROUCH | FLAG_UNSTABLE | FLAG_RUMBLE | FLAG_COLLAPSE | FLAG_HOVER, false);
+    }
+    shape = prev;
+  }
+}
+
+canvas.addEventListener("pointermove", (ev) => {
+  if (canvas._pan) {
+    pan.x = ev.clientX - canvas._pan.x;
+    pan.y = ev.clientY - canvas._pan.y;
+    draw();
+    return;
+  }
+  const c = cellFromEvent(ev);
+  $("xy").textContent = `${c.x.toFixed(1)}, ${c.z.toFixed(1)}`;
+  if (!drawing) return;
+  if (tool === "start" && map.start) {
+    map.start.yaw = Math.atan2(map.start.x - c.wx, map.start.z - c.wz);
+    draw();
+    return;
+  }
+  if (tool === "boulder" && selected && selected.type === "boulder") {
+    const b = map.boulders[selected.i];
+    if (b) {
+      b.yaw = Math.atan2(b.x - c.wx, b.z - c.wz);
+      draw();
+    }
+    return;
+  }
+  if (tool === "rect" || tool === "outline") {
+    last = c;
+    draw();
+    return;
+  }
+  if ((tool === "object" || tool === "spawner") && selected && ev.buttons === 1) {
+    const p = selected.type === "obj" ? map.objects[selected.i] : map.spawners[selected.i];
+    if (p) {
+      p.x = c.wx;
+      p.z = c.wz;
+      draw();
+    }
+    return;
+  }
+  if (["dig", "erase", "sphere", "paint", "crouch", "spike", "sky", "elev", "water", "lava", "wall", "crack", "unstable", "rumble", "hover", "collapse"].includes(tool)) {
+    strokeAt(c, false);
+    last = c;
+    draw();
+  }
+});
+
+function endDraw() {
+  canvas._pan = null;
+  if (!drawing) return;
+  drawing = false;
+  if ((tool === "rect" || tool === "outline") && rectA && last) {
+    stampRect(map, rectA.x, rectA.z, last.x, last.z, brush, shape, tex, false, tool === "outline");
+  }
+  rectA = null;
+  last = null;
+  draw();
+}
+canvas.addEventListener("pointerup", endDraw);
+canvas.addEventListener("pointerleave", endDraw);
+canvas.addEventListener("contextmenu", (e) => e.preventDefault());
+canvas.addEventListener(
+  "wheel",
+  (ev) => {
+    ev.preventDefault();
+    const c = cellFromEvent(ev);
+    scale = Math.max(3, Math.min(28, scale * (ev.deltaY > 0 ? 0.9 : 1.1)));
+    pan.x = ev.clientX - canvas.getBoundingClientRect().left - c.x * scale;
+    pan.y = ev.clientY - canvas.getBoundingClientRect().top - c.z * scale;
+    draw();
+  },
+  { passive: false },
+);
+
+function optSlot(op, i, prefix) {
+  op = op || { text: "", reply: "", options: [] };
+  const nest = (op.options || []).slice(0, 3);
+  while (nest.length < 3) nest.push({ text: "", reply: "", options: [] });
+  return `<div class="npc-opt" data-i="${i}" data-p="${prefix}">
+    <label>Player choice ${i + 1}</label>
+    <input data-k="text" type="text" maxlength="80" value="${(op.text || "").replace(/"/g, "&quot;")}" />
+    <label>NPC reply</label>
+    <textarea data-k="reply" rows="2" maxlength="240">${(op.reply || "").replace(/</g, "&lt;")}</textarea>
+    ${nest.map((n, j) => `<label>Then ${j + 1}</label>
+      <input data-k="ntext" data-j="${j}" type="text" maxlength="80" value="${(n.text || "").replace(/"/g, "&quot;")}" placeholder="follow-up choice" />
+      <textarea data-k="nreply" data-j="${j}" rows="2" maxlength="240" placeholder="follow-up reply">${(n.reply || "").replace(/</g, "&lt;")}</textarea>`).join("")}
+  </div>`;
+}
+
+function fillNpcForm() {
+  const host = $("npc-opts");
+  const n = selected?.type === "npc" ? map.npcs[selected.i] : null;
+  if ($("npc-name")) $("npc-name").value = n?.name || "";
+  if ($("npc-open")) $("npc-open").value = n?.opener || "";
+  if (!host) return;
+  const opts = (n?.options || []).slice(0, 3);
+  while (opts.length < 3) opts.push({ text: "", reply: "", options: [] });
+  host.innerHTML = opts.map((op, i) => optSlot(op, i, "")).join("");
+  host.querySelectorAll("input, textarea").forEach((el) => el.addEventListener("input", readNpcForm));
+  if ($("npc-name") && !$("npc-name")._wired) {
+    $("npc-name")._wired = true;
+    $("npc-name").addEventListener("input", readNpcForm);
+    $("npc-open").addEventListener("input", readNpcForm);
+  }
+}
+
+function readNpcForm() {
+  if (selected?.type !== "npc") return;
+  const n = map.npcs[selected.i];
+  if (!n) return;
+  n.name = ($("npc-name")?.value || "Wanderer").slice(0, 32);
+  n.opener = ($("npc-open")?.value || "").slice(0, 240);
+  const boxes = [...document.querySelectorAll("#npc-opts .npc-opt")];
+  n.options = boxes.map((box) => {
+    const text = box.querySelector('[data-k="text"]')?.value || "";
+    const reply = box.querySelector('[data-k="reply"]')?.value || "";
+    const nest = [];
+    box.querySelectorAll('[data-k="ntext"]').forEach((inp) => {
+      const j = +inp.dataset.j;
+      const ta = box.querySelector(`[data-k="nreply"][data-j="${j}"]`);
+      nest[j] = { text: inp.value || "", reply: ta?.value || "", options: [] };
+    });
+    return { text, reply, options: nest.filter((o) => o.text || o.reply) };
+  }).filter((o) => o.text || o.reply);
+  draw();
+}
+
+function setTool(t) {
+  tool = t;
+  if (t === "sphere") shape = SHAPE_SPHERE;
+  showPanels();
+  const hints = {
+    dig: "Paint carved space. Shape + texture apply to the stroke.",
+    erase: "Erase carved space, traps, pickups, and overlays under the brush.",
+    rect: "Drag a filled rectangle — a room.",
+    outline: "Drag an outline — a hallway circuit.",
+    sphere: "Stamp spherical chambers.",
+    fill: "Bucket-fill a closed pocket.",
+    paint: "Recolor existing carved cells.",
+    crouch: "Low tunnels. Player must crouch (C) to pass.",
+    spike: "Spike pits. Jump them or die. Ceiling rises so you can vault them.",
+    unstable: "Paint a ceiling that collapses around anyone who walks under it.",
+    boulder: "Click to place a rolling boulder, then drag to set the roll direction. It starts when the player enters the trigger ring.",
+    minotaur: "Place a minotaur. Walks slowly, then charges when it sees the player.",
+    drone: "Place a flying sentry drone. It weaves through vertical space and fires lasers.",
+    rumble: "Paint invisible rumble tiles. Walking over them shakes the camera and controllers.",
+    hover: "Floating platforms. Set elevation, then paint. Walkable slabs in open air.",
+    collapse: "Collapsing floor. Rumbles then drops under feet. Paint over a hover platform to make a collapsing platform.",
+    arrow: "Wall dart trap. Snaps to building walls or the sides of carved halls. 3s cooldown.",
+    vendor: "Vending machine. Player presses E to buy weapons, ammo, and powerups with coins.",
+    npc: "Place a talking NPC. Set their name, opening line, and up to 3 player replies (each with a nested follow-up).",
+    stairs: "Place only where 1st+2nd or 2nd+3rd stories both have enclosed floors.",
+    ladder: "Place only where consecutive stories both have enclosed floors.",
+    sky: "Open courtyard — grass floor, courtyard walls, real sky (no cave lid).",
+    elev: "Raise or lower the floor by player-heights.",
+    water: "Water layer on top of height.",
+    lava: "Lava layer — it burns. Ceiling rises so you can jump it.",
+    start: "Click spawn, drag to face.",
+    wall: "Draw building walls. Enclosed rooms get floors and roofs.",
+    crack: "Paint damaged, cracked wall segments. Psyblast shatters them into debris.",
+    portal: "Two clicks make a colored pair.",
+  };
+  $("shape-hint").textContent = hints[t] || SHAPES.find((s) => s.id === shape)?.hint || "";
+  status(t);
+}
+
+document.querySelectorAll("[data-tool]").forEach((b) => b.addEventListener("click", () => setTool(b.dataset.tool)));
+
+function fillSelect(el, items, getId, getName) {
+  if (!el) return;
+  el.innerHTML = items.map((it) => `<option value="${getId(it)}">${getName(it)}</option>`).join("");
+}
+fillSelect($("shape"), SHAPES, (s) => String(s.id), (s) => s.name);
+fillSelect($("biome"), BIOMES, (b) => String(BIOMES.indexOf(b)), (b) => b.name);
+fillSelect($("obj"), OBJECTS, (o) => o.id, (o) => o.name);
+fillSelect($("pickup"), PICKUPS, (p) => p.id, (p) => p.name);
+fillSelect($("sp-enemy"), ENEMIES, (e) => e.id, (e) => e.name);
+fillSelect($("wtex"), WALL_TEX, (w) => String(WALL_TEX.indexOf(w) + 1), (w) => w.name);
+
+$("shape").value = String(shape);
+$("biome").value = String(tex);
+$("obj").value = objKind;
+$("pickup").value = pickupKind;
+$("sp-enemy").value = enemyId;
+
+$("shape").addEventListener("change", () => (shape = +$("shape").value));
+$("biome").addEventListener("change", () => (tex = +$("biome").value));
+$("obj").addEventListener("change", () => (objKind = $("obj").value));
+$("pickup").addEventListener("change", () => (pickupKind = $("pickup").value));
+$("sp-enemy").addEventListener("change", () => {
+  enemyId = $("sp-enemy").value;
+  if (selected?.type === "spawner") map.spawners[selected.i].enemy = enemyId;
+});
+$("brush").addEventListener("input", () => {
+  brush = +$("brush").value;
+  $("brush-v").textContent = brush.toFixed(1);
+});
+$("hall").addEventListener("input", () => {
+  map.hallH = +$("hall").value;
+  $("hall-v").textContent = map.hallH.toFixed(1);
+});
+$("oscale").addEventListener("input", () => {
+  objScale = +$("oscale").value;
+  $("oscale-v").textContent = objScale.toFixed(2);
+});
+$("elev").addEventListener("input", () => {
+  elev = +$("elev").value;
+  $("elev-v").textContent = String(elev);
+});
+if ($("msize")) {
+  $("msize").addEventListener("input", () => {
+    const n = +$("msize").value;
+    if ($("msize-v")) $("msize-v").textContent = n + "×" + n;
+  });
+  $("msize").addEventListener("change", () => {
+    const n = +$("msize").value;
+    if (n === map.w && n === map.h) return;
+    pushUndo();
+    map = resizeMap(map, n, n);
+    if ($("msize-v")) $("msize-v").textContent = map.w + "×" + map.h;
+    fit();
+    status("Map size " + map.w + "×" + map.h);
+  });
+}
+$("sky-kind").addEventListener("change", () => (skyKind = +$("sky-kind").value));
+$("climb-span").addEventListener("change", () => (climbFrom = +$("climb-span").value));
+$("story").addEventListener("change", () => {
+  story = +$("story").value;
+  draw();
+});
+$("wtex").addEventListener("change", () => (wtex = +$("wtex").value));
+$("sp-int").addEventListener("input", () => {
+  spawnInterval = +$("sp-int").value;
+  $("sp-int-v").textContent = spawnInterval.toFixed(1) + "s";
+  if (selected?.type === "spawner") map.spawners[selected.i].interval = spawnInterval;
+});
+$("sp-rad").addEventListener("input", () => {
+  spawnRadius = +$("sp-rad").value;
+  $("sp-rad-v").textContent = spawnRadius.toFixed(1);
+  if (selected?.type === "spawner") map.spawners[selected.i].radius = spawnRadius;
+  draw();
+});
+$("sp-max").addEventListener("input", () => {
+  spawnMax = +$("sp-max").value;
+  $("sp-max-v").textContent = String(spawnMax);
+  if (selected?.type === "spawner") map.spawners[selected.i].maxAlive = spawnMax;
+});
+
+function syncSliders() {
+  $("brush-v").textContent = brush.toFixed(1);
+  $("hall-v").textContent = (map.hallH || 4.2).toFixed(1);
+  $("hall").value = map.hallH || 4.2;
+  $("oscale-v").textContent = objScale.toFixed(2);
+  $("elev-v").textContent = String(elev);
+  $("sp-int-v").textContent = spawnInterval.toFixed(1) + "s";
+  $("sp-rad-v").textContent = spawnRadius.toFixed(1);
+  $("sp-max-v").textContent = String(spawnMax);
+  $("map-name").value = map.name;
+  if ($("msize")) {
+    $("msize").value = String(map.w);
+    if ($("msize-v")) $("msize-v").textContent = map.w + "×" + map.h;
+  }
+}
+
+$("map-name").addEventListener("input", () => (map.name = $("map-name").value || "Untitled"));
+$("save").addEventListener("click", async () => {
+  map.name = $("map-name").value || "Untitled";
+  const r = await saveMap(map);
+  status(r.remote ? "Saved to Zoom (all devices)" : "Saved on this device");
+  refreshList();
+});
+$("play").addEventListener("click", () => {
+  stashPreview(map);
+  location.href = routes().play + "?map=preview";
+});
+$("new").addEventListener("click", () => {
+  pushUndo();
+  map = blankMap("New delve");
+  selected = null;
+  syncSliders();
+  fit();
+});
+$("del").addEventListener("click", async () => {
+  if (!confirm("Delete this map?")) return;
+  await deleteMap(map.id);
+  map = blankMap("New delve");
+  refreshList();
+  fit();
+});
+
+addEventListener("keydown", (e) => {
+  if (e.target.matches("input, textarea, select")) return;
+  if ((e.ctrlKey || e.metaKey) && e.code === "KeyZ") {
+    e.preventDefault();
+    doUndo();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.code === "KeyS") {
+    e.preventDefault();
+    $("save").click();
+  }
+  if (e.code === "Delete" || e.code === "Backspace") {
+    if (selected) {
+      pushUndo();
+      if (selected.type === "obj") map.objects.splice(selected.i, 1);
+      else if (selected.type === "spawner") map.spawners.splice(selected.i, 1);
+      else if (selected.type === "pickup") map.pickups.splice(selected.i, 1);
+      else if (selected.type === "npc") map.npcs.splice(selected.i, 1);
+      selected = null;
+      draw();
+    }
+  }
+});
+
+BIOMES.forEach((b, i) => {
+  const d = document.createElement("button");
+  d.type = "button";
+  d.className = "sw";
+  d.title = b.name;
+  d.style.background = b.swatch;
+  d.addEventListener("click", () => {
+    tex = i;
+    $("biome").value = String(i);
+    document.querySelectorAll(".sw").forEach((x) => x.classList.remove("on"));
+    d.classList.add("on");
+  });
+  if (i === tex) d.classList.add("on");
+  $("swatches").appendChild(d);
+});
+
+async function refreshList() {
+  const host = $("saved");
+  host.innerHTML = "";
+  const baked = bakedMaps();
+  let extra = [];
+  try {
+    extra = await listMaps();
+  } catch {}
+  const seen = new Set();
+  const all = [...baked, ...extra].filter((m) => {
+    if (seen.has(m.id)) return false;
+    seen.add(m.id);
+    return true;
+  });
+  for (const m of all) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "saved";
+    b.textContent = m.name + (String(m.id).startsWith("baked") ? " (sample)" : "");
+    b.addEventListener("click", async () => {
+      const loaded = String(m.id).startsWith("baked") ? bakedMaps().find((x) => x.id === m.id) : await getMap(m.id);
+      map = ensureLayers(loaded ? cloneMap(loaded) : cloneMap(m));
+      if (String(m.id).startsWith("baked")) map.id = "m" + Math.random().toString(36).slice(2, 10);
+      selected = null;
+      syncSliders();
+      fit();
+    });
+    host.appendChild(b);
+  }
+}
+
+$("to-play").href = routes().play;
+addEventListener("resize", fit);
+
+(async () => {
+  const q = new URLSearchParams(location.search).get("map");
+  if (q) {
+    const m = await getMap(q);
+    if (m) map = ensureLayers(m);
+  }
+  syncSliders();
+  setTool("dig");
+  await refreshList();
+  fit();
+  status("Draw to dig. " + countCarved(map) + " cells open.");
+})();

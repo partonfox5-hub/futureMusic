@@ -1,8 +1,8 @@
 /** Voxelize the dug SDF and emit textured wall/floor meshes. */
 import * as THREE from "three";
-import { BIOMES, CELL, EYE, FLAG_SPIKE, LIQ_LAVA } from "./config.js?v=sw3";
-import { computeSdf, getTex, isCarved, sdf3 } from "./map.js?v=sw3";
-import { allMaterials } from "./tex.js?v=sw3";
+import { BIOMES, CELL, EYE, FLAG_SPIKE, LIQ_LAVA } from "./config.js?v=zm1";
+import { computeSdf, getTex, isCarved, sdf3 } from "./map.js?v=zm1";
+import { allMaterials } from "./tex.js?v=zm1";
 
 const VX = 0.42;
 
