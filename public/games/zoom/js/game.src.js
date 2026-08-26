@@ -1,19 +1,19 @@
 import * as THREE from "three";
 import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
-import { BIOMES, CELL, EYE, FLAG_RUMBLE, LIQ_LAVA, LIQ_WATER, PICKUP_BY_ID, SHOP, WEAPON_BY_ID, WEAPONS, routes } from "./config.js?v=zm4";
-import { bakedMaps, storyMaps } from "./defaults.js?v=zm4";
-import { biomeOf, cellI, countCarved, ensureLayers, firstCarved, floorY, sdf3 } from "./map.js?v=zm4";
-import { buildDungeon, prepareSdf } from "./mesh.js?v=zm4";
-import { makeProp, spawnFrom, strikeFoes, tickFoes } from "./props.js?v=zm4";
-import { getMap, listMaps } from "./store.js?v=zm4";
-import { makeProc } from "./proc.js?v=zm4";
-import { buildingFloorY, buildWorld, climbSupport, hurtBreakables, hurtTurrets, impulseBoulders, layoutRope, makeSky, smashGlass, spawnRipple, tickRubble, tickWorld, tryUnlock, wallBlocked } from "./world.js?v=zm4";
-import { addBurnDecal, addSaberMark, fireWeapon, hurtFoe, makeDualSaber, makeKeyModel, makePickup, makeWeapon, setKillHook, tickBurns, tickShots } from "./weapons.js?v=zm4";
-import { tickRobots } from "./robots.js?v=zm4";
-import { attachXr, tickXr } from "./xr.js?v=zm4";
-import { loadStoryPsy, lootForEnemy, makeWristGold, paintWristGold, saveStoryPsy, showerLoot, tickLoot } from "./loot.js?v=zm4";
-import { sfx, sfxUnlock } from "./sfx.js?v=zm4";
-import { makeNpc, nearNpc, tickNpcPose } from "./npcs.js?v=zm4";
+import { BIOMES, CELL, EYE, FLAG_COLLAPSE, FLAG_RUMBLE, LIQ_LAVA, LIQ_WATER, PICKUP_BY_ID, SHOP, WEAPON_BY_ID, WEAPONS, routes } from "./config.js?v=zm5";
+import { bakedMaps, storyMaps } from "./defaults.js?v=zm5";
+import { biomeOf, cellI, countCarved, ensureLayers, firstCarved, floorY, sdf3 } from "./map.js?v=zm5";
+import { buildDungeon, prepareSdf } from "./mesh.js?v=zm5";
+import { makeProp, spawnFrom, strikeFoes, tickFoes } from "./props.js?v=zm5";
+import { getMap, listMaps } from "./store.js?v=zm5";
+import { makeProc } from "./proc.js?v=zm5";
+import { buildingFloorY, buildWorld, climbSupport, hurtBreakables, hurtTurrets, impulseBoulders, layoutRope, makeSky, makeSkyDome, smashGlass, spawnRipple, tickRubble, tickWorld, tryUnlock, wallBlocked } from "./world.js?v=zm5";
+import { addBurnDecal, addSaberMark, addSaberTrail, fireWeapon, hurtFoe, makeDualSaber, makeKeyModel, makePickup, makeWeapon, setKillHook, tickBurns, tickShots } from "./weapons.js?v=zm5";
+import { tickRobots } from "./robots.js?v=zm5";
+import { attachXr, tickXr } from "./xr.js?v=zm5";
+import { loadStoryPsy, lootForEnemy, makeWristGold, paintWristGold, saveStoryPsy, showerLoot, tickLoot } from "./loot.js?v=zm5";
+import { sfx, sfxUnlock } from "./sfx.js?v=zm5";
+import { makeNpc, nearNpc, tickNpcPose } from "./npcs.js?v=zm5";
 
 const $ = (id) => document.getElementById(id);
 const keys = new Set();
@@ -535,17 +535,18 @@ async function enterMap(id) {
   const skyKind = (map.sky || []).find((v) => v) || 0;
   if (skyKind) {
     skyTex = makeSky(skyKind);
+    skyMesh = makeSkyDome(skyKind);
+    scene.add(skyMesh);
     scene.background = skyTex;
-    scene.fog = null;
     outdoor = true;
-    if (sun) sun.intensity = 1.35;
+    if (sun) sun.intensity = 0.85;
     if (hemi) {
       hemi.color.setHex(0xd8e8ff);
       hemi.groundColor.setHex(0x3a5a28);
-      hemi.intensity = 1.15;
+      hemi.intensity = 0.95;
     }
-    if (amb) amb.intensity = 0.55;
-    renderer.toneMappingExposure = 1.65;
+    if (amb) amb.intensity = 0.5;
+    renderer.toneMappingExposure = 1.55;
   } else {
     if (sun) sun.intensity = 0;
     if (hemi) {
@@ -666,6 +667,7 @@ function damage(n, why) {
 }
 
 function die(why) {
+  sfx("oof");
   setMsg("You were " + (why || "taken") + " — back at spawn.");
   player.hp = 100;
   player.vx = 0;
@@ -1065,7 +1067,7 @@ function physics(dt, xr) {
       }
     }
   }
-  const fy = floorY(player.x, player.z, map, sdf2, Math.max(player.y + 2, 6));
+  const fy = floorY(player.x, player.z, map, sdf2, Math.max(player.y + 2, 6), player.y - eye);
   const bf = buildingFloorY(map, player.x, player.z, player.y);
   let ground = -999;
   if (fy > -500) ground = fy;
@@ -1126,10 +1128,13 @@ function physics(dt, xr) {
     player.grounded = false;
     coyote = Math.max(0, coyote - dt);
   }
-  if (player.y < -18) die("fell");
+  if (player.y < -8) die("fell into a pit");
 
   const ci = cellI(map, player.x, player.z);
   const feetY = player.y - eye;
+  if (map.collapsed && map.collapsed[ci] && map.flags && map.flags[ci] & FLAG_COLLAPSE) {
+    if (feetY < (((map.elev && map.elev[ci]) || 0) * EYE) + 0.4) die("fell into a pit");
+  }
   if (map.flags && map.flags[ci] & 1 && player.grounded && feetY < ground + 0.4) die("impaled");
   let inLava = map.liquid && map.liquid[ci] === LIQ_LAVA;
   if (!inLava && extras?.liquids) {
@@ -1985,6 +1990,7 @@ function tickSaber(xr, dt) {
       const mid = mapP.clone().add(prev).multiplyScalar(0.5);
       const move = mapP.clone().sub(prev);
       if (move.length() > 0.02) {
+        addSaberTrail(stage || scene, burns, prev, mapP, tips[i].color);
         strikeFoes(foes, mid, move.clone().normalize(), 0.85, 16);
         if (sdf3(mapP.x, mapP.y, mapP.z, map, sdf2) > -0.08 || wallBlocked(map, mapP.x, mapP.z, mapP.y)) {
           addSaberMark(stage || scene, burns, mapP, move, tips[i].color);
@@ -2136,21 +2142,16 @@ function loop(time) {
         extras.physQueue.length = 0;
       }
     }
-    if (map && map.sky) {
+    if (skyMesh && camera) {
+      camera.getWorldPosition(tmp);
+      skyMesh.position.copy(tmp);
+    }
+    if (map && map.sky && outdoor) {
       const inSky = !!map.sky[cellI(map, player.x, player.z)];
-      if (inSky) {
-        scene.fog = null;
-        if (skyTex) scene.background = skyTex;
-        if (sun) sun.intensity = 1.55;
-        if (hemi) hemi.intensity = 1.2;
-        renderer.toneMappingExposure = 1.7;
-      } else if (outdoor) {
-        scene.fog = caveFog;
-        scene.background = caveFog ? caveFog.color : scene.background;
-        if (sun) sun.intensity = 0.15;
-        if (hemi) hemi.intensity = 0.7;
-        renderer.toneMappingExposure = 1.45;
-      }
+      if (sun) sun.intensity = inSky ? 1.35 : 0.55;
+      if (hemi) hemi.intensity = inSky ? 1.1 : 0.8;
+      renderer.toneMappingExposure = inSky ? 1.65 : 1.48;
+      if (skyTex) scene.background = skyTex;
     }
     for (const s of spawners) {
       s._t -= dt;

@@ -1,8 +1,8 @@
 /** Voxelize the dug SDF and emit textured wall/floor meshes. */
 import * as THREE from "three";
-import { BIOMES, CELL, EYE, FLAG_SPIKE, LIQ_LAVA } from "./config.js?v=zm4";
-import { computeSdf, getTex, isCarved, sdf3 } from "./map.js?v=zm4";
-import { allMaterials } from "./tex.js?v=zm4";
+import { BIOMES, CELL, EYE, FLAG_SPIKE, LIQ_LAVA } from "./config.js?v=zm5";
+import { computeSdf, getTex, isCarved, sdf3 } from "./map.js?v=zm5";
+import { allMaterials } from "./tex.js?v=zm5";
 
 const VX = 0.42;
 
@@ -155,8 +155,15 @@ export function buildDungeon(map, sdf2) {
           const gx = Math.max(0, Math.min(map.w - 1, Math.floor(((ix + 0.5) * VX) / CELL)));
           const gz = Math.max(0, Math.min(map.h - 1, Math.floor(((iz + 0.5) * VX) / CELL)));
           const skyHere = !!(map.sky && map.sky[gz * map.w + gx]);
+          let skyNear = skyHere;
+          if (!skyNear && map.sky) {
+            if (gx > 0 && map.sky[gz * map.w + gx - 1]) skyNear = true;
+            else if (gx + 1 < map.w && map.sky[gz * map.w + gx + 1]) skyNear = true;
+            else if (gz > 0 && map.sky[(gz - 1) * map.w + gx]) skyNear = true;
+            else if (gz + 1 < map.h && map.sky[(gz + 1) * map.w + gx]) skyNear = true;
+          }
           const elevY = ((map.elev && map.elev[gz * map.w + gx]) || 0) * EYE;
-          if (skyHere && dy === 1) continue;
+          if (skyNear && dy === 1) continue;
           if (skyHere && dy !== -1 && y0 - elevY > 3.15) continue;
           const floorish = dy === -1;
           const list = skyHere && floorish ? skyFloor : floorish ? buckets[t].f : buckets[t].w;

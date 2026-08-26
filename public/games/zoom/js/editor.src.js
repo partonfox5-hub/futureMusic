@@ -21,8 +21,8 @@ import {
   SHAPES,
   WALL_TEX,
   routes,
-} from "./config.js?v=zm4";
-import { bakedMaps } from "./defaults.js?v=zm4";
+} from "./config.js?v=zm5";
+import { bakedMaps } from "./defaults.js?v=zm5";
 import {
   addSphere,
   blankMap,
@@ -50,9 +50,9 @@ import {
   stampSegment,
   wallIsCrack,
   wallTexId,
-} from "./map.js?v=zm4";
-import { deleteMap, getMap, listMaps, saveMap, stashPreview } from "./store.js?v=zm4";
-import { defaultNpc } from "./npcs.js?v=zm4";
+} from "./map.js?v=zm5";
+import { deleteMap, getMap, listMaps, saveMap, stashPreview } from "./store.js?v=zm5";
+import { defaultNpc } from "./npcs.js?v=zm5";
 
 const $ = (id) => document.getElementById(id);
 
@@ -523,7 +523,7 @@ canvas.addEventListener("pointerdown", (ev) => {
   } else if (tool === "minotaur" || tool === "drone") {
     pushUndo();
     const enemy = tool === "minotaur" ? "minotaur" : "sentrydrone";
-    map.spawners.push({ x: c.wx, z: c.wz, enemy, interval: 8, radius: 10, maxAlive: 2 });
+    map.spawners.push({ x: c.wx, z: c.wz, enemy, interval: 9999, radius: 4, maxAlive: 1 });
     selected = { type: "spawner", i: map.spawners.length - 1 };
     status(tool === "minotaur" ? "Minotaur" : "Sentry drone");
     draw();
@@ -829,8 +829,8 @@ function setTool(t) {
     minotaur: "Place a minotaur. Walks slowly, then charges when it sees the player.",
     drone: "Place a flying sentry drone. It weaves through vertical space and fires lasers.",
     rumble: "Paint invisible rumble tiles. Walking over them shakes the camera and controllers.",
-    hover: "Floating platforms. Set elevation, then paint. Walkable slabs in open air.",
-    collapse: "Collapsing floor. Rumbles then drops under feet. Paint over a hover platform to make a collapsing platform.",
+    hover: "Short floating slabs. Set elevation, then paint. Open air under them so you can walk beneath.",
+    collapse: "Collapsing floor. Rumbles, then drops into a bottomless pit that kills. Paint over a hover slab for a collapsing platform.",
     arrow: "Wall dart trap. Snaps to building walls or the sides of carved halls. 3s cooldown.",
     vendor: "Vending machine. Player presses E to buy weapons, ammo, and powerups with coins.",
     npc: "Place a talking NPC. Set their name, opening line, and up to 3 player replies (each with a nested follow-up).",

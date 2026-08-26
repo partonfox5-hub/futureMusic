@@ -1,7 +1,7 @@
 /** Weapon models, lasers/plasma, burn marks, pickups. */
 import * as THREE from "three";
-import { PICKUP_BY_ID, WEAPON_BY_ID, WEAPONS } from "./config.js?v=zm4";
-import { hurtBreakables, hurtTurrets, impulseBoulders, smashGlass } from "./world.js?v=zm4";
+import { PICKUP_BY_ID, WEAPON_BY_ID, WEAPONS } from "./config.js?v=zm5";
+import { hurtBreakables, hurtTurrets, impulseBoulders, smashGlass } from "./world.js?v=zm5";
 
 function mat(hex, extra) {
   return new THREE.MeshLambertMaterial({ color: hex, ...extra });
@@ -30,21 +30,28 @@ export function makeWeapon(id) {
       emitter.rotation.x = Math.PI / 2;
       emitter.position.z = -0.04;
       g.add(emitter);
+      const glow = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.042, 0.028, 0.98, 8),
+        new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.32, blending: THREE.AdditiveBlending, depthWrite: false }),
+      );
+      glow.rotation.x = Math.PI / 2;
+      glow.position.z = -0.54;
+      g.add(glow);
       const blade = new THREE.Mesh(
         new THREE.CylinderGeometry(0.018, 0.012, 0.95, 8),
-        mat(col, { emissive: col, transparent: true, opacity: 0.95 }),
+        mat(col, { emissive: col, emissiveIntensity: 2.4, transparent: true, opacity: 0.95 }),
       );
       blade.rotation.x = Math.PI / 2;
       blade.position.z = -0.54;
       g.add(blade);
       const core = new THREE.Mesh(
         new THREE.CylinderGeometry(0.008, 0.006, 0.92, 6),
-        mat(0xffffff, { emissive: 0xffffff }),
+        mat(0xffffff, { emissive: 0xffffff, emissiveIntensity: 2.2 }),
       );
       core.rotation.x = Math.PI / 2;
       core.position.z = -0.54;
       g.add(core);
-      g.add(new THREE.PointLight(col, 0.7, 3.2));
+      g.add(new THREE.PointLight(col, 1.6, 5.4));
     } else if (id === "whip") {
       const h = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.035, 0.22, 6), dark);
       h.rotation.x = Math.PI / 2;
@@ -143,21 +150,28 @@ export function makeDualSaber() {
   emitterB.position.z = 0.12;
   g.add(emitterA, emitterB);
   function blade(col, sign) {
+    const glow = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.04, 0.024, 0.96, 8),
+      new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.34, blending: THREE.AdditiveBlending, depthWrite: false }),
+    );
+    glow.rotation.x = Math.PI / 2;
+    glow.position.z = sign * 0.58;
+    g.add(glow);
     const b = new THREE.Mesh(
       new THREE.CylinderGeometry(0.016, 0.01, 0.92, 8),
-      mat(col, { emissive: col, transparent: true, opacity: 0.92 }),
+      mat(col, { emissive: col, emissiveIntensity: 2.6, transparent: true, opacity: 0.92 }),
     );
     b.rotation.x = Math.PI / 2;
     b.position.z = sign * 0.58;
     g.add(b);
     const core = new THREE.Mesh(
       new THREE.CylinderGeometry(0.007, 0.005, 0.9, 6),
-      mat(0xffffff, { emissive: 0xffffff }),
+      mat(0xffffff, { emissive: 0xffffff, emissiveIntensity: 2.4 }),
     );
     core.rotation.x = Math.PI / 2;
     core.position.z = sign * 0.58;
     g.add(core);
-    g.add(new THREE.PointLight(col, 0.45, 2.6));
+    g.add(new THREE.PointLight(col, 1.35, 4.8));
   }
   blade(0x33dd55, -1);
   blade(0xff3333, 1);
@@ -425,6 +439,31 @@ export function addBurnDecal(scene, list, pos, color) {
   }
 }
 
+export function addSaberTrail(scene, list, from, to, color) {
+  if (!from || !to) return;
+  const dir = to.clone().sub(from);
+  const len = dir.length();
+  if (len < 0.04) return;
+  const m = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.045, 0.012, len, 6),
+    new THREE.MeshBasicMaterial({
+      color: color || 0x66ffaa,
+      transparent: true,
+      opacity: 0.55,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    }),
+  );
+  m.position.copy(from).add(to).multiplyScalar(0.5);
+  m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.normalize());
+  scene.add(m);
+  list.push({ mesh: m, life: 0.22, fade: 0.22 });
+  if (list.length > 140) {
+    const old = list.shift();
+    old.mesh.removeFromParent();
+  }
+}
+
 export function addSaberMark(scene, list, pos, dir, color) {
   const m = new THREE.Mesh(
     new THREE.PlaneGeometry(0.06, 0.38),
@@ -447,6 +486,9 @@ export function tickBurns(list, dt) {
     if (list[i].life <= 0) {
       list[i].mesh.removeFromParent();
       list.splice(i, 1);
-    } else if (list[i].mesh.material) list[i].mesh.material.opacity = Math.min(0.85, list[i].life / 8);
+    } else if (list[i].mesh.material) {
+      const fade = list[i].fade || 8;
+      list[i].mesh.material.opacity = Math.min(0.85, list[i].life / fade);
+    }
   }
 }

@@ -111,7 +111,49 @@ const FN = {
   land() {
     noise(0.08, 0.06, 220);
   },
+  melee() {
+    noise(0.11, 0.12, 280);
+    beep("sawtooth", 110, 0.12, 0.09, 50);
+  },
+  dart() {
+    beep("square", 880, 0.06, 0.05, 420);
+    noise(0.07, 0.07, 1600);
+  },
+  crush() {
+    noise(0.28, 0.16, 120);
+    beep("sine", 55, 0.32, 0.14, 32);
+  },
+  flame() {
+    noise(0.14, 0.1, 420);
+    beep("sawtooth", 180, 0.1, 0.04, 90);
+  },
+  beam() {
+    beep("sawtooth", 640, 0.14, 0.07, 180);
+    noise(0.1, 0.08, 1100);
+  },
+  roar() {
+    noise(0.22, 0.14, 160);
+    beep("sawtooth", 90, 0.24, 0.1, 40);
+  },
+  oof() {
+    playOof();
+    beep("sine", 180, 0.16, 0.08, 70);
+  },
 };
+
+const OOF_FILES = [
+  "/games/zoom/sfx/oof1.mp3",
+  "/games/zoom/sfx/oof2.mp3",
+];
+let oofI = 0;
+
+function playOof() {
+  try {
+    const a = new Audio(OOF_FILES[oofI++ % OOF_FILES.length]);
+    a.volume = 0.78;
+    a.play().catch(() => {});
+  } catch {}
+}
 
 export function sfx(name) {
   try {

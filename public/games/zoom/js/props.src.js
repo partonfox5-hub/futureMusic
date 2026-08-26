@@ -1,9 +1,10 @@
 /** Props, 4-direction enemy sprites, spawners. */
 import * as THREE from "three";
-import { ENEMIES, ENEMY_BY_ID } from "./config.js?v=zm4";
-import { sdf3, floorY } from "./map.js?v=zm4";
-import { makeRobot } from "./robots.js?v=zm4";
-import { hurtFoe } from "./weapons.js?v=zm4";
+import { ENEMIES, ENEMY_BY_ID } from "./config.js?v=zm5";
+import { sdf3, floorY } from "./map.js?v=zm5";
+import { makeRobot } from "./robots.js?v=zm5";
+import { hurtFoe } from "./weapons.js?v=zm5";
+import { sfx } from "./sfx.js?v=zm5";
 
 const TEX = {};
 const loader = new THREE.TextureLoader();
@@ -328,7 +329,7 @@ export function tickFoes(foes, dt, player, map, sdf2, onHit) {
         f.position.z = home.z + ((f.position.z - home.z) / hd) * home.r;
       }
     }
-    const fy = floorY(f.position.x, f.position.z, map, sdf2);
+    const fy = floorY(f.position.x, f.position.z, map, sdf2, undefined, f.position.y);
     if (fy > -500) f.position.y = fy;
     else {
       f.position.y -= 16 * dt;
@@ -348,6 +349,7 @@ export function tickFoes(foes, dt, player, map, sdf2, onHit) {
     u.cool = Math.max(0, (u.cool || 0) - dt);
     if (dist < 1.55 + u.hitR * 0.15 && u.cool <= 0) {
       u.cool = 0.9;
+      sfx("melee");
       onHit(u.def.dmg, u.kind);
     }
   }

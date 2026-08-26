@@ -1,8 +1,9 @@
 /** Procedural colored robots with movement + attack styles. */
 import * as THREE from "three";
-import { ENEMIES, ENEMY_BY_ID } from "./config.js?v=zm4";
-import { hurtFoe } from "./weapons.js?v=zm4";
-import { floorY, sdf3 } from "./map.js?v=zm4";
+import { ENEMIES, ENEMY_BY_ID } from "./config.js?v=zm5";
+import { hurtFoe } from "./weapons.js?v=zm5";
+import { floorY, sdf3 } from "./map.js?v=zm5";
+import { sfx } from "./sfx.js?v=zm5";
 
 function mat(hex, extra) {
   return new THREE.MeshLambertMaterial({ color: hex, emissive: hex, emissiveIntensity: 0.18, ...extra });
@@ -190,7 +191,7 @@ export function tickRobots(foes, dt, player, map, sdf2, onHit, scene, shots, fir
       f.position.x += (u.vx || 0) * dt;
       f.position.y += u.vy * dt;
       f.position.z += (u.vz || 0) * dt;
-      const fy = floorY(f.position.x, f.position.z, map, sdf2);
+      const fy = floorY(f.position.x, f.position.z, map, sdf2, undefined, f.position.y);
       if (fy > -500 && f.position.y <= fy + 0.2) {
         f.position.y = fy + 0.2;
         if (u.vy < -3 && u.slam) hurtFoe(f, u.slam, null);
@@ -247,6 +248,7 @@ export function tickRobots(foes, dt, player, map, sdf2, onHit, scene, shots, fir
         mz = (dz / dist) * spd * 0.7;
         f.position.y += Math.sin(u.phase * 3) * 0.01;
       } else if (mv === "charge") {
+        if (dist < 15 && !u.aggro) { u.aggro = true; sfx("roar"); }
         if (dist < 15) u.aggro = true;
         const run = u.aggro ? spd * 4.1 : spd * 0.55;
         mx = (dx / dist) * run;
@@ -270,7 +272,7 @@ export function tickRobots(foes, dt, player, map, sdf2, onHit, scene, shots, fir
       if (sdf3(f.position.x, f.position.y, nz, map, sdf2) < -0.15) f.position.z = nz;
     }
     if (u.def.move !== "hover" && u.def.move !== "weave" && !u.fly) {
-      const fy = floorY(f.position.x, f.position.z, map, sdf2);
+      const fy = floorY(f.position.x, f.position.z, map, sdf2, undefined, f.position.y);
       if (fy > -500) f.position.y = fy;
     }
     f.lookAt(px, f.position.y, pz);
@@ -278,9 +280,11 @@ export function tickRobots(foes, dt, player, map, sdf2, onHit, scene, shots, fir
     const atk = u.def.attack;
     if (atk === "melee" && dist < 1.5 && u.cool <= 0) {
       u.cool = 0.85;
+      sfx("melee");
       onHit(u.def.dmg, "a " + u.def.name);
     } else if (atk !== "melee" && dist < 16 && u.cool <= 0 && fireWeapon) {
       u.cool = atk === "beam" ? 1.4 : atk === "burst" ? 0.9 : atk === "flame" ? 0.12 : 0.7;
+      sfx(atk === "beam" ? "beam" : atk === "flame" ? "flame" : "gun");
       const origin = f.position.clone();
       origin.y += 0.8;
       const dir = new THREE.Vector3(dx, py - origin.y, dz).normalize();

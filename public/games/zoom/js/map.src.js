@@ -17,7 +17,7 @@ import {
   SHAPE_SPHERE,
   STORIES,
   WALL_CRACK,
-} from "./config.js?v=zm4";
+} from "./config.js?v=zm5";
 
 export { CELL };
 
@@ -605,9 +605,10 @@ export function sdf3(x, y, z, map, sdf2) {
   const y0 = elev * EYE;
   const spike = map.flags && map.flags[ci] & FLAG_SPIKE;
   const crouch = map.flags && map.flags[ci] & FLAG_CROUCH;
+  const hover = map.flags && map.flags[ci] & FLAG_HOVER;
   const sky = map.sky && map.sky[ci];
   const lava = map.liquid && map.liquid[ci] === LIQ_LAVA;
-  const floor = y0 - (spike ? 1.45 : 0);
+  const floor = hover ? 0.05 : y0 - (spike ? 1.45 : 0);
   for (let i = 0; i < spheres.length; i++) {
     const s = spheres[i];
     const cy = (s.cy != null ? s.cy : s.r * 0.55) + y0;
@@ -625,6 +626,20 @@ export function sdf3(x, y, z, map, sdf2) {
     if (map.flags && map.flags[ci] & FLAG_COLLAPSE) {
       /* floor hole — open downward */
     } else if (ly >= -0.05 && ly < 2.15) return 0.4;
+  }
+  if (hover && (isCarved(cell) || d2 < CELL * 0.7)) {
+    if (map.collapsed && map.collapsed[ci] && map.flags && map.flags[ci] & FLAG_COLLAPSE) {
+      const dH = Math.max(d2, y - 80);
+      if (dH < dmin) dmin = dH;
+      return dmin;
+    }
+    const slabY = y0;
+    const slabT = 0.2;
+    let dH = Math.max(d2, 0.05 - y);
+    const sdY = Math.abs(y - (slabY + slabT * 0.5)) - slabT * 0.5;
+    if (d2 < 0 && sdY < 0) dH = -sdY;
+    if (dH < dmin) dmin = dH;
+    return dmin;
   }
   if (isCarved(cell) || d2 < CELL * 0.7) {
     const shape = getShape(cell);
@@ -663,10 +678,17 @@ export function isEmptyAt(x, y, z, map, sdf2) {
   return sdf3(x, y, z, map, sdf2) < 0;
 }
 
-export function floorY(x, z, map, sdf2, ymax) {
+export function floorY(x, z, map, sdf2, ymax, atY) {
   const ci = cellI(map, x, z);
   if (ci >= 0 && map.collapsed && map.collapsed[ci] && map.flags && map.flags[ci] & FLAG_COLLAPSE) return -999;
   const elev = (map.elev && map.elev[ci]) || 0;
+  const hover = map.flags && map.flags[ci] & FLAG_HOVER;
+  if (hover) {
+    const slabTop = elev * EYE + 0.2;
+    const hint = atY != null ? atY : (ymax != null ? ymax - 2 : 0);
+    if (hint > slabTop - 0.45) return slabTop;
+    return 0.05;
+  }
   const y0 = elev * EYE - (map.flags && map.flags[ci] & FLAG_SPIKE ? 1.45 : 0);
   const sky = map.sky && map.sky[ci];
   const lava = map.liquid && map.liquid[ci] === LIQ_LAVA;

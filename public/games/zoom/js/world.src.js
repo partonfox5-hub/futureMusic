@@ -13,9 +13,9 @@ import {
   STORY_H,
   STORIES,
   WALL_TEX,
-} from "./config.js?v=zm4";
-import { cellI, climbHoleFloor, climbHoleRoof, enclosedFloors, idx, inBounds, sdf3, wallIsCrack, wallTexId } from "./map.js?v=zm4";
-import { sfx } from "./sfx.js?v=zm4";
+} from "./config.js?v=zm5";
+import { cellI, climbHoleFloor, climbHoleRoof, enclosedFloors, idx, inBounds, sdf3, wallIsCrack, wallTexId } from "./map.js?v=zm5";
+import { sfx } from "./sfx.js?v=zm5";
 
 function mat(hex, extra) {
   return new THREE.MeshLambertMaterial({ color: hex, ...extra });
@@ -108,6 +108,22 @@ const WMAT = {};
 function wmat(id, cracked) {
   const key = id + (cracked ? ":c" : "");
   return (WMAT[key] ||= wallMat(id, cracked));
+}
+
+export function makeSkyDome(kind) {
+  const tex = makeSky(kind);
+  tex.mapping = THREE.UVMapping;
+  const mat = new THREE.MeshBasicMaterial({
+    map: tex,
+    side: THREE.BackSide,
+    fog: false,
+    depthWrite: false,
+  });
+  const mesh = new THREE.Mesh(new THREE.SphereGeometry(220, 32, 20), mat);
+  mesh.frustumCulled = false;
+  mesh.renderOrder = -1000;
+  mesh.name = "sky-dome";
+  return mesh;
 }
 
 export function makeSky(kind) {
@@ -450,19 +466,30 @@ export function buildWorld(map, dungeon, scene) {
   group.name = "world";
   const extras = { crushers: [], turrets: [], arrows: [], darts: [], hovers: [], ropes: [], portals: [], doors: [], windows: [], liquids: [], spikes: [], climbs: [], caveins: [], unstables: [], horizon: null, boulders: [], vendors: [], crackedWalls: [], rumbles: [], ripples: [], root: group, liqT: 0 };
 
-  const spikeGeo = new THREE.ConeGeometry(0.12, 0.7, 5);
-  const spikeMat = mat(0x8a9098, { emissive: 0x222 });
+  const spikeGeo = new THREE.ConeGeometry(0.16, 0.92, 5);
+  const spikeMat = mat(0xb8c0c8, { emissive: 0x4a2010, emissiveIntensity: 0.35 });
+  const pitMat = mat(0x1a1210, { emissive: 0x080604, emissiveIntensity: 0.2 });
   if (map.flags) {
     for (let z = 0; z < map.h; z++) {
       for (let x = 0; x < map.w; x++) {
         if (!(map.flags[idx(map, x, z)] & FLAG_SPIKE)) continue;
         const y0 = ((map.elev && map.elev[idx(map, x, z)]) || 0) * EYE - 1.45;
-        for (let k = 0; k < 5; k++) {
+        const cx = (x + 0.5) * CELL;
+        const cz = (z + 0.5) * CELL;
+        const well = new THREE.Mesh(new THREE.BoxGeometry(CELL * 0.92, 1.45, CELL * 0.92), pitMat);
+        well.position.set(cx, y0 + 0.72, cz);
+        group.add(well);
+        const floor = new THREE.Mesh(new THREE.BoxGeometry(CELL * 0.9, 0.06, CELL * 0.9), mat(0x2a2420));
+        floor.position.set(cx, y0 + 0.03, cz);
+        group.add(floor);
+        for (let k = 0; k < 9; k++) {
           const s = new THREE.Mesh(spikeGeo, spikeMat);
-          s.position.set((x + 0.2 + (k % 3) * 0.3) * CELL, y0 + 0.35, (z + 0.2 + Math.floor(k / 3) * 0.35) * CELL);
+          const ox = ((k % 3) - 1) * CELL * 0.28;
+          const oz = (Math.floor(k / 3) - 1) * CELL * 0.28;
+          s.position.set(cx + ox, y0 + 0.48, cz + oz);
           group.add(s);
         }
-        extras.spikes.push({ x: (x + 0.5) * CELL, z: (z + 0.5) * CELL, y: y0 });
+        extras.spikes.push({ x: cx, z: cz, y: y0 });
       }
     }
   }
@@ -597,8 +624,9 @@ export function buildWorld(map, dungeon, scene) {
         const coll = map.flags[i] & FLAG_COLLAPSE;
         if (!hover && !coll) continue;
         const y0 = ((map.elev && map.elev[i]) || 0) * EYE;
-        const m = new THREE.Mesh(new THREE.BoxGeometry(CELL * 0.96, hover ? 0.14 : 0.08, CELL * 0.96), hover ? slab.clone() : crackF.clone());
-        m.position.set((x + 0.5) * CELL, y0 + (hover ? 0.07 : 0.04), (z + 0.5) * CELL);
+        const thick = hover ? 0.2 : 0.08;
+        const m = new THREE.Mesh(new THREE.BoxGeometry(CELL * 0.92, thick, CELL * 0.92), hover ? slab.clone() : crackF.clone());
+        m.position.set((x + 0.5) * CELL, y0 + thick * 0.5, (z + 0.5) * CELL);
         group.add(m);
         extras.hovers.push({ i, mesh: m, x: (x + 0.5) * CELL, z: (z + 0.5) * CELL, y: y0, hover: !!hover, collapse: !!coll });
       }
@@ -609,12 +637,13 @@ export function buildWorld(map, dungeon, scene) {
     const y0 = ((map.elev && map.elev[cellI(map, c.x, c.z)]) || 0) * EYE;
     const top = y0 + (map.hallH || 4.2);
     const mesh = makeColumn();
+    mesh.scale.set(2, 2, 2);
     mesh.position.set(c.x, y0, c.z);
     group.add(mesh);
-    const socket = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.18, 0.95), mat(0x8a8074));
-    socket.position.set(c.x, top - 0.08, c.z);
+    const socket = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.22, 1.9), mat(0x8a8074));
+    socket.position.set(c.x, top - 0.1, c.z);
     group.add(socket);
-    extras.crushers.push({ x: c.x, z: c.z, y0, top, mesh, t: Math.random() * 3.2, h: 3.22 });
+    extras.crushers.push({ x: c.x, z: c.z, y0, top, mesh, t: Math.random() * 3.2, h: 6.44, r: 1.05 });
   }
 
   for (const cl of map.climbs || []) {
@@ -1002,11 +1031,16 @@ export function tickWorld(extras, dt, player, foes, onHit, scene, camera, map, s
     c.mesh.position.y = c.y0 + u * travel;
     const capY = c.mesh.position.y + c.h;
     const dist = Math.hypot(player.x - c.x, player.z - c.z);
-    if (dist < 0.52 && player.y < capY && player.y > c.mesh.position.y + 0.15 && goingDown) {
+    const rad = c.r || 1.05;
+    if (dist < rad && player.y < capY && player.y > c.mesh.position.y + 0.15 && goingDown) {
+      try { sfx("crush"); } catch {}
       onHit(40, "crushed by a column");
-    } else if (dist < 0.5 && player.y >= capY - 0.2 && player.y < capY + 1.65) {
+    } else if (dist < rad && player.y >= capY - 0.2 && player.y < capY + 1.65) {
       player.y = Math.max(player.y, capY + 1.55);
-      if (capY + 1.65 > c.top - 0.1) onHit(50, "crushed by a column");
+      if (capY + 1.65 > c.top - 0.1) {
+        try { sfx("crush"); } catch {}
+        onHit(50, "crushed by a column");
+      }
     }
   }
   const muz = new THREE.Vector3();
@@ -1046,9 +1080,11 @@ export function tickWorld(extras, dt, player, foes, onHit, scene, camera, map, s
       const pz = muz.z + hz * Math.max(0, Math.min(7.2, along));
       const off = Math.hypot(player.x - px, player.z - pz);
       if (along > 0.2 && along < 7.2 && off < 0.55 && Math.abs(player.y - muz.y) < 1.4) {
+        if ((t._sfxT || 0) <= 0) { try { sfx("flame"); } catch {} t._sfxT = 0.18; }
         onHit(22 * dt, "burned");
       }
     }
+    if (t._sfxT > 0) t._sfxT -= dt;
   }
   extras._flames = extras._flames || [];
   for (let i = extras._flames.length - 1; i >= 0; i--) {
@@ -1449,20 +1485,34 @@ function dropFloorCell(map, extras, scene, i, player, onHit) {
   const y0 = ((map.elev && map.elev[i]) || 0) * EYE;
   const slab = (extras.hovers || []).find((h) => h.i === i);
   if (slab && slab.mesh) slab.mesh.visible = false;
+  const cx = (x + 0.5) * CELL;
+  const cz = (z + 0.5) * CELL;
+  const pit = new THREE.Mesh(
+    new THREE.BoxGeometry(CELL * 0.98, 48, CELL * 0.98),
+    new THREE.MeshBasicMaterial({ color: 0x030204 }),
+  );
+  pit.position.set(cx, y0 - 24, cz);
+  (extras.root || scene).add(pit);
+  extras.pits = extras.pits || [];
+  extras.pits.push(pit);
   const dust = mat(0x6a5a48);
   for (let k = 0; k < 5; k++) {
     const m = new THREE.Mesh(new THREE.BoxGeometry(0.18 + Math.random() * 0.28, 0.08 + Math.random() * 0.12, 0.16 + Math.random() * 0.22), dust);
     m.position.set((x + 0.2 + Math.random() * 0.6) * CELL, y0 + 0.2, (z + 0.2 + Math.random() * 0.6) * CELL);
     m.userData.vy = -1.5;
-    m.userData.floor = y0 - 2;
+    m.userData.floor = y0 - 40;
     m.userData.falling = true;
     (extras.root || scene).add(m);
     extras.caveins = extras.caveins || [];
     extras.caveins.push(m);
   }
+  try { sfx("crush"); } catch {}
   if (player && onHit) {
-    const d = Math.hypot(player.x - (x + 0.5) * CELL, player.z - (z + 0.5) * CELL);
-    if (d < CELL * 0.55) extras._warn = "The floor gives way";
+    const d = Math.hypot(player.x - cx, player.z - cz);
+    if (d < CELL * 0.62) {
+      extras._warn = "The floor gives way";
+      onHit(200, "fell into a pit");
+    }
   }
 }
 
@@ -1515,6 +1565,7 @@ function tickArrows(extras, dt, player, map, scene, onHit) {
     const moving = Math.hypot(player.vx || 0, player.vz || 0) > 0.4;
     if (inLane && moving && a.cool <= 0) {
       a.cool = 3;
+      try { sfx("dart"); } catch {}
       const dart = new THREE.Mesh(
         new THREE.CylinderGeometry(0.03, 0.015, 0.55, 6),
         mat(0xc8b090, { emissive: 0x442200, emissiveIntensity: 0.4 }),
