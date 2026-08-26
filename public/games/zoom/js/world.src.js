@@ -13,8 +13,9 @@ import {
   STORY_H,
   STORIES,
   WALL_TEX,
-} from "./config.js?v=zm1";
-import { cellI, climbHoleFloor, climbHoleRoof, enclosedFloors, idx, inBounds, sdf3, wallIsCrack, wallTexId } from "./map.js?v=zm1";
+} from "./config.js?v=zm3";
+import { cellI, climbHoleFloor, climbHoleRoof, enclosedFloors, idx, inBounds, sdf3, wallIsCrack, wallTexId } from "./map.js?v=zm3";
+import { sfx } from "./sfx.js?v=zm3";
 
 function mat(hex, extra) {
   return new THREE.MeshLambertMaterial({ color: hex, ...extra });
@@ -1011,9 +1012,7 @@ export function tickWorld(extras, dt, player, foes, onHit, scene, camera, map, s
   const muz = new THREE.Vector3();
   for (const t of extras.turrets) {
     if (t.hp <= 0) {
-      if (t.mesh.visible) t.mesh.visible = false;
-      if (t.light) t.light.intensity = 0;
-      if (t.stream) t.stream.visible = false;
+      if (!t.exploded) explodeTurret(t, extras, extras.root || scene);
       continue;
     }
     t.cool -= dt;
@@ -1183,6 +1182,65 @@ function spawnFlame(scene, x, y, z, dx, dz, extras) {
   }
 }
 
+function explodeTurret(t, extras, scene) {
+  if (!t || t.exploded) return;
+  t.exploded = true;
+  t.hp = 0;
+  if (t.mesh) t.mesh.visible = false;
+  if (t.light) t.light.intensity = 0;
+  if (t.stream) t.stream.visible = false;
+  const host = extras.root || scene;
+  if (!host) return;
+  const x = t.x;
+  const y = t.y || 0.9;
+  const z = t.z;
+  const fire = new THREE.Mesh(
+    new THREE.SphereGeometry(0.55, 16, 12),
+    new THREE.MeshBasicMaterial({ color: 0xffcc66, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false }),
+  );
+  fire.position.set(x, y, z);
+  host.add(fire);
+  extras.ripples = extras.ripples || [];
+  extras.ripples.push({ mesh: fire, life: 0.28, max: 0.28 });
+  extras._flames = extras._flames || [];
+  for (let i = 0; i < 18; i++) {
+    const bit = new THREE.Mesh(
+      new THREE.BoxGeometry(0.08 + Math.random() * 0.14, 0.05 + Math.random() * 0.12, 0.06 + Math.random() * 0.12),
+      mat(Math.random() < 0.4 ? 0xff6622 : 0x6a7078, { emissive: 0x441100 }),
+    );
+    bit.position.set(x, y + Math.random() * 0.3, z);
+    host.add(bit);
+    extras.physQueue = extras.physQueue || [];
+    extras.physQueue.push(bit);
+    bit.userData.phys = {
+      mass: 2,
+      r: 0.12,
+      h: 0.08,
+      vx: (Math.random() - 0.5) * 10,
+      vy: 4 + Math.random() * 7,
+      vz: (Math.random() - 0.5) * 10,
+      held: false,
+      slam: 8,
+    };
+    const spark = new THREE.Mesh(
+      new THREE.SphereGeometry(0.06 + Math.random() * 0.08, 8, 6),
+      new THREE.MeshBasicMaterial({ color: 0xffaa44, transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending, depthWrite: false }),
+    );
+    spark.position.set(x, y, z);
+    host.add(spark);
+    extras._flames.push({
+      mesh: spark,
+      dir: new THREE.Vector3((Math.random() - 0.5) * 2, 0.8 + Math.random() * 1.6, (Math.random() - 0.5) * 2),
+      speed: 5 + Math.random() * 6,
+      life: 0.45 + Math.random() * 0.35,
+      maxLife: 0.7,
+      s0: 0.3,
+    });
+  }
+  extras._warn = extras._warn || "Turret detonated";
+  try { sfx("boom"); } catch {}
+}
+
 export function hurtTurrets(extras, point, dmg, radius = 1.45) {
   let hit = false;
   const r = radius == null ? 1.45 : radius;
@@ -1197,8 +1255,7 @@ export function hurtTurrets(extras, point, dmg, radius = 1.45) {
     hit = true;
     if (t.hp <= 0) {
       t.hp = 0;
-      t.mesh.visible = false;
-      if (t.light) t.light.intensity = 0;
+      explodeTurret(t, extras, extras.root);
     }
   }
   return hit;

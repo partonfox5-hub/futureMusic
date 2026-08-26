@@ -1,6 +1,6 @@
 /** Coin/gem showers, chime, wrist gold counter. */
 import * as THREE from "three";
-import { LOOT } from "./config.js?v=zm1";
+import { LOOT } from "./config.js?v=zm3";
 
 const LS = "zoom.gold";
 const TEX = {};
@@ -88,7 +88,8 @@ function makePsyOrbTex() {
   return t;
 }
 
-export function showerLoot(scene, list, x, y, z, kinds) {
+export function showerLoot(scene, list, x, y, z, kinds, floorYval) {
+  const ground = floorYval != null && floorYval > -500 ? floorYval : y - 1.1;
   for (const id of kinds) {
     let spr;
     let value = 0;
@@ -104,7 +105,7 @@ export function showerLoot(scene, list, x, y, z, kinds) {
       spr = new THREE.Sprite(new THREE.SpriteMaterial({ map: texOf(id), transparent: true, depthWrite: false }));
     }
     spr.scale.set(s, s, 1);
-    spr.position.set(x + (Math.random() - 0.5) * 0.2, y + 0.4 + Math.random() * 0.3, z + (Math.random() - 0.5) * 0.2);
+    spr.position.set(x + (Math.random() - 0.5) * 0.2, y + 0.25 + Math.random() * 0.2, z + (Math.random() - 0.5) * 0.2);
     scene.add(spr);
     const ang = Math.random() * Math.PI * 2;
     const sp = 2.4 + Math.random() * 4.2;
@@ -117,7 +118,8 @@ export function showerLoot(scene, list, x, y, z, kinds) {
       vz: Math.sin(ang) * sp,
       life: 8,
       taken: false,
-      floor: y,
+      floor: ground,
+      rest: Math.max(0.035, s * 0.42),
     });
   }
 }
@@ -135,8 +137,9 @@ export function tickLoot(list, dt, player, onPickup) {
     L.mesh.position.z += L.vz * dt;
     L.vx *= 0.98;
     L.vz *= 0.98;
-    if (L.mesh.position.y < L.floor + 0.18) {
-      L.mesh.position.y = L.floor + 0.18;
+    const rest = L.rest != null ? L.rest : 0.045;
+    if (L.mesh.position.y < L.floor + rest) {
+      L.mesh.position.y = L.floor + rest;
       L.vy *= -0.35;
       L.vx *= 0.7;
       L.vz *= 0.7;
@@ -172,13 +175,13 @@ export function tickLoot(list, dt, player, onPickup) {
 
 export function makeWristGold() {
   const c = document.createElement("canvas");
-  c.width = 256;
-  c.height = 64;
+  c.width = 512;
+  c.height = 96;
   const g = c.getContext("2d");
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
   const spr = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false }));
-  spr.scale.set(0.28, 0.07, 1);
+  spr.scale.set(0.42, 0.08, 1);
   spr.position.set(-0.22, -0.26, -0.42);
   spr.renderOrder = 20;
   spr.userData.goldCanvas = c;
@@ -187,22 +190,26 @@ export function makeWristGold() {
   return spr;
 }
 
-export function paintWristGold(spr, coins) {
+export function paintWristGold(spr, coins, psy) {
   if (!spr) return;
   const g = spr.userData.goldCtx;
   const c = spr.userData.goldCanvas;
-  g.clearRect(0, 0, 256, 64);
-  g.fillStyle = "rgba(18,12,6,0.72)";
-  g.beginPath();
-  if (g.roundRect) g.roundRect(4, 8, 248, 48, 10);
-  else g.rect(4, 8, 248, 48);
-  g.fill();
+  g.clearRect(0, 0, 512, 96);
+  g.fillStyle = "rgba(12, 10, 18, 0.82)";
+  if (g.roundRect) {
+    g.beginPath();
+    g.roundRect(6, 10, 500, 76, 12);
+    g.fill();
+  } else g.fillRect(6, 10, 500, 76);
   g.strokeStyle = "#d4b070";
-  g.lineWidth = 3;
-  g.strokeRect(6, 10, 244, 44);
+  g.lineWidth = 4;
+  g.strokeRect(8, 12, 496, 72);
   g.fillStyle = "#ffe08a";
-  g.font = "bold 28px Cinzel, Georgia, serif";
-  g.textAlign = "center";
-  g.fillText("◎ " + (coins | 0), 128, 42);
+  g.font = "bold 40px Cinzel, Georgia, serif";
+  g.textAlign = "left";
+  g.fillText("◎ " + (coins | 0), 28, 64);
+  g.fillStyle = "#9ad8ff";
+  g.textAlign = "right";
+  g.fillText("Ψ " + (psy | 0), 484, 64);
   spr.userData.goldTex.needsUpdate = true;
 }

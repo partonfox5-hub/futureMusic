@@ -1,8 +1,8 @@
 /** Procedural colored robots with movement + attack styles. */
 import * as THREE from "three";
-import { ENEMIES, ENEMY_BY_ID } from "./config.js?v=zm1";
-import { hurtFoe } from "./weapons.js?v=zm1";
-import { floorY, sdf3 } from "./map.js?v=zm1";
+import { ENEMIES, ENEMY_BY_ID } from "./config.js?v=zm3";
+import { hurtFoe } from "./weapons.js?v=zm3";
+import { floorY, sdf3 } from "./map.js?v=zm3";
 
 function mat(hex, extra) {
   return new THREE.MeshLambertMaterial({ color: hex, emissive: hex, emissiveIntensity: 0.18, ...extra });
@@ -14,54 +14,59 @@ function makeMinotaur(def) {
   const hide = mat(0x4a2a12);
   const horn = mat(0xd8c8a0, { emissive: 0x332210, emissiveIntensity: 0.1 });
   const bronze = mat(0x8a6a30);
-  const hip = new THREE.Mesh(new THREE.BoxGeometry(0.7 * s, 0.35 * s, 0.42 * s), hide);
+  const hip = new THREE.Mesh(new THREE.SphereGeometry(0.38 * s, 16, 12), hide);
+  hip.scale.set(1.15, 0.55, 0.85);
   hip.position.y = 0.72 * s;
   g.add(hip);
   for (const sx of [-0.22, 0.22]) {
-    const thigh = new THREE.Mesh(new THREE.BoxGeometry(0.22 * s, 0.5 * s, 0.24 * s), hide);
+    const thigh = new THREE.Mesh(new THREE.CapsuleGeometry(0.11 * s, 0.32 * s, 6, 12), hide);
     thigh.position.set(sx * s, 0.42 * s, 0);
     g.add(thigh);
-    const shin = new THREE.Mesh(new THREE.BoxGeometry(0.18 * s, 0.38 * s, 0.2 * s), hide);
-    shin.position.set(sx * s, 0.14 * s, 0.02 * s);
+    const shin = new THREE.Mesh(new THREE.CapsuleGeometry(0.09 * s, 0.22 * s, 6, 12), hide);
+    shin.position.set(sx * s, 0.16 * s, 0.03 * s);
     g.add(shin);
-    const hoof = new THREE.Mesh(new THREE.BoxGeometry(0.2 * s, 0.1 * s, 0.28 * s), mat(0x1a120c));
-    hoof.position.set(sx * s, 0.05 * s, 0.04 * s);
+    const hoof = new THREE.Mesh(new THREE.SphereGeometry(0.12 * s, 12, 10), mat(0x1a120c));
+    hoof.scale.set(1, 0.55, 1.25);
+    hoof.position.set(sx * s, 0.05 * s, 0.05 * s);
     g.add(hoof);
   }
-  const torso = new THREE.Mesh(new THREE.BoxGeometry(0.78 * s, 0.7 * s, 0.42 * s), hide);
+  const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.32 * s, 0.42 * s, 8, 16), hide);
   torso.position.y = 1.18 * s;
   g.add(torso);
-  const pec = new THREE.Mesh(new THREE.BoxGeometry(0.72 * s, 0.28 * s, 0.18 * s), bronze);
-  pec.position.set(0, 1.28 * s, 0.14 * s);
+  const pec = new THREE.Mesh(new THREE.SphereGeometry(0.28 * s, 14, 10), bronze);
+  pec.scale.set(1.35, 0.55, 0.55);
+  pec.position.set(0, 1.28 * s, 0.16 * s);
   g.add(pec);
   for (const sx of [-0.48, 0.48]) {
-    const arm = new THREE.Mesh(new THREE.BoxGeometry(0.18 * s, 0.62 * s, 0.18 * s), hide);
+    const arm = new THREE.Mesh(new THREE.CapsuleGeometry(0.09 * s, 0.42 * s, 6, 12), hide);
     arm.position.set(sx * s, 1.12 * s, 0);
     g.add(arm);
-    const fist = new THREE.Mesh(new THREE.SphereGeometry(0.12 * s, 8, 6), hide);
+    const fist = new THREE.Mesh(new THREE.SphereGeometry(0.12 * s, 12, 10), hide);
     fist.position.set(sx * s, 0.78 * s, 0.06 * s);
     g.add(fist);
   }
-  const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.16 * s, 0.2 * s, 0.16 * s, 8), hide);
+  const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.16 * s, 0.2 * s, 0.16 * s, 16), hide);
   neck.position.y = 1.58 * s;
   g.add(neck);
-  const head = new THREE.Mesh(new THREE.BoxGeometry(0.38 * s, 0.32 * s, 0.4 * s), hide);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.24 * s, 18, 14), hide);
+  head.scale.set(1.05, 0.9, 1.15);
   head.position.y = 1.78 * s;
   g.add(head);
-  const snout = new THREE.Mesh(new THREE.BoxGeometry(0.22 * s, 0.16 * s, 0.28 * s), hide);
+  const snout = new THREE.Mesh(new THREE.SphereGeometry(0.14 * s, 14, 10), hide);
+  snout.scale.set(0.85, 0.7, 1.35);
   snout.position.set(0, 1.7 * s, 0.28 * s);
   g.add(snout);
-  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.06 * s, 0.018 * s, 6, 10), bronze);
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.06 * s, 0.018 * s, 10, 18), bronze);
   ring.position.set(0, 1.64 * s, 0.4 * s);
   g.add(ring);
   for (const sx of [-1, 1]) {
-    const hn = new THREE.Mesh(new THREE.ConeGeometry(0.07 * s, 0.42 * s, 7), horn);
+    const hn = new THREE.Mesh(new THREE.ConeGeometry(0.07 * s, 0.42 * s, 12), horn);
     hn.position.set(sx * 0.22 * s, 2.02 * s, -0.02 * s);
     hn.rotation.z = sx * -0.55;
     hn.rotation.x = -0.25;
     g.add(hn);
   }
-  const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.04 * s, 6, 5), mat(0xff2200, { emissive: 0xff2200, emissiveIntensity: 0.9 }));
+  const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.04 * s, 10, 8), mat(0xff2200, { emissive: 0xff2200, emissiveIntensity: 0.9 }));
   const eyeR = eyeL.clone();
   eyeL.position.set(-0.1 * s, 1.82 * s, 0.18 * s);
   eyeR.position.set(0.1 * s, 1.82 * s, 0.18 * s);
@@ -79,29 +84,30 @@ function makeSentryDrone(def) {
   const hull = mat(def.color);
   const dark = mat(0x1a2228);
   const glow = mat(0x44eeff, { emissive: 0x2288aa, emissiveIntensity: 1.1 });
-  const body = new THREE.Mesh(new THREE.SphereGeometry(0.28 * s, 12, 10), hull);
+  const body = new THREE.Mesh(new THREE.SphereGeometry(0.28 * s, 24, 18), hull);
   body.scale.set(1.15, 0.55, 1.15);
   body.position.y = 0.2 * s;
   g.add(body);
-  const rim = new THREE.Mesh(new THREE.TorusGeometry(0.34 * s, 0.04 * s, 8, 18), dark);
+  const rim = new THREE.Mesh(new THREE.TorusGeometry(0.34 * s, 0.04 * s, 12, 28), dark);
   rim.rotation.x = Math.PI / 2;
   rim.position.y = 0.2 * s;
   g.add(rim);
   for (let i = 0; i < 4; i++) {
     const a = (i / 4) * Math.PI * 2;
-    const arm = new THREE.Mesh(new THREE.BoxGeometry(0.42 * s, 0.05 * s, 0.08 * s), dark);
+    const arm = new THREE.Mesh(new THREE.CapsuleGeometry(0.04 * s, 0.28 * s, 4, 10), dark);
+    arm.rotation.z = Math.PI / 2;
     arm.position.set(Math.cos(a) * 0.28 * s, 0.22 * s, Math.sin(a) * 0.28 * s);
     arm.rotation.y = -a;
     g.add(arm);
-    const rotor = new THREE.Mesh(new THREE.CylinderGeometry(0.16 * s, 0.16 * s, 0.03, 10), glow);
+    const rotor = new THREE.Mesh(new THREE.CylinderGeometry(0.16 * s, 0.16 * s, 0.03, 18), glow);
     rotor.position.set(Math.cos(a) * 0.48 * s, 0.28 * s, Math.sin(a) * 0.48 * s);
     g.add(rotor);
   }
-  const eye = new THREE.Mesh(new THREE.CylinderGeometry(0.07 * s, 0.09 * s, 0.16 * s, 10), glow);
+  const eye = new THREE.Mesh(new THREE.CylinderGeometry(0.07 * s, 0.09 * s, 0.16 * s, 16), glow);
   eye.rotation.x = Math.PI / 2;
   eye.position.set(0, 0.18 * s, 0.28 * s);
   g.add(eye);
-  const dish = new THREE.Mesh(new THREE.SphereGeometry(0.12 * s, 8, 6, 0, 6.3, 0, 1.2), dark);
+  const dish = new THREE.Mesh(new THREE.SphereGeometry(0.12 * s, 16, 12, 0, 6.3, 0, 1.2), dark);
   dish.position.set(0, 0.38 * s, 0);
   g.add(dish);
   g.userData = {
@@ -116,24 +122,36 @@ export function makeRobot(def) {
   if (def.model === "drone" || def.id === "sentrydrone") return makeSentryDrone(def);
   const g = new THREE.Group();
   const s = def.size || 1;
-  const body = new THREE.Mesh(new THREE.BoxGeometry(0.55 * s, 0.7 * s, 0.45 * s), mat(def.color));
-  body.position.y = 0.55 * s;
+  const col = mat(def.color);
+  const dark = mat(0x222228);
+  const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.26 * s, 0.38 * s, 8, 16), col);
+  body.position.y = 0.58 * s;
   g.add(body);
-  const head = new THREE.Mesh(new THREE.BoxGeometry(0.38 * s, 0.28 * s, 0.38 * s), mat(def.color));
-  head.position.y = 1.02 * s;
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.2 * s, 18, 14), col);
+  head.position.y = 1.05 * s;
   g.add(head);
-  const eye = new THREE.Mesh(new THREE.BoxGeometry(0.22 * s, 0.06 * s, 0.06 * s), mat(0xffeedd, { emissive: 0xffcc88, emissiveIntensity: 0.8 }));
-  eye.position.set(0, 1.04 * s, 0.2 * s);
-  g.add(eye);
+  const visor = new THREE.Mesh(new THREE.SphereGeometry(0.12 * s, 16, 10), mat(0xffeedd, { emissive: 0xffcc88, emissiveIntensity: 0.9 }));
+  visor.scale.set(1.15, 0.45, 0.55);
+  visor.position.set(0, 1.06 * s, 0.14 * s);
+  g.add(visor);
   if (def.move === "hover") {
-    const disc = new THREE.Mesh(new THREE.CylinderGeometry(0.35 * s, 0.4 * s, 0.06, 10), mat(0x333));
-    disc.position.y = 0.12 * s;
+    const disc = new THREE.Mesh(new THREE.CylinderGeometry(0.32 * s, 0.4 * s, 0.07, 20), dark);
+    disc.position.y = 0.1 * s;
     g.add(disc);
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.3 * s, 0.03 * s, 10, 24), mat(def.color, { emissiveIntensity: 0.4 }));
+    ring.rotation.x = Math.PI / 2;
+    ring.position.y = 0.12 * s;
+    g.add(ring);
   } else {
-    for (const sx of [-0.18, 0.18]) {
-      const leg = new THREE.Mesh(new THREE.BoxGeometry(0.1 * s, 0.4 * s, 0.1 * s), mat(0x222));
-      leg.position.set(sx * s, 0.2 * s, 0);
+    for (const sx of [-0.16, 0.16]) {
+      const leg = new THREE.Mesh(new THREE.CapsuleGeometry(0.07 * s, 0.28 * s, 6, 12), dark);
+      leg.position.set(sx * s, 0.22 * s, 0);
       g.add(leg);
+    }
+    for (const sx of [-0.32, 0.32]) {
+      const arm = new THREE.Mesh(new THREE.CapsuleGeometry(0.055 * s, 0.28 * s, 6, 12), col);
+      arm.position.set(sx * s, 0.62 * s, 0);
+      g.add(arm);
     }
   }
   g.userData = {

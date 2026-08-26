@@ -1,4 +1,4 @@
-/** WebXR hands: grip pickup, trigger fire/jetpack, A jump, Y/menu pack, stick-click skate. */
+/** WebXR hands: grip pickup, trigger fire, A jump, Y crouch, menu pack, stick-click sprint. */
 import * as THREE from "three";
 import { XRControllerModelFactory } from "three/addons/webxr/XRControllerModelFactory.js";
 
@@ -208,15 +208,16 @@ export function tickXr(renderer, hands, dt) {
     left,
     right,
     dash,
-    skate: mag > 0.88,
-    jet: !!(left && left.stick),
+    skate: mag > 0.82 || !!(left && left.stick),
+    jet: false,
     lookX: right ? right.axes[0] : 0,
     lookY: right ? right.axes[1] : 0,
     moveX: left ? left.axes[0] : 0,
     moveY: left ? left.axes[1] : 0,
     jump: !!(right && right.aBtn),
     jumpTap: !!(right && right.aBtn && !right.aPrev),
-    menu: !!(left && ((left.menuBtn && !left.menuPrev) || (left.bBtn && !left.bPrev))),
+    crouch: !!(left && left.bBtn),
+    menu: !!(left && left.menuBtn && !left.menuPrev),
     reload: !!(right && right.stick && !right.stickPrev),
     psy: !!(left && left.trigger && !left.triggerPrev),
     psyHeld: !!(left && left.triggerValue > 0.38),

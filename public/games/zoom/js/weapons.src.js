@@ -1,7 +1,7 @@
 /** Weapon models, lasers/plasma, burn marks, pickups. */
 import * as THREE from "three";
-import { PICKUP_BY_ID, WEAPON_BY_ID, WEAPONS } from "./config.js?v=zm1";
-import { hurtTurrets, impulseBoulders, smashGlass } from "./world.js?v=zm1";
+import { PICKUP_BY_ID, WEAPON_BY_ID, WEAPONS } from "./config.js?v=zm3";
+import { hurtTurrets, impulseBoulders, smashGlass } from "./world.js?v=zm3";
 
 function mat(hex, extra) {
   return new THREE.MeshLambertMaterial({ color: hex, ...extra });
@@ -205,6 +205,52 @@ export function makePickup(kind) {
   return g;
 }
 
+function boltMat(hex, opacity) {
+  return new THREE.MeshBasicMaterial({
+    color: hex,
+    transparent: true,
+    opacity: opacity == null ? 1 : opacity,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+  });
+}
+
+function makeBolt(def, origin, dir) {
+  const g = new THREE.Group();
+  const col = def.color || 0x66ccff;
+  if (def.flame) {
+    const core = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.16, 0.85, 8), boltMat(0xffee88, 0.95));
+    core.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
+    const glow = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.28, 0.9, 8), boltMat(0xff5511, 0.7));
+    glow.quaternion.copy(core.quaternion);
+    g.add(core, glow);
+  } else if (def.splash) {
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.11, 0.55, 8), mat(0x4a4e54, { emissive: col }));
+    body.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
+    const nose = new THREE.Mesh(new THREE.ConeGeometry(0.11, 0.22, 8), boltMat(col, 1));
+    nose.quaternion.copy(body.quaternion);
+    nose.position.copy(dir.clone().multiplyScalar(0.32));
+    g.add(body, nose);
+    g.add(new THREE.PointLight(col, 1.4, 4.5));
+  } else if (def.beam) {
+    const len = 1.15;
+    const core = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.055, len, 8), boltMat(0xffffff, 1));
+    const glow = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.14, len * 1.05, 8), boltMat(col, 0.85));
+    core.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
+    glow.quaternion.copy(core.quaternion);
+    g.add(glow, core);
+    g.add(new THREE.PointLight(col, 1.6, 5));
+  } else {
+    const core = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 8), boltMat(0xffffff, 1));
+    const glow = new THREE.Mesh(new THREE.SphereGeometry(0.13, 8, 8), boltMat(col, 0.8));
+    g.add(glow, core);
+    g.add(new THREE.PointLight(col, 1.1, 3.6));
+  }
+  g.position.copy(origin);
+  g.userData.dir = dir.clone();
+  return g;
+}
+
 export function fireWeapon(def, origin, dir, scene, list) {
   const n = def.pellets || 1;
   const shots = [];
@@ -214,23 +260,18 @@ export function fireWeapon(def, origin, dir, scene, list) {
     d.y += (Math.random() - 0.5) * (def.spread || 0);
     d.z += (Math.random() - 0.5) * (def.spread || 0) * 2;
     d.normalize();
-    if (def.flame) {
-      const m = new THREE.Mesh(new THREE.SphereGeometry(0.1, 6, 6), mat(0xff6622, { emissive: 0xff3300 }));
-      m.position.copy(origin);
-      scene.add(m);
-      shots.push({ mesh: m, dir: d, speed: def.speed, life: 0.35, def, origin: origin.clone() });
-    } else if (def.beam) {
-      const len = 18;
-      const geo = new THREE.BufferGeometry().setFromPoints([origin.clone(), origin.clone().addScaledVector(d, len)]);
-      const line = new THREE.Line(geo, new THREE.LineBasicMaterial({ color: def.color, transparent: true, opacity: 0.95 }));
-      scene.add(line);
-      shots.push({ mesh: line, dir: d, speed: 999, life: 0.08, def, hitscan: true, origin: origin.clone(), range: len });
-    } else {
-      const m = new THREE.Mesh(new THREE.SphereGeometry(def.splash ? 0.16 : 0.07, 6, 6), mat(def.color, { emissive: def.color }));
-      m.position.copy(origin);
-      scene.add(m);
-      shots.push({ mesh: m, dir: d, speed: def.speed, life: 1.4, def, origin: origin.clone() });
-    }
+    const m = makeBolt(def, origin, d);
+    scene.add(m);
+    const life = def.flame ? 0.4 : def.splash ? 1.8 : def.beam ? 0.9 : 1.15;
+    shots.push({
+      mesh: m,
+      dir: d,
+      speed: def.flame ? (def.speed || 16) : def.beam ? (def.speed || 48) : (def.speed || 38),
+      life,
+      maxLife: life,
+      def,
+      origin: origin.clone(),
+    });
   }
   for (const s of shots) list.push(s);
   return shots;
@@ -240,11 +281,12 @@ export function tickShots(list, dt, foes, extras, onHit, addBurn, sdf3, map, sdf
   for (let i = list.length - 1; i >= 0; i--) {
     const s = list[i];
     s.life -= dt;
-    if (s.hitscan) {
-      hitScan(s, foes, extras, onHit, addBurn);
-      s.life = 0;
-    } else if (s.mesh.position) {
+    if (s.mesh.position) {
       s.mesh.position.addScaledVector(s.dir, s.speed * dt);
+      if (s.mesh.material) s.mesh.material.opacity = Math.max(0.2, s.life / (s.maxLife || 1));
+      s.mesh.traverse((o) => {
+        if (o.material && o.material.opacity != null) o.material.opacity = Math.max(0.25, s.life / (s.maxLife || 1));
+      });
       if (sdf3 && sdf3(s.mesh.position.x, s.mesh.position.y, s.mesh.position.z, map, sdf2) > -0.05) {
         addBurn(s.mesh.position.clone(), s.def.color);
         s.life = 0;

@@ -1,9 +1,9 @@
 /** Props, 4-direction enemy sprites, spawners. */
 import * as THREE from "three";
-import { ENEMIES, ENEMY_BY_ID } from "./config.js?v=zm1";
-import { sdf3, floorY } from "./map.js?v=zm1";
-import { makeRobot } from "./robots.js?v=zm1";
-import { hurtFoe } from "./weapons.js?v=zm1";
+import { ENEMIES, ENEMY_BY_ID } from "./config.js?v=zm3";
+import { sdf3, floorY } from "./map.js?v=zm3";
+import { makeRobot } from "./robots.js?v=zm3";
+import { hurtFoe } from "./weapons.js?v=zm3";
 
 const TEX = {};
 const loader = new THREE.TextureLoader();
@@ -198,11 +198,21 @@ export function makeEnemy(def) {
     map.wrapS = map.wrapT = THREE.ClampToEdgeWrapping;
     map.needsUpdate = true;
   }
-  const spr = new THREE.Sprite(
-    new THREE.SpriteMaterial({ map, transparent: true, depthWrite: true, color: 0xffffff, alphaTest: 0.12 }),
+  const g = new THREE.Group();
+  const w = def.w || 1.2;
+  const h = def.h || 2;
+  const body = new THREE.Mesh(
+    new THREE.CapsuleGeometry(Math.max(0.16, w * 0.2), Math.max(0.28, h * 0.38), 8, 16),
+    new THREE.MeshLambertMaterial({ color: 0x2a2420, emissive: 0x151210, emissiveIntensity: 0.2 }),
   );
-  spr.scale.set(def.w, def.h, 1);
-  spr.userData = {
+  body.position.y = h * 0.42;
+  const face = new THREE.Mesh(
+    new THREE.PlaneGeometry(w, h, 6, 8),
+    new THREE.MeshBasicMaterial({ map, transparent: true, alphaTest: 0.12, side: THREE.DoubleSide }),
+  );
+  face.position.set(0, h * 0.5, w * 0.14);
+  g.add(body, face);
+  g.userData = {
     foe: true,
     def,
     kind: def.id,
@@ -211,12 +221,16 @@ export function makeEnemy(def) {
     sheet: !!def.sheet,
     flash: 0,
     cool: 0,
-    hitR: Math.max(0.7, def.w * 0.45),
-    baseW: def.w,
-    baseH: def.h,
+    hitR: Math.max(0.7, w * 0.45),
+    baseW: w,
+    baseH: h,
     animT: Math.random() * 4,
+    sprite: face,
+    billboard: true,
+    foot: true,
   };
-  return spr;
+  face.userData = g.userData;
+  return g;
 }
 
 export function spawnFrom(spawner, map, sdf2, existing) {
@@ -230,7 +244,7 @@ export function spawnFrom(spawner, map, sdf2, existing) {
     const y = floorY(x, z, map, sdf2);
     if (y < -500) continue;
     const e = def.robot ? makeRobot(def) : makeEnemy(def);
-    e.position.set(x, y + (def.robot ? 0 : def.h * 0.48), z);
+    e.position.set(x, y, z);
     e.userData.home = { x: spawner.x, z: spawner.z, r };
     e.userData.spawner = spawner;
     existing.push(e);
@@ -253,7 +267,7 @@ export function tickFoes(foes, dt, player, map, sdf2, onHit) {
       u.vx = (u.vx || 0) * 0.99;
       u.vz = (u.vz || 0) * 0.99;
       const fy = floorY(f.position.x, f.position.z, map, sdf2);
-      const stand = fy + (u.baseH || 2) * 0.48;
+      const stand = fy + (u.foot || u.robot ? 0.02 : (u.baseH || 2) * 0.48);
       if (fy > -500 && f.position.y <= stand) {
         f.position.y = stand;
         if (u.vy < -3 && u.slam) hurtFoe(f, u.slam, null);
@@ -273,7 +287,11 @@ export function tickFoes(foes, dt, player, map, sdf2, onHit) {
     }
     if (u.flash > 0) {
       u.flash -= dt;
-      if (f.material?.color) f.material.color.setHex(u.flash > 0 ? 0xff3333 : 0xffffff);
+      const col = u.flash > 0 ? 0xff3333 : 0xffffff;
+      if (f.material?.color) f.material.color.setHex(col);
+      f.traverse?.((o) => {
+        if (o.material?.color) o.material.color.setHex(col);
+      });
     }
     const dx = px - f.position.x;
     const dz = pz - f.position.z;
@@ -311,7 +329,7 @@ export function tickFoes(foes, dt, player, map, sdf2, onHit) {
       }
     }
     const fy = floorY(f.position.x, f.position.z, map, sdf2);
-    if (fy > -500) f.position.y = fy + (u.baseH || 2) * 0.48;
+    if (fy > -500) f.position.y = fy;
     else {
       f.position.y -= 16 * dt;
       if (f.position.y < -12) {
@@ -320,10 +338,12 @@ export function tickFoes(foes, dt, player, map, sdf2, onHit) {
       }
     }
     const moving = Math.hypot(mx, mz) > 0.05;
-    if (u.sheet) stepSheet(f, dt, moving, mx, mz);
-    else if (f.material) {
+    if (u.billboard) f.lookAt(px, f.position.y, pz);
+    const spr = u.sprite || f;
+    if (u.sheet) stepSheet(spr, dt, moving, mx, mz);
+    else if (spr.material && spr.isSprite) {
       u.animT = (u.animT || 0) + dt * (moving ? 6 : 2);
-      f.material.rotation = Math.sin(u.animT) * (moving ? 0.08 : 0.03);
+      spr.material.rotation = Math.sin(u.animT) * (moving ? 0.08 : 0.03);
     }
     u.cool = Math.max(0, (u.cool || 0) - dt);
     if (dist < 1.55 + u.hitR * 0.15 && u.cool <= 0) {

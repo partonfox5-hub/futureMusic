@@ -1,19 +1,19 @@
 import * as THREE from "three";
 import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
-import { BIOMES, CELL, EYE, FLAG_RUMBLE, LIQ_LAVA, LIQ_WATER, PICKUP_BY_ID, SHOP, WEAPON_BY_ID, WEAPONS, routes } from "./config.js?v=zm1";
-import { bakedMaps, storyMaps } from "./defaults.js?v=zm1";
-import { biomeOf, cellI, countCarved, ensureLayers, firstCarved, floorY, sdf3 } from "./map.js?v=zm1";
-import { buildDungeon, prepareSdf } from "./mesh.js?v=zm1";
-import { makeProp, spawnFrom, strikeFoes, tickFoes } from "./props.js?v=zm1";
-import { getMap, listMaps } from "./store.js?v=zm1";
-import { makeProc } from "./proc.js?v=zm1";
-import { buildingFloorY, buildWorld, climbSupport, hurtBreakables, hurtTurrets, impulseBoulders, layoutRope, makeSky, smashGlass, spawnRipple, tickRubble, tickWorld, tryUnlock, wallBlocked } from "./world.js?v=zm1";
-import { addBurnDecal, addSaberMark, fireWeapon, hurtFoe, makeDualSaber, makeKeyModel, makePickup, makeWeapon, setKillHook, tickBurns, tickShots } from "./weapons.js?v=zm1";
-import { tickRobots } from "./robots.js?v=zm1";
-import { attachXr, tickXr } from "./xr.js?v=zm1";
-import { loadStoryPsy, lootForEnemy, makeWristGold, paintWristGold, saveStoryPsy, showerLoot, tickLoot } from "./loot.js?v=zm1";
-import { sfx, sfxUnlock } from "./sfx.js?v=zm1";
-import { makeNpc, nearNpc, tickNpcPose } from "./npcs.js?v=zm1";
+import { BIOMES, CELL, EYE, FLAG_RUMBLE, LIQ_LAVA, LIQ_WATER, PICKUP_BY_ID, SHOP, WEAPON_BY_ID, WEAPONS, routes } from "./config.js?v=zm3";
+import { bakedMaps, storyMaps } from "./defaults.js?v=zm3";
+import { biomeOf, cellI, countCarved, ensureLayers, firstCarved, floorY, sdf3 } from "./map.js?v=zm3";
+import { buildDungeon, prepareSdf } from "./mesh.js?v=zm3";
+import { makeProp, spawnFrom, strikeFoes, tickFoes } from "./props.js?v=zm3";
+import { getMap, listMaps } from "./store.js?v=zm3";
+import { makeProc } from "./proc.js?v=zm3";
+import { buildingFloorY, buildWorld, climbSupport, hurtBreakables, hurtTurrets, impulseBoulders, layoutRope, makeSky, smashGlass, spawnRipple, tickRubble, tickWorld, tryUnlock, wallBlocked } from "./world.js?v=zm3";
+import { addBurnDecal, addSaberMark, fireWeapon, hurtFoe, makeDualSaber, makeKeyModel, makePickup, makeWeapon, setKillHook, tickBurns, tickShots } from "./weapons.js?v=zm3";
+import { tickRobots } from "./robots.js?v=zm3";
+import { attachXr, tickXr } from "./xr.js?v=zm3";
+import { loadStoryPsy, lootForEnemy, makeWristGold, paintWristGold, saveStoryPsy, showerLoot, tickLoot } from "./loot.js?v=zm3";
+import { sfx, sfxUnlock } from "./sfx.js?v=zm3";
+import { makeNpc, nearNpc, tickNpcPose } from "./npcs.js?v=zm3";
 
 const $ = (id) => document.getElementById(id);
 const keys = new Set();
@@ -111,7 +111,7 @@ function hudBars() {
   if ($("goldv")) $("goldv").textContent = String(player.coins | 0);
   if ($("psyv")) $("psyv").textContent = String(player.psy | 0);
   if ($("psyi")) $("psyi").style.width = Math.min(100, ((player.psy || 20) / 1000) * 100) + "%";
-  paintWristGold(wristGold, player.coins);
+  paintWristGold(wristGold, player.coins, player.psy);
 }
 
 function drawMinimap() {
@@ -214,7 +214,12 @@ function initThree() {
   setKillHook((f) => {
     const kinds = lootForEnemy(f.userData.def);
     const root = stage || scene;
-    showerLoot(root, lootBits, f.position.x, f.position.y, f.position.z, kinds);
+    let fy = f.position.y - (f.userData.baseH || 1.6) * 0.5;
+    if (map && sdf2) {
+      const g = floorY(f.position.x, f.position.z, map, sdf2);
+      if (g > -500) fy = g;
+    }
+    showerLoot(root, lootBits, f.position.x, f.position.y, f.position.z, kinds, fy);
   });
   $("c").addEventListener("click", () => {
     sfxUnlock();
@@ -252,11 +257,12 @@ function onXrSession(on) {
         }
       }
     }
-    if (wristGold && hands[0]) {
+    const leftGrip = (hands || []).find((h) => h.handed === "left") || (hands && hands[0]);
+    if (wristGold && leftGrip) {
       wristGold.removeFromParent();
-      wristGold.position.set(0, -0.06, 0.08);
-      wristGold.scale.set(0.18, 0.045, 1);
-      hands[0].grip.add(wristGold);
+      wristGold.position.set(0.02, -0.05, 0.1);
+      wristGold.scale.set(0.38, 0.075, 1);
+      leftGrip.grip.add(wristGold);
     }
     applyXrStage();
     if (!running) {
@@ -501,6 +507,28 @@ async function enterMap(id) {
   window.__ZOOM__ = { map, player, dungeon, scene, camera, sdf2, foes, renderer };
 }
 
+function gunMuzzle() {
+  const origin = new THREE.Vector3();
+  const dir = new THREE.Vector3(0, 0, -1);
+  const right = (hands || []).find((h) => h.handed === "right") || (hands && hands[1]);
+  if (xrPresenting && right && right.con) {
+    origin.copy(right.pos);
+    dir.copy(tmp.set(0, 0, -1).applyQuaternion(right.quat));
+    origin.addScaledVector(dir, 0.12);
+  } else {
+    camera.getWorldPosition(origin);
+    dir.applyQuaternion(camera.quaternion);
+    origin.addScaledVector(dir, 0.45);
+    origin.y -= 0.08;
+  }
+  if (stage && xrPresenting) {
+    const tip = origin.clone().add(dir);
+    origin.copy(stage.worldToLocal(origin.clone()));
+    dir.copy(stage.worldToLocal(tip).sub(origin)).normalize();
+  }
+  return { origin, dir };
+}
+
 function primary() {
   const def = held && WEAPON_BY_ID[held];
   if (!def) {
@@ -531,9 +559,8 @@ function primary() {
   }
   mag--;
   fireCd = 1 / (def.rpm || 2);
-  const origin = camera.getWorldPosition(tmp2).add(tmp.set(0, -0.08, -0.4).applyQuaternion(camera.quaternion));
-  const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
-  fireWeapon(def, origin, dir, stage || scene, shots);
+  const muzzle = gunMuzzle();
+  fireWeapon(def, muzzle.origin, muzzle.dir, stage || scene, shots);
   sfx("gun");
   hudBars();
 }
@@ -690,7 +717,11 @@ function physics(dt, xr) {
     wx += forward.x * -(xr.moveY || 0) + right.x * (xr.moveX || 0);
     wz += forward.z * -(xr.moveY || 0) + right.z * (xr.moveX || 0);
     player.skate = xr.skate;
-    player.crouch = keys.has("KeyC");
+    player.crouch = !!(xr.crouch || keys.has("KeyC"));
+    if (xr.skate && Math.hypot(wx, wz) < 0.12) {
+      wx += forward.x;
+      wz += forward.z;
+    }
     if (xr.jumpTap || (xr.jump && player.grounded && player.vy <= 0.05)) jumpQueued = true;
   } else {
     if (keys.has("KeyW") || keys.has("ArrowUp")) {
@@ -728,7 +759,7 @@ function physics(dt, xr) {
   const len = Math.hypot(wx, wz);
   let spd = player.crouch ? 1.54 : keys.has("ShiftLeft") || keys.has("ShiftRight") ? 5.04 : 3.22;
   if (carpetOn) spd = 3.22 * 2.25;
-  if (player.skate && player.grounded && !carpetOn) spd *= 2.5;
+  if (player.skate && !carpetOn) spd *= 2.5;
   if (player.haste > 0) spd *= 1.45;
   if (player.dashT > 0) spd *= 4;
   if (len > 0) {
@@ -737,6 +768,23 @@ function physics(dt, xr) {
   } else {
     wx = 0;
     wz = 0;
+  }
+  const airborne = !player.grounded && !carpetOn && !rope;
+  if (airborne) {
+    if (len > 0.12) {
+      const cur = Math.hypot(player.vx, player.vz);
+      const nx = player.vx + wx * 10 * dt;
+      const nz = player.vz + wz * 10 * dt;
+      const nlen = Math.hypot(nx, nz) || 1;
+      const cap = Math.max(cur, spd);
+      player.vx = (nx / nlen) * Math.min(nlen, cap);
+      player.vz = (nz / nlen) * Math.min(nlen, cap);
+    }
+    wx = player.vx;
+    wz = player.vz;
+  } else {
+    player.vx = wx;
+    player.vz = wz;
   }
   const eye = player.crouch ? 0.9 : EYE;
   const bodyY = player.y - eye * 0.4;
@@ -765,7 +813,11 @@ function physics(dt, xr) {
     return true;
   }
   const GRAV = 24;
-  const jet = player.fuel > 0 && !rope && ((xr && xr.jet) || keys.has("KeyF") || (keys.has("Space") && !player.grounded && !jumpQueued));
+  const jet = player.fuel > 0 && !rope && !carpetOn && (
+    keys.has("KeyF") ||
+    (keys.has("Space") && !player.grounded && !jumpQueued) ||
+    (xr && xr.on && xr.jump && !player.grounded)
+  );
 
   if (!rope) {
     const nx = player.x + wx * dt;
@@ -776,15 +828,17 @@ function physics(dt, xr) {
     if (okBoth) {
       player.x = nx;
       player.z = nz;
-      player.vx = wx;
-      player.vz = wz;
+      if (!airborne) {
+        player.vx = wx;
+        player.vz = wz;
+      }
     } else if (okX) {
       player.x = nx;
-      player.vx = wx;
+      if (!airborne) player.vx = wx;
       player.vz *= 0.12;
     } else if (okZ) {
       player.z = nz;
-      player.vz = wz;
+      if (!airborne) player.vz = wz;
       player.vx *= 0.12;
     } else {
       player.vx *= 0.08;
@@ -861,6 +915,10 @@ function physics(dt, xr) {
         player.grounded = false;
         coyote = 0;
         jumpQueued = false;
+        if (Math.hypot(player.vx, player.vz) < 0.4 && Math.hypot(wx, wz) > 0.4) {
+          player.vx = wx;
+          player.vz = wz;
+        }
       }
     }
     if (carpetOn) {

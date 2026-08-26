@@ -21,8 +21,8 @@ import {
   SHAPES,
   WALL_TEX,
   routes,
-} from "./config.js?v=zm1";
-import { bakedMaps } from "./defaults.js?v=zm1";
+} from "./config.js?v=zm3";
+import { bakedMaps } from "./defaults.js?v=zm3";
 import {
   addSphere,
   blankMap,
@@ -50,9 +50,9 @@ import {
   stampSegment,
   wallIsCrack,
   wallTexId,
-} from "./map.js?v=zm1";
-import { deleteMap, getMap, listMaps, saveMap, stashPreview } from "./store.js?v=zm1";
-import { defaultNpc } from "./npcs.js?v=zm1";
+} from "./map.js?v=zm3";
+import { deleteMap, getMap, listMaps, saveMap, stashPreview } from "./store.js?v=zm3";
+import { defaultNpc } from "./npcs.js?v=zm3";
 
 const $ = (id) => document.getElementById(id);
 
