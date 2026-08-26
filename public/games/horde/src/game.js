@@ -3927,7 +3927,7 @@ function tickMelee(dt) {
   meleePrev.copy(p);
   const spd = vel.length();
   const tip = tmp2.copy(p).addScaledVector(new THREE.Vector3(0, 0, -1).applyQuaternion(g.getWorldQuaternion(new THREE.Quaternion())), 0.28);
-  const need = xrOn ? 2.8 : 7.5;
+  const need = xrOn ? 7.2 : 7.5;
   if (spd < need || meleeCd > 0) return;
   for (const m of mobs) {
     if (!m.alive) continue;
