@@ -65,7 +65,7 @@
       var phone = /iPhone|iPod|Android.+Mobile|webOS|BlackBerry|IEMobile|Opera Mini/i.test(ua);
       var androidTab = /Android/i.test(ua) && !/Mobile/i.test(ua);
       if (phone || iPad || androidTab) {
-        location.replace("/games/character-chess/chess-static.html?v=mob1" + (location.search ? "&" + location.search.slice(1) : ""));
+        location.replace("/games/character-chess/chess-static.html?v=mob2" + (location.search ? "&" + location.search.slice(1) : ""));
         return;
       }
     })();

@@ -690,17 +690,51 @@ html.cc-mobile #cc-howto { z-index: 210; }
 .cc-mob-sq.legal { box-shadow: inset 0 0 0 3px #7dffb0; }
 .cc-mob-sq.last { box-shadow: inset 0 0 0 3px #e07a3a; }
 .cc-mob-sq.hole { background: #0a0908 !important; }
-.cc-mob-piece {
+.cc-mob-unit {
   position: absolute;
-  inset: 4%;
-  width: 92%;
-  height: 92%;
+  inset: 1%;
+  width: 98%;
+  height: 98%;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+}
+.cc-mob-piece {
+  width: 100%;
+  height: 88%;
   object-fit: contain;
   object-position: 50% 80%;
   pointer-events: none;
   filter: drop-shadow(0 3px 4px #0008);
 }
 .cc-mob-piece.black { transform: scaleX(-1); }
+.cc-mob-hp {
+  width: 84%;
+  height: 3px;
+  margin: 1px 0 3px;
+  border-radius: 99px;
+  background: #0c0c0ecc;
+  overflow: hidden;
+}
+.cc-mob-hp > i {
+  display: block;
+  height: 100%;
+  background: var(--color-hp-high, #5cae6e);
+}
+.cc-mob-orb {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 38%;
+  height: 38%;
+  transform: translate(-50%, -50%);
+  object-fit: contain;
+  object-position: 50% 50%;
+  pointer-events: none;
+  z-index: 1;
+}
 .cc-mob-msg {
   flex: none;
   margin: 0;
@@ -710,6 +744,7 @@ html.cc-mobile #cc-howto { z-index: 210; }
   font-size: 12px;
   color: #d5cbbd;
 }
+#cc-mob.cc-mob-has-hand .cc-mob-msg { display: none; }
 
 html.cc-mobile #cc-shell .cc-bento {
   padding: 8px;
@@ -741,6 +776,92 @@ html.cc-mobile .cc-brand p { font-size: 13px; max-width: none; }
   html.cc-mobile .cc-cpu .label { font-size: 26px; }
   html.cc-mobile .cc-tile .label { font-size: 18px; }
 }
+
+/* Keep the bonus/deck hand above the mobile board overlay. */
+html.cc-mob-on #root .absolute.bottom-2.left-3.z-40,
+html.cc-mob-on #root .fixed.z-\[85\] {
+  visibility: visible !important;
+  z-index: 70 !important;
+}
+html.cc-mob-on #root .absolute.bottom-2.left-3.z-40 .pointer-events-auto {
+  pointer-events: auto !important;
+}
+
+/* Hide white/black piece bases on mobile. */
+html.cc-mobile .absolute.bottom-\[6\%\].left-1\/2.z-0.-translate-x-1\/2.rounded-full {
+  display: none !important;
+}
+
+/* Center XP orbs in the tile (img height:auto fights absolute inset). */
+html.cc-mobile img[src*="xp-orb"] {
+  inset: auto !important;
+  top: 50% !important;
+  left: 50% !important;
+  right: auto !important;
+  bottom: auto !important;
+  width: 38% !important;
+  height: 38% !important;
+  max-width: none !important;
+  max-height: none !important;
+  transform: translate(-50%, -50%) !important;
+  object-fit: contain !important;
+  object-position: 50% 50% !important;
+}
+
+/* Pieces + in-tile chrome 2% smaller. */
+html.cc-mobile .relative.z-\[1\].flex.h-\[88\%\].w-\[94\%\].items-end.justify-center {
+  width: 92.12% !important;
+  height: 86.24% !important;
+}
+html.cc-mobile .absolute.inset-x-0.top-0.z-20.flex.flex-col.items-center {
+  transform: scale(0.98);
+  transform-origin: top center;
+}
+
+/* 3D field is the iso toggle — no pack lock. */
+html.cc-mobile button .ml-1.inline.size-3\.5.text-gold,
+html.cc-mobile button .ml-1.inline.size-3.text-gold {
+  display: none !important;
+}
+html.cc-mobile.cc-mob-iso .grid.grid-cols-8.overflow-hidden.rounded-\[var\(--radius-lg\)\] {
+  transform: perspective(900px) rotateX(52deg) rotateZ(-45deg) scale(1.06);
+  transform-origin: 50% 50%;
+}
+
+/* Deck/bonus hand: cards ~15% smaller, type ~25% smaller. */
+html.cc-mobile .hand-card {
+  width: 8.5765rem !important;
+}
+html.cc-mobile .hand-fan.h-\[23\.35rem\] {
+  height: 19.85rem !important;
+}
+html.cc-mobile .h-\[7\.4rem\].w-\[5\.4rem\].shrink-0 {
+  height: 6.29rem !important;
+  width: 4.59rem !important;
+}
+html.cc-mobile .fixed.z-\[85\].w-\[6\.16rem\] {
+  width: 5.236rem !important;
+}
+html.cc-mobile .hand-card:hover,
+html.cc-mobile .hand-card.is-held {
+  transform: rotate(0) translateY(-2.89rem) scale(1.129);
+}
+html.cc-mobile .hand-card .text-lg {
+  font-size: calc(var(--text-lg) * 0.75) !important;
+  line-height: 1.15 !important;
+}
+html.cc-mobile .hand-card .text-sm {
+  font-size: calc(var(--text-sm) * 0.75) !important;
+  line-height: 1.2 !important;
+}
+html.cc-mobile .hand-card .text-xs {
+  font-size: calc(var(--text-xs) * 0.75) !important;
+  line-height: 1.2 !important;
+}
+html.cc-mobile .hand-card .text-\[8px\] { font-size: 6px !important; }
+html.cc-mobile .hand-card .text-\[9px\] { font-size: 6.75px !important; }
+html.cc-mobile .hand-card .text-\[10px\] { font-size: 7.5px !important; }
+html.cc-mobile .hand-card .text-\[11px\] { font-size: 8.25px !important; }
 
 @media (max-width: 860px) {
   .cc-bento {

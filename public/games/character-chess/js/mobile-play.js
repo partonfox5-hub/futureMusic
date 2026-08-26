@@ -1,6 +1,7 @@
 /** Phone/tablet play: top-down 8×8 board, pan + pinch, optional isometric. PC is unchanged. */
 
 const SPR = "/games/character-chess/sprites/characters/";
+const ORB = "/games/character-chess/sprites/terrain/xp-orb.png";
 const FILES = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
 export function isChessMobile() {
@@ -42,6 +43,24 @@ function champArt(c) {
   return SPR + id + ".png";
 }
 
+function orbFilter(tint) {
+  if (tint === "green") return "hue-rotate(95deg) saturate(1.25)";
+  if (tint === "red") return "hue-rotate(-48deg) saturate(1.4)";
+  if (tint === "blue") return "hue-rotate(175deg) saturate(1.3)";
+  return "none";
+}
+
+function hpColor(ratio) {
+  if (ratio > 0.5) return "var(--color-hp-high, #5cae6e)";
+  if (ratio > 0.2) return "var(--color-hp-mid, #c4a35a)";
+  return "var(--color-hp-low, #c45c5c)";
+}
+
+function is3dFieldButton(btn) {
+  const t = (btn.textContent || "").replace(/\s+/g, " ").trim();
+  return t === "3D field" || t.startsWith("3D field");
+}
+
 export function bootMobilePlay(game) {
   document.documentElement.classList.add("cc-mobile");
   document.body.classList.add("cc-mobile");
@@ -62,7 +81,7 @@ export function bootMobilePlay(game) {
       el(`<div id="cc-mob" hidden>
         <div class="cc-mob-hud">
           <p class="cc-mob-turn" id="cc-mob-turn">White</p>
-          <button type="button" id="cc-mob-iso" aria-pressed="false">Iso</button>
+          <button type="button" id="cc-mob-iso" aria-pressed="false">3D field</button>
           <button type="button" id="cc-mob-fit">Fit</button>
           <button type="button" id="cc-mob-back">Menu</button>
         </div>
@@ -129,7 +148,10 @@ export function bootMobilePlay(game) {
     root.hidden = !on;
     document.documentElement.classList.toggle("cc-mob-on", on);
     document.body.classList.toggle("cc-mob-on", on);
-    if (!on) return;
+    if (!on) {
+      root.classList.remove("cc-mob-has-hand");
+      return;
+    }
 
     const { files, ranks } = dims(st);
     const legal = new Set((st.legal || []).map((m) => m.to));
@@ -140,6 +162,9 @@ export function bootMobilePlay(game) {
     }
     const terr = {};
     for (const t of st.terrain || []) if (t.square) terr[t.square] = t;
+    const orbs = (st.xpOrbs || []).filter((o) => o.square);
+    const orbsBy = {};
+    for (const o of orbs) (orbsBy[o.square] ||= []).push(o);
 
     let html = "";
     for (let r = ranks - 1; r >= 0; r--) {
@@ -158,13 +183,25 @@ export function bootMobilePlay(game) {
         ]
           .filter(Boolean)
           .join(" ");
-        const img = unit
-          ? `<img class="cc-mob-piece ${unit.side === "b" ? "black" : ""}" src="${champArt(unit)}" alt="${unit.characterId || ""}">`
-          : "";
-        html += `<button type="button" class="${cls}" data-sq="${sq}">${img}</button>`;
+        let inner = "";
+        for (const o of orbsBy[sq] || []) {
+          inner += `<img class="cc-mob-orb" src="${ORB}" alt="" style="filter:${orbFilter(o.tint)}">`;
+        }
+        if (unit) {
+          const ratio = unit.hp / Math.max(1, unit.maxHp || unit.hp || 1);
+          inner += `<div class="cc-mob-unit">
+            <img class="cc-mob-piece ${unit.side === "b" ? "black" : ""}" src="${champArt(unit)}" alt="${unit.characterId || ""}">
+            <div class="cc-mob-hp"><i style="width:${Math.max(0, Math.min(100, ratio * 100))}%;background:${hpColor(ratio)}"></i></div>
+          </div>`;
+        }
+        html += `<button type="button" class="${cls}" data-sq="${sq}">${inner}</button>`;
       }
     }
-    const sig = files + ":" + st.selected + ":" + [...legal].join() + ":" + Object.keys(bySq).join();
+    const hpSig = Object.values(bySq)
+      .map((c) => (c.hp ?? "") + (c.characterId || ""))
+      .join();
+    const orbSig = orbs.map((o) => o.square + (o.tint || "")).join();
+    const sig = files + ":" + st.selected + ":" + [...legal].join() + ":" + Object.keys(bySq).join() + ":" + hpSig + ":" + orbSig;
     if (sig !== lastPaint) {
       lastPaint = sig;
       boardEl.style.gridTemplateColumns = `repeat(${files}, 1fr)`;
@@ -172,13 +209,31 @@ export function bootMobilePlay(game) {
     }
     const side = st.turn === "b" ? "Black" : "White";
     document.getElementById("cc-mob-turn").textContent = (st.message && String(st.message).slice(0, 48)) || `${side} to move`;
+    const handSide = st.mode === "cpu" ? "w" : st.turn;
+    const hand = (st.hands && st.hands[handSide]) || [];
+    const showHand = (st.ruleset === "bonus" || st.boardScale === "quad") && (st.phase === "playing" || st.phase === "battle") && hand.length;
+    root.classList.toggle("cc-mob-has-hand", !!showHand);
     document.getElementById("cc-mob-msg").textContent = st.busy || st.thinking ? "…" : "";
   }
 
-  isoBtn.onclick = () => {
+  function toggleIso() {
     iso = !iso;
     applyXform();
-  };
+  }
+  isoBtn.onclick = toggleIso;
+  document.addEventListener(
+    "click",
+    (ev) => {
+      const btn = ev.target.closest("button");
+      if (!btn || btn.id === "cc-mob-iso") return;
+      if (!is3dFieldButton(btn)) return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      ev.stopImmediatePropagation();
+      toggleIso();
+    },
+    true,
+  );
   document.getElementById("cc-mob-fit").onclick = fit;
   document.getElementById("cc-mob-back").onclick = () => {
     try {
