@@ -1,4 +1,5 @@
 import { makeGame } from "./nx-chess.js";
+import { isChessMobile, bootMobilePlay } from "./mobile-play.js";
 
 const SPR = "/games/character-chess/sprites/characters/";
 const CARD = "/games/character-chess/sprites/cards/";
@@ -107,28 +108,6 @@ const TILES = [
   { id: "pack:maps", cls: "cc-maps", img: "/games/character-chess/sprites/terrain/mountain.png", label: "Map Pack", sub: "16×16 mountains + RTS", price: "$1.99" },
   ...PACKS.filter((p) => p.id !== "maps").map((p) => ({ id: "pack:" + p.id, cls: p.cls, img: p.img, label: p.label, sub: p.sub, price: "$1.99" })),
 ];
-
-function isChessMobileSoon() {
-  const ua = navigator.userAgent || "";
-  if (/Quest|OculusBrowser|Oculus|Pacific|PicoBrowser|Wolvic/i.test(ua)) return false;
-  const iPad = /iPad/i.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-  const phone = /iPhone|iPod|Android.+Mobile|webOS|BlackBerry|IEMobile|Opera Mini/i.test(ua);
-  const androidTab = /Android/i.test(ua) && !/Mobile/i.test(ua);
-  return !!(phone || iPad || androidTab);
-}
-
-function mountMobileSoon() {
-  if (document.getElementById("cc-mobile-soon")) return;
-  document.documentElement.classList.add("cc-mobile-soon");
-  document.body.classList.add("cc-mobile-soon");
-  document.body.append(el(`<div id="cc-mobile-soon">
-    <div class="cc-soon-sign">
-      <p class="kicker">Aetherboard rest hall</p>
-      <h1>Coming soon</h1>
-      <p>Phone play for Creature Chess is not ready yet. Open this page on a computer or a Quest headset.</p>
-    </div>
-  </div>`));
-}
 
 function peerId() {
   try {
@@ -368,8 +347,8 @@ function mount() {
     </div>
     <div class="cc-board-set" id="cc-scale">
       <button type="button" data-s="1" class="on">Original 8×8</button>
-      <button type="button" data-s="2">Medium 16×16 · Map Pack</button>
-      <button type="button" data-s="3">RTS 24×24 · Map Pack</button>
+      <button type="button" data-s="2" class="cc-map-large">Medium 16×16 · Map Pack</button>
+      <button type="button" data-s="3" class="cc-map-large">RTS 24×24 · Map Pack</button>
     </div>
     <p class="cc-note" id="cc-host-note">The first player is host and chooses board size at start.</p>
     <div class="cc-lobby-actions">
@@ -614,14 +593,16 @@ function refreshPackBadges(game) {
 }
 
 async function boot() {
-  if (isChessMobileSoon()) {
-    mountMobileSoon();
-    return;
+  const mobile = isChessMobile();
+  if (mobile) {
+    document.documentElement.classList.add("cc-mobile");
+    document.body.classList.add("cc-mobile");
   }
   mount();
   startCinematic();
   const game = await waitGame();
   if (!game) return;
+  if (mobile) bootMobilePlay(game);
   if (window.Pt) window.__CC_Pt = window.Pt;
   window.__ccMkH = function () {
     const n = window.__CC_N || 8;
@@ -808,6 +789,7 @@ async function boot() {
     const b = ev.target.closest("button");
     if (!b || b.disabled) return;
     const next = Number(b.dataset.s);
+    if (isChessMobile() && (next === 2 || next === 3)) return;
     if ((next === 2 || next === 3) && !ownedMap(game).maps) {
       game.getState().openPackModal("maps");
       return;
