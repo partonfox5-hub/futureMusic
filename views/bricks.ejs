@@ -31,37 +31,6 @@
   }
   .bb-stage video { z-index: 1; }
   .bb-stage iframe { z-index: 0; display: none; }
-  .bb-wordmark {
-    position: absolute;
-    top: 16px;
-    left: 18px;
-    z-index: 3;
-    margin: 0;
-    color: #fff;
-    font-family: Cinzel, Georgia, serif;
-    font-size: clamp(1.35rem, 3.2vw, 2.2rem);
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    line-height: 1;
-    text-shadow: 0 1px 0 rgba(0,0,0,0.4), 0 2px 16px rgba(0,0,0,0.65);
-    pointer-events: none;
-  }
-  .bb-badge {
-    position: absolute;
-    top: 14px;
-    right: 14px;
-    left: auto;
-    z-index: 2;
-    font-size: 11px;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-    background: rgba(5, 5, 5, 0.78);
-    color: #fff;
-    padding: 6px 12px;
-    border-radius: 999px;
-    font-weight: 700;
-    border: 1px solid rgba(212, 175, 55, 0.35);
-  }
   .bb-buy {
     background: rgba(10, 10, 10, 0.88);
     border: 1px solid rgba(212, 175, 55, 0.45);
@@ -120,7 +89,6 @@
 
 <section class="bb-bleed bb-demo-wrap">
   <div class="bb-stage">
-    <p class="bb-wordmark">VR Blockbuild</p>
     <video id="demo-vid" autoplay muted loop playsinline preload="auto" poster="/games/blockbuild/demo-poster.jpg?v=bb24">
       <source src="/games/blockbuild/demo.mp4?v=bb24" type="video/mp4" />
       <source src="/games/blockbuild/demo.webm?v=bb24" type="video/webm" />
