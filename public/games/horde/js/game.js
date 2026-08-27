@@ -23,7 +23,9 @@ const WEPS = {
   ripple: { id: "ripple", name: "Ripple ray", dmg: 2, rpm: 1.6, mag: 8, speed: 22, spread: 0.08, pellets: 11, pierce: 3, ripple: true, cost: 1400, reload: 7.84 },
   gravity: { id: "gravity", name: "Zero-point gun", dmg: 2, rpm: 8, mag: 40, speed: 40, spread: 0, pellets: 1, gravity: true, cost: 1800, reload: 6 },
   nuke: { id: "nuke", name: "Mini nuke", dmg: 8, rpm: 0.32, mag: 1, speed: 18, spread: 0, pellets: 1, aoe: 12, nuke: true, cost: 2800, reload: 12.8 },
-  tank: { id: "tank", name: "Cyber tank", dmg: 6, rpm: 0.48, mag: 4, speed: 28, spread: 0.01, pellets: 1, aoe: 7.5, tank: true, cost: 4500, reload: 11.2 },
+  tank: { id: "tank", name: "Cyber tank", dmg: 6, rpm: 0.48, mag: 6, speed: 28, spread: 0.01, pellets: 1, aoe: 7.5, tank: true, cost: 1500, reload: 8.8 },
+  heli: { id: "heli", name: "Attack heli", dmg: 7, rpm: 1.6, mag: 10, speed: 52, spread: 0.012, pellets: 1, aoe: 5.4, heli: true, missile: true, cost: 2000, reload: 7.2 },
+  terra: { id: "terra", name: "Terraform gun", dmg: 0, rpm: 9, mag: 90, speed: 0, spread: 0, pellets: 1, terra: true, cost: 500, reload: 3.8 },
   noodle: { id: "noodle", name: "Laser noodle", dmg: 2, rpm: 18, mag: 99, speed: 0, spread: 0, pellets: 1, noodle: true, cost: 8200, reload: 2.8 },
 };
 
@@ -44,7 +46,9 @@ const SHOP = [
   { kind: "wep", id: "ripple", name: "Ripple ray", cost: 1400, blurb: "Swarm of colored rings. Pierce 3." },
   { kind: "wep", id: "gravity", name: "Zero-point gun", cost: 1800, blurb: "Grab a foe. Slam others with it." },
   { kind: "wep", id: "nuke", name: "Mini nuke", cost: 2800, blurb: "One slow shell. A wide crater." },
-  { kind: "wep", id: "tank", name: "Cyber tank", cost: 4500, blurb: "Drive it. Fire artillery." },
+  { kind: "wep", id: "terra", name: "Terraform gun", cost: 500, blurb: "Dig craters and trenches wherever you aim. Hold trigger." },
+  { kind: "wep", id: "tank", name: "Cyber tank", cost: 1500, blurb: "Drive it. Fire artillery." },
+  { kind: "wep", id: "heli", name: "Attack heli", cost: 2000, blurb: "Fly it. Trigger fires missiles. Search beam on." },
   { kind: "up", id: "jump", name: "Jump height", cost: 40, blurb: "+28% jump", key: "jump", add: 0.28 },
   { kind: "up", id: "speed", name: "Move speed", cost: 45, blurb: "+16% run", key: "speed", add: 0.16 },
   { kind: "up", id: "hp", name: "Heart", cost: 50, blurb: "+1 max heart and heal", key: "maxHp", add: 2 },
@@ -130,7 +134,7 @@ let ammoT = 0;
 let healthT = 18;
 let owned = new Set(["pistol"]);
 let stats = { speed: 1, jump: 1, maxHp: MAX_HP0, reload: 1, magnet: 2.4, jumps: 1, sprint: 0, sprintCd: 10, sprintMul: 1, wheelie: 0, flash: 1, autoReload: 0 };
-let player = { x: 0, y: 1.6, z: 0, vx: 0, vy: 0, vz: 0, hp: MAX_HP0, grounded: true, coins: 0, ammo: 48, mag: 12, wep: "pistol", jumpsLeft: 1, sprinting: false, sprintT: 0, sprintCdT: 0, mom: 0, pounding: false, bike: false };
+let player = { x: 0, y: 1.6, z: 0, vx: 0, vy: 0, vz: 0, hp: MAX_HP0, grounded: true, coins: 0, ammo: 48, mag: 12, wep: "pistol", tank: false, heli: false, jumpsLeft: 1, sprinting: false, sprintT: 0, sprintCdT: 0, mom: 0, pounding: false, bike: false };
 let mobs = [];
 let debris = [];
 let loot = [];
@@ -169,6 +173,8 @@ const JUMP1 = 1.18;
 let grabMob = null;
 let tankMesh = null;
 let tankYaw = 0;
+let heliMesh = null;
+let heliYaw = 0;
 let planetId = "";
 let meteorT = 14;
 let initials = ["A", "A", "A"];
@@ -335,7 +341,7 @@ const sfx = {
       laserTone(420, 70, 0.28, 0.14);
       noise(0.22, 0.16, 110);
       beep("sine", 90, 0.26, 0.1, 36);
-    } else if (id === "nuke" || id === "tank") {
+    } else if (id === "nuke" || id === "tank" || id === "heli") {
       noise(0.22, 0.18, 140);
       beep("sine", 70, 0.28, 0.12, 32);
     } else if (id === "ripple") {
@@ -986,6 +992,21 @@ function makeGun(id) {
     box.position.set(0, 0, 0.04);
     g.add(barrel, box);
     g.userData.muzzle = new THREE.Vector3(0, 0.04, -0.4);
+  } else if (id === "heli") {
+    const grip = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.08, 0.1), dark);
+    const stick = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.01, 0.16, 6), iron);
+    stick.position.set(0, 0.08, 0);
+    g.add(grip, stick);
+    g.userData.muzzle = new THREE.Vector3(0, 0.02, -0.28);
+  } else if (id === "terra") {
+    const tube = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.04, 0.28, 7), mat(0x8a6230, { emissive: 0x3a2208 }));
+    tube.rotation.x = Math.PI / 2;
+    tube.position.set(0, 0.02, -0.12);
+    const scoop = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.1, 6), mat(0xc4a574));
+    scoop.rotation.x = Math.PI / 2;
+    scoop.position.set(0, 0.02, -0.3);
+    g.add(tube, scoop);
+    g.userData.muzzle = new THREE.Vector3(0, 0.02, -0.36);
   } else if (id === "noodle") {
     const hilt = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.022, 0.16, 8), dark);
     hilt.rotation.x = Math.PI / 2;
@@ -1032,17 +1053,21 @@ function makeGun(id) {
 function equip(id) {
   player.wep = id;
   player.tank = !!WEPS[id]?.tank;
+  player.heli = !!WEPS[id]?.heli;
   player.mag = Math.min(player.mag, wep().mag);
   reloadT = 0;
   reloadMax = 0;
+  if (player.tank || player.heli) player.bike = false;
   if (!player.tank && tankMesh) tankMesh.visible = false;
+  if (!player.heli && heliMesh) heliMesh.visible = false;
+  if (player.heli) player.y = Math.max(player.y, heightAt(player.x, player.z) + 3.4);
   const parentDesk = gunMesh?.parent || camera;
   const parentVr = vrGun?.parent;
   if (gunMesh) gunMesh.removeFromParent();
   gunMesh = makeGun(id);
   parentDesk.add(gunMesh);
   gunMesh.position.set(0.18, -0.14, -0.32);
-  gunMesh.visible = !xrOn;
+  gunMesh.visible = !xrOn && !player.heli && !player.tank;
   if (vrGun) vrGun.removeFromParent();
   vrGun = makeGun(id);
   if (parentVr) {
@@ -2810,6 +2835,7 @@ function resetRun() {
   for (const s of eShots) s.mesh.removeFromParent();
   if (tankMesh) tankMesh.removeFromParent();
   tankMesh = null;
+  if (heliMesh) { heliMesh.removeFromParent(); heliMesh = null; }
   if (bikeMesh) { bikeMesh.removeFromParent(); bikeMesh = null; }
   if (noodleMesh) { noodleMesh.removeFromParent(); noodleMesh = null; }
   if (flag?.mesh) flag.mesh.removeFromParent();
@@ -2849,8 +2875,9 @@ function resetRun() {
   hexSpawnCd = 0;
   owned = new Set(["pistol"]);
   stats = { speed: 1, jump: 1, maxHp: MAX_HP0, reload: 1, magnet: 2.4, jumps: 1, sprint: 0, sprintCd: 10, sprintMul: 1, wheelie: 0, flash: 1, autoReload: 0 };
-  player = { x: 0, y: 1.6, z: 0, vx: 0, vy: 0, vz: 0, hp: MAX_HP0, grounded: true, coins: 0, ammo: 48, mag: 12, wep: "pistol", tank: false, jumpsLeft: 1, sprinting: false, sprintT: 0, sprintCdT: 0, mom: 0, pounding: false, bike: false };
+  player = { x: 0, y: 1.6, z: 0, vx: 0, vy: 0, vz: 0, hp: MAX_HP0, grounded: true, coins: 0, ammo: 48, mag: 12, wep: "pistol", tank: false, heli: false, jumpsLeft: 1, sprinting: false, sprintT: 0, sprintCdT: 0, mom: 0, pounding: false, bike: false };
   tankYaw = 0;
+  heliYaw = 0;
   dead = false;
   shopOpen = false;
   shopSel = 0;
@@ -3233,6 +3260,11 @@ function spawnConflagration(pos) {
 function detonateShot(s) {
   if (!s.def) return;
   if (s.def.aoe) aoeAt(s.mesh.position, s.def.aoe, s.def);
+  if (s.def.missile) {
+    const p = s.mesh.position;
+    craterAt(p.x, p.z, 2.2, 1.15);
+    spawnMeteorBlast(p, 1.5);
+  }
   if (s.def.fireball) {
     spawnConflagration(s.mesh.position);
     spawnFireWall(s.mesh.position, s.dir || new THREE.Vector3(0, 0, -1));
@@ -3360,6 +3392,13 @@ function fireFrom(origin, quat) {
     return;
   }
   const dir0 = new THREE.Vector3(0, 0, -1).applyQuaternion(quat).normalize();
+  if (def.terra) {
+    fireCd = 1 / (def.rpm * (0.85 + stats.reload * 0.15));
+    player.mag--;
+    sfx.shoot();
+    digAlong(origin, dir0);
+    return;
+  }
   if (def.gravity) {
     if (grabMob && grabMob.alive) return;
     fireCd = 1 / (def.rpm * (0.85 + stats.reload * 0.15));
@@ -3404,6 +3443,12 @@ function fireFrom(origin, quat) {
       aimBolt(beam, dir);
       scene.add(beam);
       shots.push({ mesh: beam, life: rail ? 0.22 : 0.14, dummy: true });
+    } else if (def.missile) {
+      const rocket = makeMissileMesh();
+      rocket.position.copy(origin);
+      aimBolt(rocket, dir);
+      scene.add(rocket);
+      shots.push({ mesh: rocket, dir, speed: def.speed, life: 2.3, def, pierce: 1, hitSet: new Set(), missile: true });
     } else if (def.ripple) {
       const ring = new THREE.Mesh(
         new THREE.TorusGeometry(0.12 + i * 0.03, 0.018, 6, 18),
@@ -4206,14 +4251,104 @@ function spawnMeteorBlast(pos, rad) {
 }
 
 function craterAt(x, z, r, depth) {
-  craters.push({ x, z, r, depth });
-  if (craters.length > 28) craters.shift();
+  const last = craters[craters.length - 1];
+  if (last && Math.hypot(last.x - x, last.z - z) < r * 0.4) {
+    last.depth = Math.min(7.5, Math.max(last.depth, depth));
+    last.r = Math.max(last.r, r);
+  } else {
+    craters.push({ x, z, r, depth });
+    if (craters.length > 240) craters.shift();
+  }
   applyTerrain(true);
+}
+
+function digAlong(origin, dir) {
+  let hx = 0, hz = 0, found = false;
+  for (let t = 0.5; t < 26; t += 0.4) {
+    const px = origin.x + dir.x * t;
+    const py = origin.y + dir.y * t;
+    const pz = origin.z + dir.z * t;
+    if (py <= hillsAt(px, pz) + 0.45) {
+      hx = px; hz = pz; found = true;
+      break;
+    }
+  }
+  if (!found && dir.y < 0.42) {
+    const t = 8 + Math.abs(dir.y) * 6;
+    hx = origin.x + dir.x * t;
+    hz = origin.z + dir.z * t;
+    found = true;
+  }
+  if (!found) return;
+  craterAt(hx, hz, 2.35, 1.7);
+  const puff = new THREE.Mesh(
+    new THREE.SphereGeometry(0.22, 6, 5),
+    new THREE.MeshBasicMaterial({ color: 0xc4a574, transparent: true, opacity: 0.55, depthWrite: false }),
+  );
+  puff.position.set(hx, hillsAt(hx, hz) + 0.3, hz);
+  scene.add(puff);
+  fx.push({ mesh: puff, kind: "bolt", life: 0.22 });
+}
+
+function makeMissileMesh() {
+  const g = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.06, 0.42, 6), mat(0x3a3a32, { emissive: 0x221100 }));
+  body.rotation.x = Math.PI / 2;
+  const nose = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.14, 6), mat(0xcc4422, { emissive: 0x661100 }));
+  nose.rotation.x = Math.PI / 2;
+  nose.position.z = -0.26;
+  const flame = new THREE.Mesh(
+    new THREE.ConeGeometry(0.04, 0.18, 5),
+    new THREE.MeshBasicMaterial({ color: 0xff8822, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false }),
+  );
+  flame.rotation.x = -Math.PI / 2;
+  flame.position.z = 0.28;
+  g.add(body, nose, flame);
+  return g;
+}
+
+function makeHeliMesh() {
+  const g = new THREE.Group();
+  const hull = new THREE.Mesh(new THREE.CapsuleGeometry(0.42, 1.55, 4, 8), mat(0x2c3328, { emissive: 0x111408 }));
+  hull.rotation.z = Math.PI / 2;
+  hull.position.y = 0.15;
+  const cabin = new THREE.Mesh(new THREE.SphereGeometry(0.38, 8, 6), mat(0x88aacc, { emissive: 0x113344 }));
+  cabin.position.set(0, 0.22, -0.55);
+  const tail = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.1, 1.4), mat(0x242820));
+  tail.position.set(0, 0.28, 1.15);
+  const fin = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.42, 0.28), mat(0x242820));
+  fin.position.set(0, 0.48, 1.78);
+  const skidL = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 1.5), mat(0x111114));
+  skidL.position.set(-0.38, -0.42, 0);
+  const skidR = skidL.clone();
+  skidR.position.x = 0.38;
+  const rotor = new THREE.Mesh(new THREE.BoxGeometry(3.4, 0.04, 0.14), mat(0x1a1a1c, { emissive: 0x222 }));
+  rotor.position.y = 0.72;
+  const rotor2 = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.04, 3.4), mat(0x1a1a1c, { emissive: 0x222 }));
+  rotor2.position.y = 0.72;
+  const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.4, 6), mat(0x111114));
+  mast.position.y = 0.52;
+  const beam = new THREE.SpotLight(0xfff3c4, 32, 78, Math.PI * 0.17, 0.32, 1.05);
+  beam.position.set(0, -0.2, -0.55);
+  const tgt = new THREE.Object3D();
+  tgt.position.set(0, -10, -24);
+  beam.target = tgt;
+  const cone = new THREE.Mesh(
+    new THREE.ConeGeometry(3.6, 14, 16, 1, true),
+    new THREE.MeshBasicMaterial({ color: 0xffe8a0, transparent: true, opacity: 0.08, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending }),
+  );
+  cone.rotation.x = Math.PI;
+  cone.position.set(0, -6.8, -8);
+  g.add(hull, cabin, tail, fin, skidL, skidR, rotor, rotor2, mast, beam, tgt, cone);
+  g.userData.rotor = rotor;
+  g.userData.rotor2 = rotor2;
+  g.userData.beam = beam;
+  return g;
 }
 
 function tickTank() {
   if (!player.tank) {
-    if (tankMesh) { tankMesh.visible = false; }
+    if (tankMesh) tankMesh.visible = false;
     return;
   }
   if (!tankMesh) {
@@ -4223,6 +4358,25 @@ function tickTank() {
   tankMesh.visible = true;
   tankMesh.position.set(player.x, heightAt(player.x, player.z), player.z);
   tankMesh.rotation.y = tankYaw;
+}
+
+function tickHeli() {
+  if (!player.heli) {
+    if (heliMesh) heliMesh.visible = false;
+    return;
+  }
+  if (!heliMesh) {
+    heliMesh = makeHeliMesh();
+    scene.add(heliMesh);
+  }
+  heliMesh.visible = true;
+  const ground = heightAt(player.x, player.z);
+  heliMesh.position.set(player.x, player.y - 1.85, player.z);
+  heliMesh.rotation.y = heliYaw;
+  const spin = performance.now() * 0.018;
+  if (heliMesh.userData.rotor) heliMesh.userData.rotor.rotation.y = spin;
+  if (heliMesh.userData.rotor2) heliMesh.userData.rotor2.rotation.y = -spin * 1.02;
+  if (heliMesh.userData.beam) heliMesh.userData.beam.intensity = 26 + lastDark * 18;
 }
 
 function reload() {
@@ -4310,6 +4464,9 @@ function buy(it) {
     player.coins -= it.cost;
     player.bike = true;
     player.tank = false;
+    player.heli = false;
+    if (player.wep === "tank" || player.wep === "heli") equip("pistol");
+    player.bike = true;
   } else if (it.kind === "up") {
     if (it.id === "sprint") {
       if (stats.sprint) return true;
@@ -4540,6 +4697,17 @@ function drawShopIcon(ctx, it, x, y, s) {
   } else if (id === "tank") {
     ctx.fillRect(-s * 0.32, -s * 0.1, s * 0.64, s * 0.22);
     ctx.fillRect(-s * 0.08, -s * 0.06, s * 0.12, s * 0.4);
+  } else if (id === "heli") {
+    ctx.fillRect(-s * 0.28, -s * 0.06, s * 0.56, s * 0.16);
+    ctx.fillRect(s * 0.08, -s * 0.02, s * 0.28, s * 0.08);
+    ctx.fillRect(-s * 0.32, -s * 0.22, s * 0.64, s * 0.06);
+    ctx.fillStyle = "#ffe08a";
+    ctx.beginPath(); ctx.arc(0, s * 0.18, s * 0.08, 0, 7); ctx.fill();
+  } else if (id === "terra") {
+    ctx.fillRect(-s * 0.08, -s * 0.28, s * 0.16, s * 0.36);
+    ctx.fillRect(-s * 0.22, s * 0.04, s * 0.44, s * 0.16);
+    ctx.fillStyle = "#c4a574";
+    ctx.fillRect(-s * 0.18, s * 0.14, s * 0.36, s * 0.12);
   } else if (id === "ammo") {
     ctx.fillRect(-s * 0.22, -s * 0.18, s * 0.44, s * 0.4);
     ctx.fillStyle = "#f4f1ea";
@@ -4937,7 +5105,7 @@ function syncVrGun() {
 
 function pollXr() {
   const session = renderer.xr.getSession && renderer.xr.getSession();
-  if (!session) return { moveX: 0, moveY: 0, lookX: 0, jump: false, fire: false, fireTap: false, reload: false, shop: false, lClick: false, rClick: false, flash: false, cycle: false, menu: false, right: null };
+  if (!session) return { moveX: 0, moveY: 0, lookX: 0, lookY: 0, jump: false, fire: false, fireTap: false, reload: false, shop: false, lClick: false, rClick: false, flash: false, cycle: false, menu: false, right: null };
   for (const src of session.inputSources) {
     const h = hands.find((x) => x.handed === src.handedness) || (src.handedness === "left" ? hands[0] : hands[1]);
     const gp = src.gamepad;
@@ -4976,6 +5144,7 @@ function pollXr() {
     moveX: left ? left.axes[0] : 0,
     moveY: left ? left.axes[1] : 0,
     lookX: right ? right.axes[0] : 0,
+    lookY: right ? right.axes[1] : 0,
     jump: !!(right && right.aBtn && !right.aPrev),
     fire: !!(right && right.trigger),
     fireTap: !!(right && right.trigger && !right.triggerPrev),
@@ -4992,23 +5161,27 @@ function pollXr() {
 
 function physics(dt, xr) {
   let wishX = 0, wishZ = 0;
-  if (player.tank) {
+  if (player.tank || player.heli) {
+    const turn = player.heli ? heliYaw : tankYaw;
     if (xrOn) {
-      tankYaw -= (shopOpen ? 0 : xr.moveX) * 1.7 * dt;
+      const next = turn - (shopOpen ? 0 : xr.moveX) * (player.heli ? 1.45 : 1.7) * dt;
+      if (player.heli) heliYaw = next; else tankYaw = next;
       const fwd = shopOpen ? 0 : -xr.moveY;
-      wishX = -Math.sin(tankYaw) * fwd;
-      wishZ = -Math.cos(tankYaw) * fwd;
+      wishX = -Math.sin(next) * fwd;
+      wishZ = -Math.cos(next) * fwd;
       if (Math.abs(xr.lookX) > 0.18) yaw -= xr.lookX * 2.05 * dt;
       rig.rotation.y = yaw;
       rig.position.set(player.x, player.y - 1.6, player.z);
     } else {
-      if (keys.has("KeyA") || keys.has("ArrowLeft")) tankYaw += 1.8 * dt;
-      if (keys.has("KeyD") || keys.has("ArrowRight")) tankYaw -= 1.8 * dt;
+      let next = turn;
+      if (keys.has("KeyA") || keys.has("ArrowLeft")) next += (player.heli ? 1.5 : 1.8) * dt;
+      if (keys.has("KeyD") || keys.has("ArrowRight")) next -= (player.heli ? 1.5 : 1.8) * dt;
+      if (player.heli) heliYaw = next; else tankYaw = next;
       let fwd = 0;
       if (keys.has("KeyW") || keys.has("ArrowUp")) fwd += 1;
       if (keys.has("KeyS") || keys.has("ArrowDown")) fwd -= 1;
-      wishX = -Math.sin(tankYaw) * fwd;
-      wishZ = -Math.cos(tankYaw) * fwd;
+      wishX = -Math.sin(next) * fwd;
+      wishZ = -Math.cos(next) * fwd;
     }
   } else if (xrOn) {
     lookFlat();
@@ -5030,7 +5203,7 @@ function physics(dt, xr) {
   if (mag > 1) { wishX /= mag; wishZ /= mag; }
   const moving = mag > 0.12;
   if (player.sprintCdT > 0) player.sprintCdT -= dt;
-  if (stats.sprint && !player.tank && !shopOpen) {
+  if (stats.sprint && !player.tank && !player.heli && !shopOpen) {
     const inf = stats.sprintCd <= 0;
     if (inf) {
       if (xr.lClick || sprintQueued) { player.sprinting = !player.sprinting; sprintQueued = false; }
@@ -5051,12 +5224,12 @@ function physics(dt, xr) {
     }
   }
   player.mom = Math.max(0, player.mom - dt * 0.35);
-  let spd = (player.tank ? 4.6 : player.bike ? 9.4 : 6.4) * stats.speed * (shopOpen ? 0.12 : 1);
+  let spd = (player.heli ? 12.2 : player.tank ? 4.6 : player.bike ? 9.4 : 6.4) * stats.speed * (shopOpen ? 0.12 : 1);
   if (player.sprinting) spd *= 1.7 * (stats.sprintMul || 1);
   spd *= 1 + player.mom;
   player.vx = wishX * spd;
   player.vz = wishZ * spd;
-  const canJump = !player.tank && (player.grounded || player.jumpsLeft > 0);
+  const canJump = !player.tank && !player.heli && (player.grounded || player.jumpsLeft > 0);
   if ((jumpQueued || xr.jump) && canJump) {
     if (player.grounded) player.jumpsLeft = stats.jumps - 1;
     else player.jumpsLeft--;
@@ -5065,12 +5238,28 @@ function physics(dt, xr) {
     jumpQueued = false;
     if (player.sprinting && stats.wheelie) player.mom = Math.min(0.9, player.mom + 0.16);
   }
-  const grav = player.pounding && !player.grounded ? 88 : 22;
-  player.vy -= grav * dt;
   player.x += player.vx * dt;
   player.z += player.vz * dt;
-  player.y += player.vy * dt;
   const stand = heightAt(player.x, player.z, player.y) + 1.6;
+  if (player.heli) {
+    let climb = 0;
+    if (xrOn) {
+      if (xr.jump) climb += 1;
+      if (Math.abs(xr.lookY || 0) > 0.2) climb -= xr.lookY;
+    } else {
+      if (keys.has("Space") || keys.has("KeyQ")) climb += 1;
+      if (keys.has("ShiftLeft") || keys.has("KeyE")) climb -= 1;
+    }
+    const floor = stand + 0.55;
+    player.y += climb * 8.8 * dt;
+    player.y = clamp(player.y, floor, floor + 26);
+    player.vy = 0;
+    player.grounded = false;
+    jumpQueued = false;
+  } else {
+  const grav = player.pounding && !player.grounded ? 88 : 22;
+  player.vy -= grav * dt;
+  player.y += player.vy * dt;
   const wasAir = !player.grounded;
   if (player.y <= stand) {
     if (wasAir && player.pounding) {
@@ -5085,6 +5274,7 @@ function physics(dt, xr) {
     player.jumpsLeft = stats.jumps;
   } else {
     player.grounded = false;
+  }
   }
   if (player.bike) {
     if (!bikeMesh) { bikeMesh = makeBikeMesh(); scene.add(bikeMesh); }
@@ -5125,7 +5315,7 @@ function placeDesktopGun() {
     camera.add(gunMesh);
     gunMesh.position.set(0.18, -0.14, -0.32);
   }
-  gunMesh.visible = !xrOn;
+  gunMesh.visible = !xrOn && !player.heli && !player.tank;
 }
 
 function tickMelee(dt) {
@@ -5175,7 +5365,7 @@ function doFire(xr) {
   const { origin, quat, dir } = aimFromGun(xr);
   const stand = heightAt(player.x, player.z, player.y) + 1.6;
   const airborne = !player.grounded && player.y > stand + 0.55;
-  player.pounding = !!(airborne && !player.tank && dir.y < -0.62);
+  player.pounding = !!(airborne && !player.tank && !player.heli && dir.y < -0.62);
   fireFrom(origin, quat);
 }
 
@@ -5215,7 +5405,7 @@ function loop() {
     if (bannerSpr) bannerSpr.material.opacity = clamp(announcing, 0, 1);
     if (announcing <= 0) hideBanner();
   }
-  const xr = xrOn ? pollXr() : { moveX: 0, moveY: 0, lookX: 0, jump: false, fire: false, fireTap: false, reload: false, shop: false, lClick: false, rClick: false, flash: false, cycle: false, menu: false, right: null };
+  const xr = xrOn ? pollXr() : { moveX: 0, moveY: 0, lookX: 0, lookY: 0, jump: false, fire: false, fireTap: false, reload: false, shop: false, lClick: false, rClick: false, flash: false, cycle: false, menu: false, right: null };
   if (xr.menu) toggleMainMenu();
   if (!dead && !menuOpen && xr.shop) toggleShop();
   if (!dead && !menuOpen && xr.reload) reload();
@@ -5255,6 +5445,7 @@ function loop() {
       tickBalls(dt);
       tickMeteors(dt);
       tickTank();
+      tickHeli();
       tickDebris(dt);
       tickLoot(dt);
       tickAmmoField(dt);
