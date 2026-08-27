@@ -1,127 +1,188 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="robots" content="noindex, nofollow" />
-  <title>Blockbuild — $5 workshop</title>
-  <link rel="icon" type="image/png" href="/images/logo.png" />
-  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Outfit:wght@400;500;600&display=swap" rel="stylesheet" />
-  <style>
-    :root { --sky:#b8d4f0; --ink:#1c1e24; --mute:#4a5564; --gold:#e6b35c; --brick:#c91a09; }
-    * { box-sizing: border-box; }
-    html, body { margin: 0; min-height: 100%; background: var(--sky); color: var(--ink); font-family: Outfit, system-ui, sans-serif; }
-    body {
-      min-height: 100vh;
-      background:
-        radial-gradient(ellipse at 70% 12%, rgba(245,205,47,.2), transparent 48%),
-        radial-gradient(ellipse at 12% 88%, rgba(201,26,9,.12), transparent 46%),
-        var(--sky);
-    }
-    .wrap {
-      display: grid;
-      grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
-      gap: 22px;
-      max-width: 1120px;
-      margin: 0 auto;
-      padding: 28px 18px 40px;
-      align-items: start;
-    }
-    @media (max-width: 820px) { .wrap { grid-template-columns: 1fr; } }
-    .stage {
-      position: relative;
-      border-radius: 16px;
-      overflow: hidden;
-      border: 1px solid rgba(28,30,36,.1);
-      background: #9ec4ea;
-      box-shadow: 0 18px 40px rgba(28,30,36,.12);
-      aspect-ratio: 16 / 10;
-    }
-    .stage iframe, .stage video {
-      position: absolute; inset: 0; width: 100%; height: 100%;
-      border: 0; pointer-events: none; background: #9ec4ea;
-    }
-    .badge {
-      position: absolute; top: 12px; left: 12px; z-index: 2;
-      font-size: 11px; letter-spacing: .16em; text-transform: uppercase;
-      background: rgba(28,30,36,.78); color: #fff; padding: 6px 10px; border-radius: 999px;
-      font-weight: 600;
-    }
-    .card {
-      background: rgba(255,255,255,.78);
-      border: 1px solid rgba(28,30,36,.08);
-      border-radius: 16px;
-      padding: 26px 24px 22px;
-    }
-    .kicker { margin: 0; letter-spacing: .22em; text-transform: uppercase; font-size: 11px; color: var(--gold); font-weight: 700; }
-    h1 { font-family: Fredoka, sans-serif; font-size: clamp(2.2rem, 6vw, 3.2rem); margin: 8px 0 10px; line-height: .95; }
-    p { margin: 0 0 12px; color: var(--mute); line-height: 1.5; }
-    .price { font-family: Fredoka, sans-serif; font-size: 2rem; color: var(--brick); margin: 8px 0 14px; }
-    button {
-      appearance: none; border: 0; cursor: pointer;
-      background: var(--brick); color: #fff;
-      font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
-      padding: 14px 18px; border-radius: 10px; width: 100%; font-size: 14px;
-    }
-    button:hover { filter: brightness(1.08); }
-    button:disabled { opacity: .55; cursor: wait; }
-    .err { color: #c91a09; font-size: 13px; min-height: 1.2em; }
-    .fine { font-size: 12px; color: #6a7380; margin-top: 12px; }
-    a { color: var(--ink); }
-  </style>
-</head>
-<body>
-  <div class="wrap">
-    <div class="stage">
-      <span class="badge">AI demo · labeled controls</span>
-      <video id="demo-vid" autoplay muted loop playsinline poster="/games/blockbuild/demo-poster.jpg">
-        <source src="/games/blockbuild/demo.webm" type="video/webm" />
-        <source src="/games/blockbuild/demo.mp4" type="video/mp4" />
-      </video>
-      <iframe id="live" title="Blockbuild demo" src="/games/blockbuild/index.html?demo=loop" allow="autoplay"></iframe>
-    </div>
-    <div class="card">
-      <p class="kicker">Future Music Collective</p>
-      <h1>Blockbuild</h1>
-      <p>Fly an empty sky. Snap studded bricks. Interlock, melt, cannon, minifigs — desktop and VR.</p>
-      <div class="price">It's only $5</div>
-      <p>One-time unlock on this website. No subscription.</p>
-      <button type="button" id="buy">Unlock Blockbuild — $5</button>
-      <p class="err" id="err"></p>
-      <p class="fine">Home network skips the paygate automatically. <a href="/projects">Projects</a></p>
+<%- include('partials/header') %>
+
+<style>
+  .bb-bleed {
+    width: 100vw;
+    margin-left: calc(50% - 50vw);
+    margin-right: calc(50% - 50vw);
+  }
+  .bb-stage {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background: #9ec4ea;
+    overflow: hidden;
+  }
+  .bb-stage video,
+  .bb-stage iframe {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    pointer-events: none;
+    background: #9ec4ea;
+    object-fit: cover;
+  }
+  .bb-badge {
+    position: absolute;
+    top: 14px;
+    left: 14px;
+    z-index: 2;
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    background: rgba(5, 5, 5, 0.78);
+    color: #fff;
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-weight: 700;
+    border: 1px solid rgba(212, 175, 55, 0.35);
+  }
+  .bb-buy {
+    background: rgba(10, 10, 10, 0.88);
+    border: 1px solid rgba(212, 175, 55, 0.45);
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45), 0 0 40px rgba(212, 175, 55, 0.08);
+  }
+  .bb-buy .kicker {
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    font-size: 11px;
+    color: #D4AF37;
+    font-weight: 700;
+    margin: 0 0 8px;
+  }
+  .bb-price {
+    font-family: Cinzel, serif;
+    font-size: clamp(2rem, 5vw, 3.1rem);
+    color: #D4AF37;
+    line-height: 1;
+    margin: 10px 0 12px;
+  }
+  .bb-buy-btn {
+    appearance: none;
+    border: 0;
+    cursor: pointer;
+    background: linear-gradient(45deg, #AA8C2C, #D4AF37);
+    color: #000;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 16px 28px;
+    border-radius: 4px;
+    font-size: 14px;
+    width: 100%;
+  }
+  .bb-buy-btn:hover { filter: brightness(1.08); }
+  .bb-buy-btn:disabled { opacity: 0.55; cursor: wait; }
+  .bb-err { color: #f87171; font-size: 13px; min-height: 1.2em; margin: 10px 0 0; }
+  .bb-stop {
+    background:
+      radial-gradient(ellipse at 50% 0%, rgba(180, 20, 20, 0.28), transparent 58%),
+      linear-gradient(180deg, #140404 0%, #070000 100%);
+    border-top: 1px solid rgba(201, 26, 9, 0.55);
+    border-bottom: 1px solid rgba(212, 175, 55, 0.22);
+  }
+  .bb-stop h2 {
+    font-family: Cinzel, serif;
+    font-size: clamp(2.1rem, 7vw, 4.4rem);
+    line-height: 0.95;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #D4AF37;
+    text-shadow: 0 0 28px rgba(201, 26, 9, 0.45);
+    margin: 8px 0 20px;
+  }
+</style>
+
+<section class="bb-bleed -mt-0">
+  <div class="bb-stage">
+    <span class="bb-badge">AI demo · labeled controls · 30s</span>
+    <video id="demo-vid" autoplay muted loop playsinline preload="auto" poster="/games/blockbuild/demo-poster.jpg?v=bb19">
+      <source src="/games/blockbuild/demo.webm?v=bb19" type="video/webm" />
+      <source src="/games/blockbuild/demo.mp4?v=bb19" type="video/mp4" />
+    </video>
+    <iframe id="live" title="Blockbuild demo" src="/games/blockbuild/index.html?demo=loop" allow="autoplay"></iframe>
+  </div>
+</section>
+
+<section class="max-w-6xl mx-auto my-10 sm:my-14 px-1 sm:px-0">
+  <div class="bb-buy rounded-xl p-8 md:p-12">
+    <div class="grid grid-cols-1 md:grid-cols-5 gap-8 md:gap-12 items-center">
+      <div class="md:col-span-3">
+        <p class="kicker">Future Music Collective · Workshop</p>
+        <h1 class="text-4xl md:text-6xl text-gold brand-font uppercase tracking-wide m-0">Blockbuild</h1>
+        <p class="text-gray-300 text-lg leading-relaxed mt-4 mb-0">
+          Fly an empty sky. Snap studded bricks. Interlock, melt, cannon, minifigs — desktop and VR.
+        </p>
+        <div class="bb-price">It&rsquo;s only $9.99</div>
+        <p class="text-gray-400 m-0">One-time unlock on this website. No subscription.</p>
+      </div>
+      <div class="md:col-span-2">
+        <button type="button" id="buy" class="bb-buy-btn">Unlock Blockbuild — $9.99</button>
+        <p class="bb-err" id="err"></p>
+        <p class="text-gray-500 text-sm mt-4 mb-0 leading-relaxed">
+          Home network skips the paygate automatically.
+          <a href="/projects" class="text-[#D4AF37] hover:text-white">Projects</a>
+        </p>
+      </div>
     </div>
   </div>
-  <script>
-    (function () {
-      var vid = document.getElementById("demo-vid");
-      var live = document.getElementById("live");
-      function hideLive() { if (live) live.style.display = "none"; }
-      function hideVid() { if (vid) vid.style.display = "none"; }
-      if (vid) {
-        vid.addEventListener("loadeddata", function () {
-          if (vid.videoWidth > 0) hideLive();
-        });
-        vid.addEventListener("error", hideVid);
-        setTimeout(function () {
-          if (!vid.videoWidth) hideVid();
-        }, 1200);
+</section>
+
+<section class="bb-bleed bb-stop">
+  <div class="max-w-5xl mx-auto px-6 sm:px-8 py-16 sm:py-20">
+    <p class="text-[#f87171] text-xs font-bold tracking-[0.28em] uppercase mb-3">Advocacy</p>
+    <h2>Stop school shootings!</h2>
+    <div class="space-y-5 text-gray-200 text-lg md:text-xl leading-relaxed max-w-4xl">
+      <p>
+        The United States has the highest rate of mass shootings compared to the next 22 developed countries combined.
+      </p>
+      <p>
+        That is not an accident of geography. It has to do in large degree with brain-inflaming products, toxic media,
+        and government-paid actor children trained to provoke other disadvantaged children — using presence and
+        love-bombing technique in early puberty, then social ostracization plays — in order to cause political chaos
+        that benefits the existence of a defunct and satanic government.
+      </p>
+      <p class="text-gray-400 text-base">
+        Protect kids. Starve the theater.
+        <a href="/advocacy" class="text-[#D4AF37] hover:text-white">Read the platform</a>.
+      </p>
+    </div>
+  </div>
+</section>
+
+<script>
+  (function () {
+    var vid = document.getElementById("demo-vid");
+    var live = document.getElementById("live");
+    function hideLive() { if (live) live.style.display = "none"; }
+    function hideVid() { if (vid) vid.style.display = "none"; }
+    if (vid) {
+      vid.addEventListener("loadeddata", function () {
+        if (vid.videoWidth > 0) hideLive();
+      });
+      vid.addEventListener("error", hideVid);
+      setTimeout(function () {
+        if (!vid.videoWidth) hideVid();
+      }, 1400);
+    }
+    document.getElementById("buy").onclick = async function () {
+      var err = document.getElementById("err");
+      var btn = this;
+      err.textContent = "";
+      btn.disabled = true;
+      try {
+        var res = await fetch("/api/blockbuild/checkout", { method: "POST", headers: { "content-type": "application/json" }, body: "{}" });
+        var data = await res.json();
+        if (data.url) { location.href = data.url; return; }
+        err.textContent = data.error || "Checkout could not start.";
+      } catch (e) {
+        err.textContent = "Checkout is available on futuremusic.online.";
       }
-      document.getElementById("buy").onclick = async function () {
-        var err = document.getElementById("err");
-        var btn = this;
-        err.textContent = "";
-        btn.disabled = true;
-        try {
-          var res = await fetch("/api/blockbuild/checkout", { method: "POST", headers: { "content-type": "application/json" }, body: "{}" });
-          var data = await res.json();
-          if (data.url) { location.href = data.url; return; }
-          err.textContent = data.error || "Checkout could not start.";
-        } catch (e) {
-          err.textContent = "Checkout is available on futuremusic.online.";
-        }
-        btn.disabled = false;
-      };
-    })();
-  </script>
-</body>
-</html>
+      btn.disabled = false;
+    };
+  })();
+</script>
+
+<%- include('partials/footer') %>

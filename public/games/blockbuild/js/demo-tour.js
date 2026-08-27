@@ -1,4 +1,4 @@
-/** Scripted AI workshop tour with on-screen control labels. */
+/** Scripted AI workshop tour: slow orbit + a little house, ~30 seconds. */
 
 function demoOn() {
   const q = new URLSearchParams(location.search);
@@ -43,7 +43,7 @@ async function recordStart() {
   }
   if (!mime) return null;
   const stream = canvas.captureStream(30);
-  const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 2_800_000 });
+  const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 3_200_000 });
   const chunks = [];
   rec.ondataavailable = (e) => {
     if (e.data && e.data.size) chunks.push(e.data);
@@ -64,99 +64,120 @@ async function recordStop(job) {
   return blob;
 }
 
-async function tour(bb) {
+function hideChrome() {
   const start = document.getElementById("start");
   if (start) start.style.display = "none";
-  document.querySelectorAll("body > button").forEach((b) => {
-    if (/XR|VR/i.test(b.textContent || "")) b.style.display = "none";
-  });
   document.getElementById("hud")?.setAttribute("data-demo", "1");
-  bb.setLook(0.18, -0.72);
-  bb.setRig(0.0, 1.22, 0.38);
+  const killXr = () => {
+    document.querySelectorAll("body > button, #XRButton, .xr-button").forEach((b) => {
+      b.style.setProperty("display", "none", "important");
+    });
+  };
+  killXr();
+  if (!hideChrome._xr) {
+    hideChrome._xr = setInterval(killXr, 250);
+  }
+}
+
+/**
+ * Desktop camera sits at local (0, 1.55, 0) on the rig.
+ * Keep rig.y near 0 so the camera is only a little above the table and
+ * the house reads in 3/4 instead of top-down.
+ */
+function aimHouse(bb, a, radius) {
+  const tz = -0.35;
+  const x = Math.sin(a) * radius;
+  const z = tz + Math.cos(a) * radius;
+  bb.setRig(x, 0.06, z);
+  bb.setLook(a, -0.56);
+}
+
+function startOrbit(bb, durationMs) {
+  let running = true;
+  const t0 = performance.now();
+  const task = (async () => {
+    while (running) {
+      const t = performance.now() - t0;
+      const u = Math.min(1, t / durationMs);
+      const eased = u * u * (3 - 2 * u);
+      const a = -0.40 + eased * 2.20;
+      const radius = 0.42 - Math.sin(u * Math.PI) * 0.10;
+      aimHouse(bb, a, radius);
+      await sleep(16);
+    }
+  })();
+  return {
+    stop() { running = false; },
+    done: task,
+  };
+}
+
+async function place(bb, dim, kind, col, gx, gy, gz, r, wait) {
+  bb.setKind(kind);
+  bb.setDim(dim);
+  bb.setColor(col);
+  bb.setRot(r);
+  bb.put(dim, kind, col, gx, gy, gz, r);
+  await sleep(wait);
+}
+
+async function tour(bb) {
+  hideChrome();
+  bb.clearWorld();
   bb.setScale(8);
   bb.setPieceScale(1);
   bb.setGravity(true);
 
-  label("WASD · fly", "Move around the table");
+  const DURATION = 30000;
+  const orbit = startOrbit(bb, DURATION);
   const t0 = performance.now();
-  while (performance.now() - t0 < 1400) {
-    const u = (performance.now() - t0) / 1400;
-    bb.setRig(0.0, 1.22 - u * 0.04, 0.38 - u * 0.06);
-    bb.setLook(0.18 + u * 0.12, -0.72 + u * 0.08);
-    await sleep(16);
-  }
 
-  label("Click · place", "Snap a 2×4 brick to the studs");
-  bb.setKind("brick");
-  bb.setDim("2x4");
-  bb.setColor("red");
-  bb.setRot(0);
-  for (let i = 0; i < 4; i++) {
-    bb.put("2x4", "brick", "red", -4 + i * 4, 0, -2, 0);
-    await sleep(320);
-  }
+  label("WASD · fly", "Slow orbit around the workshop table");
+  await sleep(2400);
 
-  label("X · rotate", "Turn the next piece 90°");
-  bb.setRot(1);
-  bb.setColor("blue");
-  for (let i = 0; i < 3; i++) {
-    bb.put("2x4", "brick", "blue", 12, 0, -2 + i * 4, 1);
-    await sleep(340);
-  }
+  label("Click · place", "An 8×8 plate for the house floor");
+  await place(bb, "8x8", "plate", "tan", -4, 0, -4, 0, 1500);
 
-  label("C · color  ·  V · size", "Blue wall, then a yellow 2×2");
-  bb.setDim("2x2");
-  bb.setColor("yellow");
-  bb.setRot(0);
-  bb.put("2x2", "brick", "yellow", -4, 3, -2, 0);
-  await sleep(400);
-  bb.put("2x2", "brick", "yellow", 0, 3, -2, 0);
-  await sleep(400);
-  bb.put("2x2", "brick", "yellow", 4, 3, -2, 0);
-  await sleep(450);
+  label("Click · place", "Snap 2×4 bricks into a little house");
+  await place(bb, "2x4", "brick", "red", -4, 1, -4, 1, 820);
+  await place(bb, "2x2", "brick", "red", 2, 1, -4, 0, 820);
 
-  label("T · piece scale", "1× then 2× bricks");
-  bb.setPieceScale(2);
-  bb.setDim("2x4");
-  bb.setColor("green");
-  bb.put("2x4", "brick", "green", -8, 0, 6, 0);
-  await sleep(500);
-  bb.setPieceScale(1);
-  label("Slopes & plates", "Roof tiles and a base");
-  bb.setKind("slope");
-  bb.setDim("2x4");
-  bb.setColor("orange");
-  bb.put("2x4", "slope", "orange", -4, 6, -2, 0);
-  await sleep(280);
-  bb.put("2x4", "slope", "orange", 0, 6, -2, 0);
-  await sleep(280);
-  bb.put("2x4", "slope", "orange", 4, 6, -2, 0);
-  await sleep(400);
-  bb.setKind("plate");
-  bb.setColor("lime");
-  bb.put("2x8", "plate", "lime", -4, 0, 4, 0);
-  await sleep(450);
+  label("X · rotate", "Turn wall pieces 90° for the sides");
+  await place(bb, "2x4", "brick", "red", -4, 1, -2, 0, 820);
+  await place(bb, "2x4", "brick", "red", 2, 1, -2, 0, 820);
+  await place(bb, "2x4", "brick", "red", -4, 1, 2, 1, 820);
+  await place(bb, "2x4", "brick", "red", 0, 1, 2, 1, 900);
 
-  label("Fig · minifigure", "Place a little builder");
-  bb.placeFig(-0.02, 0.02);
-  await sleep(700);
+  label("C · color  ·  V · size", "Second storey in yellow");
+  await place(bb, "2x4", "brick", "yellow", -4, 4, -4, 1, 780);
+  await place(bb, "2x4", "brick", "yellow", 0, 4, -4, 1, 780);
+  await place(bb, "2x4", "brick", "yellow", -4, 4, -2, 0, 780);
+  await place(bb, "2x4", "brick", "yellow", 2, 4, -2, 0, 780);
+  await place(bb, "2x4", "brick", "yellow", -4, 4, 2, 1, 780);
+  await place(bb, "2x4", "brick", "yellow", 0, 4, 2, 1, 900);
 
-  label("P · dump a pile", "Loose bricks bounce on the table");
-  bb.spawnPile();
-  await sleep(1400);
+  label("Slopes · roof", "Orange roof tiles on the little house");
+  await place(bb, "4x4", "slope", "orange", -4, 7, -4, 0, 900);
+  await place(bb, "4x4", "slope", "orange", 0, 7, -4, 0, 900);
+  await place(bb, "4x4", "slope", "orange", -4, 7, 0, 2, 900);
+  await place(bb, "4x4", "slope", "orange", 0, 7, 0, 2, 1100);
 
-  label("Orbit", "Look around the workshop");
-  const t1 = performance.now();
-  while (performance.now() - t1 < 2600) {
-    const u = (performance.now() - t1) / 2600;
-    const a = 0.18 + u * 1.05;
-    bb.setLook(a, -0.68);
-    bb.setRig(Math.sin(a) * 0.12, 1.2, 0.32 + Math.cos(a) * 0.06);
-    await sleep(16);
-  }
-
-  label("Blockbuild", "Desktop + VR  ·  $5 on the website");
+  label("Fig · minifigure", "A builder in front of the door");
+  bb.setColor("brown");
+  await place(bb, "1x2", "brick", "brown", 1, 10, 1, 0, 700);
+  bb.placeFig(0.008, -0.058);
   await sleep(1600);
+
+  label("Orbit", "House stays in the center of the camera");
+  const used = performance.now() - t0;
+  const rest = Math.max(2200, DURATION - used - 1800);
+  await sleep(rest);
+
+  label("Blockbuild", "Desktop + VR  ·  $9.99 on the website");
+  await sleep(1800);
+
+  orbit.stop();
+  await orbit.done;
 }
 
 async function boot() {

@@ -1834,6 +1834,10 @@ function tickPhysicsInner(dt) {
 }
 
 function updateGhost() {
+  if (document.getElementById("hud")?.getAttribute("data-demo") === "1") {
+    if (ghost) ghost.visible = false;
+    return;
+  }
   if (handMode === "hands" || !ghost) {
     if (ghost) ghost.visible = false;
     if (held) {

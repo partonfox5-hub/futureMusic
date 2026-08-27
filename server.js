@@ -422,7 +422,7 @@ app.get(["/blockbuild", "/blockbuild/"], (req, res) => {
 });
 
 const BLOCKBUILD_SKU = "blockbuild-workshop";
-const BLOCKBUILD_PRICE_CENTS = 500;
+const BLOCKBUILD_PRICE_CENTS = 999;
 const BLOCKBUILD_COOKIE = "bb_unlock";
 function blockbuildToken() {
     const secret = process.env.SESSION_SECRET || "dev_secret_key_123";
@@ -456,8 +456,7 @@ function sendBlockbuildPlay(res) {
 }
 app.get(["/bricks", "/bricks/"], (req, res) => {
     if (hasBlockbuild(req)) return res.redirect(302, "/bricks/play");
-    res.setHeader("X-Robots-Tag", "noindex, nofollow");
-    res.render("bricks", { title: "Blockbuild — $5 workshop", paid: false });
+    res.render("bricks", { ...seo.page("bricks"), paid: false });
 });
 app.get(["/bricks/play", "/bricks/play/"], async (req, res) => {
     const sessionId = String(req.query.session_id || "");
@@ -489,7 +488,7 @@ app.post("/api/blockbuild/checkout", async (req, res) => {
                     unit_amount: BLOCKBUILD_PRICE_CENTS,
                     product_data: {
                         name: "Blockbuild — workshop",
-                        description: "Unlock the stud-brick workshop. Desktop + VR. One-time $5.",
+                        description: "Unlock the stud-brick workshop. Desktop + VR. One-time $9.99.",
                     },
                 },
                 quantity: 1,
