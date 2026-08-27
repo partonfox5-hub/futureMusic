@@ -421,6 +421,91 @@ app.get(["/blockbuild", "/blockbuild/"], (req, res) => {
     res.sendFile(path.join(__dirname, "public", "games", "blockbuild", "index.html"));
 });
 
+const BLOCKBUILD_SKU = "blockbuild-workshop";
+const BLOCKBUILD_PRICE_CENTS = 500;
+const BLOCKBUILD_COOKIE = "bb_unlock";
+function blockbuildToken() {
+    const secret = process.env.SESSION_SECRET || "dev_secret_key_123";
+    return crypto.createHmac("sha256", secret).update(BLOCKBUILD_SKU).digest("hex").slice(0, 32);
+}
+function grantBlockbuild(req, res) {
+    if (req.session) req.session.blockbuildPaid = true;
+    res.cookie(BLOCKBUILD_COOKIE, blockbuildToken(), {
+        httpOnly: true,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+        maxAge: 10 * 365 * 24 * 60 * 60 * 1000,
+        path: "/",
+    });
+}
+function hasBlockbuild(req) {
+    if (homeGate.isHomeLan(req)) return true;
+    if (req.session && req.session.blockbuildPaid) return true;
+    const raw = String(req.headers.cookie || "");
+    for (const part of raw.split(";")) {
+        const idx = part.indexOf("=");
+        if (idx < 0) continue;
+        const k = part.slice(0, idx).trim();
+        if (k === BLOCKBUILD_COOKIE) return decodeURIComponent(part.slice(idx + 1).trim()) === blockbuildToken();
+    }
+    return false;
+}
+function sendBlockbuildPlay(res) {
+    blockbuildHeaders(res);
+    res.sendFile(path.join(__dirname, "public", "games", "blockbuild", "index.html"));
+}
+app.get(["/bricks", "/bricks/"], (req, res) => {
+    if (hasBlockbuild(req)) return res.redirect(302, "/bricks/play");
+    res.setHeader("X-Robots-Tag", "noindex, nofollow");
+    res.render("bricks", { title: "Blockbuild — $5 workshop", paid: false });
+});
+app.get(["/bricks/play", "/bricks/play/"], async (req, res) => {
+    const sessionId = String(req.query.session_id || "");
+    if (sessionId && stripe) {
+        try {
+            const session = await stripe.checkout.sessions.retrieve(sessionId);
+            if (session.payment_status === "paid" && session.metadata?.sku === BLOCKBUILD_SKU) {
+                grantBlockbuild(req, res);
+            }
+        } catch (e) {
+            console.warn("[BLOCKBUILD] verify:", e.message);
+        }
+    }
+    if (!hasBlockbuild(req)) return res.redirect(302, "/bricks");
+    sendBlockbuildPlay(res);
+});
+app.post("/api/blockbuild/checkout", async (req, res) => {
+    if (!stripe) return res.status(503).json({ error: "Payments are not configured." });
+    try {
+        const protocol = req.headers["x-forwarded-proto"] || req.protocol;
+        const host = req.get("host");
+        const domain = `${protocol}://${host}`;
+        const session = await stripe.checkout.sessions.create({
+            payment_method_types: ["card"],
+            mode: "payment",
+            line_items: [{
+                price_data: {
+                    currency: "usd",
+                    unit_amount: BLOCKBUILD_PRICE_CENTS,
+                    product_data: {
+                        name: "Blockbuild — workshop",
+                        description: "Unlock the stud-brick workshop. Desktop + VR. One-time $5.",
+                    },
+                },
+                quantity: 1,
+            }],
+            metadata: { sku: BLOCKBUILD_SKU, type: "blockbuild_unlock" },
+            success_url: `${domain}/bricks/play?session_id={CHECKOUT_SESSION_ID}`,
+            cancel_url: `${domain}/bricks`,
+            customer_email: req.session.email || undefined,
+        });
+        res.json({ url: session.url, sessionId: session.id });
+    } catch (e) {
+        console.error("[BLOCKBUILD] checkout", e);
+        res.status(500).json({ error: e.message || "Checkout failed" });
+    }
+});
+
 // PLANMORPHER — original VR god-game. Canonical URL is /planmorpher.
 function planmorpherHeaders(res) {
     res.setHeader("Permissions-Policy", "xr-spatial-tracking=(self), fullscreen=(self), gamepad=(self), accelerometer=(self), gyroscope=(self), magnetometer=(self)");
@@ -2733,7 +2818,9 @@ app.post('/webhook', express.raw({type: 'application/json'}), async (request, re
 
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object;
-    if(session.metadata && session.metadata.type === 'skin_purchase') {
+    if (session.metadata && session.metadata.type === "blockbuild_unlock") {
+        console.log("[BLOCKBUILD] paid", session.id);
+    } else if(session.metadata && session.metadata.type === 'skin_purchase') {
         if(pool) {
             await pool.query("INSERT IGNORE INTO user_skins (user_id, skin_id) VALUES (?, ?)", 
                 [session.metadata.userId, session.metadata.skinId]);

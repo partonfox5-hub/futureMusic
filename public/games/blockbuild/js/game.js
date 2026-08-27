@@ -2875,12 +2875,42 @@ setHud();
 
 window.__bb = {
   bricks, figs, beacons, spawnPile, setScale, addBrick, saveSlot, loadSlot, clearWorld,
-  catalog, hexPicker, sizeSlider, roomAt, placeBeacon,
+  catalog, hexPicker, sizeSlider, roomAt, placeBeacon, beginDesktop, cyclePieceSize, setGravity,
   placeFig: (x, z) => addFigAt(new THREE.Vector3(x || 0, 0, z || 0), 0),
   openCatalog: () => { catalog.fill(); spawnWorldPanel(catalog.root, 0.9); },
   openHex: () => spawnWorldPanel(hexPicker.root, 0.7),
   openSlider: () => showSizeSlider(false),
   setPieceScale: (s) => { applyPieceScale(s); rebuildGhost(); },
+  setLook(yaw, pitch) {
+    lookYaw = yaw;
+    lookPitch = THREE.MathUtils.clamp(pitch, -1.2, 1.2);
+    rig.rotation.y = lookYaw;
+    camera.rotation.x = lookPitch;
+    camera.rotation.order = "YXZ";
+  },
+  setRig(x, y, z) { rig.position.set(x, y, z); },
+  setColor(id) {
+    const i = COLORS.findIndex((c) => c.id === id);
+    if (i >= 0) colorI = i;
+    rebuildGhost();
+    setHud();
+  },
+  setKind(id) {
+    const i = KINDS.findIndex((k) => k.id === id);
+    if (i >= 0) kindI = i;
+    rebuildGhost();
+    setHud();
+  },
+  setDim(id) {
+    const i = DIMS.findIndex((d) => d.id === id);
+    if (i >= 0) dimI = i;
+    rebuildGhost();
+    setHud();
+  },
+  setRot(r) { rot = ((r % 4) + 4) % 4; rebuildGhost(); },
+  put(dim, kind, col, gx, gy, gz, r) {
+    return addBrick(shapeSpec(dimOf(dim), kind), colorOf(col), gx, gy || 0, gz, r || 0, false);
+  },
   get scale() { return worldScale; },
   get pieceScale() { return pieceScale; },
   get gravity() { return gravityOn; },
