@@ -1,10 +1,10 @@
 /** Procedural colored robots with movement + attack styles. */
 import * as THREE from "three";
-import { ENEMIES, ENEMY_BY_ID } from "./config.js?v=zm11";
-import { hurtFoe } from "./weapons.js?v=zm11";
-import { floorY, sdf3 } from "./map.js?v=zm11";
-import { wallBlocked } from "./world.js?v=zm11";
-import { sfx } from "./sfx.js?v=zm11";
+import { CELL, ENEMIES, ENEMY_BY_ID } from "./config.js?v=zm12";
+import { hurtFoe } from "./weapons.js?v=zm12";
+import { addSphere, floorY, getShape, getTex, sdf3, stampDisk } from "./map.js?v=zm12";
+import { wallBlocked } from "./world.js?v=zm12";
+import { sfx } from "./sfx.js?v=zm12";
 
 /** Doom-like kinematic chase: hold a heading, zigzag, flank, and dodge without becoming unhittable. */
 export function doomSteer(u, dx, dz, dist, dt, baseSpd, player) {
@@ -83,17 +83,23 @@ function makeMinotaur(def) {
   hip.scale.set(1.15, 0.55, 0.85);
   hip.position.y = 0.72 * s;
   g.add(hip);
+  const thighs = [];
+  const shins = [];
+  const hooves = [];
   for (const sx of [-0.22, 0.22]) {
     const thigh = new THREE.Mesh(new THREE.CapsuleGeometry(0.11 * s, 0.32 * s, 6, 12), hide);
     thigh.position.set(sx * s, 0.42 * s, 0);
     g.add(thigh);
+    thighs.push(thigh);
     const shin = new THREE.Mesh(new THREE.CapsuleGeometry(0.09 * s, 0.22 * s, 6, 12), hide);
     shin.position.set(sx * s, 0.16 * s, 0.03 * s);
     g.add(shin);
+    shins.push(shin);
     const hoof = new THREE.Mesh(new THREE.SphereGeometry(0.12 * s, 12, 10), mat(0x1a120c));
     hoof.scale.set(1, 0.55, 1.25);
     hoof.position.set(sx * s, 0.05 * s, 0.05 * s);
     g.add(hoof);
+    hooves.push(hoof);
   }
   const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.32 * s, 0.42 * s, 8, 16), hide);
   torso.position.y = 1.18 * s;
@@ -102,13 +108,17 @@ function makeMinotaur(def) {
   pec.scale.set(1.35, 0.55, 0.55);
   pec.position.set(0, 1.28 * s, 0.16 * s);
   g.add(pec);
+  const arms = [];
+  const fists = [];
   for (const sx of [-0.48, 0.48]) {
     const arm = new THREE.Mesh(new THREE.CapsuleGeometry(0.09 * s, 0.42 * s, 6, 12), hide);
     arm.position.set(sx * s, 1.12 * s, 0);
     g.add(arm);
+    arms.push(arm);
     const fist = new THREE.Mesh(new THREE.SphereGeometry(0.12 * s, 12, 10), hide);
     fist.position.set(sx * s, 0.78 * s, 0.06 * s);
     g.add(fist);
+    fists.push(fist);
   }
   const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.16 * s, 0.2 * s, 0.16 * s, 16), hide);
   neck.position.y = 1.58 * s;
@@ -139,8 +149,102 @@ function makeMinotaur(def) {
   g.userData = {
     foe: true, robot: true, def, kind: def.id, hp: def.hp, maxHp: def.hp,
     hitR: 0.7 * s, flash: 0, cool: 0, phase: Math.random() * 6.28, baseH: 2.1 * s, aggro: false,
+    grounded: true, vy: 0, lvx: 0, lvz: 0, jumpCd: 0.4, anim: "idle", animT: 0,
+    limbs: { s, hip, torso, head, thighs, shins, hooves, arms, fists },
   };
   return g;
+}
+
+function headroomAt(x, z, fy, map, sdf2, maxH) {
+  let clear = 0.35;
+  const cap = Math.max(1.2, maxH || 8);
+  for (let h = 0.45; h <= cap; h += 0.22) {
+    if (sdf3(x, fy + h, z, map, sdf2) > -0.1) break;
+    clear = h;
+  }
+  return clear;
+}
+
+function digDungeonWall(map, wx, wy, wz, nx, nz) {
+  const px = wx + nx * 0.7;
+  const pz = wz + nz * 0.7;
+  const gx = px / CELL;
+  const gz = pz / CELL;
+  const ix = Math.max(1, Math.min(map.w - 2, Math.round(gx)));
+  const iz = Math.max(1, Math.min(map.h - 2, Math.round(gz)));
+  const b = map.cells[iz * map.w + ix];
+  const tex = getTex(b) || 1;
+  const shape = getShape(b);
+  stampDisk(map, gx, gz, 0.78, shape, tex, false);
+  const s = addSphere(map, px, pz, 1.55, tex);
+  if (s) s.cy = Math.max(0.95, wy);
+  return { x: px, y: wy, z: pz };
+}
+
+function poseMinotaur(f, dt, moving) {
+  const u = f.userData;
+  const L = u.limbs;
+  if (!L) return;
+  const s = L.s || 1.85;
+  u.animT = (u.animT || 0) + dt;
+  const setLeg = (i, thighX, shinX, hoofZ) => {
+    if (L.thighs[i]) L.thighs[i].rotation.x = thighX;
+    if (L.shins[i]) L.shins[i].rotation.x = shinX;
+    if (L.hooves[i]) L.hooves[i].position.z = 0.05 * s + hoofZ;
+  };
+  const setArm = (i, rotX, fistZ) => {
+    if (L.arms[i]) L.arms[i].rotation.x = rotX;
+    if (L.fists[i]) L.fists[i].position.z = 0.06 * s + fistZ;
+  };
+  if (L.hip) L.hip.position.y = 0.72 * s;
+  if (L.torso) L.torso.rotation.x = 0;
+  const anim = u.anim || "idle";
+  if (anim === "jump") {
+    const t = Math.min(1, u.animT / 0.22);
+    const crouch = t < 0.35 ? t / 0.35 : Math.max(0, 1 - (t - 0.35) / 0.65);
+    const air = u.vy > 1 ? 1 : Math.max(0, 1 - Math.max(0, -u.vy) * 0.08);
+    setLeg(0, 0.85 * crouch - 0.45 * air, 0.9 * crouch, 0.04);
+    setLeg(1, 0.75 * crouch - 0.35 * air, 0.85 * crouch, 0.03);
+    setArm(0, -0.95 * air - 0.2, 0.22 * air);
+    setArm(1, -1.05 * air - 0.15, 0.2 * air);
+    if (L.torso) L.torso.rotation.x = -0.22 * air;
+    if (L.hip) L.hip.position.y = 0.72 * s - 0.12 * s * crouch;
+  } else if (anim === "land") {
+    const t = Math.min(1, u.animT / 0.32);
+    const squash = t < 0.4 ? t / 0.4 : 1 - (t - 0.4) / 0.6;
+    setLeg(0, 1.05 * squash, 0.95 * squash, -0.02);
+    setLeg(1, 1.12 * squash, 1.0 * squash, -0.02);
+    setArm(0, 0.45 * squash, -0.04);
+    setArm(1, 0.55 * squash, -0.05);
+    if (L.hip) L.hip.position.y = 0.72 * s - 0.2 * s * squash;
+    if (L.torso) L.torso.rotation.x = 0.28 * squash;
+    if (u.animT > 0.32) u.anim = moving ? "walk" : "idle";
+  } else if (anim === "smash") {
+    const t = Math.min(1, u.animT / 0.42);
+    const wind = t < 0.28 ? t / 0.28 : 0;
+    const slam = t >= 0.28 ? Math.min(1, (t - 0.28) / 0.18) : 0;
+    setArm(0, 0.7 * wind - 1.35 * slam, 0.32 * slam);
+    setArm(1, 0.85 * wind - 1.5 * slam, 0.36 * slam);
+    if (L.torso) L.torso.rotation.x = -0.35 * slam;
+    setLeg(0, 0.25, 0.1, 0);
+    setLeg(1, 0.15, 0.08, 0);
+    if (u.animT > 0.42) u.anim = moving ? "walk" : "idle";
+  } else if (moving) {
+    const run = u.running ? 1.35 : 0.7;
+    const swing = Math.sin((u.phase || 0) * 9.2) * 0.62 * run;
+    setLeg(0, swing, swing * 0.45, swing * 0.04);
+    setLeg(1, -swing, -swing * 0.45, -swing * 0.04);
+    setArm(0, -swing * 0.75, -swing * 0.05);
+    setArm(1, swing * 0.75, swing * 0.05);
+    if (L.torso) L.torso.rotation.x = -0.08 * run;
+  } else {
+    const b = Math.sin((u.phase || 0) * 2.2) * 0.04;
+    setLeg(0, 0.05, 0, 0);
+    setLeg(1, -0.04, 0, 0);
+    setArm(0, 0.08 + b, 0);
+    setArm(1, -0.06 - b, 0);
+    if (L.torso) L.torso.rotation.x = b * 0.4;
+  }
 }
 
 function makeSentryDrone(def) {
@@ -243,7 +347,7 @@ export function spawnRobot(def, x, z, y, list, scene) {
   return r;
 }
 
-export function tickRobots(foes, dt, player, map, sdf2, onHit, scene, shots, fireWeapon) {
+export function tickRobots(foes, dt, player, map, sdf2, onHit, scene, shots, fireWeapon, onSmash) {
   const px = player.x;
   const py = player.y;
   const pz = player.z;
@@ -285,6 +389,8 @@ export function tickRobots(foes, dt, player, map, sdf2, onHit, scene, shots, fir
     const dist = Math.hypot(dx, dz) || 1;
     const home = u.home;
     const chasing = !!(u.aware || u.aggro);
+    let mx = 0;
+    let mz = 0;
     if (home && !chasing && Math.hypot(f.position.x - home.x, f.position.z - home.z) > Math.max(home.r || 8, 12)) {
       const hx = home.x - f.position.x;
       const hz = home.z - f.position.z;
@@ -293,8 +399,6 @@ export function tickRobots(foes, dt, player, map, sdf2, onHit, scene, shots, fir
       f.position.z += (hz / hd) * u.def.spd * dt;
     } else {
       u.phase = (u.phase || 0) + dt;
-      let mx = 0;
-      let mz = 0;
       const spd = u.def.spd;
       const mv = u.def.move;
       if (mv === "charge") {
@@ -366,26 +470,106 @@ export function tickRobots(foes, dt, player, map, sdf2, onHit, scene, shots, fir
         mx = st.mx;
         mz = st.mz;
       }
-      const nx = f.position.x + mx * dt;
-      const nz = f.position.z + mz * dt;
+      const isMino = u.def.id === "minotaur" || u.def.model === "minotaur";
+      if (isMino) {
+        u.jumpCd = Math.max(0, (u.jumpCd || 0) - dt);
+        const fy0 = floorY(f.position.x, f.position.z, map, sdf2, undefined, f.position.y);
+        const grounded = u.grounded !== false && Math.abs((f.position.y) - (fy0 > -500 ? fy0 : f.position.y)) < 0.18;
+        u.grounded = grounded;
+        if (grounded && u.aware && u.jumpCd <= 0 && fy0 > -500) {
+          const air = headroomAt(f.position.x, f.position.z, fy0, map, sdf2, map.hallH || 8);
+          const playerAbove = py > f.position.y + 1.35;
+          const pounce = dist > 3.1 && dist < 12;
+          const want = (playerAbove && air > 1.35) || (pounce && air > 1.15 && Math.random() < dt * 1.8);
+          if (want) {
+            const hop = Math.max(0.45, air - 0.8);
+            u.vy = Math.min(16.5, Math.sqrt(2 * 22 * hop) * 1.08);
+            const leap = 4.8 + Math.min(11, hop * 2.6);
+            u.lvx = (dx / dist) * leap;
+            u.lvz = (dz / dist) * leap;
+            u.grounded = false;
+            u.anim = "jump";
+            u.animT = 0;
+            u.jumpCd = 1.15 + Math.random() * 0.55;
+            sfx("roar");
+          }
+        }
+      }
+      let nx = f.position.x + mx * dt;
+      let nz = f.position.z + mz * dt;
+      if (isMino && !u.grounded) {
+        nx = f.position.x + (mx * 0.35 + (u.lvx || 0)) * dt;
+        nz = f.position.z + (mz * 0.35 + (u.lvz || 0)) * dt;
+      }
       const by = f.position.y + 0.95;
       const okX = sdf3(nx, by, f.position.z, map, sdf2) < 0.08;
       const okZ = sdf3(f.position.x, by, nz, map, sdf2) < 0.08;
       if (okX) f.position.x = nx;
       if (okZ) f.position.z = nz;
-      if (!okX || !okZ) u.moveT = 0;
+      if (!okX || !okZ) {
+        u.moveT = 0;
+        if (isMino && u.aware && (u.anim === "smash" || u.running) && (u.digCd || 0) <= 0) {
+          const bx = !okX ? Math.sign(nx - f.position.x) || dx / dist : dx / dist;
+          const bz = !okZ ? Math.sign(nz - f.position.z) || dz / dist : dz / dist;
+          const hx = f.position.x + bx * 1.2;
+          const hz = f.position.z + bz * 1.2;
+          const hy = f.position.y + 1.15;
+          if (sdf3(hx, hy, hz, map, sdf2) > -0.08 || wallBlocked(map, hx, hz, hy)) {
+            const dug = digDungeonWall(map, f.position.x, hy, f.position.z, bx, bz);
+            u.digCd = 0.95;
+            u.anim = "smash";
+            u.animT = 0;
+            if (onSmash) onSmash(dug);
+          }
+        }
+      }
     }
+    const isMino = u.def.id === "minotaur" || u.def.model === "minotaur";
+    u.digCd = Math.max(0, (u.digCd || 0) - dt);
     if (u.def.move !== "hover" && u.def.move !== "weave" && !u.fly) {
       const fy = floorY(f.position.x, f.position.z, map, sdf2, undefined, f.position.y);
-      if (fy > -500) f.position.y = fy + (u.floatY || 0);
+      if (isMino && !u.grounded) {
+        u.vy = (u.vy || 0) - 24 * dt;
+        const headY = f.position.y + (u.baseH || 2.1) * 0.92;
+        if (u.vy > 0 && sdf3(f.position.x, headY, f.position.z, map, sdf2) > -0.06) u.vy = Math.min(u.vy, 0);
+        f.position.y += u.vy * dt;
+        u.lvx = (u.lvx || 0) * 0.995;
+        u.lvz = (u.lvz || 0) * 0.995;
+        if (fy > -500 && f.position.y <= fy) {
+          const heavy = u.vy < -8;
+          f.position.y = fy;
+          u.grounded = true;
+          u.vy = 0;
+          u.lvx = 0;
+          u.lvz = 0;
+          u.anim = "land";
+          u.animT = 0;
+          if (heavy) sfx("melee");
+        }
+      } else if (fy > -500) f.position.y = fy + (u.floatY || 0);
     }
     f.lookAt(px, f.position.y, pz);
+    if (isMino) poseMinotaur(f, dt, Math.hypot(mx || 0, mz || 0) > 0.08 || u.running);
     u.cool = Math.max(0, (u.cool || 0) - dt);
     const atk = u.def.attack;
     if (atk === "melee" && dist < 1.5 && u.cool <= 0) {
       u.cool = 0.85;
       sfx("melee");
       onHit(u.def.dmg, "a " + u.def.name);
+      if (isMino) {
+        u.anim = "smash";
+        u.animT = 0;
+        const nx = dx / dist;
+        const nz = dz / dist;
+        const hx = f.position.x + nx * 1.35;
+        const hz = f.position.z + nz * 1.35;
+        const hy = f.position.y + 1.2;
+        if ((u.digCd || 0) <= 0 && (sdf3(hx, hy, hz, map, sdf2) > -0.1 || wallBlocked(map, hx, hz, hy))) {
+          const dug = digDungeonWall(map, f.position.x, hy, f.position.z, nx, nz);
+          u.digCd = 0.85;
+          if (onSmash) onSmash(dug);
+        }
+      }
     } else if (atk !== "melee" && dist < 16 && u.cool <= 0 && fireWeapon) {
       u.cool = atk === "beam" ? 1.4 : atk === "burst" ? 0.9 : atk === "flame" ? 0.12 : 0.7;
       sfx(atk === "beam" ? "beam" : atk === "flame" ? "flame" : "gun");

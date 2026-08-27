@@ -4,7 +4,7 @@ import {
   STUD, PLATE, COLORS, KINDS, DIMS,
   colorOf, dimOf, kindOf, shapeSpec, makeBrickMesh,
   rotatedDims, gridToLocal, localToGrid, cellsOf, randomSpec, platesFor,
-} from "./bricks.js?v=bb12";
+} from "./bricks.js?v=bb22";
 import {
   FIG_HEADS, FIG_TORSOS, FIG_LEGS, FIG_PRESETS, defaultFigConfig, makeFig, tickFig,
   figFromPreset, presetOf,

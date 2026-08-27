@@ -2,14 +2,14 @@ import * as THREE from "three";
 import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
 import { BIOMES, CELL, EYE, FLAG_COLLAPSE, FLAG_RUMBLE, LIQ_LAVA, LIQ_WATER, PICKUP_BY_ID, SHOP, SKY_DAY, SKY_JUNGLE, SKY_NIGHT, WEAPON_BY_ID, WEAPONS, routes } from "./config.js?v=zm11";
 import { bakedMaps, storyMaps } from "./defaults.js?v=zm11";
-import { biomeOf, cellI, countCarved, ensureLayers, firstCarved, floorY, sdf3 } from "./map.js?v=zm11";
+import { biomeOf, cellI, countCarved, ensureLayers, firstCarved, floorY, sdf3, computeSdf } from "./map.js?v=zm12";
 import { buildDungeon, prepareSdf } from "./mesh.js?v=zm11";
-import { makeProp, spawnFrom, strikeFoes, tickFoes } from "./props.js?v=zm11";
+import { makeProp, spawnFrom, strikeFoes, tickFoes } from "./props.js?v=zm12";
 import { getMap, listMaps } from "./store.js?v=zm11";
 import { makeProc } from "./proc.js?v=zm11";
-import { buildingFloorY, buildWorld, climbSupport, hurtBreakables, hurtTurrets, impulseBoulders, layoutRope, makeSky, makeSkyDome, ridgeNear, smashGlass, spawnRipple, tickRubble, tickWorld, tryUnlock, wallBlocked } from "./world.js?v=zm11";
+import { buildingFloorY, buildWorld, climbSupport, hurtBreakables, hurtTurrets, impulseBoulders, layoutRope, makeSky, makeSkyDome, ridgeNear, smashGlass, spawnDebris, spawnRipple, tickRubble, tickWorld, tryUnlock, wallBlocked } from "./world.js?v=zm12";
 import { addBurnDecal, addSaberMark, addSaberTrail, fireWeapon, hurtFoe, makeDualSaber, makeKeyModel, makePickup, makeWeapon, setKillHook, tickBurns, tickShots } from "./weapons.js?v=zm11";
-import { tickRobots } from "./robots.js?v=zm11";
+import { tickRobots } from "./robots.js?v=zm12";
 import { attachXr, tickXr } from "./xr.js?v=zm11";
 import { loadStoryPsy, lootForEnemy, makeWristGold, paintWristGold, saveStoryPsy, showerLoot, tickLoot } from "./loot.js?v=zm11";
 import { sfx, sfxUnlock } from "./sfx.js?v=zm11";
@@ -709,6 +709,39 @@ function primary() {
   sfx("gun");
   hudBars();
   if (mag <= 0) beginReload();
+}
+
+function onMinoSmash(hit) {
+  if (!hit || !map) return;
+  sdf2 = computeSdf(map);
+  const host = dungeon || stage || scene;
+  const bits = spawnDebris(host, hit.x, hit.y, hit.z, 12, 0x6a5a48, 11);
+  for (const b of bits) physBodies.push(b);
+  sfx("boom");
+  camShake = Math.min(1.55, camShake + 0.55);
+  map._remeshT = 0.32;
+}
+
+function refreshDungeonMesh() {
+  if (!map || !stage) return;
+  const keep = [];
+  if (dungeon) {
+    for (const c of [...dungeon.children]) {
+      if (c.userData && (c.userData.phys || c.userData.statue || c.userData.lightY != null || c.userData.keep || c.userData.kind === "debris")) {
+        keep.push(c);
+      }
+    }
+    dungeon.removeFromParent();
+    dungeon.traverse((o) => {
+      if (keep.includes(o) || keep.some((k) => o.parent === k)) return;
+      if (o.geometry) o.geometry.dispose();
+    });
+  }
+  sdf2 = prepareSdf(map);
+  const built = buildDungeon(map, sdf2);
+  dungeon = built.group;
+  stage.add(dungeon);
+  for (const c of keep) dungeon.add(c);
 }
 
 function smashAt(origin, dir, reach, dmg) {
@@ -2341,7 +2374,14 @@ function loop(time) {
     tickPhys(dt, xr);
     xrGrab(xr);
     tickFoes(foes, dt, player, map, sdf2, damage);
-    tickRobots(foes, dt, player, map, sdf2, damage, stage || scene, shots, fireWeapon);
+    tickRobots(foes, dt, player, map, sdf2, damage, stage || scene, shots, fireWeapon, onMinoSmash);
+    if (map && map._remeshT != null) {
+      map._remeshT -= dt;
+      if (map._remeshT <= 0) {
+        map._remeshT = null;
+        refreshDungeonMesh();
+      }
+    }
     for (const f of foes) {
       const u = f.userData;
       if (!u || !u.running || (u.def?.id !== "minotaur" && u.kind !== "minotaur")) continue;

@@ -206,19 +206,25 @@ function cylAt(r, h, x, y, z, axis = "y", segs = 8) {
   return g;
 }
 
+function slopeLip(h) {
+  return Math.min(h * 0.42, Math.max(STUD_H * 1.35, WALL * 1.5));
+}
+
 function wedgeGeo(w, h, d) {
   const hw = w / 2, hd = d / 2;
+  const lip = slopeLip(h);
   const g = new THREE.BufferGeometry();
   const v = new Float32Array([
     -hw, 0, -hd,  hw, 0, -hd,  hw, 0, hd,  -hw, 0, hd,
-    -hw, h, -hd,  hw, h, -hd,
+    -hw, h, -hd,  hw, h, -hd,  hw, lip, hd,  -hw, lip, hd,
   ]);
   const idx = [
     0, 1, 2, 0, 2, 3,
     0, 4, 5, 0, 5, 1,
-    1, 5, 2,
-    3, 2, 5, 3, 5, 4,
-    0, 3, 4,
+    3, 2, 6, 3, 6, 7,
+    4, 7, 6, 4, 6, 5,
+    1, 6, 2, 1, 5, 6,
+    0, 3, 7, 0, 7, 4,
   ];
   g.setAttribute("position", new THREE.BufferAttribute(v, 3));
   g.setIndex(idx);
@@ -228,17 +234,20 @@ function wedgeGeo(w, h, d) {
 
 function invWedgeGeo(w, h, d) {
   const hw = w / 2, hd = d / 2;
+  const lip = slopeLip(h);
   const g = new THREE.BufferGeometry();
   const v = new Float32Array([
-    -hw, 0, -hd,  hw, 0, -hd,
+    -hw, 0, -hd,  hw, 0, -hd,  hw, 0, hd,  -hw, 0, hd,
     -hw, h, -hd,  hw, h, -hd,  hw, h, hd,  -hw, h, hd,
+    -hw, lip, -hd, hw, lip, -hd,
   ]);
   const idx = [
-    2, 3, 4, 2, 4, 5,
-    0, 1, 3, 0, 3, 2,
-    1, 4, 3,
-    0, 5, 4, 0, 4, 1,
-    0, 2, 5,
+    0, 1, 2, 0, 2, 3,
+    4, 5, 6, 4, 6, 7,
+    0, 8, 9, 0, 9, 1,
+    8, 7, 6, 8, 6, 9,
+    1, 9, 6, 1, 6, 2,
+    0, 3, 7, 0, 7, 8,
   ];
   g.setAttribute("position", new THREE.BufferAttribute(v, 3));
   g.setIndex(idx);

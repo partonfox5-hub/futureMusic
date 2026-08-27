@@ -2,7 +2,7 @@
 import * as THREE from "three";
 import { ENEMIES, ENEMY_BY_ID } from "./config.js?v=zm11";
 import { sdf3, floorY } from "./map.js?v=zm11";
-import { doomSteer, makeRobot } from "./robots.js?v=zm11";
+import { doomSteer, makeRobot } from "./robots.js?v=zm12";
 import { hurtFoe } from "./weapons.js?v=zm11";
 import { sfx } from "./sfx.js?v=zm11";
 

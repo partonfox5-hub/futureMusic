@@ -2148,7 +2148,7 @@ export function breakWindows(extras, origin, dir, range, parent) {
   return out;
 }
 
-function spawnDebris(parent, x, y, z, n, col, force) {
+export function spawnDebris(parent, x, y, z, n, col, force) {
   const out = [];
   for (let i = 0; i < n; i++) {
     const bit = new THREE.Mesh(
