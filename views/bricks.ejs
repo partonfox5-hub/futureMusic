@@ -16,13 +16,16 @@
   .bb-stage video,
   .bb-stage iframe {
     position: absolute;
-    inset: 0;
+    left: 0;
+    right: 0;
+    top: -75px;
     width: 100%;
-    height: 100%;
+    height: calc(100% + 75px);
     border: 0;
     pointer-events: none;
     background: #9ec4ea;
     object-fit: cover;
+    object-position: center top;
   }
   .bb-stage video { z-index: 1; }
   .bb-stage iframe { z-index: 0; display: none; }
