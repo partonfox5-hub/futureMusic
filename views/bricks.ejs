@@ -24,6 +24,8 @@
     background: #9ec4ea;
     object-fit: cover;
   }
+  .bb-stage video { z-index: 1; }
+  .bb-stage iframe { z-index: 0; display: none; }
   .bb-badge {
     position: absolute;
     top: 14px;
@@ -98,11 +100,11 @@
 <section class="bb-bleed -mt-0">
   <div class="bb-stage">
     <span class="bb-badge">AI demo · labeled controls · 30s</span>
-    <video id="demo-vid" autoplay muted loop playsinline preload="auto" poster="/games/blockbuild/demo-poster.jpg?v=bb19">
-      <source src="/games/blockbuild/demo.webm?v=bb19" type="video/webm" />
-      <source src="/games/blockbuild/demo.mp4?v=bb19" type="video/mp4" />
+    <video id="demo-vid" autoplay muted loop playsinline preload="auto" poster="/games/blockbuild/demo-poster.jpg?v=bb20">
+      <source src="/games/blockbuild/demo.mp4?v=bb20" type="video/mp4" />
+      <source src="/games/blockbuild/demo.webm?v=bb20" type="video/webm" />
     </video>
-    <iframe id="live" title="Blockbuild demo" src="/games/blockbuild/index.html?demo=loop" allow="autoplay"></iframe>
+    <iframe id="live" title="Blockbuild demo" allow="autoplay"></iframe>
   </div>
 </section>
 
@@ -156,16 +158,37 @@
   (function () {
     var vid = document.getElementById("demo-vid");
     var live = document.getElementById("live");
-    function hideLive() { if (live) live.style.display = "none"; }
-    function hideVid() { if (vid) vid.style.display = "none"; }
+    var sources = [
+      "/games/blockbuild/demo.mp4?v=bb20",
+      "/games/blockbuild/demo.webm?v=bb20"
+    ];
+    var si = 0;
+    function showLive() {
+      if (!live) return;
+      if (!live.getAttribute("src")) live.setAttribute("src", "/games/blockbuild/index.html?demo=loop");
+      live.style.display = "block";
+    }
+    function tryPlay() {
+      if (!vid) return;
+      var p = vid.play();
+      if (p && p.catch) p.catch(function () {});
+    }
     if (vid) {
-      vid.addEventListener("loadeddata", function () {
-        if (vid.videoWidth > 0) hideLive();
+      vid.addEventListener("playing", function () {
+        if (live) live.style.display = "none";
       });
-      vid.addEventListener("error", hideVid);
-      setTimeout(function () {
-        if (!vid.videoWidth) hideVid();
-      }, 1400);
+      vid.addEventListener("error", function () {
+        si += 1;
+        if (si < sources.length) {
+          vid.src = sources[si];
+          vid.load();
+          tryPlay();
+          return;
+        }
+        vid.style.display = "none";
+        showLive();
+      });
+      tryPlay();
     }
     document.getElementById("buy").onclick = async function () {
       var err = document.getElementById("err");
