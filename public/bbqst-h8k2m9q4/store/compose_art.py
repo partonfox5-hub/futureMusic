@@ -11,6 +11,12 @@ DL_DIR = Path(r"C:\Users\parto\Downloads\blockbuild-store-assets")
 DL_ROOT = Path(r"C:\Users\parto\Downloads")
 ICON_SRC = ROOT.parent / "icons" / "icon-512.png"
 TITLE = "Blockbuild"
+LETTER_COLORS = [
+    (201, 26, 9),    # red
+    (35, 120, 65),   # green
+    (0, 85, 191),    # blue
+    (245, 205, 47),  # yellow
+]
 
 # 5x7 block glyphs. 1 = fill. Title is drawn in all-caps so the word stays Blockbuild.
 GLYPHS = {
@@ -58,8 +64,12 @@ def render_block_text(text: str, cell: int, fill=(245, 205, 47), outline=(27, 42
 
     ox = cell
     oy = cell
+    color_i = 0
     for ch in text.upper():
         g = GLYPHS.get(ch, GLYPHS[" "])
+        letter_fill = fill if ch == " " else LETTER_COLORS[color_i % len(LETTER_COLORS)]
+        if ch != " ":
+            color_i += 1
         for r, row in enumerate(g):
             for c, bit in enumerate(row):
                 if bit != "1":
@@ -73,7 +83,7 @@ def render_block_text(text: str, cell: int, fill=(245, 205, 47), outline=(27, 42
                     for xx in range(inset, cell - inset):
                         x, y = sx + xx, sy + yy
                         if 0 <= x < img.size[0] and 0 <= y < img.size[1]:
-                            px[x, y] = (*fill, 255)
+                            px[x, y] = (*letter_fill, 255)
         ox += letter_w * cell
     bbox = img.getbbox()
     return img.crop(bbox) if bbox else img
