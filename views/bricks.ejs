@@ -6,9 +6,12 @@
     margin-left: calc(50% - 50vw);
     margin-right: calc(50% - 50vw);
   }
+  .bb-demo-wrap {
+    padding-top: 25px;
+  }
   .bb-stage {
     position: relative;
-    width: 85%;
+    width: 76.5%;
     margin: 0 auto;
     aspect-ratio: 16 / 9;
     background: #9ec4ea;
@@ -17,16 +20,14 @@
   .bb-stage video,
   .bb-stage iframe {
     position: absolute;
-    left: 0;
-    right: 0;
-    top: -50px;
+    inset: 0;
     width: 100%;
-    height: calc(100% + 50px);
+    height: 100%;
     border: 0;
     pointer-events: none;
     background: #9ec4ea;
     object-fit: cover;
-    object-position: center top;
+    object-position: center center;
   }
   .bb-stage video { z-index: 1; }
   .bb-stage iframe { z-index: 0; display: none; }
@@ -117,13 +118,12 @@
   }
 </style>
 
-<section class="bb-bleed -mt-0">
+<section class="bb-bleed bb-demo-wrap">
   <div class="bb-stage">
     <p class="bb-wordmark">VR Blockbuild</p>
-    <span class="bb-badge">AI demo · labeled controls · 30s</span>
-    <video id="demo-vid" autoplay muted loop playsinline preload="auto" poster="/games/blockbuild/demo-poster.jpg?v=bb22">
-      <source src="/games/blockbuild/demo.mp4?v=bb22" type="video/mp4" />
-      <source src="/games/blockbuild/demo.webm?v=bb22" type="video/webm" />
+    <video id="demo-vid" autoplay muted loop playsinline preload="auto" poster="/games/blockbuild/demo-poster.jpg?v=bb24">
+      <source src="/games/blockbuild/demo.mp4?v=bb24" type="video/mp4" />
+      <source src="/games/blockbuild/demo.webm?v=bb24" type="video/webm" />
     </video>
     <iframe id="live" title="Blockbuild demo" allow="autoplay"></iframe>
   </div>
@@ -180,8 +180,8 @@
     var vid = document.getElementById("demo-vid");
     var live = document.getElementById("live");
     var sources = [
-      "/games/blockbuild/demo.mp4?v=bb22",
-      "/games/blockbuild/demo.webm?v=bb22"
+      "/games/blockbuild/demo.mp4?v=bb24",
+      "/games/blockbuild/demo.webm?v=bb24"
     ];
     var si = 0;
     function showLive() {

@@ -11,13 +11,25 @@ function looping() {
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-function label(key, sub) {
+const PITCH = ["block build for VR", "Try it just $9.99!"];
+
+function label(key) {
   const tag = document.getElementById("bb-demo-tag");
   const k = document.getElementById("bb-demo-key");
   const s = document.getElementById("bb-demo-sub");
   if (tag) tag.classList.add("on");
   if (k) k.textContent = key;
-  if (s) s.textContent = sub || "";
+  if (s) s.textContent = "";
+}
+
+function startPitch() {
+  let i = 0;
+  label(PITCH[0]);
+  const id = setInterval(() => {
+    i = (i + 1) % PITCH.length;
+    label(PITCH[i]);
+  }, 2400);
+  return () => clearInterval(id);
 }
 
 function waitBb() {
@@ -130,53 +142,37 @@ async function tour(bb) {
 
   const DURATION = 30000;
   const orbit = startOrbit(bb, DURATION);
+  const stopPitch = startPitch();
   const t0 = performance.now();
 
-  label("WASD · fly", "Slow orbit around the workshop table");
   await sleep(2400);
-
-  label("Click · place", "An 8×8 plate for the house floor");
   await place(bb, "8x8", "plate", "tan", -4, 0, -4, 0, 1500);
-
-  label("Click · place", "Snap 2×4 bricks into a little house");
   await place(bb, "2x4", "brick", "red", -4, 1, -4, 1, 820);
   await place(bb, "2x2", "brick", "red", 2, 1, -4, 0, 820);
-
-  label("X · rotate", "Turn wall pieces 90° for the sides");
   await place(bb, "2x4", "brick", "red", -4, 1, -2, 0, 820);
   await place(bb, "2x4", "brick", "red", 2, 1, -2, 0, 820);
   await place(bb, "2x4", "brick", "red", -4, 1, 2, 1, 820);
   await place(bb, "2x4", "brick", "red", 0, 1, 2, 1, 900);
-
-  label("C · color  ·  V · size", "Second storey in yellow");
   await place(bb, "2x4", "brick", "yellow", -4, 4, -4, 1, 780);
   await place(bb, "2x4", "brick", "yellow", 0, 4, -4, 1, 780);
   await place(bb, "2x4", "brick", "yellow", -4, 4, -2, 0, 780);
   await place(bb, "2x4", "brick", "yellow", 2, 4, -2, 0, 780);
   await place(bb, "2x4", "brick", "yellow", -4, 4, 2, 1, 780);
   await place(bb, "2x4", "brick", "yellow", 0, 4, 2, 1, 900);
-
-  label("Slopes · roof", "Orange roof tiles on the little house");
-  await place(bb, "4x4", "slope", "orange", -4, 7, -4, 0, 900);
-  await place(bb, "4x4", "slope", "orange", 0, 7, -4, 0, 900);
-  await place(bb, "4x4", "slope", "orange", -4, 7, 0, 2, 900);
-  await place(bb, "4x4", "slope", "orange", 0, 7, 0, 2, 1100);
-
-  label("Fig · minifigure", "A builder in front of the door");
+  await place(bb, "4x4", "brick", "orange", -4, 7, -4, 0, 900);
+  await place(bb, "4x4", "brick", "orange", 0, 7, -4, 0, 900);
+  await place(bb, "4x4", "brick", "orange", -4, 7, 0, 0, 900);
+  await place(bb, "4x4", "brick", "orange", 0, 7, 0, 0, 1100);
   bb.setColor("brown");
   await place(bb, "1x2", "brick", "brown", 1, 10, 1, 0, 700);
   bb.placeFig(0.008, -0.058);
   await sleep(1600);
-
-  label("Orbit", "House stays in the center of the camera");
   const used = performance.now() - t0;
-  const rest = Math.max(2200, DURATION - used - 1800);
+  const rest = Math.max(2200, DURATION - used - 400);
   await sleep(rest);
 
-  label("Blockbuild", "Desktop + VR  ·  $9.99 on the website");
-  await sleep(1800);
-
   orbit.stop();
+  stopPitch();
   await orbit.done;
 }
 
