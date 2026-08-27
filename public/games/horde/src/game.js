@@ -19,7 +19,7 @@ const WEPS = {
   rail: { id: "rail", name: "Rail", dmg: 6, rpm: 1.15, mag: 5, speed: 180, spread: 0, pellets: 1, hitscan: true, pierce: 4, cost: 220, reload: 9.6 },
   thunder: { id: "thunder", name: "Thunder", dmg: 8, rpm: 0.52, mag: 3, speed: 40, spread: 0, pellets: 1, spell: true, aoe: 10.8, lightning: true, knock: 2.8, cost: 160, reload: 7.36 },
   nova: { id: "nova", name: "Nova", dmg: 4, rpm: 0.38, mag: 2, speed: 18, spread: 0, pellets: 1, spell: true, aoe: 5.6, fireball: true, wall: true, knock: 1.8, cost: 280, reload: 9.12 },
-  plasma: { id: "plasma", name: "Plasma beam", dmg: 4, rpm: 3.6, mag: 18, speed: 140, spread: 0, pellets: 1, hitscan: true, pierce: 2, cost: 650, reload: 6.8 },
+  plasma: { id: "plasma", name: "Plasma beam", dmg: 99, rpm: 1, mag: 1, speed: 140, spread: 0, pellets: 1, hitscan: true, pierce: 99, beam: true, beamDur: 10, cost: 500, reload: 6.8 },
   ripple: { id: "ripple", name: "Ripple ray", dmg: 2, rpm: 1.6, mag: 8, speed: 22, spread: 0.08, pellets: 11, pierce: 3, ripple: true, cost: 1400, reload: 7.84 },
   gravity: { id: "gravity", name: "Zero-point gun", dmg: 2, rpm: 8, mag: 40, speed: 40, spread: 0, pellets: 1, gravity: true, cost: 1800, reload: 6 },
   nuke: { id: "nuke", name: "Mini nuke", dmg: 8, rpm: 0.32, mag: 1, speed: 18, spread: 0, pellets: 1, aoe: 12, nuke: true, cost: 2800, reload: 12.8 },
@@ -35,7 +35,7 @@ const SHOP = [
   { kind: "wep", id: "rail", name: "Rail", cost: 220, blurb: "Fat beam. Heavy hitscan. Five shots." },
   { kind: "wep", id: "thunder", name: "Thunder spell", cost: 160, blurb: "Lightning from the sky. Huge blast. No ammo — reloads for free." },
   { kind: "wep", id: "nova", name: "Nova spell", cost: 280, blurb: "Giant fireball and a wall of fire. No ammo — reloads for free." },
-  { kind: "wep", id: "plasma", name: "Plasma beam", cost: 650, blurb: "Hot hitscan. Tears through two foes." },
+  { kind: "wep", id: "plasma", name: "Plasma beam", cost: 500, blurb: "Ten-second beam. Unmakes anything it touches." },
   { kind: "turret", id: "turret", name: "Stone turret", cost: 480, blurb: "Drops a WWII nest where you stand. 360° gun. Night beacon. Jump on the roof." },
   { kind: "drone", id: "drone", name: "Gun drone", cost: 420, blurb: "Hovers and fires a pistol. 2 hearts." },
   { kind: "ball", id: "ball-s", name: "Guard orb", cost: 280, blurb: "Small forcefield. 4 hearts.", hp: 8 },
@@ -49,7 +49,10 @@ const SHOP = [
   { kind: "up", id: "speed", name: "Move speed", cost: 45, blurb: "+16% run", key: "speed", add: 0.16 },
   { kind: "up", id: "hp", name: "Heart", cost: 50, blurb: "+1 max heart and heal", key: "maxHp", add: 2 },
   { kind: "up", id: "reload", name: "Reload speed", cost: 40, blurb: "Faster Y reload", key: "reload", add: 0.22 },
+  { kind: "up", id: "autoreload", name: "Auto reload", cost: 200, blurb: "Starts the reload for you. The bar still plays." },
   { kind: "up", id: "magnet", name: "Coin magnet", cost: 55, blurb: "Pull loot from farther", key: "magnet", add: 1.4 },
+  { kind: "up", id: "flash", name: "Brighter lamp", cost: 30, blurb: "+10% flashlight. Stacks five times." },
+  { kind: "up", id: "night", name: "Shorter nights", cost: 50, blurb: "−10% night. Ten buys = no night. Bought in the dark? Next night." },
   { kind: "ammo", id: "ammo", name: "Ammo crate", cost: 28, blurb: "+40 reserve rounds. Buy as often as you like." },
   { kind: "bind", id: "bind", name: "Swap X / Y", cost: 0, blurb: "Shop on X and reload on Y, or the reverse." },
   { kind: "up", id: "sprint", name: "Sprint", cost: 85, blurb: "Click the left stick while moving. 3s burst, 10s rest." },
@@ -126,7 +129,7 @@ let sprintQueued = false;
 let ammoT = 0;
 let healthT = 18;
 let owned = new Set(["pistol"]);
-let stats = { speed: 1, jump: 1, maxHp: MAX_HP0, reload: 1, magnet: 2.4, jumps: 1, sprint: 0, sprintCd: 10, sprintMul: 1, wheelie: 0 };
+let stats = { speed: 1, jump: 1, maxHp: MAX_HP0, reload: 1, magnet: 2.4, jumps: 1, sprint: 0, sprintCd: 10, sprintMul: 1, wheelie: 0, flash: 1, autoReload: 0 };
 let player = { x: 0, y: 1.6, z: 0, vx: 0, vy: 0, vz: 0, hp: MAX_HP0, grounded: true, coins: 0, ammo: 48, mag: 12, wep: "pistol", jumpsLeft: 1, sprinting: false, sprintT: 0, sprintCdT: 0, mom: 0, pounding: false, bike: false };
 let mobs = [];
 let debris = [];
@@ -141,6 +144,12 @@ let craters = [];
 let hexes = [];
 let flagGen = 0;
 let sprintBuys = 0;
+let flashBuys = 0;
+let nightCutsOwned = 0;
+let nightCutsLive = 0;
+let plasmaT = 0;
+let plasmaMesh = null;
+let plasmaGlow = null;
 let cryT = 0;
 let oofLock = 0;
 let musicGain = null;
@@ -786,8 +795,15 @@ function makeSky() {
 
 function tickSky(dt) {
   const darkNow = skyPalette(dayT).dark;
-  const nightSpeed = darkNow > 0.45 ? (1 / 0.7) : 1;
-  dayT = (dayT + (dt / DAY_LEN) * nightSpeed) % 1;
+  if (lastDark <= 0.45 && darkNow > 0.45) nightCutsLive = nightCutsOwned;
+  const cuts = nightCutsLive;
+  if (cuts >= 10 && darkNow > 0.25) {
+    dayT = 0.20;
+  } else {
+    const shorten = cuts <= 0 ? 1 : 1 / Math.max(0.05, 1 - 0.1 * Math.min(9, cuts));
+    const nightSpeed = darkNow > 0.45 ? (1 / 0.7) * shorten : 1;
+    dayT = (dayT + (dt / DAY_LEN) * nightSpeed) % 1;
+  }
   const pal = skyPalette(dayT);
   const ang = (dayT - 0.25) * Math.PI * 2;
   const sunDir = new THREE.Vector3(Math.cos(ang), Math.sin(ang), 0.22).normalize();
@@ -1328,11 +1344,42 @@ function legYaw(i, nLegs) {
   return (i / nLegs) * Math.PI * 2 + 0.2;
 }
 
+function rollGiant(w) {
+  return w >= 4 && rng() < Math.min(0.14, 0.025 + w * 0.008);
+}
+
+function giantMul() {
+  return 2.35 + rng() * 0.9;
+}
+
 function mobScaleForWave(w) {
   const grow = waveSizeMul(w);
-  if (w >= 4 && rng() < Math.min(0.14, 0.025 + w * 0.008)) return (2.2 + rng() * (1.2 + w * 0.08)) * grow;
+  if (rollGiant(w)) return { giant: true, scale: (2.2 + rng() * (1.2 + w * 0.08)) * grow };
   const spread = 0.08 + w * 0.035;
-  return clamp(1 + (rng() - 0.5) * 2 * spread, 0.72, 1.35 + w * 0.03) * grow;
+  return { giant: false, scale: clamp(1 + (rng() - 0.5) * 2 * spread, 0.72, 1.35 + w * 0.03) * grow };
+}
+
+function stampGiant(m) {
+  const hits = m.giant ? 2 : 1;
+  for (const l of m.limbs || []) {
+    l.userData.maxHits = hits;
+    l.userData.hits = 0;
+  }
+  return m;
+}
+
+function skipSpawnSlots(n) {
+  let k = n;
+  while (k > 0 && pending > 0) {
+    pending--;
+    waveLeft = Math.max(0, waveLeft - 1);
+    k--;
+  }
+  while (k > 0 && dripLeft > 0) {
+    dripLeft--;
+    waveLeft = Math.max(0, waveLeft - 1);
+    k--;
+  }
 }
 
 function makeCentipede(w, ang, dist) {
@@ -1375,14 +1422,16 @@ function makeCentipede(w, ang, dist) {
     segs.push(seg);
   }
   const core = segs[0];
-  const bodyScale = (1.05 + rng() * 0.45 + Math.min(0.8, w * 0.04)) * waveSizeMul(w) * 0.5;
+  const giant = rollGiant(w);
+  let bodyScale = (1.05 + rng() * 0.45 + Math.min(0.8, w * 0.04)) * waveSizeMul(w) * 0.5;
+  if (giant) bodyScale *= giantMul();
   group.scale.setScalar(bodyScale);
   const x = player.x + Math.cos(ang) * dist;
   const z = player.z + Math.sin(ang) * dist;
   const walkH = heightAt(x, z) + 0.42 * bodyScale;
   group.position.set(x, walkH, z);
   scene.add(group);
-  return {
+  return stampGiant({
     mesh: group,
     core,
     limbs,
@@ -1399,6 +1448,7 @@ function makeCentipede(w, ang, dist) {
     nLegs: nSeg * 2,
     alive: true,
     centipede: true,
+    giant,
     rear: 0,
     heading: ang + Math.PI,
     ranged: false,
@@ -1413,12 +1463,14 @@ function makeCentipede(w, ang, dist) {
     threatPose: 0,
     threatT: 0,
     threatDur: 1,
-  };
+  });
 }
 
 function makeSpider(w, ang, dist) {
   const group = new THREE.Group();
-  const s = (0.82 + rng() * 0.35 + Math.min(0.55, w * 0.03)) * waveSizeMul(w);
+  const giant = rollGiant(w);
+  let s = (0.82 + rng() * 0.35 + Math.min(0.55, w * 0.03)) * waveSizeMul(w);
+  if (giant) s *= giantMul();
   const col = 0x111114;
   const coreR = 0.22 * s;
   const ceph = new THREE.Mesh(new THREE.SphereGeometry(coreR * 1.15, 8, 6), mat(col));
@@ -1476,7 +1528,7 @@ function makeSpider(w, ang, dist) {
   const walkH = heightAt(x, z) + 0.28 * bodyScale;
   group.position.set(x, walkH, z);
   scene.add(group);
-  return {
+  return stampGiant({
     mesh: group,
     core: ceph,
     limbs,
@@ -1492,6 +1544,7 @@ function makeSpider(w, ang, dist) {
     nLegs: 8,
     alive: true,
     spider: true,
+    giant,
     ranged: false,
     fireCd: 0,
     orbit: rng() * Math.PI * 2,
@@ -1503,12 +1556,14 @@ function makeSpider(w, ang, dist) {
     threatPose: 0,
     threatT: 0,
     threatDur: 1,
-  };
+  });
 }
 
 function makeScuttler(w, ang, dist) {
   const group = new THREE.Group();
-  const s = (0.82 + rng() * 0.35 + Math.min(0.55, w * 0.03)) * waveSizeMul(w) * 0.4;
+  const giant = rollGiant(w);
+  let s = (0.82 + rng() * 0.35 + Math.min(0.55, w * 0.03)) * waveSizeMul(w) * 0.4;
+  if (giant) s *= giantMul();
   const col = 0x161618;
   const coreR = 0.2 * s;
   const nLegs = 6 + ((rng() * 3) | 0);
@@ -1544,11 +1599,11 @@ function makeScuttler(w, ang, dist) {
   const walkH = heightAt(x, z) + 0.16 * bodyScale;
   group.position.set(x, walkH, z);
   scene.add(group);
-  return {
+  return stampGiant({
     mesh: group,
     core: ceph,
     limbs,
-    hpLimbs: 1,
+    hpLimbs: giant ? limbs.filter((l) => l.userData.live).length : 1,
     x, z, y: walkH,
     spd: (2.05 + w * 0.09) * 1.4 * waveSpeedMul(w) / Math.sqrt(Math.max(0.35, bodyScale)),
     boost: 1.25,
@@ -1561,7 +1616,8 @@ function makeScuttler(w, ang, dist) {
     alive: true,
     spider: true,
     scuttler: true,
-    fragile: true,
+    giant,
+    fragile: !giant,
     ranged: false,
     fireCd: 0,
     orbit: rng() * Math.PI * 2,
@@ -1573,7 +1629,7 @@ function makeScuttler(w, ang, dist) {
     threatPose: 0,
     threatT: 0,
     threatDur: 0.7,
-  };
+  });
 }
 
 function makeMob(w, ang, dist) {
@@ -1581,7 +1637,9 @@ function makeMob(w, ang, dist) {
   if (w >= 1 && rng() < Math.min(0.22, 0.08 + w * 0.014)) return makeScuttler(w, ang, dist);
   if (w >= 2 && rng() < Math.min(0.18, 0.055 + w * 0.012)) return makeSpider(w, ang, dist);
   const n = limbCountForWave(w);
-  const bodyScale = mobScaleForWave(w);
+  const sized = mobScaleForWave(w);
+  const bodyScale = sized.scale;
+  const giant = sized.giant;
   const group = new THREE.Group();
   const coreR = (0.22 + rng() * 0.18) * Math.min(1.4, 0.75 + bodyScale * 0.25);
   const core = makeCore(coreR);
@@ -1625,7 +1683,7 @@ function makeMob(w, ang, dist) {
   group.position.set(x, walkH, z);
   scene.add(group);
   const runMul = limbs.reduce((s, l) => s + (l.userData.run || 1), 0) / n;
-  return {
+  return stampGiant({
     mesh: group,
     core,
     limbs,
@@ -1634,6 +1692,7 @@ function makeMob(w, ang, dist) {
     spd: (1.55 + w * 0.08) * boost * runMul * waveSpeedMul(w) / Math.max(1, Math.sqrt(bodyScale)),
     boost,
     bodyScale,
+    giant,
     bob: rng() * 6,
     hitR: (0.7 + coreR) * bodyScale,
     hitCd: 0,
@@ -1652,7 +1711,7 @@ function makeMob(w, ang, dist) {
     threatPose: 0,
     threatT: 0,
     threatDur: 1,
-  };
+  });
 }
 
 function syncMob(m) {
@@ -1712,7 +1771,7 @@ function spawnWave() {
   wave += 1;
   noteBestWave();
   const dw = diffWave();
-  const count = Math.pow(2, dw - 1);
+  const count = Math.max(1, Math.round(Math.pow(2, dw - 1) * 0.9));
   const half = Math.max(1, Math.ceil(count / 2));
   const later = Math.max(0, count - half);
   pending = half;
@@ -1765,8 +1824,10 @@ function dripSpawn(dt) {
   while (pending > 0 && mobs.filter((m) => m.alive).length < MAX_LIVE) {
     const ang = rng() * Math.PI * 2;
     const dist = SPAWN_MIN + rng() * (SPAWN_MAX - SPAWN_MIN);
-    mobs.push(makeMob(diffWave(), ang, dist));
+    const spawned = makeMob(diffWave(), ang, dist);
+    mobs.push(spawned);
     pending--;
+    if (spawned.giant) skipSpawnSlots(2);
   }
 }
 
@@ -1900,6 +1961,11 @@ function hitLimb(limb, m) {
       if (l.userData.live) detachLimb(m, l, 6);
     }
     killMob(m, false);
+    return;
+  }
+  limb.userData.hits = (limb.userData.hits || 0) + 1;
+  if (limb.userData.hits < (limb.userData.maxHits || 1)) {
+    sfx.hit();
     return;
   }
   if (m.centipede && limb.userData.form === "torso") {
@@ -2769,6 +2835,12 @@ function resetRun() {
   reloadMax = 0;
   flagGen = 0;
   sprintBuys = 0;
+  flashBuys = 0;
+  nightCutsOwned = 0;
+  nightCutsLive = 0;
+  plasmaT = 0;
+  if (plasmaMesh) plasmaMesh.visible = false;
+  if (plasmaGlow) plasmaGlow.visible = false;
   cryT = 0;
   oofLock = 0;
   meleeHave = false;
@@ -2776,7 +2848,7 @@ function resetRun() {
   stopMusic();
   hexSpawnCd = 0;
   owned = new Set(["pistol"]);
-  stats = { speed: 1, jump: 1, maxHp: MAX_HP0, reload: 1, magnet: 2.4, jumps: 1, sprint: 0, sprintCd: 10, sprintMul: 1, wheelie: 0 };
+  stats = { speed: 1, jump: 1, maxHp: MAX_HP0, reload: 1, magnet: 2.4, jumps: 1, sprint: 0, sprintCd: 10, sprintMul: 1, wheelie: 0, flash: 1, autoReload: 0 };
   player = { x: 0, y: 1.6, z: 0, vx: 0, vy: 0, vz: 0, hp: MAX_HP0, grounded: true, coins: 0, ammo: 48, mag: 12, wep: "pistol", tank: false, jumpsLeft: 1, sprinting: false, sprintT: 0, sprintCdT: 0, mom: 0, pounding: false, bike: false };
   tankYaw = 0;
   dead = false;
@@ -3259,8 +3331,13 @@ function syncFlashlight() {
     flashRig.position.set(0.12, -0.08, -0.14);
   }
   const on = flashOn && !dead;
-  flashLight.intensity = on ? 5 + lastDark * 18 : 0;
-  if (flashFill) flashFill.intensity = on ? 0.4 + lastDark * 1.1 : 0;
+  const lamp = stats.flash || 1;
+  flashLight.intensity = on ? (5 + lastDark * 18) * lamp : 0;
+  flashLight.distance = 36 * lamp;
+  if (flashFill) {
+    flashFill.intensity = on ? (0.4 + lastDark * 1.1) * lamp : 0;
+    flashFill.distance = 5.5 * lamp;
+  }
   if (flashRig.userData.bulb) flashRig.userData.bulb.visible = on;
 }
 
@@ -3274,6 +3351,14 @@ function fireFrom(origin, quat) {
   }
   if (fireCd > 0) return;
   if (def.noodle) return;
+  if (def.beam) {
+    if (plasmaT > 0) return;
+    fireCd = 0.2;
+    player.mag--;
+    plasmaT = def.beamDur || 10;
+    sfx.shoot();
+    return;
+  }
   const dir0 = new THREE.Vector3(0, 0, -1).applyQuaternion(quat).normalize();
   if (def.gravity) {
     if (grabMob && grabMob.alive) return;
@@ -3657,6 +3742,55 @@ function makeBikeMesh() {
   seat.position.set(0, 0.52, -0.08);
   g.add(w1, w2, frame, seat);
   return g;
+}
+
+function ensurePlasmaMesh() {
+  if (plasmaMesh) return;
+  plasmaMesh = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.09, 0.045, 1, 10),
+    new THREE.MeshBasicMaterial({ color: 0x88ffff, transparent: true, opacity: 0.88, blending: THREE.AdditiveBlending, depthWrite: false }),
+  );
+  plasmaGlow = new THREE.PointLight(0x66f0ff, 10, 22, 1.3);
+  scene.add(plasmaMesh, plasmaGlow);
+}
+
+function tickPlasma(dt, origin, quat) {
+  if (player.wep !== "plasma" || plasmaT <= 0) {
+    if (plasmaMesh) plasmaMesh.visible = false;
+    if (plasmaGlow) plasmaGlow.visible = false;
+    if (player.wep !== "plasma") plasmaT = 0;
+    return;
+  }
+  plasmaT -= dt;
+  if (plasmaT <= 0) {
+    plasmaT = 0;
+    if (plasmaMesh) plasmaMesh.visible = false;
+    if (plasmaGlow) plasmaGlow.visible = false;
+    return;
+  }
+  ensurePlasmaMesh();
+  const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(quat).normalize();
+  const range = 64;
+  const mid = origin.clone().addScaledVector(dir, range * 0.5);
+  plasmaMesh.visible = true;
+  plasmaMesh.position.copy(mid);
+  plasmaMesh.scale.set(1.15 + Math.sin(performance.now() * 0.02) * 0.2, range, 1.15);
+  plasmaMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
+  if (plasmaGlow) {
+    plasmaGlow.visible = true;
+    plasmaGlow.position.copy(origin).addScaledVector(dir, 4);
+    plasmaGlow.intensity = 8 + Math.sin(performance.now() * 0.018) * 3;
+  }
+  const end = origin.clone().addScaledVector(dir, range);
+  for (const m of mobs) {
+    if (!m.alive) continue;
+    const p = new THREE.Vector3(m.x, m.y, m.z);
+    const to = p.clone().sub(origin);
+    const t = clamp(to.dot(dir), 0, range);
+    const closest = origin.clone().addScaledVector(dir, t);
+    if (closest.distanceTo(p) > 0.7 + (m.hitR || 0.6)) continue;
+    killMob(m, true);
+  }
 }
 
 function tickNoodle(dt, origin, quat, extend) {
@@ -4204,6 +4338,32 @@ function buy(it) {
       if (player.coins < it.cost) return false;
       player.coins -= it.cost;
       stats.jumps = 3;
+    } else if (it.id === "flash") {
+      if (flashBuys >= 5) return false;
+      if (player.coins < it.cost) return false;
+      player.coins -= it.cost;
+      flashBuys++;
+      stats.flash = 1 + flashBuys * 0.1;
+      showBanner("LAMP +" + (flashBuys * 10) + "%");
+      announcing = 1.1;
+    } else if (it.id === "autoreload") {
+      if (stats.autoReload) return true;
+      if (player.coins < it.cost) return false;
+      player.coins -= it.cost;
+      stats.autoReload = 1;
+      showBanner("AUTO RELOAD");
+      announcing = 1.1;
+    } else if (it.id === "night") {
+      if (nightCutsOwned >= 10) return false;
+      if (player.coins < it.cost) return false;
+      player.coins -= it.cost;
+      nightCutsOwned++;
+      const atNight = lastDark > 0.45;
+      if (!atNight) nightCutsLive = nightCutsOwned;
+      showBanner(nightCutsOwned >= 10
+        ? (atNight ? "NO NIGHT — NEXT CYCLE" : "NO NIGHT")
+        : ("NIGHT −" + (nightCutsOwned * 10) + "%" + (atNight ? "  ·  NEXT NIGHT" : "")));
+      announcing = 1.4;
     } else {
       if (player.coins < it.cost) return false;
       player.coins -= it.cost;
@@ -4282,6 +4442,35 @@ function drawShopIcon(ctx, it, x, y, s) {
       ctx.moveTo(-s * 0.22, -s * 0.1);
       ctx.lineTo(0, -s * 0.36);
       ctx.lineTo(s * 0.22, -s * 0.1);
+      ctx.fill();
+    } else if (id === "flash") {
+      ctx.fillStyle = "#ffe08a";
+      ctx.beginPath();
+      ctx.moveTo(0, -s * 0.32);
+      ctx.lineTo(s * 0.22, s * 0.08);
+      ctx.lineTo(-s * 0.22, s * 0.08);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillRect(-s * 0.08, s * 0.1, s * 0.16, s * 0.2);
+    } else if (id === "night") {
+      ctx.fillStyle = "#c8d4f0";
+      ctx.beginPath();
+      ctx.arc(0, 0, s * 0.28, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#1a1a1e";
+      ctx.beginPath();
+      ctx.arc(s * 0.1, -s * 0.04, s * 0.22, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (id === "autoreload") {
+      ctx.strokeStyle = "#d4af37";
+      ctx.lineWidth = 6;
+      ctx.beginPath();
+      ctx.arc(0, 0, s * 0.26, 0.2, Math.PI * 1.65);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(s * 0.16, -s * 0.2);
+      ctx.lineTo(s * 0.3, -s * 0.02);
+      ctx.lineTo(s * 0.04, 0);
       ctx.fill();
     } else {
       ctx.beginPath();
@@ -4401,6 +4590,9 @@ function paintShopCard(it, i, highlight) {
   if (it.kind === "bind") price = shopOnX ? "NOW: shop X, reload Y" : "NOW: shop Y, reload X";
   if (it.id === "sprint" && stats.sprint) price = "OWNED";
   if (it.id === "sprintcd") price = sprintBuys >= 10 ? "MAX — infinite sprint" : it.cost + " ◎  ·  " + sprintBuys + "/10";
+  if (it.id === "flash") price = flashBuys >= 5 ? "MAX" : it.cost + " ◎  ·  " + flashBuys + "/5";
+  if (it.id === "night") price = nightCutsOwned >= 10 ? "MAX — no night" : it.cost + " ◎  ·  " + nightCutsOwned + "/10";
+  if (it.id === "autoreload" && stats.autoReload) price = "OWNED";
   if (it.id === "wheelie" && stats.wheelie) price = "OWNED";
   if (it.id === "jump2" && stats.jumps >= 2) price = "OWNED";
   if (it.id === "jump3" && stats.jumps >= 3) price = "OWNED";
@@ -4445,12 +4637,24 @@ function paintShop() {
     const wrap = document.createElement("span");
     wrap.className = "shop-copy";
     const locked = !prereqMet(it);
-    const price = locked ? "LOCKED" : have ? "OWNED" : it.cost + "◎";
+    const maxed = (it.id === "flash" && flashBuys >= 5)
+      || (it.id === "night" && nightCutsOwned >= 10)
+      || (it.id === "autoreload" && stats.autoReload)
+      || (it.id === "sprint" && stats.sprint)
+      || (it.id === "sprintcd" && sprintBuys >= 10)
+      || (it.id === "wheelie" && stats.wheelie)
+      || (it.id === "jump2" && stats.jumps >= 2)
+      || (it.id === "jump3" && stats.jumps >= 3);
+    let price = locked ? "LOCKED" : have ? "OWNED" : it.cost + "◎";
+    if (it.id === "flash") price = flashBuys >= 5 ? "MAX" : it.cost + "◎ · " + flashBuys + "/5";
+    if (it.id === "night") price = nightCutsOwned >= 10 ? "MAX" : it.cost + "◎ · " + nightCutsOwned + "/10";
+    if (it.id === "sprintcd") price = sprintBuys >= 10 ? "MAX" : it.cost + "◎ · " + sprintBuys + "/10";
+    if (it.id === "autoreload" && stats.autoReload) price = "OWNED";
     wrap.innerHTML = `<b>${it.name}</b> · ${price}${equipped ? " · EQUIPPED" : ""}<small>${locked ? "Requires " + (it.needLabel || "another upgrade") + ". " : ""}${it.blurb}</small>`;
     b.appendChild(ico);
     b.appendChild(wrap);
     const canBind = it.kind === "bind";
-    b.disabled = locked || equipped || (!have && !canBind && player.coins < it.cost);
+    b.disabled = locked || equipped || maxed || (!have && !canBind && player.coins < it.cost);
     b.onclick = () => buy(it);
     host.appendChild(b);
   }
@@ -4999,6 +5203,8 @@ function loop() {
   if (reloadT > 0) {
     reloadT -= dt;
     if (reloadT <= 0) finishReload();
+  } else if (running && !dead && !menuOpen && stats.autoReload && player.mag <= 0 && plasmaT <= 0) {
+    reload();
   }
   if (hurtT > 0) hurtT -= dt;
   if (iFrame > 0) iFrame -= dt;
@@ -5034,6 +5240,7 @@ function loop() {
       const firing = xr.fire || (!xrOn && (keys.has("Mouse1") || mouseDown));
       if (firing) doFire(xr);
       const aim = aimFromGun(xr);
+      tickPlasma(dt, aim.origin, aim.quat);
       tickNoodle(dt, aim.origin, aim.quat, firing);
       if (player.wep === "gravity") {
         tickGrab(dt, firing, aim.origin, aim.dir);
