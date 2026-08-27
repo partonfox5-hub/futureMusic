@@ -1259,6 +1259,20 @@ app.get('/domain', (req, res) => {
 });
 
 app.get('/about', (req, res) => res.render('about', { title: 'About' }));
+app.get(['/privacy', '/privacy/'], (req, res) => res.render('privacy', {
+    title: 'Privacy Policy | Future Music Collective',
+    metaDescription: 'Privacy policy for futuremusic.online and the Blockbuild Quest app: what data we collect, how we use it, and how to request deletion.',
+    canonicalUrl: 'https://futuremusic.online/privacy',
+    ogTitle: 'Privacy Policy | Future Music Collective',
+    ogDescription: 'What data Future Music Collective collects, how it is used, and how to request deletion.',
+}));
+app.get(['/terms', '/terms/', '/tos', '/tos/'], (req, res) => res.render('terms', {
+    title: 'Terms of Service | Future Music Collective',
+    metaDescription: 'Terms of service for futuremusic.online and the Blockbuild app on the Meta Horizon Store.',
+    canonicalUrl: 'https://futuremusic.online/terms',
+    ogTitle: 'Terms of Service | Future Music Collective',
+    ogDescription: 'Terms of service for Future Music Collective websites and Blockbuild.',
+}));
 app.get('/contact', (req, res) => res.render('contact', {
     title: 'Contact',
     sent: String(req.query.sent || '') === '1',

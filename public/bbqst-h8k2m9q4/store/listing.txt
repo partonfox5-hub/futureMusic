@@ -1,0 +1,44 @@
+Blockbuild — Meta Horizon Store listing copy
+Paste these into the Developer Dashboard. App name must stay: Blockbuild
+
+================================================================================
+SHORT DESCRIPTION (dashboard; keep under ~160 characters)
+================================================================================
+Blockbuild has clean VR controls, a wide mix of bricks you can size and rotate, minifig rooms, save templates, and a little destruction with cannonballs and flames.
+
+Shorter option (~50 characters):
+VR brick workshop with minifigs, saves, and fire.
+
+================================================================================
+LONG DESCRIPTION
+================================================================================
+Blockbuild is a first-person VR brick workshop. Sit or stand at the table, grab a stud, and start stacking. Controls stay out of the way so the bricks feel like they are in your hands: grip to pick up, trigger to place, rotate and scale when you want a different piece, and open the workshop menu from the left controller.
+
+Build with a real variety of bricks — plates, slopes, tiles, and more — in a full color set. Snap them to the grid or drop them loose. Crank a piece up from tiny studs to oversized blocks, spin it to the orientation you want, then lock it down. Save your favorite layouts as templates and load them again the next time you sit down.
+
+The table is not only for quiet stacking. Spawn minifigs and mark rooms for them to live in. They wander, idle, and react to the spaces you built, so a house or a courtyard actually feels occupied. When you want a messier session, fire cannonballs through a wall or hold a flame to melt bricks off the table. Destruction is a toy, not a campaign: smash, rebuild, save.
+
+Blockbuild is a sandbox, not a checklist. There is no campaign to fail and no timer to beat. Dump a pile, raise a hall, clear the table, and keep the builds that were fun. Sit on the couch or stand at the table — the workshop is made for a small play space and Meta Quest controllers.
+
+Features
+• Clean VR controls: grip to grab, trigger to place, left menu for the workshop
+• Bricks in many shapes, sizes, and colors, with rotation and scale on the fly
+• Snap-to-stud building plus loose physics when you want it
+• Minifigs that use the rooms you flag for them
+• Cannonballs and a handheld flame for light destruction
+• Save and load building templates on the headset
+• Sitting or standing play at a workshop table
+
+================================================================================
+SUPPORT / LEGAL URLS
+================================================================================
+Website:  https://futuremusic.online
+Privacy:  https://futuremusic.online/privacy
+Terms:    https://futuremusic.online/terms
+Support:  https://futuremusic.online/contact
+
+================================================================================
+PLAY MODE / INPUT (dashboard checkboxes)
+================================================================================
+Play modes: Sitting, Standing
+Input: Touch controllers (do not tick Hand Tracking)

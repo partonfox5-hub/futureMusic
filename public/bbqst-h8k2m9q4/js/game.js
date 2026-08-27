@@ -46,7 +46,6 @@ renderer.xr.addEventListener("sessionstart", () => {
 });
 renderer.xr.addEventListener("sessionend", () => {
   camera.position.set(0, 1.55, 0);
-  if (STORE) setTimeout(() => enterVr(), 350);
 });
 
 scene.add(new THREE.HemisphereLight(0xfff4e8, 0x8aa0b8, 1.05));
@@ -628,6 +627,89 @@ bindXrHand(ctrl[0]);
 bindXrHand(ctrl[1]);
 
 let ghost = null;
+let xrSession = null;
+let xrVisibility = "visible";
+let appPaused = false;
+let inputFocused = true;
+let resumeVrTimer = 0;
+
+function currentXrSession() {
+  try {
+    return renderer.xr.getSession() || xrSession;
+  } catch {
+    return xrSession;
+  }
+}
+
+function setControllersShown(show) {
+  [ctrl[0], ctrl[1], ctrl.g0, ctrl.g1].forEach((c) => {
+    if (c) c.visible = show;
+  });
+  if (laser) laser.visible = show;
+  if (handL) handL.visible = show;
+  if (handR) handR.visible = show;
+  if (!show) {
+    if (flame) flame.visible = false;
+    if (menuReticle) menuReticle.visible = false;
+    if (ghost) ghost.visible = false;
+    clearUiHover();
+  }
+}
+
+function syncOsState() {
+  const sess = currentXrSession();
+  const vis = sess?.visibilityState || (document.visibilityState === "visible" ? "visible" : "hidden");
+  xrVisibility = vis;
+  const pageHidden = document.visibilityState !== "visible";
+  appPaused = pageHidden || vis === "hidden";
+  inputFocused = !appPaused && vis === "visible";
+  setControllersShown(inputFocused);
+}
+
+function onXrVisibility() {
+  syncOsState();
+}
+
+function wireXrSession(session) {
+  if (!session) return;
+  if (xrSession && xrSession !== session) {
+    xrSession.removeEventListener("visibilitychange", onXrVisibility);
+  }
+  xrSession = session;
+  session.addEventListener("visibilitychange", onXrVisibility);
+  syncOsState();
+}
+
+function scheduleStoreVr() {
+  if (!STORE) return;
+  clearTimeout(resumeVrTimer);
+  resumeVrTimer = setTimeout(() => {
+    if (document.visibilityState !== "visible") return;
+    if (renderer.xr.isPresenting) return;
+    enterVr();
+  }, 700);
+}
+
+renderer.xr.addEventListener("sessionstart", () => {
+  wireXrSession(currentXrSession());
+});
+renderer.xr.addEventListener("sessionend", () => {
+  if (xrSession) {
+    xrSession.removeEventListener("visibilitychange", onXrVisibility);
+    xrSession = null;
+  }
+  xrVisibility = "hidden";
+  appPaused = true;
+  inputFocused = false;
+  setControllersShown(false);
+});
+document.addEventListener("visibilitychange", () => {
+  syncOsState();
+  if (STORE && document.visibilityState === "visible" && !renderer.xr.isPresenting) {
+    scheduleStoreVr();
+  }
+});
+
 function rebuildGhost() {
   if (ghost) {
     ghost.parent?.remove(ghost);
@@ -2253,6 +2335,17 @@ function loop(t) {
   const dt = Math.min(0.05, last ? now - last : 0.016);
   last = now;
   const xr = renderer.xr.isPresenting;
+  if (appPaused) {
+    setControllersShown(false);
+    renderer.render(scene, camera);
+    return;
+  }
+  if (!inputFocused) {
+    setControllersShown(false);
+    tickPhysics(dt);
+    renderer.render(scene, camera);
+    return;
+  }
   if (!menuOpen) moveRig(dt, xr);
   trackBuildHand(dt);
 
@@ -2517,6 +2610,7 @@ async function enterVr() {
       session = await xr.requestSession("immersive-vr", { optionalFeatures: ["local-floor"] });
     }
     await renderer.xr.setSession(session);
+    wireXrSession(session);
     return true;
   } catch {
     return false;
@@ -2534,9 +2628,9 @@ if (STORE) {
   if (startEl) startEl.style.display = "none";
   enterVr();
   const kickVr = () => { enterVr(); };
-  window.addEventListener("pointerdown", kickVr, { once: true });
-  window.addEventListener("keydown", kickVr, { once: true });
-  window.addEventListener("touchstart", kickVr, { once: true });
+  window.addEventListener("pointerdown", kickVr);
+  window.addEventListener("keydown", kickVr);
+  window.addEventListener("touchstart", kickVr);
 }
 
 const btn = XRButton.createButton(renderer, { optionalFeatures: ["local-floor"] });
