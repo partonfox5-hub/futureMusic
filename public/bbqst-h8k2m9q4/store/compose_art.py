@@ -89,11 +89,16 @@ def render_block_text(text: str, cell: int, fill=(245, 205, 47), outline=(27, 42
     return img.crop(bbox) if bbox else img
 
 
-def paste_title(base: Image.Image, y_frac: float, cell: int | None = None) -> Image.Image:
+def paste_title(base: Image.Image, y_frac: float, cell: int | None = None, scale: float = 1.0) -> Image.Image:
     img = base.convert("RGBA")
     if cell is None:
         cell = max(8, img.size[0] // 92)
     title = render_block_text(TITLE, cell)
+    if scale != 1.0:
+        title = title.resize(
+            (max(1, int(title.size[0] * scale)), max(1, int(title.size[1] * scale))),
+            Image.Resampling.NEAREST,
+        )
     max_w = int(img.size[0] * 0.78)
     if title.size[0] > max_w:
         nh = int(title.size[1] * max_w / title.size[0])
@@ -139,7 +144,7 @@ def main() -> None:
     square = Image.open(SESS / "5.jpg")
     port = Image.open(SESS / "6.jpg")
 
-    universal = paste_title(cover(land, (2560, 1440), (0.5, 0.50)), 0.22, cell=18)
+    universal = paste_title(cover(land, (2560, 1440), (0.5, 0.50)), 0.22, cell=18, scale=0.9)
     save_rgb(universal, "cover-landscape-2560x1440.png")
     save_rgb(universal, "blockbuild-universal-basic-asset.png", extra=[DL_ROOT])
     save_rgb(universal, "universal-basic-asset-2560x1440.png")
