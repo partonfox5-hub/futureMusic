@@ -70,6 +70,52 @@ button.ghost, a.ghost { background: transparent; color: #1a1a1e; }
   border: 1px solid #1a1a1e; background: #fff; padding: 6px;
 }
 .shopgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; max-height: 54vh; overflow: auto; }
+.shop-cat {
+  grid-column: 1 / -1;
+  margin: 10px 0 2px;
+  padding: 4px 2px 2px;
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: #d4af37;
+  border-bottom: 1px solid #e6e0d4;
+}
+.shop-cat:first-child { margin-top: 0; }
+#shop-orbs {
+  position: fixed;
+  left: 50%;
+  bottom: max(52px, calc(env(safe-area-inset-bottom, 12px) + 34px));
+  transform: translateX(-50%);
+  z-index: 9;
+  display: flex;
+  gap: 14px;
+  align-items: flex-end;
+}
+#shop[hidden] #shop-orbs { display: none !important; }
+#shop-orbs .ammo-orb,
+#shop-orbs .bind-orb {
+  position: static;
+  left: auto;
+  bottom: auto;
+  transform: none;
+}
+.bind-orb {
+  width: 78px;
+  height: 78px;
+  padding: 0;
+  border-radius: 50%;
+  border: 3px solid #d4af37;
+  background: radial-gradient(circle at 35% 30%, #2a2a30, #111114 70%);
+  color: #d4af37;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: 0.08em;
+  box-shadow: 0 8px 22px rgba(0,0,0,0.35), 0 0 0 4px rgba(212,175,55,0.18);
+}
+.bind-orb-title { font-size: 10px; font-weight: 800; }
+.bind-orb-sub { font-size: 11px; font-weight: 800; color: #f4f1ea; }
 .shopgrid button { text-align: left; background: #fff; color: #111; width: 100%; display: flex; gap: 10px; align-items: center; }
 .shopgrid button small { display: block; color: #666; font-weight: 500; letter-spacing: 0.04em; margin-top: 4px; }
 .shopgrid .shop-ico { width: 48px; height: 48px; flex: none; image-rendering: pixelated; background: #1a1a1e; }

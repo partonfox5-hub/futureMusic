@@ -18,7 +18,7 @@ const WEPS = {
   shotgun: { id: "shotgun", name: "Scattergun", dmg: 1, rpm: 1.15, mag: 6, speed: 48, spread: 0.14, pellets: 7, cost: 140, reload: 6.72 },
   rail: { id: "rail", name: "Rail", dmg: 6, rpm: 1.15, mag: 5, speed: 180, spread: 0, pellets: 1, hitscan: true, pierce: 4, cost: 220, reload: 9.6 },
   thunder: { id: "thunder", name: "Thunder", dmg: 8, rpm: 0.52, mag: 3, speed: 40, spread: 0, pellets: 1, spell: true, aoe: 10.8, lightning: true, knock: 2.8, cost: 160, reload: 7.36 },
-  nova: { id: "nova", name: "Nova", dmg: 4, rpm: 0.38, mag: 2, speed: 18, spread: 0, pellets: 1, spell: true, aoe: 5.6, fireball: true, wall: true, knock: 1.8, cost: 280, reload: 9.12 },
+  nova: { id: "nova", name: "Nova", dmg: 4, rpm: 0.38, mag: 3, speed: 18, spread: 0, pellets: 1, spell: true, aoe: 5.6, fireball: true, wall: true, knock: 1.8, cost: 280, reload: 9.12 },
   plasma: { id: "plasma", name: "Plasma beam", dmg: 99, rpm: 1, mag: 1, speed: 140, spread: 0, pellets: 1, hitscan: true, pierce: 99, beam: true, beamDur: 10, cost: 500, reload: 6.8 },
   ripple: { id: "ripple", name: "Ripple ray", dmg: 2, rpm: 1.6, mag: 8, speed: 22, spread: 0.08, pellets: 11, pierce: 3, ripple: true, cost: 1400, reload: 7.84 },
   gravity: { id: "gravity", name: "Zero-point gun", dmg: 2, rpm: 8, mag: 40, speed: 40, spread: 0, pellets: 1, gravity: true, cost: 1800, reload: 6 },
@@ -158,6 +158,17 @@ let cryT = 0;
 let oofLock = 0;
 let musicGain = null;
 let musicNodes = [];
+let bgmAudio = null;
+let bgmList = [];
+let bgmI = 0;
+let bgmActive = false;
+const MUSIC_VOL = 0.082;
+const BGM_FILES = [
+  "/games/horde/music/iron-pixel-oath.mp3",
+  "/games/horde/music/pixel-crown-parade.mp3",
+  "/games/horde/music/pixel-crown-parade-b.mp3",
+  "/games/horde/music/pixel-pulse.mp3",
+];
 let meleePrev = new THREE.Vector3();
 let meleeHave = false;
 let meleeCd = 0;
@@ -199,8 +210,37 @@ function rng() { return Math.random(); }
 function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
 function wep() { return WEPS[player.wep] || WEPS.pistol; }
 function isSpell(def = wep()) { return !!(def && def.spell); }
-function shopCatalog() { return SHOP.filter((it) => it.kind !== "ammo"); }
+function shopCatalog() { return SHOP.filter((it) => it.kind !== "ammo" && it.kind !== "bind"); }
 function ammoOffer() { return SHOP.find((it) => it.kind === "ammo"); }
+function bindOffer() { return SHOP.find((it) => it.kind === "bind"); }
+function shopSectionOf(it) {
+  if (it.kind === "bike" || it.id === "tank" || it.id === "heli") return "vehicles";
+  if (it.kind === "wep" && WEPS[it.id]?.spell) return "spells";
+  if (it.kind === "wep") return "weapons";
+  if (it.kind === "turret" || it.kind === "drone" || it.kind === "ball") return "defense";
+  if (["jump", "speed", "hp", "reload", "autoreload", "sprint", "sprintcd", "wheelie", "jump2", "jump3"].includes(it.id)) return "movement";
+  return "utility";
+}
+const SHOP_SECTION_ORDER = [
+  { id: "movement", title: "Movement" },
+  { id: "weapons", title: "Weapons" },
+  { id: "spells", title: "Spells" },
+  { id: "vehicles", title: "Vehicles" },
+  { id: "defense", title: "Defense" },
+  { id: "utility", title: "Utility" },
+];
+function shopSections() {
+  const catalog = shopCatalog();
+  return SHOP_SECTION_ORDER.map((s) => ({
+    ...s,
+    items: catalog.filter((it) => shopSectionOf(it) === s.id),
+  })).filter((s) => s.items.length);
+}
+function shopItemBySel(sel) {
+  if (sel === -1) return ammoOffer();
+  if (sel === -2) return bindOffer();
+  return shopCatalog()[sel];
+}
 function ammoLabel() {
   if (isSpell()) return player.mag + " / ∞";
   return player.mag + " / " + player.ammo;
@@ -217,8 +257,13 @@ const SFX_FILES = {
     "/games/horde/sfx/laser1.mp3",
     "/games/horde/sfx/laser2.mp3",
   ],
+  cry: [
+    "/games/horde/sfx/cry1.mp3",
+    "/games/horde/sfx/cry2.mp3",
+    "/games/horde/sfx/cry3.mp3",
+  ],
 };
-const sfxBank = { die: [], laser: [] };
+const sfxBank = { die: [], laser: [], cry: [] };
 let sfxLoadStarted = false;
 
 function playSample(buf, vol) {
@@ -314,44 +359,79 @@ function laserTone(from, to, dur, vol, type) {
 }
 const sfx = {
   shoot() {
-    const lasers = sfxBank.laser.filter(Boolean);
-    if (lasers.length) {
-      playSample(lasers[(rng() * lasers.length) | 0], player.wep === "shotgun" || player.wep === "nuke" ? 0.55 : 0.42);
-      if (player.wep === "shotgun" || player.wep === "nuke" || player.wep === "tank") noise(0.1, 0.1, 220);
-      return;
-    }
     const id = player.wep;
-    if (id === "smg") {
-      laserTone(2100, 320, 0.07, 0.11);
-      noise(0.05, 0.09, 1400);
-      beep("sine", 90, 0.05, 0.06, 50);
-    } else if (id === "shotgun") {
-      laserTone(900, 90, 0.16, 0.14);
-      noise(0.12, 0.16, 280);
-      beep("sine", 70, 0.14, 0.1, 36);
-    } else if (id === "rail") {
-      laserTone(2800, 110, 0.28, 0.16, "square");
-      noise(0.16, 0.14, 220);
-      beep("sine", 160, 0.22, 0.1, 70);
-    } else if (id === "thunder") {
-      noise(0.28, 0.18, 80);
-      beep("sawtooth", 70, 0.38, 0.12, 26);
-      beep("square", 1600, 0.07, 0.08, 180);
-    } else if (id === "nova") {
-      laserTone(420, 70, 0.28, 0.14);
-      noise(0.22, 0.16, 110);
-      beep("sine", 90, 0.26, 0.1, 36);
-    } else if (id === "nuke" || id === "tank" || id === "heli") {
-      noise(0.22, 0.18, 140);
-      beep("sine", 70, 0.28, 0.12, 32);
-    } else if (id === "ripple") {
-      laserTone(900, 220, 0.16, 0.1);
-    } else if (id === "plasma") {
-      laserTone(2400, 180, 0.14, 0.14, "square");
-    } else {
+    if (id === "pistol") {
       laserTone(1550, 140, 0.12, 0.13);
       noise(0.08, 0.12, 420);
       beep("sine", 110, 0.09, 0.08, 48);
+      return;
+    }
+    const lasers = sfxBank.laser.filter(Boolean);
+    if (id === "smg") {
+      laserTone(2400 + rng() * 400, 280 + rng() * 80, 0.055, 0.12);
+      laserTone(180, 70, 0.04, 0.07, "sine");
+      noise(0.04, 0.1, 1600 + rng() * 400);
+      beep("square", 70 + rng() * 30, 0.04, 0.05, 40);
+    } else if (id === "ar") {
+      if (lasers.length) playSample(lasers[(rng() * lasers.length) | 0], 0.38);
+      laserTone(3200, 420, 0.09, 0.13, "square");
+      beep("sine", 140, 0.08, 0.07, 60);
+      noise(0.06, 0.08, 2200);
+    } else if (id === "shotgun") {
+      noise(0.16, 0.2, 220 + rng() * 80);
+      noise(0.1, 0.12, 90);
+      laserTone(720 + rng() * 180, 70, 0.18, 0.15);
+      beep("sine", 58, 0.16, 0.12, 28);
+      beep("triangle", 210, 0.08, 0.06, 80);
+    } else if (id === "rail") {
+      laserTone(3400, 90, 0.34, 0.18, "square");
+      laserTone(900, 140, 0.22, 0.1, "sawtooth");
+      noise(0.2, 0.16, 180);
+      beep("sine", 190, 0.26, 0.11, 55);
+    } else if (id === "thunder") {
+      noise(0.32, 0.2, 70);
+      noise(0.12, 0.1, 1400);
+      beep("sawtooth", 62, 0.4, 0.13, 22);
+      beep("square", 1900 + rng() * 400, 0.08, 0.09, 160);
+    } else if (id === "nova") {
+      laserTone(380, 55, 0.34, 0.16);
+      laserTone(880, 120, 0.22, 0.09, "triangle");
+      noise(0.26, 0.18, 95);
+      beep("sine", 80, 0.3, 0.11, 32);
+    } else if (id === "nuke") {
+      noise(0.28, 0.22, 70);
+      noise(0.18, 0.12, 40);
+      beep("sine", 48, 0.36, 0.14, 22);
+      beep("sawtooth", 90, 0.2, 0.08, 36);
+    } else if (id === "tank") {
+      noise(0.2, 0.18, 110);
+      laserTone(420, 80, 0.2, 0.12);
+      beep("sine", 64, 0.24, 0.12, 28);
+    } else if (id === "heli") {
+      noise(0.14, 0.14, 180);
+      laserTone(980, 160, 0.16, 0.13);
+      beep("square", 220, 0.1, 0.07, 90);
+    } else if (id === "ripple") {
+      laserTone(1100 + rng() * 500, 180, 0.18, 0.11, "triangle");
+      beep("sine", 660, 0.12, 0.07, 220);
+      noise(0.08, 0.06, 800);
+    } else if (id === "plasma") {
+      if (lasers.length) playSample(lasers[(rng() * lasers.length) | 0], 0.4);
+      laserTone(2600, 140, 0.18, 0.16, "square");
+      laserTone(420, 90, 0.22, 0.08, "sawtooth");
+    } else if (id === "gravity") {
+      beep("sine", 90, 0.22, 0.1, 40);
+      laserTone(240, 80, 0.2, 0.1, "triangle");
+      noise(0.12, 0.08, 160);
+    } else if (id === "terra") {
+      noise(0.1, 0.14, 90);
+      beep("square", 70, 0.12, 0.08, 36);
+    } else if (id === "noodle") {
+      laserTone(1800 + rng() * 600, 400, 0.08, 0.1, "sine");
+      beep("triangle", 920, 0.06, 0.06, 400);
+    } else {
+      laserTone(1700, 160, 0.11, 0.12);
+      noise(0.07, 0.1, 500);
     }
   },
   chime() { beep("sine", 880, 0.12, 0.09, 1320); },
@@ -387,20 +467,43 @@ const sfx = {
     beep("triangle", 90, 0.62, 0.07, 36);
     beep("sine", 70, 0.8, 0.06, 28);
   },
+  snarl() {
+    noise(0.22, 0.14, 220);
+    beep("sawtooth", 310, 0.28, 0.11, 70);
+    beep("square", 90, 0.32, 0.09, 36);
+    beep("triangle", 180, 0.18, 0.07, 55);
+  },
+  screech() {
+    beep("square", 1680, 0.22, 0.08, 420);
+    beep("sawtooth", 920, 0.26, 0.09, 180);
+    noise(0.16, 0.1, 2400);
+    beep("sine", 640, 0.14, 0.06, 220);
+  },
+  chatter() {
+    for (let i = 0; i < 4; i++) {
+      const t = i * 45;
+      setTimeout(() => {
+        if (!ac) return;
+        beep("square", 240 + i * 40, 0.06, 0.07, 90);
+        noise(0.04, 0.05, 700);
+      }, t);
+    }
+  },
   oof(kind) {
-    const k = kind % 3;
-    if (k === 0) {
+    const cries = sfxBank.cry.filter(Boolean);
+    if (cries.length && rng() < 0.55) {
+      playSample(cries[(rng() * cries.length) | 0], 0.48);
+      return;
+    }
+    const k = ((kind % 5) + 5) % 5;
+    if (k === 0) this.groan();
+    else if (k === 1) this.snarl();
+    else if (k === 2) this.screech();
+    else if (k === 3) this.chatter();
+    else {
       beep("sawtooth", 210, 0.16, 0.09, 70);
       beep("sine", 140, 0.2, 0.07, 55);
       noise(0.08, 0.07, 280);
-    } else if (k === 1) {
-      beep("square", 95, 0.18, 0.1, 42);
-      beep("triangle", 160, 0.14, 0.06, 70);
-      noise(0.1, 0.08, 180);
-    } else {
-      beep("sawtooth", 260, 0.12, 0.08, 90);
-      beep("sine", 80, 0.22, 0.07, 40);
-      noise(0.07, 0.06, 420);
     }
   },
   impact() {
@@ -422,9 +525,8 @@ const sfx = {
 
 function maybeOof() {
   if (oofLock > 0) return;
-  if (rng() > 0.3) return;
-  oofLock = 5;
-  sfx.oof((rng() * 3) | 0);
+  oofLock = 15;
+  sfx.oof((rng() * 5) | 0);
 }
 
 let musicBeat = 0;
@@ -484,6 +586,11 @@ function stopMusic() {
   }
   musicBeat = 0;
   musicNext = 0;
+  bgmActive = false;
+  if (bgmAudio) {
+    try { bgmAudio.onended = null; bgmAudio.pause(); bgmAudio.src = ""; } catch {}
+    bgmAudio = null;
+  }
 }
 
 function musicNoise() {
@@ -496,9 +603,44 @@ function musicNoise() {
   return buf;
 }
 
+function shuffleBgm() {
+  bgmList = BGM_FILES.slice();
+  for (let i = bgmList.length - 1; i > 0; i--) {
+    const j = (rng() * (i + 1)) | 0;
+    const t = bgmList[i];
+    bgmList[i] = bgmList[j];
+    bgmList[j] = t;
+  }
+  bgmI = 0;
+}
+
+function playBgmTrack() {
+  if (!bgmList.length) return false;
+  try {
+    if (bgmAudio) {
+      try { bgmAudio.onended = null; bgmAudio.pause(); } catch {}
+    }
+    const el = new Audio(bgmList[bgmI % bgmList.length]);
+    el.volume = MUSIC_VOL;
+    el.preload = "auto";
+    el.onended = () => {
+      bgmI = (bgmI + 1) % bgmList.length;
+      playBgmTrack();
+    };
+    el.play().catch(() => {});
+    bgmAudio = el;
+    bgmActive = true;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function startMusic() {
   stopMusic();
   sfxUnlock();
+  shuffleBgm();
+  if (playBgmTrack()) return;
   if (!ac) return;
   const master = ac.createGain();
   master.gain.value = 0.042;
@@ -625,6 +767,12 @@ function musicStab(t, chord) {
 }
 
 function tickMusic() {
+  if (bgmActive) {
+    if (bgmAudio && !bgmAudio.paused && running && !dead) {
+      bgmAudio.volume = MUSIC_VOL;
+    }
+    return;
+  }
   if (!ac || !musicGain || !running || dead) return;
   const now = ac.currentTime;
   const st = MUSIC_STYLES[musicStyle] || MUSIC_STYLES[0];
@@ -1657,7 +1805,94 @@ function makeScuttler(w, ang, dist) {
   });
 }
 
+function makeLeaper(w, ang, dist) {
+  const sized = mobScaleForWave(w);
+  const bodyScale = sized.scale * 0.92;
+  const giant = sized.giant;
+  const group = new THREE.Group();
+  const coreR = (0.2 + rng() * 0.14) * Math.min(1.35, 0.75 + bodyScale * 0.25);
+  const core = makeCore(coreR);
+  group.add(core);
+  const limbs = [];
+  let wingsPlaced = 0;
+  const nExtra = 1 + ((rng() * Math.min(3, 1 + w * 0.08)) | 0);
+  const n = 2 + nExtra;
+  for (let i = 0; i < n; i++) {
+    const leg = i < 2;
+    let form = leg ? "club" : pickLimbForm(w, false);
+    if (leg && form === "wing") form = "club";
+    if (form === "wing") wingsPlaced++;
+    if (!leg && wingsPlaced === 0 && i === n - 1 && rng() < Math.min(0.5, 0.16 + w * 0.03)) form = "wing";
+    const limb = makeLimbChain(w, leg, form);
+    if (leg) {
+      limb.scale.set(1.35, 1.45, 1.35);
+      limb.userData.run = (limb.userData.run || 1) * 1.4;
+      limb.userData.dmg = Math.max(2, limb.userData.dmg || 1);
+      limb.userData.len *= 1.2;
+    }
+    const lyaw = leg ? (i === 0 ? -0.55 : 0.55) : rng() * Math.PI * 2;
+    const isWing = limb.userData.form === "wing";
+    const pitch = isWing ? -0.1 + rng() * 0.2 : leg ? 0.55 + rng() * 0.12 : -0.2 + rng() * 0.55;
+    limb.rotation.order = "YXZ";
+    limb.userData.baseYaw = lyaw;
+    limb.userData.basePitch = pitch;
+    limb.userData.baseRoll = 0;
+    limb.userData.legIndex = i;
+    limb.userData.asLeg = leg;
+    limb.rotation.y = lyaw;
+    limb.rotation.x = pitch;
+    const attach = coreR * 0.95;
+    limb.position.set(
+      Math.sin(lyaw) * attach,
+      isWing ? coreR * 0.45 : (leg ? -coreR * 0.58 : coreR * 0.14),
+      Math.cos(lyaw) * attach,
+    );
+    group.add(limb);
+    limbs.push(limb);
+  }
+  group.scale.setScalar(bodyScale);
+  const x = player.x + Math.cos(ang) * dist;
+  const z = player.z + Math.sin(ang) * dist;
+  const walkH = heightAt(x, z) + (0.62 + (limbs[0].userData.len || 0.7) * 0.4) * bodyScale;
+  group.position.set(x, walkH, z);
+  scene.add(group);
+  const runMul = limbs.reduce((s, l) => s + (l.userData.run || 1), 0) / n;
+  return stampGiant({
+    mesh: group,
+    core,
+    limbs,
+    hpLimbs: n,
+    x, z, y: walkH,
+    spd: (1.7 + w * 0.09) * runMul * waveSpeedMul(w) / Math.max(1, Math.sqrt(bodyScale)),
+    boost: 1,
+    bodyScale,
+    giant,
+    bob: rng() * 6,
+    hitR: (0.72 + coreR) * bodyScale,
+    hitCd: 0,
+    dodgeY: 0,
+    nLegs: 2,
+    alive: true,
+    leaper: true,
+    leapCd: 0.6 + rng() * 1.4,
+    leaping: false,
+    leapVx: 0, leapVy: 0, leapVz: 0,
+    ranged: false,
+    fireCd: 0,
+    orbit: rng() * Math.PI * 2,
+    orbitR: 1.1 + rng() * 2.4,
+    sepJit: 0.7,
+    jabPhase: 0,
+    jabLimb: null,
+    threatCd: 1.2 + rng() * 2.8,
+    threatPose: 0,
+    threatT: 0,
+    threatDur: 0.8,
+  });
+}
+
 function makeMob(w, ang, dist) {
+  if (w >= 10 && rng() < Math.min(0.42, 0.14 + (w - 10) * 0.028)) return makeLeaper(w, ang, dist);
   if (w >= 3 && rng() < Math.min(0.2, 0.06 + w * 0.012)) return makeCentipede(w, ang, dist);
   if (w >= 1 && rng() < Math.min(0.22, 0.08 + w * 0.014)) return makeScuttler(w, ang, dist);
   if (w >= 2 && rng() < Math.min(0.18, 0.055 + w * 0.012)) return makeSpider(w, ang, dist);
@@ -1796,7 +2031,7 @@ function spawnWave() {
   wave += 1;
   noteBestWave();
   const dw = diffWave();
-  const count = Math.max(1, Math.round(Math.pow(2, dw - 1) * 0.9));
+  const count = Math.max(1, Math.round(Math.pow(2, dw - 1) * 0.9 * 0.94));
   const half = Math.max(1, Math.ceil(count / 2));
   const later = Math.max(0, count - half);
   pending = half;
@@ -1834,14 +2069,15 @@ function dripSpawn(dt) {
   dt = dt || 0;
   if (dripLeft > 0) {
     dripElapsed += dt;
-    const released = Math.floor((Math.min(dripElapsed, 60) / 60) * dripTotal);
+    const dripWin = 63.8;
+    const released = Math.floor((Math.min(dripElapsed, dripWin) / dripWin) * dripTotal);
     const already = dripTotal - dripLeft;
     const more = Math.max(0, released - already);
     if (more > 0) {
       pending += more;
       dripLeft = Math.max(0, dripLeft - more);
     }
-    if (dripElapsed >= 60 && dripLeft > 0) {
+    if (dripElapsed >= 63.8 && dripLeft > 0) {
       pending += dripLeft;
       dripLeft = 0;
     }
@@ -2206,8 +2442,31 @@ function tickMobs(dt) {
       vx += (dodge.dodgeX / mag) * agility;
       vz += (dodge.dodgeZ / mag) * agility;
     }
-    m.x += vx * dt;
-    m.z += vz * dt;
+    const flyPow = wings.reduce((s, l) => s + (l.userData.fly || 1), 0);
+    const insect = nW >= 2 && flyPow >= 1.55 && diffWave() >= 8;
+    if (insect) {
+      m.buzzT = (m.buzzT || rng() * 8) + dt;
+      const ang = (m.orbit || 0) + m.buzzT * (2.1 + nW * 0.85 + flyPow * 0.4);
+      const rad = 1.05 + Math.abs(Math.sin(m.buzzT * 3.4)) * (1.8 + nW * 0.35);
+      const ix = player.x + Math.cos(ang) * rad;
+      const iz = player.z + Math.sin(ang) * rad;
+      vx = (ix - m.x) * (2.6 + flyPow * 0.45);
+      vz = (iz - m.z) * (2.6 + flyPow * 0.45);
+    }
+    m.leapCd = Math.max(0, (m.leapCd || 0) - dt);
+    if (m.leaper && m.leaping) {
+      m.x += m.leapVx * dt;
+      m.z += m.leapVz * dt;
+      m.leapVy -= (nW ? 11 : 22) * dt;
+      m.y += m.leapVy * dt;
+      if (nW) {
+        m.leapVx += (dx / dist) * 3.4 * dt;
+        m.leapVz += (dz / dist) * 3.4 * dt;
+      }
+    } else {
+      m.x += vx * dt;
+      m.z += vz * dt;
+    }
     m.bob += dt * (4 + m.spd + nW * 2);
     const sample = (liveLegs[0] || gait[0] || m.limbs[0]).userData;
     const lift = m.centipede
@@ -2223,16 +2482,51 @@ function tickMobs(dt) {
       const scrape = 0.5 + 0.5 * Math.sin(m.bob * 0.65 + m.x * 0.05);
       hover = groundY + 0.08 + scrape * 0.95;
     } else if (nW >= 2) {
-      const ceil = 0.85 + (nW - 1) * 1.15 + wings.reduce((s, l) => s + (l.userData.fly || 1), 0) * 0.25;
+      const ceil = 0.85 + (nW - 1) * 1.15 + flyPow * 0.25;
       hover = groundY + ceil + Math.sin(m.bob * 0.9) * 0.35;
+    }
+    if (insect) {
+      hover = player.y + 0.35 + nW * 0.4
+        + Math.sin((m.buzzT || m.bob) * 6.4) * (1.55 + flyPow * 0.35)
+        + Math.sin((m.buzzT || m.bob) * 12.2) * 0.7;
+      hover = Math.max(groundY + 0.35, hover);
     }
     if (dodge.threat && nW) {
       const dodgeScale = 0.2 + 0.8 * Math.min(1, (diffWave() - 1) / 99);
       hover += dodge.dodgeY * (0.4 + nW * 0.55) * dodgeScale;
     }
-    const climb = nW ? 2.2 + nW * 1.1 : 8;
-    m.y += (hover - m.y) * Math.min(1, dt * climb);
-    if (m.y < groundY) m.y = groundY;
+    if (m.leaper && m.leaping) {
+      if (m.y <= groundY && m.leapVy <= 0) {
+        m.y = groundY;
+        m.leaping = false;
+        m.leapCd = 1.6 + rng() * 2.2;
+      }
+    } else {
+      const climb = nW ? 2.2 + nW * 1.1 : 8;
+      m.y += (hover - m.y) * Math.min(1, dt * climb);
+      if (m.y < groundY) m.y = groundY;
+      const midLo = nW ? 3.4 : 4.2;
+      const midHi = nW ? 16 : 12;
+      if (m.leaper && m.leapCd <= 0 && dist > midLo && dist < midHi) {
+        const roll = rng();
+        let tx, tz;
+        if (roll < 0.34) {
+          tx = player.x + lastFwdX * 1.55;
+          tz = player.z + lastFwdZ * 1.55;
+        } else if (roll < 0.67) {
+          tx = player.x - lastFwdX * 1.85;
+          tz = player.z - lastFwdZ * 1.85;
+        } else {
+          tx = player.x;
+          tz = player.z;
+        }
+        const dur = nW ? 0.52 : 0.72;
+        m.leaping = true;
+        m.leapVx = (tx - m.x) / dur;
+        m.leapVz = (tz - m.z) / dur;
+        m.leapVy = (nW ? 4.6 : 3.2) / dur * 0.55;
+      }
+    }
     m.threatCd = (m.threatCd || 2) - dt;
     if (!m.threatPose && m.threatCd <= 0) {
       if (rng() < 0.42) {
@@ -2253,8 +2547,9 @@ function tickMobs(dt) {
       if (!limb.userData.live) continue;
       const u = limb.userData;
       if (u.form === "wing") {
-        limb.rotation.z = Math.sin(m.bob * (7 + nW) + u.phase) * (0.55 + nW * 0.08);
-        limb.rotation.x = u.basePitch + Math.sin(m.bob * 1.4 + u.phase) * 0.12;
+        const flap = insect ? (16 + nW * 5 + flyPow * 3) : (7 + nW);
+        limb.rotation.z = Math.sin(m.bob * flap + u.phase) * (insect ? 0.92 : 0.55 + nW * 0.08);
+        limb.rotation.x = u.basePitch + Math.sin(m.bob * (insect ? 4.2 : 1.4) + u.phase) * (insect ? 0.28 : 0.12);
       } else if (u.asLeg) {
         const nL = m.nLegs || 2;
         const freq = m.scuttler ? 14 : m.spider ? 8.4 : nL >= 8 ? 6.2 : nL === 4 ? 4.6 : 3.5;
@@ -4787,11 +5082,33 @@ function paintAmmoOrb() {
   orb.onclick = () => buy(it);
 }
 
+function paintBindOrb() {
+  const orb = $("bind-orb");
+  if (!orb) return;
+  const it = bindOffer();
+  if (!it) {
+    orb.hidden = true;
+    return;
+  }
+  orb.hidden = false;
+  const now = shopOnX ? "X shop" : "Y shop";
+  const other = shopOnX ? "Y reload" : "X reload";
+  const sub = orb.querySelector(".bind-orb-sub");
+  if (sub) sub.textContent = now;
+  orb.title = now + " · " + other;
+  orb.onclick = () => buy(it);
+}
+
 function paintShop() {
   const host = $("shopgrid");
   if (!host) return;
   host.innerHTML = "";
-  for (const it of shopCatalog()) {
+  for (const sec of shopSections()) {
+    const h = document.createElement("h3");
+    h.className = "shop-cat";
+    h.textContent = sec.title;
+    host.appendChild(h);
+    for (const it of sec.items) {
     const equipped = it.kind === "wep" && player.wep === it.id;
     const have = it.kind === "wep" && owned.has(it.id);
     const b = document.createElement("button");
@@ -4825,9 +5142,11 @@ function paintShop() {
     b.disabled = locked || equipped || maxed || (!have && !canBind && player.coins < it.cost);
     b.onclick = () => buy(it);
     host.appendChild(b);
+    }
   }
   if ($("shop-gold")) $("shop-gold").textContent = String(player.coins | 0);
   paintAmmoOrb();
+  paintBindOrb();
 }
 
 function rebuildShopCards() {
@@ -4843,7 +5162,7 @@ function rebuildShopCards() {
   }
   shopHits = [];
   const backing = new THREE.Mesh(
-    new THREE.PlaneGeometry(1.82, 2.15),
+    new THREE.PlaneGeometry(1.86, 2.32),
     new THREE.MeshBasicMaterial({ color: 0x1a1a1e, transparent: true, opacity: 0.72, side: THREE.DoubleSide }),
   );
   backing.position.z = -0.02;
@@ -4864,24 +5183,45 @@ function rebuildShopCards() {
     new THREE.PlaneGeometry(1.55, 0.24),
     new THREE.MeshBasicMaterial({ map: titleTex, side: THREE.DoubleSide }),
   );
-  title.position.set(0, 0.8, 0.01);
+  title.position.set(0, 0.92, 0.01);
   shopRoot.add(title);
   const catalog = shopCatalog();
-  catalog.forEach((it, i) => {
-    const col = i % 4;
-    const row = (i / 4) | 0;
-    const c = paintShopCard(it, i, i === shopSel);
-    const tex = new THREE.CanvasTexture(c);
-    const mesh = new THREE.Mesh(
-      new THREE.PlaneGeometry(0.4, 0.135),
-      new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide }),
+  let y = 0.74;
+  for (const sec of shopSections()) {
+    const hc = document.createElement("canvas");
+    hc.width = 1024; hc.height = 64;
+    const hx = hc.getContext("2d");
+    hx.fillStyle = "#111114";
+    hx.fillRect(0, 0, 1024, 64);
+    hx.fillStyle = "#d4af37";
+    hx.font = "700 36px Outfit, sans-serif";
+    hx.fillText(sec.title.toUpperCase(), 24, 44);
+    const htex = new THREE.CanvasTexture(hc);
+    const hmesh = new THREE.Mesh(
+      new THREE.PlaneGeometry(1.62, 0.07),
+      new THREE.MeshBasicMaterial({ map: htex, side: THREE.DoubleSide }),
     );
-    mesh.position.set((col - 1.5) * 0.42, 0.62 - row * 0.148, 0.02);
-    mesh.userData.shopItem = it;
-    mesh.userData.shopIndex = i;
-    shopRoot.add(mesh);
-    shopHits.push(mesh);
-  });
+    hmesh.position.set(0, y, 0.015);
+    shopRoot.add(hmesh);
+    y -= 0.085;
+    sec.items.forEach((it, i) => {
+      const col = i % 4;
+      const row = (i / 4) | 0;
+      const idx = catalog.indexOf(it);
+      const c = paintShopCard(it, idx, idx === shopSel);
+      const tex = new THREE.CanvasTexture(c);
+      const mesh = new THREE.Mesh(
+        new THREE.PlaneGeometry(0.38, 0.118),
+        new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide }),
+      );
+      mesh.position.set((col - 1.5) * 0.4, y - row * 0.128, 0.02);
+      mesh.userData.shopItem = it;
+      mesh.userData.shopIndex = idx;
+      shopRoot.add(mesh);
+      shopHits.push(mesh);
+    });
+    y -= Math.ceil(sec.items.length / 4) * 0.128 + 0.03;
+  }
   const ammoIt = ammoOffer();
   if (ammoIt) {
     const ac = document.createElement("canvas");
@@ -4889,7 +5229,7 @@ function rebuildShopCards() {
     const ax = ac.getContext("2d");
     ax.beginPath();
     ax.arc(128, 128, 122, 0, Math.PI * 2);
-    ax.fillStyle = shopSel < 0 ? "#111111" : "#1a1a1e";
+    ax.fillStyle = shopSel === -1 ? "#111111" : "#1a1a1e";
     ax.fill();
     ax.lineWidth = 10;
     ax.strokeStyle = "#d4af37";
@@ -4906,11 +5246,42 @@ function rebuildShopCards() {
       new THREE.CircleGeometry(0.11, 32),
       new THREE.MeshBasicMaterial({ map: atex, side: THREE.DoubleSide, transparent: true }),
     );
-    disc.position.set(0, -0.94, 0.03);
+    disc.position.set(-0.16, -0.72, 0.03);
     disc.userData.shopItem = ammoIt;
     disc.userData.shopIndex = -1;
     shopRoot.add(disc);
     shopHits.push(disc);
+  }
+  const bindIt = bindOffer();
+  if (bindIt) {
+    const bc = document.createElement("canvas");
+    bc.width = bc.height = 256;
+    const bx = bc.getContext("2d");
+    bx.beginPath();
+    bx.arc(128, 128, 122, 0, Math.PI * 2);
+    bx.fillStyle = shopSel === -2 ? "#111111" : "#1a1a1e";
+    bx.fill();
+    bx.lineWidth = 10;
+    bx.strokeStyle = "#d4af37";
+    bx.stroke();
+    bx.fillStyle = "#d4af37";
+    bx.font = "700 26px Outfit, sans-serif";
+    bx.textAlign = "center";
+    bx.fillText("BINDS", 128, 118);
+    bx.font = "600 20px Outfit, sans-serif";
+    bx.fillStyle = "#f4f1ea";
+    bx.fillText(shopOnX ? "X shop" : "Y shop", 128, 150);
+    bx.fillText(shopOnX ? "Y reload" : "X reload", 128, 178);
+    const btex = new THREE.CanvasTexture(bc);
+    const bdisc = new THREE.Mesh(
+      new THREE.CircleGeometry(0.11, 32),
+      new THREE.MeshBasicMaterial({ map: btex, side: THREE.DoubleSide, transparent: true }),
+    );
+    bdisc.position.set(0.16, -0.72, 0.03);
+    bdisc.userData.shopItem = bindIt;
+    bdisc.userData.shopIndex = -2;
+    shopRoot.add(bdisc);
+    shopHits.push(bdisc);
   }
   tintShopSel();
 }
@@ -5634,8 +6005,8 @@ addEventListener("keydown", (e) => {
     paintShop3d();
   }
   if (shopOpen && (e.code === "Enter" || e.code === "Space")) {
-    if (shopSel < 0) buy(ammoOffer());
-    else buy(shopCatalog()[shopSel]);
+    const it = shopItemBySel(shopSel);
+    if (it) buy(it);
   }
 });
 addEventListener("keyup", (e) => keys.delete(e.code));

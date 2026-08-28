@@ -587,6 +587,11 @@ app.get(["/horde", "/horde/"], (req, res) => {
     hordeHeaders(res);
     res.sendFile(path.join(__dirname, "public", "games", "horde", "index.html"));
 });
+app.get(["/test-n8r2v6k4", "/test-n8r2v6k4/"], (req, res) => {
+    hordeHeaders(res);
+    res.setHeader("X-Robots-Tag", "noindex, nofollow, noarchive");
+    res.sendFile(path.join(__dirname, "public", "games", "horde", "test-n8r2v6k4.html"));
+});
 
 // BLOCKBUILD Quest Store exclusive — unlisted private URL, not home-gated.
 const BBQST = "/bbqst-h8k2m9q4";
