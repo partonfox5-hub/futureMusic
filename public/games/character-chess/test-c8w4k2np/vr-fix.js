@@ -5,7 +5,7 @@
  * (infinite headset loading). Warm the canvas behind 2D on Quest only, then attach XR.
  * Desktop/PC never preloads the Three.js board.
  */
-const BOARD3D = "/games/character-chess/assets/Board3D-c8w4k2np.js?v=vrwarm1";
+const BOARD3D = "/games/character-chess/assets/Board3D-c8w4k2np.js?v=tilehand3";
 const FULL_PATH = "/games/character-chess/chess-static.html";
 const SESSION_MS = 20000;
 const GL_MS = 20000;

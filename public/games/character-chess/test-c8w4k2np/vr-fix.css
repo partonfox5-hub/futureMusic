@@ -33,3 +33,40 @@ button.cc-hide-title-vr {
 .hand-card:hover,.hand-card.is-held{
   transform:rotate(0) translateY(-3.4rem) scale(1.129);
 }
+
+.cc-foe-hud{
+  max-width:min(22rem, calc(100vw - 1.5rem));
+  flex-wrap:wrap;
+  align-items:flex-start;
+}
+.cc-foe-hand{
+  flex:1 1 100%;
+  min-width:0 !important;
+  max-width:100% !important;
+  width:100% !important;
+  overflow:hidden !important;
+  contain:paint;
+}
+.cc-foe-hand .cc-foe-row{
+  display:flex !important;
+  width:100% !important;
+  min-width:0 !important;
+  overflow:hidden !important;
+  flex-wrap:nowrap !important;
+}
+.cc-foe-hand .cc-foe-card{
+  flex:1 1 0 !important;
+  min-width:0 !important;
+  max-width:3.05rem !important;
+  height:4.1rem !important;
+  overflow:hidden !important;
+}
+.cc-foe-hand .cc-foe-card img{
+  width:100% !important;
+  height:100% !important;
+  max-width:100% !important;
+  max-height:100% !important;
+  object-fit:contain !important;
+  object-position:bottom center !important;
+  box-shadow:none !important;
+}
