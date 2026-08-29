@@ -81,15 +81,18 @@ button.ghost, a.ghost { background: transparent; color: #1a1a1e; }
   border-bottom: 1px solid #e6e0d4;
 }
 .shop-cat:first-child { margin-top: 0; }
+#shop .panel { position: relative; padding-right: 168px; }
 #shop-orbs {
-  position: fixed;
-  left: 50%;
-  bottom: max(52px, calc(env(safe-area-inset-bottom, 12px) + 34px));
-  transform: translateX(-50%);
-  z-index: 9;
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  left: auto;
+  bottom: auto;
+  transform: none;
+  z-index: 2;
   display: flex;
-  gap: 14px;
-  align-items: flex-end;
+  gap: 10px;
+  align-items: flex-start;
 }
 #shop[hidden] #shop-orbs { display: none !important; }
 #shop-orbs .ammo-orb,
@@ -98,6 +101,8 @@ button.ghost, a.ghost { background: transparent; color: #1a1a1e; }
   left: auto;
   bottom: auto;
   transform: none;
+  width: 64px;
+  height: 64px;
 }
 .bind-orb {
   width: 78px;

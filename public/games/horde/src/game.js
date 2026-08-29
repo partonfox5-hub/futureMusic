@@ -5267,10 +5267,10 @@ function rebuildShopCards() {
   tctx.fillText("BUY   " + (player.coins | 0) + " ◎", 28, 118);
   const titleTex = new THREE.CanvasTexture(titleC);
   const title = new THREE.Mesh(
-    new THREE.PlaneGeometry(1.55, 0.24),
+    new THREE.PlaneGeometry(1.22, 0.24),
     new THREE.MeshBasicMaterial({ map: titleTex, side: THREE.DoubleSide }),
   );
-  title.position.set(0, 0.92, 0.01);
+  title.position.set(-0.22, 0.96, 0.01);
   shopRoot.add(title);
   const catalog = shopCatalog();
   let y = 0.74;
@@ -5333,7 +5333,7 @@ function rebuildShopCards() {
       new THREE.CircleGeometry(0.11, 32),
       new THREE.MeshBasicMaterial({ map: atex, side: THREE.DoubleSide, transparent: true }),
     );
-    disc.position.set(-0.16, -0.72, 0.03);
+    disc.position.set(0.56, 1.00, 0.04);
     disc.userData.shopItem = ammoIt;
     disc.userData.shopIndex = -1;
     shopRoot.add(disc);
@@ -5364,7 +5364,7 @@ function rebuildShopCards() {
       new THREE.CircleGeometry(0.11, 32),
       new THREE.MeshBasicMaterial({ map: btex, side: THREE.DoubleSide, transparent: true }),
     );
-    bdisc.position.set(0.16, -0.72, 0.03);
+    bdisc.position.set(0.80, 1.00, 0.04);
     bdisc.userData.shopItem = bindIt;
     bdisc.userData.shopIndex = -2;
     shopRoot.add(bdisc);

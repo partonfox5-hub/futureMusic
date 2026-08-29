@@ -33,7 +33,7 @@ import {
   atmosR,
   heightOf,
   seaOf,
-} from "/games/shared/world-core.src.js?v=pmwx1";
+} from "/games/shared/world-core.js?v=pm3";
 import {
   SLOT_N,
   CIV_AGES,
@@ -61,7 +61,7 @@ import {
   labelCanvas,
   dnaIsAquatic,
   modelTemple,
-} from "./spore.src.js?v=pmwx1";
+} from "./spore.js?v=pm3";
 
 const canvas = document.getElementById("c");
 const hudEl = document.getElementById("hud");
@@ -459,7 +459,7 @@ class World {
     this.wxMode = "clouds";
     this.wxPuffs = [];
     this.temples = [];
-    this.hideCloudsOnLod = false;
+    this.keepCloudsOnLod = true;
     this.laserSteamT = 0;
     this.vel = new THREE.Vector3().randomDirection().multiplyScalar(0.15);
     this.paint = makePaint();
