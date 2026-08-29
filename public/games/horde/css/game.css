@@ -82,6 +82,19 @@ button.ghost, a.ghost { background: transparent; color: #1a1a1e; }
 }
 .shop-cat:first-child { margin-top: 0; }
 #shop .panel { position: relative; padding-right: 168px; }
+.dev-toggle {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 3;
+  background: #1a1a1e;
+  color: #d4af37;
+  border: 2px solid #d4af37;
+  font-size: 11px;
+  padding: 8px 10px;
+  min-width: 7.2rem;
+}
+.dev-toggle.on { background: #143018; color: #8f8; border-color: #6c6; }
 #shop-orbs {
   position: absolute;
   top: 14px;

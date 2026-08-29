@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#d8d4cc" />
+    <meta name="robots" content="noindex, nofollow, noarchive" />
+    <title>THE HORDE — test w4n8k2pt</title>
+    <meta name="description" content="Unlisted Horde test build." />
+    <meta name="build" content="test-w4n8k2pt" />
+    <link rel="icon" type="image/jpeg" href="/games/horde/og.jpg" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Outfit:wght@400;500;600;700&display=swap" />
+    <link rel="stylesheet" href="/games/horde/css/game.css?v=w4n8k2pt" />
+  </head>
+  <body>
+    <canvas id="c"></canvas>
+    <div id="hurt"></div>
+    <div id="hud">
+      <div>HP <b id="hpv">♥♥♥♥♥</b></div>
+      <div class="bar hearts"><i id="hpi"></i></div>
+      <div>AMMO <b id="ammo">12 / 48</b></div>
+      <div>GUN <b id="wep">Pistol</b></div>
+      <div>COINS <b id="coins">0</b></div>
+      <div>WAVE <b id="wave">0</b></div>
+    </div>
+    <div id="msg">WAVE 1</div>
+    <div id="hint">WASD · click fire · Space jump · Shift sprint · Q / B cycle guns · Y reload · X shop (swap in armory) · F flashlight · Esc menu · VR: left menu or left grip opens the main menu, B cycles guns, left trigger flashlight, left stick click sprint, right trigger shoot, A jump</div>
+
+    <div id="start">
+      <div class="panel">
+        <p class="kicker">Unlisted test build · w4n8k2pt</p>
+        <h1>THE HORDE</h1>
+        <p>
+          Plasma is a hold-to-fire charge beam. Clip size and reload speed live under Weapons. DEV toggle at the top of the armory gives infinite HP and gold. Flags and turret beacons cut the night. New ruins: arch halls, turning stairs, round pits.
+        </p>
+        <div class="ini">
+          <span>Initials</span>
+          <input data-ini="0" maxlength="1" value="A" aria-label="Initial 1" />
+          <input data-ini="1" maxlength="1" value="A" aria-label="Initial 2" />
+          <input data-ini="2" maxlength="1" value="A" aria-label="Initial 3" />
+        </div>
+        <ol id="lb"></ol>
+        <p id="starts-note" hidden>You've reached later waves — skip in with +50 ◎ per wave.</p>
+        <div class="starts" id="start-waves" hidden></div>
+        <div class="row">
+          <button type="button" id="play">New game</button>
+          <button type="button" id="resume" hidden>Resume</button>
+          <button type="button" id="vr-enter">ENTER VR</button>
+          <a class="btn ghost" href="/projects">Projects</a>
+        </div>
+        <p id="vr-note" hidden>Open this page in Meta Quest Browser to enter VR.</p>
+      </div>
+    </div>
+
+    <div id="shop" hidden>
+      <div class="panel">
+        <button type="button" id="dev-toggle" class="dev-toggle">DEV: OFF</button>
+        <div id="shop-orbs">
+          <button type="button" id="ammo-orb" class="ammo-orb" aria-label="Buy ammo crate">
+            <span class="ammo-orb-title">AMMO</span>
+            <span class="ammo-orb-cost">28◎</span>
+            <span class="ammo-orb-plus">+40</span>
+          </button>
+          <button type="button" id="bind-orb" class="bind-orb" aria-label="Toggle reload and shop buttons">
+            <span class="bind-orb-title">BINDS</span>
+            <span class="bind-orb-sub">X shop</span>
+          </button>
+        </div>
+        <p class="kicker">Armory</p>
+        <h1>BUY</h1>
+        <p>Gold on hand: <b id="shop-gold">0</b> ◎</p>
+        <div class="shopgrid" id="shopgrid"></div>
+        <div class="row">
+          <button type="button" class="ghost" id="shop-close">Close (X)</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="over" hidden>
+      <div class="panel">
+        <p class="kicker">Taken by the horde</p>
+        <h1>DOWN</h1>
+        <p id="over-stats"></p>
+        <p class="restart-hint">Shoot New Game on the panel, or pick an unlocked wave. +50 ◎ per wave if you skip in.</p>
+        <div class="starts" id="over-waves" hidden></div>
+        <ol id="lb-over"></ol>
+        <div class="row">
+          <button type="button" id="again">New game</button>
+          <button type="button" class="ghost" id="to-menu">Menu</button>
+        </div>
+      </div>
+    </div>
+
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+        }
+      }
+    </script>
+    <script type="module" src="/games/horde/src/game.js?v=w4n8k2pt"></script>
+  </body>
+</html>
