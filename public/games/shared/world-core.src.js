@@ -298,7 +298,10 @@ export function setSurfaceLod(world, on) {
     if (h.userData.peg) h.userData.peg.visible = !on;
     h.visible = on;
   }
-  if (world.clouds) world.clouds.visible = !on;
+  if (world.clouds) {
+    if (world.hideCloudsOnLod) world.clouds.visible = !on;
+    else world.clouds.visible = true;
+  }
   setAtmosMode(world, on);
 }
 

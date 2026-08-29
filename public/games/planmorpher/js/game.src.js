@@ -31,7 +31,9 @@ import {
   ejectNearPlanet,
   waterAlt,
   atmosR,
-} from "/games/shared/world-core.js?v=atmo2";
+  heightOf,
+  seaOf,
+} from "/games/shared/world-core.src.js?v=pmwx1";
 import {
   SLOT_N,
   CIV_AGES,
@@ -57,7 +59,9 @@ import {
   modelScout,
   modelSettler,
   labelCanvas,
-} from "./spore.js?v=pm2";
+  dnaIsAquatic,
+  modelTemple,
+} from "./spore.src.js?v=pmwx1";
 
 const canvas = document.getElementById("c");
 const hudEl = document.getElementById("hud");
@@ -80,15 +84,27 @@ const POWERS = [
   { id: "bolt", name: "Lightning", hint: "Strike the crust — burns, shocks life, and knocks ships." },
   { id: "laser", name: "Laser", hint: "Hold to cut. Damages ships and carves riverbeds through land." },
   { id: "scout", name: "Scout", hint: "Spawn a Planetry scout for the selected spore civ." },
-  { id: "settler", name: "Settler", hint: "Spawn a settler. It lands and founds a city for the selected spore." },
-  { id: "storm", name: "Weather", hint: "Spin the climate of the nearest world." },
-  { id: "grove", name: "Grove", hint: "A miracle of trees rising from the soil." },
+  { id: "settler", name: "Settler", hint: "Spawn a settler. It orbits looking for land — never ocean — then founds a city." },
+  { id: "storm", name: "Weather", hint: "Open weather: clouds, thunderstorm, snow, hail. Hold A or trigger to grow it in the sky." },
+  { id: "grove", name: "Grove", hint: "Paint forests. Hold to raise trees; it hunts for soil that will take them." },
   { id: "boulder", name: "Boulder", hint: "Place stone. Creatures harvest rock and gold ore." },
   { id: "volcano", name: "Volcano", hint: "A cone grows and spews lava from that point." },
   { id: "tornado", name: "Tornado", hint: "Spin a funnel that scuttles across the crust." },
   { id: "monolith", name: "Monolith", hint: "A slab of night. A spore civ that discovers it gains 100 civ score." },
+  { id: "temple", name: "Temple", hint: "Raise a giant temple from the crust. Creatures in its lands may march around it." },
   { id: "form", name: "Form", hint: "Set your deity: Fearsome, Divine, or Inspiring." },
 ];
+
+const WEATHERS = [
+  { id: "clear", name: "Clear", hint: "Part the cloud banks." },
+  { id: "clouds", name: "Clouds", hint: "Hold A or trigger to form and grow clouds inside the atmosphere." },
+  { id: "rain", name: "Rain", hint: "Hold to call rain over the world." },
+  { id: "thunder", name: "Thunderstorm", hint: "Storm clouds, rain, and lightning." },
+  { id: "snow", name: "Snow", hint: "Snow falls through the sky." },
+  { id: "hail", name: "Hail", hint: "Hard ice pelts the crust." },
+];
+let weatherMode = "clouds";
+let groveAcc = 0;
 
 const SPECIES = [
   { id: "human", name: "Human", file: "human.png", sheet: true, kind: "human", diet: "gather", w: 0.046, h: 0.08, spd: 0.55, hp: 28 },
@@ -103,7 +119,7 @@ const SPECIES = [
 
 const MAX_WORLDS = 8;
 const BIRTH = 30;
-const MAX_LIFE = 72;
+const MAX_LIFE = 96;
 const CREATURE_SLOTS = loadSlots();
 let selSlot = 0;
 let warSlot = 1;
@@ -225,6 +241,94 @@ function tickRise(obj, dt) {
   sitRadial(obj, obj.userData.n, obj.userData.r0 + (obj.userData.r1 - obj.userData.r0) * e);
   if (obj.isSprite && obj.userData.s1w) obj.scale.set(obj.userData.s1w * e, obj.userData.s1h * e, 1);
   else obj.scale.setScalar(0.04 + (obj.userData.s1 - 0.04) * e);
+}
+
+function canPlant(w, n) {
+  if ((w.uni?.uLand?.value ?? 1) < 0.06) return false;
+  return heightOf(w, n) > seaOf(w) - 0.02;
+}
+
+function findPlantSpot(w, n, tries = 24) {
+  const base = n.clone().normalize();
+  if (canPlant(w, base) && !isOcean(w, base)) return base.clone();
+  let best = null;
+  let bh = -1;
+  const sea = seaOf(w);
+  for (let i = 0; i < tries; i++) {
+    const spread = 0.1 + i * 0.045;
+    const t = base.clone().add(_v2.set((Math.random() - 0.5) * spread, (Math.random() - 0.5) * spread, (Math.random() - 0.5) * spread)).normalize();
+    const h = heightOf(w, t);
+    if (h > bh) {
+      bh = h;
+      best = t.clone();
+    }
+    if (h > sea) return t;
+  }
+  if (best && bh > sea - 0.07) {
+    paintAt(w.paint, uvFromN(best), 40, 2);
+    return best;
+  }
+  return null;
+}
+
+function seekHigherGround(w, n) {
+  let best = n.clone().normalize();
+  let bh = heightOf(w, best);
+  const sea = seaOf(w);
+  for (let i = 0; i < 12; i++) {
+    const t = n.clone().add(new THREE.Vector3().randomDirection().multiplyScalar(0.24)).normalize();
+    const h = heightOf(w, t);
+    if (h > bh) {
+      bh = h;
+      best = t;
+    }
+  }
+  if (bh <= sea) {
+    for (let i = 0; i < 16; i++) {
+      const t = new THREE.Vector3().randomDirection();
+      if (heightOf(w, t) > sea) return t;
+    }
+  }
+  return best;
+}
+
+function paintGrove(w, normal) {
+  const want = 7;
+  let planted = 0;
+  for (let i = 0; i < want * 5 && planted < want; i++) {
+    const n = normal.clone().normalize();
+    n.add(_v2.set((Math.random() - 0.5) * 0.3, (Math.random() - 0.5) * 0.3, (Math.random() - 0.5) * 0.3)).normalize();
+    const spot = findPlantSpot(w, n, 20);
+    if (!spot) continue;
+    w.addTree(spot);
+    planted++;
+  }
+}
+
+function makeCloudPuff() {
+  const g = new THREE.Group();
+  const mat = new THREE.MeshLambertMaterial({ color: 0xf2f6fb, transparent: true, opacity: 0.78, depthWrite: false });
+  for (let i = 0; i < 5; i++) {
+    const s = new THREE.Mesh(new THREE.SphereGeometry(0.35 + Math.random() * 0.25, 10, 8), mat);
+    s.position.set((Math.random() - 0.5) * 0.7, (Math.random() - 0.5) * 0.28, (Math.random() - 0.5) * 0.7);
+    g.add(s);
+  }
+  g.userData.kind = "wxPuff";
+  return g;
+}
+
+function raySphere(origin, dir, center, r) {
+  const oc = origin.clone().sub(center);
+  const b = oc.dot(dir);
+  const c = oc.lengthSq() - r * r;
+  const disc = b * b - c;
+  if (disc < 0) return null;
+  const s = Math.sqrt(disc);
+  const t0 = -b - s;
+  const t1 = -b + s;
+  const t = t0 > 0.04 ? t0 : (t1 > 0.04 ? t1 : null);
+  if (t == null) return null;
+  return origin.clone().addScaledVector(dir, t);
 }
 
 let actx = null;
@@ -351,6 +455,12 @@ class World {
     this.vegH = tpl.arid > 0.5 ? 42 : tpl.ice > 0.5 ? 190 : 90 + Math.random() * 70;
     this.seaH = tpl.ice > 0.5 ? 210 : 190 + Math.random() * 40;
     this.storm = 0.15;
+    this.cloudCover = 0;
+    this.wxMode = "clouds";
+    this.wxPuffs = [];
+    this.temples = [];
+    this.hideCloudsOnLod = false;
+    this.laserSteamT = 0;
     this.vel = new THREE.Vector3().randomDirection().multiplyScalar(0.15);
     this.paint = makePaint();
     this.trees = [];
@@ -462,14 +572,60 @@ class World {
     this.uni.uSea.value = this.seaLevel;
     this.syncWater();
     if (this.water?.material.uniforms?.uTime) this.water.material.uniforms.uTime.value += dt;
-    this.clouds.material.uniforms.uAlpha.value = Math.max(clouds * 0.85, this.storm * 0.35);
+    const wxAlpha = Math.max(clouds * 0.85, this.storm * 0.35, this.cloudCover || 0);
+    this.clouds.material.uniforms.uAlpha.value = wxAlpha;
     this.clouds.material.uniforms.uTime.value += dt;
+    this.clouds.material.uniforms.uStorm.value = this.wxMode === "thunder" ? Math.max(this.storm, 0.65) : this.storm;
     this.clouds.rotation.y += dt * (0.08 + this.storm * 0.12);
-    this.rain.material.opacity = rain * (0.35 + this.storm * 0.4);
-    this.rain.visible = rain > 0.03 && !this.surfaceLod;
+    this.clouds.visible = true;
+    const precipOn = this.wxMode === "rain" || this.wxMode === "thunder" || this.wxMode === "snow" || this.wxMode === "hail" || rain > 0.03;
+    this.rain.material.opacity = precipOn ? Math.max(rain * 0.35, this.storm * 0.4, (this.cloudCover || 0) * 0.45) : rain * 0.2;
+    this.rain.visible = this.rain.material.opacity > 0.03;
+    if (this.wxMode === "snow") this.rain.material.color.setHex(0xeef6ff);
+    else if (this.wxMode === "hail") this.rain.material.color.setHex(0xc5d0dc);
+    else this.rain.material.color.setHex(0x9ec8ff);
+    this.rain.material.size = this.wxMode === "hail" ? 0.04 : this.wxMode === "snow" ? 0.032 : 0.025;
     this.group.position.addScaledVector(this.vel, dt);
     this.vel.multiplyScalar(0.985);
     this.tickFires(dt);
+    this.tickWx(dt);
+  }
+
+  growCloudAt(n, dt) {
+    const nn = n.clone().normalize();
+    let puff = this.wxPuffs.find((p) => p.userData.n && p.userData.n.dot(nn) > 0.96);
+    if (!puff && this.wxPuffs.length < 56) {
+      puff = makeCloudPuff();
+      puff.userData.n = nn.clone();
+      puff.userData.grow = 0.2;
+      puff.userData.alt = 1.14 + Math.random() * 0.22;
+      this.group.add(puff);
+      this.wxPuffs.push(puff);
+    }
+    if (puff) {
+      puff.userData.n.lerp(nn, 0.15).normalize();
+      puff.userData.grow = Math.min(2.2, (puff.userData.grow || 0.2) + dt * 0.7);
+      sitRadial(puff, puff.userData.n, this.radius * puff.userData.alt);
+      puff.scale.setScalar(this.radius * 0.1 * puff.userData.grow);
+    }
+  }
+
+  tickWx(dt) {
+    for (let i = this.wxPuffs.length - 1; i >= 0; i--) {
+      const p = this.wxPuffs[i];
+      if ((p.userData.grow || 0) < 0.08 && this.wxMode === "clear") {
+        this.group.remove(p);
+        this.wxPuffs.splice(i, 1);
+        continue;
+      }
+      if (p.userData.n) sitRadial(p, p.userData.n, this.radius * (p.userData.alt || 1.18));
+      p.scale.setScalar(this.radius * 0.1 * (p.userData.grow || 1));
+      p.rotation.y += dt * 0.12;
+      p.visible = true;
+    }
+    if (this.wxMode === "thunder" && this.storm > 0.45 && Math.random() < dt * 0.28) {
+      strikeLightning(this, null, new THREE.Vector3().randomDirection());
+    }
   }
 
   addPegAt(n, color) {
@@ -482,7 +638,7 @@ class World {
   }
 
   addTree(normal) {
-    if (this.trees.length > 70) return;
+    if (this.trees.length > 115) return;
     const n = normal.clone().normalize();
     const g = new THREE.Group();
     const veg = hsl(this.vegH, 0.55, 0.28);
@@ -632,7 +788,15 @@ class World {
   }
 
   foundCity(n, sid) {
-    const base = n.clone().normalize();
+    let base = n.clone().normalize();
+    if (isOcean(this, base) || !canPlant(this, base)) {
+      const land = findPlantSpot(this, base, 40);
+      if (!land) {
+        hudStatus.textContent = (CREATURE_SLOTS[sid]?.name || "Settlers") + " find no land to settle.";
+        return null;
+      }
+      base = land;
+    }
     this.addHut(base, sid);
     for (let i = 0; i < 4; i++) {
       const off = base.clone().add(new THREE.Vector3().randomDirection().multiplyScalar(0.12)).normalize();
@@ -647,6 +811,7 @@ class World {
       ring: null,
       paint: null,
       carts: 0,
+      age: 0,
     };
     city.ring = this.addTerritoryRing(city);
     city.paint = this.addTerritoryPaint(city);
@@ -685,7 +850,8 @@ class World {
 
   cityRange(city) {
     const civ = this.civOf(city.speciesId);
-    return 0.09 + Math.min(0.42, (civ.score || 0) * 0.0018 + (this.huts.filter((h) => h.userData.speciesId === city.speciesId).length) * 0.012);
+    const passive = Math.min(0.3, (city.age || 0) * 0.0034);
+    return 0.09 + passive + Math.min(0.42, (civ.score || 0) * 0.0018 + (this.huts.filter((h) => h.userData.speciesId === city.speciesId).length) * 0.012);
   }
 
   addTerritoryRing(city) {
@@ -913,9 +1079,29 @@ class World {
   addUfo() {
     if (this.ufos.length > 3) return;
     const u = makeUfo();
-    u.userData.a = Math.random() * 6.28;
+    u.userData.a = Math.random() * 6.28 + this.ufos.length * 1.3;
+    u.userData.r = this.radius * (1.48 + this.ufos.length * 0.16);
+    u.userData.phase = this.ufos.length * 1.1;
+    u.userData.hp = 40;
+    u.userData.maxHp = 40;
+    u.userData.fireCd = 0;
+    u.userData.sep = new THREE.Vector3();
     this.group.add(u);
     this.ufos.push(u);
+  }
+
+  addTemple(normal) {
+    const n = normal.clone().normalize();
+    const g = modelTemple(CREATURE_SLOTS[selSlot]?.col);
+    g.userData.kind = "temple";
+    g.userData.n = n;
+    g.userData.t = 0;
+    this.group.add(g);
+    this.temples.push(g);
+    startRise(g, n, this.radius * 0.7, this.radius * 1.03, ENTITY_SCALE * 6.4);
+    g.visible = true;
+    hudStatus.textContent = "A temple rises from " + this.template.name + ".";
+    return g;
   }
 
   ensureDetail() {
@@ -1144,8 +1330,17 @@ class World {
         }
       }
       const land = isLand(this, u.n);
+      const aquatic = dnaIsAquatic(u.dna);
       const buff = u.inspireT > 0 ? 1.45 : 1;
-      const spd = def.spd * (land ? 1 : 0.38) * (this.radius * 0.12) * buff;
+      let wetMul = 1;
+      if (!land) {
+        wetMul = aquatic ? 0.72 : 0.28;
+        if (!aquatic) {
+          const dry = seekHigherGround(this, u.n);
+          if (dry) steerToward(u, dry, dt * 3.2);
+        }
+      }
+      const spd = def.spd * wetMul * (this.radius * 0.12) * buff;
       const godClose = nearGod && godN.dot(u.n) > 0.88;
 
       if (formId && godClose && this.surfaceLod) {
@@ -1177,7 +1372,56 @@ class World {
         u.heading = Math.random() * 6.28;
         u.t = 0;
       }
-      if (formId === "fearsome" && godClose) {
+      if (!u.rite && this.temples.length && Math.random() < dt * 0.14) {
+        const city = this.cities.find((ct) => ct.speciesId === u.speciesId);
+        const tem = this.temples.find((t) => {
+          if (!t.userData.n) return false;
+          if (city) return t.userData.n.dot(city.n) > Math.cos(Math.min(1.15, city.range + 0.1));
+          return t.userData.n.dot(u.n) > 0.8;
+        });
+        if (tem) {
+          u.rite = true;
+          u.riteTemple = tem;
+          u.riteAng = Math.random() * 6.28;
+        }
+      }
+      if (u.rite && u.riteTemple && u.riteTemple.parent) {
+        u.riteT = (u.riteT || 0) + dt;
+        u.riteAng = (u.riteAng || 0) + dt * 0.65;
+        const tn = u.riteTemple.userData.n;
+        let tangent = new THREE.Vector3(0, 1, 0).cross(tn);
+        if (tangent.lengthSq() < 1e-8) tangent.set(1, 0, 0);
+        tangent.normalize();
+        const q = new THREE.Quaternion().setFromAxisAngle(tn, u.riteAng);
+        const ring = 0.14;
+        u.n.copy(tn).multiplyScalar(Math.cos(ring)).add(tangent.applyQuaternion(q).multiplyScalar(Math.sin(ring))).normalize();
+        if (u.riteT > 16 + Math.random() * 18) {
+          u.rite = false;
+          u.riteTemple = null;
+          u.riteT = 0;
+        }
+      } else if (!u.rite) {
+        u.riteTemple = null;
+      } else {
+        u.rite = false;
+        u.riteTemple = null;
+      }
+      if (u.growT >= 1 && u.mateCd <= 0 && this.life.length < MAX_LIFE) {
+        for (const o of this.life) {
+          if (o === c || o.userData.dead || o.userData.speciesId !== u.speciesId) continue;
+          if ((o.userData.growT || 1) < 1 || o.userData.mateCd > 0) continue;
+          if (o.userData.n.dot(u.n) > 0.945 && Math.random() < dt * 0.09) {
+            u.mateCd = 38;
+            o.userData.mateCd = 38;
+            spawnHeart(this, u.n);
+            this.addCreature(CREATURE_SLOTS[u.speciesId], u.n.clone().add(new THREE.Vector3().randomDirection().multiplyScalar(0.05)).normalize(), { speciesId: u.speciesId, grow: 0.5 });
+            break;
+          }
+        }
+      }
+      if (u.rite) {
+        /* circle march around the temple */
+      } else if (formId === "fearsome" && godClose) {
         /* flee already steered */
       } else if (def.diet === "plant") {
         const tree = nearestDot(this.trees, u.n);
@@ -1313,11 +1557,13 @@ class World {
         this.hurtLife(c, 999);
         continue;
       }
-      const axis = new THREE.Vector3().crossVectors(u.n, new THREE.Vector3(Math.cos(u.heading), 0, Math.sin(u.heading)));
-      if (axis.lengthSq() < 1e-6) axis.set(1, 0, 0);
-      axis.normalize();
-      u.n.applyAxisAngle(axis, spd * dt);
-      u.n.normalize();
+      if (!u.rite && (land || aquatic)) {
+        const axis = new THREE.Vector3().crossVectors(u.n, new THREE.Vector3(Math.cos(u.heading), 0, Math.sin(u.heading)));
+        if (axis.lengthSq() < 1e-6) axis.set(1, 0, 0);
+        axis.normalize();
+        u.n.applyAxisAngle(axis, spd * dt);
+        u.n.normalize();
+      }
       const r = this.radius * (land ? 1.02 : 0.992);
       sitRadial(c, u.n, r);
       if (u.peg) sit(u.peg, this, u.n, 1.018);
@@ -1342,12 +1588,66 @@ class World {
       const u = this.ufos[i];
       if (u.userData.dying) continue;
       u.userData.a += dt * 0.35;
-      const r = this.radius * 1.55;
-      u.position.set(Math.cos(u.userData.a) * r, Math.sin(u.userData.a * 0.7) * this.radius * 0.4, Math.sin(u.userData.a) * r);
+      const r = u.userData.r || this.radius * 1.55;
+      u.position.set(Math.cos(u.userData.a) * r, Math.sin(u.userData.a * 0.7 + (u.userData.phase || 0)) * this.radius * 0.4, Math.sin(u.userData.a) * r);
+      if (u.userData.sep) {
+        u.position.add(u.userData.sep);
+        u.userData.sep.multiplyScalar(0.84);
+      }
       u.lookAt(0, 0, 0);
     }
     this.tickHazards(dt);
+    this.tickCivExpand(dt);
     for (const city of this.cities) this.syncCity(city);
+  }
+
+  tickCivExpand(dt) {
+    const bySid = {};
+    for (const city of this.cities) {
+      city.age = (city.age || 0) + dt;
+      const sid = city.speciesId;
+      if (!bySid[sid]) bySid[sid] = [];
+      bySid[sid].push(city);
+    }
+    for (const key of Object.keys(bySid)) {
+      const sid = +key;
+      const pop = this.popOf(sid);
+      const nCities = bySid[sid].length;
+      const civ = this.civOf(sid);
+      civ.launchCd = Math.max(0, (civ.launchCd || 0) - dt);
+      civ.scoutCd = Math.max(0, (civ.scoutCd || 0) - dt);
+      this.tryAdvanceAge(sid);
+      const need = [7, 14, 22, 32, 44][Math.min(nCities, 4)];
+      if (pop >= need && nCities < 5 && civ.launchCd <= 0 && civ.ageIndex >= 1) {
+        civ.launchCd = 48;
+        const from = bySid[sid][0];
+        const pos = this.group.position.clone().addScaledVector(from.n, this.radius * 1.42);
+        let tangent = new THREE.Vector3().crossVectors(from.n, new THREE.Vector3(0, 1, 0));
+        if (tangent.lengthSq() < 1e-6) tangent.set(1, 0, 0);
+        spawnShip("settler", pos, tangent.normalize(), this, sid);
+        hudStatus.textContent = (CREATURE_SLOTS[sid]?.name || "Spore") + " sends settlers to found a new city.";
+      }
+      if (civ.ageIndex >= 5 && civ.launchCd <= 0 && pop >= 10) {
+        const other = worlds.find((w) => w !== this && w.born && !w.cities.some((c) => c.speciesId === sid));
+        if (other) {
+          civ.launchCd = 90;
+          const from = bySid[sid][0];
+          const pos = this.group.position.clone().addScaledVector(from.n, this.radius * 1.52);
+          const dir = other.group.position.clone().sub(pos).normalize();
+          spawnShip("settler", pos, dir, other, sid);
+          hudStatus.textContent = (CREATURE_SLOTS[sid]?.name || "Spore") + " launches a colony ship toward " + other.template.name + ".";
+        }
+      }
+      if (civ.ageIndex >= 3 && civ.scoutCd <= 0 && pop >= 6) {
+        const hasScout = ships.some((s) => !s.dead && s.kind === "scout" && s.speciesId === sid);
+        if (!hasScout) {
+          civ.scoutCd = 88;
+          const from = bySid[sid][0];
+          const pos = this.group.position.clone().addScaledVector(from.n, this.radius * 1.46);
+          spawnShip("scout", pos, from.n.clone(), this, sid);
+        }
+      }
+    }
   }
 
   tickHazards(dt) {
@@ -1408,6 +1708,11 @@ class World {
     for (const k of this.carts) {
       if (k.userData.n) sit(k, this, k.userData.n, 1.016);
       k.visible = this.surfaceLod;
+    }
+    for (const t of this.temples) {
+      tickRise(t, dt);
+      if (t.userData.n && (t.userData.rise == null || t.userData.rise >= 1)) sit(t, this, t.userData.n, 1.03);
+      t.visible = true;
     }
   }
 }
@@ -1630,6 +1935,30 @@ function makeFormPicker() {
   return { group: g, hits };
 }
 
+function makeWeatherPicker() {
+  const g = new THREE.Group();
+  g.visible = false;
+  const hits = [];
+  const title = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.18, 0.036),
+    new THREE.MeshBasicMaterial({ map: labelTex("Weather"), transparent: true, side: THREE.DoubleSide, depthTest: false }),
+  );
+  title.position.set(0.02, 0.16, 0.02);
+  g.add(title);
+  WEATHERS.forEach((w, i) => {
+    const pl = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.16, 0.038),
+      new THREE.MeshBasicMaterial({ map: labelTex(w.name), transparent: true, side: THREE.DoubleSide, depthTest: false }),
+    );
+    pl.position.set(0.02, 0.11 - i * 0.042, 0.02);
+    pl.userData.weather = w.id;
+    g.add(pl);
+    hits.push(pl);
+  });
+  g.position.set(0.22, 0.1, 0.08);
+  return { group: g, hits };
+}
+
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: false, powerPreference: "high-performance" });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25));
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -1736,6 +2065,8 @@ ctrl.g0.add(studio.group);
 let heldPart = null;
 const formPick = makeFormPicker();
 ctrl.g0.add(formPick.group);
+const weatherPick = makeWeatherPicker();
+ctrl.g0.add(weatherPick.group);
 const laser = new THREE.Line(
   new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, -2.8)]),
   new THREE.LineBasicMaterial({ color: 0x9ee7ff, transparent: true, opacity: 0.45 }),
@@ -1758,6 +2089,54 @@ function setForm(id) {
   handR.userData.mat.color.setHex(col);
 }
 
+function setWeather(id) {
+  weatherMode = id;
+  const w = WEATHERS.find((x) => x.id === id);
+  hudPower.textContent = "Weather · " + (w?.name || id);
+  hudHint.textContent = w?.hint || POWERS[power].hint;
+  weatherPick.hits.forEach((h) => {
+    h.scale.setScalar(h.userData.weather === id ? 1.14 : 1);
+  });
+  paintWeatherHtml();
+}
+
+function paintWeatherHtml() {
+  const insp = document.getElementById("inspect");
+  if (!insp) return;
+  let host = document.getElementById("wx-grid");
+  if (!host) {
+    host = document.createElement("div");
+    host.id = "wx-grid";
+    host.className = "wx-grid";
+    const wx = document.getElementById("wx");
+    const label = wx?.closest("label");
+    (label || insp).insertAdjacentElement("afterend", host);
+  }
+  host.innerHTML = "";
+  WEATHERS.forEach((w) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.textContent = w.name;
+    if (w.id === weatherMode) b.classList.add("on");
+    b.onclick = () => setWeather(w.id);
+    host.appendChild(b);
+  });
+  let tem = document.getElementById("btn-temple");
+  if (!tem) {
+    tem = document.createElement("button");
+    tem.id = "btn-temple";
+    tem.type = "button";
+    tem.textContent = "Raise a temple";
+    const grove = document.getElementById("btn-grove");
+    (grove || insp).insertAdjacentElement(grove ? "afterend" : "beforeend", tem);
+    tem.onclick = () => {
+      if (!selected) return;
+      const n = selected.cities[0]?.n || selected.life[0]?.userData.n || new THREE.Vector3(0, 1, 0);
+      selected.addTemple(n);
+    };
+  }
+}
+
 function setPower(i) {
   power = (i + POWERS.length) % POWERS.length;
   hudPower.textContent = POWERS[power].name;
@@ -1770,6 +2149,13 @@ function setPower(i) {
     document.exitPointerLock?.();
   }
   formPick.group.visible = POWERS[power].id === "form";
+  weatherPick.group.visible = POWERS[power].id === "storm";
+  if (POWERS[power].id === "storm") {
+    const w = WEATHERS.find((x) => x.id === weatherMode);
+    hudPower.textContent = "Weather · " + (w?.name || "Clouds");
+    hudHint.textContent = w?.hint || POWERS[power].hint;
+    paintWeatherHtml();
+  }
   palette.gems.forEach((g) => {
     if (g.userData.power != null && g.geometry?.type === "IcosahedronGeometry") {
       g.scale.setScalar(g.userData.power === power ? 1.45 : 1);
@@ -1849,9 +2235,40 @@ function openPlanetMenu(w) {
   document.getElementById("veg").value = String(w.vegH);
   document.getElementById("oceanhue").value = String(w.seaH);
   document.getElementById("wx").value = String(Math.round(w.storm * 100));
+  paintWeatherHtml();
 }
 
-function applyPower(w, point, normal, uv, hold) {
+function applyWeatherHold(w, origin, dir, n, dt) {
+  w.wxMode = weatherMode;
+  if (weatherMode === "clear") {
+    w.storm = Math.max(0, w.storm - dt * 0.55);
+    w.cloudCover = Math.max(0, (w.cloudCover || 0) - dt * 0.6);
+    for (const p of w.wxPuffs) p.userData.grow = Math.max(0.05, (p.userData.grow || 1) - dt * 0.8);
+    hudStatus.textContent = "The skies part over " + w.template.name + ".";
+    return;
+  }
+  const hit = (origin && dir)
+    ? (raySphere(origin, dir, w.group.position, w.radius * 1.28) || raySphere(origin, dir, w.group.position, atmosR(w, GOD_ATMOS) * 0.85))
+    : null;
+  let pn = n && n.clone ? n.clone().normalize() : new THREE.Vector3(0, 1, 0);
+  if (hit) pn = hit.clone().sub(w.group.position).normalize();
+  w.growCloudAt(pn, dt);
+  w.cloudCover = Math.min(1, (w.cloudCover || 0) + dt * 0.35);
+  if (weatherMode === "rain" || weatherMode === "thunder") {
+    w.storm = Math.min(1, w.storm + dt * 0.45);
+    w.uni.uLand.value = Math.min(1, w.uni.uLand.value + dt * 0.08);
+  }
+  if (weatherMode === "thunder") w.storm = Math.min(1, w.storm + dt * 0.2);
+  if (weatherMode === "snow") {
+    w.ice = Math.min(1, (w.ice || 0) + dt * 0.08);
+    if (w.uni.uIce) w.uni.uIce.value = w.ice;
+  }
+  if (weatherMode === "hail") w.storm = Math.min(1, w.storm + dt * 0.22);
+  const label = WEATHERS.find((x) => x.id === weatherMode)?.name || "Weather";
+  hudStatus.textContent = label + " growing in the sky of " + w.template.name + ".";
+}
+
+function applyPower(w, point, normal, uv, hold, dt = 0.016, origin, dir) {
   if (!w) return;
   const id = POWERS[power].id;
   if (id === "select" || id === "form") return;
@@ -1859,6 +2276,8 @@ function applyPower(w, point, normal, uv, hold) {
     w.uni.uLand.value = Math.min(1, w.uni.uLand.value + 0.12);
     w.storm = Math.min(1, w.storm + 0.08);
     w.clouds.material.uniforms.uAlpha.value = Math.min(1, w.clouds.material.uniforms.uAlpha.value + 0.2);
+    w.cloudCover = Math.min(1, (w.cloudCover || 0) + 0.15);
+    w.wxMode = "rain";
   } else if (id === "meteor") {
     const m = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 6), new THREE.MeshBasicMaterial({ color: 0xff6a2a }));
     camera.getWorldPosition(_v);
@@ -1881,12 +2300,7 @@ function applyPower(w, point, normal, uv, hold) {
   } else if (id === "settler") {
     spawnShip("settler", lastAim.o, lastAim.d, w);
   } else if (id === "grove" && normal) {
-    for (let i = 0; i < 5; i++) {
-      const n = normal.clone().normalize();
-      n.add(_v2.set((Math.random() - 0.5) * 0.22, (Math.random() - 0.5) * 0.22, (Math.random() - 0.5) * 0.22)).normalize();
-      if (!isLand(w, n)) continue;
-      w.addTree(n);
-    }
+    paintGrove(w, normal);
   } else if (id === "boulder" && normal) {
     w.addBoulder(normal);
     hudStatus.textContent = "Stone and gold wait in the crust.";
@@ -1902,7 +2316,9 @@ function applyPower(w, point, normal, uv, hold) {
   } else if (id === "bolt" && (point || normal)) {
     strikeLightning(w, point, normal);
   } else if (id === "storm") {
-    w.storm = hold ? Math.min(1, w.storm + 0.4) : 0.85;
+    applyWeatherHold(w, origin, dir, normal, hold ? dt : 0.2);
+  } else if (id === "temple" && normal) {
+    w.addTemple(normal);
   }
 }
 
@@ -2122,6 +2538,13 @@ function pokeUi(origin, dir) {
       return true;
     }
   }
+  if (weatherPick.group.visible) {
+    const wh = _ray.intersectObjects(weatherPick.hits, false);
+    if (wh[0]?.object?.userData?.weather) {
+      setWeather(wh[0].object.userData.weather);
+      return true;
+    }
+  }
   const hits = _ray.intersectObjects(palette.gems, false);
   if (hits[0]?.object?.userData?.power != null) {
     setPower(hits[0].object.userData.power);
@@ -2197,18 +2620,38 @@ function tickLaser(origin, dir, dt) {
   if (hit?.object?.userData?.world && hit.uv) {
     const w = hit.object.userData.world;
     const uv = hit.uv;
-    paintAt(w.paint, uv, -22, 1);
-    if (lastLaserUv && lastLaserUv.w === w) {
-      const steps = 4;
-      for (let i = 1; i < steps; i++) {
-        const t = i / steps;
-        paintAt(w.paint, { x: lastLaserUv.x + (uv.x - lastLaserUv.x) * t, y: lastLaserUv.y + (uv.y - lastLaserUv.y) * t }, -18, 1);
-      }
-    }
-    lastLaserUv = { x: uv.x, y: uv.y, w };
     const n = hit.face?.normal
       ? hit.face.normal.clone().transformDirection(hit.object.matrixWorld).normalize()
       : dir.clone().negate();
+    const ocean = isOcean(w, n);
+    const prev = lastLaserUv && lastLaserUv.w === w ? lastLaserUv : null;
+    if (ocean) {
+      w.laserSteamT = (w.laserSteamT || 0) - dt;
+      if (w.laserSteamT <= 0) {
+        w.laserSteamT = 0.11;
+        w.addFire(n, true);
+      }
+      paintAt(w.paint, uv, 18, 2);
+      if (prev) {
+        const steps = 3;
+        for (let i = 1; i < steps; i++) {
+          const t = i / steps;
+          paintAt(w.paint, { x: prev.x + (uv.x - prev.x) * t, y: prev.y + (uv.y - prev.y) * t }, 12, 1);
+        }
+      }
+      w.setSea(w.seaLevel - dt * 0.014);
+      hudStatus.textContent = "The laser boils the sea — smoke and drought.";
+    } else {
+      paintAt(w.paint, uv, -22, 1);
+      if (prev) {
+        const steps = 4;
+        for (let i = 1; i < steps; i++) {
+          const t = i / steps;
+          paintAt(w.paint, { x: prev.x + (uv.x - prev.x) * t, y: prev.y + (uv.y - prev.y) * t }, -18, 1);
+        }
+      }
+    }
+    lastLaserUv = { x: uv.x, y: uv.y, w };
     for (const c of w.life) {
       if (c.userData.n && c.userData.n.dot(n) > 0.97) w.hurtLife(c, 8 * dt);
     }
@@ -2221,8 +2664,9 @@ function distToSeg(p, a, b) {
   return a.clone().addScaledVector(ab, t).distanceTo(p);
 }
 
-function spawnShip(kind, pos, dir, planet) {
-  const col = CREATURE_SLOTS[selSlot].col;
+function spawnShip(kind, pos, dir, planet, sid) {
+  const speciesId = sid != null ? sid : selSlot;
+  const col = CREATURE_SLOTS[speciesId]?.col || 0x88cc44;
   const mesh = kind === "settler" ? modelSettler(col) : modelScout(col);
   const p = pos.clone ? pos.clone() : originFromCam();
   const d = dir && dir.clone ? dir.clone().normalize() : dirFromCam();
@@ -2235,12 +2679,14 @@ function spawnShip(kind, pos, dir, planet) {
     vel: d.multiplyScalar(kind === "scout" ? 2.6 : 1.5),
     hp: kind === "scout" ? 40 : 55,
     maxHp: kind === "scout" ? 40 : 55,
-    speciesId: selSlot,
+    speciesId,
     planet: planet || null,
     fireCd: 0,
     dead: false,
+    landN: null,
+    scanT: 0,
   });
-  hudStatus.textContent = (kind === "settler" ? "Settler" : "Scout") + " launched for " + CREATURE_SLOTS[selSlot].name + ".";
+  hudStatus.textContent = (kind === "settler" ? "Settler" : "Scout") + " launched for " + (CREATURE_SLOTS[speciesId]?.name || "spore") + ".";
 }
 
 function damageShip(sh, dmg) {
@@ -2285,81 +2731,242 @@ function crashShip(sh) {
   hudStatus.textContent = "A ship wrecks on " + planet.template.name + ".";
 }
 
+function flyerRadius(kind) {
+  if (kind === "settler") return 0.48;
+  if (kind === "ufo") return 0.4;
+  return 0.34;
+}
+
+function fireShipShot(fromPos, toPos, col, from) {
+  const to = toPos.clone().sub(fromPos);
+  const dist = to.length();
+  if (dist < 1e-4) return;
+  to.multiplyScalar(1 / dist);
+  const bolt = new THREE.Mesh(new THREE.SphereGeometry(0.028, 6, 5), new THREE.MeshBasicMaterial({ color: col || 0x66f0ff }));
+  bolt.position.copy(fromPos);
+  scene.add(bolt);
+  fx.push({ mesh: bolt, vel: to.multiplyScalar(9), life: 0.85, shot: true, from });
+}
+
+function flyersHostile(a, b) {
+  if (a.kind === "ufo" && b.kind !== "ufo") return true;
+  if (b.kind === "ufo" && a.kind !== "ufo") return true;
+  if (a.sh && b.sh) return isWar(relations, a.sh.speciesId, b.sh.speciesId);
+  return false;
+}
+
+function applyFlyerPush(f, dir, mag) {
+  if (f.sh) {
+    f.sh.mesh.position.addScaledVector(dir, mag);
+    if (f.sh.vel) f.sh.vel.addScaledVector(dir, mag * 2.4);
+  } else if (f.mesh && f.world) {
+    const worldPos = f.pos.clone().addScaledVector(dir, mag);
+    f.world.group.worldToLocal(worldPos);
+    const deltaLocal = worldPos.sub(f.mesh.position);
+    if (!f.mesh.userData.sep) f.mesh.userData.sep = new THREE.Vector3();
+    f.mesh.userData.sep.add(deltaLocal);
+    f.mesh.position.add(deltaLocal);
+  }
+}
+
+function nearestCombatTarget(fromPos, selfShip) {
+  let target = null;
+  let bd = 6.5;
+  let ref = null;
+  for (const w of worlds) {
+    for (const u of w.ufos) {
+      if (u.userData.dying) continue;
+      u.getWorldPosition(_v);
+      const d = fromPos.distanceTo(_v);
+      if (d < bd) {
+        bd = d;
+        target = _v.clone();
+        ref = { type: "ufo", u, w };
+      }
+    }
+  }
+  for (const o of ships) {
+    if (o.dead || o === selfShip) continue;
+    if (selfShip && !isWar(relations, selfShip.speciesId, o.speciesId)) continue;
+    const d = fromPos.distanceTo(o.mesh.position);
+    if (d < bd) {
+      bd = d;
+      target = o.mesh.position.clone();
+      ref = { type: "ship", sh: o };
+    }
+  }
+  return target ? { target, bd, ref } : null;
+}
+
+function orbitToward(sh, planet, radius, speed) {
+  const center = planet.group.position;
+  const rel = sh.mesh.position.clone().sub(center);
+  if (rel.lengthSq() < 1e-8) rel.set(1, 0.2, 0);
+  if (!sh.orbitAxis) {
+    sh.orbitAxis = rel.clone().cross(new THREE.Vector3(0, 1, 0));
+    if (sh.orbitAxis.lengthSq() < 1e-8) sh.orbitAxis.set(1, 0, 0);
+    sh.orbitAxis.normalize();
+  }
+  rel.normalize();
+  const tangent = new THREE.Vector3().crossVectors(sh.orbitAxis, rel);
+  if (tangent.lengthSq() < 1e-8) tangent.crossVectors(rel, new THREE.Vector3(0, 0, 1));
+  tangent.normalize();
+  const desired = center.clone().addScaledVector(rel, radius);
+  const toShell = desired.sub(sh.mesh.position);
+  sh.vel.lerp(tangent.multiplyScalar(speed).addScaledVector(toShell, 1.5), 0.08);
+}
+
+function tickSettlerOrbit(sh, dt) {
+  const planet = sh.planet;
+  const center = planet.group.position;
+  const rel = sh.mesh.position.clone().sub(center);
+  if (rel.lengthSq() < 1e-8) rel.set(1, 0.2, 0);
+  sh.scanT = (sh.scanT || 0) + dt;
+  if (!sh.landN) {
+    const n = rel.clone().normalize();
+    if (sh.scanT > 0.18) {
+      sh.scanT = 0;
+      for (let i = 0; i < 10; i++) {
+        const t = n.clone().add(new THREE.Vector3().randomDirection().multiplyScalar(0.55)).normalize();
+        if (isOcean(planet, t) || !canPlant(planet, t)) continue;
+        const crowded = planet.cities.some((c) => c.n.dot(t) > 0.9);
+        if (crowded) continue;
+        sh.landN = t;
+        break;
+      }
+    }
+    orbitToward(sh, planet, planet.radius * 1.42, 1.55);
+    return false;
+  }
+  if (isOcean(planet, sh.landN) || !canPlant(planet, sh.landN)) {
+    sh.landN = null;
+    return false;
+  }
+  const dest = center.clone().addScaledVector(sh.landN, planet.radius * 1.08);
+  const to = dest.clone().sub(sh.mesh.position);
+  const dist = to.length();
+  if (dist < 0.18) {
+    const city = planet.foundCity(sh.landN, sh.speciesId);
+    if (!city) {
+      sh.landN = null;
+      return false;
+    }
+    sh.dead = true;
+    scene.remove(sh.mesh);
+    return true;
+  }
+  to.normalize();
+  sh.vel.lerp(to.multiplyScalar(1.35), 0.1);
+  return false;
+}
+
+function tickShipCombat(sh, dt) {
+  const hit = nearestCombatTarget(sh.mesh.position, sh);
+  if (!hit || hit.bd > 5.2) return false;
+  if (sh.kind === "settler" && sh.landN) return false;
+  const to = hit.target.clone().sub(sh.mesh.position).normalize();
+  if (hit.bd < 1.15) sh.vel.lerp(to.clone().multiplyScalar(-2.1), 0.16);
+  else sh.vel.lerp(to.multiplyScalar(sh.kind === "settler" ? 1.7 : 2.55), 0.1);
+  if (hit.bd < 4.8 && sh.fireCd <= 0) {
+    sh.fireCd = sh.kind === "settler" ? 0.7 : 0.42;
+    fireShipShot(sh.mesh.position, hit.target, CREATURE_SLOTS[sh.speciesId]?.col || 0x66f0ff, sh);
+  }
+  return true;
+}
+
+function separateFlyers() {
+  const items = [];
+  for (const sh of ships) {
+    if (sh.dead) continue;
+    items.push({ kind: sh.kind, pos: sh.mesh.position, vel: sh.vel, mesh: sh.mesh, sh });
+  }
+  for (const w of worlds) {
+    for (const u of w.ufos) {
+      if (u.userData.dying) continue;
+      const p = new THREE.Vector3();
+      u.getWorldPosition(p);
+      items.push({ kind: "ufo", pos: p, vel: null, mesh: u, world: w });
+    }
+  }
+  for (let i = 0; i < items.length; i++) {
+    for (let j = i + 1; j < items.length; j++) {
+      const a = items[i];
+      const b = items[j];
+      const minD = flyerRadius(a.kind) + flyerRadius(b.kind);
+      const delta = a.pos.clone().sub(b.pos);
+      let dist = delta.length();
+      if (dist < 1e-5) {
+        delta.set(1, 0, 0);
+        dist = 1e-5;
+      } else delta.multiplyScalar(1 / dist);
+      if (dist >= minD) continue;
+      const push = (minD - dist) * 0.58;
+      applyFlyerPush(a, delta, push);
+      applyFlyerPush(b, delta, -push);
+      const hostile = flyersHostile(a, b);
+      let closing = 0;
+      if (a.vel && b.vel) closing = a.vel.clone().sub(b.vel).dot(delta);
+      if (hostile && closing > 2.5 && dist < minD * 0.32) {
+        if (a.sh) damageShip(a.sh, 999);
+        if (b.sh) damageShip(b.sh, 999);
+        if (a.kind === "ufo" && a.world) strikeUfo({ userData: { vel: delta.clone().multiplyScalar(3) } }, a.mesh, a.world);
+        if (b.kind === "ufo" && b.world) strikeUfo({ userData: { vel: delta.clone().multiplyScalar(-3) } }, b.mesh, b.world);
+      }
+    }
+  }
+}
+
+function tickUfoCombat(dt) {
+  for (const w of worlds) {
+    for (const u of w.ufos) {
+      if (u.userData.dying) continue;
+      u.userData.fireCd = Math.max(0, (u.userData.fireCd || 0) - dt);
+      u.getWorldPosition(_v);
+      let bd = 6;
+      let target = null;
+      for (const sh of ships) {
+        if (sh.dead) continue;
+        const d = _v.distanceTo(sh.mesh.position);
+        if (d < bd) {
+          bd = d;
+          target = sh.mesh.position.clone();
+        }
+      }
+      if (target && bd < 5.2 && u.userData.fireCd <= 0) {
+        u.userData.fireCd = 0.55;
+        fireShipShot(_v.clone(), target, 0x9ee7ff, { mesh: u, kind: "ufo" });
+      }
+    }
+  }
+}
+
 function tickShips(dt) {
   for (const sh of ships) {
     if (sh.dead) continue;
     sh.fireCd = Math.max(0, sh.fireCd - dt);
     if (sh.kind === "settler" && sh.planet) {
-      const dest = sh.planet.group.position.clone();
-      const to = dest.clone().sub(sh.mesh.position);
-      const dist = to.length();
-      if (dist < sh.planet.radius * 1.18) {
-        const n = sh.mesh.position.clone().sub(dest).normalize();
-        sh.planet.foundCity(n, sh.speciesId);
-        sh.dead = true;
-        scene.remove(sh.mesh);
-        continue;
-      }
-      to.normalize();
-      sh.vel.lerp(to.multiplyScalar(1.6), 0.08);
-    } else if (sh.kind === "scout") {
-      let target = null;
-      let bd = 8;
-      for (const w of worlds) {
-        for (const u of w.ufos) {
-          if (u.userData.dying) continue;
-          u.getWorldPosition(_v);
-          const d = sh.mesh.position.distanceTo(_v);
-          if (d < bd) { bd = d; target = _v.clone(); }
-        }
-      }
-      for (const o of ships) {
-        if (o === sh || o.dead) continue;
-        if (!isWar(relations, sh.speciesId, o.speciesId)) continue;
-        const d = sh.mesh.position.distanceTo(o.mesh.position);
-        if (d < bd) { bd = d; target = o.mesh.position.clone(); }
-      }
-      if (target) {
-        const to = target.clone().sub(sh.mesh.position).normalize();
-        sh.vel.lerp(to.multiplyScalar(2.8), 0.12);
-        if (bd < 4.5 && sh.fireCd <= 0) {
-          sh.fireCd = 0.45;
-          const bolt = new THREE.Mesh(new THREE.SphereGeometry(0.03, 6, 5), new THREE.MeshBasicMaterial({ color: 0x66f0ff }));
-          bolt.position.copy(sh.mesh.position);
-          scene.add(bolt);
-          fx.push({ mesh: bolt, vel: to.multiplyScalar(8), life: 0.7, shot: true, from: sh });
-        }
-      } else if (sh.planet) {
-        const planet = sh.planet;
-        const center = planet.group.position;
-        const rel = sh.mesh.position.clone().sub(center);
-        if (rel.lengthSq() < 1e-8) rel.set(1, 0.2, 0);
-        if (!sh.orbitAxis) {
-          sh.orbitAxis = rel.clone().cross(new THREE.Vector3(0, 1, 0));
-          if (sh.orbitAxis.lengthSq() < 1e-8) sh.orbitAxis.set(1, 0, 0);
-          sh.orbitAxis.normalize();
-        }
-        const orbitR = atmosR(planet, ATMOS);
-        rel.normalize();
-        const tangent = new THREE.Vector3().crossVectors(sh.orbitAxis, rel);
-        if (tangent.lengthSq() < 1e-8) tangent.crossVectors(rel, new THREE.Vector3(0, 0, 1));
-        tangent.normalize();
-        const desired = center.clone().addScaledVector(rel, orbitR);
-        const toShell = desired.sub(sh.mesh.position);
-        sh.vel.lerp(tangent.multiplyScalar(2.15).addScaledVector(toShell, 1.6), 0.08);
+      tickSettlerOrbit(sh, dt);
+      if (sh.dead) continue;
+      if (!sh.landN) tickShipCombat(sh, dt);
+    } else {
+      const fighting = tickShipCombat(sh, dt);
+      if (!fighting && sh.kind === "scout" && sh.planet) {
+        orbitToward(sh, sh.planet, atmosR(sh.planet, ATMOS), 2.15);
       }
     }
+    if (sh.dead) continue;
     sh.mesh.position.addScaledVector(sh.vel, dt);
-    if (sh.kind === "scout" && sh.planet && !sh.dead) {
+    if (sh.planet && !sh.dead && !(sh.kind === "settler" && sh.landN)) {
       const d = sh.mesh.position.distanceTo(sh.planet.group.position);
       if (d < sh.planet.radius * 1.06) {
-        sh.hp = 0;
         damageShip(sh, 999);
         continue;
       }
     }
     if (sh.vel.lengthSq() > 1e-6) sh.mesh.lookAt(sh.mesh.position.clone().add(sh.vel));
   }
+  separateFlyers();
+  tickUfoCombat(dt);
 }
 
 let lastAim = { o: new THREE.Vector3(), d: new THREE.Vector3(0, 0, -1) };
@@ -2390,22 +2997,34 @@ function fire(origin, dir, holding, justPressed, dt) {
     if (justPressed) pokeUi(origin, dir);
     return;
   }
+  if (id === "storm" && justPressed && weatherPick.group.visible) {
+    if (pokeUi(origin, dir)) return;
+  }
   if (id === "forge") {
     if (holding && !growing) startGrow(origin.clone().add(dir.clone().multiplyScalar(0.4)));
     if (holding && growing) holdGrow(origin.clone().add(dir.clone().multiplyScalar(0.55 + growing.radius)), dt);
     if (!holding && growing) releaseGrow(dir);
     return;
   }
-  const continuous = id === "rain" || id === "raise" || id === "lower" || id === "storm";
+  const continuous = id === "rain" || id === "raise" || id === "lower" || id === "storm" || id === "grove";
+  if (id === "grove") {
+    if (!holding) {
+      groveAcc = 0;
+      return;
+    }
+    groveAcc += dt;
+    if (!justPressed && groveAcc < 0.09) return;
+    groveAcc = 0;
+  }
   if (continuous && !holding) return;
   if (!continuous && !justPressed) return;
   const hit = hitWorld(origin, dir);
-  const w = hit?.object?.userData?.world || nearestWorld(origin, 8);
+  const w = hit?.object?.userData?.world || nearestWorld(origin, 8) || lockedWorld;
   if (!w) return;
   const n = hit?.face?.normal
     ? hit.face.normal.clone().transformDirection(hit.object.matrixWorld).normalize()
-    : dir.clone().negate();
-  applyPower(w, hit?.point || origin.clone().add(dir.clone().multiplyScalar(2)), n, hit?.uv, holding);
+    : (lockedWorld ? origin.clone().sub(w.group.position).normalize() : dir.clone().negate());
+  applyPower(w, hit?.point || origin.clone().add(dir.clone().multiplyScalar(2)), n, hit?.uv, holding, dt, origin, dir);
 }
 
 function tryOpenMenuFromA() {
@@ -2444,7 +3063,7 @@ function enterSurface(w) {
   camera.updateProjectionMatrix();
   hudEl.classList.add("atmo");
   setModeBadge("PLANET SKY", w.template.name + " · X to leave");
-  hudHint.textContent = "Inside " + w.template.name + "'s sky. Cross the inner shell for full spore models on the crust. Press X to return to the galaxy.";
+  hudHint.textContent = "Inside " + w.template.name + "'s atmosphere. Full spore models load on the crust. Press X to return to the galaxy.";
   hudStatus.textContent = "ATMOSPHERE · " + w.template.name + " · X leaves";
 }
 function leaveSurface() {
@@ -2516,7 +3135,8 @@ function strikeUfo(meteor, ufo, world) {
   dyingUfos.push(ufo);
   boomSfx(false);
   hudStatus.textContent = "Saucer struck — spinning out.";
-  scene.remove(meteor);
+  if (meteor && meteor.parent) meteor.parent.remove(meteor);
+  else if (meteor) scene.remove(meteor);
 }
 
 function tickDyingUfos(dt) {
@@ -2613,9 +3233,22 @@ function tickMeteors(dt) {
     if (ud.shot) {
       for (const sh of ships) {
         if (sh.dead || sh === ud.from) continue;
-        if (mesh.position.distanceTo(sh.mesh.position) < 0.2) {
+        if (ud.from?.mesh === sh.mesh) continue;
+        if (mesh.position.distanceTo(sh.mesh.position) < 0.22) {
           damageShip(sh, 8);
           ud.life = 0;
+        }
+      }
+      for (const w of worlds) {
+        for (const u of w.ufos) {
+          if (u.userData.dying) continue;
+          if (ud.from?.mesh === u) continue;
+          u.getWorldPosition(_v);
+          if (mesh.position.distanceTo(_v) < 0.24) {
+            u.userData.hp = (u.userData.hp || 40) - 8;
+            if (u.userData.hp <= 0) strikeUfo({ userData: { vel: ud.vel || new THREE.Vector3() } }, u, w);
+            ud.life = 0;
+          }
         }
       }
     }
@@ -2671,11 +3304,8 @@ function loop(t) {
   } else {
     confineToAtmos(rig, head, lockedWorld, GOD_ATMOS);
     lockedWorld.ensureDetail();
-    const dist = head.distanceTo(lockedWorld.group.position);
-    const lower = atmosR(lockedWorld, ATMOS);
-    const wantLod = dist < lower + 0.05;
-    if (lockedWorld.surfaceLod !== wantLod) setSurfaceLod(lockedWorld, wantLod);
-    else setAtmosMode(lockedWorld, wantLod);
+    if (lockedWorld.surfaceLod !== true) setSurfaceLod(lockedWorld, true);
+    else setAtmosMode(lockedWorld, true);
     planetSky.position.copy(lockedWorld.group.position);
     planetSky.scale.setScalar(Math.max(12, lockedWorld.radius * 9));
   }
@@ -2691,9 +3321,10 @@ function loop(t) {
 
   if (xr) {
     const { o, d } = rightRay();
-    fire(o, d, rTrig, rTrig && !pressed.t1, dt);
+    const weatherA = aBtn && POWERS[power].id === "storm";
+    fire(o, d, rTrig || weatherA, (rTrig && !pressed.t1) || (weatherA && !pressed.a), dt);
     pressed.t1 = rTrig;
-    if (aBtn && !pressed.a) tryOpenMenuFromA();
+    if (aBtn && !pressed.a && POWERS[power].id !== "storm") tryOpenMenuFromA();
     if (xBtn && !pressed.x) ejectOut();
     if (bBtn && !pressed.b) setPower(power + 1);
     if (yBtn && !pressed.y) setPower(power - 1);
@@ -2721,11 +3352,8 @@ function loop(t) {
   tickShips(dt);
   if (lockedWorld) {
     hudEl.classList.add("atmo");
-    const inner = lockedWorld.surfaceLod;
-    hudStatus.textContent = (inner ? "LOWER ATMOSPHERE" : "UPPER SKY") + " · " + lockedWorld.template.name + " · " + lives + " lives · " + (inner ? "full models" : "pegs") + " · X leaves";
-    hudHint.textContent = inner
-      ? "Lower atmosphere of " + lockedWorld.template.name + ". Complete spore creatures are on the crust. Press X to leave."
-      : "Upper sky of " + lockedWorld.template.name + ". Cross the inner shell to load full spore models.";
+    hudStatus.textContent = "ATMOSPHERE · " + lockedWorld.template.name + " · " + lives + " lives · full models · X leaves";
+    hudHint.textContent = "Atmosphere of " + lockedWorld.template.name + ". Complete spore creatures are on the crust. Press X to leave.";
   } else {
     hudEl.classList.remove("atmo");
     hudStatus.textContent = worlds.length
@@ -2815,7 +3443,11 @@ document.getElementById("wx").oninput = (e) => {
 };
 document.getElementById("btn-grove").onclick = () => {
   if (!selected) return;
-  for (let i = 0; i < 14; i++) selected.addTree(new THREE.Vector3().randomDirection());
+  for (let i = 0; i < 18; i++) {
+    const n = new THREE.Vector3().randomDirection();
+    const spot = findPlantSpot(selected, n, 22);
+    if (spot) selected.addTree(spot);
+  }
 };
 document.getElementById("btn-close").onclick = () => {
   inspectEl.hidden = true;
@@ -2879,6 +3511,7 @@ function wireStudioHtml() {
   };
 }
 wireStudioHtml();
+paintWeatherHtml();
 document.getElementById("go-desk").onclick = beginDesktop;
 document.getElementById("go-vr").onclick = async () => {
   startEl.style.display = "none";

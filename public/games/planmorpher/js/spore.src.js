@@ -330,6 +330,43 @@ export function modelSettler(col) {
   return g;
 }
 
+export function dnaIsAquatic(dna) {
+  if (!dna) return false;
+  if (dna.torso === "blob") return true;
+  const parts = [...(dna.arms || []), ...(dna.legs || [])];
+  return parts.some((p) => p && p.form === "tentacle");
+}
+
+export function modelTemple(col) {
+  const g = new THREE.Group();
+  const stone = mat(0xc4b48a);
+  const gold = mat(col || 0xd4af37, { emissive: col || 0xd4af37, emissiveIntensity: 0.2 });
+  const dark = mat(0x5a4a38);
+  for (let i = 0; i < 4; i++) {
+    const w = 0.24 - i * 0.04;
+    const step = new THREE.Mesh(new THREE.BoxGeometry(w, 0.03, w), stone);
+    step.position.y = 0.015 + i * 0.028;
+    g.add(step);
+  }
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * Math.PI * 2;
+    const colm = new THREE.Mesh(new THREE.CylinderGeometry(0.011, 0.013, 0.16, 6), stone);
+    colm.position.set(Math.cos(a) * 0.075, 0.22, Math.sin(a) * 0.075);
+    g.add(colm);
+  }
+  const hall = new THREE.Mesh(new THREE.CylinderGeometry(0.058, 0.064, 0.09, 10), dark);
+  hall.position.y = 0.2;
+  g.add(hall);
+  const dome = new THREE.Mesh(new THREE.SphereGeometry(0.06, 10, 8), gold);
+  dome.position.y = 0.29;
+  g.add(dome);
+  const spire = new THREE.Mesh(new THREE.ConeGeometry(0.02, 0.09, 6), gold);
+  spire.position.y = 0.38;
+  g.add(spire);
+  g.userData.kind = "temple";
+  return g;
+}
+
 export function labelCanvas(text, w = 220, h = 48) {
   const c = document.createElement("canvas");
   c.width = w;
