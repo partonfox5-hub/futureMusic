@@ -270,7 +270,7 @@ export function applyTemplateUniforms(uni, tpl, sea) {
 
 export function makePeg(color = 0xc8b48a) {
   const g = new THREE.Mesh(
-    new THREE.ConeGeometry(0.01, 0.028, 5),
+    new THREE.ConeGeometry(0.014, 0.036, 3),
     new THREE.MeshBasicMaterial({ color }),
   );
   g.userData.kind = "peg";
@@ -295,9 +295,16 @@ export function setSurfaceLod(world, on) {
     t.visible = on;
   }
   for (const h of world.huts || []) {
-    if (h.userData.peg) h.userData.peg.visible = !on;
-    h.visible = on;
+    if (h.userData.lodNear) h.userData.lodNear.visible = on;
+    if (h.userData.lodFar) h.userData.lodFar.visible = !on;
+    if (h.userData.peg) h.userData.peg.visible = false;
+    h.visible = true;
   }
+  for (const b of world.bushes || []) {
+    if (b.userData.peg) b.userData.peg.visible = !on;
+    b.visible = on;
+  }
+  for (const t of world.temples || []) t.visible = true;
   if (world.clouds) {
     if (world.keepCloudsOnLod) world.clouds.visible = true;
     else world.clouds.visible = !on;
@@ -310,15 +317,15 @@ export function setAtmosMode(world, inside) {
   const atmos = world?.atmosShell?.userData?.atmos;
   const ring = world?.atmosShell?.userData?.ring;
   if (atmos?.material?.uniforms?.uInside) atmos.material.uniforms.uInside.value = inside ? 1 : 0;
-  if (atmos?.material?.uniforms?.uOp) atmos.material.uniforms.uOp.value = inside ? 0.62 : 0.32;
+  if (atmos?.material?.uniforms?.uOp) atmos.material.uniforms.uOp.value = inside ? 0.496 : 0.256;
   if (ring?.material) {
     ring.material.color.setHex(inside ? 0xffe27a : 0x9ee7ff);
-    ring.material.opacity = inside ? 0.9 : 0.55;
+    ring.material.opacity = inside ? 0.72 : 0.44;
   }
   const cage = world?.atmosShell?.userData?.cage;
   if (cage?.material) {
     cage.material.color.setHex(inside ? 0xffe27a : 0x9ee7ff);
-    cage.material.opacity = inside ? 0.08 : 0.1;
+    cage.material.opacity = inside ? 0.064 : 0.08;
     cage.visible = !inside;
   }
 }
@@ -589,7 +596,7 @@ export function makeAtmosShell(radius, worldRef, mul = ATMOS) {
     new THREE.ShaderMaterial({
       uniforms: {
         uCol: { value: new THREE.Color(0x7ec8ff) },
-        uOp: { value: 0.32 },
+        uOp: { value: 0.256 },
         uInside: { value: 0 },
       },
       vertexShader: ATMOS_VERT,
@@ -607,7 +614,7 @@ export function makeAtmosShell(radius, worldRef, mul = ATMOS) {
   g.add(atmos);
   const ring = new THREE.Mesh(
     new THREE.TorusGeometry(mul, 0.012, 8, 48),
-    new THREE.MeshBasicMaterial({ color: 0x9ee7ff, transparent: true, opacity: 0.55, depthWrite: false }),
+    new THREE.MeshBasicMaterial({ color: 0x9ee7ff, transparent: true, opacity: 0.44, depthWrite: false }),
   );
   ring.scale.setScalar(radius);
   ring.rotation.x = Math.PI / 2;
@@ -615,7 +622,7 @@ export function makeAtmosShell(radius, worldRef, mul = ATMOS) {
   g.add(ring);
   const cage = new THREE.Mesh(
     new THREE.SphereGeometry(mul, 16, 12),
-    new THREE.MeshBasicMaterial({ color: 0x9ee7ff, transparent: true, opacity: 0.1, wireframe: true, depthWrite: false }),
+    new THREE.MeshBasicMaterial({ color: 0x9ee7ff, transparent: true, opacity: 0.08, wireframe: true, depthWrite: false }),
   );
   cage.scale.setScalar(radius);
   cage.renderOrder = 3;

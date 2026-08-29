@@ -62,6 +62,7 @@ console.log("horde", horde.length, "->", fs.statSync(hordeOut).size);
 const extras = [
   "public/games/shark/js/game.js",
   "public/games/planmorpher/js/game.js",
+  "public/games/planmorpher/js/spore.js",
   "public/games/planetry/js/game.js",
   "public/games/shared/world-core.js",
   "public/games/shared/vr-warp.js",

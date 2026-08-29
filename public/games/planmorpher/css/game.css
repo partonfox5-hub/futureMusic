@@ -180,6 +180,42 @@ canvas {
 }
 .sock { min-height: 36px; cursor: copy; }
 .tiny { font-size: 0.7rem !important; }
+#studio label {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--mute);
+  margin: 8px 0 4px;
+}
+#studio-name, #studio-adj {
+  width: 100%;
+  margin-top: 4px;
+  background: #12161f;
+  color: var(--ink);
+  border: 1px solid #445;
+  border-radius: 6px;
+  padding: 6px 8px;
+  font: inherit;
+}
+#studio-stats { margin: 8px 0; }
+.stat-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  margin: 3px 0;
+}
+.stat-row span { flex: 1; text-transform: capitalize; }
+.stat-row em { min-width: 1.6rem; text-align: center; font-style: normal; color: var(--gold); }
+.stat-row button {
+  width: 28px;
+  min-height: 26px;
+  border: 0;
+  border-radius: 6px;
+  background: #2a3344;
+  color: var(--ink);
+  cursor: pointer;
+}
+#studio-clear { background: #4a2a2a; }
 
 #start {
   position: absolute;

@@ -33,7 +33,7 @@ import {
   atmosR,
   heightOf,
   seaOf,
-} from "/games/shared/world-core.js?v=pm3";
+} from "/games/shared/world-core.js?v=pm4";
 import {
   SLOT_N,
   CIV_AGES,
@@ -41,6 +41,8 @@ import {
   TORSO_KINDS,
   HEAD_KINDS,
   SPORE_COLORS,
+  LIFE_SKILLS,
+  ADJECTIVES,
   emptyDna,
   randomDna,
   loadSlots,
@@ -58,10 +60,19 @@ import {
   buildCivMesh,
   modelScout,
   modelSettler,
+  modelDestroyer,
+  modelExplosionOrb,
   labelCanvas,
   dnaIsAquatic,
   modelTemple,
-} from "./spore.js?v=pm3";
+  evenStats,
+  zeroStats,
+  spentPoints,
+  setStat,
+  inheritSkill,
+  displayName,
+  skillEff,
+} from "./spore.js?v=pm4";
 
 const canvas = document.getElementById("c");
 const hudEl = document.getElementById("hud");
@@ -80,15 +91,17 @@ const POWERS = [
   { id: "ufo", name: "Visitors", hint: "Invite a saucer to orbit the world in range." },
   { id: "raise", name: "Uplift", hint: "Raise land where you point." },
   { id: "lower", name: "Subside", hint: "Sink crust back toward the sea." },
-  { id: "beasts", name: "Life", hint: "Opens the spore studio. Snap limbs onto a torso, save a species, then plant it." },
+  { id: "beasts", name: "Life", hint: "Opens the spore studio. Trigger any body part to swap it. Name the species and spend 100 life points on stats." },
   { id: "bolt", name: "Lightning", hint: "Strike the crust — burns, shocks life, and knocks ships." },
   { id: "laser", name: "Laser", hint: "Hold to cut. Damages ships and carves riverbeds through land." },
   { id: "scout", name: "Scout", hint: "Spawn a Planetry scout for the selected spore civ." },
+  { id: "destroyer", name: "Mass Destroyer", hint: "A warship six times a scout. Its lasers crater worlds like meteors." },
+  { id: "orb", name: "Explosion Orb", hint: "A planet-sized metal sphere. Its green superlaser unmakes anything it touches." },
   { id: "settler", name: "Settler", hint: "Spawn a settler. It orbits looking for land — never ocean — then founds a city." },
   { id: "storm", name: "Weather", hint: "Open weather: clouds, thunderstorm, snow, hail. Hold A or trigger to grow it in the sky." },
-  { id: "grove", name: "Grove", hint: "Paint forests. Hold to raise trees; it hunts for soil that will take them." },
+  { id: "grove", name: "Grove", hint: "Paint forests and berry bushes on land. Hold to raise them; they will not take on water." },
   { id: "boulder", name: "Boulder", hint: "Place stone. Creatures harvest rock and gold ore." },
-  { id: "volcano", name: "Volcano", hint: "A cone grows and spews lava from that point." },
+  { id: "volcano", name: "Volcano", hint: "On land it oozes lava. In the ocean it builds rock land around the cone." },
   { id: "tornado", name: "Tornado", hint: "Spin a funnel that scuttles across the crust." },
   { id: "monolith", name: "Monolith", hint: "A slab of night. A spore civ that discovers it gains 100 civ score." },
   { id: "temple", name: "Temple", hint: "Raise a giant temple from the crust. Creatures in its lands may march around it." },
@@ -299,8 +312,9 @@ function paintGrove(w, normal) {
     const n = normal.clone().normalize();
     n.add(_v2.set((Math.random() - 0.5) * 0.3, (Math.random() - 0.5) * 0.3, (Math.random() - 0.5) * 0.3)).normalize();
     const spot = findPlantSpot(w, n, 20);
-    if (!spot) continue;
-    w.addTree(spot);
+    if (!spot || isOcean(w, spot)) continue;
+    if (Math.random() < 0.42) w.addBush(spot);
+    else w.addTree(spot);
     planted++;
   }
 }
@@ -464,6 +478,12 @@ class World {
     this.vel = new THREE.Vector3().randomDirection().multiplyScalar(0.15);
     this.paint = makePaint();
     this.trees = [];
+    this.bushes = [];
+    this.drops = [];
+    this.lavas = [];
+    this.marines = [];
+    this.growAcc = 0;
+    this.marineCd = 2;
     this.life = [];
     this.huts = [];
     this.civs = {};
@@ -578,8 +598,12 @@ class World {
     this.clouds.material.uniforms.uStorm.value = this.wxMode === "thunder" ? Math.max(this.storm, 0.65) : this.storm;
     this.clouds.rotation.y += dt * (0.08 + this.storm * 0.12);
     this.clouds.visible = true;
-    const precipOn = this.wxMode === "rain" || this.wxMode === "thunder" || this.wxMode === "snow" || this.wxMode === "hail" || rain > 0.03;
-    this.rain.material.opacity = precipOn ? Math.max(rain * 0.35, this.storm * 0.4, (this.cloudCover || 0) * 0.45) : rain * 0.2;
+    const localPrecip = this.wxPuffs.some((p) => {
+      const m = p.userData.mode;
+      return m === "rain" || m === "thunder" || m === "snow" || m === "hail";
+    });
+    const precipOn = !localPrecip && (this.wxMode === "rain" || this.wxMode === "thunder" || this.wxMode === "snow" || this.wxMode === "hail" || rain > 0.03);
+    this.rain.material.opacity = precipOn ? Math.max(rain * 0.35, this.storm * 0.4, (this.cloudCover || 0) * 0.45) : 0;
     this.rain.visible = this.rain.material.opacity > 0.03;
     if (this.wxMode === "snow") this.rain.material.color.setHex(0xeef6ff);
     else if (this.wxMode === "hail") this.rain.material.color.setHex(0xc5d0dc);
@@ -591,7 +615,7 @@ class World {
     this.tickWx(dt);
   }
 
-  growCloudAt(n, dt) {
+  growCloudAt(n, dt, mode) {
     const nn = n.clone().normalize();
     let puff = this.wxPuffs.find((p) => p.userData.n && p.userData.n.dot(nn) > 0.96);
     if (!puff && this.wxPuffs.length < 56) {
@@ -605,6 +629,7 @@ class World {
     if (puff) {
       puff.userData.n.lerp(nn, 0.15).normalize();
       puff.userData.grow = Math.min(2.2, (puff.userData.grow || 0.2) + dt * 0.7);
+      if (mode) puff.userData.mode = mode;
       sitRadial(puff, puff.userData.n, this.radius * puff.userData.alt);
       puff.scale.setScalar(this.radius * 0.1 * puff.userData.grow);
     }
@@ -622,9 +647,56 @@ class World {
       p.scale.setScalar(this.radius * 0.1 * (p.userData.grow || 1));
       p.rotation.y += dt * 0.12;
       p.visible = true;
+      this.emitPrecip(p, dt);
+      if (p.userData.mode === "thunder" && (p.userData.grow || 0) > 0.45 && Math.random() < dt * 0.38) {
+        strikeLightning(this, null, p.userData.n, true);
+      }
     }
-    if (this.wxMode === "thunder" && this.storm > 0.45 && Math.random() < dt * 0.28) {
-      strikeLightning(this, null, new THREE.Vector3().randomDirection());
+    this.tickDrops(dt);
+  }
+
+  emitPrecip(puff, dt) {
+    const mode = puff.userData.mode;
+    if (mode !== "rain" && mode !== "thunder" && mode !== "snow" && mode !== "hail") return;
+    if ((puff.userData.grow || 0) < 0.28) return;
+    const rate = 16 * Math.min(2, puff.userData.grow || 1);
+    puff.userData.dropT = (puff.userData.dropT || 0) + dt * rate;
+    while (puff.userData.dropT >= 1 && this.drops.length < 220) {
+      puff.userData.dropT -= 1;
+      const n = puff.userData.n.clone().add(new THREE.Vector3().randomDirection().multiplyScalar(0.09)).normalize();
+      if (n.dot(puff.userData.n) < 0.9) continue;
+      const hail = mode === "hail";
+      const snow = mode === "snow";
+      const p = new THREE.Mesh(
+        new THREE.SphereGeometry(hail ? 0.012 : snow ? 0.009 : 0.006, 4, 3),
+        new THREE.MeshBasicMaterial({
+          color: hail ? 0xc5d0dc : snow ? 0xeef6ff : 0x9ec8ff,
+          transparent: true,
+          opacity: 0.88,
+        }),
+      );
+      this.group.add(p);
+      const alt = puff.userData.alt || 1.18;
+      sitRadial(p, n, this.radius * alt);
+      p.userData = { n, alt, life: 1.15, mode };
+      this.drops.push(p);
+    }
+  }
+
+  tickDrops(dt) {
+    for (let i = this.drops.length - 1; i >= 0; i--) {
+      const p = this.drops[i];
+      p.userData.life -= dt;
+      p.userData.alt -= dt * (p.userData.mode === "hail" ? 0.85 : 0.62);
+      sitRadial(p, p.userData.n, this.radius * p.userData.alt);
+      if (p.material.opacity != null) p.material.opacity = Math.max(0, p.userData.life);
+      if (p.userData.alt <= 1.02 || p.userData.life <= 0) {
+        if (p.userData.mode === "rain" || p.userData.mode === "thunder") {
+          paintAt(this.paint, uvFromN(p.userData.n), -4, 1);
+        }
+        this.group.remove(p);
+        this.drops.splice(i, 1);
+      }
     }
   }
 
@@ -640,6 +712,7 @@ class World {
   addTree(normal) {
     if (this.trees.length > 115) return;
     const n = normal.clone().normalize();
+    if (!canPlant(this, n) || isOcean(this, n)) return;
     const g = new THREE.Group();
     const veg = hsl(this.vegH, 0.55, 0.28);
     const dark = hsl(this.vegH, 0.5, 0.18);
@@ -656,10 +729,40 @@ class World {
     g.userData.wood = 3;
     g.userData.kind = "tree";
     g.userData.hp = 18;
+    g.userData.age = 0;
+    g.userData.growS = 0.28;
     this.group.add(g);
     this.trees.push(g);
     g.userData.peg = this.addPegAt(n, 0x2f7a3a);
-    startRise(g, n, this.radius * 0.86, this.radius * 1.015, ENTITY_SCALE);
+    startRise(g, n, this.radius * 0.86, this.radius * 1.015, ENTITY_SCALE * 0.28);
+    g.visible = this.surfaceLod;
+    if (g.userData.peg) g.userData.peg.visible = !this.surfaceLod;
+    return g;
+  }
+
+  addBush(normal) {
+    if (this.bushes.length > 90) return;
+    const n = normal.clone().normalize();
+    if (!canPlant(this, n) || isOcean(this, n)) return;
+    const g = new THREE.Group();
+    const veg = hsl(this.vegH, 0.55, 0.3);
+    const body = new THREE.Mesh(new THREE.SphereGeometry(0.022, 8, 6), new THREE.MeshLambertMaterial({ color: veg }));
+    body.scale.set(1.15, 0.85, 1.15);
+    g.add(body);
+    for (let i = 0; i < 5; i++) {
+      const berry = new THREE.Mesh(new THREE.SphereGeometry(0.0045, 5, 4), new THREE.MeshBasicMaterial({ color: 0xc42a4a }));
+      berry.position.set((Math.random() - 0.5) * 0.028, 0.01 + Math.random() * 0.016, (Math.random() - 0.5) * 0.028);
+      g.add(berry);
+    }
+    g.userData.food = 3;
+    g.userData.kind = "bush";
+    g.userData.hp = 8;
+    g.userData.age = 0;
+    g.userData.growS = 0.35;
+    this.group.add(g);
+    this.bushes.push(g);
+    g.userData.peg = this.addPegAt(n, 0x3a8a44);
+    startRise(g, n, this.radius * 0.9, this.radius * 1.014, ENTITY_SCALE * 0.35);
     g.visible = this.surfaceLod;
     if (g.userData.peg) g.userData.peg.visible = !this.surfaceLod;
     return g;
@@ -681,17 +784,37 @@ class World {
   }
 
   buildHutMesh(g, style) {
-    while (g.children.length) g.remove(g.children[0]);
-    const mesh = buildCivMesh(style, ENTITY_SCALE);
-    while (mesh.children.length) g.add(mesh.children[0]);
+    for (const ch of [...g.children]) g.remove(ch);
+    const near = new THREE.Group();
+    near.userData.keepLod = true;
+    const kind = g.userData.building === "barracks" ? "barracks" : g.userData.building === "house" ? "house" : null;
+    const mesh = buildCivMesh(style, ENTITY_SCALE, kind);
+    while (mesh.children.length) near.add(mesh.children[0]);
+    const far = new THREE.Group();
+    far.userData.keepLod = true;
+    const s = (style.scale || 1) * ENTITY_SCALE;
+    const cube = new THREE.Mesh(
+      new THREE.BoxGeometry(0.055 * s, 0.05 * s, 0.055 * s),
+      new THREE.MeshBasicMaterial({ color: style.wall }),
+    );
+    cube.position.y = 0.025 * s;
+    far.add(cube);
+    near.visible = this.surfaceLod;
+    far.visible = !this.surfaceLod;
+    g.add(near, far);
+    g.userData.lodNear = near;
+    g.userData.lodFar = far;
   }
 
-  addHut(normal, sid) {
+  addHut(normal, sid, building) {
     if (this.huts.length > 48) return;
     const n = normal.clone().normalize();
+    if (isOcean(this, n) && !canPlant(this, n)) return;
     const species = sid == null ? selSlot : sid;
     const civ = this.civOf(species);
     const g = new THREE.Group();
+    const soldiers = this.life.filter((c) => c.userData.speciesId === species && c.userData.role === "soldier").length;
+    g.userData.building = building || (soldiers > 0 && Math.random() < 0.4 ? "barracks" : "house");
     this.buildHutMesh(g, CIV_AGES[civ.ageIndex] || CIV_AGES[0]);
     g.userData.kind = "hut";
     g.userData.speciesId = species;
@@ -700,9 +823,8 @@ class World {
     g.userData.maxHp = g.userData.hp;
     this.group.add(g);
     this.huts.push(g);
-    g.userData.peg = this.addPegAt(n, CREATURE_SLOTS[species]?.col || 0xc4b48a);
     startRise(g, n, this.radius * 0.88, this.radius * 1.02, ENTITY_SCALE);
-    g.visible = this.surfaceLod;
+    g.visible = true;
     this.refreshCiv(species);
     return g;
   }
@@ -731,13 +853,15 @@ class World {
     const next = CIV_AGES[civ.ageIndex + 1];
     if (!next) return;
     const b = this.huts.filter((h) => h.userData.speciesId === sid).length;
-    if (civ.stores.wood >= next.wood && civ.stores.stone >= next.stone && civ.stores.food >= next.food && b >= 2) {
+    const boost = Math.min(0.45, (civ.research || 0) * 0.015);
+    if (civ.stores.wood >= next.wood * (1 - boost) && civ.stores.stone >= next.stone * (1 - boost) && civ.stores.food >= next.food * (1 - boost) && b >= 2) {
       civ.ageIndex++;
       civ.stores.wood = Math.max(0, civ.stores.wood - next.wood * 0.35);
       civ.stores.stone = Math.max(0, civ.stores.stone - next.stone * 0.35);
+      civ.research = Math.max(0, (civ.research || 0) * 0.35);
       this.restyleHuts(sid);
       this.refreshCiv(sid);
-      hudStatus.textContent = (CREATURE_SLOTS[sid]?.name || "Spore") + " enters the " + (CIV_AGES[civ.ageIndex].name) + " age.";
+      hudStatus.textContent = displayName(CREATURE_SLOTS[sid]) + " enters the " + (CIV_AGES[civ.ageIndex].name) + " age.";
     }
   }
 
@@ -753,12 +877,13 @@ class World {
     mesh.userData = {
       dna,
       speciesId,
-      def: { kind: "spore", diet: "gather", spd: 0.52, hp: 32, name: dna.name },
+      def: { kind: "spore", diet: "gather", spd: 0.52, hp: 32, name: displayName(dna) },
       n,
       hunger: 0.2,
       wood: 0,
       stone: 0,
       food: 0,
+      gold: 0,
       age: 0,
       t: Math.random() * 4,
       heading: Math.random() * 6.28,
@@ -775,6 +900,9 @@ class World {
       growT: grow < 1 ? 0 : 1,
       mateCd: 8 + Math.random() * 20,
       sc,
+      skill: opts.skill ? { ...opts.skill } : zeroStats(),
+      role: "forager",
+      buildT: 0,
     };
     this.group.add(mesh);
     this.life.push(mesh);
@@ -949,6 +1077,8 @@ class World {
 
   addVolcano(normal) {
     const n = normal.clone().normalize();
+    const ocean = isOcean(this, n);
+    if (ocean) paintAt(this.paint, uvFromN(n), 120, 7);
     const g = new THREE.Group();
     const cone = new THREE.Mesh(
       new THREE.ConeGeometry(0.055, 0.09, 8),
@@ -966,6 +1096,7 @@ class World {
     g.userData.n = n;
     g.userData.grow = 0.12;
     g.userData.t = 0;
+    g.userData.oceanBorn = ocean;
     this.group.add(g);
     this.volcanoes.push(g);
     sit(g, this, n, 0.995);
@@ -1098,7 +1229,7 @@ class World {
     g.userData.t = 0;
     this.group.add(g);
     this.temples.push(g);
-    startRise(g, n, this.radius * 0.7, this.radius * 1.03, ENTITY_SCALE * 6.4);
+    startRise(g, n, this.radius * 0.7, this.radius * 1.03, ENTITY_SCALE * 1.28);
     g.visible = true;
     hudStatus.textContent = "A temple rises from " + this.template.name + ".";
     return g;
@@ -1238,6 +1369,13 @@ class World {
         this.trees.splice(i, 1);
       }
     }
+    for (let i = this.bushes.length - 1; i >= 0; i--) {
+      if (this.bushes[i].userData.n && this.bushes[i].userData.n.dot(n) > 0.9) {
+        if (this.bushes[i].userData.peg) this.group.remove(this.bushes[i].userData.peg);
+        this.group.remove(this.bushes[i]);
+        this.bushes.splice(i, 1);
+      }
+    }
     for (let i = this.life.length - 1; i >= 0; i--) {
       const c = this.life[i];
       if (c.userData.n && c.userData.n.dot(n) > 0.91) this.hurtLife(c, 220);
@@ -1273,15 +1411,326 @@ class World {
     }
   }
 
+  tickWildGrowth(dt) {
+    if (!this.born || (this.uni.uLand.value || 0) < 0.35) return;
+    this.growAcc = (this.growAcc || 0) + dt;
+    if (this.growAcc < 3.2) return;
+    this.growAcc = 0;
+    if (this.trees.length < 88 && Math.random() < 0.5) {
+      const n = new THREE.Vector3().randomDirection();
+      if (isLand(this, n) && canPlant(this, n)) this.addTree(n);
+    }
+    if (this.bushes.length < 70 && Math.random() < 0.62) {
+      const n = new THREE.Vector3().randomDirection();
+      if (isLand(this, n) && canPlant(this, n)) this.addBush(n);
+    }
+  }
+
+  spawnMarine() {
+    if (this.marines.length > 10) return;
+    let n = null;
+    for (let i = 0; i < 22; i++) {
+      const t = new THREE.Vector3().randomDirection();
+      if (isOcean(this, t)) {
+        n = t;
+        break;
+      }
+    }
+    if (!n) return;
+    const kind = Math.random() < 0.42 ? "whale" : "dolphin";
+    const g = new THREE.Group();
+    const sil = new THREE.MeshBasicMaterial({ color: 0x0a1218, transparent: true, opacity: 0.82 });
+    if (kind === "whale") {
+      const fluke = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.006, 0.022), sil);
+      const left = new THREE.Mesh(new THREE.BoxGeometry(0.028, 0.005, 0.018), sil);
+      left.position.set(-0.03, 0, 0);
+      left.rotation.z = 0.35;
+      const right = new THREE.Mesh(new THREE.BoxGeometry(0.028, 0.005, 0.018), sil);
+      right.position.set(0.03, 0, 0);
+      right.rotation.z = -0.35;
+      g.add(fluke, left, right);
+    } else {
+      const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.008, 0.04, 3, 6), sil);
+      body.rotation.z = Math.PI / 2;
+      const fin = new THREE.Mesh(new THREE.ConeGeometry(0.007, 0.018, 4), sil);
+      fin.position.set(0, 0.012, 0);
+      g.add(body, fin);
+    }
+    g.userData.kind = kind;
+    g.userData.n = n;
+    g.userData.t = 0;
+    g.userData.heading = Math.random() * 6.28;
+    this.group.add(g);
+    this.marines.push(g);
+    sitRadial(g, n, this.radius * 1.002);
+    g.scale.setScalar(ENTITY_SCALE * (kind === "whale" ? 1.4 : 1));
+    g.visible = true;
+  }
+
+  tickMarines(dt) {
+    this.marineCd = (this.marineCd || 0) - dt;
+    if (this.marineCd <= 0 && (this.uni.uLand.value || 0) > 0.28) {
+      this.marineCd = 3.8 + Math.random() * 6;
+      this.spawnMarine();
+    }
+    for (let i = this.marines.length - 1; i >= 0; i--) {
+      const m = this.marines[i];
+      m.userData.t += dt;
+      const n = m.userData.n;
+      if (m.userData.kind === "whale") {
+        const t = m.userData.t;
+        const lift = Math.max(0, Math.sin(t * 2.1) * 0.035);
+        sitRadial(m, n, this.radius * (1.0 + lift));
+        m.rotation.z = Math.sin(t * 3.2) * 0.4;
+        if (t > 0.55 && t < 0.7 && !m.userData.splashed) {
+          m.userData.splashed = true;
+          this.addFire(n, true);
+        }
+        if (t > 2.8) {
+          this.group.remove(m);
+          this.marines.splice(i, 1);
+        }
+      } else {
+        const t = m.userData.t;
+        const u = t / 1.45;
+        if (u >= 1) {
+          this.group.remove(m);
+          this.marines.splice(i, 1);
+          continue;
+        }
+        const axis = new THREE.Vector3().crossVectors(n, new THREE.Vector3(Math.cos(m.userData.heading), 0, Math.sin(m.userData.heading)));
+        if (axis.lengthSq() < 1e-6) axis.set(1, 0, 0);
+        n.applyAxisAngle(axis.normalize(), dt * 0.35);
+        n.normalize();
+        sitRadial(m, n, this.radius * (1.0 + Math.sin(u * Math.PI) * 0.07));
+        m.rotation.x = Math.sin(u * Math.PI) * 0.6;
+      }
+    }
+  }
+
+  assignRoles(sid) {
+    const pop = this.life.filter((c) => c.userData.speciesId === sid && !c.userData.dead && (c.userData.growT || 1) >= 1);
+    const n = pop.length;
+    if (!n) return;
+    const civ = this.civOf(sid);
+    const plan = [
+      { id: "woodcutter", skill: "wood", count: Math.max(1, Math.ceil(n * 0.26)) },
+      { id: "forager", skill: "food", count: Math.max(1, Math.ceil(n * 0.2)) },
+      { id: "mason", skill: "stone", count: n >= 3 ? Math.max(1, Math.ceil(n * 0.16)) : 0 },
+      { id: "builder", skill: "build", count: n >= 4 ? Math.max(1, Math.ceil(n * 0.12)) : 0 },
+      { id: "researcher", skill: "research", count: n >= 6 && civ.ageIndex >= 1 ? Math.max(1, Math.ceil(n * 0.08)) : 0 },
+      { id: "soldier", skill: "protect", count: n >= 7 && civ.ageIndex >= 2 ? Math.max(1, Math.ceil(n * 0.16)) : 0 },
+      { id: "miner", skill: "stone", count: n >= 10 && civ.ageIndex >= 3 ? Math.max(1, Math.ceil(n * 0.08)) : 0 },
+    ];
+    const used = new Set();
+    for (const role of plan) {
+      const pool = pop.filter((c) => !used.has(c)).sort((a, b) => skillEff(b.userData, role.skill) - skillEff(a.userData, role.skill));
+      for (let i = 0; i < role.count && i < pool.length; i++) {
+        pool[i].userData.role = role.id;
+        used.add(pool[i]);
+      }
+    }
+    for (const c of pop) if (!used.has(c)) c.userData.role = "forager";
+  }
+
+  tickRoleWork(c, dt, buff) {
+    const u = c.userData;
+    const civ = this.civOf(u.speciesId);
+    const gather = 0.7 * buff * (u.cart ? 2.2 : 1);
+    const cap = u.cart ? 10 : 4;
+    const tree = nearestDot(this.trees, u.n);
+    const boulder = nearestDot(this.boulders, u.n);
+    const rock = nearestKind(this.groundDetail, u.n, "rock");
+    const bush = nearestDot(this.bushes, u.n) || nearestKind(this.groundDetail, u.n, "bush");
+    const mono = nearestDot(this.monoliths.filter((m) => !m.userData.found[u.speciesId]), u.n);
+    const wreck = nearestDot(this.wrecks.filter((m) => !m.userData.found[u.speciesId]), u.n);
+    const home = this.huts.find((h) => h.userData.speciesId === u.speciesId) || this.huts[0];
+    const city = this.cities.find((ct) => ct.speciesId === u.speciesId);
+    const role = u.role || "forager";
+    if (mono && mono.userData.n.dot(u.n) > 0.92) {
+      steerToward(u, mono.userData.n, dt * 1.8);
+      if (mono.userData.n.dot(u.n) > 0.988) {
+        mono.userData.found[u.speciesId] = true;
+        civ.bonus = (civ.bonus || 0) + (mono.userData.civ || 100);
+        this.refreshCiv(u.speciesId);
+        hudStatus.textContent = displayName(CREATURE_SLOTS[u.speciesId]) + " discovers a monolith (+100 civ).";
+      }
+      return;
+    }
+    if (wreck && wreck.userData.n.dot(u.n) > 0.92) {
+      steerToward(u, wreck.userData.n, dt * 1.7);
+      if (wreck.userData.n.dot(u.n) > 0.988) {
+        wreck.userData.found[u.speciesId] = true;
+        civ.bonus = (civ.bonus || 0) + (wreck.userData.civ || 25);
+        this.refreshCiv(u.speciesId);
+        hudStatus.textContent = displayName(CREATURE_SLOTS[u.speciesId]) + " scavenges a wreck (+25 civ).";
+      }
+      return;
+    }
+    const depositHome = () => {
+      if (!home) return false;
+      if (home.userData.n.dot(u.n) > 0.98) {
+        civ.stores.wood += u.wood;
+        civ.stores.stone += u.stone;
+        civ.stores.food += u.food;
+        civ.stores.gold = (civ.stores.gold || 0) + (u.gold || 0);
+        u.wood = u.stone = u.food = 0;
+        u.gold = 0;
+        this.tryAdvanceAge(u.speciesId);
+        if (city) {
+          this.syncCity(city);
+          if ((city.carts || 0) < 1 + Math.floor((civ.score || 0) / 80)) this.spawnCart(city);
+        }
+        return true;
+      }
+      steerToward(u, home.userData.n, dt);
+      return false;
+    };
+    if (role === "woodcutter" && tree) {
+      if (u.wood >= cap) { depositHome(); return; }
+      steerToward(u, tree.userData.n, dt * 1.6 * skillEff(u, "wood"));
+      if (tree.userData.n.dot(u.n) > 0.985) {
+        u.wood += dt * gather * skillEff(u, "wood");
+        u.food += dt * 0.12 * buff;
+        u.hunger = Math.max(0, u.hunger - dt * 0.2);
+        tree.userData.wood = Math.max(0.2, (tree.userData.wood || 3) - dt * 0.2);
+        gainSkill(u, "wood", dt);
+      }
+      return;
+    }
+    if (role === "forager" && bush) {
+      if (u.food >= cap) { depositHome(); return; }
+      steerToward(u, bush.userData.n, dt * 1.45 * skillEff(u, "food"));
+      if (bush.userData.n.dot(u.n) > 0.985) {
+        u.food += dt * 0.55 * buff * skillEff(u, "food");
+        u.hunger = Math.max(0, u.hunger - dt * 0.28);
+        bush.userData.food = Math.max(0.1, (bush.userData.food || 3) - dt * 0.3);
+        gainSkill(u, "food", dt);
+      }
+      return;
+    }
+    if ((role === "mason" || role === "miner") && (boulder || rock)) {
+      if (u.stone >= cap) { depositHome(); return; }
+      const src = boulder || rock;
+      steerToward(u, src.userData.n, dt * 1.5 * skillEff(u, "stone"));
+      if (src.userData.n.dot(u.n) > 0.985) {
+        u.stone += dt * 0.5 * buff * skillEff(u, "stone");
+        if (boulder && role === "miner") u.gold = (u.gold || 0) + dt * 0.22 * buff * skillEff(u, "stone");
+        if (src.userData.stone != null) src.userData.stone -= dt * 0.35;
+        if (src.userData.gold != null) src.userData.gold -= dt * 0.12;
+        gainSkill(u, "stone", dt);
+        if (boulder && (boulder.userData.stone || 0) <= 0 && (boulder.userData.gold || 0) <= 0) {
+          if (boulder.userData.peg) this.group.remove(boulder.userData.peg);
+          this.group.remove(boulder);
+          this.boulders = this.boulders.filter((x) => x !== boulder);
+        }
+      }
+      return;
+    }
+    if (role === "builder") {
+      if (u.wood < 2 && tree) {
+        steerToward(u, tree.userData.n, dt * 1.5);
+        if (tree.userData.n.dot(u.n) > 0.985) {
+          u.wood += dt * gather * skillEff(u, "wood");
+          gainSkill(u, "wood", dt, 0.01);
+        }
+        return;
+      }
+      u.buildT = (u.buildT || 0) + dt * skillEff(u, "build");
+      if (u.buildT > 3.6 && this.huts.filter((h) => h.userData.speciesId === u.speciesId).length < 18) {
+        this.addHut(u.n, u.speciesId);
+        u.buildT = 0;
+        u.wood = Math.max(0, u.wood - 2);
+        civ.stores.wood += 0.4;
+        gainSkill(u, "build", 1, 0.35);
+        this.tryAdvanceAge(u.speciesId);
+        if (city) this.syncCity(city);
+      }
+      return;
+    }
+    if (role === "researcher" && home) {
+      steerToward(u, home.userData.n, dt * 1.1);
+      civ.research = (civ.research || 0) + dt * 0.4 * skillEff(u, "research");
+      gainSkill(u, "research", dt);
+      this.tryAdvanceAge(u.speciesId);
+      return;
+    }
+    if (role === "soldier") {
+      const prey = this.life.find((o) => o !== c && !o.userData.dead && (isWar(relations, u.speciesId, o.userData.speciesId) || o.userData.def.diet === "meat") && o.userData.n.dot(u.n) > 0.7);
+      if (prey) {
+        steerToward(u, prey.userData.n, dt * 2.2 * skillEff(u, "protect"));
+        if (prey.userData.n.dot(u.n) > 0.993) {
+          this.hurtLife(prey, (10 * dt + 2) * skillEff(u, "combat"));
+          gainSkill(u, "combat", dt, 0.05);
+          gainSkill(u, "protect", dt, 0.04);
+        }
+        return;
+      }
+      if (city) {
+        u.heading += dt * 0.4;
+        steerToward(u, city.n, dt * 0.4);
+      }
+      gainSkill(u, "protect", dt, 0.006);
+      return;
+    }
+    if (tree && u.wood < cap) {
+      steerToward(u, tree.userData.n, dt * 1.6);
+      if (tree.userData.n.dot(u.n) > 0.985) {
+        u.wood += dt * gather * skillEff(u, "wood");
+        gainSkill(u, "wood", dt);
+      }
+    } else if (home) depositHome();
+  }
+
   tickLife(dt, godN, formId) {
-    for (const t of this.trees) {
+    this.tickWildGrowth(dt);
+    this.tickMarines(dt);
+    this.roleT = (this.roleT || 0) + dt;
+    if (this.roleT > 2.4) {
+      this.roleT = 0;
+      const sids = new Set(this.life.map((c) => c.userData.speciesId));
+      for (const sid of sids) this.assignRoles(sid);
+    }
+    for (let i = this.trees.length - 1; i >= 0; i--) {
+      const t = this.trees[i];
       tickRise(t, dt);
-      if (t.userData.n && (t.userData.rise == null || t.userData.rise >= 1)) {
-        const dry = isLand(this, t.userData.n);
-        sitRadial(t, t.userData.n, this.radius * (dry ? 1.015 : 1.002));
+      if (!t.userData.n) continue;
+      if (isOcean(this, t.userData.n) || !canPlant(this, t.userData.n)) {
+        if (t.userData.peg) this.group.remove(t.userData.peg);
+        this.group.remove(t);
+        this.trees.splice(i, 1);
+        continue;
+      }
+      t.userData.age = (t.userData.age || 0) + dt;
+      t.userData.growS = Math.min(1, 0.28 + t.userData.age / 70);
+      if (t.userData.rise == null || t.userData.rise >= 1) {
+        sitRadial(t, t.userData.n, this.radius * 1.015);
+        t.scale.setScalar(ENTITY_SCALE * t.userData.growS);
         t.visible = this.surfaceLod;
         if (t.userData.peg) {
-          sit(t.userData.peg, this, t.userData.n, dry ? 1.018 : 1.004);
+          sit(t.userData.peg, this, t.userData.n, 1.018);
+          t.userData.peg.visible = !this.surfaceLod;
+        }
+      }
+    }
+    for (let i = this.bushes.length - 1; i >= 0; i--) {
+      const t = this.bushes[i];
+      tickRise(t, dt);
+      if (!t.userData.n) continue;
+      if (isOcean(this, t.userData.n) || !canPlant(this, t.userData.n)) {
+        if (t.userData.peg) this.group.remove(t.userData.peg);
+        this.group.remove(t);
+        this.bushes.splice(i, 1);
+        continue;
+      }
+      t.userData.age = (t.userData.age || 0) + dt;
+      t.userData.growS = Math.min(1, 0.35 + t.userData.age / 55);
+      if (t.userData.rise == null || t.userData.rise >= 1) {
+        sitRadial(t, t.userData.n, this.radius * 1.014);
+        t.scale.setScalar(ENTITY_SCALE * t.userData.growS);
+        t.visible = this.surfaceLod;
+        if (t.userData.peg) {
+          sit(t.userData.peg, this, t.userData.n, 1.016);
           t.userData.peg.visible = !this.surfaceLod;
         }
       }
@@ -1291,11 +1740,10 @@ class World {
       if (h.userData.n && h.userData.rise >= 1) {
         const dry = isLand(this, h.userData.n);
         sitRadial(h, h.userData.n, this.radius * (dry ? 1.02 : 0.97));
-        h.visible = this.surfaceLod && dry;
-        if (h.userData.peg) {
-          sit(h.userData.peg, this, h.userData.n, dry ? 1.018 : 0.97);
-          h.userData.peg.visible = !this.surfaceLod && dry;
-        }
+        h.visible = dry;
+        if (h.userData.lodNear) h.userData.lodNear.visible = this.surfaceLod && dry;
+        if (h.userData.lodFar) h.userData.lodFar.visible = !this.surfaceLod && dry;
+        if (h.userData.peg) h.userData.peg.visible = false;
       }
     }
     const nearGod = !!godN;
@@ -1340,7 +1788,8 @@ class World {
           if (dry) steerToward(u, dry, dt * 3.2);
         }
       }
-      const spd = def.spd * wetMul * (this.radius * 0.12) * buff;
+      const spd = def.spd * wetMul * (this.radius * 0.12) * buff * skillEff(u, "speed");
+      u.usedSkill = null;
       const godClose = nearGod && godN.dot(u.n) > 0.88;
 
       if (formId && godClose && this.surfaceLod) {
@@ -1414,7 +1863,7 @@ class World {
             u.mateCd = 38;
             o.userData.mateCd = 38;
             spawnHeart(this, u.n);
-            this.addCreature(CREATURE_SLOTS[u.speciesId], u.n.clone().add(new THREE.Vector3().randomDirection().multiplyScalar(0.05)).normalize(), { speciesId: u.speciesId, grow: 0.5 });
+            this.addCreature(CREATURE_SLOTS[u.speciesId], u.n.clone().add(new THREE.Vector3().randomDirection().multiplyScalar(0.05)).normalize(), { speciesId: u.speciesId, grow: 0.5, skill: inheritSkill(u, o.userData) });
             break;
           }
         }
@@ -1435,18 +1884,23 @@ class World {
       } else if (def.diet === "meat") {
         const prey = this.life.find((o) => o !== c && !o.userData.dead && o.userData.def.diet !== "meat" && o.userData.n.dot(u.n) > 0.3);
         if (prey) {
-          steerToward(u, prey.userData.n, dt * 2.2);
+          steerToward(u, prey.userData.n, dt * 2.2 * skillEff(u, "combat"));
           if (prey.userData.n.dot(u.n) > 0.995) {
-            const dmg = 14 * (u.inspireT > 0 ? 1.5 : 1);
+            const dmg = 14 * (u.inspireT > 0 ? 1.5 : 1) * skillEff(u, "combat");
             this.hurtLife(prey, dmg);
+            gainSkill(u, "combat", dt, 0.08);
             u.hunger = 0;
           }
         }
       } else if (def.kind === "human" || def.kind === "spore") {
         const foe = this.life.find((o) => o !== c && !o.userData.dead && isWar(relations, u.speciesId, o.userData.speciesId) && o.userData.n.dot(u.n) > 0.92);
-        if (foe) {
-          steerToward(u, foe.userData.n, dt * 2.1);
-          if (foe.userData.n.dot(u.n) > 0.993) this.hurtLife(foe, 9 * dt + 2);
+        if (foe && (u.role === "soldier" || !u.role)) {
+          steerToward(u, foe.userData.n, dt * 2.1 * skillEff(u, "combat"));
+          if (foe.userData.n.dot(u.n) > 0.993) {
+            this.hurtLife(foe, (9 * dt + 2) * skillEff(u, "combat"));
+            gainSkill(u, "combat", dt, 0.05);
+            gainSkill(u, "protect", dt, 0.03);
+          }
         }
         const mate = !foe && this.life.find((o) => o !== c && !o.userData.dead && o.userData.speciesId === u.speciesId && o.userData.growT >= 1 && o.userData.n.dot(u.n) > 0.9);
         if (mate && u.growT >= 1 && u.mateCd <= 0 && mate.userData.n.dot(u.n) > 0.988) {
@@ -1454,103 +1908,20 @@ class World {
           mate.userData.mateCd = 60;
           spawnHeart(this, u.n);
           if (Math.random() < 0.5) {
-            this.addCreature(CREATURE_SLOTS[u.speciesId], u.n.clone().add(new THREE.Vector3().randomDirection().multiplyScalar(0.04)).normalize(), { speciesId: u.speciesId, grow: 0.5 });
+            this.addCreature(CREATURE_SLOTS[u.speciesId], u.n.clone().add(new THREE.Vector3().randomDirection().multiplyScalar(0.04)).normalize(), { speciesId: u.speciesId, grow: 0.5, skill: inheritSkill(u, mate.userData) });
           }
         } else if (mate && u.mateCd <= 8) steerToward(u, mate.userData.n, dt * 1.2);
         const threat = this.life.find((o) => o.userData.def.diet === "meat" && o.userData.n.dot(u.n) > 0.97);
-        if (threat && !(formId === "divine" && godClose)) steerToward(u, threat.userData.n, -dt * 2.5);
+        if (threat && u.role !== "soldier" && !(formId === "divine" && godClose)) steerToward(u, threat.userData.n, -dt * 2.5);
         else if (!foe && !(formId === "divine" && godClose) && !(formId === "inspire" && u.ackT > 0)) {
-          const civ = this.civOf(u.speciesId);
-          const gather = 0.7 * buff * (u.cart ? 2.2 : 1);
-          const cap = u.cart ? 10 : 4;
-          const tree = nearestDot(this.trees, u.n);
-          const boulder = nearestDot(this.boulders, u.n);
-          const rock = nearestKind(this.groundDetail, u.n, "rock");
-          const bush = nearestKind(this.groundDetail, u.n, "bush");
-          const mono = nearestDot(this.monoliths.filter((m) => !m.userData.found[u.speciesId]), u.n);
-          const wreck = nearestDot(this.wrecks.filter((m) => !m.userData.found[u.speciesId]), u.n);
-          const home = this.huts.find((h) => h.userData.speciesId === u.speciesId) || this.huts[0];
-          const city = this.cities.find((c) => c.speciesId === u.speciesId);
-          if (mono && mono.userData.n.dot(u.n) > 0.92) {
-            steerToward(u, mono.userData.n, dt * 1.8);
-            if (mono.userData.n.dot(u.n) > 0.988) {
-              mono.userData.found[u.speciesId] = true;
-              civ.bonus = (civ.bonus || 0) + (mono.userData.civ || 100);
-              this.refreshCiv(u.speciesId);
-              hudStatus.textContent = (CREATURE_SLOTS[u.speciesId]?.name || "Spore") + " discovers a monolith (+100 civ).";
-            }
-          } else if (wreck && wreck.userData.n.dot(u.n) > 0.92) {
-            steerToward(u, wreck.userData.n, dt * 1.7);
-            if (wreck.userData.n.dot(u.n) > 0.988) {
-              wreck.userData.found[u.speciesId] = true;
-              civ.bonus = (civ.bonus || 0) + (wreck.userData.civ || 25);
-              this.refreshCiv(u.speciesId);
-              hudStatus.textContent = (CREATURE_SLOTS[u.speciesId]?.name || "Spore") + " scavenges a wreck (+25 civ).";
-            }
-          } else if (tree && u.wood < cap) {
-            steerToward(u, tree.userData.n, dt * 1.6);
-            if (tree.userData.n.dot(u.n) > 0.985) {
-              u.wood += dt * gather;
-              u.food += dt * 0.2 * buff;
-              u.hunger = Math.max(0, u.hunger - dt * 0.2);
-              tree.userData.food = Math.max(0.2, (tree.userData.food || 4) - dt * 0.25);
-              tree.userData.wood = Math.max(0.2, (tree.userData.wood || 3) - dt * 0.2);
-            }
-          } else if (boulder && (u.stone < cap || (u.gold || 0) < 2)) {
-            steerToward(u, boulder.userData.n, dt * 1.5);
-            if (boulder.userData.n.dot(u.n) > 0.985) {
-              u.stone += dt * 0.5 * buff;
-              u.gold = (u.gold || 0) + dt * 0.18 * buff;
-              boulder.userData.stone -= dt * 0.35;
-              boulder.userData.gold -= dt * 0.12;
-              if (boulder.userData.stone <= 0 && boulder.userData.gold <= 0) {
-                if (boulder.userData.peg) this.group.remove(boulder.userData.peg);
-                this.group.remove(boulder);
-                this.boulders = this.boulders.filter((x) => x !== boulder);
-              }
-            }
-          } else if (rock && u.stone < cap && civ.ageIndex >= 1) {
-            steerToward(u, bush.userData.n, dt * 1.3);
-            if (bush.userData.n && bush.userData.n.dot(u.n) > 0.985) {
-              u.food += dt * 0.5 * buff;
-              u.hunger = Math.max(0, u.hunger - dt * 0.25);
-            }
-          } else if (u.wood >= 3 && this.huts.filter((h) => h.userData.speciesId === u.speciesId).length < 18) {
-            this.addHut(u.n, u.speciesId);
-            civ.stores.wood += u.wood;
-            civ.stores.stone += u.stone;
-            civ.stores.food += u.food;
-            civ.stores.gold = (civ.stores.gold || 0) + (u.gold || 0);
-            u.wood = 0;
-            u.stone = 0;
-            u.food = 0;
-            u.gold = 0;
-            this.tryAdvanceAge(u.speciesId);
-            if (city) this.syncCity(city);
-          } else if (home) {
-            const freeCart = this.carts.find((k) => k.userData.speciesId === u.speciesId && !k.userData.heldBy && k.userData.n.dot(u.n) > 0.9);
-            if (freeCart && !u.cart) {
-              steerToward(u, freeCart.userData.n, dt * 1.5);
-              if (freeCart.userData.n.dot(u.n) > 0.99) {
-                u.cart = freeCart;
-                freeCart.userData.heldBy = c;
-              }
-            }
-            steerToward(u, home.userData.n, dt);
-            if (home.userData.n.dot(u.n) > 0.98) {
-              civ.stores.wood += u.wood;
-              civ.stores.stone += u.stone;
-              civ.stores.food += u.food;
-              civ.stores.gold = (civ.stores.gold || 0) + (u.gold || 0);
-              u.wood = u.stone = u.food = 0;
-              u.gold = 0;
-              this.tryAdvanceAge(u.speciesId);
-              if (city) {
-                this.syncCity(city);
-                if ((city.carts || 0) < 1 + Math.floor((civ.score || 0) / 80)) this.spawnCart(city);
-              }
-            }
-          }
+          this.tickRoleWork(c, dt, buff);
+        }
+      }
+      if (u.skill) {
+        for (const k of LIFE_SKILLS) {
+          if (k === u.usedSkill) continue;
+          const base = (u.dna && u.dna.stats && u.dna.stats[k]) || 0;
+          u.skill[k] = Math.max(-base * 0.2, (u.skill[k] || 0) - dt * 0.001);
         }
       }
       if (u.hunger > 1.6) {
@@ -1580,8 +1951,16 @@ class World {
       }
       if (c.userData.s1w) c.scale.set(c.userData.s1w, c.userData.s1h * (land ? 1 : 0.72), 1);
       c.traverse((ch) => {
-        if (ch.name && ch.name.startsWith("leg")) ch.rotation.x = 0.2 + Math.sin(u.age * 8 + ch.position.x) * 0.35;
-        if (ch.name && ch.name.startsWith("arm")) ch.rotation.y = Math.sin(u.age * 5 + ch.position.x) * 0.25;
+        if (ch.name && ch.name.startsWith("leg")) {
+          ch.rotation.x = 0.22 + Math.sin(u.age * 9 + ch.position.x * 12) * 0.42;
+          ch.rotation.z = Math.sin(u.age * 4.5 + ch.position.z) * 0.12;
+        }
+        if (ch.name && ch.name.startsWith("arm")) {
+          ch.rotation.y = Math.sin(u.age * 6 + ch.position.x * 8) * 0.32;
+          ch.rotation.z = (ch.position.x > 0 ? -0.9 : 0.9) + Math.sin(u.age * 5.2) * 0.18;
+        }
+        if (ch.name === "torso") ch.position.y = Math.sin(u.age * 7.5) * 0.004;
+        if (ch.name === "head") ch.rotation.y = Math.sin(u.age * 2.4) * 0.18;
       });
     }
     for (let i = this.ufos.length - 1; i >= 0; i--) {
@@ -1657,6 +2036,25 @@ class World {
       sit(v, this, v.userData.n, 0.995);
       v.scale.setScalar(ENTITY_SCALE * (0.35 + v.userData.grow * 1.1));
       v.visible = true;
+      const oceanNow = isOcean(this, v.userData.n);
+      if (v.userData.oceanBorn || oceanNow) {
+        paintAt(this.paint, uvFromN(v.userData.n), 22, 3);
+        if (v.userData.t % 0.9 < dt + 0.02) {
+          const off = v.userData.n.clone().add(new THREE.Vector3().randomDirection().multiplyScalar(0.08)).normalize();
+          paintAt(this.paint, uvFromN(off), 14, 2);
+        }
+      } else if (v.userData.grow > 0.28 && Math.random() < dt * 2.4 && this.lavas.length < 40) {
+        const lava = new THREE.Mesh(
+          new THREE.SphereGeometry(0.02, 8, 6),
+          new THREE.MeshBasicMaterial({ color: 0xff4411 }),
+        );
+        lava.scale.set(1.7, 0.32, 1.7);
+        lava.userData.n = v.userData.n.clone();
+        lava.userData.life = 7 + Math.random() * 5;
+        this.group.add(lava);
+        this.lavas.push(lava);
+        sit(lava, this, lava.userData.n, 1.01);
+      }
       if (v.userData.grow > 0.35 && (v.userData.t % 0.28) < dt + 0.02) {
         const p = new THREE.Mesh(
           new THREE.SphereGeometry(0.01, 5, 4),
@@ -1667,7 +2065,7 @@ class World {
         sitRadial(p, nn, this.radius * 1.05);
         p.userData = { n: nn, life: 1.4 + Math.random(), water: false, rise: 0.12 };
         this.fires.push(p);
-        paintAt(this.paint, uvFromN(v.userData.n), -8, 2);
+        paintAt(this.paint, uvFromN(v.userData.n), v.userData.oceanBorn ? 8 : -8, 2);
         for (const c of this.life) {
           if (c.userData.n && c.userData.n.dot(v.userData.n) > 0.985) this.hurtLife(c, 8 * dt);
         }
@@ -1714,6 +2112,36 @@ class World {
       if (t.userData.n && (t.userData.rise == null || t.userData.rise >= 1)) sit(t, this, t.userData.n, 1.03);
       t.visible = true;
     }
+    this.tickLavas(dt);
+  }
+
+  tickLavas(dt) {
+    for (let i = this.lavas.length - 1; i >= 0; i--) {
+      const lava = this.lavas[i];
+      lava.userData.life -= dt;
+      const n = lava.userData.n;
+      let best = n;
+      let bh = heightOf(this, n);
+      for (let k = 0; k < 6; k++) {
+        const t = n.clone().add(new THREE.Vector3().randomDirection().multiplyScalar(0.05)).normalize();
+        const h = heightOf(this, t);
+        if (h < bh) {
+          bh = h;
+          best = t;
+        }
+      }
+      n.lerp(best, dt * 0.85).normalize();
+      sit(lava, this, n, 1.01);
+      lava.visible = true;
+      paintAt(this.paint, uvFromN(n), -3, 1);
+      for (const c of this.life) {
+        if (c.userData.n && c.userData.n.dot(n) > 0.988) this.hurtLife(c, 14 * dt);
+      }
+      if (lava.userData.life <= 0) {
+        this.group.remove(lava);
+        this.lavas.splice(i, 1);
+      }
+    }
   }
 }
 
@@ -1743,6 +2171,13 @@ function nearestKind(arr, n, kind) {
 function steerToward(u, targetN, k) {
   u.n.lerp(targetN, Math.max(-0.08, Math.min(0.08, k)));
   u.n.normalize();
+}
+function gainSkill(u, key, dt, rate = 0.018) {
+  if (!u.skill) u.skill = zeroStats();
+  const base = (u.dna && u.dna.stats && u.dna.stats[key]) || 0;
+  const cap = 100 - base;
+  u.skill[key] = Math.min(cap, (u.skill[key] || 0) + dt * rate);
+  u.usedSkill = key;
 }
 
 function spawnHeart(world, n) {
@@ -1816,95 +2251,131 @@ function makeStudio() {
   g.visible = false;
   g.frustumCulled = false;
   const board = new THREE.Mesh(
-    new THREE.PlaneGeometry(0.62, 0.52),
+    new THREE.PlaneGeometry(0.78, 0.62),
     new THREE.MeshBasicMaterial({ color: 0x10141c, transparent: true, opacity: 0.92, side: THREE.DoubleSide }),
   );
   g.add(board);
   const title = new THREE.Mesh(
-    new THREE.PlaneGeometry(0.34, 0.04),
-    new THREE.MeshBasicMaterial({ map: labelCanvas("SPORE STUDIO", 320, 48), transparent: true, side: THREE.DoubleSide }),
+    new THREE.PlaneGeometry(0.4, 0.038),
+    new THREE.MeshBasicMaterial({ map: labelCanvas("LIFE MAKER", 320, 48), transparent: true, side: THREE.DoubleSide }),
   );
-  title.position.set(0, 0.22, 0.01);
+  title.position.set(0, 0.27, 0.01);
   g.add(title);
+  const hint = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.52, 0.028),
+    new THREE.MeshBasicMaterial({ map: labelCanvas("Trigger a body part to swap it", 420, 48), transparent: true, side: THREE.DoubleSide }),
+  );
+  hint.position.set(-0.08, 0.232, 0.01);
+  g.add(hint);
   const hits = [];
   const preview = new THREE.Group();
-  preview.position.set(-0.16, 0.02, 0.04);
+  preview.position.set(-0.22, 0.02, 0.05);
   g.add(preview);
+  const namePl = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.28, 0.03),
+    new THREE.MeshBasicMaterial({ map: labelCanvas("Name", 280, 48), transparent: true, side: THREE.DoubleSide }),
+  );
+  namePl.position.set(-0.22, -0.14, 0.02);
+  namePl.userData.studioAct = "name";
+  g.add(namePl);
+  hits.push(namePl);
+  const adjPl = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.28, 0.03),
+    new THREE.MeshBasicMaterial({ map: labelCanvas("Adjective", 280, 48), transparent: true, side: THREE.DoubleSide }),
+  );
+  adjPl.position.set(-0.22, -0.175, 0.02);
+  adjPl.userData.studioAct = "adj";
+  g.add(adjPl);
+  hits.push(adjPl);
+  const statRows = [];
+  function paintStatRow(row) {
+    const dna = CREATURE_SLOTS[selSlot];
+    const v = (dna.stats && dna.stats[row.key]) || 0;
+    row.lab.material.map?.dispose();
+    row.lab.material.map = labelCanvas(row.key + " " + v, 200, 40);
+    row.lab.material.needsUpdate = true;
+  }
+  LIFE_SKILLS.forEach((k, i) => {
+    const y = 0.2 - i * 0.038;
+    const lab = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.16, 0.028),
+      new THREE.MeshBasicMaterial({ map: labelCanvas(k, 200, 40), transparent: true, side: THREE.DoubleSide }),
+    );
+    lab.position.set(0.16, y, 0.012);
+    const minus = new THREE.Mesh(new THREE.PlaneGeometry(0.028, 0.028), new THREE.MeshBasicMaterial({ map: labelCanvas("-", 64, 48), transparent: true, side: THREE.DoubleSide }));
+    minus.position.set(0.27, y, 0.012);
+    minus.userData.statDelta = { key: k, d: -1 };
+    const plus = new THREE.Mesh(new THREE.PlaneGeometry(0.028, 0.028), new THREE.MeshBasicMaterial({ map: labelCanvas("+", 64, 48), transparent: true, side: THREE.DoubleSide }));
+    plus.position.set(0.31, y, 0.012);
+    plus.userData.statDelta = { key: k, d: 1 };
+    g.add(lab, minus, plus);
+    hits.push(minus, plus);
+    statRows.push({ key: k, lab, minus, plus });
+  });
+  const leftPl = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.2, 0.028),
+    new THREE.MeshBasicMaterial({ map: labelCanvas("Left 0", 220, 40), transparent: true, side: THREE.DoubleSide }),
+  );
+  leftPl.position.set(0.22, -0.12, 0.012);
+  g.add(leftPl);
   function rebuildPreview() {
     while (preview.children.length) preview.remove(preview.children[0]);
-    const m = makeCreatureMesh(CREATURE_SLOTS[selSlot], 1.15);
+    const m = makeCreatureMesh(CREATURE_SLOTS[selSlot], 1.35);
     preview.add(m);
+    hits.length = 0;
+    hits.push(namePl, adjPl, saveB, rndB, warB, clearB, addArm, addLeg);
+    for (const row of statRows) {
+      if (row.minus) hits.push(row.minus);
+      if (row.plus) hits.push(row.plus);
+    }
+    m.traverse((o) => { if (o.isMesh) hits.push(o); });
+    for (let i = 0; i < SLOT_N; i++) {
+      const sl = g.children.find((ch) => ch.userData.saveSlot === i);
+      if (sl) hits.push(sl);
+    }
+    namePl.material.map?.dispose();
+    namePl.material.map = labelCanvas(CREATURE_SLOTS[selSlot].name || "Name", 280, 48);
+    namePl.material.needsUpdate = true;
+    const adj = (CREATURE_SLOTS[selSlot].adjectives || [])[0] || "Adjective";
+    adjPl.material.map?.dispose();
+    adjPl.material.map = labelCanvas(adj, 280, 48);
+    adjPl.material.needsUpdate = true;
+    statRows.forEach(paintStatRow);
+    const left = 100 - spentPoints(CREATURE_SLOTS[selSlot].stats);
+    leftPl.material.map?.dispose();
+    leftPl.material.map = labelCanvas("Left " + left, 220, 40);
+    leftPl.material.needsUpdate = true;
   }
-  rebuildPreview();
-  const sockets = [];
-  const sockDefs = [
-    { id: "head", x: -0.16, y: 0.12, z: 0.06 },
-    { id: "arm", x: -0.08, y: 0.04, z: 0.06 },
-    { id: "leg", x: -0.16, y: -0.08, z: 0.06 },
-    { id: "torso", x: -0.16, y: 0.02, z: 0.06 },
-  ];
-  sockDefs.forEach((s) => {
-    const pl = new THREE.Mesh(new THREE.SphereGeometry(0.012, 8, 6), new THREE.MeshBasicMaterial({ color: 0x9ee7ff }));
-    pl.position.set(s.x + 0.08, s.y, s.z);
-    pl.userData.socket = s.id;
-    g.add(pl);
-    hits.push(pl);
-    sockets.push(pl);
-  });
-  const FORM_LABEL = { club: "Limb · club", tentacle: "Limb · tentacle", wing: "Limb · wing", bug: "Limb · insect", spike: "Limb · spike" };
-  const TORSO_LABEL = { torso: "Body · upright", blob: "Body · blob", shell: "Body · shell", disk: "Body · disk" };
-  const HEAD_LABEL = { sphere: "Head · round", crystal: "Head · crystal", disk: "Head · disk", horn: "Head · horns" };
-  PART_FORMS.forEach((f, i) => {
-    const pl = new THREE.Mesh(
-      new THREE.PlaneGeometry(0.16, 0.032),
-      new THREE.MeshBasicMaterial({ map: labelCanvas(FORM_LABEL[f] || f, 240, 48), transparent: true, side: THREE.DoubleSide }),
-    );
-    pl.position.set(0.2, 0.18 - i * 0.036, 0.012);
-    pl.userData.partForm = f;
-    g.add(pl);
-    hits.push(pl);
-  });
-  TORSO_KINDS.forEach((t, i) => {
-    const pl = new THREE.Mesh(
-      new THREE.PlaneGeometry(0.16, 0.028),
-      new THREE.MeshBasicMaterial({ map: labelCanvas(TORSO_LABEL[t] || t, 240, 48), transparent: true, side: THREE.DoubleSide }),
-    );
-    pl.position.set(0.2, -0.02 - i * 0.03, 0.012);
-    pl.userData.torsoKind = t;
-    g.add(pl);
-    hits.push(pl);
-  });
-  HEAD_KINDS.forEach((h, i) => {
-    const pl = new THREE.Mesh(
-      new THREE.PlaneGeometry(0.16, 0.028),
-      new THREE.MeshBasicMaterial({ map: labelCanvas(HEAD_LABEL[h] || h, 240, 48), transparent: true, side: THREE.DoubleSide }),
-    );
-    pl.position.set(-0.2, 0.16 - i * 0.032, 0.012);
-    pl.userData.headKind = h;
-    g.add(pl);
-    hits.push(pl);
-  });
   for (let i = 0; i < SLOT_N; i++) {
     const pl = new THREE.Mesh(
       new THREE.PlaneGeometry(0.042, 0.028),
       new THREE.MeshBasicMaterial({ map: labelCanvas(String(i + 1), 80, 48), transparent: true, side: THREE.DoubleSide }),
     );
-    pl.position.set(-0.26 + (i % 5) * 0.048, -0.2 - Math.floor(i / 5) * 0.034, 0.012);
+    pl.position.set(-0.34 + (i % 5) * 0.048, -0.22 - Math.floor(i / 5) * 0.034, 0.012);
     pl.userData.saveSlot = i;
     g.add(pl);
     hits.push(pl);
   }
-  const saveB = new THREE.Mesh(new THREE.PlaneGeometry(0.1, 0.03), new THREE.MeshBasicMaterial({ map: labelCanvas("SAVE", 160, 48), transparent: true, side: THREE.DoubleSide }));
-  saveB.position.set(0.06, -0.2, 0.012);
+  const saveB = new THREE.Mesh(new THREE.PlaneGeometry(0.09, 0.028), new THREE.MeshBasicMaterial({ map: labelCanvas("SAVE", 160, 48), transparent: true, side: THREE.DoubleSide }));
+  saveB.position.set(0.02, -0.22, 0.012);
   saveB.userData.studioAct = "save";
-  const rndB = new THREE.Mesh(new THREE.PlaneGeometry(0.1, 0.03), new THREE.MeshBasicMaterial({ map: labelCanvas("RANDOM", 160, 48), transparent: true, side: THREE.DoubleSide }));
-  rndB.position.set(0.18, -0.2, 0.012);
+  const rndB = new THREE.Mesh(new THREE.PlaneGeometry(0.1, 0.028), new THREE.MeshBasicMaterial({ map: labelCanvas("RANDOM", 160, 48), transparent: true, side: THREE.DoubleSide }));
+  rndB.position.set(0.13, -0.22, 0.012);
   rndB.userData.studioAct = "random";
-  const warB = new THREE.Mesh(new THREE.PlaneGeometry(0.16, 0.03), new THREE.MeshBasicMaterial({ map: labelCanvas("WAR/PEACE", 220, 48), transparent: true, side: THREE.DoubleSide }));
-  warB.position.set(0.12, -0.236, 0.012);
+  const warB = new THREE.Mesh(new THREE.PlaneGeometry(0.12, 0.028), new THREE.MeshBasicMaterial({ map: labelCanvas("WAR/PEACE", 220, 48), transparent: true, side: THREE.DoubleSide }));
+  warB.position.set(0.26, -0.22, 0.012);
   warB.userData.studioAct = "war";
-  g.add(saveB, rndB, warB);
-  hits.push(saveB, rndB, warB);
+  const clearB = new THREE.Mesh(new THREE.PlaneGeometry(0.12, 0.028), new THREE.MeshBasicMaterial({ map: labelCanvas("CLEAR PTS", 220, 48), transparent: true, side: THREE.DoubleSide }));
+  clearB.position.set(0.22, -0.16, 0.012);
+  clearB.userData.studioAct = "clear";
+  const addArm = new THREE.Mesh(new THREE.PlaneGeometry(0.1, 0.028), new THREE.MeshBasicMaterial({ map: labelCanvas("+ ARM", 160, 48), transparent: true, side: THREE.DoubleSide }));
+  addArm.position.set(-0.08, -0.22, 0.012);
+  addArm.userData.studioAct = "addArm";
+  const addLeg = new THREE.Mesh(new THREE.PlaneGeometry(0.1, 0.028), new THREE.MeshBasicMaterial({ map: labelCanvas("+ LEG", 160, 48), transparent: true, side: THREE.DoubleSide }));
+  addLeg.position.set(-0.08, -0.254, 0.012);
+  addLeg.userData.studioAct = "addLeg";
+  g.add(saveB, rndB, warB, clearB, addArm, addLeg);
+  hits.push(saveB, rndB, warB, clearB, addArm, addLeg);
   const glow = new THREE.Mesh(
     new THREE.RingGeometry(0.01, 0.018, 28),
     new THREE.MeshBasicMaterial({ color: 0x9ee7ff, transparent: true, opacity: 0.95, side: THREE.DoubleSide, depthTest: false }),
@@ -1912,9 +2383,10 @@ function makeStudio() {
   glow.visible = false;
   glow.renderOrder = 20;
   g.add(glow);
-  g.position.set(0.08, 0.34, -0.22);
+  g.position.set(0.08, 0.36, -0.24);
   g.rotation.set(-0.35, 0.18, 0);
-  return { group: g, hits, preview, rebuildPreview, sockets, glow };
+  rebuildPreview();
+  return { group: g, hits, preview, rebuildPreview, sockets: [], glow, namePl, adjPl, leftPl, statRows };
 }
 
 function makeFormPicker() {
@@ -2171,7 +2643,7 @@ function paintStudioHtml() {
   CREATURE_SLOTS.forEach((d, i) => {
     const b = document.createElement("button");
     b.type = "button";
-    b.textContent = (i + 1) + " " + d.name;
+    b.textContent = (i + 1) + " " + displayName(d);
     if (i === selSlot) b.classList.add("on");
     b.onclick = () => {
       selSlot = i;
@@ -2183,13 +2655,42 @@ function paintStudioHtml() {
   const rel = document.getElementById("studio-rel");
   if (rel) {
     const war = isWar(relations, selSlot, warSlot);
-    rel.textContent = CREATURE_SLOTS[selSlot].name + (war ? " is at war with " : " is at peace with ") + CREATURE_SLOTS[warSlot].name + " (slot " + (warSlot + 1) + ")";
+    rel.textContent = displayName(CREATURE_SLOTS[selSlot]) + (war ? " is at war with " : " is at peace with ") + displayName(CREATURE_SLOTS[warSlot]) + " (slot " + (warSlot + 1) + ")";
   }
   const civ = document.getElementById("studio-civ");
   if (civ) {
     const w = lockedWorld || worlds[0];
     const c = w ? w.civOf(selSlot) : civBlank();
     civ.textContent = "Civ score " + (c.score | 0) + " · " + (CIV_AGES[c.ageIndex] || CIV_AGES[0]).name;
+  }
+  const dna = CREATURE_SLOTS[selSlot];
+  const nameEl = document.getElementById("studio-name");
+  if (nameEl && nameEl.value !== dna.name) nameEl.value = dna.name || "";
+  const adjEl = document.getElementById("studio-adj");
+  if (adjEl) {
+    const a = (dna.adjectives || []).join(", ");
+    if (adjEl.value !== a) adjEl.value = a;
+  }
+  const statsHost = document.getElementById("studio-stats");
+  if (statsHost) {
+    const left = 100 - spentPoints(dna.stats);
+    let html = `<p class="tiny">Life points left: <b id="lp-left">${left}</b>/100</p>`;
+    LIFE_SKILLS.forEach((k) => {
+      const v = (dna.stats && dna.stats[k]) || 0;
+      html += `<div class="stat-row" data-stat="${k}"><span>${k}</span><button type="button" data-d="-1">−</button><em>${v}</em><button type="button" data-d="1">+</button></div>`;
+    });
+    statsHost.innerHTML = html;
+    statsHost.querySelectorAll(".stat-row").forEach((row) => {
+      const key = row.getAttribute("data-stat");
+      row.querySelectorAll("button").forEach((b) => {
+        b.onclick = () => {
+          if (!dna.stats) dna.stats = evenStats();
+          setStat(dna, key, (dna.stats[key] | 0) + Number(b.getAttribute("data-d")));
+          studio.rebuildPreview();
+          paintStudioHtml();
+        };
+      });
+    });
   }
 }
 
@@ -2252,7 +2753,7 @@ function applyWeatherHold(w, origin, dir, n, dt) {
     : null;
   let pn = n && n.clone ? n.clone().normalize() : new THREE.Vector3(0, 1, 0);
   if (hit) pn = hit.clone().sub(w.group.position).normalize();
-  w.growCloudAt(pn, dt);
+  w.growCloudAt(pn, dt, weatherMode);
   w.cloudCover = Math.min(1, (w.cloudCover || 0) + dt * 0.35);
   if (weatherMode === "rain" || weatherMode === "thunder") {
     w.storm = Math.min(1, w.storm + dt * 0.45);
@@ -2278,6 +2779,7 @@ function applyPower(w, point, normal, uv, hold, dt = 0.016, origin, dir) {
     w.clouds.material.uniforms.uAlpha.value = Math.min(1, w.clouds.material.uniforms.uAlpha.value + 0.2);
     w.cloudCover = Math.min(1, (w.cloudCover || 0) + 0.15);
     w.wxMode = "rain";
+    if (normal) w.growCloudAt(normal, hold ? dt : 0.25, "rain");
   } else if (id === "meteor") {
     const m = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 6), new THREE.MeshBasicMaterial({ color: 0xff6a2a }));
     camera.getWorldPosition(_v);
@@ -2294,9 +2796,13 @@ function applyPower(w, point, normal, uv, hold, dt = 0.016, origin, dir) {
   else if (id === "beasts" && normal) {
     const dna = CREATURE_SLOTS[selSlot];
     w.addCreature(dna, normal, { speciesId: selSlot });
-    hudStatus.textContent = dna.name + " climbs into being. Civ " + (w.civOf(selSlot).score | 0);
+    hudStatus.textContent = displayName(dna) + " climbs into being. Civ " + (w.civOf(selSlot).score | 0);
   } else if (id === "scout") {
     spawnShip("scout", lastAim.o, lastAim.d, w);
+  } else if (id === "destroyer") {
+    spawnShip("destroyer", lastAim.o, lastAim.d, w);
+  } else if (id === "orb") {
+    spawnShip("orb", lastAim.o, lastAim.d, w);
   } else if (id === "settler") {
     spawnShip("settler", lastAim.o, lastAim.d, w);
   } else if (id === "grove" && normal) {
@@ -2306,7 +2812,7 @@ function applyPower(w, point, normal, uv, hold, dt = 0.016, origin, dir) {
     hudStatus.textContent = "Stone and gold wait in the crust.";
   } else if (id === "volcano" && normal) {
     w.addVolcano(normal);
-    hudStatus.textContent = "A volcano rises.";
+    hudStatus.textContent = isOcean(w, normal) ? "A volcano builds rock land in the sea." : "A volcano oozes lava across the crust.";
   } else if (id === "tornado" && normal) {
     w.addTornado(normal);
     hudStatus.textContent = "A funnel walks the sphere.";
@@ -2443,7 +2949,7 @@ function tickStudioAim() {
   const xr = renderer.xr.isPresenting;
   const ray = xr ? rightRay() : desktopRay();
   _ray.set(ray.o, ray.d);
-  const hits = _ray.intersectObjects(studio.hits, false);
+  const hits = _ray.intersectObjects(studio.hits, true);
   if (!hits[0]) {
     studio.glow.visible = false;
     return;
@@ -2458,57 +2964,50 @@ function tickStudioAim() {
 function pokeUi(origin, dir) {
   _ray.set(origin, dir);
   if (studio.group.visible) {
-    const bh = _ray.intersectObjects(studio.hits, false);
-    const ud = bh[0]?.object?.userData;
+    const bh = _ray.intersectObjects(studio.hits, true);
+    let obj = bh[0]?.object;
+    let ud = obj?.userData || {};
+    while (obj && !ud.swap && !ud.statDelta && ud.studioAct == null && ud.saveSlot == null) {
+      obj = obj.parent;
+      ud = obj?.userData || {};
+    }
     if (ud) {
-      if (ud.partForm) {
-        heldPart = { form: ud.partForm };
-        hudStatus.textContent = "Holding " + ud.partForm + " — drop on an arm or leg socket.";
+      if (ud.swap) {
+        const dna = CREATURE_SLOTS[selSlot];
+        if (ud.swap === "torso") {
+          dna.torso = TORSO_KINDS[(TORSO_KINDS.indexOf(dna.torso) + 1) % TORSO_KINDS.length];
+          hudStatus.textContent = "Body is now " + dna.torso + ".";
+        } else if (ud.swap === "head") {
+          dna.head = HEAD_KINDS[(HEAD_KINDS.indexOf(dna.head) + 1) % HEAD_KINDS.length];
+          hudStatus.textContent = "Head is now " + dna.head + ".";
+        } else if (ud.swap === "arm") {
+          const i = ud.swapIndex | 0;
+          dna.arms = dna.arms || [];
+          if (dna.arms[i]) dna.arms[i].form = PART_FORMS[(PART_FORMS.indexOf(dna.arms[i].form) + 1) % PART_FORMS.length];
+          hudStatus.textContent = "Arm swapped.";
+        } else if (ud.swap === "leg") {
+          const i = ud.swapIndex | 0;
+          dna.legs = dna.legs || [];
+          if (dna.legs[i]) dna.legs[i].form = PART_FORMS[(PART_FORMS.indexOf(dna.legs[i].form) + 1) % PART_FORMS.length];
+          hudStatus.textContent = "Leg swapped.";
+        }
+        studio.rebuildPreview();
+        paintStudioHtml();
         return true;
       }
-      if (ud.torsoKind) {
-        CREATURE_SLOTS[selSlot].torso = ud.torsoKind;
+      if (ud.statDelta) {
+        const dna = CREATURE_SLOTS[selSlot];
+        if (!dna.stats) dna.stats = evenStats();
+        setStat(dna, ud.statDelta.key, (dna.stats[ud.statDelta.key] | 0) + ud.statDelta.d);
         studio.rebuildPreview();
-        hudStatus.textContent = "Body set to " + ud.torsoKind + ".";
-        return true;
-      }
-      if (ud.headKind) {
-        CREATURE_SLOTS[selSlot].head = ud.headKind;
-        studio.rebuildPreview();
-        hudStatus.textContent = "Head set to " + ud.headKind + ".";
-        return true;
-      }
-      if (ud.socket === "head") {
-        CREATURE_SLOTS[selSlot].head = HEAD_KINDS[(HEAD_KINDS.indexOf(CREATURE_SLOTS[selSlot].head) + 1) % HEAD_KINDS.length];
-        studio.rebuildPreview();
-        return true;
-      }
-      if (ud.socket === "arm" && heldPart) {
-        CREATURE_SLOTS[selSlot].arms = CREATURE_SLOTS[selSlot].arms || [];
-        if (CREATURE_SLOTS[selSlot].arms.length < 4) CREATURE_SLOTS[selSlot].arms.push({ form: heldPart.form, col: CREATURE_SLOTS[selSlot].col });
-        else CREATURE_SLOTS[selSlot].arms[CREATURE_SLOTS[selSlot].arms.length - 1] = { form: heldPart.form, col: CREATURE_SLOTS[selSlot].col };
-        heldPart = null;
-        studio.rebuildPreview();
-        return true;
-      }
-      if (ud.socket === "leg" && heldPart) {
-        CREATURE_SLOTS[selSlot].legs = CREATURE_SLOTS[selSlot].legs || [];
-        if (CREATURE_SLOTS[selSlot].legs.length < 6) CREATURE_SLOTS[selSlot].legs.push({ form: heldPart.form, col: CREATURE_SLOTS[selSlot].col });
-        else CREATURE_SLOTS[selSlot].legs[0] = { form: heldPart.form, col: CREATURE_SLOTS[selSlot].col };
-        heldPart = null;
-        studio.rebuildPreview();
-        return true;
-      }
-      if (ud.socket === "torso") {
-        CREATURE_SLOTS[selSlot].torso = TORSO_KINDS[(TORSO_KINDS.indexOf(CREATURE_SLOTS[selSlot].torso) + 1) % TORSO_KINDS.length];
-        studio.rebuildPreview();
+        paintStudioHtml();
         return true;
       }
       if (ud.saveSlot != null) {
         selSlot = ud.saveSlot;
         studio.rebuildPreview();
         paintStudioHtml();
-        hudStatus.textContent = "Selected " + CREATURE_SLOTS[selSlot].name;
+        hudStatus.textContent = "Selected " + displayName(CREATURE_SLOTS[selSlot]);
         return true;
       }
       if (ud.studioAct === "save") {
@@ -2525,8 +3024,45 @@ function pokeUi(origin, dir) {
       if (ud.studioAct === "war") {
         const war = !isWar(relations, selSlot, warSlot);
         setWar(relations, selSlot, warSlot, war);
-        hudStatus.textContent = CREATURE_SLOTS[selSlot].name + (war ? " at war with " : " at peace with ") + CREATURE_SLOTS[warSlot].name;
+        hudStatus.textContent = displayName(CREATURE_SLOTS[selSlot]) + (war ? " at war with " : " at peace with ") + displayName(CREATURE_SLOTS[warSlot]);
         paintStudioHtml();
+        return true;
+      }
+      if (ud.studioAct === "clear") {
+        CREATURE_SLOTS[selSlot].stats = zeroStats();
+        studio.rebuildPreview();
+        paintStudioHtml();
+        hudStatus.textContent = "Life points cleared — they will be slow at everything.";
+        return true;
+      }
+      if (ud.studioAct === "name") {
+        const nouns = ["Spore", "Kin", "Walkers", "Choir", "Brood", "Folk", "Weavers", "Horde", "Tide", "Ash"];
+        const cur = CREATURE_SLOTS[selSlot].name || "Spore";
+        CREATURE_SLOTS[selSlot].name = nouns[(nouns.indexOf(cur) + 1) % nouns.length];
+        studio.rebuildPreview();
+        paintStudioHtml();
+        return true;
+      }
+      if (ud.studioAct === "adj") {
+        const dna = CREATURE_SLOTS[selSlot];
+        const cur = (dna.adjectives && dna.adjectives[0]) || ADJECTIVES[0];
+        dna.adjectives = [ADJECTIVES[(ADJECTIVES.indexOf(cur) + 1) % ADJECTIVES.length]];
+        studio.rebuildPreview();
+        paintStudioHtml();
+        return true;
+      }
+      if (ud.studioAct === "addArm") {
+        const dna = CREATURE_SLOTS[selSlot];
+        dna.arms = dna.arms || [];
+        if (dna.arms.length < 4) dna.arms.push({ form: PART_FORMS[0], col: dna.col });
+        studio.rebuildPreview();
+        return true;
+      }
+      if (ud.studioAct === "addLeg") {
+        const dna = CREATURE_SLOTS[selSlot];
+        dna.legs = dna.legs || [];
+        if (dna.legs.length < 6) dna.legs.push({ form: "bug", col: dna.col });
+        studio.rebuildPreview();
         return true;
       }
     }
@@ -2562,16 +3098,57 @@ function dirFromCam() {
   return _v2.clone();
 }
 
-function strikeLightning(w, point, normal) {
+function jaggedBoltPts(from, to, segs = 12) {
+  const pts = [from.clone()];
+  const dir = to.clone().sub(from);
+  const len = dir.length();
+  if (len < 1e-4) return [from.clone(), to.clone()];
+  dir.multiplyScalar(1 / len);
+  let perp = new THREE.Vector3().crossVectors(dir, new THREE.Vector3(0, 1, 0));
+  if (perp.lengthSq() < 1e-6) perp.set(1, 0, 0);
+  perp.normalize();
+  const bit = new THREE.Vector3().crossVectors(dir, perp).normalize();
+  for (let i = 1; i < segs; i++) {
+    const t = i / segs;
+    const spread = (1 - Math.abs(t - 0.5) * 1.55) * len * 0.09;
+    const p = from.clone().addScaledVector(dir, len * t);
+    p.addScaledVector(perp, (Math.random() - 0.5) * 2 * spread);
+    p.addScaledVector(bit, (Math.random() - 0.5) * 2 * spread);
+    pts.push(p);
+  }
+  pts.push(to.clone());
+  return pts;
+}
+
+function strikeLightning(w, point, normal, fromCloud) {
   const n = (normal || (point ? point.clone().sub(w.group.position).normalize() : new THREE.Vector3(0, 1, 0))).clone().normalize();
   const tip = w.group.position.clone().addScaledVector(n, w.radius * 1.02);
-  const sky = w.group.position.clone().addScaledVector(n, w.radius * 2.2);
+  let sky;
+  if (fromCloud) {
+    const puff = w.wxPuffs.find((p) => p.userData.n && p.userData.n.dot(n) > 0.88);
+    sky = puff
+      ? w.group.position.clone().addScaledVector(puff.userData.n, w.radius * (puff.userData.alt || 1.18))
+      : w.group.position.clone().addScaledVector(n, w.radius * 1.22);
+  } else {
+    sky = w.group.position.clone().addScaledVector(n, w.radius * 2.2);
+  }
+  const pts = jaggedBoltPts(sky, tip, 14);
   const line = new THREE.Line(
-    new THREE.BufferGeometry().setFromPoints([sky, tip]),
+    new THREE.BufferGeometry().setFromPoints(pts),
     new THREE.LineBasicMaterial({ color: 0xcfe9ff, transparent: true }),
   );
   scene.add(line);
   bolts.push({ mesh: line, t: 0.28 });
+  if (Math.random() < 0.55) {
+    const mid = pts[(pts.length * 0.45) | 0].clone();
+    const fork = jaggedBoltPts(mid, mid.clone().add(new THREE.Vector3().randomDirection().multiplyScalar(w.radius * 0.22)), 6);
+    const fLine = new THREE.Line(
+      new THREE.BufferGeometry().setFromPoints(fork),
+      new THREE.LineBasicMaterial({ color: 0xe8f6ff, transparent: true }),
+    );
+    scene.add(fLine);
+    bolts.push({ mesh: fLine, t: 0.18 });
+  }
   const flash = new THREE.Mesh(
     new THREE.SphereGeometry(w.radius * 0.12, 10, 8),
     new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85, depthWrite: false }),
@@ -2667,26 +3244,200 @@ function distToSeg(p, a, b) {
 function spawnShip(kind, pos, dir, planet, sid) {
   const speciesId = sid != null ? sid : selSlot;
   const col = CREATURE_SLOTS[speciesId]?.col || 0x88cc44;
-  const mesh = kind === "settler" ? modelSettler(col) : modelScout(col);
+  let mesh;
+  if (kind === "settler") mesh = modelSettler(col);
+  else if (kind === "destroyer") mesh = modelDestroyer(col);
+  else if (kind === "orb") mesh = modelExplosionOrb();
+  else mesh = modelScout(col);
   const p = pos.clone ? pos.clone() : originFromCam();
   const d = dir && dir.clone ? dir.clone().normalize() : dirFromCam();
-  mesh.position.copy(p).addScaledVector(d, 0.5);
+  mesh.position.copy(p).addScaledVector(d, kind === "orb" ? 5.2 : 0.5);
+  if (kind === "orb") {
+    const sc = Math.max(1.35, (planet?.radius || 1.6) * 0.95);
+    mesh.scale.setScalar(sc);
+  }
   mesh.lookAt(mesh.position.clone().add(d));
   scene.add(mesh);
+  const hp = kind === "orb" ? 520 : kind === "destroyer" ? 220 : kind === "scout" ? 40 : 55;
+  const spd = kind === "orb" ? 0.35 : kind === "destroyer" ? 1.15 : kind === "scout" ? 2.6 : 1.5;
   ships.push({
     kind,
     mesh,
-    vel: d.multiplyScalar(kind === "scout" ? 2.6 : 1.5),
-    hp: kind === "scout" ? 40 : 55,
-    maxHp: kind === "scout" ? 40 : 55,
+    vel: d.multiplyScalar(spd),
+    hp,
+    maxHp: hp,
     speciesId,
     planet: planet || null,
     fireCd: 0,
     dead: false,
     landN: null,
     scanT: 0,
+    charge: 0,
   });
-  hudStatus.textContent = (kind === "settler" ? "Settler" : "Scout") + " launched for " + (CREATURE_SLOTS[speciesId]?.name || "spore") + ".";
+  const label = kind === "settler" ? "Settler" : kind === "destroyer" ? "Mass destroyer" : kind === "orb" ? "Explosion orb" : "Scout";
+  hudStatus.textContent = label + " launched for " + displayName(CREATURE_SLOTS[speciesId]) + ".";
+}
+
+function fireHeavyLaser(from, dest, sh) {
+  const m = new THREE.Mesh(
+    new THREE.SphereGeometry(0.12, 8, 6),
+    new THREE.MeshBasicMaterial({ color: 0xff2244 }),
+  );
+  m.position.copy(from);
+  const vel = dest.clone().sub(from);
+  const dist = vel.length() || 1;
+  vel.multiplyScalar(14 / dist);
+  m.userData.vel = vel;
+  m.userData.target = sh?.planet || null;
+  m.userData.hit = dest;
+  m.userData.heavy = true;
+  m.userData.age = 0;
+  scene.add(m);
+  meteors.push(m);
+}
+
+function tickOrb(sh, dt) {
+  sh.charge = (sh.charge || 0) + dt;
+  let best = null;
+  let bd = 1e9;
+  for (const w of worlds) {
+    const d = sh.mesh.position.distanceTo(w.group.position);
+    if (d < bd) {
+      bd = d;
+      best = w;
+    }
+  }
+  for (const o of ships) {
+    if (o === sh || o.dead) continue;
+    const d = sh.mesh.position.distanceTo(o.mesh.position);
+    if (d < bd) {
+      bd = d;
+      best = o;
+    }
+  }
+  if (best) {
+    const dest = best.group ? best.group.position : best.mesh.position;
+    const to = dest.clone().sub(sh.mesh.position);
+    if (to.lengthSq() > 1e-6) {
+      to.normalize();
+      sh.mesh.lookAt(sh.mesh.position.clone().add(to));
+      sh.vel.lerp(to.multiplyScalar(0.28), 0.04);
+    }
+  }
+  const glow = sh.mesh.userData.chargeGlow;
+  if (glow?.material) {
+    const t = Math.min(1, sh.charge / 3.2);
+    glow.material.emissiveIntensity = 0.2 + t * 3.4;
+    glow.scale.setScalar(1 + t * 1.6);
+  }
+  if (!sh.firing && sh.charge >= 3.2) {
+    sh.firing = true;
+    sh.fireT = 0;
+    const beam = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.07, 0.16, 90, 10),
+      new THREE.MeshBasicMaterial({ color: 0x44ff66, transparent: true, opacity: 0.88 }),
+    );
+    beam.rotation.x = Math.PI / 2;
+    beam.position.z = 45;
+    sh.mesh.add(beam);
+    sh.beam = beam;
+  }
+  if (sh.firing) {
+    sh.fireT = (sh.fireT || 0) + dt;
+    const origin = sh.mesh.position;
+    const dir = new THREE.Vector3(0, 0, 1).applyQuaternion(sh.mesh.quaternion);
+    for (const w of worlds.slice()) {
+      const toC = w.group.position.clone().sub(origin);
+      const t = toC.dot(dir);
+      if (t < 0.6) continue;
+      const closest = origin.clone().addScaledVector(dir, t);
+      if (closest.distanceTo(w.group.position) < w.radius * 1.08) shatterWorld(w);
+    }
+    for (const o of ships) {
+      if (o === sh || o.dead) continue;
+      const toC = o.mesh.position.clone().sub(origin);
+      const t = toC.dot(dir);
+      if (t < 0.4) continue;
+      const closest = origin.clone().addScaledVector(dir, t);
+      if (closest.distanceTo(o.mesh.position) < flyerRadius(o.kind) + 0.2) obliterateShip(o);
+    }
+    if (sh.fireT > 1.55) {
+      sh.firing = false;
+      sh.charge = 0;
+      sh.fireT = 0;
+      if (sh.beam) {
+        sh.mesh.remove(sh.beam);
+        sh.beam = null;
+      }
+    }
+  }
+}
+
+function obliterateShip(sh) {
+  if (!sh || sh.dead) return;
+  sh.dead = true;
+  const p = sh.mesh.position.clone();
+  boomSfx(false);
+  for (let i = 0; i < 22; i++) {
+    const d = new THREE.Mesh(
+      new THREE.BoxGeometry(0.05, 0.03, 0.06),
+      new THREE.MeshBasicMaterial({ color: 0x8899aa, transparent: true }),
+    );
+    d.position.copy(p);
+    d.userData = { vel: new THREE.Vector3().randomDirection().multiplyScalar(2.4), life: 1.6 };
+    scene.add(d);
+    fx.push(d);
+  }
+  if (sh.beam) {
+    sh.mesh.remove(sh.beam);
+    sh.beam = null;
+  }
+  scene.remove(sh.mesh);
+}
+
+function shatterWorld(w) {
+  if (!w || !w.group) return;
+  const pos = w.group.position.clone();
+  const r = w.radius;
+  boomSfx(false);
+  hudStatus.textContent = w.template.name + " is unmade in a hypernova.";
+  const nova = new THREE.Mesh(
+    new THREE.SphereGeometry(r * 0.45, 18, 14),
+    new THREE.MeshBasicMaterial({ color: 0xccffee, transparent: true, opacity: 0.95, depthWrite: false }),
+  );
+  nova.position.copy(pos);
+  nova.userData = { vel: new THREE.Vector3(), life: 0.9, flash: true, nova: true };
+  scene.add(nova);
+  fx.push(nova);
+  for (let i = 0; i < 74; i++) {
+    const s = 0.025 + Math.random() * 0.09;
+    const p = new THREE.Mesh(
+      new THREE.IcosahedronGeometry(s, 0),
+      new THREE.MeshLambertMaterial({ color: Math.random() < 0.3 ? 0x8899aa : 0x6a5344 }),
+    );
+    p.position.copy(pos).add(new THREE.Vector3().randomDirection().multiplyScalar(r * (0.18 + Math.random() * 0.55)));
+    p.userData = { vel: p.position.clone().sub(pos).normalize().multiplyScalar(1.5 + Math.random() * 3.4), life: 4.2 + Math.random() * 3 };
+    scene.add(p);
+    fx.push(p);
+  }
+  if (lockedWorld === w) {
+    camera.getWorldPosition(_v);
+    const dummy = { group: { position: pos }, radius: r, atmosMul: GOD_ATMOS };
+    leaveSurface();
+    ejectNearPlanet(rig, dummy, _v);
+  }
+  for (const sh of ships) {
+    if (sh.planet === w) sh.planet = null;
+    if (!sh.dead && sh.mesh.position.distanceTo(pos) < r * 2.4) obliterateShip(sh);
+  }
+  scene.remove(w.group);
+  const ix = worlds.indexOf(w);
+  if (ix >= 0) worlds.splice(ix, 1);
+  if (selected === w) {
+    inspectEl.hidden = true;
+    selected = null;
+  }
+  if (growing === w) growing = null;
 }
 
 function damageShip(sh, dmg) {
@@ -2695,6 +3446,10 @@ function damageShip(sh, dmg) {
     if (o.material?.color) o.material.color.offsetHSL(0, 0, -0.02);
   });
   if (sh.hp <= 0 && !sh.dead) {
+    if (sh.beam) {
+      sh.mesh.remove(sh.beam);
+      sh.beam = null;
+    }
     sh.dead = true;
     boomSfx(false);
     const flash = new THREE.Mesh(
@@ -2732,6 +3487,8 @@ function crashShip(sh) {
 }
 
 function flyerRadius(kind) {
+  if (kind === "orb") return 1.7;
+  if (kind === "destroyer") return 1.15;
   if (kind === "settler") return 0.48;
   if (kind === "ufo") return 0.4;
   return 0.34;
@@ -2944,7 +3701,18 @@ function tickShips(dt) {
   for (const sh of ships) {
     if (sh.dead) continue;
     sh.fireCd = Math.max(0, sh.fireCd - dt);
-    if (sh.kind === "settler" && sh.planet) {
+    if (sh.kind === "orb") {
+      tickOrb(sh, dt);
+    } else if (sh.kind === "destroyer") {
+      if (sh.planet) orbitToward(sh, sh.planet, atmosR(sh.planet, GOD_ATMOS) * 1.12, 1.35);
+      tickShipCombat(sh, dt);
+      if (sh.planet && sh.fireCd <= 0) {
+        sh.fireCd = 1.7;
+        const n = new THREE.Vector3().randomDirection();
+        const dest = sh.planet.group.position.clone().addScaledVector(n, sh.planet.radius);
+        fireHeavyLaser(sh.mesh.position.clone(), dest, sh);
+      }
+    } else if (sh.kind === "settler" && sh.planet) {
       tickSettlerOrbit(sh, dt);
       if (sh.dead) continue;
       if (!sh.landN) tickShipCombat(sh, dt);
@@ -2956,14 +3724,14 @@ function tickShips(dt) {
     }
     if (sh.dead) continue;
     sh.mesh.position.addScaledVector(sh.vel, dt);
-    if (sh.planet && !sh.dead && !(sh.kind === "settler" && sh.landN)) {
+    if (sh.planet && !sh.dead && sh.kind !== "orb" && !(sh.kind === "settler" && sh.landN)) {
       const d = sh.mesh.position.distanceTo(sh.planet.group.position);
       if (d < sh.planet.radius * 1.06) {
         damageShip(sh, 999);
         continue;
       }
     }
-    if (sh.vel.lengthSq() > 1e-6) sh.mesh.lookAt(sh.mesh.position.clone().add(sh.vel));
+    if (sh.kind !== "orb" && sh.vel.lengthSq() > 1e-6) sh.mesh.lookAt(sh.mesh.position.clone().add(sh.vel));
   }
   separateFlyers();
   tickUfoCombat(dt);
@@ -3047,6 +3815,7 @@ function enterSurface(w) {
   hemi.intensity = 1.15;
   sun.intensity = 1.25;
   w.ensureDetail();
+  setSurfaceLod(w, true);
   headPos();
   _v.copy(_v3);
   _v2.copy(_v).sub(w.group.position);
@@ -3094,7 +3863,8 @@ function ejectOut() {
 
 function explodeMeteor(m, world, n, water) {
   if (world && n) {
-    world.crater(n, water ? 0.85 : 1.35);
+    const heavy = m.userData?.heavy;
+    world.crater(n, (water ? 0.85 : 1.35) * (heavy ? 1.85 : 1));
     boomSfx(water);
     burst(world, n, 0xff5511, water ? 10 : 22, 2.8);
     burst(world, n, water ? 0xcfe4f4 : 0xffee66, water ? 28 : 12, water ? 1.1 : 1.6);
@@ -3229,7 +3999,7 @@ function tickMeteors(dt) {
     ud.life -= dt;
     if (ud.vel) mesh.position.addScaledVector(ud.vel, dt);
     if (mesh.material && mesh.material.opacity != null) mesh.material.opacity = Math.max(0, ud.life * 2);
-    if (ud.flash && mesh.scale) mesh.scale.addScalar(dt * 8);
+    if (ud.flash && mesh.scale) mesh.scale.addScalar(dt * (ud.nova ? 16 : 8));
     if (ud.shot) {
       for (const sh of ships) {
         if (sh.dead || sh === ud.from) continue;
@@ -3357,7 +4127,7 @@ function loop(t) {
   } else {
     hudEl.classList.remove("atmo");
     hudStatus.textContent = worlds.length
-      ? `${worlds.length} world${worlds.length > 1 ? "s" : ""} · ${lives} lives · ${CREATURE_SLOTS[selSlot].name}`
+      ? `${worlds.length} world${worlds.length > 1 ? "s" : ""} · ${lives} lives · ${displayName(CREATURE_SLOTS[selSlot])}`
       : "Hold Forge to shape the first sphere.";
   }
   renderer.render(scene, camera);
@@ -3446,7 +4216,9 @@ document.getElementById("btn-grove").onclick = () => {
   for (let i = 0; i < 18; i++) {
     const n = new THREE.Vector3().randomDirection();
     const spot = findPlantSpot(selected, n, 22);
-    if (spot) selected.addTree(spot);
+    if (!spot || isOcean(selected, spot)) continue;
+    if (Math.random() < 0.42) selected.addBush(spot);
+    else selected.addTree(spot);
   }
 };
 document.getElementById("btn-close").onclick = () => {
@@ -3460,41 +4232,34 @@ function beginDesktop() {
 }
 function wireStudioHtml() {
   const parts = document.getElementById("studio-parts");
-  if (!parts || parts.dataset.ready) return;
-  parts.dataset.ready = "1";
-  const addBtn = (label, fn, drag) => {
-    const b = document.createElement("button");
-    b.type = "button";
-    b.textContent = label;
-    b.draggable = !!drag;
-    if (drag) {
-      b.addEventListener("dragstart", (e) => {
-        e.dataTransfer.setData("text/plain", drag);
-        heldPart = { form: drag };
-      });
-    }
-    b.onclick = fn;
-    parts.appendChild(b);
-  };
-  PART_FORMS.forEach((f) => addBtn("Limb · " + f, () => { heldPart = { form: f }; hudStatus.textContent = "Holding " + f + " limb"; }, f));
-  TORSO_KINDS.forEach((t) => addBtn("Body · " + t, () => { CREATURE_SLOTS[selSlot].torso = t; studio.rebuildPreview(); hudStatus.textContent = "Body set to " + t; }, null));
-  HEAD_KINDS.forEach((h) => addBtn("Head · " + h, () => { CREATURE_SLOTS[selSlot].head = h; studio.rebuildPreview(); hudStatus.textContent = "Head set to " + h; }, null));
-  document.querySelectorAll(".sock").forEach((el) => {
-    el.addEventListener("dragover", (e) => e.preventDefault());
-    el.addEventListener("drop", (e) => {
-      e.preventDefault();
-      const form = e.dataTransfer.getData("text/plain") || heldPart?.form;
-      const sock = el.dataset.sock;
-      if (sock === "arm" && form) CREATURE_SLOTS[selSlot].arms.push({ form, col: CREATURE_SLOTS[selSlot].col });
-      if (sock === "leg" && form) CREATURE_SLOTS[selSlot].legs.push({ form, col: CREATURE_SLOTS[selSlot].col });
-      if (sock === "torso") CREATURE_SLOTS[selSlot].torso = TORSO_KINDS[(TORSO_KINDS.indexOf(CREATURE_SLOTS[selSlot].torso) + 1) % TORSO_KINDS.length];
-      if (sock === "head") CREATURE_SLOTS[selSlot].head = HEAD_KINDS[(HEAD_KINDS.indexOf(CREATURE_SLOTS[selSlot].head) + 1) % HEAD_KINDS.length];
-      if (CREATURE_SLOTS[selSlot].arms.length > 4) CREATURE_SLOTS[selSlot].arms = CREATURE_SLOTS[selSlot].arms.slice(-4);
-      if (CREATURE_SLOTS[selSlot].legs.length > 6) CREATURE_SLOTS[selSlot].legs = CREATURE_SLOTS[selSlot].legs.slice(-6);
+  if (parts) parts.hidden = true;
+  const socks = document.querySelector(".studio-socks");
+  if (socks) socks.hidden = true;
+  if (document.getElementById("studio")?.dataset.ready) return;
+  if (document.getElementById("studio")) document.getElementById("studio").dataset.ready = "1";
+  const nameEl = document.getElementById("studio-name");
+  if (nameEl) {
+    nameEl.oninput = () => {
+      CREATURE_SLOTS[selSlot].name = nameEl.value.slice(0, 28) || "Spore";
       studio.rebuildPreview();
-      heldPart = null;
-    });
-  });
+    };
+  }
+  const adjEl = document.getElementById("studio-adj");
+  if (adjEl) {
+    adjEl.oninput = () => {
+      CREATURE_SLOTS[selSlot].adjectives = adjEl.value.split(",").map((s) => s.trim()).filter(Boolean).slice(0, 3);
+      studio.rebuildPreview();
+    };
+  }
+  const clearB = document.getElementById("studio-clear");
+  if (clearB) {
+    clearB.onclick = () => {
+      CREATURE_SLOTS[selSlot].stats = zeroStats();
+      studio.rebuildPreview();
+      paintStudioHtml();
+      hudStatus.textContent = "Life points cleared — they will be slow at everything.";
+    };
+  }
   document.getElementById("studio-random").onclick = () => {
     CREATURE_SLOTS[selSlot] = randomDna(selSlot);
     studio.rebuildPreview();

@@ -21,6 +21,68 @@ export const PART_FORMS = ["club", "tentacle", "wing", "bug", "spike"];
 export const TORSO_KINDS = ["torso", "blob", "shell", "disk"];
 export const HEAD_KINDS = ["sphere", "crystal", "disk", "horn"];
 export const SPORE_COLORS = [0x88cc44, 0x44c8aa, 0xe85d4c, 0x4aa3ff, 0xf0c14a, 0xc86bff, 0xff8a3c, 0x9ee7ff, 0xd4af37, 0xff66aa];
+export const LIFE_SKILLS = ["combat", "wood", "stone", "food", "build", "research", "protect", "speed"];
+export const ADJECTIVES = ["fierce", "gentle", "swift", "ancient", "luminous", "hollow", "iron", "wild", "solemn", "verdant", "ashen", "tidal", "stormborn", "cunning", "meek"];
+
+export function evenStats() {
+  const n = LIFE_SKILLS.length;
+  const base = Math.floor(100 / n);
+  let rem = 100 - base * n;
+  const stats = {};
+  LIFE_SKILLS.forEach((k) => {
+    stats[k] = base + (rem > 0 ? 1 : 0);
+    if (rem > 0) rem--;
+  });
+  return stats;
+}
+export function zeroStats() {
+  const stats = {};
+  LIFE_SKILLS.forEach((k) => { stats[k] = 0; });
+  return stats;
+}
+export function spentPoints(stats) {
+  if (!stats) return 0;
+  return LIFE_SKILLS.reduce((s, k) => s + (stats[k] | 0), 0);
+}
+export function setStat(dna, key, value) {
+  if (!dna.stats) dna.stats = evenStats();
+  const cur = dna.stats[key] | 0;
+  const others = spentPoints(dna.stats) - cur;
+  const v = Math.max(0, Math.min(100, value | 0));
+  dna.stats[key] = Math.min(v, Math.max(0, 100 - others));
+  return dna.stats[key];
+}
+export function inheritSkill(ua, ub) {
+  const out = {};
+  for (const k of LIFE_SKILLS) {
+    const dA = (ua.skill && ua.skill[k]) || 0;
+    const dB = (ub && ub.skill && ub.skill[k]) || 0;
+    const avg = ub ? (dA + dB) * 0.5 : dA;
+    const pct = 0.25 + Math.random() * 0.75;
+    out[k] = avg * pct;
+  }
+  return out;
+}
+export function displayName(dna) {
+  if (!dna) return "Spore";
+  const adj = (dna.adjectives || []).filter(Boolean);
+  const core = dna.name || "Spore";
+  return adj.length ? adj.join(" ") + " " + core : core;
+}
+export function skillEff(u, key) {
+  const base = (u.dna && u.dna.stats && u.dna.stats[key]) || 0;
+  const gain = (u.skill && u.skill[key]) || 0;
+  const v = Math.max(0, Math.min(100, base + gain));
+  return 0.12 + (v / 100) * 1.88;
+}
+function tagSwap(obj, kind, index) {
+  obj.userData.swap = kind;
+  if (index != null) obj.userData.swapIndex = index;
+  obj.traverse((o) => {
+    o.userData.swap = kind;
+    if (index != null) o.userData.swapIndex = index;
+  });
+}
 
 function mat(hex, extra) {
   return new THREE.MeshLambertMaterial({ color: hex, ...extra });
@@ -31,6 +93,7 @@ export function emptyDna(i) {
   return {
     id: i,
     name: "Spore " + (i + 1),
+    adjectives: [],
     col,
     torso: "torso",
     head: "sphere",
@@ -42,6 +105,7 @@ export function emptyDna(i) {
       { form: "bug", col },
       { form: "bug", col },
     ],
+    stats: evenStats(),
   };
 }
 
@@ -56,6 +120,18 @@ export function randomDna(i) {
   d.legs = [];
   for (let k = 0; k < nArms; k++) d.arms.push({ form: PART_FORMS[(Math.random() * PART_FORMS.length) | 0], col: d.col });
   for (let k = 0; k < nLegs; k++) d.legs.push({ form: PART_FORMS[(Math.random() * 4) | 0], col: d.col });
+  d.adjectives = [ADJECTIVES[(Math.random() * ADJECTIVES.length) | 0]];
+  d.stats = zeroStats();
+  let left = 100;
+  const order = LIFE_SKILLS.slice().sort(() => Math.random() - 0.5);
+  for (let k = 0; k < order.length; k++) {
+    if (k === order.length - 1) d.stats[order[k]] = left;
+    else {
+      const v = (Math.random() * (left + 1)) | 0;
+      d.stats[order[k]] = v;
+      left -= v;
+    }
+  }
   return d;
 }
 
@@ -63,7 +139,14 @@ export function loadSlots() {
   let raw;
   try { raw = JSON.parse(localStorage.getItem(LS_KEY) || "null"); } catch { raw = null; }
   const slots = [];
-  for (let i = 0; i < SLOT_N; i++) slots.push(raw && raw[i] ? { ...emptyDna(i), ...raw[i], id: i } : emptyDna(i));
+  for (let i = 0; i < SLOT_N; i++) {
+    const d = raw && raw[i] ? { ...emptyDna(i), ...raw[i], id: i } : emptyDna(i);
+    if (!d.stats) d.stats = evenStats();
+    LIFE_SKILLS.forEach((k) => { if (d.stats[k] == null) d.stats[k] = 0; });
+    if (!Array.isArray(d.adjectives)) d.adjectives = [];
+    if (!d.name) d.name = "Spore " + (i + 1);
+    slots.push(d);
+  }
   return slots;
 }
 
@@ -179,11 +262,13 @@ export function makeCreatureMesh(dna, scale = 1) {
   const col = dna.col || 0x88cc44;
   const torso = makeTorso(dna.torso || "torso", col);
   torso.name = "torso";
+  tagSwap(torso, "torso");
   root.add(torso);
   if (dna.head) {
     const h = makeHead(dna.head, col);
     h.position.y = 0.055;
     h.name = "head";
+    tagSwap(h, "head");
     root.add(h);
   }
   const legs = dna.legs || [];
@@ -193,6 +278,7 @@ export function makeCreatureMesh(dna, scale = 1) {
     limb.position.set(Math.cos(a) * 0.028, -0.04, Math.sin(a) * 0.028);
     limb.rotation.x = 0.25;
     limb.name = "leg" + i;
+    tagSwap(limb, "leg", i);
     root.add(limb);
   });
   const arms = dna.arms || [];
@@ -203,6 +289,7 @@ export function makeCreatureMesh(dna, scale = 1) {
     limb.position.set(side * 0.038, 0.012 - row * 0.018, 0);
     limb.rotation.z = side * -0.9;
     limb.name = "arm" + i;
+    tagSwap(limb, "arm", i);
     root.add(limb);
   });
   root.scale.setScalar(scale);
@@ -211,7 +298,7 @@ export function makeCreatureMesh(dna, scale = 1) {
 }
 
 export function civBlank() {
-  return { ageIndex: 0, stores: { wood: 0, stone: 0, food: 0, gold: 0 }, bonus: 0, score: 0 };
+  return { ageIndex: 0, stores: { wood: 0, stone: 0, food: 0, gold: 0 }, bonus: 0, score: 0, research: 0 };
 }
 
 export function civScore(civ, pop, buildings) {
@@ -229,12 +316,12 @@ function box(parent, m, x, y, z, w, h, d) {
   return mesh;
 }
 
-export function buildCivMesh(age, entityScale) {
+export function buildCivMesh(age, entityScale, kindOverride) {
   const g = new THREE.Group();
   const s = (age.scale || 1) * (entityScale || 0.5);
   const wall = new THREE.MeshLambertMaterial({ color: age.wall });
   const roof = new THREE.MeshLambertMaterial({ color: age.roof });
-  const kind = age.kind || "hut";
+  const kind = kindOverride || age.kind || "hut";
   if (kind === "needle") {
     const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.01 * s, 0.018 * s, 0.22 * s, 8), wall);
     stem.position.y = 0.11 * s;
@@ -280,6 +367,32 @@ export function buildCivMesh(age, entityScale) {
     const r = new THREE.Mesh(new THREE.ConeGeometry(0.038 * s, 0.04 * s, 4), roof);
     r.position.y = 0.09 * s;
     g.add(r);
+  } else if (kind === "barracks") {
+    const hall = new THREE.Mesh(new THREE.BoxGeometry(0.08 * s, 0.038 * s, 0.045 * s), wall);
+    hall.position.y = 0.02 * s;
+    g.add(hall);
+    const roofM = new THREE.Mesh(new THREE.BoxGeometry(0.086 * s, 0.01 * s, 0.05 * s), roof);
+    roofM.position.y = 0.044 * s;
+    g.add(roofM);
+    for (const sx of [-1, 1]) {
+      const post = new THREE.Mesh(new THREE.BoxGeometry(0.01 * s, 0.05 * s, 0.01 * s), wall);
+      post.position.set(sx * 0.042 * s, 0.026 * s, 0.028 * s);
+      g.add(post);
+    }
+    const yard = new THREE.Mesh(new THREE.BoxGeometry(0.07 * s, 0.004 * s, 0.03 * s), roof);
+    yard.position.set(0, 0.002 * s, 0.038 * s);
+    g.add(yard);
+  } else if (kind === "house") {
+    const body = new THREE.Mesh(new THREE.BoxGeometry(0.05 * s, 0.038 * s, 0.046 * s), wall);
+    body.position.y = 0.02 * s;
+    g.add(body);
+    const r = new THREE.Mesh(new THREE.ConeGeometry(0.042 * s, 0.036 * s, 4), roof);
+    r.position.y = 0.056 * s;
+    r.rotation.y = Math.PI / 4;
+    g.add(r);
+    const door = new THREE.Mesh(new THREE.BoxGeometry(0.012 * s, 0.018 * s, 0.004 * s), roof);
+    door.position.set(0, 0.01 * s, 0.025 * s);
+    g.add(door);
   } else {
     const cyl = new THREE.Mesh(new THREE.CylinderGeometry(0.028 * s, 0.032 * s, 0.04 * s, kind === "hall" ? 8 : 5), wall);
     cyl.position.y = 0.02 * s;
@@ -309,6 +422,65 @@ export function modelScout(col) {
   box(g, glow, 0.04, 0, -0.16, 0.03, 0.03, 0.06);
   box(g, glow, -0.04, 0, -0.16, 0.03, 0.03, 0.06);
   g.userData.kind = "scout";
+  return g;
+}
+
+export function modelDestroyer(col) {
+  const g = new THREE.Group();
+  const hull = mat(col || 0x8a9098);
+  const dark = mat(0x1a1e24);
+  const glow = mat(0xff3344, { emissive: 0xff2200, emissiveIntensity: 0.7 });
+  const body = new THREE.Mesh(new THREE.ConeGeometry(0.28, 1.55, 3), hull);
+  body.rotation.x = Math.PI / 2;
+  body.position.z = 0.2;
+  g.add(body);
+  const spine = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.08, 1.1), dark);
+  spine.position.set(0, 0.04, -0.05);
+  g.add(spine);
+  const tower = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.24, 0.14), hull);
+  tower.position.set(0, 0.22, -0.22);
+  g.add(tower);
+  const bridge = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.05, 0.08), dark);
+  bridge.position.set(0, 0.32, -0.2);
+  g.add(bridge);
+  box(g, glow, 0, -0.02, -0.72, 0.1, 0.06, 0.24);
+  box(g, glow, 0.14, -0.02, -0.62, 0.06, 0.045, 0.16);
+  box(g, glow, -0.14, -0.02, -0.62, 0.06, 0.045, 0.16);
+  g.userData.kind = "destroyer";
+  return g;
+}
+
+export function modelExplosionOrb() {
+  const g = new THREE.Group();
+  const metal = mat(0x9aa4ae);
+  const dark = mat(0x15181e);
+  const green = mat(0x44ff66, { emissive: 0x22ff44, emissiveIntensity: 0.2 });
+  const body = new THREE.Mesh(new THREE.SphereGeometry(1, 28, 20), metal);
+  g.add(body);
+  const dish = new THREE.Mesh(
+    new THREE.SphereGeometry(0.42, 16, 12, 0, Math.PI * 2, 0, 1.45),
+    dark,
+  );
+  dish.position.z = 0.78;
+  dish.rotation.x = Math.PI;
+  g.add(dish);
+  const rim = new THREE.Mesh(new THREE.TorusGeometry(0.38, 0.035, 8, 20), metal);
+  rim.position.z = 0.92;
+  g.add(rim);
+  const focus = new THREE.Mesh(new THREE.SphereGeometry(0.07, 10, 8), green);
+  focus.position.z = 0.7;
+  g.add(focus);
+  g.userData.chargeGlow = focus;
+  const focusPt = new THREE.Vector3(0, 0, 0.7);
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * Math.PI * 2;
+    const c = new THREE.Mesh(new THREE.ConeGeometry(0.045, 0.22, 5), green);
+    c.position.set(Math.cos(a) * 0.32, Math.sin(a) * 0.32, 0.82);
+    const dir = focusPt.clone().sub(c.position).normalize();
+    c.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
+    g.add(c);
+  }
+  g.userData.kind = "orb";
   return g;
 }
 
