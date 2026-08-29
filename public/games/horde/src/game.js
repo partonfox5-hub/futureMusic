@@ -5304,24 +5304,64 @@ function drawShopIcon(ctx, it, x, y, s) {
   ctx.restore();
 }
 
+function canvasMap(c) {
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.minFilter = THREE.LinearFilter;
+  tex.magFilter = THREE.LinearFilter;
+  tex.generateMipmaps = false;
+  tex.needsUpdate = true;
+  return tex;
+}
+
+function labelStrokeFill(ctx, text, x, y, fill, stroke) {
+  ctx.lineJoin = "round";
+  ctx.miterLimit = 2;
+  ctx.strokeStyle = stroke;
+  ctx.strokeText(text, x, y);
+  ctx.fillStyle = fill;
+  ctx.fillText(text, x, y);
+}
+
+function wrapFill(ctx, text, x, y, maxW, lineH, fill, stroke) {
+  const words = String(text || "").split(/\s+/);
+  let line = "";
+  let row = 0;
+  for (let i = 0; i < words.length; i++) {
+    const trial = line ? line + " " + words[i] : words[i];
+    if (ctx.measureText(trial).width > maxW && line) {
+      labelStrokeFill(ctx, line, x, y + row * lineH, fill, stroke);
+      line = words[i];
+      row++;
+      if (row >= 2) break;
+    } else line = trial;
+  }
+  if (row < 2 && line) labelStrokeFill(ctx, line, x, y + row * lineH, fill, stroke);
+}
+
 function paintShopCard(it, i, highlight) {
+  const W = 768, H = 220;
   const c = document.createElement("canvas");
-  c.width = 512; c.height = 160;
+  c.width = W; c.height = H;
   const ctx = c.getContext("2d");
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
   const equipped = it.kind === "wep" && player.wep === it.id;
   const have = it.kind === "wep" && owned.has(it.id);
   const locked = !prereqMet(it);
-  ctx.fillStyle = locked ? "#2a2a2e" : highlight ? "#111111" : "#f7f4ee";
-  ctx.fillRect(0, 0, 512, 160);
-  ctx.strokeStyle = highlight ? "#d4af37" : "#cfc8b8";
-  ctx.lineWidth = 6;
-  ctx.strokeRect(3, 3, 506, 154);
-  drawShopIcon(ctx, it, 80, 80, 108);
-  ctx.fillStyle = locked ? "#c8c4bc" : highlight ? "#f7f4ee" : "#111";
-  ctx.font = "700 32px Outfit, sans-serif";
-  ctx.fillText(it.name, 150, 58);
-  ctx.font = "600 22px Outfit, sans-serif";
-  ctx.fillStyle = highlight ? "#d4af37" : "#6a655c";
+  ctx.fillStyle = locked ? "#1c1c22" : highlight ? "#111111" : "#f4f1ea";
+  ctx.fillRect(0, 0, W, H);
+  ctx.strokeStyle = highlight ? "#d4af37" : locked ? "#8a7a40" : "#3a3834";
+  ctx.lineWidth = 8;
+  ctx.strokeRect(4, 4, W - 8, H - 8);
+  drawShopIcon(ctx, it, 96, 110, 132);
+  ctx.textAlign = "left";
+  ctx.textBaseline = "alphabetic";
+  ctx.lineWidth = 5;
+  const nameFill = locked ? "#f7f4ee" : highlight ? "#fff8ee" : "#111111";
+  const nameStroke = locked || highlight ? "#111111" : "#ffffff";
+  ctx.font = "800 46px Outfit, Arial, sans-serif";
+  labelStrokeFill(ctx, it.name, 178, 64, nameFill, nameStroke);
   let price = equipped ? "EQUIPPED" : have ? "OWNED — tap to equip" : it.cost + " ◎";
   if (it.kind === "ammo") price = it.cost + " ◎  ·  +40";
   if (it.kind === "bind") price = shopOnX ? "NOW: shop X, reload Y" : "NOW: shop Y, reload X";
@@ -5336,9 +5376,14 @@ function paintShopCard(it, i, highlight) {
   if (it.id === "jump3" && stats.jumps >= 3) price = "OWNED";
   if (it.kind === "bike" && player.bike) price = "OWNED";
   if (!prereqMet(it)) price = "LOCKED — buy " + (it.needLabel || "prereq") + " first";
-  ctx.fillText(price, 150, 92);
-  ctx.font = "500 18px Outfit, sans-serif";
-  ctx.fillText(it.blurb, 150, 122);
+  ctx.font = "800 32px Outfit, Arial, sans-serif";
+  ctx.lineWidth = 4;
+  const priceFill = locked ? "#ffe08a" : highlight ? "#ffe27a" : "#14110c";
+  labelStrokeFill(ctx, price, 178, 106, priceFill, nameStroke);
+  ctx.font = "700 26px Outfit, Arial, sans-serif";
+  ctx.lineWidth = 4;
+  const blurbFill = locked ? "#f0ece4" : highlight ? "#f4f1ea" : "#16161a";
+  wrapFill(ctx, it.blurb, 178, 144, W - 198, 30, blurbFill, nameStroke);
   return c;
 }
 
@@ -5439,8 +5484,13 @@ function rebuildShopCards() {
     });
   }
   shopHits = [];
+  const panelW = 1.86 * 1.1;
+  const cardW = 0.38 * 1.05;
+  const cardH = 0.118 * 1.05;
+  const colPitch = 0.4 * 1.1;
+  const rowPitch = 0.128 * 1.05;
   const backing = new THREE.Mesh(
-    new THREE.PlaneGeometry(1.86, 2.32),
+    new THREE.PlaneGeometry(panelW, 2.32),
     new THREE.MeshBasicMaterial({ color: 0x1a1a1e, transparent: true, opacity: 0.72, side: THREE.DoubleSide }),
   );
   backing.position.z = -0.02;
@@ -5450,40 +5500,40 @@ function rebuildShopCards() {
   const tctx = titleC.getContext("2d");
   tctx.fillStyle = "#f7f4ee";
   tctx.fillRect(0, 0, 1024, 160);
-  tctx.fillStyle = "#d4af37";
-  tctx.font = "600 28px Outfit, sans-serif";
+  tctx.fillStyle = "#111111";
+  tctx.font = "800 32px Outfit, Arial, sans-serif";
   tctx.fillText("ARMORY  ·  point and shoot a card to buy", 28, 48);
   tctx.fillStyle = "#111";
-  tctx.font = "700 54px Cinzel, serif";
+  tctx.font = "800 58px Cinzel, serif";
   tctx.fillText("BUY   " + (player.coins | 0) + " ◎", 28, 118);
-  const titleTex = new THREE.CanvasTexture(titleC);
+  const titleTex = canvasMap(titleC);
   const title = new THREE.Mesh(
-    new THREE.PlaneGeometry(1.22, 0.24),
+    new THREE.PlaneGeometry(1.22 * 1.1, 0.24 * 1.05),
     new THREE.MeshBasicMaterial({ map: titleTex, side: THREE.DoubleSide }),
   );
-  title.position.set(-0.22, 0.96, 0.01);
+  title.position.set(-0.22 * 1.1, 0.96, 0.01);
   shopRoot.add(title);
   const dc = document.createElement("canvas");
-  dc.width = 256; dc.height = 96;
+  dc.width = 320; dc.height = 120;
   const dx = dc.getContext("2d");
   dx.fillStyle = shopSel === -3 ? "#111111" : (devMode ? "#143018" : "#1a1a1e");
-  dx.fillRect(0, 0, 256, 96);
+  dx.fillRect(0, 0, 320, 120);
   dx.strokeStyle = "#d4af37";
   dx.lineWidth = 8;
-  dx.strokeRect(4, 4, 248, 88);
-  dx.fillStyle = "#d4af37";
-  dx.font = "700 28px Outfit, sans-serif";
+  dx.strokeRect(4, 4, 312, 112);
+  dx.fillStyle = "#ffe08a";
+  dx.font = "800 34px Outfit, Arial, sans-serif";
   dx.textAlign = "center";
-  dx.fillText(devMode ? "DEV ON" : "DEV OFF", 128, 40);
-  dx.font = "600 16px Outfit, sans-serif";
+  dx.fillText(devMode ? "DEV ON" : "DEV OFF", 160, 50);
+  dx.font = "700 20px Outfit, Arial, sans-serif";
   dx.fillStyle = "#f4f1ea";
-  dx.fillText("inf HP / gold", 128, 68);
-  const dtex = new THREE.CanvasTexture(dc);
+  dx.fillText("inf HP / gold", 160, 84);
+  const dtex = canvasMap(dc);
   const dmesh = new THREE.Mesh(
-    new THREE.PlaneGeometry(0.36, 0.12),
+    new THREE.PlaneGeometry(0.36 * 1.05, 0.12 * 1.05),
     new THREE.MeshBasicMaterial({ map: dtex, side: THREE.DoubleSide }),
   );
-  dmesh.position.set(-0.72, 1.00, 0.04);
+  dmesh.position.set(-0.72 * 1.1, 1.00, 0.04);
   dmesh.userData.shopIndex = -3;
   dmesh.userData.devToggle = true;
   shopRoot.add(dmesh);
@@ -5496,34 +5546,34 @@ function rebuildShopCards() {
     const hx = hc.getContext("2d");
     hx.fillStyle = "#111114";
     hx.fillRect(0, 0, 1024, 64);
-    hx.fillStyle = "#d4af37";
-    hx.font = "700 36px Outfit, sans-serif";
-    hx.fillText(sec.title.toUpperCase(), 24, 44);
-    const htex = new THREE.CanvasTexture(hc);
+    hx.fillStyle = "#ffe08a";
+    hx.font = "800 40px Outfit, Arial, sans-serif";
+    hx.fillText(sec.title.toUpperCase(), 24, 46);
+    const htex = canvasMap(hc);
     const hmesh = new THREE.Mesh(
-      new THREE.PlaneGeometry(1.62, 0.07),
+      new THREE.PlaneGeometry(1.62 * 1.1, 0.07 * 1.05),
       new THREE.MeshBasicMaterial({ map: htex, side: THREE.DoubleSide }),
     );
     hmesh.position.set(0, y, 0.015);
     shopRoot.add(hmesh);
-    y -= 0.085;
+    y -= 0.085 * 1.05;
     sec.items.forEach((it, i) => {
       const col = i % 4;
       const row = (i / 4) | 0;
       const idx = catalog.indexOf(it);
       const c = paintShopCard(it, idx, idx === shopSel);
-      const tex = new THREE.CanvasTexture(c);
+      const tex = canvasMap(c);
       const mesh = new THREE.Mesh(
-        new THREE.PlaneGeometry(0.38, 0.118),
+        new THREE.PlaneGeometry(cardW, cardH),
         new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide }),
       );
-      mesh.position.set((col - 1.5) * 0.4, y - row * 0.128, 0.02);
+      mesh.position.set((col - 1.5) * colPitch, y - row * rowPitch, 0.02);
       mesh.userData.shopItem = it;
       mesh.userData.shopIndex = idx;
       shopRoot.add(mesh);
       shopHits.push(mesh);
     });
-    y -= Math.ceil(sec.items.length / 4) * 0.128 + 0.03;
+    y -= Math.ceil(sec.items.length / 4) * rowPitch + 0.03;
   }
   const ammoIt = ammoOffer();
   if (ammoIt) {
@@ -5538,18 +5588,19 @@ function rebuildShopCards() {
     ax.strokeStyle = "#d4af37";
     ax.stroke();
     drawShopIcon(ax, ammoIt, 128, 108, 96);
-    ax.fillStyle = "#d4af37";
-    ax.font = "700 28px Outfit, sans-serif";
+    ax.fillStyle = "#ffe08a";
+    ax.font = "800 32px Outfit, Arial, sans-serif";
     ax.textAlign = "center";
     ax.fillText("AMMO", 128, 188);
-    ax.font = "600 22px Outfit, sans-serif";
+    ax.font = "800 24px Outfit, Arial, sans-serif";
+    ax.fillStyle = "#f4f1ea";
     ax.fillText(ammoIt.cost + "◎  +40", 128, 216);
-    const atex = new THREE.CanvasTexture(ac);
+    const atex = canvasMap(ac);
     const disc = new THREE.Mesh(
-      new THREE.CircleGeometry(0.11, 32),
+      new THREE.CircleGeometry(0.11 * 1.05, 32),
       new THREE.MeshBasicMaterial({ map: atex, side: THREE.DoubleSide, transparent: true }),
     );
-    disc.position.set(0.56, 1.00, 0.04);
+    disc.position.set(0.56 * 1.1, 1.00, 0.04);
     disc.userData.shopItem = ammoIt;
     disc.userData.shopIndex = -1;
     shopRoot.add(disc);
@@ -5567,20 +5618,20 @@ function rebuildShopCards() {
     bx.lineWidth = 10;
     bx.strokeStyle = "#d4af37";
     bx.stroke();
-    bx.fillStyle = "#d4af37";
-    bx.font = "700 26px Outfit, sans-serif";
+    bx.fillStyle = "#ffe08a";
+    bx.font = "800 30px Outfit, Arial, sans-serif";
     bx.textAlign = "center";
     bx.fillText("BINDS", 128, 118);
-    bx.font = "600 20px Outfit, sans-serif";
+    bx.font = "800 22px Outfit, Arial, sans-serif";
     bx.fillStyle = "#f4f1ea";
     bx.fillText(shopOnX ? "X shop" : "Y shop", 128, 150);
     bx.fillText(shopOnX ? "Y reload" : "X reload", 128, 178);
-    const btex = new THREE.CanvasTexture(bc);
+    const btex = canvasMap(bc);
     const bdisc = new THREE.Mesh(
-      new THREE.CircleGeometry(0.11, 32),
+      new THREE.CircleGeometry(0.11 * 1.05, 32),
       new THREE.MeshBasicMaterial({ map: btex, side: THREE.DoubleSide, transparent: true }),
     );
-    bdisc.position.set(0.80, 1.00, 0.04);
+    bdisc.position.set(0.80 * 1.1, 1.00, 0.04);
     bdisc.userData.shopItem = bindIt;
     bdisc.userData.shopIndex = -2;
     shopRoot.add(bdisc);

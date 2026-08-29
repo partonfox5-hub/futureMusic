@@ -69,7 +69,7 @@ button.ghost, a.ghost { background: transparent; color: #1a1a1e; }
   width: 2.2rem; text-align: center; text-transform: uppercase; font-size: 20px; font-family: "Cinzel", serif;
   border: 1px solid #1a1a1e; background: #fff; padding: 6px;
 }
-.shopgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; max-height: 54vh; overflow: auto; }
+.shopgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; max-height: 54vh; overflow: auto; }
 .shop-cat {
   grid-column: 1 / -1;
   margin: 10px 0 2px;
@@ -81,7 +81,11 @@ button.ghost, a.ghost { background: transparent; color: #1a1a1e; }
   border-bottom: 1px solid #e6e0d4;
 }
 .shop-cat:first-child { margin-top: 0; }
-#shop .panel { position: relative; padding-right: 168px; }
+#shop .panel {
+  position: relative;
+  width: min(704px, 94vw);
+  padding-right: 185px;
+}
 .dev-toggle {
   position: absolute;
   top: 14px;
@@ -134,10 +138,39 @@ button.ghost, a.ghost { background: transparent; color: #1a1a1e; }
 }
 .bind-orb-title { font-size: 10px; font-weight: 800; }
 .bind-orb-sub { font-size: 11px; font-weight: 800; color: #f4f1ea; }
-.shopgrid button { text-align: left; background: #fff; color: #111; width: 100%; display: flex; gap: 10px; align-items: center; }
-.shopgrid button small { display: block; color: #666; font-weight: 500; letter-spacing: 0.04em; margin-top: 4px; }
-.shopgrid .shop-ico { width: 48px; height: 48px; flex: none; image-rendering: pixelated; background: #1a1a1e; }
+.shopgrid button {
+  text-align: left;
+  background: #fff;
+  color: #111;
+  width: 100%;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  font-size: 13px;
+  padding: 11px 15px;
+  min-height: 72px;
+  letter-spacing: 0.04em;
+  text-transform: none;
+}
+.shopgrid button b { color: #111; font-size: 14px; font-weight: 800; }
+.shopgrid button small {
+  display: block;
+  color: #1a1a1e;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  margin-top: 4px;
+  font-size: 12px;
+  opacity: 1;
+  line-height: 1.35;
+}
+.shopgrid .shop-ico { width: 50px; height: 50px; flex: none; image-rendering: pixelated; background: #1a1a1e; }
 .shopgrid .shop-copy { min-width: 0; }
+.shopgrid button:disabled {
+  opacity: 1;
+  background: #ece8e0;
+  color: #111;
+}
+.shopgrid button:disabled small { color: #222; }
 #hpv { color: #c42b2b; letter-spacing: 0.12em; font-size: 18px; }
 .restart-hint { color: #c42b2b; font-weight: 600; }
 #vr-enter { min-width: 8rem; }
