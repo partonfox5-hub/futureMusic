@@ -14,9 +14,9 @@ const MAX_HP0 = HEARTS * 2;
 const WEPS = {
   pistol: { id: "pistol", name: "Pistol", dmg: 1, rpm: 3.2, mag: 12, speed: 62, spread: 0.012, pellets: 1, cost: 0, reload: 8 },
   smg: { id: "smg", name: "SMG", dmg: 1, rpm: 9.5, mag: 28, speed: 70, spread: 0.045, pellets: 1, cost: 90, reload: 4.96 },
-  ar: { id: "ar", name: "Assault rifle", dmg: 1, rpm: 7.4, mag: 40, speed: 120, spread: 0.016, pellets: 1, hitscan: true, pierce: 1, laser: true, cost: 170, reload: 6.4 },
+  ar: { id: "ar", name: "Assault rifle", dmg: 1, rpm: 7.4, mag: 40, speed: 156, spread: 0.016, pellets: 1, hitscan: true, pierce: 1, laser: true, cost: 170, reload: 6.4 },
   shotgun: { id: "shotgun", name: "Scattergun", dmg: 1, rpm: 1.15, mag: 6, speed: 48, spread: 0.14, pellets: 7, cost: 140, reload: 6.72 },
-  rail: { id: "rail", name: "Rail", dmg: 6, rpm: 1.15, mag: 5, speed: 180, spread: 0, pellets: 1, hitscan: true, pierce: 4, cost: 220, reload: 9.6 },
+  rail: { id: "rail", name: "Rail", dmg: 6, rpm: 1.495, mag: 5, speed: 180, spread: 0, pellets: 1, hitscan: true, pierce: 8, cost: 220, reload: 9.6 },
   thunder: { id: "thunder", name: "Thunder", dmg: 8, rpm: 0.52, mag: 3, speed: 40, spread: 0, pellets: 1, spell: true, aoe: 10.8, lightning: true, knock: 2.8, cost: 160, reload: 7.36 },
   nova: { id: "nova", name: "Nova", dmg: 4, rpm: 0.38, mag: 3, speed: 18, spread: 0, pellets: 1, spell: true, aoe: 5.6, fireball: true, wall: true, knock: 1.8, cost: 280, reload: 9.12 },
   plasma: { id: "plasma", name: "Plasma beam", dmg: 99, rpm: 1, mag: 1, speed: 140, spread: 0, pellets: 1, hitscan: true, pierce: 99, beam: true, beamDur: 10, cost: 500, reload: 6.8 },
@@ -32,13 +32,13 @@ const WEPS = {
 const SHOP = [
   { kind: "wep", id: "pistol", name: "Pistol", cost: 0, blurb: "Starter iron. 8s reload." },
   { kind: "wep", id: "smg", name: "SMG", cost: 90, blurb: "Fast fire. Reloads quicker than the pistol." },
-  { kind: "wep", id: "ar", name: "Assault rifle", cost: 170, blurb: "Laser carbine. Tighter than the SMG, 40-round mag, slower reload." },
+  { kind: "wep", id: "ar", name: "Assault rifle", cost: 170, blurb: "Laser carbine. Tighter than the SMG, 40-round mag, 30% more reach." },
   { kind: "wep", id: "shotgun", name: "Scattergun", cost: 140, blurb: "Seven pellets. Close range." },
-  { kind: "wep", id: "rail", name: "Rail", cost: 220, blurb: "Fat beam. Heavy hitscan. Five shots." },
+  { kind: "wep", id: "rail", name: "Rail", cost: 220, blurb: "Faster fat beam. Wide pierce — shreds several limbs and keeps going." },
   { kind: "wep", id: "thunder", name: "Thunder spell", cost: 160, blurb: "Lightning from the sky. Huge blast. No ammo — reloads for free." },
   { kind: "wep", id: "nova", name: "Nova spell", cost: 280, blurb: "Giant fireball and a wall of fire. No ammo — reloads for free." },
   { kind: "wep", id: "plasma", name: "Plasma beam", cost: 500, blurb: "Ten-second beam. Unmakes anything it touches." },
-  { kind: "turret", id: "turret", name: "Stone turret", cost: 480, blurb: "Drops a WWII nest where you stand. 360° gun. Night beacon. Jump on the roof." },
+  { kind: "turret", id: "turret", name: "Stone turret", cost: 480, blurb: "WWII nest. 360° gun with a search beam that follows the rifle. Jump the roof." },
   { kind: "drone", id: "drone", name: "Gun drone", cost: 420, blurb: "Hovers and fires a pistol. 2 hearts." },
   { kind: "ball", id: "ball-s", name: "Guard orb", cost: 280, blurb: "Small forcefield. 4 hearts.", hp: 8 },
   { kind: "ball", id: "ball-m", name: "Aegis orb", cost: 620, blurb: "Stout forcefield. 8 hearts.", hp: 16 },
@@ -55,7 +55,8 @@ const SHOP = [
   { kind: "up", id: "reload", name: "Reload speed", cost: 40, blurb: "Faster Y reload", key: "reload", add: 0.22 },
   { kind: "up", id: "autoreload", name: "Auto reload", cost: 200, blurb: "Starts the reload for you. The bar still plays." },
   { kind: "up", id: "magnet", name: "Coin magnet", cost: 55, blurb: "Pull loot from farther", key: "magnet", add: 1.4 },
-  { kind: "up", id: "flash", name: "Brighter lamp", cost: 30, blurb: "+10% flashlight. Stacks five times." },
+  { kind: "up", id: "flash", name: "Brighter lamp", cost: 30, blurb: "+15% flashlight. Stacks five times." },
+  { kind: "up", id: "clip", name: "Bigger clip", cost: 150, blurb: "+33% mag. Spells gain +1 charge. Stacks three times." },
   { kind: "up", id: "night", name: "Shorter nights", cost: 50, blurb: "−10% night. Ten buys = no night. Bought in the dark? Next night." },
   { kind: "ammo", id: "ammo", name: "Ammo crate", cost: 28, blurb: "+40 reserve rounds. Buy as often as you like." },
   { kind: "bind", id: "bind", name: "Swap X / Y", cost: 0, blurb: "Shop on X and reload on Y, or the reverse." },
@@ -149,6 +150,8 @@ let hexes = [];
 let flagGen = 0;
 let sprintBuys = 0;
 let flashBuys = 0;
+let clipBuys = 0;
+let cryLast = [];
 let nightCutsOwned = 0;
 let nightCutsLive = 0;
 let plasmaT = 0;
@@ -219,7 +222,14 @@ function shopSectionOf(it) {
   if (it.kind === "wep") return "weapons";
   if (it.kind === "turret" || it.kind === "drone" || it.kind === "ball") return "defense";
   if (["jump", "speed", "hp", "reload", "autoreload", "sprint", "sprintcd", "wheelie", "jump2", "jump3"].includes(it.id)) return "movement";
+  if (it.id === "clip") return "weapons";
   return "utility";
+}
+function magCap(def = wep()) {
+  const n = clipBuys | 0;
+  const base = def.mag || 1;
+  if (def.spell) return base + n;
+  return Math.max(1, Math.round(base * (1 + n * 0.33)));
 }
 const SHOP_SECTION_ORDER = [
   { id: "movement", title: "Movement" },
@@ -261,6 +271,9 @@ const SFX_FILES = {
     "/games/horde/sfx/cry1.mp3",
     "/games/horde/sfx/cry2.mp3",
     "/games/horde/sfx/cry3.mp3",
+    "/games/horde/sfx/cry4.wav",
+    "/games/horde/sfx/cry5.wav",
+    "/games/horde/sfx/cry6.wav",
   ],
 };
 const sfxBank = { die: [], laser: [], cry: [] };
@@ -490,9 +503,14 @@ const sfx = {
     }
   },
   oof(kind) {
-    const cries = sfxBank.cry.filter(Boolean);
-    if (cries.length && rng() < 0.55) {
-      playSample(cries[(rng() * cries.length) | 0], 0.48);
+    const cries = sfxBank.cry.map((b, i) => (b ? i : -1)).filter((i) => i >= 0);
+    if (cries.length && rng() < 0.72) {
+      let pool = cries.filter((i) => !cryLast.includes(i));
+      if (!pool.length) pool = cries.slice();
+      const i = pool[(rng() * pool.length) | 0];
+      cryLast.push(i);
+      if (cryLast.length > 2) cryLast.shift();
+      playSample(sfxBank.cry[i], 0.52);
       return;
     }
     const k = ((kind % 5) + 5) % 5;
@@ -1202,7 +1220,7 @@ function equip(id) {
   player.wep = id;
   player.tank = !!WEPS[id]?.tank;
   player.heli = !!WEPS[id]?.heli;
-  player.mag = Math.min(player.mag, wep().mag);
+  player.mag = Math.min(player.mag, magCap());
   reloadT = 0;
   reloadMax = 0;
   if (player.tank || player.heli) player.bike = false;
@@ -2945,6 +2963,8 @@ function makeFlagMesh() {
   g.userData.cloth = cloth;
   g.userData.glow = glow;
   g.userData.beam = beam;
+  g.userData.core = core;
+  g.userData.light = light;
   return g;
 }
 
@@ -2967,10 +2987,15 @@ function tickFlag(dt) {
   if (!flag) return;
   flag.mesh.position.y = heightAt(flag.x, flag.z);
   if (flag.mesh.userData.cloth) flag.mesh.userData.cloth.rotation.y = Math.sin(performance.now() * 0.003) * 0.25;
+  const night = clamp(lastDark, 0, 1);
   if (flag.mesh.userData.glow) {
     const p = 0.85 + Math.sin(performance.now() * 0.006) * 0.35;
     flag.mesh.userData.glow.scale.setScalar(p);
+    if (flag.mesh.userData.glow.material) flag.mesh.userData.glow.material.opacity = 0.22 + night * 0.5;
   }
+  if (flag.mesh.userData.beam?.material) flag.mesh.userData.beam.material.opacity = 0.16 + night * 0.58;
+  if (flag.mesh.userData.core?.material) flag.mesh.userData.core.material.opacity = 0.32 + night * 0.55;
+  if (flag.mesh.userData.light) flag.mesh.userData.light.intensity = 3.2 + night * 24;
   if (Math.hypot(player.x - flag.x, player.z - flag.z) < 2.1) {
     player.coins += 50;
     sfx.flag();
@@ -3157,6 +3182,8 @@ function resetRun() {
   flagGen = 0;
   sprintBuys = 0;
   flashBuys = 0;
+  clipBuys = 0;
+  cryLast = [];
   nightCutsOwned = 0;
   nightCutsLive = 0;
   plasmaT = 0;
@@ -3729,12 +3756,12 @@ function fireFrom(origin, quat) {
     }
     dir.normalize();
     if (def.hitscan) {
-      rayKill(origin, dir, def.id === "rail" ? 72 : 56, def);
+      rayKill(origin, dir, def.id === "rail" ? 72 : def.id === "ar" ? 73 : 56, def);
       const rail = def.id === "rail";
       const ar = def.id === "ar";
-      const beam = makeBolt(rail ? 0xe8f4ff : col, rail ? 0.16 : def.id === "plasma" ? 0.07 : ar ? 0.05 : 0.045);
-      beam.position.copy(origin).addScaledVector(dir, rail ? 11 : ar ? 9 : 8);
-      beam.scale.set(rail ? 4.2 : def.id === "plasma" ? 2.1 : ar ? 1.7 : 1.4, rail ? 4.2 : def.id === "plasma" ? 2.1 : ar ? 1.7 : 1.4, rail ? 18 : ar ? 14 : 12);
+      const beam = makeBolt(rail ? 0xe8f4ff : col, rail ? 0.2 : def.id === "plasma" ? 0.07 : ar ? 0.05 : 0.045);
+      beam.position.copy(origin).addScaledVector(dir, rail ? 11 : ar ? 11.7 : 8);
+      beam.scale.set(rail ? 5.25 : def.id === "plasma" ? 2.1 : ar ? 1.7 : 1.4, rail ? 5.25 : def.id === "plasma" ? 2.1 : ar ? 1.7 : 1.4, rail ? 18 : ar ? 18.2 : 12);
       aimBolt(beam, dir);
       scene.add(beam);
       shots.push({ mesh: beam, life: rail ? 0.22 : 0.14, dummy: true });
@@ -3781,6 +3808,8 @@ function grabAlongRay(origin, dir, range) {
 
 function rayKill(origin, dir, range, def) {
   const pierce = def.pierce || 1;
+  const radMul = def.id === "rail" ? 1.25 : 1;
+  const multiLimb = def.id === "rail";
   const hits = [];
   for (const m of mobs) {
     if (!m.alive) continue;
@@ -3792,21 +3821,24 @@ function rayKill(origin, dir, range, def) {
       const t = to.dot(dir);
       if (t < 0 || t > range) continue;
       const closest = origin.clone().addScaledVector(dir, t);
-      if (closest.distanceTo(w) < 0.28 + limb.userData.thick) hits.push({ t, m, limb });
+      if (closest.distanceTo(w) < (0.28 + limb.userData.thick) * radMul) hits.push({ t, m, limb });
     }
   }
   hits.sort((a, b) => a.t - b.t);
   const seen = new Set();
   let n = 0;
   for (const h of hits) {
-    if (seen.has(h.m) && pierce <= 1) continue;
-    if (seen.has(h.m)) continue;
+    if (!h.limb.userData.live) continue;
+    if (seen.has(h.m) && !multiLimb) continue;
+    if (!seen.has(h.m) && n >= pierce) break;
+    const fresh = !seen.has(h.m);
     seen.add(h.m);
     const dmg = def.dmg || 1;
     for (let k = 0; k < dmg && h.limb.userData.live; k++) hitLimb(h.limb, h.m);
-    maybeOof();
-    n++;
-    if (n >= pierce) break;
+    if (fresh) {
+      maybeOof();
+      n++;
+    }
   }
 }
 
@@ -4249,6 +4281,32 @@ function makeTurretMesh(col) {
   const box = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.1, 0.1), mat(0x3a3224));
   box.position.set(0.18, 0.08, -0.08);
   gun.add(mount, shield, barrel, sleeve, box);
+  const searchCol = 0xfff3c4;
+  const search = new THREE.SpotLight(searchCol, 0, 120, Math.PI * 0.11, 0.28, 0.9);
+  search.position.set(0, 0.14, -0.18);
+  const searchTgt = new THREE.Object3D();
+  searchTgt.position.set(0, 0.06, -90);
+  gun.add(search, searchTgt);
+  search.target = searchTgt;
+  const searchCone = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.07, 7.2, 78, 14, 1, true),
+    new THREE.MeshBasicMaterial({
+      color: searchCol, transparent: true, opacity: 0, blending: THREE.AdditiveBlending,
+      depthWrite: false, side: THREE.DoubleSide,
+    }),
+  );
+  searchCone.rotation.x = Math.PI / 2;
+  searchCone.position.set(0, 0.14, -39);
+  const searchCore = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.03, 1.35, 78, 8, 1, true),
+    new THREE.MeshBasicMaterial({
+      color: 0xffffff, transparent: true, opacity: 0, blending: THREE.AdditiveBlending,
+      depthWrite: false, side: THREE.DoubleSide,
+    }),
+  );
+  searchCore.rotation.x = Math.PI / 2;
+  searchCore.position.set(0, 0.14, -39);
+  gun.add(searchCone, searchCore);
   const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.05, 1.2, 6), steel);
   mast.position.set(0.62, h + 0.62, 0.58);
   const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.15, 10, 8), new THREE.MeshBasicMaterial({ color: col }));
@@ -4276,6 +4334,7 @@ function makeTurretMesh(col) {
   g.add(wall, slit, bags, roof, hatch, gun, mast, lamp, glow, beam, sweep, light);
   g.userData.gun = gun;
   g.userData.beacon = { lamp, glow, beam, sweep, light };
+  g.userData.search = { light: search, cone: searchCone, core: searchCore };
   return g;
 }
 
@@ -4316,14 +4375,20 @@ function tickTurrets(dt) {
     const night = clamp(lastDark, 0, 1);
     const b = t.mesh.userData.beacon;
     if (b) {
-      if (b.light) b.light.intensity = night * 7.2;
-      if (b.glow?.material) b.glow.material.opacity = night * 0.34;
-      if (b.beam?.material) b.beam.material.opacity = night * 0.22;
+      if (b.light) b.light.intensity = night * 16;
+      if (b.glow?.material) b.glow.material.opacity = 0.12 + night * 0.55;
+      if (b.beam?.material) b.beam.material.opacity = 0.08 + night * 0.52;
       if (b.sweep) {
-        b.sweep.visible = night > 0.18;
-        if (b.sweep.material) b.sweep.material.opacity = night * 0.18;
+        b.sweep.visible = night > 0.12;
+        if (b.sweep.material) b.sweep.material.opacity = 0.08 + night * 0.42;
         b.sweep.rotation.y += dt * 1.15;
       }
+    }
+    const sr = t.mesh.userData.search;
+    if (sr) {
+      if (sr.light) sr.light.intensity = 5 + night * 46;
+      if (sr.cone?.material) sr.cone.material.opacity = 0.07 + night * 0.48;
+      if (sr.core?.material) sr.core.material.opacity = 0.1 + night * 0.58;
     }
     t.cool -= dt;
     let best = null, bd = 30;
@@ -4346,11 +4411,14 @@ function tickTurrets(dt) {
       while (dAng < -Math.PI) dAng += Math.PI * 2;
       t.yaw += dAng * Math.min(1, dt * 8);
       gun.rotation.y = t.yaw;
+      const originAim = new THREE.Vector3();
+      gun.getWorldPosition(originAim);
+      originAim.y += 0.14;
+      const pitch = -Math.atan2(best.y - originAim.y, Math.hypot(best.x - t.x, best.z - t.z));
+      gun.rotation.x += (clamp(pitch, -0.55, 0.35) - gun.rotation.x) * Math.min(1, dt * 6);
       if (t.cool <= 0 && bd < 28) {
         t.cool = 0.09;
-        const origin = new THREE.Vector3();
-        gun.getWorldPosition(origin);
-        origin.y += 0.14;
+        const origin = originAim.clone();
         const dir = new THREE.Vector3(best.x - origin.x, best.y - origin.y, best.z - origin.z).normalize();
         const bolt = makeBolt(0xffcc66, 0.022);
         bolt.position.copy(origin);
@@ -4678,7 +4746,7 @@ function reload() {
   if (dead || !running) return;
   if (reloadT > 0) return;
   const def = wep();
-  const cap = def.mag;
+  const cap = magCap(def);
   if (player.mag >= cap) return;
   if (!isSpell(def) && player.ammo <= 0) {
     showBanner("NO AMMO");
@@ -4692,7 +4760,7 @@ function reload() {
 
 function finishReload() {
   const def = wep();
-  const cap = def.mag;
+  const cap = magCap(def);
   if (isSpell(def)) {
     player.mag = cap;
   } else {
@@ -4795,8 +4863,18 @@ function buy(it) {
       if (player.coins < it.cost) return false;
       player.coins -= it.cost;
       flashBuys++;
-      stats.flash = 1 + flashBuys * 0.1;
-      showBanner("LAMP +" + (flashBuys * 10) + "%");
+      stats.flash = 1 + flashBuys * 0.15;
+      showBanner("LAMP +" + (flashBuys * 15) + "%");
+      announcing = 1.1;
+    } else if (it.id === "clip") {
+      if (clipBuys >= 3) return false;
+      if (player.coins < it.cost) return false;
+      player.coins -= it.cost;
+      const before = magCap();
+      clipBuys++;
+      const after = magCap();
+      if (player.mag >= before) player.mag = after;
+      showBanner("CLIP +" + (clipBuys * 33) + "%");
       announcing = 1.1;
     } else if (it.id === "autoreload") {
       if (stats.autoReload) return true;
@@ -4895,6 +4973,12 @@ function drawShopIcon(ctx, it, x, y, s) {
       ctx.lineTo(0, -s * 0.36);
       ctx.lineTo(s * 0.22, -s * 0.1);
       ctx.fill();
+    } else if (id === "clip") {
+      ctx.fillRect(-s * 0.16, -s * 0.28, s * 0.32, s * 0.56);
+      ctx.fillStyle = "#1a1a1e";
+      ctx.fillRect(-s * 0.1, -s * 0.2, s * 0.2, s * 0.4);
+      ctx.fillStyle = "#d4af37";
+      ctx.fillRect(-s * 0.06, s * 0.22, s * 0.12, s * 0.08);
     } else if (id === "flash") {
       ctx.fillStyle = "#ffe08a";
       ctx.beginPath();
@@ -5054,6 +5138,7 @@ function paintShopCard(it, i, highlight) {
   if (it.id === "sprint" && stats.sprint) price = "OWNED";
   if (it.id === "sprintcd") price = sprintBuys >= 10 ? "MAX — infinite sprint" : it.cost + " ◎  ·  " + sprintBuys + "/10";
   if (it.id === "flash") price = flashBuys >= 5 ? "MAX" : it.cost + " ◎  ·  " + flashBuys + "/5";
+  if (it.id === "clip") price = clipBuys >= 3 ? "MAX" : it.cost + " ◎  ·  " + clipBuys + "/3";
   if (it.id === "night") price = nightCutsOwned >= 10 ? "MAX — no night" : it.cost + " ◎  ·  " + nightCutsOwned + "/10";
   if (it.id === "autoreload" && stats.autoReload) price = "OWNED";
   if (it.id === "wheelie" && stats.wheelie) price = "OWNED";
@@ -5123,6 +5208,7 @@ function paintShop() {
     wrap.className = "shop-copy";
     const locked = !prereqMet(it);
     const maxed = (it.id === "flash" && flashBuys >= 5)
+      || (it.id === "clip" && clipBuys >= 3)
       || (it.id === "night" && nightCutsOwned >= 10)
       || (it.id === "autoreload" && stats.autoReload)
       || (it.id === "sprint" && stats.sprint)
@@ -5132,6 +5218,7 @@ function paintShop() {
       || (it.id === "jump3" && stats.jumps >= 3);
     let price = locked ? "LOCKED" : have ? "OWNED" : it.cost + "◎";
     if (it.id === "flash") price = flashBuys >= 5 ? "MAX" : it.cost + "◎ · " + flashBuys + "/5";
+    if (it.id === "clip") price = clipBuys >= 3 ? "MAX" : it.cost + "◎ · " + clipBuys + "/3";
     if (it.id === "night") price = nightCutsOwned >= 10 ? "MAX" : it.cost + "◎ · " + nightCutsOwned + "/10";
     if (it.id === "sprintcd") price = sprintBuys >= 10 ? "MAX" : it.cost + "◎ · " + sprintBuys + "/10";
     if (it.id === "autoreload" && stats.autoReload) price = "OWNED";
