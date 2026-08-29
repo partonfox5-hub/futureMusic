@@ -27,6 +27,7 @@ const WEPS = {
   heli: { id: "heli", name: "Attack heli", dmg: 7, rpm: 1.6, mag: 10, speed: 52, spread: 0.012, pellets: 1, aoe: 5.4, heli: true, missile: true, cost: 2000, reload: 7.2 },
   terra: { id: "terra", name: "Terraform gun", dmg: 0, rpm: 9, mag: 90, speed: 0, spread: 0, pellets: 1, terra: true, cost: 500, reload: 3.8 },
   noodle: { id: "noodle", name: "Laser noodle", dmg: 2, rpm: 18, mag: 99, speed: 0, spread: 0, pellets: 1, noodle: true, cost: 8200, reload: 2.8 },
+  lsword: { id: "lsword", name: "Laser sword", dmg: 3, rpm: 1, mag: 14, speed: 0, spread: 0, pellets: 1, hitscan: true, pierce: 6, beam: true, holdBeam: true, swordLaser: true, cost: 1000, reload: 5.2 },
 };
 
 const SHOP = [
@@ -67,6 +68,9 @@ const SHOP = [
   { kind: "up", id: "jump3", name: "Triple jump", cost: 190, blurb: "Needs double jump. A third hop.", need: "jump2", needLabel: "Double jump" },
   { kind: "bike", id: "bike", name: "Dirt bike", cost: 520, blurb: "Ride. Fast. You can still jump." },
   { kind: "wep", id: "noodle", name: "Laser noodle", cost: 8200, blurb: "A whip of light. Grows, shortens, carves a fence. Very dear." },
+  { kind: "wep", id: "lsword", name: "Laser sword", cost: 1000, blurb: "Obsidian blade. Hold trigger for a fiery sword laser. Melee still cuts." },
+  { kind: "up", id: "orbcannon", name: "Plasma orb cannon", cost: 1500, blurb: "Bolted to your left hand. Hold to charge, release to fire. Full charge craters the land and pops meteors." },
+  { kind: "up", id: "radar", name: "Radar ring", cost: 100, blurb: "Another outer ring on the wrist radar. +range. Stacks three times." },
 ];
 
 const PLANETS = [
@@ -151,6 +155,11 @@ let flagGen = 0;
 let sprintBuys = 0;
 let flashBuys = 0;
 let clipBuys = 0;
+let radarBuys = 0;
+let orbCannon = false;
+let leftCannon = null;
+let orbHold = 0;
+let orbChargeBall = null;
 let cryLast = [];
 let dieLast = [];
 let devMode = false;
@@ -473,6 +482,12 @@ const sfx = {
   heal() { beep("sine", 520, 0.12, 0.08, 880); beep("triangle", 1040, 0.16, 0.05, 1560); },
   flag() { beep("sine", 660, 0.12, 0.08, 990); beep("triangle", 1320, 0.18, 0.06, 1760); },
   meteor() { noise(0.4, 0.18, 90); beep("sawtooth", 80, 0.45, 0.12, 30); },
+  plasmaBoom() {
+    noise(0.28, 0.2, 70);
+    beep("sine", 70, 0.32, 0.12, 28);
+    beep("sawtooth", 140, 0.18, 0.1, 40);
+    beep("square", 520, 0.08, 0.06, 90);
+  },
   thunder() {
     noise(0.32, 0.2, 70);
     beep("sawtooth", 58, 0.42, 0.14, 22);
@@ -1209,6 +1224,20 @@ function makeGun(id) {
     guard.position.set(0, 0.01, -0.06);
     g.add(hilt, guard);
     g.userData.muzzle = new THREE.Vector3(0, 0.01, -0.1);
+  } else if (id === "lsword") {
+    const hilt = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.05, 0.12), dark);
+    hilt.position.set(0, 0, 0.02);
+    const guard = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.02, 0.04), iron);
+    guard.position.set(0, 0.01, -0.05);
+    const blade = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.08, 0.72), mat(0x0c0a10, { emissive: 0x220508 }));
+    blade.position.set(0, 0.01, -0.42);
+    const edge = new THREE.Mesh(
+      new THREE.BoxGeometry(0.016, 0.1, 0.7),
+      new THREE.MeshBasicMaterial({ color: 0xff2208, transparent: true, opacity: 0.7, blending: THREE.AdditiveBlending, depthWrite: false }),
+    );
+    edge.position.copy(blade.position);
+    g.add(hilt, guard, blade, edge);
+    g.userData.muzzle = new THREE.Vector3(0, 0.01, -0.8);
   } else {
     const slide = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.07, 0.22), iron);
     slide.position.set(0, 0.02, -0.08);
@@ -2806,11 +2835,15 @@ function paintRadar() {
   radarCtx.beginPath(); radarCtx.arc(128, 128, 42, 0, Math.PI * 2); radarCtx.stroke();
   radarCtx.beginPath(); radarCtx.arc(128, 128, 74, 0, Math.PI * 2); radarCtx.stroke();
   radarCtx.beginPath(); radarCtx.arc(128, 128, 104, 0, Math.PI * 2); radarCtx.stroke();
+  if (radarBuys >= 1) { radarCtx.strokeStyle = "rgba(212,175,55,0.45)"; radarCtx.beginPath(); radarCtx.arc(128, 128, 114, 0, Math.PI * 2); radarCtx.stroke(); }
+  if (radarBuys >= 2) { radarCtx.beginPath(); radarCtx.arc(128, 128, 120, 0, Math.PI * 2); radarCtx.stroke(); }
+  if (radarBuys >= 3) { radarCtx.strokeStyle = "rgba(255,220,80,0.55)"; radarCtx.beginPath(); radarCtx.arc(128, 128, 125, 0, Math.PI * 2); radarCtx.stroke(); }
+  radarCtx.strokeStyle = "rgba(255,255,255,0.12)";
   radarCtx.beginPath(); radarCtx.moveTo(128, 10); radarCtx.lineTo(128, 246); radarCtx.stroke();
   radarCtx.beginPath(); radarCtx.moveTo(10, 128); radarCtx.lineTo(246, 128); radarCtx.stroke();
   const fwd = facingXZ();
   const rx = -fwd.z, rz = fwd.x;
-  const range = 72;
+  const range = 72 + radarBuys * 30;
   const plot = (x, z, color, size, diamond) => {
     const dx = x - player.x, dz = z - player.z;
     const lx = dx * rx + dz * rz;
@@ -3252,6 +3285,11 @@ function resetRun() {
   sprintBuys = 0;
   flashBuys = 0;
   clipBuys = 0;
+  radarBuys = 0;
+  orbCannon = false;
+  orbHold = 0;
+  if (leftCannon) { leftCannon.removeFromParent(); leftCannon = null; }
+  if (orbChargeBall) { orbChargeBall.removeFromParent(); orbChargeBall = null; }
   cryLast = [];
   dieLast = [];
   plasmaHeld = false;
@@ -3654,6 +3692,15 @@ function spawnConflagration(pos) {
 }
 
 function detonateShot(s) {
+  if (s.orb) {
+    const p = s.mesh.position;
+    aoeAt(p, s.charged ? 7.6 : 2.5, { dmg: s.charged ? 8 : 3, knock: s.charged ? 2.8 : 1.2 });
+    smashNear(p, s.charged ? 4.6 : 1.8);
+    spawnMeteorBlast(p, s.charged ? 2.5 : 0.95);
+    sfx.plasmaBoom();
+    if (s.charged) craterAt(p.x, p.z, 4.8, 2.55);
+    return;
+  }
   if (!s.def) return;
   if (s.def.aoe) aoeAt(s.mesh.position, s.def.aoe, s.def);
   if (s.def.missile) {
@@ -3940,7 +3987,26 @@ function tickShots(dt) {
       const hy = heightAt(s.mesh.position.x, s.mesh.position.z);
       if (s.mesh.position.y < hy + (s.fireball ? 0.55 : -0.15)) {
         detonateShot(s);
+        if (s.orb) {
+          smashNear(s.mesh.position, s.charged ? 4.2 : 1.6);
+          if (s.charged) craterAt(s.mesh.position.x, s.mesh.position.z, 4.6, 2.4);
+        }
         s.life = 0;
+      }
+      if (s.orb && s.life > 0) {
+        for (let mi = meteors.length - 1; mi >= 0; mi--) {
+          const met = meteors[mi];
+          const rad = (met.rad || 3) + (s.charged ? 1.1 : 0.45);
+          if (met.mesh.position.distanceTo(s.mesh.position) > rad) continue;
+          const p = met.mesh.position.clone();
+          spawnMeteorBlast(p, met.rad);
+          aoeAt(p, 8 + (met.rad || 3), { dmg: 8, knock: 3 });
+          sfx.plasmaBoom();
+          met.mesh.removeFromParent();
+          meteors.splice(mi, 1);
+          s.life = 0;
+          break;
+        }
       }
       let hit = false;
       const prox = s.fireball ? 0.95 : 0.32;
@@ -3953,7 +4019,7 @@ function tickShots(dt) {
           const w = new THREE.Vector3();
           limb.getWorldPosition(w);
           if (w.distanceTo(s.mesh.position) < prox + limb.userData.thick + (s.ripple ? 0.2 : 0)) {
-            if (s.def?.aoe) detonateShot(s);
+            if (s.def?.aoe || s.orb) detonateShot(s);
             else hitLimb(limb, m);
             if (s.hitSet) s.hitSet.add(m);
             hit = true;
@@ -4296,7 +4362,8 @@ function ensurePlasmaMesh() {
 }
 
 function tickPlasma(dt, origin, quat, holding) {
-  const on = player.wep === "plasma" && holding && player.mag > 0 && reloadT <= 0 && !dead && !shopOpen;
+  const def = wep();
+  const on = def.holdBeam && holding && player.mag > 0 && reloadT <= 0 && !dead && !shopOpen;
   if (!on) {
     if (plasmaMesh) plasmaMesh.visible = false;
     if (plasmaGlow) plasmaGlow.visible = false;
@@ -4325,7 +4392,10 @@ function tickPlasma(dt, origin, quat, holding) {
   const mid = origin.clone().addScaledVector(dir, range * 0.5);
   plasmaMesh.visible = true;
   plasmaMesh.position.copy(mid);
-  plasmaMesh.scale.set(1.15 + Math.sin(performance.now() * 0.02) * 0.2, range, 1.15);
+  const sword = !!def.swordLaser;
+  const thick = sword ? 1.55 : 1.15;
+  if (plasmaMesh.material) plasmaMesh.material.color.setHex(sword ? 0xff3311 : 0x88ffff);
+  plasmaMesh.scale.set(thick + Math.sin(performance.now() * 0.02) * 0.2, range, thick);
   plasmaMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
   if (plasmaGlow) {
     plasmaGlow.visible = true;
@@ -4338,9 +4408,104 @@ function tickPlasma(dt, origin, quat, holding) {
     const to = p.clone().sub(origin);
     const t = clamp(to.dot(dir), 0, range);
     const closest = origin.clone().addScaledVector(dir, t);
-    if (closest.distanceTo(p) > 0.7 + (m.hitR || 0.6)) continue;
+    if (closest.distanceTo(p) > (sword ? 1.05 : 0.7) + (m.hitR || 0.6)) continue;
     killMob(m, true);
   }
+}
+
+function ensureLeftCannon() {
+  if (leftCannon) return leftCannon;
+  const g = new THREE.Group();
+  const steel = mat(0x2a323c);
+  const dark = mat(0x101218);
+  const ice = mat(0x73d2ff, { emissive: 0x226688 });
+  const body = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.08, 0.16), steel);
+  body.position.set(0, 0, -0.04);
+  const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.024, 0.22, 8), dark);
+  barrel.rotation.x = Math.PI / 2;
+  barrel.position.set(0, 0.01, -0.18);
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.03, 0.006, 6, 10), ice);
+  ring.position.set(0, 0.01, -0.3);
+  g.add(body, barrel, ring);
+  g.userData.muzzle = new THREE.Vector3(0, 0.01, -0.32);
+  leftCannon = g;
+  return g;
+}
+
+function syncLeftCannon() {
+  if (!orbCannon) {
+    if (leftCannon) leftCannon.visible = false;
+    if (orbChargeBall) orbChargeBall.visible = false;
+    return;
+  }
+  ensureLeftCannon();
+  leftCannon.visible = true;
+  if (xrOn) {
+    const left = hands.find((h) => h.handed === "left") || hands[0];
+    if (left?.con && leftCannon.parent !== left.con) {
+      left.con.add(leftCannon);
+      leftCannon.position.set(0, -0.02, -0.06);
+      leftCannon.rotation.set(0, 0, 0);
+    }
+  } else if (camera && leftCannon.parent !== camera) {
+    camera.add(leftCannon);
+    leftCannon.position.set(-0.2, -0.12, -0.3);
+  }
+}
+
+function tickOrbCannon(dt, xr) {
+  if (!orbCannon || dead || shopOpen || menuOpen) {
+    orbHold = 0;
+    if (orbChargeBall) orbChargeBall.visible = false;
+    return;
+  }
+  syncLeftCannon();
+  const holding = xrOn ? !!(xr && xr.leftFire) : !!(keys.has("Mouse2") || keys.has("KeyE"));
+  if (holding) {
+    orbHold += dt;
+    const t = clamp(orbHold / 1.55, 0, 1);
+    if (!orbChargeBall) {
+      orbChargeBall = new THREE.Mesh(
+        new THREE.SphereGeometry(0.04, 12, 10),
+        new THREE.MeshBasicMaterial({ color: 0x88e8ff, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false }),
+      );
+      leftCannon.add(orbChargeBall);
+      orbChargeBall.position.copy(leftCannon.userData.muzzle);
+    }
+    orbChargeBall.visible = orbHold > 0.12;
+    orbChargeBall.scale.setScalar(0.6 + t * 4.2);
+    orbChargeBall.material.color.setHex(t > 0.75 ? 0xffcc66 : 0x88e8ff);
+  } else if (orbHold > 0.04) {
+    fireOrb(orbHold);
+    orbHold = 0;
+    if (orbChargeBall) orbChargeBall.visible = false;
+  } else orbHold = 0;
+}
+
+function fireOrb(hold) {
+  if (!leftCannon) return;
+  const charged = hold >= 0.22;
+  const t = clamp(hold / 1.55, 0, 1);
+  const size = (charged ? 0.09 + t * 0.46 : 0.07) * 1.15;
+  leftCannon.updateMatrixWorld(true);
+  const origin = new THREE.Vector3();
+  leftCannon.localToWorld(origin.copy(leftCannon.userData.muzzle));
+  const quat = new THREE.Quaternion();
+  leftCannon.getWorldQuaternion(quat);
+  const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(quat).normalize();
+  const col = charged ? 0x66ccff : 0xc8f4ff;
+  const mesh = new THREE.Mesh(
+    new THREE.SphereGeometry(size, 12, 10),
+    new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.92, blending: THREE.AdditiveBlending, depthWrite: false }),
+  );
+  mesh.position.copy(origin);
+  scene.add(mesh);
+  shots.push({
+    mesh, dir, speed: charged ? 18 - t * 5 : 34, life: 2.8, def: { aoe: charged ? 7 : 2.2, dmg: charged ? 8 : 3 },
+    pierce: 1, hitSet: new Set(), orb: true, charged: charged && t > 0.72,
+  });
+  sfx.shoot();
+  if (charged && t > 0.5) sfx.plasmaBoom();
 }
 
 function tickNoodle(dt, origin, quat, extend) {
@@ -4806,6 +4971,23 @@ function spawnMeteorBlast(pos, rad) {
   fx.push({ mesh: g, kind: "meteorblast", life: 0.55, r0: r });
 }
 
+function smashHex(p, pos) {
+  if (!p) return;
+  const at = pos || new THREE.Vector3(p.x, p.top || 0, p.z);
+  spawnMeteorBlast(at, Math.max(1.4, (p.r || 2) * 0.55));
+  p.mesh.removeFromParent();
+  const i = hexes.indexOf(p);
+  if (i >= 0) hexes.splice(i, 1);
+  sfx.meteor();
+}
+
+function smashNear(pos, r) {
+  for (let i = hexes.length - 1; i >= 0; i--) {
+    const p = hexes[i];
+    if (Math.hypot(p.x - pos.x, p.z - pos.z) < (p.r || 2) + r) smashHex(p, pos);
+  }
+}
+
 function craterAt(x, z, r, depth) {
   const last = craters[craters.length - 1];
   if (last && Math.hypot(last.x - x, last.z - z) < r * 0.4) {
@@ -5074,6 +5256,19 @@ function buy(it) {
       if (!debit(it.cost)) return false;
       stats.autoReload = 1;
       showBanner("AUTO RELOAD");
+      announcing = 1.1;
+    } else if (it.id === "orbcannon") {
+      if (orbCannon) return true;
+      if (!debit(it.cost)) return false;
+      orbCannon = true;
+      ensureLeftCannon();
+      showBanner("PLASMA CANNON — LEFT HAND");
+      announcing = 1.4;
+    } else if (it.id === "radar") {
+      if (radarBuys >= 3) return false;
+      if (!debit(it.cost)) return false;
+      radarBuys++;
+      showBanner("RADAR RING " + radarBuys + "/3");
       announcing = 1.1;
     } else if (it.id === "night") {
       if (nightCutsOwned >= 10) return false;
@@ -5835,7 +6030,7 @@ function syncVrGun() {
 
 function pollXr() {
   const session = renderer.xr.getSession && renderer.xr.getSession();
-  if (!session) return { moveX: 0, moveY: 0, lookX: 0, lookY: 0, jump: false, fire: false, fireTap: false, reload: false, shop: false, lClick: false, rClick: false, flash: false, cycle: false, menu: false, right: null };
+  if (!session) return { moveX: 0, moveY: 0, lookX: 0, lookY: 0, jump: false, fire: false, fireTap: false, reload: false, shop: false, lClick: false, rClick: false, flash: false, cycle: false, menu: false, right: null, leftFire: false };
   for (const src of session.inputSources) {
     const h = hands.find((x) => x.handed === src.handedness) || (src.handedness === "left" ? hands[0] : hands[1]);
     const gp = src.gamepad;
@@ -5882,10 +6077,11 @@ function pollXr() {
     shop: shopOnX ? xTap : yTap,
     lClick: !!(left && left.stick && !left.stickPrev),
     rClick: !!(right && right.stick && !right.stickPrev),
-    flash: !!(left && left.trigger && !left.triggerPrev),
+    flash: orbCannon ? false : !!(left && left.trigger && !left.triggerPrev),
     cycle: !!(right && right.bBtn && !right.bPrev),
     menu: menuTap,
     right,
+    leftFire: !!(left && left.trigger),
   };
 }
 
@@ -6161,6 +6357,7 @@ function loop() {
       if (firing) doFire(xr);
       const aim = aimFromGun(xr);
       tickPlasma(dt, aim.origin, aim.quat, firing);
+      tickOrbCannon(dt, xr);
       tickNoodle(dt, aim.origin, aim.quat, firing);
       if (player.wep === "gravity") {
         tickGrab(dt, firing, aim.origin, aim.dir);
@@ -6369,8 +6566,15 @@ addEventListener("keydown", (e) => {
   }
 });
 addEventListener("keyup", (e) => keys.delete(e.code));
-addEventListener("mousedown", (e) => { if (e.button === 0) mouseDown = true; });
-addEventListener("mouseup", (e) => { if (e.button === 0) mouseDown = false; });
+addEventListener("mousedown", (e) => {
+  if (e.button === 0) mouseDown = true;
+  if (e.button === 2) keys.add("Mouse2");
+});
+addEventListener("mouseup", (e) => {
+  if (e.button === 0) mouseDown = false;
+  if (e.button === 2) keys.delete("Mouse2");
+});
+addEventListener("contextmenu", (e) => { if (running && !dead) e.preventDefault(); });
 
 $("play").onclick = () => startRunFrom(1);
 $("again").onclick = () => { $("over").hidden = true; startRunFrom(1); };
