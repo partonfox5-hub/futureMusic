@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#d8d4cc" />
     <title>THE HORDE — VR wave shooter</title>
     <meta name="description" content="Play THE HORDE free in the browser or on Quest: an infinite plain under a day-and-night sky, doubling waves of many-limbed silhouettes, a pistol that starts weak, and an X-button armory." />
-    <meta name="build" content="prod-20260827-h20" />
+    <meta name="build" content="prod-20260828-h21" />
     <link rel="canonical" href="https://futuremusic.online/horde" />
     <link rel="icon" type="image/jpeg" href="/games/horde/og.jpg" />
     <meta property="og:title" content="THE HORDE — VR wave shooter" />
@@ -15,7 +15,7 @@
     <meta property="og:url" content="https://futuremusic.online/horde" />
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Outfit:wght@400;500;600;700&display=swap" />
-    <link rel="stylesheet" href="/games/horde/css/game.css?v=h20" />
+    <link rel="stylesheet" href="/games/horde/css/game.css?v=h21" />
   </head>
   <body>
     <canvas id="c"></canvas>
@@ -37,7 +37,7 @@
         <h1>THE HORDE</h1>
         <p>
           Infinite hills under a day and a shorter night — after sunset it goes truly dark, so bring a flashlight. One pistol. Doubling waves to 100, then the fight goes on at peak difficulty.
-          From wave 5, half the horde waits and drips in over a minute. Every five waves the ground shifts to another world in the solar system. Meteors streak the sky. X opens the armory — drones, a WWII stone turret you can double-jump onto, forcefield orbs, a terraform gun, a cyber tank, an attack heli with missiles and a search beam, ripple ray, zero-point gun, mini nuke, a dirt bike, and a laser noodle if you can afford them. B cycles every gun you own. After wave ten, some of the horde start throwing. Centipedes slither. Spiders scuttle. Limbs rise all at once.
+          From wave 5, half the horde waits and drips in over a minute. Every five waves the ground shifts to another world in the solar system. Meteors streak the sky. X opens the armory — drones, a WWII stone turret you can double-jump onto, forcefield orbs, a terraform gun, a cyber tank, an attack heli with missiles and a search beam, ripple ray, zero-point gun, mini nuke, a dirt bike, and a laser noodle if you can afford them. B cycles every gun you own. After wave ten, some of the horde start throwing, and leapers start jumping. Strong wings later on buzz like insects. Centipedes slither. Spiders scuttle. Limbs rise all at once.
         </p>
         <div class="ini">
           <span>Initials</span>
@@ -68,11 +68,17 @@
           <button type="button" class="ghost" id="shop-close">Close (X)</button>
         </div>
       </div>
-      <button type="button" id="ammo-orb" class="ammo-orb" aria-label="Buy ammo crate">
-        <span class="ammo-orb-title">AMMO</span>
-        <span class="ammo-orb-cost">28◎</span>
-        <span class="ammo-orb-plus">+40</span>
-      </button>
+      <div id="shop-orbs">
+        <button type="button" id="ammo-orb" class="ammo-orb" aria-label="Buy ammo crate">
+          <span class="ammo-orb-title">AMMO</span>
+          <span class="ammo-orb-cost">28◎</span>
+          <span class="ammo-orb-plus">+40</span>
+        </button>
+        <button type="button" id="bind-orb" class="bind-orb" aria-label="Toggle reload and shop buttons">
+          <span class="bind-orb-title">BINDS</span>
+          <span class="bind-orb-sub">X shop</span>
+        </button>
+      </div>
     </div>
 
     <div id="over" hidden>
@@ -98,6 +104,6 @@
         }
       }
     </script>
-    <script type="module" src="/games/horde/js/game.js?v=h20"></script>
+    <script type="module" src="/games/horde/js/game.js?v=h21"></script>
   </body>
 </html>
