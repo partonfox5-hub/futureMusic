@@ -5,17 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#d8d4cc" />
     <title>THE HORDE — VR wave shooter</title>
-    <meta name="description" content="Play THE HORDE free in the browser or on Quest: an infinite plain under a day-and-night sky, doubling waves of many-limbed silhouettes, a pistol that starts weak, and an X-button armory." />
-    <meta name="build" content="prod-20260829-h25" />
+    <meta name="description" content="Play THE HORDE free in the browser or on Quest: doubling waves on an infinite plain. Pick Horde creatures, Army Man plastic soldiers, Mixed, or War. One pistol. An X-button armory." />
+    <meta name="build" content="prod-20260829-h26" />
     <link rel="canonical" href="https://futuremusic.online/horde" />
     <link rel="icon" type="image/jpeg" href="/games/horde/og.jpg" />
     <meta property="og:title" content="THE HORDE — VR wave shooter" />
-    <meta property="og:description" content="Infinite white plain. One pistol. Doubling waves of silhouette creatures. Quest VR and desktop." />
+    <meta property="og:description" content="Infinite plain. One pistol. Horde, Army Man, Mixed, or War. Quest VR and desktop." />
     <meta property="og:image" content="https://futuremusic.online/games/horde/og.jpg" />
     <meta property="og:url" content="https://futuremusic.online/horde" />
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Outfit:wght@400;500;600;700&display=swap" />
-    <link rel="stylesheet" href="/games/horde/css/game.css?v=h25" />
+    <link rel="stylesheet" href="/games/horde/css/game.css?v=h26" />
   </head>
   <body>
     <canvas id="c"></canvas>
@@ -37,8 +37,27 @@
         <h1>THE HORDE</h1>
         <p>
           Infinite hills under a day and a shorter night — after sunset it goes truly dark, so bring a flashlight. One pistol. Doubling waves to 100, then the fight goes on at peak difficulty.
-          From wave 5, half the horde waits and drips in over a minute. Every five waves the ground shifts to another world in the solar system. Meteors streak the sky. X opens the armory — drones, a WWII stone turret you can double-jump onto, forcefield orbs, a terraform gun, a cyber tank, an attack heli with missiles and a search beam, ripple ray, zero-point gun, mini nuke, a dirt bike, and a laser noodle if you can afford them. B cycles every gun you own. After wave ten, some of the horde start throwing, and leapers start jumping. Strong wings later on buzz like insects. Centipedes slither. Spiders scuttle. Limbs rise all at once.
+          Pick a mode below. Horde is the original many-limbed hunt. Army Man swaps the creatures for plastic green soldiers whose guns, then jeeps, humvees, tanks, and helicopters, scale with the waves. Mixed throws both at you. War puts army and horde on opposite teams — join one, or fight both.
+          From wave 5, half the spawn waits and drips in over a minute. Every five waves the ground shifts to another world. X opens the armory. B cycles every gun you own.
         </p>
+        <div class="modes" id="modes">
+          <p class="kicker">Mode</p>
+          <div class="mode-row" id="mode-row">
+            <button type="button" class="mode-btn on" data-mode="horde">Horde</button>
+            <button type="button" class="mode-btn" data-mode="army">Army Man</button>
+            <button type="button" class="mode-btn" data-mode="mixed">Mixed</button>
+            <button type="button" class="mode-btn" data-mode="war">War</button>
+          </div>
+          <div id="war-team" hidden>
+            <p class="kicker">Your team</p>
+            <div class="mode-row" id="team-row">
+              <button type="button" class="mode-btn on" data-team="solo">Solo</button>
+              <button type="button" class="mode-btn" data-team="army">Join Army</button>
+              <button type="button" class="mode-btn" data-team="horde">Join Horde</button>
+            </div>
+          </div>
+          <p class="mode-blurb" id="mode-blurb">Classic doubling waves of silhouette creatures. Shoot every limb.</p>
+        </div>
         <div class="ini">
           <span>Initials</span>
           <input data-ini="0" maxlength="1" value="A" aria-label="Initial 1" />
@@ -105,6 +124,6 @@
         }
       }
     </script>
-    <script type="module" src="/games/horde/js/game.js?v=h25"></script>
+    <script type="module" src="/games/horde/js/game.js?v=h26"></script>
   </body>
 </html>
