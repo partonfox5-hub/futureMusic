@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#d8d4cc" />
     <title>THE HORDE — VR wave shooter</title>
     <meta name="description" content="Play THE HORDE free in the browser or on Quest: doubling waves on an infinite plain. Pick Horde creatures, Army Man plastic soldiers, Mixed, or War. One pistol. An X-button armory." />
-    <meta name="build" content="prod-20260830-h28" />
+    <meta name="build" content="prod-20260830-h29" />
     <link rel="canonical" href="https://futuremusic.online/horde" />
     <link rel="icon" type="image/jpeg" href="/games/horde/og.jpg" />
     <meta property="og:title" content="THE HORDE — VR wave shooter" />
@@ -15,7 +15,7 @@
     <meta property="og:url" content="https://futuremusic.online/horde" />
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Outfit:wght@400;500;600;700&display=swap" />
-    <link rel="stylesheet" href="/games/horde/css/game.css?v=h28" />
+    <link rel="stylesheet" href="/games/horde/css/game.css?v=h29" />
   </head>
   <body>
     <canvas id="c"></canvas>
@@ -37,8 +37,8 @@
         <h1>THE HORDE</h1>
         <p>
           Infinite hills under a day and a shorter night — after sunset it goes truly dark, so bring a flashlight. One pistol. Doubling waves to 100, then the fight goes on at peak difficulty.
-          Pick a mode below. Horde is the original many-limbed hunt. Army Man swaps the creatures for plastic green soldiers whose guns, then jeeps, humvees, tanks, and helicopters, scale with the waves. Mixed throws both at you. War puts army and horde on opposite teams — join one, or fight both.
-          From wave 5, half the spawn waits and drips in over a minute. Every five waves the ground shifts to another world. X opens the armory. B cycles every gun you own.
+          Pick a mode and a map below. Horde is the original many-limbed hunt. Army Man swaps the creatures for plastic green soldiers whose guns, then jeeps, humvees, tanks, and helicopters, scale with the waves. Mixed throws both at you. War puts army and horde on opposite teams — join one, or fight both.
+          From wave 5, half the spawn waits and drips in over a minute. Every five waves the ground shifts to another world. X opens the armory. B cycles every gun you own. Sandbox is infinite gold and HP.
         </p>
         <div class="modes" id="modes">
           <p class="kicker">Mode</p>
@@ -60,6 +60,16 @@
           <div class="mode-row" id="flow-row">
             <button type="button" class="mode-btn on" data-flow="waves">Waves</button>
             <button type="button" class="mode-btn locked" data-flow="continuous" disabled>Continuous</button>
+          </div>
+          <p class="kicker">Map</p>
+          <div class="mode-row" id="map-row">
+            <button type="button" class="mode-btn on" data-map="stairs">Green stair zone</button>
+            <button type="button" class="mode-btn" data-map="shore">Shore city</button>
+            <button type="button" class="mode-btn" data-map="wastes">Clock wastes</button>
+          </div>
+          <p class="kicker">Tools</p>
+          <div class="mode-row">
+            <button type="button" class="mode-btn" id="sandbox-btn" data-sandbox="1">Sandbox</button>
           </div>
           <p class="mode-blurb" id="mode-blurb">Classic doubling waves of silhouette creatures. Shoot every limb.</p>
         </div>
@@ -84,7 +94,7 @@
 
     <div id="shop" hidden>
       <div class="panel">
-        <button type="button" id="dev-toggle" class="dev-toggle">DEV: OFF</button>
+        <button type="button" id="dev-toggle" class="dev-toggle">SANDBOX: OFF</button>
         <div id="shop-orbs">
           <button type="button" id="ammo-orb" class="ammo-orb" aria-label="Buy ammo crate">
             <span class="ammo-orb-title">AMMO</span>
@@ -129,6 +139,6 @@
         }
       }
     </script>
-    <script type="module" src="/games/horde/js/game.js?v=h28"></script>
+    <script type="module" src="/games/horde/js/game.js?v=h29"></script>
   </body>
 </html>

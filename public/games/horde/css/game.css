@@ -69,7 +69,7 @@ button.ghost, a.ghost { background: transparent; color: #1a1a1e; }
   width: 2.2rem; text-align: center; text-transform: uppercase; font-size: 20px; font-family: "Cinzel", serif;
   border: 1px solid #1a1a1e; background: #fff; padding: 6px;
 }
-.shopgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; max-height: 54vh; overflow: auto; }
+.shopgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; max-height: 54vh; overflow: auto; }
 .shop-cat {
   grid-column: 1 / -1;
   margin: 10px 0 2px;
@@ -144,15 +144,15 @@ button.ghost, a.ghost { background: transparent; color: #1a1a1e; }
   color: #111;
   width: 100%;
   display: flex;
-  gap: 10px;
+  gap: 9px;
   align-items: center;
-  font-size: 13px;
-  padding: 11px 15px;
-  min-height: 72px;
+  font-size: 12px;
+  padding: 9px 13px;
+  min-height: 64px;
   letter-spacing: 0.04em;
   text-transform: none;
 }
-.shopgrid button b { color: #111; font-size: 14px; font-weight: 800; }
+.shopgrid button b { color: #111; font-size: 12px; font-weight: 800; }
 .shopgrid button small {
   display: block;
   color: #1a1a1e;
@@ -163,7 +163,7 @@ button.ghost, a.ghost { background: transparent; color: #1a1a1e; }
   opacity: 1;
   line-height: 1.35;
 }
-.shopgrid .shop-ico { width: 50px; height: 50px; flex: none; image-rendering: pixelated; background: #1a1a1e; }
+.shopgrid .shop-ico { width: 46px; height: 46px; flex: none; image-rendering: pixelated; background: #1a1a1e; }
 .shopgrid .shop-copy { min-width: 0; }
 .shopgrid button:disabled {
   opacity: 1;
@@ -229,6 +229,8 @@ button.ghost, a.ghost { background: transparent; color: #1a1a1e; }
 .mode-btn[data-mode="war"].on { background: #5a1818; border-color: #c42b2b; color: #f4f1ea; }
 .mode-btn[data-team="solo"].on { background: #1a1a1e; color: #d4af37; border-color: #d4af37; }
 .mode-btn[data-flow="continuous"].on { background: #5a1818; border-color: #c42b2b; color: #f4f1ea; }
+.mode-btn[data-map].on { background: #2a4a62; border-color: #2a4a62; color: #f4f1ea; }
+.mode-btn[data-sandbox].on { background: #143018; border-color: #6c6; color: #8f8; }
 .mode-btn.locked, .mode-btn:disabled {
   opacity: 0.38;
   cursor: not-allowed;
