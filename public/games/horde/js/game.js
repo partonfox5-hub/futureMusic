@@ -41,6 +41,7 @@ const SHOP = [
   { kind: "wep", id: "plasma", name: "Plasma beam", cost: 500, blurb: "Hold trigger. Charge drains while the beam is on. Empty means reload." },
   { kind: "turret", id: "turret", name: "Stone turret", cost: 480, blurb: "WWII nest. 360° gun with a search beam that follows the rifle. Jump the roof." },
   { kind: "drone", id: "drone", name: "Gun drone", cost: 420, blurb: "Hovers and fires a pistol. 2 hearts." },
+  { kind: "troop", id: "armyman", name: "Army man", cost: 500, blurb: "Hire a plastic soldier. Treats you as their general at any range. Buy as many as you want. Tan if you are fighting the green army." },
   { kind: "ball", id: "ball-s", name: "Guard orb", cost: 280, blurb: "Small forcefield. 4 hearts.", hp: 8 },
   { kind: "ball", id: "ball-m", name: "Aegis orb", cost: 620, blurb: "Stout forcefield. 8 hearts.", hp: 16 },
   { kind: "ball", id: "ball-l", name: "Bulwark orb", cost: 1100, blurb: "Heavy forcefield. 16 hearts.", hp: 32 },
@@ -195,18 +196,26 @@ try { shopOnX = localStorage.getItem("horde.shopx") !== "0"; } catch {}
 const LS_BEST = "horde.bestWave";
 const LS_MODE = "horde.mode.v1";
 const LS_WARTEAM = "horde.warTeam.v1";
+const LS_CONT = "horde.warCont.v1";
 let gameMode = "horde";
 let warTeam = "solo";
+let continuousMode = false;
 let runMode = "horde";
 let runTeam = "solo";
+let runContinuous = false;
+let contElapsed = 0;
+let contSpawnT = 0;
 try {
   const savedMode = localStorage.getItem(LS_MODE);
   if (savedMode === "horde" || savedMode === "army" || savedMode === "mixed" || savedMode === "war") gameMode = savedMode;
   const savedTeam = localStorage.getItem(LS_WARTEAM);
   if (savedTeam === "solo" || savedTeam === "army" || savedTeam === "horde") warTeam = savedTeam;
+  continuousMode = localStorage.getItem(LS_CONT) === "1";
 } catch {}
 const ARMY_GREEN = 0x3a7a32;
 const ARMY_GREEN2 = 0x2e5e28;
+const ARMY_TAN = 0xc4a46a;
+const ARMY_TAN2 = 0xa8884e;
 const ARMY_WEPS = {
   pistol: { id: "pistol", dmg: 1, rpm: 1.35, speed: 34, spread: 0.05 },
   rifle: { id: "rifle", dmg: 1, rpm: 0.85, speed: 48, spread: 0.018 },
@@ -258,7 +267,7 @@ function shopSectionOf(it) {
   if (it.kind === "bike" || it.id === "tank" || it.id === "heli") return "vehicles";
   if (it.kind === "wep" && WEPS[it.id]?.spell) return "spells";
   if (it.kind === "wep") return "weapons";
-  if (it.kind === "turret" || it.kind === "drone" || it.kind === "ball") return "defense";
+  if (it.kind === "turret" || it.kind === "drone" || it.kind === "ball" || it.kind === "troop") return "defense";
   if (["jump", "speed", "hp", "sprint", "sprintcd", "wheelie", "jump2", "jump3"].includes(it.id)) return "movement";
   if (it.id === "clip" || it.id === "reload" || it.id === "autoreload") return "weapons";
   return "utility";
@@ -591,6 +600,32 @@ const sfx = {
     beep("sawtooth", 210, 0.28, 0.09, 55);
     beep("triangle", 140, 0.34, 0.07, 40);
     noise(0.2, 0.11, 180);
+  },
+  armyShoot() {
+    noise(0.035, 0.1, 2400);
+    beep("square", 210 + rng() * 40, 0.045, 0.07, 70);
+    beep("sine", 88, 0.04, 0.05, 40);
+  },
+  armyYell() {
+    beep("square", 390 + rng() * 80, 0.07, 0.09, 160);
+    beep("square", 240, 0.09, 0.07, 80);
+    noise(0.05, 0.05, 2600);
+  },
+  armyDie() {
+    noise(0.07, 0.13, 1900);
+    beep("square", 760, 0.05, 0.08, 180);
+    beep("triangle", 150, 0.16, 0.07, 48);
+    noise(0.1, 0.07, 420);
+    beep("sine", 90, 0.12, 0.05, 36);
+  },
+  armyRadio() {
+    noise(0.12, 0.08, 3200);
+    beep("square", 520, 0.08, 0.06, 280);
+    beep("square", 680, 0.06, 0.05, 400);
+  },
+  armyWhistle() {
+    beep("sine", 1760, 0.32, 0.07, 880);
+    beep("sine", 1320, 0.24, 0.05, 620);
   },
 };
 
@@ -2083,6 +2118,107 @@ function armyMat(hex, extra) {
   });
 }
 
+function attachArmyFlash(m, power) {
+  power = power || 1;
+  const light = new THREE.SpotLight(0xfff1c4, 0, 16 + power * 10, Math.PI * (0.16 + power * 0.05), 0.38, 1.15);
+  light.position.set(0, 1.02, 0.16);
+  const tgt = new THREE.Object3D();
+  tgt.position.set(0, 0.55, -10);
+  m.mesh.add(light, tgt);
+  light.target = tgt;
+  const lens = new THREE.Mesh(
+    new THREE.CircleGeometry(0.035 + power * 0.015, 8),
+    new THREE.MeshBasicMaterial({ color: 0xffe8a8, transparent: true, opacity: 0.35 }),
+  );
+  lens.position.set(0, 1.0, 0.2);
+  m.mesh.add(lens);
+  m.flash = light;
+  m.flashLens = lens;
+  m.flashPow = power;
+}
+
+function stripArmyLights(m) {
+  if (m.flash) {
+    if (m.flash.target) m.flash.target.removeFromParent();
+    m.flash.removeFromParent();
+    m.flash = null;
+  }
+  if (m.flashLens) {
+    m.flashLens.removeFromParent();
+    m.flashLens = null;
+  }
+}
+
+function fireAirstrike(m, tgt) {
+  if (!tgt || (tgt.kind !== "player" && tgt.kind !== "mob")) return;
+  sfx.armyRadio();
+  sfx.armyWhistle();
+  if (factionsHostile(mobFaction(m), playerFaction())) {
+    showBanner("ENEMY AIRSTRIKE");
+    announcing = 1.1;
+  }
+  const n = 3 + ((rng() * 3) | 0);
+  for (let i = 0; i < n; i++) {
+    const ox = tgt.x + (rng() - 0.5) * 9;
+    const oz = tgt.z + (rng() - 0.5) * 9;
+    const mesh = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.035, 0.42, 6), armyMat(0x2a2a22));
+    mesh.position.set(ox, heightAt(ox, oz) + 24 + rng() * 8, oz);
+    scene.add(mesh);
+    eShots.push({
+      mesh,
+      dir: new THREE.Vector3((tgt.x - ox) * 0.02, -1, (tgt.z - oz) * 0.02).normalize(),
+      speed: 26 + rng() * 10,
+      life: 3.2,
+      dmg: 3,
+      team: mobFaction(m),
+      aoe: 4.4,
+      from: m,
+      strike: true,
+    });
+  }
+}
+
+function spawnHiredArmy() {
+  const live = mobs.filter((m) => m.alive && m.hired).length;
+  if (live >= 24) {
+    showBanner("TOO MANY TROOPS");
+    announcing = 1.2;
+    return false;
+  }
+  const ang = rng() * Math.PI * 2;
+  const m = makeArmySoldier(Math.max(8, diffWave()), ang, 2.4 + rng() * 2.2, {
+    hired: true,
+    tan: playerArmyTan(),
+  });
+  m.team = playerFaction();
+  m.hired = true;
+  mobs.push(m);
+  sfx.armyYell();
+  showBanner(playerArmyTan() ? "TAN TROOPER" : "GREEN TROOPER");
+  announcing = 1.1;
+  return true;
+}
+
+function tickContinuous(dt) {
+  if (!runContinuous || !running || dead) return;
+  contElapsed += dt;
+  const threat = Math.max(1, 1 + Math.floor(contElapsed / 42));
+  if (threat > wave) {
+    wave = threat;
+    noteBestWave();
+    applyPlanetTex(false);
+    showBanner("THREAT " + wave);
+    announcing = 1.5;
+    sfx.armyRadio();
+  }
+  contSpawnT -= dt;
+  const interval = Math.max(0.48, 2.85 / (1 + contElapsed / 72));
+  if (contSpawnT <= 0) {
+    pending += 1 + Math.min(5, (contElapsed / 58) | 0);
+    contSpawnT = interval;
+  }
+}
+
 function playerFaction() {
   if (runMode !== "war") return "player";
   if (runTeam === "army" || runTeam === "horde") return runTeam;
@@ -2119,13 +2255,21 @@ function setWarTeam(team) {
   paintModeButtons();
 }
 
+function setContinuous(on) {
+  if (gameMode !== "war") return;
+  continuousMode = !!on;
+  try { localStorage.setItem(LS_CONT, continuousMode ? "1" : "0"); } catch {}
+  paintModeButtons();
+}
+
 function modeBlurb() {
-  if (gameMode === "army") return "Plastic green army men. Guns get heavier with the waves. Jeeps, humvees, tanks, and helis replace giants later.";
+  if (gameMode === "army") return "Plastic army men. Guns get heavier with the waves. Generals bring floodlights and airstrikes. Jeeps, humvees, tanks, and helis later.";
   if (gameMode === "mixed") return "Horde creatures and plastic army men in the same waves. Everything hunts you.";
   if (gameMode === "war") {
-    if (warTeam === "army") return "Army vs horde. You fight with the green plastic soldiers. Horde still wants you dead.";
-    if (warTeam === "horde") return "Army vs horde. You fight with the creatures. Army men will still shoot you.";
-    return "Army vs horde. You are your own team. Both sides hunt you, and they hunt each other.";
+    const flow = continuousMode ? " Continuous trickle — no waves, pressure grows." : "";
+    if (warTeam === "army") return "Army vs horde. You fight with the green plastic soldiers. Horde still wants you dead." + flow;
+    if (warTeam === "horde") return "Army vs horde. You fight with the creatures. Army men will still shoot you." + flow;
+    return "Army vs horde. You are your own team. Both sides hunt you, and they hunt each other." + flow;
   }
   return "Classic doubling waves of silhouette creatures. Shoot every limb.";
 }
@@ -2139,26 +2283,63 @@ function paintModeButtons() {
   });
   const wrap = $("war-team");
   if (wrap) wrap.hidden = gameMode !== "war";
+  document.querySelectorAll("[data-flow]").forEach((b) => {
+    const war = gameMode === "war";
+    b.disabled = !war;
+    b.classList.toggle("locked", !war);
+    const on = war && ((b.dataset.flow === "continuous") === continuousMode);
+    b.classList.toggle("on", on);
+  });
   const blurb = $("mode-blurb");
   if (blurb) blurb.textContent = modeBlurb();
+}
+
+function playerArmyTan() {
+  const mode = running ? runMode : gameMode;
+  const team = running ? runTeam : warTeam;
+  if (mode === "army" || mode === "mixed") return true;
+  if (mode === "war" && team !== "army") return true;
+  return false;
+}
+
+function armyDefendAnchor(m) {
+  if (m.hired) return { x: player.x, y: player.y, z: player.z, r: 4.2 };
+  if (m.general) return null;
+  let best = null, bd = 24;
+  for (const o of mobs) {
+    if (!o.alive || o === m || !o.general) continue;
+    if (mobFaction(o) !== mobFaction(m)) continue;
+    const d = Math.hypot(o.x - m.x, o.z - m.z);
+    if (d < bd) { bd = d; best = o; }
+  }
+  if (!best) return null;
+  return { x: best.x, y: best.y, z: best.z, r: 6.5, m: best };
 }
 
 function pickMobTarget(m) {
   const my = mobFaction(m);
   const pTeam = playerFaction();
+  const anchor = (m.army && !m.vehicle) ? armyDefendAnchor(m) : null;
+  const ox = anchor ? anchor.x : m.x;
+  const oz = anchor ? anchor.z : m.z;
   let best = null;
   let bestScore = 1e9;
   if (factionsHostile(my, pTeam)) {
+    const dHold = Math.hypot(player.x - ox, player.z - oz);
     const d = Math.hypot(player.x - m.x, player.z - m.z);
-    best = { kind: "player", x: player.x, y: player.y, z: player.z, d };
-    bestScore = d;
+    if (!anchor || dHold < 30 || d < 16) {
+      best = { kind: "player", x: player.x, y: player.y, z: player.z, d };
+      bestScore = (anchor ? dHold * 0.9 : d);
+    }
   }
-  if (runMode === "war") {
+  if (runMode === "war" || m.hired || anchor) {
     for (const o of mobs) {
       if (o === m || !o.alive) continue;
       if (!factionsHostile(my, mobFaction(o))) continue;
+      const dHold = Math.hypot(o.x - ox, o.z - oz);
       const d = Math.hypot(o.x - m.x, o.z - m.z);
-      const score = d * 0.68;
+      if (anchor && dHold > 32 && d > 14) continue;
+      const score = (anchor ? dHold : d) * 0.68;
       if (score < bestScore) {
         bestScore = score;
         best = { kind: "mob", m: o, x: o.x, y: o.y, z: o.z, d };
@@ -2166,6 +2347,7 @@ function pickMobTarget(m) {
     }
   }
   if (best) return best;
+  if (anchor) return { kind: "hold", x: anchor.x, y: anchor.y, z: anchor.z, d: Math.hypot(anchor.x - m.x, anchor.z - m.z) };
   return { kind: "none", x: m.x, y: m.y, z: m.z, d: 0 };
 }
 
@@ -2266,13 +2448,19 @@ function armyPlace(ang, dist) {
   return { x, z };
 }
 
-function makeArmySoldier(w, ang, dist) {
-  const wepId = armyWeaponForWave(w);
-  const plastic = armyMat(rng() < 0.5 ? ARMY_GREEN : ARMY_GREEN2);
+function makeArmySoldier(w, ang, dist, opts) {
+  opts = opts || {};
+  const general = !!opts.general;
+  const tan = !!opts.tan;
+  const hired = !!opts.hired;
+  const wepId = general ? (w >= 14 ? "bazooka" : "lmg") : armyWeaponForWave(w);
+  const plastic = armyMat(tan
+    ? (rng() < 0.5 ? ARMY_TAN : ARMY_TAN2)
+    : (rng() < 0.5 ? ARMY_GREEN : ARMY_GREEN2));
   const group = new THREE.Group();
   const limbs = [];
-  const giant = rollGiant(w) && !armyVehicleForWave(w);
-  const s = (0.92 + rng() * 0.12 + Math.min(0.2, w * 0.008)) * (giant ? 1.55 : 1) * Math.min(1.25, waveSizeMul(w));
+  const giant = !hired && !general && rollGiant(w) && !armyVehicleForWave(w);
+  const s = (0.92 + rng() * 0.12 + Math.min(0.2, w * 0.008)) * (giant ? 1.55 : 1) * (general ? 1.22 : 1) * 1.1 * Math.min(1.25, waveSizeMul(w));
   const hits = giant ? 2 : 1;
   const torsoM = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.5, 0.18), plastic);
   const torso = addArmyPart(group, limbs, torsoM, 0, 0.76, 0, {
@@ -2302,6 +2490,14 @@ function makeArmySoldier(w, ang, dist) {
   const brim = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.028, 0.13), plastic);
   brim.position.set(0, 0.002, 0.1);
   head.add(brim);
+  if (general) {
+    const star = new THREE.Mesh(new THREE.OctahedronGeometry(0.055, 0), armyMat(0xd4af37, { emissive: 0x553300 }));
+    star.position.set(0, 0.1, 0.12);
+    head.add(star);
+    const bar = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.045, 0.04), armyMat(0xd4af37, { emissive: 0x442200 }));
+    bar.position.set(0, 0.14, 0.1);
+    torso.add(bar);
+  }
   const armLen = 0.38;
   const armLM = new THREE.Mesh(new THREE.BoxGeometry(0.09, armLen, 0.09), plastic);
   armLM.position.y = -armLen * 0.38;
@@ -2335,7 +2531,7 @@ function makeArmySoldier(w, ang, dist) {
   scene.add(group);
   const def = ARMY_WEPS[wepId] || ARMY_WEPS.rifle;
   const spd = (1.85 + w * 0.05) * waveSpeedMul(w) / Math.sqrt(s);
-  return {
+  const unit = {
     mesh: group,
     core: torso,
     limbs,
@@ -2348,7 +2544,10 @@ function makeArmySoldier(w, ang, dist) {
     armGone: 0,
     boost: 1,
     bodyScale: s,
-    giant,
+    giant: giant || general,
+    general,
+    hired,
+    tan,
     bob: rng() * 6,
     hitR: 0.55 * s,
     hitCd: 0,
@@ -2371,7 +2570,11 @@ function makeArmySoldier(w, ang, dist) {
     threatPose: 0,
     threatT: 0,
     threatDur: 1,
+    strikeCd: general ? 4 + rng() * 5 : 0,
   };
+  if (hired) unit.team = playerFaction();
+  attachArmyFlash(unit, general ? 3.2 : hired ? 1.4 : 1);
+  return unit;
 }
 
 function makeArmyVehicle(w, ang, dist, kind) {
@@ -2382,7 +2585,7 @@ function makeArmyVehicle(w, ang, dist, kind) {
   const { x, z } = armyPlace(ang, dist);
   let core, hitR, spd, lift, wepId, fly = false, scale = 1;
   if (kind === "jeep") {
-    scale = 1.15;
+    scale = 1.265;
     const hull = new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.38, 2.05), green);
     core = addArmyPart(group, limbs, hull, 0, 0.42, 0, { thick: 0.45, len: 1, maxHits: 2, dmg: 2 });
     const hood = new THREE.Mesh(new THREE.BoxGeometry(1.05, 0.12, 0.7), green);
@@ -2400,7 +2603,7 @@ function makeArmyVehicle(w, ang, dist, kind) {
     }
     hitR = 1.35; spd = 3.4; lift = 0; wepId = "mg";
   } else if (kind === "humvee") {
-    scale = 1.25;
+    scale = 1.25 * 1.1;
     const hull = new THREE.Mesh(new THREE.BoxGeometry(1.45, 0.62, 2.45), green);
     core = addArmyPart(group, limbs, hull, 0, 0.55, 0, { thick: 0.55, len: 1.2, maxHits: 3, dmg: 2 });
     const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.35, 0.42, 1.1), green);
@@ -2415,7 +2618,7 @@ function makeArmyVehicle(w, ang, dist, kind) {
     }
     hitR = 1.7; spd = 2.7; lift = 0; wepId = "lmg";
   } else if (kind === "tank") {
-    scale = 1.45;
+    scale = 1.45 * 1.1;
     const hull = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.7, 2.6), green);
     core = addArmyPart(group, limbs, hull, 0, 0.55, 0, { thick: 0.7, len: 1.4, maxHits: 4, dmg: 3 });
     const turret = new THREE.Mesh(new THREE.CylinderGeometry(0.48, 0.55, 0.38, 10), green);
@@ -2430,7 +2633,7 @@ function makeArmyVehicle(w, ang, dist, kind) {
     hitR = 2.1; spd = 1.55; lift = 0; wepId = "cannon";
   } else {
     kind = "heli";
-    scale = 1.35;
+    scale = 1.485;
     fly = true;
     const hull = new THREE.Mesh(new THREE.CapsuleGeometry(0.38, 1.5, 4, 8), green);
     hull.rotation.z = Math.PI / 2;
@@ -2453,7 +2656,7 @@ function makeArmyVehicle(w, ang, dist, kind) {
   group.position.set(x, walkH, z);
   scene.add(group);
   const def = ARMY_WEPS[wepId] || ARMY_WEPS.mg;
-  return {
+  const unit = {
     mesh: group,
     core,
     limbs,
@@ -2475,7 +2678,7 @@ function makeArmyVehicle(w, ang, dist, kind) {
     team: "army",
     armyWep: wepId,
     ranged: true,
-    shotShape: wepId === "missile" || wepId === "cannon" ? "rocket" : "tracer",
+    shotShape: wepId === "missile" || wepId === "cannon" ? "rocket" : "pellet",
     fireCd: 0.8 + rng(),
     shotDef: def,
     orbit: rng() * Math.PI * 2,
@@ -2488,9 +2691,14 @@ function makeArmyVehicle(w, ang, dist, kind) {
     threatT: 0,
     threatDur: 1,
   };
+  attachArmyFlash(unit, kind === "tank" || kind === "heli" ? 2.4 : 1.6);
+  return unit;
 }
 
 function makeArmyUnit(w, ang, dist) {
+  if (w >= 8 && rng() < Math.min(0.18, 0.04 + (w - 8) * 0.008)) {
+    return makeArmySoldier(w, ang, dist, { general: true });
+  }
   const veh = armyVehicleForWave(w);
   if (veh && rollGiant(w)) return makeArmyVehicle(w, ang, dist, veh);
   return makeArmySoldier(w, ang, dist);
@@ -2582,7 +2790,8 @@ function spawnWave() {
   showBanner("WAVE " + wave + tag);
   applyPlanetTex(false);
   sfx.wave();
-  sfx.groan();
+  if (runMode === "army" || runMode === "war") sfx.armyRadio();
+  else sfx.groan();
   dripSpawn(0);
   if (wave >= 5 && later > 0) {
     dripTotal = later;
@@ -2606,6 +2815,7 @@ function spawnWave() {
 
 function dripSpawn(dt) {
   dt = dt || 0;
+  tickContinuous(dt);
   if (dripLeft > 0) {
     dripElapsed += dt;
     const dripWin = 63.8;
@@ -2716,8 +2926,10 @@ function tickAmmoField(dt) {
 function killMob(m, explode) {
   if (!m.alive) return;
   m.alive = false;
-  sfx.die();
-  waveLeft = Math.max(0, waveLeft - 1);
+  if (m.army) sfx.armyDie();
+  else sfx.die();
+  if (!m.hired) waveLeft = Math.max(0, waveLeft - 1);
+  stripArmyLights(m);
   for (const limb of m.limbs) {
     if (!limb.userData.live) continue;
     detachLimb(m, limb, explode ? 7 : 2.2);
@@ -2773,6 +2985,7 @@ function hitLimb(limb, m) {
     killMob(m, false);
     return;
   }
+  if (m.army) sfx.armyYell();
   limb.userData.hits = (limb.userData.hits || 0) + 1;
   if (limb.userData.hits < (limb.userData.maxHits || 1)) {
     sfx.hit();
@@ -3164,8 +3377,22 @@ function tickMobs(dt) {
       }
     }
     syncMob(m);
+    if (m.army && m.flash) {
+      const pow = m.flashPow || 1;
+      const lit = 0.35 + lastDark * 14 * pow;
+      m.flash.intensity = lit;
+      if (m.flashLens && m.flashLens.material) m.flashLens.material.opacity = 0.15 + lastDark * 0.55;
+    }
+    if (m.general && (tgt.kind === "player" || tgt.kind === "mob")) {
+      m.strikeCd = (m.strikeCd || 8) - dt;
+      if (m.strikeCd <= 0 && dist < 42) {
+        m.strikeCd = 8 + rng() * 7;
+        fireAirstrike(m, tgt);
+      }
+    }
+    const combat = tgt.kind === "player" || tgt.kind === "mob";
     const reach = 0.95 + m.hitR * 0.32 + (tgt.kind === "mob" ? (tgt.m.hitR || 0) * 0.28 : 0);
-    const close = tgt.kind !== "none" && dist < reach + 0.55;
+    const close = combat && dist < reach + 0.55;
     if (close) {
       vx = (dx / dist) * m.spd * 1.6;
       vz = (dz / dist) * m.spd * 1.6;
@@ -3199,7 +3426,7 @@ function tickMobs(dt) {
       m.jabLimb = null;
       m.jabPhase = 0;
     }
-    if (m.ranged && tgt.kind !== "none") {
+    if (m.ranged && combat) {
       m.fireCd = (m.fireCd || 0) - dt;
       const minR = m.army ? 4 : 6;
       const maxR = m.shotDef ? 48 : 34;
@@ -3216,15 +3443,16 @@ function tickMobs(dt) {
     }
   }
   mobs = mobs.filter((m) => m.alive);
-  if (running && !dead && pending <= 0 && dripLeft <= 0 && wave > 0) {
+  if (running && !dead && pending <= 0 && dripLeft <= 0 && wave > 0 && !runContinuous) {
     const hostiles = mobs.some((m) => m.alive && isHostileToPlayer(m));
     if (!hostiles) {
       for (const m of mobs) {
-        if (!m.alive) continue;
+        if (!m.alive || m.hired) continue;
         m.alive = false;
+        stripArmyLights(m);
         m.mesh.removeFromParent();
       }
-      mobs = [];
+      mobs = mobs.filter((m) => m.alive);
       spawnWave();
     }
   }
@@ -3714,8 +3942,17 @@ function paintMenu3d(kind) {
         addMenuHit(x, y, 300, 42, "team", 1, pair[0]);
       });
     }
+    overCtx.fillStyle = gameMode === "war" ? "#6a655c" : "#b0aaa0";
+    overCtx.font = "600 18px Outfit, sans-serif";
+    overCtx.fillText("WAR FLOW", 40, gameMode === "war" ? 396 : 318);
+    const flowY = gameMode === "war" ? 408 : 330;
+    const warOn = gameMode === "war";
+    drawMenuBtn(overCtx, 40, flowY, 300, 42, "WAVES", warOn && !continuousMode ? "#2f6b32" : "#6a655c", "#f4f1ea");
+    addMenuHit(40, flowY, 300, 42, "flow", 1, "waves");
+    drawMenuBtn(overCtx, 360, flowY, 340, 42, "CONTINUOUS", warOn && continuousMode ? "#5a1818" : "#8a8680", "#f4f1ea");
+    addMenuHit(360, flowY, 340, 42, "flow", 1, "continuous");
   }
-  const top = kind === "over" ? 284 : (gameMode === "war" ? 396 : 316);
+  const top = kind === "over" ? 284 : (gameMode === "war" ? 470 : 390);
   if (waves.length) {
     overCtx.fillStyle = "#6a655c";
     overCtx.font = "600 20px Outfit, sans-serif";
@@ -3795,7 +4032,10 @@ function gameOver() {
 }
 
 function resetRun() {
-  for (const m of mobs) m.mesh.removeFromParent();
+  for (const m of mobs) {
+    stripArmyLights(m);
+    m.mesh.removeFromParent();
+  }
   for (const d of debris) d.mesh.removeFromParent();
   for (const c of loot) c.mesh.removeFromParent();
   for (const s of shots) s.mesh.removeFromParent();
@@ -3853,6 +4093,8 @@ function resetRun() {
   meleeCd = 0;
   stopMusic();
   hexSpawnCd = 0;
+  contElapsed = 0;
+  contSpawnT = 0.4;
   owned = new Set(["pistol"]);
   stats = { speed: 1, jump: 1, maxHp: MAX_HP0, reload: 1, magnet: 2.4, jumps: 1, sprint: 0, sprintCd: 10, sprintMul: 1, wheelie: 0, flash: 1, autoReload: 0 };
   player = { x: 0, y: 1.6, z: 0, vx: 0, vy: 0, vz: 0, hp: MAX_HP0, grounded: true, coins: 0, ammo: 48, mag: 12, wep: "pistol", tank: false, heli: false, jumpsLeft: 1, sprinting: false, sprintT: 0, sprintCdT: 0, mom: 0, pounding: false, bike: false };
@@ -3882,6 +4124,7 @@ function startRunFrom(startWave) {
   startWave = Math.max(1, startWave | 0);
   runMode = gameMode;
   runTeam = warTeam;
+  runContinuous = gameMode === "war" && continuousMode;
   sfxUnlock();
   resetRun();
   menuOpen = false;
@@ -3896,7 +4139,16 @@ function startRunFrom(startWave) {
     applyPlanetTex(true);
   }
   startMusic();
-  spawnWave();
+  if (runContinuous) {
+    wave = Math.max(1, startWave);
+    contElapsed = Math.max(0, (wave - 1) * 42);
+    pending = 5;
+    showBanner("WAR · CONTINUOUS");
+    announcing = 2.2;
+    applyPlanetTex(false);
+    sfx.armyRadio();
+    dripSpawn(0);
+  } else spawnWave();
   placeFlag();
   for (let i = 0; i < 4; i++) spawnHexCluster();
   spawnArchHall(player.x + 22, player.z + 8);
@@ -4673,6 +4925,7 @@ function fireEnemyShot(m, tgt) {
     }
     let mesh;
     if (army) {
+      if (p === 0) sfx.armyShoot();
       const rocket = m.shotShape === "rocket";
       const geo = rocket
         ? new THREE.CylinderGeometry(0.055, 0.075, 0.34, 6)
@@ -5922,6 +6175,12 @@ function buy(it) {
     if (!afford(it.cost)) return false;
     if (!spawnBall(it.hp || 8)) return false;
     debit(it.cost);
+  } else if (it.kind === "troop") {
+    if (!debit(it.cost)) return false;
+    if (!spawnHiredArmy()) {
+      player.coins += it.cost;
+      return false;
+    }
   } else return false;
   sfx.buy();
   paintShop();
@@ -5936,7 +6195,23 @@ function drawShopIcon(ctx, it, x, y, s) {
   ctx.fillRect(-s / 2, -s / 2, s, s);
   ctx.fillStyle = "#d4af37";
   const id = it.id;
-  if (it.kind === "up") {
+  if (it.kind === "troop") {
+    ctx.fillStyle = playerArmyTan() ? "#c4a46a" : "#3a7a32";
+    ctx.fillRect(-s * 0.12, -s * 0.06, s * 0.24, s * 0.28);
+    ctx.beginPath();
+    ctx.arc(0, -s * 0.18, s * 0.1, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillRect(-s * 0.22, -s * 0.04, s * 0.1, s * 0.22);
+    ctx.fillRect(s * 0.12, -s * 0.04, s * 0.1, s * 0.22);
+    ctx.fillRect(-s * 0.1, s * 0.2, s * 0.08, s * 0.18);
+    ctx.fillRect(s * 0.02, s * 0.2, s * 0.08, s * 0.18);
+    ctx.fillStyle = "#ffe08a";
+    ctx.beginPath();
+    ctx.moveTo(s * 0.16, -s * 0.02);
+    ctx.lineTo(s * 0.38, s * 0.12);
+    ctx.lineTo(s * 0.14, s * 0.08);
+    ctx.fill();
+  } else if (it.kind === "up") {
     if (id === "hp") {
       ctx.fillStyle = "#c42b2b";
       ctx.beginPath();
@@ -6195,6 +6470,7 @@ function paintShopCard(it, i, highlight) {
   if (it.id === "jump2" && stats.jumps >= 2) price = "OWNED";
   if (it.id === "jump3" && stats.jumps >= 3) price = "OWNED";
   if (it.kind === "bike" && player.bike) price = "OWNED";
+  if (it.kind === "troop") price = it.cost + " ◎  ·  hire another";
   if (!prereqMet(it)) price = "LOCKED — buy " + (it.needLabel || "prereq") + " first";
   ctx.font = "800 32px Outfit, Arial, sans-serif";
   ctx.lineWidth = 4;
@@ -6553,6 +6829,11 @@ function tryOverShot(xr) {
         if (hit.kind === "resume") resumeRun();
         else if (hit.kind === "mode") { setGameMode(hit.extra); paintMenu3d("main"); }
         else if (hit.kind === "team") { setWarTeam(hit.extra); paintMenu3d("main"); }
+        else if (hit.kind === "flow") {
+          if (hit.extra === "continuous") setContinuous(true);
+          else setContinuous(false);
+          paintMenu3d("main");
+        }
         else startRunFrom(hit.wave || 1);
         return true;
       }
@@ -7211,6 +7492,12 @@ document.querySelectorAll("[data-mode]").forEach((b) => {
 });
 document.querySelectorAll("[data-team]").forEach((b) => {
   b.onclick = () => setWarTeam(b.dataset.team);
+});
+document.querySelectorAll("[data-flow]").forEach((b) => {
+  b.onclick = () => {
+    if (b.disabled) return;
+    setContinuous(b.dataset.flow === "continuous");
+  };
 });
 paintModeButtons();
 if ($("resume")) $("resume").onclick = () => resumeRun();

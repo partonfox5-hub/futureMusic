@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#d8d4cc" />
     <title>THE HORDE — VR wave shooter</title>
     <meta name="description" content="Play THE HORDE free in the browser or on Quest: doubling waves on an infinite plain. Pick Horde creatures, Army Man plastic soldiers, Mixed, or War. One pistol. An X-button armory." />
-    <meta name="build" content="prod-20260830-h27" />
+    <meta name="build" content="prod-20260830-h28" />
     <link rel="canonical" href="https://futuremusic.online/horde" />
     <link rel="icon" type="image/jpeg" href="/games/horde/og.jpg" />
     <meta property="og:title" content="THE HORDE — VR wave shooter" />
@@ -15,7 +15,7 @@
     <meta property="og:url" content="https://futuremusic.online/horde" />
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Outfit:wght@400;500;600;700&display=swap" />
-    <link rel="stylesheet" href="/games/horde/css/game.css?v=h27" />
+    <link rel="stylesheet" href="/games/horde/css/game.css?v=h28" />
   </head>
   <body>
     <canvas id="c"></canvas>
@@ -55,6 +55,11 @@
               <button type="button" class="mode-btn" data-team="army">Join Army</button>
               <button type="button" class="mode-btn" data-team="horde">Join Horde</button>
             </div>
+          </div>
+          <p class="kicker">War flow</p>
+          <div class="mode-row" id="flow-row">
+            <button type="button" class="mode-btn on" data-flow="waves">Waves</button>
+            <button type="button" class="mode-btn locked" data-flow="continuous" disabled>Continuous</button>
           </div>
           <p class="mode-blurb" id="mode-blurb">Classic doubling waves of silhouette creatures. Shoot every limb.</p>
         </div>
@@ -124,6 +129,6 @@
         }
       }
     </script>
-    <script type="module" src="/games/horde/js/game.js?v=h27"></script>
+    <script type="module" src="/games/horde/js/game.js?v=h28"></script>
   </body>
 </html>

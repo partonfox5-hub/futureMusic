@@ -228,4 +228,12 @@ button.ghost, a.ghost { background: transparent; color: #1a1a1e; }
 .mode-btn[data-mode="mixed"].on { background: #4a3a18; border-color: #d4af37; color: #d4af37; }
 .mode-btn[data-mode="war"].on { background: #5a1818; border-color: #c42b2b; color: #f4f1ea; }
 .mode-btn[data-team="solo"].on { background: #1a1a1e; color: #d4af37; border-color: #d4af37; }
+.mode-btn[data-flow="continuous"].on { background: #5a1818; border-color: #c42b2b; color: #f4f1ea; }
+.mode-btn.locked, .mode-btn:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+  background: #e8e4dc;
+  color: #8a8680;
+  border-color: #cfc8b8;
+}
 .mode-blurb { margin: 10px 0 0; color: #6a655c; font-size: 13px; }
