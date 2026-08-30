@@ -2198,6 +2198,7 @@ function addArmyPart(group, limbs, mesh, x, y, z, opts) {
     len: opts.len || 0.45,
     asLeg: !!opts.asLeg,
     form: opts.form || "club",
+    part: opts.part || "",
     run: opts.run || 1,
     fly: 0,
     phase: rng() * 6,
@@ -2273,48 +2274,78 @@ function makeArmySoldier(w, ang, dist) {
   const giant = rollGiant(w) && !armyVehicleForWave(w);
   const s = (0.92 + rng() * 0.12 + Math.min(0.2, w * 0.008)) * (giant ? 1.55 : 1) * Math.min(1.25, waveSizeMul(w));
   const hits = giant ? 2 : 1;
-  const torsoM = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.38, 0.18), plastic);
-  const torso = addArmyPart(group, limbs, torsoM, 0, 0.72, 0, { thick: 0.16, len: 0.38, maxHits: hits, dmg: 1, form: "club" });
-  const headM = new THREE.Mesh(new THREE.SphereGeometry(0.11, 8, 6), plastic);
-  addArmyPart(group, limbs, headM, 0, 1.02, 0.02, { thick: 0.12, len: 0.2, maxHits: hits, form: "club" });
-  const helm = new THREE.Mesh(new THREE.SphereGeometry(0.125, 8, 5, 0, Math.PI * 2, 0, 1.2), plastic);
-  helm.position.set(0, 1.08, 0.01);
-  group.add(helm);
-  const brim = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.02, 0.12), plastic);
-  brim.position.set(0, 1.02, 0.1);
-  group.add(brim);
-  const pack = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.18, 0.08), plastic);
-  pack.position.set(0, 0.74, 0.14);
-  group.add(pack);
-  const armLM = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.32, 0.08), plastic);
-  addArmyPart(group, limbs, armLM, -0.2, 0.74, 0, { thick: 0.08, len: 0.32, form: "club", basePitch: 0.2 });
-  armLM.position.y = -0.12;
-  const armRM = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.32, 0.08), plastic);
-  const armR = addArmyPart(group, limbs, armRM, 0.2, 0.74, 0, { thick: 0.08, len: 0.32, form: "club", basePitch: 1.05 });
-  armRM.position.y = -0.12;
-  armR.rotation.x = 1.05;
+  const torsoM = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.5, 0.18), plastic);
+  const torso = addArmyPart(group, limbs, torsoM, 0, 0.76, 0, {
+    thick: 0.18, len: 0.5, maxHits: hits, dmg: 1, form: "torso", part: "torso",
+  });
+  const pack = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.22, 0.1), plastic);
+  pack.position.set(0, 0.02, 0.13);
+  torso.add(pack);
+  for (const sx of [-1, 1]) {
+    const shoulder = new THREE.Mesh(new THREE.SphereGeometry(0.058, 7, 6), plastic);
+    shoulder.position.set(sx * 0.155, 0.2, 0);
+    torso.add(shoulder);
+    const hip = new THREE.Mesh(new THREE.SphereGeometry(0.052, 7, 6), plastic);
+    hip.position.set(sx * 0.075, -0.24, 0);
+    torso.add(hip);
+  }
+  const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.07, 0.08, 6), plastic);
+  neck.position.set(0, 0.28, 0.01);
+  torso.add(neck);
+  const headM = new THREE.Mesh(new THREE.SphereGeometry(0.115, 8, 6), plastic);
+  const head = addArmyPart(group, limbs, headM, 0, 1.08, 0.02, {
+    thick: 0.14, len: 0.22, maxHits: 1, form: "club", part: "head",
+  });
+  const helm = new THREE.Mesh(new THREE.SphereGeometry(0.132, 8, 5, 0, Math.PI * 2, 0, 1.28), plastic);
+  helm.position.set(0, 0.048, 0);
+  head.add(helm);
+  const brim = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.028, 0.13), plastic);
+  brim.position.set(0, 0.002, 0.1);
+  head.add(brim);
+  const armLen = 0.38;
+  const armLM = new THREE.Mesh(new THREE.BoxGeometry(0.09, armLen, 0.09), plastic);
+  armLM.position.y = -armLen * 0.38;
+  addArmyPart(group, limbs, armLM, -0.175, 0.94, 0, {
+    thick: 0.1, len: armLen, form: "club", part: "arm", basePitch: 0.18,
+  });
+  const armRM = new THREE.Mesh(new THREE.BoxGeometry(0.09, armLen, 0.09), plastic);
+  armRM.position.y = -armLen * 0.38;
+  const armR = addArmyPart(group, limbs, armRM, 0.175, 0.94, 0, {
+    thick: 0.1, len: armLen, form: "club", part: "arm", basePitch: 0.82,
+  });
+  armR.rotation.x = 0.82;
   const gun = makeArmyGun(wepId);
-  gun.position.set(0, -0.28, -0.12);
+  gun.position.set(0, -armLen * 0.52, -0.14);
   armR.add(gun);
-  const legLM = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.42, 0.1), plastic);
-  addArmyPart(group, limbs, legLM, -0.08, 0.42, 0, { thick: 0.09, len: 0.42, asLeg: true, form: "club", run: 1.05, legIndex: 0, basePitch: 0.12 });
-  legLM.position.y = -0.18;
-  const legRM = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.42, 0.1), plastic);
-  addArmyPart(group, limbs, legRM, 0.08, 0.42, 0, { thick: 0.09, len: 0.42, asLeg: true, form: "club", run: 1.05, legIndex: 1, basePitch: 0.12 });
-  legRM.position.y = -0.18;
+  const legLen = 0.58;
+  const legLM = new THREE.Mesh(new THREE.BoxGeometry(0.115, legLen, 0.115), plastic);
+  legLM.position.y = -legLen * 0.4;
+  addArmyPart(group, limbs, legLM, -0.08, 0.54, 0, {
+    thick: 0.11, len: legLen, asLeg: true, form: "club", run: 1.05, legIndex: 0, basePitch: 0.06, part: "leg",
+  });
+  const legRM = new THREE.Mesh(new THREE.BoxGeometry(0.115, legLen, 0.115), plastic);
+  legRM.position.y = -legLen * 0.4;
+  addArmyPart(group, limbs, legRM, 0.08, 0.54, 0, {
+    thick: 0.11, len: legLen, asLeg: true, form: "club", run: 1.05, legIndex: 1, basePitch: 0.06, part: "leg",
+  });
   group.scale.setScalar(s);
   const { x, z } = armyPlace(ang, dist);
   const walkH = heightAt(x, z) + 0.02;
   group.position.set(x, walkH, z);
   scene.add(group);
   const def = ARMY_WEPS[wepId] || ARMY_WEPS.rifle;
+  const spd = (1.85 + w * 0.05) * waveSpeedMul(w) / Math.sqrt(s);
   return {
     mesh: group,
     core: torso,
     limbs,
     hpLimbs: limbs.filter((l) => l.userData.live).length,
     x, z, y: walkH,
-    spd: (1.85 + w * 0.05) * waveSpeedMul(w) / Math.sqrt(s),
+    spd,
+    baseSpd: spd,
+    fireSlow: 1,
+    legGone: 0,
+    armGone: 0,
     boost: 1,
     bodyScale: s,
     giant,
@@ -2328,7 +2359,7 @@ function makeArmySoldier(w, ang, dist) {
     team: "army",
     armyWep: wepId,
     ranged: true,
-    shotShape: wepId === "bazooka" ? "rocket" : "tracer",
+    shotShape: wepId === "bazooka" ? "rocket" : "pellet",
     fireCd: 0.4 + rng() * 1.2,
     shotDef: def,
     orbit: rng() * Math.PI * 2,
@@ -2468,7 +2499,7 @@ function makeArmyUnit(w, ang, dist) {
 function makeMob(w, ang, dist) {
   let unit;
   if (runMode === "army") unit = makeArmyUnit(w, ang, dist);
-  else if (runMode === "mixed") unit = rng() < 0.5 ? makeArmyUnit(w, ang, dist) : makeHordeCreature(w, ang, dist);
+  else if (runMode === "mixed") unit = rng() < 0.625 ? makeArmyUnit(w, ang, dist) : makeHordeCreature(w, ang, dist);
   else if (runMode === "war") unit = Math.cos(ang) >= 0 ? makeArmyUnit(w, ang, dist) : makeHordeCreature(w, ang, dist);
   else unit = makeHordeCreature(w, ang, dist);
   if (!unit.team) unit.team = unit.army ? "army" : "horde";
@@ -2536,7 +2567,9 @@ function spawnWave() {
   wave += 1;
   noteBestWave();
   const dw = diffWave();
-  const count = Math.max(1, Math.round(Math.pow(2, dw - 1) * 0.9 * 0.94));
+  let count = Math.max(1, Math.round(Math.pow(2, dw - 1) * 0.9 * 0.94));
+  if (runMode === "army") count = Math.max(1, Math.round(count * 1.25));
+  else if (runMode === "mixed" || runMode === "war") count = Math.max(1, Math.round(count * 1.12));
   const half = Math.max(1, Math.ceil(count / 2));
   const later = Math.max(0, count - half);
   pending = half;
@@ -2588,9 +2621,10 @@ function dripSpawn(dt) {
       dripLeft = 0;
     }
   }
-  while (pending > 0 && mobs.filter((m) => m.alive).length < MAX_LIVE) {
+  const liveCap = runMode === "army" ? Math.round(MAX_LIVE * 1.25) : MAX_LIVE;
+  while (pending > 0 && mobs.filter((m) => m.alive).length < liveCap) {
     let ang = rng() * Math.PI * 2;
-    if (runMode === "war") ang = ((pending + dripLeft) % 2 === 0 ? 0 : Math.PI) + (rng() - 0.5) * 1.7;
+    if (runMode === "war") ang = ((pending + dripLeft) % 8 < 5 ? 0 : Math.PI) + (rng() - 0.5) * 1.7;
     const dist = SPAWN_MIN + rng() * (SPAWN_MAX - SPAWN_MIN);
     const spawned = makeMob(diffWave(), ang, dist);
     mobs.push(spawned);
@@ -2699,7 +2733,10 @@ function killMob(m, explode) {
     }
   }
   m.mesh.removeFromParent();
-  dropLoot(m.x, m.y, m.z, 2 + ((rng() * 4) | 0) + (m.boost > 1.2 ? 2 : 0));
+  const lootN = m.army
+    ? 8 + ((rng() * 7) | 0) + (m.vehicle ? 5 : 0)
+    : 2 + ((rng() * 4) | 0) + (m.boost > 1.2 ? 2 : 0);
+  dropLoot(m.x, m.y, m.z, lootN);
   if (rng() < 0.06) dropAmmo(m.x + (rng() - 0.5), m.z + (rng() - 0.5));
   if (rng() < 0.08) dropHealth(m.x + (rng() - 0.5), m.z + (rng() - 0.5));
 }
@@ -2732,6 +2769,10 @@ function hitLimb(limb, m) {
     killMob(m, false);
     return;
   }
+  if (m.army && !m.vehicle && limb.userData.part === "head") {
+    killMob(m, false);
+    return;
+  }
   limb.userData.hits = (limb.userData.hits || 0) + 1;
   if (limb.userData.hits < (limb.userData.maxHits || 1)) {
     sfx.hit();
@@ -2745,6 +2786,16 @@ function hitLimb(limb, m) {
     }
   } else {
     detachLimb(m, limb, 5);
+  }
+  if (m.army && !m.vehicle) {
+    const part = limb.userData.part;
+    if (part === "leg") {
+      m.legGone = (m.legGone || 0) + 1;
+      m.spd = (m.baseSpd || m.spd) * (m.legGone >= 2 ? 0.12 : 0.42);
+    } else if (part === "arm") {
+      m.armGone = (m.armGone || 0) + 1;
+      m.fireSlow = m.armGone >= 2 ? 3.5 : 1.85;
+    }
   }
   if (m.hpLimbs <= 0) killMob(m, false);
 }
@@ -3076,8 +3127,8 @@ function tickMobs(dt) {
         limb.rotation.x = u.basePitch + Math.sin(m.bob * (insect ? 4.2 : 1.4) + u.phase) * (insect ? 0.28 : 0.12);
       } else if (u.asLeg) {
         const nL = m.nLegs || 2;
-        const freq = m.scuttler ? 14 : m.spider ? 8.4 : nL >= 8 ? 6.2 : nL === 4 ? 4.6 : 3.5;
-        const amp = m.scuttler ? 0.95 : m.spider ? 0.72 : nL === 2 ? 0.62 : 0.4;
+        const freq = m.army ? 5.2 : m.scuttler ? 14 : m.spider ? 8.4 : nL >= 8 ? 6.2 : nL === 4 ? 4.6 : 3.5;
+        const amp = m.army ? 0.22 : m.scuttler ? 0.95 : m.spider ? 0.72 : nL === 2 ? 0.62 : 0.4;
         const phase = m.spider || m.scuttler ? (u.legIndex || 0) * 0.85 + ((u.legIndex || 0) % 2) * Math.PI : (u.legIndex || 0) * Math.PI;
         limb.rotation.x = u.basePitch + Math.sin(m.bob * freq + phase) * amp;
         limb.rotation.z = Math.sin(m.bob * freq * 0.5 + phase) * (m.scuttler ? 0.32 : m.spider ? 0.22 : 0.1);
@@ -3092,7 +3143,7 @@ function tickMobs(dt) {
       } else {
         limb.rotation.x = u.basePitch + Math.sin(m.bob * 2.2 + u.phase) * 0.2;
       }
-      if (threatHold > 0.02 && u.form !== "torso" && limb !== m.jabLimb) {
+      if (threatHold > 0.02 && u.form !== "torso" && limb !== m.jabLimb && !m.army) {
         const raiseX = u.asLeg ? -1.08 : -1.58;
         limb.rotation.x = limb.rotation.x * (1 - threatHold) + raiseX * threatHold;
         limb.rotation.z = (limb.rotation.z || 0) + Math.sin(m.bob * 9 + (u.phase || 0)) * 0.1 * threatHold;
@@ -3154,7 +3205,7 @@ function tickMobs(dt) {
       const maxR = m.shotDef ? 48 : 34;
       if (m.fireCd <= 0 && dist > minR && dist < maxR) {
         const rpm = m.shotDef?.rpm || 0.55;
-        m.fireCd = (1 / Math.max(0.15, rpm)) * (0.7 + rng() * 0.5);
+        m.fireCd = (1 / Math.max(0.15, rpm)) * (0.7 + rng() * 0.5) * (m.fireSlow || 1);
         fireEnemyShot(m, tgt);
       }
     }
@@ -4625,9 +4676,9 @@ function fireEnemyShot(m, tgt) {
       const rocket = m.shotShape === "rocket";
       const geo = rocket
         ? new THREE.CylinderGeometry(0.055, 0.075, 0.34, 6)
-        : new THREE.CylinderGeometry(0.018, 0.012, 0.2, 5);
-      mesh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: rocket ? 0x88aa44 : 0xd4ff66 }));
-      mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
+        : new THREE.SphereGeometry(0.034, 7, 6);
+      mesh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: rocket ? 0xffcc44 : 0xffe14a }));
+      if (rocket) mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
     } else {
       const shape = m.shotShape || "ball";
       let geo;
