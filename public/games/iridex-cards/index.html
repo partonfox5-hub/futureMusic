@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="theme-color" content="#07080c" />
+    <title>IRIDEX Cards</title>
+    <link rel="canonical" href="https://futuremusic.online/cards" />
+    <link rel="stylesheet" href="/games/iridex-cards/css/game.css?v=c1" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <a class="bar-link" href="/">Future Music</a>
+    <canvas id="c"></canvas>
+    <div id="word">IRIDEX</div>
+    <div id="hud">
+      <div id="hud-line">Loading cards…</div>
+      <div id="hud-hint">Browser table of the Unity AR deck. Full passthrough still runs in Unity via Meta Link.</div>
+    </div>
+    <div id="start">
+      <div class="panel">
+        <p class="kicker">IRIDEX</p>
+        <h1>Card table</h1>
+        <p>
+          Same foil cards as the Unity AR project. Play here in the browser, on Quest WebXR,
+          or keep using <b>Unity + Meta Link</b> for passthrough AR.
+        </p>
+        <ul>
+          <li><b>Trigger / click</b> plays the selected card where you aim.</li>
+          <li><b>Grip + trigger</b> or Shift+click casts it as a spell.</li>
+          <li>Right stick or <b>Q / E</b> cycles the hand. <b>R</b> reshuffles.</li>
+        </ul>
+        <p class="desk">Desktop: WASD move, click to lock look, Esc unlocks the mouse.</p>
+        <div class="row">
+          <button type="button" id="go-vr">Enter VR</button>
+          <button type="button" id="go-ar" class="ghost">Enter AR</button>
+          <button type="button" id="go-desk" class="ghost">Desktop</button>
+        </div>
+      </div>
+    </div>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js"
+        }
+      }
+    </script>
+    <script type="module" src="/games/iridex-cards/js/game.js?v=c1"></script>
+  </body>
+</html>

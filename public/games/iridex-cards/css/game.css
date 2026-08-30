@@ -1,0 +1,101 @@
+:root {
+  --ink: #ece6d6;
+  --mute: #9aa3b2;
+  --gold: #e6b35c;
+  --void: #07080c;
+}
+
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--void);
+  color: var(--ink);
+  font-family: Outfit, system-ui, sans-serif;
+  overflow: hidden;
+  touch-action: none;
+}
+canvas { display: block; width: 100%; height: 100%; }
+
+#word {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 8;
+  margin: 0;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-size: 0.92rem;
+  color: var(--gold);
+  pointer-events: none;
+}
+#hud {
+  position: absolute;
+  left: 16px;
+  bottom: 16px;
+  z-index: 8;
+  pointer-events: none;
+  max-width: 28rem;
+  text-shadow: 0 2px 12px #000;
+}
+#hud-line { font-weight: 600; }
+#hud-hint { font-size: 0.82rem; color: var(--mute); line-height: 1.45; margin-top: 6px; }
+
+#start {
+  position: absolute;
+  inset: 0;
+  z-index: 12;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(ellipse at 50% 20%, #1a1420 0%, #07080c 70%);
+}
+#start[hidden] { display: none; }
+.panel {
+  width: min(92vw, 640px);
+  padding: 28px 28px 24px;
+  border: 1px solid rgba(230, 179, 92, 0.35);
+  background: rgba(10, 10, 16, 0.88);
+  border-radius: 12px;
+}
+.kicker {
+  color: var(--gold);
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  margin: 0 0 8px;
+}
+h1 {
+  margin: 0 0 12px;
+  font-size: clamp(1.8rem, 5vw, 2.6rem);
+  letter-spacing: 0.04em;
+}
+.panel p, .panel li { color: #c9c3b6; line-height: 1.5; }
+.row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+button {
+  font: inherit;
+  cursor: pointer;
+  border: 0;
+  border-radius: 6px;
+  padding: 10px 16px;
+  background: var(--gold);
+  color: #1a1208;
+  font-weight: 700;
+}
+button.ghost {
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid rgba(230, 179, 92, 0.45);
+}
+.desk { font-size: 0.85rem; color: var(--mute); }
+a.bar-link {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  z-index: 9;
+  color: var(--gold);
+  text-decoration: none;
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}

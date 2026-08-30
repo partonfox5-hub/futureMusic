@@ -421,6 +421,17 @@ app.get(["/blockbuild", "/blockbuild/"], (req, res) => {
     res.sendFile(path.join(__dirname, "public", "games", "blockbuild", "index.html"));
 });
 
+function cardsHeaders(res) {
+    res.setHeader("Permissions-Policy", "xr-spatial-tracking=(self), fullscreen=(self), gamepad=(self), accelerometer=(self), gyroscope=(self), magnetometer=(self)");
+    res.setHeader("X-Robots-Tag", "noindex, nofollow");
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+}
+app.get(["/games/iridex-cards", "/games/iridex-cards/"], (req, res) => res.redirect("/cards"));
+app.get(["/cards", "/cards/"], (req, res) => {
+    cardsHeaders(res);
+    res.sendFile(path.join(__dirname, "public", "games", "iridex-cards", "index.html"));
+});
+
 const BLOCKBUILD_SKU = "blockbuild-workshop";
 const BLOCKBUILD_PRICE_CENTS = 999;
 const BLOCKBUILD_COOKIE = "bb_unlock";
