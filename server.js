@@ -1038,6 +1038,108 @@ app.get(['/test-n4k8w2mt', '/test-n4k8w2mt/'], (req, res) => {
     res.setHeader('X-Robots-Tag', 'noindex, nofollow');
     res.render('test-n4k8w2mt', seo.page('projects'));
 });
+
+// Battle Sphere Arena — unlisted test (homepage banner + projects card + $15 paygate + WebXR play)
+const BSA_TEST = "q4m8w2k7";
+const BSA_SKU = "battle-sphere-arena";
+const BSA_PRICE_CENTS = 1500;
+const BSA_COOKIE = "bsa_unlock";
+function bsaHeaders(res) {
+    res.setHeader("X-Robots-Tag", "noindex, nofollow");
+    res.setHeader("Permissions-Policy", "xr-spatial-tracking=(self), fullscreen=(self), gamepad=(self), accelerometer=(self), gyroscope=(self), magnetometer=(self)");
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+}
+function bsaToken() {
+    const secret = process.env.SESSION_SECRET || "dev_secret_key_123";
+    return crypto.createHmac("sha256", secret).update(BSA_SKU).digest("hex").slice(0, 32);
+}
+function grantBsa(req, res) {
+    if (req.session) req.session.bsaPaid = true;
+    res.cookie(BSA_COOKIE, bsaToken(), {
+        httpOnly: true,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+        maxAge: 10 * 365 * 24 * 60 * 60 * 1000,
+        path: "/",
+    });
+}
+function hasBsa(req) {
+    if (homeGate.isHomeLan(req)) return true;
+    if (req.session && req.session.bsaPaid) return true;
+    const raw = String(req.headers.cookie || "");
+    for (const part of raw.split(";")) {
+        const idx = part.indexOf("=");
+        if (idx < 0) continue;
+        const k = part.slice(0, idx).trim();
+        if (k === BSA_COOKIE) return decodeURIComponent(part.slice(idx + 1).trim()) === bsaToken();
+    }
+    return false;
+}
+function sendBsaPlay(res) {
+    bsaHeaders(res);
+    res.sendFile(path.join(__dirname, "public", "games", "battle-sphere-arena", "index.html"));
+}
+app.get([`/test-${BSA_TEST}`, `/test-${BSA_TEST}/`], (req, res) => {
+    bsaHeaders(res);
+    res.render(`test-${BSA_TEST}`, { title: "Battle Sphere Arena — homepage preview", noIndex: true });
+});
+app.get([`/test-${BSA_TEST}/projects`, `/test-${BSA_TEST}/projects/`], (req, res) => {
+    bsaHeaders(res);
+    res.render(`test-${BSA_TEST}-projects`, { title: "Battle Sphere Arena — projects preview", noIndex: true });
+});
+app.get([`/test-${BSA_TEST}/arena`, `/test-${BSA_TEST}/arena/`], (req, res) => {
+    bsaHeaders(res);
+    if (hasBsa(req)) return res.redirect(302, `/test-${BSA_TEST}/play`);
+    res.render(`test-${BSA_TEST}-arena`, { title: "Battle Sphere Arena — $15", noIndex: true });
+});
+app.get([`/test-${BSA_TEST}/play`, `/test-${BSA_TEST}/play/`], async (req, res) => {
+    const sessionId = String(req.query.session_id || "");
+    if (sessionId && stripe) {
+        try {
+            const session = await stripe.checkout.sessions.retrieve(sessionId);
+            if (session.payment_status === "paid" && session.metadata?.sku === BSA_SKU) {
+                grantBsa(req, res);
+            }
+        } catch (e) {
+            console.warn("[BSA] verify:", e.message);
+        }
+    }
+    if (!hasBsa(req)) return res.redirect(302, `/test-${BSA_TEST}/arena`);
+    sendBsaPlay(res);
+});
+app.post("/api/bsa-test/checkout", async (req, res) => {
+    if (!stripe) return res.status(503).json({ error: "Payments are not configured." });
+    try {
+        const protocol = req.headers["x-forwarded-proto"] || req.protocol;
+        const host = req.get("host");
+        const domain = `${protocol}://${host}`;
+        const session = await stripe.checkout.sessions.create({
+            payment_method_types: ["card"],
+            mode: "payment",
+            line_items: [{
+                price_data: {
+                    currency: "usd",
+                    unit_amount: BSA_PRICE_CENTS,
+                    product_data: {
+                        name: "Battle Sphere Arena",
+                        description: "Unlock browser + WebXR play. One-time $15.",
+                        images: [`${domain}/images/battle-sphere-arena/cover.jpg`],
+                    },
+                },
+                quantity: 1,
+            }],
+            metadata: { sku: BSA_SKU, type: "bsa_unlock" },
+            success_url: `${domain}/test-${BSA_TEST}/play?session_id={CHECKOUT_SESSION_ID}`,
+            cancel_url: `${domain}/test-${BSA_TEST}/arena`,
+            customer_email: req.session.email || undefined,
+        });
+        res.json({ url: session.url, sessionId: session.id });
+    } catch (e) {
+        console.error("[BSA] checkout", e);
+        res.status(500).json({ error: e.message || "Checkout failed" });
+    }
+});
+
 try {
     const chessLobby = require('./chess-lobby.cjs');
     app.all('/api/chess-lobby', chessLobby);
@@ -2852,6 +2954,8 @@ app.post('/webhook', express.raw({type: 'application/json'}), async (request, re
     const session = event.data.object;
     if (session.metadata && session.metadata.type === "blockbuild_unlock") {
         console.log("[BLOCKBUILD] paid", session.id);
+    } else if (session.metadata && session.metadata.type === "bsa_unlock") {
+        console.log("[BSA] paid", session.id);
     } else if(session.metadata && session.metadata.type === 'skin_purchase') {
         if(pool) {
             await pool.query("INSERT IGNORE INTO user_skins (user_id, skin_id) VALUES (?, ?)", 

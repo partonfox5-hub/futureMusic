@@ -1,0 +1,75 @@
+<%- include('partials/header') %>
+
+<style>
+  .bsa-bleed { width: 100vw; margin-left: calc(50% - 50vw); margin-right: calc(50% - 50vw); }
+  .bsa-stage { position: relative; width: min(1100px, 92vw); margin: 24px auto 0; aspect-ratio: 16 / 9; background: #041018; overflow: hidden; border: 1px solid rgba(212,175,55,0.35); }
+  .bsa-stage video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .bsa-buy {
+    background: rgba(10, 10, 10, 0.88);
+    border: 1px solid rgba(212, 175, 55, 0.45);
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45), 0 0 40px rgba(212, 175, 55, 0.08);
+  }
+  .bsa-price { font-family: Cinzel, serif; font-size: clamp(2rem, 5vw, 3.1rem); color: #D4AF37; line-height: 1; margin: 10px 0 12px; }
+  .bsa-buy-btn {
+    appearance: none; border: 0; cursor: pointer; width: 100%;
+    background: linear-gradient(45deg, #AA8C2C, #D4AF37); color: #000;
+    font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+    padding: 16px 28px; border-radius: 4px; font-size: 14px;
+  }
+  .bsa-buy-btn:hover { filter: brightness(1.08); }
+  .bsa-buy-btn:disabled { opacity: 0.55; cursor: wait; }
+</style>
+
+<p class="text-center text-xs tracking-widest uppercase text-[#20B2AA] pt-4">Unlisted test · $15 Stripe paygate</p>
+
+<section class="bsa-bleed">
+  <div class="bsa-stage">
+    <video id="demo-vid" autoplay muted loop playsinline preload="auto" poster="/images/battle-sphere-arena/cover.jpg" controls>
+      <source src="/games/battle-sphere-arena/trailer.mp4" type="video/mp4" />
+    </video>
+  </div>
+</section>
+
+<section class="max-w-6xl mx-auto my-10 sm:my-14 px-4">
+  <div class="bsa-buy rounded-xl p-8 md:p-12">
+    <div class="grid grid-cols-1 md:grid-cols-5 gap-8 md:gap-12 items-center">
+      <div class="md:col-span-3">
+        <p class="tracking-[0.22em] uppercase text-xs text-[#D4AF37] font-bold m-0 mb-2">Future Music Collective · New Release</p>
+        <h1 class="text-4xl md:text-6xl text-gold brand-font uppercase tracking-wide m-0">Battle Sphere Arena</h1>
+        <p class="text-gray-300 text-lg leading-relaxed mt-4 mb-0">
+          Zero-g melee inside a livestreamed coliseum of linked spheres. Fly, cut, and hunt before your power hits zero.
+          After checkout the browser VR build loads here — desktop or Quest browser (WebXR).
+        </p>
+        <div class="bsa-price">$15</div>
+        <p class="text-gray-400 m-0">One-time unlock on this website. No subscription.</p>
+      </div>
+      <div class="md:col-span-2">
+        <button type="button" id="buy" class="bsa-buy-btn">Unlock Arena — $15</button>
+        <p class="text-red-400 text-sm min-h-[1.2em] mt-3 mb-0" id="err"></p>
+        <p class="text-gray-500 text-sm mt-4 mb-0 leading-relaxed">
+          Home network skips the paygate automatically.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  document.getElementById("buy").onclick = async function () {
+    var err = document.getElementById("err");
+    var btn = this;
+    err.textContent = "";
+    btn.disabled = true;
+    try {
+      var res = await fetch("/api/bsa-test/checkout", { method: "POST", headers: { "content-type": "application/json" }, body: "{}" });
+      var data = await res.json();
+      if (data.url) { location.href = data.url; return; }
+      err.textContent = data.error || "Checkout could not start.";
+    } catch (e) {
+      err.textContent = "Checkout is available on futuremusic.online.";
+    }
+    btn.disabled = false;
+  };
+</script>
+
+<%- include('partials/footer') %>

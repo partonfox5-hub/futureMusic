@@ -1,0 +1,89 @@
+<%- include('partials/header') %>
+
+<style>
+.hs-featured-card {
+  box-shadow: 0 0 0 1px rgba(212,175,55,0.45), 0 0 28px rgba(212,175,55,0.35), 0 0 60px rgba(160,80,255,0.18) !important;
+  animation: hs-card-pulse 3.2s ease-in-out infinite;
+}
+.hs-featured-card .hs-aura {
+  pointer-events: none; position: absolute; inset: -3px; border-radius: 0.75rem; z-index: 0;
+  background: conic-gradient(from 0deg, #D4AF37, #20B2AA, #c080ff, #F4C430, #D4AF37);
+  opacity: 0.55; filter: blur(10px); animation: hs-aura-spin 6s linear infinite;
+}
+.hs-featured-card > *:not(.hs-aura) { position: relative; z-index: 1; }
+@keyframes hs-aura-spin { to { transform: rotate(360deg); } }
+@keyframes hs-card-pulse {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(212,175,55,0.45), 0 0 24px rgba(212,175,55,0.3), 0 0 48px rgba(160,80,255,0.15); }
+  50% { box-shadow: 0 0 0 1px rgba(244,196,48,0.7), 0 0 40px rgba(212,175,55,0.55), 0 0 72px rgba(192,128,255,0.28); }
+}
+</style>
+
+<section class="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+    <p class="text-center text-xs tracking-widest uppercase text-[#20B2AA] mb-4">Unlisted test · Battle Sphere Arena is the lead featured card</p>
+    <h1 class="text-4xl md:text-6xl text-center mb-6 text-gold">PROJECT ARCHIVE</h1>
+    <p class="text-center text-gray-300 max-w-3xl mx-auto mb-16 text-lg leading-relaxed">
+        Free HTML5 browser games and tools from Future Music Collective. Battle Sphere Arena is the new $15 browser + WebXR release. Hero Slayer alpha is the paid Windows download. Blockbuild is a $9.99 desktop + VR brick workshop.
+    </p>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+
+        <div class="hs-featured-card glass-card rounded-xl overflow-hidden shadow-2xl border border-[#D4AF37]/60 flex flex-col h-full bg-gray-800/50 relative">
+            <div class="hs-aura" aria-hidden="true"></div>
+            <a href="/test-q4m8w2k7/arena" class="relative w-full aspect-square group block overflow-hidden bg-gray-900 z-10">
+                <img src="/images/battle-sphere-arena/card.jpg" alt="Battle Sphere Arena" class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105">
+                <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+                <div class="absolute top-3 right-3 z-20 bg-black/85 border border-[#D4AF37] text-[#D4AF37] px-3 py-1.5 rounded text-xs font-bold tracking-wide">
+                    $15 · Browser + VR
+                </div>
+                <div class="absolute bottom-4 left-0 right-0 text-center z-20">
+                    <span class="inline-block bg-[#D4AF37] text-black px-4 py-2 rounded font-bold text-sm uppercase tracking-wider">New Release</span>
+                </div>
+            </a>
+            <div class="p-6 flex flex-col flex-grow justify-between relative z-10">
+                <div>
+                    <h3 class="text-2xl font-bold text-[#D4AF37] mb-2 font-serif uppercase">Battle Sphere Arena</h3>
+                    <p class="text-gray-300 text-[15px] leading-relaxed mb-3">
+                        Zero-g VR melee in a livestreamed coliseum of linked spheres. Fly, cut, and hunt before your power hits zero.
+                    </p>
+                    <p class="text-[#20B2AA] text-sm font-bold mb-4">One-time unlock · $15</p>
+                </div>
+                <a href="/test-q4m8w2k7/arena" class="block w-full bg-[#D4AF37] text-black py-3 rounded font-bold hover:bg-white transition-colors text-center uppercase tracking-wider">
+                    Unlock Arena — $15
+                </a>
+            </div>
+        </div>
+
+        <div class="glass-card rounded-xl overflow-hidden shadow-2xl border border-[#D4AF37]/60 flex flex-col h-full bg-gray-800/50">
+            <a href="/hero-slayer" class="relative w-full aspect-square group block overflow-hidden bg-gray-900">
+                <img src="/images/hero-slayer/demon_king.jpg" alt="Hero Slayer" class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105">
+                <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+                <div class="absolute top-3 right-3 z-20 bg-black/85 border border-[#D4AF37] text-[#D4AF37] px-3 py-1.5 rounded text-xs font-bold tracking-wide">
+                    <span class="line-through text-gray-500 mr-1">$20</span> $5
+                </div>
+            </a>
+            <div class="p-6 flex flex-col flex-grow justify-between">
+                <div>
+                    <h3 class="text-2xl font-bold text-[#D4AF37] mb-2 font-serif uppercase">Hero Slayer</h3>
+                    <p class="text-gray-300 text-[15px] leading-relaxed mb-4">Mythology army builder and bullet hell. Windows alpha.</p>
+                </div>
+                <a href="/hero-slayer" class="block w-full bg-[#D4AF37] text-black py-3 rounded font-bold hover:bg-white transition-colors text-center uppercase tracking-wider">Buy Alpha — $5</a>
+            </div>
+        </div>
+
+        <div class="glass-card rounded-xl overflow-hidden shadow-2xl border border-[#D4AF37]/50 flex flex-col h-full bg-gray-800/50">
+            <a href="/bricks" class="relative w-full aspect-square group block overflow-hidden bg-gray-900">
+                <img src="/images/blockbuild.jpg" alt="Blockbuild" class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105">
+                <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+            </a>
+            <div class="p-6 flex flex-col flex-grow justify-between">
+                <div>
+                    <h3 class="text-2xl font-bold text-[#D4AF37] mb-2 font-serif uppercase">Blockbuild</h3>
+                    <p class="text-gray-300 text-[15px] leading-relaxed mb-4">Stud-brick workshop. Desktop + VR.</p>
+                </div>
+                <a href="/bricks" class="block w-full bg-[#D4AF37] text-black py-3 rounded font-bold hover:bg-white transition-colors text-center uppercase tracking-wider">Unlock — $9.99</a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<%- include('partials/footer') %>
