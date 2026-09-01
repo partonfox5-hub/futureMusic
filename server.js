@@ -1034,6 +1034,10 @@ app.get('/test-r8k2m6qv', (req, res) => {
     res.setHeader('Permissions-Policy', 'xr-spatial-tracking=(self), fullscreen=(self), gamepad=(self), accelerometer=(self), gyroscope=(self), magnetometer=(self)');
     res.render('test-r8k2m6qv');
 });
+app.get(['/test-n4k8w2mt', '/test-n4k8w2mt/'], (req, res) => {
+    res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+    res.render('test-n4k8w2mt', seo.page('projects'));
+});
 try {
     const chessLobby = require('./chess-lobby.cjs');
     app.all('/api/chess-lobby', chessLobby);

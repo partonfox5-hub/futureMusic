@@ -1,0 +1,537 @@
+<%- include('partials/header') %>
+
+<style>
+/* Hero Slayer featured card — shiny gold aura */
+.hs-featured-card {
+  box-shadow: 0 0 0 1px rgba(212,175,55,0.45), 0 0 28px rgba(212,175,55,0.35), 0 0 60px rgba(160,80,255,0.18) !important;
+  animation: hs-card-pulse 3.2s ease-in-out infinite;
+}
+.hs-featured-card .hs-aura {
+  pointer-events: none;
+  position: absolute;
+  inset: -3px;
+  border-radius: 0.75rem;
+  z-index: 0;
+  background: conic-gradient(from 0deg, #D4AF37, #20B2AA, #c080ff, #F4C430, #D4AF37);
+  opacity: 0.55;
+  filter: blur(10px);
+  animation: hs-aura-spin 6s linear infinite;
+}
+.hs-featured-card > *:not(.hs-aura) { position: relative; z-index: 1; }
+@keyframes hs-aura-spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes hs-card-pulse {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(212,175,55,0.45), 0 0 24px rgba(212,175,55,0.3), 0 0 48px rgba(160,80,255,0.15); }
+  50% { box-shadow: 0 0 0 1px rgba(244,196,48,0.7), 0 0 40px rgba(212,175,55,0.55), 0 0 72px rgba(192,128,255,0.28); }
+}
+</style>
+
+
+<section class="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+    <p class="text-center text-xs tracking-widest uppercase text-[#20B2AA] mb-4">Unlisted test · Blockbuilder card uses the windmill promo</p>
+    <h1 class="text-4xl md:text-6xl text-center mb-6 text-gold">PROJECT ARCHIVE</h1>
+    <p class="text-center text-gray-300 max-w-3xl mx-auto mb-16 text-lg leading-relaxed">
+        Free HTML5 browser games and tools from Future Music Collective — Creature Chess, zombie tower defense, arcade action, animal survival, painting combat, strategy, and a random number generator. Hero Slayer alpha is the paid Windows download. Blockbuild is a $9.99 desktop + VR brick workshop.
+    </p>
+    
+    <div class="flex flex-col gap-16">
+
+     <!-- GAMES SECTION -->
+        <div class="w-full mb-8">
+            <h2 class="text-3xl md:text-5xl font-bold text-center mb-12 text-[#D4AF37] font-serif uppercase tracking-widest border-b border-gray-700 pb-6">Games</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+
+                
+                <!-- HERO SLAYER (PAID ALPHA) -->
+                <div class="hs-featured-card glass-card rounded-xl overflow-hidden shadow-2xl border border-[#D4AF37]/60 flex flex-col h-full bg-gray-800/50 relative">
+                    <div class="hs-aura" aria-hidden="true"></div>
+                    <a href="/hero-slayer" class="relative w-full aspect-square group block overflow-hidden bg-gray-900 z-10">
+                        <img src="/images/hero-slayer/demon_king.jpg" alt="Hero Slayer" class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 opacity-95 group-hover:opacity-100" onerror="this.src='/images/FALLBACK_IMG.png'">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+                        <div class="absolute top-3 right-3 z-20 bg-black/85 border border-[#D4AF37] text-[#D4AF37] px-3 py-1.5 rounded text-xs font-bold tracking-wide">
+                            <span class="line-through text-gray-500 mr-1">$20</span> $5 · 75% OFF
+                        </div>
+                        <div class="absolute bottom-4 left-0 right-0 text-center z-20">
+                            <span class="inline-block bg-[#D4AF37] text-black px-4 py-2 rounded font-bold text-sm uppercase tracking-wider">Alpha Access</span>
+                        </div>
+                    </a>
+                    <div class="p-6 flex flex-col flex-grow justify-between relative z-10">
+                        <div>
+                            <h3 class="text-2xl font-bold text-[#D4AF37] mb-2 font-serif uppercase">Hero Slayer</h3>
+                            <p class="text-gray-300 text-[15px] leading-relaxed mb-3">
+                                Summon and upgrade armies of unique units to slay hero characters in this audiologically upbeat stylistic top-down and FPS hybrid strategy and bullet hell with a mythological theme.
+                            </p>
+                            <p class="text-[#20B2AA] text-sm font-bold mb-4">Alpha sale: 75% off retail ($20 → $5)</p>
+                        </div>
+                        <a href="/hero-slayer" class="block w-full bg-[#D4AF37] text-black py-3 rounded font-bold hover:bg-white transition-colors text-center uppercase tracking-wider">
+                            Buy Alpha Access — $5
+                        </a>
+                    </div>
+                </div>
+
+                <!-- BLOCKBUILD (PAID WORKSHOP) -->
+                <div class="glass-card rounded-xl overflow-hidden shadow-2xl border border-[#D4AF37]/50 flex flex-col h-full bg-gray-800/50">
+                    <a href="/bricks" class="relative w-full aspect-square group block overflow-hidden bg-gray-900">
+                        <img src="/images/blockbuilder-windmill.jpg" alt="Blockbuilder" class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 opacity-95 group-hover:opacity-100" onerror="this.src='/images/FALLBACK_IMG.png'">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+                        <div class="absolute top-3 right-3 z-20 bg-black/85 border border-[#D4AF37] text-[#D4AF37] px-3 py-1.5 rounded text-xs font-bold tracking-wide">
+                            $9.99 · Desktop + VR
+                        </div>
+                        <div class="absolute bottom-4 left-0 right-0 text-center z-20">
+                            <span class="inline-block bg-[#D4AF37] text-black px-4 py-2 rounded font-bold text-sm uppercase tracking-wider">Workshop</span>
+                        </div>
+                    </a>
+                    <div class="p-6 flex flex-col flex-grow justify-between">
+                        <div>
+                            <h3 class="text-2xl font-bold text-[#D4AF37] mb-2 font-serif uppercase">Blockbuild</h3>
+                            <p class="text-gray-300 text-[15px] leading-relaxed mb-3">
+                                Fly an empty sky and snap studded bricks on a quiet table. Interlock, melt, cannon, minifigs — desktop and VR. One-time $9.99 unlock.
+                            </p>
+                            <p class="text-[#20B2AA] text-sm font-bold mb-4">Paygated workshop · $9.99</p>
+                        </div>
+                        <a href="/bricks" class="block w-full bg-[#D4AF37] text-black py-3 rounded font-bold hover:bg-white transition-colors text-center uppercase tracking-wider">
+                            Unlock Blockbuild — $9.99
+                        </a>
+                    </div>
+                </div>
+<% /* Rampart Reborn — still live at /rampart; hidden from Projects listing for now */ %>
+<% /* ZOOM — still live at /zoom and /zoommaps; hidden from Projects listing for now */ %>
+<% /* THE HORDE — still live at /horde; hidden from Projects listing until owner says so */ %>
+
+                <!-- CREATURE CHESS -->
+                <div class="glass-card rounded-xl overflow-hidden shadow-2xl border border-gray-700 flex flex-col h-full bg-gray-800/50">
+                    <a href="/chess" class="relative w-full aspect-square group block overflow-hidden bg-gray-900">
+                        <img src="/images/creature-chess.jpg" alt="Creature Chess" class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 opacity-90 group-hover:opacity-100" onerror="this.src='/images/FALLBACK_IMG.png'">
+                        <div class="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center">
+                            <div class="w-16 h-16 rounded-full border-4 border-[#D4AF37] flex items-center justify-center group-hover:bg-[#D4AF37] group-hover:text-black transition-all duration-300">
+                                <span class="text-2xl ml-1 text-white group-hover:text-black">▶</span>
+                            </div>
+                        </div>
+                        <div class="absolute top-3 right-3 z-20 bg-black/85 border border-[#D4AF37] text-[#D4AF37] px-3 py-1.5 rounded text-xs font-bold tracking-wide">
+                            Free · Packs $1.99
+                        </div>
+                    </a>
+                    <div class="p-6 flex flex-col flex-grow justify-between">
+                        <div>
+                            <h3 class="text-2xl font-bold text-[#D4AF37] mb-2 font-serif uppercase">Creature Chess</h3>
+                            <p class="text-gray-300 text-[15px] leading-relaxed mb-4">
+                                Draft original creatures onto every chess piece. Captures become battles. Build a spell-and-trap deck, or play classic. $1.99 packs unlock Terraform, Curse of Medusa, Rites of Flame, and larger Map theatres.
+                            </p>
+                        </div>
+                        <a href="/chess" class="block w-full bg-[#D4AF37] text-black py-3 rounded font-bold hover:bg-white transition-colors text-center uppercase tracking-wider">
+                            Play Creature Chess
+                        </a>
+                    </div>
+                </div>
+
+                <!-- ZOMBIE OUTPOST DEFENSE (NEW) -->
+                <div class="glass-card rounded-xl overflow-hidden shadow-2xl border border-gray-700 flex flex-col h-full bg-gray-800/50">
+                    <a href="/zombie-defense" class="relative w-full aspect-square group block overflow-hidden bg-gray-900">
+                        <img src="/images/zombie-thumbnail.png" alt="Zombie Outpost Defense" class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 opacity-90 group-hover:opacity-100" onerror="this.src='/images/FALLBACK_IMG.png'">
+                        <div class="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center">
+                            <div class="w-16 h-16 rounded-full border-4 border-[#D4AF37] flex items-center justify-center group-hover:bg-[#D4AF37] group-hover:text-black transition-all duration-300">
+                                <span class="text-2xl ml-1 text-white group-hover:text-black">▶</span>
+                            </div>
+                        </div>
+                    </a>
+                    <div class="p-6 flex flex-col flex-grow justify-between">
+                        <div>
+                            <h3 class="text-2xl font-bold text-[#D4AF37] mb-2 font-serif uppercase">Zombie Outpost Defense</h3>
+                            <p class="text-gray-300 text-[15px] leading-relaxed mb-4">
+                                Defend your camp against endless waves of the undead! Draw tactical defenses, hire specialized units, upgrade your arsenal, and survive the apocalypse in this intense strategy survival game.
+                            </p>
+                        </div>
+                        <a href="/zombie-defense" class="block w-full bg-[#D4AF37] text-black py-3 rounded font-bold hover:bg-white transition-colors text-center uppercase tracking-wider">
+                            Play Full Screen
+                        </a>
+                    </div>
+                </div>
+
+                <!-- PAINTCADIA (NEW) -->
+                <div class="glass-card rounded-xl overflow-hidden shadow-2xl border border-gray-700 flex flex-col h-full bg-gray-800/50">
+                    <a href="/paintcadia" class="relative w-full aspect-square group block overflow-hidden bg-gray-900">
+                        <img src="/images/paintcadia-thumbnail.png" alt="Paintcadia" class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 opacity-90 group-hover:opacity-100" onerror="this.src='/images/FALLBACK_IMG.png'">
+                        <div class="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center">
+                            <div class="w-16 h-16 rounded-full border-4 border-[#D4AF37] flex items-center justify-center group-hover:bg-[#D4AF37] group-hover:text-black transition-all duration-300">
+                                <span class="text-2xl ml-1 text-white group-hover:text-black">▶</span>
+                            </div>
+                        </div>
+                    </a>
+                    <div class="p-6 flex flex-col flex-grow justify-between">
+                        <div>
+                            <h3 class="text-2xl font-bold text-[#D4AF37] mb-2 font-serif uppercase">Paintcadia</h3>
+                            <p class="text-gray-300 text-[15px] leading-relaxed mb-4">
+                                Step into a vibrant world of colors and creativity. Paintcadia is an immersive experience where your artistic vision shapes the environment. Unleash your imagination and explore a canvas without limits.
+                            </p>
+                        </div>
+                        <a href="/paintcadia" class="block w-full bg-[#D4AF37] text-black py-3 rounded font-bold hover:bg-white transition-colors text-center uppercase tracking-wider">
+                            Play Full Screen
+                        </a>
+                    </div>
+                </div>
+
+                <!-- ADDICTION SLAYER -->
+                <div class="glass-card rounded-xl overflow-hidden shadow-2xl border border-gray-700 flex flex-col h-full bg-gray-800/50">
+                    <a href="/addiction-slayer" class="relative w-full aspect-square group block overflow-hidden bg-gray-900">
+                        <img src="/images/addictionSlayer.png" alt="Addiction Slayer" class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 opacity-90 group-hover:opacity-100">
+                        <div class="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center">
+                            <div class="w-16 h-16 rounded-full border-4 border-[#D4AF37] flex items-center justify-center group-hover:bg-[#D4AF37] group-hover:text-black transition-all duration-300">
+                                <span class="text-2xl ml-1 text-white group-hover:text-black">▶</span>
+                            </div>
+                        </div>
+                    </a>
+                    <div class="p-6 flex flex-col flex-grow justify-between">
+                        <div>
+                            <h3 class="text-2xl font-bold text-[#D4AF37] mb-2 font-serif uppercase">Addiction Slayer</h3>
+                            <p class="text-gray-300 text-[15px] leading-relaxed mb-4">
+                                Break the cycle in this adrenaline-fueled arcade experience. Face down the physical manifestations of your darkest impulses, utilizing strategic reflexes and precision strikes to reclaim your autonomy.
+                            </p>
+                        </div>
+                        <a href="/addiction-slayer" class="block w-full bg-[#D4AF37] text-black py-3 rounded font-bold hover:bg-white transition-colors text-center uppercase tracking-wider">
+                            Play Full Screen
+                        </a>
+                    </div>
+                </div>
+
+                <!-- COLOR CONTAGION -->
+                <div class="glass-card rounded-xl overflow-hidden shadow-2xl border border-gray-700 flex flex-col h-full bg-gray-800/50">
+                    <a href="/color-contagion" class="relative w-full aspect-square group block overflow-hidden bg-gray-900">
+                        <img src="/images/FALLBACK_IMG.png" alt="Color Contagion" class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 opacity-90 group-hover:opacity-100">
+                        <div class="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center">
+                            <div class="w-16 h-16 rounded-full border-4 border-[#D4AF37] flex items-center justify-center group-hover:bg-[#D4AF37] group-hover:text-black transition-all duration-300">
+                                <span class="text-2xl ml-1 text-white group-hover:text-black">▶</span>
+                            </div>
+                        </div>
+                    </a>
+                    <div class="p-6 flex flex-col flex-grow justify-between">
+                        <div>
+                            <h3 class="text-2xl font-bold text-[#D4AF37] mb-2 font-serif uppercase">Color Contagion</h3>
+                            <p class="text-gray-300 text-[15px] leading-relaxed mb-4 line-clamp-6">
+                                Colorization is a simple and relaxing game that gives the player a sense of progress as they upgrade different regions of their character's brain in order to create inventions, engage in dialogue, and colorize a black and white world.
+                            </p>
+                        </div>
+                        <a href="/color-contagion" class="block w-full bg-[#D4AF37] text-black py-3 rounded font-bold hover:bg-white transition-colors text-center uppercase tracking-wider">
+                            Play Color Contagion
+                        </a>
+                    </div>
+                </div>
+
+                <!-- HERD-ORAMA -->
+                <div class="glass-card rounded-xl overflow-hidden shadow-2xl border border-gray-700 flex flex-col h-full bg-gray-800/50">
+                    <a href="/herd-orama" class="relative w-full aspect-square group block overflow-hidden bg-gray-900">
+                        <img src="/herd.io%20distribution/menu_background.png" alt="Herd-Orama" class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 opacity-90 group-hover:opacity-100">
+                        <div class="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center">
+                            <div class="w-16 h-16 rounded-full border-4 border-[#D4AF37] flex items-center justify-center group-hover:bg-[#D4AF37] group-hover:text-black transition-all duration-300">
+                                <span class="text-2xl ml-1 text-white group-hover:text-black">▶</span>
+                            </div>
+                        </div>
+                    </a>
+                    <div class="p-6 flex flex-col flex-grow justify-between">
+                        <div>
+                            <h3 class="text-2xl font-bold text-[#D4AF37] mb-2 font-serif uppercase">Herd-Orama</h3>
+                            <p class="text-gray-300 text-[15px] leading-relaxed mb-4">
+                                Enter the wild in this browser-based survival experience. Navigate the ecosystem, grow your herd, and compete for dominance in a ruthless natural world.
+                            </p>
+                        </div>
+                        <a href="/herd-orama" class="block w-full border-2 border-[#D4AF37] text-[#D4AF37] py-3 rounded font-bold hover:bg-[#D4AF37] hover:text-black transition-colors text-center uppercase tracking-wider">
+                            Launch Herd-Orama
+                        </a>
+                    </div>
+                </div>
+
+                <!-- TARGET CATHARSIS -->
+                <div class="glass-card rounded-xl overflow-hidden shadow-2xl border border-gray-700 flex flex-col h-full bg-gray-800/50">
+                    <a href="/target-catharsis" class="relative w-full aspect-square group block overflow-hidden bg-gray-900">
+                        <img src="/images/target.png" alt="Target Catharsis" class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 opacity-90 group-hover:opacity-100">
+                        <div class="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center">
+                            <div class="w-16 h-16 rounded-full border-4 border-[#D4AF37] flex items-center justify-center group-hover:bg-[#D4AF37] group-hover:text-black transition-all duration-300">
+                                <span class="text-2xl ml-1 text-white group-hover:text-black">▶</span>
+                            </div>
+                        </div>
+                    </a>
+                    <div class="p-6 flex flex-col flex-grow justify-between">
+                        <div>
+                            <h3 class="text-2xl font-bold text-[#D4AF37] mb-2 font-serif uppercase">Target Catharsis</h3>
+                            <p class="text-gray-300 text-[15px] leading-relaxed mb-4">
+                                A precision-based arcade challenge focusing on rhythm, reflexes, and visual harmony. Enter the zone and find your target.
+                            </p>
+                        </div>
+                        <a href="/target-catharsis" class="block w-full border-2 border-[#D4AF37] text-[#D4AF37] py-3 rounded font-bold hover:bg-[#D4AF37] hover:text-black transition-colors text-center uppercase tracking-wider">
+                            Launch Experience
+                        </a>
+                    </div>
+                </div>
+
+                <!-- DOMAIN -->
+                <div class="glass-card rounded-xl overflow-hidden shadow-2xl border border-gray-700 flex flex-col h-full bg-gray-800/50">
+                    <a href="/domain" class="relative w-full aspect-square group block overflow-hidden bg-gray-900">
+                        <img src="/images/domain3.png" alt="Domain Project" class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 opacity-90 group-hover:opacity-100">
+                        <div class="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center">
+                            <div class="w-16 h-16 rounded-full border-4 border-[#D4AF37] flex items-center justify-center group-hover:bg-[#D4AF37] group-hover:text-black transition-all duration-300">
+                                <span class="text-2xl ml-1 text-white group-hover:text-black">▶</span>
+                            </div>
+                        </div>
+                    </a>
+                    <div class="p-6 flex flex-col flex-grow justify-between">
+                        <div>
+                            <h3 class="text-2xl font-bold text-[#D4AF37] mb-2 font-serif uppercase">Domain</h3>
+                            <p class="text-gray-300 text-[15px] leading-relaxed mb-4">
+                                Chess meets dueling monsters with a civilized twist. Manage ethereal resource pools to overwhelm your opponent with classic abilities and civ construction.
+                            </p>
+                        </div>
+                        <a href="/domain" class="block w-full bg-[#D4AF37] text-black py-3 rounded font-bold hover:bg-white transition-colors text-center uppercase tracking-wider">
+                            Explore Domain
+                        </a>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+
+
+
+        <!-- SECTION 2: MASHUP ALBUM TRILOGY (Bouncing Image) -->
+        <div class="glass-card rounded-xl overflow-hidden border border-gray-700">
+            <div class="grid grid-cols-1 md:grid-cols-2">
+                <!-- Bouncing Image Container -->
+                <div id="mashup-container" class="relative h-96 bg-black overflow-hidden border-b md:border-b-0 md:border-r border-gray-700 cursor-crosshair">
+                    <img 
+                        id="bouncing-mashup" 
+                        src="/images/mashup.png" 
+                        alt="Mashup Trilogy" 
+                        class="absolute w-32 h-32 rounded-full object-cover shadow-2xl border-2 border-[#D4AF37] z-10"
+                        style="will-change: transform;"
+                    >
+                    <!-- Optional: Subtle grid background for the container -->
+                    <div class="absolute inset-0 opacity-20" style="background-image: radial-gradient(#333 1px, transparent 1px); background-size: 20px 20px;"></div>
+                </div>
+
+                <!-- Album Bio -->
+                <div class="p-8 flex flex-col justify-center">
+                    <h3 class="text-2xl font-bold text-[#D4AF37] mb-2 font-serif">MASHUP TRILOGY</h3>
+                    <p class="text-gray-400 mb-6 text-sm">Cavalcade of Disparity (CD) | New Game | The Last Testament</p>
+                    
+                    <div class="text-gray-300 leading-relaxed mb-6">
+                        <!-- UPDATE BIO HERE -->
+                        <p>
+                           My mashup trilogy is something near and dear to my heart which is unfortunately yet unreleased. Although I am well aware our current justice system is a sick joke and a crapshoot, I have been in a state of occupation with other pursuits unwilling to release the tapestries of expression I created using a patchwork quilt of well over a hundred other artist's works, stitches of audio anywhere from 1 second to multiple minutes, to create a dynamic and original experience exploring the depths of my own psyche, and humanity at large. It is as of yet by our primitive justice infrastructure's position highly illegal except by defense of transformative use - which blatantly applies here. However I was mafia whacked both in criminal and civil court shortly after its' completion by judges who ignored all legal precedent to ensure I were the loser in multiple arbitrary cases I was attacked out of the blue with, making me realize the arduousness of the undertaking just to release such beauty to the world. I have not been in a position where I felt fit to fight the battle, so these albums are still yet to be released. 
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION 3: AI ALBUM (Single Image Link) -->
+        <div class="glass-card rounded-xl overflow-hidden border border-gray-700">
+            <div class="grid grid-cols-1 md:grid-cols-2">
+                <!-- Text on Left -->
+                <div class="p-8 flex flex-col justify-center order-2 md:order-1">
+                    <h3 class="text-2xl font-bold text-[#D4AF37] mb-2 font-serif uppercase leading-tight">
+                        Lyrics by human,<br>generations by AI,<br>curated by human
+                    </h3>
+                    <p class="text-gray-400 mb-6 text-sm mt-2">LATEST AI ALBUM</p>
+                    
+                    <div class="text-gray-300 leading-relaxed mb-6">
+                         <!-- UPDATE BIO HERE -->
+                        <p>
+                          AI generative music enables anyone with an idea for audio to create beautiful soundscapes with minimal toil, maximizing the enjoyment and output of the art for the mentally active yet technically lazy. My latest album-in-progress is "Holocaustic rapture" embolizing the explosive conversion to enlightenment of large swaths of humanity at once.
+                        </p>
+                    </div>
+
+                    <a href="https://www.youtube.com/playlist?list=PLtcPmGq9to5gLNaGPGIUT_VOkvPCA3UPA" target="_blank" class="inline-flex items-center gap-2 text-[#20B2AA] hover:text-white uppercase text-sm font-bold tracking-wider w-fit">
+                        Listen on YouTube &rarr;
+                    </a>
+                </div>
+
+                <!-- Playlist Image Link (Right) -->
+                <a href="https://www.youtube.com/playlist?list=PLtcPmGq9to5gLNaGPGIUT_VOkvPCA3UPA" target="_blank" class="relative h-96 bg-black block group overflow-hidden order-1 md:order-2">
+                    
+                    <!-- Layer 1: Base Image -->
+                    <div class="absolute inset-0 bg-cover bg-center transition-transform duration-700 ease-out group-hover:scale-105"
+                         style="background-image: url('/images/sun.jpg');">
+                    </div>
+
+                    <!-- Layer 2: Middle "Falling" Layer -->
+                    <div class="absolute inset-0 bg-cover bg-center opacity-0 transition-all duration-700 ease-out group-hover:opacity-50 group-hover:translate-y-4 group-hover:scale-95 mix-blend-overlay"
+                         style="background-image: url('/images/sun.jpg');">
+                    </div>
+
+                    <!-- Layer 3: Top "Falling" Layer -->
+                    <div class="absolute inset-0 bg-cover bg-center opacity-0 transition-all duration-700 ease-out delay-100 group-hover:opacity-30 group-hover:translate-y-8 group-hover:scale-90 mix-blend-overlay"
+                         style="background-image: url('/images/sun.jpg');">
+                    </div>
+                    
+                    <!-- Play Overlay & Button Animation -->
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <div class="relative flex items-center justify-center w-24 h-24">
+                            <!-- Growing Layer 3 (Outer) -->
+                            <div class="absolute inset-0 bg-white rounded-full opacity-0 transform scale-50 transition-all duration-500 ease-out group-hover:scale-150 group-hover:opacity-20"></div>
+                            
+                            <!-- Growing Layer 2 (Inner) -->
+                            <div class="absolute inset-0 bg-white rounded-full opacity-0 transform scale-50 transition-all duration-500 ease-out delay-75 group-hover:scale-110 group-hover:opacity-60"></div>
+                            
+                            <!-- Main Icon -->
+                            <i class="fab fa-youtube text-6xl text-white drop-shadow-xl transition-colors duration-300 relative z-10 group-hover:text-black"></i>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        </div>
+
+    </div>
+</section>
+
+<!-- Script for Interactive Bouncing Image -->
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const container = document.getElementById('mashup-container');
+        const ball = document.getElementById('bouncing-mashup');
+
+        if (container && ball) {
+            let x = 0, y = 0;
+            let vx = 1.5, vy = 1.5; // Velocity
+            const friction = 0.94; // Slows down when not being pushed
+            const repulsionStrength = 0.8; 
+            const repulsionRadius = 150;
+            const maxSpeed = 8;
+            
+            let isHovering = false;
+            let mouseX = 0, mouseY = 0;
+
+            // Start in the middle
+            function initPosition() {
+                const containerRect = container.getBoundingClientRect();
+                const ballRect = ball.getBoundingClientRect();
+                x = (containerRect.width - ballRect.width) / 2;
+                y = (containerRect.height - ballRect.height) / 2;
+            }
+
+            // Mouse Interaction Listeners
+            container.addEventListener('mouseenter', () => {
+                isHovering = true;
+                // "Stop bouncing" effect
+                vx = 0; 
+                vy = 0;
+            });
+
+            container.addEventListener('mousemove', (e) => {
+                const rect = container.getBoundingClientRect();
+                mouseX = e.clientX - rect.left;
+                mouseY = e.clientY - rect.top;
+            });
+
+            container.addEventListener('mouseleave', () => {
+                isHovering = false;
+                // Resume bouncing in a random direction if stopped
+                const angle = Math.random() * Math.PI * 2;
+                vx = Math.cos(angle) * 1.5;
+                vy = Math.sin(angle) * 1.5;
+            });
+
+            function animate() {
+                const containerRect = container.getBoundingClientRect();
+                const ballRect = ball.getBoundingClientRect();
+                const ballW = ballRect.width;
+                const ballH = ballRect.height;
+                const maxW = containerRect.width - ballW;
+                const maxH = containerRect.height - ballH;
+
+                if (isHovering) {
+                    // --- AVOIDANCE MODE ---
+                    
+                    // Apply Friction first
+                    vx *= friction;
+                    vy *= friction;
+
+                    // Calculate center of ball
+                    const cx = x + ballW / 2;
+                    const cy = y + ballH / 2;
+
+                    // Vector from mouse to ball center
+                    const dx = cx - mouseX;
+                    const dy = cy - mouseY;
+                    const dist = Math.sqrt(dx*dx + dy*dy);
+
+                    // If mouse is within range, push ball away
+                    if (dist < repulsionRadius) {
+                        const force = (repulsionRadius - dist) / repulsionRadius; // 0 to 1
+                        const angle = Math.atan2(dy, dx);
+                        
+                        vx += Math.cos(angle) * force * repulsionStrength;
+                        vy += Math.sin(angle) * force * repulsionStrength;
+                    }
+
+                    // Limit speed
+                    const currentSpeed = Math.sqrt(vx*vx + vy*vy);
+                    if (currentSpeed > maxSpeed) {
+                        vx = (vx / currentSpeed) * maxSpeed;
+                        vy = (vy / currentSpeed) * maxSpeed;
+                    }
+
+                    // Move
+                    x += vx;
+                    y += vy;
+
+                    // Wall Collisions (Stop at wall)
+                    if (x <= 0) { x = 0; vx = 0; }
+                    if (x >= maxW) { x = maxW; vx = 0; }
+                    if (y <= 0) { y = 0; vy = 0; }
+                    if (y >= maxH) { y = maxH; vy = 0; }
+
+                } else {
+                    // --- BOUNCE MODE ---
+                    x += vx;
+                    y += vy;
+
+                    // Bounce off walls
+                    if (x <= 0) { x = 0; vx = -vx; }
+                    if (x >= maxW) { x = maxW; vx = -vx; }
+                    if (y <= 0) { y = 0; vy = -vy; }
+                    if (y >= maxH) { y = maxH; vy = -vy; }
+
+                    // Maintain Constant Speed (approx 2.1 units/frame total)
+                    // If it slowed down too much during transition or float point errors
+                    const speed = Math.sqrt(vx*vx + vy*vy);
+                    const targetSpeed = 2.1; // roughly sqrt(1.5^2 + 1.5^2)
+                    
+                    if (speed < 0.1) {
+                         // kickstart if dead stopped
+                        vx = 1.5; vy = 1.5;
+                    } else if (Math.abs(speed - targetSpeed) > 0.1) {
+                        const scale = targetSpeed / speed;
+                        vx *= scale;
+                        vy *= scale;
+                    }
+                }
+
+                ball.style.transform = `translate(${x}px, ${y}px)`;
+                requestAnimationFrame(animate);
+            }
+
+            // Init
+            if (ball.complete) {
+                initPosition();
+                animate();
+            } else {
+                ball.onload = () => {
+                    initPosition();
+                    animate();
+                };
+            }
+            
+            // Handle Resize
+            window.addEventListener('resize', () => {
+                const containerRect = container.getBoundingClientRect();
+                const ballRect = ball.getBoundingClientRect();
+                // Ensure ball stays in bounds after resize
+                if (x > containerRect.width - ballRect.width) x = containerRect.width - ballRect.width;
+                if (y > containerRect.height - ballRect.height) y = containerRect.height - ballRect.height;
+            });
+        }
+    });
+</script>
+
+<%- include('partials/footer') %>
