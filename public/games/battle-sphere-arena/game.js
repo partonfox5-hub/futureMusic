@@ -171,12 +171,14 @@ addEventListener("resize", () => {
 });
 
 function startDesk() {
+  document.body.classList.add("playing");
   document.getElementById("start").style.display = "none";
   playing = true;
   t0 = performance.now();
   renderer.domElement.requestPointerLock();
 }
 function startVr() {
+  document.body.classList.add("playing");
   document.getElementById("start").style.display = "none";
   playing = true;
   t0 = performance.now();

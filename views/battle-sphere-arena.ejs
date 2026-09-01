@@ -20,8 +20,6 @@
   .bsa-buy-btn:disabled { opacity: 0.55; cursor: wait; }
 </style>
 
-<p class="text-center text-xs tracking-widest uppercase text-[#20B2AA] pt-4">Unlisted test · $15 Stripe paygate</p>
-
 <section class="bsa-bleed">
   <div class="bsa-stage">
     <video id="demo-vid" autoplay muted loop playsinline preload="auto" poster="/images/battle-sphere-arena/cover.jpg" controls>
@@ -47,7 +45,7 @@
         <button type="button" id="buy" class="bsa-buy-btn">Unlock Arena — $15</button>
         <p class="text-red-400 text-sm min-h-[1.2em] mt-3 mb-0" id="err"></p>
         <p class="text-gray-500 text-sm mt-4 mb-0 leading-relaxed">
-          Home network skips the paygate automatically.
+          <a href="/projects" class="text-[#D4AF37] hover:text-white">Projects</a>
         </p>
       </div>
     </div>
@@ -61,7 +59,7 @@
     err.textContent = "";
     btn.disabled = true;
     try {
-      var res = await fetch("/api/bsa-test/checkout", { method: "POST", headers: { "content-type": "application/json" }, body: "{}" });
+      var res = await fetch("/api/bsa/checkout", { method: "POST", headers: { "content-type": "application/json" }, body: "{}" });
       var data = await res.json();
       if (data.url) { location.href = data.url; return; }
       err.textContent = data.error || "Checkout could not start.";
