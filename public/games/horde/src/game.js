@@ -4913,6 +4913,8 @@ function spawnConflagration(pos) {
 }
 
 function detonateShot(s) {
+  if (!s || s.detonated) return;
+  s.detonated = true;
   if (s.orb) {
     const p = s.mesh.position;
     aoeAt(p, s.charged ? 7.6 : 2.5, { dmg: s.charged ? 8 : 3, knock: s.charged ? 2.8 : 1.2 });
@@ -5143,7 +5145,7 @@ function fireFrom(origin, quat) {
       vel.y += def.speed * 0.28;
       aimBolt(shell, vel.clone().normalize());
       scene.add(shell);
-      shots.push({ mesh: shell, dir: vel.clone().normalize(), vel, grav: 16, speed: def.speed, life: 2.67, def, pierce: 1, hitSet: new Set() });
+      shots.push({ mesh: shell, dir: vel.clone().normalize(), vel, grav: 16, speed: def.speed, life: 8, def, pierce: 1, hitSet: new Set() });
     } else {
       const bolt = makeBolt(col, def.aoe ? 0.09 : 0.032);
       bolt.position.copy(origin);
@@ -5309,6 +5311,7 @@ function tickShots(dt) {
       }
     }
     if (s.life <= 0) {
+      if (s.def?.nuke || s.def?.aoe || s.orb) detonateShot(s);
       s.mesh.removeFromParent();
       shots.splice(i, 1);
     }
