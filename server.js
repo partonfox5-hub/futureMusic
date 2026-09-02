@@ -602,11 +602,7 @@ app.get(["/horde", "/horde/"], (req, res) => {
 app.get(["/test-k8n2w5q1", "/test-k8n2w5q1/"], (req, res) => res.redirect(301, "/horde"));
 app.get(["/test-w4n8k2pt", "/test-w4n8k2pt/"], (req, res) => res.redirect(301, "/horde"));
 app.get(["/test-m3k9r7qw", "/test-m3k9r7qw/"], (req, res) => res.redirect(301, "/horde"));
-app.get(["/test-r4n8k2w7", "/test-r4n8k2w7/"], (req, res) => {
-    res.setHeader("X-Robots-Tag", "noindex, nofollow, noarchive");
-    hordeHeaders(res);
-    res.sendFile(path.join(__dirname, "public", "games", "horde", "test-r4n8k2w7.html"));
-});
+app.get(["/test-r4n8k2w7", "/test-r4n8k2w7/"], (req, res) => res.redirect(301, "/horde"));
 
 // BLOCKBUILD Quest Store exclusive — unlisted private URL, not home-gated.
 const BBQST = "/bbqst-h8k2m9q4";

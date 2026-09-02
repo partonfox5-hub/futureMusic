@@ -22,7 +22,7 @@ const WEPS = {
   plasma: { id: "plasma", name: "Plasma beam", dmg: 99, rpm: 1, mag: 10, speed: 140, spread: 0, pellets: 1, hitscan: true, pierce: 99, beam: true, holdBeam: true, cost: 500, reload: 6.8 },
   ripple: { id: "ripple", name: "Ripple ray", dmg: 2, rpm: 1.6, mag: 8, speed: 22, spread: 0.08, pellets: 11, pierce: 3, ripple: true, cost: 1400, reload: 7.84 },
   gravity: { id: "gravity", name: "Zero-point gun", dmg: 2, rpm: 8, mag: 40, speed: 40, spread: 0, pellets: 1, gravity: true, cost: 1800, reload: 6 },
-  nuke: { id: "nuke", name: "Mini nuke", dmg: 8, rpm: 0.32, mag: 1, speed: 18, spread: 0, pellets: 1, aoe: 12, nuke: true, cost: 2800, reload: 12.8 },
+  nuke: { id: "nuke", name: "Mini nuke", dmg: 8, rpm: 0.32, mag: 1, speed: 24.3, spread: 0, pellets: 1, aoe: 12, nuke: true, cost: 2800, reload: 12.8 },
   tank: { id: "tank", name: "Cyber tank", dmg: 6, rpm: 0.48, mag: 6, speed: 28, spread: 0.01, pellets: 1, aoe: 7.5, tank: true, cost: 1500, reload: 8.8 },
   heli: { id: "heli", name: "Attack heli", dmg: 7, rpm: 1.6, mag: 10, speed: 52, spread: 0.012, pellets: 1, aoe: 5.4, heli: true, missile: true, cost: 2000, reload: 7.2 },
   terra: { id: "terra", name: "Terraform gun", dmg: 0, rpm: 9, mag: 90, speed: 0, spread: 0, pellets: 1, terra: true, cost: 500, reload: 3.8 },
@@ -51,7 +51,7 @@ const SHOP = [
   { kind: "ball", id: "ball-l", name: "Bulwark orb", cost: 1100, blurb: "Heavy forcefield. 16 hearts.", hp: 32 },
   { kind: "wep", id: "ripple", name: "Ripple ray", cost: 1400, blurb: "Swarm of colored rings. Pierce 3." },
   { kind: "wep", id: "gravity", name: "Zero-point gun", cost: 1800, blurb: "Grab a foe. Slam others with it." },
-  { kind: "wep", id: "nuke", name: "Mini nuke", cost: 2800, blurb: "One slow shell. A wide crater." },
+  { kind: "wep", id: "nuke", name: "Mini nuke", cost: 2800, blurb: "Fat arcing shell. A wide crater." },
   { kind: "wep", id: "terra", name: "Terraform gun", cost: 500, blurb: "Dig craters and trenches wherever you aim. Hold trigger." },
   { kind: "wep", id: "tank", name: "Cyber tank", cost: 1500, blurb: "Drive it. Fire artillery." },
   { kind: "wep", id: "heli", name: "Attack heli", cost: 2000, blurb: "Fly it. Trigger fires missiles. Search beam on." },
@@ -95,7 +95,6 @@ const WATER_LEVEL = -0.15;
 const LS_MAP = "horde.map.v1";
 const MAPS = [
   { id: "stairs", name: "Green stair zone", short: "STAIRS" },
-  { id: "shore", name: "Shore city", short: "SHORE" },
   { id: "wastes", name: "Clock wastes", short: "WASTES" },
 ];
 let selectedMap = "stairs";
@@ -105,7 +104,8 @@ let fenceGroup = null;
 let buildings = [];
 try {
   const sm = localStorage.getItem(LS_MAP);
-  if (sm === "stairs" || sm === "shore" || sm === "wastes") selectedMap = sm;
+  if (sm === "stairs" || sm === "wastes") selectedMap = sm;
+  else if (sm === "shore") selectedMap = "stairs";
 } catch {}
 
 const $ = (id) => document.getElementById(id);
@@ -486,10 +486,9 @@ const sfx = {
       noise(0.26, 0.18, 95);
       beep("sine", 80, 0.3, 0.11, 32);
     } else if (id === "nuke") {
-      noise(0.28, 0.22, 70);
-      noise(0.18, 0.12, 40);
-      beep("sine", 48, 0.36, 0.14, 22);
-      beep("sawtooth", 90, 0.2, 0.08, 36);
+      noise(0.16, 0.14, 90);
+      beep("sine", 70, 0.18, 0.08, 28);
+      beep("sawtooth", 110, 0.12, 0.07, 40);
     } else if (id === "tank") {
       noise(0.2, 0.18, 110);
       laserTone(420, 80, 0.2, 0.12);
@@ -524,6 +523,29 @@ const sfx = {
   chime() { beep("sine", 880, 0.12, 0.09, 1320); },
   hit() { noise(0.045, 0.07, 1600); beep("sine", 1900, 0.05, 0.045, 380); },
   boom() { noise(0.18, 0.12, 160); beep("sine", 90, 0.22, 0.08, 40); },
+  nukeBoom() {
+    noise(0.95, 0.38, 38);
+    noise(0.7, 0.28, 22);
+    noise(0.45, 0.2, 12);
+    noise(0.22, 0.14, 1600);
+    beep("sine", 28, 1.35, 0.26, 11);
+    beep("sine", 42, 1.05, 0.18, 16);
+    beep("sawtooth", 58, 0.85, 0.16, 18);
+    beep("square", 90, 0.42, 0.12, 28);
+    beep("triangle", 160, 0.55, 0.1, 40);
+    beep("sine", 220, 0.28, 0.08, 70);
+    const rumble = (delay, vol, freq) => {
+      setTimeout(() => {
+        if (!ac) return;
+        noise(vol, 0.22, freq);
+        beep("sine", Math.max(16, freq * 0.7), 0.85, vol * 0.7, Math.max(10, freq * 0.45));
+      }, delay);
+    };
+    rumble(160, 0.55, 28);
+    rumble(380, 0.4, 20);
+    rumble(720, 0.28, 16);
+    rumble(1100, 0.18, 12);
+  },
   reload() {
     noise(0.1, 0.09, 700);
     beep("square", 210, 0.14, 0.08, 90);
@@ -1009,6 +1031,28 @@ function heightAt(x, z, y) {
   return h;
 }
 
+function pushOutOfBuildings(x, z, y) {
+  let nx = x, nz = z;
+  for (const b of buildings) {
+    if (!b.cells) continue;
+    for (const cell of b.cells) {
+      if (!cell.live || cell.walk) continue;
+      const y0 = (cell.y || 0) - cell.h * 0.5;
+      const y1 = (cell.y || 0) + cell.h * 0.5;
+      if (y + 0.4 < y0 || y - 1.6 > y1) continue;
+      const dx = nx - cell.x;
+      const dz = nz - cell.z;
+      const ox = cell.w + 0.3 - Math.abs(dx);
+      const oz = cell.d + 0.3 - Math.abs(dz);
+      if (ox > 0 && oz > 0) {
+        if (ox < oz) nx += (dx >= 0 ? 1 : -1) * ox;
+        else nz += (dz >= 0 ? 1 : -1) * oz;
+      }
+    }
+  }
+  return { x: nx, z: nz };
+}
+
 function lerpC(a, b, t) {
   t = clamp(t, 0, 1);
   return a.clone().lerp(b, t);
@@ -1300,13 +1344,18 @@ function makeGun(id) {
     g.add(fork, prong);
     g.userData.muzzle = new THREE.Vector3(0, 0.04, -0.34);
   } else if (id === "nuke") {
-    const tube = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.035, 0.34, 8), iron);
+    const tube = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.0525, 0.51, 8), iron);
     tube.rotation.x = Math.PI / 2;
-    tube.position.set(0, 0.03, -0.12);
-    const war = new THREE.Mesh(new THREE.SphereGeometry(0.045, 8, 6), mat(0x44aa44, { emissive: 0x113300 }));
-    war.position.set(0, 0.03, -0.3);
-    g.add(tube, war);
-    g.userData.muzzle = new THREE.Vector3(0, 0.03, -0.34);
+    tube.position.set(0, 0.045, -0.18);
+    const sleeve = new THREE.Mesh(new THREE.CylinderGeometry(0.072, 0.068, 0.16, 8), dark);
+    sleeve.rotation.x = Math.PI / 2;
+    sleeve.position.set(0, 0.045, -0.02);
+    const war = new THREE.Mesh(new THREE.SphereGeometry(0.0675, 8, 6), mat(0x44aa44, { emissive: 0x113300 }));
+    war.position.set(0, 0.045, -0.45);
+    const grip = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.14, 0.07), dark);
+    grip.position.set(0, -0.06, 0.04);
+    g.add(tube, sleeve, war, grip);
+    g.userData.muzzle = new THREE.Vector3(0, 0.045, -0.51);
   } else if (id === "tank") {
     const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.02, 0.42, 8), iron);
     barrel.rotation.x = Math.PI / 2;
@@ -2346,6 +2395,15 @@ function playerFaction() {
   return "player";
 }
 
+function playerOnWarSide() {
+  return runMode === "war" && (runTeam === "army" || runTeam === "horde");
+}
+
+function opposingFaction() {
+  if (!playerOnWarSide()) return null;
+  return runTeam === "army" ? "horde" : "army";
+}
+
 function mobFaction(m) {
   return m?.team || (m?.army ? "army" : "horde");
 }
@@ -2384,7 +2442,8 @@ function setContinuous(on) {
 }
 
 function setSelectedMap(id) {
-  if (id !== "stairs" && id !== "shore" && id !== "wastes") return;
+  if (id === "shore") id = "stairs";
+  if (id !== "stairs" && id !== "wastes") return;
   selectedMap = id;
   try { localStorage.setItem(LS_MAP, id); } catch {}
   paintModeButtons();
@@ -2402,8 +2461,8 @@ function modeBlurb() {
   else if (gameMode === "mixed") mode = "Horde creatures and plastic army men in the same waves. Everything hunts you.";
   else if (gameMode === "war") {
     const flow = continuousMode ? " Continuous trickle — one army man and one horde creature every 15–30s." : "";
-    if (warTeam === "army") mode = "Army vs horde. You fight with the green plastic soldiers. Horde still wants you dead." + flow;
-    else if (warTeam === "horde") mode = "Army vs horde. You fight with the creatures. Army men will still shoot you." + flow;
+    if (warTeam === "army") mode = "Army vs horde. You fight with the green plastic soldiers. Each wave of horde creatures starts when the last one dies — allied army men stay on the field." + flow;
+    else if (warTeam === "horde") mode = "Army vs horde. You fight with the creatures. Each wave of army men starts when the last one dies — allied creatures stay on the field." + flow;
     else mode = "Army vs horde. You are your own team. Both sides hunt you, and they hunt each other." + flow;
   } else mode = "Classic doubling waves of silhouette creatures. Shoot every limb.";
   if (devMode) mode += " Sandbox on: infinite gold and HP.";
@@ -2974,8 +3033,11 @@ function makeMob(w, ang, dist) {
   let unit;
   if (runMode === "army") unit = makeArmyUnit(w, ang, dist);
   else if (runMode === "mixed") unit = rng() < 0.625 ? makeArmyUnit(w, ang, dist) : makeHordeCreature(w, ang, dist);
-  else if (runMode === "war") unit = Math.cos(ang) >= 0 ? makeArmyUnit(w, ang, dist) : makeHordeCreature(w, ang, dist);
-  else unit = makeHordeCreature(w, ang, dist);
+  else if (runMode === "war") {
+    if (runTeam === "army") unit = makeHordeCreature(w, ang, dist);
+    else if (runTeam === "horde") unit = makeArmyUnit(w, ang, dist);
+    else unit = Math.cos(ang) >= 0 ? makeArmyUnit(w, ang, dist) : makeHordeCreature(w, ang, dist);
+  } else unit = makeHordeCreature(w, ang, dist);
   if (!unit.team) unit.team = unit.army ? "army" : "horde";
   return unit;
 }
@@ -3103,9 +3165,17 @@ function dripSpawn(dt) {
     }
   }
   const liveCap = runMode === "army" ? Math.round(MAX_LIVE * 1.25) : MAX_LIVE;
-  while (pending > 0 && mobs.filter((m) => m.alive).length < liveCap) {
+  while (pending > 0) {
+    const liveNow = playerOnWarSide()
+      ? mobs.filter((m) => m.alive && isHostileToPlayer(m)).length
+      : mobs.filter((m) => m.alive).length;
+    if (liveNow >= liveCap) break;
     let ang = rng() * Math.PI * 2;
-    if (runMode === "war") ang = ((pending + dripLeft) % 8 < 5 ? 0 : Math.PI) + (rng() - 0.5) * 1.7;
+    if (runMode === "war") {
+      if (runTeam === "army") ang = Math.PI + (rng() - 0.5) * 1.7;
+      else if (runTeam === "horde") ang = (rng() - 0.5) * 1.7;
+      else ang = ((pending + dripLeft) % 8 < 5 ? 0 : Math.PI) + (rng() - 0.5) * 1.7;
+    }
     const dist = SPAWN_MIN + rng() * (SPAWN_MAX - SPAWN_MIN);
     const spawned = makeMob(diffWave(), ang, dist);
     mobs.push(spawned);
@@ -3204,7 +3274,7 @@ function killMob(m, explode) {
   m.alive = false;
   if (m.army) sfx.armyDie();
   else sfx.die();
-  if (!m.hired) waveLeft = Math.max(0, waveLeft - 1);
+  if (!m.hired && isHostileToPlayer(m)) waveLeft = Math.max(0, waveLeft - 1);
   stripArmyLights(m);
   for (const limb of m.limbs) {
     if (!limb.userData.live) continue;
@@ -3545,6 +3615,8 @@ function tickMobs(dt) {
       }
       const cl = clampToMap(m.x, m.z);
       m.x = cl.x; m.z = cl.z;
+      const pushed = pushOutOfBuildings(m.x, m.z, m.y);
+      m.x = pushed.x; m.z = pushed.z;
     }
     m.bob += dt * (4 + m.spd + nW * 2);
     const sample = (liveLegs[0] || gait[0] || m.limbs[0]).userData;
@@ -3756,13 +3828,15 @@ function tickMobs(dt) {
   if (running && !dead && pending <= 0 && dripLeft <= 0 && wave > 0 && !runContinuous) {
     const hostiles = mobs.some((m) => m.alive && isHostileToPlayer(m));
     if (!hostiles) {
-      for (const m of mobs) {
-        if (!m.alive || m.hired) continue;
-        m.alive = false;
-        stripArmyLights(m);
-        m.mesh.removeFromParent();
+      if (!playerOnWarSide()) {
+        for (const m of mobs) {
+          if (!m.alive || m.hired) continue;
+          m.alive = false;
+          stripArmyLights(m);
+          m.mesh.removeFromParent();
+        }
+        mobs = mobs.filter((m) => m.alive);
       }
-      mobs = mobs.filter((m) => m.alive);
       spawnWave();
     }
   }
@@ -4856,8 +4930,7 @@ function detonateShot(s) {
     craterAt(p.x, p.z, 22, 7.4);
     smashNear(p, 26);
     damageBuildings(p, 26, 10);
-    sfx.plasmaBoom();
-    sfx.boom();
+    sfx.nukeBoom();
   }
   if (s.def.missile) {
     const p = s.mesh.position;
@@ -4937,7 +5010,7 @@ function tickFx(dt) {
         if (ch.isLight) ch.intensity = 14 * k;
       });
     } else if (f.kind === "mushroom") {
-      const maxL = f.maxLife || 4.8;
+      const maxL = f.maxLife || 5.76;
       const k = Math.max(0, f.life / maxL);
       const grow = 0.62 + (1 - k) * 1.15;
       f.mesh.scale.setScalar(grow);
@@ -5063,12 +5136,20 @@ function fireFrom(origin, quat) {
       aimBolt(ring, dir);
       scene.add(ring);
       shots.push({ mesh: ring, dir, speed: 16 + i * 0.7, life: 1.15, def, pierce: 3, hitSet: new Set(), ripple: true, phase: rng() * 6 });
+    } else if (def.nuke) {
+      const shell = makeNukeShell();
+      shell.position.copy(origin);
+      const vel = dir.clone().multiplyScalar(def.speed);
+      vel.y += def.speed * 0.28;
+      aimBolt(shell, vel.clone().normalize());
+      scene.add(shell);
+      shots.push({ mesh: shell, dir: vel.clone().normalize(), vel, grav: 16, speed: def.speed, life: 2.67, def, pierce: 1, hitSet: new Set() });
     } else {
-      const bolt = makeBolt(col, def.nuke ? 0.16 : def.aoe ? 0.09 : 0.032);
+      const bolt = makeBolt(col, def.aoe ? 0.09 : 0.032);
       bolt.position.copy(origin);
       aimBolt(bolt, dir);
       scene.add(bolt);
-      shots.push({ mesh: bolt, dir, speed: def.speed * (def.aoe ? 1 : 1.35), life: def.nuke ? 2.4 : def.aoe ? 1.05 : 0.78, def, pierce: def.pierce || 1, hitSet: new Set() });
+      shots.push({ mesh: bolt, dir, speed: def.speed * (def.aoe ? 1 : 1.35), life: def.aoe ? 1.05 : 0.78, def, pierce: def.pierce || 1, hitSet: new Set() });
     }
   }
 }
@@ -5153,7 +5234,13 @@ function tickShots(dt) {
       }
     }
     if (!s.dummy && s.mesh.position) {
-      s.mesh.position.addScaledVector(s.dir, s.speed * dt);
+      if (s.vel) {
+        s.vel.y -= (s.grav || 16) * dt;
+        s.mesh.position.addScaledVector(s.vel, dt);
+        if (s.vel.lengthSq() > 1e-6) s.dir.copy(s.vel).normalize();
+      } else {
+        s.mesh.position.addScaledVector(s.dir, s.speed * dt);
+      }
       if (s.dir && !s.ripple && !s.fireball) aimBolt(s.mesh, s.dir);
       const hy = heightAt(s.mesh.position.x, s.mesh.position.z);
       if (s.mesh.position.y < hy + (s.fireball ? 0.55 : -0.15)) {
@@ -5164,6 +5251,7 @@ function tickShots(dt) {
         }
         s.life = 0;
       }
+      if (s.life > 0 && shotHitsBuilding(s)) s.life = 0;
       if (s.orb && s.life > 0) {
         for (let mi = meteors.length - 1; mi >= 0; mi--) {
           const met = meteors[mi];
@@ -5597,7 +5685,7 @@ function ensureHexes(dt) {
     return;
   }
   if (runMap === "wastes") {
-    if (hexes.length < 22 && hexSpawnCd <= 0) {
+    if (buildings.length < 22 && hexSpawnCd <= 0) {
       spawnHexCluster();
       hexSpawnCd = 1.6;
     }
@@ -6270,7 +6358,7 @@ function spawnMushroomCloud(pos, scale) {
   g.position.copy(pos);
   g.position.y = heightAt(pos.x, pos.z);
   scene.add(g);
-  fx.push({ mesh: g, kind: "mushroom", life: 4.8, maxLife: 4.8, scale, stem, cap, ring, flash });
+  fx.push({ mesh: g, kind: "mushroom", life: 5.76, maxLife: 5.76, scale, stem, cap, ring, flash });
 }
 
 function spawnMeteorBlast(pos, rad) {
@@ -6401,20 +6489,29 @@ function spawnBrickWall(cx, cz) {
   const brick = mat(0x6a3a32);
   const base = hillsAt(cx, cz);
   const len = 8 + rng() * 10;
-  const h = 1.1 + rng() * 1.4;
-  const wall = new THREE.Mesh(new THREE.BoxGeometry(len, h, 0.28), brick);
+  const h = 1.6 + rng() * 1.6;
+  const yaw = rng() * Math.PI;
+  const thick = 0.42;
+  const wall = new THREE.Mesh(new THREE.BoxGeometry(len, h, thick), brick);
   wall.position.y = h * 0.5;
-  wall.rotation.y = rng() * Math.PI;
+  wall.rotation.y = yaw;
   group.add(wall);
   group.position.set(cx, base, cz);
   scene.add(group);
-  const p = { kind: "hall", x: cx, z: cz, hx: len * 0.2, hz: 0.4, r: len * 0.4, top: base + 0.05, mesh: group, float: false };
-  hexes.push(p);
+  const hx = Math.abs(Math.cos(yaw)) * len * 0.5 + Math.abs(Math.sin(yaw)) * thick * 0.5;
+  const hz = Math.abs(Math.sin(yaw)) * len * 0.5 + Math.abs(Math.cos(yaw)) * thick * 0.5;
+  const cells = [{
+    live: true, hp: 8, mesh: wall, floor: 0, corner: 0,
+    x: cx, z: cz, y: base + h * 0.5, w: Math.max(0.35, hx), d: Math.max(0.35, hz), h,
+    top: base + h,
+  }];
+  const b = { x: cx, z: cz, r: Math.max(hx, hz) + 0.4, floors: 1, cells, mesh: group };
+  buildings.push(b);
   if (rng() < 0.55) {
-    const ang = wall.rotation.y + Math.PI / 2;
+    const ang = yaw + Math.PI / 2;
     craters.push({ x: cx + Math.cos(ang) * 1.2, z: cz + Math.sin(ang) * 1.2, r: 1.6 + rng(), depth: 0.85 });
   }
-  return p;
+  return b;
 }
 
 function spawnSpire(cx, cz) {
@@ -6423,19 +6520,32 @@ function spawnSpire(cx, cz) {
   const base = hillsAt(cx, cz);
   const h = 18 + rng() * 16;
   const turns = 5 + ((rng() * 4) | 0);
+  const cells = [];
   for (let i = 0; i < 28; i++) {
     const t = i / 27;
     const y = t * h;
     const a = t * turns * Math.PI * 2;
     const r = 1.8 * (1 - t * 0.75);
-    const box = new THREE.Mesh(new THREE.BoxGeometry(r * 1.4, h / 14, r * 0.55), black);
+    const boxH = h / 14;
+    const box = new THREE.Mesh(new THREE.BoxGeometry(r * 1.4, boxH, r * 0.55), black);
     box.position.set(Math.cos(a) * r * 0.4, y, Math.sin(a) * r * 0.4);
     box.rotation.y = a;
     group.add(box);
+    const wx = cx + box.position.x;
+    const wz = cz + box.position.z;
+    const halfW = r * 0.7 + 0.2;
+    const halfD = r * 0.28 + 0.2;
+    cells.push({
+      live: true, hp: 4, mesh: box, floor: (t * 6) | 0, corner: i % 4,
+      x: wx, z: wz, y: base + y, w: halfW, d: halfD, h: boxH,
+      top: base + y + boxH * 0.5,
+    });
   }
   group.position.set(cx, base, cz);
   scene.add(group);
-  hexes.push({ kind: "hall", x: cx, z: cz, hx: 2, hz: 2, r: 4, top: base + 0.2, mesh: group, float: false });
+  const b = { x: cx, z: cz, r: 4.2, floors: 6, cells, mesh: group };
+  buildings.push(b);
+  return b;
 }
 
 function spawnClockTower(cx, cz) {
@@ -6445,31 +6555,49 @@ function spawnClockTower(cx, cz) {
   const base = hillsAt(cx, cz);
   const h = 38 + rng() * 18;
   const r = 4.6 + rng() * 1.8;
-  const shell = new THREE.Mesh(new THREE.CylinderGeometry(r, r * 1.15, h, 10, 1, true), black);
-  shell.position.y = h * 0.5;
-  group.add(shell);
-  for (let i = 0; i < 18; i++) {
-    const hole = new THREE.Mesh(new THREE.BoxGeometry(r * 0.7, 1.6, 0.4), dark);
-    const a = rng() * Math.PI * 2;
-    const y = 3 + rng() * (h - 6);
-    hole.position.set(Math.cos(a) * r * 0.92, y, Math.sin(a) * r * 0.92);
-    hole.lookAt(0, y, 0);
-    group.add(hole);
-  }
-  const decks = 5 + ((rng() * 3) | 0);
-  for (let i = 1; i <= decks; i++) {
-    const y = (i / (decks + 1)) * h;
-    const walk = new THREE.Mesh(new THREE.TorusGeometry(r * 0.62, 0.12, 6, 16), dark);
+  const floors = 6;
+  const fh = h / floors;
+  const cells = [];
+  const hw = r * 0.72;
+  const thick = Math.max(0.55, r * 0.18);
+  for (let f = 0; f < floors; f++) {
+    for (let c = 0; c < 4; c++) {
+      const a = c * Math.PI * 0.5;
+      const slab = new THREE.Mesh(new THREE.BoxGeometry(r * 1.55, fh, thick), black);
+      const lx = Math.cos(a) * (r - thick * 0.45);
+      const lz = Math.sin(a) * (r - thick * 0.45);
+      slab.position.set(lx, f * fh + fh * 0.5, lz);
+      slab.rotation.y = a + Math.PI / 2;
+      group.add(slab);
+      const yaw = a + Math.PI / 2;
+      const hx = Math.abs(Math.cos(yaw)) * r * 0.78 + Math.abs(Math.sin(yaw)) * thick * 0.5;
+      const hz = Math.abs(Math.sin(yaw)) * r * 0.78 + Math.abs(Math.cos(yaw)) * thick * 0.5;
+      cells.push({
+        live: true, hp: 10 + f, mesh: slab, floor: f, corner: c,
+        x: cx + lx, z: cz + lz, y: base + f * fh + fh * 0.5,
+        w: Math.max(0.45, hx), d: Math.max(0.45, hz), h: fh,
+        top: base + (f + 1) * fh,
+      });
+    }
+    const walk = new THREE.Mesh(new THREE.TorusGeometry(r * 0.62, 0.14, 6, 16), dark);
     walk.rotation.x = Math.PI / 2;
-    walk.position.y = y;
+    walk.position.y = (f + 1) * fh;
     group.add(walk);
+    cells.push({
+      live: true, hp: 6, mesh: walk, floor: f, corner: 4, walk: true,
+      x: cx, z: cz, y: base + (f + 1) * fh,
+      w: r * 0.72, d: r * 0.72, h: 0.28,
+      top: base + (f + 1) * fh + 0.14,
+    });
   }
   const cap = new THREE.Mesh(new THREE.ConeGeometry(r * 0.9, 4.2, 8), black);
   cap.position.y = h + 2;
   group.add(cap);
   group.position.set(cx, base, cz);
   scene.add(group);
-  hexes.push({ kind: "hall", x: cx, z: cz, hx: r, hz: r, r: r + 1, top: base + 0.15, mesh: group, float: false });
+  const b = { x: cx, z: cz, r: r + 1.2, floors, cells, mesh: group };
+  buildings.push(b);
+  return b;
 }
 
 function spawnWaterAndFence() {
@@ -6571,6 +6699,52 @@ function digAlong(origin, dir) {
   puff.position.set(hx, hillsAt(hx, hz) + 0.3, hz);
   scene.add(puff);
   fx.push({ mesh: puff, kind: "bolt", life: 0.22 });
+}
+
+function makeNukeShell() {
+  const g = new THREE.Group();
+  const body = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.12, 0.14, 0.54, 8),
+    mat(0x3a5a32, { emissive: 0x1a3308 }),
+  );
+  body.rotation.x = -Math.PI / 2;
+  const nose = new THREE.Mesh(
+    new THREE.ConeGeometry(0.12, 0.22, 8),
+    mat(0x66ff66, { emissive: 0x226622 }),
+  );
+  nose.rotation.x = -Math.PI / 2;
+  nose.position.z = 0.36;
+  const stripe = new THREE.Mesh(new THREE.TorusGeometry(0.13, 0.018, 6, 12), mat(0xd4af37, { emissive: 0x664400 }));
+  stripe.rotation.y = Math.PI / 2;
+  stripe.position.z = 0.04;
+  const glow = new THREE.PointLight(0x66ff44, 2.4, 4.5, 2);
+  glow.position.z = 0.2;
+  g.add(body, nose, stripe, glow);
+  return g;
+}
+
+function shotHitsBuilding(s) {
+  if (!s?.mesh?.position) return false;
+  const p = s.mesh.position;
+  for (const b of buildings) {
+    if (!b.cells) continue;
+    for (const cell of b.cells) {
+      if (!cell.live) continue;
+      if (Math.abs(p.x - cell.x) > cell.w + 0.18) continue;
+      if (Math.abs(p.z - cell.z) > cell.d + 0.18) continue;
+      const y0 = (cell.y || 0) - cell.h * 0.5;
+      const y1 = (cell.y || 0) + cell.h * 0.5;
+      if (p.y < y0 - 0.18 || p.y > y1 + 0.18) continue;
+      if (s.def?.aoe || s.def?.nuke || s.orb) detonateShot(s);
+      else {
+        cell.hp -= s.def?.dmg || 1;
+        if (cell.hp <= 0) destroyBuildingCell(b, cell);
+        else sfx.hit();
+      }
+      return true;
+    }
+  }
+  return false;
 }
 
 function makeMissileMesh() {
@@ -7772,6 +7946,8 @@ function physics(dt, xr) {
   player.z += player.vz * dt;
   const clp = clampToMap(player.x, player.z);
   player.x = clp.x; player.z = clp.z;
+  const pushed = pushOutOfBuildings(player.x, player.z, player.y);
+  player.x = pushed.x; player.z = pushed.z;
   const stand = heightAt(player.x, player.z, player.y) + 1.6;
   if (player.heli) {
     let climb = 0;
