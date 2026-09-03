@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="robots" content="noindex, nofollow, noarchive" />
+    <meta name="theme-color" content="#07080f" />
+    <title>Planmorpher — test</title>
+    <meta name="build" content="test-n7q2k8wm-pm5" />
+    <link rel="stylesheet" href="/games/planmorpher/test-n7q2k8wm/css/game.css?v=pm5" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Outfit:wght@400;500;600&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <canvas id="c"></canvas>
+    <div id="hud">
+      <div id="power-name">Select</div>
+      <div id="form-name">Form · unset</div>
+      <div id="hint">No power active. Point at a world and press A to open its menu. X leaves a planet's sky.</div>
+      <div id="status"></div>
+    </div>
+    <aside id="studio" hidden>
+      <h2>Life maker</h2>
+      <p>Trigger any body part on the model to swap it. Name the species, add adjectives, and spend 100 life points on stats.</p>
+      <div id="studio-slots"></div>
+      <p id="studio-civ">Civ score 0</p>
+      <p id="studio-rel">Peace</p>
+      <label>Species name <input id="studio-name" type="text" maxlength="28" autocomplete="off" /></label>
+      <label>Adjectives <input id="studio-adj" type="text" maxlength="48" placeholder="swift, luminous" autocomplete="off" /></label>
+      <div id="studio-stats"></div>
+      <div class="studio-row">
+        <button type="button" id="studio-clear">Clear points</button>
+        <button type="button" id="studio-random">Randomize</button>
+        <button type="button" id="studio-save">Save all 10</button>
+        <button type="button" id="studio-war">Toggle war vs slot 2</button>
+      </div>
+      <div class="studio-grid">
+        <div class="studio-parts" id="studio-parts"></div>
+        <div class="studio-socks">
+          <div class="sock" data-sock="head">Head</div>
+          <div class="sock" data-sock="torso">Torso</div>
+          <div class="sock" data-sock="arm">Arms</div>
+          <div class="sock" data-sock="leg">Legs</div>
+        </div>
+      </div>
+      <p class="tiny">0 in a skill is slow and clumsy. 100 is peak. Creatures also learn by doing, and pass a share of those gains to their young.</p>
+    </aside>
+    <aside id="inspect" hidden>
+      <h2>Planet menu</h2>
+      <p id="insp-name">Unnamed sphere</p>
+      <p id="insp-tpl">Seed template</p>
+      <p id="insp-age">Age · Paleolithic</p>
+      <label>Sea level <input type="range" id="sealevel" min="20" max="80" value="52" /></label>
+      <label>Vegetation hue <input type="range" id="veg" min="0" max="360" value="118" /></label>
+      <label>Ocean hue <input type="range" id="oceanhue" min="0" max="360" value="205" /></label>
+      <label>Weather <input type="range" id="wx" min="0" max="100" value="20" /></label>
+      <button type="button" id="btn-grove">Grow trees miracle</button>
+      <button type="button" id="btn-close">Release gaze</button>
+    </aside>
+    <div id="start">
+      <div class="panel">
+        <p class="kicker">An ethereal god game</p>
+        <h1>Planmorpher</h1>
+        <p>
+          Worlds seed as continents, pangea, archipelagos, mountains, deserts, and ice — each with its own sea.
+          Open a planet, raise or lower the water, and descend into its sky. Press X to leave it.
+        </p>
+        <ul>
+          <li><b>Select</b> on the wrist gems: no power. Point at a world and press <b>A</b> (or click) for its menu and sea slider.</li>
+          <li><b>Weather</b>: clouds, thunderstorm, snow, hail. Hold A or trigger to grow clouds in the atmosphere.</li>
+          <li>Fly into a world's sky, then cross the <b>gold lower-atmosphere cage</b> — the crust gains vegetation detail and triangular orbital markers become the creatures you designed, with full animated limbs. <b>X</b> returns you to the galaxy.</li>
+          <li><b>Life</b> opens the maker. Trigger a body part to swap it. Spend 100 life points on stats. Grove paints forests and berry bushes on land.</li>
+          <li>Settlers orbit for land only. Mass destroyers crater worlds. The explosion orb unmakes planets. Civs take jobs as they grow.</li>
+        </ul>
+        <div class="row">
+          <button type="button" id="go-vr">Enter VR</button>
+          <button type="button" id="go-desk" class="ghost">Begin in the void</button>
+        </div>
+      </div>
+    </div>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+        }
+      }
+    </script>
+    <script type="module" src="/games/planmorpher/test-n7q2k8wm/js/game.js?v=pm5"></script>
+  </body>
+</html>

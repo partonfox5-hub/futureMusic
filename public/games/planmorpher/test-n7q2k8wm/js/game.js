@@ -36,7 +36,7 @@ import {
   atmosR,
   heightOf,
   seaOf,
-} from "/games/shared/world-core.js?v=pm5";
+} from "/games/planmorpher/test-n7q2k8wm/js/world-core.js?v=pm5";
 import {
   SLOT_N,
   CIV_AGES,
@@ -75,7 +75,7 @@ import {
   inheritSkill,
   displayName,
   skillEff,
-} from "./spore.js?v=pm5";
+} from "/games/planmorpher/test-n7q2k8wm/js/spore.js?v=pm5";
 
 const canvas = document.getElementById("c");
 const hudEl = document.getElementById("hud");
