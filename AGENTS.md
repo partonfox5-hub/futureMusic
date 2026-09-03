@@ -4,6 +4,10 @@ Site: **futuremusic.online** (Express + EJS + `public/`).
 Repo: `https://github.com/partonfox5-hub/futureMusic.git`  
 Deploy: push to `master` → Cloud Run rebuilds production.
 
+## Horde WebXR: always production (standing)
+
+**Horde** (`/horde`, `public/games/horde/`) ships **straight to production**. Never a `/test-*` page. Edit live Horde assets, commit, `git push origin master`, report `https://futuremusic.online/horde`.
+
 ## Default deploy workflow: PRODUCTION FIRST (temporary)
 
 **Override (2026-08-24):** the owner asked to **push straight to production** until they say otherwise. Skip the test-page workflow. Ship on the real routes, commit, and `git push origin master`.
@@ -46,6 +50,7 @@ The previous default (test URL first, then promote) is paused — restore it whe
 
 - Pure backend/config/dependency fixes with **no** user-facing page change may push without a test page; still say so clearly.
 - Hotfix the user explicitly says “push straight to production” / “skip test page”.
+- **Horde WebXR (`/horde`, `public/games/horde/`)** — always ship straight to production. Do **not** use `/test-*` pages for Horde web. Edit production assets, commit, `git push origin master`. Report `https://futuremusic.online/horde`. (Owner, 2026-09-03.)
 
 ## Git push conventions
 

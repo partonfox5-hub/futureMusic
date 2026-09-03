@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#d8d4cc" />
     <title>THE HORDE — VR wave shooter</title>
     <meta name="description" content="Play THE HORDE free in the browser or on Quest: doubling waves on an infinite plain. Pick Horde creatures, Army Man plastic soldiers, Mixed, or War. One pistol. An X-button armory." />
-    <meta name="build" content="prod-20260902-h31" />
+    <meta name="build" content="prod-20260903-h33" />
     <link rel="canonical" href="https://futuremusic.online/horde" />
     <link rel="icon" type="image/jpeg" href="/games/horde/og.jpg" />
     <meta property="og:title" content="THE HORDE — VR wave shooter" />
@@ -15,7 +15,7 @@
     <meta property="og:url" content="https://futuremusic.online/horde" />
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Outfit:wght@400;500;600;700&display=swap" />
-    <link rel="stylesheet" href="/games/horde/css/game.css?v=h31" />
+    <link rel="stylesheet" href="/games/horde/css/game.css?v=h33" />
   </head>
   <body>
     <canvas id="c"></canvas>
@@ -41,35 +41,43 @@
           From wave 5, half the spawn waits and drips in over a minute. Every five waves the ground shifts to another world. X opens the armory. B cycles every gun you own. Sandbox is infinite gold and HP.
         </p>
         <div class="modes" id="modes">
-          <p class="kicker">Mode</p>
-          <div class="mode-row" id="mode-row">
-            <button type="button" class="mode-btn on" data-mode="horde">Horde</button>
-            <button type="button" class="mode-btn" data-mode="army">Army Man</button>
-            <button type="button" class="mode-btn" data-mode="mixed">Mixed</button>
-            <button type="button" class="mode-btn" data-mode="war">War</button>
-          </div>
-          <div id="war-team" hidden>
-            <p class="kicker">Your team</p>
+          <section class="setup-cat" aria-labelledby="cat-mode">
+            <p class="kicker" id="cat-mode">Mode</p>
+            <div class="mode-row" id="mode-row">
+              <button type="button" class="mode-btn on" data-mode="horde">Horde</button>
+              <button type="button" class="mode-btn" data-mode="army">Army Man</button>
+              <button type="button" class="mode-btn" data-mode="mixed">Mixed</button>
+              <button type="button" class="mode-btn" data-mode="war">War</button>
+            </div>
+          </section>
+          <section class="setup-cat" id="war-team" aria-labelledby="cat-team" hidden>
+            <p class="kicker" id="cat-team">Your team</p>
             <div class="mode-row" id="team-row">
               <button type="button" class="mode-btn on" data-team="solo">Solo</button>
               <button type="button" class="mode-btn" data-team="army">Join Army</button>
               <button type="button" class="mode-btn" data-team="horde">Join Horde</button>
             </div>
-          </div>
-          <p class="kicker">War flow</p>
-          <div class="mode-row" id="flow-row">
-            <button type="button" class="mode-btn on" data-flow="waves">Waves</button>
-            <button type="button" class="mode-btn locked" data-flow="continuous" disabled>Continuous</button>
-          </div>
-          <p class="kicker">Map</p>
-          <div class="mode-row" id="map-row">
-            <button type="button" class="mode-btn on" data-map="stairs">Green stair zone</button>
-            <button type="button" class="mode-btn" data-map="wastes">Clock wastes</button>
-          </div>
-          <p class="kicker">Tools</p>
-          <div class="mode-row">
-            <button type="button" class="mode-btn" id="sandbox-btn" data-sandbox="1">Sandbox</button>
-          </div>
+          </section>
+          <section class="setup-cat" aria-labelledby="cat-flow">
+            <p class="kicker" id="cat-flow">War flow</p>
+            <div class="mode-row" id="flow-row">
+              <button type="button" class="mode-btn on" data-flow="waves">Waves</button>
+              <button type="button" class="mode-btn locked" data-flow="continuous" disabled>Continuous</button>
+            </div>
+          </section>
+          <section class="setup-cat" aria-labelledby="cat-map">
+            <p class="kicker" id="cat-map">Map</p>
+            <div class="mode-row" id="map-row">
+              <button type="button" class="mode-btn on" data-map="stairs">Green stair zone</button>
+              <button type="button" class="mode-btn" data-map="wastes">Clock wastes</button>
+            </div>
+          </section>
+          <section class="setup-cat" aria-labelledby="cat-tools">
+            <p class="kicker" id="cat-tools">Tools</p>
+            <div class="mode-row">
+              <button type="button" class="mode-btn" id="sandbox-btn" data-sandbox="1">Sandbox</button>
+            </div>
+          </section>
           <p class="mode-blurb" id="mode-blurb">Classic doubling waves of silhouette creatures. Shoot every limb.</p>
         </div>
         <div class="ini">
@@ -138,6 +146,6 @@
         }
       }
     </script>
-    <script type="module" src="/games/horde/js/game.js?v=h31"></script>
+    <script type="module" src="/games/horde/js/game.js?v=h33"></script>
   </body>
 </html>

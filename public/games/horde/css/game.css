@@ -205,15 +205,24 @@ button.ghost, a.ghost { background: transparent; color: #1a1a1e; }
 .ammo-orb-plus { font-size: 10px; color: #d4af37; font-weight: 700; }
 #shop[hidden] .ammo-orb { display: none !important; }
 
-.modes { margin-top: 14px; padding-top: 10px; border-top: 1px solid #e6e0d4; }
-.modes .kicker { margin: 8px 0 8px; }
-.mode-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.modes { margin-top: 14px; padding-top: 10px; border-top: 1px solid #e6e0d4; display: flex; flex-direction: column; gap: 10px; }
+.modes .kicker { margin: 0 0 8px; }
+.setup-cat {
+  padding: 10px 12px 12px;
+  background: #efece4;
+  border: 1px solid #ddd4c4;
+  border-radius: 8px;
+}
+.setup-cat[hidden] { display: none !important; }
+.mode-row { display: flex; flex-wrap: wrap; gap: 8px; }
 .mode-btn {
   background: transparent;
   color: #1a1a1e;
   border: 1px solid #1a1a1e;
-  padding: 8px 10px;
+  padding: 9px 12px;
   font-size: 11px;
+  flex: 1 1 7rem;
+  text-align: center;
 }
 .mode-btn.on {
   background: #2f6b32;

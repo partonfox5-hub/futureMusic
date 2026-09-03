@@ -10,6 +10,8 @@ const COLORS = [0xff3355, 0x33ddaa, 0xffcc22, 0x6688ff, 0xff66dd, 0x44e0ff, 0xff
 const DAY_LEN = 504;
 const HEARTS = 5;
 const MAX_HP0 = HEARTS * 2;
+const FLASH_COL = 0xfff1c4;
+const HEADLIGHT_MUL = 1.5;
 
 const WEPS = {
   pistol: { id: "pistol", name: "Pistol", dmg: 1, rpm: 3.2, mag: 12, speed: 62, spread: 0.012, pellets: 1, cost: 0, reload: 8 },
@@ -2226,23 +2228,62 @@ function armyMat(hex, extra) {
   });
 }
 
-function attachArmyFlash(m, power) {
-  power = power || 1;
-  const light = new THREE.SpotLight(0xfff1c4, 0, 16 + power * 10, Math.PI * (0.16 + power * 0.05), 0.38, 1.15);
-  light.position.set(0, 1.02, 0.16);
+function flashRange(pow) {
+  return 16 + (pow || 1) * 10;
+}
+function flashCone(pow) {
+  return Math.PI * (0.16 + (pow || 1) * 0.05);
+}
+function flashLit(pow) {
+  return (0.35 + lastDark * 14) * (pow || 1);
+}
+
+function makeFlashSpot(parent, x, y, z, forwardZ, pow, lensR) {
+  pow = pow || 1;
+  const light = new THREE.SpotLight(FLASH_COL, 0, flashRange(pow), flashCone(pow), 0.38, 1.15);
+  light.position.set(x, y, z);
   const tgt = new THREE.Object3D();
-  tgt.position.set(0, 0.55, -10);
-  m.mesh.add(light, tgt);
+  tgt.position.set(x, y - 0.45, z + forwardZ * 12);
+  parent.add(light, tgt);
   light.target = tgt;
   const lens = new THREE.Mesh(
-    new THREE.CircleGeometry(0.035 + power * 0.015, 8),
-    new THREE.MeshBasicMaterial({ color: 0xffe8a8, transparent: true, opacity: 0.35 }),
+    new THREE.CircleGeometry(lensR || (0.035 + pow * 0.015), 8),
+    new THREE.MeshBasicMaterial({ color: 0xffe8a8, transparent: true, opacity: 0.35, side: THREE.DoubleSide }),
   );
-  lens.position.set(0, 1.0, 0.2);
-  m.mesh.add(lens);
-  m.flash = light;
-  m.flashLens = lens;
+  lens.position.set(x, y, z + forwardZ * 0.05);
+  if (forwardZ < 0) lens.rotation.y = Math.PI;
+  parent.add(lens);
+  return { light, tgt, lens, pow };
+}
+
+function attachArmyFlash(m, power, forwardZ) {
+  power = power || 1;
+  const fz = forwardZ == null ? 1 : forwardZ;
+  const lamp = makeFlashSpot(m.mesh, 0, 1.02, 0.18 * fz, fz, power);
+  m.flash = lamp.light;
+  m.flashLens = lamp.lens;
   m.flashPow = power;
+}
+
+function attachVehicleHeadlights(m) {
+  const hum = m.vehicle === "humvee";
+  const z = hum ? -1.22 : -1.04;
+  const y = hum ? 0.5 : 0.46;
+  const xs = hum ? 0.55 : 0.44;
+  m.headlights = [];
+  for (const sx of [-1, 1]) {
+    const h = makeFlashSpot(m.mesh, sx * xs, y, z, -1, HEADLIGHT_MUL, 0.06);
+    const bucket = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.07, 0.085, 0.11, 8),
+      armyMat(0x1a1c18, { emissive: 0x443310, emissiveIntensity: 0.4 }),
+    );
+    bucket.rotation.x = Math.PI / 2;
+    bucket.position.set(sx * xs, y, z);
+    m.mesh.add(bucket);
+    h.housing = bucket;
+    m.headlights.push(h);
+  }
+  m.flashPow = HEADLIGHT_MUL;
 }
 
 function stripArmyLights(m) {
@@ -2254,6 +2295,31 @@ function stripArmyLights(m) {
   if (m.flashLens) {
     m.flashLens.removeFromParent();
     m.flashLens = null;
+  }
+  if (m.headlights) {
+    for (const h of m.headlights) {
+      if (h.light) {
+        if (h.light.target) h.light.target.removeFromParent();
+        h.light.removeFromParent();
+      }
+      if (h.lens) h.lens.removeFromParent();
+      if (h.housing) h.housing.removeFromParent();
+    }
+    m.headlights = null;
+  }
+}
+
+function tickArmyLights(m) {
+  if (m.flash) {
+    m.flash.intensity = flashLit(m.flashPow || 1);
+    if (m.flashLens && m.flashLens.material) m.flashLens.material.opacity = 0.15 + lastDark * 0.55;
+  }
+  if (m.headlights) {
+    const lit = flashLit(HEADLIGHT_MUL);
+    for (const h of m.headlights) {
+      if (h.light) h.light.intensity = lit;
+      if (h.lens && h.lens.material) h.lens.material.opacity = 0.22 + lastDark * 0.7;
+    }
   }
 }
 
@@ -2676,10 +2742,11 @@ function makeArmySoldier(w, ang, dist, opts) {
   const limbs = [];
   const giant = !hired && !general && rollGiant(w) && !armyVehicleForWave(w);
   const s = (0.92 + rng() * 0.12 + Math.min(0.2, w * 0.008)) * (giant ? 1.55 : 1) * (general ? 1.22 : 1) * 1.1 * Math.min(1.25, waveSizeMul(w));
-  const hits = giant ? 2 : 1;
+  const limbHits = giant ? 2 : 1;
+  const torsoHits = limbHits + 1;
   const torsoM = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.5, 0.18), plastic);
   const torso = addArmyPart(group, limbs, torsoM, 0, 0.76, 0, {
-    thick: 0.18, len: 0.5, maxHits: hits, dmg: 1, form: "torso", part: "torso",
+    thick: 0.18, len: 0.5, maxHits: torsoHits, dmg: 1, form: "torso", part: "torso",
   });
   const pack = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.22, 0.1), plastic);
   pack.position.set(0, 0.02, 0.13);
@@ -2697,7 +2764,7 @@ function makeArmySoldier(w, ang, dist, opts) {
   torso.add(neck);
   const headM = new THREE.Mesh(new THREE.SphereGeometry(0.115, 8, 6), plastic);
   const head = addArmyPart(group, limbs, headM, 0, 1.08, 0.02, {
-    thick: 0.14, len: 0.22, maxHits: 1, form: "club", part: "head",
+    thick: 0.14, len: 0.22, maxHits: limbHits, form: "club", part: "head",
   });
   const helm = new THREE.Mesh(new THREE.SphereGeometry(0.132, 8, 5, 0, Math.PI * 2, 0, 1.28), plastic);
   helm.position.set(0, 0.048, 0);
@@ -2717,12 +2784,12 @@ function makeArmySoldier(w, ang, dist, opts) {
   const armLM = new THREE.Mesh(new THREE.BoxGeometry(0.09, armLen, 0.09), plastic);
   armLM.position.y = -armLen * 0.38;
   addArmyPart(group, limbs, armLM, -0.175, 0.94, 0, {
-    thick: 0.1, len: armLen, form: "club", part: "arm", basePitch: 0.18,
+    thick: 0.1, len: armLen, form: "club", part: "arm", basePitch: 0.18, maxHits: limbHits,
   });
   const armRM = new THREE.Mesh(new THREE.BoxGeometry(0.09, armLen, 0.09), plastic);
   armRM.position.y = -armLen * 0.38;
   const armR = addArmyPart(group, limbs, armRM, 0.175, 0.94, 0, {
-    thick: 0.1, len: armLen, form: "club", part: "arm", basePitch: 0.82,
+    thick: 0.1, len: armLen, form: "club", part: "arm", basePitch: 0.82, maxHits: limbHits,
   });
   armR.rotation.x = 0.82;
   const gun = makeArmyGun(wepId);
@@ -2732,12 +2799,12 @@ function makeArmySoldier(w, ang, dist, opts) {
   const legLM = new THREE.Mesh(new THREE.BoxGeometry(0.115, legLen, 0.115), plastic);
   legLM.position.y = -legLen * 0.4;
   addArmyPart(group, limbs, legLM, -0.08, 0.54, 0, {
-    thick: 0.11, len: legLen, asLeg: true, form: "club", run: 1.05, legIndex: 0, basePitch: 0.06, part: "leg",
+    thick: 0.11, len: legLen, asLeg: true, form: "club", run: 1.05, legIndex: 0, basePitch: 0.06, part: "leg", maxHits: limbHits,
   });
   const legRM = new THREE.Mesh(new THREE.BoxGeometry(0.115, legLen, 0.115), plastic);
   legRM.position.y = -legLen * 0.4;
   addArmyPart(group, limbs, legRM, 0.08, 0.54, 0, {
-    thick: 0.11, len: legLen, asLeg: true, form: "club", run: 1.05, legIndex: 1, basePitch: 0.06, part: "leg",
+    thick: 0.11, len: legLen, asLeg: true, form: "club", run: 1.05, legIndex: 1, basePitch: 0.06, part: "leg", maxHits: limbHits,
   });
   group.scale.setScalar(s);
   const { x, z } = armyPlace(ang, dist);
@@ -2788,7 +2855,7 @@ function makeArmySoldier(w, ang, dist, opts) {
     strikeCd: general ? 4 + rng() * 5 : 0,
   };
   if (hired) unit.team = playerFaction();
-  attachArmyFlash(unit, general ? 3.2 : hired ? 1.4 : 1);
+  attachArmyFlash(unit, general ? 3.2 : hired ? 1.4 : 1, 1);
   return unit;
 }
 
@@ -2951,7 +3018,8 @@ function makeArmyVehicle(w, ang, dist, kind, opts) {
       unit.shotShape = "rocket";
     }
   }
-  attachArmyFlash(unit, kind === "tank" || kind === "heli" ? 2.4 : 1.6);
+  if (kind === "jeep" || kind === "humvee") attachVehicleHeadlights(unit);
+  else attachArmyFlash(unit, kind === "tank" || kind === "heli" ? 2.4 : 1.6, -1);
   return unit;
 }
 
@@ -3050,7 +3118,7 @@ function syncMob(m) {
   }
   const fx = m.faceX != null ? m.faceX : player.x;
   const fz = m.faceZ != null ? m.faceZ : player.z;
-  m.mesh.rotation.y = Math.atan2(fx - m.x, fz - m.z);
+  m.mesh.rotation.y = Math.atan2(fx - m.x, fz - m.z) + (m.vehicle ? Math.PI : 0);
 }
 
 function loadBestWave() {
@@ -3348,6 +3416,10 @@ function hitLimb(limb, m) {
   }
   if (m.army && !m.vehicle) {
     const part = limb.userData.part;
+    if (part === "torso") {
+      killMob(m, false);
+      return;
+    }
     if (part === "leg") {
       m.legGone = (m.legGone || 0) + 1;
       m.spd = (m.baseSpd || m.spd) * (m.legGone >= 2 ? 0.12 : 0.42);
@@ -3511,8 +3583,9 @@ function tickMobs(dt) {
       if (!m.ride.alive) m.ride = null;
       else {
         const yaw = m.ride.mesh.rotation.y;
-        const side = (m.rideSeat ? 1 : -1) * 0.48;
-        const back = m.ride.vehicle === "humvee" ? 0.15 : 0.05;
+        let side = (m.rideSeat ? 1 : -1) * 0.48;
+        let back = m.ride.vehicle === "humvee" ? 0.15 : 0.05;
+        if (m.ride.vehicle) { side = -side; back = -back; }
         m.x = m.ride.x + Math.sin(yaw) * side - Math.cos(yaw) * back;
         m.z = m.ride.z + Math.cos(yaw) * side + Math.sin(yaw) * back;
         m.y = m.ride.y + 0.95;
@@ -3759,12 +3832,7 @@ function tickMobs(dt) {
       }
     }
     syncMob(m);
-    if (m.army && m.flash) {
-      const pow = m.flashPow || 1;
-      const lit = 0.35 + lastDark * 14 * pow;
-      m.flash.intensity = lit;
-      if (m.flashLens && m.flashLens.material) m.flashLens.material.opacity = 0.15 + lastDark * 0.55;
-    }
+    if (m.army) tickArmyLights(m);
     if (m.general && (tgt.kind === "player" || tgt.kind === "mob")) {
       m.strikeCd = (m.strikeCd || 8) - dt;
       if (m.strikeCd <= 0 && dist < 42) {
@@ -4131,7 +4199,7 @@ function makeFlagMesh() {
   pole.position.y = 1.55;
   const cloth = new THREE.Mesh(
     new THREE.PlaneGeometry(1.35, 0.82),
-    new THREE.MeshLambertMaterial({ color: col, side: THREE.DoubleSide, emissive: col, emissiveIntensity: 1.35 }),
+    new THREE.MeshLambertMaterial({ color: col, side: THREE.DoubleSide, emissive: col, emissiveIntensity: 0.55 }),
   );
   cloth.position.set(0.68, 2.55, 0);
   const ball = new THREE.Mesh(new THREE.SphereGeometry(0.12, 10, 8), new THREE.MeshBasicMaterial({ color: col }));
@@ -4141,35 +4209,49 @@ function makeFlagMesh() {
     new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.28, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }),
   );
   glow.position.y = 2.55;
-  const light = new THREE.PointLight(col, 3.2, 48, 0.85);
-  light.position.y = 2.6;
-  const up = new THREE.SpotLight(col, 8, 240, 0.16, 0.22, 0.18);
+  const cage = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.12, 0.28, 8, 1, true), mat(0x4a4030));
+  cage.position.set(-0.22, 2.42, 0);
+  const bulb = new THREE.Mesh(
+    new THREE.SphereGeometry(0.09, 10, 8),
+    new THREE.MeshBasicMaterial({ color: FLASH_COL }),
+  );
+  bulb.position.copy(cage.position);
+  const lanternHalo = new THREE.Mesh(
+    new THREE.SphereGeometry(0.28, 10, 8),
+    new THREE.MeshBasicMaterial({ color: FLASH_COL, transparent: true, opacity: 0.32, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }),
+  );
+  lanternHalo.position.copy(cage.position);
+  const lantern = new THREE.PointLight(FLASH_COL, 0, flashRange(HEADLIGHT_MUL), 0.95);
+  lantern.position.copy(cage.position);
+  const up = new THREE.SpotLight(col, 0, 160, 0.18, 0.35, 0.4);
   up.position.set(0, 3.2, 0);
   const upT = new THREE.Object3D();
-  upT.position.set(0, 220, 0);
+  upT.position.set(0, 80, 0);
   up.target = upT;
   const beam = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.12, 2.4, 160, 12, 1, true),
+    new THREE.CylinderGeometry(0.08, 1.4, 90, 12, 1, true),
     new THREE.MeshBasicMaterial({
-      color: col, transparent: true, opacity: 0.28, blending: THREE.AdditiveBlending,
+      color: col, transparent: true, opacity: 0.12, blending: THREE.AdditiveBlending,
       depthWrite: false, side: THREE.DoubleSide, fog: false,
     }),
   );
-  beam.position.y = 82;
+  beam.position.y = 48;
   const core = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.04, 0.38, 180, 8, 1, true),
+    new THREE.CylinderGeometry(0.03, 0.22, 96, 8, 1, true),
     new THREE.MeshBasicMaterial({
-      color: 0xffffff, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending,
+      color: 0xffffff, transparent: true, opacity: 0.22, blending: THREE.AdditiveBlending,
       depthWrite: false, side: THREE.DoubleSide, fog: false,
     }),
   );
-  core.position.y = 92;
-  g.add(pole, cloth, ball, glow, light, up, upT, beam, core);
+  core.position.y = 52;
+  g.add(pole, cloth, ball, glow, cage, bulb, lanternHalo, lantern, up, upT, beam, core);
   g.userData.cloth = cloth;
   g.userData.glow = glow;
   g.userData.beam = beam;
   g.userData.core = core;
-  g.userData.light = light;
+  g.userData.lantern = lantern;
+  g.userData.lanternHalo = lanternHalo;
+  g.userData.bulb = bulb;
   g.userData.up = up;
   return g;
 }
@@ -4199,10 +4281,16 @@ function tickFlag(dt) {
     flag.mesh.userData.glow.scale.setScalar(p);
     if (flag.mesh.userData.glow.material) flag.mesh.userData.glow.material.opacity = 0.22 + night * 0.5;
   }
-  if (flag.mesh.userData.beam?.material) flag.mesh.userData.beam.material.opacity = 0.22 + night * 0.72;
-  if (flag.mesh.userData.core?.material) flag.mesh.userData.core.material.opacity = 0.4 + night * 0.58;
-  if (flag.mesh.userData.light) flag.mesh.userData.light.intensity = 4 + night * 38;
-  if (flag.mesh.userData.up) flag.mesh.userData.up.intensity = 6 + night * 90;
+  if (flag.mesh.userData.beam?.material) flag.mesh.userData.beam.material.opacity = 0.08 + night * 0.28;
+  if (flag.mesh.userData.core?.material) flag.mesh.userData.core.material.opacity = 0.12 + night * 0.32;
+  const headI = flashLit(HEADLIGHT_MUL);
+  if (flag.mesh.userData.lantern) flag.mesh.userData.lantern.intensity = night > 0.22 ? headI : headI * 0.06;
+  if (flag.mesh.userData.lanternHalo?.material) {
+    flag.mesh.userData.lanternHalo.material.opacity = 0.12 + night * 0.55;
+    const p = 0.9 + Math.sin(performance.now() * 0.005) * 0.12;
+    flag.mesh.userData.lanternHalo.scale.setScalar(p);
+  }
+  if (flag.mesh.userData.up) flag.mesh.userData.up.intensity = night * headI * 0.35;
   if (Math.hypot(player.x - flag.x, player.z - flag.z) < 2.1) {
     player.coins += 50;
     sfx.flag();
@@ -4269,6 +4357,19 @@ function drawMenuBtn(ctx, x, y, w, h, label, fill, ink) {
   ctx.textBaseline = "alphabetic";
 }
 
+function drawMenuCat(ctx, x, y, w, h, title) {
+  ctx.fillStyle = "#efeae0";
+  ctx.fillRect(x, y, w, h);
+  ctx.strokeStyle = "#d4c7b0";
+  ctx.lineWidth = 2;
+  ctx.strokeRect(x + 1, y + 1, w - 2, h - 2);
+  ctx.fillStyle = "#d4af37";
+  ctx.font = "600 16px Outfit, sans-serif";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "alphabetic";
+  ctx.fillText(title, x + 14, y + 22);
+}
+
 function paintMenu3d(kind) {
   if (!overCtx) return;
   const w = 1024, h = 768;
@@ -4276,6 +4377,7 @@ function paintMenu3d(kind) {
   overCtx.fillStyle = "#f7f4ee";
   overCtx.fillRect(0, 0, w, h);
   const waves = unlockedStarts();
+  let cursorY = 284;
   if (kind === "over") {
     overCtx.fillStyle = "#d4af37";
     overCtx.font = "600 26px Outfit, sans-serif";
@@ -4297,62 +4399,56 @@ function paintMenu3d(kind) {
     overCtx.fillText("MAIN MENU", 40, 108);
     overCtx.font = "500 20px Outfit, sans-serif";
     overCtx.fillStyle = "#6a655c";
-    overCtx.fillText("Shoot a start. Jump-in waves pay +50 ◎ per wave.", 40, 142);
-    drawMenuBtn(overCtx, 40, 154, 360, 46, "NEW GAME  ·  WAVE 1", "#1a1a1e", "#f4f1ea");
-    addMenuHit(40, 154, 360, 46, "start", 1);
+    overCtx.fillText("Shoot a start. Jump-in waves pay +50 ◎ per wave.", 40, 134);
+    drawMenuCat(overCtx, 28, 144, 680, 70, "PLAY");
+    drawMenuBtn(overCtx, 40, 176, 360, 34, "NEW GAME  ·  WAVE 1", "#1a1a1e", "#f4f1ea");
+    addMenuHit(40, 176, 360, 34, "start", 1);
     if (paused) {
-      drawMenuBtn(overCtx, 416, 154, 220, 46, "RESUME", "#d4af37", "#111");
-      addMenuHit(416, 154, 220, 46, "resume", 0);
+      drawMenuBtn(overCtx, 416, 176, 220, 34, "RESUME", "#d4af37", "#111");
+      addMenuHit(416, 176, 220, 34, "resume", 0);
     }
-    drawMenuBtn(overCtx, 780, 154, 204, 46, devMode ? "SANDBOX ON" : "SANDBOX", devMode ? "#143018" : "#1a1a1e", devMode ? "#8f8" : "#d4af37");
-    addMenuHit(780, 154, 204, 46, "sandbox", 0);
-    overCtx.fillStyle = "#6a655c";
-    overCtx.font = "600 16px Outfit, sans-serif";
-    overCtx.fillText("MODE", 40, 220);
+    drawMenuCat(overCtx, 28, 226, 968, 78, "MODE");
     const modes = [["horde", "HORDE"], ["army", "ARMY MAN"], ["mixed", "MIXED"], ["war", "WAR"]];
     modes.forEach((pair, i) => {
       const x = 40 + i * 242;
-      const y = 228;
+      const y = 254;
       const on = gameMode === pair[0];
       drawMenuBtn(overCtx, x, y, 230, 40, pair[1], on ? "#2f6b32" : "#1a1a1e", on ? "#f4f1ea" : "#d4af37");
       addMenuHit(x, y, 230, 40, "mode", 1, pair[0]);
     });
-    overCtx.fillStyle = "#6a655c";
-    overCtx.font = "600 16px Outfit, sans-serif";
-    overCtx.fillText("MAP", 40, 286);
+    drawMenuCat(overCtx, 28, 312, 968, 78, "MAP");
     MAPS.forEach((mp, i) => {
       const x = 40 + i * 320;
-      const y = 294;
+      const y = 340;
       const on = selectedMap === mp.id;
       drawMenuBtn(overCtx, x, y, 304, 40, mp.short, on ? "#2a4a62" : "#1a1a1e", "#f4f1ea");
       addMenuHit(x, y, 304, 40, "map", 1, mp.id);
     });
-    let cursorY = 350;
+    cursorY = 398;
     if (gameMode === "war") {
-      overCtx.fillStyle = "#6a655c";
-      overCtx.font = "600 16px Outfit, sans-serif";
-      overCtx.fillText("YOUR TEAM", 40, cursorY);
+      drawMenuCat(overCtx, 28, cursorY, 968, 76, "YOUR TEAM");
       [["solo", "SOLO"], ["army", "JOIN ARMY"], ["horde", "JOIN HORDE"]].forEach((pair, i) => {
         const x = 40 + i * 320;
-        const y = cursorY + 10;
+        const y = cursorY + 28;
         const on = warTeam === pair[0];
         drawMenuBtn(overCtx, x, y, 300, 38, pair[1], on ? "#5a1818" : "#1a1a1e", "#f4f1ea");
         addMenuHit(x, y, 300, 38, "team", 1, pair[0]);
       });
-      cursorY += 64;
+      cursorY += 84;
     }
-    overCtx.fillStyle = gameMode === "war" ? "#6a655c" : "#b0aaa0";
-    overCtx.font = "600 16px Outfit, sans-serif";
-    overCtx.fillText("WAR FLOW", 40, cursorY);
-    const flowY = cursorY + 10;
+    drawMenuCat(overCtx, 28, cursorY, 968, 76, "WAR FLOW");
+    const flowY = cursorY + 28;
     const warOn = gameMode === "war";
     drawMenuBtn(overCtx, 40, flowY, 300, 38, "WAVES", warOn && !continuousMode ? "#2f6b32" : "#6a655c", "#f4f1ea");
     addMenuHit(40, flowY, 300, 38, "flow", 1, "waves");
     drawMenuBtn(overCtx, 360, flowY, 340, 38, "CONTINUOUS", warOn && continuousMode ? "#5a1818" : "#8a8680", "#f4f1ea");
     addMenuHit(360, flowY, 340, 38, "flow", 1, "continuous");
-    cursorY += 64;
+    drawMenuCat(overCtx, 720, 144, 276, 70, "TOOLS");
+    drawMenuBtn(overCtx, 736, 176, 244, 34, devMode ? "SANDBOX ON" : "SANDBOX", devMode ? "#143018" : "#1a1a1e", devMode ? "#8f8" : "#d4af37");
+    addMenuHit(736, 176, 244, 34, "sandbox", 0);
+    cursorY += 84;
   }
-  const top = kind === "over" ? 284 : (gameMode === "war" ? 478 : 414);
+  const top = cursorY;
   if (waves.length) {
     overCtx.fillStyle = "#6a655c";
     overCtx.font = "600 20px Outfit, sans-serif";
@@ -4932,6 +5028,7 @@ function detonateShot(s) {
     craterAt(p.x, p.z, 22, 7.4);
     smashNear(p, 26);
     damageBuildings(p, 26, 10);
+    skyFlash = Math.max(skyFlash, 1.45);
     sfx.nukeBoom();
   }
   if (s.def.missile) {
@@ -5018,10 +5115,15 @@ function tickFx(dt) {
       f.mesh.scale.setScalar(grow);
       if (f.cap) f.cap.scale.y = 0.4 + (1 - k) * 0.32;
       if (f.ring) f.ring.scale.setScalar(0.8 + (1 - k) * 2.2);
+      const burst = Math.pow(k, 0.42);
       f.mesh.traverse((ch) => {
-        if (ch.material && ch.material.opacity != null) ch.material.opacity = Math.min(0.92, k * 1.15);
-        if (ch.isLight) ch.intensity = 90 * k;
+        if (ch.material && ch.material.opacity != null) {
+          const hot = ch === f.core;
+          ch.material.opacity = Math.min(1, k * (hot ? 1.35 : 1.15));
+        }
       });
+      if (f.flash) f.flash.intensity = 280 * burst;
+      if (f.fill) f.fill.intensity = 110 * burst;
     }
     if (f.life <= 0) {
       f.mesh.removeFromParent();
@@ -6355,13 +6457,20 @@ function spawnMushroomCloud(pos, scale) {
   );
   ring.rotation.x = Math.PI / 2;
   ring.position.y = scale * 1.1;
-  const flash = new THREE.PointLight(0xff8833, 90, scale * 42, 1.05);
-  flash.position.y = scale * 2;
-  g.add(stem, cap, ring, flash);
+  const core = new THREE.Mesh(
+    new THREE.SphereGeometry(scale * 1.15, 16, 12),
+    new THREE.MeshBasicMaterial({ color: 0xfff6d0, transparent: true, opacity: 1, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }),
+  );
+  core.position.y = scale * 0.85;
+  const flash = new THREE.PointLight(0xfff2c4, 280, scale * 78, 0.55);
+  flash.position.y = scale * 0.7;
+  const fill = new THREE.PointLight(0xffaa55, 110, scale * 52, 0.75);
+  fill.position.y = 1.4;
+  g.add(stem, cap, ring, core, flash, fill);
   g.position.copy(pos);
   g.position.y = heightAt(pos.x, pos.z);
   scene.add(g);
-  fx.push({ mesh: g, kind: "mushroom", life: 5.76, maxLife: 5.76, scale, stem, cap, ring, flash });
+  fx.push({ mesh: g, kind: "mushroom", life: 5.76, maxLife: 5.76, scale, stem, cap, ring, core, flash, fill });
 }
 
 function spawnMeteorBlast(pos, rad) {
