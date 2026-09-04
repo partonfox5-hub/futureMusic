@@ -1,8 +1,8 @@
 import * as THREE from "three";
 import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
 import { XRControllerModelFactory } from "three/addons/webxr/XRControllerModelFactory.js";
-import { listMaps as listOwMaps, getMap as getOwMap, demoFort } from "/games/horde/js/ow-map.js?v=h35";
-import { buildOpenWorld, tickOpenWorld, clearOpenWorld, owHeight, owPush, owShotHit, owHitSolid } from "/games/horde/js/ow-world.js?v=h35";
+import { listMaps as listOwMaps, listMapsLocal as listOwMapsLocal, listMapsRemote as listOwMapsRemote, mergeMapInfo, getMap as getOwMap, demoFort } from "/games/horde/js/ow-map.js?v=h36";
+import { buildOpenWorld, tickOpenWorld, clearOpenWorld, owHeight, owPush, owShotHit, owHitSolid } from "/games/horde/js/ow-world.js?v=h36";
 
 const LS = "horde.lb.v1";
 const SPAWN_MIN = 52;
@@ -2728,7 +2728,10 @@ function setGameMode(mode) {
   try { localStorage.setItem(LS_MODE, mode); } catch {}
   paintModeButtons();
   paintOwMapRow();
-  if (mode === "open") refreshOwMaps();
+  if (mode === "open") {
+    owMapCache = owMapsForMenu();
+    refreshOwMaps();
+  }
 }
 
 function setWarTeam(team) {
@@ -2822,6 +2825,7 @@ function paintModeButtons() {
 }
 
 function fillOwMapButtons(maps) {
+  maps = maps || owMapsForMenu();
   const row = $("map-row");
   if (!row || gameMode !== "open") return;
   row.querySelectorAll("[data-map]").forEach((b) => {
@@ -2850,13 +2854,21 @@ function fillOwMapButtons(maps) {
   }
 }
 
+function owMapsForMenu() {
+  return mergeMapInfo(listOwMapsLocal(), owMapCache);
+}
+
 async function refreshOwMaps() {
+  owMapCache = mergeMapInfo(listOwMapsLocal(), owMapCache);
+  if (gameMode === "open") fillOwMapButtons(owMapsForMenu());
+  if (menuOpen && overMesh) paintMenu3d("main");
   try {
-    owMapCache = await listOwMaps();
+    const remote = await listOwMapsRemote();
+    owMapCache = mergeMapInfo(listOwMapsLocal(), remote);
   } catch {
-    owMapCache = [];
+    owMapCache = mergeMapInfo(listOwMapsLocal(), owMapCache);
   }
-  if (gameMode === "open") fillOwMapButtons(owMapCache);
+  if (gameMode === "open") fillOwMapButtons(owMapsForMenu());
   if (menuOpen && overMesh) paintMenu3d("main");
 }
 
@@ -2869,7 +2881,7 @@ function paintOwMapRow() {
     if (maker) maker.remove();
     return;
   }
-  fillOwMapButtons(owMapCache);
+  fillOwMapButtons(owMapsForMenu());
   refreshOwMaps();
 }
 
@@ -4807,20 +4819,23 @@ function paintMenu3d(kind) {
       drawMenuBtn(overCtx, x, y, 182, 40, pair[1], on ? "#2f6b32" : "#1a1a1e", on ? "#f4f1ea" : "#d4af37");
       addMenuHit(x, y, 182, 40, "mode", 1, pair[0]);
     });
-    drawMenuCat(overCtx, 28, 312, 968, 78, "MAP");
     if (gameMode === "open") {
-      const maps = [{ id: "demo-fort", name: "DEMO FORT" }, ...owMapCache.filter((m) => m.id !== "demo-fort").map((m) => ({ id: m.id, name: (m.name || "MAP").toUpperCase().slice(0, 16) }))];
+      const maps = [{ id: "demo-fort", name: "DEMO FORT" }, ...owMapsForMenu().filter((m) => m.id !== "demo-fort").map((m) => ({ id: m.id, name: (m.name || "MAP").toUpperCase().slice(0, 18) }))];
+      const rows = Math.max(1, Math.ceil(maps.length / 4));
+      const boxH = 52 + rows * 46;
+      drawMenuCat(overCtx, 28, 312, 968, boxH, "OPEN WORLD MAPS");
       maps.forEach((mp, i) => {
         const col = i % 4;
         const r = (i / 4) | 0;
         const x = 40 + col * 240;
-        const y = 340 + r * 46;
+        const y = 348 + r * 46;
         const on = selectedOwMap === mp.id;
         drawMenuBtn(overCtx, x, y, 228, 40, mp.name, on ? "#2a4a62" : "#1a1a1e", "#f4f1ea");
         addMenuHit(x, y, 228, 40, "map", 1, "ow:" + mp.id);
       });
-      cursorY = 398 + Math.max(0, Math.ceil(maps.length / 4) - 1) * 46;
+      cursorY = 312 + boxH + 12;
     } else {
+      drawMenuCat(overCtx, 28, 312, 968, 78, "MAP");
       MAPS.forEach((mp, i) => {
         const x = 40 + i * 320;
         const y = 340;
@@ -4829,6 +4844,12 @@ function paintMenu3d(kind) {
         addMenuHit(x, y, 304, 40, "map", 1, mp.id);
       });
       cursorY = 398;
+    }
+    if (gameMode === "open") {
+      drawMenuCat(overCtx, 28, cursorY, 968, 70, "PLAY THIS MAP");
+      drawMenuBtn(overCtx, 40, cursorY + 28, 460, 34, "START OPEN WORLD", "#2a4a62", "#f4f1ea");
+      addMenuHit(40, cursorY + 28, 460, 34, "start", 1);
+      cursorY += 84;
     }
     if (gameMode === "war") {
       drawMenuCat(overCtx, 28, cursorY, 968, 76, "YOUR TEAM");
@@ -4841,20 +4862,22 @@ function paintMenu3d(kind) {
       });
       cursorY += 84;
     }
-    drawMenuCat(overCtx, 28, cursorY, 968, 76, "WAR FLOW");
-    const flowY = cursorY + 28;
-    const warOn = gameMode === "war";
-    drawMenuBtn(overCtx, 40, flowY, 300, 38, "WAVES", warOn && !continuousMode ? "#2f6b32" : "#6a655c", "#f4f1ea");
-    addMenuHit(40, flowY, 300, 38, "flow", 1, "waves");
-    drawMenuBtn(overCtx, 360, flowY, 340, 38, "CONTINUOUS", warOn && continuousMode ? "#5a1818" : "#8a8680", "#f4f1ea");
-    addMenuHit(360, flowY, 340, 38, "flow", 1, "continuous");
+    if (gameMode !== "open") {
+      drawMenuCat(overCtx, 28, cursorY, 968, 76, "WAR FLOW");
+      const flowY = cursorY + 28;
+      const warOn = gameMode === "war";
+      drawMenuBtn(overCtx, 40, flowY, 300, 38, "WAVES", warOn && !continuousMode ? "#2f6b32" : "#6a655c", "#f4f1ea");
+      addMenuHit(40, flowY, 300, 38, "flow", 1, "waves");
+      drawMenuBtn(overCtx, 360, flowY, 340, 38, "CONTINUOUS", warOn && continuousMode ? "#5a1818" : "#8a8680", "#f4f1ea");
+      addMenuHit(360, flowY, 340, 38, "flow", 1, "continuous");
+      cursorY += 84;
+    }
     drawMenuCat(overCtx, 720, 144, 276, 70, "TOOLS");
     drawMenuBtn(overCtx, 736, 176, 244, 34, devMode ? "SANDBOX ON" : "SANDBOX", devMode ? "#143018" : "#1a1a1e", devMode ? "#8f8" : "#d4af37");
     addMenuHit(736, 176, 244, 34, "sandbox", 0);
-    cursorY += 84;
   }
   const top = cursorY;
-  if (waves.length) {
+  if (waves.length && gameMode !== "open") {
     overCtx.fillStyle = "#6a655c";
     overCtx.font = "600 20px Outfit, sans-serif";
     overCtx.fillText("UNLOCKED STARTS", 40, top);
@@ -4867,7 +4890,7 @@ function paintMenu3d(kind) {
       drawMenuBtn(overCtx, x, y, bw, bh, "W" + wv + "  +" + (wv * 50) + "◎", "#111", "#d4af37");
       addMenuHit(x, y, bw, bh, "start", wv);
     });
-  } else {
+  } else if (gameMode !== "open") {
     overCtx.fillStyle = "#8a8680";
     overCtx.font = "500 20px Outfit, sans-serif";
     overCtx.fillText("Reach wave 5 to unlock skip starts.", 40, top + 8);
@@ -8529,7 +8552,12 @@ function tryOverShot(xr) {
     for (const hit of menuHits) {
       if (x >= hit.x && x <= hit.x + hit.w && y >= hit.y && y <= hit.y + hit.h) {
         if (hit.kind === "resume") resumeRun();
-        else if (hit.kind === "mode") { setGameMode(hit.extra); paintMenu3d("main"); }
+        else if (hit.kind === "mode") {
+          setGameMode(hit.extra);
+          if (hit.extra === "open") owMapCache = owMapsForMenu();
+          paintMenu3d("main");
+          if (hit.extra === "open") refreshOwMaps();
+        }
         else if (hit.kind === "team") { setWarTeam(hit.extra); paintMenu3d("main"); }
         else if (hit.kind === "flow") {
           if (hit.extra === "continuous") setContinuous(true);

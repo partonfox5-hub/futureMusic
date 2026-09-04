@@ -25,7 +25,7 @@ import {
   worldZ,
   flagsAt,
   liquidAt,
-} from "./ow-map.js?v=h35";
+} from "./ow-map.js?v=h36";
 
 function mat(hex, extra) {
   return new THREE.MeshLambertMaterial({ color: hex, ...extra });

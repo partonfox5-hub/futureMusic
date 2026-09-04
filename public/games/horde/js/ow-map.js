@@ -426,22 +426,40 @@ export function listMapsLocal() {
   }
 }
 
-export async function listMaps() {
-  const local = listMapsLocal();
-  let remote = [];
-  try {
-    const r = await fetch(API + "?t=" + Date.now(), { cache: "no-store" });
-    if (r.ok) {
-      const data = await r.json();
-      remote = (data.maps || []).map((m) => {
-        try { return deserialize(m); } catch { return null; }
-      }).filter(Boolean);
-    }
-  } catch {}
+function asInfo(m) {
+  if (!m || !m.id) return null;
+  return { id: String(m.id), name: String(m.name || m.id), updated: m.updated || 0, rev: m.rev || 0 };
+}
+
+export function mergeMapInfo(a, b) {
   const byId = new Map();
-  for (const m of local) if (m?.id) byId.set(m.id, m);
-  for (const m of remote) if (m?.id) byId.set(m.id, preferMap(byId.get(m.id), m));
-  return [...byId.values()].sort((a, b) => (b.updated || 0) - (a.updated || 0));
+  for (const list of [a || [], b || []]) {
+    for (const m of list) {
+      const info = asInfo(m);
+      if (!info) continue;
+      byId.set(info.id, preferMap(byId.get(info.id), info));
+    }
+  }
+  return [...byId.values()].sort((x, y) => (y.updated || 0) - (x.updated || 0));
+}
+
+export async function listMapsRemote() {
+  const ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
+  const t = ctrl ? setTimeout(() => ctrl.abort(), 7000) : null;
+  try {
+    const r = await fetch(API + "?t=" + Date.now(), { cache: "no-store", signal: ctrl ? ctrl.signal : undefined });
+    if (!r.ok) return [];
+    const data = await r.json();
+    return (data.maps || []).map(asInfo).filter(Boolean);
+  } catch {
+    return [];
+  } finally {
+    if (t) clearTimeout(t);
+  }
+}
+
+export async function listMaps() {
+  return mergeMapInfo(listMapsLocal(), await listMapsRemote());
 }
 
 export async function getMap(id) {
@@ -470,20 +488,28 @@ export async function saveMap(map) {
   } catch (e) {
     console.warn("horde map local save failed", e);
   }
+  let remote = false;
+  let err = "";
   try {
     const r = await fetch(API, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(serialize(map)),
     });
+    const info = await r.json().catch(() => ({}));
     if (r.ok) {
-      const info = await r.json();
+      remote = !!info.remote || true;
       if (info.rev) map.rev = info.rev;
       if (info.updated) map.updated = info.updated;
+    } else {
+      err = info.error || ("HTTP " + r.status);
     }
   } catch (e) {
+    err = e.message || "network";
     console.warn("horde map server save failed", e);
   }
+  map._remote = remote;
+  map._saveError = err;
   return map;
 }
 

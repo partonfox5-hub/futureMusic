@@ -36,7 +36,7 @@ import {
   flagsAt,
   liquidAt,
   newMapId,
-} from "./ow-map.js?v=h35";
+} from "./ow-map.js?v=h36";
 
 const $ = (id) => document.getElementById(id);
 
@@ -453,7 +453,7 @@ function wire() {
     status("Saving…");
     await saveMap(map);
     await refreshSaved();
-    status("Saved — available in Open world on this headset and after a refresh");
+    status(map._saveError ? ("Saved here, server: " + map._saveError) : "Saved to server — refresh Horde, pick Open world");
   };
   if ($("save-as")) $("save-as").onclick = async () => {
     map.id = newMapId();
@@ -461,7 +461,7 @@ function wire() {
     status("Saving as new…");
     await saveMap(map);
     await refreshSaved();
-    status("Saved as new map");
+    status(map._saveError ? ("Saved here, server: " + map._saveError) : "Saved as new — refresh Horde, pick Open world");
   };
   $("new").onclick = () => {
     pushUndo();
