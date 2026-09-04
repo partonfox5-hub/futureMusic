@@ -618,6 +618,14 @@ app.use("/human", (req, res, next) => {
     humanHeaders(res);
     next();
 });
+app.get(["/human2", "/human2/"], (req, res) => {
+    humanHeaders(res);
+    res.sendFile(path.join(__dirname, "public", "human2", "index.html"));
+});
+app.use("/human2", (req, res, next) => {
+    humanHeaders(res);
+    next();
+});
 app.get(["/games/horde", "/games/horde/"], (req, res) => res.redirect("/horde"));
 app.get(["/horde", "/horde/"], (req, res) => {
     hordeHeaders(res);
