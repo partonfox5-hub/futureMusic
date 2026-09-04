@@ -2,17 +2,18 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
 
-const ASSET = "/human/assets/mira.glb?v=2";
+const ASSET = "/human/assets/mira.glb?v=3";
 const MORPH = [
   "Mouth_Smile_L", "Mouth_Smile_R", "Mouth_Frown_L", "Mouth_Frown_R",
   "Eye_Blink_L", "Eye_Blink_R", "Jaw_Open", "V_Open",
   "Brow_Raise_Inner_L", "Brow_Raise_Inner_R", "Brow_Drop_L", "Brow_Drop_R",
   "Cheek_Raise_L", "Cheek_Raise_R",
 ];
+const QUEST = /OculusBrowser|Quest/i.test(navigator.userAgent);
+const XR_ON = () => renderer.xr.isPresenting;
 
 const loadEl = document.getElementById("load");
 const hintEl = document.getElementById("hint");
-const panel = document.getElementById("panel");
 const ui = document.getElementById("ui");
 
 function banner(msg) {
@@ -21,8 +22,8 @@ function banner(msg) {
   console.warn(msg);
 }
 
-const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: "high-performance" });
-renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+const renderer = new THREE.WebGLRenderer({ antialias: !QUEST, alpha: false, powerPreference: "high-performance" });
+renderer.setPixelRatio(Math.min(devicePixelRatio, QUEST ? 1.25 : 1.5));
 renderer.setSize(innerWidth, innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -77,41 +78,72 @@ document.getElementById("enter").onclick = enterXr;
 
 const avatar = new THREE.Group();
 scene.add(avatar);
+
+const bones = {};
+const bindQ = {};
+const bindPos = {};
+let skeleton = null;
 let ready = false;
 let morphMeshes = [];
-let hairMeshes = [];
-const springs = { x: 0, z: 0, vx: 0, vz: 0 };
 let walkT = 0;
 let blinkT = 2;
 let exprT = 4;
 const want = Object.fromEntries(MORPH.map((n) => [n, 0]));
 const cur = { ...want };
 
+const _q = new THREE.Quaternion();
+const _e = new THREE.Euler();
+const _v = new THREE.Vector3();
+const _w = new THREE.Vector3();
+const _m = new THREE.Matrix4();
+
+function isHairMat(m, o) {
+  const n = ((m && m.name) || "") + " " + (o.name || "");
+  return /transp|eyelash|hair/i.test(n) || !!(m && m.alphaMap);
+}
+
 function applySkin(root) {
   root.traverse((o) => {
+    if (o.isBone) {
+      bones[o.name] = o;
+      bindQ[o.name] = o.quaternion.clone();
+      bindPos[o.name] = o.position.clone();
+    }
+    if (o.isSkinnedMesh && o.skeleton && !skeleton) skeleton = o.skeleton;
     if (!o.isMesh) return;
     const mats = Array.isArray(o.material) ? o.material : [o.material];
     const next = mats.map((m) => {
-      const hair = !!(m && (m.transparent || /transp|eyelash|hair/i.test(m.name || o.name || "")));
+      const hair = isHairMat(m, o);
       const lit = new THREE.MeshStandardMaterial({
         map: m && m.map ? m.map : null,
         color: 0xffffff,
-        roughness: hair ? 0.55 : 0.48,
+        roughness: hair ? 0.42 : 0.48,
         metalness: 0,
-        side: THREE.DoubleSide,
-        transparent: hair,
-        depthWrite: !hair,
-        alphaTest: hair ? 0.12 : 0,
+        side: hair ? THREE.DoubleSide : THREE.FrontSide,
+        transparent: false,
+        depthWrite: true,
+        alphaTest: hair ? 0.48 : 0,
+        alphaHash: hair && !QUEST,
       });
+      if (hair && !QUEST) lit.alphaTest = 0.35;
       if (lit.map) lit.map.colorSpace = THREE.SRGBColorSpace;
+      lit.name = (m && m.name) || o.name || "";
       return lit;
     });
     o.material = next.length === 1 ? next[0] : next;
     if (o.morphTargetDictionary) morphMeshes.push(o);
-    if (/hair/i.test(o.name || "")) hairMeshes.push(o);
     o.frustumCulled = false;
     o.castShadow = false;
   });
+}
+
+function boneQ(name, x, y, z) {
+  const b = bones[name];
+  const q0 = bindQ[name];
+  if (!b || !q0) return;
+  _e.set(x, y, z, "XYZ");
+  _q.setFromEuler(_e);
+  b.quaternion.copy(q0).multiply(_q);
 }
 
 function tickMorphs(dt) {
@@ -152,29 +184,78 @@ function tickExpr(dt) {
   }
 }
 
+const springs = {
+  L_Breast: { x: 0, z: 0, vx: 0, vz: 0, stiff: 22, damp: 6.5, gain: 0.18 },
+  R_Breast: { x: 0, z: 0, vx: 0, vz: 0, stiff: 22, damp: 6.5, gain: 0.18 },
+  Head: { x: 0, z: 0, vx: 0, vz: 0, stiff: 14, damp: 5, gain: 0.08 },
+};
+
 function tickWalk(dt, moving) {
-  walkT += dt * (moving ? 7.2 : 1.6);
-  const bob = moving ? Math.abs(Math.sin(walkT)) * 0.03 : Math.sin(walkT * 0.7) * 0.006;
-  avatar.position.y = bob;
-  const a = moving ? 1 : 0.15;
-  springs.vx += (-springs.x * 18 - springs.vx * 5.5) * dt;
-  springs.vz += (a * Math.sin(walkT) * 0.04 - springs.z * 22 - springs.vz * 6) * dt;
-  springs.x += springs.vx * dt;
-  springs.z += springs.vz * dt;
-  for (const h of hairMeshes) {
-    h.rotation.z = springs.x * 0.35;
-    h.rotation.x = springs.z * 0.2;
+  walkT += dt * (moving ? 7.4 : 1.7);
+  const t = walkT;
+  const a = moving ? 1 : 0.12;
+  const thigh = 0.55 * a;
+  const calf = 0.62 * a;
+  const arm = 0.42 * a;
+  const hip = 0.06 * a;
+  boneQ("L_Thigh", Math.sin(t) * thigh, 0, Math.sin(t) * 0.04 * a);
+  boneQ("R_Thigh", Math.sin(t + Math.PI) * thigh, 0, Math.sin(t + Math.PI) * 0.04 * a);
+  boneQ("L_Calf", Math.max(0, -Math.sin(t)) * calf, 0, 0);
+  boneQ("R_Calf", Math.max(0, -Math.sin(t + Math.PI)) * calf, 0, 0);
+  boneQ("L_Foot", Math.sin(t + 0.4) * -0.18 * a, 0, 0);
+  boneQ("R_Foot", Math.sin(t + Math.PI + 0.4) * -0.18 * a, 0, 0);
+  boneQ("L_Upperarm", Math.sin(t + Math.PI) * arm, 0, 0.12 * a);
+  boneQ("R_Upperarm", Math.sin(t) * arm, 0, -0.12 * a);
+  boneQ("L_Forearm", Math.max(0, Math.sin(t + Math.PI)) * 0.25 * a, 0, 0);
+  boneQ("R_Forearm", Math.max(0, Math.sin(t)) * 0.25 * a, 0, 0);
+  boneQ("Hip", Math.sin(t * 2) * 0.03 * a, Math.sin(t) * hip, 0);
+  boneQ("Waist", Math.sin(t * 2) * 0.025 * a, Math.sin(t) * hip * 0.6, 0);
+  boneQ("Spine01", Math.sin(t * 2) * 0.02 * a, 0, 0);
+  boneQ("Spine02", 0, Math.sin(t) * 0.03 * a, 0);
+}
+
+function tickSprings(dt, moving) {
+  const acc = moving ? 1 : 0.2;
+  const driveX = Math.sin(walkT) * acc;
+  const driveZ = Math.cos(walkT * 2) * acc;
+  for (const name of ["L_Breast", "R_Breast", "Head"]) {
+    const s = springs[name];
+    const side = name === "R_Breast" ? -1 : 1;
+    s.vx += (driveX * s.gain * side - s.x * s.stiff - s.vx * s.damp) * dt;
+    s.vz += (driveZ * s.gain - s.z * s.stiff - s.vz * s.damp) * dt;
+    s.x += s.vx * dt;
+    s.z += s.vz * dt;
+    if (name === "Head") continue;
+    const b = bones[name];
+    const q0 = bindQ[name];
+    if (!b || !q0) continue;
+    _e.set(s.z, 0, s.x, "XYZ");
+    _q.setFromEuler(_e);
+    b.quaternion.copy(q0).multiply(_q);
   }
 }
 
-function lookAtPlayer() {
-  const cam = renderer.xr.isPresenting ? renderer.xr.getCamera() : camera;
-  const p = new THREE.Vector3();
-  cam.getWorldPosition(p);
-  const dx = p.x - avatar.position.x;
-  const dz = p.z - avatar.position.z;
-  if (dx * dx + dz * dz < 0.04) return;
-  avatar.rotation.y = Math.atan2(dx, dz);
+function headLookAt() {
+  const head = bones.Head;
+  const neck = bones.NeckTwist01;
+  if (!head || !bindQ.Head) return;
+  const cam = XR_ON() ? renderer.xr.getCamera() : camera;
+  cam.getWorldPosition(_v);
+  head.getWorldPosition(_w);
+  _v.sub(_w);
+  if (_v.lengthSq() < 0.04) return;
+  const yaw = Math.atan2(_v.x, _v.z) - avatar.rotation.y;
+  const pitch = Math.atan2(-_v.y, Math.hypot(_v.x, _v.z));
+  const y = THREE.MathUtils.clamp(yaw, -0.7, 0.7);
+  const x = THREE.MathUtils.clamp(pitch, -0.35, 0.35);
+  _e.set(x * 0.7, y * 0.75, 0, "XYZ");
+  _q.setFromEuler(_e);
+  head.quaternion.copy(bindQ.Head).multiply(_q);
+  if (neck && bindQ.NeckTwist01) {
+    _e.set(x * 0.25, y * 0.2, 0, "XYZ");
+    _q.setFromEuler(_e);
+    neck.quaternion.copy(bindQ.NeckTwist01).multiply(_q);
+  }
 }
 
 const clock = new THREE.Clock();
@@ -184,23 +265,27 @@ new GLTFLoader().load(
   (gltf) => {
     const root = gltf.scene;
     applySkin(root);
+    root.updateMatrixWorld(true);
+    if (skeleton) skeleton.update();
     const box = new THREE.Box3().setFromObject(root);
     const size = new THREE.Vector3();
     box.getSize(size);
     const center = new THREE.Vector3();
     box.getCenter(center);
-    root.position.sub(center);
-    root.position.y += size.y * 0.5;
+    root.position.x -= center.x;
+    root.position.z -= center.z;
+    root.position.y -= box.min.y;
     const h = Math.max(size.y, 0.2);
-    root.scale.setScalar(1.68 / h);
-    root.position.multiplyScalar(1.68 / h);
+    const sc = 1.68 / h;
+    root.scale.setScalar(sc);
     avatar.add(root);
     marker.visible = false;
     ready = true;
     if (loadEl) loadEl.remove();
-    banner("WASD · click Desktop look · she walks, looks, smiles");
+    banner("WASD · click Desktop look · skinned walk + hair cards");
     face("happy");
-    console.log("mira size", size, "morphs", morphMeshes.map((m) => m.morphTargetDictionary));
+    console.log("mira bones", Object.keys(bones).length, "skel", !!skeleton, "size", size);
+    console.log("has", ["Head", "L_Thigh", "L_Breast", "R_Breast"].map((n) => n + ":" + !!bones[n]).join(" "));
   },
   (x) => {
     if (x.total && loadEl) loadEl.textContent = "LOADING MIRA  " + Math.round((x.loaded / x.total) * 100) + "%";
@@ -243,11 +328,18 @@ function tick() {
   const dt = Math.min(clock.getDelta(), 0.05);
   desktopMove(dt);
   const moving = miraWander(dt);
-  if (ready && !moving) lookAtPlayer();
   if (ready) {
     tickExpr(dt);
     tickMorphs(dt);
     tickWalk(dt, moving);
+    if (moving) {
+      boneQ("Head", 0, 0, 0);
+      boneQ("NeckTwist01", 0, 0, 0);
+    } else {
+      headLookAt();
+    }
+    tickSprings(dt, moving);
+    if (skeleton) skeleton.update();
   }
   renderer.render(scene, camera);
 }
@@ -272,6 +364,7 @@ async function enterXr() {
     renderer.setClearColor(0x000000, 0);
     floor.material.opacity = 0.15;
     floor.material.transparent = true;
+    if (QUEST) renderer.xr.setFramebufferScaleFactor(0.85);
   } catch (e) {
     banner(String(e.message || e));
   }
