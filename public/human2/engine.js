@@ -4,7 +4,7 @@ import { PointerLockControls } from "three/addons/controls/PointerLockControls.j
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 
 
-const ASSET = "/human2/assets/mira.glb?v=2";
+const ASSET = "/human2/assets/mira.glb?v=3";
 const TEXROOT = "/human2/assets/tex/";
 const MAP_FILE = {
   Std_Skin_Head: ["head.jpg", "head_n.jpg"],
@@ -164,45 +164,42 @@ function applySkin(root) {
     }
     if (o.isSkinnedMesh && o.skeleton && !skeleton) skeleton = o.skeleton;
     if (!o.isMesh) return;
-    if (/cornea/i.test(o.name) || (o.material && /cornea/i.test(o.material.name || ""))) {
-      o.visible = false;
-    }
     const mats = Array.isArray(o.material) ? o.material : [o.material];
-    const next = mats.map((m) => {
-      if (!m) return m;
-      const name = m.name || "";
+    if (mats.some((m) => m && /cornea/i.test(m.name || ""))) o.visible = false;
+    for (const m of mats) {
+      if (!m) continue;
       const hair = isHairMat(m, o);
-      const spec = MAP_FILE[name];
-      const map = spec ? loadMap(spec[0], true) : (m.map || null);
-      const nrm = spec && spec[1] ? loadMap(spec[1], false) : (m.normalMap || null);
-      const lit = new THREE.MeshStandardMaterial({
-        map,
-        normalMap: nrm,
-        color: 0xffffff,
-        roughness: hair ? 0.45 : 0.5,
-        metalness: 0,
-        side: THREE.DoubleSide,
-        transparent: false,
-        depthWrite: true,
-        alphaTest: hair ? (QUEST ? 0.48 : 0.38) : 0,
-      });
-      if (map) {
-        map.colorSpace = THREE.SRGBColorSpace;
-        map.flipY = false;
+      if (m.map) {
+        m.map.colorSpace = THREE.SRGBColorSpace;
+        m.map.flipY = false;
+        m.map.needsUpdate = true;
+      } else {
+        const spec = MAP_FILE[m.name];
+        if (spec) {
+          m.map = loadMap(spec[0], true);
+          m.needsUpdate = true;
+        }
       }
-      if (nrm) {
-        nrm.colorSpace = THREE.LinearSRGBColorSpace;
-        nrm.flipY = false;
-        lit.normalScale.set(1.15, 1.15);
+      if (m.normalMap) {
+        m.normalMap.colorSpace = THREE.LinearSRGBColorSpace;
+        m.normalMap.flipY = false;
+        m.normalScale.set(1.1, 1.1);
+      } else {
+        const spec = MAP_FILE[m.name];
+        if (spec && spec[1]) {
+          m.normalMap = loadMap(spec[1], false);
+          m.normalScale.set(1.1, 1.1);
+        }
       }
-      lit.name = name;
-      if (/eye/i.test(name) && !/lash|lid/i.test(name)) {
-        lit.roughness = 0.18;
-        lit.metalness = 0.02;
-      }
-      return lit;
-    });
-    o.material = next.length === 1 ? next[0] : next;
+      m.metalness = 0;
+      m.color.set(0xffffff);
+      m.roughness = hair ? 0.45 : (/eye/i.test(m.name || "") ? 0.2 : 0.5);
+      m.side = hair ? THREE.DoubleSide : THREE.FrontSide;
+      m.transparent = false;
+      m.depthWrite = true;
+      if (hair) m.alphaTest = QUEST ? 0.5 : 0.42;
+      m.needsUpdate = true;
+    }
     if (o.morphTargetDictionary) morphMeshes.push(o);
     o.frustumCulled = false;
     o.castShadow = false;
@@ -315,10 +312,12 @@ const prevHip = new THREE.Vector3();
 let hipReady = false;
 
 function tickRest() {
-  addE("L_Upperarm", 0.2, 0.15, -1.22);
-  addE("R_Upperarm", 0.2, -0.15, 1.22);
-  addE("L_Forearm", 0.35, 0, 0.08);
-  addE("R_Forearm", 0.35, 0, -0.08);
+  // T-pose → hang at sides. Local Y is along the arm; rotate around Z only
+  // so the limb goes down, not through the torso.
+  addE("L_Upperarm", 0, 0, -0.95);
+  addE("R_Upperarm", 0, 0, 0.95);
+  addE("L_Forearm", 0.22, 0, 0);
+  addE("R_Forearm", 0.22, 0, 0);
 }
 
 function tickFingers(curl) {
@@ -338,19 +337,20 @@ function tickFingers(curl) {
 function tickWalk(moving) {
   if (!moving) return;
   const t = walkT;
-  const swing = Math.sin(t) * 0.42;
-  addE("L_Thigh", -swing, 0, 0);
-  addE("R_Thigh", swing, 0, 0);
-  addE("L_Calf", Math.max(0, Math.sin(t)) * 0.62, 0, 0);
-  addE("R_Calf", Math.max(0, -Math.sin(t)) * 0.62, 0, 0);
-  addE("L_Foot", Math.sin(t + 0.4) * 0.12, 0, 0);
-  addE("R_Foot", Math.sin(t + Math.PI + 0.4) * 0.12, 0, 0);
-  addE("L_Upperarm", Math.max(0, swing) * 0.25, 0, -swing * 0.35);
-  addE("R_Upperarm", Math.max(0, -swing) * 0.25, 0, swing * 0.35);
-  addE("L_Forearm", Math.max(0, -Math.sin(t)) * 0.4, 0, 0);
-  addE("R_Forearm", Math.max(0, Math.sin(t)) * 0.4, 0, 0);
-  addE("Hip", Math.sin(t * 2) * 0.02, Math.sin(t) * 0.04, 0);
-  addE("Spine02", 0, Math.sin(t) * 0.03, 0);
+  const swing = Math.sin(t) * 0.38;
+  // Local +X swings the limb toward +Z (forward). Knees only flex the other way:
+  // negative X tucks the calf backward.
+  addE("L_Thigh", swing, 0, 0);
+  addE("R_Thigh", -swing, 0, 0);
+  addE("L_Calf", -Math.max(0, Math.sin(t)) * 0.7, 0, 0);
+  addE("R_Calf", -Math.max(0, -Math.sin(t)) * 0.7, 0, 0);
+  addE("L_Foot", -Math.sin(t + 0.35) * 0.1, 0, 0);
+  addE("R_Foot", -Math.sin(t + Math.PI + 0.35) * 0.1, 0, 0);
+  addE("L_Upperarm", 0, 0, swing * 0.22);
+  addE("R_Upperarm", 0, 0, swing * 0.22);
+  addE("L_Forearm", -Math.max(0, -Math.sin(t)) * 0.35, 0, 0);
+  addE("R_Forearm", -Math.max(0, Math.sin(t)) * 0.35, 0, 0);
+  addE("Hip", Math.sin(t * 2) * 0.015, Math.sin(t) * 0.03, 0);
 }
 
 function tickIdle(t) {
@@ -630,8 +630,8 @@ function tick() {
     if (moving) tickWalk(true);
     else tickIdle(clock.elapsedTime);
     tickGaze(dt, moving);
-    const grasp = noodleHeld || handsNearNoodle() ? 0.85 : 0;
-    tickFingers(0.22 + grasp * 0.7);
+    const grasp = noodleHeld || handsNearNoodle() ? 0.75 : 0;
+    tickFingers(0.08 + grasp * 0.75);
     tickSoft(dt, moving);
     applyExtras();
     tickMorphs(dt);
