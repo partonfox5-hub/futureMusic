@@ -19,6 +19,10 @@
       #hint { position: absolute; left: 16px; top: 16px; z-index: 21; font-size: 12px; opacity: .9; pointer-events: none; text-shadow: 0 1px 4px #000; }
       #load { position: absolute; left: 50%; top: 42%; transform: translate(-50%,-50%); z-index: 21; font-size: 14px; letter-spacing: .12em; text-shadow: 0 1px 4px #000; }
       #stats { position: absolute; right: 16px; top: 16px; z-index: 21; font: 12px/1.4 ui-monospace, Consolas, monospace; opacity: .9; text-shadow: 0 1px 4px #000; pointer-events: none; }
+      #hud { position: absolute; right: 12px; top: 48px; bottom: 12px; z-index: 22; width: 210px; overflow: auto; pointer-events: auto; background: rgba(18,14,12,.82); border: 1px solid #7eb6ff; border-radius: 12px; padding: 12px 14px; font-size: 12px; }
+      #hud h2 { margin: 0 0 8px; font-size: 12px; letter-spacing: .12em; color: #7eb6ff; }
+      #hud label { display: block; margin: 8px 0 2px; color: #d8d0c6; }
+      #hud input { width: 100%; }
     </style>
     <script type="importmap">
       {
@@ -33,15 +37,25 @@
     <div id="load">LOADING PASS 2…</div>
     <div id="hint"></div>
     <div id="stats">PASS 2</div>
+    <div id="hud">
+      <h2>SHAPE</h2>
+      <label>Height</label><input id="sHeight" type="range" min="0.88" max="1.18" step="0.01" value="1" />
+      <label>Waist</label><input id="sWaist" type="range" min="0.78" max="1.25" step="0.01" value="1" />
+      <label>Breast</label><input id="sBreast" type="range" min="0.7" max="1.45" step="0.01" value="1" />
+      <label>Buttocks</label><input id="sButt" type="range" min="0.7" max="1.45" step="0.01" value="1" />
+      <label>Thigh width</label><input id="sThigh" type="range" min="0.78" max="1.35" step="0.01" value="1" />
+      <label>Thigh gap</label><input id="sGap" type="range" min="-1" max="1" step="0.01" value="0" />
+      <p style="margin-top:12px;font-size:11px;opacity:.8">F / mouse hold = noodle · VR trigger grab · fingers curl on contact</p>
+    </div>
     <div id="ui">
       <div id="panel">
-        <div class="tag">PASS 2 · COMPARE WITH /human</div>
+        <div class="tag">PASS 2</div>
         <h1>HUMAN 2</h1>
-        <p>Second pass: 49 face shapes, eyes-lead-gaze, idle micro-motion, wrap skin, hair anisotropy (desktop), foveation, light presets 1/2/3.</p>
+        <p>Region skin maps, hanging arms, finger curl, shape sliders, pool noodle. Home network only.</p>
         <button type="button" id="enter">ENTER VR / AR</button>
         <button type="button" class="ghost" id="desk">Desktop look</button>
       </div>
     </div>
-    <script type="module" src="/human2/engine.js?v=1"></script>
+    <script type="module" src="/human2/engine.js?v=2"></script>
   </body>
 </html>

@@ -3,7 +3,19 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 
-const ASSET = "/human2/assets/mira.glb?v=1";
+
+const ASSET = "/human2/assets/mira.glb?v=2";
+const TEXROOT = "/human2/assets/tex/";
+const MAP_FILE = {
+  Std_Skin_Head: ["head.jpg", "head_n.jpg"],
+  Std_Skin_Body: ["body.jpg", "body_n.jpg"],
+  Std_Skin_Arm: ["arm.jpg", "arm_n.jpg"],
+  Std_Skin_Leg: ["leg.jpg", "leg_n.jpg"],
+  Std_Eye_L: ["eye_l.jpg", "eye_l_n.jpg"],
+  Std_Eye_R: ["eye_r.jpg", "eye_r_n.jpg"],
+  Std_Eyelash: ["lash.png", null],
+  Default_Material_Transparency: ["hair.png", null],
+};
 const MORPH = [
   "Mouth_Smile_L", "Mouth_Smile_R", "Mouth_Frown_L", "Mouth_Frown_R",
   "Mouth_Dimple_L", "Mouth_Dimple_R", "Mouth_Stretch_L", "Mouth_Stretch_R",
@@ -19,6 +31,7 @@ const MORPH = [
   "Cheek_Raise_L", "Cheek_Raise_R", "Cheek_Puff_L", "Cheek_Puff_R",
   "Nose_Sneer_L", "Nose_Sneer_R",
 ];
+const FINGER_ROWS = ["Index", "Mid", "Ring", "Pinky"];
 const QUEST = /OculusBrowser|Quest/i.test(navigator.userAgent);
 
 const loadEl = document.getElementById("load");
@@ -51,26 +64,19 @@ camera.position.set(0, 1.45, 2.6);
 camera.lookAt(0, 0.95, 0);
 scene.add(camera);
 
-const hemi = new THREE.HemisphereLight(0xfff3e4, 0x3a3028, 0.55);
+const hemi = new THREE.HemisphereLight(0xfff3e4, 0x3a3028, 0.85);
 scene.add(hemi);
-const key = new THREE.DirectionalLight(0xfff0d8, 1.35);
+const key = new THREE.DirectionalLight(0xfff0d8, 1.6);
 key.position.set(1.4, 3.2, 2.8);
 scene.add(key);
-const fill = new THREE.AmbientLight(0xffffff, 0.22);
-scene.add(fill);
+scene.add(new THREE.AmbientLight(0xffffff, 0.35));
 try {
   const pmrem = new THREE.PMREMGenerator(renderer);
   scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
-  scene.environmentIntensity = 0.5;
+  scene.environmentIntensity = 0.35;
 } catch (e) {
   console.warn("env", e);
 }
-
-const PRESETS = {
-  1: () => { key.color.set(0xfff0d8); key.intensity = 1.35; hemi.intensity = 0.55; renderer.toneMappingExposure = 1.12; },
-  2: () => { key.color.set(0xe8f0ff); key.intensity = 1.05; hemi.intensity = 0.7; renderer.toneMappingExposure = 1.0; },
-  3: () => { key.color.set(0xffdcc8); key.intensity = 0.7; hemi.intensity = 0.35; renderer.toneMappingExposure = 0.92; },
-};
 
 const floor = new THREE.Mesh(
   new THREE.CircleGeometry(8, 48),
@@ -86,13 +92,6 @@ blob.rotation.x = -Math.PI / 2;
 blob.position.y = 0.012;
 scene.add(blob);
 
-const marker = new THREE.Mesh(
-  new THREE.BoxGeometry(0.2, 0.2, 0.2),
-  new THREE.MeshStandardMaterial({ color: 0xd4af37 })
-);
-marker.position.set(0, 0.1, 0);
-scene.add(marker);
-
 let controls = null;
 try {
   controls = new PointerLockControls(camera, renderer.domElement);
@@ -101,12 +100,7 @@ try {
 }
 
 const keys = {};
-addEventListener("keydown", (e) => {
-  keys[e.code] = true;
-  if (e.code === "Digit1") PRESETS[1]();
-  if (e.code === "Digit2") PRESETS[2]();
-  if (e.code === "Digit3") PRESETS[3]();
-});
+addEventListener("keydown", (e) => { keys[e.code] = true; });
 addEventListener("keyup", (e) => { keys[e.code] = false; });
 
 document.getElementById("desk").onclick = () => {
@@ -117,10 +111,13 @@ document.getElementById("enter").onclick = enterXr;
 
 const avatar = new THREE.Group();
 scene.add(avatar);
+let miraRoot = null;
+let baseScale = 1;
 
 const bones = {};
 const bindQ = {};
 const bindPos = {};
+const bindS = {};
 const extra = {};
 let skeleton = null;
 let ready = false;
@@ -131,30 +128,30 @@ let exprT = 4;
 let blinkHold = 0;
 const want = Object.fromEntries(MORPH.map((n) => [n, 0]));
 const cur = { ...want };
+const shape = { height: 1, waist: 1, breast: 1, butt: 1, thigh: 1, gap: 0 };
 
 const _q = new THREE.Quaternion();
 const _e = new THREE.Euler();
 const _v = new THREE.Vector3();
 const _w = new THREE.Vector3();
+const _w2 = new THREE.Vector3();
+const texLoader = new THREE.TextureLoader();
+const texCache = {};
+
+function loadMap(file, srgb) {
+  if (!file) return null;
+  if (texCache[file]) return texCache[file];
+  const t = texLoader.load(TEXROOT + file, undefined, undefined, (err) => console.warn("tex fail", file, err));
+  t.colorSpace = srgb ? THREE.SRGBColorSpace : THREE.LinearSRGBColorSpace;
+  t.flipY = false;
+  t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping;
+  texCache[file] = t;
+  return t;
+}
 
 function isHairMat(m, o) {
   const n = ((m && m.name) || "") + " " + (o.name || "");
-  return /transp|eyelash|hair/i.test(n) || !!(m && m.alphaMap);
-}
-
-function wrapSkin(m) {
-  if (!m || m.userData.wrapped) return;
-  m.userData.wrapped = true;
-  const prev = m.onBeforeCompile;
-  m.onBeforeCompile = (shader, renderer) => {
-    if (typeof prev === "function") prev(shader, renderer);
-    shader.fragmentShader = shader.fragmentShader.replace(
-      "#include <lights_fragment_end>",
-      `#include <lights_fragment_end>
-       reflectedLight.indirectDiffuse += diffuseColor.rgb * 0.10;`
-    );
-  };
-  m.needsUpdate = true;
+  return /transp|eyelash|hair/i.test(n);
 }
 
 function applySkin(root) {
@@ -163,47 +160,47 @@ function applySkin(root) {
       bones[o.name] = o;
       bindQ[o.name] = o.quaternion.clone();
       bindPos[o.name] = o.position.clone();
+      bindS[o.name] = o.scale.clone();
     }
     if (o.isSkinnedMesh && o.skeleton && !skeleton) skeleton = o.skeleton;
     if (!o.isMesh) return;
+    if (/cornea/i.test(o.name) || (o.material && /cornea/i.test(o.material.name || ""))) {
+      o.visible = false;
+    }
     const mats = Array.isArray(o.material) ? o.material : [o.material];
     const next = mats.map((m) => {
       if (!m) return m;
+      const name = m.name || "";
       const hair = isHairMat(m, o);
-      if (hair && !QUEST && THREE.MeshPhysicalMaterial) {
-        const phys = new THREE.MeshPhysicalMaterial({
-          map: m.map || null,
-          color: 0xffffff,
-          roughness: 0.4,
-          metalness: 0,
-          anisotropy: 0.65,
-          side: THREE.DoubleSide,
-          transparent: false,
-          depthWrite: true,
-          alphaTest: 0.4,
-        });
-        if (phys.map) phys.map.colorSpace = THREE.SRGBColorSpace;
-        phys.name = m.name || "hair";
-        return phys;
+      const spec = MAP_FILE[name];
+      const map = spec ? loadMap(spec[0], true) : (m.map || null);
+      const nrm = spec && spec[1] ? loadMap(spec[1], false) : (m.normalMap || null);
+      const lit = new THREE.MeshStandardMaterial({
+        map,
+        normalMap: nrm,
+        color: 0xffffff,
+        roughness: hair ? 0.45 : 0.5,
+        metalness: 0,
+        side: THREE.DoubleSide,
+        transparent: false,
+        depthWrite: true,
+        alphaTest: hair ? (QUEST ? 0.48 : 0.38) : 0,
+      });
+      if (map) {
+        map.colorSpace = THREE.SRGBColorSpace;
+        map.flipY = false;
       }
-      if (m.map) m.map.colorSpace = THREE.SRGBColorSpace;
-      if (m.normalMap) {
-        m.normalMap.colorSpace = THREE.LinearSRGBColorSpace;
-        m.normalScale.set(1.1, 1.1);
+      if (nrm) {
+        nrm.colorSpace = THREE.LinearSRGBColorSpace;
+        nrm.flipY = false;
+        lit.normalScale.set(1.15, 1.15);
       }
-      m.metalness = 0;
-      if (m.roughness == null || m.roughness === 1) m.roughness = hair ? 0.42 : 0.48;
-      m.side = hair ? THREE.DoubleSide : THREE.FrontSide;
-      m.depthWrite = true;
-      if (hair) {
-        m.transparent = false;
-        m.alphaTest = QUEST ? 0.48 : 0.4;
-        m.alphaHash = !QUEST;
-      } else if (!/eye|cornea|tooth|teeth/i.test(m.name || "")) {
-        wrapSkin(m);
+      lit.name = name;
+      if (/eye/i.test(name) && !/lash|lid/i.test(name)) {
+        lit.roughness = 0.18;
+        lit.metalness = 0.02;
       }
-      m.needsUpdate = true;
-      return m;
+      return lit;
     });
     o.material = next.length === 1 ? next[0] : next;
     if (o.morphTargetDictionary) morphMeshes.push(o);
@@ -218,6 +215,7 @@ function restoreBind() {
     if (!b) continue;
     b.quaternion.copy(bindQ[n]);
     if (bindPos[n]) b.position.copy(bindPos[n]);
+    if (bindS[n]) b.scale.copy(bindS[n]);
   }
   for (const k of Object.keys(extra)) delete extra[k];
 }
@@ -237,6 +235,25 @@ function applyExtras() {
     _q.setFromEuler(_e);
     b.quaternion.copy(q0).multiply(_q);
   }
+}
+
+function applyShape() {
+  if (miraRoot) miraRoot.scale.setScalar(baseScale * shape.height);
+  const sc = (n, x, y, z) => {
+    const b = bones[n];
+    if (!b || !bindS[n]) return;
+    b.scale.set(bindS[n].x * x, bindS[n].y * y, bindS[n].z * z);
+  };
+  sc("Waist", shape.waist, 1, shape.waist);
+  sc("Spine01", 0.85 + shape.waist * 0.15, 1, 0.85 + shape.waist * 0.15);
+  sc("L_Breast", shape.breast, shape.breast, shape.breast);
+  sc("R_Breast", shape.breast, shape.breast, shape.breast);
+  sc("L_Glute", shape.butt, shape.butt, shape.butt);
+  sc("R_Glute", shape.butt, shape.butt, shape.butt);
+  sc("L_Thigh", shape.thigh, 1, shape.thigh);
+  sc("R_Thigh", shape.thigh, 1, shape.thigh);
+  if (bones.L_Thigh && bindPos.L_Thigh) bones.L_Thigh.position.x = bindPos.L_Thigh.x + shape.gap * 0.045;
+  if (bones.R_Thigh && bindPos.R_Thigh) bones.R_Thigh.position.x = bindPos.R_Thigh.x - shape.gap * 0.045;
 }
 
 function tickMorphs(dt) {
@@ -259,22 +276,15 @@ function face(kind) {
     want.Mouth_Smile_L = want.Mouth_Smile_R = 0.78;
     want.Mouth_Dimple_L = want.Mouth_Dimple_R = 0.25;
     want.Cheek_Raise_L = want.Cheek_Raise_R = 0.45;
-    want.Eye_Squint_L = want.Eye_Squint_R = 0.12;
   } else if (kind === "frown") {
     want.Mouth_Frown_L = want.Mouth_Frown_R = 0.68;
     want.Brow_Drop_L = want.Brow_Drop_R = 0.4;
-    want.Brow_Compress_L = want.Brow_Compress_R = 0.25;
-    want.Nose_Sneer_L = want.Nose_Sneer_R = 0.12;
   } else if (kind === "surprise") {
     want.Brow_Raise_Inner_L = want.Brow_Raise_Inner_R = 0.5;
-    want.Brow_Raise_Outer_L = want.Brow_Raise_Outer_R = 0.35;
     want.Eye_Wide_L = want.Eye_Wide_R = 0.45;
     want.Jaw_Open = 0.18;
-    want.V_Lip_Open = 0.15;
   } else if (kind === "pucker") {
     want.Mouth_Pucker_Up_L = want.Mouth_Pucker_Up_R = 0.55;
-    want.Mouth_Funnel_Up_L = want.Mouth_Funnel_Up_R = 0.25;
-    want.Mouth_Press_L = want.Mouth_Press_R = 0.15;
   }
 }
 
@@ -304,28 +314,49 @@ const soft = [
 const prevHip = new THREE.Vector3();
 let hipReady = false;
 
+function tickRest() {
+  addE("L_Upperarm", 0.2, 0.15, -1.22);
+  addE("R_Upperarm", 0.2, -0.15, 1.22);
+  addE("L_Forearm", 0.35, 0, 0.08);
+  addE("R_Forearm", 0.35, 0, -0.08);
+}
+
+function tickFingers(curl) {
+  for (const side of ["L_", "R_"]) {
+    for (const row of FINGER_ROWS) {
+      addE(side + row + "1", curl * 0.42, 0, 0);
+      addE(side + row + "2", curl * 0.7, 0, 0);
+      addE(side + row + "3", curl * 0.55, 0, 0);
+    }
+    const tSign = side === "L_" ? 1 : -1;
+    addE(side + "Thumb1", 0.2, curl * 0.35, 0.45 * tSign);
+    addE(side + "Thumb2", curl * 0.45, 0, 0);
+    addE(side + "Thumb3", curl * 0.35, 0, 0);
+  }
+}
+
 function tickWalk(moving) {
   if (!moving) return;
   const t = walkT;
-  const swing = Math.sin(t) * 0.36;
-  addE("L_Thigh", swing, 0, 0);
-  addE("R_Thigh", -swing, 0, 0);
-  addE("L_Calf", Math.max(0, -Math.sin(t)) * 0.4, 0, 0);
-  addE("R_Calf", Math.max(0, Math.sin(t)) * 0.4, 0, 0);
-  addE("L_Foot", Math.sin(t + 0.5) * -0.1, 0, 0);
-  addE("R_Foot", Math.sin(t + Math.PI + 0.5) * -0.1, 0, 0);
-  addE("L_Upperarm", 0, 0, -swing * 0.5);
-  addE("R_Upperarm", 0, 0, -swing * 0.5);
-  addE("L_Forearm", Math.max(0, Math.sin(t + Math.PI)) * 0.18, 0, 0);
-  addE("R_Forearm", Math.max(0, Math.sin(t)) * 0.18, 0, 0);
-  addE("Hip", Math.sin(t * 2) * 0.02, Math.sin(t) * 0.045, 0);
-  addE("Spine02", 0, Math.sin(t) * 0.035, 0);
+  const swing = Math.sin(t) * 0.42;
+  addE("L_Thigh", -swing, 0, 0);
+  addE("R_Thigh", swing, 0, 0);
+  addE("L_Calf", Math.max(0, Math.sin(t)) * 0.62, 0, 0);
+  addE("R_Calf", Math.max(0, -Math.sin(t)) * 0.62, 0, 0);
+  addE("L_Foot", Math.sin(t + 0.4) * 0.12, 0, 0);
+  addE("R_Foot", Math.sin(t + Math.PI + 0.4) * 0.12, 0, 0);
+  addE("L_Upperarm", Math.max(0, swing) * 0.25, 0, -swing * 0.35);
+  addE("R_Upperarm", Math.max(0, -swing) * 0.25, 0, swing * 0.35);
+  addE("L_Forearm", Math.max(0, -Math.sin(t)) * 0.4, 0, 0);
+  addE("R_Forearm", Math.max(0, Math.sin(t)) * 0.4, 0, 0);
+  addE("Hip", Math.sin(t * 2) * 0.02, Math.sin(t) * 0.04, 0);
+  addE("Spine02", 0, Math.sin(t) * 0.03, 0);
 }
 
 function tickIdle(t) {
-  addE("Hip", 0, Math.sin(t * 0.65) * 0.025, Math.sin(t * 0.5) * 0.018);
-  addE("L_Clavicle", Math.sin(t * 0.8) * 0.03, 0, Math.sin(t * 0.9) * 0.025);
-  addE("R_Clavicle", Math.sin(t * 0.8 + 0.7) * 0.03, 0, Math.sin(t * 0.9 + 1) * 0.025);
+  addE("Hip", 0, Math.sin(t * 0.65) * 0.02, Math.sin(t * 0.5) * 0.015);
+  addE("L_Clavicle", Math.sin(t * 0.8) * 0.025, 0, Math.sin(t * 0.9) * 0.02);
+  addE("R_Clavicle", Math.sin(t * 0.8 + 0.7) * 0.025, 0, Math.sin(t * 0.9 + 1) * 0.02);
 }
 
 function tickSoft(dt, moving) {
@@ -371,9 +402,7 @@ function tickGaze(dt, moving) {
   const dist = Math.hypot(dx, dz);
   if (dist < 0.05) return;
   const yawWorld = Math.atan2(dx, dz);
-  if (!moving) {
-    avatar.rotation.y = THREE.MathUtils.damp(avatar.rotation.y, yawWorld, 3.2, dt);
-  }
+  if (!moving) avatar.rotation.y = THREE.MathUtils.damp(avatar.rotation.y, yawWorld, 3.2, dt);
   let yaw = yawWorld - avatar.rotation.y;
   while (yaw > Math.PI) yaw -= Math.PI * 2;
   while (yaw < -Math.PI) yaw += Math.PI * 2;
@@ -385,13 +414,126 @@ function tickGaze(dt, moving) {
   want.Eye_L_Look_Down = want.Eye_R_Look_Down = Math.max(0, pitch) * 1.2;
   addE("Head", pitch * 0.4, yaw * 0.32, 0);
   addE("NeckTwist02", pitch * 0.14, yaw * 0.12, 0);
-  addE("Spine02", pitch * 0.06, yaw * 0.07, 0);
   addE("L_Eye", pitch * 0.5, yaw * 0.55, 0);
   addE("R_Eye", pitch * 0.5, yaw * 0.55, 0);
 }
 
+const noodle = new THREE.Group();
+noodle.add(new THREE.Mesh(
+  new THREE.CylinderGeometry(0.038, 0.038, 1.18, 18),
+  new THREE.MeshStandardMaterial({ color: 0x3ec1f0, roughness: 0.62, metalness: 0 })
+));
+noodle.add(new THREE.Mesh(
+  new THREE.CylinderGeometry(0.04, 0.04, 0.08, 18),
+  new THREE.MeshStandardMaterial({ color: 0xffef7a, roughness: 0.5 })
+)).children[1].position.y = 0.55;
+noodle.add(new THREE.Mesh(
+  new THREE.CylinderGeometry(0.04, 0.04, 0.08, 18),
+  new THREE.MeshStandardMaterial({ color: 0xffef7a, roughness: 0.5 })
+)).children[2].position.y = -0.55;
+noodle.position.set(0.55, 0.9, 0.35);
+scene.add(noodle);
+const noodleVel = new THREE.Vector3();
+let noodleHeld = null;
+const NLEN = 1.18;
+const NRAD = 0.04;
+
+const ctrl0 = renderer.xr.getController(0);
+const ctrl1 = renderer.xr.getController(1);
+scene.add(ctrl0);
+scene.add(ctrl1);
+scene.add(renderer.xr.getControllerGrip(0));
+scene.add(renderer.xr.getControllerGrip(1));
+function tryGrab(ctrl) {
+  ctrl.getWorldPosition(_v);
+  if (_v.distanceTo(noodle.position) < 0.38) noodleHeld = ctrl;
+}
+ctrl0.addEventListener("selectstart", () => tryGrab(ctrl0));
+ctrl1.addEventListener("selectstart", () => tryGrab(ctrl1));
+ctrl0.addEventListener("selectend", () => { if (noodleHeld === ctrl0) noodleHeld = null; });
+ctrl1.addEventListener("selectend", () => { if (noodleHeld === ctrl1) noodleHeld = null; });
+
+const BODY_HIT = [
+  ["Head", 0.12], ["Spine02", 0.16], ["Hip", 0.16],
+  ["L_Breast", 0.11], ["R_Breast", 0.11],
+  ["L_Thigh", 0.1], ["R_Thigh", 0.1],
+  ["L_Hand", 0.06], ["R_Hand", 0.06],
+];
+
+function closestPointOnNoodle(p) {
+  noodle.updateMatrixWorld();
+  const a = new THREE.Vector3(0, -NLEN * 0.5, 0).applyMatrix4(noodle.matrixWorld);
+  const b = new THREE.Vector3(0, NLEN * 0.5, 0).applyMatrix4(noodle.matrixWorld);
+  const ab = b.clone().sub(a);
+  const t = THREE.MathUtils.clamp(p.clone().sub(a).dot(ab) / ab.lengthSq(), 0, 1);
+  return a.addScaledVector(ab, t);
+}
+
+function tickNoodle(dt) {
+  const holdingKey = keys.KeyF || keys.Mouse0;
+  if (!XR_ON() && holdingKey && controls && controls.isLocked) {
+    camera.getWorldPosition(_v);
+    camera.getWorldDirection(_w);
+    noodle.position.copy(_v).addScaledVector(_w, 0.85);
+    noodle.quaternion.copy(camera.quaternion);
+    noodle.rotateX(-Math.PI * 0.5);
+    noodleVel.set(0, 0, 0);
+    noodleHeld = "desk";
+  } else if (noodleHeld && noodleHeld !== "desk") {
+    noodleHeld.getWorldPosition(_v);
+    noodleHeld.getWorldQuaternion(_q);
+    noodle.position.copy(_v);
+    noodle.quaternion.copy(_q);
+    noodle.rotateX(-Math.PI * 0.5);
+    noodleVel.set(0, 0, 0);
+  } else {
+    if (noodleHeld === "desk" && !holdingKey) noodleHeld = null;
+    noodleVel.y -= 6.5 * dt;
+    noodle.position.addScaledVector(noodleVel, dt);
+    if (noodle.position.y < NLEN * 0.5) {
+      noodle.position.y = NLEN * 0.5;
+      noodleVel.y *= -0.25;
+      noodleVel.x *= 0.7;
+      noodleVel.z *= 0.7;
+    }
+  }
+
+  for (const [bn, rad] of BODY_HIT) {
+    const bone = bones[bn];
+    if (!bone) continue;
+    bone.getWorldPosition(_w);
+    const q = closestPointOnNoodle(_w);
+    const d = _w.distanceTo(q);
+    const min = rad + NRAD;
+    if (d < min && d > 1e-4) {
+      const nrm = _w.clone().sub(q).multiplyScalar(1 / d);
+      const push = (min - d);
+      if (!noodleHeld) {
+        noodle.position.addScaledVector(nrm, -push * 0.85);
+        noodleVel.addScaledVector(nrm, -push * 8);
+      }
+      for (const s of soft) {
+        if (s.name === bn || (bn === "Spine02" && s.name.includes("Breast"))) {
+          s.vx += nrm.x * push * 14;
+          s.vz += nrm.z * push * 14;
+        }
+      }
+    }
+  }
+}
+
+function handsNearNoodle() {
+  let g = 0;
+  for (const n of ["L_Hand", "R_Hand"]) {
+    if (!bones[n]) continue;
+    bones[n].getWorldPosition(_w);
+    if (_w.distanceTo(noodle.position) < 0.28) g = 1;
+  }
+  return g;
+}
+
 const clock = new THREE.Clock();
-banner("LOADING MIRA PASS 2…");
+banner("LOADING PASS 2…");
 new GLTFLoader().load(
   ASSET,
   (gltf) => {
@@ -407,16 +549,21 @@ new GLTFLoader().load(
     root.position.x -= center.x;
     root.position.z -= center.z;
     root.position.y -= box.min.y;
-    const h = Math.max(size.y, 0.2);
-    root.scale.setScalar(1.68 / h);
+    baseScale = 1.68 / Math.max(size.y, 0.2);
+    root.scale.setScalar(baseScale);
+    miraRoot = root;
     avatar.add(root);
-    marker.visible = false;
     ready = true;
     if (loadEl) loadEl.remove();
-    banner("PASS 2 · WASD · 1/2/3 lights · eyes lead gaze");
+    banner("PASS 2 · F hold noodle · sliders on the right");
     face("happy");
-    const dict = morphMeshes[0] && morphMeshes[0].morphTargetDictionary;
-    console.log("pass2 bones", Object.keys(bones).length, "morphs", dict && Object.keys(dict).length, "size", size);
+    let mapped = 0;
+    root.traverse((o) => {
+      if (!o.isMesh) return;
+      const mats = Array.isArray(o.material) ? o.material : [o.material];
+      for (const m of mats) if (m && m.map && m.map.image) mapped++;
+    });
+    console.log("pass2 maps", mapped, "bones", Object.keys(bones).length);
   },
   (x) => {
     if (x.total && loadEl) loadEl.textContent = "LOADING PASS 2  " + Math.round((x.loaded / x.total) * 100) + "%";
@@ -466,7 +613,7 @@ function tickStats() {
   fpsFrames = 0;
   fpsLast = now;
   const inf = renderer.info.render;
-  statsEl.textContent = `PASS 2  ${fps.toFixed(0)} fps  tris ${inf.triangles}  calls ${inf.calls}`;
+  statsEl.textContent = `PASS 2  ${fps.toFixed(0)} fps  tris ${inf.triangles}`;
 }
 
 function tick() {
@@ -477,14 +624,19 @@ function tick() {
   if (ready) {
     tickExpr(dt);
     restoreBind();
+    applyShape();
+    tickRest();
     tickBreathe(clock.elapsedTime);
     if (moving) tickWalk(true);
     else tickIdle(clock.elapsedTime);
     tickGaze(dt, moving);
+    const grasp = noodleHeld || handsNearNoodle() ? 0.85 : 0;
+    tickFingers(0.22 + grasp * 0.7);
     tickSoft(dt, moving);
     applyExtras();
     tickMorphs(dt);
     if (skeleton) skeleton.update();
+    tickNoodle(dt);
     blob.position.x = avatar.position.x;
     blob.position.z = avatar.position.z;
   }
@@ -492,6 +644,26 @@ function tick() {
   renderer.render(scene, camera);
 }
 renderer.setAnimationLoop(tick);
+
+function bindSliders() {
+  const map = [
+    ["sHeight", "height"],
+    ["sWaist", "waist"],
+    ["sBreast", "breast"],
+    ["sButt", "butt"],
+    ["sThigh", "thigh"],
+    ["sGap", "gap"],
+  ];
+  for (const [id, key] of map) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    el.addEventListener("input", () => { shape[key] = parseFloat(el.value); });
+  }
+}
+bindSliders();
+
+addEventListener("mousedown", () => { keys.Mouse0 = true; });
+addEventListener("mouseup", () => { keys.Mouse0 = false; });
 
 async function enterXr() {
   if (!navigator.xr) {
