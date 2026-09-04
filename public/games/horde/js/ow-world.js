@@ -23,7 +23,9 @@ import {
   openingAt,
   worldX,
   worldZ,
-} from "./ow-map.js?v=h34";
+  flagsAt,
+  liquidAt,
+} from "./ow-map.js?v=h35";
 
 function mat(hex, extra) {
   return new THREE.MeshLambertMaterial({ color: hex, ...extra });
@@ -383,13 +385,14 @@ export function buildOpenWorld(map, scene, api) {
   const spikeMat = mat(0xb8c0c8, { emissive: 0x4a2010 });
   const pitMat = mat(0x1a1210);
 
+  function placeFlagsAt(story) {
   for (let z = 0; z < map.h; z++) {
     for (let x = 0; x < map.w; x++) {
       const i = idx(map, x, z);
       const gx = worldX(map, x);
       const gz = worldZ(map, z);
-      const gy = groundY(api, gx, gz) + ((map.elev[i] || 0) * EYE);
-      const fl = map.flags[i] || 0;
+      const gy = groundY(api, gx, gz) + ((map.elev[i] || 0) * EYE) + story * STORY_H;
+      const fl = flagsAt(map, story)[i] || 0;
       if (fl & FLAG_SPIKE) {
         const well = new THREE.Mesh(new THREE.BoxGeometry(CELL * 0.92, 1.2, CELL * 0.92), pitMat);
         well.position.set(gx, gy - 0.4, gz);
@@ -408,7 +411,7 @@ export function buildOpenWorld(map, scene, api) {
           new THREE.BoxGeometry(CELL * 0.92, thick, CELL * 0.92),
           hover ? mat(0x8a9aa8, { emissive: 0x223344 }) : mat(0x6a5040, { emissive: 0x331800 }),
         );
-        const top = gy + (hover ? (map.elev[i] || 1) * EYE : 0) + thick;
+        const top = gy + thick;
         m.position.set(gx, top - thick * 0.5, gz);
         group.add(m);
         extras.hovers.push({
@@ -431,7 +434,7 @@ export function buildOpenWorld(map, scene, api) {
         group.add(ramp);
         extras.slopes.push({ x: gx, z: gz, y: gy + 0.85, r: CELL * 0.55 });
       }
-      const liq = map.liquid[i];
+      const liq = liquidAt(map, story)[i];
       if (liq) {
         const col = liq === LIQ_LAVA ? 0xff5511 : 0x2a6aaa;
         const m = new THREE.Mesh(
@@ -447,6 +450,8 @@ export function buildOpenWorld(map, scene, api) {
       }
     }
   }
+  }
+  for (let s = 0; s < STORIES; s++) placeFlagsAt(s);
 
   for (let story = 0; story < STORIES; story++) {
     const wall = map.bwalls[story];
@@ -484,18 +489,20 @@ export function buildOpenWorld(map, scene, api) {
           extras.hovers.push({
             mesh: fl, x: gx, z: gz, y: yBase + 0.14, hover: true, collapse: false, rumble: 0, gone: false, r: CELL * 0.48, floor: true,
           });
-          if (story < STORIES - 1) {
-            const roof = new THREE.Mesh(new THREE.BoxGeometry(CELL, 0.1, CELL), wmat("cabin", false));
-            roof.position.set(gx, yBase + STORY_H - 0.05, gz);
-            group.add(roof);
-          }
+          const roof = new THREE.Mesh(new THREE.BoxGeometry(CELL, 0.1, CELL), wmat("cabin", false));
+          roof.position.set(gx, yBase + STORY_H - 0.05, gz);
+          group.add(roof);
         }
       }
     }
   }
 
+  function baseY(o) {
+    return groundY(api, o.x, o.z) + ((o.story || 0) * STORY_H);
+  }
+
   for (const r of map.ropes || []) {
-    const y0 = groundY(api, r.x, r.z);
+    const y0 = baseY(r);
     const len = r.len || 4.5;
     const top = y0 + 4.2;
     const hang = Math.min(len, top - y0 - 0.2);
@@ -508,7 +515,7 @@ export function buildOpenWorld(map, scene, api) {
   }
 
   for (const t of map.turrets || []) {
-    const y0 = groundY(api, t.x, t.z);
+    const y0 = baseY(t);
     const kind = t.kind || "flame";
     const g = kind === "gun" ? makeGunTurret() : makeFlameTurret();
     g.position.set(t.x, y0, t.z);
@@ -520,7 +527,7 @@ export function buildOpenWorld(map, scene, api) {
   }
 
   for (const a of map.arrows || []) {
-    const y0 = groundY(api, a.x, a.z);
+    const y0 = baseY(a);
     const yaw = a.yaw || 0;
     const box = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.22, 0.18), mat(0x4a4038));
     box.position.set(a.x, y0 + 1.15, a.z);
@@ -530,7 +537,7 @@ export function buildOpenWorld(map, scene, api) {
   }
 
   for (const c of map.crushers || []) {
-    const y0 = groundY(api, c.x, c.z);
+    const y0 = baseY(c);
     const top = y0 + 4.2;
     const mesh = makeColumn();
     mesh.scale.set(2, 2, 2);
@@ -554,7 +561,7 @@ export function buildOpenWorld(map, scene, api) {
   for (const b of map.boulders || []) {
     const size = Math.max(0.4, Math.min(3, b.size || 1));
     const r = 0.92 * size;
-    const y0 = groundY(api, b.x, b.z);
+    const y0 = baseY(b);
     const mesh = makeBoulderMesh();
     mesh.scale.setScalar(size);
     mesh.position.set(b.x, y0 + r, b.z);
@@ -566,7 +573,7 @@ export function buildOpenWorld(map, scene, api) {
   }
 
   for (const rd of map.ridges || []) {
-    const y0 = groundY(api, rd.x, rd.z);
+    const y0 = baseY(rd);
     const h = (rd.elev || 1) * EYE;
     const slab = new THREE.Mesh(new THREE.BoxGeometry(CELL * 0.4, 0.12, CELL * 1.2), mat(0x6a6058));
     slab.position.set(rd.x, y0 + h, rd.z);
@@ -575,14 +582,14 @@ export function buildOpenWorld(map, scene, api) {
   }
 
   for (const o of map.objects || []) {
-    const y0 = groundY(api, o.x, o.z);
+    const y0 = baseY(o);
     const g = makeLight(o.id);
     g.position.set(o.x, y0, o.z);
     group.add(g);
   }
 
   for (const p of map.pickups || []) {
-    const y0 = groundY(api, p.x, p.z);
+    const y0 = baseY(p);
     const mesh = makePickupMesh(p.id);
     mesh.position.set(p.x, y0, p.z);
     group.add(mesh);
@@ -591,7 +598,7 @@ export function buildOpenWorld(map, scene, api) {
   }
 
   for (const f of map.zoneFlags || []) {
-    const y0 = groundY(api, f.x, f.z);
+    const y0 = baseY(f);
     const mesh = makeZoneFlag(0x8a8680);
     mesh.position.set(f.x, y0, f.z);
     group.add(mesh);

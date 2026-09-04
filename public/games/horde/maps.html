@@ -8,7 +8,7 @@
     <link rel="canonical" href="https://futuremusic.online/hordemaps" />
     <link rel="icon" type="image/jpeg" href="/games/horde/og.jpg" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Outfit:wght@400;500;600;700&display=swap" />
-    <link rel="stylesheet" href="/games/horde/css/maps.css?v=h34" />
+    <link rel="stylesheet" href="/games/horde/css/maps.css?v=h35" />
   </head>
   <body class="editor">
     <div id="stage">
@@ -41,6 +41,11 @@
       </div>
       <label>Map name</label>
       <input id="map-name" type="text" maxlength="40" value="New open world" />
+
+      <h2>Elevation</h2>
+      <p class="hint">Levels 1–10. Higher levels need a foundation: an enclosed room (floor + ceiling) or a wall directly below. Enclosed walls always get their own floor and ceiling.</p>
+      <div class="tools" id="elev-levels"></div>
+      <p id="elev-now" class="hint">Building at elevation 1</p>
 
       <h2>Build</h2>
       <div class="tools">
@@ -91,19 +96,14 @@
         <input id="brush" type="range" min="0.5" max="8" step="0.1" value="1.2" />
       </div>
       <div class="pbox" data-show="wall,crack,window,door,arch">
-        <label>Story</label>
-        <select id="story">
-          <option value="0">1st story</option>
-          <option value="1">2nd story</option>
-          <option value="2">3rd story</option>
-        </select>
         <label>Wall texture</label>
         <select id="wtex"></select>
-        <p class="hint">Roofs and floors fill when walls enclose a room. Windows, doors, and arches snap onto walls.</p>
+        <p class="hint">Uses the elevation selected above. Roofs and floors fill when walls enclose a room.</p>
       </div>
       <div class="pbox" data-show="elev,hover,ridge">
-        <label>Elevation (player-heights) <span id="elev-v">0</span></label>
+        <label>Ground height (terrain) <span id="elev-v">0</span></label>
         <input id="elev" type="range" min="-3" max="8" step="1" value="0" />
+        <p class="hint">Sculpts the hills under elevation 1. Building levels 1–10 are the Elevation buttons above.</p>
       </div>
       <div class="pbox" data-show="pickup">
         <label>Shop item pickup</label>
@@ -135,11 +135,7 @@
         <p class="hint">Click to place, drag to aim roll direction.</p>
       </div>
       <div class="pbox" data-show="stairs,ladder">
-        <label>Connect stories</label>
-        <select id="climb-span">
-          <option value="0">1st ↔ 2nd story</option>
-          <option value="1">2nd ↔ 3rd story</option>
-        </select>
+        <p class="hint">Places a climb from the current elevation to the next one up. Needs floors on both levels.</p>
       </div>
       <div class="pbox" data-show="window,door,arch">
         <p class="hint">These only snap onto building walls.</p>
@@ -151,11 +147,12 @@
       <h2>Saved maps</h2>
       <div class="row">
         <button type="button" id="save">Save</button>
+        <button type="button" id="save-as">Save as new</button>
         <button type="button" id="new">New</button>
         <button type="button" id="undo">Undo</button>
       </div>
       <div id="saved"></div>
     </aside>
-    <script type="module" src="/games/horde/js/mapmaker.js?v=h34"></script>
+    <script type="module" src="/games/horde/js/mapmaker.js?v=h35"></script>
   </body>
 </html>

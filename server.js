@@ -594,6 +594,12 @@ try {
 } catch (e) {
     console.error("[zoom] api failed", e.message);
 }
+try {
+    require("./lib/horde-maps").mount(app, { storage, bucketName });
+    console.log("[horde] maps api mounted");
+} catch (e) {
+    console.error("[horde] maps api failed", e.message);
+}
 
 function hordeHeaders(res) {
     res.setHeader("Permissions-Policy", "xr-spatial-tracking=(self), fullscreen=(self), gamepad=(self), accelerometer=(self), gyroscope=(self), magnetometer=(self)");

@@ -1,5 +1,6 @@
 import {
   CELL,
+  STORIES,
   WALL_TEX,
   OBJECTS,
   SPAWN_KINDS,
@@ -26,11 +27,16 @@ import {
   enclosedFloors,
   stampDisk,
   listMaps,
+  listMapsLocal,
   saveMap,
   deleteMap,
   stashPreview,
   cloneMap,
-} from "./ow-map.js?v=h34";
+  hasFoundation,
+  flagsAt,
+  liquidAt,
+  newMapId,
+} from "./ow-map.js?v=h35";
 
 const $ = (id) => document.getElementById(id);
 
@@ -49,7 +55,6 @@ let spawnRadius = 12;
 let spawnMax = 4;
 let boulderSize = 1;
 let boulderTrigger = 8;
-let climbFrom = 0;
 let selected = null;
 let drawing = false;
 let last = null;
@@ -121,9 +126,10 @@ function draw() {
   for (let z = 0; z < map.h; z++) {
     for (let x = 0; x < map.w; x++) {
       const i = idx(map, x, z);
-      const fl = map.flags[i];
-      const liq = map.liquid[i];
+      const fl = flagsAt(map, story)[i];
+      const liq = liquidAt(map, story)[i];
       const wall = map.bwalls[story][i];
+      const below = story > 0 && map.bwalls[story - 1][i];
       if (liq === LIQ_LAVA) ctx.fillStyle = "#ff5511";
       else if (liq === LIQ_WATER) ctx.fillStyle = "#2a6aaa";
       else if (fl & FLAG_SPIKE) ctx.fillStyle = "#c44";
@@ -134,6 +140,10 @@ function draw() {
       else if (fl & FLAG_RUMBLE) ctx.fillStyle = "#4a4038";
       else ctx.fillStyle = map.elev[i] ? "#3a4a30" : "#243024";
       ctx.fillRect(x, z, 1.02, 1.02);
+      if (below && !wall) {
+        ctx.fillStyle = "rgba(80,90,80,0.45)";
+        ctx.fillRect(x + 0.2, z + 0.2, 0.6, 0.6);
+      }
       if (wall) {
         ctx.fillStyle = WALL_TEX[(wallTexId(wall) - 1) % WALL_TEX.length].swatch;
         ctx.fillRect(x + 0.08, z + 0.08, 0.84, 0.84);
@@ -200,27 +210,41 @@ function draw() {
 function paintCell(gx, gz) {
   if (!inBounds(map, gx, gz)) return;
   const i = idx(map, gx, gz);
+  if (tool === "elev") {
+    map.elev[i] = elev;
+    return;
+  }
+  if (tool !== "erase" && !hasFoundation(map, gx, gz, story)) return false;
   if (tool === "wall" || tool === "crack") {
     map.bwalls[story][i] = packWall(wtex, tool === "crack");
   } else if (tool === "erase") {
     map.bwalls[story][i] = 0;
-    map.liquid[i] = 0;
-    map.flags[i] = 0;
+    flagsAt(map, story)[i] = 0;
+    liquidAt(map, story)[i] = 0;
     map.openings = map.openings.filter((o) => !(o.gx === gx && o.gz === gz && (o.story || 0) === story));
-  } else if (tool === "water") map.liquid[i] = LIQ_WATER;
-  else if (tool === "lava") map.liquid[i] = LIQ_LAVA;
-  else if (tool === "elev") map.elev[i] = elev;
-  else if (tool === "spike") map.flags[i] |= FLAG_SPIKE;
-  else if (tool === "hover") map.flags[i] |= FLAG_HOVER;
-  else if (tool === "collapse") map.flags[i] |= FLAG_COLLAPSE;
-  else if (tool === "slope") map.flags[i] |= FLAG_SLOPE;
-  else if (tool === "unstable") map.flags[i] |= FLAG_UNSTABLE;
-  else if (tool === "rumble") map.flags[i] |= FLAG_RUMBLE;
+  } else if (tool === "water") liquidAt(map, story)[i] = LIQ_WATER;
+  else if (tool === "lava") liquidAt(map, story)[i] = LIQ_LAVA;
+  else if (tool === "spike") flagsAt(map, story)[i] |= FLAG_SPIKE;
+  else if (tool === "hover") flagsAt(map, story)[i] |= FLAG_HOVER;
+  else if (tool === "collapse") flagsAt(map, story)[i] |= FLAG_COLLAPSE;
+  else if (tool === "slope") flagsAt(map, story)[i] |= FLAG_SLOPE;
+  else if (tool === "unstable") flagsAt(map, story)[i] |= FLAG_UNSTABLE;
+  else if (tool === "rumble") flagsAt(map, story)[i] |= FLAG_RUMBLE;
+  return true;
 }
 
 function stamp(gx, gz) {
   if (["wall", "crack", "erase", "water", "lava", "elev", "spike", "hover", "collapse", "slope", "unstable", "rumble"].includes(tool)) {
-    stampDisk(map, gx, gz, brush, (x, z) => paintCell(x, z));
+    let blocked = 0;
+    let painted = 0;
+    stampDisk(map, gx, gz, brush, (x, z) => {
+      const ok = paintCell(x, z);
+      if (ok === false) blocked++;
+      else painted++;
+    });
+    if (blocked && !painted && tool !== "erase" && tool !== "elev") {
+      status("Needs foundation under elevation " + (story + 1) + " — enclose a room below first");
+    }
   }
 }
 
@@ -232,34 +256,46 @@ function placePoint(c, ev) {
     pendingAim = { kind: "start" };
     status("Drag to face");
   } else if (tool === "flag") {
-    map.zoneFlags.push({ x: wx, z: wz });
-    status("Flag placed — as many as you want");
+    if (!hasFoundation(map, c.gx, c.gz, story)) { status("Needs foundation under elevation " + (story + 1)); return; }
+    map.zoneFlags.push({ x: wx, z: wz, story });
+    status("Flag at elevation " + (story + 1));
   } else if (tool === "pickup") {
-    map.pickups.push({ id: pickupKind, x: wx, z: wz });
-    status("Pickup " + pickupKind);
+    if (!hasFoundation(map, c.gx, c.gz, story)) { status("Needs foundation under elevation " + (story + 1)); return; }
+    map.pickups.push({ id: pickupKind, x: wx, z: wz, story });
+    status("Pickup " + pickupKind + " @ " + (story + 1));
   } else if (tool === "spawner") {
-    map.spawners.push({ kind: enemyId, x: wx, z: wz, interval: spawnInterval, radius: spawnRadius, max: spawnMax });
+    if (!hasFoundation(map, c.gx, c.gz, story)) { status("Needs foundation under elevation " + (story + 1)); return; }
+    map.spawners.push({ kind: enemyId, x: wx, z: wz, interval: spawnInterval, radius: spawnRadius, max: spawnMax, story });
     status("Spawner");
   } else if (tool === "object") {
-    map.objects.push({ id: objKind, x: wx, z: wz });
+    if (!hasFoundation(map, c.gx, c.gz, story)) { status("Needs foundation under elevation " + (story + 1)); return; }
+    map.objects.push({ id: objKind, x: wx, z: wz, story });
   } else if (tool === "rope" || tool === "chain") {
-    map.ropes.push({ x: wx, z: wz, kind: tool, len: 4.5 });
+    if (!hasFoundation(map, c.gx, c.gz, story)) { status("Needs foundation under elevation " + (story + 1)); return; }
+    map.ropes.push({ x: wx, z: wz, kind: tool, len: 4.5, story });
   } else if (tool === "turret" || tool === "gunturret") {
-    map.turrets.push({ x: wx, z: wz, kind: tool === "gunturret" ? "gun" : "flame" });
+    if (!hasFoundation(map, c.gx, c.gz, story)) { status("Needs foundation under elevation " + (story + 1)); return; }
+    map.turrets.push({ x: wx, z: wz, kind: tool === "gunturret" ? "gun" : "flame", story });
   } else if (tool === "crusher") {
-    map.crushers.push({ x: wx, z: wz });
+    if (!hasFoundation(map, c.gx, c.gz, story)) { status("Needs foundation under elevation " + (story + 1)); return; }
+    map.crushers.push({ x: wx, z: wz, story });
   } else if (tool === "boulder") {
-    map.boulders.push({ x: wx, z: wz, yaw: 0, size: boulderSize, trigger: boulderTrigger });
+    if (!hasFoundation(map, c.gx, c.gz, story)) { status("Needs foundation under elevation " + (story + 1)); return; }
+    map.boulders.push({ x: wx, z: wz, yaw: 0, size: boulderSize, trigger: boulderTrigger, story });
     pendingAim = { kind: "boulder", i: map.boulders.length - 1 };
     status("Drag to aim roll");
   } else if (tool === "arrow") {
-    map.arrows.push({ x: wx, z: wz, yaw: 0 });
+    if (!hasFoundation(map, c.gx, c.gz, story)) { status("Needs foundation under elevation " + (story + 1)); return; }
+    map.arrows.push({ x: wx, z: wz, yaw: 0, story });
     pendingAim = { kind: "arrow", i: map.arrows.length - 1 };
     status("Drag to aim");
   } else if (tool === "ridge") {
-    map.ridges.push({ x: wx, z: wz, elev: elev || 1 });
+    if (!hasFoundation(map, c.gx, c.gz, story)) { status("Needs foundation under elevation " + (story + 1)); return; }
+    map.ridges.push({ x: wx, z: wz, elev: elev || 1, story });
   } else if (tool === "stairs" || tool === "ladder") {
-    map.climbs.push({ kind: tool, x: wx, z: wz, from: climbFrom, to: climbFrom + 1, yaw: 0 });
+    if (story >= STORIES - 1) { status("No elevation above 10"); return; }
+    if (!hasFoundation(map, c.gx, c.gz, story)) { status("Needs foundation under elevation " + (story + 1)); return; }
+    map.climbs.push({ kind: tool, x: wx, z: wz, from: story, to: story + 1, yaw: 0, story });
   } else if (tool === "window" || tool === "door" || tool === "arch") {
     if (!inBounds(map, c.gx, c.gz)) return;
     if (!map.bwalls[story][idx(map, c.gx, c.gz)]) {
@@ -290,7 +326,7 @@ function onDown(ev) {
 }
 function onMove(ev) {
   const c = cellFromEvent(ev);
-  $("xy").textContent = c.gx + ", " + c.gz;
+  $("xy").textContent = c.gx + ", " + c.gz + "  ·  E" + (story + 1);
   if (canvas.dataset.pan === "1") {
     pan.x += ev.clientX - +canvas.dataset.px;
     pan.y += ev.clientY - +canvas.dataset.py;
@@ -328,10 +364,10 @@ function fillSelect(el, items, valKey = "id") {
   el.innerHTML = items.map((it) => `<option value="${it[valKey]}">${it.name}</option>`).join("");
 }
 
-function refreshSaved() {
+function paintSaved(maps) {
   const host = $("saved");
   host.innerHTML = "";
-  for (const m of listMaps()) {
+  for (const m of maps) {
     const b = document.createElement("button");
     b.className = "saved";
     b.textContent = m.name + (m.id === map.id ? " ●" : "");
@@ -343,9 +379,9 @@ function refreshSaved() {
     };
     const del = document.createElement("button");
     del.textContent = "×";
-    del.onclick = (e) => {
+    del.onclick = async (e) => {
       e.stopPropagation();
-      deleteMap(m.id);
+      await deleteMap(m.id);
       refreshSaved();
     };
     const row = document.createElement("div");
@@ -354,6 +390,37 @@ function refreshSaved() {
     row.appendChild(b);
     row.appendChild(del);
     host.appendChild(row);
+  }
+}
+
+async function refreshSaved() {
+  paintSaved(listMapsLocal());
+  try {
+    paintSaved(await listMaps());
+  } catch {}
+}
+
+function setStory(n) {
+  story = Math.max(0, Math.min(STORIES - 1, n | 0));
+  document.querySelectorAll("#elev-levels [data-elev]").forEach((b) => {
+    b.classList.toggle("on", +b.dataset.elev === story);
+  });
+  if ($("elev-now")) $("elev-now").textContent = "Building at elevation " + (story + 1);
+  draw();
+}
+
+function fillElevButtons() {
+  const host = $("elev-levels");
+  if (!host) return;
+  host.innerHTML = "";
+  for (let i = 0; i < STORIES; i++) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.dataset.elev = String(i);
+    b.textContent = String(i + 1);
+    if (i === story) b.classList.add("on");
+    b.onclick = () => setStory(i);
+    host.appendChild(b);
   }
 }
 
@@ -366,7 +433,7 @@ function wire() {
   $("pickup").onchange = () => { pickupKind = $("pickup").value; };
   $("sp-enemy").onchange = () => { enemyId = $("sp-enemy").value; };
   $("obj").onchange = () => { objKind = $("obj").value; };
-  $("story").onchange = () => { story = +$("story").value; draw(); };
+  fillElevButtons();
   $("brush").oninput = () => { brush = +$("brush").value; $("brush-v").textContent = brush.toFixed(1); };
   $("elev").oninput = () => { elev = +$("elev").value; $("elev-v").textContent = String(elev); };
   $("sp-int").oninput = () => { spawnInterval = +$("sp-int").value; $("sp-int-v").textContent = spawnInterval.toFixed(1) + "s"; };
@@ -374,7 +441,6 @@ function wire() {
   $("sp-max").oninput = () => { spawnMax = +$("sp-max").value; $("sp-max-v").textContent = String(spawnMax); };
   $("bsize").oninput = () => { boulderSize = +$("bsize").value; $("bsize-v").textContent = boulderSize.toFixed(2); };
   $("btrig").oninput = () => { boulderTrigger = +$("btrig").value; $("btrig-v").textContent = boulderTrigger.toFixed(1); };
-  $("climb-span").onchange = () => { climbFrom = +$("climb-span").value; };
   $("map-name").oninput = () => { map.name = $("map-name").value || "Untitled"; };
   document.querySelectorAll("[data-tool]").forEach((b) => {
     b.onclick = () => {
@@ -383,10 +449,19 @@ function wire() {
       status(tool);
     };
   });
-  $("save").onclick = () => {
-    saveMap(map);
-    refreshSaved();
-    status("Saved");
+  $("save").onclick = async () => {
+    status("Saving…");
+    await saveMap(map);
+    await refreshSaved();
+    status("Saved — available in Open world on this headset and after a refresh");
+  };
+  if ($("save-as")) $("save-as").onclick = async () => {
+    map.id = newMapId();
+    map.rev = 0;
+    status("Saving as new…");
+    await saveMap(map);
+    await refreshSaved();
+    status("Saved as new map");
   };
   $("new").onclick = () => {
     pushUndo();
@@ -395,9 +470,10 @@ function wire() {
     draw();
   };
   $("undo").onclick = doUndo;
-  $("play").onclick = () => {
+  $("play").onclick = async () => {
     stashPreview(map);
-    saveMap(map);
+    status("Saving…");
+    await saveMap(map);
     location.href = "/horde?mode=open&map=" + encodeURIComponent(map.id);
   };
   canvas.addEventListener("mousedown", onDown);

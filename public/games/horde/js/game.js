@@ -1,8 +1,8 @@
 import * as THREE from "three";
 import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
 import { XRControllerModelFactory } from "three/addons/webxr/XRControllerModelFactory.js";
-import { listMaps as listOwMaps, getMap as getOwMap, demoFort } from "/games/horde/js/ow-map.js?v=h34";
-import { buildOpenWorld, tickOpenWorld, clearOpenWorld, owHeight, owPush, owShotHit, owHitSolid } from "/games/horde/js/ow-world.js?v=h34";
+import { listMaps as listOwMaps, getMap as getOwMap, demoFort } from "/games/horde/js/ow-map.js?v=h35";
+import { buildOpenWorld, tickOpenWorld, clearOpenWorld, owHeight, owPush, owShotHit, owHitSolid } from "/games/horde/js/ow-world.js?v=h35";
 
 const LS = "horde.lb.v1";
 const SPAWN_MIN = 52;
@@ -246,6 +246,7 @@ let runTeam = "solo";
 let runContinuous = false;
 let runOpen = false;
 let selectedOwMap = "demo-fort";
+let owMapCache = [];
 let teamColorId = "gold";
 let owExtras = null;
 let zoneFlags = [];
@@ -2598,9 +2599,10 @@ function owApi() {
   };
 }
 
-function loadOpenWorldMap() {
-  let data = getOwMap(selectedOwMap) || (selectedOwMap === "demo-fort" ? demoFort() : null);
-  if (!data) data = demoFort();
+async function loadOpenWorldMap() {
+  let data = await getOwMap(selectedOwMap);
+  if (!data && selectedOwMap === "demo-fort") data = demoFort();
+  if (!data) data = owMapCache.find((m) => m.id === selectedOwMap) || demoFort();
   const api = owApi();
   owExtras = buildOpenWorld(data, scene, api);
   zoneFlags = owExtras.zoneFlags || [];
@@ -2726,6 +2728,7 @@ function setGameMode(mode) {
   try { localStorage.setItem(LS_MODE, mode); } catch {}
   paintModeButtons();
   paintOwMapRow();
+  if (mode === "open") refreshOwMaps();
 }
 
 function setWarTeam(team) {
@@ -2818,20 +2821,13 @@ function paintModeButtons() {
   if (blurb) blurb.textContent = modeBlurb();
 }
 
-function paintOwMapRow() {
+function fillOwMapButtons(maps) {
   const row = $("map-row");
-  if (!row) return;
-  if (gameMode !== "open") {
-    row.querySelectorAll("[data-ow]").forEach((el) => el.remove());
-    const maker = $("mapmaker-link");
-    if (maker) maker.remove();
-    return;
-  }
+  if (!row || gameMode !== "open") return;
   row.querySelectorAll("[data-map]").forEach((b) => {
     if (!b.dataset.ow) b.hidden = true;
   });
   row.querySelectorAll("[data-ow]").forEach((el) => el.remove());
-  const maps = listOwMaps();
   const demo = { id: "demo-fort", name: "Demo fort" };
   const items = [demo, ...maps.filter((m) => m.id !== "demo-fort")];
   for (const m of items) {
@@ -2852,6 +2848,29 @@ function paintOwMapRow() {
     a.textContent = "Map maker";
     row.appendChild(a);
   }
+}
+
+async function refreshOwMaps() {
+  try {
+    owMapCache = await listOwMaps();
+  } catch {
+    owMapCache = [];
+  }
+  if (gameMode === "open") fillOwMapButtons(owMapCache);
+  if (menuOpen && overMesh) paintMenu3d("main");
+}
+
+function paintOwMapRow() {
+  const row = $("map-row");
+  if (!row) return;
+  if (gameMode !== "open") {
+    row.querySelectorAll("[data-ow]").forEach((el) => el.remove());
+    const maker = $("mapmaker-link");
+    if (maker) maker.remove();
+    return;
+  }
+  fillOwMapButtons(owMapCache);
+  refreshOwMaps();
 }
 
 function playerArmyTan() {
@@ -4790,14 +4809,17 @@ function paintMenu3d(kind) {
     });
     drawMenuCat(overCtx, 28, 312, 968, 78, "MAP");
     if (gameMode === "open") {
-      const maps = [{ id: "demo-fort", name: "DEMO FORT" }, ...listOwMaps().slice(0, 3).map((m) => ({ id: m.id, name: (m.name || "MAP").toUpperCase().slice(0, 14) }))];
+      const maps = [{ id: "demo-fort", name: "DEMO FORT" }, ...owMapCache.filter((m) => m.id !== "demo-fort").map((m) => ({ id: m.id, name: (m.name || "MAP").toUpperCase().slice(0, 16) }))];
       maps.forEach((mp, i) => {
-        const x = 40 + i * 240;
-        const y = 340;
+        const col = i % 4;
+        const r = (i / 4) | 0;
+        const x = 40 + col * 240;
+        const y = 340 + r * 46;
         const on = selectedOwMap === mp.id;
         drawMenuBtn(overCtx, x, y, 228, 40, mp.name, on ? "#2a4a62" : "#1a1a1e", "#f4f1ea");
         addMenuHit(x, y, 228, 40, "map", 1, "ow:" + mp.id);
       });
+      cursorY = 398 + Math.max(0, Math.ceil(maps.length / 4) - 1) * 46;
     } else {
       MAPS.forEach((mp, i) => {
         const x = 40 + i * 320;
@@ -4806,8 +4828,8 @@ function paintMenu3d(kind) {
         drawMenuBtn(overCtx, x, y, 304, 40, mp.short, on ? "#2a4a62" : "#1a1a1e", "#f4f1ea");
         addMenuHit(x, y, 304, 40, "map", 1, mp.id);
       });
+      cursorY = 398;
     }
-    cursorY = 398;
     if (gameMode === "war") {
       drawMenuCat(overCtx, 28, cursorY, 968, 76, "YOUR TEAM");
       [["solo", "SOLO"], ["army", "JOIN ARMY"], ["horde", "JOIN HORDE"]].forEach((pair, i) => {
@@ -5010,7 +5032,7 @@ function startRun() {
   startRunFrom(1);
 }
 
-function startRunFrom(startWave) {
+async function startRunFrom(startWave) {
   startWave = Math.max(1, startWave | 0);
   runMode = gameMode;
   runTeam = warTeam;
@@ -5037,7 +5059,7 @@ function startRunFrom(startWave) {
   }
   startMusic();
   if (runOpen) {
-    loadOpenWorldMap();
+    await loadOpenWorldMap();
     wave = 1;
     pending = 0;
     dripLeft = 0;
@@ -5090,6 +5112,7 @@ function openMainMenu() {
   }
   paintWaveButtons();
   paintModeButtons();
+  refreshOwMaps();
   paintMenu3d("main");
   if (xrOn) {
     $("start").hidden = true;
@@ -8589,6 +8612,7 @@ function attachXr() {
     if (shopRoot) shopRoot.visible = shopOpen;
     if (!running && !dead) {
       menuOpen = true;
+      refreshOwMaps();
       paintMenu3d("main");
     }
     if (overMesh) overMesh.visible = dead || menuOpen;
@@ -9224,6 +9248,7 @@ try {
   if (q.get("mode") === "open") setGameMode("open");
   if (q.get("map")) setSelectedMap(q.get("map").startsWith("ow:") ? q.get("map") : "ow:" + q.get("map"));
 } catch {}
+refreshOwMaps();
 if ($("resume")) $("resume").onclick = () => resumeRun();
 $("over").addEventListener("click", (e) => {
   if (!dead) return;

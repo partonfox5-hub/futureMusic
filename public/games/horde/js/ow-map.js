@@ -4,7 +4,7 @@ export const CELL = 2;
 export const MAP_W = 64;
 export const MAP_H = 64;
 export const STORY_H = 3.2;
-export const STORIES = 3;
+export const STORIES = 10;
 export const EYE = 1.6;
 export const WALL_CRACK = 128;
 
@@ -104,6 +104,7 @@ export const PICKUPS = [
 
 export const LS_MAPS = "horde.owmaps.v1";
 export const LS_PREVIEW = "horde.ow.preview";
+export const API = "/api/horde/maps";
 
 export function idx(map, x, z) {
   return (z | 0) * map.w + (x | 0);
@@ -125,6 +126,15 @@ export function packWall(tex, crack) {
 function nid() {
   return "m" + Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 6);
 }
+export function newMapId() {
+  return nid();
+}
+
+function nLayers(n, make) {
+  const a = [];
+  for (let s = 0; s < STORIES; s++) a.push(make(n));
+  return a;
+}
 
 function layers(w, h) {
   const n = w * h;
@@ -132,7 +142,9 @@ function layers(w, h) {
     elev: new Int8Array(n),
     liquid: new Uint8Array(n),
     flags: new Uint8Array(n),
-    bwalls: [new Uint8Array(n), new Uint8Array(n), new Uint8Array(n)],
+    bwalls: nLayers(n, () => new Uint8Array(n)),
+    sflags: nLayers(n, () => new Uint8Array(n)),
+    sliquid: nLayers(n, () => new Uint8Array(n)),
   };
 }
 
@@ -201,22 +213,25 @@ export function blankMap(name = "New open world", w = MAP_W, h = MAP_H) {
   };
 }
 
+function padLayers(arr, n) {
+  const out = [];
+  for (let s = 0; s < STORIES; s++) out.push(u8from(arr && arr[s], n));
+  return out;
+}
+
 export function ensureLayers(map) {
   const n = map.w * map.h;
   if (!map.elev || map.elev.length !== n) map.elev = i8from(map.elev, n);
   if (!map.liquid || map.liquid.length !== n) map.liquid = u8from(map.liquid, n);
-  if (!map.flags || map.flags.length !== n) {
-    const f = u8from(map.flags, n);
-    map.flags = f;
+  if (!map.flags || map.flags.length !== n) map.flags = u8from(map.flags, n);
+  map.bwalls = padLayers(map.bwalls, n);
+  map.sflags = padLayers(map.sflags, n);
+  map.sliquid = padLayers(map.sliquid, n);
+  if (map.flags && map.sflags[0]) {
+    for (let i = 0; i < n; i++) if (map.flags[i] && !map.sflags[0][i]) map.sflags[0][i] = map.flags[i];
   }
-  if (!map.bwalls || map.bwalls.length < STORIES) {
-    const bw = [];
-    for (let s = 0; s < STORIES; s++) bw.push(u8from(map.bwalls && map.bwalls[s], n));
-    map.bwalls = bw;
-  } else {
-    for (let s = 0; s < STORIES; s++) {
-      if (!map.bwalls[s] || map.bwalls[s].length !== n) map.bwalls[s] = u8from(map.bwalls[s], n);
-    }
+  if (map.liquid && map.sliquid[0]) {
+    for (let i = 0; i < n; i++) if (map.liquid[i] && !map.sliquid[0][i]) map.sliquid[0][i] = map.liquid[i];
   }
   map.openings ||= [];
   map.objects ||= [];
@@ -237,7 +252,7 @@ export function ensureLayers(map) {
 export function serialize(map) {
   ensureLayers(map);
   return {
-    v: 1,
+    v: 2,
     id: map.id,
     name: map.name,
     w: map.w,
@@ -246,6 +261,8 @@ export function serialize(map) {
     liquid: Array.from(map.liquid),
     flags: Array.from(map.flags),
     bwalls: map.bwalls.map((b) => Array.from(b)),
+    sflags: map.sflags.map((b) => Array.from(b)),
+    sliquid: map.sliquid.map((b) => Array.from(b)),
     openings: map.openings || [],
     objects: map.objects || [],
     spawners: map.spawners || [],
@@ -277,7 +294,9 @@ export function deserialize(raw) {
     elev: i8from(raw.elev, w * h),
     liquid: u8from(raw.liquid, w * h),
     flags: u8from(raw.flags, w * h),
-    bwalls: [0, 1, 2].map((s) => u8from(raw.bwalls && raw.bwalls[s], w * h)),
+    bwalls: padLayers(raw.bwalls, w * h),
+    sflags: padLayers(raw.sflags, w * h),
+    sliquid: padLayers(raw.sliquid, w * h),
     openings: raw.openings || [],
     objects: raw.objects || [],
     spawners: raw.spawners || [],
@@ -294,7 +313,39 @@ export function deserialize(raw) {
     updated: raw.updated || Date.now(),
     rev: raw.rev || 0,
   };
-  return map;
+  return ensureLayers(map);
+}
+
+export function flagsAt(map, story) {
+  ensureLayers(map);
+  return map.sflags[story] || map.sflags[0];
+}
+
+export function liquidAt(map, story) {
+  ensureLayers(map);
+  return map.sliquid[story] || map.sliquid[0];
+}
+
+export function hasFoundation(map, gx, gz, story) {
+  ensureLayers(map);
+  if (story <= 0) return true;
+  if (!inBounds(map, gx, gz)) return false;
+  const below = story - 1;
+  const i = idx(map, gx, gz);
+  if (map.bwalls[below] && map.bwalls[below][i]) return true;
+  const floors = enclosedFloors(map, below);
+  if (floors[i]) return true;
+  if (map.sflags[below] && (map.sflags[below][i] & FLAG_HOVER)) return true;
+  return false;
+}
+
+function preferMap(a, b) {
+  if (!a) return b;
+  if (!b) return a;
+  const ra = (a.rev | 0);
+  const rb = (b.rev | 0);
+  if (ra !== rb) return ra > rb ? a : b;
+  return (a.updated || 0) >= (b.updated || 0) ? a : b;
 }
 
 export function cloneMap(m) {
@@ -364,38 +415,86 @@ export function stampDisk(map, gx, gz, r, fn) {
   }
 }
 
-export function listMaps() {
+export function listMapsLocal() {
   try {
     const raw = JSON.parse(localStorage.getItem(LS_MAPS) || "[]");
-    return raw.map((m) => deserialize(m)).sort((a, b) => (b.updated || 0) - (a.updated || 0));
+    return raw.map((m) => {
+      try { return deserialize(m); } catch { return null; }
+    }).filter(Boolean).sort((a, b) => (b.updated || 0) - (a.updated || 0));
   } catch {
     return [];
   }
 }
 
-export function getMap(id) {
+export async function listMaps() {
+  const local = listMapsLocal();
+  let remote = [];
+  try {
+    const r = await fetch(API + "?t=" + Date.now(), { cache: "no-store" });
+    if (r.ok) {
+      const data = await r.json();
+      remote = (data.maps || []).map((m) => {
+        try { return deserialize(m); } catch { return null; }
+      }).filter(Boolean);
+    }
+  } catch {}
+  const byId = new Map();
+  for (const m of local) if (m?.id) byId.set(m.id, m);
+  for (const m of remote) if (m?.id) byId.set(m.id, preferMap(byId.get(m.id), m));
+  return [...byId.values()].sort((a, b) => (b.updated || 0) - (a.updated || 0));
+}
+
+export async function getMap(id) {
   if (id === "preview") {
     try {
       const raw = sessionStorage.getItem(LS_PREVIEW);
       if (raw) return deserialize(JSON.parse(raw));
     } catch {}
   }
-  return listMaps().find((m) => m.id === id) || null;
+  const local = listMapsLocal().find((m) => m.id === id) || null;
+  try {
+    const r = await fetch(API + "/" + encodeURIComponent(id) + "?t=" + Date.now(), { cache: "no-store" });
+    if (r.ok) return preferMap(local, deserialize(await r.json()));
+  } catch {}
+  return local;
 }
 
-export function saveMap(map) {
+export async function saveMap(map) {
   ensureLayers(map);
   map.updated = Date.now();
   map.rev = (map.rev | 0) + 1;
-  const all = listMaps().filter((m) => m.id !== map.id);
+  const all = listMapsLocal().filter((m) => m.id !== map.id);
   all.unshift(map);
-  localStorage.setItem(LS_MAPS, JSON.stringify(all.map((m) => serialize(m))));
+  try {
+    localStorage.setItem(LS_MAPS, JSON.stringify(all.map((m) => serialize(m))));
+  } catch (e) {
+    console.warn("horde map local save failed", e);
+  }
+  try {
+    const r = await fetch(API, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(serialize(map)),
+    });
+    if (r.ok) {
+      const info = await r.json();
+      if (info.rev) map.rev = info.rev;
+      if (info.updated) map.updated = info.updated;
+    }
+  } catch (e) {
+    console.warn("horde map server save failed", e);
+  }
   return map;
 }
 
-export function deleteMap(id) {
-  const all = listMaps().filter((m) => m.id !== id);
-  localStorage.setItem(LS_MAPS, JSON.stringify(all.map((m) => serialize(m))));
+export async function deleteMap(id) {
+  const all = listMapsLocal().filter((m) => m.id !== id);
+  try {
+    localStorage.setItem(LS_MAPS, JSON.stringify(all.map((m) => serialize(m))));
+  } catch {}
+  try {
+    await fetch(API + "/" + encodeURIComponent(id), { method: "DELETE" });
+  } catch {}
 }
 
 export function stashPreview(map) {
@@ -435,7 +534,7 @@ export function demoFort() {
   map.pickups.push({ id: "tank", x: worldX(map, 28), z: worldZ(map, 28) });
   map.spawners.push({ kind: "horde", x: worldX(map, 16), z: worldZ(map, 32), interval: 8, radius: 12, max: 4 });
   map.spawners.push({ kind: "army", x: worldX(map, 48), z: worldZ(map, 32), interval: 10, radius: 12, max: 3 });
-  stampDisk(map, 18, 18, 1.6, (x, z, i) => { map.flags[i] |= FLAG_SPIKE; });
+  stampDisk(map, 18, 18, 1.6, (x, z, i) => { map.sflags[0][i] |= FLAG_SPIKE; map.flags[i] |= FLAG_SPIKE; });
   map.crushers.push({ x: worldX(map, 36), z: worldZ(map, 36) });
   map.boulders.push({ x: worldX(map, 22), z: worldZ(map, 36), yaw: 0.4, size: 1.2, trigger: 8 });
   map.turrets.push({ x: worldX(map, 38), z: worldZ(map, 26), kind: "flame" });
@@ -444,5 +543,5 @@ export function demoFort() {
   map.objects.push({ id: "campfire", x: worldX(map, 32), z: worldZ(map, 33) });
   map.start = { x: 0, z: 0, yaw: 0 };
   map.id = "demo-fort";
-  return map;
+  return ensureLayers(map);
 }
