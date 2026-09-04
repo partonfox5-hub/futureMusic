@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0a0908" />
+    <title>THE HORDE — open world map maker</title>
+    <link rel="canonical" href="https://futuremusic.online/hordemaps" />
+    <link rel="icon" type="image/jpeg" href="/games/horde/og.jpg" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Outfit:wght@400;500;600;700&display=swap" />
+    <link rel="stylesheet" href="/games/horde/css/maps.css?v=h34" />
+  </head>
+  <body class="editor">
+    <div id="stage">
+      <canvas id="view"></canvas>
+      <div id="topbar">
+        <span id="xy">0, 0</span>
+        <span id="status">Draw walls</span>
+      </div>
+      <div id="legend">
+        <b>Map key</b>
+        <div><i class="lg flat"></i> Wall</div>
+        <div><i class="lg round"></i> Window</div>
+        <div><i class="lg oval"></i> Door / arch</div>
+        <div><i class="lg spike"></i> Spike pit</div>
+        <div><i class="lg water"></i> Water</div>
+        <div><i class="lg lava"></i> Lava</div>
+        <div><i class="lg spawn"></i> Player spawn</div>
+        <div><i class="lg hover"></i> Hover / floor</div>
+        <div><i class="lg collapse"></i> Collapse</div>
+        <div><i class="lg slope"></i> Slope</div>
+        <div><i class="lg sky"></i> Flag</div>
+      </div>
+    </div>
+    <aside id="side">
+      <h1>HORDE</h1>
+      <p class="hint">Open-world 2D map maker. 3D walls and floors for buildings. Windows cut openings. Zoom obstacles are placeable. Right-drag pans, wheel zooms.</p>
+      <div class="row">
+        <a class="btn" href="/horde">Play</a>
+        <button type="button" id="play">Play this map</button>
+      </div>
+      <label>Map name</label>
+      <input id="map-name" type="text" maxlength="40" value="New open world" />
+
+      <h2>Build</h2>
+      <div class="tools">
+        <button type="button" data-tool="wall" class="on">Wall</button>
+        <button type="button" data-tool="crack">Cracked wall</button>
+        <button type="button" data-tool="window">Window</button>
+        <button type="button" data-tool="door">Door</button>
+        <button type="button" data-tool="arch">Archway</button>
+        <button type="button" data-tool="erase">Erase</button>
+        <button type="button" data-tool="stairs">Stairs</button>
+        <button type="button" data-tool="ladder">Ladder</button>
+      </div>
+      <h2>Ground</h2>
+      <div class="tools">
+        <button type="button" data-tool="elev">Elevation</button>
+        <button type="button" data-tool="water">Water</button>
+        <button type="button" data-tool="lava">Lava</button>
+        <button type="button" data-tool="spike">Spike pit</button>
+        <button type="button" data-tool="hover">Hover platform</button>
+        <button type="button" data-tool="collapse">Collapse floor</button>
+        <button type="button" data-tool="slope">Slope</button>
+        <button type="button" data-tool="unstable">Unstable</button>
+        <button type="button" data-tool="rumble">Rumble tile</button>
+      </div>
+      <h2>Obstacles</h2>
+      <div class="tools">
+        <button type="button" data-tool="rope">Rope</button>
+        <button type="button" data-tool="chain">Chain</button>
+        <button type="button" data-tool="turret">Flame turret</button>
+        <button type="button" data-tool="gunturret">Gun turret</button>
+        <button type="button" data-tool="arrow">Arrow trap</button>
+        <button type="button" data-tool="crusher">Crusher</button>
+        <button type="button" data-tool="boulder">Boulder</button>
+        <button type="button" data-tool="ridge">Wall ridge</button>
+      </div>
+      <h2>Place</h2>
+      <div class="tools">
+        <button type="button" data-tool="start">Spawn</button>
+        <button type="button" data-tool="flag">Zone flag</button>
+        <button type="button" data-tool="pickup">Pickup</button>
+        <button type="button" data-tool="spawner">Spawner</button>
+        <button type="button" data-tool="object">Light</button>
+      </div>
+      <p id="shape-hint"></p>
+
+      <div class="pbox" data-show="wall,crack,window,door,arch,erase,elev,water,lava,spike,hover,collapse,slope,unstable,rumble">
+        <label>Brush size <span id="brush-v">1.2</span></label>
+        <input id="brush" type="range" min="0.5" max="8" step="0.1" value="1.2" />
+      </div>
+      <div class="pbox" data-show="wall,crack,window,door,arch">
+        <label>Story</label>
+        <select id="story">
+          <option value="0">1st story</option>
+          <option value="1">2nd story</option>
+          <option value="2">3rd story</option>
+        </select>
+        <label>Wall texture</label>
+        <select id="wtex"></select>
+        <p class="hint">Roofs and floors fill when walls enclose a room. Windows, doors, and arches snap onto walls.</p>
+      </div>
+      <div class="pbox" data-show="elev,hover,ridge">
+        <label>Elevation (player-heights) <span id="elev-v">0</span></label>
+        <input id="elev" type="range" min="-3" max="8" step="1" value="0" />
+      </div>
+      <div class="pbox" data-show="pickup">
+        <label>Shop item pickup</label>
+        <select id="pickup"></select>
+        <p class="hint">Walk over to equip if the player does not already have it. Army men can pick these up too.</p>
+      </div>
+      <div class="pbox" data-show="spawner">
+        <label>Enemy</label>
+        <select id="sp-enemy"></select>
+        <label>Spawn every <span id="sp-int-v">8.0s</span></label>
+        <input id="sp-int" type="range" min="0.5" max="30" step="0.5" value="8" />
+        <label>Roam radius <span id="sp-rad-v">12.0</span></label>
+        <input id="sp-rad" type="range" min="1" max="40" step="0.5" value="12" />
+        <label>Max alive <span id="sp-max-v">4</span></label>
+        <input id="sp-max" type="range" min="1" max="12" step="1" value="4" />
+      </div>
+      <div class="pbox" data-show="object">
+        <label>Light</label>
+        <select id="obj"></select>
+      </div>
+      <div class="pbox" data-show="flag">
+        <p class="hint">Place as many as you want. Capture gives 25 ◎ and paints your team color. Enemies can recapture. Flags stay on the map.</p>
+      </div>
+      <div class="pbox" data-show="boulder">
+        <label>Boulder size <span id="bsize-v">1.00</span></label>
+        <input id="bsize" type="range" min="0.4" max="3" step="0.05" value="1" />
+        <label>Activation radius <span id="btrig-v">8.0</span></label>
+        <input id="btrig" type="range" min="2" max="48" step="0.5" value="8" />
+        <p class="hint">Click to place, drag to aim roll direction.</p>
+      </div>
+      <div class="pbox" data-show="stairs,ladder">
+        <label>Connect stories</label>
+        <select id="climb-span">
+          <option value="0">1st ↔ 2nd story</option>
+          <option value="1">2nd ↔ 3rd story</option>
+        </select>
+      </div>
+      <div class="pbox" data-show="window,door,arch">
+        <p class="hint">These only snap onto building walls.</p>
+      </div>
+      <div class="pbox" data-show="arrow">
+        <p class="hint">Click, then drag to aim. Fires a dart when someone walks in front.</p>
+      </div>
+
+      <h2>Saved maps</h2>
+      <div class="row">
+        <button type="button" id="save">Save</button>
+        <button type="button" id="new">New</button>
+        <button type="button" id="undo">Undo</button>
+      </div>
+      <div id="saved"></div>
+    </aside>
+    <script type="module" src="/games/horde/js/mapmaker.js?v=h34"></script>
+  </body>
+</html>

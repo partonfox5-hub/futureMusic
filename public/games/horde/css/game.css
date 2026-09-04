@@ -81,6 +81,11 @@ button.ghost, a.ghost { background: transparent; color: #1a1a1e; }
   border-bottom: 1px solid #e6e0d4;
 }
 .shop-cat:first-child { margin-top: 0; }
+#team-color-row { margin: 10px 0 8px; }
+#team-color-row .mode-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.team-swatch { min-width: 4.2rem; border: 2px solid #1a1a1e; }
+.team-swatch.on { outline: 2px solid #fff; border-color: #d4af37; }
+a.mode-btn { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
 #shop .panel {
   position: relative;
   width: min(704px, 94vw);
@@ -236,6 +241,7 @@ button.ghost, a.ghost { background: transparent; color: #1a1a1e; }
 }
 .mode-btn[data-mode="mixed"].on { background: #4a3a18; border-color: #d4af37; color: #d4af37; }
 .mode-btn[data-mode="war"].on { background: #5a1818; border-color: #c42b2b; color: #f4f1ea; }
+.mode-btn[data-mode="open"].on { background: #2a4a62; border-color: #88c4e0; color: #f4f1ea; }
 .mode-btn[data-team="solo"].on { background: #1a1a1e; color: #d4af37; border-color: #d4af37; }
 .mode-btn[data-flow="continuous"].on { background: #5a1818; border-color: #c42b2b; color: #f4f1ea; }
 .mode-btn[data-map].on { background: #2a4a62; border-color: #2a4a62; color: #f4f1ea; }

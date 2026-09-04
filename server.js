@@ -604,11 +604,20 @@ app.get(["/horde", "/horde/"], (req, res) => {
     hordeHeaders(res);
     res.sendFile(path.join(__dirname, "public", "games", "horde", "index.html"));
 });
+app.get(["/hordemaps", "/hordemaps/", "/horde/maps", "/horde/maps/"], (req, res) => {
+    hordeHeaders(res);
+    res.sendFile(path.join(__dirname, "public", "games", "horde", "maps.html"));
+});
 app.get(["/test-k8n2w5q1", "/test-k8n2w5q1/"], (req, res) => res.redirect(301, "/horde"));
 app.get(["/test-w4n8k2pt", "/test-w4n8k2pt/"], (req, res) => res.redirect(301, "/horde"));
 app.get(["/test-m3k9r7qw", "/test-m3k9r7qw/"], (req, res) => res.redirect(301, "/horde"));
 app.get(["/test-r4n8k2w7", "/test-r4n8k2w7/"], (req, res) => res.redirect(301, "/horde"));
 app.get(["/test-k2n8w4qh", "/test-k2n8w4qh/"], (req, res) => res.redirect(301, "/horde"));
+app.use("/games/horde", (req, res, next) => {
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+    res.setHeader("Pragma", "no-cache");
+    next();
+});
 
 // BLOCKBUILD Quest Store exclusive — unlisted private URL, not home-gated.
 const BBQST = "/bbqst-h8k2m9q4";

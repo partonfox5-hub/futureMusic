@@ -1,6 +1,8 @@
 import * as THREE from "three";
 import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
 import { XRControllerModelFactory } from "three/addons/webxr/XRControllerModelFactory.js";
+import { listMaps as listOwMaps, getMap as getOwMap, demoFort } from "/games/horde/js/ow-map.js?v=h34";
+import { buildOpenWorld, tickOpenWorld, clearOpenWorld, owHeight, owPush, owShotHit, owHitSolid } from "/games/horde/js/ow-world.js?v=h34";
 
 const LS = "horde.lb.v1";
 const SPAWN_MIN = 52;
@@ -25,8 +27,9 @@ const WEPS = {
   ripple: { id: "ripple", name: "Ripple ray", dmg: 2, rpm: 1.6, mag: 8, speed: 22, spread: 0.08, pellets: 11, pierce: 3, ripple: true, cost: 1400, reload: 7.84 },
   gravity: { id: "gravity", name: "Zero-point gun", dmg: 2, rpm: 8, mag: 40, speed: 40, spread: 0, pellets: 1, gravity: true, cost: 1800, reload: 6 },
   nuke: { id: "nuke", name: "Mini nuke", dmg: 8, rpm: 0.32, mag: 1, speed: 24.3, spread: 0, pellets: 1, aoe: 12, nuke: true, cost: 2800, reload: 12.8 },
-  tank: { id: "tank", name: "Cyber tank", dmg: 6, rpm: 0.48, mag: 6, speed: 28, spread: 0.01, pellets: 1, aoe: 7.5, tank: true, cost: 1500, reload: 8.8 },
+  tank: { id: "tank", name: "Cyber tank", dmg: 6, rpm: 0.48, mag: 6, speed: 28, spread: 0.01, pellets: 1, aoe: 7.5, tank: true, missile: true, cost: 1500, reload: 8.8 },
   heli: { id: "heli", name: "Attack heli", dmg: 7, rpm: 1.6, mag: 10, speed: 52, spread: 0.012, pellets: 1, aoe: 5.4, heli: true, missile: true, cost: 2000, reload: 7.2 },
+  landship: { id: "landship", name: "Landship", dmg: 7, rpm: 0.42, mag: 10, speed: 26, spread: 0.01, pellets: 1, aoe: 8.8, landship: true, missile: true, cost: 3000, reload: 9.2 },
   terra: { id: "terra", name: "Terraform gun", dmg: 0, rpm: 9, mag: 90, speed: 0, spread: 0, pellets: 1, terra: true, cost: 500, reload: 3.8 },
   noodle: { id: "noodle", name: "Laser noodle", dmg: 2, rpm: 18, mag: 99, speed: 0, spread: 0, pellets: 1, noodle: true, cost: 8200, reload: 2.8 },
   lsword: { id: "lsword", name: "Laser sword", dmg: 3, rpm: 1, mag: 14, speed: 0, spread: 0, pellets: 1, hitscan: true, pierce: 6, beam: true, holdBeam: true, swordLaser: true, cost: 1000, reload: 5.2 },
@@ -48,6 +51,7 @@ const SHOP = [
   { kind: "allyveh", id: "humvee", name: "Humvee", cost: 2500, blurb: "1.35× the jeep, double armor. Driver SMG, general with assault rifle." },
   { kind: "allyveh", id: "tank", name: "Ally tank", cost: 3000, blurb: "Autopilot tank. Same gun as yours, army-man AI." },
   { kind: "allyveh", id: "heli", name: "Ally heli", cost: 3000, blurb: "Autopilot attack heli. Missiles and a search beam, army-man AI." },
+  { kind: "allyveh", id: "landship", name: "Ally landship", cost: 6000, blurb: "Twice the tank: length, armor, health. Three turrets hunt different foes." },
   { kind: "ball", id: "ball-s", name: "Guard orb", cost: 280, blurb: "Small forcefield. 4 hearts.", hp: 8 },
   { kind: "ball", id: "ball-m", name: "Aegis orb", cost: 620, blurb: "Stout forcefield. 8 hearts.", hp: 16 },
   { kind: "ball", id: "ball-l", name: "Bulwark orb", cost: 1100, blurb: "Heavy forcefield. 16 hearts.", hp: 32 },
@@ -55,8 +59,9 @@ const SHOP = [
   { kind: "wep", id: "gravity", name: "Zero-point gun", cost: 1800, blurb: "Grab a foe. Slam others with it." },
   { kind: "wep", id: "nuke", name: "Mini nuke", cost: 2800, blurb: "Fat arcing shell. A wide crater." },
   { kind: "wep", id: "terra", name: "Terraform gun", cost: 500, blurb: "Dig craters and trenches wherever you aim. Hold trigger." },
-  { kind: "wep", id: "tank", name: "Cyber tank", cost: 1500, blurb: "Drive it. Fire artillery." },
+  { kind: "wep", id: "tank", name: "Cyber tank", cost: 1500, blurb: "Drive it. Fire artillery. Shells explode on impact." },
   { kind: "wep", id: "heli", name: "Attack heli", cost: 2000, blurb: "Fly it. Trigger fires missiles. Search beam on." },
+  { kind: "wep", id: "landship", name: "Landship", cost: 3000, blurb: "Drive it. 2× tank length, armor, and health. Three turrets lock different enemies." },
   { kind: "up", id: "jump", name: "Jump height", cost: 40, blurb: "+28% jump", key: "jump", add: 0.28 },
   { kind: "up", id: "speed", name: "Move speed", cost: 45, blurb: "+16% run", key: "speed", add: 0.16 },
   { kind: "up", id: "hp", name: "Heart", cost: 50, blurb: "+1 max heart and heal", key: "maxHp", add: 2 },
@@ -164,7 +169,7 @@ let ammoT = 0;
 let healthT = 18;
 let owned = new Set(["pistol"]);
 let stats = { speed: 1, jump: 1, maxHp: MAX_HP0, reload: 1, magnet: 2.4, jumps: 1, sprint: 0, sprintCd: 10, sprintMul: 1, wheelie: 0, flash: 1, autoReload: 0 };
-let player = { x: 0, y: 1.6, z: 0, vx: 0, vy: 0, vz: 0, hp: MAX_HP0, grounded: true, coins: 0, ammo: 48, mag: 12, wep: "pistol", tank: false, heli: false, jumpsLeft: 1, sprinting: false, sprintT: 0, sprintCdT: 0, mom: 0, pounding: false, bike: false };
+let player = { x: 0, y: 1.6, z: 0, vx: 0, vy: 0, vz: 0, hp: MAX_HP0, grounded: true, coins: 0, ammo: 48, mag: 12, wep: "pistol", tank: false, heli: false, landship: false, jumpsLeft: 1, sprinting: false, sprintT: 0, sprintCdT: 0, mom: 0, pounding: false, bike: false, ride: null, hullHp: 0, hullMax: 0 };
 let mobs = [];
 let debris = [];
 let loot = [];
@@ -221,20 +226,44 @@ const LS_BEST = "horde.bestWave";
 const LS_MODE = "horde.mode.v1";
 const LS_WARTEAM = "horde.warTeam.v1";
 const LS_CONT = "horde.warCont.v1";
+const LS_OWMAP = "horde.owmap.v1";
+const LS_TEAMCOL = "horde.teamcol.v1";
+const TEAM_COLORS = [
+  { id: "gold", name: "Gold", hex: 0xd4af37 },
+  { id: "red", name: "Red", hex: 0xc42b2b },
+  { id: "blue", name: "Blue", hex: 0x3366cc },
+  { id: "green", name: "Green", hex: 0x2f6b32 },
+  { id: "purple", name: "Purple", hex: 0x8844cc },
+  { id: "white", name: "White", hex: 0xf4f1ea },
+  { id: "black", name: "Black", hex: 0x1a1a1e },
+  { id: "orange", name: "Orange", hex: 0xff8822 },
+];
 let gameMode = "horde";
 let warTeam = "solo";
 let continuousMode = false;
 let runMode = "horde";
 let runTeam = "solo";
 let runContinuous = false;
+let runOpen = false;
+let selectedOwMap = "demo-fort";
+let teamColorId = "gold";
+let owExtras = null;
+let zoneFlags = [];
+let landshipMesh = null;
+let landshipYaw = 0;
+let landshipTurretCd = [0, 0, 0];
 let contElapsed = 0;
 let contSpawnT = 0;
 try {
   const savedMode = localStorage.getItem(LS_MODE);
-  if (savedMode === "horde" || savedMode === "army" || savedMode === "mixed" || savedMode === "war") gameMode = savedMode;
+  if (savedMode === "horde" || savedMode === "army" || savedMode === "mixed" || savedMode === "war" || savedMode === "open") gameMode = savedMode;
   const savedTeam = localStorage.getItem(LS_WARTEAM);
   if (savedTeam === "solo" || savedTeam === "army" || savedTeam === "horde") warTeam = savedTeam;
   continuousMode = localStorage.getItem(LS_CONT) === "1";
+  const savedOw = localStorage.getItem(LS_OWMAP);
+  if (savedOw) selectedOwMap = savedOw;
+  const savedCol = localStorage.getItem(LS_TEAMCOL);
+  if (TEAM_COLORS.some((c) => c.id === savedCol)) teamColorId = savedCol;
 } catch {}
 const ARMY_GREEN = 0x3a7a32;
 const ARMY_GREEN2 = 0x2e5e28;
@@ -261,6 +290,17 @@ let tankMesh = null;
 let tankYaw = 0;
 let heliMesh = null;
 let heliYaw = 0;
+function teamColorHex() {
+  return (TEAM_COLORS.find((c) => c.id === teamColorId) || TEAM_COLORS[0]).hex;
+}
+function setTeamColor(id) {
+  if (!TEAM_COLORS.some((c) => c.id === id)) return;
+  teamColorId = id;
+  try { localStorage.setItem(LS_TEAMCOL, id); } catch {}
+  paintShop();
+  paintShop3d();
+  paintTeamColorRow();
+}
 let planetId = "";
 let meteorT = 14;
 let initials = ["A", "A", "A"];
@@ -289,7 +329,7 @@ function shopCatalog() { return SHOP.filter((it) => it.kind !== "ammo" && it.kin
 function ammoOffer() { return SHOP.find((it) => it.kind === "ammo"); }
 function bindOffer() { return SHOP.find((it) => it.kind === "bind"); }
 function shopSectionOf(it) {
-  if (it.kind === "bike" || it.kind === "allyveh" || it.id === "tank" || it.id === "heli") return "vehicles";
+  if (it.kind === "bike" || it.kind === "allyveh" || it.id === "tank" || it.id === "heli" || it.id === "landship") return "vehicles";
   if (it.kind === "wep" && WEPS[it.id]?.spell) return "spells";
   if (it.kind === "wep") return "weapons";
   if (it.kind === "turret" || it.kind === "drone" || it.kind === "ball" || it.kind === "troop") return "defense";
@@ -1030,10 +1070,15 @@ function heightAt(x, z, y) {
       h = Math.max(h, cell.top);
     }
   }
+  if (owExtras) h = owHeight(owExtras, x, z, y, h);
   return h;
 }
 
 function pushOutOfBuildings(x, z, y) {
+  if (owExtras) {
+    const p = owPush(owExtras, x, z, y);
+    x = p.x; z = p.z;
+  }
   let nx = x, nz = z;
   for (const b of buildings) {
     if (!b.cells) continue;
@@ -1366,6 +1411,14 @@ function makeGun(id) {
     box.position.set(0, 0, 0.04);
     g.add(barrel, box);
     g.userData.muzzle = new THREE.Vector3(0, 0.04, -0.4);
+  } else if (id === "landship") {
+    const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.024, 0.5, 8), iron);
+    barrel.rotation.x = Math.PI / 2;
+    barrel.position.set(0, 0.05, -0.22);
+    const box = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.09, 0.2), dark);
+    box.position.set(0, 0, 0.04);
+    g.add(barrel, box);
+    g.userData.muzzle = new THREE.Vector3(0, 0.05, -0.48);
   } else if (id === "heli") {
     const grip = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.08, 0.1), dark);
     const stick = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.01, 0.16, 6), iron);
@@ -1442,12 +1495,24 @@ function equip(id) {
   player.wep = id;
   player.tank = !!WEPS[id]?.tank;
   player.heli = !!WEPS[id]?.heli;
+  player.landship = !!WEPS[id]?.landship;
   player.mag = Math.min(player.mag, magCap());
   reloadT = 0;
   reloadMax = 0;
-  if (player.tank || player.heli) player.bike = false;
+  if (player.tank || player.heli || player.landship) {
+    player.bike = false;
+    if (player.ride) dismountRide();
+  }
   if (!player.tank && tankMesh) tankMesh.visible = false;
   if (!player.heli && heliMesh) heliMesh.visible = false;
+  if (!player.landship && landshipMesh) landshipMesh.visible = false;
+  if (player.landship) {
+    player.hullMax = 40;
+    player.hullHp = 40;
+  } else if (!player.tank && !player.heli) {
+    player.hullHp = 0;
+    player.hullMax = 0;
+  }
   if (player.heli) player.y = Math.max(player.y, heightAt(player.x, player.z) + 3.4);
   const parentDesk = gunMesh?.parent || camera;
   const parentVr = vrGun?.parent;
@@ -1455,7 +1520,7 @@ function equip(id) {
   gunMesh = makeGun(id);
   parentDesk.add(gunMesh);
   gunMesh.position.set(0.18, -0.14, -0.32);
-  gunMesh.visible = !xrOn && !player.heli && !player.tank;
+  gunMesh.visible = !xrOn && !player.heli && !player.tank && !player.landship;
   if (vrGun) vrGun.removeFromParent();
   vrGun = makeGun(id);
   if (parentVr) {
@@ -2377,6 +2442,175 @@ function hiredVehCount() {
   return mobs.filter((m) => m.alive && m.allyVeh).length;
 }
 
+function shopItemFromPickup(def) {
+  if (!def) return null;
+  const id = def.id === "tank-ai" ? "tank" : def.id === "heli-ai" ? "heli" : def.id === "landship-ai" ? "landship" : def.id;
+  const kind = def.id === "tank-ai" || def.id === "heli-ai" || def.id === "landship-ai" ? "allyveh" : def.kind;
+  return SHOP.find((it) => it.id === id && (kind ? it.kind === kind || it.kind === def.kind : true))
+    || SHOP.find((it) => it.id === id)
+    || { id, kind: def.kind || "wep", name: def.name || id, cost: 0 };
+}
+
+function armyWepFromPickup(id) {
+  if (id === "smg") return "smg";
+  if (id === "shotgun") return "shotgun";
+  if (id === "ar" || id === "rail" || id === "lsword") return "lmg";
+  if (id === "nuke" || id === "thunder" || id === "nova" || id === "plasma" || id === "ripple") return "bazooka";
+  if (id === "pistol") return "pistol";
+  return "rifle";
+}
+
+function grantPickup(def, who) {
+  const it = shopItemFromPickup(def);
+  if (!it) return false;
+  if (who === "player") {
+    if (it.kind === "wep") {
+      if (owned.has(it.id)) return false;
+      owned.add(it.id);
+      equip(it.id);
+      showBanner(it.name.toUpperCase());
+      announcing = 1.1;
+      return true;
+    }
+    if (it.kind === "ammo") {
+      player.ammo += 40;
+      showBanner("+40 AMMO");
+      announcing = 0.9;
+      return true;
+    }
+    if (it.kind === "bike") {
+      if (player.bike) return false;
+      player.bike = true;
+      showBanner("DIRT BIKE");
+      announcing = 1;
+      return true;
+    }
+    if (it.kind === "allyveh") {
+      return spawnHiredVehicle(it.id);
+    }
+    if (it.kind === "troop") return spawnHiredArmy();
+    if (it.kind === "drone") return spawnDrone();
+    if (it.kind === "turret") return spawnTurret();
+    if (it.kind === "ball") return spawnBall(it.hp || 8);
+    if (it.kind === "up") {
+      if (it.id === "sprint" && stats.sprint) return false;
+      if (it.id === "wheelie" && stats.wheelie) return false;
+      if (it.id === "autoreload" && stats.autoReload) return false;
+      if (it.id === "jump2" && stats.jumps >= 2) return false;
+      if (it.id === "jump3" && stats.jumps >= 3) return false;
+      if (it.id === "orbcannon" && orbCannon) return false;
+      buy({ ...it, cost: 0 });
+      return true;
+    }
+    return false;
+  }
+  const m = who;
+  if (!m || !m.alive || !m.army) return false;
+  if (it.kind === "wep" && !WEPS[it.id]?.tank && !WEPS[it.id]?.heli && !WEPS[it.id]?.landship) {
+    const wepId = armyWepFromPickup(it.id);
+    m.armyWep = wepId;
+    m.shotDef = ARMY_WEPS[wepId] || m.shotDef;
+    m.shotShape = wepId === "bazooka" ? "rocket" : "pellet";
+    m.ranged = true;
+    return true;
+  }
+  if (it.kind === "allyveh" || it.id === "tank" || it.id === "heli" || it.id === "landship") {
+    const kind = it.kind === "allyveh" ? it.id : it.id;
+    const v = makeArmyVehicle(Math.max(12, diffWave()), 0, 0.2, kind, { hired: m.hired, tan: m.tan });
+    v.team = mobFaction(m);
+    v.x = m.x; v.z = m.z; v.y = m.y;
+    v.mesh.position.set(m.x, m.y, m.z);
+    if (m.hired) { v.hired = true; v.allyVeh = true; }
+    mobs.push(v);
+    m.ride = v;
+    m.rideSeat = 0;
+    return true;
+  }
+  if (it.kind === "bike" || it.id === "speed") {
+    m.spd *= 1.35;
+    return true;
+  }
+  if (it.id === "hp") {
+    for (const l of m.limbs) if (l.userData) l.userData.maxHits = (l.userData.maxHits || 1) + 1;
+    return true;
+  }
+  return false;
+}
+
+function owApi() {
+  return {
+    player,
+    mobs,
+    hillsAt,
+    damage,
+    isHostileToPlayer,
+    grantPickup,
+    teamColor: teamColorHex,
+    crushMob: (m) => { if (m?.alive) killMob(m, true); },
+    trapShot: (x, y, z, tx, ty, tz, def) => {
+      const dir = new THREE.Vector3(tx - x, ty - y, tz - z).normalize();
+      const mesh = def.dart
+        ? new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.32, 5), new THREE.MeshBasicMaterial({ color: 0xffe08a }))
+        : makeBolt(0xffaa44, 0.03);
+      mesh.position.set(x, y, z);
+      if (!def.dart) aimBolt(mesh, dir);
+      else mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
+      scene.add(mesh);
+      eShots.push({ mesh, dir, speed: def.speed || 36, life: 1.6, dmg: def.dmg || 1, team: "horde", aoe: def.aoe || 0, from: null, missile: !!def.aoe });
+    },
+    trapFlame: (x, y, z, tx, ty, tz) => {
+      const dir = new THREE.Vector3(tx - x, 0, tz - z).normalize();
+      spawnFireWall(new THREE.Vector3(x, y, z), dir);
+    },
+    pitAt: (x, z) => craterAt(x, z, 2.2, 2.4),
+    onFlagCapture: (f, coins) => {
+      player.coins += coins;
+      sfx.flag();
+      showBanner("ZONE TAKEN  +25 ◎");
+      announcing = 1.6;
+    },
+    onFlagLost: () => {
+      showBanner("ZONE LOST");
+      announcing = 1.2;
+    },
+    countNear: (x, z, r, kind) => mobs.filter((m) => m.alive && Math.hypot(m.x - x, m.z - z) < r && (kind === "mixed" || (kind === "army" ? m.army : !m.army))).length,
+    spawnAt: (kind, x, z) => {
+      const k = kind === "mixed" ? (rng() < 0.5 ? "army" : "horde") : kind;
+      const ang = Math.atan2(x - player.x, z - player.z);
+      const dist = Math.hypot(x - player.x, z - player.z);
+      const w = Math.max(4, diffWave());
+      let spawned;
+      if (k === "army") spawned = makeArmyUnit(w, ang, dist);
+      else spawned = makeHordeCreature(w, ang, dist);
+      spawned.x = x; spawned.z = z;
+      spawned.y = heightAt(x, z);
+      spawned.mesh.position.set(x, spawned.y, z);
+      spawned.team = spawned.army ? "army" : "horde";
+      mobs.push(spawned);
+    },
+    holdRope: (r) => {
+      player.x += (r.x - player.x) * 0.2;
+      player.z += (r.z - player.z) * 0.2;
+      player.vy = Math.max(player.vy, 0.4);
+      player.grounded = false;
+    },
+    ow: owExtras,
+  };
+}
+
+function loadOpenWorldMap() {
+  let data = getOwMap(selectedOwMap) || (selectedOwMap === "demo-fort" ? demoFort() : null);
+  if (!data) data = demoFort();
+  const api = owApi();
+  owExtras = buildOpenWorld(data, scene, api);
+  zoneFlags = owExtras.zoneFlags || [];
+  if (data.start) {
+    player.x = data.start.x || 0;
+    player.z = data.start.z || 0;
+    yaw = data.start.yaw || 0;
+  }
+}
+
 function spawnHiredVehicle(kind) {
   if (hiredVehCount() >= 12) {
     showBanner("TOO MANY VEHICLES");
@@ -2487,10 +2721,11 @@ function playerHitsMob(m) {
 }
 
 function setGameMode(mode) {
-  if (mode !== "horde" && mode !== "army" && mode !== "mixed" && mode !== "war") return;
+  if (mode !== "horde" && mode !== "army" && mode !== "mixed" && mode !== "war" && mode !== "open") return;
   gameMode = mode;
   try { localStorage.setItem(LS_MODE, mode); } catch {}
   paintModeButtons();
+  paintOwMapRow();
 }
 
 function setWarTeam(team) {
@@ -2509,6 +2744,13 @@ function setContinuous(on) {
 
 function setSelectedMap(id) {
   if (id === "shore") id = "stairs";
+  if (String(id).startsWith("ow:") || id === "demo-fort" || id === "preview") {
+    selectedOwMap = String(id).replace(/^ow:/, "");
+    try { localStorage.setItem(LS_OWMAP, selectedOwMap); } catch {}
+    paintModeButtons();
+    paintOwMapRow();
+    return;
+  }
   if (id !== "stairs" && id !== "wastes") return;
   selectedMap = id;
   try { localStorage.setItem(LS_MAP, id); } catch {}
@@ -2516,6 +2758,7 @@ function setSelectedMap(id) {
 }
 
 function mapBlurb() {
+  if (gameMode === "open") return "Open world: load a map from the 2D maker. Capture flags for 25 ◎ — they stay and take your team color. Pickups equip if you do not already have them. Army men can grab them too.";
   if (selectedMap === "shore") return "Shore city: tall towers on a land/water split, picket fence at the rim. Land units avoid the sea; flyers pass over. Krakens and shark fins hunt the water and can come ashore.";
   if (selectedMap === "wastes") return "Clock wastes: desert and Mars ground, jet-black spiral spires, hollow clock towers with inner catwalks, tattered brick walls and trenches. Meteors hit harder and more often.";
   return "Green stair zone: infinite hills, hex stairs, shifting worlds every five waves.";
@@ -2530,7 +2773,8 @@ function modeBlurb() {
     if (warTeam === "army") mode = "Army vs horde. You fight with the green plastic soldiers. Each wave of horde creatures starts when the last one dies — allied army men stay on the field." + flow;
     else if (warTeam === "horde") mode = "Army vs horde. You fight with the creatures. Each wave of army men starts when the last one dies — allied creatures stay on the field." + flow;
     else mode = "Army vs horde. You are your own team. Both sides hunt you, and they hunt each other." + flow;
-  } else mode = "Classic doubling waves of silhouette creatures. Shoot every limb.";
+  } else if (gameMode === "open") mode = "Open world. No waves — explore a custom map. Zone flags stay on the field. Right grip (or G) rides AI vehicles.";
+  else mode = "Classic doubling waves of silhouette creatures. Shoot every limb.";
   if (devMode) mode += " Sandbox on: infinite gold and HP.";
   return mode + " " + mapBlurb();
 }
@@ -2559,8 +2803,55 @@ function paintModeButtons() {
     const on = war && ((b.dataset.flow === "continuous") === continuousMode);
     b.classList.toggle("on", on);
   });
+  const flowSec = $("flow-row")?.closest(".setup-cat");
+  if (flowSec) flowSec.hidden = gameMode === "open";
+  const mapSec = $("map-row")?.closest(".setup-cat");
+  if (mapSec && gameMode !== "open") {
+    document.querySelectorAll("#map-row [data-map]").forEach((b) => {
+      if (!String(b.dataset.map).startsWith("ow") && b.dataset.map !== "demo-fort" && b.dataset.map !== "preview") {
+        b.hidden = false;
+      }
+    });
+  }
+  paintOwMapRow();
   const blurb = $("mode-blurb");
   if (blurb) blurb.textContent = modeBlurb();
+}
+
+function paintOwMapRow() {
+  const row = $("map-row");
+  if (!row) return;
+  if (gameMode !== "open") {
+    row.querySelectorAll("[data-ow]").forEach((el) => el.remove());
+    const maker = $("mapmaker-link");
+    if (maker) maker.remove();
+    return;
+  }
+  row.querySelectorAll("[data-map]").forEach((b) => {
+    if (!b.dataset.ow) b.hidden = true;
+  });
+  row.querySelectorAll("[data-ow]").forEach((el) => el.remove());
+  const maps = listOwMaps();
+  const demo = { id: "demo-fort", name: "Demo fort" };
+  const items = [demo, ...maps.filter((m) => m.id !== "demo-fort")];
+  for (const m of items) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "mode-btn" + (selectedOwMap === m.id ? " on" : "");
+    b.dataset.map = "ow:" + m.id;
+    b.dataset.ow = "1";
+    b.textContent = m.name || m.id;
+    b.onclick = () => setSelectedMap("ow:" + m.id);
+    row.appendChild(b);
+  }
+  if (!$("mapmaker-link")) {
+    const a = document.createElement("a");
+    a.id = "mapmaker-link";
+    a.className = "mode-btn";
+    a.href = "/hordemaps";
+    a.textContent = "Map maker";
+    row.appendChild(a);
+  }
 }
 
 function playerArmyTan() {
@@ -2633,6 +2924,7 @@ function armyWeaponForWave(w) {
 
 function armyVehicleForWave(w) {
   if (w < 12) return null;
+  if (w >= 36) return rng() < 0.22 ? "landship" : (rng() < 0.4 ? "heli" : (rng() < 0.55 ? "tank" : (rng() < 0.5 ? "humvee" : "jeep")));
   if (w >= 30) return rng() < 0.42 ? "heli" : (rng() < 0.55 ? "tank" : (rng() < 0.5 ? "humvee" : "jeep"));
   if (w >= 22) return rng() < 0.28 ? "heli" : (rng() < 0.5 ? "tank" : (rng() < 0.55 ? "humvee" : "jeep"));
   if (w >= 16) return rng() < 0.22 ? "tank" : (rng() < 0.6 ? "humvee" : "jeep");
@@ -2928,6 +3220,32 @@ function makeArmyVehicle(w, ang, dist, kind, opts) {
     const skirtR = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.38, 2.4), dark);
     addArmyPart(group, limbs, skirtR, 0.95, 0.32, 0, { thick: 0.3, maxHits: 2, asLeg: true });
     hitR = 2.1; spd = 1.55; lift = 0; wepId = "cannon";
+  } else if (kind === "landship") {
+    scale = 1.45 * 1.1;
+    const hull = new THREE.Mesh(new THREE.BoxGeometry(2.05, 0.82, 5.2), green);
+    core = addArmyPart(group, limbs, hull, 0, 0.62, 0, { thick: 0.85, len: 2.8, maxHits: 8, dmg: 3 });
+    const superstructure = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.45, 2.4), green);
+    addArmyPart(group, limbs, superstructure, 0, 1.18, 0.2, { thick: 0.5, maxHits: 6, dmg: 2 });
+    const t1 = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.5, 0.36, 10), green);
+    addArmyPart(group, limbs, t1, 0, 1.52, -1.35, { thick: 0.4, maxHits: 6, dmg: 3, part: "turret" });
+    const b1 = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.09, 1.8, 8), dark);
+    b1.rotation.x = Math.PI / 2;
+    addArmyPart(group, limbs, b1, 0, 1.55, -2.3, { thick: 0.16, maxHits: 4, dmg: 3 });
+    const t2 = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.36, 0.28, 8), green);
+    addArmyPart(group, limbs, t2, 0.55, 1.42, 0.35, { thick: 0.32, maxHits: 5, dmg: 2, part: "turret" });
+    const b2 = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.06, 1.1, 8), dark);
+    b2.rotation.x = Math.PI / 2;
+    addArmyPart(group, limbs, b2, 0.55, 1.44, -0.3, { thick: 0.12, maxHits: 3, dmg: 2 });
+    const t3 = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.32, 0.24, 8), green);
+    addArmyPart(group, limbs, t3, -0.55, 1.38, 1.55, { thick: 0.28, maxHits: 5, dmg: 2, part: "turret" });
+    const b3 = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.05, 0.9, 8), dark);
+    b3.rotation.x = Math.PI / 2;
+    addArmyPart(group, limbs, b3, -0.55, 1.4, 0.95, { thick: 0.1, maxHits: 3, dmg: 2 });
+    const skirtL = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.42, 5.0), dark);
+    addArmyPart(group, limbs, skirtL, -1.05, 0.36, 0, { thick: 0.34, maxHits: 4, asLeg: true });
+    const skirtR = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.42, 5.0), dark);
+    addArmyPart(group, limbs, skirtR, 1.05, 0.36, 0, { thick: 0.34, maxHits: 4, asLeg: true });
+    hitR = 3.4; spd = 1.25; lift = 0; wepId = "cannon";
   } else {
     kind = "heli";
     scale = 1.485;
@@ -3017,9 +3335,43 @@ function makeArmyVehicle(w, ang, dist, kind, opts) {
       unit.shotDef = { dmg: 7, rpm: 1.6, speed: 52, spread: 0.012, aoe: 5.4 };
       unit.shotShape = "rocket";
     }
+    if (kind === "landship") {
+      unit.shotDef = { dmg: 7, rpm: 0.42, speed: 26, spread: 0.01, aoe: 8.8 };
+      unit.shotShape = "rocket";
+      unit.multiTurret = true;
+      unit.turretDefs = [
+        { dmg: 7, rpm: 0.42, speed: 26, spread: 0.01, aoe: 8.8, missile: true },
+        { dmg: 7, rpm: 1.4, speed: 52, spread: 0.012, aoe: 5.4, missile: true },
+        { dmg: 2, rpm: 5.5, speed: 44, spread: 0.04, aoe: 0 },
+      ];
+      unit.turretOff = [
+        { x: 0, y: 1.7, z: -2.2 },
+        { x: 0.7, y: 1.55, z: 0.2 },
+        { x: -0.7, y: 1.5, z: 1.4 },
+      ];
+      unit.turretCd = [0.2, 0.5, 0.1];
+      for (const l of unit.limbs) l.userData.maxHits = (l.userData.maxHits || 1);
+      unit.hpLimbs = unit.limbs.filter((l) => l.userData.live).length;
+    }
+  }
+  if (kind === "landship") {
+    unit.multiTurret = true;
+    unit.turretDefs = [
+      { dmg: 7, rpm: 0.42, speed: 26, spread: 0.01, aoe: 8.8, missile: true },
+      { dmg: 7, rpm: 1.4, speed: 52, spread: 0.012, aoe: 5.4, missile: true },
+      { dmg: 2, rpm: 5.5, speed: 44, spread: 0.04, aoe: 0 },
+    ];
+    unit.turretOff = [
+      { x: 0, y: 1.7, z: -2.2 },
+      { x: 0.7, y: 1.55, z: 0.2 },
+      { x: -0.7, y: 1.5, z: 1.4 },
+    ];
+    unit.turretCd = unit.turretCd || [0.2, 0.5, 0.1];
+    unit.shotShape = "rocket";
+    unit.shotDef = unit.turretDefs[0];
   }
   if (kind === "jeep" || kind === "humvee") attachVehicleHeadlights(unit);
-  else attachArmyFlash(unit, kind === "tank" || kind === "heli" ? 2.4 : 1.6, -1);
+  else attachArmyFlash(unit, kind === "tank" || kind === "heli" || kind === "landship" ? 2.4 : 1.6, -1);
   return unit;
 }
 
@@ -3840,7 +4192,8 @@ function tickMobs(dt) {
         fireAirstrike(m, tgt);
       }
     }
-    const combat = tgt.kind === "player" || tgt.kind === "mob";
+    const ridingThis = player.ride === m;
+    const combat = !ridingThis && (tgt.kind === "player" || tgt.kind === "mob");
     const reach = 0.95 + m.hitR * 0.32 + (tgt.kind === "mob" ? (tgt.m.hitR || 0) * 0.28 : 0);
     const close = combat && dist < reach + 0.55;
     if (close) {
@@ -3877,13 +4230,16 @@ function tickMobs(dt) {
       m.jabPhase = 0;
     }
     if (m.ranged && combat) {
-      m.fireCd = (m.fireCd || 0) - dt;
-      const minR = m.army ? 4 : 6;
-      const maxR = m.shotDef ? 48 : 34;
-      if (m.fireCd <= 0 && dist > minR && dist < maxR) {
-        const rpm = m.shotDef?.rpm || 0.55;
-        m.fireCd = (1 / Math.max(0.15, rpm)) * (0.7 + rng() * 0.5) * (m.fireSlow || 1);
-        fireEnemyShot(m, tgt);
+      if (m.multiTurret) tickLandshipTurrets(m, dt);
+      else {
+        m.fireCd = (m.fireCd || 0) - dt;
+        const minR = m.army ? 4 : 6;
+        const maxR = m.shotDef ? 48 : 34;
+        if (m.fireCd <= 0 && dist > minR && dist < maxR) {
+          const rpm = m.shotDef?.rpm || 0.55;
+          m.fireCd = (1 / Math.max(0.15, rpm)) * (0.7 + rng() * 0.5) * (m.fireSlow || 1);
+          fireEnemyShot(m, tgt);
+        }
       }
     }
     const aheadH = heightAt(m.x + vx * 0.18, m.z + vz * 0.18, m.y);
@@ -3893,7 +4249,7 @@ function tickMobs(dt) {
     }
   }
   mobs = mobs.filter((m) => m.alive);
-  if (running && !dead && pending <= 0 && dripLeft <= 0 && wave > 0 && !runContinuous) {
+  if (running && !dead && pending <= 0 && dripLeft <= 0 && wave > 0 && !runContinuous && !runOpen) {
     const hostiles = mobs.some((m) => m.alive && isHostileToPlayer(m));
     if (!hostiles) {
       if (!playerOnWarSide()) {
@@ -4188,7 +4544,7 @@ function hud() {
   $("ammo").textContent = ammoLabel();
   $("wep").textContent = wep().name;
   $("coins").textContent = String(player.coins | 0);
-  $("wave").textContent = String(wave);
+  $("wave").textContent = runOpen ? "OPEN" : String(wave);
   paintHud3d();
 }
 
@@ -4272,6 +4628,7 @@ function placeFlag() {
 }
 
 function tickFlag(dt) {
+  if (runOpen) return;
   if (!flag) return;
   flag.mesh.position.y = heightAt(flag.x, flag.z);
   if (flag.mesh.userData.cloth) flag.mesh.userData.cloth.rotation.y = Math.sin(performance.now() * 0.003) * 0.25;
@@ -4331,6 +4688,21 @@ function paintDevToggle() {
 
 function damage(n) {
   if (dead || !running || devMode) return;
+  if (player.landship && player.hullHp > 0) {
+    const soak = Math.min(player.hullHp, n);
+    player.hullHp -= soak;
+    n -= soak;
+    if (player.hullHp <= 0) {
+      explodeAt(new THREE.Vector3(player.x, player.y, player.z), 6);
+      player.landship = false;
+      if (landshipMesh) landshipMesh.visible = false;
+      if (player.wep === "landship") equip("pistol");
+      showBanner("LANDSHIP DESTROYED");
+      announcing = 1.4;
+    }
+    n = n * 0.5;
+    if (n <= 0) return;
+  } else if (player.landship) n *= 0.5;
   player.hp -= n;
   hurtT = 0.28;
   iFrame = 0.55;
@@ -4408,22 +4780,33 @@ function paintMenu3d(kind) {
       addMenuHit(416, 176, 220, 34, "resume", 0);
     }
     drawMenuCat(overCtx, 28, 226, 968, 78, "MODE");
-    const modes = [["horde", "HORDE"], ["army", "ARMY MAN"], ["mixed", "MIXED"], ["war", "WAR"]];
+    const modes = [["horde", "HORDE"], ["army", "ARMY"], ["mixed", "MIXED"], ["war", "WAR"], ["open", "OPEN"]];
     modes.forEach((pair, i) => {
-      const x = 40 + i * 242;
+      const x = 40 + i * 192;
       const y = 254;
       const on = gameMode === pair[0];
-      drawMenuBtn(overCtx, x, y, 230, 40, pair[1], on ? "#2f6b32" : "#1a1a1e", on ? "#f4f1ea" : "#d4af37");
-      addMenuHit(x, y, 230, 40, "mode", 1, pair[0]);
+      drawMenuBtn(overCtx, x, y, 182, 40, pair[1], on ? "#2f6b32" : "#1a1a1e", on ? "#f4f1ea" : "#d4af37");
+      addMenuHit(x, y, 182, 40, "mode", 1, pair[0]);
     });
     drawMenuCat(overCtx, 28, 312, 968, 78, "MAP");
-    MAPS.forEach((mp, i) => {
-      const x = 40 + i * 320;
-      const y = 340;
-      const on = selectedMap === mp.id;
-      drawMenuBtn(overCtx, x, y, 304, 40, mp.short, on ? "#2a4a62" : "#1a1a1e", "#f4f1ea");
-      addMenuHit(x, y, 304, 40, "map", 1, mp.id);
-    });
+    if (gameMode === "open") {
+      const maps = [{ id: "demo-fort", name: "DEMO FORT" }, ...listOwMaps().slice(0, 3).map((m) => ({ id: m.id, name: (m.name || "MAP").toUpperCase().slice(0, 14) }))];
+      maps.forEach((mp, i) => {
+        const x = 40 + i * 240;
+        const y = 340;
+        const on = selectedOwMap === mp.id;
+        drawMenuBtn(overCtx, x, y, 228, 40, mp.name, on ? "#2a4a62" : "#1a1a1e", "#f4f1ea");
+        addMenuHit(x, y, 228, 40, "map", 1, "ow:" + mp.id);
+      });
+    } else {
+      MAPS.forEach((mp, i) => {
+        const x = 40 + i * 320;
+        const y = 340;
+        const on = selectedMap === mp.id;
+        drawMenuBtn(overCtx, x, y, 304, 40, mp.short, on ? "#2a4a62" : "#1a1a1e", "#f4f1ea");
+        addMenuHit(x, y, 304, 40, "map", 1, mp.id);
+      });
+    }
     cursorY = 398;
     if (gameMode === "war") {
       drawMenuCat(overCtx, 28, cursorY, 968, 76, "YOUR TEAM");
@@ -4543,7 +4926,11 @@ function resetRun() {
   if (tankMesh) tankMesh.removeFromParent();
   tankMesh = null;
   if (heliMesh) { heliMesh.removeFromParent(); heliMesh = null; }
+  if (landshipMesh) { landshipMesh.removeFromParent(); landshipMesh = null; }
   if (bikeMesh) { bikeMesh.removeFromParent(); bikeMesh = null; }
+  clearOpenWorld(owExtras);
+  owExtras = null;
+  zoneFlags = [];
   if (noodleMesh) { noodleMesh.removeFromParent(); noodleMesh = null; }
   if (flag?.mesh) flag.mesh.removeFromParent();
   flag = null;
@@ -4597,9 +4984,12 @@ function resetRun() {
   contSpawnT = 0.4;
   owned = new Set(["pistol"]);
   stats = { speed: 1, jump: 1, maxHp: MAX_HP0, reload: 1, magnet: 2.4, jumps: 1, sprint: 0, sprintCd: 10, sprintMul: 1, wheelie: 0, flash: 1, autoReload: 0 };
-  player = { x: 0, y: 1.6, z: 0, vx: 0, vy: 0, vz: 0, hp: MAX_HP0, grounded: true, coins: 0, ammo: 48, mag: 12, wep: "pistol", tank: false, heli: false, jumpsLeft: 1, sprinting: false, sprintT: 0, sprintCdT: 0, mom: 0, pounding: false, bike: false };
+  player = { x: 0, y: 1.6, z: 0, vx: 0, vy: 0, vz: 0, hp: MAX_HP0, grounded: true, coins: 0, ammo: 48, mag: 12, wep: "pistol", tank: false, heli: false, landship: false, jumpsLeft: 1, sprinting: false, sprintT: 0, sprintCdT: 0, mom: 0, pounding: false, bike: false, ride: null, hullHp: 0, hullMax: 0 };
   tankYaw = 0;
   heliYaw = 0;
+  landshipYaw = 0;
+  landshipTurretCd = [0, 0, 0];
+  runOpen = false;
   dead = false;
   shopOpen = false;
   shopSel = 0;
@@ -4626,8 +5016,10 @@ function startRunFrom(startWave) {
   runTeam = warTeam;
   runMap = selectedMap;
   runContinuous = gameMode === "war" && continuousMode;
+  runOpen = gameMode === "open";
   sfxUnlock();
   resetRun();
+  runOpen = gameMode === "open";
   if (devMode) {
     player.coins = Math.max(player.coins, 9999);
     player.hp = stats.maxHp;
@@ -4638,33 +5030,43 @@ function startRunFrom(startWave) {
   $("over").hidden = true;
   if (overMesh) overMesh.visible = false;
   running = true;
-  if (startWave > 1) {
+  if (startWave > 1 && !runOpen) {
     wave = startWave - 1;
     player.coins = Math.max(player.coins, startWave * 50);
     applyPlanetTex(true);
   }
   startMusic();
-  spawnMapWorld();
-  if (runContinuous) {
-    wave = Math.max(1, startWave);
-    contElapsed = Math.max(0, (wave - 1) * 42);
+  if (runOpen) {
+    loadOpenWorldMap();
+    wave = 1;
     pending = 0;
     dripLeft = 0;
-    spawnOneKind("army");
-    spawnOneKind("horde");
-    if (runMap === "shore") spawnOneKind("aqua");
-    contSpawnT = 15 + rng() * 15;
-    showBanner("WAR · CONTINUOUS");
+    showBanner("OPEN WORLD");
     announcing = 2.2;
-    applyPlanetTex(false);
-    sfx.armyRadio();
-  } else spawnWave();
-  placeFlag();
-  if (runMap === "stairs") {
-    for (let i = 0; i < 4; i++) spawnHexCluster();
-    spawnArchHall(player.x + 22, player.z + 8);
-    spawnTurnStairs(player.x - 18, player.z + 16);
-    spawnRoundPit(player.x + 8, player.z - 24);
+    applyPlanetTex(true);
+  } else {
+    spawnMapWorld();
+    if (runContinuous) {
+      wave = Math.max(1, startWave);
+      contElapsed = Math.max(0, (wave - 1) * 42);
+      pending = 0;
+      dripLeft = 0;
+      spawnOneKind("army");
+      spawnOneKind("horde");
+      if (runMap === "shore") spawnOneKind("aqua");
+      contSpawnT = 15 + rng() * 15;
+      showBanner("WAR · CONTINUOUS");
+      announcing = 2.2;
+      applyPlanetTex(false);
+      sfx.armyRadio();
+    } else spawnWave();
+    placeFlag();
+    if (runMap === "stairs") {
+      for (let i = 0; i < 4; i++) spawnHexCluster();
+      spawnArchHall(player.x + 22, player.z + 8);
+      spawnTurnStairs(player.x - 18, player.z + 16);
+      spawnRoundPit(player.x + 8, player.z - 24);
+    }
   }
   player.y = hillsAt(player.x, player.z) + 1.6;
   player.grounded = true;
@@ -5008,6 +5410,13 @@ function spawnConflagration(pos) {
   fx.push({ mesh: g, kind: "pool", life: 2.15, r: 3.5, hitCd: new Map() });
 }
 
+function explodeAt(pos, r) {
+  if (!pos) return;
+  const rad = Math.max(0.7, r || 2.2);
+  spawnMeteorBlast(pos, rad * 0.42);
+  skyFlash = Math.max(skyFlash, 0.35 + Math.min(0.6, rad * 0.04));
+}
+
 function detonateShot(s) {
   if (!s || s.detonated) return;
   s.detonated = true;
@@ -5031,10 +5440,13 @@ function detonateShot(s) {
     skyFlash = Math.max(skyFlash, 1.45);
     sfx.nukeBoom();
   }
-  if (s.def.missile) {
+  if (s.def.missile || (s.def.aoe && (s.def.tank || s.def.heli || s.def.landship || s.missile))) {
     const p = s.mesh.position;
-    craterAt(p.x, p.z, 2.2, 1.15);
-    spawnMeteorBlast(p, 1.5);
+    const r = s.def.aoe || 5;
+    craterAt(p.x, p.z, Math.min(4.2, r * 0.38), Math.min(1.8, r * 0.18));
+    explodeAt(p, r);
+  } else if (s.def.aoe && !s.def.nuke && !s.def.fireball && !s.def.lightning) {
+    explodeAt(s.mesh.position, s.def.aoe);
   }
   if (s.def.fireball) {
     spawnConflagration(s.mesh.position);
@@ -5347,7 +5759,8 @@ function tickShots(dt) {
       }
       if (s.dir && !s.ripple && !s.fireball) aimBolt(s.mesh, s.dir);
       const hy = heightAt(s.mesh.position.x, s.mesh.position.z);
-      if (s.mesh.position.y < hy + (s.fireball ? 0.55 : -0.15)) {
+      const groundPad = (s.missile || s.def?.missile || s.def?.aoe) ? 0.28 : (s.fireball ? 0.55 : -0.15);
+      if (s.mesh.position.y < hy + groundPad) {
         detonateShot(s);
         if (s.orb) {
           smashNear(s.mesh.position, s.charged ? 4.2 : 1.6);
@@ -5356,6 +5769,11 @@ function tickShots(dt) {
         s.life = 0;
       }
       if (s.life > 0 && shotHitsBuilding(s)) s.life = 0;
+      if (s.life > 0 && owShotHit(owExtras, s.mesh.position)) {
+        detonateShot(s);
+        owHitSolid(owExtras, s.mesh.position, 0.4, s.def?.dmg || 2);
+        s.life = 0;
+      }
       if (s.orb && s.life > 0) {
         for (let mi = meteors.length - 1; mi >= 0; mi--) {
           const met = meteors[mi];
@@ -5372,7 +5790,7 @@ function tickShots(dt) {
         }
       }
       let hit = false;
-      const prox = s.fireball ? 0.95 : 0.32;
+      const prox = s.fireball ? 0.95 : (s.missile || s.def?.missile || s.def?.aoe ? 0.82 : 0.32);
       if (s.life > 0) {
       for (const m of mobs) {
         if (!m.alive) continue;
@@ -5461,6 +5879,173 @@ function disintegrateAt(x, z, r) {
   }
 }
 
+function fireEnemyShotFrom(m, tgt, def, off) {
+  if (!tgt || tgt.kind === "none") return;
+  const yaw = m.mesh.rotation.y || 0;
+  const ox = off ? (Math.sin(yaw) * off.x - Math.cos(yaw) * off.z) : 0;
+  const oz = off ? (Math.cos(yaw) * off.x + Math.sin(yaw) * off.z) : 0;
+  const origin = new THREE.Vector3(m.x + ox, m.y + (off?.y || 0.75), m.z + oz);
+  const aimY = tgt.kind === "player" ? player.y - 0.2 : (tgt.y || m.y);
+  const dir = new THREE.Vector3(tgt.x - origin.x, aimY - origin.y, tgt.z - origin.z).normalize();
+  const rocket = !!(def?.aoe || def?.missile);
+  let mesh;
+  if (rocket) {
+    mesh = makeMissileMesh();
+    aimBolt(mesh, dir);
+  } else {
+    mesh = makeBolt(0xffe14a, 0.03);
+    aimBolt(mesh, dir);
+  }
+  mesh.position.copy(origin);
+  scene.add(mesh);
+  eShots.push({
+    mesh, dir, speed: def?.speed || 28, life: 2.5,
+    dmg: def?.dmg || 1, team: mobFaction(m), aoe: def?.aoe || 0, from: m, missile: rocket,
+  });
+  sfx.armyShoot();
+}
+
+function pickDistinctTargets(m, n) {
+  const my = mobFaction(m);
+  const cands = [];
+  if (factionsHostile(my, playerFaction())) {
+    cands.push({ kind: "player", x: player.x, y: player.y, z: player.z, d: Math.hypot(player.x - m.x, player.z - m.z) });
+  }
+  for (const o of mobs) {
+    if (o === m || !o.alive) continue;
+    if (!factionsHostile(my, mobFaction(o))) continue;
+    cands.push({ kind: "mob", m: o, x: o.x, y: o.y, z: o.z, d: Math.hypot(o.x - m.x, o.z - m.z) });
+  }
+  cands.sort((a, b) => a.d - b.d);
+  const out = [];
+  const used = new Set();
+  for (const c of cands) {
+    const key = c.kind === "player" ? "player" : c.m;
+    if (used.has(key)) continue;
+    used.add(key);
+    out.push(c);
+    if (out.length >= n) break;
+  }
+  return out;
+}
+
+function tickLandshipTurrets(m, dt) {
+  const defs = m.turretDefs || [m.shotDef];
+  const offs = m.turretOff || [{ x: 0, y: 0.8, z: 0 }];
+  if (!m.turretCd) m.turretCd = defs.map(() => 0.2);
+  const targs = pickDistinctTargets(m, defs.length);
+  for (let i = 0; i < defs.length; i++) {
+    m.turretCd[i] -= dt;
+    const tgt = targs[i] || targs[0];
+    if (!tgt || m.turretCd[i] > 0) continue;
+    const d = Math.hypot(tgt.x - m.x, tgt.z - m.z);
+    if (d < 4 || d > 52) continue;
+    const rpm = defs[i].rpm || 0.5;
+    m.turretCd[i] = (1 / Math.max(0.12, rpm)) * (0.75 + rng() * 0.35);
+    fireEnemyShotFrom(m, tgt, defs[i], offs[i]);
+  }
+}
+
+function tickPlayerLandshipGuns(dt) {
+  if (!player.landship || shopOpen || dead) return;
+  landshipTurretCd[0] -= dt;
+  landshipTurretCd[1] -= dt;
+  const defs = [
+    { dmg: 7, rpm: 1.4, speed: 52, spread: 0.012, aoe: 5.4, missile: true },
+    { dmg: 2, rpm: 6, speed: 46, spread: 0.035, aoe: 0 },
+  ];
+  const offs = [
+    { x: 0.55, y: 1.4, z: 0.2 },
+    { x: -0.55, y: 1.35, z: 1.4 },
+  ];
+  const targs = pickDistinctTargets({ x: player.x, z: player.z, team: playerFaction(), mesh: { rotation: { y: landshipYaw } } }, 4)
+    .filter((t) => t.kind !== "player");
+  for (let i = 0; i < 2; i++) {
+    const tgt = targs[i];
+    if (!tgt || landshipTurretCd[i] > 0) continue;
+    const d = Math.hypot(tgt.x - player.x, tgt.z - player.z);
+    if (d < 5 || d > 48) continue;
+    landshipTurretCd[i] = 1 / defs[i].rpm;
+    const yaw = landshipYaw;
+    const off = offs[i];
+    const ox = Math.sin(yaw) * off.x - Math.cos(yaw) * off.z;
+    const oz = Math.cos(yaw) * off.x + Math.sin(yaw) * off.z;
+    const origin = new THREE.Vector3(player.x + ox, heightAt(player.x, player.z) + off.y, player.z + oz);
+    const dir = new THREE.Vector3(tgt.x - origin.x, tgt.y - origin.y, tgt.z - origin.z).normalize();
+    if (defs[i].missile) {
+      const rocket = makeMissileMesh();
+      rocket.position.copy(origin);
+      aimBolt(rocket, dir);
+      scene.add(rocket);
+      shots.push({ mesh: rocket, dir, speed: defs[i].speed, life: 2.3, def: { ...WEPS.heli, ...defs[i] }, pierce: 1, hitSet: new Set(), missile: true });
+    } else {
+      const bolt = makeBolt(0x44ddff, 0.03);
+      bolt.position.copy(origin);
+      aimBolt(bolt, dir);
+      scene.add(bolt);
+      shots.push({ mesh: bolt, dir, speed: defs[i].speed, life: 0.7, def: WEPS.smg, pierce: 1, hitSet: new Set() });
+    }
+    sfx.shoot();
+  }
+}
+
+function rideHeight(v) {
+  if (!v) return 1.6;
+  if (v.vehicle === "heli") return 1.15;
+  if (v.vehicle === "landship") return 1.85;
+  if (v.vehicle === "tank") return 1.55;
+  if (v.vehicle === "humvee") return 1.45;
+  return 1.25;
+}
+
+function nearestRideVehicle() {
+  let best = null, bd = 3.6;
+  for (const m of mobs) {
+    if (!m.alive || !m.vehicle) continue;
+    const d = Math.hypot(m.x - player.x, m.z - player.z);
+    const dy = Math.abs(m.y - player.y);
+    if (d < bd && dy < 3.4) { bd = d; best = m; }
+  }
+  return best;
+}
+
+function dismountRide() {
+  const v = player.ride;
+  player.ride = null;
+  if (v && v.alive) {
+    const yaw = v.mesh.rotation.y || 0;
+    player.x = v.x + Math.cos(yaw) * 2.1;
+    player.z = v.z + Math.sin(yaw) * 2.1;
+    player.y = heightAt(player.x, player.z) + 1.6;
+  }
+  player.grounded = true;
+  showBanner("DISMOUNT");
+  announcing = 0.8;
+}
+
+function toggleRide() {
+  if (!running || dead || shopOpen || menuOpen) return;
+  if (player.tank || player.heli || player.landship) {
+    showBanner("LEAVE YOUR VEHICLE FIRST");
+    announcing = 1;
+    return;
+  }
+  if (player.ride) {
+    dismountRide();
+    return;
+  }
+  const v = nearestRideVehicle();
+  if (!v) {
+    showBanner("NO VEHICLE");
+    announcing = 0.8;
+    return;
+  }
+  player.ride = v;
+  player.bike = false;
+  showBanner("RIDING " + String(v.vehicle || "VEHICLE").toUpperCase());
+  announcing = 1.1;
+}
+
 function fireEnemyShot(m, tgt) {
   tgt = tgt || pickMobTarget(m);
   if (!tgt || tgt.kind === "none") return;
@@ -5480,14 +6065,15 @@ function fireEnemyShot(m, tgt) {
       dir.normalize();
     }
     let mesh;
+    const rocket = army && (m.shotShape === "rocket" || def?.aoe || def?.missile);
     if (army) {
       if (p === 0) sfx.armyShoot();
-      const rocket = m.shotShape === "rocket";
-      const geo = rocket
-        ? new THREE.CylinderGeometry(0.055, 0.075, 0.34, 6)
-        : new THREE.SphereGeometry(0.034, 7, 6);
-      mesh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: rocket ? 0xffcc44 : 0xffe14a }));
-      if (rocket) mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
+      if (rocket) {
+        mesh = makeMissileMesh();
+        aimBolt(mesh, dir);
+      } else {
+        mesh = new THREE.Mesh(new THREE.SphereGeometry(0.034, 7, 6), new THREE.MeshBasicMaterial({ color: 0xffe14a }));
+      }
     } else {
       const shape = m.shotShape || "ball";
       let geo;
@@ -5504,11 +6090,12 @@ function fireEnemyShot(m, tgt) {
       mesh,
       dir,
       speed: def?.speed || (13 + diffWave() * 0.12),
-      life: 2.4,
+      life: rocket ? 2.6 : 2.4,
       dmg: def?.dmg || 1,
       team: mobFaction(m),
       aoe: def?.aoe || 0,
       from: m,
+      missile: !!rocket,
     });
   }
 }
@@ -5525,8 +6112,10 @@ function tickEshots(dt) {
     const team = s.team || "horde";
     if (hitP && iFrame <= 0 && factionsHostile(team, playerFaction())) {
       sfx.impact();
-      if (s.aoe) aoeAt(s.mesh.position.clone(), s.aoe, { dmg: s.dmg || 1, team, knock: 1.2 });
-      else damage(s.dmg || 1);
+      if (s.aoe) {
+        explodeAt(s.mesh.position, s.aoe);
+        aoeAt(s.mesh.position.clone(), s.aoe, { dmg: s.dmg || 1, team, knock: 1.2 });
+      } else damage(s.dmg || 1);
       s.life = 0;
     } else {
       let hitM = false;
@@ -5536,8 +6125,10 @@ function tickEshots(dt) {
         if (Math.hypot(m.x - s.mesh.position.x, m.z - s.mesh.position.z) > m.hitR + 0.35) continue;
         if (Math.abs(m.y - s.mesh.position.y) > 1.6 + m.hitR) continue;
         sfx.impact();
-        if (s.aoe) aoeAt(s.mesh.position.clone(), s.aoe, { dmg: s.dmg || 1, team, knock: 1.2 });
-        else {
+        if (s.aoe) {
+          explodeAt(s.mesh.position, s.aoe);
+          aoeAt(s.mesh.position.clone(), s.aoe, { dmg: s.dmg || 1, team, knock: 1.2 });
+        } else {
           const limb = nearestLiveLimb(m, s.mesh.position);
           if (limb) hitLimb(limb, m);
         }
@@ -5545,9 +6136,18 @@ function tickEshots(dt) {
         break;
       }
       if (hitM) s.life = 0;
-      else if (s.mesh.position.y < hy - 0.1) {
+      else if (s.mesh.position.y < hy + (s.aoe ? 0.25 : -0.1)) {
         sfx.impact();
-        if (s.aoe) aoeAt(s.mesh.position.clone(), s.aoe * 0.7, { dmg: s.dmg || 1, team, knock: 0.8 });
+        if (s.aoe) {
+          explodeAt(s.mesh.position, s.aoe * 0.7);
+          aoeAt(s.mesh.position.clone(), s.aoe * 0.7, { dmg: s.dmg || 1, team, knock: 0.8 });
+        }
+        s.life = 0;
+      } else if (owShotHit(owExtras, s.mesh.position)) {
+        if (s.aoe) {
+          explodeAt(s.mesh.position, s.aoe);
+          aoeAt(s.mesh.position.clone(), s.aoe, { dmg: s.dmg || 1, team, knock: 1.2 });
+        }
         s.life = 0;
       }
     }
@@ -6290,6 +6890,36 @@ function makeTankMesh() {
   return g;
 }
 
+function makeLandshipMesh() {
+  const g = new THREE.Group();
+  const hull = new THREE.Mesh(new THREE.BoxGeometry(1.85, 0.7, 4.4), mat(0x3a4a40, { emissive: 0x111 }));
+  hull.position.y = 0.55;
+  const deck = new THREE.Mesh(new THREE.BoxGeometry(1.55, 0.32, 2.2), mat(0x2a332c));
+  deck.position.set(0, 1.02, 0.15);
+  const t1 = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.46, 0.32, 10), mat(0x2a332c));
+  t1.position.set(0, 1.32, -1.35);
+  const b1 = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.07, 1.7, 8), mat(0x1a1e1a));
+  b1.rotation.x = Math.PI / 2;
+  b1.position.set(0, 1.34, -2.25);
+  const t2 = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.32, 0.24, 8), mat(0x2a332c));
+  t2.position.set(0.52, 1.22, 0.25);
+  const b2 = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.045, 1.05, 8), mat(0x1a1e1a));
+  b2.rotation.x = Math.PI / 2;
+  b2.position.set(0.52, 1.24, -0.35);
+  const t3 = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.28, 0.22, 8), mat(0x2a332c));
+  t3.position.set(-0.52, 1.18, 1.45);
+  const b3 = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.035, 0.85, 8), mat(0x1a1e1a));
+  b3.rotation.x = Math.PI / 2;
+  b3.position.set(-0.52, 1.2, 0.9);
+  const skirtL = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.38, 4.2), mat(0x1a1e1a));
+  skirtL.position.set(-0.95, 0.32, 0);
+  const skirtR = skirtL.clone();
+  skirtR.position.x = 0.95;
+  g.add(hull, deck, t1, b1, t2, b2, t3, b3, skirtL, skirtR);
+  g.userData.turrets = [t1, t2, t3];
+  return g;
+}
+
 function tickDrones(dt) {
   for (let i = drones.length - 1; i >= 0; i--) {
     const d = drones[i];
@@ -6915,6 +7545,20 @@ function makeHeliMesh() {
   return g;
 }
 
+function tickLandship() {
+  if (!player.landship) {
+    if (landshipMesh) landshipMesh.visible = false;
+    return;
+  }
+  if (!landshipMesh) {
+    landshipMesh = makeLandshipMesh();
+    scene.add(landshipMesh);
+  }
+  landshipMesh.visible = true;
+  landshipMesh.position.set(player.x, heightAt(player.x, player.z), player.z);
+  landshipMesh.rotation.y = landshipYaw;
+}
+
 function tickTank() {
   if (!player.tank) {
     if (tankMesh) tankMesh.visible = false;
@@ -7041,7 +7685,8 @@ function buy(it) {
     player.bike = true;
     player.tank = false;
     player.heli = false;
-    if (player.wep === "tank" || player.wep === "heli") equip("pistol");
+    player.landship = false;
+    if (player.wep === "tank" || player.wep === "heli" || player.wep === "landship") equip("pistol");
     player.bike = true;
   } else if (it.kind === "up") {
     if (it.id === "sprint") {
@@ -7180,6 +7825,11 @@ function drawShopIcon(ctx, it, x, y, s) {
       ctx.fillRect(-s * 0.32, -s * 0.02, s * 0.64, s * 0.22);
       ctx.fillRect(-s * 0.16, -s * 0.16, s * 0.32, s * 0.16);
       ctx.fillRect(-s * 0.42, -s * 0.1, s * 0.28, s * 0.06);
+    } else if (id === "landship") {
+      ctx.fillRect(-s * 0.4, 0, s * 0.8, s * 0.18);
+      ctx.fillRect(-s * 0.22, -s * 0.16, s * 0.16, s * 0.16);
+      ctx.fillRect(s * 0.04, -s * 0.14, s * 0.12, s * 0.14);
+      ctx.fillRect(s * 0.22, -s * 0.12, s * 0.1, s * 0.12);
     } else {
       ctx.fillRect(-s * 0.3, -s * 0.02, s * 0.6, id === "humvee" ? s * 0.22 : s * 0.16);
       ctx.fillStyle = "#243226";
@@ -7339,6 +7989,11 @@ function drawShopIcon(ctx, it, x, y, s) {
   } else if (id === "tank") {
     ctx.fillRect(-s * 0.32, -s * 0.1, s * 0.64, s * 0.22);
     ctx.fillRect(-s * 0.08, -s * 0.06, s * 0.12, s * 0.4);
+  } else if (id === "landship") {
+    ctx.fillRect(-s * 0.42, -s * 0.06, s * 0.84, s * 0.2);
+    ctx.fillRect(-s * 0.28, -s * 0.2, s * 0.18, s * 0.16);
+    ctx.fillRect(s * 0.02, -s * 0.18, s * 0.14, s * 0.14);
+    ctx.fillRect(s * 0.22, -s * 0.16, s * 0.12, s * 0.12);
   } else if (id === "heli") {
     ctx.fillRect(-s * 0.28, -s * 0.06, s * 0.56, s * 0.16);
     ctx.fillRect(s * 0.08, -s * 0.02, s * 0.28, s * 0.08);
@@ -7494,7 +8149,26 @@ function paintBindOrb() {
   orb.onclick = () => buy(it);
 }
 
+function paintTeamColorRow() {
+  const host = $("team-colors");
+  const wrap = $("team-color-row");
+  if (!host || !wrap) return;
+  wrap.hidden = !runOpen && gameMode !== "open";
+  host.innerHTML = "";
+  for (const c of TEAM_COLORS) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "mode-btn team-swatch" + (teamColorId === c.id ? " on" : "");
+    b.style.background = "#" + c.hex.toString(16).padStart(6, "0");
+    b.style.color = c.id === "white" || c.id === "gold" ? "#111" : "#f4f1ea";
+    b.textContent = c.name;
+    b.onclick = () => setTeamColor(c.id);
+    host.appendChild(b);
+  }
+}
+
 function paintShop() {
+  paintTeamColorRow();
   const host = $("shopgrid");
   if (!host) return;
   host.innerHTML = "";
@@ -7577,10 +8251,10 @@ function rebuildShopCards() {
   tctx.fillRect(0, 0, 1024, 160);
   tctx.fillStyle = "#111111";
   tctx.font = "800 32px Outfit, Arial, sans-serif";
-  tctx.fillText("ARMORY  ·  point and shoot a card to buy", 28, 48);
+  tctx.fillText(runOpen ? "COMMAND  ·  team color + armory" : "ARMORY  ·  point and shoot a card to buy", 28, 48);
   tctx.fillStyle = "#111";
   tctx.font = "800 58px Cinzel, serif";
-  tctx.fillText("BUY   " + (player.coins | 0) + " ◎", 28, 118);
+  tctx.fillText((runOpen ? "GEAR   " : "BUY   ") + (player.coins | 0) + " ◎", 28, 118);
   const titleTex = canvasMap(titleC);
   const title = new THREE.Mesh(
     new THREE.PlaneGeometry(1.22 * 1.1, 0.24 * 1.05),
@@ -7613,6 +8287,25 @@ function rebuildShopCards() {
   dmesh.userData.devToggle = true;
   shopRoot.add(dmesh);
   shopHits.push(dmesh);
+  TEAM_COLORS.forEach((c, i) => {
+    const sw = new THREE.Mesh(
+      new THREE.CircleGeometry(0.04, 16),
+      new THREE.MeshBasicMaterial({ color: c.hex, side: THREE.DoubleSide }),
+    );
+    sw.position.set(-0.72 * 1.1 + i * 0.1, 0.86, 0.05);
+    sw.userData.teamColor = c.id;
+    shopRoot.add(sw);
+    shopHits.push(sw);
+    if (teamColorId === c.id) {
+      const ring = new THREE.Mesh(
+        new THREE.RingGeometry(0.042, 0.05, 16),
+        new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide }),
+      );
+      ring.position.copy(sw.position);
+      ring.position.z += 0.002;
+      shopRoot.add(ring);
+    }
+  });
   const catalog = shopCatalog();
   let y = 0.74;
   for (const sec of shopSections()) {
@@ -7717,6 +8410,7 @@ function rebuildShopCards() {
 
 function tintShopSel() {
   for (const m of shopHits) {
+    if (!m.material || m.userData.teamColor) continue;
     if (m.material) m.material.color.setHex(m.userData.shopIndex === shopSel ? 0xffe08a : 0xffffff);
   }
 }
@@ -7782,6 +8476,12 @@ function tryShopShot(xr) {
   if (obj?.userData?.devToggle) {
     shopSel = -3;
     toggleDev();
+    return true;
+  }
+  if (obj?.userData?.teamColor) {
+    setTeamColor(obj.userData.teamColor);
+    showBanner("TEAM " + obj.userData.teamColor.toUpperCase());
+    announcing = 0.9;
     return true;
   }
   if (obj?.userData?.shopItem) {
@@ -7919,7 +8619,7 @@ function syncVrGun() {
 
 function pollXr() {
   const session = renderer.xr.getSession && renderer.xr.getSession();
-  if (!session) return { moveX: 0, moveY: 0, lookX: 0, lookY: 0, jump: false, fire: false, fireTap: false, reload: false, shop: false, lClick: false, rClick: false, flash: false, cycle: false, menu: false, right: null, leftFire: false };
+  if (!session) return { moveX: 0, moveY: 0, lookX: 0, lookY: 0, jump: false, fire: false, fireTap: false, reload: false, shop: false, lClick: false, rClick: false, flash: false, cycle: false, menu: false, ride: false, right: null, leftFire: false };
   for (const src of session.inputSources) {
     const h = hands.find((x) => x.handed === src.handedness) || (src.handedness === "left" ? hands[0] : hands[1]);
     const gp = src.gamepad;
@@ -7971,16 +8671,40 @@ function pollXr() {
     menu: menuTap,
     right,
     leftFire: !!(left && left.trigger),
+    ride: !!(right && right.gripBtn && !right.gripPrev),
   };
 }
 
 function physics(dt, xr) {
+  if (player.ride) {
+    const v = player.ride;
+    if (!v.alive) {
+      player.ride = null;
+    } else {
+      player.x = v.x;
+      player.z = v.z;
+      player.y = v.y + rideHeight(v);
+      player.vx = 0; player.vz = 0; player.vy = 0;
+      player.grounded = true;
+      if (xrOn) {
+        if (Math.abs(xr.lookX) > 0.18) yaw -= xr.lookX * 2.05 * dt;
+        rig.rotation.y = yaw;
+        rig.position.set(player.x, player.y - 1.6, player.z);
+      } else {
+        camera.position.set(player.x, player.y, player.z);
+      }
+      recenterFloor();
+      return;
+    }
+  }
   let wishX = 0, wishZ = 0;
-  if (player.tank || player.heli) {
-    const turn = player.heli ? heliYaw : tankYaw;
+  const drive = player.tank || player.heli || player.landship;
+  if (drive) {
+    const turn = player.heli ? heliYaw : player.landship ? landshipYaw : tankYaw;
+    const turnSpd = player.heli ? 1.45 : player.landship ? 1.15 : 1.7;
     if (xrOn) {
-      const next = turn - (shopOpen ? 0 : xr.moveX) * (player.heli ? 1.45 : 1.7) * dt;
-      if (player.heli) heliYaw = next; else tankYaw = next;
+      const next = turn - (shopOpen ? 0 : xr.moveX) * turnSpd * dt;
+      if (player.heli) heliYaw = next; else if (player.landship) landshipYaw = next; else tankYaw = next;
       const fwd = shopOpen ? 0 : -xr.moveY;
       wishX = -Math.sin(next) * fwd;
       wishZ = -Math.cos(next) * fwd;
@@ -7989,9 +8713,9 @@ function physics(dt, xr) {
       rig.position.set(player.x, player.y - 1.6, player.z);
     } else {
       let next = turn;
-      if (keys.has("KeyA") || keys.has("ArrowLeft")) next += (player.heli ? 1.5 : 1.8) * dt;
-      if (keys.has("KeyD") || keys.has("ArrowRight")) next -= (player.heli ? 1.5 : 1.8) * dt;
-      if (player.heli) heliYaw = next; else tankYaw = next;
+      if (keys.has("KeyA") || keys.has("ArrowLeft")) next += (player.heli ? 1.5 : player.landship ? 1.2 : 1.8) * dt;
+      if (keys.has("KeyD") || keys.has("ArrowRight")) next -= (player.heli ? 1.5 : player.landship ? 1.2 : 1.8) * dt;
+      if (player.heli) heliYaw = next; else if (player.landship) landshipYaw = next; else tankYaw = next;
       let fwd = 0;
       if (keys.has("KeyW") || keys.has("ArrowUp")) fwd += 1;
       if (keys.has("KeyS") || keys.has("ArrowDown")) fwd -= 1;
@@ -8018,7 +8742,7 @@ function physics(dt, xr) {
   if (mag > 1) { wishX /= mag; wishZ /= mag; }
   const moving = mag > 0.12;
   if (player.sprintCdT > 0) player.sprintCdT -= dt;
-  if (stats.sprint && !player.tank && !player.heli && !shopOpen) {
+  if (stats.sprint && !player.tank && !player.heli && !player.landship && !shopOpen) {
     const inf = stats.sprintCd <= 0;
     if (inf) {
       if (xr.lClick || sprintQueued) { player.sprinting = !player.sprinting; sprintQueued = false; }
@@ -8039,13 +8763,13 @@ function physics(dt, xr) {
     }
   }
   player.mom = Math.max(0, player.mom - dt * 0.35);
-  let spd = (player.heli ? 12.2 : player.tank ? 4.6 : player.bike ? 9.4 : 6.4) * stats.speed * (shopOpen ? 0.12 : 1);
+  let spd = (player.heli ? 12.2 : player.landship ? 3.5 : player.tank ? 4.6 : player.bike ? 9.4 : 6.4) * stats.speed * (shopOpen ? 0.12 : 1);
   if (player.sprinting) spd *= 1.7 * (stats.sprintMul || 1);
   spd *= 1 + player.mom;
-  if (inWater(player.x, player.z) && !player.heli && !player.tank) spd *= 0.6;
+  if (inWater(player.x, player.z) && !player.heli && !player.tank && !player.landship) spd *= 0.6;
   player.vx = wishX * spd;
   player.vz = wishZ * spd;
-  const canJump = !player.tank && !player.heli && (player.grounded || player.jumpsLeft > 0);
+  const canJump = !player.tank && !player.heli && !player.landship && (player.grounded || player.jumpsLeft > 0);
   if ((jumpQueued || xr.jump) && canJump) {
     if (player.grounded) player.jumpsLeft = stats.jumps - 1;
     else player.jumpsLeft--;
@@ -8135,7 +8859,7 @@ function placeDesktopGun() {
     camera.add(gunMesh);
     gunMesh.position.set(0.18, -0.14, -0.32);
   }
-  gunMesh.visible = !xrOn && !player.heli && !player.tank;
+  gunMesh.visible = !xrOn && !player.heli && !player.tank && !player.landship;
 }
 
 function tickMelee(dt) {
@@ -8186,7 +8910,7 @@ function doFire(xr) {
   const { origin, quat, dir } = aimFromGun(xr);
   const stand = heightAt(player.x, player.z, player.y) + 1.6;
   const airborne = !player.grounded && player.y > stand + 0.55;
-  player.pounding = !!(airborne && !player.tank && !player.heli && dir.y < -0.62);
+  player.pounding = !!(airborne && !player.tank && !player.heli && !player.landship && dir.y < -0.62);
   fireFrom(origin, quat);
 }
 
@@ -8226,9 +8950,10 @@ function loop() {
     if (bannerSpr) bannerSpr.material.opacity = clamp(announcing, 0, 1);
     if (announcing <= 0) hideBanner();
   }
-  const xr = xrOn ? pollXr() : { moveX: 0, moveY: 0, lookX: 0, lookY: 0, jump: false, fire: false, fireTap: false, reload: false, shop: false, lClick: false, rClick: false, flash: false, cycle: false, menu: false, right: null };
+  const xr = xrOn ? pollXr() : { moveX: 0, moveY: 0, lookX: 0, lookY: 0, jump: false, fire: false, fireTap: false, reload: false, shop: false, lClick: false, rClick: false, flash: false, cycle: false, menu: false, ride: false, right: null };
   if (xr.menu) toggleMainMenu();
   if (!dead && !menuOpen && xr.shop) toggleShop();
+  if (!dead && !menuOpen && xr.ride) toggleRide();
   if (!dead && !menuOpen && xr.reload) reload();
   if (!dead && !menuOpen && (xr.cycle || xr.rClick)) cycleOwned();
   if (!dead && !menuOpen && xr.flash) toggleFlash();
@@ -8268,6 +8993,9 @@ function loop() {
       tickMeteors(dt);
       tickTank();
       tickHeli();
+      tickLandship();
+      tickPlayerLandshipGuns(dt);
+      if (owExtras) tickOpenWorld(owExtras, dt, owApi());
       tickDebris(dt);
       tickLoot(dt);
       tickAmmoField(dt);
@@ -8440,6 +9168,7 @@ addEventListener("keydown", (e) => {
   }
   if (e.code === "KeyQ" || e.code === "KeyC" || e.code === "KeyB") cycleOwned();
   if (e.code === "KeyF" || e.code === "KeyL") toggleFlash();
+  if (e.code === "KeyG") toggleRide();
   if (e.code === "ShiftLeft" || e.code === "ShiftRight") sprintQueued = true;
   if (e.code === "Escape") {
     if (shopOpen) toggleShop();
@@ -8490,6 +9219,11 @@ document.querySelectorAll("[data-map]").forEach((b) => {
 });
 if ($("sandbox-btn")) $("sandbox-btn").onclick = () => toggleDev();
 paintModeButtons();
+try {
+  const q = new URLSearchParams(location.search);
+  if (q.get("mode") === "open") setGameMode("open");
+  if (q.get("map")) setSelectedMap(q.get("map").startsWith("ow:") ? q.get("map") : "ow:" + q.get("map"));
+} catch {}
 if ($("resume")) $("resume").onclick = () => resumeRun();
 $("over").addEventListener("click", (e) => {
   if (!dead) return;
