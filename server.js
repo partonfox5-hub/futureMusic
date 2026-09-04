@@ -605,6 +605,19 @@ function hordeHeaders(res) {
     res.setHeader("Permissions-Policy", "xr-spatial-tracking=(self), fullscreen=(self), gamepad=(self), accelerometer=(self), gyroscope=(self), magnetometer=(self)");
     res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
 }
+function humanHeaders(res) {
+    res.setHeader("Permissions-Policy", "xr-spatial-tracking=(self), fullscreen=(self), gamepad=(self), accelerometer=(self), gyroscope=(self), magnetometer=(self)");
+    res.setHeader("X-Robots-Tag", "noindex, nofollow, noarchive");
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+}
+app.get(["/human", "/human/"], (req, res) => {
+    humanHeaders(res);
+    res.sendFile(path.join(__dirname, "public", "human", "index.html"));
+});
+app.use("/human", (req, res, next) => {
+    humanHeaders(res);
+    next();
+});
 app.get(["/games/horde", "/games/horde/"], (req, res) => res.redirect("/horde"));
 app.get(["/horde", "/horde/"], (req, res) => {
     hordeHeaders(res);
