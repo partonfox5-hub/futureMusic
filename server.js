@@ -330,7 +330,7 @@ app.use((req, res, next) => {
         "style-src * 'unsafe-inline'; " +
         "font-src * 'unsafe-inline' data: blob:; " +
         "img-src * 'unsafe-inline' data: blob:; " +
-        "connect-src * 'unsafe-inline'; " +
+        "connect-src * 'unsafe-inline' blob: data:; " +
         "frame-src *;"
     );
     next();

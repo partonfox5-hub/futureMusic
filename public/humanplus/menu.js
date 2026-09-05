@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { HEADS, TORSOS, LEGS, SIZES, PALETTE, FOOD, PETS, HATS } from "./critters.js";
 
-export const TABS = ["PETS", "FOOD", "BUILD", "PORTAL", "HATS", "HELP"];
+export const TABS = ["PETS", "FOOD", "BUILD", "PORTAL", "HATS", "MIRA", "HELP"];
 
 const W = 1280;
 const H = 800;
@@ -101,9 +101,9 @@ export function createWorldMenu() {
     ctx.font = "16px system-ui,Segoe UI,sans-serif";
     ctx.fillText(state.hint, 36, 74);
 
-    const tw = 190, th = 48, ts = 18;
+    const tw = 164, th = 48, ts = 10;
     TABS.forEach((t, i) => {
-      button(28 + i * (tw + ts), 96, tw, th, t, { type: "tab", id: t }, { on: state.tab === t });
+      button(22 + i * (tw + ts), 96, tw, th, t, { type: "tab", id: t }, { on: state.tab === t, font: "700 18px system-ui,Segoe UI,sans-serif" });
     });
 
     const y0 = 168;
@@ -112,6 +112,7 @@ export function createWorldMenu() {
     else if (state.tab === "BUILD") drawBuild(y0);
     else if (state.tab === "PORTAL") drawPortal(y0);
     else if (state.tab === "HATS") drawHats(y0);
+    else if (state.tab === "MIRA") drawMira(y0);
     else drawHelp(y0);
 
     tex.needsUpdate = true;
@@ -239,6 +240,25 @@ export function createWorldMenu() {
     ctx.fillText("Portals spawn Horde creatures (dark variants of the den pets). Max 8 live at once.", 36, y0 + 370);
   }
 
+  function drawMira(y0) {
+    ctx.fillStyle = "#f4efe8";
+    ctx.font = "800 24px system-ui,Segoe UI,sans-serif";
+    ctx.textAlign = "left";
+    ctx.fillText("MIRA  —  same body as /human2", 36, y0);
+    ctx.font = "17px system-ui,Segoe UI,sans-serif";
+    ctx.fillStyle = "#c8bfb4";
+    ctx.fillText("Arrow through face types and hair. Spawn another Mira with the current sliders, a new face, and a new hair color.", 36, y0 + 32);
+    button(36, y0 + 70, 280, 64, "< FACE", { type: "mira-face", dir: -1 }, { font: "800 22px system-ui,sans-serif" });
+    button(340, y0 + 70, 280, 64, "FACE >", { type: "mira-face", dir: 1 }, { font: "800 22px system-ui,sans-serif" });
+    button(36, y0 + 150, 280, 64, "< HAIR", { type: "mira-hair", dir: -1 }, { font: "800 22px system-ui,sans-serif" });
+    button(340, y0 + 150, 280, 64, "HAIR >", { type: "mira-hair", dir: 1 }, { font: "800 22px system-ui,sans-serif" });
+    button(36, y0 + 250, 900, 88, "SPAWN ANOTHER MIRA  (new face + hair, same shape)", { type: "mira-spawn" }, { on: true, font: "800 22px system-ui,sans-serif" });
+    ctx.fillStyle = "#d8d0c6";
+    ctx.font = "16px system-ui,Segoe UI,sans-serif";
+    ctx.textAlign = "left";
+    ctx.fillText("Walk jiggle scales with breast/hip size. Floppy foam noodle. Hands collide. Dark hair by default.", 36, y0 + 380);
+  }
+
   function drawHats(y0) {
     ctx.fillStyle = "#f4efe8";
     ctx.font = "700 22px system-ui,Segoe UI,sans-serif";
@@ -313,7 +333,7 @@ export function geneFromState(state) {
   };
 }
 
-export function fillDomHud(root, state, act) {
+export function fillDomHud(root, state, act, miraRt) {
   root.innerHTML = "";
   const bar = document.createElement("div");
   bar.className = "tabs";
@@ -394,9 +414,25 @@ export function fillDomHud(root, state, act) {
       b.onclick = () => act({ type: "hat", id: h.id });
       body.appendChild(b);
     });
+  } else if (state.tab === "MIRA") {
+    const p = document.createElement("p");
+    p.innerHTML = "<b>Mira</b> uses the same body system as /human2. Change face and hair, then spawn another with distinct looks.";
+    body.appendChild(p);
+    const a = miraRt && miraRt.selected;
+    const face = document.createElement("p");
+    face.textContent = "Face: " + (a ? ["Natural", "Warm", "Cool", "Rosy"][a.faceType] : "—");
+    const hair = document.createElement("p");
+    hair.textContent = "Hair: " + (a ? ["Black", "Dark brown", "Auburn", "Brunette"][a.hairColor] : "—");
+    body.append(face, hair);
+    const fp = document.createElement("button"); fp.textContent = "< Face"; fp.onclick = () => act({ type: "mira-face", dir: -1 });
+    const fn = document.createElement("button"); fn.textContent = "Face >"; fn.onclick = () => act({ type: "mira-face", dir: 1 });
+    const hp = document.createElement("button"); hp.textContent = "< Hair"; hp.onclick = () => act({ type: "mira-hair", dir: -1 });
+    const hn = document.createElement("button"); hn.textContent = "Hair >"; hn.onclick = () => act({ type: "mira-hair", dir: 1 });
+    const go = document.createElement("button"); go.className = "go"; go.textContent = "SPAWN ANOTHER MIRA"; go.onclick = () => act({ type: "mira-spawn" });
+    body.append(fp, fn, hp, hn, go);
   } else {
     const p = document.createElement("p");
-    p.innerHTML = "Voice: speak to rally pets around you.<br>Pet: stroke the top of a creature with the controller.<br>Each species has its own summon + attack tone.<br>Noodle: grab the blue stick, swing at Mira.";
+    p.innerHTML = "Voice: speak to rally pets around you.<br>Pet: stroke the top of a creature with the controller.<br>Each species has its own summon + attack tone.<br>Noodle: grab the floppy foam stick, swing at Mira.";
     body.appendChild(p);
   }
   const hint = document.createElement("p");

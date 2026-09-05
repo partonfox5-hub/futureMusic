@@ -16,13 +16,17 @@
       p { margin: 0 0 10px; color: #d8d0c6; }
       button { pointer-events: auto; background: #7eb6ff; color: #111; border: 0; padding: 10px 16px; margin: 4px 6px 0 0; font-weight: 700; cursor: pointer; border-radius: 8px; }
       button.ghost { background: transparent; color: #7eb6ff; border: 1px solid #7eb6ff; }
-      #hint { position: absolute; left: 16px; top: 16px; z-index: 21; font-size: 12px; opacity: .9; pointer-events: none; text-shadow: 0 1px 4px #000; }
+      #hint { position: absolute; left: 16px; top: 16px; z-index: 21; font-size: 12px; opacity: .9; pointer-events: none; text-shadow: 0 1px 4px #000; max-width: 50vw; }
       #load { position: absolute; left: 50%; top: 42%; transform: translate(-50%,-50%); z-index: 21; font-size: 14px; letter-spacing: .12em; text-shadow: 0 1px 4px #000; }
       #stats { position: absolute; right: 16px; top: 16px; z-index: 21; font: 12px/1.4 ui-monospace, Consolas, monospace; opacity: .9; text-shadow: 0 1px 4px #000; pointer-events: none; }
-      #hud { position: absolute; right: 12px; top: 48px; bottom: 12px; z-index: 22; width: 210px; overflow: auto; pointer-events: auto; background: rgba(18,14,12,.82); border: 1px solid #7eb6ff; border-radius: 12px; padding: 12px 14px; font-size: 12px; }
+      #hud { position: absolute; right: 12px; top: 48px; bottom: 12px; z-index: 22; width: 230px; overflow: auto; pointer-events: auto; background: rgba(18,14,12,.82); border: 1px solid #7eb6ff; border-radius: 12px; padding: 12px 14px; font-size: 12px; }
       #hud h2 { margin: 0 0 8px; font-size: 12px; letter-spacing: .12em; color: #7eb6ff; }
       #hud label { display: block; margin: 8px 0 2px; color: #d8d0c6; }
       #hud input { width: 100%; }
+      #hud .row { display: flex; align-items: center; gap: 6px; margin: 8px 0; }
+      #hud .row b { flex: 1; text-align: center; }
+      #hud .row button { padding: 6px 10px; margin: 0; }
+      #hud .go { width: 100%; margin-top: 10px; }
     </style>
     <script type="importmap">
       {
@@ -39,23 +43,38 @@
     <div id="stats">PASS 2</div>
     <div id="hud">
       <h2>SHAPE</h2>
-      <label>Height</label><input id="sHeight" type="range" min="0.88" max="1.18" step="0.01" value="1" />
-      <label>Waist</label><input id="sWaist" type="range" min="0.78" max="1.25" step="0.01" value="1" />
-      <label>Breast</label><input id="sBreast" type="range" min="0.7" max="1.45" step="0.01" value="1" />
-      <label>Buttocks</label><input id="sButt" type="range" min="0.7" max="1.45" step="0.01" value="1" />
-      <label>Thigh width</label><input id="sThigh" type="range" min="0.78" max="1.35" step="0.01" value="1" />
-      <label>Thigh gap</label><input id="sGap" type="range" min="-1" max="1" step="0.01" value="0" />
-      <p style="margin-top:12px;font-size:11px;opacity:.8">F / mouse hold = noodle · VR trigger grab · swing to strike — jiggle, flinch, head turn from momentum</p>
+      <label>Height</label><input id="s_height" type="range" min="0.70" max="1.38" step="0.01" value="1" />
+      <label>Waist</label><input id="s_waist" type="range" min="0.48" max="1.62" step="0.01" value="1" />
+      <label>Hips</label><input id="s_hips" type="range" min="0.52" max="1.75" step="0.01" value="1" />
+      <label>Breast</label><input id="s_breast" type="range" min="0.38" max="2.25" step="0.01" value="1" />
+      <label>Buttocks</label><input id="s_butt" type="range" min="0.38" max="2.25" step="0.01" value="1" />
+      <label>Thigh width</label><input id="s_thigh" type="range" min="0.48" max="1.95" step="0.01" value="1" />
+      <label>Thigh gap</label><input id="s_gap" type="range" min="-1.6" max="1.6" step="0.01" value="0" />
+      <label>Arms</label><input id="s_arms" type="range" min="0.72" max="1.38" step="0.01" value="1" />
+      <h2>FACE</h2>
+      <div class="row">
+        <button type="button" id="facePrev">&lt;</button>
+        <b id="faceLab">Natural</b>
+        <button type="button" id="faceNext">&gt;</button>
+      </div>
+      <h2>HAIR</h2>
+      <div class="row">
+        <button type="button" id="hairPrev">&lt;</button>
+        <b id="hairLab">Black</b>
+        <button type="button" id="hairNext">&gt;</button>
+      </div>
+      <button type="button" class="go" id="spawnMira">SPAWN ANOTHER MIRA</button>
+      <p style="margin-top:12px;font-size:11px;opacity:.8">F / trigger grab = floppy foam noodle. Hands collide. Sliders edit the newest Mira. Jiggle scales with breast/butt size. Two walk gaits alternate.</p>
     </div>
     <div id="ui">
       <div id="panel">
         <div class="tag">PASS 2</div>
         <h1>HUMAN 2</h1>
-        <p>CC3 skin + hair cards, hanging arms, flesh springs, shape sliders, pool noodle. Home network only.</p>
+        <p>Dark hair, denser skin, floppy foam noodle, walk jiggle, face types, multi-Mira. Home network only.</p>
         <button type="button" id="enter">ENTER VR / AR</button>
         <button type="button" class="ghost" id="desk">Desktop look</button>
       </div>
     </div>
-    <script type="module" src="/human2/engine.js?v=5"></script>
+    <script type="module" src="/human2/engine.js?v=8"></script>
   </body>
 </html>
