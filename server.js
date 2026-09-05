@@ -331,6 +331,7 @@ app.use((req, res, next) => {
         "font-src * 'unsafe-inline' data: blob:; " +
         "img-src * 'unsafe-inline' data: blob:; " +
         "connect-src * 'unsafe-inline' blob: data:; " +
+        "media-src * data: blob:; " +
         "frame-src *;"
     );
     next();
@@ -606,7 +607,7 @@ function hordeHeaders(res) {
     res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
 }
 function humanHeaders(res) {
-    res.setHeader("Permissions-Policy", "xr-spatial-tracking=(self), fullscreen=(self), gamepad=(self), accelerometer=(self), gyroscope=(self), magnetometer=(self)");
+    res.setHeader("Permissions-Policy", "xr-spatial-tracking=(self), fullscreen=(self), gamepad=(self), accelerometer=(self), gyroscope=(self), magnetometer=(self), microphone=(self)");
     res.setHeader("X-Robots-Tag", "noindex, nofollow, noarchive");
     res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
 }
@@ -650,6 +651,126 @@ app.get(["/humanplus", "/humanplus/"], (req, res) => {
 app.use("/humanplus", (req, res, next) => {
     humanPlusHeaders(res);
     next();
+});
+
+const miraUpload = require("multer")({ storage: require("multer").memoryStorage(), limits: { fileSize: 4 * 1024 * 1024 } });
+const MIRA_DEFAULT_PERSONA =
+    "You are Mira, a warm playful young woman in an AR room. Reply in 1-2 short spoken sentences. If they mention exercise, workout, jumping jacks, squats, fitness or stretching, end with [[ACTION:jumpingJacks]] or [[ACTION:airSquats]] or [[ACTION:stretch]]. To stop exercising, [[ACTION:stop]]. Be friendly and a little teasing.";
+
+function miraLocalReply(text) {
+    const low = String(text || "").toLowerCase();
+    if (/squat/.test(low)) return "Okay — air squats with me. Keep your chest up. [[ACTION:airSquats]]";
+    if (/jumping\s*jack|jacks/.test(low)) return "Jumping jacks! Arms out, let's go. [[ACTION:jumpingJacks]]";
+    if (/stretch|warmup|warm-up/.test(low)) return "Mmm, stretch with me for a minute. [[ACTION:stretch]]";
+    if (/exercis|workout|fitness/.test(low)) return "Let's move — jumping jacks first. [[ACTION:jumpingJacks]]";
+    if (/stop|enough|rest|tired/.test(low)) return "Alright, I'll catch my breath. [[ACTION:stop]]";
+    if (/hello|hi\b|hey/.test(low)) return "Hey — I'm Mira. Come closer and talk to me.";
+    return "Mm, I'm listening. Say that again a little closer.";
+}
+
+function miraOutputText(j) {
+    if (!j) return "";
+    if (typeof j.output_text === "string" && j.output_text.trim()) return j.output_text.trim();
+    const parts = [];
+    for (const o of j.output || []) {
+        if (typeof o === "string") parts.push(o);
+        for (const c of o.content || []) {
+            if (typeof c === "string") parts.push(c);
+            else if (c && c.text) parts.push(c.text);
+        }
+    }
+    if (parts.length) return parts.join("\n").trim();
+    const ch = j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content;
+    return (ch || "").trim();
+}
+
+app.post("/api/mira/chat", async (req, res) => {
+    humanHeaders(res);
+    const text = String((req.body && req.body.text) || "").slice(0, 2000);
+    const persona = String((req.body && req.body.persona) || MIRA_DEFAULT_PERSONA).slice(0, 4000);
+    if (!text) return res.status(400).json({ error: "text required" });
+    const key = process.env.XAI_API_KEY;
+    if (!key) return res.json({ reply: miraLocalReply(text) });
+    try {
+        let r = await fetch("https://api.x.ai/v1/responses", {
+            method: "POST",
+            headers: { Authorization: "Bearer " + key, "Content-Type": "application/json" },
+            body: JSON.stringify({
+                model: "grok-4.6",
+                store: false,
+                input: [
+                    { role: "system", content: persona || MIRA_DEFAULT_PERSONA },
+                    { role: "user", content: text },
+                ],
+            }),
+        });
+        let j = await r.json().catch(() => ({}));
+        let reply = miraOutputText(j);
+        if (!r.ok || !reply) {
+            r = await fetch("https://api.x.ai/v1/chat/completions", {
+                method: "POST",
+                headers: { Authorization: "Bearer " + key, "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    model: "grok-4.6",
+                    messages: [
+                        { role: "system", content: persona || MIRA_DEFAULT_PERSONA },
+                        { role: "user", content: text },
+                    ],
+                }),
+            });
+            j = await r.json().catch(() => ({}));
+            reply = miraOutputText(j);
+        }
+        if (!reply) reply = miraLocalReply(text);
+        res.json({ reply });
+    } catch (e) {
+        console.warn("[mira chat]", e.message);
+        res.json({ reply: miraLocalReply(text) });
+    }
+});
+
+app.post("/api/mira/tts", async (req, res) => {
+    humanHeaders(res);
+    const text = String((req.body && req.body.text) || "").slice(0, 500);
+    const key = process.env.XAI_API_KEY;
+    if (!key || !text) return res.status(204).end();
+    try {
+        const r = await fetch("https://api.x.ai/v1/tts", {
+            method: "POST",
+            headers: { Authorization: "Bearer " + key, "Content-Type": "application/json" },
+            body: JSON.stringify({ text, voice_id: "eve", language: "en" }),
+        });
+        if (!r.ok) return res.status(502).json({ error: "tts failed" });
+        const buf = Buffer.from(await r.arrayBuffer());
+        res.setHeader("Content-Type", r.headers.get("content-type") || "audio/mpeg");
+        res.send(buf);
+    } catch (e) {
+        console.warn("[mira tts]", e.message);
+        res.status(502).json({ error: "tts failed" });
+    }
+});
+
+app.post("/api/mira/stt", miraUpload.single("file"), async (req, res) => {
+    humanHeaders(res);
+    const key = process.env.XAI_API_KEY;
+    if (!key) return res.status(503).json({ error: "no key" });
+    if (!req.file || !req.file.buffer) return res.status(400).json({ error: "file required" });
+    try {
+        const form = new FormData();
+        const blob = new Blob([req.file.buffer], { type: req.file.mimetype || "audio/webm" });
+        form.append("file", blob, req.file.originalname || "clip.webm");
+        const r = await fetch("https://api.x.ai/v1/stt", {
+            method: "POST",
+            headers: { Authorization: "Bearer " + key },
+            body: form,
+        });
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok) return res.status(502).json({ error: j.error || "stt failed" });
+        res.json({ text: j.text || j.transcript || "" });
+    } catch (e) {
+        console.warn("[mira stt]", e.message);
+        res.status(502).json({ error: "stt failed" });
+    }
 });
 app.get(["/games/horde", "/games/horde/"], (req, res) => res.redirect("/horde"));
 app.get(["/horde", "/horde/"], (req, res) => {

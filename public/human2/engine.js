@@ -1,7 +1,8 @@
 import * as THREE from "three";
 import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
-import { createMiraSystem, SLIDERS, FACE_TYPES, HAIR_COLORS } from "./mira-core.js?v=10";
+import { createMiraSystem, SLIDERS, FACE_TYPES, HAIR_COLORS } from "./mira-core.js?v=12";
+import { DEFAULT_PERSONA, miraChat, miraSpeak, startMic } from "./mira-voice.js?v=12";
 
 const QUEST = /OculusBrowser|Quest/i.test(navigator.userAgent);
 const loadEl = document.getElementById("load");
@@ -73,7 +74,7 @@ mira.load(
   (x) => { if (x.total && loadEl) loadEl.textContent = "LOADING  " + Math.round((x.loaded / x.total) * 100) + "%"; },
   () => {
     if (loadEl) loadEl.remove();
-    banner("HUMAN 2 · left stick move · right stick turn · grab noodle or Mira");
+    banner("HUMAN 2 · left stick move · Y spawn ball · grab noodle, Mira, or ball");
     bindHud();
   },
   (e) => { banner("LOAD FAILED — " + (e && e.message ? e.message : "glb")); console.error(e); }
@@ -133,7 +134,7 @@ function bindHud() {
         shape,
         faceType: src ? src.faceType : (n % FACE_TYPES.length),
         hairColor: (src ? src.hairColor + 1 : n) % HAIR_COLORS.length,
-        gait: n % 2,
+        gait: n % 4,
         position: new THREE.Vector3(n * 0.95, 0, 0),
       });
     } catch (e) {
@@ -144,6 +145,57 @@ function bindHud() {
     syncLabs();
     banner("Spawned Mira " + mira.actors.length + " — sliders edit the newest.");
   };
+  const personaEl = document.getElementById("persona");
+  if (personaEl) {
+    personaEl.value = DEFAULT_PERSONA;
+    mira.persona = DEFAULT_PERSONA;
+    personaEl.addEventListener("input", () => { mira.persona = personaEl.value; });
+  }
+  let micHandle = null;
+  let talking = false;
+  const micBtn = document.getElementById("micBtn");
+  async function onHeard(text) {
+    if (!text || talking) return;
+    talking = true;
+    banner("heard: " + text);
+    const cam = renderer.xr.isPresenting ? renderer.xr.getCamera() : camera;
+    cam.getWorldPosition(_fwd);
+    const actor = mira.nearestTo(_fwd, 2.6) || mira.selected;
+    if (actor) {
+      actor.setMode("talk");
+      actor.lookAtPos = _fwd.clone();
+      actor.talkT = 0.2;
+    }
+    try {
+      const r = await miraChat(text, personaEl ? personaEl.value : DEFAULT_PERSONA);
+      if (actor && r.mode) actor.setMode(r.mode);
+      banner(r.text || "");
+      await miraSpeak(r.text);
+    } catch (e) {
+      banner("voice: " + (e && e.message ? e.message : e));
+    }
+    talking = false;
+  }
+  if (micBtn) {
+    micBtn.onclick = async () => {
+      if (micHandle) {
+        try { if (micHandle.stop) micHandle.stop(); else if (micHandle.abort) micHandle.abort(); } catch (_) {}
+        micHandle = null;
+        micBtn.textContent = "VOICE OFF";
+        banner("Voice off");
+        return;
+      }
+      try {
+        await navigator.mediaDevices.getUserMedia({ audio: true });
+      } catch (e) {
+        banner("Mic permission failed — allow microphone for Quest voice");
+        return;
+      }
+      micHandle = startMic(onHeard);
+      micBtn.textContent = "VOICE ON";
+      banner("Voice on — speak near Mira");
+    };
+  }
   syncLabs();
 }
 

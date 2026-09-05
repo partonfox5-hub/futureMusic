@@ -4,10 +4,11 @@ import { clone as cloneSkinned } from "three/addons/utils/SkeletonUtils.js";
 
 export const ASSET = "/human2/assets/mira.glb?v=9";
 export const TEXROOT = "/human2/assets/tex/";
-export const TEXVER = "10";
+export const TEXVER = "12";
 
 export const FACE_TYPES = [
   { id: "natural", name: "Natural", file: "head.jpg" },
+  { id: "portrait", name: "Portrait", file: "head_ref.jpg" },
   { id: "warm", name: "Warm", file: "head_warm.jpg" },
   { id: "cool", name: "Cool", file: "head_cool.jpg" },
   { id: "rosy", name: "Rosy", file: "head_rosy.jpg" },
@@ -58,16 +59,19 @@ const MORPH = [
 const FINGER_ROWS = ["Index", "Mid", "Ring", "Pinky"];
 const QUEST = /OculusBrowser|Quest/i.test(navigator.userAgent);
 const GAIT = [
-  { stride: 0.28, knee: 0.48, hipYaw: 0.04, arm: 0.22, bob: 0.01, sway: 0.024, freq: 5.1 },
-  { stride: 0.34, knee: 0.58, hipYaw: 0.028, arm: 0.28, bob: 0.014, sway: 0.018, freq: 5.6 },
+  { stride: 0.28, knee: 0.48, hipYaw: 0.04, arm: 0.22, bob: 0.01, sway: 0.024, freq: 5.1, style: "ease" },
+  { stride: 0.34, knee: 0.58, hipYaw: 0.028, arm: 0.28, bob: 0.014, sway: 0.018, freq: 5.6, style: "stride" },
+  { stride: 0.22, knee: 0.4, hipYaw: 0.09, arm: 0.16, bob: 0.016, sway: 0.05, freq: 4.2, style: "sashay" },
+  { stride: 0.4, knee: 0.68, hipYaw: 0.018, arm: 0.36, bob: 0.022, sway: 0.012, freq: 6.6, style: "power" },
 ];
+const BALL_COLORS = [0xe23d3d, 0x3d8ae2, 0xe2c03d, 0x3dc46b, 0xe26ad2];
 const BODY_HIT = [
   { name: "Head", rad: 0.13, kind: "head" },
   { name: "NeckTwist02", rad: 0.09, kind: "head" },
   { name: "Spine02", rad: 0.17, kind: "chest" },
   { name: "Spine01", rad: 0.15, kind: "belly" },
-  { name: "L_Breast", rad: 0.135, kind: "breast" },
-  { name: "R_Breast", rad: 0.135, kind: "breast" },
+  { name: "L_Breast", rad: 0.17, kind: "breast" },
+  { name: "R_Breast", rad: 0.17, kind: "breast" },
   { name: "Hip", rad: 0.16, kind: "hip" },
   { name: "L_Glute", rad: 0.13, kind: "glute" },
   { name: "R_Glute", rad: 0.13, kind: "glute" },
@@ -256,6 +260,18 @@ class MiraActor {
     this.idleT = 2 + Math.random() * 2;
     this.idleDur = 2.4;
     this.gQuat = new THREE.Quaternion();
+    this.mode = "wander";
+    this.lookAtPos = null;
+    this.heldBall = null;
+    this.ballCool = 2 + Math.random() * 3;
+    this.talkT = 0;
+    this.personality = opts && opts.personality ? opts.personality : "";
+    this.baseY = 0;
+    this.squash = {};
+    this.socialT = 2 + Math.random() * 3;
+    this.throwN = 0;
+    this.dest = null;
+    this.talkTarget = null;
     this.prevHip = new THREE.Vector3();
     this.hipReady = false;
     this.hitReact = { lookYaw: 0, lookPitch: 0, lookT: 0, flinchX: 0, flinchY: 0, flinchZ: 0, headKickX: 0, headKickY: 0, exprT: 0, knockX: 0, knockZ: 0 };
@@ -399,23 +415,26 @@ class MiraActor {
   }
   tickWalk(moving) {
     if (!moving) return;
-    const g = GAIT[this.gait];
+    const g = GAIT[this.gait] || GAIT[0];
     const t = this.walkT;
     const swing = Math.sin(t) * g.stride;
     const liftL = Math.max(0, Math.sin(t));
     const liftR = Math.max(0, -Math.sin(t));
-    this.addE("L_Thigh", swing, 0, 0);
-    this.addE("R_Thigh", -swing, 0, 0);
+    const sash = g.style === "sashay";
+    this.addE("L_Thigh", swing, 0, sash ? 0.14 * Math.sin(t) : 0);
+    this.addE("R_Thigh", -swing, 0, sash ? -0.14 * Math.sin(t) : 0);
     this.addE("L_Calf", -liftL * g.knee, 0, 0);
     this.addE("R_Calf", -liftR * g.knee, 0, 0);
     this.addE("L_Foot", -Math.sin(t + 0.4) * 0.08, 0, 0);
     this.addE("R_Foot", -Math.sin(t + Math.PI + 0.4) * 0.08, 0, 0);
-    this.addE("L_Upperarm", swing * 0.42, 0, 0);
-    this.addE("R_Upperarm", -swing * 0.42, 0, 0);
+    const arm = g.arm / 0.26;
+    this.addE("L_Upperarm", swing * 0.42 * arm, 0, g.style === "power" ? 0.08 : 0);
+    this.addE("R_Upperarm", -swing * 0.42 * arm, 0, g.style === "power" ? -0.08 : 0);
     this.addE("L_Forearm", -liftR * 0.28, 0, 0);
     this.addE("R_Forearm", -liftL * 0.28, 0, 0);
-    this.addE("Hip", Math.sin(t * 2) * g.bob, Math.sin(t) * g.sway, Math.sin(t) * g.hipYaw);
-    this.addE("Spine02", 0, Math.sin(t) * -0.04, 0);
+    const bob = Math.sin(t * 2) * g.bob + (g.style === "power" ? Math.abs(Math.sin(t)) * 0.04 : 0);
+    this.addE("Hip", bob, Math.sin(t) * g.sway, Math.sin(t) * g.hipYaw);
+    this.addE("Spine02", 0, Math.sin(t) * (sash ? -0.1 : -0.04), 0);
     this.addE("Spine01", Math.sin(t * 2) * 0.012, 0, 0);
   }
   tickIdle(t, dt) {
@@ -424,7 +443,7 @@ class MiraActor {
     this.addE("R_Clavicle", Math.sin(t * 0.8 + 0.7) * 0.02, 0, Math.sin(t * 0.9 + 1) * 0.015);
     this.idleT -= dt;
     if (this.idleT <= 0) {
-      const kinds = ["rest", "rest", "hairL", "hairR", "stretch", "hipShift", "lookHand"];
+      const kinds = ["rest", "rest", "hairL", "hairR", "stretch", "hipShift", "lookHand", "wave", "cheekRest", "akimbo", "shoulderLook"];
       this.idleKind = kinds[(Math.random() * kinds.length) | 0];
       this.idleDur = this.idleKind === "rest" ? 2.2 + Math.random() * 2 : 1.6 + Math.random() * 1.1;
       this.idleT = this.idleDur;
@@ -450,7 +469,61 @@ class MiraActor {
       this.addE("R_Upperarm", 0.45 * k, 0, -0.2 * k);
       this.addE("R_Forearm", 0.4 * k, 0, 0);
       this.addE("Head", 0.22 * k, -0.12 * k, 0);
+    } else if (this.idleKind === "wave") {
+      this.addE("R_Upperarm", -0.95 * k, 0, -0.35 * k);
+      this.addE("R_Forearm", 0.35 * k, Math.sin(t * 9) * 0.45 * k, 0);
+      this.addE("Head", 0, -0.08 * k, 0);
+    } else if (this.idleKind === "cheekRest") {
+      this.addE("L_Upperarm", -0.7 * k, 0.25 * k, 0.55 * k);
+      this.addE("L_Forearm", 1.05 * k, 0, 0.2 * k);
+      this.addE("Head", 0.12 * k, 0.22 * k, 0);
+    } else if (this.idleKind === "akimbo") {
+      this.addE("L_Upperarm", 0.38 * k, 0, 0.58 * k);
+      this.addE("R_Upperarm", 0.38 * k, 0, -0.58 * k);
+      this.addE("L_Forearm", 0.9 * k, 0, 0.12 * k);
+      this.addE("R_Forearm", 0.9 * k, 0, -0.12 * k);
+      this.addE("Hip", 0, 0.1 * k, 0.07 * k);
+    } else if (this.idleKind === "shoulderLook") {
+      this.addE("Head", 0.06 * k, 0.58 * k, 0);
+      this.addE("NeckTwist02", 0, 0.18 * k, 0);
+      this.addE("Spine02", 0, 0.2 * k, 0);
+      this.addE("R_Upperarm", -0.22 * k, 0, -0.18 * k);
     }
+  }
+  tickJumpingJacks(t) {
+    const p = (Math.sin(t * 7.2) + 1) * 0.5;
+    this.addE("L_Upperarm", -1.15 * p, 0, 0.95 * p);
+    this.addE("R_Upperarm", -1.15 * p, 0, -0.95 * p);
+    this.addE("L_Thigh", 0.08 * p, 0, 0.22 * p);
+    this.addE("R_Thigh", 0.08 * p, 0, -0.22 * p);
+    this.group.position.y = this.baseY + Math.abs(Math.sin(t * 7.2)) * 0.07;
+  }
+  tickAirSquats(t) {
+    const p = (Math.sin(t * 3.15) + 1) * 0.5;
+    this.addE("L_Thigh", 0.78 * p, 0, 0);
+    this.addE("R_Thigh", 0.78 * p, 0, 0);
+    this.addE("L_Calf", -1.05 * p, 0, 0);
+    this.addE("R_Calf", -1.05 * p, 0, 0);
+    this.addE("Hip", 0.18 * p, 0, 0);
+    this.addE("Spine02", 0.14 * p, 0, 0);
+    this.addE("L_Upperarm", 0.28 * p, 0, 0.12 * p);
+    this.addE("R_Upperarm", 0.28 * p, 0, -0.12 * p);
+    this.group.position.y = this.baseY;
+  }
+  tickStretch(t) {
+    const p = (Math.sin(t * 1.55) + 1) * 0.5;
+    this.addE("L_Upperarm", -1.15 * p, 0, 0.42 * p);
+    this.addE("R_Upperarm", -1.15 * p, 0, -0.42 * p);
+    this.addE("Spine02", -0.14 * p, 0, 0);
+    this.addE("L_Forearm", 0.2 * p, 0, 0);
+    this.addE("R_Forearm", 0.2 * p, 0, 0);
+    this.group.position.y = this.baseY;
+  }
+  setMode(mode) {
+    this.mode = mode || "wander";
+    this.modeT = 0;
+    this.group.position.y = this.baseY;
+    if (mode === "jumpingJacks" || mode === "airSquats" || mode === "stretch") this.talkT = 0;
   }
   tickSoft(dt, moving) {
     const hip = this.bones.Hip;
@@ -469,9 +542,9 @@ class MiraActor {
     const drive = moving ? 1 : 0.28;
     const step = Math.min(dt, 1 / 50);
     const visc = {
-      breast: { stiff: 11.5, damp: 7.4, max: 0.22, mass: b, posK: 0.028, restY: -0.16 },
-      glute: { stiff: 16, damp: 10.5, max: 0.14, mass: g, posK: 0.016, restY: -0.05 },
-      thigh: { stiff: 22, damp: 13, max: 0.08, mass: th, posK: 0.01, restY: 0 },
+      breast: { stiff: 4.6, damp: 3.05, max: 0.55, mass: b, posK: 0.18, restY: -0.22 },
+      glute: { stiff: 13, damp: 8.5, max: 0.2, mass: g, posK: 0.03, restY: -0.06 },
+      thigh: { stiff: 18, damp: 11, max: 0.1, mass: th, posK: 0.012, restY: 0 },
     };
     for (const s of this.soft) {
       const bone = this.bones[s.name];
@@ -505,12 +578,19 @@ class MiraActor {
         s.vx *= 0.995;
         s.vz *= 0.995;
       }
-      this.addE(s.name, s.z * 0.45, s.y * 0.25, s.x * 0.45);
+      this.addE(s.name, s.z * 0.55, s.y * 0.32, s.x * 0.55);
       if (this.bindPos[s.name] && s.kind !== "thigh") {
         const k = p.posK * mass;
         bone.position.x = this.bindPos[s.name].x + s.x * k;
         bone.position.y = this.bindPos[s.name].y + s.y * k;
         bone.position.z = this.bindPos[s.name].z + s.z * k;
+      }
+      this.squash[s.name] = (this.squash[s.name] || 0) * Math.exp(-dt * 5.2);
+      const sq = this.squash[s.name];
+      if (s.kind === "breast" && sq > 0.002 && this.bindS[s.name]) {
+        bone.scale.x *= 1 + sq * 0.45;
+        bone.scale.y *= 1 - sq * 0.12;
+        bone.scale.z *= 1 - sq * 0.55;
       }
     }
   }
@@ -600,15 +680,31 @@ class MiraActor {
         vel.addScaledVector(_n, Math.max(closing, 0) * (1 + bounce) + push * (foam ? 2 : 8));
         vel.multiplyScalar(foam ? 0.72 : 0.9);
       }
-      if (closing > 0.22) this.applyStrike(hit, _n, closing, vel ? vel.length() * 0.15 : 0, _w);
-      else {
-        for (const s of this.soft) {
-          if (s.name !== hit.name && !(hit.kind === "chest" && s.kind === "breast") && !(hit.kind === "hip" && s.kind === "glute")) continue;
-          s.vx += _n.x * push * 8;
-          s.vy += _n.y * push * 6;
-          s.vz += _n.z * push * 8;
+      const impulse = Math.max(push * 36, Math.max(0, closing) * 14);
+      for (const s of this.soft) {
+        let wgt = 0;
+        if (s.name === hit.name) wgt = 1;
+        else if (hit.kind === "chest" && s.kind === "breast") wgt = 0.95;
+        else if (hit.kind === "breast" && s.kind === "breast") wgt = s.name[0] === hit.name[0] ? 1 : 0.5;
+        else if (hit.kind === "hip" && s.kind === "glute") wgt = 0.8;
+        else if (hit.kind === "glute" && s.kind === "glute") wgt = s.name[0] === hit.name[0] ? 1 : 0.4;
+        if (wgt <= 0) continue;
+        const boneS = this.bones[s.name];
+        if (boneS) {
+          boneS.getWorldQuaternion(this.gQuat);
+          this.gQuat.invert();
+          // _n is breast -> collider; flesh indents the opposite way.
+          _w2.copy(_n).applyQuaternion(this.gQuat);
+          s.vx -= _w2.x * impulse * wgt;
+          s.vy -= _w2.y * impulse * wgt;
+          s.vz -= _w2.z * impulse * wgt;
+          s.x -= _w2.x * push * 5.4 * wgt;
+          s.y -= _w2.y * push * 4.2 * wgt;
+          s.z -= _w2.z * push * 5.4 * wgt;
+          if (s.kind === "breast") this.squash[s.name] = Math.min(0.55, (this.squash[s.name] || 0) + push * 6.2 * wgt);
         }
       }
+      if (closing > 0.35) this.applyStrike(hit, _n, closing, vel ? vel.length() * 0.15 : 0, _w);
       hitAny = true;
     }
     return hitAny;
@@ -682,6 +778,7 @@ class MiraActor {
   }
   wander(dt) {
     if (this.held) return false;
+    if (this.mode === "jumpingJacks" || this.mode === "airSquats" || this.mode === "stretch" || this.mode === "talk") return false;
     this.miraWalk -= dt;
     if (this.miraWalk < 0) {
       this.miraWalk = 2.6 + Math.random() * 4.2;
@@ -699,12 +796,16 @@ class MiraActor {
     return true;
   }
   tick(dt, camPos, tAbs) {
+    if (this.mode === "jumpingJacks" || this.mode === "airSquats" || this.mode === "stretch") this.talkT = 0;
+    this.modeT = (this.modeT || 0) + dt;
+    if ((this.mode === "jumpingJacks" || this.mode === "airSquats" || this.mode === "stretch") && this.modeT > 16 + Math.random() * 8) this.setMode("wander");
+    this.ballCool = Math.max(0, (this.ballCool || 0) - dt);
     const moving = this.wander(dt);
-    const g = GAIT[this.gait];
-    this.walkT += dt * (moving ? g.freq : 1.6);
+    const g = GAIT[this.gait] || GAIT[0];
+    this.walkT += dt * (moving ? g.freq : (this.mode === "jumpingJacks" ? 7.2 : 1.6));
     this.gaitSwitch -= moving ? dt : 0;
     if (this.gaitSwitch <= 0) {
-      this.gait = this.gait ? 0 : 1;
+      this.gait = (this.gait + 1) % GAIT.length;
       this.gaitSwitch = 2.4 + Math.random() * 2.2;
     }
     this.tickExpr(dt);
@@ -712,13 +813,22 @@ class MiraActor {
     this.applyShape();
     this.tickRest();
     this.addE("Spine02", Math.sin(tAbs * 1.55) * 0.026, 0, 0);
-    if (moving) this.tickWalk(true);
+    if (this.mode === "jumpingJacks") this.tickJumpingJacks(tAbs);
+    else if (this.mode === "airSquats") this.tickAirSquats(tAbs);
+    else if (this.mode === "stretch") this.tickStretch(tAbs);
+    else if (this.mode === "talk") {
+      this.tickIdle(tAbs, dt);
+      this.addE("R_Upperarm", -0.28, 0, -0.22);
+      this.addE("R_Forearm", 0.45 + Math.sin(tAbs * 5.2) * 0.18, 0, 0);
+      this.want.Mouth_Smile_L = this.want.Mouth_Smile_R = 0.35 + Math.abs(Math.sin(tAbs * 6)) * 0.4;
+      this.want.Jaw_Open = 0.08 + Math.abs(Math.sin(tAbs * 8)) * 0.12;
+    } else if (moving) this.tickWalk(true);
     else this.tickIdle(tAbs, dt);
     this.tickGrab(dt);
-    this.tickSoft(dt, moving);
-    this.tickGaze(dt, moving, camPos);
+    this.tickSoft(dt, moving || this.mode === "jumpingJacks" || this.mode === "airSquats");
+    this.tickGaze(dt, moving, this.lookAtPos || camPos);
     this.tickHitReact(dt);
-    this.tickFingers(0.08);
+    this.tickFingers(this.heldBall ? 0.75 : 0.08);
     this.applyExtras();
     this.tickMorphs(dt);
     if (this.skeleton) this.skeleton.update();
@@ -847,6 +957,20 @@ class FloppyNoodle {
   }
 }
 
+class RubberBall {
+  constructor(scene, pos, color) {
+    this.rad = 0.075;
+    this.mesh = new THREE.Mesh(
+      new THREE.SphereGeometry(this.rad, 16, 12),
+      new THREE.MeshStandardMaterial({ color: color || 0xe23d3d, roughness: 0.52, metalness: 0.02 })
+    );
+    this.mesh.position.copy(pos);
+    this.vel = new THREE.Vector3((Math.random() - 0.5) * 0.4, 0.8, (Math.random() - 0.5) * 0.4);
+    this.held = null;
+    scene.add(this.mesh);
+  }
+}
+
 class PlayerHands {
   constructor(renderer, parent) {
     this.ctrl = [renderer.xr.getController(0), renderer.xr.getController(1)];
@@ -854,6 +978,9 @@ class PlayerHands {
     this.squeeze = [0, 0];
     this.hands = [];
     this.handedness = ["none", "none"];
+    this.prevPos = [new THREE.Vector3(), new THREE.Vector3()];
+    this.vel = [new THREE.Vector3(), new THREE.Vector3()];
+    this.prevReady = [false, false];
     const skin = new THREE.MeshStandardMaterial({ color: 0xe8c4a4, roughness: 0.7 });
     for (let i = 0; i < 2; i++) {
       parent.add(this.ctrl[i]);
@@ -903,8 +1030,11 @@ class PlayerHands {
       for (const fg of h.userData.fingers) fg.rotation.x = curl * 0.85;
       h.userData.thumb.rotation.y = (h.scale.x < 0 ? -1 : 1) * (0.55 + curl * 0.4);
       this.ctrl[i].getWorldPosition(_v);
+      if (this.prevReady[i]) this.vel[i].copy(_v).sub(this.prevPos[i]).multiplyScalar(1 / Math.max(dt, 1 / 90));
+      this.prevPos[i].copy(_v);
+      this.prevReady[i] = true;
       _w.set(0, 0, 0);
-      for (const actor of actors) actor.collidePoint(_v, 0.04, _w, true);
+      for (const actor of actors) actor.collidePoint(_v, 0.045, _w, true);
     }
   }
 }
@@ -922,6 +1052,10 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
   const camPos = new THREE.Vector3();
   const holdPos = new THREE.Vector3();
   const blobs = [];
+  const balls = [];
+  let persona = "";
+  const yPrev = [false, false];
+  const ballHeld = [null, null];
 
   function addBlob() {
     const blob = new THREE.Mesh(
@@ -943,7 +1077,7 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
       if (Array.isArray(o.material)) o.material = o.material.map((m) => m && m.clone());
       else if (o.material) o.material = o.material.clone();
     });
-    const actor = new MiraActor(cloned, baseScale, opts || {});
+    const actor = new MiraActor(cloned, baseScale, Object.assign({ personality: persona }, opts || {}));
     const n = actors.length;
     if (!opts || !opts.position) actor.group.position.set((n % 3) * 0.85 - 0.85, 0, -((n / 3) | 0) * 0.9);
     scene.add(actor.group);
@@ -979,9 +1113,43 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
     );
   }
 
+  function spawnBall(pos, vel) {
+    if (balls.length >= 8) {
+      const old = balls.shift();
+      if (old.held && old.held.kind === "mira" && old.held.actor) old.held.actor.heldBall = null;
+      scene.remove(old.mesh);
+    }
+    const p = (pos && pos.clone) ? pos.clone() : new THREE.Vector3(0, 1.2, -0.4);
+    const b = new RubberBall(scene, p, BALL_COLORS[balls.length % BALL_COLORS.length]);
+    if (vel) b.vel.copy(vel);
+    balls.push(b);
+    return b;
+  }
+
+  function nearestTo(pos, maxDist) {
+    let best = null, bd = maxDist;
+    for (const a of actors) {
+      const d = Math.hypot(a.group.position.x - pos.x, a.group.position.z - pos.z);
+      if (d < bd) { bd = d; best = a; }
+    }
+    return best;
+  }
+
   function trySelect(i) {
     const ctrl = hands.ctrl[i];
     ctrl.getWorldPosition(_v);
+    let bestB = null, bdB = 0.16;
+    for (const b of balls) {
+      if (b.held) continue;
+      const d = b.mesh.position.distanceTo(_v);
+      if (d < bdB) { bdB = d; bestB = b; }
+    }
+    if (bestB) {
+      if (bestB.held && bestB.held.kind === "mira" && bestB.held.actor) bestB.held.actor.heldBall = null;
+      bestB.held = { kind: "player", ctrl, i };
+      ballHeld[i] = bestB;
+      return;
+    }
     const ni = noodle.grabIndex(_v);
     if (ni >= 0) {
       noodleHeld = ctrl;
@@ -1005,22 +1173,222 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
     for (const actor of actors) {
       if (actor.held && actor.held.ctrl === hands.ctrl[i]) actor.endGrab();
     }
+    const b = ballHeld[i];
+    if (b && b.held && b.held.kind === "player" && b.held.i === i) {
+      b.vel.copy(hands.vel[i]).multiplyScalar(1.65);
+      b.vel.y += 0.35;
+      b.held = null;
+      ballHeld[i] = null;
+    }
   }
   hands.ctrl[0].addEventListener("selectstart", () => trySelect(0));
   hands.ctrl[1].addEventListener("selectstart", () => trySelect(1));
   hands.ctrl[0].addEventListener("selectend", () => tryRelease(0));
   hands.ctrl[1].addEventListener("selectend", () => tryRelease(1));
 
+  function pollSpawnBalls(keys) {
+    if (!xrOn()) {
+      if (keys && keys.KeyB && !yPrev[0]) {
+        camera.getWorldPosition(_v);
+        camera.getWorldDirection(_w);
+        spawnBall(_v.clone().addScaledVector(_w, 0.55).setY(Math.max(1.05, _v.y - 0.1)), _w.clone().multiplyScalar(2.2).setY(1.1));
+      }
+      yPrev[0] = !!(keys && keys.KeyB);
+      return;
+    }
+    const session = renderer.xr.getSession();
+    if (!session) return;
+    let li = 0;
+    for (const src of session.inputSources) {
+      const gp = src.gamepad;
+      const i = src.handedness === "right" ? 1 : 0;
+      const pressed = !!(gp && gp.buttons && ((gp.buttons[5] && gp.buttons[5].pressed) || (gp.buttons[4] && gp.buttons[4].pressed)));
+      if (pressed && !yPrev[i]) {
+        const ctrl = hands.ctrl[i] || hands.ctrl[0];
+        ctrl.getWorldPosition(_v);
+        _w.set(0, 0.15, -0.35).applyQuaternion(ctrl.getWorldQuaternion(_q));
+        spawnBall(_v.clone().add(_w), hands.vel[i].clone().multiplyScalar(0.4).setY(1.15));
+      }
+      yPrev[i] = pressed;
+      li += 1;
+    }
+  }
+
+  function tickSocial(dt) {
+    const TALK = 1.28;
+    const SENSE = 3.35;
+    for (const a of actors) {
+      a.socialT = (a.socialT || 0) - dt;
+      if (a.held || a.heldBall || a.mode === "jumpingJacks" || a.mode === "airSquats" || a.mode === "stretch") {
+        if (a.mode !== "talk") a.lookAtPos = null;
+        continue;
+      }
+      if (a.socialT > 0 && a.mode !== "talk") { a.lookAtPos = null; continue; }
+      let best = null, bd = SENSE;
+      const ap = a.group.position;
+      const pd = Math.hypot(camPos.x - ap.x, camPos.z - ap.z);
+      if (pd < bd) { bd = pd; best = { kind: "player", x: camPos.x, y: camPos.y, z: camPos.z, dist: pd }; }
+      for (const o of actors) {
+        if (o === a) continue;
+        const d = Math.hypot(o.group.position.x - ap.x, o.group.position.z - ap.z);
+        if (d < bd) { bd = d; best = { kind: "mira", actor: o, x: o.group.position.x, y: 1.52, z: o.group.position.z, dist: d }; }
+      }
+      if (!best) {
+        if (a.mode === "talk") a.setMode("wander");
+        a.lookAtPos = null;
+        continue;
+      }
+      const look = new THREE.Vector3(best.x, best.kind === "player" ? camPos.y : 1.52, best.z);
+      if (best.dist > TALK + 0.18) {
+        if (a.mode === "talk") a.setMode("wander");
+        a.lookAtPos = look;
+        const dx = best.x - ap.x, dz = best.z - ap.z;
+        const len = Math.hypot(dx, dz) || 1;
+        const stop = TALK;
+        a.dest = new THREE.Vector3(ap.x + (dx / len) * (len - stop), 0, ap.z + (dz / len) * (len - stop));
+        a.miraWalk = Math.max(a.miraWalk, 1.4);
+      } else {
+        a.setMode("talk");
+        a.lookAtPos = look;
+        a.dest = null;
+        a.talkT += dt;
+        if (best.kind === "mira") {
+          best.actor.setMode("talk");
+          best.actor.lookAtPos = new THREE.Vector3(ap.x, 1.52, ap.z);
+          best.actor.dest = null;
+        }
+        if (a.talkT > 4.5 + Math.random() * 4) {
+          a.talkT = 0;
+          a.setMode("wander");
+          a.socialT = 5 + Math.random() * 7;
+          a.lookAtPos = null;
+        }
+      }
+    }
+  }
+
+  function tickBalls(dt) {
+    const g = 9.4;
+    for (const b of balls) {
+      if (b.held && b.held.kind === "player") {
+        b.held.ctrl.getWorldPosition(_v);
+        b.held.ctrl.getWorldQuaternion(_q);
+        _w.set(0, -0.02, -0.09).applyQuaternion(_q);
+        b.mesh.position.copy(_v).add(_w);
+        b.vel.copy(hands.vel[b.held.i] || _w.set(0, 0, 0));
+        continue;
+      }
+      if (b.held && b.held.kind === "mira") {
+        const a = b.held.actor;
+        const hand = a.bones[b.held.hand] || a.bones.R_Hand;
+        if (hand) {
+          hand.getWorldPosition(_v);
+          b.mesh.position.copy(_v);
+          b.mesh.position.y += 0.03;
+        }
+        if (a.ballCool <= 0) {
+          _n.set(camPos.x, 1.25, camPos.z);
+          for (const o of actors) {
+            if (o !== a) {
+              _n.set(o.group.position.x, 1.38, o.group.position.z);
+              break;
+            }
+          }
+          _n.sub(b.mesh.position);
+          const len = _n.length() || 1;
+          _n.multiplyScalar(1 / len);
+          _n.y += 0.38;
+          b.vel.copy(_n).multiplyScalar(3.2 + Math.random() * 1.1);
+          b.held = null;
+          a.heldBall = null;
+          a.throwN = (a.throwN || 0) + 1;
+          if (a.throwN >= 3 + ((Math.random() * 4) | 0) || Math.random() < 0.2) {
+            a.ballCool = 7 + Math.random() * 8;
+            a.throwN = 0;
+          } else a.ballCool = 0.35 + Math.random() * 0.25;
+        }
+        continue;
+      }
+      b.vel.y -= g * dt;
+      b.mesh.position.addScaledVector(b.vel, dt);
+      if (b.mesh.position.y < b.rad) {
+        b.mesh.position.y = b.rad;
+        if (b.vel.y < 0) b.vel.y = -b.vel.y * 0.74;
+        b.vel.x *= 0.84;
+        b.vel.z *= 0.84;
+        if (Math.abs(b.vel.y) < 0.35) b.vel.y = 0;
+      }
+      b.mesh.position.x = THREE.MathUtils.clamp(b.mesh.position.x, -4.2, 4.2);
+      b.mesh.position.z = THREE.MathUtils.clamp(b.mesh.position.z, -4.2, 4.2);
+      for (const a of actors) {
+        a.collidePoint(b.mesh.position, b.rad, b.vel, false);
+        if (a.heldBall || a.ballCool > 1.2) continue;
+        const hand = a.bones.R_Hand;
+        if (!hand) continue;
+        hand.getWorldPosition(_w);
+        const d = b.mesh.position.distanceTo(_w);
+        _n.copy(_w).sub(b.mesh.position);
+        const closing = _n.lengthSq() > 1e-6 ? b.vel.dot(_n.normalize()) : 0;
+        if (d < 0.22 && (closing > 0.35 || d < 0.11)) {
+          b.held = { kind: "mira", actor: a, hand: "R_Hand" };
+          a.heldBall = b;
+          a.ballCool = 0.3 + Math.random() * 0.35;
+          a.dest = null;
+        }
+      }
+    }
+    for (let i = 0; i < balls.length; i++) {
+      for (let j = i + 1; j < balls.length; j++) {
+        const a = balls[i], c = balls[j];
+        if (a.held || c.held) continue;
+        _n.copy(c.mesh.position).sub(a.mesh.position);
+        const d = _n.length();
+        const min = a.rad + c.rad;
+        if (d < min && d > 1e-5) {
+          _n.multiplyScalar(1 / d);
+          const push = (min - d) * 0.5;
+          a.mesh.position.addScaledVector(_n, -push);
+          c.mesh.position.addScaledVector(_n, push);
+          const rel = c.vel.clone().sub(a.vel).dot(_n);
+          if (rel < 0) {
+            a.vel.addScaledVector(_n, rel);
+            c.vel.addScaledVector(_n, -rel);
+          }
+        }
+      }
+    }
+    for (const a of actors) {
+      if (a.heldBall || a.held || a.mode === "jumpingJacks" || a.mode === "airSquats" || a.mode === "stretch" || a.ballCool > 2) continue;
+      let best = null, bd = 1.85;
+      for (const b of balls) {
+        if (b.held) continue;
+        const d = a.group.position.distanceTo(b.mesh.position);
+        if (d < bd) { bd = d; best = b; }
+      }
+      if (!best) continue;
+      if (bd > 0.42) {
+        a.dest = best.mesh.position.clone();
+        a.dest.y = 0;
+        a.miraWalk = Math.max(a.miraWalk, 1.2);
+      } else if (best.mesh.position.y < 0.38) {
+        best.held = { kind: "mira", actor: a, hand: "R_Hand" };
+        a.heldBall = best;
+        a.ballCool = 0.28;
+      }
+    }
+  }
+
   function tick(dt, tAbs, keys) {
     const cam = xrOn() ? renderer.xr.getCamera() : camera;
     cam.getWorldPosition(camPos);
+    pollSpawnBalls(keys);
     let hold = null, hq = null;
     if (noodleHeld && noodleHeld !== "desk") {
       noodleHeld.getWorldPosition(holdPos);
       noodleHeld.getWorldQuaternion(_q);
       hold = holdPos;
       hq = _q;
-    } else if (!xrOn() && keys && (keys.KeyF || keys.Mouse0)) {
+    } else if (!xrOn() && keys && (keys.KeyF || keys.Mouse0) && !ballHeld[0]) {
       camera.getWorldPosition(_v);
       camera.getWorldDirection(_w);
       holdPos.copy(_v).addScaledVector(_w, 0.7);
@@ -1031,6 +1399,8 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
     } else if (noodleHeld === "desk") { noodleHeld = null; noodleGrabI = -1; }
     noodle.tick(dt, actors, camPos, hold, hq, noodleGrabI);
     hands.tick(dt, actors);
+    tickSocial(dt);
+    tickBalls(dt);
     for (let i = 0; i < actors.length; i++) {
       actors[i].tick(dt, camPos, tAbs);
       if (blobs[i]) {
@@ -1041,7 +1411,9 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
   }
 
   return {
-    load, spawn, tick, actors, noodle, hands,
+    load, spawn, tick, spawnBall, nearestTo, actors, noodle, hands, balls,
+    get persona() { return persona; },
+    set persona(v) { persona = v || ""; for (const a of actors) a.personality = persona; },
     get ready() { return ready; },
     get selected() { return actors[actors.length - 1] || null; },
   };
