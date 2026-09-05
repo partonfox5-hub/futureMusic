@@ -4,7 +4,7 @@ import { clone as cloneSkinned } from "three/addons/utils/SkeletonUtils.js";
 
 export const ASSET = "/human2/assets/mira.glb?v=9";
 export const TEXROOT = "/human2/assets/tex/";
-export const TEXVER = "9";
+export const TEXVER = "10";
 
 export const FACE_TYPES = [
   { id: "natural", name: "Natural", file: "head.jpg" },
@@ -58,8 +58,8 @@ const MORPH = [
 const FINGER_ROWS = ["Index", "Mid", "Ring", "Pinky"];
 const QUEST = /OculusBrowser|Quest/i.test(navigator.userAgent);
 const GAIT = [
-  { stride: 0.34, knee: 0.62, hipYaw: 0.055, arm: 0.16, bob: 0.012, sway: 0.032, freq: 6.6 },
-  { stride: 0.46, knee: 0.82, hipYaw: 0.022, arm: 0.30, bob: 0.022, sway: 0.016, freq: 7.8 },
+  { stride: 0.28, knee: 0.48, hipYaw: 0.04, arm: 0.22, bob: 0.01, sway: 0.024, freq: 5.1 },
+  { stride: 0.34, knee: 0.58, hipYaw: 0.028, arm: 0.28, bob: 0.014, sway: 0.018, freq: 5.6 },
 ];
 const BODY_HIT = [
   { name: "Head", rad: 0.13, kind: "head" },
@@ -103,19 +103,7 @@ function loadMap(file, srgb) {
   return t;
 }
 
-function patchSkinShader(m) {
-  if (m.userData.skinPatched) return;
-  m.userData.skinPatched = true;
-  m.onBeforeCompile = (shader) => {
-    shader.fragmentShader = shader.fragmentShader.replace(
-      "vec3 outgoingLight = reflectedLight.directDiffuse + reflectedLight.indirectDiffuse + reflectedLight.directSpecular + reflectedLight.indirectSpecular + totalEmissiveRadiance;",
-      `reflectedLight.directDiffuse *= vec3(1.08, 0.96, 0.90);
-       reflectedLight.directDiffuse += diffuseColor.rgb * vec3(0.55, 0.14, 0.09) * 0.38;
-       reflectedLight.indirectDiffuse *= vec3(1.04, 0.97, 0.94);
-       vec3 outgoingLight = reflectedLight.directDiffuse + reflectedLight.indirectDiffuse + reflectedLight.directSpecular + reflectedLight.indirectSpecular + totalEmissiveRadiance;`
-    );
-  };
-}
+
 function isHairMat(m, o) {
   const n = ((m && m.name) || "") + " " + (o.name || "");
   return /transp|hair/i.test(n) && !/eyelash/i.test(n);
@@ -154,13 +142,7 @@ function applySkin(root) {
         m.map = loadMap(spec[0], true);
         if (spec[1]) {
           m.normalMap = loadMap(spec[1], false);
-          m.normalScale.set(1.85, 1.85);
-        }
-        const stem = spec[0].replace(".jpg", "").replace(".png", "");
-        if (/head|body|arm|leg/.test(stem) && !/head_/.test(stem)) {
-          const rfile = stem.split("_")[0] + "_r.jpg";
-          const rmap = loadMap(rfile, false);
-          if (rmap) m.roughnessMap = rmap;
+          m.normalScale.set(1.08, 1.08);
         }
       }
       if (m.map) {
@@ -177,14 +159,14 @@ function applySkin(root) {
       }
       m.metalness = 0;
       m.color.set(0xffffff);
-      m.roughness = hair ? 0.34 : (lash ? 0.55 : (/eye/i.test(m.name || "") ? 0.16 : 0.46));
+      m.roughness = hair ? 0.38 : (lash ? 0.55 : (/eye/i.test(m.name || "") ? 0.18 : 0.72));
       m.side = hair || lash ? THREE.DoubleSide : THREE.FrontSide;
       m.transparent = false;
       m.depthWrite = true;
       m.alphaTest = 0;
       if (hair) m.alphaTest = QUEST ? 0.32 : 0.26;
       if (lash) m.alphaTest = 0.35;
-      if (!hair && !lash && /Skin_/i.test(m.name || "")) patchSkinShader(m);
+      m.envMapIntensity = hair ? 0.35 : 0.18;
       m.needsUpdate = true;
       if (hair) hairMeshes.push(o);
     }
@@ -265,9 +247,15 @@ class MiraActor {
       { name: "R_Breast", x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, kind: "breast" },
       { name: "L_Glute", x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, kind: "glute" },
       { name: "R_Glute", x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, kind: "glute" },
+      { name: "L_Thigh", x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, kind: "thigh" },
+      { name: "R_Thigh", x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, kind: "thigh" },
     ];
     this.held = null;
     this.heldVel = new THREE.Vector3();
+    this.idleKind = "rest";
+    this.idleT = 2 + Math.random() * 2;
+    this.idleDur = 2.4;
+    this.gQuat = new THREE.Quaternion();
     this.prevHip = new THREE.Vector3();
     this.hipReady = false;
     this.hitReact = { lookYaw: 0, lookPitch: 0, lookT: 0, flinchX: 0, flinchY: 0, flinchZ: 0, headKickX: 0, headKickY: 0, exprT: 0, knockX: 0, knockZ: 0 };
@@ -349,13 +337,10 @@ class MiraActor {
     sc("R_Upperarm", s.arms, 1, s.arms);
     sc("L_Forearm", s.arms, 1, s.arms);
     sc("R_Forearm", s.arms, 1, s.arms);
-    const th = 0.62;
-    sc("L_Thumb1", th, th, th);
-    sc("R_Thumb1", th, th, th);
-    sc("L_Thumb2", 0.7, 0.7, 0.7);
-    sc("R_Thumb2", 0.7, 0.7, 0.7);
-    sc("L_Thumb3", 0.72, 0.72, 0.72);
-    sc("R_Thumb3", 0.72, 0.72, 0.72);
+    sc("L_Thumb1", 0.88, 0.88, 0.88);
+    sc("R_Thumb1", 0.88, 0.88, 0.88);
+    sc("L_Thumb2", 0.9, 0.9, 0.9);
+    sc("R_Thumb2", 0.9, 0.9, 0.9);
     if (this.bones.L_Thigh && this.bindPos.L_Thigh) this.bones.L_Thigh.position.x = this.bindPos.L_Thigh.x + s.gap * 0.05;
     if (this.bones.R_Thigh && this.bindPos.R_Thigh) this.bones.R_Thigh.position.x = this.bindPos.R_Thigh.x - s.gap * 0.05;
   }
@@ -402,18 +387,14 @@ class MiraActor {
     this.addE("L_Forearm", 0.22, 0, 0);
     this.addE("R_Forearm", 0.22, 0, 0);
   }
-  tickFingers(curl, t) {
-    const wiggle = Math.sin(t * 1.7) * 0.04;
+  tickFingers(curl) {
+    const c = 0.12 + curl * 0.25;
     for (const side of ["L_", "R_"]) {
       for (const row of FINGER_ROWS) {
-        this.addE(side + row + "1", curl * 0.42 + wiggle, 0, 0);
-        this.addE(side + row + "2", curl * 0.7, 0, 0);
-        this.addE(side + row + "3", curl * 0.55, 0, 0);
+        this.addE(side + row + "1", c * 0.22, 0, 0);
+        this.addE(side + row + "2", c * 0.35, 0, 0);
+        this.addE(side + row + "3", c * 0.28, 0, 0);
       }
-      const tSign = side === "L_" ? 1 : -1;
-      this.addE(side + "Thumb1", 0.18, curl * 0.28, 0.38 * tSign);
-      this.addE(side + "Thumb2", curl * 0.4, 0, 0);
-      this.addE(side + "Thumb3", curl * 0.3, 0, 0);
     }
   }
   tickWalk(moving) {
@@ -421,22 +402,55 @@ class MiraActor {
     const g = GAIT[this.gait];
     const t = this.walkT;
     const swing = Math.sin(t) * g.stride;
+    const liftL = Math.max(0, Math.sin(t));
+    const liftR = Math.max(0, -Math.sin(t));
     this.addE("L_Thigh", swing, 0, 0);
     this.addE("R_Thigh", -swing, 0, 0);
-    this.addE("L_Calf", -Math.max(0, Math.sin(t)) * g.knee, 0, 0);
-    this.addE("R_Calf", -Math.max(0, -Math.sin(t)) * g.knee, 0, 0);
-    this.addE("L_Foot", -Math.sin(t + 0.35) * 0.1, 0, 0);
-    this.addE("R_Foot", -Math.sin(t + Math.PI + 0.35) * 0.1, 0, 0);
-    this.addE("L_Upperarm", 0, 0, swing * g.arm);
-    this.addE("R_Upperarm", 0, 0, swing * g.arm);
-    this.addE("L_Forearm", -Math.max(0, -Math.sin(t)) * 0.35, 0, 0);
-    this.addE("R_Forearm", -Math.max(0, Math.sin(t)) * 0.35, 0, 0);
+    this.addE("L_Calf", -liftL * g.knee, 0, 0);
+    this.addE("R_Calf", -liftR * g.knee, 0, 0);
+    this.addE("L_Foot", -Math.sin(t + 0.4) * 0.08, 0, 0);
+    this.addE("R_Foot", -Math.sin(t + Math.PI + 0.4) * 0.08, 0, 0);
+    this.addE("L_Upperarm", swing * 0.42, 0, 0);
+    this.addE("R_Upperarm", -swing * 0.42, 0, 0);
+    this.addE("L_Forearm", -liftR * 0.28, 0, 0);
+    this.addE("R_Forearm", -liftL * 0.28, 0, 0);
     this.addE("Hip", Math.sin(t * 2) * g.bob, Math.sin(t) * g.sway, Math.sin(t) * g.hipYaw);
+    this.addE("Spine02", 0, Math.sin(t) * -0.04, 0);
+    this.addE("Spine01", Math.sin(t * 2) * 0.012, 0, 0);
   }
-  tickIdle(t) {
-    this.addE("Hip", 0, Math.sin(t * 0.65) * 0.02, Math.sin(t * 0.5) * 0.015);
-    this.addE("L_Clavicle", Math.sin(t * 0.8) * 0.025, 0, Math.sin(t * 0.9) * 0.02);
-    this.addE("R_Clavicle", Math.sin(t * 0.8 + 0.7) * 0.025, 0, Math.sin(t * 0.9 + 1) * 0.02);
+  tickIdle(t, dt) {
+    this.addE("Hip", 0, Math.sin(t * 0.65) * 0.018, Math.sin(t * 0.5) * 0.012);
+    this.addE("L_Clavicle", Math.sin(t * 0.8) * 0.02, 0, Math.sin(t * 0.9) * 0.015);
+    this.addE("R_Clavicle", Math.sin(t * 0.8 + 0.7) * 0.02, 0, Math.sin(t * 0.9 + 1) * 0.015);
+    this.idleT -= dt;
+    if (this.idleT <= 0) {
+      const kinds = ["rest", "rest", "hairL", "hairR", "stretch", "hipShift", "lookHand"];
+      this.idleKind = kinds[(Math.random() * kinds.length) | 0];
+      this.idleDur = this.idleKind === "rest" ? 2.2 + Math.random() * 2 : 1.6 + Math.random() * 1.1;
+      this.idleT = this.idleDur;
+    }
+    const u = 1 - Math.max(0, this.idleT) / Math.max(0.2, this.idleDur);
+    const k = Math.sin(Math.min(1, u) * Math.PI);
+    if (this.idleKind === "hairL") {
+      this.addE("L_Upperarm", -0.85 * k, 0.15 * k, 0.55 * k);
+      this.addE("L_Forearm", 0.9 * k, 0, 0.25 * k);
+      this.addE("Head", 0.08 * k, 0.18 * k, 0);
+    } else if (this.idleKind === "hairR") {
+      this.addE("R_Upperarm", -0.85 * k, -0.15 * k, -0.55 * k);
+      this.addE("R_Forearm", 0.9 * k, 0, -0.25 * k);
+      this.addE("Head", 0.08 * k, -0.18 * k, 0);
+    } else if (this.idleKind === "stretch") {
+      this.addE("L_Upperarm", -0.55 * k, 0, 0.35 * k);
+      this.addE("R_Upperarm", -0.55 * k, 0, -0.35 * k);
+      this.addE("Spine02", -0.08 * k, 0, 0);
+    } else if (this.idleKind === "hipShift") {
+      this.addE("Hip", 0, 0.12 * k, 0.08 * k);
+      this.addE("L_Thigh", 0.06 * k, 0, 0);
+    } else if (this.idleKind === "lookHand") {
+      this.addE("R_Upperarm", 0.45 * k, 0, -0.2 * k);
+      this.addE("R_Forearm", 0.4 * k, 0, 0);
+      this.addE("Head", 0.22 * k, -0.12 * k, 0);
+    }
   }
   tickSoft(dt, moving) {
     const hip = this.bones.Hip;
@@ -449,44 +463,54 @@ class MiraActor {
       az = (_w.z - this.prevHip.z) * inv;
     }
     if (hip) { this.prevHip.copy(_w); this.hipReady = true; }
-    const b = Math.max(0.35, this.shape.breast);
-    const g = Math.max(0.35, this.shape.butt);
-    const drive = moving ? 1 : 0.45;
-    const step = Math.min(dt, 1 / 45);
+    const b = Math.max(0.4, this.shape.breast);
+    const g = Math.max(0.4, this.shape.butt);
+    const th = Math.max(0.4, this.shape.thigh);
+    const drive = moving ? 1 : 0.28;
+    const step = Math.min(dt, 1 / 50);
+    const visc = {
+      breast: { stiff: 11.5, damp: 7.4, max: 0.22, mass: b, posK: 0.028, restY: -0.16 },
+      glute: { stiff: 16, damp: 10.5, max: 0.14, mass: g, posK: 0.016, restY: -0.05 },
+      thigh: { stiff: 22, damp: 13, max: 0.08, mass: th, posK: 0.01, restY: 0 },
+    };
     for (const s of this.soft) {
       const bone = this.bones[s.name];
       if (!bone || !this.bindQ[s.name]) continue;
-      const mass = s.kind === "breast" ? b : g;
-      const stiff = (s.kind === "breast" ? 4.2 : 8.4) / Math.pow(mass, 1.45);
-      const damp = (s.kind === "breast" ? 2.15 : 3.8) * Math.sqrt(mass);
-      const max = (s.kind === "breast" ? 0.38 : 0.22) * mass + 0.22;
-      const grav = (s.kind === "breast" ? 1.35 : 0.55) * mass;
-      const side = s.name.startsWith("R_") ? -1 : 1;
-      const bounce = Math.sin(this.walkT * 2) * (s.kind === "breast" ? 4.8 : 2.2) * drive * mass;
-      const accX = -ax * 1.15 * drive + Math.sin(this.walkT) * 1.8 * drive * side * mass;
-      const accY = -ay * 0.9 * drive + bounce * 0.45;
-      const accZ = -az * 1.15 * drive + bounce + grav;
+      const p = visc[s.kind] || visc.glute;
+      const mass = p.mass;
+      const stiff = p.stiff / Math.pow(mass, 0.35);
+      const damp = p.damp * Math.sqrt(mass);
+      const max = p.max * mass + 0.1;
+      bone.getWorldQuaternion(this.gQuat);
+      this.gQuat.invert();
+      _n.set(0, -1, 0).applyQuaternion(this.gQuat);
+      const grav = 6.8 * mass;
+      const bounce = Math.sin(this.walkT * 2) * (s.kind === "breast" ? 0.85 : 0.35) * drive;
+      const accX = -ax * 0.45 * drive + _n.x * grav + bounce * 0.15;
+      const accY = -ay * 0.45 * drive + _n.y * grav + bounce * 0.2;
+      const accZ = -az * 0.45 * drive + _n.z * grav + bounce;
       if (this.held && this.held.spring === s) {
-        s.x = THREE.MathUtils.damp(s.x, this.held.tx, 12, dt);
-        s.y = THREE.MathUtils.damp(s.y, this.held.ty, 12, dt);
-        s.z = THREE.MathUtils.damp(s.z, this.held.tz, 12, dt);
+        s.x = THREE.MathUtils.damp(s.x, this.held.tx, 10, dt);
+        s.y = THREE.MathUtils.damp(s.y, this.held.ty, 10, dt);
+        s.z = THREE.MathUtils.damp(s.z, this.held.tz, 10, dt);
         s.vx = 0; s.vy = 0; s.vz = 0;
       } else {
-        s.vx += (accX - s.x * stiff - s.vx * damp) * step;
-        s.vy += (accY - s.y * stiff - s.vy * damp) * step;
-        s.vz += (accZ - s.z * stiff - s.vz * damp) * step;
+        const rx = 0, ry = p.restY * mass, rz = 0;
+        s.vx += (accX - (s.x - rx) * stiff - s.vx * damp) * step;
+        s.vy += (accY - (s.y - ry) * stiff - s.vy * damp) * step;
+        s.vz += (accZ - (s.z - rz) * stiff - s.vz * damp) * step;
         s.x = THREE.MathUtils.clamp(s.x + s.vx * step, -max, max);
-        s.y = THREE.MathUtils.clamp(s.y + s.vy * step, -max * 0.55, max * 0.55);
-        s.z = THREE.MathUtils.clamp(s.z + s.vz * step, -max * 0.55, max);
-        if (Math.abs(s.x) >= max) s.vx *= 0.25;
-        if (Math.abs(s.z) >= max) s.vz *= 0.25;
+        s.y = THREE.MathUtils.clamp(s.y + s.vy * step, -max, max * 0.35);
+        s.z = THREE.MathUtils.clamp(s.z + s.vz * step, -max * 0.55, max * 0.55);
+        s.vx *= 0.995;
+        s.vz *= 0.995;
       }
-      this.addE(s.name, s.z * 0.85, s.y * 0.4, s.x * 0.85);
-      if (this.bindPos[s.name]) {
-        const k = (s.kind === "breast" ? 0.055 : 0.03) * mass;
+      this.addE(s.name, s.z * 0.45, s.y * 0.25, s.x * 0.45);
+      if (this.bindPos[s.name] && s.kind !== "thigh") {
+        const k = p.posK * mass;
         bone.position.x = this.bindPos[s.name].x + s.x * k;
-        bone.position.y = this.bindPos[s.name].y + s.y * k * 0.7;
-        bone.position.z = this.bindPos[s.name].z + s.z * k * 1.15;
+        bone.position.y = this.bindPos[s.name].y + s.y * k;
+        bone.position.z = this.bindPos[s.name].z + s.z * k;
       }
     }
   }
@@ -515,21 +539,25 @@ class MiraActor {
     hr.flinchX *= decay; hr.flinchY *= decay; hr.flinchZ *= decay;
     hr.headKickX *= decay; hr.headKickY *= decay;
     hr.lookT = Math.max(0, hr.lookT - dt);
-    this.addE("Spine02", hr.flinchX, hr.flinchY * 0.55, hr.flinchZ);
-    this.group.position.x += hr.knockX * dt;
-    this.group.position.z += hr.knockZ * dt;
+    hr.flinchX = THREE.MathUtils.clamp(hr.flinchX, -0.1, 0.1);
+    hr.flinchY = THREE.MathUtils.clamp(hr.flinchY, -0.08, 0.08);
+    hr.flinchZ = THREE.MathUtils.clamp(hr.flinchZ, -0.08, 0.08);
+    this.addE("Spine02", hr.flinchX * 0.55, hr.flinchY * 0.35, hr.flinchZ * 0.45);
+    this.addE("Spine01", hr.flinchX * 0.25, 0, 0);
+    this.group.position.x += THREE.MathUtils.clamp(hr.knockX, -1.2, 1.2) * dt;
+    this.group.position.z += THREE.MathUtils.clamp(hr.knockZ, -1.2, 1.2) * dt;
     const kd = Math.exp(-dt * 5.4);
     hr.knockX *= kd; hr.knockZ *= kd;
   }
   applyStrike(hit, nrm, closing, glance, pos) {
-    const mag = Math.min(6.5, closing * 1.35 + glance * 0.4);
-    if (mag < 0.05) return;
+    const mag = Math.min(1.8, closing * 0.55 + glance * 0.12);
+    if (mag < 0.08) return;
     const now = performance.now();
-    if ((this.hitCool[hit.name] || 0) > now - 40) return;
+    if ((this.hitCool[hit.name] || 0) > now - 80) return;
     this.hitCool[hit.name] = now;
-    const jx = nrm.x * mag * 4.4;
-    const jy = nrm.y * mag * 2.6;
-    const jz = nrm.z * mag * 4.4;
+    const jx = nrm.x * mag * 1.6;
+    const jy = nrm.y * mag * 1.1;
+    const jz = nrm.z * mag * 1.6;
     for (const s of this.soft) {
       let wgt = 0;
       if (s.name === hit.name) wgt = 1;
@@ -545,10 +573,12 @@ class MiraActor {
     if (hit.kind === "head" && mag > 0.7) lookYaw = -lookYaw * 0.45;
     this.hitReact.lookYaw = THREE.MathUtils.clamp(lookYaw * Math.min(1.1, mag * 0.75), -0.75, 0.75);
     this.hitReact.lookPitch = THREE.MathUtils.clamp(-nrm.y * mag * 0.28, -0.4, 0.32);
-    this.hitReact.lookT = 0.45 + Math.min(0.8, mag * 0.25);
-    this.hitReact.flinchX += THREE.MathUtils.clamp(-nrm.z * mag * 0.14, -0.32, 0.32);
-    this.hitReact.knockX += nrm.x * mag * 0.06;
-    this.hitReact.knockZ += nrm.z * mag * 0.06;
+    this.hitReact.lookT = 0.28 + Math.min(0.35, mag * 0.12);
+    if (hit.kind === "head" || hit.kind === "chest" || hit.kind === "belly") {
+      this.hitReact.flinchX += THREE.MathUtils.clamp(-nrm.z * mag * 0.05, -0.07, 0.07);
+    }
+    this.hitReact.knockX += nrm.x * mag * 0.02;
+    this.hitReact.knockZ += nrm.z * mag * 0.02;
     if (mag > 0.45) { this.hitReact.exprT = 0.4; exprFace(this.want, mag > 1.1 ? "angry" : "surprise"); }
   }
   collidePoint(pos, rad, vel, foam) {
@@ -570,7 +600,15 @@ class MiraActor {
         vel.addScaledVector(_n, Math.max(closing, 0) * (1 + bounce) + push * (foam ? 2 : 8));
         vel.multiplyScalar(foam ? 0.72 : 0.9);
       }
-      this.applyStrike(hit, _n, Math.max(closing, push * 4), vel ? vel.length() * 0.2 : 0, _w);
+      if (closing > 0.22) this.applyStrike(hit, _n, closing, vel ? vel.length() * 0.15 : 0, _w);
+      else {
+        for (const s of this.soft) {
+          if (s.name !== hit.name && !(hit.kind === "chest" && s.kind === "breast") && !(hit.kind === "hip" && s.kind === "glute")) continue;
+          s.vx += _n.x * push * 8;
+          s.vy += _n.y * push * 6;
+          s.vz += _n.z * push * 8;
+        }
+      }
       hitAny = true;
     }
     return hitAny;
@@ -675,12 +713,12 @@ class MiraActor {
     this.tickRest();
     this.addE("Spine02", Math.sin(tAbs * 1.55) * 0.026, 0, 0);
     if (moving) this.tickWalk(true);
-    else this.tickIdle(tAbs);
+    else this.tickIdle(tAbs, dt);
     this.tickGrab(dt);
     this.tickSoft(dt, moving);
     this.tickGaze(dt, moving, camPos);
     this.tickHitReact(dt);
-    this.tickFingers(0.08, tAbs);
+    this.tickFingers(0.08);
     this.applyExtras();
     this.tickMorphs(dt);
     if (this.skeleton) this.skeleton.update();
@@ -809,25 +847,6 @@ class FloppyNoodle {
   }
 }
 
-function makeFinger(parent, x, y, len, segs, skin) {
-  const joints = [];
-  let p = parent;
-  for (let i = 0; i < segs; i++) {
-    const g = new THREE.Group();
-    if (i === 0) g.position.set(x, y, -0.045);
-    else g.position.set(0, 0, -len);
-    const rad = Math.max(0.006, 0.01 - i * 0.0014);
-    const m = new THREE.Mesh(new THREE.CapsuleGeometry(rad, len * 0.62, 3, 6), skin);
-    m.rotation.x = Math.PI / 2;
-    m.position.z = -len * 0.42;
-    g.add(m);
-    p.add(g);
-    joints.push(g);
-    p = g;
-  }
-  return joints;
-}
-
 class PlayerHands {
   constructor(renderer, parent) {
     this.ctrl = [renderer.xr.getController(0), renderer.xr.getController(1)];
@@ -835,29 +854,34 @@ class PlayerHands {
     this.squeeze = [0, 0];
     this.hands = [];
     this.handedness = ["none", "none"];
-    const skin = new THREE.MeshStandardMaterial({ color: 0xe4bfa0, roughness: 0.58 });
+    const skin = new THREE.MeshStandardMaterial({ color: 0xe8c4a4, roughness: 0.7 });
     for (let i = 0; i < 2; i++) {
       parent.add(this.ctrl[i]);
       parent.add(this.grip[i]);
       const h = new THREE.Group();
-      // Grip space: +Y up the handle, -Z roughly pointing. Palm sits on the grip,
-      // fingers along -Z, thumb toward +X on the right hand. Left is mirrored.
-      h.rotation.set(-Math.PI / 2, Math.PI, 0);
-      const palm = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.026, 0.085), skin);
-      palm.position.set(0, 0, -0.01);
+      // Parented to the *target ray* so -Z is always the pointing direction.
+      const palm = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.022, 0.08), skin);
+      palm.position.set(0, -0.012, -0.05);
       h.add(palm);
-      h.userData.fingers = [
-        makeFinger(h, -0.026, 0.004, 0.026, 3, skin),
-        makeFinger(h, -0.009, 0.002, 0.03, 3, skin),
-        makeFinger(h, 0.009, 0.002, 0.028, 3, skin),
-        makeFinger(h, 0.026, 0.004, 0.023, 3, skin),
-      ];
-      h.userData.thumb = makeFinger(h, 0.032, 0.012, 0.02, 2, skin);
-      h.userData.thumb[0].position.set(0.028, 0.01, 0.01);
-      h.userData.thumb[0].rotation.set(0.35, 0.85, 0.4);
-      h.userData.colliders = [];
-      h.traverse((o) => { if (o.isMesh) h.userData.colliders.push(o); });
-      this.grip[i].add(h);
+      h.userData.fingers = [];
+      const xs = [-0.022, -0.008, 0.008, 0.022];
+      const lens = [0.032, 0.036, 0.034, 0.028];
+      for (let f = 0; f < 4; f++) {
+        const fg = new THREE.Group();
+        fg.position.set(xs[f], -0.01, -0.09);
+        const m = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.012, lens[f]), skin);
+        m.position.z = -lens[f] * 0.45;
+        fg.add(m);
+        h.add(fg);
+        h.userData.fingers.push(fg);
+      }
+      const thumb = new THREE.Mesh(new THREE.BoxGeometry(0.014, 0.012, 0.028), skin);
+      thumb.position.set(0.038, -0.002, -0.04);
+      thumb.rotation.y = 0.55;
+      h.add(thumb);
+      h.userData.thumb = thumb;
+      h.userData.colliders = [palm];
+      this.ctrl[i].add(h);
       this.hands.push(h);
       this.ctrl[i].addEventListener("connected", (ev) => {
         const hand = ev.data && ev.data.handedness;
@@ -869,25 +893,18 @@ class PlayerHands {
     }
   }
   palmPos(i, out) {
-    this.grip[i].getWorldPosition(out || _v);
+    this.ctrl[i].getWorldPosition(out || _v);
     return out || _v;
   }
   tick(dt, actors) {
     for (let i = 0; i < 2; i++) {
       const curl = this.squeeze[i];
       const h = this.hands[i];
-      for (const finger of h.userData.fingers) {
-        finger.forEach((j, k) => { j.rotation.x = curl * (0.7 + k * 0.4); });
-      }
-      h.userData.thumb.forEach((j, k) => { j.rotation.y = 0.85 + curl * (0.35 + k * 0.2); });
-      this.grip[i].getWorldPosition(_v);
+      for (const fg of h.userData.fingers) fg.rotation.x = curl * 0.85;
+      h.userData.thumb.rotation.y = (h.scale.x < 0 ? -1 : 1) * (0.55 + curl * 0.4);
+      this.ctrl[i].getWorldPosition(_v);
       _w.set(0, 0, 0);
-      for (const actor of actors) actor.collidePoint(_v, 0.03, _w, false);
-      for (const c of h.userData.colliders) {
-        c.getWorldPosition(_v);
-        _w.set(0, 0, 0);
-        for (const actor of actors) actor.collidePoint(_v, 0.016, _w, false);
-      }
+      for (const actor of actors) actor.collidePoint(_v, 0.04, _w, true);
     }
   }
 }
@@ -963,11 +980,11 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
   }
 
   function trySelect(i) {
-    const grip = hands.grip[i];
-    grip.getWorldPosition(_v);
+    const ctrl = hands.ctrl[i];
+    ctrl.getWorldPosition(_v);
     const ni = noodle.grabIndex(_v);
     if (ni >= 0) {
-      noodleHeld = hands.ctrl[i];
+      noodleHeld = ctrl;
       noodleGrabI = ni;
       return;
     }
@@ -981,12 +998,12 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
       const d = _v.distanceTo(_w);
       if (d < bd) { bd = d; bestA = actor; bestH = hit; }
     }
-    if (bestA && bestH) bestA.beginGrab(grip, bestH);
+    if (bestA && bestH) bestA.beginGrab(ctrl, bestH);
   }
   function tryRelease(i) {
     if (noodleHeld === hands.ctrl[i]) { noodleHeld = null; noodleGrabI = -1; }
     for (const actor of actors) {
-      if (actor.held && actor.held.ctrl === hands.grip[i]) actor.endGrab();
+      if (actor.held && actor.held.ctrl === hands.ctrl[i]) actor.endGrab();
     }
   }
   hands.ctrl[0].addEventListener("selectstart", () => trySelect(0));
@@ -999,9 +1016,8 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
     cam.getWorldPosition(camPos);
     let hold = null, hq = null;
     if (noodleHeld && noodleHeld !== "desk") {
-      const idx = noodleHeld === hands.ctrl[0] ? 0 : 1;
-      hands.grip[idx].getWorldPosition(holdPos);
-      hands.grip[idx].getWorldQuaternion(_q);
+      noodleHeld.getWorldPosition(holdPos);
+      noodleHeld.getWorldQuaternion(_q);
       hold = holdPos;
       hq = _q;
     } else if (!xrOn() && keys && (keys.KeyF || keys.Mouse0)) {

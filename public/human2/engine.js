@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
-import { createMiraSystem, SLIDERS, FACE_TYPES, HAIR_COLORS } from "./mira-core.js?v=9";
+import { createMiraSystem, SLIDERS, FACE_TYPES, HAIR_COLORS } from "./mira-core.js?v=10";
 
 const QUEST = /OculusBrowser|Quest/i.test(navigator.userAgent);
 const loadEl = document.getElementById("load");
@@ -22,7 +22,7 @@ renderer.setPixelRatio(Math.min(devicePixelRatio, QUEST ? 1.25 : 1.5));
 renderer.setSize(innerWidth, innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.08;
+renderer.toneMappingExposure = 0.96;
 renderer.xr.enabled = true;
 if (QUEST) renderer.xr.setFramebufferScaleFactor(0.85);
 renderer.setClearColor(0x6b5e52, 1);
@@ -36,15 +36,15 @@ const camera = new THREE.PerspectiveCamera(70, innerWidth / innerHeight, 0.05, 8
 camera.position.set(0, 1.45, 2.6);
 camera.lookAt(0, 0.95, 0);
 rig.add(camera);
-scene.add(new THREE.HemisphereLight(0xfff3e4, 0x3a3028, 0.8));
-const key = new THREE.DirectionalLight(0xfff0d8, 1.35);
+scene.add(new THREE.HemisphereLight(0xfff3e4, 0x3a3028, 0.72));
+const key = new THREE.DirectionalLight(0xfff0d8, 0.95);
 key.position.set(1.4, 3.2, 2.8);
 scene.add(key);
-scene.add(new THREE.AmbientLight(0xffffff, 0.32));
+scene.add(new THREE.AmbientLight(0xffffff, 0.28));
 try {
   const pmrem = new THREE.PMREMGenerator(renderer);
   scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
-  scene.environmentIntensity = 0.28;
+  scene.environmentIntensity = 0.12;
 } catch (e) { console.warn("env", e); }
 
 const floor = new THREE.Mesh(
