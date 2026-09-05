@@ -4,6 +4,8 @@ node_modules/
 npm-debug.log
 # Large binary — upload to GCS / Cloud Run volume, not git
 public/downloads/hero-slayer-alpha.zip
+public/downloads/*.bak*
+public/downloads/*.bak-plaintext-*
 public/games/zoom/saved/
 public/games/zoom/_gen/
 public/games/zoom/_devserver.js

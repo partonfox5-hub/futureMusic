@@ -2,9 +2,18 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { clone as cloneSkinned } from "three/addons/utils/SkeletonUtils.js";
 
-export const ASSET = "/human2/assets/mira.glb?v=9";
-export const TEXROOT = "/human2/assets/tex/";
-export const TEXVER = "12";
+/* Human 2 realism pass, 2026-09-05. Keep Three.js pinned to r170.
+ * Single-pass PBR + diffusion approximation; no extra eye-buffer passes.
+ * Bone secondary motion is a bounded approximation, not a volumetric tissue model.
+ * Research: developers.meta.com/horizon/documentation/web/webxr-perf-bp/
+ * matthias-research.github.io/pages/publications/smallsteps.pdf
+ * developer.nvidia.com/gpugems/gpugems/part-iii-materials/chapter-16-real-time-approximations-subsurface-scattering
+ * threejs.org/docs/pages/MeshStandardMaterial.html
+ * ?skin=0 disables wrapped skin diffuse; ?debug=1 exposes window.human2 for profiling.
+ */
+export const ASSET = new URL("./assets/mira.glb?v=13", import.meta.url).href;
+export const TEXROOT = new URL("./assets/tex/", import.meta.url).href;
+export const TEXVER = "13";
 
 export const FACE_TYPES = [
   { id: "natural", name: "Natural", file: "head.jpg" },
@@ -20,21 +29,21 @@ export const HAIR_COLORS = [
   { id: "brunette", name: "Brunette", tint: 0x8a5a32 },
 ];
 export const SLIDERS = [
-  { key: "height", label: "Height", min: 0.70, max: 1.38, step: 0.01, value: 1 },
-  { key: "waist", label: "Waist", min: 0.48, max: 1.62, step: 0.01, value: 1 },
-  { key: "hips", label: "Hips", min: 0.52, max: 1.75, step: 0.01, value: 1 },
-  { key: "breast", label: "Breast", min: 0.38, max: 2.25, step: 0.01, value: 1 },
-  { key: "butt", label: "Buttocks", min: 0.38, max: 2.25, step: 0.01, value: 1 },
-  { key: "thigh", label: "Thigh", min: 0.48, max: 1.95, step: 0.01, value: 1 },
-  { key: "gap", label: "Thigh gap", min: -1.6, max: 1.6, step: 0.01, value: 0 },
-  { key: "arms", label: "Arms", min: 0.72, max: 1.38, step: 0.01, value: 1 },
+  { key: "height", label: "Height", min: 0.85, max: 1.15, step: 0.01, value: 1 },
+  { key: "waist", label: "Waist", min: 0.85, max: 1.15, step: 0.01, value: 1 },
+  { key: "hips", label: "Hips", min: 0.85, max: 1.2, step: 0.01, value: 1 },
+  { key: "breast", label: "Breast", min: 0.75, max: 1.35, step: 0.01, value: 1 },
+  { key: "butt", label: "Buttocks", min: 0.85, max: 1.25, step: 0.01, value: 1 },
+  { key: "thigh", label: "Thigh", min: 0.85, max: 1.2, step: 0.01, value: 1 },
+  { key: "gap", label: "Thigh gap", min: -0.4, max: 0.4, step: 0.01, value: 0 },
+  { key: "arms", label: "Arms", min: 0.85, max: 1.15, step: 0.01, value: 1 },
 ];
 
 const MAP_FILE = {
-  Std_Skin_Head: ["head.jpg", "head_n.jpg"],
-  Std_Skin_Body: ["body.jpg", "body_n.jpg"],
-  Std_Skin_Arm: ["arm.jpg", "arm_n.jpg"],
-  Std_Skin_Leg: ["leg.jpg", "leg_n.jpg"],
+  Std_Skin_Head: ["head.jpg", "head_n.jpg", "head_r.jpg"],
+  Std_Skin_Body: ["body.jpg", "body_n.jpg", "body_r.jpg"],
+  Std_Skin_Arm: ["arm.jpg", "arm_n.jpg", "arm_r.jpg"],
+  Std_Skin_Leg: ["leg.jpg", "leg_n.jpg", "leg_r.jpg"],
   Std_Nails: ["nails.jpg", null],
   Std_Eye_L: ["eye_l.jpg", "eye_l_n.jpg"],
   Std_Eye_R: ["eye_r.jpg", "eye_r_n.jpg"],
@@ -65,22 +74,25 @@ const GAIT = [
   { stride: 0.4, knee: 0.68, hipYaw: 0.018, arm: 0.36, bob: 0.022, sway: 0.012, freq: 6.6, style: "power" },
 ];
 const BALL_COLORS = [0xe23d3d, 0x3d8ae2, 0xe2c03d, 0x3dc46b, 0xe26ad2];
+// Capsules follow both ends of each limb; radii are fitted to this 1.68 m rig.
 const BODY_HIT = [
-  { name: "Head", rad: 0.13, kind: "head" },
-  { name: "NeckTwist02", rad: 0.09, kind: "head" },
-  { name: "Spine02", rad: 0.17, kind: "chest" },
-  { name: "Spine01", rad: 0.15, kind: "belly" },
-  { name: "L_Breast", rad: 0.17, kind: "breast" },
-  { name: "R_Breast", rad: 0.17, kind: "breast" },
-  { name: "Hip", rad: 0.16, kind: "hip" },
-  { name: "L_Glute", rad: 0.13, kind: "glute" },
-  { name: "R_Glute", rad: 0.13, kind: "glute" },
-  { name: "L_Thigh", rad: 0.11, kind: "thigh" },
-  { name: "R_Thigh", rad: 0.11, kind: "thigh" },
-  { name: "L_Upperarm", rad: 0.075, kind: "arm" },
-  { name: "R_Upperarm", rad: 0.075, kind: "arm" },
-  { name: "L_Hand", rad: 0.06, kind: "hand" },
-  { name: "R_Hand", rad: 0.06, kind: "hand" },
+  { name: "Head", rad: 0.097, offset: [0, 0.065, 0.007], kind: "head" },
+  { name: "NeckTwist01", end: "Head", rad: 0.045, kind: "head" },
+  { name: "Spine02", end: "NeckTwist01", rad: 0.105, kind: "chest" },
+  { name: "Spine01", end: "Spine02", rad: 0.092, kind: "belly" },
+  { name: "Hip", end: "Spine01", rad: 0.11, kind: "hip" },
+  { name: "L_Breast", rad: 0.042, offset: [0, -0.018, 0], kind: "breast" },
+  { name: "R_Breast", rad: 0.042, offset: [0, -0.018, 0], kind: "breast" },
+  { name: "L_Glute", rad: 0.059, kind: "glute" },
+  { name: "R_Glute", rad: 0.059, kind: "glute" },
+  ...["L", "R"].flatMap((side) => [
+    { name: side + "_Thigh", end: side + "_Calf", rad: 0.067, kind: "thigh" },
+    { name: side + "_Calf", end: side + "_Foot", rad: 0.045, kind: "leg" },
+    { name: side + "_Foot", end: side + "_ToeBase", rad: 0.035, kind: "foot" },
+    { name: side + "_Upperarm", end: side + "_Forearm", rad: 0.044, kind: "arm" },
+    { name: side + "_Forearm", end: side + "_Hand", rad: 0.032, kind: "arm" },
+    { name: side + "_Hand", rad: 0.045, kind: "hand" }
+  ])
 ];
 
 const _q = new THREE.Quaternion();
@@ -91,16 +103,46 @@ const _w2 = new THREE.Vector3();
 const _n = new THREE.Vector3();
 const texLoader = new THREE.TextureLoader();
 const texCache = {};
+let maxAnisotropy = 4;
+const SKIN_DIFFUSION = new URLSearchParams(location.search).get("skin") !== "0";
+function installSkinShader(m) {
+  if (!SKIN_DIFFUSION || !/Skin_/i.test(m.name)) return;
+  m.onBeforeCompile = (shader) => {
+    // Energy-normalized wrapped diffuse lobes. Leave specular/normal detail intact.
+    const chunk = THREE.ShaderChunk.lights_physical_pars_fragment.replace(
+      "reflectedLight.directDiffuse += irradiance * BRDF_Lambert( material.diffuseColor );",
+      `float skinNL = dot( geometryNormal, directLight.direction );
+       vec3 skinWrap = vec3( 0.28, 0.12, 0.06 );
+       vec3 skinLobe = max( vec3( skinNL ) + skinWrap, vec3( 0.0 ) ) / pow( vec3( 1.0 ) + skinWrap, vec3( 2.0 ) );
+       vec3 skinIrradiance = mix( irradiance, skinLobe * directLight.color, 0.38 );
+       reflectedLight.directDiffuse += skinIrradiance * BRDF_Lambert( material.diffuseColor );`
+    );
+    shader.fragmentShader = shader.fragmentShader.replace("#include <lights_physical_pars_fragment>", chunk);
+  };
+  m.customProgramCacheKey = () => "human2-skin-r170-13";
+}
+const _cpA = new THREE.Vector3(), _cpB = new THREE.Vector3();
+const _cpD = new THREE.Vector3(), _cpP = new THREE.Vector3(), _cpN = new THREE.Vector3();
+const _contactN = new THREE.Vector3(), _contactP = new THREE.Vector3();
+const _softV = new THREE.Vector3(), _softQ = new THREE.Quaternion(), _softScale = new THREE.Vector3();
+const _ikA = new THREE.Vector3(), _ikB = new THREE.Vector3(), _ikC = new THREE.Vector3();
+const _ikDir = new THREE.Vector3(), _ikBend = new THREE.Vector3(), _ikKnee = new THREE.Vector3();
+const _ikQ = new THREE.Quaternion(), _ikParentQ = new THREE.Quaternion();
+const _motion = new THREE.Vector3(), _handProbe = new THREE.Vector3(), _handVelocity = new THREE.Vector3();
+function dampAngle(from, to, rate, dt) { return from + wrapPi(to - from) * (1 - Math.exp(-rate * dt)); }
+function limitVector(v, max) { if (v.lengthSq() > max * max) v.setLength(max); return v; }
+
 
 function loadMap(file, srgb) {
   if (!file) return null;
   const key = file + (srgb ? "s" : "l");
   if (texCache[key]) return texCache[key];
   const t = texLoader.load(TEXROOT + file + "?v=" + TEXVER, undefined, undefined, (err) => console.warn("tex fail", file, err));
-  t.colorSpace = srgb ? THREE.SRGBColorSpace : THREE.LinearSRGBColorSpace;
+  t.colorSpace = srgb ? THREE.SRGBColorSpace : THREE.NoColorSpace;
   t.flipY = false;
-  t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping;
-  t.anisotropy = 16;
+  t.wrapS = /^(head|body|arm|leg|nails|lash)/.test(file) ? THREE.RepeatWrapping : THREE.ClampToEdgeWrapping;
+  t.wrapT = THREE.ClampToEdgeWrapping;
+  t.anisotropy = maxAnisotropy;
   t.generateMipmaps = true;
   t.minFilter = THREE.LinearMipmapLinearFilter;
   texCache[key] = t;
@@ -135,46 +177,51 @@ function applySkin(root) {
   const hairMeshes = [];
   root.traverse((o) => {
     if (!o.isMesh) return;
+    o.visible = true;
     const mats = Array.isArray(o.material) ? o.material : [o.material];
-    if (mats.some((m) => m && /cornea/i.test(m.name || ""))) o.visible = false;
     for (const m of mats) {
       if (!m) continue;
-      const hair = isHairMat(m, o);
-      const lash = isLashMat(m, o);
+      const hair = isHairMat(m, o), lash = isLashMat(m, o);
+      const cornea = /cornea/i.test(m.name), eye = /Std_Eye_[LR]/i.test(m.name);
+      const skin = /Skin_/i.test(m.name);
       const spec = mapSpec(m, o);
       if (spec) {
         m.map = loadMap(spec[0], true);
-        if (spec[1]) {
-          m.normalMap = loadMap(spec[1], false);
-          m.normalScale.set(1.08, 1.08);
-        }
-      }
-      if (m.map) {
-        m.map.colorSpace = THREE.SRGBColorSpace;
-        m.map.flipY = false;
-        m.map.anisotropy = 16;
-        m.map.needsUpdate = true;
-      }
-      if (m.normalMap) {
-        m.normalMap.colorSpace = THREE.LinearSRGBColorSpace;
-        m.normalMap.flipY = false;
-        m.normalMap.anisotropy = 16;
-        m.normalMap.needsUpdate = true;
+        m.normalMap = spec[1] ? loadMap(spec[1], false) : null;
+        m.roughnessMap = spec[2] ? loadMap(spec[2], false) : null;
       }
       m.metalness = 0;
+      m.metalnessMap = null;
       m.color.set(0xffffff);
-      m.roughness = hair ? 0.38 : (lash ? 0.55 : (/eye/i.test(m.name || "") ? 0.18 : 0.72));
+      if (m.normalMap) {
+        m.normalMap.colorSpace = THREE.NoColorSpace;
+        m.normalScale.setScalar(eye ? 0.3 : 0.8);
+      }
+      m.roughness = skin ? 0.9 : hair ? 0.48 : lash ? 0.65 : eye ? 0.3 : 0.42;
+      m.envMapIntensity = skin ? 0.65 : eye ? 1.0 : 0.55;
       m.side = hair || lash ? THREE.DoubleSide : THREE.FrontSide;
       m.transparent = false;
+      m.opacity = 1;
       m.depthWrite = true;
-      m.alphaTest = 0;
-      if (hair) m.alphaTest = QUEST ? 0.32 : 0.26;
-      if (lash) m.alphaTest = 0.35;
-      m.envMapIntensity = hair ? 0.35 : 0.18;
+      m.alphaTest = hair ? 0.3 : lash ? 0.32 : 0;
+      m.alphaToCoverage = hair || lash;
+      // Small, inexpensive specular shell; no screen-space transmission pass.
+      // The eye's four materials share a mesh, so never hide the mesh here.
+      if (cornea) {
+        m.map = m.normalMap = m.roughnessMap = null;
+        m.color.set(0x050505);
+        m.roughness = 0.075;
+        m.envMapIntensity = 1.4;
+        m.transparent = true;
+        m.opacity = 0.45;
+        m.depthWrite = false;
+        m.blending = THREE.AdditiveBlending;
+      }
+      installSkinShader(m);
       m.needsUpdate = true;
       if (hair) hairMeshes.push(o);
     }
-    o.frustumCulled = false;
+    o.frustumCulled = false; // Bounds do not include all procedural poses.
   });
   return hairMeshes;
 }
@@ -239,7 +286,15 @@ class MiraActor {
     this.hairColor = (opts && opts.hairColor) || 0;
     this.want = Object.fromEntries(MORPH.map((n) => [n, 0]));
     this.cur = { ...this.want };
-    this.walkT = Math.random() * 4;
+    this.walkT = 0;
+    this.speed = 0;
+    this.moveVel = new THREE.Vector3();
+    this.poseQ = {};
+    this.poseAlpha = 1;
+    this.softAccumulator = 0;
+    this.feet = {};
+    this.gazeYaw = this.gazePitch = 0;
+    this.autoWander = true;
     this.gait = (opts && opts.gait) || 0;
     this.gaitSwitch = 2 + Math.random();
     this.blinkT = 1.5 + Math.random();
@@ -251,9 +306,13 @@ class MiraActor {
       { name: "R_Breast", x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, kind: "breast" },
       { name: "L_Glute", x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, kind: "glute" },
       { name: "R_Glute", x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, kind: "glute" },
-      { name: "L_Thigh", x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, kind: "thigh" },
-      { name: "R_Thigh", x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, kind: "thigh" },
     ];
+    for (const tissue of this.soft) Object.assign(tissue, {
+      anchor: new THREE.Vector3(), prevAnchor: new THREE.Vector3(),
+      prevVelocity: new THREE.Vector3(), acceleration: new THREE.Vector3(),
+      press: new THREE.Vector3(), pressT: 0, ready: false,
+      px: 0, py: 0, pz: 0
+    });
     this.held = null;
     this.heldVel = new THREE.Vector3();
     this.idleKind = "rest";
@@ -333,6 +392,7 @@ class MiraActor {
   }
   applyShape() {
     const s = this.shape;
+    for (const slider of SLIDERS) s[slider.key] = THREE.MathUtils.clamp(Number.isFinite(s[slider.key]) ? s[slider.key] : slider.value, slider.min, slider.max);
     this.root.scale.setScalar(this.baseScale * s.height);
     const sc = (n, x, y, z) => {
       const b = this.bones[n];
@@ -368,7 +428,10 @@ class MiraActor {
       const e = this.extra[n];
       _e.set(e.x, e.y, e.z, "XYZ");
       _q.setFromEuler(_e);
-      b.quaternion.copy(q0).multiply(_q);
+      _q.premultiply(q0);
+      const prev = this.poseQ[n] || (this.poseQ[n] = _q.clone());
+      prev.slerp(_q, this.poseAlpha);
+      b.quaternion.copy(prev);
     }
   }
   tickMorphs(dt) {
@@ -381,25 +444,33 @@ class MiraActor {
     }
   }
   tickExpr(dt) {
-    this.blinkT -= dt;
-    if (this.blinkHold > 0) {
-      this.blinkHold -= dt;
-      this.want.Eye_Blink_L = this.want.Eye_Blink_R = 1;
-      if (this.blinkHold <= 0) this.want.Eye_Blink_L = this.want.Eye_Blink_R = 0;
-    } else if (this.blinkT <= 0) {
-      this.blinkHold = 0.09;
-      this.blinkT = 2.2 + Math.random() * 3.2;
-    }
-    if (this.hitReact.exprT > 0) { this.hitReact.exprT -= dt; return; }
     this.exprT -= dt;
-    if (this.exprT <= 0) {
-      this.exprT = 5 + Math.random() * 5;
-      exprFace(this.want, EXPR_CYCLE[(Math.random() * EXPR_CYCLE.length) | 0]);
+    if (this.hitReact.exprT > 0) this.hitReact.exprT -= dt;
+    else if (this.exprT <= 0) {
+      this.exprT = 7 + Math.random() * 6;
+      exprFace(this.want, Math.random() < 0.75 ? "neutral" : "happy");
+      for (const n of MORPH) this.want[n] *= 0.22;
     }
+    this.blinkT -= dt;
+    if (this.blinkT <= 0 && this.blinkHold <= 0) {
+      this.blinkHold = 0.19;
+      this.blinkT = 2.5 + Math.random() * 4;
+    }
+    let blink = 0;
+    if (this.blinkHold > 0) {
+      this.blinkHold = Math.max(0, this.blinkHold - dt);
+      const elapsed = 0.19 - this.blinkHold;
+      blink = elapsed < 0.055 ? elapsed / 0.055 : Math.max(0, 1 - (elapsed - 0.055) / 0.135);
+      blink = THREE.MathUtils.smoothstep(blink, 0, 1);
+    }
+    this.want.Eye_Blink_L = this.want.Eye_Blink_R = blink;
+    // Blink envelope must not be low-pass filtered until it fails to close.
+    this.cur.Eye_Blink_L = this.cur.Eye_Blink_R = blink;
   }
+
   tickRest() {
-    this.addE("L_Upperarm", 0, 0, -0.95);
-    this.addE("R_Upperarm", 0, 0, 0.95);
+    this.addE("L_Upperarm", 0.05, 0, -1.32);
+    this.addE("R_Upperarm", 0.05, 0, 1.32);
     this.addE("L_Forearm", 0.22, 0, 0);
     this.addE("R_Forearm", 0.22, 0, 0);
   }
@@ -414,42 +485,98 @@ class MiraActor {
     }
   }
   tickWalk(moving) {
-    if (!moving) return;
-    const g = GAIT[this.gait] || GAIT[0];
-    const t = this.walkT;
-    const swing = Math.sin(t) * g.stride;
-    const liftL = Math.max(0, Math.sin(t));
-    const liftR = Math.max(0, -Math.sin(t));
-    const sash = g.style === "sashay";
-    this.addE("L_Thigh", swing, 0, sash ? 0.14 * Math.sin(t) : 0);
-    this.addE("R_Thigh", -swing, 0, sash ? -0.14 * Math.sin(t) : 0);
-    this.addE("L_Calf", -liftL * g.knee, 0, 0);
-    this.addE("R_Calf", -liftR * g.knee, 0, 0);
-    this.addE("L_Foot", -Math.sin(t + 0.4) * 0.08, 0, 0);
-    this.addE("R_Foot", -Math.sin(t + Math.PI + 0.4) * 0.08, 0, 0);
-    const arm = g.arm / 0.26;
-    this.addE("L_Upperarm", swing * 0.42 * arm, 0, g.style === "power" ? 0.08 : 0);
-    this.addE("R_Upperarm", -swing * 0.42 * arm, 0, g.style === "power" ? -0.08 : 0);
-    this.addE("L_Forearm", -liftR * 0.28, 0, 0);
-    this.addE("R_Forearm", -liftL * 0.28, 0, 0);
-    const bob = Math.sin(t * 2) * g.bob + (g.style === "power" ? Math.abs(Math.sin(t)) * 0.04 : 0);
-    this.addE("Hip", bob, Math.sin(t) * g.sway, Math.sin(t) * g.hipYaw);
-    this.addE("Spine02", 0, Math.sin(t) * (sash ? -0.1 : -0.04), 0);
-    this.addE("Spine01", Math.sin(t * 2) * 0.012, 0, 0);
+    const amount = THREE.MathUtils.clamp(this.speed / 0.55, 0, 1);
+    const phase = this.walkT;
+    this.addE("L_Upperarm", -Math.sin(phase) * 0.15 * amount, 0, 0);
+    this.addE("R_Upperarm", Math.sin(phase) * 0.15 * amount, 0, 0);
+    this.addE("L_Forearm", 0.08 * (1 - Math.sin(phase)) * amount, 0, 0);
+    this.addE("R_Forearm", 0.08 * (1 + Math.sin(phase)) * amount, 0, 0);
+    this.addE("Hip", 0, Math.sin(phase) * 0.025 * amount, Math.sin(phase) * 0.018 * amount);
+    this.addE("Spine02", 0, -Math.sin(phase) * 0.025 * amount, 0);
   }
+  aimBone(bone, child, target) {
+    bone.getWorldPosition(_ikA);
+    child.getWorldPosition(_ikB);
+    _ikB.sub(_ikA).normalize();
+    _ikC.copy(target).sub(_ikA).normalize();
+    _ikQ.setFromUnitVectors(_ikB, _ikC);
+    bone.getWorldQuaternion(_ikParentQ);
+    _ikQ.multiply(_ikParentQ);
+    bone.parent.getWorldQuaternion(_ikParentQ).invert();
+    bone.quaternion.copy(_ikParentQ.multiply(_ikQ));
+    bone.updateWorldMatrix(false, true);
+  }
+  solveFeet(dt, moving) {
+    const exercise = this.mode === "jumpingJacks" || this.mode === "stretch";
+    if (exercise) { this.feet = {}; return; }
+    const h = this.shape.height;
+    let activeStep = Object.values(this.feet).some((f) => f.swing);
+    for (const side of ["L", "R"]) {
+      const thigh = this.bones[side + "_Thigh"], calf = this.bones[side + "_Calf"], foot = this.bones[side + "_Foot"];
+      if (!thigh || !calf || !foot) continue;
+      let f = this.feet[side];
+      if (!f || Math.abs(f.height - h) > 0.005) {
+        const pos = foot.getWorldPosition(new THREE.Vector3());
+        f = this.feet[side] = { height: h, target: pos.clone(), start: pos.clone(), end: pos.clone(),
+          swing: false, restQ: this.group.getWorldQuaternion(new THREE.Quaternion()).invert().multiply(foot.getWorldQuaternion(new THREE.Quaternion())),
+          local: this.group.worldToLocal(pos.clone()), ankleY: Math.max(0.035 * h, pos.y - this.group.position.y) };
+      }
+      const forward = _motion.set(0, 0, 1).applyQuaternion(this.group.quaternion);
+      const behind = _ikDir.copy(f.target).sub(this.group.position).dot(forward);
+      if (moving && !activeStep && behind < -0.085 * h && (!this.nextFoot || this.nextFoot === side)) {
+        f.start.copy(f.target);
+        f.duration = THREE.MathUtils.clamp(0.18 * h / Math.max(0.2, this.speed), 0.22, 0.45);
+        _motion.set(side === "L" ? 0.085 * h : -0.085 * h, 0, this.speed * f.duration + 0.10 * h);
+        this.group.localToWorld(_motion);
+        f.end.copy(_motion); f.end.y = this.baseY + f.ankleY;
+        f.progress = 0; f.swing = true; activeStep = true;
+        f.phaseStart = side === "L" ? Math.PI : 0;
+      }
+      if (f.swing) {
+        f.progress = Math.min(1, f.progress + dt / f.duration);
+        const u = f.progress, smooth = u * u * u * (u * (u * 6 - 15) + 10);
+        f.target.lerpVectors(f.start, f.end, smooth);
+        f.target.y = this.baseY + f.ankleY + Math.sin(Math.PI * u) * 0.04 * h;
+        this.walkT = f.phaseStart + u * Math.PI;
+        if (u >= 1) { f.swing = false; this.nextFoot = side === "L" ? "R" : "L"; }
+      } else f.target.y = this.baseY + f.ankleY;
+      thigh.getWorldPosition(_ikA); calf.getWorldPosition(_ikB); foot.getWorldPosition(_ikC);
+      const upper = _ikA.distanceTo(_ikB), lower = _ikB.distanceTo(_ikC);
+      _ikDir.copy(f.target).sub(_ikA);
+      if (_ikDir.length() > upper + lower + 0.12 * h) {
+        // Tracking jumps/body drags recover a stance instead of stretching skin.
+        f.target.copy(f.local); this.group.localToWorld(f.target);
+        f.target.y = this.baseY + f.ankleY; f.swing = false;
+        _ikDir.copy(f.target).sub(_ikA);
+      }
+      const distance = THREE.MathUtils.clamp(_ikDir.length(), Math.abs(upper - lower) + 0.001, (upper + lower) * 0.998);
+      _ikDir.normalize();
+      _ikBend.set(0, 0, 1).applyQuaternion(this.group.quaternion);
+      _ikBend.addScaledVector(_ikDir, -_ikBend.dot(_ikDir)).normalize();
+      const along = (upper * upper + distance * distance - lower * lower) / (2 * distance);
+      _ikKnee.copy(_ikA).addScaledVector(_ikDir, along).addScaledVector(_ikBend, Math.sqrt(Math.max(0, upper * upper - along * along)));
+      this.aimBone(thigh, calf, _ikKnee);
+      this.aimBone(calf, foot, f.target);
+      this.group.getWorldQuaternion(_ikQ).multiply(f.restQ);
+      foot.parent.getWorldQuaternion(_ikParentQ).invert();
+      foot.quaternion.copy(_ikParentQ.multiply(_ikQ));
+      foot.updateWorldMatrix(false, true);
+    }
+  }
+
   tickIdle(t, dt) {
     this.addE("Hip", 0, Math.sin(t * 0.65) * 0.018, Math.sin(t * 0.5) * 0.012);
     this.addE("L_Clavicle", Math.sin(t * 0.8) * 0.02, 0, Math.sin(t * 0.9) * 0.015);
     this.addE("R_Clavicle", Math.sin(t * 0.8 + 0.7) * 0.02, 0, Math.sin(t * 0.9 + 1) * 0.015);
     this.idleT -= dt;
     if (this.idleT <= 0) {
-      const kinds = ["rest", "rest", "hairL", "hairR", "stretch", "hipShift", "lookHand", "wave", "cheekRest", "akimbo", "shoulderLook"];
+      const kinds = ["rest", "rest", "rest", "hipShift"];
       this.idleKind = kinds[(Math.random() * kinds.length) | 0];
       this.idleDur = this.idleKind === "rest" ? 2.2 + Math.random() * 2 : 1.6 + Math.random() * 1.1;
       this.idleT = this.idleDur;
     }
     const u = 1 - Math.max(0, this.idleT) / Math.max(0.2, this.idleDur);
-    const k = Math.sin(Math.min(1, u) * Math.PI);
+    const k = 0.35 * Math.sin(Math.min(1, u) * Math.PI) ** 2;
     if (this.idleKind === "hairL") {
       this.addE("L_Upperarm", -0.85 * k, 0.15 * k, 0.55 * k);
       this.addE("L_Forearm", 0.9 * k, 0, 0.25 * k);
@@ -520,99 +647,108 @@ class MiraActor {
     this.group.position.y = this.baseY;
   }
   setMode(mode) {
+    if (this.mode === mode) return;
     this.mode = mode || "wander";
     this.modeT = 0;
     this.group.position.y = this.baseY;
     if (mode === "jumpingJacks" || mode === "airSquats" || mode === "stretch") this.talkT = 0;
   }
-  tickSoft(dt, moving) {
-    const hip = this.bones.Hip;
-    if (hip) hip.getWorldPosition(_w);
-    let ax = 0, ay = 0, az = 0;
-    if (hip && this.hipReady) {
-      const inv = 1 / Math.max(dt, 1 / 120);
-      ax = (_w.x - this.prevHip.x) * inv;
-      ay = (_w.y - this.prevHip.y) * inv;
-      az = (_w.z - this.prevHip.z) * inv;
+  limitSoft(s) {
+    const factor = this.shape.height * Math.sqrt(s.kind === "breast" ? this.shape.breast : this.shape.butt);
+    const limits = s.kind === "breast" ? [[-0.012, 0.012], [-0.003, 0.012], [-0.016, 0.014]] : [[-0.009, 0.009], [-0.012, 0.012], [-0.012, 0.005]];
+    for (let i = 0; i < 3; i++) {
+      const axis = ["x", "y", "z"][i], velocity = "v" + axis;
+      if (!Number.isFinite(s[axis]) || !Number.isFinite(s[velocity])) s[axis] = s[velocity] = 0;
+      const lo = limits[i][0] * factor, hi = limits[i][1] * factor;
+      s[axis] = THREE.MathUtils.clamp(s[axis], lo, hi);
+      if ((s[axis] <= lo && s[velocity] < 0) || (s[axis] >= hi && s[velocity] > 0)) s[velocity] = 0;
+      s[velocity] = THREE.MathUtils.clamp(s[velocity], -0.3, 0.3);
     }
-    if (hip) { this.prevHip.copy(_w); this.hipReady = true; }
-    const b = Math.max(0.4, this.shape.breast);
-    const g = Math.max(0.4, this.shape.butt);
-    const th = Math.max(0.4, this.shape.thigh);
-    const drive = moving ? 1 : 0.28;
-    const step = Math.min(dt, 1 / 50);
-    const visc = {
-      breast: { stiff: 4.6, damp: 3.05, max: 0.55, mass: b, posK: 0.18, restY: -0.22 },
-      glute: { stiff: 13, damp: 8.5, max: 0.2, mass: g, posK: 0.03, restY: -0.06 },
-      thigh: { stiff: 18, damp: 11, max: 0.1, mass: th, posK: 0.012, restY: 0 },
-    };
+  }
+  resetPhysics() {
+    this.softAccumulator = 0;
+    for (const s of this.soft) {
+      s.x = s.y = s.z = s.vx = s.vy = s.vz = s.px = s.py = s.pz = 0;
+      s.ready = false; s.pressT = 0; s.press.set(0, 0, 0); s.acceleration.set(0, 0, 0);
+    }
+    this.held = null; this.heldVel.set(0, 0, 0); this.feet = {}; this.nextFoot = null;
+  }
+  tickSoft(dt) {
+    if (!(dt > 0)) return;
     for (const s of this.soft) {
       const bone = this.bones[s.name];
-      if (!bone || !this.bindQ[s.name]) continue;
-      const p = visc[s.kind] || visc.glute;
-      const mass = p.mass;
-      const stiff = p.stiff / Math.pow(mass, 0.35);
-      const damp = p.damp * Math.sqrt(mass);
-      const max = p.max * mass + 0.1;
-      bone.getWorldQuaternion(this.gQuat);
-      this.gQuat.invert();
-      _n.set(0, -1, 0).applyQuaternion(this.gQuat);
-      const grav = 6.8 * mass;
-      const bounce = Math.sin(this.walkT * 2) * (s.kind === "breast" ? 0.85 : 0.35) * drive;
-      const accX = -ax * 0.45 * drive + _n.x * grav + bounce * 0.15;
-      const accY = -ay * 0.45 * drive + _n.y * grav + bounce * 0.2;
-      const accZ = -az * 0.45 * drive + _n.z * grav + bounce;
-      if (this.held && this.held.spring === s) {
-        s.x = THREE.MathUtils.damp(s.x, this.held.tx, 10, dt);
-        s.y = THREE.MathUtils.damp(s.y, this.held.ty, 10, dt);
-        s.z = THREE.MathUtils.damp(s.z, this.held.tz, 10, dt);
-        s.vx = 0; s.vy = 0; s.vz = 0;
+      if (!bone) continue;
+      // Measure the undeformed anchor after the current pose, including turns.
+      s.anchor.copy(this.bindPos[s.name]).applyMatrix4(bone.parent.matrixWorld);
+      _softV.copy(s.anchor).sub(s.prevAnchor);
+      if (!s.ready || dt > 0.08 || _softV.lengthSq() > 0.0625) {
+        s.prevVelocity.set(0, 0, 0); s.acceleration.set(0, 0, 0);
+        s.x = s.y = s.z = s.vx = s.vy = s.vz = s.px = s.py = s.pz = 0;
+        s.ready = true;
       } else {
-        const rx = 0, ry = p.restY * mass, rz = 0;
-        s.vx += (accX - (s.x - rx) * stiff - s.vx * damp) * step;
-        s.vy += (accY - (s.y - ry) * stiff - s.vy * damp) * step;
-        s.vz += (accZ - (s.z - rz) * stiff - s.vz * damp) * step;
-        s.x = THREE.MathUtils.clamp(s.x + s.vx * step, -max, max);
-        s.y = THREE.MathUtils.clamp(s.y + s.vy * step, -max, max * 0.35);
-        s.z = THREE.MathUtils.clamp(s.z + s.vz * step, -max * 0.55, max * 0.55);
-        s.vx *= 0.995;
-        s.vz *= 0.995;
+        _softV.multiplyScalar(1 / dt);
+        const vx = _softV.x, vy = _softV.y, vz = _softV.z;
+        _softV.sub(s.prevVelocity).multiplyScalar(1 / dt);
+        s.prevVelocity.set(vx, vy, vz);
+        limitVector(_softV, 18);
+        bone.parent.getWorldQuaternion(_softQ).invert();
+        _softV.applyQuaternion(_softQ).multiplyScalar(-0.5);
+        s.acceleration.lerp(_softV, 1 - Math.exp(-dt * 16));
       }
-      this.addE(s.name, s.z * 0.55, s.y * 0.32, s.x * 0.55);
-      if (this.bindPos[s.name] && s.kind !== "thigh") {
-        const k = p.posK * mass;
-        bone.position.x = this.bindPos[s.name].x + s.x * k;
-        bone.position.y = this.bindPos[s.name].y + s.y * k;
-        bone.position.z = this.bindPos[s.name].z + s.z * k;
+      s.prevAnchor.copy(s.anchor);
+      s.pressT -= dt;
+      if (s.pressT <= 0) s.press.multiplyScalar(Math.exp(-dt * 24));
+    }
+    const step = 1 / 120;
+    this.softAccumulator = Math.min(this.softAccumulator + dt, step * 6);
+    while (this.softAccumulator + 1e-9 >= step) {
+      for (const s of this.soft) {
+        if (!this.bones[s.name]) continue;
+        s.px = s.x; s.py = s.y; s.pz = s.z;
+        const size = s.kind === "breast" ? this.shape.breast : this.shape.butt;
+        const omega = 2 * Math.PI * (s.kind === "breast" ? 3.4 : 5.5) / Math.sqrt(size);
+        let stiffness = omega * omega, damping = 2 * omega * (s.kind === "breast" ? 0.38 : 0.55);
+        const held = this.held && this.held.spring === s;
+        if (held) { stiffness = 900; damping = 55; }
+        for (const axis of ["x", "y", "z"]) {
+          const target = held ? this.held["t" + axis] : s.press[axis];
+          // Backward-Euler spring: stable for stiff contacts and dropped frames.
+          s["v" + axis] = (s["v" + axis] + step * (s.acceleration[axis] + stiffness * (target - s[axis]))) / (1 + damping * step + stiffness * step * step);
+          s[axis] += step * s["v" + axis];
+        }
+        this.limitSoft(s);
       }
-      this.squash[s.name] = (this.squash[s.name] || 0) * Math.exp(-dt * 5.2);
-      const sq = this.squash[s.name];
-      if (s.kind === "breast" && sq > 0.002 && this.bindS[s.name]) {
-        bone.scale.x *= 1 + sq * 0.45;
-        bone.scale.y *= 1 - sq * 0.12;
-        bone.scale.z *= 1 - sq * 0.55;
-      }
+      this.softAccumulator -= step;
+    }
+    const alpha = THREE.MathUtils.clamp(this.softAccumulator / step, 0, 1);
+    for (const s of this.soft) {
+      const bone = this.bones[s.name]; if (!bone) continue;
+      bone.parent.getWorldScale(_softScale);
+      // Offsets are in metres in the parent's oriented frame, independent of scale.
+      bone.position.copy(this.bindPos[s.name]);
+      bone.position.x += THREE.MathUtils.lerp(s.px, s.x, alpha) / Math.max(0.01, Math.abs(_softScale.x));
+      bone.position.y += THREE.MathUtils.lerp(s.py, s.y, alpha) / Math.max(0.01, Math.abs(_softScale.y));
+      bone.position.z += THREE.MathUtils.lerp(s.pz, s.z, alpha) / Math.max(0.01, Math.abs(_softScale.z));
     }
   }
+
   tickGaze(dt, moving, camPos) {
-    const dx = camPos.x - this.group.position.x;
-    const dz = camPos.z - this.group.position.z;
-    const dist = Math.hypot(dx, dz);
-    if (dist < 0.05 && this.hitReact.lookT <= 0) return;
-    const yawWorld = Math.atan2(dx, dz);
-    if (!moving && this.hitReact.lookT <= 0) this.group.rotation.y = THREE.MathUtils.damp(this.group.rotation.y, yawWorld, 3.2, dt);
-    let yaw = THREE.MathUtils.clamp(wrapPi(yawWorld - this.group.rotation.y), -0.55, 0.55);
-    let pitch = THREE.MathUtils.clamp((camPos.y - 1.48) * 0.18, -0.22, 0.22);
-    if (this.hitReact.lookT > 0) {
-      const k = Math.min(1, this.hitReact.lookT * 2.4);
-      yaw = THREE.MathUtils.lerp(yaw, this.hitReact.lookYaw, k);
-      pitch = THREE.MathUtils.lerp(pitch, this.hitReact.lookPitch, k);
-    }
-    this.want.Eye_L_Look_L = this.want.Eye_R_Look_L = Math.max(0, -yaw) * 1.35;
-    this.want.Eye_L_Look_R = this.want.Eye_R_Look_R = Math.max(0, yaw) * 1.35;
-    this.addE("Head", pitch * 0.4 + this.hitReact.headKickX, yaw * 0.32 + this.hitReact.headKickY, 0);
-    this.addE("NeckTwist02", pitch * 0.14, yaw * 0.12, 0);
+    const head = this.bones.Head;
+    const eyeHeight = this.group.position.y + 1.52 * this.shape.height;
+    const dx = camPos.x - this.group.position.x, dz = camPos.z - this.group.position.z;
+    const distance = Math.max(0.2, Math.hypot(dx, dz));
+    const yaw = THREE.MathUtils.clamp(wrapPi(Math.atan2(dx, dz) - this.group.rotation.y), -0.9, 0.9);
+    const pitch = THREE.MathUtils.clamp(-Math.atan2(camPos.y - eyeHeight, distance), -0.35, 0.35);
+    this.gazeYaw = THREE.MathUtils.damp(this.gazeYaw, yaw, 7, dt);
+    this.gazePitch = THREE.MathUtils.damp(this.gazePitch, pitch, 7, dt);
+    this.addE("Head", this.gazePitch * 0.5 + this.hitReact.headKickX, this.gazeYaw * 0.5, 0);
+    this.addE("NeckTwist02", this.gazePitch * 0.16, this.gazeYaw * 0.18, 0);
+    this.want.Eye_L_Look_L = this.want.Eye_R_Look_L = Math.max(0, -this.gazeYaw) * 0.45;
+    this.want.Eye_L_Look_R = this.want.Eye_R_Look_R = Math.max(0, this.gazeYaw) * 0.45;
+    this.want.Eye_L_Look_Up = this.want.Eye_R_Look_Up = Math.max(0, -this.gazePitch) * 0.8;
+    this.want.Eye_L_Look_Down = this.want.Eye_R_Look_Down = Math.max(0, this.gazePitch) * 0.8;
   }
+
   tickHitReact(dt) {
     const hr = this.hitReact;
     const decay = Math.exp(-dt * 6.2);
@@ -635,19 +771,6 @@ class MiraActor {
     const now = performance.now();
     if ((this.hitCool[hit.name] || 0) > now - 80) return;
     this.hitCool[hit.name] = now;
-    const jx = nrm.x * mag * 1.6;
-    const jy = nrm.y * mag * 1.1;
-    const jz = nrm.z * mag * 1.6;
-    for (const s of this.soft) {
-      let wgt = 0;
-      if (s.name === hit.name) wgt = 1;
-      else if (hit.kind === "chest" && s.kind === "breast") wgt = 0.95;
-      else if (hit.kind === "breast" && s.kind === "breast") wgt = s.name[0] === hit.name[0] ? 1 : 0.55;
-      else if (hit.kind === "belly" && s.kind === "breast") wgt = 0.5;
-      else if (hit.kind === "hip" && s.kind === "glute") wgt = 0.85;
-      else if (hit.kind === "glute" && s.kind === "glute") wgt = s.name[0] === hit.name[0] ? 1 : 0.48;
-      if (wgt > 0) { s.vx += jx * wgt; s.vy += jy * wgt; s.vz += jz * wgt; }
-    }
     _w.subVectors(pos, this.group.position);
     let lookYaw = wrapPi(Math.atan2(_w.x, _w.z) - this.group.rotation.y);
     if (hit.kind === "head" && mag > 0.7) lookYaw = -lookYaw * 0.45;
@@ -657,182 +780,185 @@ class MiraActor {
     if (hit.kind === "head" || hit.kind === "chest" || hit.kind === "belly") {
       this.hitReact.flinchX += THREE.MathUtils.clamp(-nrm.z * mag * 0.05, -0.07, 0.07);
     }
-    this.hitReact.knockX += nrm.x * mag * 0.02;
-    this.hitReact.knockZ += nrm.z * mag * 0.02;
+    this.hitReact.knockX -= nrm.x * mag * 0.02;
+    this.hitReact.knockZ -= nrm.z * mag * 0.02;
     if (mag > 0.45) { this.hitReact.exprT = 0.4; exprFace(this.want, mag > 1.1 ? "angry" : "surprise"); }
   }
-  collidePoint(pos, rad, vel, foam) {
-    let hitAny = false;
-    for (const hit of BODY_HIT) {
-      const bone = this.bones[hit.name];
-      if (!bone) continue;
-      bone.getWorldPosition(_w);
-      const scale = hit.kind === "breast" ? this.shape.breast : (hit.kind === "glute" ? this.shape.butt : 1);
-      const min = hit.rad * (0.95 + 0.22 * scale) * this.shape.height + rad;
-      const d = pos.distanceTo(_w);
-      if (d >= min || d < 1e-5) continue;
-      _n.subVectors(pos, _w).multiplyScalar(1 / d);
-      const push = min - d;
-      pos.addScaledVector(_n, push);
-      const closing = vel ? -vel.dot(_n) : 0;
-      if (vel) {
-        const bounce = foam ? 0.08 : 0.35;
-        vel.addScaledVector(_n, Math.max(closing, 0) * (1 + bounce) + push * (foam ? 2 : 8));
-        vel.multiplyScalar(foam ? 0.72 : 0.9);
-      }
-      const impulse = Math.max(push * 36, Math.max(0, closing) * 14);
-      for (const s of this.soft) {
-        let wgt = 0;
-        if (s.name === hit.name) wgt = 1;
-        else if (hit.kind === "chest" && s.kind === "breast") wgt = 0.95;
-        else if (hit.kind === "breast" && s.kind === "breast") wgt = s.name[0] === hit.name[0] ? 1 : 0.5;
-        else if (hit.kind === "hip" && s.kind === "glute") wgt = 0.8;
-        else if (hit.kind === "glute" && s.kind === "glute") wgt = s.name[0] === hit.name[0] ? 1 : 0.4;
-        if (wgt <= 0) continue;
-        const boneS = this.bones[s.name];
-        if (boneS) {
-          boneS.getWorldQuaternion(this.gQuat);
-          this.gQuat.invert();
-          // _n is breast -> collider; flesh indents the opposite way.
-          _w2.copy(_n).applyQuaternion(this.gQuat);
-          s.vx -= _w2.x * impulse * wgt;
-          s.vy -= _w2.y * impulse * wgt;
-          s.vz -= _w2.z * impulse * wgt;
-          s.x -= _w2.x * push * 5.4 * wgt;
-          s.y -= _w2.y * push * 4.2 * wgt;
-          s.z -= _w2.z * push * 5.4 * wgt;
-          if (s.kind === "breast") this.squash[s.name] = Math.min(0.55, (this.squash[s.name] || 0) + push * 6.2 * wgt);
-        }
-      }
-      if (closing > 0.35) this.applyStrike(hit, _n, closing, vel ? vel.length() * 0.15 : 0, _w);
-      hitAny = true;
-    }
-    return hitAny;
+  hitSegment(hit) {
+    const bone = this.bones[hit.name];
+    if (!bone) return 0;
+    _cpA.set(...(hit.offset || [0, 0, 0])).applyMatrix4(bone.matrixWorld);
+    if (hit.end && this.bones[hit.end]) _cpB.setFromMatrixPosition(this.bones[hit.end].matrixWorld);
+    else _cpB.copy(_cpA);
+    const shape = hit.kind === "breast" ? this.shape.breast : hit.kind === "glute" ? this.shape.butt : hit.kind === "thigh" ? this.shape.thigh : hit.kind === "arm" ? this.shape.arms : 1;
+    return hit.rad * this.shape.height * Math.sqrt(shape);
   }
-  nearestHit(worldPos, maxDist) {
-    let best = null, bd = maxDist;
-    for (const hit of BODY_HIT) {
-      const bone = this.bones[hit.name];
-      if (!bone) continue;
-      bone.getWorldPosition(_w);
-      const scale = hit.kind === "breast" ? this.shape.breast : (hit.kind === "glute" ? this.shape.butt : 1);
-      const d = worldPos.distanceTo(_w) - hit.rad * scale * 0.5;
-      if (d < bd) { bd = d; best = hit; }
+  contactSoft(hit, normal, push, closing) {
+    for (const s of this.soft) {
+      if (this.held && this.held.spring === s) continue;
+      const weight = s.name === hit.name ? 1 : hit.kind === "chest" && s.kind === "breast" ? 0.25 : 0;
+      if (!weight) continue;
+      this.bones[s.name].parent.getWorldQuaternion(_softQ).invert();
+      _softV.copy(normal).applyQuaternion(_softQ).multiplyScalar(-weight);
+      s.press.copy(_softV).multiplyScalar(Math.min(push * 0.35, 0.005));
+      s.pressT = 0.045;
+      const impulse = Math.min(Math.max(0, closing) * 0.045, 0.12);
+      s.vx += _softV.x * impulse; s.vy += _softV.y * impulse; s.vz += _softV.z * impulse;
+      this.limitSoft(s);
     }
+  }
+  collidePoint(pos, rad, vel, foam, react = true) {
+    let best = null, deepest = 0, bestClosing = 0;
+    for (const hit of BODY_HIT) {
+      const radius = this.hitSegment(hit); if (!radius) continue;
+      _cpD.subVectors(_cpB, _cpA);
+      _cpP.copy(pos).sub(_cpA);
+      const u = THREE.MathUtils.clamp(_cpP.dot(_cpD) / Math.max(1e-10, _cpD.lengthSq()), 0, 1);
+      _cpP.copy(_cpA).addScaledVector(_cpD, u);
+      _cpN.copy(pos).sub(_cpP);
+      const distance = _cpN.length(), minimum = radius + rad;
+      if (distance >= minimum) continue;
+      if (distance < 1e-7) _cpN.set(0, 0, 1).applyQuaternion(this.group.quaternion);
+      else _cpN.multiplyScalar(1 / distance);
+      const push = minimum - distance;
+      const closing = vel ? Math.max(0, -vel.dot(_cpN)) : 0;
+      pos.addScaledVector(_cpN, push + 0.00001);
+      if (vel && closing > 0) vel.addScaledVector(_cpN, closing * (foam ? 1 : 1.35));
+      // Positional projection contributes no artificial velocity/energy.
+      if (push > deepest) {
+        deepest = push; best = hit; bestClosing = closing;
+        _contactN.copy(_cpN); _contactP.copy(_cpP);
+      }
+    }
+    if (best && react) {
+      this.contactSoft(best, _contactN, deepest, bestClosing);
+      if (bestClosing > 0.5) this.applyStrike(best, _contactN, bestClosing, 0, _contactP);
+    }
+    return !!best;
+  }
+
+  nearestHit(worldPos, maxDist) {
+    let best = null, distance = maxDist;
+    for (const hit of BODY_HIT) {
+      const radius = this.hitSegment(hit); if (!radius) continue;
+      _cpD.subVectors(_cpB, _cpA); _cpP.copy(worldPos).sub(_cpA);
+      const u = THREE.MathUtils.clamp(_cpP.dot(_cpD) / Math.max(1e-10, _cpD.lengthSq()), 0, 1);
+      _cpP.copy(_cpA).addScaledVector(_cpD, u);
+      const d = worldPos.distanceTo(_cpP) - radius;
+      if (d < distance) { distance = d; best = hit; }
+    }
+    this.lastHitDistance = distance;
     return best;
   }
+
   beginGrab(ctrl, hit) {
     const bone = this.bones[hit.name];
-    if (!bone) return;
-    this.held = {
-      ctrl, hit,
-      spring: this.soft.find((s) => s.name === hit.name) || null,
-      tx: 0, ty: 0, tz: 0,
-      last: new THREE.Vector3(),
-    };
+    if (!bone || this.held) return;
+    this.held = { ctrl, hit, spring: this.soft.find((s) => s.name === hit.name) || null,
+      tx: 0, ty: 0, tz: 0, last: new THREE.Vector3(), offset: new THREE.Vector3() };
     ctrl.getWorldPosition(this.held.last);
-    this.miraWalk = 8;
-    this.dest = null;
+    this.held.offset.copy(this.held.last); bone.parent.worldToLocal(this.held.offset).sub(bone.position);
+    this.heldVel.set(0, 0, 0);
+    this.miraWalk = 8; this.dest = null;
   }
+
   tickGrab(dt) {
-    if (!this.held) return;
-    const ctrl = this.held.ctrl;
-    ctrl.getWorldPosition(_v);
-    this.heldVel.copy(_v).sub(this.held.last).multiplyScalar(1 / Math.max(dt, 1 / 90));
-    this.held.last.copy(_v);
-    const bone = this.bones[this.held.hit.name];
-    if (!bone) return;
-    bone.getWorldPosition(_w);
-    _n.copy(_v).sub(_w);
-    if (this.held.spring) {
-      this.group.getWorldQuaternion(_q);
-      _q.invert();
-      _w2.copy(_n).applyQuaternion(_q);
-      this.held.tx = THREE.MathUtils.clamp(_w2.x * 9, -1.6, 1.6);
-      this.held.ty = THREE.MathUtils.clamp(_w2.y * 7, -1.2, 1.2);
-      this.held.tz = THREE.MathUtils.clamp(_w2.z * 9, -1.6, 1.6);
-      this.group.position.x += _n.x * 0.12 * dt;
-      this.group.position.z += _n.z * 0.12 * dt;
+    if (!this.held || !(dt > 0)) return;
+    const held = this.held, bone = this.bones[held.hit.name];
+    held.ctrl.getWorldPosition(_softV);
+    _motion.copy(_softV).sub(held.last);
+    if (_motion.lengthSq() > 0.16) { this.endGrab(); return; }
+    limitVector(_motion.multiplyScalar(1 / dt), 3);
+    this.heldVel.lerp(_motion, 1 - Math.exp(-dt * 18));
+    held.last.copy(_softV);
+    if (held.spring) {
+      bone.parent.worldToLocal(_softV).sub(held.offset).sub(this.bindPos[held.hit.name]);
+      bone.parent.getWorldScale(_softScale); _softV.multiply(_softScale);
+      // The grab preserves its initial contact point and uses the spring's frame.
+      const target = { ...held.spring, x: _softV.x, y: _softV.y, z: _softV.z, vx: 0, vy: 0, vz: 0 };
+      this.limitSoft(target);
+      held.tx = target.x; held.ty = target.y; held.tz = target.z;
     } else {
-      this.group.position.x += _n.x * 2.4 * dt;
-      this.group.position.y = 0;
-      this.group.position.z += _n.z * 2.4 * dt;
-      this.hitReact.flinchX += THREE.MathUtils.clamp(-_n.z * 0.4 * dt, -0.25, 0.25);
-      this.hitReact.knockX = this.heldVel.x * 0.15;
-      this.hitReact.knockZ = this.heldVel.z * 0.15;
+      _motion.copy(held.offset).add(bone.position).applyMatrix4(bone.parent.matrixWorld);
+      _softV.sub(_motion); _softV.y = 0; limitVector(_softV, 0.35);
+      this.group.position.addScaledVector(_softV, 1 - Math.exp(-dt * 5));
     }
   }
+
   endGrab() {
     if (!this.held) return;
-    const v = this.heldVel;
-    const mag = Math.min(4.2, v.length());
     if (this.held.spring) {
-      this.held.spring.vx += v.x * 1.8;
-      this.held.spring.vy += v.y * 1.2;
-      this.held.spring.vz += v.z * 1.8;
+      const s = this.held.spring;
+      this.bones[s.name].parent.getWorldQuaternion(_softQ).invert();
+      limitVector(_softV.copy(this.heldVel).applyQuaternion(_softQ).multiplyScalar(0.1), 0.16);
+      s.vx = _softV.x; s.vy = _softV.y; s.vz = _softV.z;
+      this.limitSoft(s);
     }
-    this.hitReact.knockX += v.x * 0.08;
-    this.hitReact.knockZ += v.z * 0.08;
-    if (mag > 0.4) { this.hitReact.exprT = 0.35; exprFace(this.want, mag > 1.4 ? "surprise" : "happy"); }
     this.held = null;
+    this.heldVel.set(0, 0, 0);
   }
+
   wander(dt) {
-    if (this.held) return false;
-    if (this.mode === "jumpingJacks" || this.mode === "airSquats" || this.mode === "stretch" || this.mode === "talk") return false;
-    this.miraWalk -= dt;
-    if (this.miraWalk < 0) {
-      this.miraWalk = 2.6 + Math.random() * 4.2;
-      this.dest = new THREE.Vector3(this.group.position.x + (Math.random() - 0.5) * 2.4, 0, this.group.position.z + (Math.random() - 0.5) * 2.4);
-      this.dest.x = THREE.MathUtils.clamp(this.dest.x, -2.4, 2.4);
-      this.dest.z = THREE.MathUtils.clamp(this.dest.z, -2.4, 2.4);
+    const canMove = !this.held && this.autoWander && this.mode === "wander";
+    if (canMove) {
+      this.miraWalk -= dt;
+      if (this.miraWalk < 0 && !this.dest) {
+        this.miraWalk = 5 + Math.random() * 5;
+        this.dest = new THREE.Vector3(THREE.MathUtils.clamp(this.group.position.x + (Math.random() - 0.5) * 1.6, -2.4, 2.4), 0,
+          THREE.MathUtils.clamp(this.group.position.z + (Math.random() - 0.5) * 1.6, -2.4, 2.4));
+      }
     }
-    if (!this.dest) return false;
-    const to = this.dest.clone().sub(this.group.position);
-    to.y = 0;
-    if (to.length() < 0.12) return false;
-    to.normalize();
-    this.group.position.addScaledVector(to, dt * 0.52);
-    this.group.rotation.y = THREE.MathUtils.damp(this.group.rotation.y, Math.atan2(to.x, to.z), 4, dt);
-    return true;
+    let targetSpeed = 0;
+    if (canMove && this.dest) {
+      _motion.copy(this.dest).sub(this.group.position); _motion.y = 0;
+      const distance = _motion.length();
+      if (distance < 0.06) this.dest = null;
+      else {
+        const desiredYaw = Math.atan2(_motion.x, _motion.z);
+        const turn = Math.abs(wrapPi(desiredYaw - this.group.rotation.y));
+        targetSpeed = Math.min(0.55 * this.shape.height, distance * 1.5) * Math.max(0.15, Math.cos(turn));
+        this.group.rotation.y = dampAngle(this.group.rotation.y, desiredYaw, 3.5, dt);
+      }
+    }
+    this.speed = THREE.MathUtils.damp(this.speed, targetSpeed, 4.5, dt);
+    if (this.speed < 0.008) this.speed = 0;
+    this.moveVel.set(Math.sin(this.group.rotation.y), 0, Math.cos(this.group.rotation.y)).multiplyScalar(this.speed);
+    this.group.position.addScaledVector(this.moveVel, dt);
+    // Footstep state advances arm/gait phase after actual foot contact.
+    return this.speed > 0.02;
   }
+
   tick(dt, camPos, tAbs) {
-    if (this.mode === "jumpingJacks" || this.mode === "airSquats" || this.mode === "stretch") this.talkT = 0;
     this.modeT = (this.modeT || 0) + dt;
-    if ((this.mode === "jumpingJacks" || this.mode === "airSquats" || this.mode === "stretch") && this.modeT > 16 + Math.random() * 8) this.setMode("wander");
+    if (["jumpingJacks", "airSquats", "stretch"].includes(this.mode) && this.modeT > 20) this.setMode("wander");
     this.ballCool = Math.max(0, (this.ballCool || 0) - dt);
     const moving = this.wander(dt);
-    const g = GAIT[this.gait] || GAIT[0];
-    this.walkT += dt * (moving ? g.freq : (this.mode === "jumpingJacks" ? 7.2 : 1.6));
-    this.gaitSwitch -= moving ? dt : 0;
-    if (this.gaitSwitch <= 0) {
-      this.gait = (this.gait + 1) % GAIT.length;
-      this.gaitSwitch = 2.4 + Math.random() * 2.2;
-    }
     this.tickExpr(dt);
-    this.restoreBind();
-    this.applyShape();
-    this.tickRest();
-    this.addE("Spine02", Math.sin(tAbs * 1.55) * 0.026, 0, 0);
-    if (this.mode === "jumpingJacks") this.tickJumpingJacks(tAbs);
-    else if (this.mode === "airSquats") this.tickAirSquats(tAbs);
-    else if (this.mode === "stretch") this.tickStretch(tAbs);
-    else if (this.mode === "talk") {
-      this.tickIdle(tAbs, dt);
-      this.addE("R_Upperarm", -0.28, 0, -0.22);
-      this.addE("R_Forearm", 0.45 + Math.sin(tAbs * 5.2) * 0.18, 0, 0);
-      this.want.Mouth_Smile_L = this.want.Mouth_Smile_R = 0.35 + Math.abs(Math.sin(tAbs * 6)) * 0.4;
-      this.want.Jaw_Open = 0.08 + Math.abs(Math.sin(tAbs * 8)) * 0.12;
-    } else if (moving) this.tickWalk(true);
-    else this.tickIdle(tAbs, dt);
-    this.tickGrab(dt);
-    this.tickSoft(dt, moving || this.mode === "jumpingJacks" || this.mode === "airSquats");
+    this.restoreBind(); this.applyShape(); this.tickRest();
+    this.poseAlpha = 1 - Math.exp(-dt * 16);
+    this.group.position.y = this.baseY - this.shape.height * (0.016 + 0.025 * Math.min(1, this.speed / 0.15));
+    this.addE("Spine02", Math.sin(tAbs * 1.35) * 0.009, 0, 0);
+    if (this.mode === "jumpingJacks") this.tickJumpingJacks(this.modeT);
+    else if (this.mode === "airSquats") {
+      this.tickAirSquats(this.modeT);
+      this.group.position.y = this.baseY - (1 - Math.cos(this.modeT * 1.8)) * 0.095 * this.shape.height;
+    } else if (this.mode === "stretch") this.tickStretch(this.modeT);
+    else {
+      this.tickWalk(moving);
+      if (!moving) this.tickIdle(tAbs, dt);
+      // Proximity means attention, not continuously mimed speech.
+      this.want.Jaw_Open = 0;
+    }
     this.tickGaze(dt, moving, this.lookAtPos || camPos);
-    this.tickHitReact(dt);
-    this.tickFingers(this.heldBall ? 0.75 : 0.08);
-    this.applyExtras();
-    this.tickMorphs(dt);
+    this.tickHitReact(dt); this.tickFingers(this.heldBall ? 0.75 : 0.08);
+    this.applyExtras(); this.group.updateMatrixWorld(true);
+    this.tickGrab(dt); this.group.updateMatrixWorld(true);
+    this.solveFeet(dt, moving); this.group.updateMatrixWorld(true);
+    this.tickSoft(dt); this.tickMorphs(dt);
+    this.group.updateMatrixWorld(true);
     if (this.skeleton) this.skeleton.update();
   }
+
   worldPos(out) {
     this.group.getWorldPosition(out || _v);
     return out || _v;
@@ -870,7 +996,7 @@ class FloppyNoodle {
     for (let i = 0; i < this.n - 1; i++) {
       _w.subVectors(this.pts[i + 1], this.pts[i]);
       const len = _w.length() || 1e-6;
-      const t = THREE.MathUtils.clamp(_v.copy(pos).sub(this.pts[i]).dot(_w) / (len * len), 0, 1);
+      const t = THREE.MathUtils.clamp(_cpP.copy(pos).sub(this.pts[i]).dot(_w) / (len * len), 0, 1);
       _n.copy(this.pts[i]).addScaledVector(_w, t);
       const d = pos.distanceTo(_n);
       if (d < bd) { bd = d; best = t < 0.5 ? i : i + 1; }
@@ -879,9 +1005,10 @@ class FloppyNoodle {
   }
   grabAt(pos) { return this.grabIndex(pos) >= 0; }
   tick(dt, actors, playerPos, holdPos, holdQuat, grabI) {
-    const g = 2.15;
+    const g = 9.81;
     const step = Math.min(dt, 1 / 50);
     const gi = (holdPos && grabI >= 0) ? grabI : -1;
+    const pin2 = gi >= 0 ? (gi + 1 < this.n ? gi + 1 : gi - 1) : -1;
     if (holdPos && holdQuat && gi >= 0) {
       this.pts[gi].copy(holdPos);
       this.prev[gi].copy(holdPos);
@@ -893,25 +1020,25 @@ class FloppyNoodle {
       }
     }
     for (let i = 0; i < this.n; i++) {
-      if (gi >= 0 && (i === gi || i === gi + 1 || i === gi - 1)) continue;
+      if (gi >= 0 && (i === gi || i === pin2)) continue;
       const p = this.pts[i];
       const pr = this.prev[i];
       const vx = p.x - pr.x;
       const vy = p.y - pr.y;
       const vz = p.z - pr.z;
       pr.copy(p);
-      p.x += vx * 0.84;
-      p.y += vy * 0.84 - g * step * step;
-      p.z += vz * 0.84;
+      p.x += vx * Math.exp(-1.8 * step);
+      p.y += vy * Math.exp(-1.8 * step) - g * step * step;
+      p.z += vz * Math.exp(-1.8 * step);
     }
-    for (let k = 0; k < 16; k++) {
+    for (let k = 0; k < 4; k++) {
       for (let i = 0; i < this.n - 1; i++) {
         const a = this.pts[i], b = this.pts[i + 1];
         _w.subVectors(b, a);
         const d = _w.length() || 1e-6;
         const diff = (d - this.rest) / d;
-        const aHeld = gi >= 0 && (i === gi || i === gi + 1 || i === gi - 1);
-        const bHeld = gi >= 0 && (i + 1 === gi || i + 1 === gi + 1 || i + 1 === gi - 1);
+        const aHeld = gi >= 0 && (i === gi || i === pin2);
+        const bHeld = gi >= 0 && (i + 1 === gi || i + 1 === pin2);
         if (aHeld && !bHeld) b.addScaledVector(_w, -diff);
         else if (bHeld && !aHeld) a.addScaledVector(_w, diff);
         else if (!aHeld && !bHeld) {
@@ -920,14 +1047,13 @@ class FloppyNoodle {
         }
       }
       for (let i = 1; i < this.n - 1; i++) {
-        if (gi >= 0 && (i === gi || i === gi + 1 || i === gi - 1)) continue;
+        if (gi >= 0 && (i === gi || i === pin2)) continue;
         _w.subVectors(this.pts[i + 1], this.pts[i - 1]);
         _v.copy(this.pts[i - 1]).addScaledVector(_w, 0.5);
-        this.pts[i].lerp(_v, 0.42);
+        this.pts[i].lerp(_v, 0.08);
       }
     }
     for (let i = 0; i < this.n; i++) {
-      if (gi >= 0 && (i === gi || i === gi + 1 || i === gi - 1)) continue;
       const p = this.pts[i];
       if (p.y < this.rad) {
         p.y = this.rad;
@@ -935,9 +1061,10 @@ class FloppyNoodle {
         this.prev[i].x = p.x * 0.25 + this.prev[i].x * 0.75;
         this.prev[i].z = p.z * 0.25 + this.prev[i].z * 0.75;
       }
-      _v.subVectors(p, this.prev[i]);
+      _v.subVectors(p, this.prev[i]).multiplyScalar(1 / step);
       for (const actor of actors) actor.collidePoint(p, this.rad, _v, true);
-      this.prev[i].copy(p).sub(_v);
+      limitVector(_v, 6);
+      this.prev[i].copy(p).addScaledVector(_v, -step);
     }
     if (gi < 0 && playerPos && this.pts[0].distanceTo(playerPos) > 4.2) {
       _v.copy(playerPos);
@@ -973,6 +1100,8 @@ class RubberBall {
 
 class PlayerHands {
   constructor(renderer, parent) {
+    this.renderer = renderer;
+    this.active = [false, false];
     this.ctrl = [renderer.xr.getController(0), renderer.xr.getController(1)];
     this.grip = [renderer.xr.getControllerGrip(0), renderer.xr.getControllerGrip(1)];
     this.squeeze = [0, 0];
@@ -986,7 +1115,7 @@ class PlayerHands {
       parent.add(this.ctrl[i]);
       parent.add(this.grip[i]);
       const h = new THREE.Group();
-      // Parented to the *target ray* so -Z is always the pointing direction.
+      // Grip space follows the physical controller; selection events use target ray.
       const palm = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.022, 0.08), skin);
       palm.position.set(0, -0.012, -0.05);
       h.add(palm);
@@ -1008,33 +1137,49 @@ class PlayerHands {
       h.add(thumb);
       h.userData.thumb = thumb;
       h.userData.colliders = [palm];
-      this.ctrl[i].add(h);
+      this.grip[i].add(h);
+      h.visible = false;
       this.hands.push(h);
       this.ctrl[i].addEventListener("connected", (ev) => {
         const hand = ev.data && ev.data.handedness;
         this.handedness[i] = hand || "none";
+        this.active[i] = !(ev.data && ev.data.hand);
         h.scale.x = hand === "left" ? -1 : 1;
       });
+      this.ctrl[i].addEventListener("disconnected", () => { this.active[i] = false; this.prevReady[i] = false; h.visible = false; });
       this.ctrl[i].addEventListener("squeezestart", () => { this.squeeze[i] = 1; });
       this.ctrl[i].addEventListener("squeezeend", () => { this.squeeze[i] = 0; });
     }
   }
   palmPos(i, out) {
-    this.ctrl[i].getWorldPosition(out || _v);
+    this.grip[i].getWorldPosition(out || _v);
     return out || _v;
   }
   tick(dt, actors) {
     for (let i = 0; i < 2; i++) {
-      const curl = this.squeeze[i];
       const h = this.hands[i];
-      for (const fg of h.userData.fingers) fg.rotation.x = curl * 0.85;
-      h.userData.thumb.rotation.y = (h.scale.x < 0 ? -1 : 1) * (0.55 + curl * 0.4);
-      this.ctrl[i].getWorldPosition(_v);
-      if (this.prevReady[i]) this.vel[i].copy(_v).sub(this.prevPos[i]).multiplyScalar(1 / Math.max(dt, 1 / 90));
-      this.prevPos[i].copy(_v);
-      this.prevReady[i] = true;
-      _w.set(0, 0, 0);
-      for (const actor of actors) actor.collidePoint(_v, 0.045, _w, true);
+      h.visible = this.renderer.xr.isPresenting && this.active[i] && this.grip[i].visible;
+      if (!h.visible) { this.prevReady[i] = false; this.vel[i].set(0, 0, 0); continue; }
+      for (const fg of h.userData.fingers) fg.rotation.x = this.squeeze[i] * 0.85;
+      _v.set(0, -0.012, -0.05); this.grip[i].localToWorld(_v);
+      if (this.prevReady[i] && _v.distanceToSquared(this.prevPos[i]) < 0.16) {
+        _handVelocity.copy(_v).sub(this.prevPos[i]).multiplyScalar(1 / Math.max(dt, 1e-5));
+        limitVector(_handVelocity, 6);
+        this.vel[i].lerp(_handVelocity, 1 - Math.exp(-dt * 25));
+        const count = Math.min(12, Math.max(1, Math.ceil(_v.distanceTo(this.prevPos[i]) / 0.025)));
+        const reacted = new Set();
+        for (let n = 1; n <= count; n++) {
+          _handProbe.lerpVectors(this.prevPos[i], _v, n / count);
+          for (const actor of actors) {
+            _handVelocity.copy(this.vel[i]);
+            if (actor.collidePoint(_handProbe, 0.04, _handVelocity, true, !reacted.has(actor))) reacted.add(actor);
+          }
+        }
+        h.position.copy(_handProbe); this.grip[i].worldToLocal(h.position);
+        h.position.y += 0.012; h.position.z += 0.05;
+        limitVector(h.position, 0.1);
+      } else { this.vel[i].set(0, 0, 0); h.position.set(0, 0, 0); }
+      this.prevPos[i].copy(_v); this.prevReady[i] = true;
     }
   }
 }
@@ -1051,6 +1196,7 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
   let noodleGrabI = -1;
   const camPos = new THREE.Vector3();
   const holdPos = new THREE.Vector3();
+  const holdQuaternion = new THREE.Quaternion();
   const blobs = [];
   const balls = [];
   let persona = "";
@@ -1071,11 +1217,13 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
 
   function spawn(opts) {
     if (!template) return null;
+    if (QUEST && actors.length >= 2) throw new Error("Quest quality limit: two actors. Reload to clear the scene.");
     const cloned = cloneSkinned(template);
     cloned.traverse((o) => {
       if (!o.isMesh) return;
       if (Array.isArray(o.material)) o.material = o.material.map((m) => m && m.clone());
       else if (o.material) o.material = o.material.clone();
+      for (const m of Array.isArray(o.material) ? o.material : [o.material]) if (m) installSkinShader(m);
     });
     const actor = new MiraActor(cloned, baseScale, Object.assign({ personality: persona }, opts || {}));
     const n = actors.length;
@@ -1083,11 +1231,13 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
     scene.add(actor.group);
     actor.blob = addBlob();
     actors.push(actor);
-    exprFace(actor.want, "happy");
+    exprFace(actor.want, "neutral");
+    actor.tick(1 / 120, new THREE.Vector3(0, 1.55, 2.5), 0);
     return actor;
   }
 
   function load(onProgress, onDone, onErr) {
+    maxAnisotropy = Math.min(QUEST ? 4 : 8, renderer.capabilities.getMaxAnisotropy());
     new GLTFLoader().load(
       ASSET,
       (gltf) => {
@@ -1099,10 +1249,10 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
         box.getSize(size);
         const center = new THREE.Vector3();
         box.getCenter(center);
-        template.position.x -= center.x;
-        template.position.z -= center.z;
-        template.position.y -= box.min.y;
         baseScale = 1.68 / Math.max(size.y, 0.2);
+        template.position.x -= center.x * baseScale;
+        template.position.z -= center.z * baseScale;
+        template.position.y -= box.min.y * baseScale;
         template.scale.setScalar(baseScale);
         ready = true;
         spawn({ position: new THREE.Vector3(0, 0, 0) });
@@ -1117,7 +1267,8 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
     if (balls.length >= 8) {
       const old = balls.shift();
       if (old.held && old.held.kind === "mira" && old.held.actor) old.held.actor.heldBall = null;
-      scene.remove(old.mesh);
+      for (let i = 0; i < ballHeld.length; i++) if (ballHeld[i] === old) ballHeld[i] = null;
+      scene.remove(old.mesh); old.mesh.geometry.dispose(); old.mesh.material.dispose();
     }
     const p = (pos && pos.clone) ? pos.clone() : new THREE.Vector3(0, 1.2, -0.4);
     const b = new RubberBall(scene, p, BALL_COLORS[balls.length % BALL_COLORS.length]);
@@ -1136,7 +1287,7 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
   }
 
   function trySelect(i) {
-    const ctrl = hands.ctrl[i];
+    const ctrl = hands.grip[i];
     ctrl.getWorldPosition(_v);
     let bestB = null, bdB = 0.16;
     for (const b of balls) {
@@ -1160,23 +1311,19 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
     for (const actor of actors) {
       const hit = actor.nearestHit(_v, bd);
       if (!hit) continue;
-      const bone = actor.bones[hit.name];
-      if (!bone) continue;
-      bone.getWorldPosition(_w);
-      const d = _v.distanceTo(_w);
+      const d = actor.lastHitDistance;
       if (d < bd) { bd = d; bestA = actor; bestH = hit; }
     }
     if (bestA && bestH) bestA.beginGrab(ctrl, bestH);
   }
   function tryRelease(i) {
-    if (noodleHeld === hands.ctrl[i]) { noodleHeld = null; noodleGrabI = -1; }
+    if (noodleHeld === hands.grip[i]) { noodleHeld = null; noodleGrabI = -1; }
     for (const actor of actors) {
-      if (actor.held && actor.held.ctrl === hands.ctrl[i]) actor.endGrab();
+      if (actor.held && actor.held.ctrl === hands.grip[i]) actor.endGrab();
     }
     const b = ballHeld[i];
     if (b && b.held && b.held.kind === "player" && b.held.i === i) {
-      b.vel.copy(hands.vel[i]).multiplyScalar(1.65);
-      b.vel.y += 0.35;
+      limitVector(b.vel.copy(hands.vel[i]), 6);
       b.held = null;
       ballHeld[i] = null;
     }
@@ -1185,6 +1332,7 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
   hands.ctrl[1].addEventListener("selectstart", () => trySelect(1));
   hands.ctrl[0].addEventListener("selectend", () => tryRelease(0));
   hands.ctrl[1].addEventListener("selectend", () => tryRelease(1));
+  for (let i = 0; i < 2; i++) hands.ctrl[i].addEventListener("disconnected", () => tryRelease(i));
 
   function pollSpawnBalls(keys) {
     if (!xrOn()) {
@@ -1201,10 +1349,11 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
     let li = 0;
     for (const src of session.inputSources) {
       const gp = src.gamepad;
-      const i = src.handedness === "right" ? 1 : 0;
+      const i = hands.handedness.indexOf(src.handedness);
+      if (i < 0) continue;
       const pressed = !!(gp && gp.buttons && ((gp.buttons[5] && gp.buttons[5].pressed) || (gp.buttons[4] && gp.buttons[4].pressed)));
       if (pressed && !yPrev[i]) {
-        const ctrl = hands.ctrl[i] || hands.ctrl[0];
+        const ctrl = hands.grip[i] || hands.grip[0];
         ctrl.getWorldPosition(_v);
         _w.set(0, 0.15, -0.35).applyQuaternion(ctrl.getWorldQuaternion(_q));
         spawnBall(_v.clone().add(_w), hands.vel[i].clone().multiplyScalar(0.4).setY(1.15));
@@ -1219,7 +1368,7 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
     const SENSE = 3.35;
     for (const a of actors) {
       a.socialT = (a.socialT || 0) - dt;
-      if (a.held || a.heldBall || a.mode === "jumpingJacks" || a.mode === "airSquats" || a.mode === "stretch") {
+      if (!a.autoWander || a.held || a.heldBall || a.mode === "jumpingJacks" || a.mode === "airSquats" || a.mode === "stretch") {
         if (a.mode !== "talk") a.lookAtPos = null;
         continue;
       }
@@ -1268,7 +1417,7 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
   }
 
   function tickBalls(dt) {
-    const g = 9.4;
+    const g = 9.81;
     for (const b of balls) {
       if (b.held && b.held.kind === "player") {
         b.held.ctrl.getWorldPosition(_v);
@@ -1309,13 +1458,14 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
         }
         continue;
       }
+      limitVector(b.vel, 6);
       b.vel.y -= g * dt;
       b.mesh.position.addScaledVector(b.vel, dt);
       if (b.mesh.position.y < b.rad) {
         b.mesh.position.y = b.rad;
         if (b.vel.y < 0) b.vel.y = -b.vel.y * 0.74;
-        b.vel.x *= 0.84;
-        b.vel.z *= 0.84;
+        b.vel.x *= Math.exp(-dt * 3.5);
+        b.vel.z *= Math.exp(-dt * 3.5);
         if (Math.abs(b.vel.y) < 0.35) b.vel.y = 0;
       }
       b.mesh.position.x = THREE.MathUtils.clamp(b.mesh.position.x, -4.2, 4.2);
@@ -1378,6 +1528,14 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
     }
   }
 
+  let physicsAccumulator = 0;
+  function resetPhysics() {
+    physicsAccumulator = 0;
+    for (let i = 0; i < 2; i++) { tryRelease(i); hands.prevReady[i] = false; hands.vel[i].set(0, 0, 0); }
+    for (const a of actors) a.resetPhysics();
+    for (let i = 0; i < noodle.n; i++) noodle.prev[i].copy(noodle.pts[i]);
+    for (const b of balls) b.vel.set(0, 0, 0);
+  }
   function tick(dt, tAbs, keys) {
     const cam = xrOn() ? renderer.xr.getCamera() : camera;
     cam.getWorldPosition(camPos);
@@ -1385,9 +1543,9 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
     let hold = null, hq = null;
     if (noodleHeld && noodleHeld !== "desk") {
       noodleHeld.getWorldPosition(holdPos);
-      noodleHeld.getWorldQuaternion(_q);
+      noodleHeld.getWorldQuaternion(holdQuaternion);
       hold = holdPos;
-      hq = _q;
+      hq = holdQuaternion;
     } else if (!xrOn() && keys && (keys.KeyF || keys.Mouse0) && !ballHeld[0]) {
       camera.getWorldPosition(_v);
       camera.getWorldDirection(_w);
@@ -1397,21 +1555,26 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
       noodleHeld = "desk";
       noodleGrabI = 0;
     } else if (noodleHeld === "desk") { noodleHeld = null; noodleGrabI = -1; }
-    noodle.tick(dt, actors, camPos, hold, hq, noodleGrabI);
-    hands.tick(dt, actors);
     tickSocial(dt);
-    tickBalls(dt);
     for (let i = 0; i < actors.length; i++) {
       actors[i].tick(dt, camPos, tAbs);
       if (blobs[i]) {
+        blobs[i].scale.setScalar(actors[i].shape.height);
         blobs[i].position.x = actors[i].group.position.x;
         blobs[i].position.z = actors[i].group.position.z;
       }
     }
+    hands.tick(dt, actors);
+    physicsAccumulator = Math.min(physicsAccumulator + dt, 0.05);
+    while (physicsAccumulator + 1e-9 >= 1 / 120) {
+      noodle.tick(1 / 120, actors, camPos, hold, hq, noodleGrabI);
+      tickBalls(1 / 120);
+      physicsAccumulator -= 1 / 120;
+    }
   }
 
   return {
-    load, spawn, tick, spawnBall, nearestTo, actors, noodle, hands, balls,
+    resetPhysics, load, spawn, tick, spawnBall, nearestTo, actors, noodle, hands, balls,
     get persona() { return persona; },
     set persona(v) { persona = v || ""; for (const a of actors) a.personality = persona; },
     get ready() { return ready; },

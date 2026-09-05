@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="robots" content="noindex, nofollow, noarchive" />
     <meta name="theme-color" content="#3a332c" />
-    <title>Human — pass 2</title>
+    <title>Human 2 — realism pass</title>
     <style>
       html, body { margin: 0; height: 100%; background: #3a332c; color: #f4efe8; font: 15px/1.45 "Segoe UI", sans-serif; overflow: hidden; }
       canvas { display: block; width: 100%; height: 100%; position: absolute; inset: 0; z-index: 0; }
@@ -38,19 +38,24 @@
     </script>
   </head>
   <body>
-    <div id="load">LOADING PASS 2…</div>
+    <div id="load">LOADING HUMAN 2…</div>
     <div id="hint"></div>
-    <div id="stats">PASS 2</div>
+    <div id="stats">REALISM PASS</div>
     <div id="hud">
+      <label for="quality">Quest detail · next VR session</label>
+      <select id="quality" style="width:100%;padding:6px"><option value="0.9" selected>Balanced</option><option value="0.8">Faster</option><option value="1">Sharper</option></select>
+      <h2>MOVEMENT</h2>
+      <div class="row"><button type="button" data-mode="idle">STAND</button><button type="button" data-mode="wander">WALK</button></div>
+      <div class="row"><button type="button" data-mode="airSquats">SQUAT</button><button type="button" data-mode="stretch">STRETCH</button></div>
       <h2>SHAPE</h2>
-      <label>Height</label><input id="s_height" type="range" min="0.70" max="1.38" step="0.01" value="1" />
-      <label>Waist</label><input id="s_waist" type="range" min="0.48" max="1.62" step="0.01" value="1" />
-      <label>Hips</label><input id="s_hips" type="range" min="0.52" max="1.75" step="0.01" value="1" />
-      <label>Breast</label><input id="s_breast" type="range" min="0.38" max="2.25" step="0.01" value="1" />
-      <label>Buttocks</label><input id="s_butt" type="range" min="0.38" max="2.25" step="0.01" value="1" />
-      <label>Thigh width</label><input id="s_thigh" type="range" min="0.48" max="1.95" step="0.01" value="1" />
-      <label>Thigh gap</label><input id="s_gap" type="range" min="-1.6" max="1.6" step="0.01" value="0" />
-      <label>Arms</label><input id="s_arms" type="range" min="0.72" max="1.38" step="0.01" value="1" />
+      <label for="s_height">Height</label><input id="s_height" type="range" min="0.85" max="1.15" step="0.01" value="1" />
+      <label for="s_waist">Waist</label><input id="s_waist" type="range" min="0.85" max="1.15" step="0.01" value="1" />
+      <label for="s_hips">Hips</label><input id="s_hips" type="range" min="0.85" max="1.2" step="0.01" value="1" />
+      <label for="s_breast">Breast</label><input id="s_breast" type="range" min="0.75" max="1.35" step="0.01" value="1" />
+      <label for="s_butt">Buttocks</label><input id="s_butt" type="range" min="0.85" max="1.25" step="0.01" value="1" />
+      <label for="s_thigh">Thigh width</label><input id="s_thigh" type="range" min="0.85" max="1.2" step="0.01" value="1" />
+      <label for="s_gap">Thigh gap</label><input id="s_gap" type="range" min="-0.4" max="0.4" step="0.01" value="0" />
+      <label for="s_arms">Arms</label><input id="s_arms" type="range" min="0.85" max="1.15" step="0.01" value="1" />
       <h2>FACE</h2>
       <div class="row">
         <button type="button" id="facePrev">&lt;</button>
@@ -64,6 +69,11 @@
         <button type="button" id="hairNext">&gt;</button>
       </div>
       <button type="button" class="go" id="spawnMira">SPAWN ANOTHER MIRA</button>
+      <details style="margin:12px 0"><summary>About this pass</summary>
+        <p>Stand still to inspect skin and contact response. Shape controls stay within a conservative range for this rig. Motion and collisions are approximations using bones and capsules; the model has no recorded animation clips or volumetric tissue mesh.</p>
+        <p>Existing 2K color maps contain synthetic fills and projected portraits. Mapping, normals and roughness are corrected; new scan detail is not claimed. UVs missing at welded material seams are locally reconstructed.</p>
+        <p>Quest starts at 72 Hz, with antialiasing and moderate foveation. Measure on your headset; choose Faster if frames drop. Texture compression and authored motion capture are deferred. Graphical browser and headset performance were not verified in this pass.</p>
+      </details>
       <h2>PERSONALITY</h2>
       <textarea id="persona" rows="6" style="width:100%;box-sizing:border-box;background:#1a1614;color:#f4efe8;border:1px solid #7eb6ff;border-radius:8px;padding:8px;font:12px/1.35 'Segoe UI',sans-serif;"></textarea>
       <button type="button" class="go" id="micBtn">VOICE OFF</button>
@@ -71,13 +81,13 @@
     </div>
     <div id="ui">
       <div id="panel">
-        <div class="tag">PASS 2</div>
+        <div class="tag">REALISM PASS</div>
         <h1>HUMAN 2</h1>
-        <p>Portrait face, rubber balls, voice chat, exercise loops, multi-Mira talk. Home network only.</p>
+        <p>Improved skin shading, grounded movement and stable secondary motion. Start with one Mira on Quest 3.</p>
         <button type="button" id="enter">ENTER VR / AR</button>
         <button type="button" class="ghost" id="desk">Desktop look</button>
       </div>
     </div>
-    <script type="module" src="/human2/engine.js?v=12"></script>
+    <script type="module" src="./engine.js?v=13"></script>
   </body>
 </html>

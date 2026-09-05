@@ -1,8 +1,8 @@
 import * as THREE from "three";
 import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
-import { createMiraSystem, SLIDERS, FACE_TYPES, HAIR_COLORS } from "./mira-core.js?v=12";
-import { DEFAULT_PERSONA, miraChat, miraSpeak, startMic } from "./mira-voice.js?v=12";
+import { createMiraSystem, SLIDERS, FACE_TYPES, HAIR_COLORS } from "./mira-core.js?v=13";
+import { DEFAULT_PERSONA, miraChat, miraSpeak, startMic } from "./mira-voice.js?v=13";
 
 const QUEST = /OculusBrowser|Quest/i.test(navigator.userAgent);
 const loadEl = document.getElementById("load");
@@ -17,15 +17,15 @@ function banner(msg) {
   if (hintEl) hintEl.textContent = msg;
 }
 
-const renderer = new THREE.WebGLRenderer({ antialias: !QUEST, alpha: false, powerPreference: "high-performance" });
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
 const XR_ON = () => renderer.xr.isPresenting;
 renderer.setPixelRatio(Math.min(devicePixelRatio, QUEST ? 1.25 : 1.5));
 renderer.setSize(innerWidth, innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 0.96;
+renderer.toneMappingExposure = 1.05;
 renderer.xr.enabled = true;
-if (QUEST) renderer.xr.setFramebufferScaleFactor(0.85);
+if (QUEST) renderer.xr.setFramebufferScaleFactor(0.9);
 renderer.setClearColor(0x6b5e52, 1);
 document.body.prepend(renderer.domElement);
 
@@ -37,15 +37,17 @@ const camera = new THREE.PerspectiveCamera(70, innerWidth / innerHeight, 0.05, 8
 camera.position.set(0, 1.45, 2.6);
 camera.lookAt(0, 0.95, 0);
 rig.add(camera);
-scene.add(new THREE.HemisphereLight(0xfff3e4, 0x3a3028, 0.72));
-const key = new THREE.DirectionalLight(0xfff0d8, 0.95);
+scene.add(new THREE.HemisphereLight(0xf5f8ff, 0x524b46, 0.45));
+const key = new THREE.DirectionalLight(0xfff4e8, 2.2);
 key.position.set(1.4, 3.2, 2.8);
 scene.add(key);
-scene.add(new THREE.AmbientLight(0xffffff, 0.28));
+scene.add(new THREE.AmbientLight(0xffffff, 0.08));
 try {
   const pmrem = new THREE.PMREMGenerator(renderer);
-  scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
-  scene.environmentIntensity = 0.12;
+  const room = new RoomEnvironment();
+  scene.environment = pmrem.fromScene(room, 0.04).texture;
+  scene.environmentIntensity = 0.65;
+  room.dispose(); pmrem.dispose();
 } catch (e) { console.warn("env", e); }
 
 const floor = new THREE.Mesh(
@@ -69,13 +71,14 @@ addEventListener("mousedown", () => { keys.Mouse0 = true; });
 addEventListener("mouseup", () => { keys.Mouse0 = false; });
 
 const mira = createMiraSystem({ scene, renderer, camera, xrOn: XR_ON, rig });
-banner("LOADING PASS 2…");
+banner("LOADING HUMAN 2…");
 mira.load(
   (x) => { if (x.total && loadEl) loadEl.textContent = "LOADING  " + Math.round((x.loaded / x.total) * 100) + "%"; },
   () => {
     if (loadEl) loadEl.remove();
     banner("HUMAN 2 · left stick move · Y spawn ball · grab noodle, Mira, or ball");
     bindHud();
+    if (new URLSearchParams(location.search).has("debug")) window.human2 = { mira, scene, renderer, camera, rig, keys };
   },
   (e) => { banner("LOAD FAILED — " + (e && e.message ? e.message : "glb")); console.error(e); }
 );
@@ -145,6 +148,13 @@ function bindHud() {
     syncLabs();
     banner("Spawned Mira " + mira.actors.length + " — sliders edit the newest.");
   };
+  for (const button of document.querySelectorAll("[data-mode]")) button.onclick = () => {
+    const actor = selected(); if (!actor) return;
+    const mode = button.dataset.mode;
+    actor.autoWander = mode !== "idle";
+    actor.dest = null; actor.feet = {};
+    actor.setMode(mode === "idle" ? "idle" : mode);
+  };
   const personaEl = document.getElementById("persona");
   if (personaEl) {
     personaEl.value = DEFAULT_PERSONA;
@@ -201,6 +211,7 @@ function bindHud() {
 
 const _fwd = new THREE.Vector3();
 const _right = new THREE.Vector3();
+const _turnOffset = new THREE.Vector3(), _turnedOffset = new THREE.Vector3(), _up = new THREE.Vector3(0, 1, 0);
 function stickAxes(gp) {
   if (!gp || !gp.axes) return null;
   const a = gp.axes;
@@ -217,8 +228,8 @@ function tickLocomotion(dt) {
   _fwd.y = 0;
   if (_fwd.lengthSq() < 1e-6) return;
   _fwd.normalize();
-  _right.set(_fwd.z, 0, -_fwd.x);
-  const speed = 2.35;
+  _right.set(-_fwd.z, 0, _fwd.x);
+  const speed = 1.45;
   const turn = 2.15;
   let idx = 0;
   for (const src of session.inputSources) {
@@ -235,7 +246,11 @@ function tickLocomotion(dt) {
       rig.position.addScaledVector(_right, sx * speed * dt);
     } else {
       if (Math.abs(sx) < 0.16) sx = 0;
-      rig.rotation.y -= sx * turn * dt;
+      const angle = -sx * turn * dt;
+      cam.getWorldPosition(_turnOffset).sub(rig.position);
+      _turnedOffset.copy(_turnOffset).applyAxisAngle(_up, angle);
+      rig.position.add(_turnOffset).sub(_turnedOffset);
+      rig.rotation.y += angle;
     }
   }
 }
@@ -253,7 +268,9 @@ function desktopMove(dt) {
 const clock = new THREE.Clock();
 let fpsFrames = 0, fpsLast = performance.now();
 function tick() {
-  const dt = Math.min(clock.getDelta(), 0.05);
+  const rawDt = clock.getDelta();
+  if (rawDt > 0.12 && mira.ready) mira.resetPhysics();
+  const dt = Math.min(rawDt, 0.05);
   desktopMove(dt);
   tickLocomotion(dt);
   if (mira.ready) mira.tick(dt, clock.elapsedTime, keys);
@@ -263,7 +280,7 @@ function tick() {
     const fps = (fpsFrames * 1000) / (now - fpsLast);
     fpsFrames = 0;
     fpsLast = now;
-    statsEl.textContent = `HUMAN 2  ${fps.toFixed(0)} fps  mira ${mira.actors.length}`;
+    statsEl.textContent = `HUMAN 2  ${fps.toFixed(0)} fps  mira ${mira.actors.length}  calls ${renderer.info.render.calls}`;
   }
   renderer.render(scene, camera);
 }
@@ -272,27 +289,38 @@ renderer.setAnimationLoop(tick);
 async function enterXr() {
   if (!navigator.xr) { banner("WebXR not available — use Quest Browser or Desktop look"); return; }
   try {
-    if (QUEST) renderer.xr.setFramebufferScaleFactor(0.85);
-    let session;
-    try {
-      session = await navigator.xr.requestSession("immersive-ar", { requiredFeatures: ["local-floor"], optionalFeatures: ["hand-tracking"] });
-    } catch {
-      session = await navigator.xr.requestSession("immersive-vr", { requiredFeatures: ["local-floor"], optionalFeatures: ["hand-tracking"] });
-    }
-    await renderer.xr.setSession(session);
+    const xrDetail = Number(document.getElementById("quality").value) || 0.9;
+    renderer.xr.setFramebufferScaleFactor(xrDetail);
+    let session, passthrough = true;
     renderer.xr.setReferenceSpaceType("local-floor");
+    try {
+      session = await navigator.xr.requestSession("immersive-ar", { requiredFeatures: ["local-floor"], optionalFeatures: [] });
+    } catch {
+      passthrough = false;
+      session = await navigator.xr.requestSession("immersive-vr", { requiredFeatures: ["local-floor"], optionalFeatures: [] });
+    }
+    if (controls && controls.isLocked) controls.unlock();
+    rig.position.set(0, 0, 0); rig.rotation.set(0, 0, 0);
+    await renderer.xr.setSession(session);
     camera.position.set(0, 0, 0);
     camera.rotation.set(0, 0, 0);
-    if (typeof renderer.xr.setFoveation === "function") renderer.xr.setFoveation(0.55);
+    if (typeof renderer.xr.setFoveation === "function") renderer.xr.setFoveation(xrDetail < 0.85 ? 0.65 : 0.35);
+    mira.resetPhysics();
     if (ui) ui.style.display = "none";
     session.addEventListener("end", () => {
+      rig.position.set(0, 0, 0); rig.rotation.set(0, 0, 0);
+      scene.background = new THREE.Color(0x6b5e52);
+      renderer.setClearColor(0x6b5e52, 1);
+      floor.material.opacity = 1; floor.material.transparent = false;
+      if (ui) ui.style.display = "flex";
+      mira.resetPhysics();
       camera.position.set(0, 1.45, 2.6);
       camera.lookAt(0, 0.95, 0);
     });
-    scene.background = null;
-    renderer.setClearColor(0x000000, 0);
-    floor.material.opacity = 0.12;
-    floor.material.transparent = true;
+    scene.background = passthrough ? null : new THREE.Color(0x6b5e52);
+    renderer.setClearColor(passthrough ? 0x000000 : 0x6b5e52, passthrough ? 0 : 1);
+    floor.material.opacity = passthrough ? 0.12 : 1;
+    floor.material.transparent = passthrough;
     try {
       const rates = session.supportedFrameRates;
       if (rates && rates.includes(72)) await session.updateTargetFrameRate(72);
@@ -300,6 +328,9 @@ async function enterXr() {
   } catch (e) { banner(String(e.message || e)); }
 }
 
+addEventListener("blur", () => { for (const k of Object.keys(keys)) keys[k] = false; });
+addEventListener("keydown", (e) => { if (e.code === "Escape" && ui && !XR_ON()) ui.style.display = "flex"; });
+document.addEventListener("visibilitychange", () => { if (mira.ready) mira.resetPhysics(); });
 addEventListener("resize", () => {
   camera.aspect = innerWidth / innerHeight;
   camera.updateProjectionMatrix();
