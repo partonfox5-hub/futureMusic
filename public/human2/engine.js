@@ -4,13 +4,14 @@ import { PointerLockControls } from "three/addons/controls/PointerLockControls.j
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 
 
-const ASSET = "/human2/assets/mira.glb?v=3";
+const ASSET = "/human2/assets/mira.glb?v=4";
 const TEXROOT = "/human2/assets/tex/";
 const MAP_FILE = {
   Std_Skin_Head: ["head.jpg", "head_n.jpg"],
   Std_Skin_Body: ["body.jpg", "body_n.jpg"],
   Std_Skin_Arm: ["arm.jpg", "arm_n.jpg"],
   Std_Skin_Leg: ["leg.jpg", "leg_n.jpg"],
+  Std_Nails: ["nails.jpg", null],
   Std_Eye_L: ["eye_l.jpg", "eye_l_n.jpg"],
   Std_Eye_R: ["eye_r.jpg", "eye_r_n.jpg"],
   Std_Eyelash: ["lash.png", null],
@@ -141,7 +142,7 @@ const texCache = {};
 function loadMap(file, srgb) {
   if (!file) return null;
   if (texCache[file]) return texCache[file];
-  const t = texLoader.load(TEXROOT + file, undefined, undefined, (err) => console.warn("tex fail", file, err));
+  const t = texLoader.load(TEXROOT + file + "?v=4", undefined, undefined, (err) => console.warn("tex fail", file, err));
   t.colorSpace = srgb ? THREE.SRGBColorSpace : THREE.LinearSRGBColorSpace;
   t.flipY = false;
   t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping;
@@ -151,10 +152,30 @@ function loadMap(file, srgb) {
 
 function isHairMat(m, o) {
   const n = ((m && m.name) || "") + " " + (o.name || "");
-  return /transp|eyelash|hair/i.test(n);
+  return /transp|hair/i.test(n) && !/eyelash/i.test(n);
+}
+function isLashMat(m, o) {
+  const n = ((m && m.name) || "") + " " + (o.name || "");
+  return /eyelash/i.test(n);
+}
+function mapSpec(m, o) {
+  const name = (m && m.name) || "";
+  if (MAP_FILE[name]) return MAP_FILE[name];
+  const n = name + " " + ((o && o.name) || "");
+  if (/eyelash/i.test(n)) return MAP_FILE.Std_Eyelash;
+  if (/transp|hair/i.test(n)) return MAP_FILE.Default_Material_Transparency;
+  if (/Skin_Head/i.test(n)) return MAP_FILE.Std_Skin_Head;
+  if (/Skin_Body/i.test(n)) return MAP_FILE.Std_Skin_Body;
+  if (/Skin_Arm/i.test(n)) return MAP_FILE.Std_Skin_Arm;
+  if (/Skin_Leg/i.test(n)) return MAP_FILE.Std_Skin_Leg;
+  if (/Nails/i.test(n)) return MAP_FILE.Std_Nails;
+  if (/Eye_L/i.test(n) && !/cornea/i.test(n)) return MAP_FILE.Std_Eye_L;
+  if (/Eye_R/i.test(n) && !/cornea/i.test(n)) return MAP_FILE.Std_Eye_R;
+  return null;
 }
 
 function applySkin(root) {
+  const hairMeshes = [];
   root.traverse((o) => {
     if (o.isBone) {
       bones[o.name] = o;
@@ -169,41 +190,50 @@ function applySkin(root) {
     for (const m of mats) {
       if (!m) continue;
       const hair = isHairMat(m, o);
+      const lash = isLashMat(m, o);
+      const spec = mapSpec(m, o);
+      if (spec) {
+        m.map = loadMap(spec[0], true);
+        if (spec[1]) {
+          m.normalMap = loadMap(spec[1], false);
+          m.normalScale.set(1.15, 1.15);
+        }
+      }
       if (m.map) {
         m.map.colorSpace = THREE.SRGBColorSpace;
         m.map.flipY = false;
+        m.map.anisotropy = 8;
         m.map.needsUpdate = true;
-      } else {
-        const spec = MAP_FILE[m.name];
-        if (spec) {
-          m.map = loadMap(spec[0], true);
-          m.needsUpdate = true;
-        }
       }
       if (m.normalMap) {
         m.normalMap.colorSpace = THREE.LinearSRGBColorSpace;
         m.normalMap.flipY = false;
-        m.normalScale.set(1.1, 1.1);
-      } else {
-        const spec = MAP_FILE[m.name];
-        if (spec && spec[1]) {
-          m.normalMap = loadMap(spec[1], false);
-          m.normalScale.set(1.1, 1.1);
-        }
+        m.normalMap.needsUpdate = true;
       }
       m.metalness = 0;
       m.color.set(0xffffff);
-      m.roughness = hair ? 0.45 : (/eye/i.test(m.name || "") ? 0.2 : 0.5);
-      m.side = hair ? THREE.DoubleSide : THREE.FrontSide;
+      m.roughness = hair ? 0.38 : (lash ? 0.55 : (/eye/i.test(m.name || "") ? 0.18 : 0.48));
+      m.side = hair || lash ? THREE.DoubleSide : THREE.FrontSide;
       m.transparent = false;
       m.depthWrite = true;
-      if (hair) m.alphaTest = QUEST ? 0.5 : 0.42;
+      m.alphaTest = 0;
+      if (hair) m.alphaTest = QUEST ? 0.28 : 0.22;
+      if (lash) m.alphaTest = 0.35;
       m.needsUpdate = true;
+      if (hair) hairMeshes.push(o);
     }
     if (o.morphTargetDictionary) morphMeshes.push(o);
     o.frustumCulled = false;
     o.castShadow = false;
   });
+  const head = bones.Head;
+  if (head) {
+    for (const h of hairMeshes) {
+      if (h.parent === head) continue;
+      if (h.isSkinnedMesh) continue;
+      head.attach(h);
+    }
+  }
 }
 
 function restoreBind() {
@@ -303,10 +333,10 @@ function tickExpr(dt) {
 }
 
 const soft = [
-  { name: "L_Breast", x: 0, z: 0, vx: 0, vz: 0, stiff: 24, damp: 7.0, max: 0.32, grav: 0.5 },
-  { name: "R_Breast", x: 0, z: 0, vx: 0, vz: 0, stiff: 24, damp: 7.0, max: 0.32, grav: 0.5 },
-  { name: "L_Glute", x: 0, z: 0, vx: 0, vz: 0, stiff: 32, damp: 9.2, max: 0.2, grav: 0.22 },
-  { name: "R_Glute", x: 0, z: 0, vx: 0, vz: 0, stiff: 32, damp: 9.2, max: 0.2, grav: 0.22 },
+  { name: "L_Breast", x: 0, z: 0, vx: 0, vz: 0, stiff: 18, damp: 5.6, max: 0.4, grav: 0.62 },
+  { name: "R_Breast", x: 0, z: 0, vx: 0, vz: 0, stiff: 18, damp: 5.6, max: 0.4, grav: 0.62 },
+  { name: "L_Glute", x: 0, z: 0, vx: 0, vz: 0, stiff: 26, damp: 8.0, max: 0.24, grav: 0.28 },
+  { name: "R_Glute", x: 0, z: 0, vx: 0, vz: 0, stiff: 26, damp: 8.0, max: 0.24, grav: 0.28 },
 ];
 const prevHip = new THREE.Vector3();
 let hipReady = false;
