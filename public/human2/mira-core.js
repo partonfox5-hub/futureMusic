@@ -2,9 +2,9 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { clone as cloneSkinned } from "three/addons/utils/SkeletonUtils.js";
 
-export const ASSET = "/human2/assets/mira.glb?v=6";
+export const ASSET = "/human2/assets/mira.glb?v=9";
 export const TEXROOT = "/human2/assets/tex/";
-export const TEXVER = "7";
+export const TEXVER = "9";
 
 export const FACE_TYPES = [
   { id: "natural", name: "Natural", file: "head.jpg" },
@@ -96,11 +96,25 @@ function loadMap(file, srgb) {
   t.colorSpace = srgb ? THREE.SRGBColorSpace : THREE.LinearSRGBColorSpace;
   t.flipY = false;
   t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping;
-  t.anisotropy = 8;
+  t.anisotropy = 16;
   t.generateMipmaps = true;
   t.minFilter = THREE.LinearMipmapLinearFilter;
   texCache[key] = t;
   return t;
+}
+
+function patchSkinShader(m) {
+  if (m.userData.skinPatched) return;
+  m.userData.skinPatched = true;
+  m.onBeforeCompile = (shader) => {
+    shader.fragmentShader = shader.fragmentShader.replace(
+      "vec3 outgoingLight = reflectedLight.directDiffuse + reflectedLight.indirectDiffuse + reflectedLight.directSpecular + reflectedLight.indirectSpecular + totalEmissiveRadiance;",
+      `reflectedLight.directDiffuse *= vec3(1.08, 0.96, 0.90);
+       reflectedLight.directDiffuse += diffuseColor.rgb * vec3(0.55, 0.14, 0.09) * 0.38;
+       reflectedLight.indirectDiffuse *= vec3(1.04, 0.97, 0.94);
+       vec3 outgoingLight = reflectedLight.directDiffuse + reflectedLight.indirectDiffuse + reflectedLight.directSpecular + reflectedLight.indirectSpecular + totalEmissiveRadiance;`
+    );
+  };
 }
 function isHairMat(m, o) {
   const n = ((m && m.name) || "") + " " + (o.name || "");
@@ -140,29 +154,37 @@ function applySkin(root) {
         m.map = loadMap(spec[0], true);
         if (spec[1]) {
           m.normalMap = loadMap(spec[1], false);
-          m.normalScale.set(1.35, 1.35);
+          m.normalScale.set(1.85, 1.85);
+        }
+        const stem = spec[0].replace(".jpg", "").replace(".png", "");
+        if (/head|body|arm|leg/.test(stem) && !/head_/.test(stem)) {
+          const rfile = stem.split("_")[0] + "_r.jpg";
+          const rmap = loadMap(rfile, false);
+          if (rmap) m.roughnessMap = rmap;
         }
       }
       if (m.map) {
         m.map.colorSpace = THREE.SRGBColorSpace;
         m.map.flipY = false;
-        m.map.anisotropy = 8;
+        m.map.anisotropy = 16;
         m.map.needsUpdate = true;
       }
       if (m.normalMap) {
         m.normalMap.colorSpace = THREE.LinearSRGBColorSpace;
         m.normalMap.flipY = false;
+        m.normalMap.anisotropy = 16;
         m.normalMap.needsUpdate = true;
       }
       m.metalness = 0;
       m.color.set(0xffffff);
-      m.roughness = hair ? 0.34 : (lash ? 0.55 : (/eye/i.test(m.name || "") ? 0.16 : 0.42));
+      m.roughness = hair ? 0.34 : (lash ? 0.55 : (/eye/i.test(m.name || "") ? 0.16 : 0.46));
       m.side = hair || lash ? THREE.DoubleSide : THREE.FrontSide;
       m.transparent = false;
       m.depthWrite = true;
       m.alphaTest = 0;
       if (hair) m.alphaTest = QUEST ? 0.32 : 0.26;
       if (lash) m.alphaTest = 0.35;
+      if (!hair && !lash && /Skin_/i.test(m.name || "")) patchSkinShader(m);
       m.needsUpdate = true;
       if (hair) hairMeshes.push(o);
     }
@@ -239,11 +261,13 @@ class MiraActor {
     this.exprT = 3 + Math.random() * 4;
     this.miraWalk = 0.4 + Math.random();
     this.soft = [
-      { name: "L_Breast", x: 0, z: 0, vx: 0, vz: 0, kind: "breast" },
-      { name: "R_Breast", x: 0, z: 0, vx: 0, vz: 0, kind: "breast" },
-      { name: "L_Glute", x: 0, z: 0, vx: 0, vz: 0, kind: "glute" },
-      { name: "R_Glute", x: 0, z: 0, vx: 0, vz: 0, kind: "glute" },
+      { name: "L_Breast", x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, kind: "breast" },
+      { name: "R_Breast", x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, kind: "breast" },
+      { name: "L_Glute", x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, kind: "glute" },
+      { name: "R_Glute", x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, kind: "glute" },
     ];
+    this.held = null;
+    this.heldVel = new THREE.Vector3();
     this.prevHip = new THREE.Vector3();
     this.hipReady = false;
     this.hitReact = { lookYaw: 0, lookPitch: 0, lookT: 0, flinchX: 0, flinchY: 0, flinchZ: 0, headKickX: 0, headKickY: 0, exprT: 0, knockX: 0, knockZ: 0 };
@@ -417,34 +441,53 @@ class MiraActor {
   tickSoft(dt, moving) {
     const hip = this.bones.Hip;
     if (hip) hip.getWorldPosition(_w);
-    let ax = 0, az = 0;
+    let ax = 0, ay = 0, az = 0;
     if (hip && this.hipReady) {
-      ax = (_w.x - this.prevHip.x) / Math.max(dt, 1 / 120);
-      az = (_w.z - this.prevHip.z) / Math.max(dt, 1 / 120);
+      const inv = 1 / Math.max(dt, 1 / 120);
+      ax = (_w.x - this.prevHip.x) * inv;
+      ay = (_w.y - this.prevHip.y) * inv;
+      az = (_w.z - this.prevHip.z) * inv;
     }
     if (hip) { this.prevHip.copy(_w); this.hipReady = true; }
     const b = Math.max(0.35, this.shape.breast);
     const g = Math.max(0.35, this.shape.butt);
-    const drive = moving ? 1 : 0.35;
-    const step = Math.min(dt, 1 / 60);
+    const drive = moving ? 1 : 0.45;
+    const step = Math.min(dt, 1 / 45);
     for (const s of this.soft) {
-      if (!this.bones[s.name] || !this.bindQ[s.name]) continue;
+      const bone = this.bones[s.name];
+      if (!bone || !this.bindQ[s.name]) continue;
       const mass = s.kind === "breast" ? b : g;
-      const stiff = (s.kind === "breast" ? 6.4 : 11.5) / Math.pow(mass, 1.35);
-      const damp = (s.kind === "breast" ? 3.1 : 5.2) * Math.sqrt(mass);
-      const max = (s.kind === "breast" ? 0.22 : 0.14) * mass + 0.16;
-      const grav = (s.kind === "breast" ? 0.72 : 0.32) * mass;
+      const stiff = (s.kind === "breast" ? 4.2 : 8.4) / Math.pow(mass, 1.45);
+      const damp = (s.kind === "breast" ? 2.15 : 3.8) * Math.sqrt(mass);
+      const max = (s.kind === "breast" ? 0.38 : 0.22) * mass + 0.22;
+      const grav = (s.kind === "breast" ? 1.35 : 0.55) * mass;
       const side = s.name.startsWith("R_") ? -1 : 1;
-      const bounce = Math.sin(this.walkT * 2) * (s.kind === "breast" ? 2.6 : 1.4) * drive * mass;
-      const accX = -ax * 0.52 * drive + Math.sin(this.walkT) * 1.15 * drive * side * mass;
-      const accZ = -az * 0.52 * drive + bounce + grav;
-      s.vx += (accX - s.x * stiff - s.vx * damp) * step;
-      s.vz += (accZ - s.z * stiff - s.vz * damp) * step;
-      s.x = THREE.MathUtils.clamp(s.x + s.vx * step, -max, max);
-      s.z = THREE.MathUtils.clamp(s.z + s.vz * step, -max * 0.7, max);
-      if (Math.abs(s.x) >= max) s.vx *= 0.32;
-      if (Math.abs(s.z) >= max * 0.7) s.vz *= 0.32;
-      this.addE(s.name, s.z, 0, s.x);
+      const bounce = Math.sin(this.walkT * 2) * (s.kind === "breast" ? 4.8 : 2.2) * drive * mass;
+      const accX = -ax * 1.15 * drive + Math.sin(this.walkT) * 1.8 * drive * side * mass;
+      const accY = -ay * 0.9 * drive + bounce * 0.45;
+      const accZ = -az * 1.15 * drive + bounce + grav;
+      if (this.held && this.held.spring === s) {
+        s.x = THREE.MathUtils.damp(s.x, this.held.tx, 12, dt);
+        s.y = THREE.MathUtils.damp(s.y, this.held.ty, 12, dt);
+        s.z = THREE.MathUtils.damp(s.z, this.held.tz, 12, dt);
+        s.vx = 0; s.vy = 0; s.vz = 0;
+      } else {
+        s.vx += (accX - s.x * stiff - s.vx * damp) * step;
+        s.vy += (accY - s.y * stiff - s.vy * damp) * step;
+        s.vz += (accZ - s.z * stiff - s.vz * damp) * step;
+        s.x = THREE.MathUtils.clamp(s.x + s.vx * step, -max, max);
+        s.y = THREE.MathUtils.clamp(s.y + s.vy * step, -max * 0.55, max * 0.55);
+        s.z = THREE.MathUtils.clamp(s.z + s.vz * step, -max * 0.55, max);
+        if (Math.abs(s.x) >= max) s.vx *= 0.25;
+        if (Math.abs(s.z) >= max) s.vz *= 0.25;
+      }
+      this.addE(s.name, s.z * 0.85, s.y * 0.4, s.x * 0.85);
+      if (this.bindPos[s.name]) {
+        const k = (s.kind === "breast" ? 0.055 : 0.03) * mass;
+        bone.position.x = this.bindPos[s.name].x + s.x * k;
+        bone.position.y = this.bindPos[s.name].y + s.y * k * 0.7;
+        bone.position.z = this.bindPos[s.name].z + s.z * k * 1.15;
+      }
     }
   }
   tickGaze(dt, moving, camPos) {
@@ -479,21 +522,23 @@ class MiraActor {
     hr.knockX *= kd; hr.knockZ *= kd;
   }
   applyStrike(hit, nrm, closing, glance, pos) {
-    const mag = Math.min(3.4, closing * 0.55 + glance * 0.18);
-    if (mag < 0.08) return;
+    const mag = Math.min(6.5, closing * 1.35 + glance * 0.4);
+    if (mag < 0.05) return;
     const now = performance.now();
-    if ((this.hitCool[hit.name] || 0) > now - 70) return;
+    if ((this.hitCool[hit.name] || 0) > now - 40) return;
     this.hitCool[hit.name] = now;
-    const jx = nrm.x * mag * 2.2;
-    const jz = nrm.z * mag * 2.2;
+    const jx = nrm.x * mag * 4.4;
+    const jy = nrm.y * mag * 2.6;
+    const jz = nrm.z * mag * 4.4;
     for (const s of this.soft) {
       let wgt = 0;
       if (s.name === hit.name) wgt = 1;
-      else if (hit.kind === "chest" && s.kind === "breast") wgt = 0.9;
-      else if (hit.kind === "breast" && s.kind === "breast") wgt = s.name[0] === hit.name[0] ? 1 : 0.48;
-      else if (hit.kind === "hip" && s.kind === "glute") wgt = 0.78;
-      else if (hit.kind === "glute" && s.kind === "glute") wgt = s.name[0] === hit.name[0] ? 1 : 0.42;
-      if (wgt > 0) { s.vx += jx * wgt; s.vz += jz * wgt; }
+      else if (hit.kind === "chest" && s.kind === "breast") wgt = 0.95;
+      else if (hit.kind === "breast" && s.kind === "breast") wgt = s.name[0] === hit.name[0] ? 1 : 0.55;
+      else if (hit.kind === "belly" && s.kind === "breast") wgt = 0.5;
+      else if (hit.kind === "hip" && s.kind === "glute") wgt = 0.85;
+      else if (hit.kind === "glute" && s.kind === "glute") wgt = s.name[0] === hit.name[0] ? 1 : 0.48;
+      if (wgt > 0) { s.vx += jx * wgt; s.vy += jy * wgt; s.vz += jz * wgt; }
     }
     _w.subVectors(pos, this.group.position);
     let lookYaw = wrapPi(Math.atan2(_w.x, _w.z) - this.group.rotation.y);
@@ -513,7 +558,7 @@ class MiraActor {
       if (!bone) continue;
       bone.getWorldPosition(_w);
       const scale = hit.kind === "breast" ? this.shape.breast : (hit.kind === "glute" ? this.shape.butt : 1);
-      const min = hit.rad * (0.85 + 0.15 * scale) * this.shape.height + rad;
+      const min = hit.rad * (0.95 + 0.22 * scale) * this.shape.height + rad;
       const d = pos.distanceTo(_w);
       if (d >= min || d < 1e-5) continue;
       _n.subVectors(pos, _w).multiplyScalar(1 / d);
@@ -530,7 +575,75 @@ class MiraActor {
     }
     return hitAny;
   }
+  nearestHit(worldPos, maxDist) {
+    let best = null, bd = maxDist;
+    for (const hit of BODY_HIT) {
+      const bone = this.bones[hit.name];
+      if (!bone) continue;
+      bone.getWorldPosition(_w);
+      const scale = hit.kind === "breast" ? this.shape.breast : (hit.kind === "glute" ? this.shape.butt : 1);
+      const d = worldPos.distanceTo(_w) - hit.rad * scale * 0.5;
+      if (d < bd) { bd = d; best = hit; }
+    }
+    return best;
+  }
+  beginGrab(ctrl, hit) {
+    const bone = this.bones[hit.name];
+    if (!bone) return;
+    this.held = {
+      ctrl, hit,
+      spring: this.soft.find((s) => s.name === hit.name) || null,
+      tx: 0, ty: 0, tz: 0,
+      last: new THREE.Vector3(),
+    };
+    ctrl.getWorldPosition(this.held.last);
+    this.miraWalk = 8;
+    this.dest = null;
+  }
+  tickGrab(dt) {
+    if (!this.held) return;
+    const ctrl = this.held.ctrl;
+    ctrl.getWorldPosition(_v);
+    this.heldVel.copy(_v).sub(this.held.last).multiplyScalar(1 / Math.max(dt, 1 / 90));
+    this.held.last.copy(_v);
+    const bone = this.bones[this.held.hit.name];
+    if (!bone) return;
+    bone.getWorldPosition(_w);
+    _n.copy(_v).sub(_w);
+    if (this.held.spring) {
+      this.group.getWorldQuaternion(_q);
+      _q.invert();
+      _w2.copy(_n).applyQuaternion(_q);
+      this.held.tx = THREE.MathUtils.clamp(_w2.x * 9, -1.6, 1.6);
+      this.held.ty = THREE.MathUtils.clamp(_w2.y * 7, -1.2, 1.2);
+      this.held.tz = THREE.MathUtils.clamp(_w2.z * 9, -1.6, 1.6);
+      this.group.position.x += _n.x * 0.12 * dt;
+      this.group.position.z += _n.z * 0.12 * dt;
+    } else {
+      this.group.position.x += _n.x * 2.4 * dt;
+      this.group.position.y = 0;
+      this.group.position.z += _n.z * 2.4 * dt;
+      this.hitReact.flinchX += THREE.MathUtils.clamp(-_n.z * 0.4 * dt, -0.25, 0.25);
+      this.hitReact.knockX = this.heldVel.x * 0.15;
+      this.hitReact.knockZ = this.heldVel.z * 0.15;
+    }
+  }
+  endGrab() {
+    if (!this.held) return;
+    const v = this.heldVel;
+    const mag = Math.min(4.2, v.length());
+    if (this.held.spring) {
+      this.held.spring.vx += v.x * 1.8;
+      this.held.spring.vy += v.y * 1.2;
+      this.held.spring.vz += v.z * 1.8;
+    }
+    this.hitReact.knockX += v.x * 0.08;
+    this.hitReact.knockZ += v.z * 0.08;
+    if (mag > 0.4) { this.hitReact.exprT = 0.35; exprFace(this.want, mag > 1.4 ? "surprise" : "happy"); }
+    this.held = null;
+  }
   wander(dt) {
+    if (this.held) return false;
     this.miraWalk -= dt;
     if (this.miraWalk < 0) {
       this.miraWalk = 2.6 + Math.random() * 4.2;
@@ -563,6 +676,7 @@ class MiraActor {
     this.addE("Spine02", Math.sin(tAbs * 1.55) * 0.026, 0, 0);
     if (moving) this.tickWalk(true);
     else this.tickIdle(tAbs);
+    this.tickGrab(dt);
     this.tickSoft(dt, moving);
     this.tickGaze(dt, moving, camPos);
     this.tickHitReact(dt);
@@ -579,85 +693,110 @@ class MiraActor {
 
 class FloppyNoodle {
   constructor(scene) {
-    this.n = 12;
-    this.rest = 0.095;
-    this.rad = 0.038;
+    this.n = 8;
+    this.rest = 0.14;
+    this.rad = 0.04;
     this.pts = [];
     this.prev = [];
-    this.held = null;
+    this.grabI = -1;
     this.group = new THREE.Group();
     scene.add(this.group);
-    const mat = new THREE.MeshStandardMaterial({ color: 0x3ec1f0, roughness: 0.82, metalness: 0 });
-    const cap = new THREE.MeshStandardMaterial({ color: 0xffef7a, roughness: 0.7 });
+    const mat = new THREE.MeshStandardMaterial({ color: 0x3ec1f0, roughness: 0.78, metalness: 0 });
+    const cap = new THREE.MeshStandardMaterial({ color: 0xffef7a, roughness: 0.65 });
     this.segs = [];
     for (let i = 0; i < this.n; i++) {
-      const p = new THREE.Vector3(0.55, 1.15 - i * this.rest, 0.4);
+      const p = new THREE.Vector3(0.55, 1.2 - i * this.rest, 0.45);
       this.pts.push(p);
       this.prev.push(p.clone());
-      const mesh = new THREE.Mesh(new THREE.CapsuleGeometry(this.rad, this.rest * 0.72, 3, 8), i === 0 || i === this.n - 1 ? cap : mat);
+      const mesh = new THREE.Mesh(new THREE.CapsuleGeometry(this.rad, this.rest * 0.78, 4, 10), i === 0 || i === this.n - 1 ? cap : mat);
       this.group.add(mesh);
       this.segs.push(mesh);
     }
   }
-  grabAt(pos) {
-    for (const p of this.pts) if (p.distanceTo(pos) < 0.28) return true;
-    return false;
-  }
-  tick(dt, actors, playerPos, holdPos, holdQuat) {
-    const g = 4.8;
-    const step = Math.min(dt, 1 / 50);
-    if (holdPos && holdQuat) {
-      this.pts[0].copy(holdPos);
-      _v.set(0, 0, -this.rest).applyQuaternion(holdQuat);
-      this.pts[1].copy(holdPos).add(_v);
-      this.prev[0].copy(this.pts[0]);
-      this.prev[1].copy(this.pts[1]);
+  grabIndex(pos) {
+    let best = -1, bd = 0.24;
+    for (let i = 0; i < this.n; i++) {
+      const d = this.pts[i].distanceTo(pos);
+      if (d < bd) { bd = d; best = i; }
     }
-    for (let i = holdPos ? 2 : 0; i < this.n; i++) {
+    for (let i = 0; i < this.n - 1; i++) {
+      _w.subVectors(this.pts[i + 1], this.pts[i]);
+      const len = _w.length() || 1e-6;
+      const t = THREE.MathUtils.clamp(_v.copy(pos).sub(this.pts[i]).dot(_w) / (len * len), 0, 1);
+      _n.copy(this.pts[i]).addScaledVector(_w, t);
+      const d = pos.distanceTo(_n);
+      if (d < bd) { bd = d; best = t < 0.5 ? i : i + 1; }
+    }
+    return best;
+  }
+  grabAt(pos) { return this.grabIndex(pos) >= 0; }
+  tick(dt, actors, playerPos, holdPos, holdQuat, grabI) {
+    const g = 2.15;
+    const step = Math.min(dt, 1 / 50);
+    const gi = (holdPos && grabI >= 0) ? grabI : -1;
+    if (holdPos && holdQuat && gi >= 0) {
+      this.pts[gi].copy(holdPos);
+      this.prev[gi].copy(holdPos);
+      _v.set(0, 0, -this.rest).applyQuaternion(holdQuat);
+      const n1 = gi + 1 < this.n ? gi + 1 : gi - 1;
+      if (n1 >= 0 && n1 < this.n) {
+        this.pts[n1].copy(holdPos).add(_v);
+        this.prev[n1].copy(this.pts[n1]);
+      }
+    }
+    for (let i = 0; i < this.n; i++) {
+      if (gi >= 0 && (i === gi || i === gi + 1 || i === gi - 1)) continue;
       const p = this.pts[i];
       const pr = this.prev[i];
       const vx = p.x - pr.x;
       const vy = p.y - pr.y;
       const vz = p.z - pr.z;
       pr.copy(p);
-      p.x += vx * 0.92;
-      p.y += vy * 0.92 - g * step * step;
-      p.z += vz * 0.92;
+      p.x += vx * 0.84;
+      p.y += vy * 0.84 - g * step * step;
+      p.z += vz * 0.84;
     }
-    for (let k = 0; k < 8; k++) {
+    for (let k = 0; k < 16; k++) {
       for (let i = 0; i < this.n - 1; i++) {
-        if (holdPos && i === 0) continue;
         const a = this.pts[i], b = this.pts[i + 1];
         _w.subVectors(b, a);
         const d = _w.length() || 1e-6;
         const diff = (d - this.rest) / d;
-        if (holdPos && i < 2) {
-          b.addScaledVector(_w, -diff);
-        } else {
+        const aHeld = gi >= 0 && (i === gi || i === gi + 1 || i === gi - 1);
+        const bHeld = gi >= 0 && (i + 1 === gi || i + 1 === gi + 1 || i + 1 === gi - 1);
+        if (aHeld && !bHeld) b.addScaledVector(_w, -diff);
+        else if (bHeld && !aHeld) a.addScaledVector(_w, diff);
+        else if (!aHeld && !bHeld) {
           a.addScaledVector(_w, diff * 0.5);
           b.addScaledVector(_w, -diff * 0.5);
         }
       }
       for (let i = 1; i < this.n - 1; i++) {
-        if (holdPos && i < 2) continue;
+        if (gi >= 0 && (i === gi || i === gi + 1 || i === gi - 1)) continue;
         _w.subVectors(this.pts[i + 1], this.pts[i - 1]);
         _v.copy(this.pts[i - 1]).addScaledVector(_w, 0.5);
-        this.pts[i].lerp(_v, 0.12);
+        this.pts[i].lerp(_v, 0.42);
       }
     }
-    for (let i = holdPos ? 2 : 0; i < this.n; i++) {
+    for (let i = 0; i < this.n; i++) {
+      if (gi >= 0 && (i === gi || i === gi + 1 || i === gi - 1)) continue;
       const p = this.pts[i];
-      if (p.y < this.rad) { p.y = this.rad; this.prev[i].y = p.y; this.prev[i].x = p.x * 0.15 + this.prev[i].x * 0.85; this.prev[i].z = p.z * 0.15 + this.prev[i].z * 0.85; }
+      if (p.y < this.rad) {
+        p.y = this.rad;
+        this.prev[i].y = p.y;
+        this.prev[i].x = p.x * 0.25 + this.prev[i].x * 0.75;
+        this.prev[i].z = p.z * 0.25 + this.prev[i].z * 0.75;
+      }
       _v.subVectors(p, this.prev[i]);
       for (const actor of actors) actor.collidePoint(p, this.rad, _v, true);
       this.prev[i].copy(p).sub(_v);
     }
-    if (!holdPos && playerPos && this.pts[0].distanceTo(playerPos) > 3.6) {
+    if (gi < 0 && playerPos && this.pts[0].distanceTo(playerPos) > 4.2) {
       _v.copy(playerPos);
-      _v.y = 0.9;
-      _v.x += 0.45;
-      _v.z += 0.35;
-      this.pts[0].lerp(_v, 0.04);
+      _v.y = 0.85;
+      _v.x += 0.4;
+      _v.z += 0.3;
+      this.pts[0].lerp(_v, 0.03);
     }
     for (let i = 0; i < this.n; i++) {
       const mesh = this.segs[i];
@@ -670,17 +809,17 @@ class FloppyNoodle {
   }
 }
 
-function makeFinger(parent, x, z, len, segs) {
-  const mats = new THREE.MeshStandardMaterial({ color: 0xe0b89a, roughness: 0.55 });
+function makeFinger(parent, x, y, len, segs, skin) {
   const joints = [];
   let p = parent;
   for (let i = 0; i < segs; i++) {
     const g = new THREE.Group();
-    if (i === 0) g.position.set(x, 0.01, z);
+    if (i === 0) g.position.set(x, y, -0.045);
     else g.position.set(0, 0, -len);
-    const m = new THREE.Mesh(new THREE.CapsuleGeometry(0.009 - i * 0.0012, len * 0.7, 3, 6), mats);
+    const rad = Math.max(0.006, 0.01 - i * 0.0014);
+    const m = new THREE.Mesh(new THREE.CapsuleGeometry(rad, len * 0.62, 3, 6), skin);
     m.rotation.x = Math.PI / 2;
-    m.position.z = -len * 0.45;
+    m.position.z = -len * 0.42;
     g.add(m);
     p.add(g);
     joints.push(g);
@@ -690,66 +829,79 @@ function makeFinger(parent, x, z, len, segs) {
 }
 
 class PlayerHands {
-  constructor(renderer, scene) {
+  constructor(renderer, parent) {
     this.ctrl = [renderer.xr.getController(0), renderer.xr.getController(1)];
     this.grip = [renderer.xr.getControllerGrip(0), renderer.xr.getControllerGrip(1)];
     this.squeeze = [0, 0];
     this.hands = [];
+    this.handedness = ["none", "none"];
+    const skin = new THREE.MeshStandardMaterial({ color: 0xe4bfa0, roughness: 0.58 });
     for (let i = 0; i < 2; i++) {
-      scene.add(this.ctrl[i]);
-      scene.add(this.grip[i]);
+      parent.add(this.ctrl[i]);
+      parent.add(this.grip[i]);
       const h = new THREE.Group();
-      const palm = new THREE.Mesh(new THREE.BoxGeometry(0.075, 0.028, 0.09), new THREE.MeshStandardMaterial({ color: 0xe2bc9c, roughness: 0.58 }));
-      palm.position.set(0, 0, 0.02);
+      // Grip space: +Y up the handle, -Z roughly pointing. Palm sits on the grip,
+      // fingers along -Z, thumb toward +X on the right hand. Left is mirrored.
+      h.rotation.set(-Math.PI / 2, Math.PI, 0);
+      const palm = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.026, 0.085), skin);
+      palm.position.set(0, 0, -0.01);
       h.add(palm);
       h.userData.fingers = [
-        makeFinger(h, -0.028, -0.01, 0.028, 3),
-        makeFinger(h, -0.01, -0.018, 0.032, 3),
-        makeFinger(h, 0.01, -0.016, 0.03, 3),
-        makeFinger(h, 0.028, -0.008, 0.024, 3),
+        makeFinger(h, -0.026, 0.004, 0.026, 3, skin),
+        makeFinger(h, -0.009, 0.002, 0.03, 3, skin),
+        makeFinger(h, 0.009, 0.002, 0.028, 3, skin),
+        makeFinger(h, 0.026, 0.004, 0.023, 3, skin),
       ];
-      h.userData.thumb = makeFinger(h, -0.03, 0.03, 0.022, 2);
-      h.userData.thumb[0].rotation.y = 0.7;
+      h.userData.thumb = makeFinger(h, 0.032, 0.012, 0.02, 2, skin);
+      h.userData.thumb[0].position.set(0.028, 0.01, 0.01);
+      h.userData.thumb[0].rotation.set(0.35, 0.85, 0.4);
       h.userData.colliders = [];
       h.traverse((o) => { if (o.isMesh) h.userData.colliders.push(o); });
       this.grip[i].add(h);
       this.hands.push(h);
+      this.ctrl[i].addEventListener("connected", (ev) => {
+        const hand = ev.data && ev.data.handedness;
+        this.handedness[i] = hand || "none";
+        h.scale.x = hand === "left" ? -1 : 1;
+      });
       this.ctrl[i].addEventListener("squeezestart", () => { this.squeeze[i] = 1; });
       this.ctrl[i].addEventListener("squeezeend", () => { this.squeeze[i] = 0; });
     }
+  }
+  palmPos(i, out) {
+    this.grip[i].getWorldPosition(out || _v);
+    return out || _v;
   }
   tick(dt, actors) {
     for (let i = 0; i < 2; i++) {
       const curl = this.squeeze[i];
       const h = this.hands[i];
       for (const finger of h.userData.fingers) {
-        finger.forEach((j, k) => { j.rotation.x = curl * (0.55 + k * 0.35); });
+        finger.forEach((j, k) => { j.rotation.x = curl * (0.7 + k * 0.4); });
       }
-      h.userData.thumb.forEach((j, k) => { j.rotation.z = curl * (0.4 + k * 0.2); });
+      h.userData.thumb.forEach((j, k) => { j.rotation.y = 0.85 + curl * (0.35 + k * 0.2); });
+      this.grip[i].getWorldPosition(_v);
+      _w.set(0, 0, 0);
+      for (const actor of actors) actor.collidePoint(_v, 0.03, _w, false);
       for (const c of h.userData.colliders) {
         c.getWorldPosition(_v);
         _w.set(0, 0, 0);
-        for (const actor of actors) actor.collidePoint(_v, 0.018, _w, true);
+        for (const actor of actors) actor.collidePoint(_v, 0.016, _w, false);
       }
     }
   }
-  tryGrab(noodle) {
-    for (const c of this.ctrl) {
-      c.getWorldPosition(_v);
-      if (noodle.grabAt(_v)) return c;
-    }
-    return null;
-  }
 }
 
-export function createMiraSystem({ scene, renderer, camera, xrOn }) {
+export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
   const actors = [];
   let template = null;
   let baseScale = 1;
   let ready = false;
+  const parent = rig || scene;
   const noodle = new FloppyNoodle(scene);
-  const hands = new PlayerHands(renderer, scene);
+  const hands = new PlayerHands(renderer, parent);
   let noodleHeld = null;
+  let noodleGrabI = -1;
   const camPos = new THREE.Vector3();
   const holdPos = new THREE.Vector3();
   const blobs = [];
@@ -810,24 +962,46 @@ export function createMiraSystem({ scene, renderer, camera, xrOn }) {
     );
   }
 
-  hands.ctrl[0].addEventListener("selectstart", () => {
-    hands.ctrl[0].getWorldPosition(_v);
-    if (noodle.grabAt(_v)) noodleHeld = hands.ctrl[0];
-  });
-  hands.ctrl[1].addEventListener("selectstart", () => {
-    hands.ctrl[1].getWorldPosition(_v);
-    if (noodle.grabAt(_v)) noodleHeld = hands.ctrl[1];
-  });
-  hands.ctrl[0].addEventListener("selectend", () => { if (noodleHeld === hands.ctrl[0]) noodleHeld = null; });
-  hands.ctrl[1].addEventListener("selectend", () => { if (noodleHeld === hands.ctrl[1]) noodleHeld = null; });
+  function trySelect(i) {
+    const grip = hands.grip[i];
+    grip.getWorldPosition(_v);
+    const ni = noodle.grabIndex(_v);
+    if (ni >= 0) {
+      noodleHeld = hands.ctrl[i];
+      noodleGrabI = ni;
+      return;
+    }
+    let bestA = null, bestH = null, bd = 0.2;
+    for (const actor of actors) {
+      const hit = actor.nearestHit(_v, bd);
+      if (!hit) continue;
+      const bone = actor.bones[hit.name];
+      if (!bone) continue;
+      bone.getWorldPosition(_w);
+      const d = _v.distanceTo(_w);
+      if (d < bd) { bd = d; bestA = actor; bestH = hit; }
+    }
+    if (bestA && bestH) bestA.beginGrab(grip, bestH);
+  }
+  function tryRelease(i) {
+    if (noodleHeld === hands.ctrl[i]) { noodleHeld = null; noodleGrabI = -1; }
+    for (const actor of actors) {
+      if (actor.held && actor.held.ctrl === hands.grip[i]) actor.endGrab();
+    }
+  }
+  hands.ctrl[0].addEventListener("selectstart", () => trySelect(0));
+  hands.ctrl[1].addEventListener("selectstart", () => trySelect(1));
+  hands.ctrl[0].addEventListener("selectend", () => tryRelease(0));
+  hands.ctrl[1].addEventListener("selectend", () => tryRelease(1));
 
   function tick(dt, tAbs, keys) {
     const cam = xrOn() ? renderer.xr.getCamera() : camera;
     cam.getWorldPosition(camPos);
     let hold = null, hq = null;
     if (noodleHeld && noodleHeld !== "desk") {
-      noodleHeld.getWorldPosition(holdPos);
-      noodleHeld.getWorldQuaternion(_q);
+      const idx = noodleHeld === hands.ctrl[0] ? 0 : 1;
+      hands.grip[idx].getWorldPosition(holdPos);
+      hands.grip[idx].getWorldQuaternion(_q);
       hold = holdPos;
       hq = _q;
     } else if (!xrOn() && keys && (keys.KeyF || keys.Mouse0)) {
@@ -837,8 +1011,9 @@ export function createMiraSystem({ scene, renderer, camera, xrOn }) {
       hq = camera.quaternion;
       hold = holdPos;
       noodleHeld = "desk";
-    } else if (noodleHeld === "desk") noodleHeld = null;
-    noodle.tick(dt, actors, camPos, hold, hq);
+      noodleGrabI = 0;
+    } else if (noodleHeld === "desk") { noodleHeld = null; noodleGrabI = -1; }
+    noodle.tick(dt, actors, camPos, hold, hq, noodleGrabI);
     hands.tick(dt, actors);
     for (let i = 0; i < actors.length; i++) {
       actors[i].tick(dt, camPos, tAbs);

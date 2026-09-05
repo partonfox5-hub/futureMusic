@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
-import { createMiraSystem, SLIDERS, FACE_TYPES, HAIR_COLORS } from "./mira-core.js?v=8";
+import { createMiraSystem, SLIDERS, FACE_TYPES, HAIR_COLORS } from "./mira-core.js?v=9";
 
 const QUEST = /OculusBrowser|Quest/i.test(navigator.userAgent);
 const loadEl = document.getElementById("load");
@@ -30,10 +30,12 @@ document.body.prepend(renderer.domElement);
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x6b5e52);
+const rig = new THREE.Group();
+scene.add(rig);
 const camera = new THREE.PerspectiveCamera(70, innerWidth / innerHeight, 0.05, 80);
 camera.position.set(0, 1.45, 2.6);
 camera.lookAt(0, 0.95, 0);
-scene.add(camera);
+rig.add(camera);
 scene.add(new THREE.HemisphereLight(0xfff3e4, 0x3a3028, 0.8));
 const key = new THREE.DirectionalLight(0xfff0d8, 1.35);
 key.position.set(1.4, 3.2, 2.8);
@@ -65,13 +67,13 @@ document.getElementById("enter").onclick = enterXr;
 addEventListener("mousedown", () => { keys.Mouse0 = true; });
 addEventListener("mouseup", () => { keys.Mouse0 = false; });
 
-const mira = createMiraSystem({ scene, renderer, camera, xrOn: XR_ON });
+const mira = createMiraSystem({ scene, renderer, camera, xrOn: XR_ON, rig });
 banner("LOADING PASS 2…");
 mira.load(
   (x) => { if (x.total && loadEl) loadEl.textContent = "LOADING  " + Math.round((x.loaded / x.total) * 100) + "%"; },
   () => {
     if (loadEl) loadEl.remove();
-    banner("HUMAN 2 · floppy noodle · walk jiggle · spawn more Miras");
+    banner("HUMAN 2 · left stick move · right stick turn · grab noodle or Mira");
     bindHud();
   },
   (e) => { banner("LOAD FAILED — " + (e && e.message ? e.message : "glb")); console.error(e); }
@@ -145,7 +147,49 @@ function bindHud() {
   syncLabs();
 }
 
+const _fwd = new THREE.Vector3();
+const _right = new THREE.Vector3();
+function stickAxes(gp) {
+  if (!gp || !gp.axes) return null;
+  const a = gp.axes;
+  if (a.length >= 4 && (Math.abs(a[2]) > 0.02 || Math.abs(a[3]) > 0.02)) return { x: a[2], y: a[3] };
+  if (a.length >= 2) return { x: a[0], y: a[1] };
+  return null;
+}
+function tickLocomotion(dt) {
+  if (!XR_ON()) return;
+  const session = renderer.xr.getSession();
+  if (!session) return;
+  const cam = renderer.xr.getCamera();
+  cam.getWorldDirection(_fwd);
+  _fwd.y = 0;
+  if (_fwd.lengthSq() < 1e-6) return;
+  _fwd.normalize();
+  _right.set(_fwd.z, 0, -_fwd.x);
+  const speed = 2.35;
+  const turn = 2.15;
+  let idx = 0;
+  for (const src of session.inputSources) {
+    const st = stickAxes(src.gamepad);
+    idx += 1;
+    if (!st) continue;
+    let sx = st.x, sy = st.y;
+    const hand = src.handedness || "";
+    const isRight = hand === "right" || (hand !== "left" && idx === 2);
+    if (!isRight) {
+      if (Math.abs(sx) < 0.14) sx = 0;
+      if (Math.abs(sy) < 0.14) sy = 0;
+      rig.position.addScaledVector(_fwd, -sy * speed * dt);
+      rig.position.addScaledVector(_right, sx * speed * dt);
+    } else {
+      if (Math.abs(sx) < 0.16) sx = 0;
+      rig.rotation.y -= sx * turn * dt;
+    }
+  }
+}
+
 function desktopMove(dt) {
+  if (XR_ON()) return;
   if (!controls || !controls.isLocked) return;
   const sp = (keys.ShiftLeft ? 2.4 : 1.4) * dt;
   if (keys.KeyW) controls.moveForward(sp);
@@ -159,6 +203,7 @@ let fpsFrames = 0, fpsLast = performance.now();
 function tick() {
   const dt = Math.min(clock.getDelta(), 0.05);
   desktopMove(dt);
+  tickLocomotion(dt);
   if (mira.ready) mira.tick(dt, clock.elapsedTime, keys);
   fpsFrames++;
   const now = performance.now();
@@ -184,8 +229,14 @@ async function enterXr() {
     }
     await renderer.xr.setSession(session);
     renderer.xr.setReferenceSpaceType("local-floor");
+    camera.position.set(0, 0, 0);
+    camera.rotation.set(0, 0, 0);
     if (typeof renderer.xr.setFoveation === "function") renderer.xr.setFoveation(0.55);
     if (ui) ui.style.display = "none";
+    session.addEventListener("end", () => {
+      camera.position.set(0, 1.45, 2.6);
+      camera.lookAt(0, 0.95, 0);
+    });
     scene.background = null;
     renderer.setClearColor(0x000000, 0);
     floor.material.opacity = 0.12;
