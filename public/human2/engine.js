@@ -1,8 +1,8 @@
 import * as THREE from "three";
 import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
-import { createMiraSystem, SLIDERS, FACE_TYPES, HAIR_COLORS } from "./mira-core.js?v=13";
-import { DEFAULT_PERSONA, miraChat, miraSpeak, startMic } from "./mira-voice.js?v=13";
+import { createMiraSystem, SLIDERS, FACE_TYPES, HAIR_COLORS } from "./mira-core.js?v=16";
+import { DEFAULT_PERSONA, miraChat, miraSpeak, startMic } from "./mira-voice.js?v=16";
 
 const QUEST = /OculusBrowser|Quest/i.test(navigator.userAgent);
 const loadEl = document.getElementById("load");
@@ -89,6 +89,8 @@ function bindHud() {
   for (const s of SLIDERS) {
     const el = document.getElementById("s_" + s.key);
     if (!el) continue;
+    el.min = s.min; el.max = s.max; el.step = s.step;
+    if (el.value === "" || el.value == null) el.value = s.value;
     el.addEventListener("input", () => {
       const a = selected();
       if (a) a.shape[s.key] = parseFloat(el.value);
@@ -164,10 +166,24 @@ function bindHud() {
   let micHandle = null;
   let talking = false;
   const micBtn = document.getElementById("micBtn");
-  async function onHeard(text) {
+  const chatIn = document.getElementById("chatIn");
+  const sayBtn = document.getElementById("sayBtn");
+  const chatLog = document.getElementById("chatLog");
+  const emoLab = document.getElementById("emoLab");
+  function addChat(who, text) {
+    if (!chatLog) return;
+    const line = document.createElement("div");
+    line.style.margin = "0 0 6px";
+    line.innerHTML = "<b style='color:#7eb6ff'>" + who + "</b> " + String(text || "").replace(/</g, "");
+    chatLog.appendChild(line);
+    while (chatLog.childNodes.length > 8) chatLog.removeChild(chatLog.firstChild);
+    chatLog.scrollTop = chatLog.scrollHeight;
+  }
+  async function converse(text) {
     if (!text || talking) return;
     talking = true;
     banner("heard: " + text);
+    addChat("you", text);
     const cam = renderer.xr.isPresenting ? renderer.xr.getCamera() : camera;
     cam.getWorldPosition(_fwd);
     const actor = mira.nearestTo(_fwd, 2.6) || mira.selected;
@@ -178,13 +194,46 @@ function bindHud() {
     }
     try {
       const r = await miraChat(text, personaEl ? personaEl.value : DEFAULT_PERSONA);
-      if (actor && r.mode) actor.setMode(r.mode);
+      if (emoLab) emoLab.textContent = (r.emotion || "happy").toUpperCase();
       banner(r.text || "");
-      await miraSpeak(r.text);
+      addChat("mira", r.text || "");
+      if (actor) actor.beginSpeech(r.text, r.emotion);
+      await new Promise((resolve) => {
+        let settled = false;
+        const done = () => {
+          if (settled) return;
+          settled = true;
+          if (actor) {
+            actor.endSpeech();
+            if (r.mode) actor.setMode(r.mode);
+          }
+          resolve();
+        };
+        miraSpeak(r.text, {
+          onStart(dur) { if (actor) actor.setSpeechDuration(dur); },
+          onAmp(amp, t, dur) { if (actor) actor.setSpeechAmp(amp, t, dur); },
+          onEnd: done,
+        }).catch(done);
+        setTimeout(done, Math.min(18000, 1600 + String(r.text || "").length * 85));
+      });
     } catch (e) {
       banner("voice: " + (e && e.message ? e.message : e));
+      if (actor) actor.endSpeech();
     }
     talking = false;
+  }
+  async function onHeard(text) { await converse(text); }
+  if (sayBtn && chatIn) {
+    const send = () => {
+      const t = chatIn.value.trim();
+      if (!t) return;
+      chatIn.value = "";
+      converse(t);
+    };
+    sayBtn.onclick = send;
+    chatIn.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
+    });
   }
   if (micBtn) {
     micBtn.onclick = async () => {
@@ -203,7 +252,7 @@ function bindHud() {
       }
       micHandle = startMic(onHeard);
       micBtn.textContent = "VOICE ON";
-      banner("Voice on — speak near Mira");
+      banner("Voice on — type below or speak near Mira");
     };
   }
   syncLabs();

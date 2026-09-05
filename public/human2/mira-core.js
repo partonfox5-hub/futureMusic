@@ -29,14 +29,15 @@ export const HAIR_COLORS = [
   { id: "brunette", name: "Brunette", tint: 0x8a5a32 },
 ];
 export const SLIDERS = [
-  { key: "height", label: "Height", min: 0.85, max: 1.15, step: 0.01, value: 1 },
-  { key: "waist", label: "Waist", min: 0.85, max: 1.15, step: 0.01, value: 1 },
-  { key: "hips", label: "Hips", min: 0.85, max: 1.2, step: 0.01, value: 1 },
-  { key: "breast", label: "Breast", min: 0.75, max: 1.35, step: 0.01, value: 1 },
-  { key: "butt", label: "Buttocks", min: 0.85, max: 1.25, step: 0.01, value: 1 },
-  { key: "thigh", label: "Thigh", min: 0.85, max: 1.2, step: 0.01, value: 1 },
-  { key: "gap", label: "Thigh gap", min: -0.4, max: 0.4, step: 0.01, value: 0 },
-  { key: "arms", label: "Arms", min: 0.85, max: 1.15, step: 0.01, value: 1 },
+  { key: "height", label: "Height", min: 0.72, max: 1.32, step: 0.01, value: 1 },
+  { key: "waist", label: "Waist", min: 0.62, max: 1.48, step: 0.01, value: 1 },
+  { key: "hips", label: "Hips", min: 0.68, max: 1.78, step: 0.01, value: 1 },
+  { key: "breast", label: "Breast", min: 0.38, max: 2.35, step: 0.01, value: 1 },
+  { key: "butt", label: "Buttocks", min: 0.52, max: 2.15, step: 0.01, value: 1 },
+  { key: "thigh", label: "Thigh", min: 0.62, max: 1.88, step: 0.01, value: 1 },
+  { key: "gap", label: "Thigh gap", min: -0.85, max: 0.85, step: 0.01, value: 0 },
+  { key: "arms", label: "Arms", min: 0.62, max: 1.58, step: 0.01, value: 1 },
+  { key: "jiggle", label: "Jiggle", min: 0, max: 3, step: 0.05, value: 1.75, physics: true },
 ];
 
 const MAP_FILE = {
@@ -260,7 +261,51 @@ function exprFace(want, kind) {
     want.Jaw_Open = 0.28;
     want.Mouth_Dimple_L = want.Mouth_Dimple_R = 0.4;
     want.V_Wide = 0.35;
+  } else if (kind === "tease" || kind === "flirty") {
+    want.Mouth_Smile_L = 0.42;
+    want.Mouth_Smile_R = 0.78;
+    want.Mouth_Dimple_R = 0.35;
+    want.Eye_Squint_L = 0.18;
+    want.Eye_Squint_R = 0.28;
+    want.Cheek_Raise_R = 0.4;
+    want.Brow_Raise_Outer_R = 0.22;
+  } else if (kind === "sad") {
+    want.Mouth_Frown_L = want.Mouth_Frown_R = 0.58;
+    want.Brow_Raise_Inner_L = want.Brow_Raise_Inner_R = 0.48;
+    want.Brow_Drop_L = want.Brow_Drop_R = 0.22;
+    want.Eye_Squint_L = want.Eye_Squint_R = 0.12;
+  } else if (kind === "listening") {
+    want.Mouth_Smile_L = want.Mouth_Smile_R = 0.16;
+    want.Brow_Raise_Inner_L = want.Brow_Raise_Inner_R = 0.18;
+    want.Eye_Wide_L = want.Eye_Wide_R = 0.08;
   }
+}
+
+const VISEME = {
+  a: { jaw: 0.58, open: 0.48, wide: 0.22, o: 0, lip: 0.38, pucker: 0, press: 0 },
+  e: { jaw: 0.3, open: 0.22, wide: 0.58, o: 0, lip: 0.26, pucker: 0, press: 0 },
+  i: { jaw: 0.18, open: 0.12, wide: 0.72, o: 0, lip: 0.2, pucker: 0, press: 0 },
+  o: { jaw: 0.44, open: 0.4, wide: 0, o: 0.68, lip: 0.42, pucker: 0.28, press: 0 },
+  u: { jaw: 0.22, open: 0.16, wide: 0, o: 0.58, lip: 0.2, pucker: 0.48, press: 0 },
+  m: { jaw: 0.02, open: 0, wide: 0, o: 0, lip: 0, pucker: 0, press: 0.88 },
+  b: { jaw: 0.06, open: 0, wide: 0, o: 0, lip: 0, pucker: 0, press: 0.82 },
+  p: { jaw: 0.05, open: 0, wide: 0, o: 0, lip: 0, pucker: 0, press: 0.84 },
+  f: { jaw: 0.12, open: 0.06, wide: 0, o: 0, lip: 0.16, pucker: 0.42, press: 0.22 },
+  w: { jaw: 0.16, open: 0.1, wide: 0, o: 0.32, lip: 0.12, pucker: 0.52, press: 0 },
+  default: { jaw: 0.2, open: 0.14, wide: 0.12, o: 0, lip: 0.16, pucker: 0, press: 0 },
+  rest: { jaw: 0.03, open: 0, wide: 0, o: 0, lip: 0, pucker: 0, press: 0 },
+};
+function buildVisemes(text) {
+  const seq = [];
+  for (const ch of String(text || "").toLowerCase()) {
+    if (/\s/.test(ch)) seq.push("rest");
+    else if ("aeiou".includes(ch)) seq.push(ch);
+    else if ("mbp".includes(ch)) seq.push(ch);
+    else if ("fv".includes(ch)) seq.push("f");
+    else if (ch === "w" || ch === "q") seq.push("w");
+    else if (/[a-z]/.test(ch)) seq.push("default");
+  }
+  return seq.length ? seq : ["default"];
 }
 
 const EXPR_CYCLE = ["neutral", "happy", "frown", "surprise", "pucker", "angry", "laugh"];
@@ -280,7 +325,7 @@ class MiraActor {
     this.morphMeshes = [];
     this.hairMats = [];
     this.headMats = [];
-    this.shape = { height: 1, waist: 1, hips: 1, breast: 1, butt: 1, thigh: 1, gap: 0, arms: 1 };
+    this.shape = { height: 1, waist: 1, hips: 1, breast: 1, butt: 1, thigh: 1, gap: 0, arms: 1, jiggle: 1.75 };
     if (opts && opts.shape) Object.assign(this.shape, opts.shape);
     this.faceType = (opts && opts.faceType) || 0;
     this.hairColor = (opts && opts.hairColor) || 0;
@@ -331,6 +376,7 @@ class MiraActor {
     this.throwN = 0;
     this.dest = null;
     this.talkTarget = null;
+    this.speech = null;
     this.prevHip = new THREE.Vector3();
     this.hipReady = false;
     this.hitReact = { lookYaw: 0, lookPitch: 0, lookT: 0, flinchX: 0, flinchY: 0, flinchZ: 0, headKickX: 0, headKickY: 0, exprT: 0, knockX: 0, knockZ: 0 };
@@ -392,7 +438,10 @@ class MiraActor {
   }
   applyShape() {
     const s = this.shape;
-    for (const slider of SLIDERS) s[slider.key] = THREE.MathUtils.clamp(Number.isFinite(s[slider.key]) ? s[slider.key] : slider.value, slider.min, slider.max);
+    for (const slider of SLIDERS) {
+      const v = Number.isFinite(s[slider.key]) ? s[slider.key] : slider.value;
+      s[slider.key] = THREE.MathUtils.clamp(v, slider.min, slider.max);
+    }
     this.root.scale.setScalar(this.baseScale * s.height);
     const sc = (n, x, y, z) => {
       const b = this.bones[n];
@@ -445,7 +494,9 @@ class MiraActor {
   }
   tickExpr(dt) {
     this.exprT -= dt;
-    if (this.hitReact.exprT > 0) this.hitReact.exprT -= dt;
+    if (this.speech && this.speech.active) {
+      this.hitReact.exprT = Math.max(this.hitReact.exprT, 0.2);
+    } else if (this.hitReact.exprT > 0) this.hitReact.exprT -= dt;
     else if (this.exprT <= 0) {
       this.exprT = 7 + Math.random() * 6;
       exprFace(this.want, Math.random() < 0.75 ? "neutral" : "happy");
@@ -469,10 +520,12 @@ class MiraActor {
   }
 
   tickRest() {
-    this.addE("L_Upperarm", 0.05, 0, -1.32);
-    this.addE("R_Upperarm", 0.05, 0, 1.32);
-    this.addE("L_Forearm", 0.22, 0, 0);
-    this.addE("R_Forearm", 0.22, 0, 0);
+    // Bind is T-pose. Z drops the arms in the coronal plane; X swings them
+    // forward through the ribcage, so keep X tiny.
+    this.addE("L_Upperarm", 0.02, 0.18, -0.55);
+    this.addE("R_Upperarm", 0.02, -0.18, 0.55);
+    this.addE("L_Forearm", 0.32, 0, 0.06);
+    this.addE("R_Forearm", 0.32, 0, -0.06);
   }
   tickFingers(curl) {
     const c = 0.12 + curl * 0.25;
@@ -570,57 +623,57 @@ class MiraActor {
     this.addE("R_Clavicle", Math.sin(t * 0.8 + 0.7) * 0.02, 0, Math.sin(t * 0.9 + 1) * 0.015);
     this.idleT -= dt;
     if (this.idleT <= 0) {
-      const kinds = ["rest", "rest", "rest", "hipShift"];
+      const kinds = ["rest", "rest", "hairL", "hairR", "stretch", "hipShift", "lookHand", "wave", "cheekRest", "akimbo", "shoulderLook"];
       this.idleKind = kinds[(Math.random() * kinds.length) | 0];
-      this.idleDur = this.idleKind === "rest" ? 2.2 + Math.random() * 2 : 1.6 + Math.random() * 1.1;
+      this.idleDur = this.idleKind === "rest" ? 2.2 + Math.random() * 2 : 1.8 + Math.random() * 1.4;
       this.idleT = this.idleDur;
     }
     const u = 1 - Math.max(0, this.idleT) / Math.max(0.2, this.idleDur);
-    const k = 0.35 * Math.sin(Math.min(1, u) * Math.PI) ** 2;
+    const k = Math.sin(Math.min(1, u) * Math.PI);
     if (this.idleKind === "hairL") {
-      this.addE("L_Upperarm", -0.85 * k, 0.15 * k, 0.55 * k);
-      this.addE("L_Forearm", 0.9 * k, 0, 0.25 * k);
+      this.addE("L_Upperarm", 0.04 * k, 0.48 * k, 1.12 * k);
+      this.addE("L_Forearm", 0.95 * k, 0.08 * k, 0.22 * k);
       this.addE("Head", 0.08 * k, 0.18 * k, 0);
     } else if (this.idleKind === "hairR") {
-      this.addE("R_Upperarm", -0.85 * k, -0.15 * k, -0.55 * k);
-      this.addE("R_Forearm", 0.9 * k, 0, -0.25 * k);
+      this.addE("R_Upperarm", 0.04 * k, -0.48 * k, -1.12 * k);
+      this.addE("R_Forearm", 0.95 * k, -0.08 * k, -0.22 * k);
       this.addE("Head", 0.08 * k, -0.18 * k, 0);
     } else if (this.idleKind === "stretch") {
-      this.addE("L_Upperarm", -0.55 * k, 0, 0.35 * k);
-      this.addE("R_Upperarm", -0.55 * k, 0, -0.35 * k);
+      this.addE("L_Upperarm", 0.04 * k, 0.08 * k, 1.22 * k);
+      this.addE("R_Upperarm", 0.04 * k, -0.08 * k, -1.22 * k);
       this.addE("Spine02", -0.08 * k, 0, 0);
     } else if (this.idleKind === "hipShift") {
       this.addE("Hip", 0, 0.12 * k, 0.08 * k);
       this.addE("L_Thigh", 0.06 * k, 0, 0);
     } else if (this.idleKind === "lookHand") {
-      this.addE("R_Upperarm", 0.45 * k, 0, -0.2 * k);
-      this.addE("R_Forearm", 0.4 * k, 0, 0);
+      this.addE("R_Upperarm", 0.12 * k, -0.12 * k, -0.45 * k);
+      this.addE("R_Forearm", 0.55 * k, 0, 0);
       this.addE("Head", 0.22 * k, -0.12 * k, 0);
     } else if (this.idleKind === "wave") {
-      this.addE("R_Upperarm", -0.95 * k, 0, -0.35 * k);
-      this.addE("R_Forearm", 0.35 * k, Math.sin(t * 9) * 0.45 * k, 0);
+      this.addE("R_Upperarm", 0.04 * k, -0.28 * k, -1.28 * k);
+      this.addE("R_Forearm", 0.45 * k, Math.sin(t * 9) * 0.45 * k, 0);
       this.addE("Head", 0, -0.08 * k, 0);
     } else if (this.idleKind === "cheekRest") {
-      this.addE("L_Upperarm", -0.7 * k, 0.25 * k, 0.55 * k);
-      this.addE("L_Forearm", 1.05 * k, 0, 0.2 * k);
+      this.addE("L_Upperarm", 0.06 * k, 0.42 * k, 0.95 * k);
+      this.addE("L_Forearm", 1.05 * k, 0, 0.18 * k);
       this.addE("Head", 0.12 * k, 0.22 * k, 0);
     } else if (this.idleKind === "akimbo") {
-      this.addE("L_Upperarm", 0.38 * k, 0, 0.58 * k);
-      this.addE("R_Upperarm", 0.38 * k, 0, -0.58 * k);
-      this.addE("L_Forearm", 0.9 * k, 0, 0.12 * k);
-      this.addE("R_Forearm", 0.9 * k, 0, -0.12 * k);
+      this.addE("L_Upperarm", 0.06 * k, 0.22 * k, 0.18 * k);
+      this.addE("R_Upperarm", 0.06 * k, -0.22 * k, -0.18 * k);
+      this.addE("L_Forearm", 0.7 * k, 0, 0.1 * k);
+      this.addE("R_Forearm", 0.7 * k, 0, -0.1 * k);
       this.addE("Hip", 0, 0.1 * k, 0.07 * k);
     } else if (this.idleKind === "shoulderLook") {
       this.addE("Head", 0.06 * k, 0.58 * k, 0);
       this.addE("NeckTwist02", 0, 0.18 * k, 0);
       this.addE("Spine02", 0, 0.2 * k, 0);
-      this.addE("R_Upperarm", -0.22 * k, 0, -0.18 * k);
+      this.addE("R_Upperarm", 0.04 * k, -0.1 * k, -0.22 * k);
     }
   }
   tickJumpingJacks(t) {
     const p = (Math.sin(t * 7.2) + 1) * 0.5;
-    this.addE("L_Upperarm", -1.15 * p, 0, 0.95 * p);
-    this.addE("R_Upperarm", -1.15 * p, 0, -0.95 * p);
+    this.addE("L_Upperarm", 0.04 * p, 0.08 * p, 1.45 * p);
+    this.addE("R_Upperarm", 0.04 * p, -0.08 * p, -1.45 * p);
     this.addE("L_Thigh", 0.08 * p, 0, 0.22 * p);
     this.addE("R_Thigh", 0.08 * p, 0, -0.22 * p);
     this.group.position.y = this.baseY + Math.abs(Math.sin(t * 7.2)) * 0.07;
@@ -633,14 +686,14 @@ class MiraActor {
     this.addE("R_Calf", -1.05 * p, 0, 0);
     this.addE("Hip", 0.18 * p, 0, 0);
     this.addE("Spine02", 0.14 * p, 0, 0);
-    this.addE("L_Upperarm", 0.28 * p, 0, 0.12 * p);
-    this.addE("R_Upperarm", 0.28 * p, 0, -0.12 * p);
+    this.addE("L_Upperarm", 0.05 * p, 0.08 * p, 0.12 * p);
+    this.addE("R_Upperarm", 0.05 * p, -0.08 * p, -0.12 * p);
     this.group.position.y = this.baseY;
   }
   tickStretch(t) {
     const p = (Math.sin(t * 1.55) + 1) * 0.5;
-    this.addE("L_Upperarm", -1.15 * p, 0, 0.42 * p);
-    this.addE("R_Upperarm", -1.15 * p, 0, -0.42 * p);
+    this.addE("L_Upperarm", 0.04 * p, 0.08 * p, 1.28 * p);
+    this.addE("R_Upperarm", 0.04 * p, -0.08 * p, -1.28 * p);
     this.addE("Spine02", -0.14 * p, 0, 0);
     this.addE("L_Forearm", 0.2 * p, 0, 0);
     this.addE("R_Forearm", 0.2 * p, 0, 0);
@@ -653,16 +706,104 @@ class MiraActor {
     this.group.position.y = this.baseY;
     if (mode === "jumpingJacks" || mode === "airSquats" || mode === "stretch") this.talkT = 0;
   }
+  beginSpeech(text, emotion) {
+    const clean = String(text || "").trim();
+    this.speech = {
+      active: true,
+      text: clean,
+      emotion: emotion || "happy",
+      t: 0,
+      duration: Math.max(1.15, clean.split(/\s+/).length * 0.34),
+      amp: 0.45,
+      seq: buildVisemes(clean),
+    };
+    this.setMode("talk");
+    exprFace(this.want, this.speech.emotion);
+    this.hitReact.exprT = 8;
+  }
+  setSpeechDuration(d) {
+    if (this.speech && d > 0.3) this.speech.duration = d;
+  }
+  setSpeechAmp(amp, t, dur) {
+    if (!this.speech) return;
+    this.speech.amp = THREE.MathUtils.clamp(amp, 0, 1);
+    if (t != null) this.speech.t = Math.max(0, t);
+    if (dur > 0.3) this.speech.duration = dur;
+  }
+  endSpeech() {
+    if (this.speech) this.speech.active = false;
+    this.hitReact.exprT = 0.7;
+    this.exprT = 2.5;
+  }
+  tickSpeechFace(dt) {
+    const sp = this.speech;
+    if (!sp || !sp.active) return false;
+    if (dt > 0) sp.t += dt;
+    const blinkL = this.want.Eye_Blink_L, blinkR = this.want.Eye_Blink_R;
+    exprFace(this.want, sp.emotion || "happy");
+    this.want.Eye_Blink_L = blinkL;
+    this.want.Eye_Blink_R = blinkR;
+    const seq = sp.seq && sp.seq.length ? sp.seq : ["default"];
+    const u = sp.duration > 1e-3 ? THREE.MathUtils.clamp(sp.t / sp.duration, 0, 0.999) : 0;
+    const i = Math.min(seq.length - 1, Math.floor(u * seq.length));
+    const v = VISEME[seq[i]] || VISEME.default;
+    const amp = 0.28 + 0.72 * (sp.amp || 0.4);
+    this.want.Jaw_Open = v.jaw * amp;
+    this.want.V_Open = v.open * amp;
+    this.want.V_Wide = Math.max(this.want.V_Wide || 0, v.wide * amp);
+    this.want.V_Tight_O = v.o * amp;
+    this.want.V_Lip_Open = v.lip * amp;
+    this.want.Mouth_Pucker_Up_L = this.want.Mouth_Pucker_Up_R = v.pucker * amp;
+    this.want.Mouth_Press_L = this.want.Mouth_Press_R = v.press * amp;
+    if (v.press > 0.4) {
+      this.want.Mouth_Smile_L *= 0.35;
+      this.want.Mouth_Smile_R *= 0.35;
+    }
+    return true;
+  }
+  keepArmsClear() {
+    const h = this.shape.height;
+    const inv = this.group.matrixWorld.clone().invert();
+    for (const side of ["L", "R"]) {
+      const hand = this.bones[side + "_Hand"];
+      const elbow = this.bones[side + "_Forearm"];
+      if (!hand) continue;
+      hand.getWorldPosition(_v).applyMatrix4(inv);
+      const sign = side === "L" ? 1 : -1;
+      const minX = 0.22 * h * (0.9 + 0.2 * this.shape.breast);
+      if (sign * _v.x < minX) {
+        const k = Math.min(0.55, (minX - sign * _v.x) * 4.5);
+        this.addE(side + "_Upperarm", 0, sign * 0.12 * k, side === "L" ? k : -k);
+      }
+      if (_v.z > 0.07 * h && _v.y > 0.85 * h && _v.y < 1.45 * h && Math.abs(_v.x) < 0.3 * h) {
+        const k = Math.min(0.45, (_v.z - 0.07 * h) * 5);
+        this.addE(side + "_Upperarm", -k, 0, 0);
+        this.addE(side + "_Forearm", -0.15 * k, 0, 0);
+      }
+      if (elbow) {
+        elbow.getWorldPosition(_w).applyMatrix4(inv);
+        if (sign * _w.x < minX * 0.75) {
+          const k = Math.min(0.4, (minX * 0.75 - sign * _w.x) * 4);
+          this.addE(side + "_Upperarm", 0, sign * 0.1 * k, side === "L" ? k : -k);
+        }
+      }
+    }
+  }
+  jiggleAmt() {
+    return THREE.MathUtils.clamp(Number(this.shape.jiggle), 0, 3);
+  }
   limitSoft(s) {
-    const factor = this.shape.height * Math.sqrt(s.kind === "breast" ? this.shape.breast : this.shape.butt);
-    const limits = s.kind === "breast" ? [[-0.012, 0.012], [-0.003, 0.012], [-0.016, 0.014]] : [[-0.009, 0.009], [-0.012, 0.012], [-0.012, 0.005]];
+    const j = this.jiggleAmt();
+    const factor = this.shape.height * Math.sqrt(s.kind === "breast" ? this.shape.breast : this.shape.butt) * (0.4 + 0.85 * j);
+    const limits = s.kind === "breast" ? [[-0.038, 0.038], [-0.012, 0.055], [-0.048, 0.04]] : [[-0.028, 0.028], [-0.032, 0.034], [-0.034, 0.016]];
+    const vmax = 0.22 + 0.55 * j;
     for (let i = 0; i < 3; i++) {
       const axis = ["x", "y", "z"][i], velocity = "v" + axis;
       if (!Number.isFinite(s[axis]) || !Number.isFinite(s[velocity])) s[axis] = s[velocity] = 0;
       const lo = limits[i][0] * factor, hi = limits[i][1] * factor;
       s[axis] = THREE.MathUtils.clamp(s[axis], lo, hi);
-      if ((s[axis] <= lo && s[velocity] < 0) || (s[axis] >= hi && s[velocity] > 0)) s[velocity] = 0;
-      s[velocity] = THREE.MathUtils.clamp(s[velocity], -0.3, 0.3);
+      if ((s[axis] <= lo && s[velocity] < 0) || (s[axis] >= hi && s[velocity] > 0)) s[velocity] *= -0.25;
+      s[velocity] = THREE.MathUtils.clamp(s[velocity], -vmax, vmax);
     }
   }
   resetPhysics() {
@@ -692,7 +833,7 @@ class MiraActor {
         s.prevVelocity.set(vx, vy, vz);
         limitVector(_softV, 18);
         bone.parent.getWorldQuaternion(_softQ).invert();
-        _softV.applyQuaternion(_softQ).multiplyScalar(-0.5);
+        _softV.applyQuaternion(_softQ).multiplyScalar(-0.42 * (0.45 + this.jiggleAmt()));
         s.acceleration.lerp(_softV, 1 - Math.exp(-dt * 16));
       }
       s.prevAnchor.copy(s.anchor);
@@ -706,12 +847,16 @@ class MiraActor {
         if (!this.bones[s.name]) continue;
         s.px = s.x; s.py = s.y; s.pz = s.z;
         const size = s.kind === "breast" ? this.shape.breast : this.shape.butt;
-        const omega = 2 * Math.PI * (s.kind === "breast" ? 3.4 : 5.5) / Math.sqrt(size);
-        let stiffness = omega * omega, damping = 2 * omega * (s.kind === "breast" ? 0.38 : 0.55);
+        const j = this.jiggleAmt();
+        const omega = 2 * Math.PI * (s.kind === "breast" ? 2.7 : 4.6) / Math.sqrt(Math.max(0.45, size));
+        let stiffness = omega * omega;
+        let damping = 2 * omega * ((s.kind === "breast" ? 0.32 : 0.48) / (0.38 + 0.42 * Math.max(0.15, j)));
         const held = this.held && this.held.spring === s;
         if (held) { stiffness = 900; damping = 55; }
+        const restY = held || s.kind !== "breast" ? 0 : -0.01 * j * Math.sqrt(size);
         for (const axis of ["x", "y", "z"]) {
-          const target = held ? this.held["t" + axis] : s.press[axis];
+          const rest = axis === "y" ? restY : 0;
+          const target = held ? this.held["t" + axis] : s.press[axis] + rest;
           // Backward-Euler spring: stable for stiff contacts and dropped frames.
           s["v" + axis] = (s["v" + axis] + step * (s.acceleration[axis] + stiffness * (target - s[axis]))) / (1 + damping * step + stiffness * step * step);
           s[axis] += step * s["v" + axis];
@@ -934,6 +1079,7 @@ class MiraActor {
     this.ballCool = Math.max(0, (this.ballCool || 0) - dt);
     const moving = this.wander(dt);
     this.tickExpr(dt);
+    const speaking = this.tickSpeechFace(dt);
     this.restoreBind(); this.applyShape(); this.tickRest();
     this.poseAlpha = 1 - Math.exp(-dt * 16);
     this.group.position.y = this.baseY - this.shape.height * (0.016 + 0.025 * Math.min(1, this.speed / 0.15));
@@ -946,12 +1092,21 @@ class MiraActor {
     else {
       this.tickWalk(moving);
       if (!moving) this.tickIdle(tAbs, dt);
-      // Proximity means attention, not continuously mimed speech.
-      this.want.Jaw_Open = 0;
+      if (this.mode === "talk" || speaking) {
+        this.addE("R_Upperarm", 0.04, -0.16, -0.55);
+        this.addE("R_Forearm", 0.4 + Math.sin(tAbs * 5.2) * 0.22, 0, 0);
+        this.addE("L_Upperarm", 0.03, 0.08, 0.08);
+      }
+      if (!speaking) this.want.Jaw_Open = 0;
     }
     this.tickGaze(dt, moving, this.lookAtPos || camPos);
     this.tickHitReact(dt); this.tickFingers(this.heldBall ? 0.75 : 0.08);
     this.applyExtras(); this.group.updateMatrixWorld(true);
+    const poseA = this.poseAlpha;
+    this.poseAlpha = 1;
+    this.keepArmsClear(); this.applyExtras();
+    this.poseAlpha = poseA;
+    this.group.updateMatrixWorld(true);
     this.tickGrab(dt); this.group.updateMatrixWorld(true);
     this.solveFeet(dt, moving); this.group.updateMatrixWorld(true);
     this.tickSoft(dt); this.tickMorphs(dt);

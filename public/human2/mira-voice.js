@@ -1,9 +1,22 @@
 export const DEFAULT_PERSONA =
-  "You are Mira, a warm playful young woman in an AR room. Reply in 1-2 short spoken sentences. If they mention exercise, workout, jumping jacks, squats, fitness or stretching, end with [[ACTION:jumpingJacks]] or [[ACTION:airSquats]] or [[ACTION:stretch]]. To stop exercising, [[ACTION:stop]]. Be friendly and a little teasing.";
+  "You are Mira, a warm playful young woman in an AR room. Reply in 1-2 short spoken sentences. End with [[EMOTION:happy]] or tease, flirty, sad, surprise, angry, laugh, or listening — matching how your face should look while you say it. If they mention exercise, workout, jumping jacks, squats, fitness or stretching, also end with [[ACTION:jumpingJacks]] or [[ACTION:airSquats]] or [[ACTION:stretch]]. To stop exercising, [[ACTION:stop]]. Be friendly and a little teasing. Never read the tags out loud.";
+
+const EMOTIONS = { happy: 1, tease: 1, flirty: 1, sad: 1, surprise: 1, angry: 1, laugh: 1, neutral: 1, listening: 1, pucker: 1, frown: 1 };
+
+export function inferEmotion(text) {
+  const low = String(text || "").toLowerCase();
+  if (/haha|heh|lol|laugh/.test(low)) return "laugh";
+  if (/\?/.test(text || "")) return "surprise";
+  if (/sorry|miss you|lonely/.test(low)) return "sad";
+  if (/mm+|teas|flirt|come closer/.test(low)) return "tease";
+  if (/hey|hi\b|hello/.test(low)) return "happy";
+  return "happy";
+}
 
 export function parseAction(text) {
   const m = /\[\[ACTION:([a-zA-Z]+)\]\]/.exec(text || "");
-  const clean = (text || "").replace(/\s*\[\[ACTION:[a-zA-Z]+\]\]\s*/g, " ").trim();
+  const e = /\[\[EMOTION:([a-zA-Z]+)\]\]/.exec(text || "");
+  const clean = (text || "").replace(/\s*\[\[(ACTION|EMOTION):[a-zA-Z]+\]\]\s*/g, " ").trim();
   const act = m ? m[1] : "";
   let mode = null;
   const low = (text || "").toLowerCase();
@@ -12,19 +25,23 @@ export function parseAction(text) {
   else if (/stretch|warmup|warm-up/.test(low) || act === "stretch") mode = "stretch";
   else if (act === "stop" || /stop (it|that|exercis)|that's enough|thats enough/.test(low)) mode = "wander";
   else if (/exercis|workout|fitness/.test(low) && !mode) mode = "jumpingJacks";
-  return { text: clean, mode };
+  let emotion = (e && e[1] || "").toLowerCase();
+  if (!EMOTIONS[emotion]) emotion = inferEmotion(clean);
+  return { text: clean, mode, emotion };
 }
 
 function localReply(userText) {
   const low = (userText || "").toLowerCase();
-  if (/squat/.test(low)) return "Okay — air squats with me. Keep your chest up. [[ACTION:airSquats]]";
-  if (/jumping\s*jack|jacks/.test(low)) return "Jumping jacks! Arms out, let's go. [[ACTION:jumpingJacks]]";
-  if (/stretch|warmup|warm-up/.test(low)) return "Mmm, stretch with me for a minute. [[ACTION:stretch]]";
-  if (/exercis|workout|fitness/.test(low)) return "Let's move — jumping jacks first. [[ACTION:jumpingJacks]]";
-  if (/stop|enough|rest|tired/.test(low)) return "Alright, I'll catch my breath. [[ACTION:stop]]";
-  if (/hello|hi\b|hey/.test(low)) return "Hey — I'm Mira. Come closer and talk to me.";
-  if (/ball|throw|catch/.test(low)) return "Spawn a rubber ball with Y and toss it. I'll throw it back until I get bored.";
-  return "Mm, I'm listening. Say that again a little closer.";
+  if (/squat/.test(low)) return "Okay — air squats with me. Keep your chest up. [[ACTION:airSquats]] [[EMOTION:happy]]";
+  if (/jumping\s*jack|jacks/.test(low)) return "Jumping jacks! Arms out, let's go. [[ACTION:jumpingJacks]] [[EMOTION:laugh]]";
+  if (/stretch|warmup|warm-up/.test(low)) return "Mmm, stretch with me for a minute. [[ACTION:stretch]] [[EMOTION:tease]]";
+  if (/exercis|workout|fitness/.test(low)) return "Let's move — jumping jacks first. [[ACTION:jumpingJacks]] [[EMOTION:happy]]";
+  if (/stop|enough|rest|tired/.test(low)) return "Alright, I'll catch my breath. [[ACTION:stop]] [[EMOTION:listening]]";
+  if (/hello|hi\b|hey/.test(low)) return "Hey — I'm Mira. Come closer and talk to me. [[EMOTION:happy]]";
+  if (/ball|throw|catch/.test(low)) return "Spawn a rubber ball with Y and toss it. I'll throw it back until I get bored. [[EMOTION:tease]]";
+  if (/pretty|beautiful|hot|cute/.test(low)) return "Careful — say that again and I might actually blush. [[EMOTION:flirty]]";
+  if (/love|miss you/.test(low)) return "That's sweet. Stay close for a second. [[EMOTION:sad]]";
+  return "Mm, I'm listening. Say that again a little closer. [[EMOTION:listening]]";
 }
 
 export async function miraChat(userText, persona) {
@@ -47,38 +64,125 @@ export async function miraChat(userText, persona) {
   return parseAction(localReply(userText));
 }
 
-export async function miraSpeak(text) {
-  if (!text) return;
+function pickFemaleVoice() {
+  const voices = speechSynthesis.getVoices ? speechSynthesis.getVoices() : [];
+  return voices.find((v) => /female|zira|samantha|google us english|eva|siri|aria|jenny|susan|hazel|linda|karen|moira|veena|fiona|tessa|zira/i.test(v.name + " " + (v.lang || "")))
+    || voices.find((v) => /^en/i.test(v.lang))
+    || null;
+}
+
+function ampLoop(onAmp, getT, getDur, alive) {
+  let raf = 0;
+  const step = () => {
+    if (!alive()) return;
+    const t = getT();
+    const dur = getDur();
+    if (onAmp) onAmp(0.35 + 0.65 * Math.abs(Math.sin(t * 10.5)), t, dur);
+    raf = requestAnimationFrame(step);
+  };
+  raf = requestAnimationFrame(step);
+  return () => cancelAnimationFrame(raf);
+}
+
+export async function miraSpeak(text, hooks = {}) {
+  const { onStart, onAmp, onEnd } = hooks;
+  if (!text) { if (onEnd) onEnd(); return; }
+  const finish = () => { if (onEnd) onEnd(); };
+
   try {
     const r = await fetch("/api/mira/tts", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text }),
+      body: JSON.stringify({ text, voice: "eve" }),
     });
     if (r.ok) {
       const buf = await r.arrayBuffer();
       if (buf.byteLength > 200) {
         const url = URL.createObjectURL(new Blob([buf], { type: r.headers.get("content-type") || "audio/mpeg" }));
         const a = new Audio(url);
-        a.play().catch(() => {});
-        a.onended = () => URL.revokeObjectURL(url);
+        a.preload = "auto";
+        let analyser = null, data = null, raf = 0, stopped = false;
+        const stop = () => {
+          if (stopped) return;
+          stopped = true;
+          cancelAnimationFrame(raf);
+          URL.revokeObjectURL(url);
+          finish();
+        };
+        try {
+          const ctx = new (window.AudioContext || window.webkitAudioContext)();
+          if (ctx.state === "suspended") await ctx.resume().catch(() => {});
+          const src = ctx.createMediaElementSource(a);
+          analyser = ctx.createAnalyser();
+          analyser.fftSize = 1024;
+          src.connect(analyser);
+          analyser.connect(ctx.destination);
+          data = new Uint8Array(analyser.fftSize);
+        } catch (e) {
+          console.warn("tts analyser", e);
+        }
+        const tick = () => {
+          if (stopped) return;
+          let amp = 0.4;
+          if (analyser && data) {
+            analyser.getByteTimeDomainData(data);
+            let sum = 0;
+            for (let i = 0; i < data.length; i++) {
+              const v = (data[i] - 128) / 128;
+              sum += v * v;
+            }
+            amp = Math.min(1, Math.sqrt(sum / data.length) * 5.2);
+          } else {
+            amp = 0.35 + 0.65 * Math.abs(Math.sin((a.currentTime || 0) * 10.5));
+          }
+          if (onAmp) onAmp(amp, a.currentTime || 0, a.duration || 1);
+          if (!a.paused && !a.ended) raf = requestAnimationFrame(tick);
+        };
+        a.onplay = () => {
+          if (onStart) onStart(a.duration && isFinite(a.duration) ? a.duration : Math.max(1.2, text.length * 0.055));
+          tick();
+        };
+        a.onended = stop;
+        a.onerror = stop;
+        try {
+          await a.play();
+        } catch (e) {
+          stop();
+        }
         return;
       }
     }
   } catch (e) {
     console.warn("tts api", e);
   }
+
   try {
     const u = new SpeechSynthesisUtterance(text);
-    const voices = speechSynthesis.getVoices();
-    const fem = voices.find((v) => /female|zira|samantha|google us english|eva|siri|aria|jenny/i.test(v.name + " " + (v.lang || ""))) || voices.find((v) => /^en/i.test(v.lang));
+    const fem = pickFemaleVoice();
     if (fem) u.voice = fem;
-    u.pitch = 1.14;
-    u.rate = 1.02;
+    u.pitch = 1.16;
+    u.rate = 1.0;
+    const dur = Math.max(1.15, text.split(/\s+/).length * 0.34);
+    let t0 = 0;
+    let cancelAmp = null;
+    u.onstart = () => {
+      t0 = performance.now();
+      if (onStart) onStart(dur);
+      cancelAmp = ampLoop(onAmp, () => (performance.now() - t0) / 1000, () => dur, () => true);
+    };
+    u.onend = () => { if (cancelAmp) cancelAmp(); finish(); };
+    u.onerror = () => { if (cancelAmp) cancelAmp(); finish(); };
     speechSynthesis.cancel();
     speechSynthesis.speak(u);
+    if (speechSynthesis.getVoices && !speechSynthesis.getVoices().length) {
+      speechSynthesis.onvoiceschanged = () => {
+        const v = pickFemaleVoice();
+        if (v) u.voice = v;
+      };
+    }
   } catch (e) {
     console.warn("tts fallback", e);
+    finish();
   }
 }
 

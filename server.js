@@ -655,17 +655,18 @@ app.use("/humanplus", (req, res, next) => {
 
 const miraUpload = require("multer")({ storage: require("multer").memoryStorage(), limits: { fileSize: 4 * 1024 * 1024 } });
 const MIRA_DEFAULT_PERSONA =
-    "You are Mira, a warm playful young woman in an AR room. Reply in 1-2 short spoken sentences. If they mention exercise, workout, jumping jacks, squats, fitness or stretching, end with [[ACTION:jumpingJacks]] or [[ACTION:airSquats]] or [[ACTION:stretch]]. To stop exercising, [[ACTION:stop]]. Be friendly and a little teasing.";
+    "You are Mira, a warm playful young woman in an AR room. Reply in 1-2 short spoken sentences. End with [[EMOTION:happy]] or tease, flirty, sad, surprise, angry, laugh, or listening — matching how your face should look while you say it. If they mention exercise, workout, jumping jacks, squats, fitness or stretching, also end with [[ACTION:jumpingJacks]] or [[ACTION:airSquats]] or [[ACTION:stretch]]. To stop exercising, [[ACTION:stop]]. Be friendly and a little teasing. Never read the tags out loud.";
 
 function miraLocalReply(text) {
     const low = String(text || "").toLowerCase();
-    if (/squat/.test(low)) return "Okay — air squats with me. Keep your chest up. [[ACTION:airSquats]]";
-    if (/jumping\s*jack|jacks/.test(low)) return "Jumping jacks! Arms out, let's go. [[ACTION:jumpingJacks]]";
-    if (/stretch|warmup|warm-up/.test(low)) return "Mmm, stretch with me for a minute. [[ACTION:stretch]]";
-    if (/exercis|workout|fitness/.test(low)) return "Let's move — jumping jacks first. [[ACTION:jumpingJacks]]";
-    if (/stop|enough|rest|tired/.test(low)) return "Alright, I'll catch my breath. [[ACTION:stop]]";
-    if (/hello|hi\b|hey/.test(low)) return "Hey — I'm Mira. Come closer and talk to me.";
-    return "Mm, I'm listening. Say that again a little closer.";
+    if (/squat/.test(low)) return "Okay — air squats with me. Keep your chest up. [[ACTION:airSquats]] [[EMOTION:happy]]";
+    if (/jumping\s*jack|jacks/.test(low)) return "Jumping jacks! Arms out, let's go. [[ACTION:jumpingJacks]] [[EMOTION:laugh]]";
+    if (/stretch|warmup|warm-up/.test(low)) return "Mmm, stretch with me for a minute. [[ACTION:stretch]] [[EMOTION:tease]]";
+    if (/exercis|workout|fitness/.test(low)) return "Let's move — jumping jacks first. [[ACTION:jumpingJacks]] [[EMOTION:happy]]";
+    if (/stop|enough|rest|tired/.test(low)) return "Alright, I'll catch my breath. [[ACTION:stop]] [[EMOTION:listening]]";
+    if (/hello|hi\b|hey/.test(low)) return "Hey — I'm Mira. Come closer and talk to me. [[EMOTION:happy]]";
+    if (/pretty|beautiful|hot|cute/.test(low)) return "Careful — say that again and I might actually blush. [[EMOTION:flirty]]";
+    return "Mm, I'm listening. Say that again a little closer. [[EMOTION:listening]]";
 }
 
 function miraOutputText(j) {
@@ -699,7 +700,7 @@ app.post("/api/mira/chat", async (req, res) => {
                 model: "grok-4.6",
                 store: false,
                 input: [
-                    { role: "system", content: persona || MIRA_DEFAULT_PERSONA },
+                    { role: "system", content: (persona || MIRA_DEFAULT_PERSONA) + " Always append [[EMOTION:happy|tease|flirty|sad|surprise|angry|laugh|listening]] matching your face. Never read the tags out loud." },
                     { role: "user", content: text },
                 ],
             }),
@@ -713,7 +714,7 @@ app.post("/api/mira/chat", async (req, res) => {
                 body: JSON.stringify({
                     model: "grok-4.6",
                     messages: [
-                        { role: "system", content: persona || MIRA_DEFAULT_PERSONA },
+                        { role: "system", content: (persona || MIRA_DEFAULT_PERSONA) + " Always append [[EMOTION:happy|tease|flirty|sad|surprise|angry|laugh|listening]] matching your face. Never read the tags out loud." },
                         { role: "user", content: text },
                     ],
                 }),
@@ -735,10 +736,11 @@ app.post("/api/mira/tts", async (req, res) => {
     const key = process.env.XAI_API_KEY;
     if (!key || !text) return res.status(204).end();
     try {
+        const voice = String((req.body && (req.body.voice || req.body.voice_id)) || "eve");
         const r = await fetch("https://api.x.ai/v1/tts", {
             method: "POST",
             headers: { Authorization: "Bearer " + key, "Content-Type": "application/json" },
-            body: JSON.stringify({ text, voice_id: "eve", language: "en" }),
+            body: JSON.stringify({ text, voice_id: voice || "eve", language: "en" }),
         });
         if (!r.ok) return res.status(502).json({ error: "tts failed" });
         const buf = Buffer.from(await r.arrayBuffer());
