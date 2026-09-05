@@ -610,6 +610,23 @@ function humanHeaders(res) {
     res.setHeader("X-Robots-Tag", "noindex, nofollow, noarchive");
     res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
 }
+function humanPlusHeaders(res) {
+    res.setHeader("Permissions-Policy", "xr-spatial-tracking=(self), fullscreen=(self), gamepad=(self), accelerometer=(self), gyroscope=(self), magnetometer=(self), microphone=(self)");
+    res.setHeader("X-Robots-Tag", "noindex, nofollow, noarchive");
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+    res.setHeader(
+        "Content-Security-Policy",
+        "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; " +
+        "script-src * 'unsafe-inline' 'unsafe-eval'; " +
+        "style-src * 'unsafe-inline'; " +
+        "font-src * data: blob:; " +
+        "img-src * data: blob:; " +
+        "connect-src * data: blob:; " +
+        "media-src * data: blob:; " +
+        "worker-src * data: blob:; " +
+        "frame-src *;"
+    );
+}
 app.get(["/human", "/human/"], (req, res) => {
     humanHeaders(res);
     res.sendFile(path.join(__dirname, "public", "human", "index.html"));
@@ -624,6 +641,14 @@ app.get(["/human2", "/human2/"], (req, res) => {
 });
 app.use("/human2", (req, res, next) => {
     humanHeaders(res);
+    next();
+});
+app.get(["/humanplus", "/humanplus/"], (req, res) => {
+    humanPlusHeaders(res);
+    res.sendFile(path.join(__dirname, "public", "humanplus", "index.html"));
+});
+app.use("/humanplus", (req, res, next) => {
+    humanPlusHeaders(res);
     next();
 });
 app.get(["/games/horde", "/games/horde/"], (req, res) => res.redirect("/horde"));
