@@ -4,7 +4,7 @@ import { PointerLockControls } from "three/addons/controls/PointerLockControls.j
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 
 
-const ASSET = "/human2/assets/mira.glb?v=4";
+const ASSET = "/human2/assets/mira.glb?v=5";
 const TEXROOT = "/human2/assets/tex/";
 const MAP_FILE = {
   Std_Skin_Head: ["head.jpg", "head_n.jpg"],
@@ -142,7 +142,7 @@ const texCache = {};
 function loadMap(file, srgb) {
   if (!file) return null;
   if (texCache[file]) return texCache[file];
-  const t = texLoader.load(TEXROOT + file + "?v=4", undefined, undefined, (err) => console.warn("tex fail", file, err));
+  const t = texLoader.load(TEXROOT + file + "?v=5", undefined, undefined, (err) => console.warn("tex fail", file, err));
   t.colorSpace = srgb ? THREE.SRGBColorSpace : THREE.LinearSRGBColorSpace;
   t.flipY = false;
   t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping;
@@ -325,6 +325,10 @@ function tickExpr(dt) {
     blinkHold = 0.09;
     blinkT = 2.2 + Math.random() * 3.2;
   }
+  if (hitReact.exprT > 0) {
+    hitReact.exprT -= dt;
+    return;
+  }
   exprT -= dt;
   if (exprT <= 0) {
     exprT = 5 + Math.random() * 5;
@@ -333,13 +337,35 @@ function tickExpr(dt) {
 }
 
 const soft = [
-  { name: "L_Breast", x: 0, z: 0, vx: 0, vz: 0, stiff: 18, damp: 5.6, max: 0.4, grav: 0.62 },
-  { name: "R_Breast", x: 0, z: 0, vx: 0, vz: 0, stiff: 18, damp: 5.6, max: 0.4, grav: 0.62 },
-  { name: "L_Glute", x: 0, z: 0, vx: 0, vz: 0, stiff: 26, damp: 8.0, max: 0.24, grav: 0.28 },
-  { name: "R_Glute", x: 0, z: 0, vx: 0, vz: 0, stiff: 26, damp: 8.0, max: 0.24, grav: 0.28 },
+  { name: "L_Breast", x: 0, z: 0, vx: 0, vz: 0, stiff: 16, damp: 5.2, max: 0.42, grav: 0.64 },
+  { name: "R_Breast", x: 0, z: 0, vx: 0, vz: 0, stiff: 16, damp: 5.2, max: 0.42, grav: 0.64 },
+  { name: "L_Glute", x: 0, z: 0, vx: 0, vz: 0, stiff: 24, damp: 7.6, max: 0.26, grav: 0.3 },
+  { name: "R_Glute", x: 0, z: 0, vx: 0, vz: 0, stiff: 24, damp: 7.6, max: 0.26, grav: 0.3 },
 ];
 const prevHip = new THREE.Vector3();
 let hipReady = false;
+const hitReact = {
+  lookYaw: 0, lookPitch: 0, lookT: 0,
+  flinchX: 0, flinchY: 0, flinchZ: 0,
+  headKickX: 0, headKickY: 0,
+  exprT: 0,
+  knockX: 0, knockZ: 0,
+};
+const _nA = new THREE.Vector3();
+const _nB = new THREE.Vector3();
+const _nAB = new THREE.Vector3();
+const _nQ = new THREE.Vector3();
+const _nA0 = new THREE.Vector3();
+const _nB0 = new THREE.Vector3();
+const _vA = new THREE.Vector3();
+const _vB = new THREE.Vector3();
+const _vHit = new THREE.Vector3();
+const _vRel = new THREE.Vector3();
+const _nrm = new THREE.Vector3();
+const _tan = new THREE.Vector3();
+const _toHit = new THREE.Vector3();
+let nEndsReady = false;
+const hitCool = {};
 
 function tickRest() {
   // T-pose → hang at sides. Local Y is along the arm; rotate around Z only
@@ -414,6 +440,8 @@ function tickSoft(dt, moving) {
     s.z += s.vz * step;
     s.x = THREE.MathUtils.clamp(s.x, -s.max, s.max);
     s.z = THREE.MathUtils.clamp(s.z, -s.max * 0.65, s.max);
+    if (Math.abs(s.x) >= s.max) s.vx *= 0.35;
+    if (Math.abs(s.z) >= s.max * 0.65) s.vz *= 0.35;
     addE(s.name, s.z, 0, s.x);
   }
 }
@@ -424,26 +452,36 @@ function tickBreathe(t) {
   addE("Spine01", b * 0.4, 0, 0);
 }
 
+function wrapPi(a) {
+  while (a > Math.PI) a -= Math.PI * 2;
+  while (a < -Math.PI) a += Math.PI * 2;
+  return a;
+}
+
 function tickGaze(dt, moving) {
   const cam = XR_ON() ? renderer.xr.getCamera() : camera;
   cam.getWorldPosition(_v);
   const dx = _v.x - avatar.position.x;
   const dz = _v.z - avatar.position.z;
   const dist = Math.hypot(dx, dz);
-  if (dist < 0.05) return;
+  if (dist < 0.05 && hitReact.lookT <= 0) return;
   const yawWorld = Math.atan2(dx, dz);
-  if (!moving) avatar.rotation.y = THREE.MathUtils.damp(avatar.rotation.y, yawWorld, 3.2, dt);
-  let yaw = yawWorld - avatar.rotation.y;
-  while (yaw > Math.PI) yaw -= Math.PI * 2;
-  while (yaw < -Math.PI) yaw += Math.PI * 2;
+  if (!moving && hitReact.lookT <= 0) avatar.rotation.y = THREE.MathUtils.damp(avatar.rotation.y, yawWorld, 3.2, dt);
+  let yaw = wrapPi(yawWorld - avatar.rotation.y);
   yaw = THREE.MathUtils.clamp(yaw, -0.55, 0.55);
-  const pitch = THREE.MathUtils.clamp((_v.y - 1.48) * 0.18, -0.22, 0.22);
+  let pitch = THREE.MathUtils.clamp((_v.y - 1.48) * 0.18, -0.22, 0.22);
+  if (hitReact.lookT > 0) {
+    const k = Math.min(1, hitReact.lookT * 2.4);
+    yaw = THREE.MathUtils.lerp(yaw, hitReact.lookYaw, k);
+    pitch = THREE.MathUtils.lerp(pitch, hitReact.lookPitch, k);
+  }
   want.Eye_L_Look_L = want.Eye_R_Look_L = Math.max(0, -yaw) * 1.35;
   want.Eye_L_Look_R = want.Eye_R_Look_R = Math.max(0, yaw) * 1.35;
   want.Eye_L_Look_Up = want.Eye_R_Look_Up = Math.max(0, -pitch) * 1.2;
   want.Eye_L_Look_Down = want.Eye_R_Look_Down = Math.max(0, pitch) * 1.2;
-  addE("Head", pitch * 0.4, yaw * 0.32, 0);
+  addE("Head", pitch * 0.4 + hitReact.headKickX, yaw * 0.32 + hitReact.headKickY, 0);
   addE("NeckTwist02", pitch * 0.14, yaw * 0.12, 0);
+  addE("NeckTwist01", pitch * 0.08, yaw * 0.08, 0);
   addE("L_Eye", pitch * 0.5, yaw * 0.55, 0);
   addE("R_Eye", pitch * 0.5, yaw * 0.55, 0);
 }
@@ -484,19 +522,114 @@ ctrl0.addEventListener("selectend", () => { if (noodleHeld === ctrl0) noodleHeld
 ctrl1.addEventListener("selectend", () => { if (noodleHeld === ctrl1) noodleHeld = null; });
 
 const BODY_HIT = [
-  ["Head", 0.12], ["Spine02", 0.16], ["Hip", 0.16],
-  ["L_Breast", 0.11], ["R_Breast", 0.11],
-  ["L_Thigh", 0.1], ["R_Thigh", 0.1],
-  ["L_Hand", 0.06], ["R_Hand", 0.06],
+  { name: "Head", rad: 0.13, kind: "head" },
+  { name: "NeckTwist02", rad: 0.09, kind: "head" },
+  { name: "Spine02", rad: 0.17, kind: "chest" },
+  { name: "Spine01", rad: 0.15, kind: "belly" },
+  { name: "L_Breast", rad: 0.135, kind: "breast" },
+  { name: "R_Breast", rad: 0.135, kind: "breast" },
+  { name: "Hip", rad: 0.16, kind: "hip" },
+  { name: "L_Glute", rad: 0.13, kind: "glute" },
+  { name: "R_Glute", rad: 0.13, kind: "glute" },
+  { name: "L_Thigh", rad: 0.11, kind: "thigh" },
+  { name: "R_Thigh", rad: 0.11, kind: "thigh" },
+  { name: "L_Upperarm", rad: 0.075, kind: "arm" },
+  { name: "R_Upperarm", rad: 0.075, kind: "arm" },
+  { name: "L_Hand", rad: 0.06, kind: "hand" },
+  { name: "R_Hand", rad: 0.06, kind: "hand" },
 ];
 
-function closestPointOnNoodle(p) {
+function sampleNoodle(p) {
   noodle.updateMatrixWorld();
-  const a = new THREE.Vector3(0, -NLEN * 0.5, 0).applyMatrix4(noodle.matrixWorld);
-  const b = new THREE.Vector3(0, NLEN * 0.5, 0).applyMatrix4(noodle.matrixWorld);
-  const ab = b.clone().sub(a);
-  const t = THREE.MathUtils.clamp(p.clone().sub(a).dot(ab) / ab.lengthSq(), 0, 1);
-  return a.addScaledVector(ab, t);
+  _nA.set(0, -NLEN * 0.5, 0).applyMatrix4(noodle.matrixWorld);
+  _nB.set(0, NLEN * 0.5, 0).applyMatrix4(noodle.matrixWorld);
+  _nAB.subVectors(_nB, _nA);
+  const ab2 = _nAB.lengthSq() || 1e-8;
+  _w2.subVectors(p, _nA);
+  const t = THREE.MathUtils.clamp(_w2.dot(_nAB) / ab2, 0, 1);
+  _nQ.copy(_nA).addScaledVector(_nAB, t);
+  return t;
+}
+
+function noodleVelAt(t, invDt) {
+  _vA.subVectors(_nA, _nA0).multiplyScalar(invDt);
+  _vB.subVectors(_nB, _nB0).multiplyScalar(invDt);
+  _vHit.copy(_vA).lerp(_vB, t);
+  return _vHit;
+}
+
+function applyStrike(hit, nrm, closing, glance, pos) {
+  const mag = Math.min(5.2, closing * 1.05 + glance * 0.35);
+  if (mag < 0.12) return;
+  const now = performance.now();
+  if ((hitCool[hit.name] || 0) > now - 55) return;
+  hitCool[hit.name] = now;
+
+  const jx = nrm.x * mag * 2.8;
+  const jz = nrm.z * mag * 2.8;
+  const jy = nrm.y * mag * 1.6;
+  for (const s of soft) {
+    let wgt = 0;
+    if (s.name === hit.name) wgt = 1;
+    else if (hit.kind === "chest" && s.name.includes("Breast")) wgt = 0.9;
+    else if (hit.kind === "breast" && s.name.includes("Breast")) wgt = s.name[0] === hit.name[0] ? 1 : 0.48;
+    else if (hit.kind === "belly" && s.name.includes("Breast")) wgt = 0.42;
+    else if (hit.kind === "hip" && s.name.includes("Glute")) wgt = 0.78;
+    else if (hit.kind === "glute" && s.name.includes("Glute")) wgt = s.name[0] === hit.name[0] ? 1 : 0.42;
+    else if (hit.kind === "thigh" && s.name.includes("Glute")) wgt = s.name[0] === hit.name[0] ? 0.55 : 0.22;
+    else if (hit.kind === "head" && s.name.includes("Breast")) wgt = 0.18;
+    if (wgt > 0) {
+      s.vx += jx * wgt + glance * nrm.z * 0.4 * wgt;
+      s.vz += jz * wgt + jy * 0.35 * wgt;
+    }
+  }
+
+  _toHit.copy(pos).sub(avatar.position);
+  let lookYaw = wrapPi(Math.atan2(_toHit.x, _toHit.z) - avatar.rotation.y);
+  if (hit.kind === "head" && mag > 0.85) lookYaw = -lookYaw * 0.45;
+  hitReact.lookYaw = THREE.MathUtils.clamp(lookYaw * Math.min(1.1, mag * 0.75), -0.75, 0.75);
+  hitReact.lookPitch = THREE.MathUtils.clamp(-nrm.y * mag * 0.28 + (hit.kind === "head" ? -0.12 * mag : 0), -0.4, 0.32);
+  hitReact.lookT = 0.5 + Math.min(0.9, mag * 0.28);
+  hitReact.headKickX += THREE.MathUtils.clamp(-nrm.y * mag * 0.22, -0.35, 0.28);
+  hitReact.headKickY += THREE.MathUtils.clamp(lookYaw * mag * 0.18, -0.45, 0.45);
+
+  hitReact.flinchX += THREE.MathUtils.clamp(-nrm.z * mag * 0.16, -0.38, 0.38);
+  hitReact.flinchY += THREE.MathUtils.clamp(lookYaw * mag * 0.12, -0.42, 0.42);
+  hitReact.flinchZ += THREE.MathUtils.clamp(nrm.x * mag * 0.14, -0.32, 0.32);
+
+  hitReact.knockX += nrm.x * mag * 0.11;
+  hitReact.knockZ += nrm.z * mag * 0.11;
+
+  if (mag > 0.7) {
+    hitReact.exprT = 0.42 + Math.min(0.35, mag * 0.08);
+    face("surprise");
+    miraWalk = Math.max(miraWalk, 0.55);
+    if (mag > 1.15) avatar.userData.dest = null;
+  } else if (mag > 0.35) {
+    want.Eye_Squint_L = want.Eye_Squint_R = Math.min(0.55, mag * 0.4);
+    hitReact.exprT = Math.max(hitReact.exprT, 0.22);
+  }
+}
+
+function tickHitReact(dt) {
+  const decay = Math.exp(-dt * 6.2);
+  hitReact.flinchX *= decay;
+  hitReact.flinchY *= decay;
+  hitReact.flinchZ *= decay;
+  hitReact.headKickX *= decay;
+  hitReact.headKickY *= decay;
+  hitReact.lookT = Math.max(0, hitReact.lookT - dt);
+  addE("Spine02", hitReact.flinchX, hitReact.flinchY * 0.55, hitReact.flinchZ);
+  addE("Spine01", hitReact.flinchX * 0.65, hitReact.flinchY * 0.4, hitReact.flinchZ * 0.55);
+  addE("Waist", hitReact.flinchX * 0.25, hitReact.flinchY * 0.2, 0);
+  addE("Hip", hitReact.flinchX * 0.32, hitReact.flinchY * 0.22, 0);
+  addE("L_Clavicle", hitReact.flinchX * 0.2, 0, hitReact.flinchZ * 0.25);
+  addE("R_Clavicle", hitReact.flinchX * 0.2, 0, -hitReact.flinchZ * 0.25);
+  avatar.position.x += hitReact.knockX * dt;
+  avatar.position.z += hitReact.knockZ * dt;
+  const kd = Math.exp(-dt * 5.4);
+  hitReact.knockX *= kd;
+  hitReact.knockZ *= kd;
 }
 
 function tickNoodle(dt) {
@@ -507,7 +640,6 @@ function tickNoodle(dt) {
     noodle.position.copy(_v).addScaledVector(_w, 0.85);
     noodle.quaternion.copy(camera.quaternion);
     noodle.rotateX(-Math.PI * 0.5);
-    noodleVel.set(0, 0, 0);
     noodleHeld = "desk";
   } else if (noodleHeld && noodleHeld !== "desk") {
     noodleHeld.getWorldPosition(_v);
@@ -515,7 +647,6 @@ function tickNoodle(dt) {
     noodle.position.copy(_v);
     noodle.quaternion.copy(_q);
     noodle.rotateX(-Math.PI * 0.5);
-    noodleVel.set(0, 0, 0);
   } else {
     if (noodleHeld === "desk" && !holdingKey) noodleHeld = null;
     noodleVel.y -= 6.5 * dt;
@@ -528,28 +659,67 @@ function tickNoodle(dt) {
     }
   }
 
-  for (const [bn, rad] of BODY_HIT) {
-    const bone = bones[bn];
-    if (!bone) continue;
-    bone.getWorldPosition(_w);
-    const q = closestPointOnNoodle(_w);
-    const d = _w.distanceTo(q);
-    const min = rad + NRAD;
-    if (d < min && d > 1e-4) {
-      const nrm = _w.clone().sub(q).multiplyScalar(1 / d);
-      const push = (min - d);
-      if (!noodleHeld) {
-        noodle.position.addScaledVector(nrm, -push * 0.85);
-        noodleVel.addScaledVector(nrm, -push * 8);
+  noodle.updateMatrixWorld();
+  _nA.set(0, -NLEN * 0.5, 0).applyMatrix4(noodle.matrixWorld);
+  _nB.set(0, NLEN * 0.5, 0).applyMatrix4(noodle.matrixWorld);
+  const invDt = 1 / Math.max(dt, 1 / 120);
+  if (!nEndsReady) {
+    _nA0.copy(_nA);
+    _nB0.copy(_nB);
+    nEndsReady = true;
+    return;
+  }
+  _vA.subVectors(_nA, _nA0).multiplyScalar(invDt);
+  _vB.subVectors(_nB, _nB0).multiplyScalar(invDt);
+  noodleVel.copy(_vA).add(_vB).multiplyScalar(0.5);
+
+  if (ready) {
+    for (const hit of BODY_HIT) {
+      const bone = bones[hit.name];
+      if (!bone) continue;
+      bone.getWorldPosition(_w);
+      const t = sampleNoodle(_w);
+      const d = _w.distanceTo(_nQ);
+      const min = hit.rad + NRAD;
+      if (d >= min || d < 1e-5) continue;
+      _nrm.subVectors(_w, _nQ).multiplyScalar(1 / d);
+      const push = min - d;
+      noodleVelAt(t, invDt);
+      _vRel.copy(_vHit);
+      if (hipReady) {
+        _vRel.x -= (_w.x - prevHip.x) * invDt * 0.35;
+        _vRel.z -= (_w.z - prevHip.z) * invDt * 0.35;
       }
+      const closing = -_vRel.dot(_nrm);
+      _tan.copy(_vRel).addScaledVector(_nrm, closing);
+      const glance = _tan.length();
+
+      if (!noodleHeld) {
+        noodle.position.addScaledVector(_nrm, -push * 0.85);
+        noodleVel.addScaledVector(_nrm, -Math.max(closing, 0) * 0.55 - push * 6);
+      }
+
+      const squash = push * 18;
       for (const s of soft) {
-        if (s.name === bn || (bn === "Spine02" && s.name.includes("Breast"))) {
-          s.vx += nrm.x * push * 14;
-          s.vz += nrm.z * push * 14;
+        let wgt = 0;
+        if (s.name === hit.name) wgt = 1;
+        else if (hit.kind === "chest" && s.name.includes("Breast")) wgt = 0.8;
+        else if (hit.kind === "breast" && s.name.includes("Breast")) wgt = s.name[0] === hit.name[0] ? 1 : 0.35;
+        else if (hit.kind === "glute" && s.name.includes("Glute")) wgt = s.name[0] === hit.name[0] ? 1 : 0.3;
+        else if (hit.kind === "hip" && s.name.includes("Glute")) wgt = 0.5;
+        if (wgt > 0) {
+          s.vx += _nrm.x * squash * wgt;
+          s.vz += _nrm.z * squash * wgt;
         }
+      }
+      if (closing > 0.28 || (noodleHeld && closing > 0.18)) {
+        applyStrike(hit, _nrm, Math.max(closing, push * 8), glance, _nQ);
       }
     }
   }
+
+  _nA0.copy(_nA);
+  _nB0.copy(_nB);
 }
 
 function handsNearNoodle() {
@@ -585,7 +755,7 @@ new GLTFLoader().load(
     avatar.add(root);
     ready = true;
     if (loadEl) loadEl.remove();
-    banner("PASS 2 · F hold noodle · sliders on the right");
+    banner("PASS 2 · F hold noodle · swing to strike");
     face("happy");
     let mapped = 0;
     root.traverse((o) => {
@@ -651,6 +821,7 @@ function tick() {
   desktopMove(dt);
   const moving = miraWander(dt);
   walkT += dt * (moving ? 7.4 : 1.7);
+  tickNoodle(dt);
   if (ready) {
     tickExpr(dt);
     restoreBind();
@@ -659,14 +830,14 @@ function tick() {
     tickBreathe(clock.elapsedTime);
     if (moving) tickWalk(true);
     else tickIdle(clock.elapsedTime);
+    tickSoft(dt, moving);
     tickGaze(dt, moving);
+    tickHitReact(dt);
     const grasp = noodleHeld || handsNearNoodle() ? 0.75 : 0;
     tickFingers(0.08 + grasp * 0.75);
-    tickSoft(dt, moving);
     applyExtras();
     tickMorphs(dt);
     if (skeleton) skeleton.update();
-    tickNoodle(dt);
     blob.position.x = avatar.position.x;
     blob.position.z = avatar.position.z;
   }
