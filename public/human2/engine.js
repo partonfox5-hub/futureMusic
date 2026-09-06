@@ -1,11 +1,11 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { createVRMenu } from "./mira-vr-menu.js";
-import { EMOTION_NAMES, IDLE_NAMES, WALK_NAMES } from "./mira-v2-features.js";
+import { EMOTION_NAMES, IDLE_NAMES, WALK_NAMES } from "./mira-v2-features.js?v=4";
 import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
-import { createMiraSystem, SLIDERS, FACE_TYPES, HAIR_COLORS } from "./mira-v2.js?v=2";
-import { DEFAULT_PERSONA, miraChat, miraSpeak, startMic } from "./mira-voice-v2.js?v=2";
+import { createMiraSystem, SLIDERS, FACE_TYPES, HAIR_COLORS } from "./mira-v2.js?v=4";
+import { DEFAULT_PERSONA, miraChat, miraSpeak, startMic } from "./mira-voice-v2.js?v=4";
 
 const QUEST = /OculusBrowser|Quest/i.test(navigator.userAgent);
 const loadEl = document.getElementById("load");
