@@ -1,11 +1,11 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { createVRMenu } from "./mira-vr-menu.js";
-import { EMOTION_NAMES, IDLE_NAMES, WALK_NAMES } from "./mira-v2-features.js?v=4";
+import { EMOTION_NAMES, IDLE_NAMES, WALK_NAMES } from "./mira-v2-features.js";
 import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
-import { createMiraSystem, SLIDERS, FACE_TYPES, HAIR_COLORS } from "./mira-v2.js?v=4";
-import { DEFAULT_PERSONA, miraChat, miraSpeak, startMic } from "./mira-voice-v2.js?v=4";
+import { createMiraSystem, SLIDERS, FACE_TYPES, HAIR_COLORS } from "./mira-v2.js?v=2";
+import { DEFAULT_PERSONA, miraChat, miraSpeak, startMic } from "./mira-voice-v2.js?v=2";
 
 const QUEST = /OculusBrowser|Quest/i.test(navigator.userAgent);
 const loadEl = document.getElementById("load");
@@ -28,7 +28,7 @@ renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.05;
 renderer.xr.enabled = true;
-renderer.shadowMap.enabled=false;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 if (QUEST) renderer.xr.setFramebufferScaleFactor(0.9);
 renderer.setClearColor(0x6b5e52, 1);
 document.body.prepend(renderer.domElement);
@@ -388,7 +388,7 @@ async function enterXr() {
   try {
     const xrDetail = Number(document.getElementById("quality").value) || 0.9;
     renderer.xr.setFramebufferScaleFactor(xrDetail);
-    renderer.shadowMap.enabled=false;
+    renderer.shadowMap.enabled=xrDetail>=.85;
     let session, passthrough = true;
     renderer.xr.setReferenceSpaceType("local-floor");
     try {

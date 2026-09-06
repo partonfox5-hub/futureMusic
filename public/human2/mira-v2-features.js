@@ -99,7 +99,7 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    for(const d of this.deform){const g=new THREE.BufferGeometry();g.attributes={position:d.position,normal:d.normal};g.setIndex(d.indices);d.geom=g;g.morphAttributes.position=d.morphPosition;delete d.indices;}
    this.applyLooks();
    this.hairPhysics=new HairGuides(this,BODY_HIT);
-   this.root.traverse(o=>{if(o.isMesh){o.receiveShadow=true;o.castShadow=false;}});
+   this.root.traverse(o=>{if(o.isMesh){o.receiveShadow=true;o.castShadow=!/hair|eyes/.test(o.name);}});
   }
   applyLooks(){
    if(!this.deform)return;
@@ -108,7 +108,6 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    this.root.traverse(o=>{if(!o.isMesh)return;for(const m of Array.isArray(o.material)?o.material:[o.material]){
     if(/Skin_Body/.test(m.name))m.map=loadMap('body_v2.jpg',true);
     if(/Skin_/.test(m.name)){m.normalScale?.setScalar(/Head/.test(m.name)?.5:.7);installSkinShader(m);m.needsUpdate=true;}
-    if(/Std_Eye_[LR]|cornea|Eyelash/i.test(m.name||'')){m.morphTargets=false;m.morphNormals=false;}
     if(/Std_Eye_[LR]/.test(m.name)){m.roughness=.22;m.envMapIntensity=1.15;}
    }});
   }
