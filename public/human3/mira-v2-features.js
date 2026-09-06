@@ -1,11 +1,11 @@
-import {LivingEyes} from './mira-v2-eyes.js?v=h3.1';
-import {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES} from './mira-v2-controls.js?v=h3.1';
-export {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES} from './mira-v2-controls.js?v=h3.1';
+import {LivingEyes} from './mira-v2-eyes.js?v=h3.2';
+import {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES} from './mira-v2-controls.js?v=h3.2';
+export {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES} from './mira-v2-controls.js?v=h3.2';
 import * as THREE from 'three';
-import {restoreSurfaceUV} from './mira-v2-uv.js?v=h3.1';
-import {V2_EXTRA_SLIDERS,FACE_PRESETS,EXERCISE_MODES} from './mira-v2-controls.js?v=h3.1';
-import {HairGuides} from './mira-v2-hair.js?v=h3.1';
-import {SurfaceFlesh} from './mira-v2-tissue.js?v=h3.1';
+import {restoreSurfaceUV} from './mira-v2-uv.js?v=h3.2';
+import {V2_EXTRA_SLIDERS,FACE_PRESETS,EXERCISE_MODES} from './mira-v2-controls.js?v=h3.2';
+import {HairGuides} from './mira-v2-hair.js?v=h3.2';
+import {SurfaceFlesh} from './mira-v2-tissue.js?v=h3.2';
 
 // Mira v2: a bounded real-time approximation for this CC3 rig, Three r170.
 const clamp = THREE.MathUtils.clamp, damp = THREE.MathUtils.damp;
@@ -144,7 +144,7 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    this.emotionTarget={}; this.emotionCurrent={};this.expressionOverride=null;
    this.idleKind='rest';this.idleT=3;this.idleDur=3;this.idleChoice='auto';this.seed=Math.random()*100;
    this.gait=clamp(opts.gait||0,0,WALK_NAMES.length-1);
-   this.handTargets={};this.grabs=new Map();this.balance={state:'standing',time:0,stress:0,tilt:0,dir:V(),velocity:V(),recoverFrom:0};
+   this.handTargets={};this.grabs=new Map();this.balance={state:'standing',time:0,stress:0,tilt:0,dir:V(),velocity:V(),recoverFrom:0};this.woundReact=null;this.painAt=-10;this.woundAccum=0;
    this.likeness=opts.likeness??1;this.geomState='';this.deform=[];this.poseQ={};this.skinMeshes=[];
    this.headTouch=new THREE.Vector3();this.headTouchGoal=new THREE.Vector3();this.attentionT=0;this.attention=V();this.externalHands=[];
    this.root.updateMatrixWorld(true);
@@ -428,7 +428,7 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    this.addE('L_Clavicle',.016*Math.sin(p)*s,0,0);this.addE('R_Clavicle',-.016*Math.sin(p)*s,0,0);
   }
   wander(dt){
-   if(this.balance.state!=='standing'||this.grabs.size){this.speed=damp(this.speed,0,10,dt);this.pathSpeed=this.speed;return false;}
+   if(this.woundReact||this.balance.state!=='standing'||this.grabs.size){this.speed=damp(this.speed,0,10,dt);this.pathSpeed=this.speed;return false;}
    if(this.pathSpeed!==undefined)this.speed=this.pathSpeed;
    // Base path steering, with six distinct speed/cadence styles.
    const before=this.group.position.clone();const moving=super.wander(dt);
@@ -545,7 +545,7 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
   tickAwareness(dt,cam){
    this.greetingT-=dt;this.lifeT-=dt;
    if(this.socialPair||this.directedWalk||this.navigation||this.seat)return;
-   if(this.balance.state!=='standing'||this.grabs.size||this.speech?.active||this.mode==='talk')return;
+   if(this.woundReact||this.balance.state!=='standing'||this.grabs.size||this.speech?.active||this.mode==='talk')return;
    if(this.autonomy&&this.greetingT<=0){
     const candidates=[cam,...(this.neighbors||[]).filter(a=>a!==this).map(a=>a.bones.Head.getWorldPosition(V()))];
     const other=candidates.find(p=>p.distanceTo(this.bones.Head.getWorldPosition(V()))<3.2);
@@ -839,13 +839,81 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
   }
   applyStrike(hit,n,c,g,p){
    super.applyStrike(hit,n,c,g,p);
+   if(this.woundReact)return;
    if(c>2.3&&['chest','hip','thigh','leg','head'].includes(hit.kind))this.knockDown(n.clone().negate(),n.clone().multiplyScalar(-Math.min(c*.15,.7)));
    else if(c>.7)this.setEmotion('surprise',clamp(c*.15,0,.6),{hold:2,source:'contact'});
+  }
+  cryOut(text,emotion){
+   this.beginSpeech(text,emotion);
+   if(this.mode==='talk')this.mode='idle';
+   this.autoWander=false;this.dest=null;this.speed=0;
+   this.setEmotion(emotion,.9,{hold:3.6,source:'pain'});
+   this.injuryDriver?.props?.system?.painSpeech?.(this,text);
+  }
+  reactToHit(hit,dir,energy,kind,point){
+   if(!hit)return;
+   const collapse=kind==='bullet'||energy>=20||(this.woundAccum=(this.woundAccum||0)+energy)>48;
+   const busy=this.woundReact&&this.woundReact.kind==='collapse'&&this.woundReact.t<0.55;
+   if(!busy){
+    const away=(dir||V()).clone().setY(0);if(away.lengthSq()<1e-6)away.set(0,0,1);away.normalize();
+    const bone=this.bones[hit.name],local=bone&&point?bone.worldToLocal(point.clone()):V();
+    const gx=point?this.group.worldToLocal(point.clone()).x:0;
+    const hitSide=hit.name.startsWith('L_')?'L':hit.name.startsWith('R_')?'R':(gx>=0?'L':'R');
+    const grabSide=/Arm|Hand|Upperarm|Forearm/.test(hit.name)?(hitSide==='L'?'R':'L'):hitSide;
+    if(this.seat){this.seat.occupant=null;this.seat=null;this.group.position.y=this.baseY||0;}
+    this.socialPair?.cancel();this.dest=null;this.autoWander=false;this.directedWalk=null;
+    if(this.navigation?.seat)this.navigation.seat.occupant=null;this.navigation=null;this.speed=0;
+    this.woundReact={kind:collapse?'collapse':'stagger',t:0,dur:collapse?2.15:.92,dir:away,speed:collapse?2.2:1.4,bone:hit.name,local,side:grabSide};
+   }
+   if((this.time||0)-(this.painAt||-10)>0.42){
+    this.painAt=this.time||0;
+    const lines=[['Ow','concerned'],['Oof','concerned'],['Holy shit','surprise'],['Fuck you','angry']];
+    const pick=lines[Math.floor(Math.random()*lines.length)];
+    this.cryOut(pick[0],pick[1]);
+   }
+  }
+  poseWoundReact(dt){
+   const w=this.woundReact;if(!w)return;
+   w.t+=dt;
+   const h=this.shape.height,k=w.kind==='collapse'?smooth(clamp((w.t-.12)/.5,0,1)):Math.sin(Math.min(1,w.t/.38)*Math.PI)*.28;
+   this.group.position.addScaledVector(w.dir,w.speed*dt);w.speed*=Math.exp(-dt*4.4);
+   const localDir=w.dir.clone().applyQuaternion(this.group.getWorldQuaternion(new THREE.Quaternion()).invert());
+   const recoil=w.kind==='stagger'?Math.sin(Math.min(1,w.t/.2)*Math.PI)*.5:Math.min(1,w.t/.32)*.62;
+   this.bones.Spine02?.quaternion.multiply(q.setFromEuler(new THREE.Euler(recoil*.42*Math.max(.15,-localDir.z),recoil*.22*localDir.x,recoil*.16)));
+   this.bones.Spine01?.quaternion.multiply(q.setFromEuler(new THREE.Euler(recoil*.2,0,0)));
+   if(this.balance.state==='standing'){
+    this.group.position.y=(this.baseY||0)-.17*h*k;
+    this.bones.L_Thigh?.quaternion.multiply(q.setFromAxisAngle(new THREE.Vector3(1,0,0),.58*k));
+    this.bones.R_Thigh?.quaternion.multiply(q.setFromAxisAngle(new THREE.Vector3(1,0,0),.66*k));
+    this.bones.L_Calf?.quaternion.multiply(q.setFromAxisAngle(new THREE.Vector3(1,0,0),-.72*k));
+    this.bones.R_Calf?.quaternion.multiply(q.setFromAxisAngle(new THREE.Vector3(1,0,0),-.8*k));
+   }
+   if(w.kind==='collapse'&&w.t>.58&&this.balance.state==='standing')this.knockDown(w.dir,w.dir.clone().multiplyScalar(.55));
+   if(w.kind==='stagger'&&w.t>=w.dur)this.woundReact=null;
+   else if(w.kind==='collapse'&&w.t>2.4)this.woundReact=null;
+  }
+  poseWoundHands(){
+   const w=this.woundReact;if(!w)return;
+   if(this.balance.state==='recovering'||(this.balance.state==='down'&&w.t>1.4))return;
+   const h=this.shape.height,bone=this.bones[w.bone];
+   const wound=bone?bone.localToWorld(w.local.clone()):this.group.localToWorld(new THREE.Vector3(0,1.22,0).multiplyScalar(h));
+   this.attention.copy(wound);this.attentionT=.35;
+   const grab=w.kind==='stagger'?Math.sin(Math.min(1,w.t/.32)*Math.PI)*.7:clamp((w.t-.06)/.28,0,1);
+   const side=w.side,sign=side==='L'?1:-1;
+   const chest=this.bones.Spine02?.getWorldPosition(V())||this.group.position;
+   const out=wound.clone().sub(chest);out.y*=.2;if(out.lengthSq()<1e-6)out.set(sign,0,.2);out.normalize();
+   const target=wound.clone().addScaledVector(out,.045*h);
+   const pole=new THREE.Vector3(sign*.4,1.18,-.06).multiplyScalar(h);this.group.localToWorld(pole);
+   const hand=this.bones[side+'_Hand'];if(hand){const cur=hand.getWorldPosition(V());cur.lerp(target,grab);this.solveChain(side,'arm',cur,pole);this.handTargets[side]=cur.clone();}
+   const other=side==='L'?'R':'L',os=other==='L'?1:-1;
+   const guard=new THREE.Vector3(os*.2,1.16,.22).multiplyScalar(h);this.group.localToWorld(guard);
+   const pole2=new THREE.Vector3(os*.38,1.02,-.12).multiplyScalar(h);this.group.localToWorld(pole2);
+   const h2=this.bones[other+'_Hand'];if(h2){const cur=h2.getWorldPosition(V());cur.lerp(guard,grab*.8);this.solveChain(other,'arm',cur,pole2);this.handTargets[other]=cur.clone();}
   }
   resetPhysics(){
    this.socialPair?.cancel();this.directedWalk=null;if(this.navigation?.seat)this.navigation.seat.occupant=null;this.navigation=null;if(this.seat){this.seat.occupant=null;this.group.position.y=this.baseY||0;}this.seat=null;
    super.resetPhysics();this.grabs?.clear();this.handTargets={};this.armSwing={};this.spineTouch?.set(0,0,0);this.spineGoal?.set(0,0,0);this.hairPhysics?.reset();this.surfaceFlesh?.reset();
-   if(this.balance){this.balance.velocity.set(0,0,0);this.balance.stress=0;}
+   if(this.balance){this.balance.velocity.set(0,0,0);this.balance.stress=0;}this.woundReact=null;
   }
   tick(dt,cam,t){
    if(!this.baseRootPos)this.baseRootPos=this.root.position.clone();
@@ -854,11 +922,12 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    this.root.position.copy(this.baseRootPos);this.root.quaternion.identity();
    // The v1 animation pipeline dispatches through these v2 overrides.
    this.inBaseTick=true;super.tick(dt,cam,t);this.inBaseTick=false;
-   this.poseActivity();this.poseSpineContact(dt);this.poseArms();this.socialPair?.pose(this);this.group.updateMatrixWorld(true);
+   this.poseActivity();this.poseSpineContact(dt);this.poseArms();this.poseWoundReact(dt);this.socialPair?.pose(this);this.group.updateMatrixWorld(true);
    // Limb IK follows the final arm pose, including both controllers independently.
    this.tickBalance(dt);
    this.tickGrab(dt);
    this.group.updateMatrixWorld(true);
+   this.poseWoundHands();
    this.tickSoft(dt);this.poseHeadContact(dt);this.group.updateMatrixWorld(true);
    this.surfaceFlesh?.tick(dt);this.hairPhysics?.tick(dt);this.eyes?.tick(dt,t);this.injuryDriver?.pose(this);
    this.root.traverse(o=>{if(o.isSkinnedMesh)o.skeleton.update();});

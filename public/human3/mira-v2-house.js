@@ -1,7 +1,7 @@
 import * as T from 'three';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
 export function buildHouse(w){
- const v=(x,y,z)=>new T.Vector3(x,y,z),panel=(x,y,z,sx,sy,sz,hole)=>w.fractures.panel(v(x,y,z),v(sx,sy,sz),'plaster',hole),round=(x,y,z,sx,sy,sz,color,r=.03,kind='wood')=>w.mesh(new RoundedBoxGeometry(sx,sy,sz,2,Math.min(r,Math.min(sx,sy,sz)*.3)),w.surf(kind,color),x,y,z);
+ const v=(x,y,z)=>new T.Vector3(x,y,z),panel=(x,y,z,sx,sy,sz,hole=()=>false,kind='paperLiving')=>w.fractures.panel(v(x,y,z),v(sx,sy,sz),kind,hole),round=(x,y,z,sx,sy,sz,color,r=.03,kind='wood')=>w.mesh(new RoundedBoxGeometry(sx,sy,sz,2,Math.min(r,Math.min(sx,sy,sz)*.3)),w.surf(kind,color),x,y,z);
  const assemble=(cx,cz,meshes,sx,sz,kind='wood',mass=22)=>{
   const group=new T.Group();group.position.set(cx,0,cz);w.root.add(group);
   for(const m of meshes)if(m)group.attach(m);
@@ -15,8 +15,13 @@ export function buildHouse(w){
   return group;
  };
  w.box(0,-.18,0,24,.3,24,0x718063);w.box(0,-.045,0,9,.08,9,0xab8864,'floor');w.box(6,-.015,3,3.2,.025,16,0x72726d);w.box(0,.003,0,4,.015,4.2,0x8b7a68,'wood');
- panel(0,1.5,-4.45,9,3,.15,p=>p.x<-2&&p.x>-3.6&&p.y>1&&p.y<2.3);panel(-4.45,1.5,0,.15,3,9,p=>Math.abs(p.z)<1.1&&p.y>.9&&p.y<2.3);panel(4.45,1.5,0,.15,3,9,p=>Math.abs(p.z)<1.1&&p.y>.9&&p.y<2.3);panel(0,1.5,4.45,9,3,.15,p=>p.x>-.6&&p.x<1.2&&p.y<2.25);
- panel(0,3.08,0,9,.16,9);panel(0,1.5,-1.8,8.8,3,.13,p=>(Math.abs(p.x+.4)<.65||Math.abs(p.x-3)<.6)&&p.y<2.25);panel(1.45,1.5,0,.13,3,8.8,p=>Math.abs(p.z-.8)<.68&&p.y<2.25);
+ panel(-1.52,1.5,-4.45,5.96,3,.15,p=>p.x<-2&&p.x>-3.6&&p.y>1&&p.y<2.3,'paperBed');panel(2.98,1.5,-4.45,3.04,3,.15,()=>false,'paperBath');
+ panel(-4.45,1.5,-3.15,.15,3,2.7,()=>false,'paperBed');panel(-4.45,1.5,1.35,.15,3,6.3,p=>Math.abs(p.z)<1.1&&p.y>.9&&p.y<2.3,'paperLiving');
+ panel(4.45,1.5,-3.15,.15,3,2.7,()=>false,'paperBath');panel(4.45,1.5,1.35,.15,3,6.3,p=>Math.abs(p.z)<1.1&&p.y>.9&&p.y<2.3,'paperKitchen');
+ panel(-1.52,1.5,4.45,5.96,3,.15,p=>p.x>-.6&&p.x<1.2&&p.y<2.25,'paperLiving');panel(2.98,1.5,4.45,3.04,3,.15,()=>false,'paperKitchen');
+ panel(0,3.08,0,9,.16,9,()=>false,'plaster');
+ panel(-1.52,1.5,-1.8,5.9,3,.13,p=>Math.abs(p.x+.4)<.65&&p.y<2.25,'paperBed');panel(2.95,1.5,-1.8,2.9,3,.13,p=>Math.abs(p.x-3)<.6&&p.y<2.25,'paperBath');
+ panel(1.45,1.5,1.35,.13,3,6.3,p=>Math.abs(p.z-.8)<.68&&p.y<2.25,'paperKitchen');panel(1.45,1.5,-3.15,.13,3,2.7,()=>false,'paperBath');
  w.fractures.panel(v(-4.44,1.62,0),v(.035,1.25,2.05),'glass');w.fractures.panel(v(4.44,1.62,0),v(.035,1.25,2.05),'glass');w.fractures.panel(v(-2.9,1.68,-4.44),v(1.7,1.3,.035),'glass');
  const couch=w.chair(-2.5,-.8,0,true),chair=w.chair(.1,1.5,-Math.PI/2);for(const seat of [couch,chair])seat.group.traverse(m=>{if(m.isMesh)w.fractures.register(m,'wood',null);});
  const tableTop=round(-1.7,.635,1.12,1.7,.09,.85,0x72503b,.018);

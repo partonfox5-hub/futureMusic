@@ -1,5 +1,5 @@
-import {Destruction} from './mira-v2-destruction.js?v=h3.1';
-import {buildHouse} from './mira-v2-house.js?v=h3.1';
+import {Destruction} from './mira-v2-destruction.js?v=h3.2';
+import {buildHouse} from './mira-v2-house.js?v=h3.2';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
 import * as T from 'three';
 const V=()=>new T.Vector3(),clamp=T.MathUtils.clamp;

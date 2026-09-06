@@ -1,21 +1,21 @@
-import {Car} from './mira-v2-car.js?v=h3.1';
-import {Restraints} from './mira-v2-restraints.js?v=h3.1';
-import {Injuries} from './mira-v2-injuries.js?v=h3.1';
-import {Props,WEAPONS} from './mira-v2-props.js?v=h3.1';
-import {RoomLight} from './mira-v2-light.js?v=h3.1';
-import {draft,saveDraft,spawnOptions,OUTFITS,clothingItems} from './mira-v2-catalog.js?v=h3.1';
-import {MiraWorld,SCENES} from './mira-v2-world.js?v=h3.1';
-import {Wardrobe,GARMENTS} from './mira-v2-wardrobe.js?v=h3.1';
+import {Car} from './mira-v2-car.js?v=h3.2';
+import {Restraints} from './mira-v2-restraints.js?v=h3.2';
+import {Injuries} from './mira-v2-injuries.js?v=h3.2';
+import {Props,WEAPONS} from './mira-v2-props.js?v=h3.2';
+import {RoomLight} from './mira-v2-light.js?v=h3.2';
+import {draft,saveDraft,spawnOptions,OUTFITS,clothingItems} from './mira-v2-catalog.js?v=h3.2';
+import {MiraWorld,SCENES} from './mira-v2-world.js?v=h3.2';
+import {Wardrobe,GARMENTS} from './mira-v2-wardrobe.js?v=h3.2';
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { createVRMenu } from "./mira-vr-menu.js?v=h3.1";
-import { EMOTION_NAMES, IDLE_NAMES, WALK_NAMES } from "./mira-v2-features.js?v=h3.1";
+import { createVRMenu } from "./mira-vr-menu.js?v=h3.2";
+import { EMOTION_NAMES, IDLE_NAMES, WALK_NAMES } from "./mira-v2-features.js?v=h3.2";
 import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
-import { createMiraSystem, SLIDERS, FACE_TYPES, HAIR_COLORS } from "./mira-v2.js?v=h3.1";
-import { DEFAULT_PERSONA, miraChat, miraSpeak, startMic, unlockVoice } from "./mira-voice-v2.js?v=h3.1";
+import { createMiraSystem, SLIDERS, FACE_TYPES, HAIR_COLORS } from "./mira-v2.js?v=h3.2";
+import { DEFAULT_PERSONA, miraChat, miraSpeak, startMic, unlockVoice } from "./mira-voice-v2.js?v=h3.2";
 
-import {V2_EXTRA_SLIDERS,FACE_PRESETS,HAIR_STYLES,ACTIVITY_MODES,shapeSliders} from './mira-v2-controls.js?v=h3.1';
+import {V2_EXTRA_SLIDERS,FACE_PRESETS,HAIR_STYLES,ACTIVITY_MODES,shapeSliders} from './mira-v2-controls.js?v=h3.2';
 
 const QUEST = /OculusBrowser|Quest/i.test(navigator.userAgent);
 const loadEl = document.getElementById("load");
@@ -270,6 +270,21 @@ function bindHud() {
     while (chatLog.childNodes.length > 8) chatLog.removeChild(chatLog.firstChild);
     chatLog.scrollTop = chatLog.scrollHeight;
   }
+  let painSpeakId=0;
+  mira.painSpeech=(actor,text)=>{
+    const id=++painSpeakId;
+    addChat(actor?.displayName||'mira', text);
+    const voice=actor?.bodyType==='male'?'am_adam':(document.getElementById('ttsVoice')?.value||'af_heart');
+    unlockVoice();
+    miraSpeak(text,{
+      voice,
+      onStatus:msg=>{const el=document.getElementById('ttsStatus');if(el)el.textContent=msg;},
+      onStart(d){if(id===painSpeakId)actor.setSpeechDuration(d);},
+      onAmp(amp,t,d){if(id===painSpeakId)actor.setSpeechAmp(amp,t,d);},
+      onEnd(){if(id===painSpeakId)actor.endSpeech();},
+      onError(){if(id===painSpeakId)actor.endSpeech();},
+    }).catch(()=>{if(id===painSpeakId)actor.endSpeech();});
+  };
   async function converse(text) {
     if (!text || talking) return;
     talking = true;

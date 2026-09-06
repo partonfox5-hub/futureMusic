@@ -21,7 +21,9 @@
       #hint { position: absolute; left: 16px; top: 16px; z-index: 21; font-size: 12px; opacity: .9; pointer-events: none; text-shadow: 0 1px 4px #000; max-width: 50vw; }
       #load { position: absolute; left: 50%; top: 42%; transform: translate(-50%,-50%); z-index: 21; font-size: 14px; letter-spacing: .12em; text-shadow: 0 1px 4px #000; }
       #stats { position: absolute; right: 16px; top: 16px; z-index: 21; font: 12px/1.4 ui-monospace, Consolas, monospace; opacity: .9; text-shadow: 0 1px 4px #000; pointer-events: none; }
-      #hud { position: absolute; right: 12px; top: 48px; bottom: 12px; z-index: 22; width: 250px; overflow: auto; pointer-events: auto; background: rgba(18,14,12,.82); border: 1px solid #7eb6ff; border-radius: 12px; padding: 12px 14px; font-size: 12px; }
+      #hud { position: absolute; right: 12px; top: 48px; bottom: 12px; z-index: 40; width: 250px; overflow: auto; pointer-events: auto; background: rgba(18,14,12,.82); border: 1px solid #7eb6ff; border-radius: 12px; padding: 12px 14px; font-size: 12px; }
+      #hud.hud-select-open { overflow: visible; }
+      #hud select { position: relative; z-index: 3; }
       #chatLog { max-height: 110px; overflow: auto; background: #14110f; border: 1px solid #3d4e66; border-radius: 8px; padding: 6px 8px; margin: 6px 0; font-size: 11px; line-height: 1.35; }
       #chatIn { width: 100%; box-sizing: border-box; background: #1a1614; color: #f4efe8; border: 1px solid #7eb6ff; border-radius: 8px; padding: 8px; font: 12px/1.35 "Segoe UI", sans-serif; }
       #hud h2 { margin: 0 0 8px; font-size: 12px; letter-spacing: .12em; color: #7eb6ff; }
@@ -138,6 +140,6 @@
         <button type="button" class="ghost" id="firstPerson" data-runtime>First person</button>
       </div>
     </div>
-    <script type="module" src="/human3/mira-boot.js?v=h3.1"></script>
+    <script type="module" src="/human3/mira-boot.js?v=h3.2"></script>
   </body>
 </html>
