@@ -1,16 +1,16 @@
-# Mira v1 + v2 — revision 4
+# Mira v1 + v2 — revision 5
 
-Replace the complete `human2/` folder with this package. Its folder layout is unchanged: `human2/`, `human2/assets/`, and `human2/assets/tex/`. V2 scripts use `?v=4` and textures use `?v=r4`; purge the hosting/CDN cache when updating. Open `human2/index.html` over HTTP on desktop or HTTPS on Quest. Start with one actor on Balanced.
+Replace the complete `human2/` folder with this package. Its folder layout is unchanged: `human2/`, `human2/assets/`, and `human2/assets/tex/`. V2 scripts use `?v=5` and textures use `?v=r5`; purge the hosting/CDN cache when updating. Open `human2/index.html` over HTTP on desktop or HTTPS on Quest. Start with one actor on Balanced.
 
 The original Mira remains selectable in the shared spawner. `mira-v1.html` opens the original scene. The original core, voice code, preserved engine, GLB and uploaded textures are unchanged. V2 keeps actor geometry, materials, animation and physics state separate.
 
-## What changed in revision 4
+## What changed in revision 5
 
 ### Arms, fingers and player hands
 
-The supplied arm vertices have a baked A-pose tilt of about 30 degrees, while the arm bones and inverse bind matrices describe a T pose. V2 corrects that mismatch before animation. It also removes unrelated body-bone influences from distal arm/hand vertices. These issues made moving hands distort even when the bone positions themselves looked correct.
+The supplied arm vertices have a baked A-pose tilt of about 30 degrees, while the arm bones and inverse bind matrices describe a T pose. The previous correction omitted the twist and elbow-share bones that carry most arm weights, leaving the wrist and arm surfaces in different rest poses. Revision 5 includes those bones, restoring a continuous arm surface aligned with the skeleton. It also removes unrelated body-bone influences from distal arm/hand vertices. These issues made moving hands distort even when the bone positions themselves looked correct.
 
-Arm width now changes the surface instead of multiplying upper-arm and forearm scales through the hand hierarchy. The thumb scale reductions are removed. Resting wrists sit beside and slightly ahead of the hips; elbow targets are forward of their previous positions. Finger flexion now uses the rig's actual knuckle axis, with relaxed curl, small spreading and different open/holding states.
+Arm width now changes the surface instead of multiplying upper-arm and forearm scales through the hand hierarchy. The thumb scale reductions are removed. Resting wrists sit beside and slightly ahead of the hips; the elbow bend plane sits behind the upper arm. The IK reach interval bounds elbow flexion to 150 degrees, with softened full extension. Arm swing follows the footstep phase with a small delay, plus subtle motion during standing. Finger flexion now uses the rig's actual knuckle axis, with relaxed curl, small spreading and different open/holding states.
 
 Controller hands use the supplied textured hand and nail geometry, isolated from the body and articulated through its skeleton. Each visible hand has 3,380 triangles. Left/right orientation is corrected, and palm/finger capsules follow the joints, including fingertip extensions. These are controller-driven hands; optical hand-tracking retargeting is not implemented.
 
@@ -22,23 +22,33 @@ Blink intervals are divided by 1.3: **30% more frequent on average**, with the s
 
 **Lively idle** is the default for newly spawned v2 actors. It alternates short walks with rests and occasional greetings. Six walk styles and sixteen idle actions are available: rest, weight shift, hands together, hand on hip, hair tuck, looking at a hand, wave, explanation, shoulder roll, looking around, breathing, neck stretch, sigh, arm stretch, wiggle and dance. Actions ease in and out; quiet intervals receive more weight. Stand/Walk/exercise buttons select manual movement. Lively idle resumes autonomy.
 
+Eight coordinated activities are available: squats, overhead stretch, jumping jacks, marching, side steps, dancing, alternating reaches and heel raises. Final hip motion, planted/raised foot targets and arm IK drive the tissue anchors. The additional activity tags also work with the conversation client. These remain procedural animations rather than motion-captured clips.
+
 ### Head and hair interaction
 
 Grip the head and turn the controller, or move the contact point, to turn it in yaw and pitch. The neck shares the motion. This constraint turns the head without dragging the whole actor; it has bounded pitch, yaw and roll and eases back after release. Passive controller-hand contact also gives a small head/neck response. It is an approximate capsule/contact model, not full skin-to-skin collision.
 
-Hair now has **41,798 vertices**, twice the original card count, in two offset layers. Its silhouette broadens away from the pinned scalp. Twelve four-node guide chains provide secondary motion, length/rest constraints, floor/body projection, and collisions with the player palm/finger capsules. There is no full strand or hair self-collision solver; guide interpolation can still allow some card penetration. Twice the card count is not a measured doubling of physical hair volume. Alpha overdraw increases, so Quest GPU performance needs hardware measurement.
+Hair has **41,798 vertices**, twice the original card count, in two offset layers. Four selectable silhouettes reuse the supplied atlas: **Long layers, Shoulder length, Soft bob and Swept back**. They reshape the existing cards; they are not four newly authored strand grooms.
+
+Twenty five-node chains (100 guides) provide pinned roots, compliant length/rest constraints and damped movement response. Body and player-hand capsules project the guides after shape constraints, so rest-shape limits cannot undo contact. Collider interpolation and tangential velocity transfer give brushing motion. The final card vertices also project against up to 32 nearby capsules in the vertex shader, reducing penetration between guides. Body projection runs before player-hand contact. The flexibility slider changes rest-shape strength and allowed deflection.
+
+This is an approximate hair-card system, with no strand self-collision. Fast tracking jumps and mutually intersecting head/hand colliders remain limitations. Two card layers and vertex collision work increase GPU cost; start with one actor on Quest and measure performance on the headset.
 
 ### Skin and soft tissue
 
-V2 matches adjoining skin material colors in linear light at shared surface locations and feathers the correction over a roughly 5.5 cm surface neighborhood. This preserves each map's texture detail while reducing hard color jumps at material borders. It cannot remove every artifact painted inside an atlas.
+V2 matches adjoining skin material colors in linear light at shared surface locations and feathers the correction over a roughly 10 cm surface neighborhood, with geodesic distance relaxation and smoothing in log color-gain space. This preserves each map's texture detail while reducing hard color jumps at material borders. It cannot remove every artifact painted inside an atlas.
 
-The skin shader has a bounded roughness floor, weaker broad environmental reflection, less diffuse wrapping and reduced normal intensity. Eye/cornea highlights are restrained. A newly generated, UV-constrained head albedo uses the latest AI face reference; the existing small reference head-proportion sculpt remains. This is an approximate likeness, not a recovered 3D scan. The source head image is 1,254 square pixels; it is not presented as a new 4K photographic scan.
+The skin shader uses a bounded roughness range, a dielectric reflectance of approximately 0.028, restrained diffuse wrapping and adjustable normal detail. A mild four-neighbor albedo filter softens harsh pixel detail without changing the texture files. Coincident UV vertices share compatible normals. Studio key/fill/rim lighting reduces harsh contrast. V2 skin stops receiving the low-resolution self-shadows that can appear as black scuffs; it still casts floor shadows. This removes those shadow artifacts at the cost of detailed body self-shadowing. Eye/cornea highlights are restrained. The UV-constrained head albedo generated in revision 4 uses the latest AI face reference; the existing small reference head-proportion sculpt remains. Five proportional face presets are available: Natural, Reference, Soft oval, Heart and Defined. The head/eyes/teeth and expression endpoints receive consistent small proportional edits. These are variations of the supplied identity and an approximate reference likeness, not recovered 3D face scans. Smiles now use stronger mouth-corner and cheek poses with moderate jaw opening. The source head image is 1,254 square pixels; it is not presented as a new 4K photographic scan.
 
 The body still uses the uploaded diffuse texture and original normal/roughness maps. No new photographic body scan is included. Its source detail and painted artifacts remain a quality limit.
 
-Breast enlargement retains the earlier smooth chest-anchored deformation and reweighted attachment. Buttocks now use broad surface growth and a lower-pole displacement instead of scaling glute attachment bones. The transition includes the rear/upper-thigh region and preserves the authored central fold rather than cutting a deeper groove. Default jiggle increases from **1.15 to 2.30**; gravity settling is stronger and glute spring frequency is lower. Grabbed tissue uses a stiff, highly damped constraint without the free-motion acceleration drive. Fixed 1/120-second substeps and conservative compression/displacement bounds remain.
+Breast enlargement uses a sequence of small smooth surface warps, preserving the chest attachment while changing volume. Placement, symmetric spacing and symmetric angle are independently adjustable. Combined extremes receive the same deformation checks. Nonuniform hip/waist/thigh bone scales and thigh-root translations are replaced with continuous surface shaping, removing a source of inner-leg tearing.
 
-These are reduced surface/bone approximations. They do not enforce incompressible tissue volume, simulate independent thigh flesh, or implement FEM, Dyna, a medical anatomical model, or a general active ragdoll. The procedural fall/get-up system remains: standing → falling → down → recovering → standing. Holding a limb delays recovery. Full environment-mesh, actor-to-actor and arbitrary body self-collision are not implemented.
+Buttock weights now cover a broader rear region and peak above the source's roughly 25% maximum. Unrelated glute weights are removed from the hands; the centre crease and attachment regions remain anchored. Buttock surface growth includes a lower-pole displacement and a transition into the upper thighs. The authored centre fold is preserved.
+
+**Jiggle now spans 0–6 (previous maximum 3), default 2.8.** Softness controls compliance/oscillation frequency; damping separately controls settling. Higher viscosity would suppress oscillation, so it is not used as a synonym for softness. Free tissue has stronger inertial response and wider bounds. Grabbed tissue has a stiff, highly damped anchor. Fixed 1/120-second substeps remain. Triangle-derived displacement constraints reduce motion in directions that would invert the surface, adapting to the current shape. Consequently the maximum safe displacement depends on size and placement.
+
+Five small additional surface guides add secondary motion at the waist, left/right upper thigh and left/right cheek. Their controls are separate from breast/buttock motion. The depth pass receives the same guide offsets. These reduced models do not conserve full incompressible tissue volume or simulate FEM, Dyna, or a general active ragdoll. The procedural fall/get-up system remains: standing → falling → down → recovering → standing. Holding a limb delays recovery. Full environment-mesh, actor-to-actor and arbitrary body self-collision are not implemented.
 
 ## Controls
 
@@ -50,13 +60,13 @@ These are reduced surface/bone approximations. They do not enforce incompressibl
 | Lively idle | Resume autonomous rests, social actions and short walks |
 | Stand / Walk / exercise buttons | Select manual movement |
 | Quest left Y | Open/close the 3D spawner and sliders |
-| Controller ray + trigger | Operate the menu |
+| Controller ray + trigger | Operate the menu; point at the left wrist MENU shortcut to open it |
 | Grip near body | Grab a limb, tissue region or head |
 | Turn controller while holding head | Turn head and neck |
 | Quest right B / desktop B | Spawn a ball |
 | Left stick / right stick | Move / turn |
 
-Y/B use the secondary face button at index 5 for the Quest Touch profile. The v1-only page retains its original controls. Movement pauses while the VR menu is open. Both controllers can hold independently.
+Y/B use the secondary face button at index 5 for the Quest Touch profile. Y edges are read directly from session input sources, independently of controller connected-event order, and reset on reconnection/new sessions. The panel draws over scene geometry. BODY has three pages of sliders; STYLE has face, hairstyle and hair-color choices. The v1-only page retains its original controls. Movement pauses while the VR menu is open. Both controllers can hold independently.
 
 ## Quest voice
 
@@ -97,13 +107,20 @@ A static-only host needs a separate server/function for these routes. The compan
 
 `validation-v2.json` records the checks and their scope. Tests use the supplied GLB and Three.js r170 with texture loading stubbed for Node. The prior empty-morph-attribute bug remains fixed: eyes and teeth have no empty `morphAttributes.position` property, while body meshes retain 49 expression targets. Surface/depth program generation covers both v1 and v2, and the earlier render-loop exception is reproduced by the regression fixture.
 
-Revision 4 checks include skin-boundary color continuity on a controlled fixture, actual skinned controller-hand dimensions, arm-width extremes, smile/jaw behavior, blink timing, head grab/release, a hair-guide/hand contact, autonomous behavior, independent grabs, fall/get-up, shape/tissue bounds and Y/B input. Microphone tests cover quiet speech, native-recognition failure, echo suppression, missing-server status and resource cleanup. HTTP tests exercise all companion routes against a mock provider; they do not send audio to a paid service.
+Revision 5 checks use actual skinned arm and finger vertices, not only bone endpoints. CPU surface plots were inspected for standing, squats, marching, stretching and dancing. Numerical tests cover eight activities, four distinct hair silhouettes, a brushing guide and final-card contact fixture, five face geometry variations, stronger smiles, independent softness/damping response, shape Jacobians at combined extremes, and 48 maximum-softness breast/buttock displacement cases with no flipped triangles. Skin-boundary fixture colors meet at 138 matched positions and blend over 1,619 vertices. Input tests cover Y before connection callbacks, reversed source order, reconnects, a new session, ray-operated slider pagination and hairstyle selection. Independent grabs, recovery and original v1 geometry isolation remain tested. The voice code retains the previous capture/server behavior; the new activity tags are accepted.
 
 **No rendered WebGL or Quest 3 hardware pass was possible in this environment.** The available browser reports `GL_RENDERER = Disabled`. Generated shader source and numerical checks do not prove GPU compilation, frame rate, visual seam removal or likeness. The old `contentscript.js` extension warnings are separate from the model's shader error. Do not change EventEmitter limits to mask them.
 
 ## Research and the remaining realism ceiling
 
-The implementation takes practical cues from the following primary sources:
+The implementation takes practical cues from these primary sources. The methods here are deliberately reduced for the existing WebGL/Quest architecture; citing a method does not mean its full industrial implementation is included.
+
+- Collins et al., *Dynamic arm swinging in human walking* (2009): passive swing and contralateral coordination. https://pmc.ncbi.nlm.nih.gov/articles/PMC2817299/
+- Macklin et al., *XPBD: Position-Based Simulation of Compliant Constrained Dynamics* (2016): compliance and damping are distinct, with time-step-scaled constraints. The hair length constraints use XPBD; the tissue anchors use an implicit spring update. https://matthias-research.github.io/pages/publications/XPBD.pdf
+- AMD TressFX 4 simulation changes: skinned roots, shock handling and separate body/hand collision fields. This project uses capsules and guides, not TressFX or a generated volumetric SDF. https://gpuopen.com/news/tressfx-4-simulation-changes/
+- Google Filament material documentation: roughness, dielectric reflectance and skin IOR around 1.4. Three.js remains this project's renderer. https://google.github.io/filament/Materials.md.html
+- Immersive Web, WebXR Gamepads Module: gamepads are attached to XR input sources. https://immersive-web.github.io/webxr-gamepads-module/
+
 
 - Disney Research, *Realistic and Interactive Robot Gaze*: attention, habituation, coordinated eyes/head and overlapping response speeds. https://la.disneyresearch.com/publication/realistic-and-interactive-robot-gaze/
 - NVIDIA GPU Gems 3, chapter 14: skin reflectance detail and subsurface transport. This package's mobile diffuse wrap is only an approximation. https://developer.nvidia.com/gpugems/gpugems3/part-iii-rendering/chapter-14-advanced-techniques-realistic-real-time-skin

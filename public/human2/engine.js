@@ -1,11 +1,13 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { createVRMenu } from "./mira-vr-menu.js?v=4";
-import { EMOTION_NAMES, IDLE_NAMES, WALK_NAMES } from "./mira-v2-features.js?v=4";
+import { createVRMenu } from "./mira-vr-menu.js?v=5";
+import { EMOTION_NAMES, IDLE_NAMES, WALK_NAMES } from "./mira-v2-features.js?v=5";
 import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
-import { createMiraSystem, SLIDERS, FACE_TYPES, HAIR_COLORS } from "./mira-v2.js?v=4";
-import { DEFAULT_PERSONA, miraChat, miraSpeak, startMic } from "./mira-voice-v2.js?v=4";
+import { createMiraSystem, SLIDERS, FACE_TYPES, HAIR_COLORS } from "./mira-v2.js?v=5";
+import { DEFAULT_PERSONA, miraChat, miraSpeak, startMic } from "./mira-voice-v2.js?v=5";
+
+import {V2_EXTRA_SLIDERS,FACE_PRESETS,HAIR_STYLES,ACTIVITY_MODES,shapeSliders} from './mira-v2-controls.js?v=5';
 
 const QUEST = /OculusBrowser|Quest/i.test(navigator.userAgent);
 const loadEl = document.getElementById("load");
@@ -41,13 +43,17 @@ const camera = new THREE.PerspectiveCamera(70, innerWidth / innerHeight, 0.05, 8
 camera.position.set(0, 1.45, 2.6);
 camera.lookAt(0, 0.95, 0);
 rig.add(camera);
-scene.add(new THREE.HemisphereLight(0xf5f8ff, 0x524b46, 0.45));
-const key = new THREE.DirectionalLight(0xfff4e8, 2.2);
+scene.add(new THREE.HemisphereLight(0xf5f8ff, 0x82766d, 0.72));
+const key = new THREE.DirectionalLight(0xfff4ee, 1.65);
 key.position.set(1.4, 3.2, 2.8);
-key.castShadow=true;key.shadow.mapSize.set(QUEST?512:1024,QUEST?512:1024);
+key.castShadow=true;key.shadow.mapSize.set(QUEST?1024:2048,QUEST?1024:2048);
 key.shadow.camera.left=-2.5;key.shadow.camera.right=2.5;key.shadow.camera.top=2.7;key.shadow.camera.bottom=-1.0;
-key.shadow.camera.near=.1;key.shadow.camera.far=9;key.shadow.bias=-.0003;key.shadow.normalBias=.003;
+key.shadow.camera.near=.1;key.shadow.camera.far=9;key.shadow.bias=-.0001;key.shadow.normalBias=.010;
 scene.add(key);
+// Broad photographic key/fill balance. V2 skin avoids
+// low-resolution self-shadow acne; the floor retains contact shadows.
+const fill=new THREE.DirectionalLight(0xe7efff,.72);fill.position.set(-2.5,2.2,2.0);scene.add(fill);
+const rim=new THREE.DirectionalLight(0xffeee3,.55);rim.position.set(.8,2.5,-2);scene.add(rim);
 scene.add(new THREE.AmbientLight(0xffffff, 0.08));
 try {
   const pmrem = new THREE.PMREMGenerator(renderer);
@@ -112,15 +118,16 @@ function releaseDesktop(){if(desktopGrab)desktopGrab.endGrab(virtualGrip);deskto
 renderer.domElement.addEventListener('pointerup',releaseDesktop);renderer.domElement.addEventListener('pointercancel',releaseDesktop);addEventListener('blur',releaseDesktop);
 function spawnVersion(version){
  const a=selected(),n=mira.actors.length;try{const p=new THREE.Vector3(n===0?0:(n%2?-.8:.8),0,0);
-  mira.spawn({version,position:p,shape:a?{...a.shape}:undefined,faceType:version==='v2'?1:a?.faceType||0,hairColor:a?.hairColor||0});syncHud();
+  mira.spawn({version,position:p,shape:a?{...a.shape}:undefined,faceType:version==='v2'?(a?.version==='v2'?a.faceType:1):a?.faceType||0,hairColor:a?.hairColor||0,hairStyle:a?.hairStyle||0});syncHud();
  }catch(e){banner(e.message);}
 }
 function frameActor(face){const a=selected();if(!a)return;const c=a.group.position.clone();c.y+=(face?1.5:1.0)*a.shape.height;orbit.target.copy(c);camera.position.copy(c).add(new THREE.Vector3(0,face?.015:.18,face?.53:2.6));camera.lookAt(c);orbit.update();}
 function syncHud(){
  const a=selected(),el=document.getElementById('actorSelect');el.replaceChildren();mira.actors.forEach((a,i)=>el.add(new Option(`Mira ${i+1} · ${a.version.toUpperCase()}`,String(i))));el.value=String(mira.actors.indexOf(a));
- if(!a)return;for(const s of SLIDERS){const input=document.getElementById('s_'+s.key);if(input)input.value=a.shape[s.key];}
- faceLab.textContent=a.version==='v2'?(a.faceType===1?'Reference likeness':'Natural v2'):FACE_TYPES[a.faceType].name;hairLab.textContent=HAIR_COLORS[a.hairColor].name;
+ if(!a)return;for(const s of shapeSliders(SLIDERS,a)){const input=document.getElementById('s_'+s.key);if(input){input.min=s.min;input.max=s.max;input.value=a.shape[s.key]??s.value;}}for(const s of V2_EXTRA_SLIDERS){const input=document.getElementById('s_'+s.key);if(input)input.disabled=a.version!=='v2';}
+ faceLab.textContent=a.version==='v2'?(FACE_PRESETS[a.faceType]?.name||'Natural'):FACE_TYPES[a.faceType].name;hairLab.textContent=HAIR_COLORS[a.hairColor].name;
  for(const id of ['idlePose','expression','testBalance','faceSmile','faceSurprise'])document.getElementById(id).disabled=a.version!=='v2';
+ document.getElementById('hairStyle').disabled=a.version!=='v2';document.getElementById('hairStyle').value=String(a.hairStyle||0);document.getElementById('activity').disabled=a.version!=='v2';document.getElementById('activity').value=a.autonomy?'auto':a.mode;
  document.getElementById('walkStyle').value=String(a.gait);
  document.getElementById('idlePose').value=String(['auto',...IDLE_NAMES].indexOf(a.idleChoice||'auto'));
  document.getElementById('expression').value=String(['context',...EMOTION_NAMES].indexOf(a.expressionOverride||'context'));
@@ -130,7 +137,10 @@ const vrMenu=createVRMenu({scene,renderer,camera,system:mira,spawn:spawnVersion,
 function selected() { return mira.selected; }
 
 function bindHud() {
-  for (const s of SLIDERS) {
+  for(const slider of V2_EXTRA_SLIDERS){
+    const container=document.getElementById(slider.section==='shape'?'placementControls':slider.section==='skin'?'skinControls':'tissueControls'),label=document.createElement('label'),input=document.createElement('input');label.htmlFor='s_'+slider.key;label.textContent=slider.label;input.id='s_'+slider.key;input.type='range';input.value=slider.value;container.append(label,input);
+  }
+  for (const s of [...SLIDERS,...V2_EXTRA_SLIDERS]) {
     const el = document.getElementById("s_" + s.key);
     if (!el) continue;
     el.min = s.min; el.max = s.max; el.step = s.step;
@@ -143,20 +153,20 @@ function bindHud() {
   const syncLabs = () => {
     const a = selected();
     if (!a) return;
-    if (faceLab) faceLab.textContent = a.version==="v2" ? (a.faceType===1?"Reference likeness":"Natural v2") : FACE_TYPES[a.faceType].name;
+    if (faceLab) faceLab.textContent = a.version==="v2" ? (FACE_PRESETS[a.faceType]?.name||"Natural") : FACE_TYPES[a.faceType].name;
     if (hairLab) hairLab.textContent = HAIR_COLORS[a.hairColor].name;
   };
   document.getElementById("facePrev").onclick = () => {
     const a = selected();
     if (!a) return;
-    a.faceType = a.version==="v2" ? (a.faceType===1?0:1) : (a.faceType + FACE_TYPES.length - 1) % FACE_TYPES.length;
+    a.faceType = a.version==="v2" ? (a.faceType+FACE_PRESETS.length-1)%FACE_PRESETS.length : (a.faceType + FACE_TYPES.length - 1) % FACE_TYPES.length;
     a.applyLooks();
     syncLabs();
   };
   document.getElementById("faceNext").onclick = () => {
     const a = selected();
     if (!a) return;
-    a.faceType = a.version==="v2" ? (a.faceType===1?0:1) : (a.faceType + 1) % FACE_TYPES.length;
+    a.faceType = a.version==="v2" ? (a.faceType+1)%FACE_PRESETS.length : (a.faceType + 1) % FACE_TYPES.length;
     a.applyLooks();
     syncLabs();
   };
@@ -186,6 +196,8 @@ function bindHud() {
       if(id==='expression'&&a.version==='v2'){a.expressionOverride=value==='context'?null:value;if(value!=='context')a.setEmotion(value,.85,{source:'manual'});}
     };
   }
+  const styleSelect=document.getElementById('hairStyle');HAIR_STYLES.forEach((name,i)=>styleSelect.add(new Option(name,String(i))));styleSelect.onchange=()=>{const a=selected();if(a?.version==='v2')a.hairStyle=Number(styleSelect.value);};
+  const activity=document.getElementById('activity'),labels=['Lively idle','Stand','Walk','Squats','Overhead stretch','Jumping jacks','March','Side steps','Dance','Alternating reaches','Heel raises'];ACTIVITY_MODES.forEach((m,i)=>activity.add(new Option(labels[i],m)));activity.onchange=()=>{const a=selected();if(a?.version==='v2')a.setMode(activity.value);};
   document.getElementById('faceSmile').onclick=()=>selected()?.playFaceReference?.('smile');
   document.getElementById('faceSurprise').onclick=()=>selected()?.playFaceReference?.('surprise');
   document.getElementById('testBalance').onclick=()=>selected()?.knockDown?.(new THREE.Vector3(.2,0,-1));

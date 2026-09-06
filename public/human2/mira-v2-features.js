@@ -1,4 +1,7 @@
 import * as THREE from 'three';
+import {V2_EXTRA_SLIDERS,FACE_PRESETS,EXERCISE_MODES} from './mira-v2-controls.js?v=5';
+import {HairGuides} from './mira-v2-hair.js?v=5';
+import {SurfaceFlesh} from './mira-v2-tissue.js?v=5';
 
 // Mira v2: a bounded real-time approximation for this CC3 rig, Three r170.
 const clamp = THREE.MathUtils.clamp, damp = THREE.MathUtils.damp;
@@ -11,8 +14,8 @@ export const EMOTION_NAMES=['neutral','happy','content','curious','listening','t
 export const IDLE_NAMES=['rest','weightShift','handsTogether','handOnHip','hairTuck','lookAtHand','wave','explain','shoulderRoll','lookAround','breathe','neckStretch','sigh','armStretch','wiggle','dance'];
 export const WALK_NAMES=['Relaxed','Purposeful','Soft','Brisk','Careful','Stroll'];
 const FACE_POSES={
- neutral:{}, happy:{Mouth_Smile:.88,Cheek_Raise:.52,Mouth_Dimple:.2,Eye_Squint:.14,Jaw_Open:.065},
- content:{Mouth_Smile:.42,Eye_Squint:.065,Cheek_Raise:.23},
+ neutral:{}, happy:{Mouth_Smile:1,Cheek_Raise:.64,Mouth_Dimple:.26,Eye_Squint:.19,Jaw_Open:.10},
+ content:{Mouth_Smile:.52,Eye_Squint:.08,Cheek_Raise:.29},
  curious:{Brow_Raise_Inner:.23,Brow_Raise_Outer:.18,Eye_Wide:.13,Mouth_Smile:.08},
  listening:{Brow_Raise_Inner:.13,Mouth_Smile:.11},
  thoughtful:{Brow_Compress:.14,Mouth_Press:.22,Eye_Squint:.12},
@@ -32,7 +35,10 @@ const FACE_POSES={
 // inverse bind matrices and bones describe a T pose. Undo that baked tilt before
 // applying animation. Keep this correction local to v2 and the player hands.
 export function repairArmRestData(position,normal,indices,weights,names){
- const owners=names.map(n=>/^L_(Upperarm|Forearm|Hand|(?:Thumb|Index|Mid|Ring|Pinky)[1-3])$/.test(n)?1:/^R_(Upperarm|Forearm|Hand|(?:Thumb|Index|Mid|Ring|Pinky)[1-3])$/.test(n)?-1:0);
+ // Twist and share bones own almost ALL arm vertices in the supplied CC3 mesh.
+ // Omitting them leaves the arm in A-pose and the wrist in T-pose: a long tear.
+ const family='(?:Upperarm(?:Twist0[12])?|Forearm(?:Twist0[12])?|ElbowShareBone|Hand|(?:Thumb|Index|Mid|Ring|Pinky)[1-3])';
+ const owners=names.map(n=>new RegExp('^L_'+family+'$').test(n)?1:new RegExp('^R_'+family+'$').test(n)?-1:0);
  for(let i=0;i<position.length/3;i++){
   let left=0,right=0;for(let j=0;j<4;j++){const side=owners[indices[i*4+j]];if(side===1)left+=weights[i*4+j];if(side===-1)right+=weights[i*4+j];}
   const sum=Math.max(left,right);if(sum<.001)continue;const sign=left>right?1:-1;
@@ -49,18 +55,26 @@ export function repairArmRestData(position,normal,indices,weights,names){
 
 // Smooth, chest-anchored deformation in unscaled model coordinates. No animated
 // breast scale or negative scale: volume grows by moving the complete surface.
-export function shapePoint(x,y,z,size,likeness=0,butt=1,arms=1){
+export function shapePoint(x,y,z,size,likeness=0,butt=1,arms=1,options={}){
  let dx=0,dy=0,dz=0;
- if(y>1.08&&y<1.35&&z>.01){
-  for(const sign of [-1,1]){
-   const cx=sign*.078, cy=1.207;
-   const rr=((x-cx)/.092)**2+((y-cy)/.091)**2;
-   const w=(1-smooth(rr))*smooth((z-.025)/.042);
-   const k=Math.cbrt(size*size)-1;
-   dx+=(x-cx)*k*.46*w;
-   dy+=(y-cy)*k*.36*w;
-   dz+=k*.062*w;
+ if(y>1.04&&y<1.39&&z>-.01){
+  // Compose small smooth warps instead of summing a large displacement. This
+  // keeps spacing + inward angle + small size from folding the inner attachment.
+  let bx=x,by=y,bz=z;const k=Math.cbrt(size*size)-1;
+  for(let step=0;step<5;step++){
+   let sx=0,sy=0,sz=0;
+   for(const sign of [-1,1]){
+    const cx=sign*.078,cy=1.207,rr=((bx-cx)/.092)**2+((by-cy)/.091)**2;
+    const w=(1-smooth(rr))*smooth((bz-.025)/.042)*smooth(Math.abs(bx)/.032);
+    sx+=sign*.032*k*w;sy+=(by-cy)*k*.36*w;sz+=k*.074*w;
+    const attach=(1-smooth(rr*.70))*smooth((bz-.006)/.060)*smooth(Math.abs(bx)/.040);
+    sx+=sign*((options.breastSpacing||0)*.012+(options.breastAngle||0)*.18*Math.max(0,bz-.03))*attach;
+    sy+=(options.breastHeight||0)*.016*attach;
+    sz-=sign*(bx-cx)*(options.breastAngle||0)*.18*attach;
+   }
+   bx+=sx/5;by+=sy/5;bz+=sz/5;
   }
+  dx=bx-x;dy=by-y;dz=bz-z;
  }
  // Broad lower-pole volume, with a soft attachment to the sacrum and thighs.
  // Preserve the authored centre fold: deepening it creates pinched triangles.
@@ -76,8 +90,20 @@ export function shapePoint(x,y,z,size,likeness=0,butt=1,arms=1){
  if(Math.abs(x)>.15&&y>1.23&&y<1.42){
   const w=smooth((Math.abs(x)-.15)/.10)*(1-smooth((Math.abs(x)-.52)/.11));
   dy+=(y-1.321)*(arms-1)*w;dz+=(z+.0755)*(arms-1)*w;
-  const hand=smooth((Math.abs(x)-.62)/.045);
-  dy+=(y-1.319)*.12*hand;dz+=(z+.0755)*.10*hand;
+ }
+ // Continuous surface shaping avoids nonuniform bone-chain scales and a thigh
+ // root translation that used to pull apart the narrow inner-leg triangles.
+ const waist=(options.waist??1)-1,hips=(options.hips??1)-1,thigh=(options.thigh??1)-1;
+ const trunk=(1-smooth((Math.abs(x)-.21)/.09));
+ const ww=Math.exp(-(((y-1.04)/.13)**2))*trunk;
+ const hw=Math.exp(-(((y-.87)/.12)**2))*trunk;
+ dx+=x*(waist*.55*ww+hips*.44*hw);dz+=(z+.018)*(waist*.55*ww+hips*.34*hw);
+ if(y>.42&&y<.88){
+  const tw=smooth((y-.42)/.15)*(1-smooth((y-.76)/.12));
+  const side=Math.sign(x),center=side*.096;
+  dx+=(x-center)*thigh*.58*tw;
+  dz+=(z+.009)*thigh*.55*tw;
+  dx+=side*(options.gap||0)*.016*tw*smooth(Math.abs(x)/.05);
  }
  // Small identity sculpt, shared by head/eyes/teeth and their morph endpoints.
  // Broad proportional changes only; a single portrait cannot recover depth.
@@ -88,14 +114,23 @@ export function shapePoint(x,y,z,size,likeness=0,butt=1,arms=1){
   dz-=.0035*nose*front*likeness;
   dy+=.0015*Math.exp(-((x/.035)**2+((y-1.475)/.019)**2))*likeness;
  }
+ const face=options.faceProfile;
+ if(face&&y>1.40){
+  const front=smooth((z+.018)/.05),jaw=Math.exp(-(((y-1.446)/.029)**2)),cheek=Math.exp(-(((y-1.502)/.033)**2));
+  dx+=x*(face.jaw*jaw+face.cheek*cheek)*front;
+  dy+=(y-1.50)*face.length*smooth((y-1.40)/.055);
+  dz+=face.nose*Math.exp(-((x/.024)**2+((y-1.52)/.024)**2))*front;
+ }
  return [x+dx,y+dy,z+dz];
 }
 
-export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAIR_COLORS}){
+export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAIR_COLORS,SLIDERS}){
  return class MiraV2 extends Base {
   constructor(root,scale,opts={}){
    super(root,scale,opts);
-   this.version='v2';this.autonomy=true;this.lifeT=8+Math.random()*5;this.greetingT=1;this.autoWander=false;this.mode='idle';this.shape.jiggle=opts.shape?.jiggle??2.3;
+   this.version='v2';this.autonomy=true;this.lifeT=8+Math.random()*5;this.greetingT=1;this.autoWander=false;this.mode='idle';this.shape.jiggle=opts.shape?.jiggle??2.8;
+   for(const slider of V2_EXTRA_SLIDERS)this.shape[slider.key]=opts.shape?.[slider.key]??slider.value;
+   this.hairStyle=clamp(opts.hairStyle||0,0,3);
    this.emotion={name:'content',intensity:.78,time:0,hold:6,source:'idle',valence:.35,arousal:.25};
    this.emotionTarget={}; this.emotionCurrent={};this.expressionOverride=null;
    this.idleKind='rest';this.idleT=3;this.idleDur=3;this.idleChoice='auto';this.seed=Math.random()*100;
@@ -104,6 +139,7 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    this.likeness=opts.likeness??1;this.geomState='';this.deform=[];this.poseQ={};this.skinMeshes=[];
    this.headTouch=new THREE.Vector3();this.headTouchGoal=new THREE.Vector3();this.attentionT=0;this.attention=V();this.externalHands=[];
    this.root.updateMatrixWorld(true);
+   this.footRestQ={};this.ankleRestY={};for(const side of ['L','R']){const bone=this.bones[side+'_Foot'];this.footRestQ[side]=this.group.getWorldQuaternion(new THREE.Quaternion()).invert().multiply(bone.getWorldQuaternion(new THREE.Quaternion()));this.ankleRestY[side]=bone.getWorldPosition(V()).y/this.baseScale;}
    // Geometry must be actor-local: slider changes must never mutate v1/other clones.
    const shared=new Map();
    this.root.traverse(o=>{
@@ -127,6 +163,20 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
        for(let j=0;j<4;j++){record.skinIndex.array[i*4+j]=parts[j]?.index||0;record.skinWeight.array[i*4+j]=parts[j]?.weight||0;}
       }
      }
+     if(record.skinWeight){
+      const names=o.skeleton.bones.map(b=>b.name),left=names.indexOf('L_Glute'),right=names.indexOf('R_Glute'),pelvis=names.indexOf('Pelvis');
+      for(let i=0;i<key.count;i++){
+       const x=record.base[i*3],y=record.base[i*3+1],z=record.base[i*3+2];
+       const rr=((Math.abs(x)-.096)/.145)**2+((y-.826)/.160)**2;
+       const w=(1-smooth(rr))*smooth((-z-.008)/.078)*smooth((Math.abs(x)-.013)/.055)*.86;
+       const parts=[];let had=false;
+       for(let j=0;j<4;j++){const index=record.skinIndex.array[i*4+j],weight=record.skinWeight.array[i*4+j];if(index===left||index===right){had ||= weight>0;continue;}if(weight>0)parts.push({index,weight});}
+       if(!had&&w<1e-6)continue;
+       parts.sort((a,b)=>b.weight-a.weight);parts.splice(w>1e-6?3:4);if(!parts.length)parts.push({index:pelvis,weight:1});
+       const sum=parts.reduce((a,b)=>a+b.weight,0);parts.forEach(p=>p.weight=p.weight/sum*(1-w));if(w>1e-6)parts.unshift({index:x>=0?left:right,weight:w});
+       for(let j=0;j<4;j++){record.skinIndex.array[i*4+j]=parts[j]?.index||0;record.skinWeight.array[i*4+j]=parts[j]?.weight||0;}
+      }
+     }
      shared.set(key,record);this.deform.push(record);
     }
     record.indices.push(...old.index.array);
@@ -143,17 +193,18 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
     if(/Skin_/.test(o.material?.name))this.skinMeshes.push(o);
    });
    for(const d of this.deform){const g=new THREE.BufferGeometry();g.attributes={position:d.position,normal:d.normal};g.setIndex(d.indices);d.geom=g;if(d.morphPosition.length)g.morphAttributes.position=d.morphPosition;delete d.indices;}
+   this.surfaceFlesh=new SurfaceFlesh(this);
    this.applyLooks();
    this.hairPhysics=new HairGuides(this,BODY_HIT);
-   this.root.traverse(o=>{if(o.isMesh){o.receiveShadow=true;o.castShadow=!/hair|eyes/.test(o.name);}});
+   this.root.traverse(o=>{if(o.isMesh){o.receiveShadow=!/Skin_/.test(o.material?.name);o.castShadow=!/hair|eyes/.test(o.name);}});
   }
   applyLooks(){
    if(!this.deform)return;
    for(const m of this.hairMats)m.color.setHex((HAIR_COLORS[this.hairColor]||HAIR_COLORS[0]).tint);
-   for(const m of this.headMats){m.map=loadMap('head_v2.jpg',true);m.normalScale.setScalar(.26);m.roughness=.93;}
+   for(const m of this.headMats){m.map=loadMap('head_v2.jpg',true);m.normalScale.setScalar(.20);m.roughness=.93;}
    this.root.traverse(o=>{if(!o.isMesh)return;for(const m of Array.isArray(o.material)?o.material:[o.material]){
     if(/Skin_Body/.test(m.name))m.map=loadMap('body_v2.jpg',true);
-    if(/Skin_/.test(m.name)){m.normalScale?.setScalar(/Head/.test(m.name)?.26:.48);m.envMapIntensity=.32;installSkinShader(m);installV2Skin(m);m.needsUpdate=true;}
+    if(/Skin_/.test(m.name)){m.normalScale?.setScalar(/Head/.test(m.name)?.20:.32);m.envMapIntensity=.50;m.aoMap=null;m.aoMapIntensity=0;installSkinShader(m);installV2Skin(m,this);m.needsUpdate=true;}
     if(/Std_Eye_[LR]/.test(m.name)){m.roughness=.30;m.envMapIntensity=.75;}
     if(/cornea/i.test(m.name)){m.opacity=.22;m.envMapIntensity=.75;m.roughness=.12;}
    }});
@@ -161,18 +212,19 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    for(const o of this.skinMeshes)if(!o.geometry.attributes.v2ToneGain){const gains=new Float32Array(o.geometry.attributes.position.count*3);gains.fill(1);o.geometry.setAttribute('v2ToneGain',new THREE.BufferAttribute(gains,3));}
   }
   updateShapeGeometry(){
-   const size=this.shape.breast,like=this.faceType===1?this.likeness:0;
-   const key=[size,like,this.shape.butt,this.shape.arms].map(n=>n.toFixed(3)).join('/');if(key===this.geomState)return;this.geomState=key;
-   const likenessChanged=like!==this.lastLikeness;this.lastLikeness=like;
+   const size=this.shape.breast,profile=FACE_PRESETS[this.faceType]||FACE_PRESETS[0],like=profile.like*this.likeness;
+   const options={...this.shape,faceProfile:profile};
+   const key=[size,like,this.faceType,this.shape.butt,this.shape.arms,this.shape.waist,this.shape.hips,this.shape.thigh,this.shape.gap,this.shape.breastHeight,this.shape.breastSpacing,this.shape.breastAngle].map(n=>n.toFixed(3)).join('/');if(key===this.geomState)return;this.geomState=key;
+   const likenessChanged=like!==this.lastLikeness||this.faceType!==this.lastFace;this.lastLikeness=like;this.lastFace=this.faceType;
    for(const d of this.deform){
     const a=d.geom.attributes.position.array,b=d.base;
-    for(let i=0;i<a.length;i+=3){const p=shapePoint(b[i],b[i+1],b[i+2],size,like,this.shape.butt,this.shape.arms);a[i]=p[0];a[i+1]=p[1];a[i+2]=p[2];}
+    for(let i=0;i<a.length;i+=3){const p=shapePoint(b[i],b[i+1],b[i+2],size,like,this.shape.butt,this.shape.arms,options);a[i]=p[0];a[i+1]=p[1];a[i+2]=p[2];}
     // Rebase expression deltas through the identity sculpt, preserving blendshapes.
     for(let j=0;likenessChanged&&j<d.morph.length;j++){
      const src=d.morph[j],dst=d.geom.morphAttributes.position[j].array;
      for(let i=0;i<dst.length;i+=3){
       if(!src[i]&&!src[i+1]&&!src[i+2]){dst[i]=dst[i+1]=dst[i+2]=0;continue;}
-      const p=shapePoint(b[i]+src[i],b[i+1]+src[i+1],b[i+2]+src[i+2],size,like);
+      const p=shapePoint(b[i]+src[i],b[i+1]+src[i+1],b[i+2]+src[i+2],size,like,this.shape.butt,this.shape.arms,options);
       dst[i]=p[0]-a[i];dst[i+1]=p[1]-a[i+1];dst[i+2]=p[2]-a[i+2];
      }
      d.geom.morphAttributes.position[j].needsUpdate=true;
@@ -181,16 +233,50 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
     // Preserve authored normals away from changed vertices, including material seams.
     const old=d.baseNormals;d.geom.computeVertexNormals();
     for(let i=0;i<b.length;i+=3)if(Math.abs(a[i]-b[i])+Math.abs(a[i+1]-b[i+1])+Math.abs(a[i+2]-b[i+2])<1e-8){d.geom.attributes.normal.array.set(old.subarray(i,i+3),i);}
+    // Weld normals across duplicated UV vertices, without smoothing opposing surfaces.
+    if(!d.normalGroups){const groups=new Map();for(let i=0;i<b.length;i+=3){const k=[b[i],b[i+1],b[i+2]].map(x=>Math.round(x*100000)).join('/');if(!groups.has(k))groups.set(k,[]);groups.get(k).push(i);}d.normalGroups=[...groups.values()].filter(g=>g.length>1);}
+    const na=d.geom.attributes.normal.array;
+    for(const group of d.normalGroups){const first=V().fromArray(na,group[0]),mean=V();for(const i of group){const n=V().fromArray(na,i);if(n.dot(first)>.3)mean.add(n);}mean.normalize();for(const i of group)if(V().fromArray(na,i).dot(first)>.3)mean.toArray(na,i);}
     d.geom.attributes.normal.needsUpdate=true;
     d.geom.computeBoundingSphere();
    }
+   this.buildSoftLimits();
+  }
+  buildSoftLimits(){
+   // Each weighted triangle gives a half-space in attachment displacement:
+   // dot(N, N') / |N|² = 1 + gradient·displacement. Keep positive area with
+   // a margin, including when placement, spacing and proportions are changed.
+   this.softPlanes={};
+   const skeleton=this.skeleton,names=skeleton.bones.map(b=>b.name);
+   for(const soft of this.soft){
+    const bi=names.indexOf(soft.name),parentIndex=names.indexOf(this.bones[soft.name].parent.name);
+    const invQ=new THREE.Quaternion().setFromRotationMatrix(skeleton.boneInverses[parentIndex].clone().invert().extractRotation(skeleton.boneInverses[parentIndex].clone().invert())).invert();
+    const planes=[];
+    for(const d of this.deform){
+     if(!d.skinWeight)continue;const pos=d.position,si=d.skinIndex.array,sw=d.skinWeight.array,idx=d.geom.index.array;
+     const weight=i=>{let sum=0;for(let j=0;j<4;j++)if(si[i*4+j]===bi)sum+=sw[i*4+j];return sum;};
+     for(let j=0;j<idx.length;j+=3){
+      const [ia,ib,ic]=[idx[j],idx[j+1],idx[j+2]],wa=weight(ia),db=weight(ib)-wa,dc=weight(ic)-wa;if(Math.abs(db)+Math.abs(dc)<1e-6)continue;
+      const a=V().fromBufferAttribute(pos,ia),e1=V().fromBufferAttribute(pos,ib).sub(a),e2=V().fromBufferAttribute(pos,ic).sub(a),n=e1.clone().cross(e2),area=n.lengthSq();if(area<1e-18)continue;
+      const grad=e2.clone().cross(n).multiplyScalar(db).add(n.clone().cross(e1).multiplyScalar(dc)).divideScalar(area).applyQuaternion(invQ);
+      if(grad.lengthSq()>1e-6)planes.push(grad);
+     }
+    }
+    this.softPlanes[soft.name]=planes;
+   }
   }
   applyShape(){
-   const s=this.shape,bs=s.breast;super.applyShape();
-   // In this rig scaling these weighted attachment bones produces a dented chest.
-   for(const side of ['L','R'])for(const part of ['Breast','Glute','Upperarm','Forearm','Hand','Thumb1','Thumb2']){const n=side+'_'+part;this.bones[n]?.scale.copy(this.bindS[n]);}
+   for(const slider of [...SLIDERS,...V2_EXTRA_SLIDERS]){
+    const max=slider.key==='jiggle'?6:slider.max,v=this.shape[slider.key];
+    this.shape[slider.key]=clamp(Number.isFinite(v)?v:slider.value,slider.min,max);
+   }
+   // All body proportions are continuous mesh deformations. The bind hierarchy
+   // stays uniform, so elbow, knee, finger and crotch weights agree as joints bend.
+   this.root.scale.setScalar(this.baseScale*this.shape.height);
    this.updateShapeGeometry();
+   for(const mesh of this.skinMeshes){const mat=mesh.material;mat.normalScale?.setScalar((/Head/.test(mat.name)?.12:.18)+this.shape.skinDetail*.32);}
   }
+  jiggleAmt(){return clamp(this.shape.jiggle??2.8,0,6);}
   setEmotion(name,intensity=.65,{hold=9,source='context',valence,arousal}={}){
    if(!EMOTION_NAMES.includes(name))name='neutral';
    const finite=(v,f)=>Number.isFinite(v)?v:f;
@@ -221,8 +307,8 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    if(this.faceReference){
     const r=this.faceReference;r.t+=dt;const u=clamp(r.t/3.0625,0,1);
     if(r.name==='smile'){
-     const k=smooth((u-.12)/.8);this.want.Mouth_Smile_L=.18+.62*k;this.want.Mouth_Smile_R=.18+.65*k;
-     this.want.Cheek_Raise_L=this.want.Cheek_Raise_R=.46*k;this.want.Mouth_Dimple_R=.15*k;this.want.Eye_Squint_L=this.want.Eye_Squint_R=.12*k;
+     const k=smooth((u-.12)/.8);this.want.Mouth_Smile_L=.18+.78*k;this.want.Mouth_Smile_R=.18+.80*k;this.want.Jaw_Open=.09*k;
+     this.want.Cheek_Raise_L=this.want.Cheek_Raise_R=.61*k;this.want.Mouth_Dimple_R=.15*k;this.want.Eye_Squint_L=this.want.Eye_Squint_R=.12*k;
     }else{
      const k=smooth((u-.16)/.44),end=smooth((u-.68)/.32);
      this.want.Brow_Raise_Inner_L=this.want.Brow_Raise_Inner_R=.52*k;
@@ -336,7 +422,7 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    const names=kind==='arm'?['Upperarm','Forearm','Hand']:['Thigh','Calf','Foot'];
    const [a,b,c]=names.map(n=>this.bones[side+'_'+n]);if(!a||!b||!c)return;
    const pa=a.getWorldPosition(V()),pb=b.getWorldPosition(V()),pc=c.getWorldPosition(V());
-   const l1=pa.distanceTo(pb),l2=pb.distanceTo(pc),dir=target.clone().sub(pa),dist=clamp(dir.length(),Math.abs(l1-l2)+.005,(l1+l2)*.99);
+   const l1=pa.distanceTo(pb),l2=pb.distanceTo(pc),dir=target.clone().sub(pa),dist=clamp(dir.length(),kind==='arm'?Math.sqrt(l1*l1+l2*l2+2*l1*l2*Math.cos(150*Math.PI/180)):Math.abs(l1-l2)+.005,(l1+l2)*.99);
    if(dir.lengthSq()<1e-9)return;dir.normalize();
    const bend=pole.clone().sub(pa);bend.addScaledVector(dir,-bend.dot(dir));
    if(bend.lengthSq()<1e-8)bend.set(0,0,1).addScaledVector(dir,-dir.z);bend.normalize();
@@ -350,7 +436,7 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
     if([...this.grabs.values()].some(g=>g.side===side&&g.limb==='arm'))continue;
     const sign=side==='L'?1:-1;
     const hand=this.bones[side+'_Hand'];if(!hand)continue;
-    const dst=new THREE.Vector3(sign*(.225+.018*this.shape.arms+.015*Math.max(0,this.shape.hips-1)),.895,.055+sign*Math.sin(this.walkT)*.085*step);
+    const dst=new THREE.Vector3(sign*(.225+.018*this.shape.arms+.015*Math.max(0,this.shape.hips-1)),.895+.007*Math.sin(t*.73+this.seed+sign),.045+sign*Math.sin(this.walkT-.16)*.105*step+.007*Math.sin(t*.57+sign));
     const gesture=dst.clone();
     if(!step){
      if(this.idleKind==='handsTogether')gesture.set(sign*.046,1.02,.19);
@@ -365,14 +451,52 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
      dst.lerp(gesture,w);
     }
     if(this.speech?.active&&side==='R')dst.lerp(new THREE.Vector3(-.24,1.10+.03*Math.sin(t*3),.25),.55+.15*Math.sin(t*2.7));
-    if(this.mode==='stretch')dst.set(sign*.28,1.75,.0);
+    if(this.mode==='stretch')dst.set(sign*.28,1.71,.07);
     if(this.mode==='airSquats')dst.set(sign*.22,1.21,.34);
-    if(this.mode==='jumpingJacks'){const a=(1+Math.sin(this.modeT*7.2))/2;dst.set(sign*(.27+.28*Math.sin(a*Math.PI)),.9+.86*a,0);}
+    if(this.mode==='jumpingJacks'){const a=(1-Math.cos(this.modeT*4.4))/2;dst.set(sign*(.26+.31*Math.sin(a*Math.PI)),.9+.81*a,.055);}
+    if(EXERCISE_MODES.includes(this.mode))this.activityHandTarget(dst,side);
     dst.multiplyScalar(h);this.group.localToWorld(dst);
     const current=this.handTargets[side]||(this.handTargets[side]=dst.clone());current.lerp(dst,1-Math.exp(-this.dt*10));
-    const pole=new THREE.Vector3(sign*.40,1.12,.07).multiplyScalar(h);this.group.localToWorld(pole);
+    const pole=new THREE.Vector3(sign*.25,1.10,-.24).multiplyScalar(h);this.group.localToWorld(pole);
     this.solveChain(side,'arm',current,pole);
    }
+  }
+  activityHandTarget(dst,side){
+   const sign=side==='L'?1:-1,t=this.modeT,phase=t*3.4+(side==='L'?0:Math.PI);
+   if(this.mode==='march')dst.set(sign*.25,1.00+.035*Math.cos(phase),.10-.13*Math.sin(phase));
+   if(this.mode==='sideSteps')dst.set(sign*.29,1.02+.04*Math.sin(t*2.2),.12);
+   if(this.mode==='dance')dst.set(sign*(.28+.07*Math.sin(t*3.8)),1.09+.16*Math.sin(t*3.8+sign),.20+.055*Math.cos(t*3.8));
+   if(this.mode==='reach')dst.set(sign*.25,1.10+.57*(.5+.5*Math.sin(t*1.6+sign)),.18);
+   if(this.mode==='heelRaises')dst.set(sign*.24,.96,.065);
+  }
+  poseActivity(){
+   if(!EXERCISE_MODES.includes(this.mode)||this.grabs.size||this.balance.state!=='standing')return;
+   const t=this.modeT,h=this.shape.height,mode=this.mode;
+   let rootY=-.004,rootZ=0,lean=0,roll=0;
+   const squat=(1-Math.cos(t*1.8))/2,jack=(1-Math.cos(t*4.4))/2;
+   if(mode==='airSquats'){rootY-=.205*squat;rootZ=-.05*squat;lean=.16*squat;}
+   if(mode==='jumpingJacks')rootY+=.06*Math.abs(Math.sin(t*4.4));
+   if(mode==='dance'){rootY-=.025+.020*Math.sin(t*7.6);roll=.035*Math.sin(t*3.8);}
+   if(mode==='sideSteps')rootY-=.012*Math.abs(Math.sin(t*2.2));
+   if(mode==='heelRaises')rootY+=.050*(.5-.5*Math.cos(t*2.1));
+   this.group.position.y=this.baseY+rootY*h;
+   if(this.bones.Hip){this.bones.Hip.position.copy(this.bindPos.Hip);this.bones.Hip.position.z+=rootZ;}
+   for(const name of ['Spine01','Spine02'])this.bones[name]?.quaternion.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(lean*.5,0,roll*.5)));
+   this.group.updateMatrixWorld(true);
+   for(const side of ['L','R']){
+    const sign=side==='L'?1:-1,phase=t*3.4+(side==='L'?0:Math.PI);
+    const dst=new THREE.Vector3(sign*.10,this.ankleRestY[side],.013);
+    if(mode==='airSquats')dst.x=sign*.15;
+    if(mode==='jumpingJacks'){dst.x=sign*(.10+.13*jack);dst.y+=.06*Math.abs(Math.sin(t*4.4));}
+    if(mode==='march'){const lift=Math.max(0,Math.sin(phase));dst.y+=.17*lift;dst.z+=.10*lift;}
+    if(mode==='sideSteps'){const travel=Math.sin(t*2.2);dst.x+=.065*travel;dst.y+=.038*Math.max(0,sign*Math.cos(t*2.2));}
+    if(mode==='dance'){dst.x+=.025*Math.sin(t*3.8);dst.y+=.012*Math.max(0,sign*Math.cos(t*3.8));}
+    if(mode==='heelRaises')dst.y+=.043*(.5-.5*Math.cos(t*2.1));
+    const ankleY=dst.y*h;dst.multiplyScalar(h);this.group.localToWorld(dst);dst.y=this.baseY+ankleY;
+    const pole=new THREE.Vector3(sign*.15,.50,.42).multiplyScalar(h);this.group.localToWorld(pole);this.solveChain(side,'leg',dst,pole);
+    const foot=this.bones[side+'_Foot'];if(foot){const parent=foot.parent.getWorldQuaternion(new THREE.Quaternion());foot.quaternion.copy(parent.invert().multiply(this.group.getWorldQuaternion(new THREE.Quaternion()))).multiply(this.footRestQ?.[side]||new THREE.Quaternion());}
+   }
+   this.group.updateMatrixWorld(true);
   }
   tickAwareness(dt,cam){
    this.greetingT-=dt;this.lifeT-=dt;
@@ -584,9 +708,9 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    for(const s of this.soft){
     const bone=this.bones[s.name];if(!bone)continue;
     const size=s.kind==='breast'?this.shape.breast:this.shape.butt;
-    const k=(2*Math.PI*(s.kind==='breast'?2.9:3.6)/Math.sqrt(size))**2;
+    const k=this.softFrequency(s,size)**2;
     const gravity=new THREE.Vector3(0,-9.81,0).applyQuaternion(bone.parent.getWorldQuaternion(new THREE.Quaternion()).invert());
-    s.v2Gravity=gravity.multiplyScalar((s.kind==='breast'?.38:.30)*this.shape.height/k);
+    s.v2Gravity=gravity.multiplyScalar((s.kind==='breast'?.44:.46)*this.shape.height/k);
     s.v2Gravity.multiplyScalar(.5+.5*Math.cbrt(size));
    }
    // Integrate in small fixed steps with backward-Euler compliant anchors.
@@ -595,7 +719,7 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
     s.anchor.copy(this.bindPos[s.name]).applyMatrix4(bone.parent.matrixWorld);
     const velocity=s.anchor.clone().sub(s.prevAnchor).multiplyScalar(1/Math.max(dt,.001));
     if(!s.ready||s.anchor.distanceTo(s.prevAnchor)>.25){s.prevVelocity.copy(velocity);s.acceleration.set(0,0,0);s.ready=true;}
-    else{s.acceleration.copy(cap(velocity.clone().sub(s.prevVelocity).multiplyScalar(1/Math.max(dt,.001)),15)).applyQuaternion(bone.parent.getWorldQuaternion(new THREE.Quaternion()).invert()).multiplyScalar(-.35*this.jiggleAmt());}
+    else{s.acceleration.copy(cap(velocity.clone().sub(s.prevVelocity).multiplyScalar(1/Math.max(dt,.001)),15)).applyQuaternion(bone.parent.getWorldQuaternion(new THREE.Quaternion()).invert()).multiplyScalar(-.48*this.jiggleAmt());}
     s.prevVelocity.copy(velocity);s.prevAnchor.copy(s.anchor);s.pressT-=dt;if(s.pressT<=0)s.press.multiplyScalar(Math.exp(-dt*20));
    }
    const step=1/120;
@@ -603,8 +727,8 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
     for(const s of this.soft){
      const size=s.kind==='breast'?this.shape.breast:this.shape.butt,j=this.jiggleAmt();
      const held=[...this.grabs.values()].find(g=>g.spring===s);
-     const omega=2*Math.PI*(s.kind==='breast'?2.9:3.6)/Math.sqrt(size),k=held?750:omega*omega;
-     const damping=held?48:2*omega*clamp(.62/(.6+j*.55),.28,.85);
+     const omega=this.softFrequency(s,size),k=held?1100:omega*omega;
+     const damping=held?68:2*omega*(.12+.80*this.shape.damping);
      s.px=s.x;s.py=s.y;s.pz=s.z;
      for(const a of ['x','y','z']){
       const target=held?held['t'+a]:s.v2Gravity[a]+s.press[a];
@@ -620,17 +744,26 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
     bone.position.x+=s.x/Math.max(.01,Math.abs(sc.x));bone.position.y+=s.y/Math.max(.01,Math.abs(sc.y));bone.position.z+=s.z/Math.max(.01,Math.abs(sc.z));
    }
   }
+  softFrequency(s,size){return 2*Math.PI*(s.kind==='breast'?3.2:3.6)/Math.sqrt(size)/(.72+.85*this.shape.softness);}
   limitSoft(s){
    const size=s.kind==='breast'?this.shape.breast:this.shape.butt,h=this.shape.height;
-   const growth=Math.cbrt(size);
+   const growth=Math.cbrt(size),soft=this.shape.softness??.62,motion=.6+.4*Math.min(1,this.jiggleAmt()/6),amp=(.55+.45*soft)*motion;
    // Parent Y points out of the chest. Compression into the attachment is much
    // more restricted than outward/downward motion; a spherical clamp can invert
    // the tightly weighted inner rim when the breast is enlarged.
-   const limits=s.kind==='breast'?[[ -.014*h*growth,.014*h*growth],[-.002*h/Math.max(1,size),.022*h*growth],[-.028*h*growth,.018*h*growth]]:[[-.018*h,.018*h],[-.016*h,.016*h],[-.016*h,.016*h]];
+   const limits=s.kind==='breast'?[[ -.029*h*growth*amp,.029*h*growth*amp],[-.002*h/Math.max(1,size),.047*h*growth*amp],[-.048*h*growth*amp,.035*h*growth*amp]]:[[-.030*h*growth*amp,.030*h*growth*amp],[-.030*h*growth*amp,.030*h*growth*amp],[-.034*h*growth*amp,.012*h*growth*amp]];
    for(const [i,a] of ['x','y','z'].entries()){
     const raw=Number.isFinite(s[a])?s[a]:0;s[a]=clamp(raw,limits[i][0],limits[i][1]);
-    s['v'+a]=clamp(Number.isFinite(s['v'+a])?s['v'+a]:0,-.55,.55);
+    s['v'+a]=clamp(Number.isFinite(s['v'+a])?s['v'+a]:0,-.85,.85);
     if(s[a]!==raw)s['v'+a]*=.25;
+   }
+   const planes=this.softPlanes?.[s.name];
+   if(planes){
+    const offset=new THREE.Vector3(s.x,s.y,s.z).divideScalar(this.baseScale*h);
+    // Scale along the proposed motion ray: preserves direction and satisfies
+    // every triangle constraint in one pass, without oscillating projections.
+    let factor=1;for(const g of planes){const dot=g.dot(offset);if(dot<-.78)factor=Math.min(factor,-.78/dot);}
+    if(factor<1){s.x*=factor;s.y*=factor;s.z*=factor;s.vx*=.5;s.vy*=.5;s.vz*=.5;}
    }
   }
   applyStrike(hit,n,c,g,p){
@@ -639,7 +772,7 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    else if(c>.7)this.setEmotion('surprise',clamp(c*.15,0,.6),{hold:2,source:'contact'});
   }
   resetPhysics(){
-   super.resetPhysics();this.grabs?.clear();this.handTargets={};this.hairPhysics?.reset();
+   super.resetPhysics();this.grabs?.clear();this.handTargets={};this.hairPhysics?.reset();this.surfaceFlesh?.reset();
    if(this.balance){this.balance.velocity.set(0,0,0);this.balance.stress=0;}
   }
   tick(dt,cam,t){
@@ -649,123 +782,32 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    this.root.position.copy(this.baseRootPos);this.root.quaternion.identity();
    // The v1 animation pipeline dispatches through these v2 overrides.
    this.inBaseTick=true;super.tick(dt,cam,t);this.inBaseTick=false;
-   this.poseArms();this.group.updateMatrixWorld(true);
+   this.poseActivity();this.poseArms();this.group.updateMatrixWorld(true);
    // Limb IK follows the final arm pose, including both controllers independently.
    this.tickBalance(dt);
    if(this.balance.state!=='standing')this.tickGrab(dt);
    this.group.updateMatrixWorld(true);
    this.tickSoft(dt);this.poseHeadContact(dt);this.group.updateMatrixWorld(true);
-   this.hairPhysics?.tick(dt);
+   this.surfaceFlesh?.tick(dt);this.hairPhysics?.tick(dt);
    this.root.traverse(o=>{if(o.isSkinnedMesh)o.skeleton.update();});
   }
   keepArmsClear(){} // final world-space IK chooses hand targets clear of the chest
   solveFeet(dt,moving){
+   if(EXERCISE_MODES.includes(this.mode)){this.feet={};return;}
    if(this.balance.state!=='standing'){this.feet={};return;}
    if([...this.grabs.values()].some(g=>g.limb==='leg')){
     // Plant only the unheld leg; the held chain is owned by the grab constraint.
     const saved={};for(const g of this.grabs.values())if(g.limb==='leg')for(const n of ['Thigh','Calf','Foot']){const b=this.bones[g.side+'_'+n];saved[b.name]=b.quaternion.clone();}
     super.solveFeet(dt,moving);for(const [n,r] of Object.entries(saved))this.bones[n].quaternion.copy(r);return;
    }
+   if(!moving){this.group.position.y=this.baseY-.001*this.shape.height;this.group.updateMatrixWorld(true);}
    super.solveFeet(dt,moving);
   }
  };
 }
 
-// A small set of guide chains drives the supplied 20k hair-card vertices in the
-// vertex shader. Pinned roots, compliant rest/length constraints, capsules and
-// floor projection. No per-frame CPU skinning/upload of the full hair mesh.
-class HairGuides {
- constructor(actor,hits){
-  this.actor=actor;this.hits=hits;this.acc=0;this.chains=[];this.uniform=Array.from({length:48},V);this.ready=false;
-  actor.root.traverse(o=>{if(o.isSkinnedMesh&&/hair/i.test(o.name))this.mesh=o;});
-  if(!this.mesh)return;
-  const mesh=this.mesh,old=mesh.geometry,geometry=old.clone(),count=old.attributes.position.count;
-  // Two offset card layers, one draw call, and a broader silhouette. Keep the
-  // scalp attachment fixed rather than uniformly scaling the entire hairstyle.
-  for(const [name,a] of Object.entries(old.attributes)){
-   const values=new a.array.constructor(a.array.length*2);values.set(a.array);values.set(a.array,a.array.length);
-   geometry.setAttribute(name,new THREE.BufferAttribute(values,a.itemSize,a.normalized));
-  }
-  const indices=new Uint32Array(old.index.count*2);indices.set(old.index.array);for(let i=0;i<old.index.count;i++)indices[old.index.count+i]=old.index.array[i]+count;geometry.setIndex(new THREE.BufferAttribute(indices,1));
-  geometry.clearGroups();geometry.morphAttributes={};
-  const attr=geometry.attributes.position,normal=geometry.attributes.normal;
-  for(let i=0;i<attr.count;i++){
-   const x=attr.getX(i),y=attr.getY(i),z=attr.getZ(i),weight=smooth((1.665-y)/.17),layer=i>=count?.0035:0;
-   attr.setXYZ(i,x*(1+.34*weight)+normal.getX(i)*layer*weight,y+normal.getY(i)*layer*weight,-.045+(z+.045)*(1+.34*weight)+normal.getZ(i)*layer*weight);
-  }
-  geometry.computeBoundingSphere();mesh.geometry=geometry;
-  const head=actor.bones.Head,inv=head.matrixWorld.clone().invert(),p=V();
-  const samples=Array.from({length:12},()=>Array.from({length:4},()=>({sum:V(),n:0})));
-  const ids=new Float32Array(attr.count*2);
-  for(let i=0;i<attr.count;i++){
-   p.fromBufferAttribute(attr,i);mesh.applyBoneTransform(i,p);p.applyMatrix4(mesh.matrixWorld).applyMatrix4(inv);
-   const angle=(Math.atan2(p.x,p.z)+Math.PI)/(2*Math.PI)*12;
-   const t=clamp((.025-p.y)/.45,0,1)*3;ids[i*2]=angle;ids[i*2+1]=t;
-   const a=Math.floor(angle)%12,j=Math.round(t);samples[a][j].sum.add(p);samples[a][j].n++;
-  }
-  mesh.geometry.setAttribute('v2HairCoord',new THREE.BufferAttribute(ids,2));
-  for(let a=0;a<12;a++){
-   const theta=(a+.5)/12*Math.PI*2-Math.PI;
-   const nodes=[];
-   for(let j=0;j<4;j++){
-    const s=samples[a][j],rest=s.n?s.sum.divideScalar(s.n):new THREE.Vector3(Math.sin(theta)*.115,.04-j*.15,Math.cos(theta)*.115);
-    const world=rest.clone().applyMatrix4(head.matrixWorld);nodes.push({rest,p:world.clone(),prev:world.clone(),target:world.clone(),lambda:0});
-   }
-   this.chains.push(nodes);
-  }
-  const mat=mesh.material;mat.roughness=.58;
-  mat.onBeforeCompile=shader=>{
-   shader.uniforms.v2HairOffsets={value:this.uniform};
-   shader.vertexShader='attribute vec2 v2HairCoord;\nuniform vec3 v2HairOffsets[48];\n'+shader.vertexShader;
-   shader.vertexShader=shader.vertexShader.replace('#include <skinning_vertex>',`#include <skinning_vertex>
-    float ha=mod(v2HairCoord.x,12.0); int ia=int(floor(ha)); int ib=int(mod(float(ia)+1.0,12.0));
-    float ht=clamp(v2HairCoord.y,0.0,2.999); int hj=int(floor(ht)); float hf=fract(ht);
-    vec3 da=mix(v2HairOffsets[ia*4+hj],v2HairOffsets[ia*4+hj+1],hf);
-    vec3 db=mix(v2HairOffsets[ib*4+hj],v2HairOffsets[ib*4+hj+1],hf);
-    vec3 hairDelta=mix(da,db,fract(ha))*smoothstep(0.0,0.45,ht);
-    transformed += inverse(mat3(modelMatrix))*hairDelta;`);
-  };
-  mat.customProgramCacheKey=()=> 'mira-v2-hair-r170';mat.needsUpdate=true;
- }
- reset(){this.ready=false;this.acc=0;}
- tick(dt){
-  if(!this.mesh||!dt)return;const head=this.actor.bones.Head;
-  for(const chain of this.chains)for(const n of chain){n.target.copy(n.rest).applyMatrix4(head.matrixWorld);if(!this.ready||n.p.distanceTo(n.target)>.5){n.p.copy(n.target);n.prev.copy(n.target);}}
-  this.ready=true;this.acc=Math.min(this.acc+dt,.05);const step=1/120,h=this.actor.shape.height;
-  const spheres=[];
-  for(const spec of this.hits){
-   if(!/head|chest|arm|hand/.test(spec.kind))continue;
-   const b=this.actor.bones[spec.name];if(!b)continue;
-   const a=new THREE.Vector3(...(spec.offset||[0,0,0])).applyMatrix4(b.matrixWorld);
-   const e=spec.end&&this.actor.bones[spec.end]?this.actor.bones[spec.end].getWorldPosition(V()):a.clone();
-   spheres.push({a,b:e,r:spec.rad*h+.008*h});
-  }
-  for(const hand of this.actor.externalHands||[])spheres.push({a:hand.a,b:hand.b,r:hand.r+.007*h});
-  while(this.acc+1e-9>=step){
-   for(const chain of this.chains){
-    chain[0].p.copy(chain[0].target);chain[0].prev.copy(chain[0].p);
-    for(let j=1;j<4;j++){
-     const n=chain[j],old=n.p.clone();
-     n.p.add(cap(n.p.clone().sub(n.prev).multiplyScalar(.965),.025*h)).addScaledVector(new THREE.Vector3(0,-9.81,0),step*step*.35);
-     n.p.addScaledVector(n.target.clone().sub(n.p),j===1?.055:.018);n.prev.copy(old);n.lambda=0;
-    }
-    for(let iter=0;iter<3;iter++)for(let j=1;j<4;j++){
-     const a=chain[j-1],b=chain[j],delta=b.p.clone().sub(a.p),len=delta.length();
-     const rest=a.target.distanceTo(b.target),alpha=.000002/(step*step),wa=j===1?0:1;
-     if(len>1e-8){const dl=(-(len-rest)-alpha*b.lambda)/(wa+1+alpha);b.lambda+=dl;delta.multiplyScalar(dl/len);b.p.add(delta);if(wa)a.p.sub(delta);}
-     for(const c of spheres){const d=c.b.clone().sub(c.a);const u=clamp(b.p.clone().sub(c.a).dot(d)/Math.max(d.lengthSq(),1e-8),0,1);const center=c.a.clone().addScaledVector(d,u),normal=b.p.clone().sub(center),dist=normal.length();if(dist<c.r){if(dist<1e-6)normal.set(0,0,-1);else normal.divideScalar(dist);b.p.copy(center).addScaledVector(normal,c.r);}}
-     b.p.y=Math.max(this.actor.baseY+.012*h,b.p.y);
-     const offset=cap(b.p.clone().sub(b.target),.105*h);b.p.copy(b.target).add(offset);
-    }
-   }
-   this.acc-=step;
-  }
-  for(let i=0;i<12;i++)for(let j=0;j<4;j++)this.uniform[i*4+j].subVectors(this.chains[i][j].p,this.chains[i][j].target);
- }
-}
-
 // Material boundaries are matched in linear light at coincident mesh vertices,
-// then feathered across a five-centimetre surface neighbourhood. This keeps UV
+// then feathered across a ten-centimetre surface neighbourhood. This keeps UV
 // detail while avoiding a hard switch between separately authored skin atlases.
 const seamCache=new Map();
 export function blendSkinSeams(meshes){
@@ -799,28 +841,46 @@ export function blendSkinSeams(meshes){
   for(const r of records){
    const gains=r.g.attributes.v2ToneGain.array,p=r.g.attributes.position,queue=[],dist=new Map(),source=new Map();
    for(const [i,gain] of r.seeds){queue.push(i);dist.set(i,0);source.set(i,gain);}
+   // Relax geodesic distances rather than stopping at the first BFS visit.
    for(let k=0;k<queue.length;k++){
-    const i=queue[k],d=dist.get(i),gain=source.get(i),weight=1-smooth(d/.055);
+    const i=queue[k],d=dist.get(i),gain=source.get(i),weight=1-smooth(d/.10);
     for(let c=0;c<3;c++)gains[i*3+c]=1+(gain[c]-1)*weight;
-    for(const j of r.adj.get(i)||[]){if(dist.has(j))continue;const nd=d+Math.hypot(p.getX(i)-p.getX(j),p.getY(i)-p.getY(j),p.getZ(i)-p.getZ(j));if(nd>=.055)continue;dist.set(j,nd);source.set(j,gain);queue.push(j);}
+    for(const j of r.adj.get(i)||[]){const nd=d+Math.hypot(p.getX(i)-p.getX(j),p.getY(i)-p.getY(j),p.getZ(i)-p.getZ(j));if(nd>=.10||nd>=(dist.get(j)??Infinity)-1e-7)continue;dist.set(j,nd);source.set(j,gain);queue.push(j);}
+   }
+   // Diffuse in log colour-gain space to remove Voronoi-like correction patches.
+   const entries=[...dist.keys()],next=new Float32Array(gains);
+   for(let pass=0;pass<18;pass++){
+    for(const i of entries){if(r.seeds.has(i))continue;const neighbors=[...r.adj.get(i)||[]];if(!neighbors.length)continue;
+     for(let c=0;c<3;c++){let sum=0;for(const j of neighbors)sum+=Math.log(Math.max(.01,gains[j*3+c]));next[i*3+c]=Math.exp(Math.log(Math.max(.01,gains[i*3+c]))*.35+sum/neighbors.length*.65);}
+    }
+    for(const i of entries)gains.set(next.subarray(i*3,i*3+3),i*3);
    }
    r.g.attributes.v2ToneGain.needsUpdate=true;
   }
   seamCache.set(key,meshes.map(o=>Float32Array.from(o.geometry.attributes.v2ToneGain.array)));return true;
  }catch(e){console.warn('Skin boundary blend unavailable',e.message);return true;}
 }
-function installV2Skin(material){
+function installV2Skin(material,actor){
  const current=material.onBeforeCompile,previous=current.v2SkinBase||current;
  material.onBeforeCompile=shader=>{
   previous?.(shader);
+  actor?.surfaceFlesh?.installShader(shader);
   shader.vertexShader='attribute vec3 v2ToneGain;\nvarying vec3 v2Tone;\n'+shader.vertexShader;
   shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nv2Tone=v2ToneGain;');
-  shader.fragmentShader='varying vec3 v2Tone;\n'+shader.fragmentShader;
-  shader.fragmentShader=shader.fragmentShader.replace('#include <map_fragment>','#include <map_fragment>\ndiffuseColor.rgb *= v2Tone;');
-  shader.fragmentShader=shader.fragmentShader.replace('#include <roughnessmap_fragment>','#include <roughnessmap_fragment>\nroughnessFactor=clamp(0.57+0.30*roughnessFactor,0.60,0.90);');
+  shader.uniforms.v2SkinTexel={value:new THREE.Vector2(1/(material.map?.image?.width||2048),1/(material.map?.image?.height||2048))};
+  shader.fragmentShader='varying vec3 v2Tone;\nuniform vec2 v2SkinTexel;\n'+shader.fragmentShader;
+  shader.fragmentShader=shader.fragmentShader.replace('#include <map_fragment>',THREE.ShaderChunk.map_fragment.replace('diffuseColor *= sampledDiffuseColor;',`
+    vec2 skinDx=v2SkinTexel*1.3;
+    vec3 softAlbedo=(texture2D(map,vMapUv+vec2(skinDx.x,0.0)).rgb+texture2D(map,vMapUv-vec2(skinDx.x,0.0)).rgb+texture2D(map,vMapUv+vec2(0.0,skinDx.y)).rgb+texture2D(map,vMapUv-vec2(0.0,skinDx.y)).rgb)*0.25;
+    sampledDiffuseColor.rgb=mix(sampledDiffuseColor.rgb,softAlbedo,0.30);
+    diffuseColor *= sampledDiffuseColor;
+    diffuseColor.rgb *= v2Tone;`));
+  shader.fragmentShader=shader.fragmentShader.replace('#include <roughnessmap_fragment>','#include <roughnessmap_fragment>\nroughnessFactor=clamp(0.48+0.30*roughnessFactor,0.55,0.86);');
+  // Skin's dielectric F0 is about .028 (IOR ~1.4); Standard's .04 looked coated.
+  shader.fragmentShader=shader.fragmentShader.replace('#include <lights_physical_fragment>',THREE.ShaderChunk.lights_physical_fragment.replace('vec3( 0.04 )','vec3( 0.028 )'));
   // Reduce the inexpensive diffuse wrap; it is not a true diffusion-profile SSS.
   shader.fragmentShader=shader.fragmentShader.replace('skinLobe * directLight.color, 0.38','skinLobe * directLight.color, 0.18');
  };
  material.onBeforeCompile.v2SkinBase=previous;
- material.customProgramCacheKey=()=> 'mira-skin-r4-tone-roughness';
+ material.customProgramCacheKey=()=> 'mira-skin-r5-flesh-tone';
 }

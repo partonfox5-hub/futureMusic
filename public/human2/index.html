@@ -48,7 +48,7 @@
     <div id="hint"></div>
     <div id="stats">REALISM PASS</div>
     <div id="hud">
-      <h2>MIRA V1 + V2</h2>
+      <h2>MIRA V1 + V2 · UPDATE 5</h2>
       <label for="actorSelect">Selected actor</label><select id="actorSelect"></select>
       <div class="row"><button id="spawnV1">SPAWN V1</button><button id="removeActor">REMOVE</button></div>
       <div class="row"><button id="viewFace">FACE VIEW</button><button id="viewBody">BODY VIEW</button></div>
@@ -59,6 +59,7 @@
       <button type="button" data-mode="auto">LIVELY IDLE</button>
       <div class="row"><button type="button" data-mode="idle">STAND</button><button type="button" data-mode="wander">WALK</button></div>
       <div class="row"><button type="button" data-mode="airSquats">SQUAT</button><button type="button" data-mode="stretch">STRETCH</button></div>
+      <label for="activity">Activity</label><select id="activity"></select>
       <label for="walkStyle">Walk style</label><select id="walkStyle"></select>
       <label for="idlePose">Idle pose</label><select id="idlePose"></select>
       <button id="testBalance">PREVIEW FALL + GET UP</button>
@@ -71,8 +72,12 @@
       <label for="s_thigh">Thigh width</label><input id="s_thigh" type="range" min="0.62" max="1.88" step="0.01" value="1" />
       <label for="s_gap">Thigh gap</label><input id="s_gap" type="range" min="-0.85" max="0.85" step="0.01" value="0" />
       <label for="s_arms">Arms</label><input id="s_arms" type="range" min="0.62" max="1.58" step="0.01" value="1" />
+      <div id="placementControls"></div>
       <h2>PHYSICS</h2>
-      <label for="s_jiggle">Jiggle intensity</label><input id="s_jiggle" type="range" min="0" max="3" step="0.05" value="2.3" />
+      <label for="s_jiggle">Jiggle intensity</label><input id="s_jiggle" type="range" min="0" max="6" step="0.05" value="2.8" />
+      <div id="tissueControls"></div>
+      <p>Softness controls give; damping controls how quickly motion settles.</p>
+      <div id="skinControls"></div>
       <h2>FACE</h2>
       <div class="row">
         <button type="button" id="facePrev">&lt;</button>
@@ -80,6 +85,7 @@
         <button type="button" id="faceNext">&gt;</button>
       </div>
       <h2>HAIR</h2>
+      <label for="hairStyle">Hairstyle</label><select id="hairStyle"></select>
       <div class="row">
         <button type="button" id="hairPrev">&lt;</button>
         <b id="hairLab">Black</b>
@@ -89,7 +95,7 @@
       <h2>EXPRESSION</h2>
       <label for="expression">Emotion or conversational context</label><select id="expression"></select>
       <div class="row"><button id="faceSmile">SMILE CLIP</button><button id="faceSurprise">SURPRISE CLIP</button></div>
-      <p style="margin-top:10px">Drag to orbit; scroll to zoom. Use Grab body or Shift-drag to pull a limb. In VR, Y opens the menu and the grip grabs. Right B spawns a ball.</p>
+      <p style="margin-top:10px">Drag to orbit; scroll to zoom. Use Grab body or Shift-drag to pull a limb. In VR, Y opens the menu; the wrist MENU button is a shortcut. The grip grabs. Right B spawns a ball.</p>
       <a href="/human2/mira-v1.html" style="color:#a3d4ff">Open original v1 scene</a>
       <h2>TALK TO MIRA</h2>
       <div class="row"><b id="emoLab">NEUTRAL</b></div>
@@ -106,7 +112,7 @@
     </div>
     <div id="ui">
       <div id="panel">
-        <div class="tag">MIRA V1 + V2</div>
+        <div class="tag">MIRA V1 + V2 · UPDATE 5</div>
         <h1>HUMAN SIMULATOR</h1>
         <p>Choose Mira v1 or v2. Explore the face, poses and body interactions. Start with one actor on Quest 3.</p>
         <button type="button" id="enter">ENTER VR / AR</button>
@@ -114,6 +120,6 @@
         <button type="button" class="ghost" id="firstPerson">First person</button>
       </div>
     </div>
-    <script type="module" src="/human2/engine.js?v=4"></script>
+    <script type="module" src="/human2/engine.js?v=5"></script>
   </body>
 </html>

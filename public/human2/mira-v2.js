@@ -1,4 +1,4 @@
-import { createV2Class, repairArmRestData } from "./mira-v2-features.js?v=4";
+import { createV2Class, repairArmRestData } from "./mira-v2-features.js?v=5";
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { clone as cloneSkinned } from "three/addons/utils/SkeletonUtils.js";
@@ -14,7 +14,7 @@ import { clone as cloneSkinned } from "three/addons/utils/SkeletonUtils.js";
  */
 export const ASSET = new URL("./assets/mira.glb?v=13", import.meta.url).href;
 export const TEXROOT = new URL("./assets/tex/", import.meta.url).href;
-export const TEXVER = "r4";
+export const TEXVER = "r5";
 
 export const FACE_TYPES = [
   { id: "natural", name: "Natural", file: "head.jpg" },
@@ -1121,7 +1121,7 @@ class MiraActor {
   }
 }
 
-const MiraActorV2 = createV2Class(MiraActor, {loadMap, MORPH, BODY_HIT, installSkinShader, HAIR_COLORS});
+const MiraActorV2 = createV2Class(MiraActor, {loadMap, MORPH, BODY_HIT, installSkinShader, HAIR_COLORS, SLIDERS});
 export { MiraActor, MiraActorV2 };
 
 class FloppyNoodle {
@@ -1296,8 +1296,8 @@ class PlayerHands {
         mesh.geometry=g.clone();mesh.geometry.setIndex(indices);mesh.geometry.morphAttributes={};mesh.geometry.clearGroups();
         repairArmRestData(mesh.geometry.attributes.position.array,mesh.geometry.attributes.normal.array,mesh.geometry.attributes.skinIndex.array,mesh.geometry.attributes.skinWeight.array,mesh.skeleton.bones.map(b=>b.name));
         mesh.morphTargetInfluences=undefined;mesh.morphTargetDictionary=undefined;
-        mesh.material=mesh.material.clone();mesh.material.onBeforeCompile=()=>{};mesh.material.customProgramCacheKey=()=> 'mira-player-hand-r4';
-        mesh.material.roughness=.82;mesh.material.envMapIntensity=.28;mesh.material.metalness=0;mesh.material.normalScale?.setScalar(.45);
+        mesh.material=mesh.material.clone();mesh.material.onBeforeCompile=()=>{};mesh.material.customProgramCacheKey=()=> 'mira-player-hand-r5';
+        mesh.material.roughness=.76;mesh.material.roughnessMap=null;mesh.material.envMapIntensity=.35;mesh.material.metalness=0;mesh.material.normalScale?.setScalar(.24);
         mesh.frustumCulled=false;mesh.castShadow=false;mesh.receiveShadow=true;triangles+=indices.length/3;
       });
       remove.forEach(o=>o.removeFromParent());
@@ -1359,6 +1359,7 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
   let selectedActor = null;
   let uiHandlers = {};
   const yPrev = [false, false];
+  let buttonSession=null;const secondaryState=new Map();
   const ballHeld = [null, null];
 
   function addBlob() {
@@ -1506,6 +1507,7 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
 
   function pollSpawnBalls(keys) {
     if (!xrOn()) {
+      buttonSession=null;secondaryState.clear();
       if (keys && keys.KeyB && !yPrev[0]) {
         camera.getWorldPosition(_v);
         camera.getWorldDirection(_w);
@@ -1516,22 +1518,22 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
     }
     const session = renderer.xr.getSession();
     if (!session) return;
-    let li = 0;
-    for (const src of session.inputSources) {
-      const gp = src.gamepad;
-      const i = hands.handedness.indexOf(src.handedness);
-      if (i < 0) continue;
-      const pressed = !!(gp?.buttons?.[5]?.pressed);
-      if (pressed && !yPrev[i] && src.handedness === "left") uiHandlers.onToggle?.();
-      if (pressed && !yPrev[i] && src.handedness === "right") {
-        const ctrl = hands.grip[i] || hands.grip[0];
-        ctrl.getWorldPosition(_v);
-        _w.set(0, 0.15, -0.35).applyQuaternion(ctrl.getWorldQuaternion(_q));
-        spawnBall(_v.clone().add(_w), hands.vel[i].clone().multiplyScalar(0.4).setY(1.15));
+    if(session!==buttonSession){buttonSession=session;secondaryState.clear();}
+    const present=new Set();
+    for(const src of session.inputSources){
+      if(!src.gamepad||src.hand||!['left','right'].includes(src.handedness))continue;
+      present.add(src);const pressed=!!src.gamepad.buttons?.[5]?.pressed;
+      if(pressed&&!secondaryState.get(src)){
+        if(src.handedness==='left')uiHandlers.onToggle?.();
+        else{
+          const index=hands.handedness.indexOf('right'),i=index<0?1:index,ctrl=hands.grip[i];
+          ctrl.getWorldPosition(_v);_w.set(0,.15,-.35).applyQuaternion(ctrl.getWorldQuaternion(_q));
+          spawnBall(_v.clone().add(_w),hands.vel[i].clone().multiplyScalar(.4).setY(1.15));
+        }
       }
-      yPrev[i] = pressed;
-      li += 1;
+      secondaryState.set(src,pressed);
     }
+    for(const src of secondaryState.keys())if(!present.has(src))secondaryState.delete(src);
   }
 
   function tickSocial(dt) {
@@ -1759,7 +1761,7 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
       actor.endGrab();scene.remove(actor.group);scene.remove(blobs[i]);
       blobs[i].geometry.dispose();blobs[i].material.dispose();blobs.splice(i,1);
       if(actor.heldBall){actor.heldBall.held=null;actor.heldBall=null;}
-      actor.root.traverse(o=>{if(!o.isMesh)return;if(actor.version==='v2')o.geometry.dispose();for(const m of Array.isArray(o.material)?o.material:[o.material])m?.dispose();});
+      actor.root.traverse(o=>{if(!o.isMesh)return;if(actor.version==='v2')o.geometry.dispose();o.customDepthMaterial?.dispose();for(const m of Array.isArray(o.material)?o.material:[o.material])m?.dispose();});
       actors.splice(i,1);selectedActor=actors[actors.length-1]||null;
     },
   };
