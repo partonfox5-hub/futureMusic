@@ -1,21 +1,21 @@
-import {Car} from './mira-v2-car.js?v=h3.2';
-import {Restraints} from './mira-v2-restraints.js?v=h3.2';
-import {Injuries} from './mira-v2-injuries.js?v=h3.2';
-import {Props,WEAPONS} from './mira-v2-props.js?v=h3.2';
-import {RoomLight} from './mira-v2-light.js?v=h3.2';
-import {draft,saveDraft,spawnOptions,OUTFITS,clothingItems} from './mira-v2-catalog.js?v=h3.2';
-import {MiraWorld,SCENES} from './mira-v2-world.js?v=h3.2';
-import {Wardrobe,GARMENTS} from './mira-v2-wardrobe.js?v=h3.2';
+import {Car} from './mira-v2-car.js?v=h3.3';
+import {Restraints} from './mira-v2-restraints.js?v=h3.3';
+import {Injuries} from './mira-v2-injuries.js?v=h3.3';
+import {Props,WEAPONS} from './mira-v2-props.js?v=h3.3';
+import {RoomLight} from './mira-v2-light.js?v=h3.3';
+import {draft,saveDraft,spawnOptions,OUTFITS,clothingItems} from './mira-v2-catalog.js?v=h3.3';
+import {MiraWorld,SCENES} from './mira-v2-world.js?v=h3.3';
+import {Wardrobe,GARMENTS} from './mira-v2-wardrobe.js?v=h3.3';
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { createVRMenu } from "./mira-vr-menu.js?v=h3.2";
-import { EMOTION_NAMES, IDLE_NAMES, WALK_NAMES } from "./mira-v2-features.js?v=h3.2";
+import { createVRMenu } from "./mira-vr-menu.js?v=h3.3";
+import { EMOTION_NAMES, IDLE_NAMES, WALK_NAMES } from "./mira-v2-features.js?v=h3.3";
 import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
-import { createMiraSystem, SLIDERS, FACE_TYPES, HAIR_COLORS } from "./mira-v2.js?v=h3.2";
-import { DEFAULT_PERSONA, miraChat, miraSpeak, startMic, unlockVoice } from "./mira-voice-v2.js?v=h3.2";
+import { createMiraSystem, SLIDERS, FACE_TYPES, HAIR_COLORS } from "./mira-v2.js?v=h3.3";
+import { DEFAULT_PERSONA, miraChat, miraSpeak, startMic, unlockVoice } from "./mira-voice-v2.js?v=h3.3";
 
-import {V2_EXTRA_SLIDERS,FACE_PRESETS,HAIR_STYLES,ACTIVITY_MODES,shapeSliders} from './mira-v2-controls.js?v=h3.2';
+import {V2_EXTRA_SLIDERS,FACE_PRESETS,HAIR_STYLES,ACTIVITY_MODES,shapeSliders} from './mira-v2-controls.js?v=h3.3';
 
 const QUEST = /OculusBrowser|Quest/i.test(navigator.userAgent);
 const loadEl = document.getElementById("load");
@@ -166,7 +166,7 @@ function selected() { return mira.selected; }
 function bindHud() {
  document.getElementById('enterCar').onclick=()=>props.vehicle.enter();document.getElementById('exitCar').onclick=()=>props.vehicle.exit();document.getElementById('repairCar').onclick=()=>props.vehicle.reset();document.getElementById('mirrorOn').onchange=e=>props.vehicle.mirrorEnabled=e.target.checked;
 
- document.getElementById('placeLink').onclick=()=>props.restraints.start();document.getElementById('cancelLink').onclick=()=>props.restraints.cancel();document.getElementById('linkMode').onchange=e=>props.restraints.mode=e.target.value;document.getElementById('linkSelect').onchange=e=>props.restraints.selected=props.restraints.links.find(l=>l.id===Number(e.target.value));document.getElementById('linkLength').oninput=e=>props.restraints.setLength(e.target.value);document.getElementById('cutLink').onclick=()=>props.restraints.cut();document.getElementById('removeLink').onclick=()=>props.restraints.remove();document.getElementById('injuryEnabled').onchange=e=>props.injuries.enabled=e.target.checked;document.getElementById('allowSever').onchange=e=>props.injuries.allowSever=e.target.checked;document.getElementById('healActor').onclick=()=>props.injuries.heal(selected());
+ document.getElementById('placeLink').onclick=()=>props.restraints.start();document.getElementById('cancelLink').onclick=()=>props.restraints.cancel();document.getElementById('linkMode').onchange=e=>props.restraints.mode=e.target.value;document.getElementById('linkSelect').onchange=e=>props.restraints.selected=props.restraints.links.find(l=>l.id===Number(e.target.value));document.getElementById('linkLength').oninput=e=>props.restraints.setLength(e.target.value);document.getElementById('linkStrength').oninput=e=>props.restraints.setStrength(e.target.value);document.getElementById('cutLink').onclick=()=>props.restraints.cut();document.getElementById('removeLink').onclick=()=>props.restraints.remove();document.getElementById('injuryEnabled').onchange=e=>props.injuries.enabled=e.target.checked;document.getElementById('allowSever').onchange=e=>props.injuries.allowSever=e.target.checked;document.getElementById('healActor').onclick=()=>props.injuries.heal(selected());
 
  const weaponSelect=document.getElementById('weaponSelect');weaponSelect.replaceChildren(...Object.entries(WEAPONS).map(([id,w])=>new Option(w.name,id)));document.getElementById('equipWeapon').onclick=()=>props.equip(weaponSelect.value);document.getElementById('dropWeapon').onclick=()=>props.drop('desktop');document.getElementById('resetHouse').onclick=()=>world.setScene('Living room');
  document.getElementById("spawnNpc").onclick=spawnConfigured;document.getElementById("copyNpc").onclick=copyConfiguration;document.getElementById("foveation").oninput=e=>renderer.xr.setFoveation(Number(e.target.value));document.getElementById("hapticGain").oninput=e=>mira.hands.haptics.gain=Number(e.target.value);
@@ -493,7 +493,7 @@ function tick(time,frame) {
   if(XR_ON()&&!props.vehicle.driving){const eye=renderer.xr.getCamera().getWorldPosition(new THREE.Vector3()),before=eye.clone();world.project(eye,.18,rig.position.y,1.6,dt);rig.position.add(eye.sub(before));}
   if (mira.ready) {mira.tick(dt, clock.elapsedTime, keys);props.tick(dt);}
   const propStatus=document.getElementById("propStatus");if(propStatus&&propStatus.textContent!==props.status)propStatus.textContent=props.status;
-  const ls=document.getElementById('linkSelect'),stamp=props.restraints.links.map(l=>l.id+':'+l.broken).join('/');if(ls.dataset.stamp!==stamp){ls.replaceChildren(new Option('Select link',''),...props.restraints.links.map(l=>new Option('Link '+l.id+(l.broken?' · cut':''),l.id)));ls.dataset.stamp=stamp;}ls.value=props.restraints.selected?.id||'';if(document.activeElement?.id!=='linkLength')document.getElementById('linkLength').value=props.restraints.selected?.length||1;document.getElementById('linkStatus').textContent=props.restraints.status;
+  const ls=document.getElementById('linkSelect'),stamp=props.restraints.links.map(l=>l.id+':'+l.broken).join('/');if(ls.dataset.stamp!==stamp){ls.replaceChildren(new Option('Select link',''),...props.restraints.links.map(l=>new Option('Link '+l.id+(l.broken?' · cut':''),l.id)));ls.dataset.stamp=stamp;}ls.value=props.restraints.selected?.id||'';if(document.activeElement?.id!=='linkLength')document.getElementById('linkLength').value=props.restraints.selected?.length||1;if(document.activeElement?.id!=='linkStrength')document.getElementById('linkStrength').value=props.restraints.selected?.strength||30;document.getElementById('linkStatus').textContent=props.restraints.status;
   document.getElementById('carStatus').textContent=props.vehicle.driving?Math.round(props.vehicle.velocity.length()*3.6)+' km/h · '+props.vehicle.status:props.vehicle.status;
   fpsFrames++;
   const now = performance.now();

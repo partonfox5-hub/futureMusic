@@ -1,11 +1,11 @@
-import {LivingEyes} from './mira-v2-eyes.js?v=h3.2';
-import {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES} from './mira-v2-controls.js?v=h3.2';
-export {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES} from './mira-v2-controls.js?v=h3.2';
+import {LivingEyes} from './mira-v2-eyes.js?v=h3.3';
+import {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES} from './mira-v2-controls.js?v=h3.3';
+export {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES} from './mira-v2-controls.js?v=h3.3';
 import * as THREE from 'three';
-import {restoreSurfaceUV} from './mira-v2-uv.js?v=h3.2';
-import {V2_EXTRA_SLIDERS,FACE_PRESETS,EXERCISE_MODES} from './mira-v2-controls.js?v=h3.2';
-import {HairGuides} from './mira-v2-hair.js?v=h3.2';
-import {SurfaceFlesh} from './mira-v2-tissue.js?v=h3.2';
+import {restoreSurfaceUV} from './mira-v2-uv.js?v=h3.3';
+import {V2_EXTRA_SLIDERS,FACE_PRESETS,EXERCISE_MODES} from './mira-v2-controls.js?v=h3.3';
+import {HairGuides} from './mira-v2-hair.js?v=h3.3';
+import {SurfaceFlesh} from './mira-v2-tissue.js?v=h3.3';
 
 // Mira v2: a bounded real-time approximation for this CC3 rig, Three r170.
 const clamp = THREE.MathUtils.clamp, damp = THREE.MathUtils.damp;

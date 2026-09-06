@@ -1,8 +1,8 @@
-import {restoreSurfaceUV} from './mira-v2-uv.js?v=h3.2';
-import {BodyContacts} from './mira-v2-contact.js?v=h3.2';
-import {MiraSocial} from './mira-v2-social.js?v=h3.2';
-import {ContactHaptics} from './mira-v2-haptics.js?v=h3.2';
-import { createV2Class, repairArmRestData } from "./mira-v2-features.js?v=h3.2";
+import {restoreSurfaceUV} from './mira-v2-uv.js?v=h3.3';
+import {BodyContacts} from './mira-v2-contact.js?v=h3.3';
+import {MiraSocial} from './mira-v2-social.js?v=h3.3';
+import {ContactHaptics} from './mira-v2-haptics.js?v=h3.3';
+import { createV2Class, repairArmRestData } from "./mira-v2-features.js?v=h3.3";
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { clone as cloneSkinned } from "three/addons/utils/SkeletonUtils.js";
