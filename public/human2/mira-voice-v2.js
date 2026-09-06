@@ -1,6 +1,7 @@
-import {speakBasic} from './mira-basic-voice.js?v=8';
-import {localTranscribe,warmLocalSpeech,stopLocalSpeech} from './mira-local-speech.js?v=8';
-import {EMOTION_NAMES} from './mira-v2-features.js?v=8';
+import {speakNeural} from './mira-neural-voice.js?v=9.3';
+import {speakBasic} from './mira-basic-voice.js?v=9.3';
+import {localTranscribe,warmLocalSpeech,stopLocalSpeech} from './mira-local-speech.js?v=9.3';
+import {EMOTION_NAMES} from './mira-v2-features.js?v=9.3';
 export const DEFAULT_PERSONA='You are Mira, a friendly adult woman in an XR room. Reply in 1–2 short spoken sentences. Keep a consistent emotional state based on the conversation. End with [[EMOTION:neutral|happy|content|curious|listening|thoughtful|concerned|sad|surprise|afraid|angry|disgust|tease|flirty|laugh|tired]] choosing exactly one label. Respond warmly when appropriate; let emotion match the conversation. Only when requested, add [[ACTION:idle|wander|airSquats|stretch|jumpingJacks|march|sideSteps|dance|reach|heelRaises]]. Do not read tags aloud.';
 const ACTIONS=['idle','wander','airSquats','stretch','jumpingJacks','march','sideSteps','dance','reach','heelRaises'];
 const history=new Map();let voiceAudio=null;let serverAvailable=null;
@@ -97,7 +98,9 @@ export async function miraSpeak(text, hooks = {}) {
   const finish = () => { if(finished)return;finished=true;if (onEnd) onEnd(); };
   const basic=async()=>{if(basicStarted||finished)return;basicStarted=true;try{unlockVoice();await speakBasic(text,voiceAudio,hooks);}catch(e){hooks.onError?.(e.message);}finally{finish();}};
 
+  if(!['device','server'].includes(hooks.voice)){try{unlockVoice();await speakNeural(text,voiceAudio,{...hooks,onEnd:finish});return;}catch(e){hooks.onStatus?.('Natural voice unavailable · using fallback');console.warn('Natural voice',e.message);}}
   try {
+    if(hooks.voice!=='server')throw new Error('Use device voice');
     if(!await voiceServer())throw new Error("No voice server");
     const r = await fetch("/api/mira/tts", {
       method: "POST",

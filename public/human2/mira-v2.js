@@ -1,7 +1,8 @@
-import {BodyContacts} from './mira-v2-contact.js?v=8';
-import {MiraSocial} from './mira-v2-social.js?v=8';
-import {ContactHaptics} from './mira-v2-haptics.js?v=8';
-import { createV2Class, repairArmRestData } from "./mira-v2-features.js?v=8";
+import {restoreSurfaceUV} from './mira-v2-uv.js?v=9.3';
+import {BodyContacts} from './mira-v2-contact.js?v=9.3';
+import {MiraSocial} from './mira-v2-social.js?v=9.3';
+import {ContactHaptics} from './mira-v2-haptics.js?v=9.3';
+import { createV2Class, repairArmRestData } from "./mira-v2-features.js?v=9.3";
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { clone as cloneSkinned } from "three/addons/utils/SkeletonUtils.js";
@@ -1284,7 +1285,7 @@ class PlayerHands {
     // Reuse the supplied textured, skinned anatomy rather than box fingers.
     // Only wrist/hand triangles render; the retained bone hierarchy supplies skinning.
     for(let i=0;i<2;i++)for(const side of ['L','R']){
-      const root=cloneSkinned(template),bones={},bind={},remove=[];root.updateMatrixWorld(true);
+      const root=restoreSurfaceUV(cloneSkinned(template)),bones={},bind={},remove=[];root.updateMatrixWorld(true);
       root.traverse(o=>{if(o.isBone){bones[o.name]=o;bind[o.name]=o.quaternion.clone();}});
       const wrist=bones[side+'_Hand'];if(!wrist)continue;
       const wristP=wrist.getWorldPosition(new THREE.Vector3()),wristQ=wrist.getWorldQuaternion(new THREE.Quaternion());
@@ -1301,8 +1302,8 @@ class PlayerHands {
         repairArmRestData(mesh.geometry.attributes.position.array,mesh.geometry.attributes.normal.array,mesh.geometry.attributes.skinIndex.array,mesh.geometry.attributes.skinWeight.array,mesh.skeleton.bones.map(b=>b.name));
         mesh.morphTargetInfluences=undefined;mesh.morphTargetDictionary=undefined;
         mesh.material=mesh.material.clone();mesh.material.onBeforeCompile=()=>{};mesh.material.customProgramCacheKey=()=> 'mira-player-hand-r5';
-        mesh.material.roughness=.76;mesh.material.roughnessMap=null;mesh.material.envMapIntensity=.35;mesh.material.metalness=0;mesh.material.normalScale?.setScalar(.24);
-        mesh.frustumCulled=false;mesh.castShadow=false;mesh.receiveShadow=true;triangles+=indices.length/3;
+        mesh.material.roughness=.76;mesh.material.roughnessMap=null;mesh.material.envMapIntensity=.35;mesh.material.metalness=0;mesh.material.aoMap=null;mesh.material.normalScale?.setScalar(.10);
+        mesh.frustumCulled=false;mesh.castShadow=false;mesh.receiveShadow=false;mesh.geometry.computeVertexNormals();triangles+=indices.length/3;
       });
       remove.forEach(o=>o.removeFromParent());
       const palmSign=side==='L'?-1:1;
@@ -1464,10 +1465,10 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
   const targetMarker=new THREE.Mesh(new THREE.RingGeometry(.075,.10,32),new THREE.MeshBasicMaterial({color:0x98e4bc,side:THREE.DoubleSide,depthWrite:false,toneMapped:false}));targetMarker.rotation.x=-Math.PI/2;targetMarker.visible=false;scene.add(targetMarker);
   function floorTarget(ray){
     if(ray.direction.y>=-.025)return null;const p=ray.intersectPlane(groundPlane,new THREE.Vector3());
-    return p&&ray.origin.distanceTo(p)<8&&Math.abs(p.x)<=3.8&&Math.abs(p.z)<=3.8?p:null;
+    return p&&ray.origin.distanceTo(p)<24&&Math.abs(p.x)<=(environment?.extent||3.8)&&Math.abs(p.z)<=(environment?.extent||3.8)?p:null;
   }
   function walkTo(point,actor=selectedActor){
-    if(!actor||!point||!point.toArray().every(Number.isFinite)||Math.abs(point.x)>3.8||Math.abs(point.z)>3.8||actor.held||actor.balance&&actor.balance.state!=='standing')return false;
+    if(!actor||!point||!point.toArray().every(Number.isFinite)||Math.abs(point.x)>(environment?.extent||3.8)||Math.abs(point.z)>(environment?.extent||3.8)||actor.held||actor.balance&&actor.balance.state!=='standing')return false;
     social.cancel(actor);selectedActor=actor;
     if(environment&&actor.version==='v2')return environment.walk(actor,point);
     if(actor.walkTo)return actor.walkTo(point);
@@ -1485,8 +1486,10 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
   function trySelect(i, fromGrip = false) {
     if(!fromGrip){
       if(uiHandlers.onSelect?.(i))return;
+      if(environment?.interactions?.trigger(i))return;
       const pointer=hands.ctrl[i],ray=new THREE.Ray(pointer.getWorldPosition(new THREE.Vector3()),new THREE.Vector3(0,0,-1).applyQuaternion(pointer.getWorldQuaternion(new THREE.Quaternion())));if(wardrobe){const handle=new THREE.Object3D();if(wardrobe.begin(ray,handle,'xr'+i))return;}pointCommand(ray);return;
     }
+    if(environment?.interactions?.grip(i))return;
     if (actors.some(a => a.grabs?.has(hands.grip[i]) || a.held?.ctrl === hands.grip[i])) return;
     const ctrl = hands.grip[i];
     ctrl.getWorldPosition(_v);
@@ -1520,6 +1523,7 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
   function releaseCloth(i){if(!wardrobe?.drags.has('xr'+i))return;const c=hands.ctrl[i];wardrobe.end('xr'+i,new THREE.Ray(c.getWorldPosition(new THREE.Vector3()),new THREE.Vector3(0,0,-1).applyQuaternion(c.getWorldQuaternion(new THREE.Quaternion()))));}
   hands.ctrl.forEach((c,i)=>c.addEventListener('selectend',()=>releaseCloth(i)));
   function tryRelease(i) {
+    environment?.interactions?.release(i);
     if (noodleHeld === hands.grip[i]) { noodleHeld = null; noodleGrabI = -1; }
     for (const actor of actors) {
       if (actor.grabs?.has(hands.grip[i])) actor.endGrab(hands.grip[i]);
@@ -1797,7 +1801,7 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
     setEnvironment(value){environment=value;},setWardrobe(value){wardrobe=value;},
     requestSocial(kind){return social.request(selectedActor,kind);},
     get persona() { return persona; },
-    set persona(v) { persona = v || ""; for (const a of actors) a.personality = persona; },
+    set persona(v) { persona = v || ""; },
     get ready() { return ready; },
     get selected() { return selectedActor || actors[actors.length - 1] || null; },
     select(actor) { if(actors.includes(actor)) selectedActor=actor; return selectedActor; },

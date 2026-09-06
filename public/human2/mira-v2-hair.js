@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-const clamp=THREE.MathUtils.clamp,V=()=>new THREE.Vector3(),CHAINS=20,LEVELS=5,COUNT=CHAINS*LEVELS,MAX_CAPS=32;
+const clamp=THREE.MathUtils.clamp,V=()=>new THREE.Vector3(),CHAINS=20,LEVELS=7,COUNT=CHAINS*LEVELS,MAX_CAPS=32;
 const smooth=x=>{x=clamp(x,0,1);return x*x*(3-2*x);};
 const normal=V();
 // Capsule projection is shared by the guide test / solver. Contacts are resolved
@@ -19,10 +19,10 @@ export class HairGuides {
   actor.root.traverse(o=>{if(o.isSkinnedMesh&&/hair/i.test(o.name))this.mesh=o;});if(!this.mesh)return;
   const mesh=this.mesh,old=mesh.geometry;this.source=old;this.refToHead=actor.bones.Head.matrixWorld.clone().invert().multiply(mesh.matrixWorld);
   this.setStyle(actor.hairStyle||0);
-  mesh.material.roughness=.58;mesh.material.onBeforeCompile=s=>this.installShader(s);mesh.material.customProgramCacheKey=()=> 'mira-hair-r6-compact-contact32';mesh.material.needsUpdate=true;
+  mesh.material.roughness=.58;mesh.material.onBeforeCompile=s=>this.installShader(s);mesh.material.customProgramCacheKey=()=> 'mira-hair-r9-cubic-contact32';mesh.material.needsUpdate=true;
  }
  setStyle(style){
-  if(!this.mesh)return;style=clamp(style|0,0,7);this.style=style;
+  if(!this.mesh)return;style=clamp(style|0,0,10);this.style=style;this.mesh.visible=style!==9;
   const compact=style>=4,bun=style===4||style===7,layers=compact?1:2,old=this.source,count=old.attributes.position.count;
   const ring=48,rows=12,bunCount=bun?(ring+1)*(rows+1):0,total=count*layers+bunCount;
   const g=old.clone();g.clearGroups();g.morphAttributes={};
@@ -47,8 +47,9 @@ export class HairGuides {
    if(style===3){const back=smooth((1.59-y)/.23);xx*=1-.55*back;zz-=.11*back;}
    if(compact){
     // One actual card layer; compact cuts no longer retain the doubled long groom.
-    const compression=style===5?.49:style===6?.70:.43;
+    const compression=style===8?.24:style===10?.41:style===5?.49:style===6?.70:.43;
     yy=1.650-(1.650-y)*compression;xx=x*(style===6?1.02:.96);zz=-.025+(z+.025)*(style===6?.94:.85);
+    if(style===10)xx+=.009*w;
     if(bun){const lower=smooth((1.60-y)/.15);zz-=.018*lower;}
    }
    attr.setXYZ(i,xx+srcN.getX(j)*layer*w,yy+srcN.getY(j)*layer*w,zz+srcN.getZ(j)*layer*w);
@@ -89,12 +90,13 @@ export class HairGuides {
   shader.vertexShader=`attribute vec2 v2HairCoord;
    uniform vec3 v2HairOffsets[${COUNT}];
    uniform vec4 v2HairCapsA[${MAX_CAPS}];uniform vec4 v2HairCapsB[${MAX_CAPS}];uniform int v2HairCapCount;
+   vec3 hairCurve(int chain,int j,float u){int base=chain*${LEVELS};vec3 a=v2HairOffsets[base+max(0,j-1)],b=v2HairOffsets[base+j],c=v2HairOffsets[base+j+1],d=v2HairOffsets[base+min(${LEVELS-1},j+2)];return .5*((2.0*b)+(-a+c)*u+(2.0*a-5.0*b+4.0*c-d)*u*u+(-a+3.0*b-3.0*c+d)*u*u*u);}
   `+shader.vertexShader;
   shader.vertexShader=shader.vertexShader.replace('#include <skinning_vertex>',`#include <skinning_vertex>
    float ha=mod(v2HairCoord.x,${CHAINS}.0);int ia=int(floor(ha));int ib=int(mod(float(ia)+1.0,${CHAINS}.0));
    float ht=clamp(v2HairCoord.y,0.0,${LEVELS-1}.0-0.001);int hj=int(floor(ht));float hf=fract(ht);
-   vec3 da=mix(v2HairOffsets[ia*${LEVELS}+hj],v2HairOffsets[ia*${LEVELS}+hj+1],hf);
-   vec3 db=mix(v2HairOffsets[ib*${LEVELS}+hj],v2HairOffsets[ib*${LEVELS}+hj+1],hf);
+   vec3 da=hairCurve(ia,hj,hf);
+   vec3 db=hairCurve(ib,hj,hf);
    float freeHair=smoothstep(0.0,0.50,ht);
    vec3 hp=(modelMatrix*vec4(transformed,1.0)).xyz+mix(da,db,fract(ha))*freeHair;
    // Guide interpolation alone lets cards pass between nodes. Project the final
@@ -112,7 +114,7 @@ export class HairGuides {
  }
  reset(){this.ready=false;this.acc=0;this.previousCaps=[];this.uniform.forEach(v=>v.set(0,0,0));}
  tick(dt){
-  if(!this.mesh||!dt)return;if(this.actor.hairStyle!==this.style)this.setStyle(this.actor.hairStyle);
+  if(!this.mesh||!dt)return;if(this.actor.hairStyle!==this.style)this.setStyle(this.actor.hairStyle);if(this.style===9)return;
   const head=this.actor.bones.Head,h=this.actor.shape.height,headPos=head.getWorldPosition(V()),flex=(this.actor.shape.hairMotion??.68)*(this.compact?.38:1);
   for(const chain of this.chains)for(const n of chain){n.target.copy(n.rest).applyMatrix4(head.matrixWorld);if(!this.ready||n.p.distanceTo(n.target)>.55*h){n.p.copy(n.target);n.prev.copy(n.target);}}
   const caps=[];
@@ -140,8 +142,8 @@ export class HairGuides {
     chain[0].p.copy(chain[0].target);chain[0].prev.copy(chain[0].p);
     for(let j=1;j<LEVELS;j++){
      const n=chain[j];vel.subVectors(n.p,n.prev).multiplyScalar(Math.exp(-step*(3.0+3*(1-flex))));if(vel.length()>.035*h)vel.setLength(.035*h);
-     n.prev.copy(n.p);n.p.add(vel);n.p.y-=9.81*step*step*.24;
-     n.p.lerp(n.target,1-Math.exp(-step*((j===1?18:7)*(1.15-flex*.8))));n.lambda=0;
+     n.prev.copy(n.p);n.p.add(vel);n.p.y-=9.81*step*step;
+     n.p.lerp(n.target,1-Math.exp(-step*((j===1?14:3)*(1.15-flex*.8))));n.lambda=0;
     }
     for(let iter=0;iter<4;iter++){
      for(let j=1;j<LEVELS;j++){

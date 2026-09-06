@@ -1,8 +1,11 @@
+import {LivingEyes} from './mira-v2-eyes.js?v=9.3';
+import {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES} from './mira-v2-controls.js?v=9.3';
+export {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES} from './mira-v2-controls.js?v=9.3';
 import * as THREE from 'three';
-import {restoreSurfaceUV} from './mira-v2-uv.js?v=8';
-import {V2_EXTRA_SLIDERS,FACE_PRESETS,EXERCISE_MODES} from './mira-v2-controls.js?v=8';
-import {HairGuides} from './mira-v2-hair.js?v=8';
-import {SurfaceFlesh} from './mira-v2-tissue.js?v=8';
+import {restoreSurfaceUV} from './mira-v2-uv.js?v=9.3';
+import {V2_EXTRA_SLIDERS,FACE_PRESETS,EXERCISE_MODES} from './mira-v2-controls.js?v=9.3';
+import {HairGuides} from './mira-v2-hair.js?v=9.3';
+import {SurfaceFlesh} from './mira-v2-tissue.js?v=9.3';
 
 // Mira v2: a bounded real-time approximation for this CC3 rig, Three r170.
 const clamp = THREE.MathUtils.clamp, damp = THREE.MathUtils.damp;
@@ -11,9 +14,6 @@ const V = () => new THREE.Vector3();
 const cap = (v,n) => { if(v.lengthSq()>n*n)v.setLength(n); return v; };
 const tmp=V(), tmp2=V(), tmp3=V(), axis=V(), q=new THREE.Quaternion();
 const up=new THREE.Vector3(0,1,0);
-export const EMOTION_NAMES=['neutral','happy','content','curious','listening','thoughtful','concerned','sad','surprise','afraid','angry','disgust','tease','flirty','laugh','tired'];
-export const IDLE_NAMES=['rest','weightShift','handsTogether','handOnHip','handsOnHips','hairTuck','lookAtHand','wave','explain','shoulderRoll','lookAround','breathe','neckStretch','sigh','armStretch','wiggle','dance'];
-export const WALK_NAMES=['Relaxed','Purposeful','Soft','Brisk','Careful','Stroll'];
 const FACE_POSES={
  neutral:{}, happy:{Mouth_Smile:1,Cheek_Raise:.64,Mouth_Dimple:.26,Eye_Squint:.19,Jaw_Open:.10},
  content:{Mouth_Smile:.52,Eye_Squint:.08,Cheek_Raise:.29},
@@ -128,6 +128,7 @@ export function shapePoint(x,y,z,size,likeness=0,butt=1,arms=1,options={}){
   dy+=(y-1.50)*face.length*smooth((y-1.40)/.055);
   dz+=face.nose*Math.exp(-((x/.024)**2+((y-1.52)/.024)**2))*front;
  }
+ if(options.male){const upper=Math.exp(-(((y-1.29)/.16)**2))*(1-smooth((Math.abs(x)-.22)/.12));dx+=x*.14*upper;if(y>1.08&&y<1.34&&z>0){const w=(1-smooth(((y-1.21)/.13)**2))*(1-smooth((Math.abs(x)-.07)/.12));dz+=(.052-(z+dz))*w*.82;}}
  return [x+dx,y+dy,z+dz];
 }
 
@@ -137,7 +138,7 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    super(restoreSurfaceUV(root),scale,opts);
    this.version='v2';this.autonomy=true;this.lifeT=8+Math.random()*5;this.greetingT=1;this.autoWander=false;this.mode='idle';this.shape.jiggle=opts.shape?.jiggle??2.8;
    for(const slider of V2_EXTRA_SLIDERS)this.shape[slider.key]=opts.shape?.[slider.key]??slider.value;
-   this.hairStyle=clamp(opts.hairStyle||0,0,7);
+   this.hairStyle=clamp(opts.hairStyle||0,0,10);this.bodyType=opts.bodyType==='male'?'male':'female';this.displayName=opts.name||(this.bodyType==='male'?'Alex':'Mira');this.personality=opts.personality||this.personality;
    this.spineTouch=V();this.spineGoal=V();this.armSwing={};
    this.emotion={name:'content',intensity:.78,time:0,hold:6,source:'idle',valence:.35,arousal:.25};
    this.emotionTarget={}; this.emotionCurrent={};this.expressionOverride=null;
@@ -204,26 +205,26 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    this.surfaceFlesh=new SurfaceFlesh(this);
    this.skinDetailMap=loadMap('skin_detail_v2.jpg',true);this.skinDetailMap.wrapS=this.skinDetailMap.wrapT=THREE.RepeatWrapping;
    this.applyLooks();
-   this.hairPhysics=new HairGuides(this,BODY_HIT);
+   this.hairPhysics=new HairGuides(this,BODY_HIT);this.eyes=new LivingEyes(this,loadMap);
    this.root.traverse(o=>{if(o.isMesh){o.receiveShadow=!/Skin_/.test(o.material?.name);o.castShadow=!/hair|eyes/.test(o.name);}});
   }
   applyLooks(){
    if(!this.deform)return;
    for(const m of this.hairMats)m.color.setHex((HAIR_COLORS[this.hairColor]||HAIR_COLORS[0]).tint);
-   for(const m of this.headMats){m.map=loadMap('head_v2.jpg',true);m.normalScale.setScalar(.20);m.roughness=.93;}
+   for(const m of this.headMats){m.map=loadMap(this.bodyType==='male'?'head.jpg':'head_v2.jpg',true);m.normalScale.setScalar(.20);m.roughness=.93;}
    this.root.traverse(o=>{if(!o.isMesh)return;for(const m of Array.isArray(o.material)?o.material:[o.material]){
     if(/Skin_Body/.test(m.name))m.map=loadMap('body_v2.jpg',true);
     if(/Skin_/.test(m.name)){const d=this.deform.find(d=>d.position===o.geometry.attributes.position);if(d&&!o.geometry.attributes.v2SkinRest)o.geometry.setAttribute('v2SkinRest',new THREE.BufferAttribute(d.base,3));m.normalScale?.setScalar(/Head/.test(m.name)?.20:.32);m.envMapIntensity=.50;m.aoMap=null;m.aoMapIntensity=0;installSkinShader(m);installV2Skin(m,this);m.needsUpdate=true;}
     if(/Std_Eye_[LR]/.test(m.name)){m.roughness=.30;m.envMapIntensity=.75;}
-    if(/cornea/i.test(m.name)){m.opacity=.22;m.envMapIntensity=.75;m.roughness=.12;}
+    if(/cornea/i.test(m.name)&&!m.userData.livingEye){m.opacity=.22;m.envMapIntensity=.75;m.roughness=.12;}
    }});
    this.seamsReady=false;
    for(const o of this.skinMeshes)if(!o.geometry.attributes.v2ToneGain){const gains=new Float32Array(o.geometry.attributes.position.count*3);gains.fill(1);o.geometry.setAttribute('v2ToneGain',new THREE.BufferAttribute(gains,3));}
   }
   updateShapeGeometry(){
    const size=this.shape.breast,profile=FACE_PRESETS[this.faceType]||FACE_PRESETS[0],like=profile.like*this.likeness;
-   const options={...this.shape,faceProfile:profile};
-   const key=[size,like,this.faceType,this.shape.butt,this.shape.arms,this.shape.waist,this.shape.hips,this.shape.thigh,this.shape.gap,this.shape.breastHeight,this.shape.breastSpacing,this.shape.breastAngle,this.shape.softness,this.shape.buttHeight,this.shape.buttSpacing,this.shape.buttAngle].map(n=>n.toFixed(3)).join('/');if(key===this.geomState)return;this.geomState=key;
+   const options={...this.shape,faceProfile:profile,male:this.bodyType==='male'};
+   const key=[size,like,this.faceType,this.shape.butt,this.shape.arms,this.shape.waist,this.shape.hips,this.shape.thigh,this.shape.gap,this.shape.breastHeight,this.shape.breastSpacing,this.shape.breastAngle,this.shape.softness,this.shape.buttHeight,this.shape.buttSpacing,this.shape.buttAngle].map(n=>n.toFixed(3)).join('/')+this.bodyType;if(key===this.geomState)return;this.geomState=key;
    const likenessChanged=like!==this.lastLikeness||this.faceType!==this.lastFace;this.lastLikeness=like;this.lastFace=this.faceType;
    for(const d of this.deform){
     const a=d.geom.attributes.position.array,b=d.base;
@@ -581,7 +582,7 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    const eyeY=clamp(yaw-this.gazeYaw*.90*free-this.headTouch.y,-.34,.34);
    const eyeX=clamp(pitch-this.gazePitch*.88*free-this.headTouch.x,-.22,.22);
    this.eyeYaw=damp(this.eyeYaw||0,eyeY,24,dt);this.eyePitch=damp(this.eyePitch||0,eyeX,24,dt);
-   this.addE('L_Eye',this.eyePitch,this.eyeYaw,0);this.addE('R_Eye',this.eyePitch,this.eyeYaw,0);
+   const vergence=clamp(Math.atan2(.030,Math.max(.28,d.length())),0,.085);this.addE('L_Eye',this.eyePitch,this.eyeYaw-vergence,0);this.addE('R_Eye',this.eyePitch,this.eyeYaw+vergence,0);
    for(const side of ['L','R']){
     this.want['Eye_'+side+'_Look_L']=Math.max(0,-this.eyeYaw)*.45;this.want['Eye_'+side+'_Look_R']=Math.max(0,this.eyeYaw)*.45;
     this.want['Eye_'+side+'_Look_Up']=Math.max(0,-this.eyePitch)*.7;this.want['Eye_'+side+'_Look_Down']=Math.max(0,this.eyePitch)*.7;
@@ -859,7 +860,7 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    this.tickGrab(dt);
    this.group.updateMatrixWorld(true);
    this.tickSoft(dt);this.poseHeadContact(dt);this.group.updateMatrixWorld(true);
-   this.surfaceFlesh?.tick(dt);this.hairPhysics?.tick(dt);
+   this.surfaceFlesh?.tick(dt);this.hairPhysics?.tick(dt);this.eyes?.tick(dt,t);
    this.root.traverse(o=>{if(o.isSkinnedMesh)o.skeleton.update();});
   }
   keepArmsClear(){} // final world-space IK chooses hand targets clear of the chest
