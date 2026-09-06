@@ -93,10 +93,17 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
     }
     record.indices.push(...old.index.array);
     const geom=new THREE.BufferGeometry();geom.index=old.index;geom.attributes={...old.attributes,position:record.position,normal:record.normal};if(record.skinIndex){geom.attributes.skinIndex=record.skinIndex;geom.attributes.skinWeight=record.skinWeight;}
-    geom.morphAttributes={...old.morphAttributes,position:record.morphPosition};geom.morphTargetsRelative=old.morphTargetsRelative;geom.groups=old.groups.slice();o.geometry=geom;
+    // r170 enables morph shaders from property presence, even for an empty
+    // array. Eyes/teeth have no targets: adding position:[] generates an illegal
+    // zero-length GLSL uniform and makes the render loop read missing influences.
+    geom.morphAttributes={};
+    for(const [name,targets] of Object.entries(old.morphAttributes)){
+     if(targets.length)geom.morphAttributes[name]=name==='position'?record.morphPosition:targets;
+    }
+    geom.morphTargetsRelative=old.morphTargetsRelative;geom.groups=old.groups.slice();o.geometry=geom;
     record.geom=geom;
    });
-   for(const d of this.deform){const g=new THREE.BufferGeometry();g.attributes={position:d.position,normal:d.normal};g.setIndex(d.indices);d.geom=g;g.morphAttributes.position=d.morphPosition;delete d.indices;}
+   for(const d of this.deform){const g=new THREE.BufferGeometry();g.attributes={position:d.position,normal:d.normal};g.setIndex(d.indices);d.geom=g;if(d.morphPosition.length)g.morphAttributes.position=d.morphPosition;delete d.indices;}
    this.applyLooks();
    this.hairPhysics=new HairGuides(this,BODY_HIT);
    this.root.traverse(o=>{if(o.isMesh){o.receiveShadow=true;o.castShadow=!/hair|eyes/.test(o.name);}});

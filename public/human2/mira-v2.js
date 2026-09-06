@@ -1,4 +1,4 @@
-import { createV2Class } from "./mira-v2-features.js";
+import { createV2Class } from "./mira-v2-features.js?v=3";
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { clone as cloneSkinned } from "three/addons/utils/SkeletonUtils.js";

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import {SLIDERS,FACE_TYPES} from './mira-v2.js';
-import {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES} from './mira-v2-features.js';
+import {SLIDERS,FACE_TYPES} from './mira-v2.js?v=3';
+import {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES} from './mira-v2-features.js?v=3';
 export function createVRMenu({scene,renderer,camera,system,spawn,onSync}){
  const canvas=document.createElement('canvas');canvas.width=1024;canvas.height=1320;
  const ctx=canvas.getContext('2d'),tex=new THREE.CanvasTexture(canvas);tex.colorSpace=THREE.SRGBColorSpace;

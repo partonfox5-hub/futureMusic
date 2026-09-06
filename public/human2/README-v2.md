@@ -2,6 +2,16 @@
 
 This package keeps the `human2/`, `human2/assets/`, and `human2/assets/tex/` layout. Serve the folder over HTTP for desktop use, or HTTPS in Quest Browser for VR/AR. Open `human2/index.html`, hard-refresh after replacing an older deployment, and start with one actor on Balanced.
 
+## Render fix — module revision 3
+
+The initial v2 package attached an empty `morphAttributes.position` list to the eyes and teeth, which have no facial morph targets. Three.js r170 treats the property's presence as enabling morph rendering. This generated a zero-length shader uniform in the surface and shadow passes and then threw while reading missing morph influences, interrupting the render loop. A frame could remain partially drawn before textures finished loading.
+
+V2 now preserves the absence of morph attributes on those meshes while retaining all 49 facial targets on the body. The fix covers both the eye and `MeshDepthMaterial` failures. The original v1 core, voice and engine remain unchanged. All v2 module URLs use `?v=3` to invalidate cached scripts, and the main page declares an inline empty favicon to avoid the unrelated favicon 404.
+
+Replace the complete `human2/` folder with this package, clear any hosting/CDN cache for that folder, then press **Ctrl+Shift+R**. Extension messages from `contentscript.js` are separate from the model's render failure; changing EventEmitter listener limits is not part of this fix.
+
+The regression checks reproduce the old morph-upload exception, exercise the corrected Three.js morph-upload path, generate surface/depth shaders for all 13 meshes in both versions, verify skin/eye map assignments and nonmetallic materials, and recheck animation, grabs, recovery and Y/B input. The cloud browser could load the page but could not create a WebGL context (`GL_RENDERER = Disabled`), so a rendered browser/Quest visual pass remains unavailable.
+
 ## Versions
 
 - **Mira v1:** the original actor implementation and original textures remain available in the shared spawner. `mira-core.js`, `mira-voice.js`, the GLB and all uploaded textures are byte-for-byte unchanged. `engine-v1.js` preserves the uploaded engine; `mira-v1.html` opens the original scene with its original controls. That page's script URL is made relative so it can run at a different mount point.

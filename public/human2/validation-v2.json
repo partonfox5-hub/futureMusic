@@ -465,5 +465,21 @@
     "Recovery is procedural, not a full active ragdoll.",
     "Reference likeness is approximate; generated head atlas is not an identity reconstruction.",
     "Body albedo retained from upload. Hair uses guide-driven cards and capsule collisions; no strand self-collision."
-  ]
+  ],
+  "renderHotfixRevision3": {
+    "date": "2026-09-06",
+    "cause": "Empty morphAttributes.position on eye/teeth geometry enabled zero-count morph shaders and crashed Three.js WebGLMorphtargets.update when influences were absent.",
+    "originalMorphUploadCrashReproduced": true,
+    "fixedMorphUploadChecksPassed": true,
+    "surfaceAndDepthShaderConfigurationsGenerated": 52,
+    "driverShaderCompilationVerified": false,
+    "skinAndEyeMapsAssigned": true,
+    "skinAndEyeMetalnessZero": true,
+    "animationTicksWithV1AndV2": 120,
+    "twoHandReleaseLegDragRecoveryPassed": true,
+    "questYBMappingRegressionPassed": true,
+    "moduleImportsAndSyntaxPassed": true,
+    "v1OriginalCoreVoiceEngineUnchanged": true,
+    "browserAttempt": "Cloud Chrome reached page, but WebGL context creation failed with GL_RENDERER = Disabled; no rendered visual validation."
+  }
 }
