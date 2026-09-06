@@ -1,8 +1,8 @@
 import * as THREE from 'three';
-import {SLIDERS,FACE_TYPES} from './mira-v2.js?v=5';
-import {shapeSliders,FACE_PRESETS,HAIR_STYLES,ACTIVITY_MODES} from './mira-v2-controls.js?v=5';
-import {HAIR_COLORS} from './mira-v2.js?v=5';
-import {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES} from './mira-v2-features.js?v=5';
+import {SLIDERS,FACE_TYPES} from './mira-v2.js?v=6';
+import {shapeSliders,FACE_PRESETS,HAIR_STYLES,ACTIVITY_MODES} from './mira-v2-controls.js?v=6';
+import {HAIR_COLORS} from './mira-v2.js?v=6';
+import {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES} from './mira-v2-features.js?v=6';
 export function createVRMenu({scene,renderer,camera,system,spawn,onSync}){
  const canvas=document.createElement('canvas');canvas.width=1024;canvas.height=1320;
  const ctx=canvas.getContext('2d'),tex=new THREE.CanvasTexture(canvas);tex.colorSpace=THREE.SRGBColorSpace;
@@ -15,7 +15,7 @@ export function createVRMenu({scene,renderer,camera,system,spawn,onSync}){
  function active(){return system.selected;}
  function draw(){
   items=[];ctx.fillStyle='#151c25';ctx.fillRect(0,0,1024,1320);ctx.strokeStyle='#657d92';ctx.lineWidth=3;ctx.strokeRect(3,3,1018,1314);
-  ctx.fillStyle='#eef7ff';ctx.font='bold 42px sans-serif';ctx.fillText('MIRA · UPDATE 5',40,62);
+  ctx.fillStyle='#eef7ff';ctx.font='bold 42px sans-serif';ctx.fillText('MIRA · UPDATE 6',40,62);
   ctx.font='26px sans-serif';ctx.fillStyle='#b7c8d8';ctx.fillText('Y: close  ·  point + trigger to adjust',40,105);
   function button(label,x,y,w,h,fn){ctx.fillStyle='#26384b';ctx.fillRect(x,y,w,h);ctx.fillStyle='#edf6ff';ctx.font='28px sans-serif';ctx.textAlign='center';ctx.fillText(label,x+w/2,y+h/2+10);ctx.textAlign='left';items.push({x,y,w,h,fn});}
   ['ACTOR','BODY','STYLE','MOOD'].forEach((n,i)=>button((i===page?'• ':'')+n,40+i*240,140,228,66,()=>{page=i;draw();}));

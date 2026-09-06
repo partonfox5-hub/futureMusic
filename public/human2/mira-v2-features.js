@@ -1,7 +1,8 @@
 import * as THREE from 'three';
-import {V2_EXTRA_SLIDERS,FACE_PRESETS,EXERCISE_MODES} from './mira-v2-controls.js?v=5';
-import {HairGuides} from './mira-v2-hair.js?v=5';
-import {SurfaceFlesh} from './mira-v2-tissue.js?v=5';
+import {restoreSurfaceUV} from './mira-v2-uv.js?v=6';
+import {V2_EXTRA_SLIDERS,FACE_PRESETS,EXERCISE_MODES} from './mira-v2-controls.js?v=6';
+import {HairGuides} from './mira-v2-hair.js?v=6';
+import {SurfaceFlesh} from './mira-v2-tissue.js?v=6';
 
 // Mira v2: a bounded real-time approximation for this CC3 rig, Three r170.
 const clamp = THREE.MathUtils.clamp, damp = THREE.MathUtils.damp;
@@ -70,6 +71,8 @@ export function shapePoint(x,y,z,size,likeness=0,butt=1,arms=1,options={}){
     const attach=(1-smooth(rr*.70))*smooth((bz-.006)/.060)*smooth(Math.abs(bx)/.040);
     sx+=sign*((options.breastSpacing||0)*.012+(options.breastAngle||0)*.18*Math.max(0,bz-.03))*attach;
     sy+=(options.breastHeight||0)*.016*attach;
+    // Larger soft volumes acquire a lower pole instead of expanding as a sphere.
+    sy-=(.003+.026*Math.max(0,k))*(.35+.65*(options.softness??.62))*w*smooth((cy+.06-by)/.13);
     sz-=sign*(bx-cx)*(options.breastAngle||0)*.18*attach;
    }
    bx+=sx/5;by+=sy/5;bz+=sz/5;
@@ -83,7 +86,7 @@ export function shapePoint(x,y,z,size,likeness=0,butt=1,arms=1,options={}){
   const w=(1-smooth(rr))*smooth((-z-.015)/.065);
   const k=Math.cbrt(butt*butt)-1;
   dx+=Math.sign(x)*.025*k*w*smooth(Math.abs(x)/.055);
-  dz-=.047*k*w;dy-=(.005+.022*Math.max(0,k))*w*smooth((.94-y)/.15);
+  dz-=.047*k*w;dy-=(.005+.032*Math.max(0,k))*(.45+.55*(options.softness??.62))*w*smooth((.94-y)/.15);
  }
  // Shape the arm surface instead of multiplying upper-arm and forearm scales.
  // The original scale hierarchy also scaled every finger twice.
@@ -127,10 +130,11 @@ export function shapePoint(x,y,z,size,likeness=0,butt=1,arms=1,options={}){
 export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAIR_COLORS,SLIDERS}){
  return class MiraV2 extends Base {
   constructor(root,scale,opts={}){
-   super(root,scale,opts);
+   super(restoreSurfaceUV(root),scale,opts);
    this.version='v2';this.autonomy=true;this.lifeT=8+Math.random()*5;this.greetingT=1;this.autoWander=false;this.mode='idle';this.shape.jiggle=opts.shape?.jiggle??2.8;
    for(const slider of V2_EXTRA_SLIDERS)this.shape[slider.key]=opts.shape?.[slider.key]??slider.value;
-   this.hairStyle=clamp(opts.hairStyle||0,0,3);
+   this.hairStyle=clamp(opts.hairStyle||0,0,7);
+   this.spineTouch=V();this.spineGoal=V();this.armSwing={};
    this.emotion={name:'content',intensity:.78,time:0,hold:6,source:'idle',valence:.35,arousal:.25};
    this.emotionTarget={}; this.emotionCurrent={};this.expressionOverride=null;
    this.idleKind='rest';this.idleT=3;this.idleDur=3;this.idleChoice='auto';this.seed=Math.random()*100;
@@ -194,6 +198,7 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    });
    for(const d of this.deform){const g=new THREE.BufferGeometry();g.attributes={position:d.position,normal:d.normal};g.setIndex(d.indices);d.geom=g;if(d.morphPosition.length)g.morphAttributes.position=d.morphPosition;delete d.indices;}
    this.surfaceFlesh=new SurfaceFlesh(this);
+   this.skinDetailMap=loadMap('skin_detail_v2.jpg',true);this.skinDetailMap.wrapS=this.skinDetailMap.wrapT=THREE.RepeatWrapping;
    this.applyLooks();
    this.hairPhysics=new HairGuides(this,BODY_HIT);
    this.root.traverse(o=>{if(o.isMesh){o.receiveShadow=!/Skin_/.test(o.material?.name);o.castShadow=!/hair|eyes/.test(o.name);}});
@@ -204,7 +209,7 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    for(const m of this.headMats){m.map=loadMap('head_v2.jpg',true);m.normalScale.setScalar(.20);m.roughness=.93;}
    this.root.traverse(o=>{if(!o.isMesh)return;for(const m of Array.isArray(o.material)?o.material:[o.material]){
     if(/Skin_Body/.test(m.name))m.map=loadMap('body_v2.jpg',true);
-    if(/Skin_/.test(m.name)){m.normalScale?.setScalar(/Head/.test(m.name)?.20:.32);m.envMapIntensity=.50;m.aoMap=null;m.aoMapIntensity=0;installSkinShader(m);installV2Skin(m,this);m.needsUpdate=true;}
+    if(/Skin_/.test(m.name)){const d=this.deform.find(d=>d.position===o.geometry.attributes.position);if(d&&!o.geometry.attributes.v2SkinRest)o.geometry.setAttribute('v2SkinRest',new THREE.BufferAttribute(d.base,3));m.normalScale?.setScalar(/Head/.test(m.name)?.20:.32);m.envMapIntensity=.50;m.aoMap=null;m.aoMapIntensity=0;installSkinShader(m);installV2Skin(m,this);m.needsUpdate=true;}
     if(/Std_Eye_[LR]/.test(m.name)){m.roughness=.30;m.envMapIntensity=.75;}
     if(/cornea/i.test(m.name)){m.opacity=.22;m.envMapIntensity=.75;m.roughness=.12;}
    }});
@@ -214,7 +219,7 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
   updateShapeGeometry(){
    const size=this.shape.breast,profile=FACE_PRESETS[this.faceType]||FACE_PRESETS[0],like=profile.like*this.likeness;
    const options={...this.shape,faceProfile:profile};
-   const key=[size,like,this.faceType,this.shape.butt,this.shape.arms,this.shape.waist,this.shape.hips,this.shape.thigh,this.shape.gap,this.shape.breastHeight,this.shape.breastSpacing,this.shape.breastAngle].map(n=>n.toFixed(3)).join('/');if(key===this.geomState)return;this.geomState=key;
+   const key=[size,like,this.faceType,this.shape.butt,this.shape.arms,this.shape.waist,this.shape.hips,this.shape.thigh,this.shape.gap,this.shape.breastHeight,this.shape.breastSpacing,this.shape.breastAngle,this.shape.softness].map(n=>n.toFixed(3)).join('/');if(key===this.geomState)return;this.geomState=key;
    const likenessChanged=like!==this.lastLikeness||this.faceType!==this.lastFace;this.lastLikeness=like;this.lastFace=this.faceType;
    for(const d of this.deform){
     const a=d.geom.attributes.position.array,b=d.base;
@@ -274,7 +279,7 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    // stays uniform, so elbow, knee, finger and crotch weights agree as joints bend.
    this.root.scale.setScalar(this.baseScale*this.shape.height);
    this.updateShapeGeometry();
-   for(const mesh of this.skinMeshes){const mat=mesh.material;mat.normalScale?.setScalar((/Head/.test(mat.name)?.12:.18)+this.shape.skinDetail*.32);}
+   for(const mesh of this.skinMeshes){const mat=mesh.material;mat.normalScale?.setScalar((/Head/.test(mat.name)?.10:/Leg/.test(mat.name)?.09:.14)+this.shape.skinDetail*.24);}
   }
   jiggleAmt(){return clamp(this.shape.jiggle??2.8,0,6);}
   setEmotion(name,intensity=.65,{hold=9,source='context',valence,arousal}={}){
@@ -422,7 +427,7 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    const names=kind==='arm'?['Upperarm','Forearm','Hand']:['Thigh','Calf','Foot'];
    const [a,b,c]=names.map(n=>this.bones[side+'_'+n]);if(!a||!b||!c)return;
    const pa=a.getWorldPosition(V()),pb=b.getWorldPosition(V()),pc=c.getWorldPosition(V());
-   const l1=pa.distanceTo(pb),l2=pb.distanceTo(pc),dir=target.clone().sub(pa),dist=clamp(dir.length(),kind==='arm'?Math.sqrt(l1*l1+l2*l2+2*l1*l2*Math.cos(150*Math.PI/180)):Math.abs(l1-l2)+.005,(l1+l2)*.99);
+   const l1=pa.distanceTo(pb),l2=pb.distanceTo(pc),dir=target.clone().sub(pa),dist=clamp(dir.length(),Math.sqrt(l1*l1+l2*l2+2*l1*l2*Math.cos((kind==='arm'?145:140)*Math.PI/180)),(l1+l2)*.998);
    if(dir.lengthSq()<1e-9)return;dir.normalize();
    const bend=pole.clone().sub(pa);bend.addScaledVector(dir,-bend.dot(dir));
    if(bend.lengthSq()<1e-8)bend.set(0,0,1).addScaledVector(dir,-dir.z);bend.normalize();
@@ -436,7 +441,8 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
     if([...this.grabs.values()].some(g=>g.side===side&&g.limb==='arm'))continue;
     const sign=side==='L'?1:-1;
     const hand=this.bones[side+'_Hand'];if(!hand)continue;
-    const dst=new THREE.Vector3(sign*(.225+.018*this.shape.arms+.015*Math.max(0,this.shape.hips-1)),.895+.007*Math.sin(t*.73+this.seed+sign),.045+sign*Math.sin(this.walkT-.16)*.105*step+.007*Math.sin(t*.57+sign));
+    const dst=this.restArm(side,step);
+    this.group.worldToLocal(dst);dst.divideScalar(h);
     const gesture=dst.clone();
     if(!step){
      if(this.idleKind==='handsTogether')gesture.set(sign*.046,1.02,.19);
@@ -456,10 +462,32 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
     if(this.mode==='jumpingJacks'){const a=(1-Math.cos(this.modeT*4.4))/2;dst.set(sign*(.26+.31*Math.sin(a*Math.PI)),.9+.81*a,.055);}
     if(EXERCISE_MODES.includes(this.mode))this.activityHandTarget(dst,side);
     dst.multiplyScalar(h);this.group.localToWorld(dst);
-    const current=this.handTargets[side]||(this.handTargets[side]=dst.clone());current.lerp(dst,1-Math.exp(-this.dt*10));
-    const pole=new THREE.Vector3(sign*.25,1.10,-.24).multiplyScalar(h);this.group.localToWorld(pole);
+    const rest=hand.getWorldPosition(V());
+    if(dst.distanceTo(rest)<.0015*h){this.handTargets[side]=rest.clone();continue;}
+    const current=this.handTargets[side]||(this.handTargets[side]=rest.clone());current.lerp(dst,1-Math.exp(-this.dt*8));
+    const pole=new THREE.Vector3(sign*.30,1.05,-.20).multiplyScalar(h);this.group.localToWorld(pole);
     this.solveChain(side,'arm',current,pole);
    }
+  }
+  restArm(side,step){
+   const sign=side==='L'?1:-1,a=this.bones[side+'_Upperarm'],b=this.bones[side+'_Forearm'],c=this.bones[side+'_Hand'];
+   // Reset just the two long bones. Finger flexion remains owned by tickFingers.
+   a.quaternion.copy(this.bindQ[a.name]);b.quaternion.copy(this.bindQ[b.name]);
+   this.group.updateMatrixWorld(true);
+   const shoulder=a.getWorldPosition(V()),elbow=b.getWorldPosition(V()),wrist=c.getWorldPosition(V()),l1=shoulder.distanceTo(elbow),l2=elbow.distanceTo(wrist);
+   const state=this.armSwing[side]||(this.armSwing[side]={angle:0,v:0,last:shoulder.clone(),vel:V()});
+   const dt=Math.max(.001,this.dt),velocity=shoulder.clone().sub(state.last).divideScalar(dt);
+   const accel=cap(velocity.clone().sub(state.vel).divideScalar(dt),6).applyQuaternion(this.group.getWorldQuaternion(new THREE.Quaternion()).invert());
+   state.last.copy(shoulder);state.vel.copy(velocity);
+   const target=sign*Math.sin(this.walkT-.18)*.26*step+.014*Math.sin(this.time*.77+this.seed+sign);
+   state.v=(state.v+dt*(31*(target-state.angle)-accel.z*.24))/(1+5.4*dt+31*dt*dt);state.angle=clamp(state.angle+dt*state.v,-.48,.48);
+   const clearance=.13+.06*Math.max(0,this.shape.hips-1)+.025*(this.shape.arms-1);
+   const upper=new THREE.Vector3(sign*clearance,-1,Math.sin(state.angle)-.015).normalize();
+   const lower=new THREE.Vector3(sign*(clearance*.70),-1,Math.sin(state.angle)+.14+.055*step).normalize();
+   const rot=this.group.getWorldQuaternion(new THREE.Quaternion());upper.applyQuaternion(rot);lower.applyQuaternion(rot);
+   elbow.copy(shoulder).addScaledVector(upper,l1);wrist.copy(elbow).addScaledVector(lower,l2);
+   this.aimBone(a,b,elbow);this.aimBone(b,c,wrist);
+   return c.getWorldPosition(V());
   }
   activityHandTarget(dst,side){
    const sign=side==='L'?1:-1,t=this.modeT,phase=t*3.4+(side==='L'?0:Math.PI);
@@ -560,6 +588,23 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
     const bone=this.bones[name];if(bone)bone.quaternion.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(this.headTouch.x*weight,this.headTouch.y*weight,this.headTouch.z*weight,'YXZ')));
    }
   }
+  poseSpineContact(dt){
+   if(![...this.grabs.values()].some(g=>g.body))this.spineGoal.multiplyScalar(Math.exp(-dt*3.5));
+   this.spineTouch.lerp(this.spineGoal,1-Math.exp(-dt*8));
+   for(const [name,w] of [['Waist',.22],['Spine01',.34],['Spine02',.44]]){
+    const bone=this.bones[name];if(bone)bone.quaternion.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(this.spineTouch.x*w,this.spineTouch.y*w,this.spineTouch.z*w,'YXZ')));
+   }
+   this.group.updateMatrixWorld(true);
+  }
+  handContact(pos,rad,velocity,react=true){
+   this.handContactScale=this.shape.handResponse??1.35;
+   try{return super.collidePoint(pos,rad,velocity,true,react);}finally{this.handContactScale=null;}
+  }
+  contactSoft(hit,normal,push,closing){
+   const scale=this.handContactScale??1;
+   super.contactSoft(hit,normal,push*scale,closing*scale);
+   if(this.handContactScale!==null&&this.handContactScale!==undefined)this.surfaceFlesh?.contact(hit,normal,closing*scale,push*scale);
+  }
   nearestHit(pos,maxDist){
    let best=super.nearestHit(pos,maxDist),bd=maxDist,point=null,chosen=null;
    const seen=new Set();
@@ -585,11 +630,12 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    const g={ctrl,hit,side:hit.name.startsWith('L_')?'L':hit.name.startsWith('R_')?'R':null,
     limb:/arm|hand/.test(hit.kind)?'arm':/thigh|leg|foot/.test(hit.kind)?'leg':null,
     local:bone.worldToLocal(anchor.clone()),last:ctrl.getWorldPosition(V()),velocity:V(),pull:V(),elapsed:0,offset:ctrl.getWorldPosition(V()).sub(anchor),spring:this.soft.find(s=>s.name===hit.name)||null,tx:0,ty:0,tz:0};
+   if(['hip','belly','chest'].includes(hit.kind)){g.body=true;g.gripQ=ctrl.getWorldQuaternion(new THREE.Quaternion());g.spineStart=this.spineTouch.clone();g.startYaw=this.group.rotation.y;}
    if(hit.kind==='head'){g.head=true;g.gripQ=ctrl.getWorldQuaternion(new THREE.Quaternion());g.headStart=this.headTouch.clone().add(new THREE.Vector3(this.gazePitch*.88,this.gazeYaw*.9,0));}
    this.grabs.set(ctrl,g);this.held=[...this.grabs.values()][0];this.dest=null;this.feet={};this.setEmotion('surprise',.35,{hold:2,source:'interaction'});
   }
   tickGrab(dt){
-   if(!(dt>0)||(this.inBaseTick&&this.balance.state!=='standing'))return;
+   if(!(dt>0)||this.inBaseTick)return;
    for(const g of this.grabs.values()){
     const bone=this.bones[g.hit.name],p=g.ctrl.getWorldPosition(V()).sub(g.offset);
     const delta=g.ctrl.getWorldPosition(V()).sub(g.last);g.last.copy(p).add(g.offset);
@@ -608,12 +654,19 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
      continue;
     }
     const h=this.shape.height;
+    if(g.body){
+     const groupQ=this.group.getWorldQuaternion(new THREE.Quaternion()),dq=g.ctrl.getWorldQuaternion(new THREE.Quaternion()).multiply(g.gripQ.clone().invert());
+     dq.premultiply(groupQ.clone().invert()).multiply(groupQ);const e=new THREE.Euler().setFromQuaternion(dq,'YXZ'),local=pull.clone().applyQuaternion(groupQ.invert());
+     this.spineGoal.copy(g.spineStart).add(new THREE.Vector3(e.x+local.z*1.6,e.y*.40,e.z-local.x*1.8));
+     this.spineGoal.clamp(new THREE.Vector3(-.35,-.40,-.32),new THREE.Vector3(.55,.40,.32));
+     const turn=Math.atan2(Math.sin(g.startYaw+e.y*.65-this.group.rotation.y),Math.cos(g.startYaw+e.y*.65-this.group.rotation.y));this.group.rotation.y+=clamp(turn,-1.2*dt,1.2*dt);
+    }
     // Preserve the contact offset even for an elbow/mid-limb grab.
     if(g.limb){
      const names=g.limb==='arm'?['Upperarm','Forearm','Hand']:['Thigh','Calf','Foot'];
      const proximal=g.hit.name===g.side+'_'+names[0];
      const end=this.bones[g.side+'_'+names[2]],tip=end.getWorldPosition(V()).add(pull);
-     const pole=new THREE.Vector3((g.side==='L'?1:-1)*(g.limb==='arm'?.45:.12),g.limb==='arm'?1.12:.52,g.limb==='arm'?.07:.3).multiplyScalar(h);this.group.localToWorld(pole);
+     const pole=new THREE.Vector3((g.side==='L'?1:-1)*(g.limb==='arm'?.45:.12),g.limb==='arm'?1.12:.52,g.limb==='arm'?-.20:.3).multiplyScalar(h);this.group.localToWorld(pole);
      if(proximal){const b=this.bones[g.side+'_'+names[0]],child=this.bones[g.side+'_'+names[1]];this.aimBone(b,child,child.getWorldPosition(V()).add(pull));}
      else this.solveChain(g.side,g.limb,tip,pole);
     }
@@ -744,14 +797,14 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
     bone.position.x+=s.x/Math.max(.01,Math.abs(sc.x));bone.position.y+=s.y/Math.max(.01,Math.abs(sc.y));bone.position.z+=s.z/Math.max(.01,Math.abs(sc.z));
    }
   }
-  softFrequency(s,size){return 2*Math.PI*(s.kind==='breast'?3.2:3.6)/Math.sqrt(size)/(.72+.85*this.shape.softness);}
+  softFrequency(s,size){return 2*Math.PI*(s.kind==='breast'?3.05:3.20)/Math.sqrt(size)/(.72+.85*this.shape.softness);}
   limitSoft(s){
    const size=s.kind==='breast'?this.shape.breast:this.shape.butt,h=this.shape.height;
-   const growth=Math.cbrt(size),soft=this.shape.softness??.62,motion=.6+.4*Math.min(1,this.jiggleAmt()/6),amp=(.55+.45*soft)*motion;
+   const growth=Math.cbrt(size),soft=this.shape.softness??.62,amp=(.55+.45*soft);
    // Parent Y points out of the chest. Compression into the attachment is much
    // more restricted than outward/downward motion; a spherical clamp can invert
    // the tightly weighted inner rim when the breast is enlarged.
-   const limits=s.kind==='breast'?[[ -.029*h*growth*amp,.029*h*growth*amp],[-.002*h/Math.max(1,size),.047*h*growth*amp],[-.048*h*growth*amp,.035*h*growth*amp]]:[[-.030*h*growth*amp,.030*h*growth*amp],[-.030*h*growth*amp,.030*h*growth*amp],[-.034*h*growth*amp,.012*h*growth*amp]];
+   const limits=s.kind==='breast'?[[ -.029*h*growth*amp,.029*h*growth*amp],[-.002*h/Math.max(1,size),.047*h*growth*amp],[-.072*h*growth*amp,.040*h*growth*amp]]:[[-.030*h*growth*amp,.030*h*growth*amp],[-.060*h*growth*amp,.035*h*growth*amp],[-.040*h*growth*amp,.012*h*growth*amp]];
    for(const [i,a] of ['x','y','z'].entries()){
     const raw=Number.isFinite(s[a])?s[a]:0;s[a]=clamp(raw,limits[i][0],limits[i][1]);
     s['v'+a]=clamp(Number.isFinite(s['v'+a])?s['v'+a]:0,-.85,.85);
@@ -772,7 +825,7 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    else if(c>.7)this.setEmotion('surprise',clamp(c*.15,0,.6),{hold:2,source:'contact'});
   }
   resetPhysics(){
-   super.resetPhysics();this.grabs?.clear();this.handTargets={};this.hairPhysics?.reset();this.surfaceFlesh?.reset();
+   super.resetPhysics();this.grabs?.clear();this.handTargets={};this.armSwing={};this.spineTouch?.set(0,0,0);this.spineGoal?.set(0,0,0);this.hairPhysics?.reset();this.surfaceFlesh?.reset();
    if(this.balance){this.balance.velocity.set(0,0,0);this.balance.stress=0;}
   }
   tick(dt,cam,t){
@@ -782,10 +835,10 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    this.root.position.copy(this.baseRootPos);this.root.quaternion.identity();
    // The v1 animation pipeline dispatches through these v2 overrides.
    this.inBaseTick=true;super.tick(dt,cam,t);this.inBaseTick=false;
-   this.poseActivity();this.poseArms();this.group.updateMatrixWorld(true);
+   this.poseActivity();this.poseSpineContact(dt);this.poseArms();this.group.updateMatrixWorld(true);
    // Limb IK follows the final arm pose, including both controllers independently.
    this.tickBalance(dt);
-   if(this.balance.state!=='standing')this.tickGrab(dt);
+   this.tickGrab(dt);
    this.group.updateMatrixWorld(true);
    this.tickSoft(dt);this.poseHeadContact(dt);this.group.updateMatrixWorld(true);
    this.surfaceFlesh?.tick(dt);this.hairPhysics?.tick(dt);
@@ -834,7 +887,8 @@ export function blendSkinSeams(meshes){
    }
   }
   for(const bucket of buckets.values()){
-   if(new Set(bucket.map(b=>b.record)).size<2)continue;
+   if(bucket.length<2)continue;
+   if(new Set(bucket.map(b=>b.record)).size===1&&new Set(bucket.map(b=>b.color.map(x=>x.toFixed(5)).join())).size===1)continue;
    const mean=[0,1,2].map(c=>bucket.reduce((s,b)=>s+b.color[c],0)/bucket.length);
    for(const b of bucket)b.record.seeds.set(b.i,mean.map((c,j)=>clamp(c/Math.max(.025,b.color[j]),.35,3)));
   }
@@ -865,16 +919,26 @@ function installV2Skin(material,actor){
  material.onBeforeCompile=shader=>{
   previous?.(shader);
   actor?.surfaceFlesh?.installShader(shader);
-  shader.vertexShader='attribute vec3 v2ToneGain;\nvarying vec3 v2Tone;\n'+shader.vertexShader;
-  shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nv2Tone=v2ToneGain;');
+  shader.vertexShader='attribute vec3 v2ToneGain;\nattribute vec3 v2SkinRest;\nvarying vec3 v2RestPos;\nvarying vec3 v2RestNormal;\nvarying vec3 v2Tone;\n'+shader.vertexShader;
+  shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nv2Tone=v2ToneGain;v2RestPos=v2SkinRest;v2RestNormal=normal;');
   shader.uniforms.v2SkinTexel={value:new THREE.Vector2(1/(material.map?.image?.width||2048),1/(material.map?.image?.height||2048))};
-  shader.fragmentShader='varying vec3 v2Tone;\nuniform vec2 v2SkinTexel;\n'+shader.fragmentShader;
+  shader.uniforms.v2DetailMap={value:actor.skinDetailMap};
+  shader.uniforms.v2DetailAmount={value:/Body/.test(material.name)?.75:/Head/.test(material.name)?.24:.46};
+  shader.uniforms.v2AlbedoBlur={value:/Leg/.test(material.name)?.66:/Arm/.test(material.name)?.42:.18};
+  shader.fragmentShader='varying vec3 v2Tone;\nvarying vec3 v2RestPos;\nvarying vec3 v2RestNormal;\nuniform sampler2D v2DetailMap;\nuniform float v2DetailAmount;\nuniform float v2AlbedoBlur;\nuniform vec2 v2SkinTexel;\n'+shader.fragmentShader;
   shader.fragmentShader=shader.fragmentShader.replace('#include <map_fragment>',THREE.ShaderChunk.map_fragment.replace('diffuseColor *= sampledDiffuseColor;',`
-    vec2 skinDx=v2SkinTexel*1.3;
+    vec2 skinDx=v2SkinTexel*2.3;
     vec3 softAlbedo=(texture2D(map,vMapUv+vec2(skinDx.x,0.0)).rgb+texture2D(map,vMapUv-vec2(skinDx.x,0.0)).rgb+texture2D(map,vMapUv+vec2(0.0,skinDx.y)).rgb+texture2D(map,vMapUv-vec2(0.0,skinDx.y)).rgb)*0.25;
-    sampledDiffuseColor.rgb=mix(sampledDiffuseColor.rgb,softAlbedo,0.30);
+    sampledDiffuseColor.rgb=mix(sampledDiffuseColor.rgb,softAlbedo,v2AlbedoBlur);
     diffuseColor *= sampledDiffuseColor;
-    diffuseColor.rgb *= v2Tone;`));
+    diffuseColor.rgb *= v2Tone;
+    // Small photograph-inspired detail, projected in rest space across UV seams.
+    // The albedo tile is mean-normalized; it does not paint a second skin colour.
+    vec3 blendN=pow(abs(normalize(v2RestNormal)),vec3(4.0));blendN/=max(dot(blendN,vec3(1.0)),0.0001);
+    vec3 coord=v2RestPos*12.5;
+    vec3 detailSkin=texture2D(v2DetailMap,coord.yz).rgb*blendN.x+texture2D(v2DetailMap,coord.xz).rgb*blendN.y+texture2D(v2DetailMap,coord.xy).rgb*blendN.z;
+    vec3 detailGain=clamp(detailSkin/vec3(0.7760,0.4283,0.2907),vec3(0.70),vec3(1.32));
+    diffuseColor.rgb*=mix(vec3(1.0),detailGain,v2DetailAmount);`));
   shader.fragmentShader=shader.fragmentShader.replace('#include <roughnessmap_fragment>','#include <roughnessmap_fragment>\nroughnessFactor=clamp(0.48+0.30*roughnessFactor,0.55,0.86);');
   // Skin's dielectric F0 is about .028 (IOR ~1.4); Standard's .04 looked coated.
   shader.fragmentShader=shader.fragmentShader.replace('#include <lights_physical_fragment>',THREE.ShaderChunk.lights_physical_fragment.replace('vec3( 0.04 )','vec3( 0.028 )'));
@@ -882,5 +946,5 @@ function installV2Skin(material,actor){
   shader.fragmentShader=shader.fragmentShader.replace('skinLobe * directLight.color, 0.38','skinLobe * directLight.color, 0.18');
  };
  material.onBeforeCompile.v2SkinBase=previous;
- material.customProgramCacheKey=()=> 'mira-skin-r5-flesh-tone';
+ material.customProgramCacheKey=()=> 'mira-skin-r6-uv-detail';
 }

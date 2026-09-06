@@ -18,17 +18,26 @@ export class HairGuides {
   this.capsA=Array.from({length:MAX_CAPS},()=>new THREE.Vector4());this.capsB=Array.from({length:MAX_CAPS},()=>new THREE.Vector4());this.capCount={value:0};
   actor.root.traverse(o=>{if(o.isSkinnedMesh&&/hair/i.test(o.name))this.mesh=o;});if(!this.mesh)return;
   const mesh=this.mesh,old=mesh.geometry;this.source=old;this.refToHead=actor.bones.Head.matrixWorld.clone().invert().multiply(mesh.matrixWorld);
-  const g=old.clone(),count=old.attributes.position.count;
-  for(const [name,a] of Object.entries(old.attributes)){const values=new a.array.constructor(a.array.length*2);values.set(a.array);values.set(a.array,a.array.length);g.setAttribute(name,new THREE.BufferAttribute(values,a.itemSize,a.normalized));}
-  const idx=new Uint32Array(old.index.count*2);idx.set(old.index.array);for(let i=0;i<old.index.count;i++)idx[old.index.count+i]=old.index.array[i]+count;g.setIndex(new THREE.BufferAttribute(idx,1));g.clearGroups();g.morphAttributes={};mesh.geometry=g;
-  g.setAttribute('v2HairCoord',new THREE.BufferAttribute(new Float32Array(count*4),2));this.setStyle(actor.hairStyle||0);
-  mesh.material.roughness=.58;mesh.material.onBeforeCompile=s=>this.installShader(s);mesh.material.customProgramCacheKey=()=> 'mira-hair-r5-contact32';mesh.material.needsUpdate=true;
+  this.setStyle(actor.hairStyle||0);
+  mesh.material.roughness=.58;mesh.material.onBeforeCompile=s=>this.installShader(s);mesh.material.customProgramCacheKey=()=> 'mira-hair-r6-compact-contact32';mesh.material.needsUpdate=true;
  }
  setStyle(style){
-  if(!this.mesh)return;style=clamp(style|0,0,3);this.style=style;
-  const g=this.mesh.geometry,attr=g.attributes.position,norm=g.attributes.normal,src=this.source.attributes.position,srcN=this.source.attributes.normal,count=src.count;
+  if(!this.mesh)return;style=clamp(style|0,0,7);this.style=style;
+  const compact=style>=4,bun=style===4||style===7,layers=compact?1:2,old=this.source,count=old.attributes.position.count;
+  const ring=48,rows=12,bunCount=bun?(ring+1)*(rows+1):0,total=count*layers+bunCount;
+  const g=old.clone();g.clearGroups();g.morphAttributes={};
+  for(const [name,a] of Object.entries(old.attributes)){
+   const values=new a.array.constructor(total*a.itemSize);
+   for(let layer=0;layer<layers;layer++)values.set(a.array,layer*a.array.length);
+   g.setAttribute(name,new THREE.BufferAttribute(values,a.itemSize,a.normalized));
+  }
+  const indices=[];for(let layer=0;layer<layers;layer++)for(const index of old.index.array)indices.push(index+layer*count);
+  if(bun)for(let a=0;a<ring;a++)for(let b=0;b<rows;b++){const i=count*layers+a*(rows+1)+b;indices.push(i,i+1,i+rows+2,i,i+rows+2,i+rows+1);}
+  g.setIndex(indices);g.setAttribute('v2HairCoord',new THREE.BufferAttribute(new Float32Array(total*2),2));
+  if(this.mesh.geometry!==old)this.mesh.geometry.dispose();this.mesh.geometry=g;
+  const attr=g.attributes.position,norm=g.attributes.normal,src=old.attributes.position,srcN=old.attributes.normal;
   let low=Infinity;
-  for(let i=0;i<attr.count;i++){
+  for(let i=0;i<count*layers;i++){
    const j=i%count,x=src.getX(j),y=src.getY(j),z=src.getZ(j),w=smooth((1.665-y)/.17),layer=i>=count?.0035:0;
    let xx=x*(1+.32*w),yy=y,zz=-.045+(z+.045)*(1+.32*w);
    if(style===0||style===3)yy-=.22*smooth((1.58-y)/.18);
@@ -36,10 +45,28 @@ export class HairGuides {
    
    if(style===2){yy+=.012*w;xx*=1+.08*w;}
    if(style===3){const back=smooth((1.59-y)/.23);xx*=1-.55*back;zz-=.11*back;}
+   if(compact){
+    // One actual card layer; compact cuts no longer retain the doubled long groom.
+    const compression=style===5?.49:style===6?.70:.43;
+    yy=1.650-(1.650-y)*compression;xx=x*(style===6?1.02:.96);zz=-.025+(z+.025)*(style===6?.94:.85);
+    if(bun){const lower=smooth((1.60-y)/.15);zz-=.018*lower;}
+   }
    attr.setXYZ(i,xx+srcN.getX(j)*layer*w,yy+srcN.getY(j)*layer*w,zz+srcN.getZ(j)*layer*w);
    norm.setXYZ(i,srcN.getX(j),srcN.getY(j),srcN.getZ(j));
    low=Math.min(low,V().fromBufferAttribute(attr,i).applyMatrix4(this.refToHead).y);
   }
+  if(bun){
+   const center=new THREE.Vector3(0,style===7?1.663:1.545,style===7?-.077:-.141),base=count*layers;
+   const si=g.attributes.skinIndex,sw=g.attributes.skinWeight,uv=g.attributes.uv;
+   for(let a=0;a<=ring;a++)for(let b=0;b<=rows;b++){
+    const u=a/ring*Math.PI*2,v=b/rows*Math.PI*2,major=style===7?.030:.029,tube=.014;
+    const i=base+a*(rows+1)+b,r=major+tube*Math.cos(v);
+    attr.setXYZ(i,center.x+r*Math.cos(u),center.y+r*Math.sin(u),center.z+tube*Math.sin(v));
+    uv.setXY(i,.12+(a%6)/6*.17,b/rows);si.setXYZW(i,38,0,0,0);sw.setXYZW(i,1,0,0,0);
+    low=Math.min(low,V().fromBufferAttribute(attr,i).applyMatrix4(this.refToHead).y);
+   }
+  }
+  this.cardLayers=layers;this.compact=compact;
   attr.needsUpdate=true;g.computeVertexNormals();g.computeBoundingSphere();
   const rootY=.028,span=Math.max(.13,rootY-low),samples=Array.from({length:CHAINS},()=>Array.from({length:LEVELS},()=>({sum:V(),n:0}))),coords=g.attributes.v2HairCoord;
   for(let i=0;i<attr.count;i++){
@@ -86,7 +113,7 @@ export class HairGuides {
  reset(){this.ready=false;this.acc=0;this.previousCaps=[];this.uniform.forEach(v=>v.set(0,0,0));}
  tick(dt){
   if(!this.mesh||!dt)return;if(this.actor.hairStyle!==this.style)this.setStyle(this.actor.hairStyle);
-  const head=this.actor.bones.Head,h=this.actor.shape.height,headPos=head.getWorldPosition(V()),flex=this.actor.shape.hairMotion??.68;
+  const head=this.actor.bones.Head,h=this.actor.shape.height,headPos=head.getWorldPosition(V()),flex=(this.actor.shape.hairMotion??.68)*(this.compact?.38:1);
   for(const chain of this.chains)for(const n of chain){n.target.copy(n.rest).applyMatrix4(head.matrixWorld);if(!this.ready||n.p.distanceTo(n.target)>.55*h){n.p.copy(n.target);n.prev.copy(n.target);}}
   const caps=[];
   for(const spec of this.hits){
@@ -95,7 +122,7 @@ export class HairGuides {
    const a=new THREE.Vector3(...(spec.offset||[0,0,0])).applyMatrix4(bone.matrixWorld),b=spec.end&&this.actor.bones[spec.end]?this.actor.bones[spec.end].getWorldPosition(V()):a.clone();
    if(a.distanceTo(headPos)<.65*h)caps.push({a,b,r:spec.rad*h+.005*h,velocity:V(),hand:false,id:spec.name});
   }
-  (this.actor.externalHands||[]).forEach((c,i)=>{if(c.a.distanceTo(headPos)<.65*h)caps.push({a:c.a.clone(),b:c.b.clone(),r:c.r+.006*h,velocity:c.velocity||V(),hand:true,id:'hand'+i});});
+  (this.actor.externalHands||[]).forEach((c,i)=>{if(c.a.distanceTo(headPos)<.65*h)caps.push({a:c.a.clone(),b:c.b.clone(),r:c.r+.006*h,velocity:c.velocity||V(),onContact:c.onContact,hand:true,id:'hand'+i});});
   // Prefer player fingers when both hands brush the same part of the hairstyle.
   caps.sort((a,b)=>Number(b.hand)-Number(a.hand)||a.a.distanceToSquared(headPos)-b.a.distanceToSquared(headPos));caps.splice(MAX_CAPS);
   // Body projection first, player contact last: a torso capsule must not undo
@@ -126,6 +153,7 @@ export class HairGuides {
       const n=chain[j];
       for(const c of swept)if(projectHairPoint(n.p,c)){
        if(c.hand&&iter===3){
+        c.onContact?.('hair',c.velocity.length(),.003);
         vel.subVectors(n.p,n.prev).divideScalar(step);relative.copy(vel).sub(c.velocity);
         relative.addScaledVector(normal,-Math.min(0,relative.dot(normal))).multiplyScalar(.45);
         vel.copy(c.velocity).add(relative);if(vel.length()>2.5)vel.setLength(2.5);n.prev.copy(n.p).addScaledVector(vel,-step);

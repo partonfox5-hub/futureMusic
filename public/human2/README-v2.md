@@ -1,10 +1,31 @@
-# Mira v1 + v2 — revision 5
+# Mira v1 + v2 — revision 6
 
-Replace the complete `human2/` folder with this package. Its folder layout is unchanged: `human2/`, `human2/assets/`, and `human2/assets/tex/`. V2 scripts use `?v=5` and textures use `?v=r5`; purge the hosting/CDN cache when updating. Open `human2/index.html` over HTTP on desktop or HTTPS on Quest. Start with one actor on Balanced.
+Replace the complete `human2/` folder with this package. Its folder layout is unchanged: `human2/`, `human2/assets/`, and `human2/assets/tex/`. V2 scripts use `?v=6` and textures use `?v=r6`; purge the hosting/CDN cache when updating. Open `human2/index.html` over HTTP on desktop or HTTPS on Quest. Start with one actor on Balanced.
 
 The original Mira remains selectable in the shared spawner. `mira-v1.html` opens the original scene. The original core, voice code, preserved engine, GLB and uploaded textures are unchanged. V2 keeps actor geometry, materials, animation and physics state separate.
 
-## What changed in revision 5
+## What changed in revision 6
+
+- **UV seam repair from the supplied original FBX.** The old exporter collapsed polygon-corner UVs into one UV per control point. V2 now restores 1,478 seam vertices and corrects 4,223 triangle corners across skin, nails and lashes. Every split carries its original skin weights and all facial morph deltas. The unchanged original GLB remains the v1 source. Skin colour matching now includes seams within the same material, including inner arms and legs.
+- **Skin detail.** A new generated, photograph-inspired hairless skin swatch adds subtle rest-space detail across chest, abdomen, back and buttocks, blended continuously across UV seams. The original anatomical maps remain. Leg albedo is filtered more gently and normal strength reduced to soften the coarse follicle appearance. This is generated detail over the supplied textures, not a new scanned or cross-polarized body texture set. The recovered original torso source was also too flat to supply missing photographic information.
+- **Four compact hair options:** low bun, pixie crop, light short bob and high bun, alongside the four earlier styles. Compact cuts use one card layer rather than two; buns include a separate tied volume within the same mesh. Compact hair has lower compliance, while loose cards retain motion/contact. Desktop and VR share all eight choices.
+- **Resting arms.** Gravity-oriented upper/lower segments replace fixed resting wrist targets. A small damped shoulder pendulum follows body acceleration and gait; the resting elbow is slightly flexed. Gesture/exercise/grab IK still controls purposeful reach. IK caps arm flexion at 145 degrees and knee flexion at 140, with bend poles and softened extension.
+- **Larger tissue under gravity.** Lower-pole shape now responds to size and softness. Increased downward excursion and lower attachment frequency allow more settling, particularly at the rear. Gravity limits no longer depend on the jiggle-intensity setting. Triangle orientation protection remains enabled at extreme settings.
+- **Ordinary hand contact.** New **Hand contact response** slider, 0–4 (default 1.35), controls tissue impulse/indentation from palms and finger segments without gripping. Zero disables this extra contact-driven tissue response; it does not disable collision detection, gravity, or gripping.
+- **Very light controller haptics.** Skin, head, hair and floor contact use short, coalesced pulses. Intensity stays at or below 6.5%, duration at or below 18 ms, with at least 120 ms between pulses per controller. Browsers/controllers without haptic support are a no-op. Bare optical hand tracking cannot vibrate.
+- **Torso manipulation.** Rotating a grip on the hips, belly or chest turns the body and distributes bounded bending/twist through Waist, Spine01 and Spine02. Releasing lets the torso return smoothly. Surface contact offsets and independent two-controller grabs remain. Limb solving runs after the final arm pose, preserving a held limb during gestures. Spine/joint behaviour is a constrained animation/physics approximation, not a biomechanical vertebra/disc model.
+
+## Revision 6 validation and remaining limits
+
+Numerical checks compare every corrected UV corner against the original FBX, preserve every morph count, inspect deformed arm surfaces, measure resting elbow angles, exercise all eight hair choices and eight activities, check gravity settling versus size, verify torso limits/return and contact-slider response, and mock-test haptic pulse caps. Extreme shape/deformation checks found no inverted triangles in the sampled cases. Y-button reconnection, menu pagination and selection checks pass. Fifty-two surface/depth shader variants are generated successfully, including the previous zero-morph crash regression.
+
+The available browser cannot create WebGL (`GL_RENDERER = Disabled`), so there is no GPU-render or Quest 3 hardware validation. CPU geometry views are diagnostic, not rendered appearance proof. Headset performance, haptic feel, shading and fast hand contacts still require on-device review. These bounded surface/bone solvers do not guarantee self-collision-free anatomy in every possible pose and slider combination. Voice still requires working browser recognition or the documented server endpoints below.
+
+Research: [Khronos glTF attributes](https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html), [passive/active arm dynamics](https://pubmed.ncbi.nlm.nih.gov/19640879/), [layered skin reflectance](https://vgl.ict.usc.edu/Research/LFR/), [XPBD compliance](https://matthias-research.github.io/pages/publications/XPBD.pdf), [Gamepad haptics](https://www.w3.org/TR/gamepad/). Compliance changes deformation under load; damping controls decay. Increasing damping alone does not produce greater gravitational sag.
+
+The skin-detail asset was generated with the built-in image tool from a seamless, evenly lit, hairless inner-forearm-skin swatch brief with fine pores and restrained colour variation. Asset: `assets/tex/skin_detail_v2.jpg`. No full-body image editing or paid voice-provider calls were used in this revision.
+
+## Revision 5 implementation history (superseded where described above)
 
 ### Arms, fingers and player hands
 

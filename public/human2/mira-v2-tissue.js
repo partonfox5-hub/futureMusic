@@ -36,6 +36,10 @@ export class SurfaceFlesh {
    vec3 fleshDelta=v2FleshA.x*v2FleshOffset[0]+v2FleshA.y*v2FleshOffset[1]+v2FleshA.z*v2FleshOffset[2]+v2FleshB.x*v2FleshOffset[3]+v2FleshB.y*v2FleshOffset[4];
    transformed+=inverse(mat3(modelMatrix))*fleshDelta;`);
  }
+ contact(hit,normal,closing,push){
+  const indices=hit.kind==='head'?[3,4]:hit.kind==='thigh'?[hit.name.startsWith('L_')?1:2]:['belly','hip'].includes(hit.kind)?[0]:[];
+  for(const i of indices){const g=this.guides[i],amount=Math.min(i>=3?.045:.20,closing*.055+push*.15);g.v.addScaledVector(normal,-amount);}
+ }
  reset(){this.acc=0;this.guides.forEach(g=>{g.ready=false;g.p.set(0,0,0);g.v.set(0,0,0);});this.offsets.forEach(v=>v.set(0,0,0));}
  tick(dt){
   if(!dt)return;const actor=this.actor,shape=actor.shape,h=shape.height;

@@ -1,4 +1,5 @@
-import { createV2Class, repairArmRestData } from "./mira-v2-features.js?v=5";
+import {ContactHaptics} from './mira-v2-haptics.js?v=6';
+import { createV2Class, repairArmRestData } from "./mira-v2-features.js?v=6";
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { clone as cloneSkinned } from "three/addons/utils/SkeletonUtils.js";
@@ -14,7 +15,7 @@ import { clone as cloneSkinned } from "three/addons/utils/SkeletonUtils.js";
  */
 export const ASSET = new URL("./assets/mira.glb?v=13", import.meta.url).href;
 export const TEXROOT = new URL("./assets/tex/", import.meta.url).href;
-export const TEXVER = "r5";
+export const TEXVER = "r6";
 
 export const FACE_TYPES = [
   { id: "natural", name: "Natural", file: "head.jpg" },
@@ -976,6 +977,7 @@ class MiraActor {
         _contactN.copy(_cpN); _contactP.copy(_cpP);
       }
     }
+    this.lastContact=best?{kind:best.kind,speed:bestClosing,depth:deepest}:null;
     if (best && react) {
       this.contactSoft(best, _contactN, deepest, bestClosing);
       if (bestClosing > 0.5) this.applyStrike(best, _contactN, bestClosing, 0, _contactP);
@@ -1259,7 +1261,7 @@ class RubberBall {
 
 class PlayerHands {
   constructor(renderer,parent){
-    this.renderer=renderer;this.active=[false,false];this.colliders=[];
+    this.renderer=renderer;this.active=[false,false];this.colliders=[];this.haptics=new ContactHaptics(renderer);
     this.ctrl=[renderer.xr.getController(0),renderer.xr.getController(1)];
     this.grip=[renderer.xr.getControllerGrip(0),renderer.xr.getControllerGrip(1)];
     this.squeeze=[0,0];this.hands=[];this.handedness=['none','none'];this.prevReady=[false,false];
@@ -1309,7 +1311,7 @@ class PlayerHands {
   }
   palmPos(i,out=new THREE.Vector3()){return this.grip[i].localToWorld(out.set(0,-.012,-.05));}
   tick(dt,actors){
-    this.colliders.length=0;
+    this.colliders.length=0;this.haptics.advance(dt);
     for(let i=0;i<2;i++){
       const h=this.hands[i];h.visible=this.renderer.xr.isPresenting&&this.active[i]&&this.grip[i].visible;
       if(!h.visible){this.prevReady[i]=false;this.vel[i].set(0,0,0);continue;}
@@ -1322,20 +1324,24 @@ class PlayerHands {
         }
         for(let j=1;j<=3;j++){const n=side+'_Thumb'+j,b=rig.bones[n];if(b)b.quaternion.copy(rig.bind[n]).multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(j===1?.08:0,j===1?(side==='L'?.15:-.15):0,(side==='L'?-1:1)*curl*.45)));}
       }
-      const p=this.palmPos(i,new THREE.Vector3());
+      const p=this.palmPos(i,new THREE.Vector3()),reacted=new Set(),firstCollider=this.colliders.length;
+      const report=(kind,speed,depth)=>this.haptics.contact(i,kind,speed,depth);
+      const collide=(probe,r)=>{for(const actor of actors){const velocity=this.vel[i].clone(),point=probe.clone();const hit=actor.handContact?actor.handContact(point,r,velocity,!reacted.has(actor)):actor.collidePoint(point,r,velocity,true,!reacted.has(actor));if(hit){reacted.add(actor);const c=actor.lastContact;report(c?.kind||'skin',c?.speed||0,c?.depth||0);}}if(probe.y<r)report('prop',this.vel[i].length(),r-probe.y);};
       if(this.prevReady[i]&&p.distanceToSquared(this.prevPos[i])<.16){
         this.vel[i].lerp(limitVector(p.clone().sub(this.prevPos[i]).multiplyScalar(1/Math.max(dt,.001)),6),1-Math.exp(-dt*25));
-        const n=Math.min(12,Math.max(1,Math.ceil(p.distanceTo(this.prevPos[i])/.025))),reacted=new Set();
-        for(let k=1;k<=n;k++){const probe=this.prevPos[i].clone().lerp(p,k/n);for(const actor of actors)if(actor.collidePoint(probe,.032,this.vel[i].clone(),true,!reacted.has(actor)))reacted.add(actor);}
+        const n=Math.min(12,Math.max(1,Math.ceil(p.distanceTo(this.prevPos[i])/.025)));
+        for(let k=1;k<=n;k++)collide(this.prevPos[i].clone().lerp(p,k/n),.032);
       }else this.vel[i].set(0,0,0);
       this.prevReady[i]=true;this.prevPos[i].copy(p);h.updateWorldMatrix(true,true);
-      this.colliders.push({a:p.clone(),b:p.clone(),r:.035,velocity:this.vel[i]});
+      this.colliders.push({a:p.clone(),b:p.clone(),r:.035,velocity:this.vel[i],handIndex:i,onContact:report});
       if(rig){
         for(const row of ['Thumb','Index','Mid','Ring','Pinky'])for(let j=1;j<=3;j++){
-          const a=rig.bones[side+'_'+row+j],b=rig.bones[side+'_'+row+(j+1)];if(a)this.colliders.push({a:a.getWorldPosition(new THREE.Vector3()),b:b?b.getWorldPosition(new THREE.Vector3()):a.localToWorld(new THREE.Vector3(0,row==='Pinky'?.013:.018,0)),r:row==='Thumb'?.01:.008,velocity:this.vel[i]});
+          const a=rig.bones[side+'_'+row+j],b=rig.bones[side+'_'+row+(j+1)];if(a)this.colliders.push({a:a.getWorldPosition(new THREE.Vector3()),b:b?b.getWorldPosition(new THREE.Vector3()):a.localToWorld(new THREE.Vector3(0,row==='Pinky'?.013:.018,0)),r:row==='Thumb'?.01:.008,velocity:this.vel[i],handIndex:i,onContact:report});
         }
         rig.root.traverse(o=>{if(o.isSkinnedMesh)o.skeleton.update();});
       }
+      // Palms and every finger segment report contact, even without a grip.
+      for(let j=firstCollider;j<this.colliders.length;j++){const c=this.colliders[j];collide(c.a,c.r);collide(c.b,c.r);}
     }
   }
 }
@@ -1740,6 +1746,7 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
         blobs[i].position.z = actors[i].group.position.z;
       }
     }
+    hands.haptics.flush(hands.handedness);
     physicsAccumulator = Math.min(physicsAccumulator + dt, 0.05);
     while (physicsAccumulator + 1e-9 >= 1 / 120) {
       noodle.tick(1 / 120, actors, camPos, hold, hq, noodleGrabI);

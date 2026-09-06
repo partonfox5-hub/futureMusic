@@ -1,6 +1,6 @@
 {
   "date": "2026-09-06",
-  "revision": 5,
+  "revision": 6,
   "originalFilesUnchanged": 27,
   "originalEnginePreserved": true,
   "originalChangedEntrypoints": [
@@ -17,69 +17,69 @@
       "bindSurface": {
         "arm": 0.0739334718669696,
         "finger": 0.013725157151839803,
-        "count": 304
+        "count": 318
       },
       "idleSurface": {
-        "arm": 0.07246136727974642,
-        "finger": 0.013149133684382907,
-        "count": 304
+        "arm": 0.07284410992151788,
+        "finger": 0.013149138324079783,
+        "count": 318
       },
       "activities": [
         {
           "mode": "airSquats",
-          "minAnkle": 0.05219788948210313,
-          "maxArmLength": 0.24980062406700498,
-          "maxGlute": 0.015543287169459376,
-          "maxOtherTissue": 0.00218724757684299
+          "minAnkle": 0.05219788666276293,
+          "maxArmLength": 0.24980062339431433,
+          "maxGlute": 0.019675995524703862,
+          "maxOtherTissue": 0.0021877672889062394
         },
         {
           "mode": "stretch",
-          "minAnkle": 0.05743380773229678,
-          "maxArmLength": 0.2498006196560021,
-          "maxGlute": 0.015203910870859833,
-          "maxOtherTissue": 0.0022744420174287895
+          "minAnkle": 0.05219788141997006,
+          "maxArmLength": 0.2498006209019428,
+          "maxGlute": 0.01896820950893654,
+          "maxOtherTissue": 0.0022744420175582246
         },
         {
           "mode": "jumpingJacks",
-          "minAnkle": 0.05810939911285001,
-          "maxArmLength": 0.24980060958054745,
-          "maxGlute": 0.01956440572734751,
+          "minAnkle": 0.05287341514823196,
+          "maxArmLength": 0.24980060923239072,
+          "maxGlute": 0.03470697140752525,
           "maxOtherTissue": 0.00578035484460542
         },
         {
           "mode": "march",
-          "minAnkle": 0.0560512613770634,
-          "maxArmLength": 0.2498006147625255,
-          "maxGlute": 0.018227740906768788,
-          "maxOtherTissue": 0.00219735812470203
+          "minAnkle": 0.05246303645249939,
+          "maxArmLength": 0.24980061311393004,
+          "maxGlute": 0.02261502130717902,
+          "maxOtherTissue": 0.0021974735431165675
         },
         {
           "mode": "sideSteps",
-          "minAnkle": 0.05219788120704738,
-          "maxArmLength": 0.24980061012967814,
-          "maxGlute": 0.015833270675042744,
-          "maxOtherTissue": 0.0009502211186667789
+          "minAnkle": 0.05219788146177207,
+          "maxArmLength": 0.24980060901279924,
+          "maxGlute": 0.018313456230417476,
+          "maxOtherTissue": 0.0006358404941892097
         },
         {
           "mode": "dance",
-          "minAnkle": 0.052197881504709054,
-          "maxArmLength": 0.24980061861108505,
-          "maxGlute": 0.01956978770077308,
-          "maxOtherTissue": 0.0025074000082119415
+          "minAnkle": 0.05219788141558035,
+          "maxArmLength": 0.2498006200795877,
+          "maxGlute": 0.024826398245355954,
+          "maxOtherTissue": 0.0025076088419882787
         },
         {
           "mode": "reach",
-          "minAnkle": 0.055759588983174124,
-          "maxArmLength": 0.24980061085948033,
-          "maxGlute": 0.01460075868518376,
-          "maxOtherTissue": 0.002162370696716605
+          "minAnkle": 0.05219788146159088,
+          "maxArmLength": 0.24980061303263973,
+          "maxGlute": 0.018377006727014235,
+          "maxOtherTissue": 0.0021623774144067147
         },
         {
           "mode": "heelRaises",
-          "minAnkle": 0.057165342576730005,
-          "maxArmLength": 0.24980060946195176,
-          "maxGlute": 0.016720117090418422,
-          "maxOtherTissue": 0.0008852159405545674
+          "minAnkle": 0.05255444464167586,
+          "maxArmLength": 0.24980061117678437,
+          "maxGlute": 0.01936284835729144,
+          "maxOtherTissue": 0.0005725817776651782
         }
       ],
       "hairstyles": [
@@ -118,10 +118,46 @@
             0.35844480991363525
           ],
           "guides": 100
+        },
+        {
+          "name": "Low bun",
+          "bounds": [
+            0.2226538062095642,
+            0.14806485176086426,
+            0.25395456701517105
+          ],
+          "guides": 100
+        },
+        {
+          "name": "Pixie crop",
+          "bounds": [
+            0.2226538062095642,
+            0.11898088455200195,
+            0.21120356768369675
+          ],
+          "guides": 100
+        },
+        {
+          "name": "Light short bob",
+          "bounds": [
+            0.23656967282295227,
+            0.16997277736663818,
+            0.2335663065314293
+          ],
+          "guides": 100
+        },
+        {
+          "name": "High bun",
+          "bounds": [
+            0.2226538062095642,
+            0.16134703159332275,
+            0.22107192128896713
+          ],
+          "guides": 100
         }
       ],
       "hairBrush": {
-        "maxGuideDisplacement": 0.1335779104726157,
+        "maxGuideDisplacement": 0.1333121722863324,
         "capsules": 10,
         "guideCount": 100,
         "finalCardSamples": 2086,
@@ -130,42 +166,42 @@
       "faces": [
         {
           "name": "Natural",
-          "checksum": 96817.0762693649
+          "checksum": 105490.26519670968
         },
         {
           "name": "Reference",
-          "checksum": 96812.63758511805
+          "checksum": 105485.54440105455
         },
         {
           "name": "Soft oval",
-          "checksum": 96810.61045521675
+          "checksum": 105483.37785680573
         },
         {
           "name": "Heart",
-          "checksum": 96814.59920394953
+          "checksum": 105487.63874441366
         },
         {
           "name": "Defined",
-          "checksum": 96818.66627214775
+          "checksum": 105491.93221853695
         }
       ],
-      "smile": 0.9998965917185668,
+      "smile": 0.9998977959231065,
       "tissue": {
         "firm": {
-          "peak": 0.0052006870195398305,
-          "tail": 0.0020994633724658067
+          "peak": 0.005501732244575414,
+          "tail": 0.002311162885454298
         },
         "soft": {
-          "peak": 0.011666552198780409,
-          "tail": 0.010083723588070668
+          "peak": 0.012251067194323912,
+          "tail": 0.011612795509121136
         },
         "bouncy": {
-          "peak": 0.014663239831393515,
-          "tail": 0.03311127715004609
+          "peak": 0.014948758437968128,
+          "tail": 0.040861186028504505
         },
         "damped": {
-          "peak": 0.006734811150204579,
-          "tail": 0.007938391203265092
+          "peak": 0.007061173614242972,
+          "tail": 0.008739445506655194
         }
       }
     },
@@ -174,7 +210,7 @@
         "options": {},
         "breast": 0.38,
         "butt": 0.52,
-        "minDeterminant": 0.288452093654848,
+        "minDeterminant": 0.2913475097297474,
         "negativeSamples": 0,
         "worst": []
       },
@@ -182,7 +218,7 @@
         "options": {},
         "breast": 1,
         "butt": 1,
-        "minDeterminant": 0.9394180343339983,
+        "minDeterminant": 0.947005600981197,
         "negativeSamples": 0,
         "worst": []
       },
@@ -190,7 +226,7 @@
         "options": {},
         "breast": 2.35,
         "butt": 2.15,
-        "minDeterminant": 0.5868334602195997,
+        "minDeterminant": 0.3817319701476614,
         "negativeSamples": 0,
         "worst": []
       },
@@ -203,7 +239,7 @@
         },
         "breast": 0.38,
         "butt": 0.52,
-        "minDeterminant": 0.3173272223604116,
+        "minDeterminant": 0.32027000576170783,
         "negativeSamples": 0,
         "worst": []
       },
@@ -229,7 +265,7 @@
         },
         "breast": 2.35,
         "butt": 2.15,
-        "minDeterminant": 0.8128233754810194,
+        "minDeterminant": 0.5384347289085005,
         "negativeSamples": 0,
         "worst": []
       },
@@ -242,7 +278,7 @@
         },
         "breast": 0.38,
         "butt": 0.52,
-        "minDeterminant": 0.2663810048121994,
+        "minDeterminant": 0.2692377454509606,
         "negativeSamples": 0,
         "worst": []
       },
@@ -255,7 +291,7 @@
         },
         "breast": 1,
         "butt": 1,
-        "minDeterminant": 0.5143331165040873,
+        "minDeterminant": 0.5164610523548383,
         "negativeSamples": 0,
         "worst": []
       },
@@ -268,7 +304,7 @@
         },
         "breast": 2.35,
         "butt": 2.15,
-        "minDeterminant": 0.4327465267042477,
+        "minDeterminant": 0.2637884990989102,
         "negativeSamples": 0,
         "worst": []
       },
@@ -280,7 +316,7 @@
         },
         "breast": 0.38,
         "butt": 0.52,
-        "minDeterminant": 0.2618503868071188,
+        "minDeterminant": 0.26404075697440554,
         "negativeSamples": 0,
         "worst": []
       },
@@ -292,7 +328,7 @@
         },
         "breast": 1,
         "butt": 1,
-        "minDeterminant": 0.7338334898109512,
+        "minDeterminant": 0.7429657024475692,
         "negativeSamples": 0,
         "worst": []
       },
@@ -304,7 +340,7 @@
         },
         "breast": 2.35,
         "butt": 2.15,
-        "minDeterminant": 0.5151559847864264,
+        "minDeterminant": 0.42144437853104144,
         "negativeSamples": 0,
         "worst": []
       },
@@ -316,7 +352,7 @@
         },
         "breast": 0.38,
         "butt": 0.52,
-        "minDeterminant": 0.18539113217210385,
+        "minDeterminant": 0.1865837983160952,
         "negativeSamples": 0,
         "worst": []
       },
@@ -328,7 +364,7 @@
         },
         "breast": 1,
         "butt": 1,
-        "minDeterminant": 0.34769152837677664,
+        "minDeterminant": 0.35016099654693283,
         "negativeSamples": 0,
         "worst": []
       },
@@ -340,7 +376,7 @@
         },
         "breast": 2.35,
         "butt": 2.15,
-        "minDeterminant": 0.4565438504716195,
+        "minDeterminant": 0.2993610848673965,
         "negativeSamples": 0,
         "worst": []
       }
@@ -351,168 +387,168 @@
         "combination": 0,
         "flips": 0,
         "changed": 1135,
-        "minDot": 0.30276429042231306
+        "minDot": 0.2908843082104224
       },
       {
         "size": 0.38,
         "combination": 1,
         "flips": 0,
         "changed": 1135,
-        "minDot": 0.31337919008381376
+        "minDot": 0.29078436910024674
       },
       {
         "size": 0.38,
         "combination": 2,
         "flips": 0,
         "changed": 1137,
-        "minDot": 0.22585373102982087
+        "minDot": 0.22526738009439523
       },
       {
         "size": 0.38,
         "combination": 3,
         "flips": 0,
         "changed": 1135,
-        "minDot": 0.22654841018384947
+        "minDot": 0.23584273378627402
       },
       {
         "size": 0.38,
         "combination": 4,
         "flips": 0,
         "changed": 1135,
-        "minDot": 0.5080110801218504
+        "minDot": 0.5594894824932577
       },
       {
         "size": 0.38,
         "combination": 5,
         "flips": 0,
         "changed": 1135,
-        "minDot": 0.5600962381355061
+        "minDot": 0.6114918759806122
       },
       {
         "size": 0.38,
         "combination": 6,
         "flips": 0,
         "changed": 1135,
-        "minDot": 0.2608202831976218
+        "minDot": 0.21873275783303078
       },
       {
         "size": 0.38,
         "combination": 7,
         "flips": 0,
         "changed": 1135,
-        "minDot": 0.26253609797786925
+        "minDot": 0.22138902356437898
       },
       {
         "size": 1,
         "combination": 0,
         "flips": 0,
         "changed": 1135,
-        "minDot": 0.47650414792666596
+        "minDot": 0.6334732106930413
       },
       {
         "size": 1,
         "combination": 1,
         "flips": 0,
         "changed": 1135,
-        "minDot": 0.48761390377794944
+        "minDot": 0.6358430284547372
       },
       {
         "size": 1,
         "combination": 2,
         "flips": 0,
-        "changed": 1137,
-        "minDot": 0.2964539924881003
+        "changed": 1135,
+        "minDot": 0.4168195520199636
       },
       {
         "size": 1,
         "combination": 3,
         "flips": 0,
         "changed": 1135,
-        "minDot": 0.27530011962166295
+        "minDot": 0.40066622109659966
       },
       {
         "size": 1,
         "combination": 4,
         "flips": 0,
         "changed": 1135,
-        "minDot": 0.259853268399718
+        "minDot": 0.26075336538818367
       },
       {
         "size": 1,
         "combination": 5,
         "flips": 0,
         "changed": 1135,
-        "minDot": 0.2773850638011057
+        "minDot": 0.2754293044575124
       },
       {
         "size": 1,
         "combination": 6,
         "flips": 0,
         "changed": 1137,
-        "minDot": 0.20040833801693453
+        "minDot": 0.19120624636642924
       },
       {
         "size": 1,
         "combination": 7,
         "flips": 0,
         "changed": 1137,
-        "minDot": 0.21339059467068325
+        "minDot": 0.18846696580535774
       },
       {
         "size": 2.35,
         "combination": 0,
         "flips": 0,
-        "changed": 1137,
-        "minDot": 0.3333256122882048
+        "changed": 1135,
+        "minDot": 0.3054603869570781
       },
       {
         "size": 2.35,
         "combination": 1,
         "flips": 0,
         "changed": 1135,
-        "minDot": 0.298877317437652
+        "minDot": 0.35773282094075937
       },
       {
         "size": 2.35,
         "combination": 2,
         "flips": 0,
         "changed": 1137,
-        "minDot": 0.23996045975276406
+        "minDot": 0.3151472318180475
       },
       {
         "size": 2.35,
         "combination": 3,
         "flips": 0,
         "changed": 1137,
-        "minDot": 0.23986767879354462
+        "minDot": 0.3090932769970364
       },
       {
         "size": 2.35,
         "combination": 4,
         "flips": 0,
         "changed": 1137,
-        "minDot": 0.44362065060234646
+        "minDot": 0.468841610127495
       },
       {
         "size": 2.35,
         "combination": 5,
         "flips": 0,
         "changed": 1137,
-        "minDot": 0.4604338769298048
+        "minDot": 0.48421410081064453
       },
       {
         "size": 2.35,
         "combination": 6,
         "flips": 0,
         "changed": 1137,
-        "minDot": 0.4595220944648806
+        "minDot": 0.39542298047455227
       },
       {
         "size": 2.35,
         "combination": 7,
         "flips": 0,
         "changed": 1137,
-        "minDot": 0.4569726263933038
+        "minDot": 0.39298163115661844
       }
     ],
     "buttockMaxSoftnessDisplacements": [
@@ -521,168 +557,168 @@
         "combination": 0,
         "flips": 0,
         "changed": 716,
-        "minDot": 0.4143212157355556
+        "minDot": 0.37136758903757616
       },
       {
         "size": 0.52,
         "combination": 1,
         "flips": 0,
         "changed": 716,
-        "minDot": 0.41288272058105147
+        "minDot": 0.36395778368276105
       },
       {
         "size": 0.52,
         "combination": 2,
         "flips": 0,
         "changed": 716,
-        "minDot": 0.3075104576710655
+        "minDot": 0.2478663748561889
       },
       {
         "size": 0.52,
         "combination": 3,
         "flips": 0,
         "changed": 716,
-        "minDot": 0.3067085637434162
+        "minDot": 0.24504637126832574
       },
       {
         "size": 0.52,
         "combination": 4,
         "flips": 0,
         "changed": 716,
-        "minDot": 0.7145199325560746
+        "minDot": 0.5637683739670554
       },
       {
         "size": 0.52,
         "combination": 5,
         "flips": 0,
         "changed": 716,
-        "minDot": 0.7163731529270876
+        "minDot": 0.6521505016160758
       },
       {
         "size": 0.52,
         "combination": 6,
         "flips": 0,
         "changed": 716,
-        "minDot": 0.7480369887958607
+        "minDot": 0.7183894838421796
       },
       {
         "size": 0.52,
         "combination": 7,
         "flips": 0,
         "changed": 716,
-        "minDot": 0.7519017762320467
+        "minDot": 0.7171994665547522
       },
       {
         "size": 1,
         "combination": 0,
         "flips": 0,
         "changed": 716,
-        "minDot": 0.4835113551467857
+        "minDot": 0.34962164111031013
       },
       {
         "size": 1,
         "combination": 1,
         "flips": 0,
         "changed": 716,
-        "minDot": 0.4766479074472958
+        "minDot": 0.34102292503216636
       },
       {
         "size": 1,
         "combination": 2,
         "flips": 0,
         "changed": 716,
-        "minDot": 0.3894520868332203
+        "minDot": 0.3000134409962937
       },
       {
         "size": 1,
         "combination": 3,
         "flips": 0,
         "changed": 716,
-        "minDot": 0.39406196868113286
+        "minDot": 0.3324407330568281
       },
       {
         "size": 1,
         "combination": 4,
         "flips": 0,
         "changed": 716,
-        "minDot": 0.6797397161923224
+        "minDot": 0.5012159805342166
       },
       {
         "size": 1,
         "combination": 5,
         "flips": 0,
         "changed": 716,
-        "minDot": 0.7051970497588658
+        "minDot": 0.5582710532191841
       },
       {
         "size": 1,
         "combination": 6,
         "flips": 0,
         "changed": 716,
-        "minDot": 0.6763113865875414
+        "minDot": 0.6179348440571644
       },
       {
         "size": 1,
         "combination": 7,
         "flips": 0,
         "changed": 716,
-        "minDot": 0.6732028929021228
+        "minDot": 0.6151445767922761
       },
       {
         "size": 2.15,
         "combination": 0,
         "flips": 0,
         "changed": 716,
-        "minDot": 0.4494831655756083
+        "minDot": 0.36084409301196313
       },
       {
         "size": 2.15,
         "combination": 1,
         "flips": 0,
         "changed": 716,
-        "minDot": 0.4445326879557753
+        "minDot": 0.3563095685372196
       },
       {
         "size": 2.15,
         "combination": 2,
         "flips": 0,
         "changed": 716,
-        "minDot": 0.37271529449819785
+        "minDot": 0.31463683838062506
       },
       {
         "size": 2.15,
         "combination": 3,
         "flips": 0,
         "changed": 716,
-        "minDot": 0.3732432866999635
+        "minDot": 0.31845876265601036
       },
       {
         "size": 2.15,
         "combination": 4,
         "flips": 0,
         "changed": 716,
-        "minDot": 0.6377100665262176
+        "minDot": 0.550194100668931
       },
       {
         "size": 2.15,
         "combination": 5,
         "flips": 0,
         "changed": 716,
-        "minDot": 0.6499738483418902
+        "minDot": 0.569321650270489
       },
       {
         "size": 2.15,
         "combination": 6,
         "flips": 0,
         "changed": 716,
-        "minDot": 0.572727256418091
+        "minDot": 0.49983091736352425
       },
       {
         "size": 2.15,
         "combination": 7,
         "flips": 0,
         "changed": 716,
-        "minDot": 0.5732719622789177
+        "minDot": 0.5001596392118248
       }
     ],
     "input": [
@@ -769,6 +805,152 @@
       "fallback",
       "echo suppression",
       "resource cleanup"
-    ]
+    ],
+    "revision6": {
+      "uv": {
+        "comparedCorners": 84276,
+        "maxError": 2.9802322387695312e-08
+      },
+      "restElbowDegrees": [
+        9.055616473205687,
+        9.070981897546012
+      ],
+      "hair": [
+        {
+          "style": 0,
+          "layers": 2,
+          "vertices": 41798,
+          "triangles": 68224
+        },
+        {
+          "style": 1,
+          "layers": 2,
+          "vertices": 41798,
+          "triangles": 68224
+        },
+        {
+          "style": 2,
+          "layers": 2,
+          "vertices": 41798,
+          "triangles": 68224
+        },
+        {
+          "style": 3,
+          "layers": 2,
+          "vertices": 41798,
+          "triangles": 68224
+        },
+        {
+          "style": 4,
+          "layers": 1,
+          "vertices": 21536,
+          "triangles": 35264
+        },
+        {
+          "style": 5,
+          "layers": 1,
+          "vertices": 20899,
+          "triangles": 34112
+        },
+        {
+          "style": 6,
+          "layers": 1,
+          "vertices": 20899,
+          "triangles": 34112
+        },
+        {
+          "style": 7,
+          "layers": 1,
+          "vertices": 21536,
+          "triangles": 35264
+        }
+      ],
+      "gravity": [
+        [
+          {
+            "name": "L_Breast",
+            "worldDown": 0.018276590253805035
+          },
+          {
+            "name": "R_Breast",
+            "worldDown": 0.018276590253805035
+          },
+          {
+            "name": "L_Glute",
+            "worldDown": 0.017358014733547925
+          },
+          {
+            "name": "R_Glute",
+            "worldDown": 0.017358014733547925
+          }
+        ],
+        [
+          {
+            "name": "L_Breast",
+            "worldDown": 0.04015611569034357
+          },
+          {
+            "name": "R_Breast",
+            "worldDown": 0.04101375121409933
+          },
+          {
+            "name": "L_Glute",
+            "worldDown": 0.04274346203669762
+          },
+          {
+            "name": "R_Glute",
+            "worldDown": 0.042743462036697606
+          }
+        ]
+      ],
+      "torso": {
+        "angle": [
+          0.02582795872247518,
+          0.2788870072287935,
+          0.31999184771303585
+        ],
+        "yaw": 0.4531831214728007
+      },
+      "handResponse": [
+        0,
+        0.03600000000025264,
+        0.12000000000084217
+      ],
+      "haptics": {
+        "pulsesPerSecond": 9,
+        "maxIntensity": 0.059000000000000004,
+        "maxDuration": 18
+      }
+    },
+    "fbxSeamRecovery": {
+      "oldVertices": 14164,
+      "newVertices": 15642,
+      "materials": [
+        {
+          "material": "Std_Skin_Head",
+          "repairedCorners": 586
+        },
+        {
+          "material": "Std_Skin_Body",
+          "repairedCorners": 523
+        },
+        {
+          "material": "Std_Skin_Arm",
+          "repairedCorners": 1756
+        },
+        {
+          "material": "Std_Skin_Leg",
+          "repairedCorners": 1019
+        },
+        {
+          "material": "Std_Nails",
+          "repairedCorners": 218
+        },
+        {
+          "material": "Std_Eyelash",
+          "repairedCorners": 121
+        }
+      ]
+    }
   }
 }
