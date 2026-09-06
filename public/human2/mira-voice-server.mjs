@@ -8,6 +8,7 @@ export function createVoiceServer({apiKey=process.env.OPENAI_API_KEY,origin=proc
  return createServer(async(req,res)=>{
   const json=(code,value)=>{res.writeHead(code,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify(value));};
   const path=new URL(req.url,'http://localhost').pathname;
+  if(path==='/api/mira/health'&&req.method==='GET'){json(200,{ready:!!apiKey&&!!origin});return;}
   if(!['/api/mira/stt','/api/mira/chat','/api/mira/tts'].includes(path)){json(404,{error:'Unknown route'});return;}
   if(req.method!=='POST'){json(405,{error:'Use POST'});return;}
   if(!apiKey||!origin){json(503,{error:'Set OPENAI_API_KEY and MIRA_ORIGIN on the voice server.'});return;}

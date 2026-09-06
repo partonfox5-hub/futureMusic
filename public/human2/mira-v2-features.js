@@ -1,8 +1,8 @@
 import * as THREE from 'three';
-import {restoreSurfaceUV} from './mira-v2-uv.js?v=7';
-import {V2_EXTRA_SLIDERS,FACE_PRESETS,EXERCISE_MODES} from './mira-v2-controls.js?v=7';
-import {HairGuides} from './mira-v2-hair.js?v=7';
-import {SurfaceFlesh} from './mira-v2-tissue.js?v=7';
+import {restoreSurfaceUV} from './mira-v2-uv.js?v=8';
+import {V2_EXTRA_SLIDERS,FACE_PRESETS,EXERCISE_MODES} from './mira-v2-controls.js?v=8';
+import {HairGuides} from './mira-v2-hair.js?v=8';
+import {SurfaceFlesh} from './mira-v2-tissue.js?v=8';
 
 // Mira v2: a bounded real-time approximation for this CC3 rig, Three r170.
 const clamp = THREE.MathUtils.clamp, damp = THREE.MathUtils.damp;
@@ -297,7 +297,7 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
   }
   endSpeech(){super.endSpeech();if(this.mode==='talk')super.setMode('idle');this.lifeT=7;}
   setMode(mode){
-   this.socialPair?.cancel();this.directedWalk=null;
+   this.socialPair?.cancel();this.directedWalk=null;if(this.navigation?.seat)this.navigation.seat.occupant=null;this.navigation=null;if(this.seat){this.seat.occupant=null;this.group.position.y=this.baseY||0;}this.seat=null;
    if(mode==='auto'){this.autonomy=true;this.lifeT=6;this.autoWander=false;this.dest=null;super.setMode('idle');return;}
    if(mode!=='talk')this.autonomy=false;
    this.autoWander=mode==='wander';if(!this.autoWander)this.dest=null;
@@ -431,7 +431,7 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    if(this.pathSpeed!==undefined)this.speed=this.pathSpeed;
    // Base path steering, with six distinct speed/cadence styles.
    const before=this.group.position.clone();const moving=super.wander(dt);
-   if(this.directedWalk&&!this.dest){this.directedWalk=null;this.autoWander=false;this.mode='idle';this.modeT=0;this.speed=0;this.pathSpeed=0;}
+   if(this.directedWalk&&!this.dest&&!this.navigation){this.directedWalk=null;this.autoWander=false;this.mode='idle';this.modeT=0;this.speed=0;this.pathSpeed=0;}
    const moodSpeed=['sad','tired'].includes(this.emotion.name)?.8:1;
    const factor=([1,1.12,.84,1.25,.68,.92][this.gait]||1)*moodSpeed;
    this.group.position.sub(before).multiplyScalar(factor).add(before);this.pathSpeed=this.speed;this.speed*=factor;
@@ -543,7 +543,7 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
   }
   tickAwareness(dt,cam){
    this.greetingT-=dt;this.lifeT-=dt;
-   if(this.socialPair||this.directedWalk)return;
+   if(this.socialPair||this.directedWalk||this.navigation||this.seat)return;
    if(this.balance.state!=='standing'||this.grabs.size||this.speech?.active||this.mode==='talk')return;
    if(this.autonomy&&this.greetingT<=0){
     const candidates=[cam,...(this.neighbors||[]).filter(a=>a!==this).map(a=>a.bones.Head.getWorldPosition(V()))];
@@ -640,7 +640,7 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    this.lastSurfacePoint=point;this.lastHitDistance=chosen?bd:this.lastHitDistance;return chosen||best;
   }
   beginGrab(ctrl,hit,contact){
-   this.socialPair?.cancel();this.directedWalk=null;
+   this.socialPair?.cancel();this.directedWalk=null;if(this.navigation?.seat)this.navigation.seat.occupant=null;this.navigation=null;if(this.seat){this.seat.occupant=null;this.group.position.y=this.baseY||0;}this.seat=null;
    if(this.grabs.has(ctrl))return;
    const bone=this.bones[hit.name];if(!bone)return;
    const anchor=contact?.clone()||this.lastSurfacePoint?.clone()||ctrl.getWorldPosition(V());
@@ -842,7 +842,7 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    else if(c>.7)this.setEmotion('surprise',clamp(c*.15,0,.6),{hold:2,source:'contact'});
   }
   resetPhysics(){
-   this.socialPair?.cancel();this.directedWalk=null;
+   this.socialPair?.cancel();this.directedWalk=null;if(this.navigation?.seat)this.navigation.seat.occupant=null;this.navigation=null;if(this.seat){this.seat.occupant=null;this.group.position.y=this.baseY||0;}this.seat=null;
    super.resetPhysics();this.grabs?.clear();this.handTargets={};this.armSwing={};this.spineTouch?.set(0,0,0);this.spineGoal?.set(0,0,0);this.hairPhysics?.reset();this.surfaceFlesh?.reset();
    if(this.balance){this.balance.velocity.set(0,0,0);this.balance.stress=0;}
   }
@@ -865,7 +865,7 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
   keepArmsClear(){} // final world-space IK chooses hand targets clear of the chest
   solveFeet(dt,moving){
    if(EXERCISE_MODES.includes(this.mode)){this.feet={};return;}
-   if(this.balance.state!=='standing'){this.feet={};return;}
+   if(this.balance.state!=='standing'||this.seat){this.feet={};return;}
    if([...this.grabs.values()].some(g=>g.limb==='leg')){
     // Plant only the unheld leg; the held chain is owned by the grab constraint.
     const saved={};for(const g of this.grabs.values())if(g.limb==='leg')for(const n of ['Thigh','Calf','Foot']){const b=this.bones[g.side+'_'+n];saved[b.name]=b.quaternion.clone();}

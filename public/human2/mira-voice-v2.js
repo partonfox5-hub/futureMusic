@@ -1,7 +1,12 @@
-import {EMOTION_NAMES} from './mira-v2-features.js?v=7';
+import {speakBasic} from './mira-basic-voice.js?v=8';
+import {localTranscribe,warmLocalSpeech,stopLocalSpeech} from './mira-local-speech.js?v=8';
+import {EMOTION_NAMES} from './mira-v2-features.js?v=8';
 export const DEFAULT_PERSONA='You are Mira, a friendly adult woman in an XR room. Reply in 1–2 short spoken sentences. Keep a consistent emotional state based on the conversation. End with [[EMOTION:neutral|happy|content|curious|listening|thoughtful|concerned|sad|surprise|afraid|angry|disgust|tease|flirty|laugh|tired]] choosing exactly one label. Respond warmly when appropriate; let emotion match the conversation. Only when requested, add [[ACTION:idle|wander|airSquats|stretch|jumpingJacks|march|sideSteps|dance|reach|heelRaises]]. Do not read tags aloud.';
 const ACTIONS=['idle','wander','airSquats','stretch','jumpingJacks','march','sideSteps','dance','reach','heelRaises'];
-const history=new Map();
+const history=new Map();let voiceAudio=null;let serverAvailable=null;
+export function unlockVoice(){try{voiceAudio=voiceAudio||new (window.AudioContext||window.webkitAudioContext)();voiceAudio.resume().catch(()=>{});if('speechSynthesis' in window)speechSynthesis.getVoices();}catch{}}
+async function voiceServer(){if(serverAvailable!==null)return serverAvailable;try{const r=await fetch('/api/mira/health',{signal:AbortSignal.timeout(2000)});const j=await r.json();serverAvailable=r.ok&&j.ready===true;}catch{serverAvailable=false;}return serverAvailable;}
+
 export function inferEmotion(text){
  const t=String(text||'').toLowerCase();
  if(/griev|died|death|lonely|depress|sad|hurt|worried|anxious|afraid/.test(t))return 'concerned';
@@ -30,6 +35,11 @@ function requestedAction(text){
 function localReply(text,previous){
  const emotion=inferEmotion(text),mode=requestedAction(text);let reply;
  if(mode)reply=mode==='idle'?"Okay, I'll stand here.":"Sure, let's try that movement.";
+ else if(/what.*name|who are you/i.test(text))reply="I'm Mira. We can explore the room, try clothes, or choose an activity together.";
+ else if(/how are you|how.*doing/i.test(text))reply="I'm feeling good. It's nice having you here. How are you?";
+ else if(/clothes|wardrobe|dress/i.test(text))reply="You can drag something from the wardrobe onto me. Which outfit shall we try?";
+ else if(/sit|chair|couch/i.test(text))reply="Point at a chair or the couch and I'll walk over to sit down.";
+ else if(/jungle|beach|living room/i.test(text))reply="You can change our surroundings in the Scene menu. Where would you like to go?";
  else if(emotion==='concerned')reply="That sounds difficult. I'm listening—what happened?";
  else if(emotion==='content')reply="You're welcome. I'm glad we're talking.";
  else if(emotion==='laugh')reply="That made me smile.";
@@ -43,6 +53,7 @@ export async function miraChat(userText,persona,{conversationId='default'}={}){
  const previous=history.get(conversationId)||[];let result;
  const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),10000);
  try{
+  if(!await voiceServer())throw new Error('No conversation server');
   const r=await fetch('/api/mira/chat',{method:'POST',headers:{'Content-Type':'application/json'},signal:controller.signal,
    body:JSON.stringify({text:userText,persona:persona||DEFAULT_PERSONA,history:previous.slice(-12),emotion:inferEmotion(userText)})});
   const j=await r.json();
@@ -82,10 +93,12 @@ function ampLoop(onAmp, getT, getDur, alive) {
 export async function miraSpeak(text, hooks = {}) {
   const { onStart, onAmp, onEnd } = hooks;
   if (!text) { if (onEnd) onEnd(); return; }
-  let finished=false;
+  let finished=false,basicStarted=false;
   const finish = () => { if(finished)return;finished=true;if (onEnd) onEnd(); };
+  const basic=async()=>{if(basicStarted||finished)return;basicStarted=true;try{unlockVoice();await speakBasic(text,voiceAudio,hooks);}catch(e){hooks.onError?.(e.message);}finally{finish();}};
 
   try {
+    if(!await voiceServer())throw new Error("No voice server");
     const r = await fetch("/api/mira/tts", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -104,11 +117,11 @@ export async function miraSpeak(text, hooks = {}) {
           stopped = true;
           cancelAnimationFrame(raf);
           URL.revokeObjectURL(url);
-          audioContext?.close().catch(()=>{});
+          
           if(notify)finish();
         };
         try {
-          const ctx = audioContext = new (window.AudioContext || window.webkitAudioContext)();
+          const ctx = audioContext = voiceAudio || new (window.AudioContext || window.webkitAudioContext)();
           if (ctx.state === "suspended") await ctx.resume().catch(() => {});
           const src = ctx.createMediaElementSource(a);
           analyser = ctx.createAnalyser();
@@ -163,13 +176,14 @@ export async function miraSpeak(text, hooks = {}) {
     const dur = Math.max(1.15, text.split(/\s+/).length * 0.34);
     let t0 = 0;
     let cancelAmp = null;
-    u.onstart = () => {
+    const startWatch=setTimeout(()=>{if(!t0){basic();speechSynthesis.cancel();}},3500);
+    u.onstart = () => {clearTimeout(startWatch);
       t0 = performance.now();
       if (onStart) onStart(dur);
       cancelAmp = ampLoop(onAmp, () => (performance.now() - t0) / 1000, () => dur, () => true);
     };
-    u.onend = () => { if (cancelAmp) cancelAmp(); finish(); };
-    u.onerror = () => { if (cancelAmp) cancelAmp(); hooks.onError?.("Speech playback unavailable. The reply is shown in chat.");finish(); };
+    u.onend = () => { if(basicStarted)return;clearTimeout(startWatch);if (cancelAmp) cancelAmp(); finish(); };
+    u.onerror = () => { clearTimeout(startWatch);if (cancelAmp) cancelAmp(); basic(); };
     speechSynthesis.cancel();
     speechSynthesis.speak(u);
     if (speechSynthesis.getVoices && !speechSynthesis.getVoices().length) {
@@ -180,17 +194,13 @@ export async function miraSpeak(text, hooks = {}) {
     }
   } catch (e) {
     console.warn("tts fallback", e);
-    hooks.onError?.("Speech playback unavailable. The reply is shown in chat.");finish();
+    basic();
   }
 }
 
-export async function transcribeBlob(blob,signal){
- const fd=new FormData();fd.append('file',blob,/mp4/.test(blob.type)?'clip.m4a':'clip.webm');
- const r=await fetch('/api/mira/stt',{method:'POST',body:fd,signal});
- if(!r.ok)throw new Error(r.status===404?'Microphone works; /api/mira/stt is missing. Connect the included voice server.':`Transcription service returned ${r.status}. Check the voice server.`);
- const j=await r.json().catch(()=>null);
- if(!j||typeof j.text!=='string')throw new Error('Transcription service must return JSON with a text field.');
- return j.text.trim();
+export async function transcribeBlob(blob,signal,status){
+ if(!await voiceServer()){status?.('Recognizing locally…');return localTranscribe(blob,signal,status);}
+ const fd=new FormData();fd.append('file',blob,/mp4/.test(blob.type)?'clip.m4a':'clip.webm');const r=await fetch('/api/mira/stt',{method:'POST',body:fd,signal});if(!r.ok)throw new Error('Transcription service returned '+r.status);const j=await r.json();if(typeof j.text!=='string')throw new Error('Invalid transcription reply');return j.text.trim();
 }
 
 export function startMic(onText,hooks={}){
@@ -198,7 +208,7 @@ export function startMic(onText,hooks={}){
  let noise=.004,lastStatus='',ctx=null;const abort=new AbortController(),pending=new Set();
  const status=(state,message)=>{if(lastStatus===state+message)return;lastStatus=state+message;hooks.onStatus?.({state,message});};
  const stop=(quiet=false)=>{
-  if(stopped)return;stopped=true;clearInterval(interval);clearTimeout(restart);for(const t of pending)clearTimeout(t);pending.clear();abort.abort();
+  if(stopped)return;stopped=true;clearInterval(interval);clearTimeout(restart);for(const t of pending)clearTimeout(t);pending.clear();abort.abort();stopLocalSpeech();
   if(recognition){recognition.onend=null;recognition.abort();}if(recorder?.state==='recording')recorder.stop();
   stream?.getTracks().forEach(t=>t.stop());ctx?.close().catch(()=>{});hooks.onLevel?.(0);if(!quiet)status('off','Voice off');
  };
@@ -206,6 +216,7 @@ export function startMic(onText,hooks={}){
  const deliver=text=>{if(!stopped&&!hooks.isSpeaking?.()&&text)onText(text);};
  const useServer=()=>{nativeMode=false;if(recognition){recognition.onend=null;recognition.abort();recognition=null;}};
  status('starting','Allow microphone access to start voice.');
+ voiceServer();
  // Audio must be unlocked synchronously in the button/select gesture on Quest.
  try{ctx=new (window.AudioContext||window.webkitAudioContext)();ctx.resume().catch(()=>{});}catch(e){fail('Audio input is unavailable in this browser.');return {stop};}
  if(!navigator.mediaDevices?.getUserMedia){fail('Microphone requires HTTPS or localhost.');return {stop};}
@@ -213,6 +224,7 @@ export function startMic(onText,hooks={}){
   if(stopped){s.getTracks().forEach(t=>t.stop());return;}stream=s;await ctx.resume();if(stopped)return;
   const src=ctx.createMediaStreamSource(s),analyser=ctx.createAnalyser();analyser.fftSize=1024;src.connect(analyser);const data=new Float32Array(analyser.fftSize);
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR&&!await voiceServer())warmLocalSpeech(message=>status('loading',message)).catch(e=>{if(!stopped)fail(e.message);});
   if(SR){try{
    recognition=new SR();recognition.continuous=true;recognition.interimResults=false;recognition.lang='en-US';nativeMode=true;
    recognition.onresult=ev=>{for(let i=ev.resultIndex||0;i<ev.results.length;i++){const r=ev.results[i];if(r.isFinal){nativeResults++;deliver(r[0]?.transcript?.trim());}}};
@@ -237,14 +249,14 @@ export function startMic(onText,hooks={}){
      if(stopped)return;
      if(seg.nativeAtStart!==nativeResults||hooks.isSpeaking?.()){busy=false;return;}
      useServer();status('transcribing','Transcribing your voice…');
-     const timeout=setTimeout(()=>abort.abort(),18000);
-     try{deliver(await transcribeBlob(blob,abort.signal));}
+     const timeout=setTimeout(()=>abort.abort(),180000);
+     try{deliver(await transcribeBlob(blob,abort.signal,message=>status('transcribing',message)));}
      catch(e){if(!stopped)fail(e.name==='AbortError'?'Transcription timed out. Check the voice server.':e.message);}
      finally{clearTimeout(timeout);busy=false;}
     };
     if(nativeMode){const timer=setTimeout(()=>{pending.delete(timer);run();},1600);pending.add(timer);}else run();
    };
-   rec.start(160);status('listening',nativeMode?'Listening · browser speech recognition':'Listening · microphone ready');
+   rec.start(160);status('listening',nativeMode?'Listening · browser speech recognition':'Listening · local recognition fallback');
   };
   begin();
   interval=setInterval(()=>{

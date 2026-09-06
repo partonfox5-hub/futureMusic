@@ -1,6 +1,6 @@
 {
   "date": "2026-09-06",
-  "revision": 7,
+  "revision": 8,
   "originalFilesUnchanged": 27,
   "originalEnginePreserved": true,
   "originalChangedEntrypoints": [
@@ -1119,6 +1119,78 @@
       "triggerWalk": true,
       "upwardRayIgnored": true,
       "rayActorSelection": true
+    },
+    "revision8": {
+      "contactSetupMs": 271.6205110000001,
+      "contactAndActorMs": 10.36733375,
+      "wristPenetration": {
+        "before": 0.07138047503617398,
+        "after": 0.009050480735133024
+      },
+      "scenes": [
+        {
+          "name": "Living room",
+          "obstacles": 8,
+          "seats": 3,
+          "waypoints": 21
+        },
+        {
+          "name": "Jungle",
+          "obstacles": 15,
+          "seats": 2,
+          "waypoints": 8
+        },
+        {
+          "name": "Beach",
+          "obstacles": 15,
+          "seats": 2,
+          "waypoints": 8
+        }
+      ],
+      "sitting": {
+        "hip": [
+          -0.0001503024157136681,
+          0.59,
+          -2.629835451494662
+        ],
+        "feet": [
+          [
+            0.1100000167553334,
+            0.06499999574615067,
+            -2.1800000151209953
+          ],
+          [
+            -0.11000000170913551,
+            0.06500005144771692,
+            -2.180000022080806
+          ]
+        ]
+      },
+      "clothMs": 4.423191799999995,
+      "clothParticles": 252,
+      "clothTriangles": 448,
+      "detached": true,
+      "tornTriangles": 6,
+      "v1Preserved": true,
+      "v1ExactBaselineComparison": true
+    },
+    "revision8Menu": {
+      "frontFacingDots": [
+        1,
+        0.9999999999999999,
+        1,
+        1
+      ],
+      "recenterAfterTurn": true,
+      "sceneTab": true
+    },
+    "revision8Voice": {
+      "basicSpeechWav": true,
+      "wavBytes": 126434,
+      "enginePinned": true,
+      "nativeHardwareTested": false,
+      "whisperHardwareTested": false,
+      "paidProviderCalls": 0
     }
   }
 }

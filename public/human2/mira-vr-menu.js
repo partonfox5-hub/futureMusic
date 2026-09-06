@@ -1,9 +1,11 @@
+import {SCENES} from './mira-v2-world.js?v=8';
+import {GARMENTS} from './mira-v2-wardrobe.js?v=8';
 import * as THREE from 'three';
-import {SLIDERS,FACE_TYPES} from './mira-v2.js?v=7';
-import {shapeSliders,FACE_PRESETS,HAIR_STYLES,ACTIVITY_MODES,ACTION_LABELS,POSE_LABELS} from './mira-v2-controls.js?v=7';
-import {HAIR_COLORS} from './mira-v2.js?v=7';
-import {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES} from './mira-v2-features.js?v=7';
-export function createVRMenu({scene,renderer,camera,system,spawn,onSync}){
+import {SLIDERS,FACE_TYPES} from './mira-v2.js?v=8';
+import {shapeSliders,FACE_PRESETS,HAIR_STYLES,ACTIVITY_MODES,ACTION_LABELS,POSE_LABELS} from './mira-v2-controls.js?v=8';
+import {HAIR_COLORS} from './mira-v2.js?v=8';
+import {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES} from './mira-v2-features.js?v=8';
+export function createVRMenu({scene,renderer,camera,system,spawn,onSync,world,wardrobe}){
  const canvas=document.createElement('canvas');canvas.width=1024;canvas.height=1320;
  const ctx=canvas.getContext('2d'),tex=new THREE.CanvasTexture(canvas);tex.colorSpace=THREE.SRGBColorSpace;
  const panel=new THREE.Mesh(new THREE.PlaneGeometry(.74,.954),new THREE.MeshBasicMaterial({map:tex,side:THREE.DoubleSide,toneMapped:false,depthTest:false,depthWrite:false}));
@@ -15,13 +17,18 @@ export function createVRMenu({scene,renderer,camera,system,spawn,onSync}){
  function active(){return system.selected;}
  function draw(){
   items=[];ctx.fillStyle='#151c25';ctx.fillRect(0,0,1024,1320);ctx.strokeStyle='#657d92';ctx.lineWidth=3;ctx.strokeRect(3,3,1018,1314);
-  ctx.fillStyle='#eef7ff';ctx.font='bold 42px sans-serif';ctx.fillText('MIRA · UPDATE 7',40,62);
+  ctx.fillStyle='#eef7ff';ctx.font='bold 42px sans-serif';ctx.fillText('MIRA · UPDATE 8',40,62);
   ctx.font='26px sans-serif';ctx.fillStyle='#b7c8d8';ctx.fillText('Y: close  ·  point + trigger to adjust',40,105);
   function button(label,x,y,w,h,fn){ctx.fillStyle='#26384b';ctx.fillRect(x,y,w,h);ctx.fillStyle='#edf6ff';ctx.font='28px sans-serif';ctx.textAlign='center';ctx.fillText(label,x+w/2,y+h/2+10);ctx.textAlign='left';items.push({x,y,w,h,fn});}
-  ['ACTOR','BODY','STYLE','MOOD','POSES'].forEach((n,i)=>button((i===page?'• ':'')+n,40+i*190,140,180,66,()=>{page=i;draw();}));
+  ['ACTOR','BODY','STYLE','MOOD','POSES','SCENE'].forEach((n,i)=>button((i===page?'• ':'')+n,25+i*164,140,154,66,()=>{page=i;draw();}));
   const a=active();ctx.font='30px sans-serif';ctx.fillStyle='#aed8fb';ctx.fillText(a?`Mira ${system.actors.indexOf(a)+1} · ${a.version.toUpperCase()}`:'No actor selected',40,264);
   function cycle(label,y,values,get,set){const val=get();ctx.fillStyle='#c9d6e2';ctx.font='28px sans-serif';ctx.fillText(label,40,y);button('‹',40,y+18,90,70,()=>{set(values[(values.indexOf(val)+values.length-1)%values.length]);onSync?.();draw();});button(String(val),144,y+18,734,70,()=>{set(values[(values.indexOf(val)+1)%values.length]);onSync?.();draw();});button('›',892,y+18,90,70,()=>{set(values[(values.indexOf(val)+1)%values.length]);onSync?.();draw();});}
-  if(page===0){
+  if(page===5){
+   cycle('Diorama',330,SCENES,()=>world.name,name=>{world.setScene(name);world.obstacle(-3.3,2.4,1.3,.6,0,2);document.getElementById('sceneSelect').value=name;});
+   GARMENTS.forEach((g,i)=>button('WEAR '+g.name.toUpperCase(),40,530+i*100,942,80,()=>{notice=wardrobe.equip(active(),g)?g.name:'Clothes require Mira v2';draw();}));
+   button('VOICE ON / OFF',40,930,942,80,()=>document.getElementById('micBtn')?.click());
+   ctx.font='26px sans-serif';ctx.fillStyle='#c9d6e2';ctx.fillText('Drag rack clothes with trigger. Aim at a chair to sit.',40,1100);
+  }else if(page===0){
    button('SPAWN V1',40,300,455,80,()=>{spawn('v1');draw();});button('SPAWN V2',515,300,467,80,()=>{spawn('v2');draw();});
    button('SELECT NEXT',40,400,610,76,()=>{const list=system.actors;system.select(list[(list.indexOf(active())+1)%list.length]);onSync?.();draw();});
    button('REMOVE',670,400,312,76,()=>{if(active())system.remove(active());onSync?.();draw();});
@@ -76,7 +83,9 @@ export function createVRMenu({scene,renderer,camera,system,spawn,onSync}){
   }
   ctx.font='24px sans-serif';ctx.fillStyle='#acbecf';ctx.fillText(notice||system.voiceStatus||'Trigger: select / walk  ·  Grip: grab body',40,1280);tex.needsUpdate=true;
  }
- function toggle(){open=!open;panel.visible=open&&renderer.xr.isPresenting;drag=[null,null];if(open){page=4;const c=renderer.xr.getCamera();const eye=c.getWorldPosition(new THREE.Vector3());const forward=c.getWorldDirection(new THREE.Vector3());forward.y=0;if(forward.lengthSq()<.001)forward.set(0,0,-1);forward.normalize();panel.position.copy(eye).addScaledVector(forward,1.1);panel.position.y-=.10;panel.lookAt(eye.x,panel.position.y,eye.z);panel.updateMatrixWorld(true);draw();}}
+ function placeInFront(){const c=renderer.xr.getCamera();c.updateWorldMatrix(true,false);const eye=c.getWorldPosition(new THREE.Vector3()),forward=new THREE.Vector3(0,0,-1).applyQuaternion(c.getWorldQuaternion(new THREE.Quaternion()));forward.y=0;if(forward.lengthSq()<.001)forward.set(0,0,-1).applyQuaternion(camera.getWorldQuaternion(new THREE.Quaternion())).setY(0);forward.normalize();panel.position.copy(eye).addScaledVector(forward,1.1);panel.position.y-=.10;panel.lookAt(eye);panel.updateMatrixWorld(true);}
+ function toggle(){open=!open;panel.visible=open&&renderer.xr.isPresenting;drag=[null,null];if(open){page=4;placeInFront();draw();}}
+
  const wristCanvas=document.createElement('canvas');wristCanvas.width=256;wristCanvas.height=128;const wc=wristCanvas.getContext('2d');wc.fillStyle='#18384d';wc.fillRect(0,0,256,128);wc.strokeStyle='#9bd6ff';wc.lineWidth=8;wc.strokeRect(4,4,248,120);wc.fillStyle='#ffffff';wc.font='bold 48px sans-serif';wc.textAlign='center';wc.fillText('MENU',128,82);
  const wristTex=new THREE.CanvasTexture(wristCanvas);wristTex.colorSpace=THREE.SRGBColorSpace;
  const wristButtons=system.hands.grip.map(grip=>{const b=new THREE.Mesh(new THREE.PlaneGeometry(.060,.030),new THREE.MeshBasicMaterial({map:wristTex,side:THREE.DoubleSide,depthTest:false,depthWrite:false,toneMapped:false}));b.position.set(0,.070,-.025);b.renderOrder=25;grip.add(b);b.visible=false;return b;});
@@ -88,7 +97,8 @@ export function createVRMenu({scene,renderer,camera,system,spawn,onSync}){
   const eye=renderer.xr.getCamera().getWorldPosition(new THREE.Vector3());
   wristButtons.forEach((b,i)=>{b.visible=renderer.xr.isPresenting&&system.hands.grip[i].visible&&(system.hands.handedness[i]==='left'||(system.hands.handedness[i]==='none'&&i===0));if(b.visible){b.lookAt(eye);b.updateWorldMatrix(true,false);}});
   if(!renderer.xr.isPresenting){open=false;panel.visible=false;}
-  rays.forEach((r,i)=>{const floor=renderer.xr.isPresenting&&!open?system.controllerFloorTarget(i):null;r.visible=open||!!floor||(renderer.xr.isPresenting&&hitWrist(i));r.scale.z=open?1:floor?system.hands.ctrl[i].getWorldPosition(new THREE.Vector3()).distanceTo(floor)/2:1;});if(!open)return;
+  rays.forEach((r,i)=>{const floor=renderer.xr.isPresenting&&!open?system.controllerFloorTarget(i):null;r.visible=open||!!floor||renderer.xr.isPresenting&&system.hands.active?.[i]||(renderer.xr.isPresenting&&hitWrist(i));r.scale.z=open?1:floor?system.hands.ctrl[i].getWorldPosition(new THREE.Vector3()).distanceTo(floor)/2:1;});if(!open)return;
+  const view=renderer.xr.getCamera(),forward=new THREE.Vector3(0,0,-1).applyQuaternion(view.getWorldQuaternion(q)),to=panel.position.clone().sub(eye);if(to.dot(forward)<.2||to.length()>2)placeInFront();
   const a=active(),state=a?`${system.actors.indexOf(a)}/${a.version}/${a.mode}/${a.emotion?.name}/${system.voiceStatus||''}`:'empty';if(state!==stamp&&performance.now()-lastDraw>150){stamp=state;lastDraw=performance.now();draw();}
   const session=renderer.xr.getSession();for(let i=0;i<2;i++)if(drag[i]){
    const src=[...session.inputSources].find(s=>s.handedness===system.hands.handedness[i]);if(!src?.gamepad?.buttons?.[0]?.pressed){drag[i]=null;continue;}

@@ -30,7 +30,7 @@ export class MiraSocial {
   const h=(a.shape.height+b.shape.height)/2,gap=(kind==='hug'?.29+.10*(Math.cbrt(a.shape.breast)+Math.cbrt(b.shape.breast)-2):.34+.05*(a.shape.hips+b.shape.hips-2))*h;
   const p={a,b,kind,stage:'approach',t:0,weight:0,elapsed:0,slots:[mid.clone().addScaledVector(axis,-gap/2),mid.clone().addScaledVector(axis,gap/2)],saved:[a,b].map(x=>({autonomy:x.autonomy,idleChoice:x.idleChoice})),axis};
   p.cancel=()=>this.cancel(a);p.pose=actor=>this.pose(p,actor);this.pairs.add(p);
-  for(const [i,x] of [a,b].entries()){x.socialPair=p;x.autonomy=false;x.mode='wander';x.modeT=0;x.autoWander=true;x.dest=p.slots[i].clone();x.miraWalk=3600;x.idleChoice='auto';x.idleKind='rest';x.lifeT=12;x.feet={};}
+  for(const [i,x] of [a,b].entries()){x.navigation=null;x.socialPair=p;x.autonomy=false;x.mode='wander';x.modeT=0;x.autoWander=true;x.dest=p.slots[i].clone();x.miraWalk=3600;x.idleChoice='auto';x.idleKind='rest';x.lifeT=12;x.feet={};}
   return true;
  }
  cancel(actor){

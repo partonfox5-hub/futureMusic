@@ -1,6 +1,7 @@
-import {MiraSocial} from './mira-v2-social.js?v=7';
-import {ContactHaptics} from './mira-v2-haptics.js?v=7';
-import { createV2Class, repairArmRestData } from "./mira-v2-features.js?v=7";
+import {BodyContacts} from './mira-v2-contact.js?v=8';
+import {MiraSocial} from './mira-v2-social.js?v=8';
+import {ContactHaptics} from './mira-v2-haptics.js?v=8';
+import { createV2Class, repairArmRestData } from "./mira-v2-features.js?v=8";
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { clone as cloneSkinned } from "three/addons/utils/SkeletonUtils.js";
@@ -16,7 +17,7 @@ import { clone as cloneSkinned } from "three/addons/utils/SkeletonUtils.js";
  */
 export const ASSET = new URL("./assets/mira.glb?v=13", import.meta.url).href;
 export const TEXROOT = new URL("./assets/tex/", import.meta.url).href;
-export const TEXVER = "r7";
+export const TEXVER = "r8";
 
 export const FACE_TYPES = [
   { id: "natural", name: "Natural", file: "head.jpg" },
@@ -1458,6 +1459,7 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
     return best;
   }
 
+  let environment=null,wardrobe=null;const contacts=new BodyContacts(actors);
   const commandRay=new THREE.Raycaster(),groundPlane=new THREE.Plane(new THREE.Vector3(0,1,0),0);
   const targetMarker=new THREE.Mesh(new THREE.RingGeometry(.075,.10,32),new THREE.MeshBasicMaterial({color:0x98e4bc,side:THREE.DoubleSide,depthWrite:false,toneMapped:false}));targetMarker.rotation.x=-Math.PI/2;targetMarker.visible=false;scene.add(targetMarker);
   function floorTarget(ray){
@@ -1467,6 +1469,7 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
   function walkTo(point,actor=selectedActor){
     if(!actor||!point||!point.toArray().every(Number.isFinite)||Math.abs(point.x)>3.8||Math.abs(point.z)>3.8||actor.held||actor.balance&&actor.balance.state!=='standing')return false;
     social.cancel(actor);selectedActor=actor;
+    if(environment&&actor.version==='v2')return environment.walk(actor,point);
     if(actor.walkTo)return actor.walkTo(point);
     actor.setMode('wander');actor.autoWander=true;actor.dest=point.clone().setY(0);actor.directedWalk=actor.dest.clone();actor.miraWalk=3600;return true;
   }
@@ -1475,13 +1478,14 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
     for(const a of actors)a.root.traverse(o=>{if(o.isSkinnedMesh&&/^body/.test(o.name)){o.computeBoundingSphere();meshes.push(o);}});
     const hit=commandRay.intersectObjects(meshes,false)[0],floor=floorTarget(ray);
     if(hit&&(!floor||hit.distance<ray.origin.distanceTo(floor))){let o=hit.object;while(o){const a=actors.find(a=>a.root===o);if(a){selectedActor=a;return 'selected';}o=o.parent;}}
+    const sceneCommand=environment?.command(ray,selectedActor);if(sceneCommand)return sceneCommand;
     return floor&&walkTo(floor)?'walking':null;
   }
   function controllerFloorTarget(i){const ctrl=hands.ctrl[i],ray=new THREE.Ray(ctrl.getWorldPosition(new THREE.Vector3()),new THREE.Vector3(0,0,-1).applyQuaternion(ctrl.getWorldQuaternion(new THREE.Quaternion())));return floorTarget(ray);}
   function trySelect(i, fromGrip = false) {
     if(!fromGrip){
       if(uiHandlers.onSelect?.(i))return;
-      const pointer=hands.ctrl[i];pointCommand(new THREE.Ray(pointer.getWorldPosition(new THREE.Vector3()),new THREE.Vector3(0,0,-1).applyQuaternion(pointer.getWorldQuaternion(new THREE.Quaternion()))));return;
+      const pointer=hands.ctrl[i],ray=new THREE.Ray(pointer.getWorldPosition(new THREE.Vector3()),new THREE.Vector3(0,0,-1).applyQuaternion(pointer.getWorldQuaternion(new THREE.Quaternion())));if(wardrobe){const handle=new THREE.Object3D();if(wardrobe.begin(ray,handle,'xr'+i))return;}pointCommand(ray);return;
     }
     if (actors.some(a => a.grabs?.has(hands.grip[i]) || a.held?.ctrl === hands.grip[i])) return;
     const ctrl = hands.grip[i];
@@ -1513,6 +1517,8 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
     }
     if (bestA && bestH) { selectedActor = bestA; bestA.beginGrab(ctrl, bestH); }
   }
+  function releaseCloth(i){if(!wardrobe?.drags.has('xr'+i))return;const c=hands.ctrl[i];wardrobe.end('xr'+i,new THREE.Ray(c.getWorldPosition(new THREE.Vector3()),new THREE.Vector3(0,0,-1).applyQuaternion(c.getWorldQuaternion(new THREE.Quaternion()))));}
+  hands.ctrl.forEach((c,i)=>c.addEventListener('selectend',()=>releaseCloth(i)));
   function tryRelease(i) {
     if (noodleHeld === hands.grip[i]) { noodleHeld = null; noodleGrabI = -1; }
     for (const actor of actors) {
@@ -1759,20 +1765,24 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
       noodleHeld = "desk";
       noodleGrabI = 0;
     } else if (noodleHeld === "desk") { noodleHeld = null; noodleGrabI = -1; }
+    for(const a of actors)environment?.before(a);
     social.tick(dt);tickSocial(dt);
     hands.tick(dt, actors);
     for (let i = 0; i < actors.length; i++) {
       if(actors[i].version==="v2"){actors[i].externalHands=hands.colliders;actors[i].neighbors=actors;}
       actors[i].tick(dt, camPos, tAbs);
+      if(actors[i].version==="v2")environment?.after(actors[i],dt);
       if (blobs[i]) {
         blobs[i].scale.setScalar(actors[i].shape.height);
         blobs[i].position.x = actors[i].group.position.x;
         blobs[i].position.z = actors[i].group.position.z;
       }
     }
-    social.resolveContacts();
+    social.resolveContacts();contacts.tick();
     for(const a of actors)if(a.version==='v1'&&a.directedWalk&&!a.dest){a.directedWalk=null;a.autoWander=false;a.setMode('idle');}
     const goal=selectedActor?.directedWalk;targetMarker.visible=!!goal&&!uiHandlers.isOpen?.();if(goal)targetMarker.position.set(goal.x,.016,goal.z);
+    for(let i=0;i<2;i++)if(wardrobe?.drags.has('xr'+i)){const c=hands.ctrl[i];wardrobe.move('xr'+i,new THREE.Ray(c.getWorldPosition(new THREE.Vector3()),new THREE.Vector3(0,0,-1).applyQuaternion(c.getWorldQuaternion(new THREE.Quaternion()))));}
+    wardrobe?.tick(dt);environment?.tick(dt);
     hands.haptics.flush(hands.handedness);
     physicsAccumulator = Math.min(physicsAccumulator + dt, 0.05);
     while (physicsAccumulator + 1e-9 >= 1 / 120) {
@@ -1783,7 +1793,8 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
   }
 
   return {
-    resetPhysics, load, spawn, tick, spawnBall, nearestTo, actors, noodle, hands, balls, social, walkTo, pointCommand, floorTarget, controllerFloorTarget,
+    resetPhysics, load, spawn, tick, spawnBall, nearestTo, actors, noodle, hands, balls, social, walkTo, pointCommand, floorTarget, controllerFloorTarget, contacts,
+    setEnvironment(value){environment=value;},setWardrobe(value){wardrobe=value;},
     requestSocial(kind){return social.request(selectedActor,kind);},
     get persona() { return persona; },
     set persona(v) { persona = v || ""; for (const a of actors) a.personality = persona; },
