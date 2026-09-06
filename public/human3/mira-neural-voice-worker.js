@@ -1,0 +1,5 @@
+import {KokoroTTS} from 'https://cdn.jsdelivr.net/npm/kokoro-js@1.2.1/+esm';
+import {env} from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.5.1/+esm';
+env.allowLocalModels=false;env.backends.onnx.wasm.numThreads=1;env.backends.onnx.wasm.proxy=false;
+let model,queue=Promise.resolve();
+self.onmessage=({data})=>{queue=queue.catch(()=>{}).then(async()=>{const {id,text,voice}=data;try{if(!model)model=await KokoroTTS.from_pretrained('onnx-community/Kokoro-82M-v1.0-ONNX',{dtype:'q8',device:'wasm',progress_callback:p=>self.postMessage({id,status:'Downloading natural voice'+(p.progress?' · '+Math.round(p.progress)+'%':'…')})});self.postMessage({id,status:'Generating natural voice…'});const audio=await model.generate(String(text).slice(0,600),{voice:['af_heart','af_bella','bf_emma','am_adam'].includes(voice)?voice:'af_heart'});const pcm=Float32Array.from(audio.audio);self.postMessage({id,pcm,rate:audio.sampling_rate||24000},[pcm.buffer]);}catch(e){model=null;self.postMessage({id,error:e.message});}});};
