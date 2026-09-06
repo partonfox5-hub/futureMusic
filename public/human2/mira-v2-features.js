@@ -1,11 +1,11 @@
-import {LivingEyes} from './mira-v2-eyes.js?v=9.3';
-import {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES} from './mira-v2-controls.js?v=9.3';
-export {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES} from './mira-v2-controls.js?v=9.3';
+import {LivingEyes} from './mira-v2-eyes.js?v=9.5';
+import {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES} from './mira-v2-controls.js?v=9.5';
+export {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES} from './mira-v2-controls.js?v=9.5';
 import * as THREE from 'three';
-import {restoreSurfaceUV} from './mira-v2-uv.js?v=9.3';
-import {V2_EXTRA_SLIDERS,FACE_PRESETS,EXERCISE_MODES} from './mira-v2-controls.js?v=9.3';
-import {HairGuides} from './mira-v2-hair.js?v=9.3';
-import {SurfaceFlesh} from './mira-v2-tissue.js?v=9.3';
+import {restoreSurfaceUV} from './mira-v2-uv.js?v=9.5';
+import {V2_EXTRA_SLIDERS,FACE_PRESETS,EXERCISE_MODES} from './mira-v2-controls.js?v=9.5';
+import {HairGuides} from './mira-v2-hair.js?v=9.5';
+import {SurfaceFlesh} from './mira-v2-tissue.js?v=9.5';
 
 // Mira v2: a bounded real-time approximation for this CC3 rig, Three r170.
 const clamp = THREE.MathUtils.clamp, damp = THREE.MathUtils.damp;
@@ -860,7 +860,7 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    this.tickGrab(dt);
    this.group.updateMatrixWorld(true);
    this.tickSoft(dt);this.poseHeadContact(dt);this.group.updateMatrixWorld(true);
-   this.surfaceFlesh?.tick(dt);this.hairPhysics?.tick(dt);this.eyes?.tick(dt,t);
+   this.surfaceFlesh?.tick(dt);this.hairPhysics?.tick(dt);this.eyes?.tick(dt,t);this.injuryDriver?.pose(this);
    this.root.traverse(o=>{if(o.isSkinnedMesh)o.skeleton.update();});
   }
   keepArmsClear(){} // final world-space IK chooses hand targets clear of the chest

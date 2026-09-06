@@ -15,6 +15,7 @@ export function buildHouse(w){
  const kitchenSeat=w.chair(2.38,2.75,-.4);kitchenSeat.group.traverse(m=>{if(m.isMesh)w.fractures.register(m,'wood');});
  const bath=round(3.55,.30,-3.65,1.2,.59,1.25,0xd6d8cf,.12);furniture(bath,1.2,1.25,'stone');round(3.55,.61,-3.65,.91,.02,1.03,0x6e938f,.08);const basin=round(2.1,.77,-3.73,.70,.18,.62,0xdbded5,.08);furniture(basin,.70,.62,'stone');round(2.1,.865,-3.73,.49,.025,.43,0x8bada9,.06);
  const frame=round(-4.34,1.73,2.0,.04,1.15,.85,0x41392f);w.fractures.register(frame,'wood');round(-4.31,1.73,2.0,.016,.99,.70,0x819c99);
+ for(const [x,z,color] of [[-1,0,0xffdec0],[3,1,0xe5efff]]){const light=new T.PointLight(color,10,7,2);light.position.set(x,2.70,z);w.root.add(light);round(x,2.94,z,.40,.04,.40,0xe7dfca);}
  // A seat gets a reachable side approach if its normal approach meets a table.
  for(const seat of w.seats)if(w.blocked(seat.approach,.23)){for(const offset of [[-.85,0,.7],[.85,0,.7],[0,0,1.35]]){const p=seat.group.localToWorld(v(...offset));if(!w.blocked(p,.23)){seat.approach.copy(p);break;}}}
 }

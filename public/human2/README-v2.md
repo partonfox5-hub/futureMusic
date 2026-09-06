@@ -1,3 +1,7 @@
+# UPDATE 9
+
+See **UPDATE9.md** for all five completed checkpoint scopes, controls, validation and limitations, and **REALISM-RESEARCH.md** for rendering research. Mira v1 and the original asset/folder layout remain preserved. The notes below document earlier revisions.
+
 # Mira v1 + v2 — revision 8
 
 Replace the complete `human2/` folder with this package. Its folder layout is unchanged: `human2/`, `human2/assets/`, and `human2/assets/tex/`. V2 scripts use `?v=8` and textures use `?v=r8`; purge the hosting/CDN cache when updating. Open `human2/index.html` over HTTP on desktop or HTTPS on Quest. Start with one actor on Balanced.

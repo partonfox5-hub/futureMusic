@@ -1,12 +1,12 @@
-import {WEAPONS} from './mira-v2-props.js?v=9.3';
-import {draft,saveDraft,OUTFITS,PERSONAS,clothingItems,setDraftGarment} from './mira-v2-catalog.js?v=9.3';
-import {SCENES} from './mira-v2-world.js?v=9.3';
-import {GARMENTS} from './mira-v2-wardrobe.js?v=9.3';
+import {WEAPONS} from './mira-v2-props.js?v=9.5';
+import {draft,saveDraft,OUTFITS,PERSONAS,clothingItems,setDraftGarment} from './mira-v2-catalog.js?v=9.5';
+import {SCENES} from './mira-v2-world.js?v=9.5';
+import {GARMENTS} from './mira-v2-wardrobe.js?v=9.5';
 import * as THREE from 'three';
-import {SLIDERS,FACE_TYPES} from './mira-v2.js?v=9.3';
-import {shapeSliders,FACE_PRESETS,HAIR_STYLES,ACTIVITY_MODES,ACTION_LABELS,POSE_LABELS} from './mira-v2-controls.js?v=9.3';
-import {HAIR_COLORS} from './mira-v2.js?v=9.3';
-import {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES} from './mira-v2-features.js?v=9.3';
+import {SLIDERS,FACE_TYPES} from './mira-v2.js?v=9.5';
+import {shapeSliders,FACE_PRESETS,HAIR_STYLES,ACTIVITY_MODES,ACTION_LABELS,POSE_LABELS} from './mira-v2-controls.js?v=9.5';
+import {HAIR_COLORS} from './mira-v2.js?v=9.5';
+import {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES} from './mira-v2-features.js?v=9.5';
 export function createVRMenu({scene,renderer,camera,system,spawn,onSync,world,wardrobe,spawnConfigured,copyConfiguration,props}){
  const canvas=document.createElement('canvas');canvas.width=1024;canvas.height=1320;
  const ctx=canvas.getContext('2d'),tex=new THREE.CanvasTexture(canvas);tex.colorSpace=THREE.SRGBColorSpace;
@@ -22,10 +22,16 @@ export function createVRMenu({scene,renderer,camera,system,spawn,onSync,world,wa
   ctx.fillStyle='#eef7ff';ctx.font='bold 42px sans-serif';ctx.fillText('MIRA · UPDATE 9',40,62);
   ctx.font='26px sans-serif';ctx.fillStyle='#b7c8d8';ctx.fillText('Y: close  ·  point + trigger to adjust',40,105);
   function button(label,x,y,w,h,fn){ctx.fillStyle='#26384b';ctx.fillRect(x,y,w,h);ctx.fillStyle='#edf6ff';ctx.font='25px sans-serif';ctx.textAlign='center';ctx.fillText(label,x+w/2,y+h/2+10);ctx.textAlign='left';items.push({x,y,w,h,fn});}
-  ['ACTOR','BODY','STYLE','MOOD','POSES','SCENE','SPAWN'].forEach((n,i)=>button((i===page?'• ':'')+n,18+i*143,140,136,66,()=>{page=i;draw();}));
+  ['ACTOR','BODY','STYLE','MOOD','POSES','SCENE','SPAWN','LINKS','DRIVE'].forEach((n,i)=>button((i===page?'• ':'')+n,14+i*111,140,104,66,()=>{page=i;draw();}));
   const a=active();ctx.font='30px sans-serif';ctx.fillStyle='#aed8fb';ctx.fillText(a?`Mira ${system.actors.indexOf(a)+1} · ${a.version.toUpperCase()}`:'No actor selected',40,264);
   function cycle(label,y,values,get,set){const val=get();ctx.fillStyle='#c9d6e2';ctx.font='28px sans-serif';ctx.fillText(label,40,y);button('‹',40,y+18,90,70,()=>{set(values[(values.indexOf(val)+values.length-1)%values.length]);onSync?.();draw();});button(String(val),144,y+18,734,70,()=>{set(values[(values.indexOf(val)+1)%values.length]);onSync?.();draw();});button('›',892,y+18,90,70,()=>{set(values[(values.indexOf(val)+1)%values.length]);onSync?.();draw();});}
-  if(page===6){
+  if(page===8){const car=props.vehicle;button(car.driving?'EXIT CAR':'ENTER DRIVER SEAT',40,325,942,80,()=>{car.driving?car.exit():car.enter();draw();});button('REPAIR / RESET CAR',40,445,942,80,()=>{car.reset();draw();});button('REAR VIEW MIRROR '+(car.mirrorEnabled?'ON':'OFF'),40,565,942,80,()=>{car.mirrorEnabled=!car.mirrorEnabled;draw();});ctx.fillStyle='#dce8f2';ctx.font='29px sans-serif';for(const [i,text] of ['Grip the steering-wheel rim to steer.','Left trigger: accelerator.','Left X: brake. Release trigger to coast.','Y opens this panel. Opening it applies the brake.','Punctures reduce grip; damaged wheels can detach.','Mirrors render at 15 Hz to limit the extra cost.'].entries())ctx.fillText(text,40,750+i*57);
+  }else if(page===7){
+   const r=props.restraints,l=r.selected;cycle('Attachment',325,['Flexible tether','Short fixed link'],()=>r.mode==='rope'?'Flexible tether':'Short fixed link',x=>r.mode=x==='Flexible tether'?'rope':'fuse');button('PLACE TWO ANCHORS',40,445,600,70,()=>{r.start();notice='Close Y, point + trigger twice';draw();});button('CANCEL',660,445,322,70,()=>{r.cancel();draw();});
+   cycle('Selected link',580,['None',...r.links.map(l=>'Link '+l.id+(l.broken?' · cut':''))],()=>l?'Link '+l.id+(l.broken?' · cut':''):'None',name=>r.selected=r.links.find(x=>name==='Link '+x.id+(x.broken?' · cut':''))||null);
+   ctx.fillStyle='#dce8f2';ctx.font='28px sans-serif';ctx.fillText('Length: '+(l?.length||0).toFixed(2)+' m',40,735);ctx.fillStyle='#526c80';ctx.fillRect(365,719,600,24);if(l&&!l.broken){ctx.fillStyle='#9bd6ff';ctx.fillRect(365,719,600*l.length/5,24);items.push({x:345,y:692,w:640,h:65,slider:true,fn:px=>{r.setLength((px-365)/600*5);draw();}});}
+   button('CUT · LEAVE ENDS',40,810,455,70,()=>{r.cut();draw();});button('REMOVE',515,810,467,70,()=>{r.remove();draw();});button('INJURIES '+(props.injuries.enabled?'ON':'OFF'),40,920,455,70,()=>{props.injuries.enabled=!props.injuries.enabled;draw();});button('DETACHMENT '+(props.injuries.allowSever?'ON':'OFF'),515,920,467,70,()=>{props.injuries.allowSever=!props.injuries.allowSever;draw();});button('RESTORE SELECTED NPC',40,1030,942,70,()=>{props.injuries.heal(a);draw();});ctx.font='24px sans-serif';ctx.fillText('Left stick click: attach · Sword or laser: cut a link',40,1180);
+  }else if(page===6){
    if(editClothes){for(const [i,slot] of ['top','bottom','underwear','dress'].entries()){const choices=[{id:'',name:'None'},...GARMENTS.filter(g=>g.slot===slot)];cycle('Spawning '+slot,325+i*150,choices.map(g=>g.name),()=>choices.find(g=>g.id===(clothingItems().find(id=>GARMENTS.find(g=>g.id===id)?.slot===slot)||''))?.name,name=>setDraftGarment(slot,choices.find(g=>g.name===name).id));}cycle('Hair colour',930,HAIR_COLORS.map(c=>c.name),()=>HAIR_COLORS[draft.hairColor].name,name=>{draft.hairColor=HAIR_COLORS.findIndex(c=>c.name===name);saveDraft();});button('DONE',40,1100,942,80,()=>{editClothes=false;dispatchEvent(new Event('mira:draft'));draw();});
    }else if(editField){
     ctx.font='23px sans-serif';ctx.fillStyle='#dce8f2';const str=String(draft[editField]);for(let i=0;i<5;i++)ctx.fillText(str.slice(Math.max(0,str.length-250)+i*50,Math.max(0,str.length-250)+(i+1)*50),40,320+i*34);

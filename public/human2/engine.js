@@ -1,18 +1,21 @@
-import {Props,WEAPONS} from './mira-v2-props.js?v=9.3';
-import {RoomLight} from './mira-v2-light.js?v=9.3';
-import {draft,saveDraft,spawnOptions,OUTFITS,clothingItems} from './mira-v2-catalog.js?v=9.3';
-import {MiraWorld,SCENES} from './mira-v2-world.js?v=9.3';
-import {Wardrobe,GARMENTS} from './mira-v2-wardrobe.js?v=9.3';
+import {Car} from './mira-v2-car.js?v=9.5';
+import {Restraints} from './mira-v2-restraints.js?v=9.5';
+import {Injuries} from './mira-v2-injuries.js?v=9.5';
+import {Props,WEAPONS} from './mira-v2-props.js?v=9.5';
+import {RoomLight} from './mira-v2-light.js?v=9.5';
+import {draft,saveDraft,spawnOptions,OUTFITS,clothingItems} from './mira-v2-catalog.js?v=9.5';
+import {MiraWorld,SCENES} from './mira-v2-world.js?v=9.5';
+import {Wardrobe,GARMENTS} from './mira-v2-wardrobe.js?v=9.5';
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { createVRMenu } from "./mira-vr-menu.js?v=9.3";
-import { EMOTION_NAMES, IDLE_NAMES, WALK_NAMES } from "./mira-v2-features.js?v=9.3";
+import { createVRMenu } from "./mira-vr-menu.js?v=9.5";
+import { EMOTION_NAMES, IDLE_NAMES, WALK_NAMES } from "./mira-v2-features.js?v=9.5";
 import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
-import { createMiraSystem, SLIDERS, FACE_TYPES, HAIR_COLORS } from "./mira-v2.js?v=9.3";
-import { DEFAULT_PERSONA, miraChat, miraSpeak, startMic, unlockVoice } from "./mira-voice-v2.js?v=9.3";
+import { createMiraSystem, SLIDERS, FACE_TYPES, HAIR_COLORS } from "./mira-v2.js?v=9.5";
+import { DEFAULT_PERSONA, miraChat, miraSpeak, startMic, unlockVoice } from "./mira-voice-v2.js?v=9.5";
 
-import {V2_EXTRA_SLIDERS,FACE_PRESETS,HAIR_STYLES,ACTIVITY_MODES,shapeSliders} from './mira-v2-controls.js?v=9.3';
+import {V2_EXTRA_SLIDERS,FACE_PRESETS,HAIR_STYLES,ACTIVITY_MODES,shapeSliders} from './mira-v2-controls.js?v=9.5';
 
 const QUEST = /OculusBrowser|Quest/i.test(navigator.userAgent);
 const loadEl = document.getElementById("load");
@@ -93,7 +96,7 @@ document.getElementById("enterAR").onclick=()=>enterXr(true);
 
 const mira = createMiraSystem({ scene, renderer, camera, xrOn: XR_ON, rig });
 const world=new MiraWorld(scene,mira);mira.setEnvironment(world);floor.visible=false;const wardrobe=new Wardrobe(scene,mira,mira.contacts,world);mira.setWardrobe(wardrobe);
-const props=new Props({scene,system:mira,world,wardrobe,camera,renderer,rig});world.interactions=props;
+const props=new Props({scene,system:mira,world,wardrobe,camera,renderer,rig});world.interactions=props;props.restraints=new Restraints(props);props.injuries=new Injuries(props);props.vehicle=new Car(props,{orbit,keys,controls});
 const roomLight=new RoomLight(scene,renderer,rig);
 let voiceSessionStart=()=>{},voiceSessionEnd=()=>{};
 banner("LOADING HUMAN 2…");
@@ -132,7 +135,7 @@ renderer.domElement.addEventListener('pointerdown',e=>{groundClick=!XR_ON()&&!gr
 renderer.domElement.addEventListener('pointerup',e=>{const c=groundClick;groundClick=null;if(!c||c.id!==e.pointerId||Math.hypot(c.x-e.clientX,c.y-e.clientY)>5||performance.now()-c.t>650)return;pointerRay(e);const result=mira.pointCommand(pickRay.ray);if(result)syncHud();});
 renderer.domElement.addEventListener('pointercancel',()=>groundClick=null);
 renderer.domElement.addEventListener('pointerdown',e=>{if(XR_ON()||e.shiftKey||grabMode||e.button!==0)return;pointerRay(e);if(props.desktop(pickRay.ray)){groundClick=null;e.preventDefault();e.stopImmediatePropagation();}},true);
-document.addEventListener('keydown',e=>{if(/INPUT|TEXTAREA|SELECT/.test(e.target.tagName))return;if(e.code==='KeyQ')props.drop('desktop');});
+document.addEventListener('keydown',e=>{if(/INPUT|TEXTAREA|SELECT/.test(e.target.tagName))return;if(e.code==='KeyQ')props.drop('desktop');if(e.code==='KeyE'){props.vehicle.driving?props.vehicle.exit():props.vehicle.enter();}});
 const clothHandle=new THREE.Object3D();let clothPointer=null;
 renderer.domElement.addEventListener('pointerdown',e=>{if(XR_ON()||e.shiftKey||grabMode||e.button!==0)return;pointerRay(e);if(wardrobe.begin(pickRay.ray,clothHandle,'desktop')){clothPointer=e.pointerId;orbit.enabled=false;renderer.domElement.setPointerCapture(e.pointerId);e.preventDefault();e.stopImmediatePropagation();}},true);
 renderer.domElement.addEventListener('pointermove',e=>{if(clothPointer!==e.pointerId)return;pointerRay(e);wardrobe.move('desktop',pickRay.ray);});
@@ -156,15 +159,19 @@ function syncHud(){
 }
 function copyConfiguration(){const a=selected();if(!a)return;Object.assign(draft,{bodyType:a.bodyType||'female',faceType:a.faceType,hairStyle:a.hairStyle||0,hairColor:a.hairColor,shape:{...a.shape}});saveDraft();dispatchEvent(new Event('mira:draft'));}
 function spawnConfigured(){if(!mira.ready)return;const n=mira.actors.length,p=new THREE.Vector3(n%2?-.8:.8,0,0),a=mira.spawn(spawnOptions(p));for(const id of clothingItems())wardrobe.equip(a,GARMENTS.find(g=>g.id===id));syncHud();}
-const vrMenu=createVRMenu({spawnConfigured,copyConfiguration,scene,renderer,camera,system:mira,spawn:spawnVersion,onSync:syncHud,world,wardrobe,props});
+const vrMenu=createVRMenu({spawnConfigured,copyConfiguration,scene,renderer,camera,system:mira,spawn:spawnVersion,onSync:syncHud,world,wardrobe,props});props.menu=vrMenu;
 
 function selected() { return mira.selected; }
 
 function bindHud() {
+ document.getElementById('enterCar').onclick=()=>props.vehicle.enter();document.getElementById('exitCar').onclick=()=>props.vehicle.exit();document.getElementById('repairCar').onclick=()=>props.vehicle.reset();document.getElementById('mirrorOn').onchange=e=>props.vehicle.mirrorEnabled=e.target.checked;
+
+ document.getElementById('placeLink').onclick=()=>props.restraints.start();document.getElementById('cancelLink').onclick=()=>props.restraints.cancel();document.getElementById('linkMode').onchange=e=>props.restraints.mode=e.target.value;document.getElementById('linkSelect').onchange=e=>props.restraints.selected=props.restraints.links.find(l=>l.id===Number(e.target.value));document.getElementById('linkLength').oninput=e=>props.restraints.setLength(e.target.value);document.getElementById('cutLink').onclick=()=>props.restraints.cut();document.getElementById('removeLink').onclick=()=>props.restraints.remove();document.getElementById('injuryEnabled').onchange=e=>props.injuries.enabled=e.target.checked;document.getElementById('allowSever').onchange=e=>props.injuries.allowSever=e.target.checked;document.getElementById('healActor').onclick=()=>props.injuries.heal(selected());
+
  const weaponSelect=document.getElementById('weaponSelect');weaponSelect.replaceChildren(...Object.entries(WEAPONS).map(([id,w])=>new Option(w.name,id)));document.getElementById('equipWeapon').onclick=()=>props.equip(weaponSelect.value);document.getElementById('dropWeapon').onclick=()=>props.drop('desktop');document.getElementById('resetHouse').onclick=()=>world.setScene('Living room');
  document.getElementById("spawnNpc").onclick=spawnConfigured;document.getElementById("copyNpc").onclick=copyConfiguration;document.getElementById("foveation").oninput=e=>renderer.xr.setFoveation(Number(e.target.value));document.getElementById("hapticGain").oninput=e=>mira.hands.haptics.gain=Number(e.target.value);
  const sceneSelect=document.getElementById('sceneSelect');sceneSelect.replaceChildren(...SCENES.map(x=>new Option(x,x)));sceneSelect.value=world.name;sceneSelect.onchange=()=>{world.setScene(sceneSelect.value);world.obstacle(-3.3,2.4,1.3,.6,0,2);};
- const wardrobeSelect=document.getElementById('wardrobeSelect');GARMENTS.forEach(x=>wardrobeSelect.add(new Option(x.name,x.id)));document.getElementById('wearBtn').onclick=()=>wardrobe.equip(selected(),GARMENTS.find(x=>x.id===wardrobeSelect.value));
+ const wardrobeSelect=document.getElementById('wardrobeSelect');wardrobeSelect.replaceChildren(...GARMENTS.map(x=>new Option(x.name,x.id)));document.getElementById('wearBtn').onclick=()=>wardrobe.equip(selected(),GARMENTS.find(x=>x.id===wardrobeSelect.value));
 
   for(const slider of V2_EXTRA_SLIDERS){
     const container=document.getElementById(slider.section==='shape'?'placementControls':slider.section==='skin'?'skinControls':'tissueControls'),label=document.createElement('label'),input=document.createElement('input');label.htmlFor='s_'+slider.key;label.textContent=slider.label;input.id='s_'+slider.key;input.type='range';input.value=slider.value;container.append(label,input);
@@ -340,7 +347,7 @@ function bindHud() {
       if(micBtn.textContent!=='RETRY VOICE')micHandle=handle;
     }
   micBtn.onclick=()=>{if(micHandle){micHandle.stop();micHandle=null;}else enableVoice();};
-  voiceSessionStart=()=>{enableVoice();setTimeout(async()=>{if(!XR_ON()||talking)return;const actor=selected();if(!actor)return;talking=true;const text="Hi! I'm Mira. It's good to see you. What would you like to do today?";actor.beginSpeech(text,'happy');addChat('mira',text);let finished=false;const done=()=>{if(finished)return;finished=true;actor.endSpeech();talking=false;};miraSpeak(text,{voice:actor?.bodyType==='male'?'am_adam':document.getElementById('ttsVoice').value,onStatus:text=>document.getElementById('ttsStatus').textContent=text,onStart:d=>actor.setSpeechDuration(d),onAmp:(v,t,d)=>actor.setSpeechAmp(v,t,d),onEnd:done,onError:banner}).catch(done);setTimeout(done,240000);},1800);};
+  voiceSessionStart=()=>{enableVoice();setTimeout(async()=>{if(!XR_ON()||talking)return;const actor=selected();if(!actor)return;talking=true;const text="Hi! I'm "+(actor.displayName||"Mira")+". It's good to see you. What would you like to do today?";actor.beginSpeech(text,'happy');addChat('mira',text);let finished=false;const done=()=>{if(finished)return;finished=true;actor.endSpeech();talking=false;};miraSpeak(text,{voice:actor?.bodyType==='male'?'am_adam':document.getElementById('ttsVoice').value,onStatus:text=>document.getElementById('ttsStatus').textContent=text,onStart:d=>actor.setSpeechDuration(d),onAmp:(v,t,d)=>actor.setSpeechAmp(v,t,d),onEnd:done,onError:banner}).catch(done);setTimeout(done,240000);},1800);};
   voiceSessionEnd=()=>{micHandle?.stop();micHandle=null;};
   syncLabs();if(XR_ON())voiceSessionStart();
 }
@@ -356,7 +363,7 @@ function stickAxes(gp) {
   return null;
 }
 function tickLocomotion(dt) {
-  if (!XR_ON() || vrMenu.isOpen) return;
+  if (!XR_ON() || vrMenu.isOpen || props.vehicle.driving) return;
   const session = renderer.xr.getSession();
   if (!session) return;
   const cam = renderer.xr.getCamera();
@@ -392,6 +399,7 @@ function tickLocomotion(dt) {
 }
 
 function desktopMove(dt) {
+  if(props.vehicle.driving)return;
   if (XR_ON()) return;
   if (!controls || !controls.isLocked) return;
   const sp = (keys.ShiftLeft ? 2.4 : 1.4) * dt;
@@ -412,9 +420,11 @@ function tick(time,frame) {
   if(!XR_ON()&&orbit.enabled)orbit.update();
   vrMenu.tick();
   tickLocomotion(dt);
-  if(XR_ON()){const eye=renderer.xr.getCamera().getWorldPosition(new THREE.Vector3()),before=eye.clone();world.project(eye,.18,0,1.6);rig.position.add(eye.sub(before));}
+  if(XR_ON()&&!props.vehicle.driving){const eye=renderer.xr.getCamera().getWorldPosition(new THREE.Vector3()),before=eye.clone();world.project(eye,.18,0,1.6);rig.position.add(eye.sub(before));}
   if (mira.ready) {mira.tick(dt, clock.elapsedTime, keys);props.tick(dt);}
   const propStatus=document.getElementById("propStatus");if(propStatus&&propStatus.textContent!==props.status)propStatus.textContent=props.status;
+  const ls=document.getElementById('linkSelect'),stamp=props.restraints.links.map(l=>l.id+':'+l.broken).join('/');if(ls.dataset.stamp!==stamp){ls.replaceChildren(new Option('Select link',''),...props.restraints.links.map(l=>new Option('Link '+l.id+(l.broken?' · cut':''),l.id)));ls.dataset.stamp=stamp;}ls.value=props.restraints.selected?.id||'';if(document.activeElement?.id!=='linkLength')document.getElementById('linkLength').value=props.restraints.selected?.length||1;document.getElementById('linkStatus').textContent=props.restraints.status;
+  document.getElementById('carStatus').textContent=props.vehicle.driving?Math.round(props.vehicle.velocity.length()*3.6)+' km/h · '+props.vehicle.status:props.vehicle.status;
   fpsFrames++;
   const now = performance.now();
   if (statsEl && now - fpsLast > 400) {
@@ -424,6 +434,7 @@ function tick(time,frame) {
     statsEl.textContent = `MIRA  ${fps.toFixed(0)} fps  ·  ${mira.actors.length} actors  ·  ${renderer.info.render.calls} calls`;
     const a=selected();document.getElementById("emoLab").textContent=a?.emotion?`${a.emotion.name.toUpperCase()} · ${a.balance.state}`:"V1";
   }
+  props.vehicle.renderMirror();
   renderer.render(scene, camera);
 }
 renderer.setAnimationLoop(tick);
@@ -449,7 +460,7 @@ async function enterXr(passthroughMode=false) {
     mira.resetPhysics();
     if (ui) ui.style.display = "none";
     session.addEventListener("end", () => {
-      voiceSessionEnd();world.root.visible=true;floor.visible=false;
+      props.vehicle.exit();voiceSessionEnd();world.root.visible=true;floor.visible=false;
       rig.position.set(0, 0, 0); rig.rotation.set(0, 0, 0);
       scene.background = new THREE.Color(world.name==='Beach'?0xaedced:world.name==='Jungle'?0x637f76:0xc2b5a3);
       renderer.setClearColor(0x6b5e52, 1);

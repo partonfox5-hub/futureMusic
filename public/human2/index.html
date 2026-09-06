@@ -49,7 +49,7 @@
     <div id="hint"></div>
     <div id="stats">REALISM PASS</div>
     <div id="hud">
-      <h2>MIRA V1 + V2 · UPDATE 9 · PHASE 3</h2>
+      <h2>MIRA V1 + V2 · UPDATE 9 · PHASE 5</h2>
 <details open><summary>CREATE NPC</summary><p>Configure an NPC before spawning.</p>
 <label for="npcName">NPC name</label><input id="npcName" maxlength="48">
 <label for="npcBody">Body profile</label><select id="npcBody"><option value="female">Female · Mira rig</option><option value="male">Male · adapted rig</option></select>
@@ -121,13 +121,15 @@
 <label for="weaponSelect">Table equipment</label><select id="weaponSelect" data-runtime></select><div class="row"><button id="equipWeapon" data-runtime>PICK UP</button><button id="dropWeapon" data-runtime>DROP (Q)</button><button id="resetHouse" data-runtime>REBUILD HOUSE</button></div><p id="propStatus">Click equipment to pick up; click to use; Q to drop.</p>
 <label for="wardrobeSelect">Clothing</label><select id="wardrobeSelect" data-runtime></select><button type="button" id="wearBtn" data-runtime>DRESS SELECTED MIRA</button>
 <p>Drag garments from the wooden rack onto Mira. Drag worn cloth to pull it off. Point at a chair to sit.</p>
+<h2>DRIVEWAY CAR</h2><div class="row"><button id="enterCar" data-runtime>ENTER CAR (E)</button><button id="exitCar" data-runtime>EXIT CAR (E)</button><button id="repairCar" data-runtime>REPAIR / RESET</button></div><label><input id="mirrorOn" type="checkbox" checked data-runtime> Rear-view mirror</label><p id="carStatus">Desktop: W/S drive/reverse, A/D steer, Space brake. VR: grip wheel, left trigger accelerates, X brakes.</p>
+<h2>LINKS &amp; INJURIES</h2><label for="linkMode">Attachment type</label><select id="linkMode" data-runtime><option value="rope">Flexible tether</option><option value="fuse">Short fixed link</option></select><div class="row"><button id="placeLink" data-runtime>PLACE TWO ANCHORS</button><button id="cancelLink" data-runtime>CANCEL</button></div><label for="linkSelect">Selected link</label><select id="linkSelect" data-runtime></select><label for="linkLength">Link length (metres)</label><input id="linkLength" type="range" min="0.03" max="5" step="0.01" value="1" data-runtime><div class="row"><button id="cutLink" data-runtime>CUT LINK</button><button id="removeLink" data-runtime>REMOVE LINK</button></div><p id="linkStatus">In VR, click left thumbstick to attach each endpoint.</p><label><input id="injuryEnabled" type="checkbox" checked data-runtime> Bloodless injury reactions</label><label><input id="allowSever" type="checkbox" data-runtime> Exceptional blade impacts can detach parts</label><button id="healActor" data-runtime>RESTORE SELECTED NPC</button>
 <h2>PERSONALITY</h2>
       <textarea id="persona" rows="5" style="width:100%;box-sizing:border-box;background:#1a1614;color:#f4efe8;border:1px solid #7eb6ff;border-radius:8px;padding:8px;font:12px/1.35 'Segoe UI',sans-serif;"></textarea>
       <p style="margin-top:12px;font-size:11px;opacity:.8">Type a line and press SAY, or enable voice and speak near her. Mouth and expression follow the reply. Left stick: walk. Right stick: turn. Y opens the VR menu. Right B (or B on desktop) spawns a ball.</p>
     </div>
     <div id="ui">
       <div id="panel">
-        <div class="tag">MIRA V1 + V2 · UPDATE 9 · PHASE 3</div>
+        <div class="tag">MIRA V1 + V2 · UPDATE 9 · PHASE 5</div>
         <h1>HUMAN SIMULATOR</h1>
         <p>Choose Mira v1 or v2. Explore the face, poses and body interactions. Start with one actor on Quest 3.</p>
         <button type="button" id="enter" data-runtime>ENTER VR · VOICE STARTS</button>
@@ -136,6 +138,6 @@
         <button type="button" class="ghost" id="firstPerson" data-runtime>First person</button>
       </div>
     </div>
-    <script type="module" src="/human2/mira-boot.js?v=9.3"></script>
+    <script type="module" src="/human2/mira-boot.js?v=9.5"></script>
   </body>
 </html>

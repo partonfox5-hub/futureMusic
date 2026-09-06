@@ -39,6 +39,7 @@ export class BodyContacts {
   const list=this.actors.filter(a=>a.version==='v2');list.forEach(a=>this.surface(a).begin());this.stats.contacts=0;
   for(const a of list){const h=a.shape.height;
    for(let pass=0;pass<(a.socialPair?2:1);pass++)for(const side of ['L','R']){
+    if(a.injuryDriver?.states.get(a)?.missing.has(side+'Arm'))continue;
     const hand=a.bones[side+'_Hand'],elbow=a.bones[side+'_Forearm'];if(!hand||!elbow)continue;
     const wrist=hand.getWorldPosition(V()),pole=elbow.getWorldPosition(V()),shift=V();let touch=false;
     const samples=[{p:wrist.clone(),r:.029*h},{p:wrist.clone().lerp(pole,.45),r:.033*h}];
@@ -47,14 +48,14 @@ export class BodyContacts {
     const oldPole=pole.clone();if(this.project(a,pole,.038*h,side+'Arm'))touch=true;
     if(touch){wrist.add(shift);if(shift.lengthSq()<1e-9)wrist.add(pole.clone().sub(oldPole).multiplyScalar(.6));a.solveChain(side,'arm',wrist,pole);a.group.updateMatrixWorld(true);a.handTargets[side]=hand.getWorldPosition(V());this.surface(a).refresh(side+'Arm');}
    }
-   const head=a.bones.Head,neck=a.bones.NeckTwist01;if(head&&neck){const center=head.getWorldPosition(V()).add(new T.Vector3(0,.063*h,.015*h).applyQuaternion(a.group.getWorldQuaternion(new T.Quaternion()))),p=center.clone();if(this.project(a,p,.075*h,'head')){const before=neck.quaternion.clone(),target=head.getWorldPosition(V()).add(p.sub(center));a.aimBone(neck,head,target);const solved=neck.quaternion.clone();neck.quaternion.copy(before).rotateTowards(solved,.22);a.group.updateMatrixWorld(true);this.surface(a).refresh('head');}}
+   const head=a.bones.Head,neck=a.bones.NeckTwist01;if(head&&neck&&!a.injuryDriver?.states.get(a)?.missing.has("head")){const center=head.getWorldPosition(V()).add(new T.Vector3(0,.063*h,.015*h).applyQuaternion(a.group.getWorldQuaternion(new T.Quaternion()))),p=center.clone();if(this.project(a,p,.075*h,'head')){const before=neck.quaternion.clone(),target=head.getWorldPosition(V()).add(p.sub(center));a.aimBone(neck,head,target);const solved=neck.quaternion.clone();neck.quaternion.copy(before).rotateTowards(solved,.22);a.group.updateMatrixWorld(true);this.surface(a).refresh('head');}}
   }
  }
 }
 // Low-cost moving volumes for cloth. Main surfaces have no hidden body masks.
 export function bodyVolumes(a){
  const h=a.shape.height,wp=n=>a.bones[n]?.getWorldPosition(V()),out=[];
- const add=(x,y,r)=>{const p=wp(x),q=wp(y);if(p&&q)out.push({a:p,b:q,r:r*h});};
+ const add=(x,y,r)=>{if(a.injuryDriver?.states.get(a)?.missing.has(limb(x)))return;const p=wp(x),q=wp(y);if(p&&q)out.push({a:p,b:q,r:r*h});};
  add('Hip','Waist',.14*Math.sqrt(a.shape.hips));add('Waist','Spine02',.12);add('NeckTwist01','Head',.065);
  for(const s of ['L','R']){add(s+'_Upperarm',s+'_Forearm',.048);add(s+'_Forearm',s+'_Hand',.035);add(s+'_Thigh',s+'_Calf',.086*Math.sqrt(a.shape.thigh));add(s+'_Calf',s+'_Foot',.05);}
  for(const s of a.soft||[]){const p=wp(s.name);if(p)out.push({a:p,b:p.clone(),r:(s.kind==='breast'?.07:.09)*h*Math.cbrt(s.kind==='breast'?a.shape.breast:a.shape.butt)});}

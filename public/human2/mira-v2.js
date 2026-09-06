@@ -1,8 +1,8 @@
-import {restoreSurfaceUV} from './mira-v2-uv.js?v=9.3';
-import {BodyContacts} from './mira-v2-contact.js?v=9.3';
-import {MiraSocial} from './mira-v2-social.js?v=9.3';
-import {ContactHaptics} from './mira-v2-haptics.js?v=9.3';
-import { createV2Class, repairArmRestData } from "./mira-v2-features.js?v=9.3";
+import {restoreSurfaceUV} from './mira-v2-uv.js?v=9.5';
+import {BodyContacts} from './mira-v2-contact.js?v=9.5';
+import {MiraSocial} from './mira-v2-social.js?v=9.5';
+import {ContactHaptics} from './mira-v2-haptics.js?v=9.5';
+import { createV2Class, repairArmRestData } from "./mira-v2-features.js?v=9.5";
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { clone as cloneSkinned } from "three/addons/utils/SkeletonUtils.js";
@@ -1782,6 +1782,7 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
         blobs[i].position.z = actors[i].group.position.z;
       }
     }
+    environment?.interactions?.restraints?.solve(dt);
     social.resolveContacts();contacts.tick();
     for(const a of actors)if(a.version==='v1'&&a.directedWalk&&!a.dest){a.directedWalk=null;a.autoWander=false;a.setMode('idle');}
     const goal=selectedActor?.directedWalk;targetMarker.visible=!!goal&&!uiHandlers.isOpen?.();if(goal)targetMarker.position.set(goal.x,.016,goal.z);
