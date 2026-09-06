@@ -1,8 +1,22 @@
-# Mira v1 + v2 — revision 6
+# Mira v1 + v2 — revision 7
 
-Replace the complete `human2/` folder with this package. Its folder layout is unchanged: `human2/`, `human2/assets/`, and `human2/assets/tex/`. V2 scripts use `?v=6` and textures use `?v=r6`; purge the hosting/CDN cache when updating. Open `human2/index.html` over HTTP on desktop or HTTPS on Quest. Start with one actor on Balanced.
+Replace the complete `human2/` folder with this package. Its folder layout is unchanged: `human2/`, `human2/assets/`, and `human2/assets/tex/`. V2 scripts use `?v=7` and textures use `?v=r7`; purge the hosting/CDN cache when updating. Open `human2/index.html` over HTTP on desktop or HTTPS on Quest. Start with one actor on Balanced.
 
 The original Mira remains selectable in the shared spawner. `mira-v1.html` opens the original scene. The original core, voice code, preserved engine, GLB and uploaded textures are unchanged. V2 keeps actor geometry, materials, animation and physics state separate.
+
+## What changed in revision 7
+
+- **Point to walk:** click a Mira to select her, then click a floor location. Drag still orbits; Shift-drag or Grab body still manipulates the hit surface. In VR, point at a Mira and pull trigger to select her, then point at the floor and pull trigger to walk there. A ring marks the selected destination. Commands stop on arrival, within the existing walking tolerance. Targets are limited to the room floor (3.8 m from centre, at most 8 m along the ray); this is direct steering, not obstacle-aware navigation.
+- **Y opens POSES:** the selected actor's panel now starts on a page with Free behaviour, Relaxed stand, Wander, Hands on hips, eight exercise/activity choices, Hug nearby and Arm around. ACTOR, BODY, STYLE and MOOD remain accessible. Grip continues to grab the body; trigger operates the panel or floor commands. Trigger release does not release a grip.
+- **Held idle positions:** Hands on hips uses both arms with outward elbow bends. Manually selected idle positions stay active until changed; automatic idle still varies poses. Desktop Idle pose and the VR pose cycle share these choices.
+- **Buttock sculpting:** Butt height, Butt spacing and Butt angle complement the existing Butt size control. The same controls appear on desktop and across the four BODY slider pages in VR. Symmetric surface warps feather into the attachment and preserve the central fold; sampled combined extremes pass local orientation checks.
+- **Nearby social gestures:** two free-behaviour v2 actors occasionally approach, face one another for a hug or stand alongside for an arm around, smile, ease into contact, then release. The same gestures can be requested from POSES with a compatible idle/walking v2 partner within 2.5 m. Grabs, a new walk/pose command, speech or falling interrupt the pair. Torso/head capsules separate main body masses; hand targets project to the partner's exterior and arm IK retains its flexion constraints. These are coordinated procedural gestures with approximate contact, not a full active ragdoll or mesh self-collision solver. Very different actor heights and busy actors are excluded.
+
+## Revision 7 checks
+
+Actual model tests cover directed-walk arrival and stopping, a sustained hands-on-hips pose, both social sequences through approach/hold/release, interruption of both partners, and separation of overlapping main-body capsules. Input mocks cover ray selection, floor-trigger walking, invalid rays, opening POSES with Y, buttock-slider pagination, reconnection and reversed controller order. Shape sampling covers the three new buttock controls at combined limits. The release includes results in `validation-v2.json`.
+
+No GPU render or Quest hardware test was possible in the available browser. Social poses were inspected with CPU geometry views; clothing/hair and fine limb-to-limb contact are not guaranteed collision-free. Existing shader-generation checks are not a substitute for compiling on the headset. Revision 6 limitations below still apply.
 
 ## What changed in revision 6
 
@@ -69,25 +83,26 @@ Buttock weights now cover a broader rear region and peak above the source's roug
 
 **Jiggle now spans 0–6 (previous maximum 3), default 2.8.** Softness controls compliance/oscillation frequency; damping separately controls settling. Higher viscosity would suppress oscillation, so it is not used as a synonym for softness. Free tissue has stronger inertial response and wider bounds. Grabbed tissue has a stiff, highly damped anchor. Fixed 1/120-second substeps remain. Triangle-derived displacement constraints reduce motion in directions that would invert the surface, adapting to the current shape. Consequently the maximum safe displacement depends on size and placement.
 
-Five small additional surface guides add secondary motion at the waist, left/right upper thigh and left/right cheek. Their controls are separate from breast/buttock motion. The depth pass receives the same guide offsets. These reduced models do not conserve full incompressible tissue volume or simulate FEM, Dyna, or a general active ragdoll. The procedural fall/get-up system remains: standing → falling → down → recovering → standing. Holding a limb delays recovery. Full environment-mesh, actor-to-actor and arbitrary body self-collision are not implemented.
+Five small additional surface guides add secondary motion at the waist, left/right upper thigh and left/right cheek. Their controls are separate from breast/buttock motion. The depth pass receives the same guide offsets. These reduced models do not conserve full incompressible tissue volume or simulate FEM, Dyna, or a general active ragdoll. The procedural fall/get-up system remains: standing → falling → down → recovering → standing. Holding a limb delays recovery. Full environment-mesh and arbitrary body self-collision are not implemented. Revision 7 adds limited torso/head contact between actors.
 
 ## Controls
 
 | Input | Action |
 | --- | --- |
+| Desktop click Mira / click floor | Select actor / walk to target |
 | Desktop drag / wheel | Orbit / zoom |
 | Face view / Body view | Frame the selected actor |
 | Grab body, then drag; or Shift-drag | Pull the hit surface in the camera plane |
 | Lively idle | Resume autonomous rests, social actions and short walks |
 | Stand / Walk / exercise buttons | Select manual movement |
-| Quest left Y | Open/close the 3D spawner and sliders |
-| Controller ray + trigger | Operate the menu; point at the left wrist MENU shortcut to open it |
+| Quest left Y | Open/close POSES, activities, spawner and sliders |
+| Controller ray + trigger | Select actor, walk to floor target, or operate the open menu |
 | Grip near body | Grab a limb, tissue region or head |
 | Turn controller while holding head | Turn head and neck |
 | Quest right B / desktop B | Spawn a ball |
 | Left stick / right stick | Move / turn |
 
-Y/B use the secondary face button at index 5 for the Quest Touch profile. Y edges are read directly from session input sources, independently of controller connected-event order, and reset on reconnection/new sessions. The panel draws over scene geometry. BODY has three pages of sliders; STYLE has face, hairstyle and hair-color choices. The v1-only page retains its original controls. Movement pauses while the VR menu is open. Both controllers can hold independently.
+Y/B use the secondary face button at index 5 for the Quest Touch profile. Y edges are read directly from session input sources, independently of controller connected-event order, and reset on reconnection/new sessions. The panel draws over scene geometry. BODY has four pages of sliders; STYLE has face, hairstyle and hair-color choices. The v1-only page retains its original controls. The panel opens on POSES for the selected actor. Player locomotion pauses while the VR menu is open. Both controllers can hold independently.
 
 ## Quest voice
 

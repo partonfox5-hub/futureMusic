@@ -1,8 +1,8 @@
 import * as THREE from 'three';
-import {restoreSurfaceUV} from './mira-v2-uv.js?v=6';
-import {V2_EXTRA_SLIDERS,FACE_PRESETS,EXERCISE_MODES} from './mira-v2-controls.js?v=6';
-import {HairGuides} from './mira-v2-hair.js?v=6';
-import {SurfaceFlesh} from './mira-v2-tissue.js?v=6';
+import {restoreSurfaceUV} from './mira-v2-uv.js?v=7';
+import {V2_EXTRA_SLIDERS,FACE_PRESETS,EXERCISE_MODES} from './mira-v2-controls.js?v=7';
+import {HairGuides} from './mira-v2-hair.js?v=7';
+import {SurfaceFlesh} from './mira-v2-tissue.js?v=7';
 
 // Mira v2: a bounded real-time approximation for this CC3 rig, Three r170.
 const clamp = THREE.MathUtils.clamp, damp = THREE.MathUtils.damp;
@@ -12,7 +12,7 @@ const cap = (v,n) => { if(v.lengthSq()>n*n)v.setLength(n); return v; };
 const tmp=V(), tmp2=V(), tmp3=V(), axis=V(), q=new THREE.Quaternion();
 const up=new THREE.Vector3(0,1,0);
 export const EMOTION_NAMES=['neutral','happy','content','curious','listening','thoughtful','concerned','sad','surprise','afraid','angry','disgust','tease','flirty','laugh','tired'];
-export const IDLE_NAMES=['rest','weightShift','handsTogether','handOnHip','hairTuck','lookAtHand','wave','explain','shoulderRoll','lookAround','breathe','neckStretch','sigh','armStretch','wiggle','dance'];
+export const IDLE_NAMES=['rest','weightShift','handsTogether','handOnHip','handsOnHips','hairTuck','lookAtHand','wave','explain','shoulderRoll','lookAround','breathe','neckStretch','sigh','armStretch','wiggle','dance'];
 export const WALK_NAMES=['Relaxed','Purposeful','Soft','Brisk','Careful','Stroll'];
 const FACE_POSES={
  neutral:{}, happy:{Mouth_Smile:1,Cheek_Raise:.64,Mouth_Dimple:.26,Eye_Squint:.19,Jaw_Open:.10},
@@ -82,11 +82,15 @@ export function shapePoint(x,y,z,size,likeness=0,butt=1,arms=1,options={}){
  // Broad lower-pole volume, with a soft attachment to the sacrum and thighs.
  // Preserve the authored centre fold: deepening it creates pinched triangles.
  if(y>.63&&y<1.01&&z<-.015){
-  const rr=((Math.abs(x)-.095)/.14)**2+((y-.825)/.165)**2;
-  const w=(1-smooth(rr))*smooth((-z-.015)/.065);
-  const k=Math.cbrt(butt*butt)-1;
-  dx+=Math.sign(x)*.025*k*w*smooth(Math.abs(x)/.055);
-  dz-=.047*k*w;dy-=(.005+.032*Math.max(0,k))*(.45+.55*(options.softness??.62))*w*smooth((.94-y)/.15);
+  let bx=x,by=y,bz=z;const k=Math.cbrt(butt*butt)-1;
+  for(let step=0;step<6;step++){
+   const rr=((Math.abs(bx)-.095)/.14)**2+((by-.825)/.165)**2,w=(1-smooth(rr))*smooth((-bz-.015)/.065),side=Math.sign(bx),center=smooth(Math.abs(bx)/.055);
+   const angle=(options.buttAngle||0)*.13;
+   bx+=side*(.025*k+(options.buttSpacing||0)*.012+angle*Math.max(0,-bz-.035))*w*center/6;
+   by+=((options.buttHeight||0)*.016-(.005+.032*Math.max(0,k))*(.45+.55*(options.softness??.62))*smooth((.94-by)/.15))*w/6;
+   bz+=(-.047*k+side*(bx-side*.095)*angle)*w/6;
+  }
+  dx+=bx-x;dy+=by-y;dz+=bz-z;
  }
  // Shape the arm surface instead of multiplying upper-arm and forearm scales.
  // The original scale hierarchy also scaled every finger twice.
@@ -219,7 +223,7 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
   updateShapeGeometry(){
    const size=this.shape.breast,profile=FACE_PRESETS[this.faceType]||FACE_PRESETS[0],like=profile.like*this.likeness;
    const options={...this.shape,faceProfile:profile};
-   const key=[size,like,this.faceType,this.shape.butt,this.shape.arms,this.shape.waist,this.shape.hips,this.shape.thigh,this.shape.gap,this.shape.breastHeight,this.shape.breastSpacing,this.shape.breastAngle,this.shape.softness].map(n=>n.toFixed(3)).join('/');if(key===this.geomState)return;this.geomState=key;
+   const key=[size,like,this.faceType,this.shape.butt,this.shape.arms,this.shape.waist,this.shape.hips,this.shape.thigh,this.shape.gap,this.shape.breastHeight,this.shape.breastSpacing,this.shape.breastAngle,this.shape.softness,this.shape.buttHeight,this.shape.buttSpacing,this.shape.buttAngle].map(n=>n.toFixed(3)).join('/');if(key===this.geomState)return;this.geomState=key;
    const likenessChanged=like!==this.lastLikeness||this.faceType!==this.lastFace;this.lastLikeness=like;this.lastFace=this.faceType;
    for(const d of this.deform){
     const a=d.geom.attributes.position.array,b=d.base;
@@ -293,10 +297,19 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
   }
   endSpeech(){super.endSpeech();if(this.mode==='talk')super.setMode('idle');this.lifeT=7;}
   setMode(mode){
+   this.socialPair?.cancel();this.directedWalk=null;
    if(mode==='auto'){this.autonomy=true;this.lifeT=6;this.autoWander=false;this.dest=null;super.setMode('idle');return;}
    if(mode!=='talk')this.autonomy=false;
    this.autoWander=mode==='wander';if(!this.autoWander)this.dest=null;
    super.setMode(mode);
+  }
+  walkTo(point){
+   if(this.balance.state!=='standing'||this.grabs.size)return false;
+   this.setMode('wander');this.autonomy=false;this.autoWander=true;
+   this.dest=point.clone().setY(0);this.directedWalk=this.dest.clone();this.miraWalk=3600;this.feet={};return true;
+  }
+  setIdlePose(name){
+   this.setMode('idle');this.idleChoice=['auto',...IDLE_NAMES].includes(name)?name:'rest';this.idleKind=this.idleChoice==='auto'?'rest':this.idleChoice;this.idleT=0;this.gestureWeight=0;
   }
   playFaceReference(name){this.faceReference={name,t:0};}
   tickExpr(dt){
@@ -383,7 +396,7 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
     this.idleDur=this.idleKind==='rest'?5+Math.random()*5:4+Math.random()*3;this.idleT=this.idleDur;
    }
    const u=clamp(1-this.idleT/this.idleDur,0,1);
-   this.gestureWeight=smooth(u/.22)*smooth((1-u)/.24);
+   this.gestureWeight=this.idleChoice!=='auto'?damp(this.gestureWeight||0,1,6,dt):smooth(u/.22)*smooth((1-u)/.24);
    const w=this.gestureWeight;
    this.addE('Hip',0,Math.sin(t*.47+this.seed)*.013,.023*Math.sin(t*.32+this.seed));
    this.addE('Spine02',.009*Math.sin(t*1.15),0,-.01*Math.sin(t*.32+this.seed));
@@ -418,6 +431,7 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    if(this.pathSpeed!==undefined)this.speed=this.pathSpeed;
    // Base path steering, with six distinct speed/cadence styles.
    const before=this.group.position.clone();const moving=super.wander(dt);
+   if(this.directedWalk&&!this.dest){this.directedWalk=null;this.autoWander=false;this.mode='idle';this.modeT=0;this.speed=0;this.pathSpeed=0;}
    const moodSpeed=['sad','tired'].includes(this.emotion.name)?.8:1;
    const factor=([1,1.12,.84,1.25,.68,.92][this.gait]||1)*moodSpeed;
    this.group.position.sub(before).multiplyScalar(factor).add(before);this.pathSpeed=this.speed;this.speed*=factor;
@@ -446,7 +460,7 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
     const gesture=dst.clone();
     if(!step){
      if(this.idleKind==='handsTogether')gesture.set(sign*.046,1.02,.19);
-     if(this.idleKind==='handOnHip'&&side==='L')gesture.set(.22,1.05,.01);
+     if(this.idleKind==='handsOnHips'||this.idleKind==='handOnHip'&&side==='L')gesture.set(sign*(.19+.040*(this.shape.hips-1)),1.035,-.018);
      if(this.idleKind==='hairTuck'&&side==='R')gesture.set(-.14,1.48,.015);
      if(this.idleKind==='lookAtHand'&&side==='R')gesture.set(-.14,1.19,.28);
      if(this.idleKind==='wave'&&side==='R')gesture.set(-.30+Math.sin(t*6)*.025,1.52,.15);
@@ -465,7 +479,8 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
     const rest=hand.getWorldPosition(V());
     if(dst.distanceTo(rest)<.0015*h){this.handTargets[side]=rest.clone();continue;}
     const current=this.handTargets[side]||(this.handTargets[side]=rest.clone());current.lerp(dst,1-Math.exp(-this.dt*8));
-    const pole=new THREE.Vector3(sign*.30,1.05,-.20).multiplyScalar(h);this.group.localToWorld(pole);
+    const hipPose=['handsOnHips','handOnHip'].includes(this.idleKind);
+    const pole=new THREE.Vector3(sign*(hipPose?.58:.30),1.05,hipPose?.015:-.20).multiplyScalar(h);this.group.localToWorld(pole);
     this.solveChain(side,'arm',current,pole);
    }
   }
@@ -528,6 +543,7 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
   }
   tickAwareness(dt,cam){
    this.greetingT-=dt;this.lifeT-=dt;
+   if(this.socialPair||this.directedWalk)return;
    if(this.balance.state!=='standing'||this.grabs.size||this.speech?.active||this.mode==='talk')return;
    if(this.autonomy&&this.greetingT<=0){
     const candidates=[cam,...(this.neighbors||[]).filter(a=>a!==this).map(a=>a.bones.Head.getWorldPosition(V()))];
@@ -624,6 +640,7 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    this.lastSurfacePoint=point;this.lastHitDistance=chosen?bd:this.lastHitDistance;return chosen||best;
   }
   beginGrab(ctrl,hit,contact){
+   this.socialPair?.cancel();this.directedWalk=null;
    if(this.grabs.has(ctrl))return;
    const bone=this.bones[hit.name];if(!bone)return;
    const anchor=contact?.clone()||this.lastSurfacePoint?.clone()||ctrl.getWorldPosition(V());
@@ -825,6 +842,7 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    else if(c>.7)this.setEmotion('surprise',clamp(c*.15,0,.6),{hold:2,source:'contact'});
   }
   resetPhysics(){
+   this.socialPair?.cancel();this.directedWalk=null;
    super.resetPhysics();this.grabs?.clear();this.handTargets={};this.armSwing={};this.spineTouch?.set(0,0,0);this.spineGoal?.set(0,0,0);this.hairPhysics?.reset();this.surfaceFlesh?.reset();
    if(this.balance){this.balance.velocity.set(0,0,0);this.balance.stress=0;}
   }
@@ -835,7 +853,7 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    this.root.position.copy(this.baseRootPos);this.root.quaternion.identity();
    // The v1 animation pipeline dispatches through these v2 overrides.
    this.inBaseTick=true;super.tick(dt,cam,t);this.inBaseTick=false;
-   this.poseActivity();this.poseSpineContact(dt);this.poseArms();this.group.updateMatrixWorld(true);
+   this.poseActivity();this.poseSpineContact(dt);this.poseArms();this.socialPair?.pose(this);this.group.updateMatrixWorld(true);
    // Limb IK follows the final arm pose, including both controllers independently.
    this.tickBalance(dt);
    this.tickGrab(dt);

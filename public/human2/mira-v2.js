@@ -1,5 +1,6 @@
-import {ContactHaptics} from './mira-v2-haptics.js?v=6';
-import { createV2Class, repairArmRestData } from "./mira-v2-features.js?v=6";
+import {MiraSocial} from './mira-v2-social.js?v=7';
+import {ContactHaptics} from './mira-v2-haptics.js?v=7';
+import { createV2Class, repairArmRestData } from "./mira-v2-features.js?v=7";
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { clone as cloneSkinned } from "three/addons/utils/SkeletonUtils.js";
@@ -15,7 +16,7 @@ import { clone as cloneSkinned } from "three/addons/utils/SkeletonUtils.js";
  */
 export const ASSET = new URL("./assets/mira.glb?v=13", import.meta.url).href;
 export const TEXROOT = new URL("./assets/tex/", import.meta.url).href;
-export const TEXVER = "r6";
+export const TEXVER = "r7";
 
 export const FACE_TYPES = [
   { id: "natural", name: "Natural", file: "head.jpg" },
@@ -1348,6 +1349,7 @@ class PlayerHands {
 
 export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
   const actors = [];
+  const social=new MiraSocial(actors);
   let template = null;
   let baseScale = 1;
   let ready = false;
@@ -1456,8 +1458,31 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
     return best;
   }
 
+  const commandRay=new THREE.Raycaster(),groundPlane=new THREE.Plane(new THREE.Vector3(0,1,0),0);
+  const targetMarker=new THREE.Mesh(new THREE.RingGeometry(.075,.10,32),new THREE.MeshBasicMaterial({color:0x98e4bc,side:THREE.DoubleSide,depthWrite:false,toneMapped:false}));targetMarker.rotation.x=-Math.PI/2;targetMarker.visible=false;scene.add(targetMarker);
+  function floorTarget(ray){
+    if(ray.direction.y>=-.025)return null;const p=ray.intersectPlane(groundPlane,new THREE.Vector3());
+    return p&&ray.origin.distanceTo(p)<8&&Math.abs(p.x)<=3.8&&Math.abs(p.z)<=3.8?p:null;
+  }
+  function walkTo(point,actor=selectedActor){
+    if(!actor||!point||!point.toArray().every(Number.isFinite)||Math.abs(point.x)>3.8||Math.abs(point.z)>3.8||actor.held||actor.balance&&actor.balance.state!=='standing')return false;
+    social.cancel(actor);selectedActor=actor;
+    if(actor.walkTo)return actor.walkTo(point);
+    actor.setMode('wander');actor.autoWander=true;actor.dest=point.clone().setY(0);actor.directedWalk=actor.dest.clone();actor.miraWalk=3600;return true;
+  }
+  function pointCommand(ray){
+    commandRay.ray.copy(ray);const meshes=[];
+    for(const a of actors)a.root.traverse(o=>{if(o.isSkinnedMesh&&/^body/.test(o.name)){o.computeBoundingSphere();meshes.push(o);}});
+    const hit=commandRay.intersectObjects(meshes,false)[0],floor=floorTarget(ray);
+    if(hit&&(!floor||hit.distance<ray.origin.distanceTo(floor))){let o=hit.object;while(o){const a=actors.find(a=>a.root===o);if(a){selectedActor=a;return 'selected';}o=o.parent;}}
+    return floor&&walkTo(floor)?'walking':null;
+  }
+  function controllerFloorTarget(i){const ctrl=hands.ctrl[i],ray=new THREE.Ray(ctrl.getWorldPosition(new THREE.Vector3()),new THREE.Vector3(0,0,-1).applyQuaternion(ctrl.getWorldQuaternion(new THREE.Quaternion())));return floorTarget(ray);}
   function trySelect(i, fromGrip = false) {
-    if (!fromGrip && uiHandlers.onSelect?.(i)) return;
+    if(!fromGrip){
+      if(uiHandlers.onSelect?.(i))return;
+      const pointer=hands.ctrl[i];pointCommand(new THREE.Ray(pointer.getWorldPosition(new THREE.Vector3()),new THREE.Vector3(0,0,-1).applyQuaternion(pointer.getWorldQuaternion(new THREE.Quaternion()))));return;
+    }
     if (actors.some(a => a.grabs?.has(hands.grip[i]) || a.held?.ctrl === hands.grip[i])) return;
     const ctrl = hands.grip[i];
     ctrl.getWorldPosition(_v);
@@ -1503,8 +1528,6 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
   }
   hands.ctrl[0].addEventListener("selectstart", () => trySelect(0));
   hands.ctrl[1].addEventListener("selectstart", () => trySelect(1));
-  hands.ctrl[0].addEventListener("selectend", () => tryRelease(0));
-  hands.ctrl[1].addEventListener("selectend", () => tryRelease(1));
   for (let i = 0; i < 2; i++) {
     hands.ctrl[i].addEventListener("disconnected", () => tryRelease(i));
     hands.ctrl[i].addEventListener("squeezestart", () => { if (!uiHandlers.isOpen?.()) trySelect(i,true); });
@@ -1548,7 +1571,7 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
     for (const a of actors) {
       if(a.version==="v2")continue;
       a.socialT = (a.socialT || 0) - dt;
-      if (!a.autoWander || (a.balance && a.balance.state !== "standing") || a.held || a.heldBall || a.mode === "jumpingJacks" || a.mode === "airSquats" || a.mode === "stretch") {
+      if (!a.autoWander || a.directedWalk || (a.balance && a.balance.state !== "standing") || a.held || a.heldBall || a.mode === "jumpingJacks" || a.mode === "airSquats" || a.mode === "stretch") {
         if (a.mode !== "talk") a.lookAtPos = null;
         continue;
       }
@@ -1652,7 +1675,7 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
       b.mesh.position.z = THREE.MathUtils.clamp(b.mesh.position.z, -4.2, 4.2);
       for (const a of actors) {
         a.collidePoint(b.mesh.position, b.rad, b.vel, false);
-        if (a.heldBall || a.ballCool > 1.2) continue;
+        if (a.heldBall || a.directedWalk || a.socialPair || a.ballCool > 1.2) continue;
         const hand = a.bones.R_Hand;
         if (!hand) continue;
         hand.getWorldPosition(_w);
@@ -1690,6 +1713,7 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
     for (const a of actors) {
       if (a.heldBall || a.held || a.mode === "jumpingJacks" || a.mode === "airSquats" || a.mode === "stretch" || a.ballCool > 2) continue;
       let best = null, bd = 1.85;
+      if(a.directedWalk||a.socialPair)continue;
       for (const b of balls) {
         if (b.held) continue;
         const d = a.group.position.distanceTo(b.mesh.position);
@@ -1735,7 +1759,7 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
       noodleHeld = "desk";
       noodleGrabI = 0;
     } else if (noodleHeld === "desk") { noodleHeld = null; noodleGrabI = -1; }
-    tickSocial(dt);
+    social.tick(dt);tickSocial(dt);
     hands.tick(dt, actors);
     for (let i = 0; i < actors.length; i++) {
       if(actors[i].version==="v2"){actors[i].externalHands=hands.colliders;actors[i].neighbors=actors;}
@@ -1746,6 +1770,9 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
         blobs[i].position.z = actors[i].group.position.z;
       }
     }
+    social.resolveContacts();
+    for(const a of actors)if(a.version==='v1'&&a.directedWalk&&!a.dest){a.directedWalk=null;a.autoWander=false;a.setMode('idle');}
+    const goal=selectedActor?.directedWalk;targetMarker.visible=!!goal&&!uiHandlers.isOpen?.();if(goal)targetMarker.position.set(goal.x,.016,goal.z);
     hands.haptics.flush(hands.handedness);
     physicsAccumulator = Math.min(physicsAccumulator + dt, 0.05);
     while (physicsAccumulator + 1e-9 >= 1 / 120) {
@@ -1756,7 +1783,8 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
   }
 
   return {
-    resetPhysics, load, spawn, tick, spawnBall, nearestTo, actors, noodle, hands, balls,
+    resetPhysics, load, spawn, tick, spawnBall, nearestTo, actors, noodle, hands, balls, social, walkTo, pointCommand, floorTarget, controllerFloorTarget,
+    requestSocial(kind){return social.request(selectedActor,kind);},
     get persona() { return persona; },
     set persona(v) { persona = v || ""; for (const a of actors) a.personality = persona; },
     get ready() { return ready; },
@@ -1765,7 +1793,7 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
     setUIHandlers(handlers) { uiHandlers=handlers||{}; },
     remove(actor) {
       const i=actors.indexOf(actor);if(i<0)return;
-      actor.endGrab();scene.remove(actor.group);scene.remove(blobs[i]);
+      social.cancel(actor);actor.endGrab();scene.remove(actor.group);scene.remove(blobs[i]);
       blobs[i].geometry.dispose();blobs[i].material.dispose();blobs.splice(i,1);
       if(actor.heldBall){actor.heldBall.held=null;actor.heldBall=null;}
       actor.root.traverse(o=>{if(!o.isMesh)return;if(actor.version==='v2')o.geometry.dispose();o.customDepthMaterial?.dispose();for(const m of Array.isArray(o.material)?o.material:[o.material])m?.dispose();});

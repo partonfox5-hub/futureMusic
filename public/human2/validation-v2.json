@@ -1,6 +1,6 @@
 {
   "date": "2026-09-06",
-  "revision": 6,
+  "revision": 7,
   "originalFilesUnchanged": 27,
   "originalEnginePreserved": true,
   "originalChangedEntrypoints": [
@@ -207,6 +207,120 @@
     },
     "shapeJacobian": [
       {
+        "options": {
+          "buttHeight": 1,
+          "buttSpacing": 1,
+          "buttAngle": 1
+        },
+        "breast": 0.38,
+        "butt": 0.52,
+        "minDeterminant": 0.2913475097297474,
+        "negativeSamples": 0,
+        "worst": []
+      },
+      {
+        "options": {
+          "buttHeight": 1,
+          "buttSpacing": 1,
+          "buttAngle": 1
+        },
+        "breast": 1,
+        "butt": 1,
+        "minDeterminant": 0.821699540170151,
+        "negativeSamples": 0,
+        "worst": []
+      },
+      {
+        "options": {
+          "buttHeight": 1,
+          "buttSpacing": 1,
+          "buttAngle": 1
+        },
+        "breast": 2.35,
+        "butt": 2.15,
+        "minDeterminant": 0.3817319701476614,
+        "negativeSamples": 0,
+        "worst": []
+      },
+      {
+        "options": {
+          "buttHeight": -1,
+          "buttSpacing": -1,
+          "buttAngle": -1
+        },
+        "breast": 0.38,
+        "butt": 0.52,
+        "minDeterminant": 0.2913475097297474,
+        "negativeSamples": 0,
+        "worst": []
+      },
+      {
+        "options": {
+          "buttHeight": -1,
+          "buttSpacing": -1,
+          "buttAngle": -1
+        },
+        "breast": 1,
+        "butt": 1,
+        "minDeterminant": 0.5403880174570547,
+        "negativeSamples": 0,
+        "worst": []
+      },
+      {
+        "options": {
+          "buttHeight": -1,
+          "buttSpacing": -1,
+          "buttAngle": -1
+        },
+        "breast": 2.35,
+        "butt": 2.15,
+        "minDeterminant": 0.3817319701476614,
+        "negativeSamples": 0,
+        "worst": []
+      },
+      {
+        "options": {
+          "buttHeight": -1,
+          "buttSpacing": 1,
+          "buttAngle": -1,
+          "hips": 1.78,
+          "thigh": 1.88
+        },
+        "breast": 0.38,
+        "butt": 0.52,
+        "minDeterminant": 0.2913697690665193,
+        "negativeSamples": 0,
+        "worst": []
+      },
+      {
+        "options": {
+          "buttHeight": -1,
+          "buttSpacing": 1,
+          "buttAngle": -1,
+          "hips": 1.78,
+          "thigh": 1.88
+        },
+        "breast": 1,
+        "butt": 1,
+        "minDeterminant": 0.9516518306725855,
+        "negativeSamples": 0,
+        "worst": []
+      },
+      {
+        "options": {
+          "buttHeight": -1,
+          "buttSpacing": 1,
+          "buttAngle": -1,
+          "hips": 1.78,
+          "thigh": 1.88
+        },
+        "breast": 2.35,
+        "butt": 2.15,
+        "minDeterminant": 0.3840831280857742,
+        "negativeSamples": 0,
+        "worst": []
+      },
+      {
         "options": {},
         "breast": 0.38,
         "butt": 0.52,
@@ -291,7 +405,7 @@
         },
         "breast": 1,
         "butt": 1,
-        "minDeterminant": 0.5164610523548383,
+        "minDeterminant": 0.5160674919694895,
         "negativeSamples": 0,
         "worst": []
       },
@@ -557,168 +671,168 @@
         "combination": 0,
         "flips": 0,
         "changed": 716,
-        "minDot": 0.37136758903757616
+        "minDot": 0.38110747024495695
       },
       {
         "size": 0.52,
         "combination": 1,
         "flips": 0,
         "changed": 716,
-        "minDot": 0.36395778368276105
+        "minDot": 0.3699832390734344
       },
       {
         "size": 0.52,
         "combination": 2,
         "flips": 0,
         "changed": 716,
-        "minDot": 0.2478663748561889
+        "minDot": 0.26020624904508555
       },
       {
         "size": 0.52,
         "combination": 3,
         "flips": 0,
         "changed": 716,
-        "minDot": 0.24504637126832574
+        "minDot": 0.2585676978491624
       },
       {
         "size": 0.52,
         "combination": 4,
         "flips": 0,
         "changed": 716,
-        "minDot": 0.5637683739670554
+        "minDot": 0.4712159755742326
       },
       {
         "size": 0.52,
         "combination": 5,
         "flips": 0,
         "changed": 716,
-        "minDot": 0.6521505016160758
+        "minDot": 0.5836903286929368
       },
       {
         "size": 0.52,
         "combination": 6,
         "flips": 0,
         "changed": 716,
-        "minDot": 0.7183894838421796
+        "minDot": 0.7068869545236175
       },
       {
         "size": 0.52,
         "combination": 7,
         "flips": 0,
         "changed": 716,
-        "minDot": 0.7171994665547522
+        "minDot": 0.7026853913439979
       },
       {
         "size": 1,
         "combination": 0,
         "flips": 0,
         "changed": 716,
-        "minDot": 0.34962164111031013
+        "minDot": 0.3495371509753158
       },
       {
         "size": 1,
         "combination": 1,
         "flips": 0,
         "changed": 716,
-        "minDot": 0.34102292503216636
+        "minDot": 0.340930761524269
       },
       {
         "size": 1,
         "combination": 2,
         "flips": 0,
         "changed": 716,
-        "minDot": 0.3000134409962937
+        "minDot": 0.30008318474989465
       },
       {
         "size": 1,
         "combination": 3,
         "flips": 0,
         "changed": 716,
-        "minDot": 0.3324407330568281
+        "minDot": 0.3324797795683623
       },
       {
         "size": 1,
         "combination": 4,
         "flips": 0,
         "changed": 716,
-        "minDot": 0.5012159805342166
+        "minDot": 0.5011136663723438
       },
       {
         "size": 1,
         "combination": 5,
         "flips": 0,
         "changed": 716,
-        "minDot": 0.5582710532191841
+        "minDot": 0.558090697386264
       },
       {
         "size": 1,
         "combination": 6,
         "flips": 0,
         "changed": 716,
-        "minDot": 0.6179348440571644
+        "minDot": 0.6178202734337447
       },
       {
         "size": 1,
         "combination": 7,
         "flips": 0,
         "changed": 716,
-        "minDot": 0.6151445767922761
+        "minDot": 0.6150233336328156
       },
       {
         "size": 2.15,
         "combination": 0,
         "flips": 0,
         "changed": 716,
-        "minDot": 0.36084409301196313
+        "minDot": 0.3207321428315312
       },
       {
         "size": 2.15,
         "combination": 1,
         "flips": 0,
         "changed": 716,
-        "minDot": 0.3563095685372196
+        "minDot": 0.3143592074929248
       },
       {
         "size": 2.15,
         "combination": 2,
         "flips": 0,
         "changed": 716,
-        "minDot": 0.31463683838062506
+        "minDot": 0.26260130100742507
       },
       {
         "size": 2.15,
         "combination": 3,
         "flips": 0,
         "changed": 716,
-        "minDot": 0.31845876265601036
+        "minDot": 0.2580530804481327
       },
       {
         "size": 2.15,
         "combination": 4,
         "flips": 0,
         "changed": 716,
-        "minDot": 0.550194100668931
+        "minDot": 0.4892451911822815
       },
       {
         "size": 2.15,
         "combination": 5,
         "flips": 0,
         "changed": 716,
-        "minDot": 0.569321650270489
+        "minDot": 0.531831551140597
       },
       {
         "size": 2.15,
         "combination": 6,
         "flips": 0,
         "changed": 716,
-        "minDot": 0.49983091736352425
+        "minDot": 0.40838686358622067
       },
       {
         "size": 2.15,
         "combination": 7,
         "flips": 0,
         "changed": 716,
-        "minDot": 0.5001596392118248
+        "minDot": 0.40647151447226554
       }
     ],
     "input": [
@@ -951,6 +1065,60 @@
           "repairedCorners": 121
         }
       ]
+    },
+    "revision7": {
+      "walk": {
+        "error": 0.0568183253520912,
+        "mode": "idle",
+        "autonomy": false
+      },
+      "hipPose": {
+        "minWeight": 0.9988862248521553,
+        "wrists": [
+          [
+            0.19000002483572176,
+            1.0349999650392645,
+            -0.017999973703844097
+          ],
+          [
+            -0.1900000136101624,
+            1.0349999632550895,
+            -0.018000009082138835
+          ]
+        ]
+      },
+      "social": [
+        {
+          "kind": "hug",
+          "framesEmbracing": 676,
+          "minRootGap": 0.32747070563083425,
+          "maxPlanarSpeed": 0.6266090751957802
+        },
+        {
+          "kind": "armAround",
+          "framesEmbracing": 676,
+          "minRootGap": 0.3780861126029662,
+          "maxPlanarSpeed": 0.6264035996355423
+        }
+      ],
+      "overlapRootGap": 0.24050000000000005,
+      "manualInterruptsPartner": true
+    },
+    "revision7Input": {
+      "YBeforeConnected": true,
+      "reversedSources": true,
+      "reconnect": true,
+      "newSession": true,
+      "menuInFront": true,
+      "depthOcclusionDisabled": true,
+      "paginatedSliders": true,
+      "styleChoice": true,
+      "posesOnOpen": true,
+      "twoHandsOnHips": true,
+      "buttockControls": true,
+      "triggerWalk": true,
+      "upwardRayIgnored": true,
+      "rayActorSelection": true
     }
   }
 }
