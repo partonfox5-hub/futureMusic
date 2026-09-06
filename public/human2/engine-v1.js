@@ -1,11 +1,8 @@
 import * as THREE from "three";
-import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { createVRMenu } from "./mira-vr-menu.js";
-import { EMOTION_NAMES, IDLE_NAMES, WALK_NAMES } from "./mira-v2-features.js";
 import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
-import { createMiraSystem, SLIDERS, FACE_TYPES, HAIR_COLORS } from "./mira-v2.js?v=2";
-import { DEFAULT_PERSONA, miraChat, miraSpeak, startMic } from "./mira-voice-v2.js?v=2";
+import { createMiraSystem, SLIDERS, FACE_TYPES, HAIR_COLORS } from "./mira-core.js?v=16";
+import { DEFAULT_PERSONA, miraChat, miraSpeak, startMic } from "./mira-voice.js?v=16";
 
 const QUEST = /OculusBrowser|Quest/i.test(navigator.userAgent);
 const loadEl = document.getElementById("load");
@@ -28,7 +25,6 @@ renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.05;
 renderer.xr.enabled = true;
-renderer.shadowMap.enabled=false;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 if (QUEST) renderer.xr.setFramebufferScaleFactor(0.9);
 renderer.setClearColor(0x6b5e52, 1);
 document.body.prepend(renderer.domElement);
@@ -44,9 +40,6 @@ rig.add(camera);
 scene.add(new THREE.HemisphereLight(0xf5f8ff, 0x524b46, 0.45));
 const key = new THREE.DirectionalLight(0xfff4e8, 2.2);
 key.position.set(1.4, 3.2, 2.8);
-key.castShadow=true;key.shadow.mapSize.set(QUEST?512:1024,QUEST?512:1024);
-key.shadow.camera.left=-2.5;key.shadow.camera.right=2.5;key.shadow.camera.top=2.7;key.shadow.camera.bottom=-1.0;
-key.shadow.camera.near=.1;key.shadow.camera.far=9;key.shadow.bias=-.0003;key.shadow.normalBias=.003;
 scene.add(key);
 scene.add(new THREE.AmbientLight(0xffffff, 0.08));
 try {
@@ -62,22 +55,20 @@ const floor = new THREE.Mesh(
   new THREE.MeshStandardMaterial({ color: 0xc4b49a, roughness: 0.9 })
 );
 floor.rotation.x = -Math.PI / 2;
-floor.receiveShadow=true;
 scene.add(floor);
 
 let controls = null;
 try { controls = new PointerLockControls(camera, renderer.domElement); } catch (e) { banner("look: " + e.message); }
 const keys = {};
-addEventListener("keydown", (e) => { if (/INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) return; keys[e.code] = true; });
+addEventListener("keydown", (e) => { keys[e.code] = true; });
 addEventListener("keyup", (e) => { keys[e.code] = false; });
-const orbit = new OrbitControls(camera, renderer.domElement);
-orbit.target.set(0,1.02,0);orbit.enableDamping=true;orbit.minDistance=.35;orbit.maxDistance=8;orbit.maxPolarAngle=Math.PI*.94;
-orbit.update();
-document.getElementById("desk").onclick = () => { if(ui)ui.style.display="none"; orbit.enabled=true; };
-document.getElementById("firstPerson").onclick=()=>{orbit.enabled=false;if(ui)ui.style.display="none";controls?.lock();};
-controls?.addEventListener('unlock',()=>{orbit.enabled=true;});
+document.getElementById("desk").onclick = () => {
+  if (ui) ui.style.display = "none";
+  try { controls && controls.lock(); } catch (e) { banner(String(e.message || e)); }
+};
 document.getElementById("enter").onclick = enterXr;
-
+addEventListener("mousedown", () => { keys.Mouse0 = true; });
+addEventListener("mouseup", () => { keys.Mouse0 = false; });
 
 const mira = createMiraSystem({ scene, renderer, camera, xrOn: XR_ON, rig });
 banner("LOADING HUMAN 2…");
@@ -85,47 +76,12 @@ mira.load(
   (x) => { if (x.total && loadEl) loadEl.textContent = "LOADING  " + Math.round((x.loaded / x.total) * 100) + "%"; },
   () => {
     if (loadEl) loadEl.remove();
-    banner("Drag to orbit · wheel to zoom · Grab body or Shift-drag · VR: Y menu, right B ball");
+    banner("HUMAN 2 · left stick move · Y spawn ball · grab noodle, Mira, or ball");
     bindHud();
-    if (new URLSearchParams(location.search).has("debug")) window.human2 = { mira, scene, renderer, camera, rig, keys, orbit };
+    if (new URLSearchParams(location.search).has("debug")) window.human2 = { mira, scene, renderer, camera, rig, keys };
   },
   (e) => { banner("LOAD FAILED — " + (e && e.message ? e.message : "glb")); console.error(e); }
 );
-
-let grabMode=false, desktopGrab=null;
-const virtualGrip=new THREE.Object3D();scene.add(virtualGrip);
-const pickRay=new THREE.Raycaster(),mouse=new THREE.Vector2(),dragPlane=new THREE.Plane();
-function pointerRay(e){const r=renderer.domElement.getBoundingClientRect();mouse.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);pickRay.setFromCamera(mouse,camera);}
-renderer.domElement.addEventListener('pointerdown',e=>{
- if(XR_ON()||(!grabMode&&!e.shiftKey)||e.button!==0)return;
- pointerRay(e);const meshes=[];
- for(const a of mira.actors)a.root.traverse(o=>{if(o.isSkinnedMesh&&!/hair|eyes|teeth/.test(o.name)){o.computeBoundingSphere();meshes.push(o);}});
- const hit=pickRay.intersectObjects(meshes,false)[0];if(!hit)return;
- const a=mira.actors.find(a=>{let o=hit.object;while(o){if(o===a.root)return true;o=o.parent;}return false;});
- if(!a)return;const region=a.nearestHit(hit.point,.13);if(!region)return;
- virtualGrip.position.copy(hit.point);a.beginGrab(virtualGrip,region,hit.point);desktopGrab=a;mira.select(a);syncHud();
- dragPlane.setFromNormalAndCoplanarPoint(camera.getWorldDirection(new THREE.Vector3()),hit.point);
- orbit.enabled=false;renderer.domElement.setPointerCapture(e.pointerId);e.stopImmediatePropagation();e.preventDefault();
-},true);
-renderer.domElement.addEventListener('pointermove',e=>{if(!desktopGrab)return;pointerRay(e);const p=pickRay.ray.intersectPlane(dragPlane,new THREE.Vector3());if(p)virtualGrip.position.copy(p);});
-function releaseDesktop(){if(desktopGrab)desktopGrab.endGrab(virtualGrip);desktopGrab=null;orbit.enabled=!grabMode&&!XR_ON();}
-renderer.domElement.addEventListener('pointerup',releaseDesktop);renderer.domElement.addEventListener('pointercancel',releaseDesktop);addEventListener('blur',releaseDesktop);
-function spawnVersion(version){
- const a=selected(),n=mira.actors.length;try{const p=new THREE.Vector3(n===0?0:(n%2?-.8:.8),0,0);
-  mira.spawn({version,position:p,shape:a?{...a.shape}:undefined,faceType:version==='v2'?1:a?.faceType||0,hairColor:a?.hairColor||0});syncHud();
- }catch(e){banner(e.message);}
-}
-function frameActor(face){const a=selected();if(!a)return;const c=a.group.position.clone();c.y+=(face?1.5:1.0)*a.shape.height;orbit.target.copy(c);camera.position.copy(c).add(new THREE.Vector3(0,face?.015:.18,face?.53:2.6));camera.lookAt(c);orbit.update();}
-function syncHud(){
- const a=selected(),el=document.getElementById('actorSelect');el.replaceChildren();mira.actors.forEach((a,i)=>el.add(new Option(`Mira ${i+1} · ${a.version.toUpperCase()}`,String(i))));el.value=String(mira.actors.indexOf(a));
- if(!a)return;for(const s of SLIDERS){const input=document.getElementById('s_'+s.key);if(input)input.value=a.shape[s.key];}
- faceLab.textContent=a.version==='v2'?(a.faceType===1?'Reference likeness':'Natural v2'):FACE_TYPES[a.faceType].name;hairLab.textContent=HAIR_COLORS[a.hairColor].name;
- for(const id of ['idlePose','expression','testBalance','faceSmile','faceSurprise'])document.getElementById(id).disabled=a.version!=='v2';
- document.getElementById('walkStyle').value=String(a.gait);
- document.getElementById('idlePose').value=String(['auto',...IDLE_NAMES].indexOf(a.idleChoice||'auto'));
- document.getElementById('expression').value=String(['context',...EMOTION_NAMES].indexOf(a.expressionOverride||'context'));
-}
-const vrMenu=createVRMenu({scene,renderer,camera,system:mira,spawn:spawnVersion,onSync:syncHud});
 
 function selected() { return mira.selected; }
 
@@ -143,20 +99,20 @@ function bindHud() {
   const syncLabs = () => {
     const a = selected();
     if (!a) return;
-    if (faceLab) faceLab.textContent = a.version==="v2" ? (a.faceType===1?"Reference likeness":"Natural v2") : FACE_TYPES[a.faceType].name;
+    if (faceLab) faceLab.textContent = FACE_TYPES[a.faceType].name;
     if (hairLab) hairLab.textContent = HAIR_COLORS[a.hairColor].name;
   };
   document.getElementById("facePrev").onclick = () => {
     const a = selected();
     if (!a) return;
-    a.faceType = a.version==="v2" ? (a.faceType===1?0:1) : (a.faceType + FACE_TYPES.length - 1) % FACE_TYPES.length;
+    a.faceType = (a.faceType + FACE_TYPES.length - 1) % FACE_TYPES.length;
     a.applyLooks();
     syncLabs();
   };
   document.getElementById("faceNext").onclick = () => {
     const a = selected();
     if (!a) return;
-    a.faceType = a.version==="v2" ? (a.faceType===1?0:1) : (a.faceType + 1) % FACE_TYPES.length;
+    a.faceType = (a.faceType + 1) % FACE_TYPES.length;
     a.applyLooks();
     syncLabs();
   };
@@ -174,29 +130,30 @@ function bindHud() {
     a.applyLooks();
     syncLabs();
   };
-  document.getElementById("spawnV1").onclick=()=>spawnVersion('v1');
-  document.getElementById("spawnMira").onclick=()=>spawnVersion('v2');
-  document.getElementById("actorSelect").onchange=e=>{mira.select(mira.actors[Number(e.target.value)]);syncHud();};
-  document.getElementById("removeActor").onclick=()=>{if(selected())mira.remove(selected());syncHud();};
-  for(const [id,values] of [['walkStyle',WALK_NAMES],['idlePose',['auto',...IDLE_NAMES]],['expression',['context',...EMOTION_NAMES]]]){
-    const el=document.getElementById(id);values.forEach((name,i)=>el.add(new Option(name,String(i))));
-    el.onchange=()=>{const a=selected();if(!a)return;const value=values[Number(el.value)];
-      if(id==='walkStyle')a.gait=Number(el.value);
-      if(id==='idlePose'&&a.version==='v2'){a.idleChoice=value;a.idleT=0;}
-      if(id==='expression'&&a.version==='v2'){a.expressionOverride=value==='context'?null:value;if(value!=='context')a.setEmotion(value,.85,{source:'manual'});}
-    };
-  }
-  document.getElementById('faceSmile').onclick=()=>selected()?.playFaceReference?.('smile');
-  document.getElementById('faceSurprise').onclick=()=>selected()?.playFaceReference?.('surprise');
-  document.getElementById('testBalance').onclick=()=>selected()?.knockDown?.(new THREE.Vector3(.2,0,-1));
-  document.getElementById('viewFace').onclick=()=>frameActor(true);
-  document.getElementById('viewBody').onclick=()=>frameActor(false);
-  document.getElementById('grabBody').onclick=e=>{grabMode=!grabMode;e.target.textContent=grabMode?'GRAB BODY: ON':'GRAB BODY';orbit.enabled=!grabMode;};
-  syncHud();
+  document.getElementById("spawnMira").onclick = () => {
+    const src = selected();
+    const shape = src ? { ...src.shape } : {};
+    const n = mira.actors.length;
+    try {
+      mira.spawn({
+        shape,
+        faceType: src ? src.faceType : (n % FACE_TYPES.length),
+        hairColor: (src ? src.hairColor + 1 : n) % HAIR_COLORS.length,
+        gait: n % 4,
+        position: new THREE.Vector3(n * 0.95, 0, 0),
+      });
+    } catch (e) {
+      banner("spawn failed: " + (e && e.message ? e.message : e));
+      console.error(e);
+      return;
+    }
+    syncLabs();
+    banner("Spawned Mira " + mira.actors.length + " — sliders edit the newest.");
+  };
   for (const button of document.querySelectorAll("[data-mode]")) button.onclick = () => {
     const actor = selected(); if (!actor) return;
     const mode = button.dataset.mode;
-    actor.autoWander = mode === "wander";
+    actor.autoWander = mode !== "idle";
     actor.dest = null; actor.feet = {};
     actor.setMode(mode === "idle" ? "idle" : mode);
   };
@@ -236,12 +193,11 @@ function bindHud() {
       actor.talkT = 0.2;
     }
     try {
-      const r = await miraChat(text, personaEl ? personaEl.value : DEFAULT_PERSONA, {conversationId:actor?.group.uuid});
+      const r = await miraChat(text, personaEl ? personaEl.value : DEFAULT_PERSONA);
       if (emoLab) emoLab.textContent = (r.emotion || "happy").toUpperCase();
       banner(r.text || "");
-      document.getElementById("conversationStatus").textContent=r.source==="local fallback"?"Local replies · chat server unavailable":"Conversation connected";
       addChat("mira", r.text || "");
-      if (actor) { actor.beginSpeech(r.text, r.emotion); actor.setEmotion?.(r.emotion,r.intensity??.7,{hold:12,source:r.source||"reply",valence:r.valence,arousal:r.arousal}); }
+      if (actor) actor.beginSpeech(r.text, r.emotion);
       await new Promise((resolve) => {
         let settled = false;
         const done = () => {
@@ -249,7 +205,7 @@ function bindHud() {
           settled = true;
           if (actor) {
             actor.endSpeech();
-            if (r.mode) { actor.setMode(r.mode); actor.autoWander=r.mode==="wander"; }
+            if (r.mode) actor.setMode(r.mode);
           }
           resolve();
         };
@@ -289,8 +245,7 @@ function bindHud() {
         return;
       }
       try {
-        const permissionStream=await navigator.mediaDevices.getUserMedia({ audio: true });
-        permissionStream.getTracks().forEach(track=>track.stop());
+        await navigator.mediaDevices.getUserMedia({ audio: true });
       } catch (e) {
         banner("Mic permission failed — allow microphone for Quest voice");
         return;
@@ -314,7 +269,7 @@ function stickAxes(gp) {
   return null;
 }
 function tickLocomotion(dt) {
-  if (!XR_ON() || vrMenu.isOpen) return;
+  if (!XR_ON()) return;
   const session = renderer.xr.getSession();
   if (!session) return;
   const cam = renderer.xr.getCamera();
@@ -366,8 +321,6 @@ function tick() {
   if (rawDt > 0.12 && mira.ready) mira.resetPhysics();
   const dt = Math.min(rawDt, 0.05);
   desktopMove(dt);
-  if(!XR_ON()&&orbit.enabled)orbit.update();
-  vrMenu.tick();
   tickLocomotion(dt);
   if (mira.ready) mira.tick(dt, clock.elapsedTime, keys);
   fpsFrames++;
@@ -376,8 +329,7 @@ function tick() {
     const fps = (fpsFrames * 1000) / (now - fpsLast);
     fpsFrames = 0;
     fpsLast = now;
-    statsEl.textContent = `MIRA  ${fps.toFixed(0)} fps  ·  ${mira.actors.length} actors  ·  ${renderer.info.render.calls} calls`;
-    const a=selected();document.getElementById("emoLab").textContent=a?.emotion?`${a.emotion.name.toUpperCase()} · ${a.balance.state}`:"V1";
+    statsEl.textContent = `HUMAN 2  ${fps.toFixed(0)} fps  mira ${mira.actors.length}  calls ${renderer.info.render.calls}`;
   }
   renderer.render(scene, camera);
 }
@@ -388,7 +340,6 @@ async function enterXr() {
   try {
     const xrDetail = Number(document.getElementById("quality").value) || 0.9;
     renderer.xr.setFramebufferScaleFactor(xrDetail);
-    renderer.shadowMap.enabled=false;
     let session, passthrough = true;
     renderer.xr.setReferenceSpaceType("local-floor");
     try {
@@ -398,7 +349,6 @@ async function enterXr() {
       session = await navigator.xr.requestSession("immersive-vr", { requiredFeatures: ["local-floor"], optionalFeatures: [] });
     }
     if (controls && controls.isLocked) controls.unlock();
-    orbit.enabled=false;
     rig.position.set(0, 0, 0); rig.rotation.set(0, 0, 0);
     await renderer.xr.setSession(session);
     camera.position.set(0, 0, 0);
@@ -415,7 +365,6 @@ async function enterXr() {
       mira.resetPhysics();
       camera.position.set(0, 1.45, 2.6);
       camera.lookAt(0, 0.95, 0);
-      orbit.enabled=true;orbit.target.set(0,1.02,0);orbit.update();
     });
     scene.background = passthrough ? null : new THREE.Color(0x6b5e52);
     renderer.setClearColor(passthrough ? 0x000000 : 0x6b5e52, passthrough ? 0 : 1);
