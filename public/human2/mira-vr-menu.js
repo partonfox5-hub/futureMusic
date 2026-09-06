@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import {SLIDERS,FACE_TYPES} from './mira-v2.js?v=3';
-import {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES} from './mira-v2-features.js?v=3';
+import {SLIDERS,FACE_TYPES} from './mira-v2.js?v=4';
+import {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES} from './mira-v2-features.js?v=4';
 export function createVRMenu({scene,renderer,camera,system,spawn,onSync}){
  const canvas=document.createElement('canvas');canvas.width=1024;canvas.height=1320;
  const ctx=canvas.getContext('2d'),tex=new THREE.CanvasTexture(canvas);tex.colorSpace=THREE.SRGBColorSpace;
@@ -9,7 +9,7 @@ export function createVRMenu({scene,renderer,camera,system,spawn,onSync}){
  const rays=system.hands.ctrl.map(ctrl=>{const line=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(),new THREE.Vector3(0,0,-2)]),new THREE.LineBasicMaterial({color:0x9bd6ff}));line.visible=false;ctrl.add(line);return line;});
  const raycaster=new THREE.Raycaster(),q=new THREE.Quaternion(),v=new THREE.Vector3();
  let page=0,items=[],open=false,drag=[null,null],stamp='',lastDraw=0,notice='';
- const modes=['idle','wander','airSquats','stretch','jumpingJacks'];
+ const modes=['auto','idle','wander','airSquats','stretch','jumpingJacks'];
  function active(){return system.selected;}
  function draw(){
   items=[];ctx.fillStyle='#151c25';ctx.fillRect(0,0,1024,1320);ctx.strokeStyle='#657d92';ctx.lineWidth=3;ctx.strokeRect(3,3,1018,1314);
@@ -23,7 +23,7 @@ export function createVRMenu({scene,renderer,camera,system,spawn,onSync}){
    button('SPAWN V1',40,300,455,80,()=>{spawn('v1');draw();});button('SPAWN V2',515,300,467,80,()=>{spawn('v2');draw();});
    button('SELECT NEXT',40,400,610,76,()=>{const list=system.actors;system.select(list[(list.indexOf(active())+1)%list.length]);onSync?.();draw();});
    button('REMOVE',670,400,312,76,()=>{if(active())system.remove(active());onSync?.();draw();});
-   if(a){cycle('Movement',540,modes,()=>a.mode,m=>{a.autoWander=m==='wander';a.dest=null;a.feet={};a.setMode(m);});
+   if(a){cycle('Movement',540,modes,()=>a.autonomy?'auto':a.mode,m=>{a.autoWander=m==='wander';a.dest=null;a.feet={};a.setMode(m);});
     if(a.version==='v2'){
      cycle('Walk style',690,WALK_NAMES,()=>WALK_NAMES[a.gait],x=>a.gait=WALK_NAMES.indexOf(x));
      cycle('Idle pose',840,['auto',...IDLE_NAMES],()=>a.idleChoice,x=>{a.idleChoice=x;a.idleT=0;});
@@ -48,7 +48,7 @@ export function createVRMenu({scene,renderer,camera,system,spawn,onSync}){
     button('PREVIEW SURPRISE CLIP',40,890,942,80,()=>a.playFaceReference?.('surprise'));
    }else{ctx.fillText('Select Mira v2 for context expression controls.',40,355);}
   }
-  ctx.font='24px sans-serif';ctx.fillStyle='#acbecf';ctx.fillText(notice||'Grip: grab body  ·  Right B: ball',40,1280);tex.needsUpdate=true;
+  ctx.font='24px sans-serif';ctx.fillStyle='#acbecf';ctx.fillText(notice||system.voiceStatus||'Grip: grab body  ·  Right B: ball',40,1280);tex.needsUpdate=true;
  }
  function toggle(){open=!open;panel.visible=open&&renderer.xr.isPresenting;drag=[null,null];if(open){const c=renderer.xr.getCamera();const eye=c.getWorldPosition(new THREE.Vector3());const forward=c.getWorldDirection(new THREE.Vector3());forward.y=0;forward.normalize();panel.position.copy(eye).addScaledVector(forward,1.1);panel.position.y-=.10;panel.lookAt(eye.x,panel.position.y,eye.z);panel.updateMatrixWorld(true);draw();}}
  function hit(i){const ctrl=system.hands.ctrl[i];ctrl.getWorldPosition(raycaster.ray.origin);raycaster.ray.direction.set(0,0,-1).applyQuaternion(ctrl.getWorldQuaternion(q));const hit=raycaster.intersectObject(panel)[0];if(!hit)return null;return {x:hit.uv.x*1024,y:(1-hit.uv.y)*1320};}
@@ -56,7 +56,7 @@ export function createVRMenu({scene,renderer,camera,system,spawn,onSync}){
  function tick(){
   if(!renderer.xr.isPresenting){open=false;panel.visible=false;}
   rays.forEach(r=>r.visible=open);if(!open)return;
-  const a=active(),state=a?`${system.actors.indexOf(a)}/${a.version}/${a.mode}/${a.emotion?.name}`:'empty';if(state!==stamp&&performance.now()-lastDraw>150){stamp=state;lastDraw=performance.now();draw();}
+  const a=active(),state=a?`${system.actors.indexOf(a)}/${a.version}/${a.mode}/${a.emotion?.name}/${system.voiceStatus||''}`:'empty';if(state!==stamp&&performance.now()-lastDraw>150){stamp=state;lastDraw=performance.now();draw();}
   const session=renderer.xr.getSession();for(let i=0;i<2;i++)if(drag[i]){
    const src=[...session.inputSources].find(s=>s.handedness===system.hands.handedness[i]);if(!src?.gamepad?.buttons?.[0]?.pressed){drag[i]=null;continue;}
    const p=hit(i);if(p)drag[i].fn(p.x);

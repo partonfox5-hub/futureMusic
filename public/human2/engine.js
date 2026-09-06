@@ -1,11 +1,11 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { createVRMenu } from "./mira-vr-menu.js?v=3";
-import { EMOTION_NAMES, IDLE_NAMES, WALK_NAMES } from "./mira-v2-features.js?v=3";
+import { createVRMenu } from "./mira-vr-menu.js?v=4";
+import { EMOTION_NAMES, IDLE_NAMES, WALK_NAMES } from "./mira-v2-features.js?v=4";
 import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
-import { createMiraSystem, SLIDERS, FACE_TYPES, HAIR_COLORS } from "./mira-v2.js?v=3";
-import { DEFAULT_PERSONA, miraChat, miraSpeak, startMic } from "./mira-voice-v2.js?v=3";
+import { createMiraSystem, SLIDERS, FACE_TYPES, HAIR_COLORS } from "./mira-v2.js?v=4";
+import { DEFAULT_PERSONA, miraChat, miraSpeak, startMic } from "./mira-voice-v2.js?v=4";
 
 const QUEST = /OculusBrowser|Quest/i.test(navigator.userAgent);
 const loadEl = document.getElementById("load");
@@ -257,6 +257,7 @@ function bindHud() {
           onStart(dur) { if (actor) actor.setSpeechDuration(dur); },
           onAmp(amp, t, dur) { if (actor) actor.setSpeechAmp(amp, t, dur); },
           onEnd: done,
+          onError(message){mira.voiceStatus=message;banner(message);},
         }).catch(done);
         setTimeout(done, Math.min(18000, 1600 + String(r.text || "").length * 85));
       });
@@ -280,24 +281,20 @@ function bindHud() {
     });
   }
   if (micBtn) {
-    micBtn.onclick = async () => {
-      if (micHandle) {
-        try { if (micHandle.stop) micHandle.stop(); else if (micHandle.abort) micHandle.abort(); } catch (_) {}
-        micHandle = null;
-        micBtn.textContent = "VOICE OFF";
-        banner("Voice off");
-        return;
-      }
-      try {
-        const permissionStream=await navigator.mediaDevices.getUserMedia({ audio: true });
-        permissionStream.getTracks().forEach(track=>track.stop());
-      } catch (e) {
-        banner("Mic permission failed — allow microphone for Quest voice");
-        return;
-      }
-      micHandle = startMic(onHeard);
-      micBtn.textContent = "VOICE ON";
-      banner("Voice on — type below or speak near Mira");
+    micBtn.onclick = () => {
+      if(micHandle){micHandle.stop();micHandle=null;return;}
+      micBtn.textContent='STARTING VOICE';
+      const handle=startMic(onHeard,{
+        isSpeaking:()=>talking,
+        onLevel:level=>{const meter=document.getElementById('micLevel');if(meter)meter.value=level;},
+        onStatus:({state,message})=>{
+          mira.voiceStatus=message;
+          const label=document.getElementById('micStatus');if(label)label.textContent=message;
+          micBtn.textContent=state==='error'?'RETRY VOICE':state==='off'?'VOICE OFF':state==='starting'?'STARTING VOICE':'VOICE ON';
+          if(state==='off'||state==='error'){micHandle=null;if(state==='error')banner(message);}
+        }
+      });
+      if(micBtn.textContent!=='RETRY VOICE')micHandle=handle;
     };
   }
   syncLabs();

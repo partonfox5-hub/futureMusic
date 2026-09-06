@@ -1,7 +1,17 @@
 {
   "date": "2026-09-06",
+  "revision": 4,
   "originalFilesUnchanged": 27,
   "originalEnginePreserved": true,
+  "originalChangedEntrypoints": [
+    "engine.js",
+    "index.html"
+  ],
+  "v1Preserved": true,
+  "gpuRendered": false,
+  "questHardwareTested": false,
+  "gpuLimitation": "Available browser cannot create WebGL: GL_RENDERER = Disabled. Program source generation is not GPU compilation.",
+  "externalPaidVoiceApiCalls": 0,
   "tests": {
     "runtime": {
       "runtime": [
@@ -11,33 +21,33 @@
             {
               "name": "L_Breast",
               "pos": [
-                0.00015152588195181148,
-                0.00028860062041349946,
-                -0.02426583027099426
+                9.926634695417829e-05,
+                0.000355114354824841,
+                -0.03074304002701484
               ]
             },
             {
               "name": "R_Breast",
               "pos": [
-                0.000151498572817593,
-                0.00028974437235272253,
-                -0.024266702151693516
+                0.00010006746863376778,
+                0.00035632249072639903,
+                -0.030744468823296206
               ]
             },
             {
               "name": "L_Glute",
               "pos": [
-                -2.435266893725826e-05,
-                -0.0010781468217775452,
-                -1.098682680936389e-07
+                -9.931556847141489e-05,
+                -0.005750975749337149,
+                -2.4690642619497744e-07
               ]
             },
             {
               "name": "R_Glute",
               "pos": [
-                -2.435383581849771e-05,
-                -0.0010783338013371437,
-                8.963940340314314e-08
+                -9.933083312927083e-05,
+                -0.005751483228038295,
+                1.83473650497229e-07
               ]
             }
           ],
@@ -47,7 +57,7 @@
             "recovering",
             "standing"
           ],
-          "minBone": -0.09820694761091447
+          "minBone": -0.09768382959184113
         },
         {
           "fps": 72,
@@ -55,33 +65,33 @@
             {
               "name": "L_Breast",
               "pos": [
-                -0.00033336466203860493,
-                0.0002839549832476588,
-                -0.024264297928307827
+                -0.0005546749747233212,
+                0.0003496019272327757,
+                -0.030740207548543886
               ]
             },
             {
               "name": "R_Breast",
               "pos": [
-                -0.00033331918937076245,
-                0.0002825015674164117,
-                -0.024264107042251726
+                -0.0005543695813333005,
+                0.0003470339725547779,
+                -0.03073930748482792
               ]
             },
             {
               "name": "L_Glute",
               "pos": [
-                1.3462181931995218e-05,
-                -0.0010784881679365228,
-                9.785716013247526e-08
+                0.00011202346176054874,
+                -0.0057512988608107276,
+                3.167985711714358e-07
               ]
             },
             {
               "name": "R_Glute",
               "pos": [
-                1.345785708128319e-05,
-                -0.0010783779571752992,
-                -8.734198635367209e-08
+                0.00011201389637300702,
+                -0.005750691550746656,
+                -2.7489212406238093e-07
               ]
             }
           ],
@@ -91,7 +101,7 @@
             "recovering",
             "standing"
           ],
-          "minBone": -0.09701001011189021
+          "minBone": -0.09803107490595103
         },
         {
           "fps": 90,
@@ -99,33 +109,33 @@
             {
               "name": "L_Breast",
               "pos": [
-                -0.00046061662770969256,
-                0.00028373443335157625,
-                -0.024262393226705484
+                -0.00011385341917961457,
+                0.0003463382099515735,
+                -0.03074420033079346
               ]
             },
             {
               "name": "R_Breast",
               "pos": [
-                -0.0004605715866947059,
-                0.0002822384554566395,
-                -0.024261901348624892
+                -0.00011374368172540959,
+                0.000347588432747981,
+                -0.030744809620112938
               ]
             },
             {
               "name": "L_Glute",
               "pos": [
-                2.2800318769374604e-05,
-                -0.0010783670097852607,
-                1.0121894450715086e-07
+                -3.221790849903245e-05,
+                -0.005751928196691152,
+                -2.3374362262194764e-07
               ]
             },
             {
               "name": "R_Glute",
               "pos": [
-                2.279875325322181e-05,
-                -0.0010781822581948297,
-                -9.25280752343143e-08
+                -3.224157943953116e-05,
+                -0.005752076010678989,
+                1.776264127402225e-07
               ]
             }
           ],
@@ -135,7 +145,7 @@
             "recovering",
             "standing"
           ],
-          "minBone": -0.09783232552816767
+          "minBone": -0.10110275650035308
         },
         {
           "fps": 120,
@@ -143,33 +153,33 @@
             {
               "name": "L_Breast",
               "pos": [
-                -0.00047252637634093695,
-                0.0002845155627517104,
-                -0.024262159313460218
+                -0.0004737315758480874,
+                0.0003487219343522135,
+                -0.030741411829500343
               ]
             },
             {
               "name": "R_Breast",
               "pos": [
-                -0.00047248264535601026,
-                0.00028273685503285974,
-                -0.024261648732926158
+                -0.000473550761743713,
+                0.0003470299966003215,
+                -0.030740781844532453
               ]
             },
             {
               "name": "L_Glute",
               "pos": [
-                2.3929956916626535e-05,
-                -0.0010783465847388897,
-                1.227821045702182e-07
+                8.531196719883004e-05,
+                -0.005751690020587173,
+                1.945500210472403e-07
               ]
             },
             {
               "name": "R_Glute",
               "pos": [
-                2.3929726450955022e-05,
-                -0.0010781532704097101,
-                -1.1208043412824281e-07
+                8.529410562903473e-05,
+                -0.0057512228792189184,
+                -1.7058938287587048e-07
               ]
             }
           ],
@@ -179,49 +189,168 @@
             "recovering",
             "standing"
           ],
-          "minBone": -0.09739207542820953
+          "minBone": -0.09841910858805479
         }
       ],
       "shapeChecks": [
         {
           "size": 0.38,
-          "changed": 1046,
+          "changed": 1782,
           "flipped": 0,
           "minDot": 0.49020921525044836
         },
         {
           "size": 0.7,
-          "changed": 1046,
+          "changed": 1782,
           "flipped": 0,
           "minDot": 0.9394760146769077
         },
         {
           "size": 1,
-          "changed": 0,
+          "changed": 736,
           "flipped": 0,
-          "minDot": 1
+          "minDot": 0.9983468603690551
         },
         {
           "size": 1.5,
-          "changed": 1046,
+          "changed": 1782,
           "flipped": 0,
           "minDot": 0.8792103596550527
         },
         {
           "size": 2,
-          "changed": 1046,
+          "changed": 1782,
           "flipped": 0,
           "minDot": 0.5539873414380104
         },
         {
           "size": 2.35,
-          "changed": 1046,
+          "changed": 1782,
           "flipped": 0,
           "minDot": 0.31959640096386316
         }
       ]
     },
-    "tissue": [
+    "walks": [
+      {
+        "gait": 0,
+        "maxFootErrorMetres": 4.774532015171789e-08,
+        "maxSpeed": 0.5499999999999488,
+        "distance": 3.547474538097941
+      },
+      {
+        "gait": 1,
+        "maxFootErrorMetres": 0.0008934506525110263,
+        "maxSpeed": 0.6159999999999427,
+        "distance": 3.973171482669701
+      },
+      {
+        "gait": 2,
+        "maxFootErrorMetres": 4.8309841903351486e-08,
+        "maxSpeed": 0.46199999999995695,
+        "distance": 2.979878612002279
+      },
+      {
+        "gait": 3,
+        "maxFootErrorMetres": 4.6280825600836915e-08,
+        "maxSpeed": 0.6874999999999359,
+        "distance": 4.434343172622433
+      },
+      {
+        "gait": 4,
+        "maxFootErrorMetres": 4.823031812461974e-08,
+        "maxSpeed": 0.3739999999999652,
+        "distance": 2.412282685906597
+      },
+      {
+        "gait": 5,
+        "maxFootErrorMetres": 4.82676073318618e-08,
+        "maxSpeed": 0.5059999999999528,
+        "distance": 3.2636765750501042
+      }
+    ],
+    "behaviorR4": {
+      "status": "passed",
+      "armResults": [
+        {
+          "arms": 0.62,
+          "side": "L",
+          "wrist": [
+            0.23616002084021634,
+            0.8789999793122925,
+            0.05500001273266518
+          ]
+        },
+        {
+          "arms": 0.62,
+          "side": "R",
+          "wrist": [
+            -0.2361599958409627,
+            0.8789999866606784,
+            0.05499999985299208
+          ]
+        },
+        {
+          "arms": 1,
+          "side": "L",
+          "wrist": [
+            0.2429997098151643,
+            0.8789999796814068,
+            0.05500001274066466
+          ]
+        },
+        {
+          "arms": 1,
+          "side": "R",
+          "wrist": [
+            -0.24299968550493722,
+            0.8789999870579823,
+            0.054999999879156894
+          ]
+        },
+        {
+          "arms": 1.58,
+          "side": "L",
+          "wrist": [
+            0.25343954543776,
+            0.8789999803373724,
+            0.055000012752496844
+          ]
+        },
+        {
+          "arms": 1.58,
+          "side": "R",
+          "wrist": [
+            -0.25343952234992406,
+            0.8789999877931358,
+            0.05499999992945574
+          ]
+        }
+      ],
+      "happySmile": 0.9040467433270583,
+      "blinkIntervalAtMidRandom": 3.269230769230769,
+      "headTurnRelease": true,
+      "hairVertices": 41798,
+      "hairHandDistance": 0.06015220034152706,
+      "defaultJiggle": 2.3,
+      "lowerPoleShape": true,
+      "autonomyModes": [
+        "idle",
+        "wander"
+      ],
+      "idleActions": [
+        "rest",
+        "wave",
+        "armStretch",
+        "dance",
+        "shoulderRoll",
+        "hairTuck",
+        "lookAround",
+        "neckStretch",
+        "wiggle"
+      ]
+    },
+    "breastDisplacement": [
       {
         "size": 0.38,
         "combination": 0,
@@ -391,95 +520,215 @@
         "minDot": 0.7074602181800053
       }
     ],
-    "interaction": {
-      "averageActorMs": 0.6868694916666666,
-      "v1GeometryUnchanged": true,
-      "triangleAreasFinite": true,
-      "minArea": 3.353168449626535e-08,
-      "twoHandReleasePassed": true,
-      "legDragState": "falling",
-      "recovered": true,
-      "emotionPersists": true,
-      "historyMessages": 2,
-      "arms": {
-        "L": [
-          1.3936888269269625,
-          0.8839999822553457,
-          -0.026147304276859976
-        ],
-        "R": [
-          0.9956887847645939,
-          1.464000022152275,
-          0.013852681583142228
-        ]
+    "gluteDisplacement": [
+      {
+        "size": 0.52,
+        "combination": 0,
+        "flips": 0,
+        "changed": 936,
+        "minDot": 0.9895356103716286
+      },
+      {
+        "size": 0.52,
+        "combination": 1,
+        "flips": 0,
+        "changed": 936,
+        "minDot": 0.9891140812353828
+      },
+      {
+        "size": 0.52,
+        "combination": 2,
+        "flips": 0,
+        "changed": 936,
+        "minDot": 0.9600726401552558
+      },
+      {
+        "size": 0.52,
+        "combination": 3,
+        "flips": 0,
+        "changed": 936,
+        "minDot": 0.9582665855296875
+      },
+      {
+        "size": 0.52,
+        "combination": 4,
+        "flips": 0,
+        "changed": 936,
+        "minDot": 0.9762951222062942
+      },
+      {
+        "size": 0.52,
+        "combination": 5,
+        "flips": 0,
+        "changed": 936,
+        "minDot": 0.9773929351626685
+      },
+      {
+        "size": 0.52,
+        "combination": 6,
+        "flips": 0,
+        "changed": 936,
+        "minDot": 0.9838310107497787
+      },
+      {
+        "size": 0.52,
+        "combination": 7,
+        "flips": 0,
+        "changed": 936,
+        "minDot": 0.9847238725533065
+      },
+      {
+        "size": 1,
+        "combination": 0,
+        "flips": 0,
+        "changed": 936,
+        "minDot": 0.9895356103716286
+      },
+      {
+        "size": 1,
+        "combination": 1,
+        "flips": 0,
+        "changed": 936,
+        "minDot": 0.9891140812353828
+      },
+      {
+        "size": 1,
+        "combination": 2,
+        "flips": 0,
+        "changed": 936,
+        "minDot": 0.9600759756666953
+      },
+      {
+        "size": 1,
+        "combination": 3,
+        "flips": 0,
+        "changed": 936,
+        "minDot": 0.9582702565790628
+      },
+      {
+        "size": 1,
+        "combination": 4,
+        "flips": 0,
+        "changed": 936,
+        "minDot": 0.9762906339363141
+      },
+      {
+        "size": 1,
+        "combination": 5,
+        "flips": 0,
+        "changed": 936,
+        "minDot": 0.9773885466467995
+      },
+      {
+        "size": 1,
+        "combination": 6,
+        "flips": 0,
+        "changed": 936,
+        "minDot": 0.9838310107497787
+      },
+      {
+        "size": 1,
+        "combination": 7,
+        "flips": 0,
+        "changed": 936,
+        "minDot": 0.9847238725533065
+      },
+      {
+        "size": 2.15,
+        "combination": 0,
+        "flips": 0,
+        "changed": 936,
+        "minDot": 0.9895356103716286
+      },
+      {
+        "size": 2.15,
+        "combination": 1,
+        "flips": 0,
+        "changed": 936,
+        "minDot": 0.9891140812353828
+      },
+      {
+        "size": 2.15,
+        "combination": 2,
+        "flips": 0,
+        "changed": 936,
+        "minDot": 0.960082310556519
+      },
+      {
+        "size": 2.15,
+        "combination": 3,
+        "flips": 0,
+        "changed": 936,
+        "minDot": 0.9582772239083897
+      },
+      {
+        "size": 2.15,
+        "combination": 4,
+        "flips": 0,
+        "changed": 936,
+        "minDot": 0.976282214148526
+      },
+      {
+        "size": 2.15,
+        "combination": 5,
+        "flips": 0,
+        "changed": 936,
+        "minDot": 0.9773803142034873
+      },
+      {
+        "size": 2.15,
+        "combination": 6,
+        "flips": 0,
+        "changed": 936,
+        "minDot": 0.9838310107497787
+      },
+      {
+        "size": 2.15,
+        "combination": 7,
+        "flips": 0,
+        "changed": 936,
+        "minDot": 0.9847238725533065
       }
+    ],
+    "surfaceAndDepthProgramGeneration": {
+      "programs": 52,
+      "zeroMorphRegression": "passed",
+      "actualGPUCompilation": false
     },
-    "vr": {
-      "leftYEdgeTriggered": true,
-      "leftYSpawnedNoBall": true,
-      "rightBSpawnedBall": true,
-      "menuConsumesTrigger": true,
-      "v1v2SelectionAndRemoval": true
+    "skinBoundaryFixture": {
+      "matchedPositions": 138,
+      "featheredVertices": 872,
+      "maxLinearColorGap": 3.0961882502289484e-08,
+      "actualTextureVisualTest": false
     },
-    "walks": [
-      {
-        "gait": 0,
-        "maxFootErrorMetres": 4.774532015171789e-08,
-        "maxSpeed": 0.5499999999999488,
-        "distance": 3.547474538097941
-      },
-      {
-        "gait": 1,
-        "maxFootErrorMetres": 0.0008934506525110263,
-        "maxSpeed": 0.6159999999999427,
-        "distance": 3.973171482669701
-      },
-      {
-        "gait": 2,
-        "maxFootErrorMetres": 4.8309841903351486e-08,
-        "maxSpeed": 0.46199999999995695,
-        "distance": 2.979878612002279
-      },
-      {
-        "gait": 3,
-        "maxFootErrorMetres": 4.6280825600836915e-08,
-        "maxSpeed": 0.6874999999999359,
-        "distance": 4.434343172622433
-      },
-      {
-        "gait": 4,
-        "maxFootErrorMetres": 4.823031812461974e-08,
-        "maxSpeed": 0.3739999999999652,
-        "distance": 2.412282685906597
-      },
-      {
-        "gait": 5,
-        "maxFootErrorMetres": 4.82676073318618e-08,
-        "maxSpeed": 0.5059999999999528,
-        "distance": 3.2636765750501042
-      }
-    ]
-  },
-  "limits": [
-    "No browser/WebGL visual validation or Quest hardware performance test.",
-    "Recovery is procedural, not a full active ragdoll.",
-    "Reference likeness is approximate; generated head atlas is not an identity reconstruction.",
-    "Body albedo retained from upload. Hair uses guide-driven cards and capsule collisions; no strand self-collision."
-  ],
-  "renderHotfixRevision3": {
-    "date": "2026-09-06",
-    "cause": "Empty morphAttributes.position on eye/teeth geometry enabled zero-count morph shaders and crashed Three.js WebGLMorphtargets.update when influences were absent.",
-    "originalMorphUploadCrashReproduced": true,
-    "fixedMorphUploadChecksPassed": true,
-    "surfaceAndDepthShaderConfigurationsGenerated": 52,
-    "driverShaderCompilationVerified": false,
-    "skinAndEyeMapsAssigned": true,
-    "skinAndEyeMetalnessZero": true,
-    "animationTicksWithV1AndV2": 120,
-    "twoHandReleaseLegDragRecoveryPassed": true,
-    "questYBMappingRegressionPassed": true,
-    "moduleImportsAndSyntaxPassed": true,
-    "v1OriginalCoreVoiceEngineUnchanged": true,
-    "browserAttempt": "Cloud Chrome reached page, but WebGL context creation failed with GL_RENDERER = Disabled; no rendered visual validation."
+    "playerHands": {
+      "skinnedTrianglesEach": 3380,
+      "controllerAlignment": "passed",
+      "leftRightMirroring": "passed",
+      "palmAndFingerCapsules": 32,
+      "opticalHandTracking": false
+    },
+    "microphone": {
+      "singlePermissionRequest": true,
+      "audioUnlockedInGesture": true,
+      "nativeNetworkErrorFallback": true,
+      "quietSpeechDetected": true,
+      "echoPaused": true,
+      "missingServerVisible": true,
+      "stopReleasesResources": true,
+      "latePermissionStreamClosed": true
+    },
+    "voiceServer": {
+      "sttChatTtsContracts": "passed with mock provider",
+      "untrustedOriginRejected": true,
+      "realProviderTested": false
+    },
+    "inputAndInteraction": {
+      "yToggleAndBSpawn": "passed",
+      "independentGrabRelease": "passed",
+      "legFallAndRecovery": "passed",
+      "v1v2SelectionRemoval": "passed"
+    },
+    "skinShaderRepeatedApplication": "passed with diffusion disabled"
   }
 }

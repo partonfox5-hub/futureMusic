@@ -1,21 +1,44 @@
-# Mira v1 + v2
+# Mira v1 + v2 — revision 4
 
-This package keeps the `human2/`, `human2/assets/`, and `human2/assets/tex/` layout. Serve the folder over HTTP for desktop use, or HTTPS in Quest Browser for VR/AR. Open `human2/index.html`, hard-refresh after replacing an older deployment, and start with one actor on Balanced.
+Replace the complete `human2/` folder with this package. Its folder layout is unchanged: `human2/`, `human2/assets/`, and `human2/assets/tex/`. V2 scripts use `?v=4` and textures use `?v=r4`; purge the hosting/CDN cache when updating. Open `human2/index.html` over HTTP on desktop or HTTPS on Quest. Start with one actor on Balanced.
 
-## Render fix — module revision 3
+The original Mira remains selectable in the shared spawner. `mira-v1.html` opens the original scene. The original core, voice code, preserved engine, GLB and uploaded textures are unchanged. V2 keeps actor geometry, materials, animation and physics state separate.
 
-The initial v2 package attached an empty `morphAttributes.position` list to the eyes and teeth, which have no facial morph targets. Three.js r170 treats the property's presence as enabling morph rendering. This generated a zero-length shader uniform in the surface and shadow passes and then threw while reading missing morph influences, interrupting the render loop. A frame could remain partially drawn before textures finished loading.
+## What changed in revision 4
 
-V2 now preserves the absence of morph attributes on those meshes while retaining all 49 facial targets on the body. The fix covers both the eye and `MeshDepthMaterial` failures. The original v1 core, voice and engine remain unchanged. All v2 module URLs use `?v=3` to invalidate cached scripts, and the main page declares an inline empty favicon to avoid the unrelated favicon 404.
+### Arms, fingers and player hands
 
-Replace the complete `human2/` folder with this package, clear any hosting/CDN cache for that folder, then press **Ctrl+Shift+R**. Extension messages from `contentscript.js` are separate from the model's render failure; changing EventEmitter listener limits is not part of this fix.
+The supplied arm vertices have a baked A-pose tilt of about 30 degrees, while the arm bones and inverse bind matrices describe a T pose. V2 corrects that mismatch before animation. It also removes unrelated body-bone influences from distal arm/hand vertices. These issues made moving hands distort even when the bone positions themselves looked correct.
 
-The regression checks reproduce the old morph-upload exception, exercise the corrected Three.js morph-upload path, generate surface/depth shaders for all 13 meshes in both versions, verify skin/eye map assignments and nonmetallic materials, and recheck animation, grabs, recovery and Y/B input. The cloud browser could load the page but could not create a WebGL context (`GL_RENDERER = Disabled`), so a rendered browser/Quest visual pass remains unavailable.
+Arm width now changes the surface instead of multiplying upper-arm and forearm scales through the hand hierarchy. The thumb scale reductions are removed. Resting wrists sit beside and slightly ahead of the hips; elbow targets are forward of their previous positions. Finger flexion now uses the rig's actual knuckle axis, with relaxed curl, small spreading and different open/holding states.
 
-## Versions
+Controller hands use the supplied textured hand and nail geometry, isolated from the body and articulated through its skeleton. Each visible hand has 3,380 triangles. Left/right orientation is corrected, and palm/finger capsules follow the joints, including fingertip extensions. These are controller-driven hands; optical hand-tracking retargeting is not implemented.
 
-- **Mira v1:** the original actor implementation and original textures remain available in the shared spawner. `mira-core.js`, `mira-voice.js`, the GLB and all uploaded textures are byte-for-byte unchanged. `engine-v1.js` preserves the uploaded engine; `mira-v1.html` opens the original scene with its original controls. That page's script URL is made relative so it can run at a different mount point.
-- **Mira v2:** `mira-v2.js` uses the original actor as its v1 branch and builds v2 through `mira-v2-features.js`. Geometry, materials, skin weights, expression state and hair simulation are isolated per v2 actor. V2 defaults to the reference appearance and standing idle. Select actors independently using the actor picker; Remove frees a slot. The original two-actor Quest limit is retained.
+### Expressions and attention
+
+Happy and laughing expressions combine mouth-corner lift, cheeks, dimples and moderate eye narrowing. A small jaw opening now survives the original idle pipeline. The default feeling is warm/content. Manual expression selection and contextual emotions remain available.
+
+Blink intervals are divided by 1.3: **30% more frequent on average**, with the same closing/opening duration. Finite fixations alternate between the player, nearby Miras and room targets. Eyes respond faster than the head and neck. Low-amplitude brow, smile and cheek changes, breathing, slight head roll and speaking nods add variation. These are authored procedural cues, not measured emotional microexpressions or captured facial performance.
+
+**Lively idle** is the default for newly spawned v2 actors. It alternates short walks with rests and occasional greetings. Six walk styles and sixteen idle actions are available: rest, weight shift, hands together, hand on hip, hair tuck, looking at a hand, wave, explanation, shoulder roll, looking around, breathing, neck stretch, sigh, arm stretch, wiggle and dance. Actions ease in and out; quiet intervals receive more weight. Stand/Walk/exercise buttons select manual movement. Lively idle resumes autonomy.
+
+### Head and hair interaction
+
+Grip the head and turn the controller, or move the contact point, to turn it in yaw and pitch. The neck shares the motion. This constraint turns the head without dragging the whole actor; it has bounded pitch, yaw and roll and eases back after release. Passive controller-hand contact also gives a small head/neck response. It is an approximate capsule/contact model, not full skin-to-skin collision.
+
+Hair now has **41,798 vertices**, twice the original card count, in two offset layers. Its silhouette broadens away from the pinned scalp. Twelve four-node guide chains provide secondary motion, length/rest constraints, floor/body projection, and collisions with the player palm/finger capsules. There is no full strand or hair self-collision solver; guide interpolation can still allow some card penetration. Twice the card count is not a measured doubling of physical hair volume. Alpha overdraw increases, so Quest GPU performance needs hardware measurement.
+
+### Skin and soft tissue
+
+V2 matches adjoining skin material colors in linear light at shared surface locations and feathers the correction over a roughly 5.5 cm surface neighborhood. This preserves each map's texture detail while reducing hard color jumps at material borders. It cannot remove every artifact painted inside an atlas.
+
+The skin shader has a bounded roughness floor, weaker broad environmental reflection, less diffuse wrapping and reduced normal intensity. Eye/cornea highlights are restrained. A newly generated, UV-constrained head albedo uses the latest AI face reference; the existing small reference head-proportion sculpt remains. This is an approximate likeness, not a recovered 3D scan. The source head image is 1,254 square pixels; it is not presented as a new 4K photographic scan.
+
+The body still uses the uploaded diffuse texture and original normal/roughness maps. No new photographic body scan is included. Its source detail and painted artifacts remain a quality limit.
+
+Breast enlargement retains the earlier smooth chest-anchored deformation and reweighted attachment. Buttocks now use broad surface growth and a lower-pole displacement instead of scaling glute attachment bones. The transition includes the rear/upper-thigh region and preserves the authored central fold rather than cutting a deeper groove. Default jiggle increases from **1.15 to 2.30**; gravity settling is stronger and glute spring frequency is lower. Grabbed tissue uses a stiff, highly damped constraint without the free-motion acceleration drive. Fixed 1/120-second substeps and conservative compression/displacement bounds remain.
+
+These are reduced surface/bone approximations. They do not enforce incompressible tissue volume, simulate independent thigh flesh, or implement FEM, Dyna, a medical anatomical model, or a general active ragdoll. The procedural fall/get-up system remains: standing → falling → down → recovering → standing. Holding a limb delays recovery. Full environment-mesh, actor-to-actor and arbitrary body self-collision are not implemented.
 
 ## Controls
 
@@ -23,81 +46,74 @@ The regression checks reproduce the old morph-upload exception, exercise the cor
 | --- | --- |
 | Desktop drag / wheel | Orbit / zoom |
 | Face view / Body view | Frame the selected actor |
-| Grab body, then drag; or Shift-drag | Grab the hit skin surface and pull in the camera plane |
-| First person | Pointer-lock look; WASD movement; Escape releases |
-| Desktop B | Spawn a ball |
-| Desktop F | Hold the noodle |
-| Quest left Y | Open/close the world-space spawner and slider panel |
-| Controller ray + trigger | Operate panel buttons and drag sliders |
-| Grip near body | Grab a limb or tissue region; both controllers can hold independently |
-| Trigger near body, with menu closed | Alternative grab |
-| Quest right B | Spawn a ball |
-| Left stick / right stick | Move / turn; locomotion pauses while the menu is open |
+| Grab body, then drag; or Shift-drag | Pull the hit surface in the camera plane |
+| Lively idle | Resume autonomous rests, social actions and short walks |
+| Stand / Walk / exercise buttons | Select manual movement |
+| Quest left Y | Open/close the 3D spawner and sliders |
+| Controller ray + trigger | Operate the menu |
+| Grip near body | Grab a limb, tissue region or head |
+| Turn controller while holding head | Turn head and neck |
+| Quest right B / desktop B | Spawn a ball |
+| Left stick / right stick | Move / turn |
 
-Y/B use the left/right secondary face button at gamepad index 5 in the Quest Touch profile. Unrelated generic controllers may use different mappings. The panel is rendered in the XR scene; it does not depend on a DOM overlay. The original v1-only page retains its original Y-to-ball mapping.
+Y/B use the secondary face button at index 5 for the Quest Touch profile. The v1-only page retains its original controls. Movement pauses while the VR menu is open. Both controllers can hold independently.
 
-## V2 changes
+## Quest voice
 
-**Shape and tissue.** Breast enlargement uses a smooth chest-anchored vertex deformation instead of scaling breast attachment bones. The v2 branch rebuilds breast skin weights with a smooth falloff into the chest. This addresses the dented attachment and the folding that appeared under large displacement. The shape slider changes the undeformed surface; secondary motion translates bones without dynamic scale or squash. Gravity is transformed from world down into the actual rotated parent frame. Larger breasts settle farther and have lower spring frequency. Compression into the chest is tightly limited; outward and downward motion have separate limits. Fixed 1/120-second integration, damping, tracking-jump rejection and bounded contact impulses control instability.
+The client now requests the microphone once and unlocks its AudioContext in the activation gesture. It monitors quieter speech, records before speech starts so the initial syllable is retained, pauses input during replies, and falls back from browser recognition errors to `/api/mira/stt`. Stopping voice cancels pending work and releases microphone tracks. Native-recognition failure, missing endpoints, HTTP errors and invalid transcription responses are visible.
 
-This is a reduced bone-and-surface approximation, **not** FEM tissue, an incompressible volumetric model, or a medical/anatomical simulation. No volume-accuracy claim is made. Shape growth is smooth and bounded, and secondary motion is limited to preserve the supplied mesh.
+The desktop panel shows a microphone level meter and status. The VR menu also shows voice status. If the meter moves but transcription fails, microphone capture works and the server connection needs attention. Static hosting alone cannot supply transcription when the browser lacks working SpeechRecognition.
 
-**Grabs and balance.** Desktop raycasting selects the actual skinned triangle. Near controller grabs combine body capsules with a skinned-vertex proximity check and bone-weight ownership. The initial surface offset is retained. Mid-arm, forearm/hand and leg contacts drive different IK constraints; the torso follows sustained pulls. Pulling a leg removes support and can trigger a fall. States progress through standing, falling, down, recovering and standing; holding the actor delays recovery. A staged procedural get-up uses hip rotation, knee flexion and early palm bracing. Recovery is animation-driven, **not** a general active ragdoll. Contacts approximate the body with capsules; there is no arbitrary environment-mesh, actor-to-actor, or full self-collision solver.
+The client retains these same-origin routes:
 
-**Movement.** Six selectable walk styles alter speed and cadence. Feet retain stance targets and use two-bone IK. Arms use world-space hand targets, elbow poles and eased transitions; fingers have a graduated resting curl, thumb pose and distinct open/holding/tense states. Twelve idle choices cover rest, weight shift, hands together, hand on hip, hair tuck, looking at a hand, wave, explanation, shoulder roll, looking around, breathing and neck stretch. Existing squat/stretch/jumping-jack modes remain. Sad/tired/concerned states soften body posture and slow walking; tense states affect hand pose. These are procedural motions, not motion capture.
+| Route | Request | Response |
+| --- | --- | --- |
+| `POST /api/mira/stt` | Multipart `file` containing audio | JSON `{ "text": "Hello Mira" }` |
+| `POST /api/mira/chat` | JSON `text`, `persona`, bounded `history`, `emotion` | JSON `reply`, optional `emotion`, `intensity`, `valence`, `arousal`, `action` |
+| `POST /api/mira/tts` | JSON `text`, `voice` | Audio bytes with an audio content type |
 
-**Expressions and conversation.** Sixteen named expressions use the supplied CC3 morph targets, with moderated strengths, some asymmetry, complete blink closure and actual eyeball rotation. Expressions persist, then gradually settle instead of randomly changing mood. Conversation Context uses the reply's emotional state; choosing a manual expression holds it for inspection. The two reference-clip buttons replay hand-tuned 3.0625-second smile/surprise curves based on visual timing in the supplied videos. They are not tracked or retargeted facial capture. Speech still uses the existing amplitude plus approximate text-viseme path, not phoneme-aligned facial performance capture.
+Existing working endpoints can remain in place. If your website lacks them, this package adds **`mira-voice-server.mjs`**, an optional Node 20+ companion implementing all three routes. It uses server-side OpenAI credentials, accepts only the configured page origin, caps request sizes/concurrency/rate, and binds to localhost. No API key is included, and no paid API requests were made during verification.
 
-**Hair.** Twelve four-point guide chains deform the existing hair cards in the vertex shader. Roots stay pinned; compliant segment constraints, rest-shape attraction, damping, floor projection and head/neck/upper-body/hand capsules provide secondary motion and collision response. The full 20,899-vertex hair mesh is not CPU-reskinned each frame. This is a small guide-based approximation, not TressFX, strand simulation, SDF collision or hair self-collision. Guide interpolation can still allow some card penetration.
+Configure `OPENAI_API_KEY` and `MIRA_ORIGIN` in the server environment, with MIRA_ORIGIN exactly the HTTPS origin of the website, then run:
 
-**Appearance.** `head_v2.jpg` is a new UV-aligned generated head albedo guided by the supplied AI face and the real head normal-map layout. The reference preset also applies a small jaw/nose proportional sculpt and rebases facial morph endpoints. Identity resemblance is approximate; a single view and two short clips do not supply a 3D scan or side/back head geometry. The same head atlas is used for both v2 presets; the reference switch controls the proportional sculpt. The original five v1 face textures remain intact.
+```sh
+node mira-voice-server.mjs
+```
 
-The body texture generation request was rejected by the image tool. `body_v2.jpg` therefore retains the uploaded body albedo, including its limited detail and any remaining painted artifacts. Original normal/roughness maps remain. The earlier full source package was inspected, but its head/torso diffuse maps were also altered, so they were not substituted. The new head can show color differences at the neck against the older body/limb maps. Skin retains a single-pass diffusion approximation. A modest directional shadow adds body/ground contact; Faster disables shadows in XR. Hair and corneas do not cast shadows in this pass.
+The default local port is 8787. Optional variables: `MIRA_VOICE_PORT`, `MIRA_STT_MODEL` (default `gpt-4o-mini-transcribe`) and `MIRA_CHAT_MODEL` (default `gpt-4o-mini`). TTS uses `tts-1` / `nova`. These API calls use the configured provider account, separately from this editing session.
 
-## Conversation service contract
+Route `/api/mira/` through your existing HTTPS host and access controls to the companion. For example, inside an existing nginx HTTPS server:
 
-V2 preserves `/api/mira/chat`, `/api/mira/tts` and `/api/mira/stt`. No server implementation or credentials are included. Static hosting uses local canned replies with heuristic context expressions and browser speech synthesis when available. The UI identifies local fallback replies. This is not a local language model.
-
-`POST /api/mira/chat` receives `text`, `persona`, a bounded `history` array, and an inferred `emotion`. Existing services that accept the original fields can ignore the additions. A service can return:
-
-```json
-{
-  "reply": "I hear you. Tell me what happened.",
-  "emotion": "concerned",
-  "intensity": 0.65,
-  "valence": -0.25,
-  "arousal": 0.35,
-  "action": "idle"
+```nginx
+location /api/mira/ {
+    proxy_pass http://127.0.0.1:8787;
+    proxy_set_header Host $host;
 }
 ```
 
-Legacy `[[EMOTION:concerned]]` and `[[ACTION:stretch]]` tags in `reply` also work. Values and actions are whitelisted; intensities are clamped. History is kept separately per actor in session memory, up to 12 messages. The client sends no API keys. The host must implement authentication, model selection, conversation processing and service limits if an AI backend is desired. Microphone permission is requested only on explicit user activation; stopping voice prevents automatic recognition restart.
+A static-only host needs a separate server/function for these routes. The companion does not host the web page. It requires deployment and credentials on your infrastructure; it is not automatically activated by uploading the ZIP. When chat is unavailable, the UI labels the short local fallback replies. Browser speech synthesis remains the audio fallback. History and emotional context are separate per actor and held in session memory, up to twelve messages. Legacy `[[EMOTION:happy]]` and `[[ACTION:stretch]]` reply tags remain supported.
 
-For integration/profiling, `?debug=1` exposes `window.human2`. Call the selected v2 actor's `setEmotion(name, intensity, {hold, source, valence, arousal})` or `beginSpeech(text, emotion)`. All actor-specific state is in memory.
+## Validation and render fix
 
-## Validation and limits
+`validation-v2.json` records the checks and their scope. Tests use the supplied GLB and Three.js r170 with texture loading stubbed for Node. The prior empty-morph-attribute bug remains fixed: eyes and teeth have no empty `morphAttributes.position` property, while body meshes retain 49 expression targets. Surface/depth program generation covers both v1 and v2, and the earlier render-loop exception is reproduced by the regression fixture.
 
-`validation-v2.json` records numerical checks. Tests loaded the actual supplied GLB in Three.js r170, with texture loading stubbed for Node; they did not render WebGL. They cover multiple frame rates, shape ranges, extreme tissue offsets, two-hand release, leg-triggered falls, recovery, expression persistence, conversation history, actor selection/removal, and Quest Y/B button edge behavior. The original files and original engine were checked against the uploaded archive.
+Revision 4 checks include skin-boundary color continuity on a controlled fixture, actual skinned controller-hand dimensions, arm-width extremes, smile/jaw behavior, blink timing, head grab/release, a hair-guide/hand contact, autonomous behavior, independent grabs, fall/get-up, shape/tissue bounds and Y/B input. Microphone tests cover quiet speech, native-recognition failure, echo suppression, missing-server status and resource cleanup. HTTP tests exercise all companion routes against a mock provider; they do not send audio to a paid service.
 
-- 30/72/90/120 fps simulations returned from falls to standing with finite transforms.
-- Shape-only orientation checks passed at breast slider values 0.38, 0.7, 1, 1.5, 2 and 2.35.
-- 24 combinations of breast size and extreme allowed tissue offsets produced no reversed triangles relative to the corresponding undeformed pose in the checked region. This is a bounded orientation test, not proof of physical volume or all-pose collision correctness.
-- Two controllers held independently and releasing one preserved the other hold.
-- Left Y toggled once per press and did not spawn a ball; right B spawned one; menu selection consumed the trigger.
-- Six walk styles were exercised numerically; their foot errors are recorded in the validation file.
+**No rendered WebGL or Quest 3 hardware pass was possible in this environment.** The available browser reports `GL_RENDERER = Disabled`. Generated shader source and numerical checks do not prove GPU compilation, frame rate, visual seam removal or likeness. The old `contentscript.js` extension warnings are separate from the model's shader error. Do not change EventEmitter limits to mask them.
 
-**Browser/WebGL visual rendering and Quest 3 frame rate, controller behavior, skin seams, likeness and collision appearance have not been verified on hardware.** Inspect the desktop demo, then check one actor on Balanced in the headset. The numerical runtime timing is not a Quest GPU benchmark. Texture compression, authored motion capture, depth-fitted face reconstruction and volumetric flesh remain future work.
+## Research and the remaining realism ceiling
 
-## Research used to choose the implementation
+The implementation takes practical cues from the following primary sources:
 
-- Meta WebXR performance: reduce bandwidth/overdraw, use measured budgets; KTX2/Basis is recommended for GPU texture compression. Compression is documented but not implemented here: https://developers.meta.com/horizon/documentation/web/webxr-perf-bp/
-- Macklin et al., *XPBD* (2016), compliance and iteration/time-step behavior: https://matthias-research.github.io/pages/publications/XPBD.pdf
-- Macklin et al., *Small Steps in Physics Simulation* (2019), substepping constraint simulations: https://matthias-research.github.io/pages/publications/smallsteps.pdf
-- AMD TressFX integration guide, guide-based hair and practical collision representations. Used for design principles; this package does not integrate TressFX: https://raw.githubusercontent.com/GPUOpen-Effects/TressFX/master/doc/TressFX4xDeveloperGuide.pdf
-- NVIDIA GPU Gems 3, chapter 14, skin appearance depends on material detail and subsurface transport. The mobile shader here remains an approximation: https://developer.nvidia.com/gpugems/gpugems3/part-iii-rendering/chapter-14-advanced-techniques-realistic-real-time-skin
-- WebXR Gamepads specification: https://immersive-web.github.io/webxr-gamepads-module/
-- Three.js SkinnedMesh API: https://threejs.org/docs/pages/SkinnedMesh.html
+- Disney Research, *Realistic and Interactive Robot Gaze*: attention, habituation, coordinated eyes/head and overlapping response speeds. https://la.disneyresearch.com/publication/realistic-and-interactive-robot-gaze/
+- NVIDIA GPU Gems 3, chapter 14: skin reflectance detail and subsurface transport. This package's mobile diffuse wrap is only an approximation. https://developer.nvidia.com/gpugems/gpugems3/part-iii-rendering/chapter-14-advanced-techniques-realistic-real-time-skin
+- NVIDIA GPU Gems 3, chapter 24: linear-light rendering and appearance errors. https://developer.nvidia.com/gpugems/gpugems3/part-iv-image-effects/chapter-24-importance-being-linear
+- Macklin et al., *Small Steps in Physics Simulation*: short constraint substeps. https://matthias-research.github.io/pages/publications/smallsteps.pdf
+- MPI, 4D shape research / Dyna: motion-dependent shape learned from captured human motion. This project does not include those datasets or models. https://is.mpg.de/ps/projects/4d-shape
+- MDN SpeechRecognition: limited browser availability and implementation differences. https://developer.mozilla.org/en-US/docs/Web/API/SpeechRecognition
+- OpenAI transcription and speech API guides, used for the optional companion. https://developers.openai.com/api/docs/guides/speech-to-text and https://developers.openai.com/api/docs/guides/text-to-speech
+- Meta WebXR performance guidance: measure overdraw, bandwidth and texture budgets on the target device. https://developers.meta.com/horizon/documentation/web/webxr-perf-bp/
 
-## Generated asset provenance
+For substantially more photographic skin, the next asset step is consistent, properly licensed scanned/cross-polarized albedo with matched roughness and normal detail, fitted to this exact UV layout. Larger JPEG dimensions alone cannot recover missing detail. Higher-detail meshes, calibrated eye/cornea geometry, authored corrective blendshapes, face reconstruction from multiple views, and captured motion would improve realism beyond these procedural corrections. Quest delivery would then need measured LOD, texture compression and overdraw budgets.
 
-The built-in image generation tool produced `assets/tex/head_v2.jpg`. Its prompt requested a 2048-square CC3 head albedo, using `head_n.jpg` as the immutable UV layout, `head.jpg` as the edit target, and the supplied AI-generated portrait as the likeness reference; closed eye slits, nose/mouth/ear coordinates, restrained freckles and makeup, neutral diffuse lighting, no painted hair/eyeballs, no labels, and matching padding were specified. The returned image was resized/encoded for the existing 2K JPEG runtime path. The body generation did not succeed and its output was not replaced with an invented scan.
+The head image was generated from the existing head atlas, the UV normal map and the latest supplied AI portrait. The prompt requested fixed UV feature coordinates, finer diffuse skin detail, warm cheek/lip coloration, extended padding and no painted hair or eyeballs. It was encoded to the existing `assets/tex/head_v2.jpg` path. The original images and v1 textures are preserved.

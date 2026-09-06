@@ -1,5 +1,5 @@
-import {EMOTION_NAMES} from './mira-v2-features.js?v=3';
-export const DEFAULT_PERSONA='You are Mira, a friendly adult woman in an XR room. Reply in 1–2 short spoken sentences. Keep a consistent emotional state based on the conversation. End with [[EMOTION:neutral|happy|content|curious|listening|thoughtful|concerned|sad|surprise|afraid|angry|disgust|tease|flirty|laugh|tired]] choosing exactly one label. Use moderate expressions. Only when requested, add [[ACTION:idle|wander|airSquats|stretch|jumpingJacks]]. Do not read tags aloud.';
+import {EMOTION_NAMES} from './mira-v2-features.js?v=4';
+export const DEFAULT_PERSONA='You are Mira, a friendly adult woman in an XR room. Reply in 1–2 short spoken sentences. Keep a consistent emotional state based on the conversation. End with [[EMOTION:neutral|happy|content|curious|listening|thoughtful|concerned|sad|surprise|afraid|angry|disgust|tease|flirty|laugh|tired]] choosing exactly one label. Respond warmly when appropriate; let emotion match the conversation. Only when requested, add [[ACTION:idle|wander|airSquats|stretch|jumpingJacks]]. Do not read tags aloud.';
 const ACTIONS=['idle','wander','airSquats','stretch','jumpingJacks'];
 const history=new Map();
 export function inferEmotion(text){
@@ -82,13 +82,15 @@ function ampLoop(onAmp, getT, getDur, alive) {
 export async function miraSpeak(text, hooks = {}) {
   const { onStart, onAmp, onEnd } = hooks;
   if (!text) { if (onEnd) onEnd(); return; }
-  const finish = () => { if (onEnd) onEnd(); };
+  let finished=false;
+  const finish = () => { if(finished)return;finished=true;if (onEnd) onEnd(); };
 
   try {
     const r = await fetch("/api/mira/tts", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text, voice: "eve" }),
+      signal: AbortSignal.timeout(10000),
     });
     if (r.ok && /^(audio\/|application\/octet-stream)/i.test(r.headers.get("content-type") || "")) {
       const buf = await r.arrayBuffer();
@@ -97,13 +99,13 @@ export async function miraSpeak(text, hooks = {}) {
         const a = new Audio(url);
         a.preload = "auto";
         let analyser = null, data = null, raf = 0, stopped = false, audioContext=null;
-        const stop = () => {
+        const stop = (notify=true) => {
           if (stopped) return;
           stopped = true;
           cancelAnimationFrame(raf);
           URL.revokeObjectURL(url);
           audioContext?.close().catch(()=>{});
-          finish();
+          if(notify)finish();
         };
         try {
           const ctx = audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -138,14 +140,14 @@ export async function miraSpeak(text, hooks = {}) {
           if (onStart) onStart(a.duration && isFinite(a.duration) ? a.duration : Math.max(1.2, text.length * 0.055));
           tick();
         };
-        a.onended = stop;
-        a.onerror = stop;
+        a.onended = () => stop();
+        a.onerror = () => {hooks.onError?.("Reply audio failed. Check headset volume and audio permissions.");stop();};
         try {
           await a.play();
+          return;
         } catch (e) {
-          stop();
+          stop(false);
         }
-        return;
       }
     }
   } catch (e) {
@@ -156,7 +158,7 @@ export async function miraSpeak(text, hooks = {}) {
     const u = new SpeechSynthesisUtterance(text);
     const fem = pickFemaleVoice();
     if (fem) u.voice = fem;
-    u.pitch = 1.16;
+    u.pitch = 1.03;
     u.rate = 1.0;
     const dur = Math.max(1.15, text.split(/\s+/).length * 0.34);
     let t0 = 0;
@@ -167,7 +169,7 @@ export async function miraSpeak(text, hooks = {}) {
       cancelAmp = ampLoop(onAmp, () => (performance.now() - t0) / 1000, () => dur, () => true);
     };
     u.onend = () => { if (cancelAmp) cancelAmp(); finish(); };
-    u.onerror = () => { if (cancelAmp) cancelAmp(); finish(); };
+    u.onerror = () => { if (cancelAmp) cancelAmp(); hooks.onError?.("Speech playback unavailable. The reply is shown in chat.");finish(); };
     speechSynthesis.cancel();
     speechSynthesis.speak(u);
     if (speechSynthesis.getVoices && !speechSynthesis.getVoices().length) {
@@ -178,106 +180,88 @@ export async function miraSpeak(text, hooks = {}) {
     }
   } catch (e) {
     console.warn("tts fallback", e);
-    finish();
+    hooks.onError?.("Speech playback unavailable. The reply is shown in chat.");finish();
   }
 }
 
-async function transcribeBlob(blob) {
-  const fd = new FormData();
-  fd.append("file", blob, "clip.webm");
-  const r = await fetch("/api/mira/stt", { method: "POST", body: fd });
-  const j = await r.json().catch(() => ({}));
-  return (j.text || "").trim();
+export async function transcribeBlob(blob,signal){
+ const fd=new FormData();fd.append('file',blob,/mp4/.test(blob.type)?'clip.m4a':'clip.webm');
+ const r=await fetch('/api/mira/stt',{method:'POST',body:fd,signal});
+ if(!r.ok)throw new Error(r.status===404?'Microphone works; /api/mira/stt is missing. Connect the included voice server.':`Transcription service returned ${r.status}. Check the voice server.`);
+ const j=await r.json().catch(()=>null);
+ if(!j||typeof j.text!=='string')throw new Error('Transcription service must return JSON with a text field.');
+ return j.text.trim();
 }
 
-function startMediaFallback(onText) {
-  let stopped = false;
-  let rec = null;
-  let chunks = [];
-  let speaking = false;
-  let silentMs = 0;
-  let stream = null;
-  let analyser = null;
-  let data = null;
-  let timer = 0, micContext=null;
-
-  navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } }).then((s) => {
-    if (stopped) { s.getTracks().forEach((t) => t.stop()); return; }
-    stream = s;
-    const ctx = micContext = new (window.AudioContext || window.webkitAudioContext)();
-    const src = ctx.createMediaStreamSource(s);
-    analyser = ctx.createAnalyser();
-    analyser.fftSize = 2048;
-    src.connect(analyser);
-    data = new Uint8Array(analyser.fftSize);
-    const mime = MediaRecorder.isTypeSupported("audio/webm;codecs=opus") ? "audio/webm;codecs=opus" : "audio/webm";
-    timer = setInterval(() => {
-      if (stopped || !analyser) return;
-      analyser.getByteTimeDomainData(data);
-      let sum = 0;
-      for (let i = 0; i < data.length; i++) {
-        const v = (data[i] - 128) / 128;
-        sum += v * v;
-      }
-      const rms = Math.sqrt(sum / data.length);
-      if (rms > 0.045) {
-        silentMs = 0;
-        if (!speaking) {
-          speaking = true;
-          chunks = [];
-          try {
-            rec = new MediaRecorder(stream, { mimeType: mime });
-            rec.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
-            rec.onstop = async () => {
-              const blob = new Blob(chunks, { type: mime });
-              if (blob.size < 1200) return;
-              try {
-                const t = await transcribeBlob(blob);
-                if (t) onText(t);
-              } catch (e) { console.warn("stt", e); }
-            };
-            rec.start();
-          } catch (e) { speaking = false; }
-        }
-      } else if (speaking) {
-        silentMs += 80;
-        if (silentMs > 750 && rec && rec.state === "recording") {
-          try { rec.stop(); } catch (_) {}
-          speaking = false;
-        }
-      }
-    }, 80);
-  }).catch((e) => console.warn("mic", e));
-
-  return {
-    stop() {
-      stopped = true;
-      clearInterval(timer);
-      try { if (rec && rec.state === "recording") rec.stop(); } catch (_) {}
-      if (stream) stream.getTracks().forEach((t) => t.stop());
-      micContext?.close().catch(()=>{});
-    },
-  };
-}
-
-export function startMic(onText) {
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (SR) {
-    const rec = new SR();
-    rec.continuous = true;
-    rec.interimResults = false;
-    rec.lang = "en-US";
-    rec.onresult = (ev) => {
-      const t = ev.results[ev.results.length - 1];
-      if (t && t.isFinal && t[0] && t[0].transcript) onText(t[0].transcript.trim());
+export function startMic(onText,hooks={}){
+ let stopped=false,stream=null,recorder=null,recognition=null,interval=0,restart=0,nativeMode=false,nativeResults=0,busy=false,segment=null;
+ let noise=.004,lastStatus='',ctx=null;const abort=new AbortController(),pending=new Set();
+ const status=(state,message)=>{if(lastStatus===state+message)return;lastStatus=state+message;hooks.onStatus?.({state,message});};
+ const stop=(quiet=false)=>{
+  if(stopped)return;stopped=true;clearInterval(interval);clearTimeout(restart);for(const t of pending)clearTimeout(t);pending.clear();abort.abort();
+  if(recognition){recognition.onend=null;recognition.abort();}if(recorder?.state==='recording')recorder.stop();
+  stream?.getTracks().forEach(t=>t.stop());ctx?.close().catch(()=>{});hooks.onLevel?.(0);if(!quiet)status('off','Voice off');
+ };
+ const fail=message=>{stop(true);status('error',message);};
+ const deliver=text=>{if(!stopped&&!hooks.isSpeaking?.()&&text)onText(text);};
+ const useServer=()=>{nativeMode=false;if(recognition){recognition.onend=null;recognition.abort();recognition=null;}};
+ status('starting','Allow microphone access to start voice.');
+ // Audio must be unlocked synchronously in the button/select gesture on Quest.
+ try{ctx=new (window.AudioContext||window.webkitAudioContext)();ctx.resume().catch(()=>{});}catch(e){fail('Audio input is unavailable in this browser.');return {stop};}
+ if(!navigator.mediaDevices?.getUserMedia){fail('Microphone requires HTTPS or localhost.');return {stop};}
+ navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}}).then(async s=>{
+  if(stopped){s.getTracks().forEach(t=>t.stop());return;}stream=s;await ctx.resume();if(stopped)return;
+  const src=ctx.createMediaStreamSource(s),analyser=ctx.createAnalyser();analyser.fftSize=1024;src.connect(analyser);const data=new Float32Array(analyser.fftSize);
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(SR){try{
+   recognition=new SR();recognition.continuous=true;recognition.interimResults=false;recognition.lang='en-US';nativeMode=true;
+   recognition.onresult=ev=>{for(let i=ev.resultIndex||0;i<ev.results.length;i++){const r=ev.results[i];if(r.isFinal){nativeResults++;deliver(r[0]?.transcript?.trim());}}};
+   recognition.onerror=ev=>{if(stopped)return;if(ev.error==='not-allowed')fail('Microphone permission was denied. Allow it in the headset browser settings.');else if(ev.error!=='no-speech'&&ev.error!=='aborted')useServer();};
+   recognition.onend=()=>{if(!stopped&&nativeMode)restart=setTimeout(()=>{try{recognition?.start();}catch{useServer();}},450);};recognition.start();
+  }catch{useServer();}}
+  if(typeof MediaRecorder==='undefined'){
+   if(!nativeMode){fail('This browser has no supported microphone recording or speech recognition.');return;}
+   status('listening','Listening · browser speech recognition');return;
+  }
+  const mime=['audio/webm;codecs=opus','audio/webm','audio/mp4'].find(m=>MediaRecorder.isTypeSupported(m));
+  const begin=()=>{
+   if(stopped||busy||hooks.isSpeaking?.())return;
+   const seg={chunks:[],voiced:0,silence:0,elapsed:0,nativeAtStart:nativeResults,send:true};segment=seg;
+   const rec=new MediaRecorder(stream,mime?{mimeType:mime}:{});recorder=rec;
+   rec.ondataavailable=e=>{if(e.data?.size)seg.chunks.push(e.data);};
+   rec.onerror=()=>fail('Microphone recording failed. Toggle Voice to retry.');
+   rec.onstop=()=>{
+    if(stopped||!seg.send||seg.voiced<160||seg.nativeAtStart!==nativeResults){busy=false;return;}
+    const blob=new Blob(seg.chunks,{type:rec.mimeType||mime||'audio/webm'});busy=true;
+    const run=async()=>{
+     if(stopped)return;
+     if(seg.nativeAtStart!==nativeResults||hooks.isSpeaking?.()){busy=false;return;}
+     useServer();status('transcribing','Transcribing your voice…');
+     const timeout=setTimeout(()=>abort.abort(),18000);
+     try{deliver(await transcribeBlob(blob,abort.signal));}
+     catch(e){if(!stopped)fail(e.name==='AbortError'?'Transcription timed out. Check the voice server.':e.message);}
+     finally{clearTimeout(timeout);busy=false;}
     };
-    rec.onerror = () => {};
-    let keepListening=true;
-    rec.onend = () => { if(keepListening)try { rec.start(); } catch (_) {} };
-    try {
-      rec.start();
-      return {stop(){keepListening=false;rec.onend=null;rec.abort();}};
-    } catch (_) {}
-  }
-  return startMediaFallback(onText);
+    if(nativeMode){const timer=setTimeout(()=>{pending.delete(timer);run();},1600);pending.add(timer);}else run();
+   };
+   rec.start(160);status('listening',nativeMode?'Listening · browser speech recognition':'Listening · microphone ready');
+  };
+  begin();
+  interval=setInterval(()=>{
+   if(stopped)return;analyser.getFloatTimeDomainData(data);let sum=0;for(const x of data)sum+=x*x;const rms=Math.sqrt(sum/data.length);hooks.onLevel?.(Math.min(1,rms*14));
+   if(hooks.isSpeaking?.()){
+    if(segment)segment.send=false;if(recorder?.state==='recording')recorder.stop();status('replying','Mira is replying · microphone paused');return;
+   }
+   if(busy)return;
+   if(!recorder||recorder.state==='inactive'){begin();return;}
+   const seg=segment;seg.elapsed+=80;
+   const threshold=Math.max(.009,Math.min(.032,noise*2.5));
+   if(rms>threshold){seg.voiced+=80;seg.silence=0;status('hearing','Hearing you…');}
+   else{seg.silence+=80;if(!seg.voiced)noise=noise*.98+Math.min(rms,.012)*.02;}
+   // Recording begins before speech, retaining initial syllables and a valid
+   // container header. Idle segments are discarded every two seconds.
+   if((seg.voiced>=160&&seg.silence>=720)||seg.elapsed>=12000||(!seg.voiced&&seg.elapsed>=2000)){recorder.stop();}
+  },80);
+ }).catch(e=>{if(!stopped)fail(e.name==='NotAllowedError'?'Microphone permission denied. Allow it in the headset browser settings.':'Microphone could not start: '+e.message);});
+ return {stop};
 }

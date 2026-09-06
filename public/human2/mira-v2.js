@@ -1,4 +1,4 @@
-import { createV2Class } from "./mira-v2-features.js?v=3";
+import { createV2Class, repairArmRestData } from "./mira-v2-features.js?v=4";
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { clone as cloneSkinned } from "three/addons/utils/SkeletonUtils.js";
@@ -14,7 +14,7 @@ import { clone as cloneSkinned } from "three/addons/utils/SkeletonUtils.js";
  */
 export const ASSET = new URL("./assets/mira.glb?v=13", import.meta.url).href;
 export const TEXROOT = new URL("./assets/tex/", import.meta.url).href;
-export const TEXVER = "13";
+export const TEXVER = "r4";
 
 export const FACE_TYPES = [
   { id: "natural", name: "Natural", file: "head.jpg" },
@@ -1258,87 +1258,84 @@ class RubberBall {
 }
 
 class PlayerHands {
-  constructor(renderer, parent) {
-    this.renderer = renderer;
-    this.active = [false, false];
-    this.ctrl = [renderer.xr.getController(0), renderer.xr.getController(1)];
-    this.grip = [renderer.xr.getControllerGrip(0), renderer.xr.getControllerGrip(1)];
-    this.squeeze = [0, 0];
-    this.hands = [];
-    this.handedness = ["none", "none"];
-    this.prevPos = [new THREE.Vector3(), new THREE.Vector3()];
-    this.vel = [new THREE.Vector3(), new THREE.Vector3()];
-    this.prevReady = [false, false];
-    const skin = new THREE.MeshStandardMaterial({ color: 0xe8c4a4, roughness: 0.7 });
-    for (let i = 0; i < 2; i++) {
-      parent.add(this.ctrl[i]);
-      parent.add(this.grip[i]);
-      const h = new THREE.Group();
-      // Grip space follows the physical controller; selection events use target ray.
-      const palm = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.022, 0.08), skin);
-      palm.position.set(0, -0.012, -0.05);
-      h.add(palm);
-      h.userData.fingers = [];
-      const xs = [-0.022, -0.008, 0.008, 0.022];
-      const lens = [0.032, 0.036, 0.034, 0.028];
-      for (let f = 0; f < 4; f++) {
-        const fg = new THREE.Group();
-        fg.position.set(xs[f], -0.01, -0.09);
-        const m = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.012, lens[f]), skin);
-        m.position.z = -lens[f] * 0.45;
-        fg.add(m);
-        h.add(fg);
-        h.userData.fingers.push(fg);
-      }
-      const thumb = new THREE.Mesh(new THREE.BoxGeometry(0.014, 0.012, 0.028), skin);
-      thumb.position.set(0.038, -0.002, -0.04);
-      thumb.rotation.y = 0.55;
-      h.add(thumb);
-      h.userData.thumb = thumb;
-      h.userData.colliders = [palm];
-      this.grip[i].add(h);
-      h.visible = false;
-      this.hands.push(h);
-      this.ctrl[i].addEventListener("connected", (ev) => {
-        const hand = ev.data && ev.data.handedness;
-        this.handedness[i] = hand || "none";
-        this.active[i] = !(ev.data && ev.data.hand);
-        h.scale.x = hand === "left" ? -1 : 1;
-      });
-      this.ctrl[i].addEventListener("disconnected", () => { this.active[i] = false; this.prevReady[i] = false; h.visible = false; });
-      this.ctrl[i].addEventListener("squeezestart", () => { this.squeeze[i] = 1; });
-      this.ctrl[i].addEventListener("squeezeend", () => { this.squeeze[i] = 0; });
+  constructor(renderer,parent){
+    this.renderer=renderer;this.active=[false,false];this.colliders=[];
+    this.ctrl=[renderer.xr.getController(0),renderer.xr.getController(1)];
+    this.grip=[renderer.xr.getControllerGrip(0),renderer.xr.getControllerGrip(1)];
+    this.squeeze=[0,0];this.hands=[];this.handedness=['none','none'];this.prevReady=[false,false];
+    this.prevPos=[new THREE.Vector3(),new THREE.Vector3()];this.vel=[new THREE.Vector3(),new THREE.Vector3()];
+    const skin=new THREE.MeshStandardMaterial({color:0xe8c4a4,roughness:.78,metalness:0});
+    for(let i=0;i<2;i++){
+      parent.add(this.ctrl[i],this.grip[i]);const h=new THREE.Group(),fallback=new THREE.Group();h.add(fallback);
+      const palm=new THREE.Mesh(new THREE.SphereGeometry(1,12,8),skin);palm.scale.set(.035,.014,.046);palm.position.set(0,-.012,-.052);fallback.add(palm);
+      for(let j=0;j<5;j++){const finger=new THREE.Mesh(new THREE.CapsuleGeometry(j===4?.009:.007,j===4?.024:.045,3,8),skin);finger.rotation.x=Math.PI/2;finger.position.set(j===4?.039:(j-1.5)*.017,-.01,j===4?-.05:-.111);fallback.add(finger);}
+      h.userData.fallback=fallback;h.userData.rigs={};this.grip[i].add(h);h.visible=false;this.hands.push(h);
+      this.ctrl[i].addEventListener('connected',ev=>{this.handedness[i]=ev.data?.handedness||'none';this.active[i]=!ev.data?.hand;fallback.scale.x=this.handedness[i]==='left'?-1:1;});
+      this.ctrl[i].addEventListener('disconnected',()=>{this.active[i]=false;this.prevReady[i]=false;h.visible=false;});
+      this.ctrl[i].addEventListener('squeezestart',()=>this.squeeze[i]=1);
+      this.ctrl[i].addEventListener('squeezeend',()=>this.squeeze[i]=0);
     }
   }
-  palmPos(i, out) {
-    this.grip[i].getWorldPosition(out || _v);
-    return out || _v;
+  installMesh(template){
+    // Reuse the supplied textured, skinned anatomy rather than box fingers.
+    // Only wrist/hand triangles render; the retained bone hierarchy supplies skinning.
+    for(let i=0;i<2;i++)for(const side of ['L','R']){
+      const root=cloneSkinned(template),bones={},bind={},remove=[];root.updateMatrixWorld(true);
+      root.traverse(o=>{if(o.isBone){bones[o.name]=o;bind[o.name]=o.quaternion.clone();}});
+      const wrist=bones[side+'_Hand'];if(!wrist)continue;
+      const wristP=wrist.getWorldPosition(new THREE.Vector3()),wristQ=wrist.getWorldQuaternion(new THREE.Quaternion());
+      let triangles=0;
+      root.traverse(mesh=>{
+        if(!mesh.isMesh)return;
+        if(!mesh.isSkinnedMesh||!/body/.test(mesh.name)){remove.push(mesh);return;}
+        const g=mesh.geometry,indices=[],allowed=new Set();
+        mesh.skeleton.bones.forEach((b,j)=>{if(b.name===side+'_Hand'||new RegExp('^'+side+'_(Thumb|Index|Mid|Ring|Pinky)[1-3]$').test(b.name))allowed.add(j);});
+        const weight=i=>{let w=0;for(let j=0;j<4;j++)if(allowed.has(g.attributes.skinIndex.array[i*4+j]))w+=g.attributes.skinWeight.array[i*4+j];return w;};
+        for(let j=0;j<g.index.count;j+=3){const a=g.index.array[j],b=g.index.array[j+1],c=g.index.array[j+2];if(Math.min(weight(a),weight(b),weight(c))>.75)indices.push(a,b,c);}
+        if(!indices.length){remove.push(mesh);return;}
+        mesh.geometry=g.clone();mesh.geometry.setIndex(indices);mesh.geometry.morphAttributes={};mesh.geometry.clearGroups();
+        repairArmRestData(mesh.geometry.attributes.position.array,mesh.geometry.attributes.normal.array,mesh.geometry.attributes.skinIndex.array,mesh.geometry.attributes.skinWeight.array,mesh.skeleton.bones.map(b=>b.name));
+        mesh.morphTargetInfluences=undefined;mesh.morphTargetDictionary=undefined;
+        mesh.material=mesh.material.clone();mesh.material.onBeforeCompile=()=>{};mesh.material.customProgramCacheKey=()=> 'mira-player-hand-r4';
+        mesh.material.roughness=.82;mesh.material.envMapIntensity=.28;mesh.material.metalness=0;mesh.material.normalScale?.setScalar(.45);
+        mesh.frustumCulled=false;mesh.castShadow=false;mesh.receiveShadow=true;triangles+=indices.length/3;
+      });
+      remove.forEach(o=>o.removeFromParent());
+      const palmSign=side==='L'?-1:1;
+      const canonical=new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(new THREE.Vector3(0,palmSign,0),new THREE.Vector3(0,0,-1),new THREE.Vector3(-palmSign,0,0)));
+      root.quaternion.copy(canonical).multiply(wristQ.invert());root.position.copy(wristP).applyQuaternion(root.quaternion).negate().add(new THREE.Vector3(0,-.008,-.014));
+      root.visible=false;this.hands[i].add(root);this.hands[i].userData.rigs[side]={root,bones,bind,triangles};
+    }
   }
-  tick(dt, actors) {
-    for (let i = 0; i < 2; i++) {
-      const h = this.hands[i];
-      h.visible = this.renderer.xr.isPresenting && this.active[i] && this.grip[i].visible;
-      if (!h.visible) { this.prevReady[i] = false; this.vel[i].set(0, 0, 0); continue; }
-      for (const fg of h.userData.fingers) fg.rotation.x = this.squeeze[i] * 0.85;
-      _v.set(0, -0.012, -0.05); this.grip[i].localToWorld(_v);
-      if (this.prevReady[i] && _v.distanceToSquared(this.prevPos[i]) < 0.16) {
-        _handVelocity.copy(_v).sub(this.prevPos[i]).multiplyScalar(1 / Math.max(dt, 1e-5));
-        limitVector(_handVelocity, 6);
-        this.vel[i].lerp(_handVelocity, 1 - Math.exp(-dt * 25));
-        const count = Math.min(12, Math.max(1, Math.ceil(_v.distanceTo(this.prevPos[i]) / 0.025)));
-        const reacted = new Set();
-        for (let n = 1; n <= count; n++) {
-          _handProbe.lerpVectors(this.prevPos[i], _v, n / count);
-          for (const actor of actors) {
-            _handVelocity.copy(this.vel[i]);
-            if (actor.collidePoint(_handProbe, 0.04, _handVelocity, true, !reacted.has(actor))) reacted.add(actor);
-          }
+  palmPos(i,out=new THREE.Vector3()){return this.grip[i].localToWorld(out.set(0,-.012,-.05));}
+  tick(dt,actors){
+    this.colliders.length=0;
+    for(let i=0;i<2;i++){
+      const h=this.hands[i];h.visible=this.renderer.xr.isPresenting&&this.active[i]&&this.grip[i].visible;
+      if(!h.visible){this.prevReady[i]=false;this.vel[i].set(0,0,0);continue;}
+      const side=this.handedness[i]==='left'?'L':'R',rig=h.userData.rigs[side];h.userData.fallback.visible=!rig;
+      for(const [s,r] of Object.entries(h.userData.rigs))r.root.visible=s===side;
+      if(rig){
+        const curl=h.userData.curl=THREE.MathUtils.damp(h.userData.curl||.12,.12+this.squeeze[i]*.78,15,dt);
+        for(const [f,name] of ['Index','Mid','Ring','Pinky'].entries())for(let j=1;j<=3;j++){
+          const n=side+'_'+name+j,b=rig.bones[n];if(b)b.quaternion.copy(rig.bind[n]).multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(j===1?-(f-1.5)*.025:0,0,(side==='L'?-1:1)*curl*[.55,1.05,.72][j-1]*(.88+f*.08))));
         }
-        h.position.copy(_handProbe); this.grip[i].worldToLocal(h.position);
-        h.position.y += 0.012; h.position.z += 0.05;
-        limitVector(h.position, 0.1);
-      } else { this.vel[i].set(0, 0, 0); h.position.set(0, 0, 0); }
-      this.prevPos[i].copy(_v); this.prevReady[i] = true;
+        for(let j=1;j<=3;j++){const n=side+'_Thumb'+j,b=rig.bones[n];if(b)b.quaternion.copy(rig.bind[n]).multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(j===1?.08:0,j===1?(side==='L'?.15:-.15):0,(side==='L'?-1:1)*curl*.45)));}
+      }
+      const p=this.palmPos(i,new THREE.Vector3());
+      if(this.prevReady[i]&&p.distanceToSquared(this.prevPos[i])<.16){
+        this.vel[i].lerp(limitVector(p.clone().sub(this.prevPos[i]).multiplyScalar(1/Math.max(dt,.001)),6),1-Math.exp(-dt*25));
+        const n=Math.min(12,Math.max(1,Math.ceil(p.distanceTo(this.prevPos[i])/.025))),reacted=new Set();
+        for(let k=1;k<=n;k++){const probe=this.prevPos[i].clone().lerp(p,k/n);for(const actor of actors)if(actor.collidePoint(probe,.032,this.vel[i].clone(),true,!reacted.has(actor)))reacted.add(actor);}
+      }else this.vel[i].set(0,0,0);
+      this.prevReady[i]=true;this.prevPos[i].copy(p);h.updateWorldMatrix(true,true);
+      this.colliders.push({a:p.clone(),b:p.clone(),r:.035,velocity:this.vel[i]});
+      if(rig){
+        for(const row of ['Thumb','Index','Mid','Ring','Pinky'])for(let j=1;j<=3;j++){
+          const a=rig.bones[side+'_'+row+j],b=rig.bones[side+'_'+row+(j+1)];if(a)this.colliders.push({a:a.getWorldPosition(new THREE.Vector3()),b:b?b.getWorldPosition(new THREE.Vector3()):a.localToWorld(new THREE.Vector3(0,row==='Pinky'?.013:.018,0)),r:row==='Thumb'?.01:.008,velocity:this.vel[i]});
+        }
+        rig.root.traverse(o=>{if(o.isSkinnedMesh)o.skeleton.update();});
+      }
     }
   }
 }
@@ -1408,6 +1405,7 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
       (gltf) => {
         template = gltf.scene;
         applySkin(template);
+        hands.installMesh(template);
         template.updateMatrixWorld(true);
         const box = new THREE.Box3().setFromObject(template);
         const size = new THREE.Vector3();
@@ -1540,6 +1538,7 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
     const TALK = 1.28;
     const SENSE = 3.35;
     for (const a of actors) {
+      if(a.version==="v2")continue;
       a.socialT = (a.socialT || 0) - dt;
       if (!a.autoWander || (a.balance && a.balance.state !== "standing") || a.held || a.heldBall || a.mode === "jumpingJacks" || a.mode === "airSquats" || a.mode === "stretch") {
         if (a.mode !== "talk") a.lookAtPos = null;
@@ -1729,7 +1728,9 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
       noodleGrabI = 0;
     } else if (noodleHeld === "desk") { noodleHeld = null; noodleGrabI = -1; }
     tickSocial(dt);
+    hands.tick(dt, actors);
     for (let i = 0; i < actors.length; i++) {
+      if(actors[i].version==="v2"){actors[i].externalHands=hands.colliders;actors[i].neighbors=actors;}
       actors[i].tick(dt, camPos, tAbs);
       if (blobs[i]) {
         blobs[i].scale.setScalar(actors[i].shape.height);
@@ -1737,7 +1738,6 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
         blobs[i].position.z = actors[i].group.position.z;
       }
     }
-    hands.tick(dt, actors);
     physicsAccumulator = Math.min(physicsAccumulator + dt, 0.05);
     while (physicsAccumulator + 1e-9 >= 1 / 120) {
       noodle.tick(1 / 120, actors, camPos, hold, hq, noodleGrabI);

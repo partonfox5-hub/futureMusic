@@ -56,6 +56,7 @@
       <label for="quality">Quest detail · next VR session</label>
       <select id="quality" style="width:100%;padding:6px"><option value="0.9" selected>Balanced</option><option value="0.8">Faster</option><option value="1">Sharper</option></select>
       <h2>MOVEMENT</h2>
+      <button type="button" data-mode="auto">LIVELY IDLE</button>
       <div class="row"><button type="button" data-mode="idle">STAND</button><button type="button" data-mode="wander">WALK</button></div>
       <div class="row"><button type="button" data-mode="airSquats">SQUAT</button><button type="button" data-mode="stretch">STRETCH</button></div>
       <label for="walkStyle">Walk style</label><select id="walkStyle"></select>
@@ -71,7 +72,7 @@
       <label for="s_gap">Thigh gap</label><input id="s_gap" type="range" min="-0.85" max="0.85" step="0.01" value="0" />
       <label for="s_arms">Arms</label><input id="s_arms" type="range" min="0.62" max="1.58" step="0.01" value="1" />
       <h2>PHYSICS</h2>
-      <label for="s_jiggle">Jiggle intensity</label><input id="s_jiggle" type="range" min="0" max="3" step="0.05" value="1.75" />
+      <label for="s_jiggle">Jiggle intensity</label><input id="s_jiggle" type="range" min="0" max="3" step="0.05" value="2.3" />
       <h2>FACE</h2>
       <div class="row">
         <button type="button" id="facePrev">&lt;</button>
@@ -97,6 +98,8 @@
       <input id="chatIn" type="text" maxlength="240" placeholder="Type to her…" autocomplete="off" />
       <button type="button" class="go" id="sayBtn">SAY</button>
       <button type="button" class="go" id="micBtn">VOICE OFF</button>
+      <meter id="micLevel" min="0" max="1" value="0" style="width:100%" aria-label="Microphone level"></meter>
+      <p id="micStatus" role="status" style="font-size:12px">Voice off · microphone starts when enabled.</p>
       <h2>PERSONALITY</h2>
       <textarea id="persona" rows="5" style="width:100%;box-sizing:border-box;background:#1a1614;color:#f4efe8;border:1px solid #7eb6ff;border-radius:8px;padding:8px;font:12px/1.35 'Segoe UI',sans-serif;"></textarea>
       <p style="margin-top:12px;font-size:11px;opacity:.8">Type a line and press SAY, or enable voice and speak near her. Mouth and expression follow the reply. Left stick: walk. Right stick: turn. Y opens the VR menu. Right B (or B on desktop) spawns a ball.</p>
@@ -111,6 +114,6 @@
         <button type="button" class="ghost" id="firstPerson">First person</button>
       </div>
     </div>
-    <script type="module" src="/human2/engine.js?v=3"></script>
+    <script type="module" src="/human2/engine.js?v=4"></script>
   </body>
 </html>
