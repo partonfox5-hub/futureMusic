@@ -2,7 +2,7 @@ import {restoreSurfaceUV} from './mira-v2-uv.js?v=11.0';
 import {BodyContacts} from './mira-v2-contact.js?v=11.0';
 import {MiraSocial} from './mira-v2-social.js?v=11.0';
 import {ContactHaptics} from './mira-v2-haptics.js?v=11.0';
-import { createV2Class, repairArmRestData } from "./mira-v2-features.js?v=12.3";
+import { createV2Class, repairArmRestData } from "./mira-v2-features.js?v=12.6";
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { clone as cloneSkinned } from "three/addons/utils/SkeletonUtils.js";
@@ -1386,7 +1386,7 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
 
   function spawn(opts) {
     if (!template) return null;
-    if (QUEST && actors.length >= 2) throw new Error("Quest quality limit: two actors. Reload to clear the scene.");
+    // Quest no longer caps actor count; quality is user-controlled via the XR scale menu.
     const cloned = cloneSkinned(template);
     cloned.traverse((o) => {
       if (!o.isMesh) return;
@@ -1402,6 +1402,7 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
     if (!opts || !opts.position) actor.group.position.set((n % 3) * 0.85 - 0.85, 0, -((n / 3) | 0) * 0.9);
     scene.add(actor.group);
     actor.blob = addBlob();
+    actor.world=environment;
     actors.push(actor);
     selectedActor = actor;
     exprFace(actor.want, "neutral");
@@ -1518,7 +1519,16 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
       const d = actor.lastHitDistance;
       if (d < bd) { bd = d; bestA = actor; bestH = hit; }
     }
-    if (bestA && bestH) { selectedActor = bestA; bestA.beginGrab(ctrl, bestH); }
+    if (bestA && bestH) { selectedActor = bestA; bestA.beginGrab(ctrl, bestH); return; }
+    const dogs=environment?.interactions?.dogs||environment?.interactions?.props?.dogs;
+    if(dogs?.list){
+     let bestD=null,bestDH=null,dd=0.2;
+     for(const h of dogs.list()){
+      const hit=h.nearestHit(_v,dd);if(!hit)continue;
+      if(h.lastHitDistance<dd){dd=h.lastHitDistance;bestD=h;bestDH=hit;}
+     }
+     if(bestD&&bestDH)bestD.beginGrab(ctrl,bestDH,bestDH.point);
+    }
   }
   function releaseCloth(i){if(!wardrobe?.drags.has('xr'+i))return;const c=hands.ctrl[i];wardrobe.end('xr'+i,new THREE.Ray(c.getWorldPosition(new THREE.Vector3()),new THREE.Vector3(0,0,-1).applyQuaternion(c.getWorldQuaternion(new THREE.Quaternion()))));}
   hands.ctrl.forEach((c,i)=>c.addEventListener('selectend',()=>releaseCloth(i)));
@@ -1529,6 +1539,8 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
       if (actor.grabs?.has(hands.grip[i])) actor.endGrab(hands.grip[i]);
       else if (actor.held && actor.held.ctrl === hands.grip[i]) actor.endGrab();
     }
+    const dogs=environment?.interactions?.dogs||environment?.interactions?.props?.dogs;
+    if(dogs?.list)for(const h of dogs.list())h.endGrab(hands.grip[i]);
     const b = ballHeld[i];
     if (b && b.held && b.held.kind === "player" && b.held.i === i) {
       limitVector(b.vel.copy(hands.vel[i]), 6);
@@ -1799,7 +1811,7 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
 
   return {
     resetPhysics, load, spawn, tick, spawnBall, nearestTo, actors, noodle, hands, balls, social, walkTo, pointCommand, floorTarget, controllerFloorTarget, contacts,
-    setEnvironment(value){environment=value;},setWardrobe(value){wardrobe=value;},
+    setEnvironment(value){environment=value;for(const a of actors)a.world=value;},setWardrobe(value){wardrobe=value;},
     requestSocial(kind){return social.request(selectedActor,kind);},
     get persona() { return persona; },
     set persona(v) { persona = v || ""; },

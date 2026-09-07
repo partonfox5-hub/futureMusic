@@ -1,23 +1,23 @@
-import {Builder,FURNITURE,SURFACES} from './mira-v2-builder.js?v=12.3';
+import {Builder,FURNITURE,SURFACES} from './mira-v2-builder.js?v=12.6';
 import {SmoothLocomotion} from './mira-v2-locomotion.js?v=11.5';
 import {Car} from './mira-v2-car.js?v=11.0';
 import {Restraints} from './mira-v2-restraints.js?v=12.4';
-import { createDogSystem } from './mira-v2-dog.js?v=12.4';
+import { createDogSystem } from './mira-v2-dog.js?v=12.6';
 import {Injuries} from './mira-v2-injuries.js?v=11.5';
-import {Props,WEAPONS} from './mira-v2-props.js?v=12.4';
+import {Props,WEAPONS} from './mira-v2-props.js?v=12.6';
 import {RoomLight} from './mira-v2-light.js?v=11.0';
 import {draft,saveDraft,spawnOptions,OUTFITS,clothingItems} from './mira-v2-catalog.js?v=11.0';
-import {MiraWorld,SCENES} from './mira-v2-world.js?v=12.4';
+import {MiraWorld,SCENES} from './mira-v2-world.js?v=12.6';
 import {Wardrobe,GARMENTS} from './mira-v2-wardrobe.js?v=11.2';
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { createVRMenu } from "./mira-vr-menu.js?v=12.4";
+import { createVRMenu } from "./mira-vr-menu.js?v=12.6";
 import { snapshot, savePreset, loadPreset, applyPreset, listPresets, lastPresetName, downloadPreset } from "./mira-v2-preset.js?v=11.5";
 import { unlockSfx } from "./mira-v2-sfx.js?v=11.0";
-import { EMOTION_NAMES, IDLE_NAMES, WALK_NAMES, ATTENTION_MODES } from "./mira-v2-features.js?v=12.3";
+import { EMOTION_NAMES, IDLE_NAMES, WALK_NAMES, ATTENTION_MODES } from "./mira-v2-features.js?v=12.6";
 import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
-import { createMiraSystem, SLIDERS, FACE_TYPES, HAIR_COLORS } from "./mira-v2.js?v=12.4";
+import { createMiraSystem, SLIDERS, FACE_TYPES, HAIR_COLORS } from "./mira-v2.js?v=12.6";
 import { DEFAULT_PERSONA, miraChat, miraSpeak, startMic, unlockVoice } from "./mira-voice-v2.js?v=12.3";
 
 import {V2_EXTRA_SLIDERS,FACE_PRESETS,HAIR_STYLES,ACTIVITY_MODES,ATTENTION_LABELS,shapeSliders} from './mira-v2-controls.js?v=11.5';
@@ -129,10 +129,13 @@ renderer.domElement.addEventListener('pointerdown',e=>{
  if(XR_ON()||(!grabMode&&!e.shiftKey)||e.button!==0)return;
  pointerRay(e);const meshes=[];
  for(const a of mira.actors)a.root.traverse(o=>{if(o.isSkinnedMesh&&!/hair|eyes|teeth/.test(o.name)){o.computeBoundingSphere();meshes.push(o);}});
+ for(const d of props.dogs?.list?.()||[])d.root.traverse(o=>{if(o.isSkinnedMesh){o.computeBoundingSphere();meshes.push(o);}});
  const hit=pickRay.intersectObjects(meshes,false)[0];
  if(hit){
   const a=mira.actors.find(a=>{let o=hit.object;while(o){if(o===a.root)return true;o=o.parent;}return false;});
   if(a){const region=a.nearestHit(hit.point,.13);if(region){virtualGrip.position.copy(hit.point);a.beginGrab(virtualGrip,region,hit.point);desktopGrab=a;mira.select(a);syncHud();dragPlane.setFromNormalAndCoplanarPoint(camera.getWorldDirection(new THREE.Vector3()),hit.point);orbit.enabled=false;renderer.domElement.setPointerCapture(e.pointerId);e.stopImmediatePropagation();e.preventDefault();return;}}
+  const dog=(props.dogs?.list?.()||[]).find(d=>{let o=hit.object;while(o){if(o===d.root)return true;o=o.parent;}return false;});
+  if(dog){const region=dog.nearestHit(hit.point,.16);if(region){virtualGrip.position.copy(hit.point);dog.beginGrab(virtualGrip,region,hit.point);desktopGrab=dog;dragPlane.setFromNormalAndCoplanarPoint(camera.getWorldDirection(new THREE.Vector3()),hit.point);orbit.enabled=false;renderer.domElement.setPointerCapture(e.pointerId);e.stopImmediatePropagation();e.preventDefault();return;}}
  }
  if(props.grabFurnitureFromRay(pickRay.ray,virtualGrip,'desktop')){desktopFurn=true;const p=virtualGrip.position;dragPlane.setFromNormalAndCoplanarPoint(camera.getWorldDirection(new THREE.Vector3()),p);orbit.enabled=false;renderer.domElement.setPointerCapture(e.pointerId);e.stopImmediatePropagation();e.preventDefault();}
 },true);
@@ -152,8 +155,8 @@ renderer.domElement.addEventListener('pointermove',e=>{if(clothPointer!==e.point
 renderer.domElement.addEventListener('pointerup',e=>{if(clothPointer!==e.pointerId)return;pointerRay(e);wardrobe.end('desktop',pickRay.ray);clothPointer=null;orbit.enabled=true;groundClick=null;e.stopImmediatePropagation();},true);
 renderer.domElement.addEventListener('pointercancel',()=>{wardrobe.cancel('desktop');clothPointer=null;orbit.enabled=true;});
 function spawnVersion(version){
- const a=selected(),n=mira.actors.length;try{const p=new THREE.Vector3(n===0?0:(n%2?-.8:.8),0,0);
-  mira.spawn({version,position:p,shape:a?{...a.shape}:undefined,faceType:version==='v2'?(a?.version==='v2'?a.faceType:1):a?.faceType||0,hairColor:a?.hairColor||0,hairStyle:a?.hairStyle||0,eyeDetail:a?.eyeDetail||'advanced',hairDetail:a?.hairDetail||'advanced'});syncHud();
+ const a=selected(),n=mira.actors.length;try{const p=new THREE.Vector3((n%3)*.85-.85,0,-((n/3)|0)*.9);
+  mira.spawn({version,position:p,shape:a?{...a.shape}:undefined,faceType:version==='v2'?(a?.version==='v2'?a.faceType:1):a?.faceType||0,hairColor:a?.hairColor||0,hairStyle:a?.hairStyle||0,eyeDetail:a?.eyeDetail||'advanced',hairDetail:a?.hairDetail||'advanced',attentionMode:a?.attentionMode||'attentive'});syncHud();
  }catch(e){banner(e.message);}
 }
 function frameActor(face){const a=selected();if(!a)return;const c=a.group.position.clone();c.y+=(face?1.5:1.0)*a.shape.height;orbit.target.copy(c);camera.position.copy(c).add(new THREE.Vector3(0,face?.015:.18,face?.53:2.6));camera.lookAt(c);orbit.update();}
@@ -169,7 +172,7 @@ function syncHud(){
  document.getElementById('expression').value=String(['context',...EMOTION_NAMES].indexOf(a.expressionOverride||'context'));
 }
 function copyConfiguration(){const a=selected();if(!a)return;Object.assign(draft,{bodyType:a.bodyType||'female',faceType:a.faceType,hairStyle:a.hairStyle||0,hairColor:a.hairColor,eyeDetail:a.eyeDetail||'classic',hairDetail:a.hairDetail||'classic',shape:{...a.shape}});saveDraft();dispatchEvent(new Event('mira:draft'));}
-function spawnConfigured(){if(!mira.ready)return;const n=mira.actors.length,p=new THREE.Vector3(n%2?-.8:.8,0,0),a=mira.spawn(spawnOptions(p));for(const id of clothingItems())wardrobe.equip(a,GARMENTS.find(g=>g.id===id));syncHud();}
+function spawnConfigured(){if(!mira.ready)return;const n=mira.actors.length,p=new THREE.Vector3((n%3)*.85-.85,0,-((n/3)|0)*.9),a=mira.spawn(spawnOptions(p));if(a&&selected()?.attentionMode)a.attentionMode=selected().attentionMode;for(const id of clothingItems())wardrobe.equip(a,GARMENTS.find(g=>g.id===id));syncHud();}
 function captureScene(){return snapshot({mira,world,wardrobe,props,camera,orbit});}
 function refreshPresetSelect(){const el=document.getElementById('presetSelect');if(!el)return;const names=listPresets(),cur=el.value||lastPresetName();el.replaceChildren(...(names.length?names:['Slot 1']).map(n=>new Option(n,n)));if([...el.options].some(o=>o.value===cur))el.value=cur;}
 function persistScene(name){unlockSfx();const n=savePreset(name||document.getElementById('presetName')?.value||lastPresetName(),captureScene());const nameEl=document.getElementById('presetName');if(nameEl)nameEl.value=n;refreshPresetSelect();const sel=document.getElementById('presetSelect');if(sel)sel.value=n;const st=document.getElementById('presetStatus');if(st)st.textContent='Saved '+n+' · '+mira.actors.length+' NPC'+(mira.actors.length===1?'':'s');return n;}

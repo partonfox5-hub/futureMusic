@@ -1372,7 +1372,7 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
 
   function spawn(opts) {
     if (!template) return null;
-    if (QUEST && actors.length >= 2) throw new Error("Quest quality limit: two actors. Reload to clear the scene.");
+    // Quest no longer caps actor count.
     const cloned = cloneSkinned(template);
     cloned.traverse((o) => {
       if (!o.isMesh) return;

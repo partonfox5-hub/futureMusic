@@ -55,10 +55,10 @@ export class MiraSocial {
     if(p.t>7.5)this.cancel(p.a);
    }
   }
-  this.nextCheck-=dt;if(this.nextCheck>0)return;this.nextCheck=3;
+  this.nextCheck-=dt;if(this.nextCheck>0)return;this.nextCheck=1.4;
   for(let i=0;i<this.actors.length;i++){const a=this.actors[i];if(!this.eligible(a)||(this.cooldown.get(a)||0)>this.clock)continue;
    for(let j=i+1;j<this.actors.length;j++){const b=this.actors[j];if(!this.eligible(b)||(this.cooldown.get(b)||0)>this.clock||Math.abs(a.shape.height-b.shape.height)>.30)continue;
-    const d=a.group.position.distanceTo(b.group.position);if(d<2.25&&d>.25&&Math.random()<.24){this.start(a,b,Math.random()<.6?'hug':'armAround');break;}
+    const d=a.group.position.distanceTo(b.group.position);if(d<2.8&&d>.25&&Math.random()<.4){this.start(a,b,Math.random()<.6?'hug':'armAround');break;}
    }
   }
  }

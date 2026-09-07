@@ -1,5 +1,5 @@
 import * as T from 'three';
-export const FURNITURE=['Chair','Couch','Table','Bed','Nightstand','Kitchen counter','Refrigerator','Bathtub','Sink','Wall picture','Clothing rack','Staircase'];
+export const FURNITURE=['Chair','Couch','Table','Bed','Nightstand','Kitchen counter','Refrigerator','Bathtub','Sink','Wall picture','Clothing rack','Staircase','Coffee table','TV stand','Bookshelf','Dresser','Desk','Side table','Ottoman','Floor lamp','Toilet','Cabinet','Bar stool','Microwave','Mirror'];
 export const DENSITY={wood:600,cloth:160,stone:2200,metal:2700,glass:1200,plastic:900};
 export const FURNITURE_MIX={
  Chair:{wood:.55,cloth:.45},
@@ -12,7 +12,20 @@ export const FURNITURE_MIX={
  Bathtub:{stone:1},
  Sink:{stone:.8,metal:.2},
  'Wall picture':{wood:.55,glass:.45},
- 'Clothing rack':{wood:.5,metal:.5}
+ 'Clothing rack':{wood:.5,metal:.5},
+ 'Coffee table':{wood:.7,cloth:.3},
+ 'TV stand':{wood:.85,metal:.15},
+ Bookshelf:{wood:1},
+ Dresser:{wood:1},
+ Desk:{wood:1},
+ 'Side table':{wood:1},
+ Ottoman:{wood:.3,cloth:.7},
+ 'Floor lamp':{metal:.55,plastic:.45},
+ Toilet:{stone:1},
+ Cabinet:{wood:.8,metal:.2},
+ 'Bar stool':{wood:.7,metal:.3},
+ Microwave:{metal:.9,plastic:.1},
+ Mirror:{wood:.4,glass:.6}
 };
 export function blendedDensity(mix){
  let d=0,s=0;for(const [k,w] of Object.entries(mix||{})){d+=(DENSITY[k]||400)*w;s+=w;}return s>0?d/s:DENSITY.wood;
@@ -111,7 +124,7 @@ export function placeFurniture(world,wardrobe,id,p,yaw=0){
  const group=cloneFurniture(source);group.position.copy(p);group.rotation.set(0,yaw,0);world.root.add(group);group.updateWorldMatrix(true,true);
  group.traverse(m=>{if(m.isMesh){
   if(m.userData.article)wardrobe.tokens.push(m);
-  else world.fractures.register(m,['Sink','Bathtub'].includes(id)?'stone':id==='Refrigerator'?'metal':'wood');
+  else world.fractures.register(m,['Sink','Bathtub','Toilet'].includes(id)?'stone':['Refrigerator','Microwave','TV stand'].includes(id)?'metal':id==='Mirror'?'glass':'wood');
  }});
  tagMovable(world,group,id);
  const furn=group.userData.furniture;

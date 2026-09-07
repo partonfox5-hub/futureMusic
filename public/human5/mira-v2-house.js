@@ -23,6 +23,44 @@ export function buildHouse(w){
  w.captureFurniture('Sink',furnitureStart,2.1,-3.73);furnitureStart=w.root.children.length;
  const frame=round(-4.34,1.73,2.0,.04,1.15,.85,0x41392f);w.fractures.register(frame,'wood');round(-4.31,1.73,2.0,.016,.99,.70,0x819c99);
  w.captureFurniture('Wall picture',furnitureStart,-4.34,2);
+ // Common household extras: coffee table, TV, storage, extra seats, bath, lamps.
+ w.chair(-1.15,.38,Math.PI);w.chair(-2.28,.38,Math.PI);w.chair(-.42,-1.22,.55);w.chair(-3.55,1.85,Math.PI/2);w.chair(2.05,1.55,-.2);w.chair(1.72,2.95,2.6);
+ furnitureStart=w.root.children.length;
+ const coffee=round(-2.42,.21,.22,.92,.10,.58,0x6a4e3a,.02);furniture(coffee,.92,.58);
+ w.captureFurniture('Coffee table',furnitureStart,-2.42,.22);furnitureStart=w.root.children.length;
+ const ottoman=round(-1.55,.18,-.15,.48,.22,.42,0x6d5a4a,.06);furniture(ottoman,.48,.42);
+ w.captureFurniture('Ottoman',furnitureStart,-1.55,-.15);furnitureStart=w.root.children.length;
+ const side=round(-3.38,.28,-.75,.38,.42,.38,0x7a5a40);furniture(side,.38,.38);
+ w.captureFurniture('Side table',furnitureStart,-3.38,-.75);furnitureStart=w.root.children.length;
+ const tv=round(-.15,.32,3.72,1.55,.52,.42,0x3e3a36);furniture(tv,1.55,.42,'wood');round(-.15,.78,3.72,1.28,.04,.06,0x1a1c1e);
+ w.captureFurniture('TV stand',furnitureStart,-.15,3.72);furnitureStart=w.root.children.length;
+ const shelf=round(-4.12,.92,1.35,.28,1.72,.92,0x6d5340);furniture(shelf,.28,.92);for(const y of [.35,.7,1.05,1.4])round(-4.12,y,1.35,.26,.03,.88,0x5a4434);
+ w.captureFurniture('Bookshelf',furnitureStart,-4.12,1.35);furnitureStart=w.root.children.length;
+ const desk=round(-3.55,.41,3.35,1.05,.08,.58,0x70543c);furniture(desk,1.05,.58);for(const x of [-3.95,-3.15])round(x,.2,3.35,.07,.40,.07,0x4a3930);
+ w.captureFurniture('Desk',furnitureStart,-3.55,3.35);furnitureStart=w.root.children.length;
+ const lamp=round(-3.42,.78,.35,.08,1.42,.08,0x9aa0a4);furniture(lamp,.18,.18,'metal');round(-3.42,1.52,.35,.22,.06,.22,0xd8c9a6,.08);
+ w.captureFurniture('Floor lamp',furnitureStart,-3.42,.35);furnitureStart=w.root.children.length;
+ const dresser=round(-.55,.48,-3.95,.95,.84,.42,0x7a5c44);furniture(dresser,.95,.42);for(const y of [.28,.52,.74])round(-.55,y,-3.78,.82,.08,.04,0x8a6a50);
+ w.captureFurniture('Dresser',furnitureStart,-.55,-3.95);furnitureStart=w.root.children.length;
+ const night2=round(-1.42,.34,-3.55,.50,.64,.52,0x7d6146);furniture(night2,.50,.52);
+ w.captureFurniture('Nightstand',furnitureStart,-1.42,-3.55);furnitureStart=w.root.children.length;
+ const cabinet=round(4.12,.48,-.85,.52,.88,.70,0x5e6a62);furniture(cabinet,.52,.70);
+ w.captureFurniture('Cabinet',furnitureStart,4.12,-.85);furnitureStart=w.root.children.length;
+ const micro=round(3.55,1.18,-.35,.42,.28,.38,0xc5c6c2);furniture(micro,.42,.38,'metal');
+ w.captureFurniture('Microwave',furnitureStart,3.55,-.35);furnitureStart=w.root.children.length;
+ const stool=round(3.15,.46,1.55,.28,.08,.28,0x5a4638);furniture(stool,.28,.28);round(3.15,.22,1.55,.05,.42,.05,0x4a3930);
+ w.captureFurniture('Bar stool',furnitureStart,3.15,1.55);furnitureStart=w.root.children.length;
+ const toilet=round(2.72,.26,-2.72,.42,.40,.52,0xe4e6e0,.08);furniture(toilet,.42,.52,'stone');round(2.72,.48,-2.88,.28,.28,.12,0xd5d8d2,.06);
+ w.captureFurniture('Toilet',furnitureStart,2.72,-2.72);furnitureStart=w.root.children.length;
+ const bathCab=round(4.15,.46,-2.55,.46,.82,.48,0x6a736c);furniture(bathCab,.46,.48);
+ w.captureFurniture('Cabinet',furnitureStart,4.15,-2.55);furnitureStart=w.root.children.length;
+ const mirror=round(2.1,1.45,-4.28,.55,.62,.04,0x8aa8a6);furniture(mirror,.55,.08,'glass');
+ w.captureFurniture('Mirror',furnitureStart,2.1,-4.28);furnitureStart=w.root.children.length;
+ const pic2=round(4.34,1.68,-.2,.04,.85,.62,0x41392f);w.fractures.register(pic2,'wood');round(4.31,1.68,-.2,.016,.72,.50,0x7a9090);
+ w.captureFurniture('Wall picture',furnitureStart,4.34,-.2);furnitureStart=w.root.children.length;
+ const pic3=round(-1.8,1.70,-4.34,.72,.55,.04,0x41392f);w.fractures.register(pic3,'wood');round(-1.8,1.70,-4.31,.58,.44,.016,0x8a9a88);
+ w.captureFurniture('Wall picture',furnitureStart,-1.8,-4.34);
+ w.chair(-3.55,2.55,0);
  for(const [x,z,color] of [[-1,0,0xffdec0],[3,1,0xe5efff]]){const light=new T.PointLight(color,10,7,2);light.position.set(x,2.70,z);w.root.add(light);round(x,2.94,z,.40,.04,.40,0xe7dfca);}
  // A seat gets a reachable side approach if its normal approach meets a table.
  for(const seat of w.seats)if(w.blocked(seat.approach,.23)){for(const offset of [[-.85,0,.7],[.85,0,.7],[0,0,1.35]]){const p=seat.group.localToWorld(v(...offset));if(!w.blocked(p,.23)){seat.approach.copy(p);break;}}}

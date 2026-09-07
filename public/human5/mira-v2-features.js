@@ -114,10 +114,11 @@ export function shapePoint(x,y,z,size,likeness=0,butt=1,arms=1,options={}){
   dx+=(x-center)*thigh*.58*tw;
   dz+=(z+.009)*thigh*.55*tw;
   dx+=side*(options.gap||0)*.016*tw*smooth(Math.abs(x)/.05);
-  const inner=(1-smooth((Math.abs(x)-.022)/.10))*smooth((y-.46)/.08)*(1-smooth((y-.82)/.08))*smooth((.055-z)/.08);
-  const keep=Math.max(Math.abs(x),.048+.010*smooth((y-.56)/.12));
-  dx+=side*(keep-Math.abs(x))*inner*.85;
-  dz+=(.004-(z+dz))*inner*.16;
+  // Medial inner-thigh only. Do not flatten z or run on the buttocks: that
+  // overlap (y ~ .63–.82, z < 0) carved a crater in the lower glute.
+  const inner=(1-smooth((Math.abs(x)-.018)/.07))*smooth((y-.50)/.07)*(1-smooth((y-.72)/.08))*smooth((z+.01)/.05)*smooth((.03-Math.abs(z))/.04);
+  const keep=Math.max(Math.abs(x),.036);
+  dx+=side*(keep-Math.abs(x))*inner*.65;
  }
  // Small identity sculpt, shared by head/eyes/teeth and their morph endpoints.
  // Broad proportional changes only; a single portrait cannot recover depth.
@@ -261,7 +262,7 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
   updateShapeGeometry(){
    const size=this.shape.breast,profile=FACE_PRESETS[this.faceType]||FACE_PRESETS[0],like=profile.like*this.likeness;
    const options={...this.shape,faceProfile:profile,male:this.bodyType==='male'};
-   const key=[size,like,this.faceType,this.shape.butt,this.shape.arms,this.shape.waist,this.shape.hips,this.shape.thigh,this.shape.gap,this.shape.breastHeight,this.shape.breastSpacing,this.shape.breastAngle,this.shape.softness,this.shape.buttHeight,this.shape.buttSpacing,this.shape.buttAngle].map(n=>n.toFixed(3)).join('/')+this.bodyType;if(key===this.geomState)return;this.geomState=key;
+   const key=[size,like,this.faceType,this.shape.butt,this.shape.arms,this.shape.waist,this.shape.hips,this.shape.thigh,this.shape.gap,this.shape.breastHeight,this.shape.breastSpacing,this.shape.breastAngle,this.shape.softness,this.shape.buttHeight,this.shape.buttSpacing,this.shape.buttAngle].map(n=>n.toFixed(3)).join('/')+this.bodyType+'/s12.6';if(key===this.geomState)return;this.geomState=key;
    const likenessChanged=like!==this.lastLikeness||this.faceType!==this.lastFace;this.lastLikeness=like;this.lastFace=this.faceType;
    for(const d of this.deform){
     const a=d.geom.attributes.position.array,b=d.base;
@@ -607,7 +608,8 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    if(this.dead){this.autonomy=false;this.autoWander=false;this.dest=null;return;}
    this.tickAttention(dt,cam);
    this.greetingT-=dt;this.lifeT-=dt;
-   if(this.socialPair||this.directedWalk||this.navigation||this.seat)return;
+   if(this.seat){this.sitHold=(this.sitHold||0)+dt;if(this.sitHold>7+Math.random()*8){this.seat.occupant=null;this.group.position.copy(this.seat.approach);this.seat=null;this.sitHold=0;this.setMode('wander');this.lifeT=6+Math.random()*6;}return;}
+   if(this.socialPair||this.directedWalk||this.navigation)return;
    if(this.balance.state!=='standing'||this.grabs.size||this.speech?.active||this.mode==='talk')return;
    if(this.autonomy&&this.greetingT<=0){
     const candidates=[cam,...(this.neighbors||[]).filter(a=>a!==this).map(a=>a.bones.Head.getWorldPosition(V()))];
@@ -617,10 +619,15 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    }
    if(this.attentionMode==='hyperattentive')return;
    if(!this.autonomy||this.lifeT>0)return;
+   const seats=this.world?.seats?.filter(s=>s&&!s.occupant&&s.approach)||[];
+   if(this.mode!=='wander'&&seats.length&&Math.random()<.42&&this.world.walk){
+    const seat=seats[Math.floor(Math.random()*seats.length)];
+    if(this.world.walk(this,seat.approach,seat)){this.sitHold=0;this.lifeT=14;return;}
+   }
    if(this.mode==='wander'){
-    super.setMode('idle');this.autoWander=false;this.dest=null;this.lifeT=10+Math.random()*12;
+    super.setMode('idle');this.autoWander=false;this.dest=null;this.lifeT=3+Math.random()*5;
    }else{
-    super.setMode('wander');this.autoWander=true;this.gait=[0,2,5][Math.floor(Math.random()*3)];this.lifeT=4+Math.random()*5;
+    super.setMode('wander');this.autoWander=true;this.gait=[0,2,5][Math.floor(Math.random()*3)];this.lifeT=8+Math.random()*10;
    }
   }
   tickAttention(dt,cam){
@@ -1086,6 +1093,8 @@ export function blendSkinSeams(meshes){
   for(const bucket of buckets.values()){
    if(bucket.length<2)continue;
    if(new Set(bucket.map(b=>b.record)).size===1&&new Set(bucket.map(b=>b.color.map(x=>x.toFixed(5)).join())).size===1)continue;
+   const lums=bucket.map(b=>0.2126*b.color[0]+0.7152*b.color[1]+0.0722*b.color[2]);
+   if(Math.max(...lums)-Math.min(...lums)>0.22)continue;
    const mean=[0,1,2].map(c=>bucket.reduce((s,b)=>s+b.color[c],0)/bucket.length);
    for(const b of bucket)b.record.seeds.set(b.i,mean.map((c,j)=>clamp(c/Math.max(.025,b.color[j]),.35,3)));
   }
@@ -1129,8 +1138,18 @@ function installV2Skin(material,actor){
     vec3 softAlbedo=(texture2D(map,vMapUv+vec2(skinDx.x,0.0)).rgb+texture2D(map,vMapUv-vec2(skinDx.x,0.0)).rgb+texture2D(map,vMapUv+vec2(0.0,skinDx.y)).rgb+texture2D(map,vMapUv-vec2(0.0,skinDx.y)).rgb)*0.25;
     float innerThigh=smoothstep(0.15,0.018,abs(v2RestPos.x))*smoothstep(0.40,0.50,v2RestPos.y)*smoothstep(0.90,0.70,v2RestPos.y)*smoothstep(0.07,-0.04,v2RestPos.z);
     sampledDiffuseColor.rgb=mix(sampledDiffuseColor.rgb,softAlbedo,clamp(v2AlbedoBlur+innerThigh*0.32,0.0,0.93));
+    // Perioral atlas padding on head_v3 is near-white. Do not let seam gain
+    // or those texels bleach the mouth into a joker ring.
+    float luma=dot(sampledDiffuseColor.rgb,vec3(0.299,0.587,0.114));
+    float mouthZone=smoothstep(1.430,1.458,v2RestPos.y)*smoothstep(1.515,1.488,v2RestPos.y)*smoothstep(-0.04,0.00,v2RestPos.z);
+    if(${/Head/.test(material.name)?'true':'false'}){
+     vec3 skinRef=vec3(0.78,0.52,0.44);
+     sampledDiffuseColor.rgb=mix(sampledDiffuseColor.rgb,mix(sampledDiffuseColor.rgb,skinRef,0.72),mouthZone*smoothstep(0.58,0.78,luma));
+    }
     diffuseColor *= sampledDiffuseColor;
-    diffuseColor.rgb *= v2Tone;
+    vec3 tone=v2Tone;
+    if(${/Head/.test(material.name)?'true':'false'})tone=mix(vec3(1.0),clamp(v2Tone,vec3(0.88),vec3(1.08)),1.0-mouthZone*0.92);
+    diffuseColor.rgb *= tone;
     // Small photograph-inspired detail, projected in rest space across UV seams.
     // The albedo tile is mean-normalized; it does not paint a second skin colour.
     vec3 blendN=pow(abs(normalize(v2RestNormal)),vec3(4.0));blendN/=max(dot(blendN,vec3(1.0)),0.0001);
@@ -1160,5 +1179,5 @@ function installV2Skin(material,actor){
   shader.fragmentShader=shader.fragmentShader.replace('skinLobe * directLight.color, 0.38',/Head/.test(material.name)?'skinLobe * directLight.color, 0.32':'skinLobe * directLight.color, 0.18');
  };
  material.onBeforeCompile.v2SkinBase=previous;
- material.customProgramCacheKey=()=> 'mira-skin-r12.3-legseam';
+ material.customProgramCacheKey=()=> 'mira-skin-r12.6-mouth';
 }

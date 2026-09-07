@@ -1,6 +1,6 @@
-import {captureFurniture,tagMovable} from './mira-v2-furniture.js?v=12.3';
+import {captureFurniture,tagMovable} from './mira-v2-furniture.js?v=12.6';
 import {Destruction} from './mira-v2-destruction.js?v=11.0';
-import {buildHouse} from './mira-v2-house.js?v=12.3';
+import {buildHouse} from './mira-v2-house.js?v=12.6';
 import {plantTerrain,scatterTrees,tickNature,chopTree as chopNature,terrainHeight} from './mira-v2-nature.js?v=12.3';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
 import * as T from 'three';

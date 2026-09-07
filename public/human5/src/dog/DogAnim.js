@@ -3,7 +3,8 @@ export class DogAnim {
   constructor(model,paws,jaw,tail,ai,bark){this.model=model;this.paws=paws;this.jaw=jaw;this.tail=tail;this.ai=ai;this.bark=bark;this.time=0;this.wag=0;this.wagUntil=2.5;this.nextBurst=5+Math.random()*4;this.nextBark=.6+Math.random()*.6;this.sit=0;}
   tick(dt){
     this.time+=dt;
-    if(this.time>=this.nextBark){this.bark();this.nextBark=this.time+5+Math.random()*4;}
+    if(this.ai.held){if(this.time>=this.nextBark){this.bark();this.nextBark=this.time+.28+Math.random()*.22;}this.wag=1;}
+    else if(this.time>=this.nextBark){this.bark();this.nextBark=this.time+5+Math.random()*4;}
     if(this.time>=this.nextBurst){this.wagUntil=this.time+.65+Math.random()*.8;this.nextBurst=this.time+6+Math.random()*8;}
     this.ai.tick(dt);const state=this.ai.state;
     this.sit+=((state==='sit'?1:0)-this.sit)*Math.min(1,dt*4);
