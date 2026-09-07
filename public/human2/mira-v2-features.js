@@ -1,10 +1,11 @@
-import {LivingEyes} from './mira-v2-eyes.js?v=11.0';
+import {LivingEyes} from './mira-v2-eyes.js?v=12.2';
+import {EnhanceEyes} from './mira-v2-tearline.js?v=12.2';
 import {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES,V2_EXTRA_SLIDERS,FACE_PRESETS,EXERCISE_MODES,ATTENTION_MODES} from './mira-v2-controls.js?v=11.5';
 export {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES,ATTENTION_MODES} from './mira-v2-controls.js?v=11.5';
 import * as THREE from 'three';
 import {restoreSurfaceUV} from './mira-v2-uv.js?v=11.0';
-import {HairGuides} from './mira-v2-hair.js?v=11.5';
-import {SurfaceFlesh} from './mira-v2-tissue.js?v=11.0';
+import {HairGuides} from './mira-v2-hair.js?v=12.2';
+import {SurfaceFlesh} from './mira-v2-tissue.js?v=12.0';
 
 // Mira v2: a bounded real-time approximation for this CC3 rig, Three r170.
 const clamp = THREE.MathUtils.clamp, damp = THREE.MathUtils.damp;
@@ -14,21 +15,24 @@ const cap = (v,n) => { if(v.lengthSq()>n*n)v.setLength(n); return v; };
 const tmp=V(), tmp2=V(), tmp3=V(), axis=V(), q=new THREE.Quaternion();
 const up=new THREE.Vector3(0,1,0);
 const FACE_POSES={
- neutral:{}, happy:{Mouth_Smile:1.22,Cheek_Raise:.82,Mouth_Dimple:.38,Eye_Squint:.24,Jaw_Open:.13},
- content:{Mouth_Smile:.62,Eye_Squint:.1,Cheek_Raise:.36},
- curious:{Brow_Raise_Inner:.23,Brow_Raise_Outer:.18,Eye_Wide:.13,Mouth_Smile:.08},
- listening:{Brow_Raise_Inner:.13,Mouth_Smile:.11},
- thoughtful:{Brow_Compress:.14,Mouth_Press:.22,Eye_Squint:.12},
- concerned:{Brow_Raise_Inner:.35,Brow_Drop:.13,Mouth_Frown:.18},
- sad:{Brow_Raise_Inner:.5,Brow_Drop:.19,Mouth_Frown:.35,Eye_Squint:.1},
- surprise:{Brow_Raise_Inner:.48,Brow_Raise_Outer:.43,Eye_Wide:.48,Jaw_Open:.2,V_Tight_O:.17},
- afraid:{Brow_Raise_Inner:.52,Brow_Compress:.22,Eye_Wide:.4,Mouth_Stretch:.25,Jaw_Open:.12},
- angry:{Brow_Compress:.55,Brow_Drop:.43,Mouth_Press:.4,Eye_Squint:.27},
- disgust:{Nose_Sneer:.48,Brow_Drop:.24,Mouth_Shrug_Upper:.3,Eye_Squint:.15},
- tease:{Mouth_Smile:.32,Mouth_Dimple:.16,Eye_Squint:.12},
- flirty:{Mouth_Smile:.29,Cheek_Raise:.13,Eye_Squint:.16},
- laugh:{Mouth_Smile:.92,Cheek_Raise:.62,Eye_Squint:.31,Jaw_Open:.25,V_Wide:.10},
- tired:{Eye_Blink:.22,Brow_Raise_Inner:.08,Mouth_Press:.08}
+ // Resting-beauty baseline: lowered lids, Duchenne hint, no Eye_Wide. CC3 rest
+ // lids are fully open, so Eye_Blink at rest is what kills the stare.
+ neutral:{Eye_Blink:.11,Eye_Squint:.14,Brow_Drop:.05,Mouth_Smile:.08,Cheek_Raise:.10},
+ happy:{Mouth_Smile:.92,Cheek_Raise:.72,Mouth_Dimple:.28,Eye_Squint:.32,Jaw_Open:.08,Eye_Blink:.06},
+ content:{Mouth_Smile:.28,Eye_Squint:.18,Cheek_Raise:.26,Eye_Blink:.12,Brow_Drop:.06,Brow_Raise_Inner:.04},
+ curious:{Brow_Raise_Inner:.20,Brow_Raise_Outer:.14,Mouth_Smile:.10,Eye_Squint:.08,Eye_Blink:.08},
+ listening:{Brow_Raise_Inner:.10,Mouth_Smile:.14,Eye_Squint:.10,Eye_Blink:.12,Cheek_Raise:.08},
+ thoughtful:{Brow_Compress:.14,Mouth_Press:.18,Eye_Squint:.16,Eye_Blink:.14,Brow_Drop:.06},
+ concerned:{Brow_Raise_Inner:.32,Brow_Drop:.14,Mouth_Frown:.16,Eye_Squint:.08,Eye_Blink:.10},
+ sad:{Brow_Raise_Inner:.48,Brow_Drop:.18,Mouth_Frown:.32,Eye_Squint:.14,Eye_Blink:.16},
+ surprise:{Brow_Raise_Inner:.48,Brow_Raise_Outer:.43,Eye_Wide:.36,Jaw_Open:.18,V_Tight_O:.15},
+ afraid:{Brow_Raise_Inner:.50,Brow_Compress:.20,Eye_Wide:.28,Mouth_Stretch:.22,Jaw_Open:.10,Eye_Blink:.04},
+ angry:{Brow_Compress:.55,Brow_Drop:.43,Mouth_Press:.4,Eye_Squint:.30,Eye_Blink:.08},
+ disgust:{Nose_Sneer:.48,Brow_Drop:.24,Mouth_Shrug_Upper:.3,Eye_Squint:.18,Eye_Blink:.10},
+ tease:{Mouth_Smile:.30,Mouth_Dimple:.18,Eye_Squint:.18,Cheek_Raise:.12,Eye_Blink:.10},
+ flirty:{Mouth_Smile:.26,Cheek_Raise:.18,Eye_Squint:.22,Eye_Blink:.12,Brow_Raise_Outer:.08},
+ laugh:{Mouth_Smile:.88,Cheek_Raise:.68,Eye_Squint:.38,Jaw_Open:.22,V_Wide:.10,Eye_Blink:.08},
+ tired:{Eye_Blink:.28,Brow_Raise_Inner:.08,Mouth_Press:.08,Eye_Squint:.10}
 };
 
 // The supplied arm vertices describe an A pose (~30 degrees down), while their
@@ -106,10 +110,14 @@ export function shapePoint(x,y,z,size,likeness=0,butt=1,arms=1,options={}){
  dx+=x*(waist*.55*ww+hips*.44*hw);dz+=(z+.018)*(waist*.55*ww+hips*.34*hw);
  if(y>.42&&y<.88){
   const tw=smooth((y-.42)/.15)*(1-smooth((y-.76)/.12));
-  const side=Math.sign(x),center=side*.096;
+  const side=Math.sign(x)||1,center=side*.096;
   dx+=(x-center)*thigh*.58*tw;
   dz+=(z+.009)*thigh*.55*tw;
   dx+=side*(options.gap||0)*.016*tw*smooth(Math.abs(x)/.05);
+  const inner=(1-smooth((Math.abs(x)-.022)/.10))*smooth((y-.46)/.08)*(1-smooth((y-.82)/.08))*smooth((.055-z)/.08);
+  const keep=Math.max(Math.abs(x),.048+.010*smooth((y-.56)/.12));
+  dx+=side*(keep-Math.abs(x))*inner*.85;
+  dz+=(.004-(z+dz))*inner*.16;
  }
  // Small identity sculpt, shared by head/eyes/teeth and their morph endpoints.
  // Broad proportional changes only; a single portrait cannot recover depth.
@@ -119,6 +127,22 @@ export function shapePoint(x,y,z,size,likeness=0,butt=1,arms=1,options={}){
   const nose=Math.exp(-((x/.022)**2+((y-1.518)/.031)**2));
   dz-=.0035*nose*front*likeness;
   dy+=.0015*Math.exp(-((x/.035)**2+((y-1.475)/.019)**2))*likeness;
+ }
+ // Resting periocular sculpt on the supplied CC3 head. Millimetres only:
+ // drop the upper-lid rim, add orbital fat, slightly narrow the fissure,
+ // and tilt the outer canthus down so the default aperture is not a stare.
+ if(y>1.48&&y<1.575&&z>-.02){
+  const front=smooth((z+.012)/.048);
+  const eyeX=Math.abs(x)-.032,eyeBand=Math.exp(-(eyeX*eyeX)/(.028*.028))*Math.exp(-(((y-1.528)/.018)**2));
+  const lid=eyeBand*front;
+  dy-=.0024*lid;
+  dz+=.0016*lid;
+  const under=Math.exp(-(eyeX*eyeX)/(.030*.030))*Math.exp(-(((y-1.512)/.014)**2))*front;
+  dz+=.0018*under;dy-=.0006*under;
+  const canthus=smooth((Math.abs(x)-.048)/.018)*smooth((.072-Math.abs(x))/.012)*Math.exp(-(((y-1.524)/.012)**2))*front;
+  dy-=.0012*canthus;
+  const cheekMass=Math.exp(-((Math.abs(x)-.038)**2)/(.034*.034))*Math.exp(-(((y-1.492)/.022)**2))*front;
+  dz+=.0022*cheekMass;
  }
  const face=options.faceProfile;
  if(face&&y>1.40){
@@ -139,7 +163,7 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    for(const slider of V2_EXTRA_SLIDERS)this.shape[slider.key]=opts.shape?.[slider.key]??slider.value;
    this.hairStyle=clamp(opts.hairStyle||0,0,10);this.bodyType=opts.bodyType==='male'?'male':'female';this.displayName=opts.name||(this.bodyType==='male'?'Alex':'Mira');this.personality=opts.personality||this.personality;
    this.spineTouch=V();this.spineGoal=V();this.armSwing={};
-   this.emotion={name:'content',intensity:.78,time:0,hold:6,source:'idle',valence:.35,arousal:.25};
+   this.emotion={name:'content',intensity:.65,time:0,hold:8,source:'idle',valence:.28,arousal:.18};this.blinkAsym=Math.random()<.5?-1:1;
    this.emotionTarget={}; this.emotionCurrent={};this.expressionOverride=null;
    this.idleKind='rest';this.idleT=3;this.idleDur=3;this.idleChoice='auto';this.seed=Math.random()*100;
    this.gait=clamp(opts.gait||0,0,WALK_NAMES.length-1);
@@ -204,26 +228,27 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    for(const d of this.deform){const g=new THREE.BufferGeometry();g.attributes={position:d.position,normal:d.normal};g.setIndex(d.indices);d.geom=g;if(d.morphPosition.length)g.morphAttributes.position=d.morphPosition;delete d.indices;}
    this.surfaceFlesh=new SurfaceFlesh(this);
    this.skinDetailMap=loadMap('skin_detail_v2.jpg',true);this.skinDetailMap.wrapS=this.skinDetailMap.wrapT=THREE.RepeatWrapping;
+   this.headRegionMap=loadMap('head_region.png',false);
    this.applyLooks();
    this.hairDetail=opts.hairDetail==='classic'?'classic':'advanced';this.eyeDetail=opts.eyeDetail==='classic'?'classic':'advanced';
-   this.hairPhysics=new HairGuides(this,BODY_HIT,this.hairDetail);this.eyes=new LivingEyes(this,loadMap,this.eyeDetail);
+   this.hairPhysics=new HairGuides(this,BODY_HIT,this.hairDetail);this.eyes=new LivingEyes(this,loadMap,this.eyeDetail);this.enhanceEyes=new EnhanceEyes(this);
    this.root.traverse(o=>{if(o.isMesh){o.receiveShadow=!/Skin_/.test(o.material?.name);o.castShadow=!/hair|eyes/.test(o.name);}});
   }
   setVisualDetail(kind,value){
    const mode=value==='classic'?'classic':'advanced';
-   if(kind==='eyes'){this.eyeDetail=mode;this.eyes?.setMode(mode);}
+   if(kind==='eyes'){this.eyeDetail=mode;this.eyes?.setMode(mode);this.enhanceEyes?.setMode(mode);}
    if(kind==='hair'){this.hairDetail=mode;this.hairPhysics?.setMode(mode);}
    this.applyLooks();
   }
   visualStatus(){
-   const eyes=this.eyes?.shells.length===2?(this.eyeDetail==='classic'?'Classic eyes':'Advanced eyes'):'Eye setup unavailable';
+   const eyes=this.eyes?.shells.length===2?(this.eyeDetail==='classic'?'Classic eyes':'Advanced eyes + tearline'):'Eye setup unavailable';
    const hair=this.hairPhysics?.mesh?(this.hairDetail==='classic'?'Classic hair':'Advanced hair'):'Hair setup unavailable';
    return eyes+' · '+hair;
   }
   applyLooks(){
    if(!this.deform)return;
    for(const m of this.hairMats)m.color.setHex((HAIR_COLORS[this.hairColor]||HAIR_COLORS[0]).tint);
-   for(const m of this.headMats){m.map=loadMap(this.bodyType==='male'?'head.jpg':'head_v2.jpg',true);m.normalScale.setScalar(.20);m.roughness=.93;}
+   for(const m of this.headMats){m.map=loadMap(this.bodyType==='male'?'head.jpg':'head_v3.jpg',true);m.normalScale.setScalar(.28);m.roughness=.58;}
    this.root.traverse(o=>{if(!o.isMesh)return;for(const m of Array.isArray(o.material)?o.material:[o.material]){
     if(/Skin_Body/.test(m.name))m.map=loadMap('body_v2.jpg',true);
     if(/Skin_/.test(m.name)){const d=this.deform.find(d=>d.position===o.geometry.attributes.position);if(d&&!o.geometry.attributes.v2SkinRest)o.geometry.setAttribute('v2SkinRest',new THREE.BufferAttribute(d.base,3));m.normalScale?.setScalar(/Head/.test(m.name)?.20:.32);m.envMapIntensity=.50;m.aoMap=null;m.aoMapIntensity=0;installSkinShader(m);installV2Skin(m,this);m.needsUpdate=true;}
@@ -356,18 +381,30 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    }
    if(!this.expressionOverride&&['neutral','content','happy','listening','curious'].includes(e.name)){
     const t=this.time||0,soft=.5+.5*Math.sin(t*.61+this.seed),brow=.5+.5*Math.sin(t*.37+this.seed*2);
-    this.want.Mouth_Smile_L+=.08*soft;this.want.Mouth_Smile_R+=.07*soft;
-    for(const side of ['L','R']){this.want['Cheek_Raise_'+side]+=.018*soft;this.want['Brow_Raise_Inner_'+side]+=.045*brow;}
+    this.want.Mouth_Smile_L+=.035*soft;this.want.Mouth_Smile_R+=.028*soft;
+    for(const side of ['L','R']){this.want['Cheek_Raise_'+side]+=.012*soft;this.want['Brow_Raise_Inner_'+side]+=.025*brow;}
    }
-   if(e.time>e.hold+25&&!this.expressionOverride){e.name='content';e.intensity=.72;e.time=0;e.source='idle';}
+   if(e.time>e.hold+25&&!this.expressionOverride){e.name='content';e.intensity=.62;e.time=0;e.source='idle';}
    if(this.idleKind==='sigh'&&!this.speech?.active)this.want.Jaw_Open=.065*(this.gestureWeight||0);
    this.expressionJaw=this.want.Jaw_Open;
+   // Gaze-coupled lids: looking down drops the upper lid; looking up opens a little.
+   // Rest Eye_Blink in the pose is the main stare-killer; this only adds a few percent.
+   const lookDown=Math.max(this.want.Eye_L_Look_Down||0,this.want.Eye_R_Look_Down||0);
+   const lookUp=Math.max(this.want.Eye_L_Look_Up||0,this.want.Eye_R_Look_Up||0);
+   const lidFollow=lookDown*.18-lookUp*.06;
+   this.want.Eye_Blink_L=(this.want.Eye_Blink_L||0)+lidFollow;
+   this.want.Eye_Blink_R=(this.want.Eye_Blink_R||0)+lidFollow;
+   this.want.Eye_Wide_L=Math.max(0,(this.want.Eye_Wide_L||0)-lookDown*.35);
+   this.want.Eye_Wide_R=Math.max(0,(this.want.Eye_Wide_R||0)-lookDown*.35);
    this.blinkT-=dt;
-   if(this.blinkT<=0&&this.blinkHold<=0){this.blinkHold=.18;this.blinkT=(2.5+Math.random()*3.5)/1.3;}
+   if(this.blinkT<=0&&this.blinkHold<=0){this.blinkHold=.18;this.blinkT=(2.5+Math.random()*3.5)/1.3;this.blinkAsym=Math.random()<.12?0:(Math.random()<.5?-1:1);this.halfBlink=Math.random()<.08;}
    let blink=0;
-   if(this.blinkHold>0){this.blinkHold=Math.max(0,this.blinkHold-dt);const t=.18-this.blinkHold;blink=smooth(t<.055?t/.055:1-(t-.055)/.125);}
-   this.want.Eye_Blink_L=this.want.Eye_Blink_R=Math.max(this.want.Eye_Blink_L,blink);
-   this.cur.Eye_Blink_L=this.cur.Eye_Blink_R=this.want.Eye_Blink_L;
+   if(this.blinkHold>0){this.blinkHold=Math.max(0,this.blinkHold-dt);const t=.18-this.blinkHold;blink=smooth(t<.055?t/.055:1-(t-.055)/.125);if(this.halfBlink)blink*=.55;}
+   const lag=this.blinkAsym*.018,blinkL=blink,blinkR=this.blinkHold>0?smooth(Math.max(0,(.18-this.blinkHold-lag))<.055?(.18-this.blinkHold-lag)/.055:1-Math.max(0,.18-this.blinkHold-lag-.055)/.125)* (this.halfBlink?.55:1):0;
+   this.want.Eye_Blink_L=Math.max(this.want.Eye_Blink_L||0,blinkL);
+   this.want.Eye_Blink_R=Math.max(this.want.Eye_Blink_R||0,this.blinkAsym?blinkR:blinkL);
+   this.cur.Eye_Blink_L=this.want.Eye_Blink_L;this.cur.Eye_Blink_R=this.want.Eye_Blink_R;
+   if(blink>.4){this.want.Cheek_Raise_L=Math.max(0,(this.want.Cheek_Raise_L||0)-blink*.08);this.want.Cheek_Raise_R=Math.max(0,(this.want.Cheek_Raise_R||0)-blink*.08);}
   }
   tickSpeechFace(dt){
    const sp=this.speech;if(!sp?.active)return false;
@@ -989,7 +1026,7 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
     this.poseSpineContact(dt);this.group.updateMatrixWorld(true);
     this.tickBalance(dt);this.tickGrab(dt);this.group.updateMatrixWorld(true);
     this.tickSoft(dt);if(!this.headMissing)this.poseHeadContact(dt);this.group.updateMatrixWorld(true);
-    this.surfaceFlesh?.tick(dt);this.hairPhysics?.tick(dt);this.injuryDriver?.pose(this);
+    this.surfaceFlesh?.tick(dt);this.hairPhysics?.tick(dt);if(!this.headMissing)this.enhanceEyes?.tick();this.injuryDriver?.pose(this);
     this.root.traverse(o=>{if(o.isSkinnedMesh)o.skeleton.update();});
     return;
    }
@@ -1001,7 +1038,7 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    this.tickGrab(dt);
    this.group.updateMatrixWorld(true);
    this.tickSoft(dt);this.poseHeadContact(dt);this.group.updateMatrixWorld(true);
-   this.surfaceFlesh?.tick(dt);this.hairPhysics?.tick(dt);if(!this.headMissing)this.eyes?.tick(dt,t);this.injuryDriver?.pose(this);
+   this.surfaceFlesh?.tick(dt);this.hairPhysics?.tick(dt);if(!this.headMissing){this.eyes?.tick(dt,t);this.enhanceEyes?.tick();}this.injuryDriver?.pose(this);
    this.root.traverse(o=>{if(o.isSkinnedMesh)o.skeleton.update();});
   }
   keepArmsClear(){} // final world-space IK chooses hand targets clear of the chest
@@ -1057,9 +1094,9 @@ export function blendSkinSeams(meshes){
    for(const [i,gain] of r.seeds){queue.push(i);dist.set(i,0);source.set(i,gain);}
    // Relax geodesic distances rather than stopping at the first BFS visit.
    for(let k=0;k<queue.length;k++){
-    const i=queue[k],d=dist.get(i),gain=source.get(i),weight=1-smooth(d/.10);
+    const i=queue[k],d=dist.get(i),gain=source.get(i),py=p.getY(i),px=Math.abs(p.getX(i)),reach=(py>.42&&py<.90&&px<.16)?.28:.10,weight=1-smooth(d/reach);
     for(let c=0;c<3;c++)gains[i*3+c]=1+(gain[c]-1)*weight;
-    for(const j of r.adj.get(i)||[]){const nd=d+Math.hypot(p.getX(i)-p.getX(j),p.getY(i)-p.getY(j),p.getZ(i)-p.getZ(j));if(nd>=.10||nd>=(dist.get(j)??Infinity)-1e-7)continue;dist.set(j,nd);source.set(j,gain);queue.push(j);}
+    for(const j of r.adj.get(i)||[]){const nd=d+Math.hypot(p.getX(i)-p.getX(j),p.getY(i)-p.getY(j),p.getZ(i)-p.getZ(j));if(nd>=reach||nd>=(dist.get(j)??Infinity)-1e-7)continue;dist.set(j,nd);source.set(j,gain);queue.push(j);}
    }
    // Diffuse in log colour-gain space to remove Voronoi-like correction patches.
    const entries=[...dist.keys()],next=new Float32Array(gains);
@@ -1083,13 +1120,15 @@ function installV2Skin(material,actor){
   shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nv2Tone=v2ToneGain;v2RestPos=v2SkinRest;v2RestNormal=normal;');
   shader.uniforms.v2SkinTexel={value:new THREE.Vector2(1/(material.map?.image?.width||2048),1/(material.map?.image?.height||2048))};
   shader.uniforms.v2DetailMap={value:actor.skinDetailMap};
-  shader.uniforms.v2DetailAmount={value:/Body/.test(material.name)?.75:/Head/.test(material.name)?.24:.46};
-  shader.uniforms.v2AlbedoBlur={value:/Leg/.test(material.name)?.66:/Arm/.test(material.name)?.42:.18};
-  shader.fragmentShader='varying vec3 v2Tone;\nvarying vec3 v2RestPos;\nvarying vec3 v2RestNormal;\nuniform sampler2D v2DetailMap;\nuniform float v2DetailAmount;\nuniform float v2AlbedoBlur;\nuniform vec2 v2SkinTexel;\n'+shader.fragmentShader;
+  shader.uniforms.v2RegionMap={value:actor.headRegionMap||actor.skinDetailMap};
+  shader.uniforms.v2DetailAmount={value:/Body/.test(material.name)?.75:/Head/.test(material.name)?.14:.46};
+  shader.uniforms.v2AlbedoBlur={value:/Leg/.test(material.name)?.66:/Arm/.test(material.name)?.42:.12};
+  shader.fragmentShader='varying vec3 v2Tone;\nvarying vec3 v2RestPos;\nvarying vec3 v2RestNormal;\nuniform sampler2D v2DetailMap;\nuniform sampler2D v2RegionMap;\nuniform float v2DetailAmount;\nuniform float v2AlbedoBlur;\nuniform vec2 v2SkinTexel;\n'+shader.fragmentShader;
   shader.fragmentShader=shader.fragmentShader.replace('#include <map_fragment>',THREE.ShaderChunk.map_fragment.replace('diffuseColor *= sampledDiffuseColor;',`
     vec2 skinDx=v2SkinTexel*2.3;
     vec3 softAlbedo=(texture2D(map,vMapUv+vec2(skinDx.x,0.0)).rgb+texture2D(map,vMapUv-vec2(skinDx.x,0.0)).rgb+texture2D(map,vMapUv+vec2(0.0,skinDx.y)).rgb+texture2D(map,vMapUv-vec2(0.0,skinDx.y)).rgb)*0.25;
-    sampledDiffuseColor.rgb=mix(sampledDiffuseColor.rgb,softAlbedo,v2AlbedoBlur);
+    float innerThigh=smoothstep(0.15,0.018,abs(v2RestPos.x))*smoothstep(0.40,0.50,v2RestPos.y)*smoothstep(0.90,0.70,v2RestPos.y)*smoothstep(0.07,-0.04,v2RestPos.z);
+    sampledDiffuseColor.rgb=mix(sampledDiffuseColor.rgb,softAlbedo,clamp(v2AlbedoBlur+innerThigh*0.32,0.0,0.93));
     diffuseColor *= sampledDiffuseColor;
     diffuseColor.rgb *= v2Tone;
     // Small photograph-inspired detail, projected in rest space across UV seams.
@@ -1099,12 +1138,27 @@ function installV2Skin(material,actor){
     vec3 detailSkin=texture2D(v2DetailMap,coord.yz).rgb*blendN.x+texture2D(v2DetailMap,coord.xz).rgb*blendN.y+texture2D(v2DetailMap,coord.xy).rgb*blendN.z;
     vec3 detailGain=clamp(detailSkin/vec3(0.7760,0.4283,0.2907),vec3(0.70),vec3(1.32));
     diffuseColor.rgb*=mix(vec3(1.0),detailGain,v2DetailAmount);`));
-  shader.fragmentShader=shader.fragmentShader.replace('#include <roughnessmap_fragment>','#include <roughnessmap_fragment>\nroughnessFactor=clamp(0.48+0.30*roughnessFactor,0.55,0.86);');
+  shader.fragmentShader=shader.fragmentShader.replace('#include <roughnessmap_fragment>',`#include <roughnessmap_fragment>
+   // Region-aware head roughness: UV mask first, rest-space fallback. Body stays mid-matte.
+   float restY=v2RestPos.y,restZ=v2RestPos.z,restAx=abs(v2RestPos.x);
+   float lipMask=smoothstep(1.455,1.468,restY)*smoothstep(1.492,1.478,restY)*smoothstep(0.006,0.028,restZ)*smoothstep(0.038,0.012,restAx);
+   float lidMask=smoothstep(1.508,1.518,restY)*smoothstep(1.548,1.536,restY)*smoothstep(-0.005,0.02,restZ);
+   float tzone=smoothstep(1.50,1.53,restY)*smoothstep(0.02,0.055,restZ)*smoothstep(0.045,0.012,restAx);
+   if(${/Head/.test(material.name)?'true':'false'}){
+    vec4 region=texture2D(v2RegionMap,vMapUv);
+    lipMask=max(lipMask,region.r);
+    tzone=max(tzone,region.g);
+    lidMask=max(lidMask,region.b);
+    roughnessFactor=mix(clamp(0.46+0.22*roughnessFactor,0.42,0.72),0.30,clamp(lipMask*0.90+lidMask*0.55,0.0,1.0));
+    roughnessFactor=mix(roughnessFactor,0.44,tzone*0.40);
+   }else{
+    roughnessFactor=clamp(0.48+0.30*roughnessFactor,0.52,0.84);
+   }`);
   // Skin's dielectric F0 is about .028 (IOR ~1.4); Standard's .04 looked coated.
   shader.fragmentShader=shader.fragmentShader.replace('#include <lights_physical_fragment>',THREE.ShaderChunk.lights_physical_fragment.replace('vec3( 0.04 )','vec3( 0.028 )'));
-  // Reduce the inexpensive diffuse wrap; it is not a true diffusion-profile SSS.
-  shader.fragmentShader=shader.fragmentShader.replace('skinLobe * directLight.color, 0.38','skinLobe * directLight.color, 0.18');
+  // Head keeps a stronger color-dependent wrap; body stays conservative.
+  shader.fragmentShader=shader.fragmentShader.replace('skinLobe * directLight.color, 0.38',/Head/.test(material.name)?'skinLobe * directLight.color, 0.32':'skinLobe * directLight.color, 0.18');
  };
  material.onBeforeCompile.v2SkinBase=previous;
- material.customProgramCacheKey=()=> 'mira-skin-r6-uv-detail';
+ material.customProgramCacheKey=()=> 'mira-skin-r12.3-legseam';
 }

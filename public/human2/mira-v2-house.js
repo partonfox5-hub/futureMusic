@@ -2,7 +2,7 @@ import * as T from 'three';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
 export function buildHouse(w){
  const v=(x,y,z)=>new T.Vector3(x,y,z),panel=(x,y,z,sx,sy,sz,hole)=>w.fractures.panel(v(x,y,z),v(sx,sy,sz),'plaster',hole),round=(x,y,z,sx,sy,sz,color,r=.03)=>w.mesh(new RoundedBoxGeometry(sx,sy,sz,2,Math.min(r,Math.min(sx,sy,sz)*.3)),w.mat(color),x,y,z);
- w.box(0,-.18,0,24,.3,24,0x718063);w.box(0,-.045,0,9,.08,9,0xab8864);w.box(6,-.015,3,3.2,.025,16,0x72726d);w.box(0,.003,0,4,.015,4.2,0x8b7a68);
+ w.box(0,-.22,0,24,.4,24,0x718063);w.box(0,-.045,0,9,.08,9,0xab8864);w.box(6,-.015,3,3.2,.025,16,0x72726d);w.box(0,.003,0,4,.015,4.2,0x8b7a68);
  panel(0,1.5,-4.45,9,3,.15,p=>p.x<-2&&p.x>-3.6&&p.y>1&&p.y<2.3);panel(-4.45,1.5,0,.15,3,9,p=>Math.abs(p.z)<1.1&&p.y>.9&&p.y<2.3);panel(4.45,1.5,0,.15,3,9,p=>Math.abs(p.z)<1.1&&p.y>.9&&p.y<2.3);panel(0,1.5,4.45,9,3,.15,p=>p.x>-.6&&p.x<1.2&&p.y<2.25);
  panel(0,3.08,0,9,.16,9);panel(0,1.5,-1.8,8.8,3,.13,p=>(Math.abs(p.x+.4)<.65||Math.abs(p.x-3)<.6)&&p.y<2.25);panel(1.45,1.5,0,.13,3,8.8,p=>Math.abs(p.z-.8)<.68&&p.y<2.25);
  w.fractures.panel(v(-4.44,1.62,0),v(.035,1.25,2.05),'glass');w.fractures.panel(v(4.44,1.62,0),v(.035,1.25,2.05),'glass');w.fractures.panel(v(-2.9,1.68,-4.44),v(1.7,1.3,.035),'glass');

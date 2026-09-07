@@ -48,10 +48,12 @@ export function tagMovable(world,group,id){
  const obstacle=world.obstacle(center.x,center.z,Math.max(.08,size.x),Math.max(.08,size.z),box.min.y,Math.max(.04,size.y),null);
  obstacle.object=group;
  const prev=group.userData.furniture;
- const furn=prev||{id,mix,mass,volume,density,velocity:new T.Vector3(),spin:0,held:null,obstacle,floorY:group.position.y};
+ const furn=prev||{id,mix,mass,volume,density,velocity:new T.Vector3(),spin:0,omega:new T.Vector3(),held:null,obstacle,floorY:group.position.y};
  furn.id=id;furn.mix=mix;furn.mass=mass;furn.volume=volume;furn.density=density;furn.obstacle=obstacle;
- if(!furn.velocity)furn.velocity=new T.Vector3();
+ if(!furn.velocity)furn.velocity=new T.Vector3();if(!furn.omega)furn.omega=new T.Vector3();
  if(!Number.isFinite(furn.floorY))furn.floorY=group.position.y;
+ const inv=group.matrixWorld.clone().invert();
+ furn.localBox=new T.Box3().setFromObject(group).applyMatrix4(inv);
  group.userData.furniture=furn;group.userData.obstacle=obstacle;
  group.traverse(m=>{if(m.userData.piece)m.userData.piece.obstacle=obstacle;});
  if(!world.movables.includes(group))world.movables.push(group);

@@ -3,14 +3,14 @@ import * as T from 'three';
 // cornea geometry. No additive white shell and no scene-wide transmission pass.
 export class LivingEyes {
  constructor(actor,loadMap,mode='advanced'){
-  this.actor=actor;this.pupil={value:.048};this.illumination=.6;this.shells=[];this.entries=[];this.lightTime=0;
+  this.actor=actor;this.pupil={value:.054};this.illumination=.6;this.shells=[];this.entries=[];this.lightTime=0;
   actor.root.traverse(mesh=>{if(!mesh.isSkinnedMesh)return;
    const materials=Array.isArray(mesh.material)?mesh.material:[mesh.material];
    for(let index=0;index<materials.length;index++){
     const old=materials[index],name=old?.name||'';if(!/^Std_(Eye|Cornea)_[LR]$/.test(name))continue;
     const cornea=/Cornea/.test(name),entry={mesh,index,array:Array.isArray(mesh.material),original:old,originalVisible:old.visible,cornea};
     if(cornea){
-     const side=name.endsWith('_L')?'l':'r',m=new T.MeshPhysicalMaterial({name,color:0xffffff,map:loadMap('eye_'+side+'.jpg',true),normalMap:loadMap('eye_'+side+'_n.jpg',false),normalScale:new T.Vector2(.09,.09),roughness:.43,metalness:0,ior:1.336,specularIntensity:.22,clearcoat:1,clearcoatRoughness:.045,envMapIntensity:1.05});
+     const side=name.endsWith('_L')?'l':'r',m=new T.MeshPhysicalMaterial({name,color:0xffffff,map:loadMap('eye_'+side+'.jpg',true),normalMap:loadMap('eye_'+side+'_n.jpg',false),normalScale:new T.Vector2(.09,.09),roughness:.48,metalness:0,ior:1.336,specularIntensity:.18,clearcoat:.82,clearcoatRoughness:.06,envMapIntensity:.68});
      m.userData.livingEye=true;m.customProgramCacheKey=()=> 'mira-living-eye-r11';m.onBeforeCompile=shader=>this.shader(shader);entry.advanced=m;this.shells.push(mesh);
     }
     this.entries.push(entry);
@@ -46,7 +46,7 @@ export class LivingEyes {
  #endif`);}
  tick(dt,time){
   if(this.mode!=='advanced')return;this.lightTime-=dt;if(this.lightTime<=0){this.sampleLight();this.lightTime=.25;}
-  const target=T.MathUtils.clamp(.060-this.illumination*.032+(this.actor.emotion?.arousal||0)*.002+Math.sin(time*.71+this.actor.seed)*.00045,.028,.061);
+  const target=T.MathUtils.clamp(.066-this.illumination*.028+(this.actor.emotion?.arousal||0)*.002+Math.sin(time*.71+this.actor.seed)*.00045,.034,.068);
   this.pupil.value=T.MathUtils.damp(this.pupil.value,target,1.8,dt);
  }
 }

@@ -57,7 +57,7 @@ export class SurfaceFlesh {
     const omega=2*Math.PI*(face?6.5:4.2)/(1+.65*soft),k=omega*omega,d=2*omega*(held?1:.20+.6*shape.damping);
     const gain=held?0:soft*actor.jiggleAmt()*(face?.09:.28);
     for(const axis of ['x','y','z']){g.v[axis]=(g.v[axis]+step*(-g.a[axis]*gain-k*g.p[axis]))/(1+d*step+k*step*step);g.p[axis]+=g.v[axis]*step;}
-    const max=h*soft*(face?.0025:.013);if(g.p.length()>max){g.p.setLength(max);g.v.multiplyScalar(.4);}
+    const max=h*soft*(face?.009:.013);if(g.p.length()>max){g.p.setLength(max);g.v.multiplyScalar(.4);}
    }
    this.acc-=step;
   }

@@ -1,23 +1,23 @@
-import {Builder,FURNITURE,SURFACES} from './mira-v2-builder.js?v=11.5';
+import {Builder,FURNITURE,SURFACES} from './mira-v2-builder.js?v=12.3';
 import {SmoothLocomotion} from './mira-v2-locomotion.js?v=11.5';
 import {Car} from './mira-v2-car.js?v=11.0';
 import {Restraints} from './mira-v2-restraints.js?v=11.0';
 import {Injuries} from './mira-v2-injuries.js?v=11.5';
-import {Props,WEAPONS} from './mira-v2-props.js?v=11.5';
+import {Props,WEAPONS} from './mira-v2-props.js?v=12.3';
 import {RoomLight} from './mira-v2-light.js?v=11.0';
 import {draft,saveDraft,spawnOptions,OUTFITS,clothingItems} from './mira-v2-catalog.js?v=11.0';
-import {MiraWorld,SCENES} from './mira-v2-world.js?v=11.5';
+import {MiraWorld,SCENES} from './mira-v2-world.js?v=12.3';
 import {Wardrobe,GARMENTS} from './mira-v2-wardrobe.js?v=11.2';
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { createVRMenu } from "./mira-vr-menu.js?v=11.5";
+import { createVRMenu } from "./mira-vr-menu.js?v=12.3";
 import { snapshot, savePreset, loadPreset, applyPreset, listPresets, lastPresetName, downloadPreset } from "./mira-v2-preset.js?v=11.5";
 import { unlockSfx } from "./mira-v2-sfx.js?v=11.0";
-import { EMOTION_NAMES, IDLE_NAMES, WALK_NAMES, ATTENTION_MODES } from "./mira-v2-features.js?v=11.5";
+import { EMOTION_NAMES, IDLE_NAMES, WALK_NAMES, ATTENTION_MODES } from "./mira-v2-features.js?v=12.3";
 import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
-import { createMiraSystem, SLIDERS, FACE_TYPES, HAIR_COLORS } from "./mira-v2.js?v=11.5";
-import { DEFAULT_PERSONA, miraChat, miraSpeak, startMic, unlockVoice } from "./mira-voice-v2.js?v=11.5";
+import { createMiraSystem, SLIDERS, FACE_TYPES, HAIR_COLORS } from "./mira-v2.js?v=12.3";
+import { DEFAULT_PERSONA, miraChat, miraSpeak, startMic, unlockVoice } from "./mira-voice-v2.js?v=12.3";
 
 import {V2_EXTRA_SLIDERS,FACE_PRESETS,HAIR_STYLES,ACTIVITY_MODES,ATTENTION_LABELS,shapeSliders} from './mira-v2-controls.js?v=11.5';
 

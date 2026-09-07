@@ -19,6 +19,7 @@ export class HairGuides {
   actor.root.traverse(o=>{if(o.isSkinnedMesh&&/hair/i.test(o.name))this.mesh=o;});if(!this.mesh)return;
   const mesh=this.mesh,old=mesh.geometry;this.source=old.clone();mesh.geometry=this.source;this.refToHead=actor.bones.Head.matrixWorld.clone().invert().multiply(mesh.matrixWorld);
   this.originalCompile=mesh.material.onBeforeCompile;this.originalKey=mesh.material.customProgramCacheKey;this.originalRoughness=mesh.material.roughness;
+  this.originalAlphaTest=mesh.material.alphaTest;this.originalA2C=!!mesh.material.alphaToCoverage;this.originalTransparent=!!mesh.material.transparent;this.originalAlphaHash=!!mesh.material.alphaHash;
   this.setMode(mode);
  }
  setMode(mode){
@@ -27,10 +28,12 @@ export class HairGuides {
   if(this.mode==='classic'){
    if(this.mesh.geometry!==this.source)this.advancedGeometry=this.mesh.geometry;
    this.mesh.geometry=this.source;m.roughness=this.originalRoughness;m.onBeforeCompile=this.originalCompile;m.customProgramCacheKey=this.originalKey;
+   m.alphaTest=this.originalAlphaTest;m.alphaToCoverage=this.originalA2C;m.transparent=this.originalTransparent;m.alphaHash=this.originalAlphaHash;m.depthWrite=true;
    this.mesh.visible=this.actor.hairStyle!==9;this.reset();
   }else{
    if(this.advancedGeometry){this.mesh.geometry=this.advancedGeometry;this.advancedGeometry=null;}
-   this.setStyle(this.actor.hairStyle||0);m.roughness=.58;m.onBeforeCompile=s=>this.installShader(s);m.customProgramCacheKey=()=> 'mira-hair-r11-cubic-contact32';
+   this.setStyle(this.actor.hairStyle||0);m.roughness=.46;m.onBeforeCompile=s=>this.installShader(s);m.customProgramCacheKey=()=> 'mira-hair-r12.2-kajiya-hash';
+   m.transparent=false;m.alphaTest=0;m.alphaToCoverage=false;m.alphaHash=true;m.depthWrite=true;
   }
   m.needsUpdate=true;
  }
@@ -106,6 +109,8 @@ export class HairGuides {
  installShader(shader){
   shader.uniforms.v2HairOffsets={value:this.uniform};shader.uniforms.v2HairCapsA={value:this.capsA};shader.uniforms.v2HairCapsB={value:this.capsB};shader.uniforms.v2HairCapCount=this.capCount;
   shader.vertexShader=`attribute vec2 v2HairCoord;
+   varying vec3 vHairTangent;
+   varying float vHairRoot;
    uniform vec3 v2HairOffsets[${COUNT}];
    uniform vec4 v2HairCapsA[${MAX_CAPS}];uniform vec4 v2HairCapsB[${MAX_CAPS}];uniform int v2HairCapCount;
    vec3 hairCurve(int chain,int j,float u){int base=chain*${LEVELS};vec3 a=v2HairOffsets[base+max(0,j-1)],b=v2HairOffsets[base+j],c=v2HairOffsets[base+j+1],d=v2HairOffsets[base+min(${LEVELS-1},j+2)];return .5*((2.0*b)+(-a+c)*u+(2.0*a-5.0*b+4.0*c-d)*u*u+(-a+3.0*b-3.0*c+d)*u*u*u);}
@@ -128,12 +133,26 @@ export class HairGuides {
      if(hd<hr){vec3 outN=hd>0.000001?hn/hd:vec3(0.0,0.0,-1.0);hp+=outN*(hr-hd)*freeHair;}
     }
    }
-   transformed=(inverse(modelMatrix)*vec4(hp,1.0)).xyz;`);
+   transformed=(inverse(modelMatrix)*vec4(hp,1.0)).xyz;
+   vec3 hairAlong=hairCurve(ia,min(hj+1,${LEVELS-2}),hf)-hairCurve(ia,max(hj-1,0),hf);
+   vHairTangent=normalize((modelViewMatrix*vec4(hairAlong,0.0)).xyz);
+   vHairRoot=smoothstep(0.15,1.35,ht);`);
+  shader.fragmentShader='varying vec3 vHairTangent;varying float vHairRoot;\n'+shader.fragmentShader;
+  shader.fragmentShader=shader.fragmentShader.replace('#include <opaque_fragment>',`
+   vec3 hairTuv=normalize(dFdx(vViewPosition)*dFdy(vMapUv.y)-dFdy(vViewPosition)*dFdx(vMapUv.y));
+   vec3 hairT=normalize(length(vHairTangent)>0.04?vHairTangent:(length(hairTuv)>0.001?hairTuv:vec3(0.0,1.0,0.0)));
+   vec3 hairV=normalize(-vViewPosition);
+   float sinTV=sqrt(max(0.0,1.0-dot(hairT,hairV)*dot(hairT,hairV)));
+   vec3 primary=vec3(0.78,0.70,0.62)*pow(sinTV,42.0);
+   vec3 secondary=vec3(0.42,0.28,0.18)*pow(sinTV,7.0);
+   outgoingLight+= (primary*0.32+secondary*0.18)*diffuseColor.rgb;
+   outgoingLight*=mix(vec3(0.62,0.55,0.48),vec3(1.0),vHairRoot);
+   #include <opaque_fragment>`);
  }
  reset(){this.ready=false;this.acc=0;this.previousCaps=[];this.uniform.forEach(v=>v.set(0,0,0));}
  tick(dt){
   if(!this.mesh||!dt)return;if(this.mode==='classic'){this.mesh.visible=this.actor.hairStyle!==9;return;}if(this.actor.hairStyle!==this.style)this.setStyle(this.actor.hairStyle);if(this.style===9)return;
-  const head=this.actor.bones.Head,h=this.actor.shape.height,headPos=head.getWorldPosition(V()),flex=(this.actor.shape.hairMotion??.68)*(this.compact?.38:1);
+  const head=this.actor.bones.Head,h=this.actor.shape.height,headPos=head.getWorldPosition(V()),flex=(this.actor.shape.hairMotion??.68)*(this.compact?.62:1);
   for(const chain of this.chains)for(const n of chain){n.target.copy(n.rest).applyMatrix4(head.matrixWorld);if(!this.ready||n.p.distanceTo(n.target)>.55*h){n.p.copy(n.target);n.prev.copy(n.target);}}
   const caps=[];
   for(const spec of this.hits){
@@ -161,13 +180,13 @@ export class HairGuides {
     for(let j=1;j<LEVELS;j++){
      const n=chain[j];vel.subVectors(n.p,n.prev).multiplyScalar(Math.exp(-step*(3.0+3*(1-flex))));if(vel.length()>.035*h)vel.setLength(.035*h);
      n.prev.copy(n.p);n.p.add(vel);n.p.y-=9.81*step*step;
-     n.p.lerp(n.target,1-Math.exp(-step*((j===1?14:3)*(1.15-flex*.8))));n.lambda=0;
+     n.p.lerp(n.target,1-Math.exp(-step*((j===1?6.2:j<4?1.6:.8)*(1.05-flex*.75))));n.lambda=0;
     }
     for(let iter=0;iter<4;iter++){
      for(let j=1;j<LEVELS;j++){
       const a=chain[j-1],b=chain[j];delta.subVectors(b.p,a.p);const length=delta.length(),rest=a.target.distanceTo(b.target),compliance=(.0000003+flex*.000002)/(step*step),wa=j===1?0:1;
       if(length>1e-8){const dl=(-(length-rest)-compliance*b.lambda)/(wa+1+compliance);b.lambda+=dl;delta.multiplyScalar(dl/length);b.p.add(delta);if(wa)a.p.sub(delta);}
-      delta.subVectors(b.p,b.target);const bound=h*(.055+.18*flex)*(j/(LEVELS-1));if(delta.length()>bound)b.p.copy(b.target).add(delta.setLength(bound));
+      delta.subVectors(b.p,b.target);const bound=h*(.08+.28*flex)*(j/(LEVELS-1));if(delta.length()>bound)b.p.copy(b.target).add(delta.setLength(bound));
      }
      for(let j=1;j<LEVELS;j++){
       const n=chain[j];

@@ -2,7 +2,7 @@ import {restoreSurfaceUV} from './mira-v2-uv.js?v=11.0';
 import {BodyContacts} from './mira-v2-contact.js?v=11.0';
 import {MiraSocial} from './mira-v2-social.js?v=11.0';
 import {ContactHaptics} from './mira-v2-haptics.js?v=11.0';
-import { createV2Class, repairArmRestData } from "./mira-v2-features.js?v=11.5";
+import { createV2Class, repairArmRestData } from "./mira-v2-features.js?v=12.3";
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { clone as cloneSkinned } from "three/addons/utils/SkeletonUtils.js";
@@ -18,7 +18,7 @@ import { clone as cloneSkinned } from "three/addons/utils/SkeletonUtils.js";
  */
 export const ASSET = new URL("./assets/mira.glb?v=13", import.meta.url).href;
 export const TEXROOT = new URL("./assets/tex/", import.meta.url).href;
-export const TEXVER = "r8";
+export const TEXVER = "r12";
 
 export const FACE_TYPES = [
   { id: "natural", name: "Natural", file: "head.jpg" },
