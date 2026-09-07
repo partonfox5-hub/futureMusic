@@ -1,0 +1,1196 @@
+{
+  "date": "2026-09-06",
+  "revision": 8,
+  "originalFilesUnchanged": 27,
+  "originalEnginePreserved": true,
+  "originalChangedEntrypoints": [
+    "human2/engine.js",
+    "human2/index.html"
+  ],
+  "v1Preserved": true,
+  "gpuRendered": false,
+  "questHardwareTested": false,
+  "gpuLimitation": "Available browser cannot create WebGL: GL_RENDERER = Disabled. Generated program checks and CPU surface plots are not GPU compilation or headset performance measurements.",
+  "externalPaidVoiceApiCalls": 0,
+  "checks": {
+    "actualSkinnedSurfacesAndBehaviors": {
+      "bindSurface": {
+        "arm": 0.0739334718669696,
+        "finger": 0.013725157151839803,
+        "count": 318
+      },
+      "idleSurface": {
+        "arm": 0.07284410992151788,
+        "finger": 0.013149138324079783,
+        "count": 318
+      },
+      "activities": [
+        {
+          "mode": "airSquats",
+          "minAnkle": 0.05219788666276293,
+          "maxArmLength": 0.24980062339431433,
+          "maxGlute": 0.019675995524703862,
+          "maxOtherTissue": 0.0021877672889062394
+        },
+        {
+          "mode": "stretch",
+          "minAnkle": 0.05219788141997006,
+          "maxArmLength": 0.2498006209019428,
+          "maxGlute": 0.01896820950893654,
+          "maxOtherTissue": 0.0022744420175582246
+        },
+        {
+          "mode": "jumpingJacks",
+          "minAnkle": 0.05287341514823196,
+          "maxArmLength": 0.24980060923239072,
+          "maxGlute": 0.03470697140752525,
+          "maxOtherTissue": 0.00578035484460542
+        },
+        {
+          "mode": "march",
+          "minAnkle": 0.05246303645249939,
+          "maxArmLength": 0.24980061311393004,
+          "maxGlute": 0.02261502130717902,
+          "maxOtherTissue": 0.0021974735431165675
+        },
+        {
+          "mode": "sideSteps",
+          "minAnkle": 0.05219788146177207,
+          "maxArmLength": 0.24980060901279924,
+          "maxGlute": 0.018313456230417476,
+          "maxOtherTissue": 0.0006358404941892097
+        },
+        {
+          "mode": "dance",
+          "minAnkle": 0.05219788141558035,
+          "maxArmLength": 0.2498006200795877,
+          "maxGlute": 0.024826398245355954,
+          "maxOtherTissue": 0.0025076088419882787
+        },
+        {
+          "mode": "reach",
+          "minAnkle": 0.05219788146159088,
+          "maxArmLength": 0.24980061303263973,
+          "maxGlute": 0.018377006727014235,
+          "maxOtherTissue": 0.0021623774144067147
+        },
+        {
+          "mode": "heelRaises",
+          "minAnkle": 0.05255444464167586,
+          "maxArmLength": 0.24980061117678437,
+          "maxGlute": 0.01936284835729144,
+          "maxOtherTissue": 0.0005725817776651782
+        }
+      ],
+      "hairstyles": [
+        {
+          "name": "Long layers",
+          "bounds": [
+            0.3117685467004776,
+            0.46487903594970703,
+            0.32189562916755676
+          ],
+          "guides": 100
+        },
+        {
+          "name": "Shoulder length",
+          "bounds": [
+            0.3117685467004776,
+            0.3433414697647095,
+            0.32189562916755676
+          ],
+          "guides": 100
+        },
+        {
+          "name": "Soft bob",
+          "bounds": [
+            0.33626046776771545,
+            0.23420321941375732,
+            0.32189562916755676
+          ],
+          "guides": 100
+        },
+        {
+          "name": "Swept back",
+          "bounds": [
+            0.263409361243248,
+            0.46487903594970703,
+            0.35844480991363525
+          ],
+          "guides": 100
+        },
+        {
+          "name": "Low bun",
+          "bounds": [
+            0.2226538062095642,
+            0.14806485176086426,
+            0.25395456701517105
+          ],
+          "guides": 100
+        },
+        {
+          "name": "Pixie crop",
+          "bounds": [
+            0.2226538062095642,
+            0.11898088455200195,
+            0.21120356768369675
+          ],
+          "guides": 100
+        },
+        {
+          "name": "Light short bob",
+          "bounds": [
+            0.23656967282295227,
+            0.16997277736663818,
+            0.2335663065314293
+          ],
+          "guides": 100
+        },
+        {
+          "name": "High bun",
+          "bounds": [
+            0.2226538062095642,
+            0.16134703159332275,
+            0.22107192128896713
+          ],
+          "guides": 100
+        }
+      ],
+      "hairBrush": {
+        "maxGuideDisplacement": 0.1333121722863324,
+        "capsules": 10,
+        "guideCount": 100,
+        "finalCardSamples": 2086,
+        "penetratingSamples": 0
+      },
+      "faces": [
+        {
+          "name": "Natural",
+          "checksum": 105490.26519670968
+        },
+        {
+          "name": "Reference",
+          "checksum": 105485.54440105455
+        },
+        {
+          "name": "Soft oval",
+          "checksum": 105483.37785680573
+        },
+        {
+          "name": "Heart",
+          "checksum": 105487.63874441366
+        },
+        {
+          "name": "Defined",
+          "checksum": 105491.93221853695
+        }
+      ],
+      "smile": 0.9998977959231065,
+      "tissue": {
+        "firm": {
+          "peak": 0.005501732244575414,
+          "tail": 0.002311162885454298
+        },
+        "soft": {
+          "peak": 0.012251067194323912,
+          "tail": 0.011612795509121136
+        },
+        "bouncy": {
+          "peak": 0.014948758437968128,
+          "tail": 0.040861186028504505
+        },
+        "damped": {
+          "peak": 0.007061173614242972,
+          "tail": 0.008739445506655194
+        }
+      }
+    },
+    "shapeJacobian": [
+      {
+        "options": {
+          "buttHeight": 1,
+          "buttSpacing": 1,
+          "buttAngle": 1
+        },
+        "breast": 0.38,
+        "butt": 0.52,
+        "minDeterminant": 0.2913475097297474,
+        "negativeSamples": 0,
+        "worst": []
+      },
+      {
+        "options": {
+          "buttHeight": 1,
+          "buttSpacing": 1,
+          "buttAngle": 1
+        },
+        "breast": 1,
+        "butt": 1,
+        "minDeterminant": 0.821699540170151,
+        "negativeSamples": 0,
+        "worst": []
+      },
+      {
+        "options": {
+          "buttHeight": 1,
+          "buttSpacing": 1,
+          "buttAngle": 1
+        },
+        "breast": 2.35,
+        "butt": 2.15,
+        "minDeterminant": 0.3817319701476614,
+        "negativeSamples": 0,
+        "worst": []
+      },
+      {
+        "options": {
+          "buttHeight": -1,
+          "buttSpacing": -1,
+          "buttAngle": -1
+        },
+        "breast": 0.38,
+        "butt": 0.52,
+        "minDeterminant": 0.2913475097297474,
+        "negativeSamples": 0,
+        "worst": []
+      },
+      {
+        "options": {
+          "buttHeight": -1,
+          "buttSpacing": -1,
+          "buttAngle": -1
+        },
+        "breast": 1,
+        "butt": 1,
+        "minDeterminant": 0.5403880174570547,
+        "negativeSamples": 0,
+        "worst": []
+      },
+      {
+        "options": {
+          "buttHeight": -1,
+          "buttSpacing": -1,
+          "buttAngle": -1
+        },
+        "breast": 2.35,
+        "butt": 2.15,
+        "minDeterminant": 0.3817319701476614,
+        "negativeSamples": 0,
+        "worst": []
+      },
+      {
+        "options": {
+          "buttHeight": -1,
+          "buttSpacing": 1,
+          "buttAngle": -1,
+          "hips": 1.78,
+          "thigh": 1.88
+        },
+        "breast": 0.38,
+        "butt": 0.52,
+        "minDeterminant": 0.2913697690665193,
+        "negativeSamples": 0,
+        "worst": []
+      },
+      {
+        "options": {
+          "buttHeight": -1,
+          "buttSpacing": 1,
+          "buttAngle": -1,
+          "hips": 1.78,
+          "thigh": 1.88
+        },
+        "breast": 1,
+        "butt": 1,
+        "minDeterminant": 0.9516518306725855,
+        "negativeSamples": 0,
+        "worst": []
+      },
+      {
+        "options": {
+          "buttHeight": -1,
+          "buttSpacing": 1,
+          "buttAngle": -1,
+          "hips": 1.78,
+          "thigh": 1.88
+        },
+        "breast": 2.35,
+        "butt": 2.15,
+        "minDeterminant": 0.3840831280857742,
+        "negativeSamples": 0,
+        "worst": []
+      },
+      {
+        "options": {},
+        "breast": 0.38,
+        "butt": 0.52,
+        "minDeterminant": 0.2913475097297474,
+        "negativeSamples": 0,
+        "worst": []
+      },
+      {
+        "options": {},
+        "breast": 1,
+        "butt": 1,
+        "minDeterminant": 0.947005600981197,
+        "negativeSamples": 0,
+        "worst": []
+      },
+      {
+        "options": {},
+        "breast": 2.35,
+        "butt": 2.15,
+        "minDeterminant": 0.3817319701476614,
+        "negativeSamples": 0,
+        "worst": []
+      },
+      {
+        "options": {
+          "waist": 1.48,
+          "hips": 1.78,
+          "thigh": 1.88,
+          "gap": -0.85
+        },
+        "breast": 0.38,
+        "butt": 0.52,
+        "minDeterminant": 0.32027000576170783,
+        "negativeSamples": 0,
+        "worst": []
+      },
+      {
+        "options": {
+          "waist": 1.48,
+          "hips": 1.78,
+          "thigh": 1.88,
+          "gap": -0.85
+        },
+        "breast": 1,
+        "butt": 1,
+        "minDeterminant": 0.9218972292968657,
+        "negativeSamples": 0,
+        "worst": []
+      },
+      {
+        "options": {
+          "waist": 1.48,
+          "hips": 1.78,
+          "thigh": 1.88,
+          "gap": -0.85
+        },
+        "breast": 2.35,
+        "butt": 2.15,
+        "minDeterminant": 0.5384347289085005,
+        "negativeSamples": 0,
+        "worst": []
+      },
+      {
+        "options": {
+          "waist": 0.62,
+          "hips": 0.68,
+          "thigh": 0.62,
+          "gap": 0.85
+        },
+        "breast": 0.38,
+        "butt": 0.52,
+        "minDeterminant": 0.2692377454509606,
+        "negativeSamples": 0,
+        "worst": []
+      },
+      {
+        "options": {
+          "waist": 0.62,
+          "hips": 0.68,
+          "thigh": 0.62,
+          "gap": 0.85
+        },
+        "breast": 1,
+        "butt": 1,
+        "minDeterminant": 0.5160674919694895,
+        "negativeSamples": 0,
+        "worst": []
+      },
+      {
+        "options": {
+          "waist": 0.62,
+          "hips": 0.68,
+          "thigh": 0.62,
+          "gap": 0.85
+        },
+        "breast": 2.35,
+        "butt": 2.15,
+        "minDeterminant": 0.2637884990989102,
+        "negativeSamples": 0,
+        "worst": []
+      },
+      {
+        "options": {
+          "breastHeight": 1,
+          "breastSpacing": 1,
+          "breastAngle": 1
+        },
+        "breast": 0.38,
+        "butt": 0.52,
+        "minDeterminant": 0.26404075697440554,
+        "negativeSamples": 0,
+        "worst": []
+      },
+      {
+        "options": {
+          "breastHeight": 1,
+          "breastSpacing": 1,
+          "breastAngle": 1
+        },
+        "breast": 1,
+        "butt": 1,
+        "minDeterminant": 0.7429657024475692,
+        "negativeSamples": 0,
+        "worst": []
+      },
+      {
+        "options": {
+          "breastHeight": 1,
+          "breastSpacing": 1,
+          "breastAngle": 1
+        },
+        "breast": 2.35,
+        "butt": 2.15,
+        "minDeterminant": 0.42144437853104144,
+        "negativeSamples": 0,
+        "worst": []
+      },
+      {
+        "options": {
+          "breastHeight": -1,
+          "breastSpacing": -1,
+          "breastAngle": -1
+        },
+        "breast": 0.38,
+        "butt": 0.52,
+        "minDeterminant": 0.1865837983160952,
+        "negativeSamples": 0,
+        "worst": []
+      },
+      {
+        "options": {
+          "breastHeight": -1,
+          "breastSpacing": -1,
+          "breastAngle": -1
+        },
+        "breast": 1,
+        "butt": 1,
+        "minDeterminant": 0.35016099654693283,
+        "negativeSamples": 0,
+        "worst": []
+      },
+      {
+        "options": {
+          "breastHeight": -1,
+          "breastSpacing": -1,
+          "breastAngle": -1
+        },
+        "breast": 2.35,
+        "butt": 2.15,
+        "minDeterminant": 0.2993610848673965,
+        "negativeSamples": 0,
+        "worst": []
+      }
+    ],
+    "breastMaxSoftnessDisplacements": [
+      {
+        "size": 0.38,
+        "combination": 0,
+        "flips": 0,
+        "changed": 1135,
+        "minDot": 0.2908843082104224
+      },
+      {
+        "size": 0.38,
+        "combination": 1,
+        "flips": 0,
+        "changed": 1135,
+        "minDot": 0.29078436910024674
+      },
+      {
+        "size": 0.38,
+        "combination": 2,
+        "flips": 0,
+        "changed": 1137,
+        "minDot": 0.22526738009439523
+      },
+      {
+        "size": 0.38,
+        "combination": 3,
+        "flips": 0,
+        "changed": 1135,
+        "minDot": 0.23584273378627402
+      },
+      {
+        "size": 0.38,
+        "combination": 4,
+        "flips": 0,
+        "changed": 1135,
+        "minDot": 0.5594894824932577
+      },
+      {
+        "size": 0.38,
+        "combination": 5,
+        "flips": 0,
+        "changed": 1135,
+        "minDot": 0.6114918759806122
+      },
+      {
+        "size": 0.38,
+        "combination": 6,
+        "flips": 0,
+        "changed": 1135,
+        "minDot": 0.21873275783303078
+      },
+      {
+        "size": 0.38,
+        "combination": 7,
+        "flips": 0,
+        "changed": 1135,
+        "minDot": 0.22138902356437898
+      },
+      {
+        "size": 1,
+        "combination": 0,
+        "flips": 0,
+        "changed": 1135,
+        "minDot": 0.6334732106930413
+      },
+      {
+        "size": 1,
+        "combination": 1,
+        "flips": 0,
+        "changed": 1135,
+        "minDot": 0.6358430284547372
+      },
+      {
+        "size": 1,
+        "combination": 2,
+        "flips": 0,
+        "changed": 1135,
+        "minDot": 0.4168195520199636
+      },
+      {
+        "size": 1,
+        "combination": 3,
+        "flips": 0,
+        "changed": 1135,
+        "minDot": 0.40066622109659966
+      },
+      {
+        "size": 1,
+        "combination": 4,
+        "flips": 0,
+        "changed": 1135,
+        "minDot": 0.26075336538818367
+      },
+      {
+        "size": 1,
+        "combination": 5,
+        "flips": 0,
+        "changed": 1135,
+        "minDot": 0.2754293044575124
+      },
+      {
+        "size": 1,
+        "combination": 6,
+        "flips": 0,
+        "changed": 1137,
+        "minDot": 0.19120624636642924
+      },
+      {
+        "size": 1,
+        "combination": 7,
+        "flips": 0,
+        "changed": 1137,
+        "minDot": 0.18846696580535774
+      },
+      {
+        "size": 2.35,
+        "combination": 0,
+        "flips": 0,
+        "changed": 1135,
+        "minDot": 0.3054603869570781
+      },
+      {
+        "size": 2.35,
+        "combination": 1,
+        "flips": 0,
+        "changed": 1135,
+        "minDot": 0.35773282094075937
+      },
+      {
+        "size": 2.35,
+        "combination": 2,
+        "flips": 0,
+        "changed": 1137,
+        "minDot": 0.3151472318180475
+      },
+      {
+        "size": 2.35,
+        "combination": 3,
+        "flips": 0,
+        "changed": 1137,
+        "minDot": 0.3090932769970364
+      },
+      {
+        "size": 2.35,
+        "combination": 4,
+        "flips": 0,
+        "changed": 1137,
+        "minDot": 0.468841610127495
+      },
+      {
+        "size": 2.35,
+        "combination": 5,
+        "flips": 0,
+        "changed": 1137,
+        "minDot": 0.48421410081064453
+      },
+      {
+        "size": 2.35,
+        "combination": 6,
+        "flips": 0,
+        "changed": 1137,
+        "minDot": 0.39542298047455227
+      },
+      {
+        "size": 2.35,
+        "combination": 7,
+        "flips": 0,
+        "changed": 1137,
+        "minDot": 0.39298163115661844
+      }
+    ],
+    "buttockMaxSoftnessDisplacements": [
+      {
+        "size": 0.52,
+        "combination": 0,
+        "flips": 0,
+        "changed": 716,
+        "minDot": 0.38110747024495695
+      },
+      {
+        "size": 0.52,
+        "combination": 1,
+        "flips": 0,
+        "changed": 716,
+        "minDot": 0.3699832390734344
+      },
+      {
+        "size": 0.52,
+        "combination": 2,
+        "flips": 0,
+        "changed": 716,
+        "minDot": 0.26020624904508555
+      },
+      {
+        "size": 0.52,
+        "combination": 3,
+        "flips": 0,
+        "changed": 716,
+        "minDot": 0.2585676978491624
+      },
+      {
+        "size": 0.52,
+        "combination": 4,
+        "flips": 0,
+        "changed": 716,
+        "minDot": 0.4712159755742326
+      },
+      {
+        "size": 0.52,
+        "combination": 5,
+        "flips": 0,
+        "changed": 716,
+        "minDot": 0.5836903286929368
+      },
+      {
+        "size": 0.52,
+        "combination": 6,
+        "flips": 0,
+        "changed": 716,
+        "minDot": 0.7068869545236175
+      },
+      {
+        "size": 0.52,
+        "combination": 7,
+        "flips": 0,
+        "changed": 716,
+        "minDot": 0.7026853913439979
+      },
+      {
+        "size": 1,
+        "combination": 0,
+        "flips": 0,
+        "changed": 716,
+        "minDot": 0.3495371509753158
+      },
+      {
+        "size": 1,
+        "combination": 1,
+        "flips": 0,
+        "changed": 716,
+        "minDot": 0.340930761524269
+      },
+      {
+        "size": 1,
+        "combination": 2,
+        "flips": 0,
+        "changed": 716,
+        "minDot": 0.30008318474989465
+      },
+      {
+        "size": 1,
+        "combination": 3,
+        "flips": 0,
+        "changed": 716,
+        "minDot": 0.3324797795683623
+      },
+      {
+        "size": 1,
+        "combination": 4,
+        "flips": 0,
+        "changed": 716,
+        "minDot": 0.5011136663723438
+      },
+      {
+        "size": 1,
+        "combination": 5,
+        "flips": 0,
+        "changed": 716,
+        "minDot": 0.558090697386264
+      },
+      {
+        "size": 1,
+        "combination": 6,
+        "flips": 0,
+        "changed": 716,
+        "minDot": 0.6178202734337447
+      },
+      {
+        "size": 1,
+        "combination": 7,
+        "flips": 0,
+        "changed": 716,
+        "minDot": 0.6150233336328156
+      },
+      {
+        "size": 2.15,
+        "combination": 0,
+        "flips": 0,
+        "changed": 716,
+        "minDot": 0.3207321428315312
+      },
+      {
+        "size": 2.15,
+        "combination": 1,
+        "flips": 0,
+        "changed": 716,
+        "minDot": 0.3143592074929248
+      },
+      {
+        "size": 2.15,
+        "combination": 2,
+        "flips": 0,
+        "changed": 716,
+        "minDot": 0.26260130100742507
+      },
+      {
+        "size": 2.15,
+        "combination": 3,
+        "flips": 0,
+        "changed": 716,
+        "minDot": 0.2580530804481327
+      },
+      {
+        "size": 2.15,
+        "combination": 4,
+        "flips": 0,
+        "changed": 716,
+        "minDot": 0.4892451911822815
+      },
+      {
+        "size": 2.15,
+        "combination": 5,
+        "flips": 0,
+        "changed": 716,
+        "minDot": 0.531831551140597
+      },
+      {
+        "size": 2.15,
+        "combination": 6,
+        "flips": 0,
+        "changed": 716,
+        "minDot": 0.40838686358622067
+      },
+      {
+        "size": 2.15,
+        "combination": 7,
+        "flips": 0,
+        "changed": 716,
+        "minDot": 0.40647151447226554
+      }
+    ],
+    "input": [
+      "Y before connected events",
+      "reversed input source order",
+      "reconnection",
+      "new session",
+      "menu ray selection",
+      "slider pagination",
+      "hairstyle selection"
+    ],
+    "surfaceAndDepthPrograms": 52,
+    "depthGuideOffsets": true,
+    "oldZeroMorphCrashReproduced": true,
+    "v1GeometryIsolationAndRecovery": {
+      "averageActorMs": 0.6868694916666666,
+      "v1GeometryUnchanged": true,
+      "triangleAreasFinite": true,
+      "minArea": 3.353168449626535e-08,
+      "twoHandReleasePassed": true,
+      "legDragState": "falling",
+      "recovered": true,
+      "emotionPersists": true,
+      "historyMessages": 2,
+      "arms": {
+        "L": [
+          1.3936888269269625,
+          0.8839999822553457,
+          -0.026147304276859976
+        ],
+        "R": [
+          0.9956887847645939,
+          1.464000022152275,
+          0.013852681583142228
+        ]
+      }
+    },
+    "sixGaits": [
+      {
+        "gait": 0,
+        "maxFootErrorMetres": 4.774532015171789e-08,
+        "maxSpeed": 0.5499999999999488,
+        "distance": 3.547474538097941
+      },
+      {
+        "gait": 1,
+        "maxFootErrorMetres": 0.0008934506525110263,
+        "maxSpeed": 0.6159999999999427,
+        "distance": 3.973171482669701
+      },
+      {
+        "gait": 2,
+        "maxFootErrorMetres": 4.8309841903351486e-08,
+        "maxSpeed": 0.46199999999995695,
+        "distance": 2.979878612002279
+      },
+      {
+        "gait": 3,
+        "maxFootErrorMetres": 4.6280825600836915e-08,
+        "maxSpeed": 0.6874999999999359,
+        "distance": 4.434343172622433
+      },
+      {
+        "gait": 4,
+        "maxFootErrorMetres": 4.823031812461974e-08,
+        "maxSpeed": 0.3739999999999652,
+        "distance": 2.412282685906597
+      },
+      {
+        "gait": 5,
+        "maxFootErrorMetres": 4.82676073318618e-08,
+        "maxSpeed": 0.5059999999999528,
+        "distance": 3.2636765750501042
+      }
+    ],
+    "skinBoundaryFixture": {
+      "matchedPositions": 138,
+      "featheredVertices": 1619,
+      "maxLinearColorGap": 3.0961882502289484e-08,
+      "realTextureVisualTest": false
+    },
+    "voice": [
+      "quiet speech",
+      "fallback",
+      "echo suppression",
+      "resource cleanup"
+    ],
+    "revision6": {
+      "uv": {
+        "comparedCorners": 84276,
+        "maxError": 2.9802322387695312e-08
+      },
+      "restElbowDegrees": [
+        9.055616473205687,
+        9.070981897546012
+      ],
+      "hair": [
+        {
+          "style": 0,
+          "layers": 2,
+          "vertices": 41798,
+          "triangles": 68224
+        },
+        {
+          "style": 1,
+          "layers": 2,
+          "vertices": 41798,
+          "triangles": 68224
+        },
+        {
+          "style": 2,
+          "layers": 2,
+          "vertices": 41798,
+          "triangles": 68224
+        },
+        {
+          "style": 3,
+          "layers": 2,
+          "vertices": 41798,
+          "triangles": 68224
+        },
+        {
+          "style": 4,
+          "layers": 1,
+          "vertices": 21536,
+          "triangles": 35264
+        },
+        {
+          "style": 5,
+          "layers": 1,
+          "vertices": 20899,
+          "triangles": 34112
+        },
+        {
+          "style": 6,
+          "layers": 1,
+          "vertices": 20899,
+          "triangles": 34112
+        },
+        {
+          "style": 7,
+          "layers": 1,
+          "vertices": 21536,
+          "triangles": 35264
+        }
+      ],
+      "gravity": [
+        [
+          {
+            "name": "L_Breast",
+            "worldDown": 0.018276590253805035
+          },
+          {
+            "name": "R_Breast",
+            "worldDown": 0.018276590253805035
+          },
+          {
+            "name": "L_Glute",
+            "worldDown": 0.017358014733547925
+          },
+          {
+            "name": "R_Glute",
+            "worldDown": 0.017358014733547925
+          }
+        ],
+        [
+          {
+            "name": "L_Breast",
+            "worldDown": 0.04015611569034357
+          },
+          {
+            "name": "R_Breast",
+            "worldDown": 0.04101375121409933
+          },
+          {
+            "name": "L_Glute",
+            "worldDown": 0.04274346203669762
+          },
+          {
+            "name": "R_Glute",
+            "worldDown": 0.042743462036697606
+          }
+        ]
+      ],
+      "torso": {
+        "angle": [
+          0.02582795872247518,
+          0.2788870072287935,
+          0.31999184771303585
+        ],
+        "yaw": 0.4531831214728007
+      },
+      "handResponse": [
+        0,
+        0.03600000000025264,
+        0.12000000000084217
+      ],
+      "haptics": {
+        "pulsesPerSecond": 9,
+        "maxIntensity": 0.059000000000000004,
+        "maxDuration": 18
+      }
+    },
+    "fbxSeamRecovery": {
+      "oldVertices": 14164,
+      "newVertices": 15642,
+      "materials": [
+        {
+          "material": "Std_Skin_Head",
+          "repairedCorners": 586
+        },
+        {
+          "material": "Std_Skin_Body",
+          "repairedCorners": 523
+        },
+        {
+          "material": "Std_Skin_Arm",
+          "repairedCorners": 1756
+        },
+        {
+          "material": "Std_Skin_Leg",
+          "repairedCorners": 1019
+        },
+        {
+          "material": "Std_Nails",
+          "repairedCorners": 218
+        },
+        {
+          "material": "Std_Eyelash",
+          "repairedCorners": 121
+        }
+      ]
+    },
+    "revision7": {
+      "walk": {
+        "error": 0.0568183253520912,
+        "mode": "idle",
+        "autonomy": false
+      },
+      "hipPose": {
+        "minWeight": 0.9988862248521553,
+        "wrists": [
+          [
+            0.19000002483572176,
+            1.0349999650392645,
+            -0.017999973703844097
+          ],
+          [
+            -0.1900000136101624,
+            1.0349999632550895,
+            -0.018000009082138835
+          ]
+        ]
+      },
+      "social": [
+        {
+          "kind": "hug",
+          "framesEmbracing": 676,
+          "minRootGap": 0.32747070563083425,
+          "maxPlanarSpeed": 0.6266090751957802
+        },
+        {
+          "kind": "armAround",
+          "framesEmbracing": 676,
+          "minRootGap": 0.3780861126029662,
+          "maxPlanarSpeed": 0.6264035996355423
+        }
+      ],
+      "overlapRootGap": 0.24050000000000005,
+      "manualInterruptsPartner": true
+    },
+    "revision7Input": {
+      "YBeforeConnected": true,
+      "reversedSources": true,
+      "reconnect": true,
+      "newSession": true,
+      "menuInFront": true,
+      "depthOcclusionDisabled": true,
+      "paginatedSliders": true,
+      "styleChoice": true,
+      "posesOnOpen": true,
+      "twoHandsOnHips": true,
+      "buttockControls": true,
+      "triggerWalk": true,
+      "upwardRayIgnored": true,
+      "rayActorSelection": true
+    },
+    "revision8": {
+      "contactSetupMs": 271.6205110000001,
+      "contactAndActorMs": 10.36733375,
+      "wristPenetration": {
+        "before": 0.07138047503617398,
+        "after": 0.009050480735133024
+      },
+      "scenes": [
+        {
+          "name": "Living room",
+          "obstacles": 8,
+          "seats": 3,
+          "waypoints": 21
+        },
+        {
+          "name": "Jungle",
+          "obstacles": 15,
+          "seats": 2,
+          "waypoints": 8
+        },
+        {
+          "name": "Beach",
+          "obstacles": 15,
+          "seats": 2,
+          "waypoints": 8
+        }
+      ],
+      "sitting": {
+        "hip": [
+          -0.0001503024157136681,
+          0.59,
+          -2.629835451494662
+        ],
+        "feet": [
+          [
+            0.1100000167553334,
+            0.06499999574615067,
+            -2.1800000151209953
+          ],
+          [
+            -0.11000000170913551,
+            0.06500005144771692,
+            -2.180000022080806
+          ]
+        ]
+      },
+      "clothMs": 4.423191799999995,
+      "clothParticles": 252,
+      "clothTriangles": 448,
+      "detached": true,
+      "tornTriangles": 6,
+      "v1Preserved": true,
+      "v1ExactBaselineComparison": true
+    },
+    "revision8Menu": {
+      "frontFacingDots": [
+        1,
+        0.9999999999999999,
+        1,
+        1
+      ],
+      "recenterAfterTurn": true,
+      "sceneTab": true
+    },
+    "revision8Voice": {
+      "basicSpeechWav": true,
+      "wavBytes": 126434,
+      "enginePinned": true,
+      "nativeHardwareTested": false,
+      "whisperHardwareTested": false,
+      "paidProviderCalls": 0
+    }
+  }
+}

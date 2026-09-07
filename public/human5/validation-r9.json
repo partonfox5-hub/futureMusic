@@ -1,0 +1,44 @@
+{
+  "release": "UPDATE 9 phase 5",
+  "baseline": "human2-v2-update8-complete.zip",
+  "preserved_legacy_files": [
+    "mira-core.js",
+    "engine-v1.js",
+    "mira-v1.html",
+    "mira-voice.js",
+    "assets/mira.glb"
+  ],
+  "checks": {
+    "javascript_syntax": "pass",
+    "relative_module_references": "pass",
+    "unique_html_ids": "pass",
+    "adapted_profile_geometry": "pass",
+    "eye_material_and_shader_construction": "pass",
+    "garment_patterns": 11,
+    "house_and_driveway_routes": 5,
+    "destruction_removes_obstacles": "pass",
+    "laser_and_bullet_distinct_impact_states": "pass",
+    "tether_initial_distance_m": 0.42426406871192857,
+    "tether_final_distance_m": 0.2154395983762714,
+    "tether_target_length_m": 0.2,
+    "cut_disables_constraint": "pass",
+    "sever_restore_triangle_indices": "pass",
+    "car_acceleration_braking_and_turn": "pass",
+    "car_panel_dent_tire_puncture_loss_reset": "pass",
+    "car_house_collision_fracture": "pass",
+    "mirror_render_call_state_restore": "pass",
+    "Y_reversed_controller_order_and_press_edge": "pass",
+    "forward_panel_hover_trigger": "pass",
+    "browser_configuration_changes_and_persistence": "pass",
+    "Kokoro_browser_generation_playback_completion": "pass"
+  },
+  "not_verified": [
+    "WebGL GPU shader compilation",
+    "rendered appearance",
+    "Quest frame rate",
+    "Quest microphone",
+    "physical controller haptics feel"
+  ],
+  "browser_graphics": "GL_RENDERER=Disabled",
+  "physics_scope": "Bounded particle, joint IK, pre-fractured geometry and bicycle vehicle approximations; not Chaos/GTA/FEM."
+}

@@ -660,6 +660,14 @@ app.use("/human4", (req, res, next) => {
     humanHeaders(res);
     next();
 });
+app.get(["/human5", "/human5/"], (req, res) => {
+    humanHeaders(res);
+    res.sendFile(path.join(__dirname, "public", "human5", "index.html"));
+});
+app.use("/human5", (req, res, next) => {
+    humanHeaders(res);
+    next();
+});
 app.get(["/humantown", "/humantown/"], (req, res) => {
     humanHeaders(res);
     res.sendFile(path.join(__dirname, "public", "humantown", "index.html"));

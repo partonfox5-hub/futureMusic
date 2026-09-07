@@ -1,0 +1,22 @@
+{
+  "passed": 17,
+  "checks": [
+    "Stick mapping and radial deadzone",
+    "Forward, backward and strafe signs",
+    "Headset-relative motion after rig rotation",
+    "Turning fixes room-scale head position",
+    "Controller ordering, single right controller and diagonal speed",
+    "Simultaneous move and turn; menu blocks motion",
+    "60 metre ground and furniture template reuse",
+    "Correct handle anchors and upright gun / melee orientation in both hands",
+    "Firing and frame recovery preserve grips, recoil pivots at handle",
+    "Throws measure world motion",
+    "Every patch creates exactly N squared 0.6 metre cells",
+    "Walls register collision; destruction and undo remove it",
+    "Floors stay walkable; ceilings do not block ground movement",
+    "Duplicate and out-of-map placement rejected",
+    "Furniture catalog places and undo clears colliders / clothing tokens / seats",
+    "Scene save restores build materials and individual broken squares",
+    "Invalid imported records rejected"
+  ]
+}
