@@ -1,19 +1,19 @@
-import {TownSim} from './mira-town.js?v=h4.4';
+import {TownSim} from './mira-town.js?v=h4.5';
 import {Car} from './mira-v2-car.js?v=h4.4';
 import {Restraints} from './mira-v2-restraints.js?v=h4.1';
 import {Injuries} from './mira-v2-injuries.js?v=h4.1';
 import {Props,WEAPONS} from './mira-v2-props.js?v=h4.1';
 import {RoomLight} from './mira-v2-light.js?v=h4.1';
 import {draft,saveDraft,spawnOptions,OUTFITS,clothingItems} from './mira-v2-catalog.js?v=h4.1';
-import {MiraWorld,SCENES} from './mira-v2-world.js?v=h4.4';
-import {Wardrobe,GARMENTS,CLOTH_COLORS,hueColor} from './mira-v2-wardrobe.js?v=h4.2';
+import {MiraWorld,SCENES} from './mira-v2-world.js?v=h4.5';
+import {Wardrobe,GARMENTS,CLOTH_COLORS,hueColor} from './mira-v2-wardrobe.js?v=h4.5';
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { createVRMenu } from "./mira-vr-menu.js?v=h4.2";
+import { createVRMenu } from "./mira-vr-menu.js?v=h4.5";
 import { EMOTION_NAMES, IDLE_NAMES, WALK_NAMES } from "./mira-v2-features.js?v=h4.1";
 import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
-import { createMiraSystem, SLIDERS, FACE_TYPES, HAIR_COLORS } from "./mira-v2.js?v=h4.4";
+import { createMiraSystem, SLIDERS, FACE_TYPES, HAIR_COLORS } from "./mira-v2.js?v=h4.5";
 import { DEFAULT_PERSONA, miraChat, miraSpeak, startMic, unlockVoice } from "./mira-voice-v2.js?v=h4.1";
 
 import {V2_EXTRA_SLIDERS,FACE_PRESETS,HAIR_STYLES,ACTIVITY_MODES,shapeSliders} from './mira-v2-controls.js?v=h4.1';

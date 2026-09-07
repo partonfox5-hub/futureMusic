@@ -1,7 +1,7 @@
 import {WEAPONS} from './mira-v2-props.js?v=h4.1';
 import {draft,saveDraft,OUTFITS,PERSONAS,clothingItems,setDraftGarment} from './mira-v2-catalog.js?v=h4.1';
 import {SCENES} from './mira-v2-world.js?v=h4.1';
-import {GARMENTS,CLOTH_COLORS,hueColor} from './mira-v2-wardrobe.js?v=h4.2';
+import {GARMENTS,CLOTH_COLORS,hueColor} from './mira-v2-wardrobe.js?v=h4.5';
 import * as THREE from 'three';
 import {SLIDERS,FACE_TYPES} from './mira-v2.js?v=h4.1';
 import {shapeSliders,FACE_PRESETS,HAIR_STYLES,ACTIVITY_MODES,ACTION_LABELS,POSE_LABELS} from './mira-v2-controls.js?v=h4.1';

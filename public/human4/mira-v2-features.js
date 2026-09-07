@@ -298,6 +298,7 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
   }
   endSpeech(){super.endSpeech();if(this.mode==='talk')super.setMode('idle');this.lifeT=7;}
   setMode(mode){
+   if(this.mode===mode){if(mode==='wander')this.autoWander=true;return;}
    this.socialPair?.cancel();this.directedWalk=null;if(this.navigation?.seat)this.navigation.seat.occupant=null;this.navigation=null;if(this.seat){this.seat.occupant=null;this.group.position.y=this.baseY||0;}this.seat=null;
    if(mode==='auto'){this.autonomy=true;this.lifeT=6;this.autoWander=false;this.dest=null;super.setMode('idle');return;}
    if(mode!=='talk')this.autonomy=false;
@@ -432,14 +433,12 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
   }
   tickWalk(moving){
    super.tickWalk(moving);
-   const clips=[{arm:.38,hip:.045,bob:.02,thigh:.06},{arm:.48,hip:.03,bob:.012,thigh:.08},{arm:.28,hip:.055,bob:.025,thigh:.05},{arm:.52,hip:.028,bob:.01,thigh:.1},{arm:.22,hip:.06,bob:.03,thigh:.04},{arm:.34,hip:.05,bob:.018,thigh:.07}];
+   const clips=[{arm:.42,hip:.05,bob:.02},{arm:.5,hip:.034,bob:.014},{arm:.32,hip:.058,bob:.024},{arm:.54,hip:.03,bob:.012},{arm:.26,hip:.062,bob:.028},{arm:.38,hip:.052,bob:.018}];
    const clip=clips[this.gait]||clips[0];
-   this.group.position.y-=.022*this.shape.height*clamp((this.speed-.5)/.18,0,1)* (clip.bob/.02);
-   const s=clamp(this.speed/.6,0,1),p=this.walkT;
-   this.addE('Spine02',this.gait===3?.04*s:.01*s,-Math.sin(p)*clip.hip*s,Math.sin(p*2)*clip.bob*s);
-   this.addE('L_Clavicle',.03*Math.sin(p)*s,0,.02*s);this.addE('R_Clavicle',-.03*Math.sin(p)*s,0,-.02*s);
-   this.addE('L_Thigh',Math.sin(p)*clip.thigh*s,0,0);this.addE('R_Thigh',-Math.sin(p)*clip.thigh*s,0,0);
-   this.addE('L_Upperarm',-Math.sin(p)*clip.arm*.2*s,0,0);this.addE('R_Upperarm',Math.sin(p)*clip.arm*.2*s,0,0);
+   const s=(this.locomo??(moving?1:0))*clamp(this.speed/.55,0,1),p=this.walkT||0;
+   this.addE('Spine02',.012*s,-Math.sin(p)*clip.hip*s,Math.sin(p*2)*clip.bob*s);
+   this.addE('L_Clavicle',.04*Math.sin(p)*s,0,.02*s);this.addE('R_Clavicle',-.04*Math.sin(p)*s,0,-.02*s);
+   this.addE('Hip',0,Math.sin(p)*0.03*s,Math.sin(p*2)*0.02*s);
   }
   wander(dt){
    if(this.woundReact||this.balance.state!=='standing'||this.grabs.size){this.speed=damp(this.speed,0,10,dt);this.pathSpeed=this.speed;return false;}

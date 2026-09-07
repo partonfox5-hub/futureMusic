@@ -401,9 +401,10 @@ export class TownSim {
  steerTo(b,tx,tz){
   if(!b.actor){b.x+=(tx-b.x)*.35;b.z+=(tz-b.z)*.35;return;}
   const dest=new T.Vector3(tx,0,tz),here=b.actor.group.position;
-  if(!b.actor.dest||b.actor.dest.distanceTo(dest)>.9){
-   b.actor.autoWander=true;b.actor.setMode('wander');b.actor.dest=dest.clone();b.actor.directedWalk=dest.clone();
-   if(Math.hypot(here.x-tx,here.z-tz)<9)this.world.walk(b.actor,dest);
+  if(!b.actor.dest||b.actor.dest.distanceTo(dest)>1.15){
+   if(b.actor.mode!=='wander')b.actor.setMode('wander');
+   b.actor.autoWander=true;b.actor.dest=dest.clone();b.actor.directedWalk=dest.clone();
+   if(!b.actor.navigation&&Math.hypot(here.x-tx,here.z-tz)<8)this.world.walk(b.actor,dest);
   }
  }
 

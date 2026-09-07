@@ -2,7 +2,7 @@ import {restoreSurfaceUV} from './mira-v2-uv.js?v=h4.1';
 import {BodyContacts} from './mira-v2-contact.js?v=h4.1';
 import {MiraSocial} from './mira-v2-social.js?v=h4.1';
 import {ContactHaptics} from './mira-v2-haptics.js?v=h4.1';
-import { createV2Class, repairArmRestData } from "./mira-v2-features.js?v=h4.4";
+import { createV2Class, repairArmRestData } from "./mira-v2-features.js?v=h4.5";
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { clone as cloneSkinned } from "three/addons/utils/SkeletonUtils.js";
@@ -585,9 +585,9 @@ class MiraActor {
       }
       const forward = _motion.set(0, 0, 1).applyQuaternion(this.group.quaternion);
       const behind = _ikDir.copy(f.target).sub(this.group.position).dot(forward);
-      if (moving && !activeStep && behind < -0.085 * h && (!this.nextFoot || this.nextFoot === side)) {
+      if (moving && !activeStep && behind < -0.05 * h && (!this.nextFoot || this.nextFoot === side)) {
         f.start.copy(f.target);
-        f.duration = THREE.MathUtils.clamp(0.18 * h / Math.max(0.2, this.speed), 0.22, 0.45);
+        f.duration = THREE.MathUtils.clamp(0.22 * h / Math.max(0.22, this.speed), 0.28, 0.52);
         _motion.set(side === "L" ? 0.085 * h : -0.085 * h, 0, this.speed * f.duration + 0.10 * h);
         this.group.localToWorld(_motion);
         f.end.copy(_motion); f.end.y = this.baseY + f.ankleY;
@@ -599,7 +599,6 @@ class MiraActor {
         const u = f.progress, smooth = u * u * u * (u * (u * 6 - 15) + 10);
         f.target.lerpVectors(f.start, f.end, smooth);
         f.target.y = this.baseY + f.ankleY + Math.sin(Math.PI * u) * 0.04 * h;
-        this.walkT = f.phaseStart + u * Math.PI;
         if (u >= 1) { f.swing = false; this.nextFoot = side === "L" ? "R" : "L"; }
       } else f.target.y = this.baseY + f.ankleY;
       thigh.getWorldPosition(_ikA); calf.getWorldPosition(_ikB); foot.getWorldPosition(_ikC);
@@ -1068,20 +1067,26 @@ class MiraActor {
     if (canMove && this.dest) {
       _motion.copy(this.dest).sub(this.group.position); _motion.y = 0;
       const distance = _motion.length();
-      if (distance < 0.06) this.dest = null;
+      if (distance < 0.10) this.dest = null;
       else {
         const desiredYaw = Math.atan2(_motion.x, _motion.z);
-        const turn = Math.abs(wrapPi(desiredYaw - this.group.rotation.y));
-        targetSpeed = Math.min(0.55 * this.shape.height, distance * 1.5) * Math.max(0.15, Math.cos(turn));
-        this.group.rotation.y = dampAngle(this.group.rotation.y, desiredYaw, 3.5, dt);
+        const dyaw = wrapPi(desiredYaw - this.group.rotation.y);
+        const maxTurn = 1.85 * dt;
+        this.group.rotation.y += THREE.MathUtils.clamp(dyaw, -maxTurn, maxTurn);
+        const turn = Math.abs(dyaw);
+        const arrive = THREE.MathUtils.clamp(distance / 0.55, 0.35, 1);
+        targetSpeed = 0.78 * this.shape.height * arrive * (turn > 0.85 ? 0.62 : 1);
       }
     }
-    this.speed = THREE.MathUtils.damp(this.speed, targetSpeed, 4.5, dt);
-    if (this.speed < 0.008) this.speed = 0;
+    this.speed = THREE.MathUtils.damp(this.speed, targetSpeed, 3.1, dt);
+    if (this.speed < 0.012) this.speed = 0;
+    this.locomo = THREE.MathUtils.damp(this.locomo || 0, this.speed > 0.04 ? 1 : 0, 5.5, dt);
     this.moveVel.set(Math.sin(this.group.rotation.y), 0, Math.cos(this.group.rotation.y)).multiplyScalar(this.speed);
     this.group.position.addScaledVector(this.moveVel, dt);
-    // Footstep state advances arm/gait phase after actual foot contact.
-    return this.speed > 0.02;
+    const stride = 0.70 * this.shape.height;
+    this.gaitPhase = (this.gaitPhase || 0) + this.speed * dt / Math.max(0.2, stride);
+    this.walkT = this.gaitPhase * Math.PI;
+    return this.speed > 0.025;
   }
 
   tick(dt, camPos, tAbs) {
@@ -1092,8 +1097,9 @@ class MiraActor {
     this.tickExpr(dt);
     const speaking = this.tickSpeechFace(dt);
     this.restoreBind(); this.applyShape(); this.tickRest();
-    this.poseAlpha = 1 - Math.exp(-dt * 16);
-    this.group.position.y = this.baseY - this.shape.height * (0.016 + 0.025 * Math.min(1, this.speed / 0.15));
+    this.poseAlpha = 1 - Math.exp(-dt * 7);
+    const bob = Math.abs(Math.sin(this.walkT || 0)) * 0.018 * (this.locomo || 0);
+    this.group.position.y = this.baseY - this.shape.height * (0.008 + bob);
     this.addE("Spine02", Math.sin(tAbs * 1.35) * 0.009, 0, 0);
     if (this.mode === "jumpingJacks") this.tickJumpingJacks(this.modeT);
     else if (this.mode === "airSquats") {

@@ -3,7 +3,7 @@ import {bodyVolumes,projectVolume} from './mira-v2-contact.js?v=h4.1';
 const V=()=>new T.Vector3();
 import {GARMENTS} from './mira-v2-garments.js?v=h4.1';
 export {GARMENTS} from './mira-v2-garments.js?v=h4.1';
-import {garmentPattern,fabricMaterial} from './mira-v2-garment-patterns.js?v=h4.1';
+import {garmentPattern,fabricMaterial} from './mira-v2-garment-patterns.js?v=h4.5';
 export class Cloth {
  constructor(scene,actor,style,surface){
   this.actor=actor;this.style=style;this.n=28;this.rows=9;this.p=[];this.prev=[];this.rest=[];this.anchor=[];this.edges=[];this.faces=[];this.torn=new Set();this.acc=0;this.hold=null;this.detached=false;this.age=0;this.anchorBone=actor.bones[style.top<1.05?'Hip':'Spine02'];this.shapeStamp='';this.surface=surface;this.skinAnchors=[];
@@ -17,26 +17,27 @@ export class Cloth {
  pin(i){return !this.detached&&this.pins[i];}
  begin(point,handle){let best=0,dist=Infinity;this.p.forEach((p,i)=>{const d=p.distanceToSquared(point);if(d<dist){dist=d;best=i;}});this.hold={index:best,handle,offset:this.p[best].clone().sub(point),pullTime:0};}
  detach(){this.detached=true;this.actor=null;this.hold&&(this.hold.pullTime=0);}
- skinPoint(i){const ref=this.skinAnchors[i];if(!ref)return this.anchorBone.localToWorld(this.anchor[i].clone());const tri=new T.Triangle();this.surface.vertex(ref.cache,ref.ids[0],tri.a);this.surface.vertex(ref.cache,ref.ids[1],tri.b);this.surface.vertex(ref.cache,ref.ids[2],tri.c);return tri.a.clone().multiplyScalar(ref.bary.x).addScaledVector(tri.b,ref.bary.y).addScaledVector(tri.c,ref.bary.z).addScaledVector(tri.getNormal(V()),.012);}
+ skinPoint(i){const ref=this.skinAnchors[i];if(!ref)return this.anchorBone.localToWorld(this.anchor[i].clone());const tri=new T.Triangle();this.surface.vertex(ref.cache,ref.ids[0],tri.a);this.surface.vertex(ref.cache,ref.ids[1],tri.b);this.surface.vertex(ref.cache,ref.ids[2],tri.c);return tri.a.clone().multiplyScalar(ref.bary.x).addScaledVector(tri.b,ref.bary.y).addScaledVector(tri.c,ref.bary.z).addScaledVector(tri.getNormal(V()),.022);}
+ glued(i){return !this.detached&&(this.pin(i)||(i<this.fitted&&this.style.kind!=='drape'&&this.hold?.index!==i));}
  tick(dt,actors,hands,world){
   this.acc=Math.min(.04,this.acc+dt);const step=1/90,caps=actors.flatMap(a=>a.version==='v2'?bodyVolumes(a).map(c=>({...c,actor:a})):[]).concat(hands||[]);
-  while(this.acc>=step){this.age+=step;for(let i=0;i<this.p.length;i++){const p=this.p[i];if(this.pin(i)){p.copy(this.skinPoint(i));this.prev[i].copy(p);continue;}const old=p.clone(),v=p.clone().sub(this.prev[i]).multiplyScalar(.975);if(v.length()>.05)v.setLength(.05);p.add(v);p.y-=9.81*step*step;this.prev[i].copy(old);}this.edges.forEach(e=>e.lambda=0);
-   for(let pass=0;pass<(this.fitted?2:3);pass++){
-    for(const e of this.edges){if(e.broken)continue;const p=this.p[e.a],q=this.p[e.b],d=q.clone().sub(p),l=d.length();if(l<1e-8)continue;const wa=this.pin(e.a)?0:1,wb=this.pin(e.b)?0:1,alpha=e.compliance/(step*step),dl=(-(l-e.len)-alpha*e.lambda)/(wa+wb+alpha);e.lambda+=dl;d.multiplyScalar(dl/l);p.addScaledVector(d,-wa);q.addScaledVector(d,wb);}
+  const follow=1-Math.exp(-step*16);
+  while(this.acc>=step){this.age+=step;for(let i=0;i<this.p.length;i++){const p=this.p[i];if(this.glued(i)){p.copy(this.skinPoint(i));this.prev[i].copy(p);continue;}if(!this.detached&&i<this.fitted&&this.hold?.index!==i){p.lerp(this.skinPoint(i),follow);this.prev[i].copy(p);continue;}const old=p.clone(),v=p.clone().sub(this.prev[i]).multiplyScalar(.94);if(v.length()>.04)v.setLength(.04);p.add(v);p.y-=9.81*step*step;this.prev[i].copy(old);}this.edges.forEach(e=>e.lambda=0);
+   const passes=this.style.kind==='surface'?1:2;
+   for(let pass=0;pass<passes;pass++){
+    for(const e of this.edges){if(e.broken)continue;const p=this.p[e.a],q=this.p[e.b],d=q.clone().sub(p),l=d.length();if(l<1e-8)continue;const wa=this.glued(e.a)?0:1,wb=this.glued(e.b)?0:1;if(!wa&&!wb)continue;const alpha=e.compliance/(step*step),dl=(-(l-e.len)-alpha*e.lambda)/(wa+wb+alpha);e.lambda+=dl;d.multiplyScalar(dl/l);p.addScaledVector(d,-wa);q.addScaledVector(d,wb);}
     if(this.hold){const target=this.hold.handle.getWorldPosition(V()).add(this.hold.offset);this.p[this.hold.index].lerp(target,.88);}
-    for(let i=0;i<this.p.length;i++){if(this.pin(i))continue;const p=this.p[i];if(!this.detached&&i<this.fitted&&this.hold?.index!==i)p.lerp(this.skinPoint(i),.48);for(const c of caps)if(!(i<this.fitted&&!this.detached&&c.actor===this.actor))projectVolume(p,.009,c);
-     const skin=!this.detached&&this.skinAnchors[i];if(skin){const tri=new T.Triangle();this.surface.vertex(skin.cache,skin.ids[0],tri.a);this.surface.vertex(skin.cache,skin.ids[1],tri.b);this.surface.vertex(skin.cache,skin.ids[2],tri.c);const q=tri.a.clone().multiplyScalar(skin.bary.x).addScaledVector(tri.b,skin.bary.y).addScaledVector(tri.c,skin.bary.z),n=tri.getNormal(V()),delta=p.clone().sub(q),d=delta.dot(n);if(delta.length()<.14&&d<.014){p.addScaledVector(n,.014-d);if(pass===0)this.actor.contactSoft({name:skin.bone.name,kind:/Breast/.test(skin.bone.name)?'breast':/Butt/.test(skin.bone.name)?'glute':'chest'},n,Math.min(.014-d,.008),0);}}
+    for(let i=0;i<this.p.length;i++){if(this.glued(i))continue;const p=this.p[i];for(const c of caps)if(!(i<this.fitted&&!this.detached&&c.actor===this.actor))projectVolume(p,.009,c);
+     const skin=!this.detached&&this.skinAnchors[i];if(skin){const tri=new T.Triangle();this.surface.vertex(skin.cache,skin.ids[0],tri.a);this.surface.vertex(skin.cache,skin.ids[1],tri.b);this.surface.vertex(skin.cache,skin.ids[2],tri.c);const q=tri.a.clone().multiplyScalar(skin.bary.x).addScaledVector(tri.b,skin.bary.y).addScaledVector(tri.c,skin.bary.z),n=tri.getNormal(V()),delta=p.clone().sub(q),d=delta.dot(n);if(delta.length()<.16&&d<.02){p.addScaledVector(n,.02-d);if(pass===0)this.actor.contactSoft({name:skin.bone.name,kind:/Breast/.test(skin.bone.name)?'breast':/Butt/.test(skin.bone.name)?'glute':'chest'},n,Math.min(.02-d,.008),0);}}
      p.y=Math.max(.012,p.y);world?.projectSphere(p,.009);}
    }
    if(this.hold){const i=this.hold.index,target=this.hold.handle.getWorldPosition(V()).add(this.hold.offset),rest=this.actor?.group.localToWorld(this.rest[i].clone());if(rest&&target.distanceTo(rest)>.40)this.hold.pullTime+=step;else this.hold.pullTime=0;if(this.hold.pullTime>.28)this.detach();
-    // Tear only under deliberate continued pulling. Remove the affected faces
-    // as well as constraints, so disconnected edges cannot stretch triangles.
     for(const e of this.edges){if(e.broken||e.compliance>1e-5||e.a!==i&&e.b!==i)continue;if(this.p[e.a].distanceTo(this.p[e.b])>e.len*2.35&&target.distanceTo(this.p[i])>.06){e.broken=true;this.torn.add(e.a+','+e.b);this.faces=this.faces.filter(f=>!(f.includes(e.a)&&f.includes(e.b)));this.mesh.geometry.setIndex(this.faces.flat());}}
    }
    this.acc-=step;
-  }this.sync();
+  }this._nSync=(this._nSync||0)+1;this.sync(this._nSync%3===0);
  }
- sync(){const g=this.mesh.geometry;this.p.forEach((p,i)=>p.toArray(g.attributes.position.array,i*3));g.attributes.position.needsUpdate=true;g.computeVertexNormals();g.computeBoundingSphere();}
+ sync(normals=true){const g=this.mesh.geometry;this.p.forEach((p,i)=>p.toArray(g.attributes.position.array,i*3));g.attributes.position.needsUpdate=true;if(normals)g.computeVertexNormals();g.computeBoundingSphere();}
  dispose(scene){scene.remove(this.mesh);this.mesh.geometry.dispose();this.mesh.material.dispose();}
 }
 export const CLOTH_COLORS=[
@@ -158,6 +159,6 @@ export class Wardrobe {
   this.open+=(this.openTarget-this.open)*(1-Math.exp(-dt*6));
   this.leftDoor.rotation.y=this.open*-1.15;this.rightDoor.rotation.y=this.open*1.15;
   this.picker.visible=this.pickerOpen&&this.open>.35;
-  for(const c of [...this.clothes]){if(c.actor&&!this.system.actors.includes(c.actor)){this.remove(c);continue;}if(c.actor&&c.shapeStamp!==c.actor.geomState&&!c.hold){this.equip(c.actor,c.style);continue;}if(c.actor)c.surface.begin();c.tick(dt,this.system.actors,this.system.hands.colliders,this.world);}const loose=this.clothes.filter(c=>c.detached&&!c.hold);while(loose.length>4)this.remove(loose.shift());
+  for(const c of [...this.clothes]){if(c.actor&&!this.system.actors.includes(c.actor)){this.remove(c);continue;}if(c.actor&&c.shapeStamp!==c.actor.geomState&&!c.hold){c._refitWait=(c._refitWait||0)+dt;if(c._refitWait>.45){this.equip(c.actor,c.style);continue;}}else if(c)c._refitWait=0;if(c.actor)c.surface.begin();c.tick(dt,this.system.actors,this.system.hands.colliders,this.world);}const loose=this.clothes.filter(c=>c.detached&&!c.hold);while(loose.length>4)this.remove(loose.shift());
  }
 }
