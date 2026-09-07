@@ -1,0 +1,15 @@
+import assert from 'node:assert/strict';
+import * as T from 'three';
+import {createTown,createNPC,advanceClock} from '../sim/state.js';
+import {stick,moveXR,placePanel} from '../mira-xr-controls.js';
+import {Props} from '../mira-v2-props.js';
+const s=createTown();assert.equal(s.npcs.length,3);assert.equal(s.plots.length,25);while(s.npcs.length<50)createNPC(s,{});assert.throws(()=>createNPC(s,{}));advanceClock(s,60);assert.equal(s.minutes,504);
+assert.deepEqual(stick({axes:[1,1,0,0]}),{x:0,y:0});
+const rig=new T.Group(),camera=new T.PerspectiveCamera();rig.add(camera);const left={handedness:'left',gamepad:{axes:[0,0,0,-1]}},right={handedness:'right',gamepad:{axes:[0,0,0,0]}};const renderer={miraHead:{p:new T.Vector3(.3,1.6,.2),q:new T.Quaternion()},xr:{isPresenting:true,getSession:()=>({inputSources:[left,right]})}};
+moveXR(renderer,rig,camera,1);assert.ok(Math.abs(rig.position.z+1.45)<1e-6);assert.equal(rig.position.x,0);
+rig.position.set(0,0,0);rig.rotation.y=Math.PI/2;moveXR(renderer,rig,camera,1);assert.ok(Math.abs(rig.position.x+1.45)<1e-6);
+left.gamepad.axes[3]=0;rig.position.set(0,0,0);rig.rotation.y=0;rig.updateMatrixWorld(true);const head=renderer.miraHead.p.clone().applyMatrix4(rig.matrixWorld);right.gamepad.axes[2]=1;moveXR(renderer,rig,camera,1);assert.ok(rig.rotation.y<0);assert.ok(head.distanceTo(renderer.miraHead.p.clone().applyMatrix4(rig.matrixWorld))<1e-6);
+const panel=new T.Object3D();placePanel(panel,renderer,rig,camera);const relative=panel.position.clone().sub(head);assert.ok(Math.abs(Math.hypot(relative.x,relative.z)-.8)<1e-6);
+let dropped=false;const releaseStub={renderer:{xr:{getSession:()=>({inputSources:[{handedness:'left',gamepad:{buttons:[{}, {pressed:true}]}}]})}},system:{hands:{handedness:['left']}},drop(){dropped=true;}};Props.prototype.release.call(releaseStub,0);assert.equal(dropped,false);releaseStub.renderer.xr.getSession=()=>({inputSources:[]});Props.prototype.release.call(releaseStub,0);assert.equal(dropped,true);
+const item={id:'laser',holder:0,reloading:0,ammo:3,lastFire:-2,data:{reach:.28},group:new T.Group()};const held=new Map([[0,item]]);Props.prototype.fire.call({time:1,held,hit:()=>null,beam:()=>{},system:{hands:{haptics:{contact(){}}}}},item);assert.equal(item.ammo,2);assert.equal(item.holder,0);assert.equal(held.get(0),item);
+console.log('PASS: state cap, plots, clock, joystick axes, forward movement, heading, smooth turn pivot, panel distance, held-grip release guard, firing retains grip');

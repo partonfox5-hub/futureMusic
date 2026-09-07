@@ -1,0 +1,1 @@
+PASS: state cap, plots, clock, joystick axes, forward movement, heading, smooth turn pivot, panel distance, held-grip release guard, firing retains grip

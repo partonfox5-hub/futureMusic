@@ -1,0 +1,10 @@
+{
+  "checkpoint": 2,
+  "javascriptFilesChecked": 44,
+  "errors": [],
+  "simulationTests": 15,
+  "priorMovementGripRegressions": "passed",
+  "questTested": false,
+  "browserTested": false,
+  "productionReady": false
+}

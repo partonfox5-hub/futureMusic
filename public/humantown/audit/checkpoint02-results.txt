@@ -1,0 +1,21 @@
+{
+  "checkpoint": 2,
+  "passed": 15,
+  "tests": [
+    "All five reservoirs drain; comfort follows environment",
+    "Pause stops needs, clock and orders",
+    "Starvation kills at 60 real seconds at every supported speed",
+    "Crossing zero counts only time spent at zero; eating resets timer",
+    "Bladder accident damages hygiene and never cancels player order",
+    "Ordered walk is simulation-driven, queued wait starts afterward",
+    "Autonomy cannot replace or append ahead of player orders",
+    "Relief thresholds gate starting; crossing threshold does not abort active relief",
+    "Permissions prevent use; two NPCs cannot claim one slot",
+    "Unavailable objects fail with a message and continue the queue",
+    "Death and cancellation release object slots",
+    "Empty food inventory cannot advertise an available meal",
+    "State round trip is JSON-safe during an active order",
+    "Simulation agrees at 30, 72 and 120 render fps",
+    "Invalid targets and queue overflow are rejected without cancelling valid orders"
+  ]
+}
