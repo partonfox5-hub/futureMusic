@@ -1,4 +1,4 @@
-import {Builder,FURNITURE,SURFACES} from './mira-v2-builder.js?v=11.0';
+import {Builder,FURNITURE,SURFACES} from './mira-v2-builder.js?v=11.3';
 import {SmoothLocomotion} from './mira-v2-locomotion.js?v=11.0';
 import {Car} from './mira-v2-car.js?v=11.0';
 import {Restraints} from './mira-v2-restraints.js?v=11.0';
@@ -10,7 +10,7 @@ import {MiraWorld,SCENES} from './mira-v2-world.js?v=11.0';
 import {Wardrobe,GARMENTS} from './mira-v2-wardrobe.js?v=11.2';
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { createVRMenu } from "./mira-vr-menu.js?v=11.2";
+import { createVRMenu } from "./mira-vr-menu.js?v=11.3";
 import { snapshot, savePreset, loadPreset, applyPreset, listPresets, lastPresetName, downloadPreset } from "./mira-v2-preset.js?v=11.0";
 import { unlockSfx } from "./mira-v2-sfx.js?v=11.0";
 import { EMOTION_NAMES, IDLE_NAMES, WALK_NAMES } from "./mira-v2-features.js?v=11.2";
@@ -398,7 +398,7 @@ function tick(time,frame) {
   desktopMove(dt);
   if(!XR_ON()&&orbit.enabled)orbit.update();
   vrMenu.tick();
-  if(builder.active){if(XR_ON())builder.preview(props.ray(builder.controller));else{if(controls?.isLocked)pickRay.setFromCamera(new THREE.Vector2(),camera);builder.preview(pickRay.ray);}}
+  if(builder.active){if(XR_ON()){builder.tick(renderer.xr.getSession());builder.preview(props.ray(builder.controller));}else{if(controls?.isLocked)pickRay.setFromCamera(new THREE.Vector2(),camera);builder.preview(pickRay.ray);}}
   const buildStatus=document.getElementById('buildStatus');if(buildStatus)buildStatus.textContent=builder.status;
   tickLocomotion(dt);
   if(XR_ON()&&!props.vehicle.driving){const eye=camera.getWorldPosition(new THREE.Vector3()),before=eye.clone();world.project(eye,.18,.10,1.5);eye.x=THREE.MathUtils.clamp(eye.x,-world.extent,world.extent);eye.z=THREE.MathUtils.clamp(eye.z,-world.extent,world.extent);rig.position.add(eye.sub(before));}

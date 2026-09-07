@@ -1,4 +1,4 @@
-import {FURNITURE,SURFACES} from './mira-v2-builder.js?v=11.0';
+import {FURNITURE,SURFACES} from './mira-v2-builder.js?v=11.3';
 import {WEAPONS} from './mira-v2-props.js?v=11.2';
 import {draft,saveDraft,OUTFITS,PERSONAS,clothingItems,setDraftGarment} from './mira-v2-catalog.js?v=11.0';
 import {SCENES} from './mira-v2-world.js?v=11.0';
@@ -36,11 +36,11 @@ export function createVRMenu({scene,renderer,camera,system,spawn,onSync,world,wa
    }
    cycle('Rotation',740,['0°','90°','180°','270°'],()=>Math.round(b.yaw*180/Math.PI)+'°',x=>b.yaw=parseInt(x)*Math.PI/180);
    if(b.kind!=='Furniture'&&b.kind!=='Floor')cycle(b.kind==='Wall'?'Wall base height':'Ceiling underside height',880,Array.from({length:11},(_,i)=>(i*.6).toFixed(1)+' m'),()=>b.height.toFixed(1)+' m',x=>b.height=parseFloat(x));
-   button('START PLACING',40,1020,455,70,()=>{if(b.start(lastController))toggle();});
+   button('CLOSE & PLACE',40,1020,455,70,()=>toggle());
    button('STOP',515,1020,467,70,()=>{b.stop();draw();});
    button('UNDO LAST',40,1110,455,70,()=>{b.undo();draw();});
    button('SAVE SCENE',515,1110,467,70,()=>{notice='Saved '+saveScene();draw();});
-   ctx.font='24px sans-serif';ctx.fillStyle='#c9d6e2';ctx.fillText('Aim at ground + trigger. Green: ready; red: blocked.',40,1220);
+   ctx.font='22px sans-serif';ctx.fillStyle='#c9d6e2';ctx.fillText('Close Y to equip. Trigger places. Right stick click rotates.',40,1220);
   }else if(page===8){const car=props.vehicle;button(car.driving?'EXIT CAR':'ENTER DRIVER SEAT',40,325,942,80,()=>{car.driving?car.exit():car.enter();draw();});button('REPAIR / RESET CAR',40,445,942,80,()=>{car.reset();draw();});button('REAR VIEW MIRROR '+(car.mirrorEnabled?'ON':'OFF'),40,565,942,80,()=>{car.mirrorEnabled=!car.mirrorEnabled;draw();});ctx.fillStyle='#dce8f2';ctx.font='29px sans-serif';for(const [i,text] of ['Grip the steering-wheel rim to steer.','Left trigger: accelerator.','Left X: brake. Release trigger to coast.','Y opens this panel. Opening it applies the brake.','Punctures reduce grip; damaged wheels can detach.','Mirrors render at 15 Hz to limit the extra cost.'].entries())ctx.fillText(text,40,750+i*57);
   }else if(page===7){
    const r=props.restraints,l=r.selected;cycle('Attachment',325,['Flexible tether','Short fixed link'],()=>r.mode==='rope'?'Flexible tether':'Short fixed link',x=>r.mode=x==='Flexible tether'?'rope':'fuse');button('PLACE TWO ANCHORS',40,445,600,70,()=>{r.start();notice='Close Y, point + trigger twice';draw();});button('CANCEL',660,445,322,70,()=>{r.cancel();draw();});
@@ -136,7 +136,12 @@ export function createVRMenu({scene,renderer,camera,system,spawn,onSync,world,wa
   ctx.font='24px sans-serif';ctx.fillStyle='#acbecf';ctx.fillText((page===9?world.builder.status:notice)||system.voiceStatus||'Trigger: select / walk  ·  Grip: grab body',40,1280);for(let i=0;i<2;i++){const item=items[hover[i]];if(item){ctx.strokeStyle='#ffe5a0';ctx.lineWidth=6;ctx.strokeRect(item.x-3,item.y-3,item.w+6,item.h+6);}const p=cursor[i];if(p){ctx.beginPath();ctx.arc(p.x,p.y,8,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill();}}tex.needsUpdate=true;
  }
  function placeInFront(){const c=camera;c.updateWorldMatrix(true,false);const eye=c.getWorldPosition(new THREE.Vector3()),forward=new THREE.Vector3(0,0,-1).applyQuaternion(c.getWorldQuaternion(new THREE.Quaternion()));forward.y=0;if(forward.lengthSq()<.001)forward.set(0,0,-1).applyQuaternion(camera.getWorldQuaternion(new THREE.Quaternion())).setY(0);forward.normalize();panel.position.copy(eye).addScaledVector(forward,1.1);panel.position.y-=.10;panel.lookAt(eye);panel.updateMatrixWorld(true);}
- function toggle(){open=!open;panel.visible=open&&renderer.xr.isPresenting;drag=[null,null];if(open){world.builder?.stop();placeInFront();draw();}}
+ function toggle(){
+  const closing=open,fromBuild=page===9;
+  open=!open;panel.visible=open&&renderer.xr.isPresenting;drag=[null,null];
+  if(open){world.builder?.stop();placeInFront();draw();}
+  else if(fromBuild&&world.builder){const right=system.hands.handedness.indexOf('right');world.builder.start(right>=0?right:lastController);}
+ }
 
  const wristCanvas=document.createElement('canvas');wristCanvas.width=256;wristCanvas.height=128;const wc=wristCanvas.getContext('2d');wc.fillStyle='#18384d';wc.fillRect(0,0,256,128);wc.strokeStyle='#9bd6ff';wc.lineWidth=8;wc.strokeRect(4,4,248,120);wc.fillStyle='#ffffff';wc.font='bold 48px sans-serif';wc.textAlign='center';wc.fillText('MENU',128,82);
  const wristTex=new THREE.CanvasTexture(wristCanvas);wristTex.colorSpace=THREE.SRGBColorSpace;

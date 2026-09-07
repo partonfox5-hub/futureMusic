@@ -16,7 +16,7 @@ export function layout(kind,n,p,yaw=0,height=0){
 const cellKey=c=>[c.center.x,c.center.y,c.center.z,c.size.x,c.size.y,c.size.z].map(n=>n.toFixed(3)).join('/');
 export class Builder {
  constructor(world,wardrobe,props){
-  Object.assign(this,{world,wardrobe,props});world.builder=this;this.kind='Wall';this.size=1;this.surface='Plaster';this.furniture=FURNITURE[0];this.yaw=0;this.height=0;this.active=false;this.records=[];this.status='Choose a piece, then start placing.';this.controller=1;this.maps=new Map();
+  Object.assign(this,{world,wardrobe,props});world.builder=this;this.kind='Wall';this.size=1;this.surface='Plaster';this.furniture=FURNITURE[0];this.yaw=0;this.height=0;this.active=false;this.records=[];this.status='Choose a piece. Close Y to place it.';this.controller=1;this.maps=new Map();this.stickClick=false;
   this.ghost=new T.Group();world.scene.add(this.ghost);this.ghost.visible=false;
   this.previewMaterial=new T.MeshBasicMaterial({color:0x72dcb0,transparent:true,opacity:.38,depthWrite:false});
   this.previewGeometry=new T.BoxGeometry(1,1,1);
@@ -28,15 +28,48 @@ export class Builder {
   this.records=[];
  }
  setKind(kind){this.kind=kind;this.height=kind==='Ceiling'?3:0;}
- start(i=1){if(!this.world.root.visible){this.status='Building is available in the visible VR scene.';return false;}this.controller=i;this.active=true;this.status='Aim at ground, trigger to place. Open Y to finish.';return true;}
- stop(){this.active=false;this.ghost.visible=false;this.status='Placement stopped.';}
+ start(i=1){if(!this.world.root.visible){this.status='Building is available in the visible VR scene.';return false;}this.controller=i;this.active=true;this.status=this.kind+' ready · trigger places · right stick click rotates · Y finishes';return true;}
+ stop(){this.active=false;this.ghost.visible=false;if(!/ready|Rotated|Placed|Blocked|Aim/.test(this.status))this.status='Placement stopped.';}
+ isWall(part){return part&&!part.broken&&part.size.y>=CELL*.8&&Math.min(part.size.x,part.size.z)<CELL*.4;}
+ wallSide(part){return part.size.x<part.size.z;}
+ rotate(){this.yaw=(this.yaw+Math.PI/2)%(Math.PI*2);this.status='Rotated '+Math.round(this.yaw*180/Math.PI)+'° · right stick click to rotate';const btn=typeof document!=='undefined'&&document.getElementById('buildRotate');if(btn)btn.textContent='ROTATE '+Math.round(this.yaw*180/Math.PI)+'°';}
+ tick(session){if(!this.active||!session)return;const right=[...session.inputSources].find(s=>s.handedness==='right'&&!s.hand);const click=!!right?.gamepad?.buttons[3]?.pressed;if(click&&!this.stickClick)this.rotate();this.stickClick=click;}
  target(ray){
-  // Ground projection keeps wall bases on the same grid when pointing at existing walls.
-  const p=ray.direction.y<-.015?ray.intersectPlane(new T.Plane(new T.Vector3(0,1,0),0),new T.Vector3()):null;
-  if(!p||ray.origin.distanceTo(p)>18)return null;
-  p.x=Math.round(p.x/CELL)*CELL;p.z=Math.round(p.z/CELL)*CELL;return p;
+  const rc=new T.Raycaster();rc.ray.copy(ray);rc.far=18;
+  const pick=this.world.pickables.filter(m=>m.visible&&m.userData.chunks);
+  const hit=pick.length?rc.intersectObjects(pick,false).find(h=>!h.object.userData.chunks?.[h.instanceId]?.broken):null;
+  const part=hit?.object.userData.chunks?.[hit.instanceId];
+  let p;
+  if(this.isWall(part))p=new T.Vector3(part.p.x,0,part.p.z);
+  else{
+   p=ray.direction.y<-.015?ray.intersectPlane(new T.Plane(new T.Vector3(0,1,0),0),new T.Vector3()):null;
+   if(!p||ray.origin.distanceTo(p)>18)return null;
+  }
+  p.x=Math.round(p.x/CELL)*CELL;p.z=Math.round(p.z/CELL)*CELL;p._wall=this.isWall(part)?part:null;return p;
  }
- specification(p){return {kind:this.kind,n:this.size,surface:this.surface,furniture:this.furniture,x:p.x,z:p.z,yaw:this.yaw,height:['Furniture','Floor'].includes(this.kind)?0:this.height};}
+ specification(p){const spec={kind:this.kind,n:this.size,surface:this.surface,furniture:this.furniture,x:p.x,z:p.z,yaw:this.yaw,height:['Furniture','Floor'].includes(this.kind)?0:this.height};if(spec.kind==='Wall')this.snapStack(spec);if(spec.kind==='Ceiling')this.snapCeiling(spec,p._wall);return spec;}
+ snapStack(spec){
+  const side=Math.round(spec.yaw/(Math.PI/2))%2!==0;
+  const foot=[],seen=new Set();
+  for(const c of this.cells({...spec,height:0})){const k=c.center.x.toFixed(3)+'/'+c.center.z.toFixed(3);if(seen.has(k))continue;seen.add(k);foot.push(c);}
+  let top=-Infinity,overlap=false;
+  for(const part of this.world.fractures.parts){
+   if(!this.isWall(part))continue;
+   if(!foot.some(c=>Math.abs(c.center.x-part.p.x)<(c.size.x+part.size.x)/2-.02&&Math.abs(c.center.z-part.p.z)<(c.size.z+part.size.z)/2-.02))continue;
+   if(this.wallSide(part)!==side)return;
+   overlap=true;top=Math.max(top,part.p.y+part.size.y/2);
+  }
+  if(overlap&&top>-Infinity)spec.height=Math.round(top/CELL)*CELL;
+ }
+ snapCeiling(spec,wall){
+  let top=wall?wall.p.y+wall.size.y/2:-Infinity;
+  const reach=spec.n*CELL+CELL;
+  for(const part of this.world.fractures.parts){
+   if(!this.isWall(part))continue;
+   if(Math.abs(part.p.x-spec.x)<reach&&Math.abs(part.p.z-spec.z)<reach)top=Math.max(top,part.p.y+part.size.y/2);
+  }
+  if(top>-Infinity)spec.height=Math.round(top/CELL)*CELL;
+ }
  cells(spec){return layout(spec.kind,spec.n,new T.Vector3(spec.x,0,spec.z),spec.yaw,spec.height);}
  occupiedCells(){
   if(this.occupancyRevision!==this.world.revision||this.occupancyCount!==this.world.fractures.parts.length){
