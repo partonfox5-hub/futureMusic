@@ -1,18 +1,19 @@
-import {Car} from './mira-v2-car.js?v=h4.1';
+import {TownSim} from './mira-town.js?v=h4.4';
+import {Car} from './mira-v2-car.js?v=h4.4';
 import {Restraints} from './mira-v2-restraints.js?v=h4.1';
 import {Injuries} from './mira-v2-injuries.js?v=h4.1';
 import {Props,WEAPONS} from './mira-v2-props.js?v=h4.1';
 import {RoomLight} from './mira-v2-light.js?v=h4.1';
 import {draft,saveDraft,spawnOptions,OUTFITS,clothingItems} from './mira-v2-catalog.js?v=h4.1';
-import {MiraWorld,SCENES} from './mira-v2-world.js?v=h4.1';
-import {Wardrobe,GARMENTS} from './mira-v2-wardrobe.js?v=h4.1';
+import {MiraWorld,SCENES} from './mira-v2-world.js?v=h4.4';
+import {Wardrobe,GARMENTS,CLOTH_COLORS,hueColor} from './mira-v2-wardrobe.js?v=h4.2';
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { createVRMenu } from "./mira-vr-menu.js?v=h4.1";
+import { createVRMenu } from "./mira-vr-menu.js?v=h4.2";
 import { EMOTION_NAMES, IDLE_NAMES, WALK_NAMES } from "./mira-v2-features.js?v=h4.1";
 import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
-import { createMiraSystem, SLIDERS, FACE_TYPES, HAIR_COLORS } from "./mira-v2.js?v=h4.1";
+import { createMiraSystem, SLIDERS, FACE_TYPES, HAIR_COLORS } from "./mira-v2.js?v=h4.4";
 import { DEFAULT_PERSONA, miraChat, miraSpeak, startMic, unlockVoice } from "./mira-voice-v2.js?v=h4.1";
 
 import {V2_EXTRA_SLIDERS,FACE_PRESETS,HAIR_STYLES,ACTIVITY_MODES,shapeSliders} from './mira-v2-controls.js?v=h4.1';
@@ -97,6 +98,7 @@ document.getElementById("enterAR").onclick=()=>enterXr(true);
 const mira = createMiraSystem({ scene, renderer, camera, xrOn: XR_ON, rig });
 const world=new MiraWorld(scene,mira);mira.setEnvironment(world);floor.visible=false;const wardrobe=new Wardrobe(scene,mira,mira.contacts,world);mira.setWardrobe(wardrobe);
 const props=new Props({scene,system:mira,world,wardrobe,camera,renderer,rig});world.interactions=props;props.restraints=new Restraints(props);props.injuries=new Injuries(props);props.vehicle=new Car(props,{orbit,keys,controls});
+const town=new TownSim({scene,world,mira,wardrobe,props,renderer,camera,rig,keys});
 const roomLight=new RoomLight(scene,renderer,rig);
 let voiceSessionStart=()=>{},voiceSessionEnd=()=>{};
 banner("LOADING HUMAN 4…");
@@ -104,9 +106,13 @@ mira.load(
   (x) => { if (x.total && loadEl) loadEl.textContent = "LOADING  " + Math.round((x.loaded / x.total) * 100) + "%"; },
   () => {
     if (loadEl) loadEl.remove();
-    banner("Drag to orbit · wheel to zoom · Grab body or Shift-drag · VR: left stick move, right stick turn, A jump, Y menu");
+    banner("Drag to orbit · wheel to zoom · Grab body or Shift-drag · VR: left stick move, right stick turn, A jump, Y menu, X furniture");
+    const starter=mira.actors[0]||mira.spawn(spawnOptions(new THREE.Vector3(-2.4,0,-2.85)));
+    starter.group.position.set(-2.4,0,-2.85);starter.hairColor=0;starter.displayName=draft.name||'Mira';starter.autoWander=false;starter.dest=null;starter.setMode?.('idle');starter.applyLooks?.();
+    for(const id of clothingItems())wardrobe.equip(starter,GARMENTS.find(g=>g.id===id));
+    town.attachPlayer(starter);
     syncHud();document.dispatchEvent(new Event("mira:ready"));
-    if (new URLSearchParams(location.search).has("debug")) window.human4 = { mira, scene, renderer, camera, rig, keys, orbit, world, wardrobe, props };
+    if (new URLSearchParams(location.search).has("debug")) window.human4 = { mira, scene, renderer, camera, rig, keys, orbit, world, wardrobe, props, town };
   },
   (e) => { banner("LOAD FAILED — " + (e && e.message ? e.message : "glb")); console.error(e); }
 );
@@ -165,13 +171,23 @@ function selected() { return mira.selected; }
 
 function bindHud() {
  document.getElementById('enterCar').onclick=()=>props.vehicle.enter();document.getElementById('exitCar').onclick=()=>props.vehicle.exit();document.getElementById('repairCar').onclick=()=>props.vehicle.reset();document.getElementById('mirrorOn').onchange=e=>props.vehicle.mirrorEnabled=e.target.checked;
+ document.getElementById('orderSleep')?.addEventListener('click',()=>{const b=town.brainOf(selected())||town.playerBrain;if(b){b.queue.push({act:'sleep',use:town.homeUses.find(u=>u.kind==='sleep'),fromPlayer:true});town.status='Ordered '+b.name+' to sleep';}});
+ document.getElementById('orderEat')?.addEventListener('click',()=>{const b=town.brainOf(selected())||town.playerBrain;if(b){b.queue.push({act:'eat',use:town.homeUses.find(u=>u.kind==='eat'),fromPlayer:true});town.status='Ordered '+b.name+' to eat';}});
+ document.getElementById('orderWork')?.addEventListener('click',()=>{const b=town.brainOf(selected())||town.playerBrain;if(b){b.queue.push({act:'work',use:town.jobUse(b),fromPlayer:true});town.status='Ordered '+b.name+' to work';}});
+ document.getElementById('buyPaint')?.addEventListener('click',()=>town.buyPaint());
+ document.getElementById('buyWheels')?.addEventListener('click',()=>town.buyWheels());
 
  document.getElementById('placeLink').onclick=()=>props.restraints.start();document.getElementById('cancelLink').onclick=()=>props.restraints.cancel();document.getElementById('linkMode').onchange=e=>props.restraints.mode=e.target.value;document.getElementById('linkSelect').onchange=e=>props.restraints.selected=props.restraints.links.find(l=>l.id===Number(e.target.value));document.getElementById('linkLength').oninput=e=>props.restraints.setLength(e.target.value);document.getElementById('linkStrength').oninput=e=>props.restraints.setStrength(e.target.value);document.getElementById('cutLink').onclick=()=>props.restraints.cut();document.getElementById('removeLink').onclick=()=>props.restraints.remove();document.getElementById('injuryEnabled').onchange=e=>props.injuries.enabled=e.target.checked;document.getElementById('allowSever').onchange=e=>props.injuries.allowSever=e.target.checked;document.getElementById('healActor').onclick=()=>props.injuries.heal(selected());
 
  const weaponSelect=document.getElementById('weaponSelect');weaponSelect.replaceChildren(...Object.entries(WEAPONS).map(([id,w])=>new Option(w.name,id)));document.getElementById('equipWeapon').onclick=()=>props.equip(weaponSelect.value);document.getElementById('dropWeapon').onclick=()=>props.drop('desktop');document.getElementById('resetHouse').onclick=()=>world.setScene('Living room');
  document.getElementById("spawnNpc").onclick=spawnConfigured;document.getElementById("copyNpc").onclick=copyConfiguration;document.getElementById("foveation").oninput=e=>renderer.xr.setFoveation(Number(e.target.value));document.getElementById("hapticGain").oninput=e=>mira.hands.haptics.gain=Number(e.target.value);
- const sceneSelect=document.getElementById('sceneSelect');sceneSelect.replaceChildren(...SCENES.map(x=>new Option(x,x)));sceneSelect.value=world.name;sceneSelect.onchange=()=>{world.setScene(sceneSelect.value);world.obstacle(-3.3,2.4,1.3,.6,0,2);};
- const wardrobeSelect=document.getElementById('wardrobeSelect');wardrobeSelect.replaceChildren(...GARMENTS.map(x=>new Option(x.name,x.id)));document.getElementById('wearBtn').onclick=()=>wardrobe.equip(selected(),GARMENTS.find(x=>x.id===wardrobeSelect.value));
+ const sceneSelect=document.getElementById('sceneSelect');sceneSelect.replaceChildren(...SCENES.map(x=>new Option(x,x)));sceneSelect.value=world.name;sceneSelect.onchange=()=>{world.setScene(sceneSelect.value);wardrobe.syncObstacle();};
+ const wardrobeSelect=document.getElementById('wardrobeSelect');wardrobeSelect.replaceChildren(...GARMENTS.map(x=>new Option(x.name,x.id)));
+ const wardrobeColor=document.getElementById('wardrobeColor');if(wardrobeColor){wardrobeColor.replaceChildren(...CLOTH_COLORS.map((c,i)=>new Option(c.name,String(i))),new Option('Custom hue','hue'));}
+ function wardrobeDye(){const v=wardrobeColor?.value;if(v==='hue')return hueColor(Number(document.getElementById('wardrobeHue')?.value||20));return CLOTH_COLORS[Number(v)||0]?.hex;}
+ document.getElementById('wearBtn').onclick=()=>wardrobe.equip(selected(),{...GARMENTS.find(x=>x.id===wardrobeSelect.value),color:wardrobeDye()??GARMENTS.find(x=>x.id===wardrobeSelect.value)?.color});
+ document.getElementById('spawnWardrobe')?.addEventListener('click',()=>{const g=GARMENTS.find(x=>x.id===wardrobeSelect.value);wardrobe.addArticle(g,wardrobeDye()??g.color);const st=document.getElementById('wardrobeStatus');if(st)st.textContent=wardrobe.status;});
+ document.getElementById('wardrobeHue')?.addEventListener('input',()=>{if(wardrobeColor)wardrobeColor.value='hue';});
 
   for(const slider of V2_EXTRA_SLIDERS){
     const container=document.getElementById(slider.section==='shape'?'placementControls':slider.section==='skin'?'skinControls':'tissueControls'),label=document.createElement('label'),input=document.createElement('input');label.htmlFor='s_'+slider.key;label.textContent=slider.label;input.id='s_'+slider.key;input.type='range';input.value=slider.value;container.append(label,input);
@@ -371,27 +387,34 @@ const _fwd = new THREE.Vector3();
 const _right = new THREE.Vector3();
 const _turnOffset = new THREE.Vector3(), _turnedOffset = new THREE.Vector3(), _up = new THREE.Vector3(0, 1, 0);
 const _locQ = new THREE.Quaternion();
-let locVx = 0, locVz = 0, locVy = 0, locYaw = 0, jumpHeld = false;
+const _locEul = new THREE.Euler();
+let locVx = 0, locVz = 0, locVy = 0, jumpHeld = false;
+function axisAt(a, i) {
+  const v = a[i];
+  return v == null || !Number.isFinite(v) ? 0 : v;
+}
 function stickAxes(gp) {
   if (!gp?.axes) return { x: 0, y: 0 };
   const a = gp.axes;
-  if (a.length >= 4) return { x: a[2] || 0, y: a[3] || 0 };
-  if (a.length >= 2) return { x: a[0] || 0, y: a[1] || 0 };
-  return { x: 0, y: 0 };
+  const x0 = axisAt(a, 0), y0 = axisAt(a, 1);
+  const x1 = axisAt(a, 2), y1 = axisAt(a, 3);
+  const mag01 = Math.hypot(x0, y0);
+  const mag23 = Math.hypot(x1, y1);
+  if (a.length >= 4 && mag23 >= mag01) return { x: x1, y: y1 };
+  return { x: x0, y: y0 };
 }
-function analog2(x, y, dead = 0.08) {
+function analog2(x, y, dead = 0.12) {
   const m = Math.hypot(x, y);
   if (m < dead) return { x: 0, y: 0 };
   const n = Math.min(1, (m - dead) / (1 - dead));
-  const g = n * n * (3 - 2 * n);
-  const s = g / m;
+  const s = n / m;
   return { x: x * s, y: y * s };
 }
-function analog1(x, dead = 0.08) {
+function analog1(x, dead = 0.12) {
   const ax = Math.abs(x);
   if (ax < dead) return 0;
   const n = Math.min(1, (ax - dead) / (1 - dead));
-  return Math.sign(x) * n * n * (3 - 2 * n);
+  return Math.sign(x) * n;
 }
 function applyYaw(angle) {
   if (!angle) return;
@@ -402,7 +425,7 @@ function applyYaw(angle) {
   rig.rotation.y += angle;
 }
 function resetLocomotion() {
-  locVx = 0; locVz = 0; locVy = 0; locYaw = 0; jumpHeld = false;
+  locVx = 0; locVz = 0; locVy = 0; jumpHeld = false;
   if (rig.position.y) rig.position.y = 0;
 }
 function tickLocomotion(dt) {
@@ -410,52 +433,49 @@ function tickLocomotion(dt) {
   const driving = !!props.vehicle.driving;
   const blocked = driving || vrMenu.isOpen;
   const session = renderer.xr.getSession();
-  let mx = 0, mz = 0, yaw = 0, wantJump = false;
+  let mx = 0, mz = 0, yaw = 0, wantJump = false, aDown = false, sawRight = false;
   if (session && !blocked) {
     const cam = renderer.xr.getCamera();
-    _fwd.set(0, 0, -1).applyQuaternion(cam.getWorldQuaternion(_locQ));
-    _fwd.y = 0;
-    if (_fwd.lengthSq() > 1e-6) {
-      _fwd.normalize();
-      _right.set(-_fwd.z, 0, _fwd.x);
-    } else {
-      _fwd.set(0, 0, -1);
-      _right.set(1, 0, 0);
-    }
-    let idx = 0, sawRight = false, aDown = false;
+    cam.updateWorldMatrix(true, false);
+    _locEul.setFromQuaternion(cam.getWorldQuaternion(_locQ), "YXZ");
+    const heading = _locEul.y;
+    _fwd.set(-Math.sin(heading), 0, -Math.cos(heading));
+    _right.set(Math.cos(heading), 0, -Math.sin(heading));
+    const pads = [];
     for (const src of session.inputSources) {
-      idx += 1;
       if (src.hand || !src.gamepad) continue;
-      const hand = src.handedness || "";
-      const isRight = hand === "right" || (hand !== "left" && idx === 2);
-      const st = stickAxes(src.gamepad);
-      if (!isRight) {
-        const a = analog2(st.x, st.y);
-        mx += a.x;
-        mz += a.y;
-      } else {
-        sawRight = true;
-        yaw += analog1(st.x);
-        aDown = !!(src.gamepad.buttons?.[4]?.pressed);
-      }
+      pads.push(src);
+    }
+    const left = pads.find(s => s.handedness === "left") || pads.find(s => s.handedness !== "right") || pads[0];
+    const right = pads.find(s => s.handedness === "right") || (pads.length > 1 && pads.find(s => s !== left)) || null;
+    if (left?.gamepad) {
+      const raw = stickAxes(left.gamepad);
+      const st = analog2(raw.x, raw.y);
+      mx = st.x;
+      mz = st.y;
+    }
+    if (right?.gamepad) {
+      sawRight = true;
+      const st = stickAxes(right.gamepad);
+      yaw = analog1(st.x);
+      aDown = !!(right.gamepad.buttons?.[4]?.pressed);
     }
     if (sawRight) {
       if (aDown && !jumpHeld) wantJump = true;
       jumpHeld = aDown;
-    } else {
-      jumpHeld = false;
-    }
+    } else jumpHeld = false;
   }
   const grounded = rig.position.y <= 0.012;
-  const speed = grounded ? 1.7 : 1.15;
-  const targetVx = blocked ? 0 : (_fwd.x * -mz + _right.x * mx) * speed;
-  const targetVz = blocked ? 0 : (_fwd.z * -mz + _right.z * mx) * speed;
-  const targetYaw = blocked ? 0 : -yaw * 2.45;
-  const blendMove = 1 - Math.exp(-dt * (grounded ? 10 : 6));
-  const blendYaw = 1 - Math.exp(-dt * 12);
+  const speed = grounded ? 1.85 : 1.2;
+  let wishX = _fwd.x * -mz + _right.x * mx;
+  let wishZ = _fwd.z * -mz + _right.z * mx;
+  const mag = Math.hypot(wishX, wishZ);
+  if (mag > 1) { wishX /= mag; wishZ /= mag; }
+  const targetVx = blocked ? 0 : wishX * speed;
+  const targetVz = blocked ? 0 : wishZ * speed;
+  const blendMove = 1 - Math.exp(-dt * (grounded ? 18 : 9));
   locVx += (targetVx - locVx) * blendMove;
   locVz += (targetVz - locVz) * blendMove;
-  locYaw += (targetYaw - locYaw) * blendYaw;
   if (wantJump && grounded && !blocked) locVy = 4.55;
   locVy -= 15 * dt;
   rig.position.x += locVx * dt;
@@ -465,7 +485,7 @@ function tickLocomotion(dt) {
     rig.position.y = 0;
     locVy = 0;
   }
-  applyYaw(locYaw * dt);
+  if (!blocked && yaw) applyYaw(-yaw * 2.15 * dt);
 }
 
 function desktopMove(dt) {
@@ -480,7 +500,7 @@ function desktopMove(dt) {
 }
 
 const clock = new THREE.Clock();
-let fpsFrames = 0, fpsLast = performance.now();
+let fpsFrames = 0, fpsLast = performance.now(), lastFps = 60;
 function tick(time,frame) {
  roomLight.tick(frame);
   const rawDt = clock.getDelta();
@@ -491,7 +511,7 @@ function tick(time,frame) {
   vrMenu.tick();
   tickLocomotion(dt);
   if(XR_ON()&&!props.vehicle.driving){const eye=renderer.xr.getCamera().getWorldPosition(new THREE.Vector3()),before=eye.clone();world.project(eye,.18,rig.position.y,1.6,dt);rig.position.add(eye.sub(before));}
-  if (mira.ready) {mira.tick(dt, clock.elapsedTime, keys);props.tick(dt);}
+  if (mira.ready) {mira.tick(dt, clock.elapsedTime, keys);props.tick(dt);town.tick(dt, lastFps);}
   const propStatus=document.getElementById("propStatus");if(propStatus&&propStatus.textContent!==props.status)propStatus.textContent=props.status;
   const ls=document.getElementById('linkSelect'),stamp=props.restraints.links.map(l=>l.id+':'+l.broken).join('/');if(ls.dataset.stamp!==stamp){ls.replaceChildren(new Option('Select link',''),...props.restraints.links.map(l=>new Option('Link '+l.id+(l.broken?' · cut':''),l.id)));ls.dataset.stamp=stamp;}ls.value=props.restraints.selected?.id||'';if(document.activeElement?.id!=='linkLength')document.getElementById('linkLength').value=props.restraints.selected?.length||1;if(document.activeElement?.id!=='linkStrength')document.getElementById('linkStrength').value=props.restraints.selected?.strength||30;document.getElementById('linkStatus').textContent=props.restraints.status;
   document.getElementById('carStatus').textContent=props.vehicle.driving?Math.round(props.vehicle.velocity.length()*3.6)+' km/h · '+props.vehicle.status:props.vehicle.status;
@@ -501,6 +521,7 @@ function tick(time,frame) {
     const fps = (fpsFrames * 1000) / (now - fpsLast);
     fpsFrames = 0;
     fpsLast = now;
+    lastFps = fps;
     statsEl.textContent = `MIRA  ${fps.toFixed(0)} fps  ·  ${mira.actors.length} actors  ·  ${renderer.info.render.calls} calls`;
     const a=selected();document.getElementById("emoLab").textContent=a?.emotion?`${a.emotion.name.toUpperCase()} · ${a.balance.state}`:"V1";
   }

@@ -1,5 +1,5 @@
 import {Destruction} from './mira-v2-destruction.js?v=h4.1';
-import {buildHouse} from './mira-v2-house.js?v=h4.1';
+import {buildHouse} from './mira-v2-house.js?v=h4.2';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
 import * as T from 'three';
 const V=()=>new T.Vector3(),clamp=T.MathUtils.clamp;
@@ -41,7 +41,7 @@ export class MiraWorld {
  }
  setScene(name){
   if(!SCENES.includes(name))return;for(const a of this.system.actors){a.seat=null;a.navigation=null;a.dest=null;a.directedWalk=null;a.group.position.y=a.baseY||0;this.system.social.cancel(a);a.setMode('auto');}
-  this.root.traverse(o=>{o.geometry?.dispose();if(o.material){for(const m of Array.isArray(o.material)?o.material:[o.material])m.dispose();}});this.root.clear();this.obstacles=[];this.seats=[];this.pickables=[];this.bodies=[];this.grid=null;this.name=name;this.extent=name==='Living room'?11.6:4.18;this.revision++;this.fractures.clear();
+  this.root.traverse(o=>{o.geometry?.dispose();if(o.material){for(const m of Array.isArray(o.material)?o.material:[o.material])m.dispose();}});this.root.clear();this.obstacles=[];this.seats=[];this.pickables=[];this.bodies=[];this.houseDoors=[];this.grid=null;this.name=name;this.extent=name==='Living room'?48:4.18;this.revision++;this.fractures.clear();
   const jungle=name==='Jungle',beach=name==='Beach';this.scene.background=new T.Color(jungle?0x637f76:beach?0xaedced:0xc2b5a3);this.scene.fog=new T.Fog(this.scene.background,9,24);
   this.box(0,-.16,0,9,.3,9,jungle?0x6e7350:beach?0xe7d2a3:0xa58663,jungle||beach?null:'floor');
   if(!jungle&&!beach){
@@ -61,12 +61,19 @@ export class MiraWorld {
  nearby(p,r=.25){if(!this.grid){this.grid=new Map();for(const o of this.obstacles)for(let x=Math.floor(o.x-o.w/2);x<=Math.floor(o.x+o.w/2);x++)for(let z=Math.floor(o.z-o.d/2);z<=Math.floor(o.z+o.d/2);z++){const key=x+'/'+z;if(!this.grid.has(key))this.grid.set(key,[]);this.grid.get(key).push(o);}}const out=new Set();for(let x=Math.floor(p.x-r);x<=Math.floor(p.x+r);x++)for(let z=Math.floor(p.z-r);z<=Math.floor(p.z+r);z++)for(const o of this.grid.get(x+'/'+z)||[])out.add(o);return [...out];}
  blocked(p,r=.25,ignore=null){return this.nearby(p,r).some(o=>o!==ignore&&o.y<1.65&&o.y+o.h>.09&&Math.abs(p.x-o.x)<o.w/2+r&&Math.abs(p.z-o.z)<o.d/2+r);}
  path(start,goal,r=.25){
-  const step=this.extent>5?.30:.22,n=Math.floor(this.extent*2/step)+1,toCell=p=>[clamp(Math.round((p.x+this.extent)/step),0,n-1),clamp(Math.round((p.z+this.extent)/step),0,n-1)],at=(x,z)=>new T.Vector3(x*step-this.extent,0,z*step-this.extent),id=(x,z)=>z*n+x,[sx,sz]=toCell(start),[gx,gz]=toCell(goal),end=id(gx,gz),begin=id(sx,sz);
-  if(this.blocked(goal,r))return null;const open=[begin],cost=new Map([[begin,0]]),prev=new Map(),closed=new Set();let found=false;
-  while(open.length){open.sort((a,b)=>cost.get(a)+Math.hypot(a%n-gx,Math.floor(a/n)-gz)-cost.get(b)-Math.hypot(b%n-gx,Math.floor(b/n)-gz));const cur=open.shift();if(cur===end){found=true;break;}if(closed.has(cur))continue;closed.add(cur);const x=cur%n,z=Math.floor(cur/n);
-   for(const [dx,dz] of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]]){const xx=x+dx,zz=z+dz;if(xx<0||zz<0||xx>=n||zz>=n||this.blocked(at(xx,zz),r)||dx&&dz&&(this.blocked(at(x+dx,z),r)||this.blocked(at(x,z+dz),r)))continue;const k=id(xx,zz),c=cost.get(cur)+Math.hypot(dx,dz);if(c<(cost.get(k)??Infinity)){cost.set(k,c);prev.set(k,cur);open.push(k);}}
+  const goalV=goal.clone().setY(0),startV=start.clone().setY(0),span=startV.distanceTo(goalV);
+  if(this.blocked(goalV,r))return null;
+  if(span<.14)return [goalV];
+  if(span>9.5)return [goalV];
+  const pad=2.2,minX=Math.min(startV.x,goalV.x)-pad,maxX=Math.max(startV.x,goalV.x)+pad,minZ=Math.min(startV.z,goalV.z)-pad,maxZ=Math.max(startV.z,goalV.z)+pad;
+  const step=.34,nx=Math.max(4,Math.ceil((maxX-minX)/step)+1),nz=Math.max(4,Math.ceil((maxZ-minZ)/step)+1);
+  const at=(x,z)=>new T.Vector3(minX+x*step,0,minZ+z*step),toCell=p=>[clamp(Math.round((p.x-minX)/step),0,nx-1),clamp(Math.round((p.z-minZ)/step),0,nz-1)],id=(x,z)=>z*nx+x;
+  const [sx,sz]=toCell(startV),[gx,gz]=toCell(goalV),end=id(gx,gz),begin=id(sx,sz);
+  const open=[begin],cost=new Map([[begin,0]]),prev=new Map(),closed=new Set();let found=false,iters=0,cap=nx*nz*2;
+  while(open.length&&iters++<cap){let best=0,bestS=Infinity;for(let i=0;i<open.length;i++){const a=open[i],s=(cost.get(a)||0)+Math.hypot(a%nx-gx,Math.floor(a/nx)-gz);if(s<bestS){bestS=s;best=i;}}const cur=open.splice(best,1)[0];if(cur===end){found=true;break;}if(closed.has(cur))continue;closed.add(cur);const x=cur%nx,z=Math.floor(cur/nx);
+   for(const [dx,dz] of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]]){const xx=x+dx,zz=z+dz;if(xx<0||zz<0||xx>=nx||zz>=nz||this.blocked(at(xx,zz),r)||dx&&dz&&(this.blocked(at(x+dx,z),r)||this.blocked(at(x,z+dz),r)))continue;const k=id(xx,zz),c=(cost.get(cur)||0)+Math.hypot(dx,dz);if(c<(cost.get(k)??Infinity)){cost.set(k,c);prev.set(k,cur);open.push(k);}}
   }
-  if(!found)return null;const points=[goal.clone().setY(0)];for(let k=end;k!==begin;k=prev.get(k)){if(k===undefined)return null;points.unshift(at(k%n,Math.floor(k/n)));}return points.filter((p,i)=>i===points.length-1||p.distanceTo(start)>.08);
+  if(!found)return [goalV];const points=[goalV];for(let k=end;k!==begin;k=prev.get(k)){if(k===undefined)return [goalV];points.unshift(at(k%nx,Math.floor(k/nx)));}return points.filter((p,i)=>i===points.length-1||p.distanceTo(startV)>.1);
  }
  walk(actor,target,seat=null){if(!actor||actor.version!=='v2')return false;const start=actor.seat?actor.seat.approach:actor.group.position;const path=this.path(start,target,.22*Math.sqrt(actor.shape.hips));if(!path?.length)return false;if(seat?.occupant&&seat.occupant!==actor)return false;if(actor.seat){actor.group.position.copy(actor.seat.approach);actor.seat.occupant=null;}actor.seat=null;actor.group.position.y=actor.baseY||0;if(!actor.walkTo(path[0]))return false;actor.navigation={points:path,index:0,goal:target.clone(),seat};if(seat)seat.occupant=actor;return true;}
  command(ray,actor){const rc=new T.Raycaster();rc.ray.copy(ray);const ground=ray.intersectPlane(new T.Plane(new T.Vector3(0,1,0),0),V());rc.far=ground?ray.origin.distanceTo(ground):30;const hit=rc.intersectObjects(this.pickables,false).find(h=>h.object.visible&&!h.object.userData.chunks?.[h.instanceId]?.broken);if(!hit)return null;const seat=hit.object.userData.seat;if(seat)return this.walk(actor,seat.approach,seat)?'seating':'blocked';return 'blocked';}

@@ -23,5 +23,8 @@ Each checkpoint is a zip on the Desktop plus this folder. If a session dies, res
 | 13 | `h4-cp13-lod` | 50 sim brains, one-plot body load, FPS saver |
 | 14 | `h4-cp14-motion` | Clip library / less stiff walk |
 | 15 | `h4-cp15-polish` | Starting Mira house+roof+doors, black hair spawn defaults |
+| 16 | `h4-cp16-second-pass` | Second-pass patches: path/fps, pie/place clicks, 100 jobs, inventory, computer job, wheels, walk clips |
 
-Zip naming: `human4-checkpoint-NN-<id>.zip` on the Desktop.
+Zip naming: `human4-checkpoint-NN-<id>.zip` on the Desktop. Extra latest archive: `human4-checkpoint-16-h4-cp16-second-pass.zip`.
+
+Locomotion fix (Quest left stick look-direction walk, right stick smooth turn) shipped with checkpoint 02 and is in every later zip. **Do not push until the owner asks.** Human3 is frozen.

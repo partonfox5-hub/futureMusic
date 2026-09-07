@@ -2,7 +2,7 @@ import {restoreSurfaceUV} from './mira-v2-uv.js?v=h4.1';
 import {BodyContacts} from './mira-v2-contact.js?v=h4.1';
 import {MiraSocial} from './mira-v2-social.js?v=h4.1';
 import {ContactHaptics} from './mira-v2-haptics.js?v=h4.1';
-import { createV2Class, repairArmRestData } from "./mira-v2-features.js?v=h4.1";
+import { createV2Class, repairArmRestData } from "./mira-v2-features.js?v=h4.4";
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { clone as cloneSkinned } from "three/addons/utils/SkeletonUtils.js";
@@ -545,12 +545,16 @@ class MiraActor {
   tickWalk(moving) {
     const amount = THREE.MathUtils.clamp(this.speed / 0.55, 0, 1);
     const phase = this.walkT;
-    this.addE("L_Upperarm", -Math.sin(phase) * 0.15 * amount, 0, 0);
-    this.addE("R_Upperarm", Math.sin(phase) * 0.15 * amount, 0, 0);
-    this.addE("L_Forearm", 0.08 * (1 - Math.sin(phase)) * amount, 0, 0);
-    this.addE("R_Forearm", 0.08 * (1 + Math.sin(phase)) * amount, 0, 0);
-    this.addE("Hip", 0, Math.sin(phase) * 0.025 * amount, Math.sin(phase) * 0.018 * amount);
-    this.addE("Spine02", 0, -Math.sin(phase) * 0.025 * amount, 0);
+    const swing = 0.38 * amount;
+    this.addE("L_Upperarm", -Math.sin(phase) * swing, 0.04 * amount, -0.08 * amount);
+    this.addE("R_Upperarm", Math.sin(phase) * swing, -0.04 * amount, 0.08 * amount);
+    this.addE("L_Forearm", 0.18 * (1 - Math.sin(phase)) * amount, 0, 0);
+    this.addE("R_Forearm", 0.18 * (1 + Math.sin(phase)) * amount, 0, 0);
+    this.addE("L_Clavicle", Math.sin(phase) * 0.04 * amount, 0, 0);
+    this.addE("R_Clavicle", -Math.sin(phase) * 0.04 * amount, 0, 0);
+    this.addE("Hip", 0, Math.sin(phase) * 0.045 * amount, Math.sin(phase * 2) * 0.03 * amount);
+    this.addE("Spine02", 0.02 * amount, -Math.sin(phase) * 0.04 * amount, 0);
+    this.addE("Head", 0, Math.sin(phase) * 0.03 * amount, 0);
   }
   aimBone(bone, child, target) {
     bone.getWorldPosition(_ikA);
@@ -1055,8 +1059,9 @@ class MiraActor {
       this.miraWalk -= dt;
       if (this.miraWalk < 0 && !this.dest) {
         this.miraWalk = 5 + Math.random() * 5;
-        this.dest = new THREE.Vector3(THREE.MathUtils.clamp(this.group.position.x + (Math.random() - 0.5) * 1.6, -2.4, 2.4), 0,
-          THREE.MathUtils.clamp(this.group.position.z + (Math.random() - 0.5) * 1.6, -2.4, 2.4));
+        const lim = this.townRange || 2.4, reach = this.townRange ? 4 : 1.6;
+        this.dest = new THREE.Vector3(THREE.MathUtils.clamp(this.group.position.x + (Math.random() - 0.5) * reach, -lim, lim), 0,
+          THREE.MathUtils.clamp(this.group.position.z + (Math.random() - 0.5) * reach, -lim, lim));
       }
     }
     let targetSpeed = 0;
@@ -1267,14 +1272,15 @@ class PlayerHands {
     this.renderer=renderer;this.active=[false,false];this.colliders=[];this.haptics=new ContactHaptics(renderer);
     this.ctrl=[renderer.xr.getController(0),renderer.xr.getController(1)];
     this.grip=[renderer.xr.getControllerGrip(0),renderer.xr.getControllerGrip(1)];
-    this.squeeze=[0,0];this.hands=[];this.handedness=['none','none'];this.prevReady=[false,false];
+    this.squeeze=[0,0];this.trigger=[0,0];this.hands=[];this.handedness=['none','none'];this.prevReady=[false,false];
     this.prevPos=[new THREE.Vector3(),new THREE.Vector3()];this.vel=[new THREE.Vector3(),new THREE.Vector3()];
     const skin=new THREE.MeshStandardMaterial({color:0xe8c4a4,roughness:.78,metalness:0});
     for(let i=0;i<2;i++){
       parent.add(this.ctrl[i],this.grip[i]);const h=new THREE.Group(),fallback=new THREE.Group();h.add(fallback);
       const palm=new THREE.Mesh(new THREE.SphereGeometry(1,12,8),skin);palm.scale.set(.035,.014,.046);palm.position.set(0,-.012,-.052);fallback.add(palm);
-      for(let j=0;j<5;j++){const finger=new THREE.Mesh(new THREE.CapsuleGeometry(j===4?.009:.007,j===4?.024:.045,3,8),skin);finger.rotation.x=Math.PI/2;finger.position.set(j===4?.039:(j-1.5)*.017,-.01,j===4?-.05:-.111);fallback.add(finger);}
-      h.userData.fallback=fallback;h.userData.rigs={};this.grip[i].add(h);h.visible=false;this.hands.push(h);
+      const fingers=[];
+      for(let j=0;j<5;j++){const finger=new THREE.Mesh(new THREE.CapsuleGeometry(j===4?.009:.007,j===4?.024:.045,3,8),skin);finger.rotation.x=Math.PI/2;finger.position.set(j===4?.039:(j-1.5)*.017,-.01,j===4?-.05:-.111);fallback.add(finger);fingers.push(finger);}
+      h.userData.fallback=fallback;h.userData.fingers=fingers;h.userData.rigs={};this.grip[i].add(h);h.visible=false;this.hands.push(h);
       this.ctrl[i].addEventListener('connected',ev=>{this.handedness[i]=ev.data?.handedness||'none';this.active[i]=!ev.data?.hand;fallback.scale.x=this.handedness[i]==='left'?-1:1;});
       this.ctrl[i].addEventListener('disconnected',()=>{this.active[i]=false;this.prevReady[i]=false;h.visible=false;});
       this.ctrl[i].addEventListener('squeezestart',()=>this.squeeze[i]=1);
@@ -1318,14 +1324,24 @@ class PlayerHands {
     for(let i=0;i<2;i++){
       const h=this.hands[i];h.visible=this.renderer.xr.isPresenting&&this.active[i]&&this.grip[i].visible;
       if(!h.visible){this.prevReady[i]=false;this.vel[i].set(0,0,0);continue;}
+      const session=this.renderer.xr.getSession();
+      if(session){for(const src of session.inputSources){if(!src.gamepad||src.hand)continue;const hi=this.handedness[i]===src.handedness?i:this.handedness.indexOf(src.handedness||'none');const idx=hi===i?i:(src.handedness==='left'?0:src.handedness==='right'?1:i);if(idx!==i)continue;this.trigger[i]=src.gamepad.buttons[0]?.value??this.trigger[i];this.squeeze[i]=src.gamepad.buttons[1]?.value??this.squeeze[i];}}
       const side=this.handedness[i]==='left'?'L':'R',rig=h.userData.rigs[side];h.userData.fallback.visible=!rig;
       for(const [s,r] of Object.entries(h.userData.rigs))r.root.visible=s===side;
+      const trig=this.trigger[i]||0,sq=this.squeeze[i]||0;
       if(rig){
-        const curl=h.userData.curl=THREE.MathUtils.damp(h.userData.curl||.12,.12+this.squeeze[i]*.78,15,dt);
-        for(const [f,name] of ['Index','Mid','Ring','Pinky'].entries())for(let j=1;j<=3;j++){
-          const n=side+'_'+name+j,b=rig.bones[n];if(b)b.quaternion.copy(rig.bind[n]).multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(j===1?-(f-1.5)*.025:0,0,(side==='L'?-1:1)*curl*[.55,1.05,.72][j-1]*(.88+f*.08))));
+        for(const [f,name] of ['Index','Mid','Ring','Pinky'].entries()){
+          const want=name==='Index'?0.06+trig*0.92+sq*0.08:0.10+sq*0.86+trig*0.05;
+          const key='curl'+side+name;h.userData[key]=THREE.MathUtils.damp(h.userData[key]||.12,want,18,dt);
+          const curl=h.userData[key];
+          for(let j=1;j<=3;j++){
+            const n=side+'_'+name+j,b=rig.bones[n];if(b)b.quaternion.copy(rig.bind[n]).multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(j===1?-(f-1.5)*.025:0,0,(side==='L'?-1:1)*curl*[.55,1.05,.72][j-1]*(.88+f*.08))));
+          }
         }
-        for(let j=1;j<=3;j++){const n=side+'_Thumb'+j,b=rig.bones[n];if(b)b.quaternion.copy(rig.bind[n]).multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(j===1?.08:0,j===1?(side==='L'?.15:-.15):0,(side==='L'?-1:1)*curl*.45)));}
+        const thumb=h.userData['curl'+side+'Thumb']=THREE.MathUtils.damp(h.userData['curl'+side+'Thumb']||.1,.08+sq*.7+trig*.12,16,dt);
+        for(let j=1;j<=3;j++){const n=side+'_Thumb'+j,b=rig.bones[n];if(b)b.quaternion.copy(rig.bind[n]).multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(j===1?.08:0,j===1?(side==='L'?.15:-.15):0,(side==='L'?-1:1)*thumb*.45)));}
+      }else if(h.userData.fingers){
+        h.userData.fingers.forEach((f,j)=>{const c=j===0?trig:j===4?sq*.7:sq;f.rotation.x=Math.PI/2+c*1.05;});
       }
       const p=this.palmPos(i,new THREE.Vector3()),reacted=new Set(),firstCollider=this.colliders.length;
       const report=(kind,speed,depth)=>this.haptics.contact(i,kind,speed,depth);
@@ -1386,7 +1402,7 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
 
   function spawn(opts) {
     if (!template) return null;
-    if (QUEST && actors.length >= 2) throw new Error("Quest quality limit: two actors. Reload to clear the scene.");
+    if (QUEST && actors.length >= 8) throw new Error("Quest quality limit: eight bodies on the loaded plot.");
     const cloned = cloneSkinned(template);
     cloned.traverse((o) => {
       if (!o.isMesh) return;
@@ -1479,6 +1495,7 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
     for(const a of actors)a.root.traverse(o=>{if(o.isSkinnedMesh&&/^body/.test(o.name)){o.computeBoundingSphere();meshes.push(o);}});
     const hit=commandRay.intersectObjects(meshes,false)[0],floor=floorTarget(ray);
     if(hit&&(!floor||hit.distance<ray.origin.distanceTo(floor))){let o=hit.object;while(o){const a=actors.find(a=>a.root===o);if(a){selectedActor=a;return 'selected';}o=o.parent;}}
+    if(wardrobe?.command(ray,selectedActor))return 'wardrobe';
     const sceneCommand=environment?.command(ray,selectedActor);if(sceneCommand)return sceneCommand;
     return floor&&walkTo(floor)?'walking':null;
   }

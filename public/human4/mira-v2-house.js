@@ -1,5 +1,46 @@
 import * as T from 'three';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
+function paintingTexture(kind){
+ const c=document.createElement('canvas');c.width=512;c.height=384;const g=c.getContext('2d');
+ if(kind==='coast'){const sky=g.createLinearGradient(0,0,0,180);sky.addColorStop(0,'#7eb6d9');sky.addColorStop(1,'#f2d9b0');g.fillStyle=sky;g.fillRect(0,0,512,384);g.fillStyle='#d9c08a';g.beginPath();g.moveTo(0,250);g.quadraticCurveTo(180,210,360,255);g.lineTo(512,270);g.lineTo(512,384);g.lineTo(0,384);g.fill();g.fillStyle='#4e8aa8';g.fillRect(0,268,512,80);g.fillStyle='#f4e2a8';g.beginPath();g.arc(400,90,36,0,Math.PI*2);g.fill();}
+ else if(kind==='woods'){g.fillStyle='#8aa3c0';g.fillRect(0,0,512,384);g.fillStyle='#3d5a3a';g.fillRect(0,230,512,154);for(let i=0;i<9;i++){g.fillStyle=i%2?'#2f4a2e':'#48643c';g.beginPath();g.moveTo(20+i*55,250);g.lineTo(48+i*55,90+i*6);g.lineTo(76+i*55,250);g.fill();g.fillStyle='#5a4634';g.fillRect(44+i*55,248,8,70);}g.fillStyle='#e7d7a4';g.beginPath();g.arc(80,70,28,0,Math.PI*2);g.fill();}
+ else if(kind==='still'){g.fillStyle='#cbbba0';g.fillRect(0,0,512,384);g.fillStyle='#6d5a48';g.fillRect(40,240,430,90);g.fillStyle='#d8c4a4';g.fillRect(180,110,150,160);g.fillStyle='#8a3a3a';g.beginPath();g.ellipse(255,150,42,58,0,0,Math.PI*2);g.fill();g.fillStyle='#e8dcc8';g.beginPath();g.ellipse(255,128,18,14,0,0,Math.PI*2);g.fill();g.strokeStyle='#5a4638';g.lineWidth=6;g.beginPath();g.moveTo(255,208);g.lineTo(255,270);g.stroke();}
+ else {g.fillStyle='#1a2740';g.fillRect(0,0,512,384);g.fillStyle='#f0e6c8';g.beginPath();g.arc(260,120,40,0,Math.PI*2);g.fill();g.fillStyle='#0d1a2e';g.fillRect(0,240,512,144);for(let i=0;i<18;i++){g.fillStyle='rgba(255,255,255,.7)';g.fillRect(30+i*26,40+(i%5)*18,2,2);}g.fillStyle='#3a2a1c';g.fillRect(90,180,80,140);g.fillRect(210,150,70,170);g.fillRect(340,200,110,120);}
+ const t=new T.CanvasTexture(c);t.colorSpace=T.SRGBColorSpace;t.anisotropy=4;return t;
+}
+function hangPainting(w,x,y,z,yaw,sx,sy,kind){
+ const group=new T.Group();group.position.set(x,y,z);group.rotation.y=yaw;w.root.add(group);
+ const frame=new T.Mesh(new RoundedBoxGeometry(sx+.06,sy+.06,.04,2,.01),w.surf('wood',0x4a382c));frame.castShadow=true;group.add(frame);
+ const canvas=new T.Mesh(new T.PlaneGeometry(sx,sy),new T.MeshStandardMaterial({map:paintingTexture(kind),roughness:.55,metalness:0}));canvas.position.z=.022;group.add(canvas);
+ group.userData.painting=kind;return group;
+}
+function swingingDoor(w,x,y,z,yaw,wdt=0.78,hgt=2.05){
+ const hinge=new T.Group();hinge.position.set(x,y,z);hinge.rotation.y=yaw;w.root.add(hinge);
+ const slab=new T.Mesh(new RoundedBoxGeometry(wdt,.04,hgt,1,.02),w.surf('wood',0x6a4e38));
+ slab.rotation.x=Math.PI/2;slab.position.set(wdt/2,0,0);slab.castShadow=true;hinge.add(slab);
+ const knob=new T.Mesh(new T.SphereGeometry(.03,8,6),w.surf('metal',0xc5c0b4));knob.position.set(wdt-.12,0,.05);hinge.add(knob);
+ hinge.userData.door={open:0,target:0,wdt};slab.userData.houseDoor=hinge;knob.userData.houseDoor=hinge;
+ w.pickables.push(slab,knob);w.houseDoors=(w.houseDoors||[]).concat(hinge);return hinge;
+}
+function houseDoors(w){
+ swingingDoor(w,-.55,1.05,4.36,0,.78,2.1);
+ swingingDoor(w,-.95,1.05,-1.86,0,.72,2.05);
+ swingingDoor(w,1.38,1.05,.15,Math.PI/2,.7,2.05);
+ swingingDoor(w,2.35,1.05,-1.86,0,.68,2.0);
+}
+function pitchedRoof(w){
+ const mat=w.surf('wood',0x5a4030);
+ const left=new T.Mesh(new T.BoxGeometry(9.3,.09,5.4),mat);left.position.set(0,3.62,-2.15);left.rotation.x=.42;left.castShadow=left.receiveShadow=true;w.root.add(left);
+ const right=new T.Mesh(new T.BoxGeometry(9.3,.09,5.4),mat);right.position.set(0,3.62,2.15);right.rotation.x=-.42;right.castShadow=right.receiveShadow=true;w.root.add(right);
+ const ridge=new T.Mesh(new T.BoxGeometry(9.4,.08,.18),mat);ridge.position.set(0,4.18,0);w.root.add(ridge);
+}
+function hangPaintings(w){
+ hangPainting(w,-1.2,1.72,4.36,Math.PI,.78,.52,'coast');
+ hangPainting(w,-3.55,1.68,-4.36,0,.70,.48,'woods');
+ hangPainting(w,3.55,1.70,-4.36,0,.62,.44,'still');
+ hangPainting(w,4.36,1.74,.95,-Math.PI/2,.72,.50,'night');
+ hangPainting(w,-4.36,1.70,-2.55,Math.PI/2,.58,.46,'woods');
+}
 export function buildHouse(w){
  const v=(x,y,z)=>new T.Vector3(x,y,z),panel=(x,y,z,sx,sy,sz,hole=()=>false,kind='paperLiving')=>w.fractures.panel(v(x,y,z),v(sx,sy,sz),kind,hole),round=(x,y,z,sx,sy,sz,color,r=.03,kind='wood')=>w.mesh(new RoundedBoxGeometry(sx,sy,sz,2,Math.min(r,Math.min(sx,sy,sz)*.3)),w.surf(kind,color),x,y,z);
  const assemble=(cx,cz,meshes,sx,sz,kind='wood',mass=22)=>{
@@ -33,7 +74,7 @@ export function buildHouse(w){
  const headboard=round(-2.7,.79,-3.85,1.68,1.03,.12,0x88664e);
  const pillows=[];for(const x of [-3.08,-2.32])pillows.push(round(x,.80,-3.70,.65,.16,.42,0xe8e1d5,.08,'cloth'));
  const blanket=round(-2.7,.76,-2.95,1.59,.055,1.3,0x546d76,.03,'cloth');
- assemble(-2.7,-3.15,[bedFrame,mattress,headboard,...pillows,blanket],1.65,2.05,'wood',45);
+ const bedGroup=assemble(-2.7,-3.15,[bedFrame,mattress,headboard,...pillows,blanket],1.65,2.05,'wood',45);bedGroup.userData.smart='sleep';
  const night=round(-3.95,.34,-3.55,.55,.66,.57,0x826144);
  const drawers=[];for(const y of [.23,.48]){drawers.push(round(-3.95,y,-3.252,.47,.19,.018,0x967359));drawers.push(round(-3.95,y,-3.23,.17,.018,.02,0xc1b293));}
  assemble(-3.95,-3.55,[night,...drawers],.55,.57,'wood',14);
@@ -46,15 +87,18 @@ export function buildHouse(w){
  const fridgeBody=round(3.85,1.02,2.57,.89,2.04,.77,0xd8d7cc,.03,'metal');
  const fridgeDoor=round(3.38,1.10,2.57,.035,1.77,.73,0xc3c6bf,.03,'metal');
  const fridgeHandle=round(3.35,1.22,2.82,.035,.48,.025,0x858d8b,.02,'metal');
- assemble(3.85,2.57,[fridgeBody,fridgeDoor,fridgeHandle],.89,.77,'metal',80);
+ const fridgeGroup=assemble(3.85,2.57,[fridgeBody,fridgeDoor,fridgeHandle],.89,.77,'metal',80);fridgeGroup.userData.smart='eat';
  const kitchenSeat=w.chair(2.38,2.75,-.4);kitchenSeat.group.traverse(m=>{if(m.isMesh)w.fractures.register(m,'wood');});
  const bath=round(3.55,.30,-3.65,1.2,.59,1.25,0xd6d8cf,.12,'stone');
  const bathWater=round(3.55,.61,-3.65,.91,.02,1.03,0x6e938f,.08,'stone');
- assemble(3.55,-3.65,[bath,bathWater],1.2,1.25,'stone',90);
+ const bathGroup=assemble(3.55,-3.65,[bath,bathWater],1.2,1.25,'stone',90);bathGroup.userData.smart='bath';
  const basin=round(2.1,.77,-3.73,.70,.18,.62,0xdbded5,.08,'stone');
  const basinWater=round(2.1,.865,-3.73,.49,.025,.43,0x8bada9,.06,'stone');
- assemble(2.1,-3.73,[basin,basinWater],.70,.62,'stone',18);
+ const basinGroup=assemble(2.1,-3.73,[basin,basinWater],.70,.62,'stone',18);basinGroup.userData.smart='toilet';
  const frame=round(-4.34,1.73,2.0,.04,1.15,.85,0x41392f);w.fractures.register(frame,'wood');round(-4.31,1.73,2.0,.016,.99,.70,0x819c99);
+ hangPaintings(w);
+ houseDoors(w);
+ pitchedRoof(w);
  for(const [x,z,color] of [[-1,0,0xffdec0],[3,1,0xe5efff]]){const light=new T.PointLight(color,10,7,2);light.position.set(x,2.70,z);w.root.add(light);round(x,2.94,z,.40,.04,.40,0xe7dfca);}
  // A seat gets a reachable side approach if its normal approach meets a table.
  for(const seat of w.seats)if(w.blocked(seat.approach,.23)){for(const offset of [[-.85,0,.7],[.85,0,.7],[0,0,1.35]]){const p=seat.group.localToWorld(v(...offset));if(!w.blocked(p,.23)){seat.approach.copy(p);break;}}}

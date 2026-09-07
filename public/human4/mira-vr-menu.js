@@ -1,7 +1,7 @@
 import {WEAPONS} from './mira-v2-props.js?v=h4.1';
 import {draft,saveDraft,OUTFITS,PERSONAS,clothingItems,setDraftGarment} from './mira-v2-catalog.js?v=h4.1';
 import {SCENES} from './mira-v2-world.js?v=h4.1';
-import {GARMENTS} from './mira-v2-wardrobe.js?v=h4.1';
+import {GARMENTS,CLOTH_COLORS,hueColor} from './mira-v2-wardrobe.js?v=h4.2';
 import * as THREE from 'three';
 import {SLIDERS,FACE_TYPES} from './mira-v2.js?v=h4.1';
 import {shapeSliders,FACE_PRESETS,HAIR_STYLES,ACTIVITY_MODES,ACTION_LABELS,POSE_LABELS} from './mira-v2-controls.js?v=h4.1';
@@ -14,7 +14,7 @@ export function createVRMenu({scene,renderer,camera,system,spawn,onSync,world,wa
  panel.visible=false;panel.renderOrder=20;scene.add(panel);
  const rays=system.hands.ctrl.map(ctrl=>{const line=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(),new THREE.Vector3(0,0,-2)]),new THREE.LineBasicMaterial({color:0x9bd6ff}));line.visible=false;ctrl.add(line);return line;});
  const raycaster=new THREE.Raycaster(),q=new THREE.Quaternion(),v=new THREE.Vector3();
- let page=4,shapePage=0,items=[],open=false,drag=[null,null],stamp='',lastDraw=0,notice='',hover=[-1,-1],cursor=[null,null],editField=null,bodyDraft=false,editClothes=false,garmentIndex=0,weaponIndex=0,lastController=1;
+ let page=4,shapePage=0,items=[],open=false,drag=[null,null],stamp='',lastDraw=0,notice='',hover=[-1,-1],cursor=[null,null],editField=null,bodyDraft=false,editClothes=false,garmentIndex=0,weaponIndex=0,lastController=1,clothColorIndex=0,spawnHue=20;
  const modes=ACTIVITY_MODES;
  function active(){return system.selected;}
  function draw(){
@@ -25,7 +25,7 @@ export function createVRMenu({scene,renderer,camera,system,spawn,onSync,world,wa
   ['ACTOR','BODY','STYLE','MOOD','POSES','SCENE','SPAWN','LINKS','DRIVE'].forEach((n,i)=>button((i===page?'• ':'')+n,14+i*111,140,104,66,()=>{page=i;draw();}));
   const a=active();ctx.font='30px sans-serif';ctx.fillStyle='#aed8fb';ctx.fillText(a?`Mira ${system.actors.indexOf(a)+1} · ${a.version.toUpperCase()}`:'No actor selected',40,264);
   function cycle(label,y,values,get,set){const val=get();ctx.fillStyle='#c9d6e2';ctx.font='28px sans-serif';ctx.fillText(label,40,y);button('‹',40,y+18,90,70,()=>{set(values[(values.indexOf(val)+values.length-1)%values.length]);onSync?.();draw();});button(String(val),144,y+18,734,70,()=>{set(values[(values.indexOf(val)+1)%values.length]);onSync?.();draw();});button('›',892,y+18,90,70,()=>{set(values[(values.indexOf(val)+1)%values.length]);onSync?.();draw();});}
-  if(page===8){const car=props.vehicle;button(car.driving?'EXIT CAR':'ENTER DRIVER SEAT',40,325,942,80,()=>{car.driving?car.exit():car.enter();draw();});button('REPAIR / RESET CAR',40,445,942,80,()=>{car.reset();draw();});button('REAR VIEW MIRROR '+(car.mirrorEnabled?'ON':'OFF'),40,565,942,80,()=>{car.mirrorEnabled=!car.mirrorEnabled;draw();});ctx.fillStyle='#dce8f2';ctx.font='29px sans-serif';for(const [i,text] of ['Grip the steering-wheel rim to steer.','Left trigger: accelerator.','Left X: brake. Release trigger to coast.','Y opens this panel. Opening it applies the brake.','Punctures reduce grip; damaged wheels can detach.','Mirrors render at 15 Hz to limit the extra cost.'].entries())ctx.fillText(text,40,750+i*57);
+  if(page===8){const car=props.vehicle;button(car.driving?'EXIT CAR':'ENTER DRIVER SEAT',40,325,942,80,()=>{car.driving?car.exit():car.enter();draw();});button('REPAIR / RESET CAR',40,445,942,80,()=>{car.reset();draw();});button('REAR VIEW MIRROR '+(car.mirrorEnabled?'ON':'OFF'),40,565,455,80,()=>{car.mirrorEnabled=!car.mirrorEnabled;draw();});button(car.handbrake?'RELEASE E-BRAKE':'PULL E-BRAKE',515,565,467,80,()=>{car.toggleBrake();draw();});ctx.fillStyle='#dce8f2';ctx.font='28px sans-serif';for(const [i,text] of ['Grip a door handle or the trunk to open it.','Grip the wheel rim to steer. Left trigger: gas.','Left X: foot brake. Red lever or C: e-brake.','Y opens this panel and holds the brake.','Punctures reduce grip; damaged wheels can detach.'].entries())ctx.fillText(text,40,720+i*52);
   }else if(page===7){
    const r=props.restraints,l=r.selected;cycle('Attachment',325,['Flexible tether','Short fixed link'],()=>r.mode==='rope'?'Flexible tether':'Short fixed link',x=>r.mode=x==='Flexible tether'?'rope':'fuse');button('PLACE TWO ANCHORS',40,445,600,70,()=>{r.start();notice='Close Y, point + trigger twice';draw();});button('CANCEL',660,445,322,70,()=>{r.cancel();draw();});
    cycle('Selected link',580,['None',...r.links.map(l=>'Link '+l.id+(l.broken?' · cut':''))],()=>l?'Link '+l.id+(l.broken?' · cut':''):'None',name=>r.selected=r.links.find(x=>name==='Link '+x.id+(x.broken?' · cut':''))||null);
@@ -48,12 +48,18 @@ export function createVRMenu({scene,renderer,camera,system,spawn,onSync,world,wa
     button('COPY FEATURES',40,1080,455,68,()=>{copyConfiguration();draw();});button('MODULAR CLOTHES',515,1080,467,68,()=>{editClothes=true;draw();});button('SPAWN '+draft.name.toUpperCase(),40,1162,942,76,()=>{saveDraft();dispatchEvent(new Event('mira:draft'));spawnConfigured();draw();});
    }
   }else if(page===5){
-   cycle('Diorama',330,SCENES,()=>world.name,name=>{world.setScene(name);world.obstacle(-3.3,2.4,1.3,.6,0,2);document.getElementById('sceneSelect').value=name;});
-   cycle('Clothing',470,GARMENTS.map(g=>g.name),()=>GARMENTS[garmentIndex].name,name=>garmentIndex=GARMENTS.findIndex(g=>g.name===name));button('DRESS SELECTED NPC',40,590,942,65,()=>{notice=wardrobe.equip(active(),GARMENTS[garmentIndex])?'Clothing applied':'Select a v2 actor';draw();});
-   cycle('Table equipment',715,Object.values(WEAPONS).map(w=>w.name),()=>Object.values(WEAPONS)[weaponIndex].name,name=>weaponIndex=Object.values(WEAPONS).findIndex(w=>w.name===name));button('PICK UP',40,820,455,66,()=>{props.hold(props.items.find(x=>x.id===Object.keys(WEAPONS)[weaponIndex]),lastController);notice=props.status;draw();});button('DROP',515,820,467,66,()=>props.drop(lastController));
-   button('HAPTICS '+system.hands.haptics.gain.toFixed(1)+'×',40,925,455,72,()=>{system.hands.haptics.gain=(system.hands.haptics.gain+.5)%2.5;draw();});button('VOICE ON / OFF',515,925,467,72,()=>document.getElementById('micBtn')?.click());
-   button('REBUILD HOUSE',40,1040,942,72,()=>{world.setScene('Living room');notice='House rebuilt';draw();});
-   ctx.font='24px sans-serif';ctx.fillStyle='#c9d6e2';ctx.fillText('Squeeze: pick up or drop · Trigger: fire / melee swing',40,1175);
+   cycle('Diorama',300,SCENES,()=>world.name,name=>{world.setScene(name);wardrobe.syncObstacle();document.getElementById('sceneSelect').value=name;});
+   const colorNames=[...CLOTH_COLORS.map(c=>c.name),'Custom hue'];
+   cycle('Article',430,GARMENTS.map(g=>g.name),()=>GARMENTS[garmentIndex].name,name=>garmentIndex=GARMENTS.findIndex(g=>g.name===name));
+   cycle('Dye colour',560,colorNames,()=>colorNames[clothColorIndex],name=>clothColorIndex=colorNames.indexOf(name));
+   if(clothColorIndex>=CLOTH_COLORS.length){ctx.fillStyle='#dce8f2';ctx.font='24px sans-serif';ctx.fillText('Hue '+spawnHue+'°',40,690);items.push({x:200,y:668,w:740,h:36,slider:true,fn:px=>{spawnHue=Math.round((px-200)/740*359);draw();}});ctx.fillStyle='#526c80';ctx.fillRect(200,676,740,20);ctx.fillStyle='#9bd6ff';ctx.fillRect(200,676,740*(spawnHue/359),20);}
+   const dye=clothColorIndex<CLOTH_COLORS.length?CLOTH_COLORS[clothColorIndex].hex:hueColor(spawnHue);
+   button('DRESS SELECTED',40,720,455,64,()=>{notice=wardrobe.equip(active(),{...GARMENTS[garmentIndex],color:dye})?'Clothing applied':'Select a v2 actor';draw();});
+   button('SPAWN INTO WARDROBE',515,720,467,64,()=>{wardrobe.addArticle(GARMENTS[garmentIndex],dye);notice=wardrobe.status;draw();});
+   cycle('Table equipment',820,Object.values(WEAPONS).map(w=>w.name),()=>Object.values(WEAPONS)[weaponIndex].name,name=>weaponIndex=Object.values(WEAPONS).findIndex(w=>w.name===name));button('PICK UP',40,930,455,60,()=>{props.hold(props.items.find(x=>x.id===Object.keys(WEAPONS)[weaponIndex]),lastController);notice=props.status;draw();});button('DROP',515,930,467,60,()=>props.drop(lastController));
+   button('HAPTICS '+system.hands.haptics.gain.toFixed(1)+'×',40,1010,455,58,()=>{system.hands.haptics.gain=(system.hands.haptics.gain+.5)%2.5;draw();});button('VOICE ON / OFF',515,1010,467,58,()=>document.getElementById('micBtn')?.click());
+   button('REBUILD HOUSE',40,1085,942,58,()=>{world.setScene('Living room');wardrobe.syncObstacle();notice='House rebuilt';draw();});
+   ctx.font='22px sans-serif';ctx.fillStyle='#c9d6e2';ctx.fillText('Y clothes spawner stores any article/colour in the cabinet.',40,1185);
   }else if(page===0){
    button('SPAWN V1',40,300,455,80,()=>{spawn('v1');draw();});button('SPAWN V2',515,300,467,80,()=>{spawn('v2');draw();});
    button('SELECT NEXT',40,400,610,76,()=>{const list=system.actors;system.select(list[(list.indexOf(active())+1)%list.length]);onSync?.();draw();});
