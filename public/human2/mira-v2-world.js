@@ -1,11 +1,13 @@
-import {Destruction} from './mira-v2-destruction.js?v=9.6';
-import {buildHouse} from './mira-v2-house.js?v=9.5';
+import {captureFurniture} from './mira-v2-furniture.js?v=10.0';
+import {Destruction} from './mira-v2-destruction.js?v=10.0';
+import {buildHouse} from './mira-v2-house.js?v=10.0';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
 import * as T from 'three';
 const V=()=>new T.Vector3(),clamp=T.MathUtils.clamp;
 export const SCENES=['Living room','Jungle','Beach'];
 export class MiraWorld {
  constructor(scene,system){this.scene=scene;this.system=system;this.root=new T.Group();scene.add(this.root);this.obstacles=[];this.seats=[];this.pickables=[];this.routes=new WeakMap();this.seated=new WeakMap();this.time=0;this.revision=0;this.extent=4.18;this.fractures=new Destruction(scene,this);this.setScene('Living room');}
+ captureFurniture(id,start,x,z){captureFurniture(this,id,this.root.children.slice(start),x,z);}
  mat(color,roughness=.85){return new T.MeshStandardMaterial({color,roughness,metalness:0});}
  mesh(g,m,x,y,z){const o=new T.Mesh(g,m);o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;this.root.add(o);return o;}
  box(x,y,z,w,h,d,color){return this.mesh(new T.BoxGeometry(w,h,d),this.mat(color),x,y,z);}
@@ -16,9 +18,9 @@ export class MiraWorld {
  }
  setScene(name){
   if(!SCENES.includes(name))return;for(const a of this.system.actors){a.seat=null;a.navigation=null;a.dest=null;a.directedWalk=null;a.group.position.y=a.baseY||0;this.system.social.cancel(a);a.setMode('auto');}
-  this.root.traverse(o=>{o.geometry?.dispose();if(o.material){for(const m of Array.isArray(o.material)?o.material:[o.material])m.dispose();}});this.root.clear();this.obstacles=[];this.seats=[];this.pickables=[];this.grid=null;this.name=name;this.extent=name==='Living room'?11.6:4.18;this.revision++;this.fractures.clear();
-  const jungle=name==='Jungle',beach=name==='Beach';this.scene.background=new T.Color(jungle?0x637f76:beach?0xaedced:0xc2b5a3);this.scene.fog=new T.Fog(this.scene.background,9,24);
-  this.box(0,-.16,0,9,.3,9,jungle?0x6e7350:beach?0xe7d2a3:0xa58663);
+  this.root.traverse(o=>{o.geometry?.dispose();if(o.material){for(const m of Array.isArray(o.material)?o.material:[o.material])m.dispose();}});this.root.clear();this.obstacles=[];this.seats=[];this.pickables=[];this.grid=null;this.name=name;this.extent=29.4;this.builder?.clear();this.revision++;this.fractures.clear();
+  const jungle=name==='Jungle',beach=name==='Beach';this.scene.background=new T.Color(jungle?0x637f76:beach?0xaedced:0xc2b5a3);this.scene.fog=new T.Fog(this.scene.background,25,70);
+  this.box(0,-.16,0,60,.3,60,jungle?0x6e7350:beach?0xe7d2a3:0x718063);
   if(!jungle&&!beach){
    buildHouse(this);
   }else{
@@ -28,17 +30,19 @@ export class MiraWorld {
    if(beach){const water=this.mesh(new T.PlaneGeometry(35,14,1,1),this.mat(0x539daa,.27),0,-.02,-10);water.rotation.x=-Math.PI/2;water.castShadow=false;this.water=water;}
    else{this.water=null;for(let i=0;i<12;i++){const angle=i*2.399,x=Math.cos(angle)*(3.1+(i%2)*.65),z=Math.sin(angle)*(3.1+(i%2)*.65);const bush=this.mesh(new T.SphereGeometry(.35,12,8),this.mat(i%2?0x65764b:0x4a6849),x,.25,z);bush.scale.y=.6;}}
   }
+  if(this.builder?.wardrobe.rack){const b=new T.Box3().setFromObject(this.builder.wardrobe.rack),p=b.getCenter(V()),s=b.getSize(V());this.obstacle(p.x,p.z,s.x,s.z,b.min.y,s.y);}
   // Room limits are also player/ball collision surfaces, not just scenery.
-  if(name!=='Living room')for(const [x,z,w,d] of [[-4.4,0,.2,9],[4.4,0,.2,9],[0,-4.4,9,.2],[0,4.4,9,.2]])this.obstacle(x,z,w,d,0,4);
+  for(const [x,z,w,d] of [[-29.8,0,.2,60],[29.8,0,.2,60],[0,-29.8,60,.2],[0,29.8,60,.2]])this.obstacle(x,z,w,d,0,4);
  }
  tree(x,z,height,palm){const trunk=this.mesh(new T.CylinderGeometry(.065,.11,height,10),this.mat(palm?0x9b8060:0x70614c),x,height/2,z);if(palm){for(let j=0;j<8;j++){const leaf=this.mesh(new T.SphereGeometry(1,12,6),this.mat(j%2?0x557450:0x6e884f),x+Math.cos(j*Math.PI/4)*.6,height-.12,z+Math.sin(j*Math.PI/4)*.6);leaf.scale.set(.85,.075,.19);leaf.rotation.set(0,-j*Math.PI/4,-.22);}}else{const crown=this.mesh(new T.IcosahedronGeometry(.72,2),this.mat(0x49644b),x,height-.12,z);crown.scale.set(1,1.1,1);}}
  removeObstacle(o){if(!o)return;this.obstacles=this.obstacles.filter(x=>x!==o);this.grid=null;}
  nearby(p,r=.25){if(!this.grid){this.grid=new Map();for(const o of this.obstacles)for(let x=Math.floor(o.x-o.w/2);x<=Math.floor(o.x+o.w/2);x++)for(let z=Math.floor(o.z-o.d/2);z<=Math.floor(o.z+o.d/2);z++){const key=x+'/'+z;if(!this.grid.has(key))this.grid.set(key,[]);this.grid.get(key).push(o);}}const out=new Set();for(let x=Math.floor(p.x-r);x<=Math.floor(p.x+r);x++)for(let z=Math.floor(p.z-r);z<=Math.floor(p.z+r);z++)for(const o of this.grid.get(x+'/'+z)||[])out.add(o);return [...out];}
  blocked(p,r=.25,ignore=null){return this.nearby(p,r).some(o=>o!==ignore&&o.y<1.65&&o.y+o.h>.09&&Math.abs(p.x-o.x)<o.w/2+r&&Math.abs(p.z-o.z)<o.d/2+r);}
  path(start,goal,r=.25){
+  const distance=start.distanceTo(goal);let clear=true;for(let i=0;i<=Math.ceil(distance/.2);i++)if(this.blocked(start.clone().lerp(goal,i/Math.max(1,Math.ceil(distance/.2))),r)){clear=false;break;}if(clear)return [goal.clone().setY(0)];
   const step=this.extent>5?.30:.22,n=Math.floor(this.extent*2/step)+1,toCell=p=>[clamp(Math.round((p.x+this.extent)/step),0,n-1),clamp(Math.round((p.z+this.extent)/step),0,n-1)],at=(x,z)=>new T.Vector3(x*step-this.extent,0,z*step-this.extent),id=(x,z)=>z*n+x,[sx,sz]=toCell(start),[gx,gz]=toCell(goal),end=id(gx,gz),begin=id(sx,sz);
   if(this.blocked(goal,r))return null;const open=[begin],cost=new Map([[begin,0]]),prev=new Map(),closed=new Set();let found=false;
-  while(open.length){open.sort((a,b)=>cost.get(a)+Math.hypot(a%n-gx,Math.floor(a/n)-gz)-cost.get(b)-Math.hypot(b%n-gx,Math.floor(b/n)-gz));const cur=open.shift();if(cur===end){found=true;break;}if(closed.has(cur))continue;closed.add(cur);const x=cur%n,z=Math.floor(cur/n);
+  while(open.length&&closed.size<14000){open.sort((a,b)=>cost.get(a)+Math.hypot(a%n-gx,Math.floor(a/n)-gz)-cost.get(b)-Math.hypot(b%n-gx,Math.floor(b/n)-gz));const cur=open.shift();if(cur===end){found=true;break;}if(closed.has(cur))continue;closed.add(cur);const x=cur%n,z=Math.floor(cur/n);
    for(const [dx,dz] of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]]){const xx=x+dx,zz=z+dz;if(xx<0||zz<0||xx>=n||zz>=n||this.blocked(at(xx,zz),r)||dx&&dz&&(this.blocked(at(x+dx,z),r)||this.blocked(at(x,z+dz),r)))continue;const k=id(xx,zz),c=cost.get(cur)+Math.hypot(dx,dz);if(c<(cost.get(k)??Infinity)){cost.set(k,c);prev.set(k,cur);open.push(k);}}
   }
   if(!found)return null;const points=[goal.clone().setY(0)];for(let k=end;k!==begin;k=prev.get(k)){if(k===undefined)return null;points.unshift(at(k%n,Math.floor(k/n)));}return points.filter((p,i)=>i===points.length-1||p.distanceTo(start)>.08);

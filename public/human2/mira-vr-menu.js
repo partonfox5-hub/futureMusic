@@ -1,12 +1,13 @@
-import {WEAPONS} from './mira-v2-props.js?v=9.6';
-import {draft,saveDraft,OUTFITS,PERSONAS,clothingItems,setDraftGarment} from './mira-v2-catalog.js?v=9.5';
-import {SCENES} from './mira-v2-world.js?v=9.5';
-import {GARMENTS} from './mira-v2-wardrobe.js?v=9.5';
+import {FURNITURE,SURFACES} from './mira-v2-builder.js?v=10.0';
+import {WEAPONS} from './mira-v2-props.js?v=10.0';
+import {draft,saveDraft,OUTFITS,PERSONAS,clothingItems,setDraftGarment} from './mira-v2-catalog.js?v=10.0';
+import {SCENES} from './mira-v2-world.js?v=10.0';
+import {GARMENTS} from './mira-v2-wardrobe.js?v=10.0';
 import * as THREE from 'three';
-import {SLIDERS,FACE_TYPES} from './mira-v2.js?v=9.5';
-import {shapeSliders,FACE_PRESETS,HAIR_STYLES,ACTIVITY_MODES,ACTION_LABELS,POSE_LABELS} from './mira-v2-controls.js?v=9.5';
-import {HAIR_COLORS} from './mira-v2.js?v=9.5';
-import {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES} from './mira-v2-features.js?v=9.5';
+import {SLIDERS,FACE_TYPES} from './mira-v2.js?v=10.0';
+import {shapeSliders,FACE_PRESETS,HAIR_STYLES,ACTIVITY_MODES,ACTION_LABELS,POSE_LABELS} from './mira-v2-controls.js?v=10.0';
+import {HAIR_COLORS} from './mira-v2.js?v=10.0';
+import {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES} from './mira-v2-features.js?v=10.0';
 export function createVRMenu({scene,renderer,camera,system,spawn,onSync,world,wardrobe,spawnConfigured,copyConfiguration,props,saveScene,loadScene}){
  const canvas=document.createElement('canvas');canvas.width=1024;canvas.height=1320;
  const ctx=canvas.getContext('2d'),tex=new THREE.CanvasTexture(canvas);tex.colorSpace=THREE.SRGBColorSpace;
@@ -19,13 +20,28 @@ export function createVRMenu({scene,renderer,camera,system,spawn,onSync,world,wa
  function active(){return system.selected;}
  function draw(){
   items=[];ctx.fillStyle='#151c25';ctx.fillRect(0,0,1024,1320);ctx.strokeStyle='#657d92';ctx.lineWidth=3;ctx.strokeRect(3,3,1018,1314);
-  ctx.fillStyle='#eef7ff';ctx.font='bold 42px sans-serif';ctx.fillText('MIRA · UPDATE 9',40,62);
+  ctx.fillStyle='#eef7ff';ctx.font='bold 42px sans-serif';ctx.fillText('MIRA · BUILD & PLAY',40,62);
   ctx.font='26px sans-serif';ctx.fillStyle='#b7c8d8';ctx.fillText('Y: close  ·  point + trigger to adjust',40,105);
   function button(label,x,y,w,h,fn){ctx.fillStyle='#26384b';ctx.fillRect(x,y,w,h);ctx.fillStyle='#edf6ff';ctx.font='25px sans-serif';ctx.textAlign='center';ctx.fillText(label,x+w/2,y+h/2+10);ctx.textAlign='left';items.push({x,y,w,h,fn});}
-  ['ACTOR','BODY','STYLE','MOOD','POSES','SCENE','SPAWN','LINKS','DRIVE'].forEach((n,i)=>button((i===page?'• ':'')+n,14+i*111,140,104,66,()=>{page=i;draw();}));
+  ['ACTOR','BODY','STYLE','MOOD','POSES','SCENE','SPAWN','LINKS','DRIVE','BUILD'].forEach((n,i)=>button((i===page?'• ':'')+n,12+i*100,140,96,66,()=>{page=i;draw();}));
   const a=active();ctx.font='30px sans-serif';ctx.fillStyle='#aed8fb';ctx.fillText(a?`Mira ${system.actors.indexOf(a)+1} · ${a.version.toUpperCase()}`:'No actor selected',40,264);
   function cycle(label,y,values,get,set){const val=get();ctx.fillStyle='#c9d6e2';ctx.font='28px sans-serif';ctx.fillText(label,40,y);button('‹',40,y+18,90,70,()=>{set(values[(values.indexOf(val)+values.length-1)%values.length]);onSync?.();draw();});button(String(val),144,y+18,734,70,()=>{set(values[(values.indexOf(val)+1)%values.length]);onSync?.();draw();});button('›',892,y+18,90,70,()=>{set(values[(values.indexOf(val)+1)%values.length]);onSync?.();draw();});}
-  if(page===8){const car=props.vehicle;button(car.driving?'EXIT CAR':'ENTER DRIVER SEAT',40,325,942,80,()=>{car.driving?car.exit():car.enter();draw();});button('REPAIR / RESET CAR',40,445,942,80,()=>{car.reset();draw();});button('REAR VIEW MIRROR '+(car.mirrorEnabled?'ON':'OFF'),40,565,942,80,()=>{car.mirrorEnabled=!car.mirrorEnabled;draw();});ctx.fillStyle='#dce8f2';ctx.font='29px sans-serif';for(const [i,text] of ['Grip the steering-wheel rim to steer.','Left trigger: accelerator.','Left X: brake. Release trigger to coast.','Y opens this panel. Opening it applies the brake.','Punctures reduce grip; damaged wheels can detach.','Mirrors render at 15 Hz to limit the extra cost.'].entries())ctx.fillText(text,40,750+i*57);
+  if(page===9){
+   const b=world.builder;
+   cycle('Piece',320,['Wall','Floor','Ceiling','Furniture'],()=>b.kind,x=>b.setKind(x));
+   if(b.kind==='Furniture')cycle('Furniture',460,FURNITURE,()=>b.furniture,x=>b.furniture=x);
+   else{
+    cycle('Patch · each square is 0.6 m',460,['1×1','2×2','3×3'],()=>b.size+'×'+b.size,x=>b.size=Number(x[0]));
+    cycle('Texture / material',600,Object.keys(SURFACES),()=>b.surface,x=>b.surface=x);
+   }
+   cycle('Rotation',740,['0°','90°','180°','270°'],()=>Math.round(b.yaw*180/Math.PI)+'°',x=>b.yaw=parseInt(x)*Math.PI/180);
+   if(b.kind!=='Furniture'&&b.kind!=='Floor')cycle(b.kind==='Wall'?'Wall base height':'Ceiling underside height',880,Array.from({length:11},(_,i)=>(i*.6).toFixed(1)+' m'),()=>b.height.toFixed(1)+' m',x=>b.height=parseFloat(x));
+   button('START PLACING',40,1020,455,70,()=>{if(b.start(lastController))toggle();});
+   button('STOP',515,1020,467,70,()=>{b.stop();draw();});
+   button('UNDO LAST',40,1110,455,70,()=>{b.undo();draw();});
+   button('SAVE SCENE',515,1110,467,70,()=>{notice='Saved '+saveScene();draw();});
+   ctx.font='24px sans-serif';ctx.fillStyle='#c9d6e2';ctx.fillText('Aim at ground + trigger. Green: ready; red: blocked.',40,1220);
+  }else if(page===8){const car=props.vehicle;button(car.driving?'EXIT CAR':'ENTER DRIVER SEAT',40,325,942,80,()=>{car.driving?car.exit():car.enter();draw();});button('REPAIR / RESET CAR',40,445,942,80,()=>{car.reset();draw();});button('REAR VIEW MIRROR '+(car.mirrorEnabled?'ON':'OFF'),40,565,942,80,()=>{car.mirrorEnabled=!car.mirrorEnabled;draw();});ctx.fillStyle='#dce8f2';ctx.font='29px sans-serif';for(const [i,text] of ['Grip the steering-wheel rim to steer.','Left trigger: accelerator.','Left X: brake. Release trigger to coast.','Y opens this panel. Opening it applies the brake.','Punctures reduce grip; damaged wheels can detach.','Mirrors render at 15 Hz to limit the extra cost.'].entries())ctx.fillText(text,40,750+i*57);
   }else if(page===7){
    const r=props.restraints,l=r.selected;cycle('Attachment',325,['Flexible tether','Short fixed link'],()=>r.mode==='rope'?'Flexible tether':'Short fixed link',x=>r.mode=x==='Flexible tether'?'rope':'fuse');button('PLACE TWO ANCHORS',40,445,600,70,()=>{r.start();notice='Close Y, point + trigger twice';draw();});button('CANCEL',660,445,322,70,()=>{r.cancel();draw();});
    cycle('Selected link',580,['None',...r.links.map(l=>'Link '+l.id+(l.broken?' · cut':''))],()=>l?'Link '+l.id+(l.broken?' · cut':''):'None',name=>r.selected=r.links.find(x=>name==='Link '+x.id+(x.broken?' · cut':''))||null);
@@ -47,13 +63,13 @@ export function createVRMenu({scene,renderer,camera,system,spawn,onSync,world,wa
     button('COPY FEATURES',40,1080,455,68,()=>{copyConfiguration();draw();});button('MODULAR CLOTHES',515,1080,467,68,()=>{editClothes=true;draw();});button('SPAWN '+draft.name.toUpperCase(),40,1162,942,76,()=>{saveDraft();dispatchEvent(new Event('mira:draft'));spawnConfigured();draw();});
    }
   }else if(page===5){
-   cycle('Diorama',330,SCENES,()=>world.name,name=>{world.setScene(name);world.obstacle(-3.3,2.4,1.3,.6,0,2);document.getElementById('sceneSelect').value=name;});
+   cycle('Diorama',330,SCENES,()=>world.name,name=>{world.setScene(name);document.getElementById('sceneSelect').value=name;});
    cycle('Clothing',470,GARMENTS.map(g=>g.name),()=>GARMENTS[garmentIndex].name,name=>garmentIndex=GARMENTS.findIndex(g=>g.name===name));button('DRESS SELECTED NPC',40,590,942,65,()=>{notice=wardrobe.equip(active(),GARMENTS[garmentIndex])?'Clothing applied':'Select a v2 actor';draw();});
-   cycle('Table equipment',700,Object.values(WEAPONS).map(w=>w.name),()=>Object.values(WEAPONS)[weaponIndex].name,name=>weaponIndex=Object.values(WEAPONS).findIndex(w=>w.name===name));button('PICK UP',40,800,455,62,()=>{props.hold(props.items.find(x=>x.id===Object.keys(WEAPONS)[weaponIndex]),lastController);notice=props.status;draw();});button('DROP',515,800,467,62,()=>props.drop(lastController));
+   cycle('Table equipment',700,Object.values(WEAPONS).map(w=>w.name),()=>Object.values(WEAPONS)[weaponIndex].name,name=>weaponIndex=Object.values(WEAPONS).findIndex(w=>w.name===name));button('FIND WEAPON',40,800,455,62,()=>{notice='Reach for the table handle and hold grip';draw();});button('DROP',515,800,467,62,()=>props.drop(lastController));
    button('HAPTICS '+system.hands.haptics.gain.toFixed(1)+'×',40,880,455,62,()=>{system.hands.haptics.gain=(system.hands.haptics.gain+.5)%2.5;draw();});button('VOICE ON / OFF',515,880,467,62,()=>document.getElementById('micBtn')?.click());
    button('SAVE SCENE',40,958,455,62,()=>{notice=saveScene?('Saved '+saveScene()):'Save unavailable';draw();});button('LOAD LAST',515,958,467,62,()=>{notice=loadScene?loadScene():'Load unavailable';draw();});
    button('REBUILD HOUSE',40,1036,942,62,()=>{world.setScene('Living room');notice='House rebuilt';draw();});
-   ctx.font='24px sans-serif';ctx.fillStyle='#c9d6e2';ctx.fillText('Squeeze again to drop · Trigger fires / swings',40,1175);
+   ctx.font='24px sans-serif';ctx.fillStyle='#c9d6e2';ctx.fillText('Hold grip to wield · Release to drop · Trigger fires',40,1175);
   }else if(page===0){
    button('SPAWN V1',40,300,455,80,()=>{spawn('v1');draw();});button('SPAWN V2',515,300,467,80,()=>{spawn('v2');draw();});
    button('SELECT NEXT',40,400,610,76,()=>{const list=system.actors;system.select(list[(list.indexOf(active())+1)%list.length]);onSync?.();draw();});
@@ -64,7 +80,7 @@ export function createVRMenu({scene,renderer,camera,system,spawn,onSync,world,wa
      cycle('Idle pose',840,['auto',...IDLE_NAMES],()=>a.idleChoice,x=>a.setIdlePose(x));
     }
    }
-   button('TOSS BALL',40,1020,455,76,()=>{const c=renderer.xr.getCamera();c.getWorldPosition(v);const dir=c.getWorldDirection(new THREE.Vector3());system.spawnBall(v.clone().addScaledVector(dir,.5),dir.multiplyScalar(2).setY(1));});
+   button('TOSS BALL',40,1020,455,76,()=>{const c=camera;c.getWorldPosition(v);const dir=c.getWorldDirection(new THREE.Vector3());system.spawnBall(v.clone().addScaledVector(dir,.5),dir.multiplyScalar(2).setY(1));});
    button('VOICE ON / OFF',515,1020,467,76,()=>document.getElementById('micBtn')?.click());
    button('EXIT VR / AR',40,1130,942,76,()=>renderer.xr.getSession()?.end());
   }else if(page===4&&a){
@@ -107,10 +123,10 @@ export function createVRMenu({scene,renderer,camera,system,spawn,onSync,world,wa
     button('PREVIEW SURPRISE CLIP',40,890,942,80,()=>a.playFaceReference?.('surprise'));
    }else{ctx.fillText('Select Mira v2 for context expression controls.',40,355);}
   }
-  ctx.font='24px sans-serif';ctx.fillStyle='#acbecf';ctx.fillText(notice||system.voiceStatus||'Trigger: select / walk  ·  Grip: grab body',40,1280);for(let i=0;i<2;i++){const item=items[hover[i]];if(item){ctx.strokeStyle='#ffe5a0';ctx.lineWidth=6;ctx.strokeRect(item.x-3,item.y-3,item.w+6,item.h+6);}const p=cursor[i];if(p){ctx.beginPath();ctx.arc(p.x,p.y,8,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill();}}tex.needsUpdate=true;
+  ctx.font='24px sans-serif';ctx.fillStyle='#acbecf';ctx.fillText((page===9?world.builder.status:notice)||system.voiceStatus||'Trigger: select / walk  ·  Grip: grab body',40,1280);for(let i=0;i<2;i++){const item=items[hover[i]];if(item){ctx.strokeStyle='#ffe5a0';ctx.lineWidth=6;ctx.strokeRect(item.x-3,item.y-3,item.w+6,item.h+6);}const p=cursor[i];if(p){ctx.beginPath();ctx.arc(p.x,p.y,8,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill();}}tex.needsUpdate=true;
  }
- function placeInFront(){const c=renderer.xr.getCamera();c.updateWorldMatrix(true,false);const eye=c.getWorldPosition(new THREE.Vector3()),forward=new THREE.Vector3(0,0,-1).applyQuaternion(c.getWorldQuaternion(new THREE.Quaternion()));forward.y=0;if(forward.lengthSq()<.001)forward.set(0,0,-1).applyQuaternion(camera.getWorldQuaternion(new THREE.Quaternion())).setY(0);forward.normalize();panel.position.copy(eye).addScaledVector(forward,1.1);panel.position.y-=.10;panel.lookAt(eye);panel.updateMatrixWorld(true);}
- function toggle(){open=!open;panel.visible=open&&renderer.xr.isPresenting;drag=[null,null];if(open){page=4;placeInFront();draw();}}
+ function placeInFront(){const c=camera;c.updateWorldMatrix(true,false);const eye=c.getWorldPosition(new THREE.Vector3()),forward=new THREE.Vector3(0,0,-1).applyQuaternion(c.getWorldQuaternion(new THREE.Quaternion()));forward.y=0;if(forward.lengthSq()<.001)forward.set(0,0,-1).applyQuaternion(camera.getWorldQuaternion(new THREE.Quaternion())).setY(0);forward.normalize();panel.position.copy(eye).addScaledVector(forward,1.1);panel.position.y-=.10;panel.lookAt(eye);panel.updateMatrixWorld(true);}
+ function toggle(){open=!open;panel.visible=open&&renderer.xr.isPresenting;drag=[null,null];if(open){world.builder?.stop();placeInFront();draw();}}
 
  const wristCanvas=document.createElement('canvas');wristCanvas.width=256;wristCanvas.height=128;const wc=wristCanvas.getContext('2d');wc.fillStyle='#18384d';wc.fillRect(0,0,256,128);wc.strokeStyle='#9bd6ff';wc.lineWidth=8;wc.strokeRect(4,4,248,120);wc.fillStyle='#ffffff';wc.font='bold 48px sans-serif';wc.textAlign='center';wc.fillText('MENU',128,82);
  const wristTex=new THREE.CanvasTexture(wristCanvas);wristTex.colorSpace=THREE.SRGBColorSpace;
@@ -120,11 +136,11 @@ export function createVRMenu({scene,renderer,camera,system,spawn,onSync,world,wa
  function hit(i){const ctrl=system.hands.ctrl[i];ctrl.getWorldPosition(raycaster.ray.origin);raycaster.ray.direction.set(0,0,-1).applyQuaternion(ctrl.getWorldQuaternion(q));const hit=raycaster.intersectObject(panel)[0];if(!hit)return null;return {x:hit.uv.x*1024,y:(1-hit.uv.y)*1320};}
  function select(i){lastController=i;if(hitWrist(i)){toggle();return true;}if(!open)return false;const p=hit(i);if(p){const item=items.find(a=>p.x>=a.x&&p.x<=a.x+a.w&&p.y>=a.y&&p.y<=a.y+a.h);if(item){system.hands.haptics?.contact(i,'prop',0,.002);try{item.fn(p.x);}catch(e){notice=e.message;draw();}if(item.slider)drag[i]=item;}}return true;}
  function tick(){
-  const eye=renderer.xr.getCamera().getWorldPosition(new THREE.Vector3());
+  const eye=camera.getWorldPosition(new THREE.Vector3());
   wristButtons.forEach((b,i)=>{b.visible=renderer.xr.isPresenting&&system.hands.grip[i].visible&&(system.hands.handedness[i]==='left'||(system.hands.handedness[i]==='none'&&i===0));if(b.visible){b.lookAt(eye);b.updateWorldMatrix(true,false);}});
   if(!renderer.xr.isPresenting){open=false;panel.visible=false;}
   rays.forEach((r,i)=>{const floor=renderer.xr.isPresenting&&!open?system.controllerFloorTarget(i):null;r.visible=open||!!floor||renderer.xr.isPresenting&&system.hands.active?.[i]||(renderer.xr.isPresenting&&hitWrist(i));r.scale.z=open?1:floor?system.hands.ctrl[i].getWorldPosition(new THREE.Vector3()).distanceTo(floor)/2:1;});if(!open)return;
-  const view=renderer.xr.getCamera(),forward=new THREE.Vector3(0,0,-1).applyQuaternion(view.getWorldQuaternion(q)),to=panel.position.clone().sub(eye);if(to.dot(forward)<.2||to.length()>2)placeInFront();
+  const view=camera,forward=new THREE.Vector3(0,0,-1).applyQuaternion(view.getWorldQuaternion(q)),to=panel.position.clone().sub(eye);if(to.dot(forward)<.2||to.length()>2)placeInFront();
   let changed=false;for(let i=0;i<2;i++){const p=hit(i),index=p?items.findIndex(item=>p.x>=item.x&&p.x<=item.x+item.w&&p.y>=item.y&&p.y<=item.y+item.h):-1;if(index!==hover[i]||p&&(!cursor[i]||Math.hypot(p.x-cursor[i].x,p.y-cursor[i].y)>3))changed=true;hover[i]=index;cursor[i]=p;rays[i].material.color.setHex(index>=0?0xffdfa1:0x9bd6ff);}if(changed&&performance.now()-lastDraw>32){draw();lastDraw=performance.now();}
   const a=active(),state=a?`${system.actors.indexOf(a)}/${a.version}/${a.mode}/${a.emotion?.name}/${system.voiceStatus||''}`:'empty';if(state!==stamp&&performance.now()-lastDraw>150){stamp=state;lastDraw=performance.now();draw();}
   const session=renderer.xr.getSession();for(let i=0;i<2;i++)if(drag[i]){

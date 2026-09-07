@@ -1,9 +1,9 @@
 import * as T from 'three';
-import {bodyVolumes,projectVolume} from './mira-v2-contact.js?v=9.5';
+import {bodyVolumes,projectVolume} from './mira-v2-contact.js?v=10.0';
 const V=()=>new T.Vector3();
-import {GARMENTS} from './mira-v2-garments.js?v=9.5';
-export {GARMENTS} from './mira-v2-garments.js?v=9.5';
-import {garmentPattern,fabricMaterial} from './mira-v2-garment-patterns.js?v=9.5';
+import {GARMENTS} from './mira-v2-garments.js?v=10.0';
+export {GARMENTS} from './mira-v2-garments.js?v=10.0';
+import {garmentPattern,fabricMaterial} from './mira-v2-garment-patterns.js?v=10.0';
 export class Cloth {
  constructor(scene,actor,style,surface){
   this.actor=actor;this.style=style;this.n=28;this.rows=9;this.p=[];this.prev=[];this.rest=[];this.anchor=[];this.edges=[];this.faces=[];this.torn=new Set();this.acc=0;this.hold=null;this.detached=false;this.age=0;this.anchorBone=actor.bones[style.top<1.05?'Hip':'Spine02'];this.shapeStamp='';this.surface=surface;this.skinAnchors=[];
@@ -47,7 +47,7 @@ export class Wardrobe {
  }
  equip(actor,style){if(!style||actor?.version!=='v2')return false;for(const c of [...this.clothes])if(c.actor===actor&&(c.style.slot===style.slot||style.slot==='dress'&&['top','bottom'].includes(c.style.slot)||c.style.slot==='dress'&&['top','bottom'].includes(style.slot)))this.remove(c);const surface=this.contacts.surface(actor);surface.begin();const c=new Cloth(this.scene,actor,style,surface);this.clothes.push(c);this.status=style.name+' fitted to Mira';return c;}
  remove(c){c.dispose(this.scene);this.clothes=this.clothes.filter(x=>x!==c);}
- hit(ray){const rc=new T.Raycaster();rc.ray.copy(ray);this.rack.updateMatrixWorld(true);return rc.intersectObjects([...this.tokens,...this.clothes.map(c=>c.mesh)],false)[0];}
+ hit(ray){const rc=new T.Raycaster();rc.ray.copy(ray);this.rack.updateMatrixWorld(true);return rc.intersectObjects([...this.tokens,...this.clothes.map(c=>c.mesh)],false).find(h=>{let o=h.object;while(o){if(!o.visible)return false;o=o.parent;}return true;});}
  begin(ray,handle,key){const hit=this.hit(ray);if(!hit)return false;const d={handle,depth:Math.min(4,hit.distance),cloth:hit.object.userData.cloth,style:hit.object.userData.article};handle.position.copy(hit.point);if(d.cloth){d.cloth.begin(hit.point,handle);if(d.cloth.actor)this.system.select(d.cloth.actor);}else{d.ghost=hit.object.clone();d.ghost.material=d.ghost.material.clone();d.ghost.material.transparent=true;d.ghost.material.opacity=.65;this.scene.add(d.ghost);d.ghost.position.copy(hit.point);}this.drags.set(key,d);this.status='Release over Mira to dress · pull worn cloth to remove';return true;}
  move(key,ray){const d=this.drags.get(key);if(!d)return;d.handle.position.copy(ray.at(d.depth,V()));d.ghost?.position.copy(d.handle.position);}
  end(key,ray){const d=this.drags.get(key);if(!d)return;const rc=new T.Raycaster();rc.ray.copy(ray);const meshes=[];for(const a of this.system.actors)a.root.traverse(m=>{if(m.isSkinnedMesh&&/^body/.test(m.name)){m.computeBoundingSphere();meshes.push(m);}});const hit=rc.intersectObjects(meshes,false)[0];let actor=null;if(hit){let o=hit.object;while(o){actor=this.system.actors.find(a=>a.root===o);if(actor)break;o=o.parent;}}

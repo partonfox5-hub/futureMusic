@@ -1,5 +1,5 @@
-import {GARMENTS} from './mira-v2-garments.js?v=9.6';
-import {draft,saveDraft} from './mira-v2-catalog.js?v=9.5';
+import {GARMENTS} from './mira-v2-garments.js?v=10.0';
+import {draft,saveDraft} from './mira-v2-catalog.js?v=10.0';
 import * as THREE from 'three';
 const STORE='mira.human2.presets.v1';
 const LAST=STORE+'.last';
@@ -23,7 +23,7 @@ export function snapshot({mira,world,wardrobe,props,camera,orbit}){
  });
  const car=props?.vehicle;
  return {
-  v:1,savedAt:Date.now(),scene:world.name,selected:Math.max(0,mira.actors.indexOf(mira.selected)),
+  v:1,savedAt:Date.now(),scene:world.name,builds:world.builder?.snapshot()||[],selected:Math.max(0,mira.actors.indexOf(mira.selected)),
   camera:{position:camera.position.toArray(),target:orbit?.target.toArray()||[0,1,0]},
   draft:{name:draft.name,bodyType:draft.bodyType,faceType:draft.faceType,hairStyle:draft.hairStyle,hairColor:draft.hairColor,outfit:draft.outfit,persona:draft.persona,prompt:draft.prompt,shape:{...(draft.shape||{})},clothes:Array.isArray(draft.clothes)?[...draft.clothes]:undefined},
   actors,car:car?{position:car.group.position.toArray(),yaw:car.group.rotation.y}:null
@@ -34,7 +34,7 @@ export function loadPreset(name){const n=name||lastPresetName();const data=readA
 export function applyPreset(data,{mira,world,wardrobe,props,camera,orbit,syncHud}){
  if(!data||!mira?.ready)return 'No preset';
  if(data.draft){Object.assign(draft,{...data.draft,shape:{...(data.draft.shape||{})}});saveDraft();dispatchEvent(new Event('mira:draft'));}
- world.setScene(data.scene||'Living room');
+ world.setScene(data.scene||'Living room');world.builder?.restore(data.builds);
  while(mira.actors.length)mira.remove(mira.actors[mira.actors.length-1]);
  if(wardrobe){for(const c of [...(wardrobe.clothes||[])])wardrobe.remove(c);}
  const list=Array.isArray(data.actors)?data.actors:[];

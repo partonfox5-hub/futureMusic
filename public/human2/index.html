@@ -120,11 +120,21 @@
       <p id="micStatus" role="status" style="font-size:12px">Entering VR starts voice and requests microphone permission.</p>
       <h2>SCENE &amp; WARDROBE</h2>
 <label for="sceneSelect">Diorama</label><select id="sceneSelect" data-runtime></select>
-<label for="weaponSelect">Table equipment</label><select id="weaponSelect" data-runtime></select><div class="row"><button id="equipWeapon" data-runtime>PICK UP</button><button id="dropWeapon" data-runtime>DROP (Q)</button><button id="resetHouse" data-runtime>REBUILD HOUSE</button></div><p id="propStatus">Click equipment to pick up; click to use; Q to drop. Squeeze again in VR to drop.</p>
+<label for="weaponSelect">Table equipment</label><select id="weaponSelect" data-runtime></select><div class="row"><button id="equipWeapon" data-runtime>PICK UP</button><button id="dropWeapon" data-runtime>DROP (Q)</button><button id="resetHouse" data-runtime>REBUILD HOUSE</button></div><p id="propStatus">Click equipment to pick up; click to use; Q to drop. VR: reach for the handle, hold grip to wield, release grip to drop.</p>
+<details open><summary>Build houses · 60 × 60 m map</summary>
+<label for="buildKind">Piece</label><select id="buildKind"></select>
+<label for="buildSize">Patch (each square is 0.6 m)</label><select id="buildSize"></select>
+<label for="buildSurface">Texture / material</label><select id="buildSurface"></select>
+<label for="buildFurniture">Furniture</label><select id="buildFurniture"></select>
+<label for="buildHeight">Wall base / ceiling underside height (m)</label><input id="buildHeight" type="number" min="0" max="6" step="0.6" value="0">
+<div class="row"><button id="buildRotate">ROTATE 0°</button><button id="buildStart">START PLACING</button></div>
+<div class="row"><button id="buildStop">STOP</button><button id="buildUndo">UNDO LAST</button></div>
+<p id="buildStatus">Aim at ground and click to place. Green: ready; red: blocked. Escape stops placement. Save scene to keep your house.</p>
+</details>
 <label for="presetName">Scene preset</label><input id="presetName" maxlength="48" value="Slot 1" autocomplete="off"><label for="presetSelect">Saved presets</label><select id="presetSelect" data-runtime></select>
 <div class="row"><button id="savePreset" data-runtime>SAVE SCENE</button><button id="loadPreset" data-runtime>LOAD SCENE</button><button id="downloadPreset" data-runtime>DOWNLOAD JSON</button></div>
 <label for="presetFile">Import preset JSON</label><input id="presetFile" type="file" accept="application/json" data-runtime>
-<p id="presetStatus">Saves NPCs, clothes, scene, camera, car and spawn settings.</p>
+<p id="presetStatus">Saves NPCs, clothes, construction, scene, camera, car and spawn settings.</p>
 <label for="wardrobeSelect">Clothing</label><select id="wardrobeSelect" data-runtime></select><button type="button" id="wearBtn" data-runtime>DRESS SELECTED MIRA</button>
 <p>Drag garments from the wooden rack onto Mira. Drag worn cloth to pull it off. Point at a chair to sit.</p>
 <h2>DRIVEWAY CAR</h2><div class="row"><button id="enterCar" data-runtime>ENTER CAR (E)</button><button id="exitCar" data-runtime>EXIT CAR (E)</button><button id="repairCar" data-runtime>REPAIR / RESET</button></div><label><input id="mirrorOn" type="checkbox" checked data-runtime> Rear-view mirror</label><p id="carStatus">Desktop: W/S drive/reverse, A/D steer, Space brake. VR: grip wheel, left trigger accelerates, X brakes.</p>
@@ -144,6 +154,6 @@
         <button type="button" class="ghost" id="firstPerson" data-runtime>First person</button>
       </div>
     </div>
-    <script type="module" src="/human2/mira-boot.js?v=9.7"></script>
+    <script type="module" src="/human2/mira-boot.js?v=10.0"></script>
   </body>
 </html>

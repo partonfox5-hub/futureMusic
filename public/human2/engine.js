@@ -1,23 +1,25 @@
-import {Car} from './mira-v2-car.js?v=9.5';
-import {Restraints} from './mira-v2-restraints.js?v=9.5';
-import {Injuries} from './mira-v2-injuries.js?v=9.5';
-import {Props,WEAPONS} from './mira-v2-props.js?v=9.6';
-import {RoomLight} from './mira-v2-light.js?v=9.5';
-import {draft,saveDraft,spawnOptions,OUTFITS,clothingItems} from './mira-v2-catalog.js?v=9.5';
-import {MiraWorld,SCENES} from './mira-v2-world.js?v=9.6';
-import {Wardrobe,GARMENTS} from './mira-v2-wardrobe.js?v=9.5';
+import {Builder,FURNITURE,SURFACES} from './mira-v2-builder.js?v=10.0';
+import {SmoothLocomotion} from './mira-v2-locomotion.js?v=10.0';
+import {Car} from './mira-v2-car.js?v=10.0';
+import {Restraints} from './mira-v2-restraints.js?v=10.0';
+import {Injuries} from './mira-v2-injuries.js?v=10.0';
+import {Props,WEAPONS} from './mira-v2-props.js?v=10.0';
+import {RoomLight} from './mira-v2-light.js?v=10.0';
+import {draft,saveDraft,spawnOptions,OUTFITS,clothingItems} from './mira-v2-catalog.js?v=10.0';
+import {MiraWorld,SCENES} from './mira-v2-world.js?v=10.0';
+import {Wardrobe,GARMENTS} from './mira-v2-wardrobe.js?v=10.0';
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { createVRMenu } from "./mira-vr-menu.js?v=9.6";
-import { snapshot, savePreset, loadPreset, applyPreset, listPresets, lastPresetName, downloadPreset } from "./mira-v2-preset.js?v=9.6";
-import { unlockSfx } from "./mira-v2-sfx.js?v=9.6";
-import { EMOTION_NAMES, IDLE_NAMES, WALK_NAMES } from "./mira-v2-features.js?v=9.5";
+import { createVRMenu } from "./mira-vr-menu.js?v=10.0";
+import { snapshot, savePreset, loadPreset, applyPreset, listPresets, lastPresetName, downloadPreset } from "./mira-v2-preset.js?v=10.0";
+import { unlockSfx } from "./mira-v2-sfx.js?v=10.0";
+import { EMOTION_NAMES, IDLE_NAMES, WALK_NAMES } from "./mira-v2-features.js?v=10.0";
 import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
-import { createMiraSystem, SLIDERS, FACE_TYPES, HAIR_COLORS } from "./mira-v2.js?v=9.5";
-import { DEFAULT_PERSONA, miraChat, miraSpeak, startMic, unlockVoice } from "./mira-voice-v2.js?v=9.5";
+import { createMiraSystem, SLIDERS, FACE_TYPES, HAIR_COLORS } from "./mira-v2.js?v=10.0";
+import { DEFAULT_PERSONA, miraChat, miraSpeak, startMic, unlockVoice } from "./mira-voice-v2.js?v=10.0";
 
-import {V2_EXTRA_SLIDERS,FACE_PRESETS,HAIR_STYLES,ACTIVITY_MODES,shapeSliders} from './mira-v2-controls.js?v=9.5';
+import {V2_EXTRA_SLIDERS,FACE_PRESETS,HAIR_STYLES,ACTIVITY_MODES,shapeSliders} from './mira-v2-controls.js?v=10.0';
 
 const QUEST = /OculusBrowser|Quest/i.test(navigator.userAgent);
 const loadEl = document.getElementById("load");
@@ -99,6 +101,7 @@ document.getElementById("enterAR").onclick=()=>enterXr(true);
 const mira = createMiraSystem({ scene, renderer, camera, xrOn: XR_ON, rig });
 const world=new MiraWorld(scene,mira);mira.setEnvironment(world);floor.visible=false;const wardrobe=new Wardrobe(scene,mira,mira.contacts,world);mira.setWardrobe(wardrobe);
 const props=new Props({scene,system:mira,world,wardrobe,camera,renderer,rig});world.interactions=props;props.restraints=new Restraints(props);props.injuries=new Injuries(props);props.vehicle=new Car(props,{orbit,keys,controls});
+const builder=new Builder(world,wardrobe,props);props.builder=builder;
 const roomLight=new RoomLight(scene,renderer,rig);
 let voiceSessionStart=()=>{},voiceSessionEnd=()=>{};
 banner("LOADING HUMAN 2…");
@@ -128,7 +131,7 @@ renderer.domElement.addEventListener('pointerdown',e=>{
  dragPlane.setFromNormalAndCoplanarPoint(camera.getWorldDirection(new THREE.Vector3()),hit.point);
  orbit.enabled=false;renderer.domElement.setPointerCapture(e.pointerId);e.stopImmediatePropagation();e.preventDefault();
 },true);
-renderer.domElement.addEventListener('pointermove',e=>{if(!desktopGrab)return;pointerRay(e);const p=pickRay.ray.intersectPlane(dragPlane,new THREE.Vector3());if(p)virtualGrip.position.copy(p);});
+renderer.domElement.addEventListener('pointermove',e=>{if(builder.active&&!XR_ON())pointerRay(e);if(!desktopGrab)return;pointerRay(e);const p=pickRay.ray.intersectPlane(dragPlane,new THREE.Vector3());if(p)virtualGrip.position.copy(p);});
 function releaseDesktop(){if(desktopGrab)desktopGrab.endGrab(virtualGrip);desktopGrab=null;orbit.enabled=!grabMode&&!XR_ON();}
 renderer.domElement.addEventListener('pointerup',releaseDesktop);renderer.domElement.addEventListener('pointercancel',releaseDesktop);addEventListener('blur',releaseDesktop);
 // A click commands movement; a drag remains orbit, and Shift-drag remains grab.
@@ -137,7 +140,7 @@ renderer.domElement.addEventListener('pointerdown',e=>{groundClick=!XR_ON()&&!gr
 renderer.domElement.addEventListener('pointerup',e=>{const c=groundClick;groundClick=null;if(!c||c.id!==e.pointerId||Math.hypot(c.x-e.clientX,c.y-e.clientY)>5||performance.now()-c.t>650)return;pointerRay(e);const result=mira.pointCommand(pickRay.ray);if(result)syncHud();});
 renderer.domElement.addEventListener('pointercancel',()=>groundClick=null);
 renderer.domElement.addEventListener('pointerdown',e=>{if(XR_ON()||e.shiftKey||grabMode||e.button!==0)return;pointerRay(e);if(props.desktop(pickRay.ray)){groundClick=null;e.preventDefault();e.stopImmediatePropagation();}},true);
-document.addEventListener('keydown',e=>{if(/INPUT|TEXTAREA|SELECT/.test(e.target.tagName))return;if(e.code==='KeyQ')props.drop('desktop');if(e.code==='KeyE'){props.vehicle.driving?props.vehicle.exit():props.vehicle.enter();}});
+document.addEventListener('keydown',e=>{if(/INPUT|TEXTAREA|SELECT/.test(e.target.tagName))return;if(e.code==='KeyQ')props.drop('desktop');if(e.code==='Escape')builder.stop();if(e.code==='KeyE'){props.vehicle.driving?props.vehicle.exit():props.vehicle.enter();}});
 const clothHandle=new THREE.Object3D();let clothPointer=null;
 renderer.domElement.addEventListener('pointerdown',e=>{if(XR_ON()||e.shiftKey||grabMode||e.button!==0)return;pointerRay(e);if(wardrobe.begin(pickRay.ray,clothHandle,'desktop')){clothPointer=e.pointerId;orbit.enabled=false;renderer.domElement.setPointerCapture(e.pointerId);e.preventDefault();e.stopImmediatePropagation();}},true);
 renderer.domElement.addEventListener('pointermove',e=>{if(clothPointer!==e.pointerId)return;pointerRay(e);wardrobe.move('desktop',pickRay.ray);});
@@ -183,7 +186,7 @@ function bindHud() {
  document.getElementById('presetFile').onchange=e=>{const file=e.target.files?.[0];if(!file)return;file.text().then(text=>{try{const data=JSON.parse(text);const n=savePreset(file.name.replace(/\.json$/i,''),data);document.getElementById('presetName').value=n;refreshPresetSelect();document.getElementById('presetSelect').value=n;document.getElementById('presetStatus').textContent=applyPreset(data,{mira,world,wardrobe,props,camera,orbit,syncHud});}catch(err){document.getElementById('presetStatus').textContent=err.message||'Invalid preset file';}});e.target.value='';};
  addEventListener('pointerdown',unlockSfx,{once:true});
  document.getElementById("spawnNpc").onclick=spawnConfigured;document.getElementById("copyNpc").onclick=copyConfiguration;document.getElementById("foveation").oninput=e=>renderer.xr.setFoveation(Number(e.target.value));document.getElementById("hapticGain").oninput=e=>mira.hands.haptics.gain=Number(e.target.value);
- const sceneSelect=document.getElementById('sceneSelect');sceneSelect.replaceChildren(...SCENES.map(x=>new Option(x,x)));sceneSelect.value=world.name;sceneSelect.onchange=()=>{world.setScene(sceneSelect.value);world.obstacle(-3.3,2.4,1.3,.6,0,2);};
+ const sceneSelect=document.getElementById('sceneSelect');sceneSelect.replaceChildren(...SCENES.map(x=>new Option(x,x)));sceneSelect.value=world.name;sceneSelect.onchange=()=>{world.setScene(sceneSelect.value);};
  const wardrobeSelect=document.getElementById('wardrobeSelect');wardrobeSelect.replaceChildren(...GARMENTS.map(x=>new Option(x.name,x.id)));document.getElementById('wearBtn').onclick=()=>wardrobe.equip(selected(),GARMENTS.find(x=>x.id===wardrobeSelect.value));
 
   for(const slider of V2_EXTRA_SLIDERS){
@@ -288,7 +291,7 @@ function bindHud() {
     talking = true;
     banner("heard: " + text);
     addChat("you", text);
-    const cam = renderer.xr.isPresenting ? renderer.xr.getCamera() : camera;
+    const cam = camera;
     cam.getWorldPosition(_fwd);
     const actor = mira.nearestTo(_fwd, 2.6) || mira.selected;
     if (actor) {
@@ -365,50 +368,9 @@ function bindHud() {
   syncLabs();if(XR_ON())voiceSessionStart();
 }
 
-const _fwd = new THREE.Vector3();
-const _right = new THREE.Vector3();
-const _turnOffset = new THREE.Vector3(), _turnedOffset = new THREE.Vector3(), _up = new THREE.Vector3(0, 1, 0);
-function stickAxes(gp) {
-  if (!gp || !gp.axes) return null;
-  const a = gp.axes;
-  if (a.length >= 4 && (Math.abs(a[2]) > 0.02 || Math.abs(a[3]) > 0.02)) return { x: a[2], y: a[3] };
-  if (a.length >= 2) return { x: a[0], y: a[1] };
-  return null;
-}
+const locomotion = new SmoothLocomotion(rig,camera,world);
 function tickLocomotion(dt) {
-  if (!XR_ON() || vrMenu.isOpen || props.vehicle.driving) return;
-  const session = renderer.xr.getSession();
-  if (!session) return;
-  const cam = renderer.xr.getCamera();
-  _fwd.set(0,0,-1).applyQuaternion(cam.getWorldQuaternion(new THREE.Quaternion()));
-  _fwd.y = 0;
-  if (_fwd.lengthSq() < 1e-6) return;
-  _fwd.normalize();
-  _right.set(-_fwd.z, 0, _fwd.x);
-  const speed = 1.45;
-  const turn = 2.15;
-  let idx = 0;
-  for (const src of session.inputSources) {
-    const st = stickAxes(src.gamepad);
-    idx += 1;
-    if (!st) continue;
-    let sx = st.x, sy = st.y;
-    const hand = src.handedness || "";
-    const isRight = hand === "right" || (hand !== "left" && idx === 2);
-    if (!isRight) {
-      if (Math.abs(sx) < 0.14) sx = 0;
-      if (Math.abs(sy) < 0.14) sy = 0;
-      rig.position.addScaledVector(_fwd, -sy * speed * dt);
-      rig.position.addScaledVector(_right, sx * speed * dt);
-    } else {
-      if (Math.abs(sx) < 0.16) sx = 0;
-      const angle = -sx * turn * dt;
-      cam.getWorldPosition(_turnOffset).sub(rig.position);
-      _turnedOffset.copy(_turnOffset).applyAxisAngle(_up, angle);
-      rig.position.add(_turnOffset).sub(_turnedOffset);
-      rig.rotation.y += angle;
-    }
-  }
+ if(XR_ON())locomotion.tick(dt,renderer.xr.getSession()?.inputSources||[],vrMenu.isOpen||props.vehicle.driving);
 }
 
 function desktopMove(dt) {
@@ -425,15 +387,21 @@ function desktopMove(dt) {
 const clock = new THREE.Clock();
 let fpsFrames = 0, fpsLast = performance.now();
 function tick(time,frame) {
+ if (XR_ON() && frame) {
+   const pose=frame.getViewerPose(renderer.xr.getReferenceSpace());
+   if(pose){camera.position.copy(pose.transform.position);camera.quaternion.copy(pose.transform.orientation);camera.updateWorldMatrix(true,false);}
+ }
  roomLight.tick(frame);
   const rawDt = clock.getDelta();
-  if (rawDt > 0.12 && mira.ready) mira.resetPhysics();
+  if (rawDt > 0.12 && mira.ready) { mira.resetPhysics(false); props.resetMotion(); }
   const dt = Math.min(rawDt, 0.05);
   desktopMove(dt);
   if(!XR_ON()&&orbit.enabled)orbit.update();
   vrMenu.tick();
+  if(builder.active){if(XR_ON())builder.preview(props.ray(builder.controller));else{if(controls?.isLocked)pickRay.setFromCamera(new THREE.Vector2(),camera);builder.preview(pickRay.ray);}}
+  const buildStatus=document.getElementById('buildStatus');if(buildStatus)buildStatus.textContent=builder.status;
   tickLocomotion(dt);
-  if(XR_ON()&&!props.vehicle.driving){const eye=renderer.xr.getCamera().getWorldPosition(new THREE.Vector3()),before=eye.clone();world.project(eye,.18,0,1.6);rig.position.add(eye.sub(before));}
+  if(XR_ON()&&!props.vehicle.driving){const eye=camera.getWorldPosition(new THREE.Vector3()),before=eye.clone();world.project(eye,.18,.10,1.5);eye.x=THREE.MathUtils.clamp(eye.x,-world.extent,world.extent);eye.z=THREE.MathUtils.clamp(eye.z,-world.extent,world.extent);rig.position.add(eye.sub(before));}
   if (mira.ready) {mira.tick(dt, clock.elapsedTime, keys);props.tick(dt);}
   const propStatus=document.getElementById("propStatus");if(propStatus&&propStatus.textContent!==props.status)propStatus.textContent=props.status;
   const ls=document.getElementById('linkSelect'),stamp=props.restraints.links.map(l=>l.id+':'+l.broken).join('/');if(ls.dataset.stamp!==stamp){ls.replaceChildren(new Option('Select link',''),...props.restraints.links.map(l=>new Option('Link '+l.id+(l.broken?' · cut':''),l.id)));ls.dataset.stamp=stamp;}ls.value=props.restraints.selected?.id||'';if(document.activeElement?.id!=='linkLength')document.getElementById('linkLength').value=props.restraints.selected?.length||1;document.getElementById('linkStatus').textContent=props.restraints.status;
@@ -506,3 +474,14 @@ addEventListener("resize", () => {
 
 // Attach controls independently of asset loading.
 bindHud();
+
+// Desktop uses the same construction settings and validation as the Y panel.
+const buildControls={buildKind:['Wall','Floor','Ceiling','Furniture'],buildSize:[1,2,3],buildSurface:Object.keys(SURFACES),buildFurniture:FURNITURE};
+for(const [id,values] of Object.entries(buildControls)){const e=document.getElementById(id);e.replaceChildren(...values.map(v=>new Option(id==='buildSize'?v+'×'+v:String(v),String(v))));}
+document.getElementById('buildKind').onchange=e=>{builder.setKind(e.target.value);document.getElementById('buildHeight').value=builder.height;document.getElementById('buildHeight').disabled=['Floor','Furniture'].includes(builder.kind);};
+document.getElementById('buildSize').onchange=e=>builder.size=Number(e.target.value);
+document.getElementById('buildSurface').onchange=e=>builder.surface=e.target.value;
+document.getElementById('buildFurniture').onchange=e=>builder.furniture=e.target.value;
+document.getElementById('buildHeight').onchange=e=>{builder.height=Math.round(THREE.MathUtils.clamp(Number(e.target.value)||0,0,6)/.6)*.6;e.target.value=builder.height;};
+document.getElementById('buildRotate').onclick=()=>{builder.yaw=(builder.yaw+Math.PI/2)%(Math.PI*2);document.getElementById('buildRotate').textContent='ROTATE '+Math.round(builder.yaw*180/Math.PI)+'°';};
+document.getElementById('buildStart').onclick=()=>builder.start();document.getElementById('buildStop').onclick=()=>builder.stop();document.getElementById('buildUndo').onclick=()=>builder.undo();

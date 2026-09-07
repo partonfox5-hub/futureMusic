@@ -1,8 +1,8 @@
-import {restoreSurfaceUV} from './mira-v2-uv.js?v=9.5';
-import {BodyContacts} from './mira-v2-contact.js?v=9.5';
-import {MiraSocial} from './mira-v2-social.js?v=9.5';
-import {ContactHaptics} from './mira-v2-haptics.js?v=9.5';
-import { createV2Class, repairArmRestData } from "./mira-v2-features.js?v=9.5";
+import {restoreSurfaceUV} from './mira-v2-uv.js?v=10.0';
+import {BodyContacts} from './mira-v2-contact.js?v=10.0';
+import {MiraSocial} from './mira-v2-social.js?v=10.0';
+import {ContactHaptics} from './mira-v2-haptics.js?v=10.0';
+import { createV2Class, repairArmRestData } from "./mira-v2-features.js?v=10.0";
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { clone as cloneSkinned } from "three/addons/utils/SkeletonUtils.js";
@@ -1743,15 +1743,15 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
   }
 
   let physicsAccumulator = 0;
-  function resetPhysics() {
+  function resetPhysics(releaseGrips = true) {
     physicsAccumulator = 0;
-    for (let i = 0; i < 2; i++) { tryRelease(i); hands.prevReady[i] = false; hands.vel[i].set(0, 0, 0); }
+    for (let i = 0; i < 2; i++) { if(releaseGrips)tryRelease(i); hands.prevReady[i] = false; hands.vel[i].set(0, 0, 0); }
     for (const a of actors) a.resetPhysics();
     for (let i = 0; i < noodle.n; i++) noodle.prev[i].copy(noodle.pts[i]);
     for (const b of balls) b.vel.set(0, 0, 0);
   }
   function tick(dt, tAbs, keys) {
-    const cam = xrOn() ? renderer.xr.getCamera() : camera;
+    const cam = camera;
     cam.getWorldPosition(camPos);
     pollSpawnBalls(keys);
     let hold = null, hq = null;
