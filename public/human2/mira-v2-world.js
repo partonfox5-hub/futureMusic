@@ -1,4 +1,4 @@
-import {Destruction} from './mira-v2-destruction.js?v=9.5';
+import {Destruction} from './mira-v2-destruction.js?v=9.6';
 import {buildHouse} from './mira-v2-house.js?v=9.5';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
 import * as T from 'three';

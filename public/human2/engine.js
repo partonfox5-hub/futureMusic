@@ -1,14 +1,16 @@
 import {Car} from './mira-v2-car.js?v=9.5';
 import {Restraints} from './mira-v2-restraints.js?v=9.5';
 import {Injuries} from './mira-v2-injuries.js?v=9.5';
-import {Props,WEAPONS} from './mira-v2-props.js?v=9.5';
+import {Props,WEAPONS} from './mira-v2-props.js?v=9.6';
 import {RoomLight} from './mira-v2-light.js?v=9.5';
 import {draft,saveDraft,spawnOptions,OUTFITS,clothingItems} from './mira-v2-catalog.js?v=9.5';
-import {MiraWorld,SCENES} from './mira-v2-world.js?v=9.5';
+import {MiraWorld,SCENES} from './mira-v2-world.js?v=9.6';
 import {Wardrobe,GARMENTS} from './mira-v2-wardrobe.js?v=9.5';
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { createVRMenu } from "./mira-vr-menu.js?v=9.5";
+import { createVRMenu } from "./mira-vr-menu.js?v=9.6";
+import { snapshot, savePreset, loadPreset, applyPreset, listPresets, lastPresetName, downloadPreset } from "./mira-v2-preset.js?v=9.6";
+import { unlockSfx } from "./mira-v2-sfx.js?v=9.6";
 import { EMOTION_NAMES, IDLE_NAMES, WALK_NAMES } from "./mira-v2-features.js?v=9.5";
 import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
@@ -87,10 +89,10 @@ addEventListener("keyup", (e) => { keys[e.code] = false; });
 const orbit = new OrbitControls(camera, renderer.domElement);
 orbit.target.set(0,1.02,0);orbit.enableDamping=true;orbit.minDistance=.35;orbit.maxDistance=8;orbit.maxPolarAngle=Math.PI*.94;
 orbit.update();
-document.getElementById("desk").onclick = () => { if(ui)ui.style.display="none"; orbit.enabled=true; };
-document.getElementById("firstPerson").onclick=()=>{orbit.enabled=false;if(ui)ui.style.display="none";controls?.lock();};
+document.getElementById("desk").onclick = () => { unlockSfx(); if(ui)ui.style.display="none"; orbit.enabled=true; };
+document.getElementById("firstPerson").onclick=()=>{unlockSfx();orbit.enabled=false;if(ui)ui.style.display="none";controls?.lock();};
 controls?.addEventListener('unlock',()=>{orbit.enabled=true;});
-document.getElementById("enter").onclick = ()=>enterXr(false);
+document.getElementById("enter").onclick = ()=>{unlockSfx();enterXr(false);};
 document.getElementById("enterAR").onclick=()=>enterXr(true);
 
 
@@ -159,7 +161,11 @@ function syncHud(){
 }
 function copyConfiguration(){const a=selected();if(!a)return;Object.assign(draft,{bodyType:a.bodyType||'female',faceType:a.faceType,hairStyle:a.hairStyle||0,hairColor:a.hairColor,shape:{...a.shape}});saveDraft();dispatchEvent(new Event('mira:draft'));}
 function spawnConfigured(){if(!mira.ready)return;const n=mira.actors.length,p=new THREE.Vector3(n%2?-.8:.8,0,0),a=mira.spawn(spawnOptions(p));for(const id of clothingItems())wardrobe.equip(a,GARMENTS.find(g=>g.id===id));syncHud();}
-const vrMenu=createVRMenu({spawnConfigured,copyConfiguration,scene,renderer,camera,system:mira,spawn:spawnVersion,onSync:syncHud,world,wardrobe,props});props.menu=vrMenu;
+function captureScene(){return snapshot({mira,world,wardrobe,props,camera,orbit});}
+function refreshPresetSelect(){const el=document.getElementById('presetSelect');if(!el)return;const names=listPresets(),cur=el.value||lastPresetName();el.replaceChildren(...(names.length?names:['Slot 1']).map(n=>new Option(n,n)));if([...el.options].some(o=>o.value===cur))el.value=cur;}
+function persistScene(name){unlockSfx();const n=savePreset(name||document.getElementById('presetName')?.value||lastPresetName(),captureScene());const nameEl=document.getElementById('presetName');if(nameEl)nameEl.value=n;refreshPresetSelect();const sel=document.getElementById('presetSelect');if(sel)sel.value=n;const st=document.getElementById('presetStatus');if(st)st.textContent='Saved '+n+' · '+mira.actors.length+' NPC'+(mira.actors.length===1?'':'s');return n;}
+function restoreScene(name){unlockSfx();const n=name||document.getElementById('presetSelect')?.value||lastPresetName();const data=loadPreset(n);const msg=applyPreset(data,{mira,world,wardrobe,props,camera,orbit,syncHud});const st=document.getElementById('presetStatus');if(st)st.textContent=msg;const nameEl=document.getElementById('presetName');if(nameEl)nameEl.value=n;refreshPresetSelect();return msg;}
+const vrMenu=createVRMenu({spawnConfigured,copyConfiguration,scene,renderer,camera,system:mira,spawn:spawnVersion,onSync:syncHud,world,wardrobe,props,saveScene:()=>persistScene(lastPresetName()),loadScene:()=>restoreScene(lastPresetName())});props.menu=vrMenu;
 
 function selected() { return mira.selected; }
 
@@ -169,6 +175,13 @@ function bindHud() {
  document.getElementById('placeLink').onclick=()=>props.restraints.start();document.getElementById('cancelLink').onclick=()=>props.restraints.cancel();document.getElementById('linkMode').onchange=e=>props.restraints.mode=e.target.value;document.getElementById('linkSelect').onchange=e=>props.restraints.selected=props.restraints.links.find(l=>l.id===Number(e.target.value));document.getElementById('linkLength').oninput=e=>props.restraints.setLength(e.target.value);document.getElementById('cutLink').onclick=()=>props.restraints.cut();document.getElementById('removeLink').onclick=()=>props.restraints.remove();document.getElementById('injuryEnabled').onchange=e=>props.injuries.enabled=e.target.checked;document.getElementById('allowSever').onchange=e=>props.injuries.allowSever=e.target.checked;document.getElementById('healActor').onclick=()=>props.injuries.heal(selected());
 
  const weaponSelect=document.getElementById('weaponSelect');weaponSelect.replaceChildren(...Object.entries(WEAPONS).map(([id,w])=>new Option(w.name,id)));document.getElementById('equipWeapon').onclick=()=>props.equip(weaponSelect.value);document.getElementById('dropWeapon').onclick=()=>props.drop('desktop');document.getElementById('resetHouse').onclick=()=>world.setScene('Living room');
+ const presetName=document.getElementById('presetName');if(presetName)presetName.value=lastPresetName();
+ refreshPresetSelect();
+ document.getElementById('savePreset').onclick=()=>persistScene(document.getElementById('presetName').value);
+ document.getElementById('loadPreset').onclick=()=>restoreScene(document.getElementById('presetSelect').value);
+ document.getElementById('downloadPreset').onclick=()=>{const n=document.getElementById('presetName').value||lastPresetName();downloadPreset(n,captureScene());document.getElementById('presetStatus').textContent='Downloaded '+n+'.json';};
+ document.getElementById('presetFile').onchange=e=>{const file=e.target.files?.[0];if(!file)return;file.text().then(text=>{try{const data=JSON.parse(text);const n=savePreset(file.name.replace(/\.json$/i,''),data);document.getElementById('presetName').value=n;refreshPresetSelect();document.getElementById('presetSelect').value=n;document.getElementById('presetStatus').textContent=applyPreset(data,{mira,world,wardrobe,props,camera,orbit,syncHud});}catch(err){document.getElementById('presetStatus').textContent=err.message||'Invalid preset file';}});e.target.value='';};
+ addEventListener('pointerdown',unlockSfx,{once:true});
  document.getElementById("spawnNpc").onclick=spawnConfigured;document.getElementById("copyNpc").onclick=copyConfiguration;document.getElementById("foveation").oninput=e=>renderer.xr.setFoveation(Number(e.target.value));document.getElementById("hapticGain").oninput=e=>mira.hands.haptics.gain=Number(e.target.value);
  const sceneSelect=document.getElementById('sceneSelect');sceneSelect.replaceChildren(...SCENES.map(x=>new Option(x,x)));sceneSelect.value=world.name;sceneSelect.onchange=()=>{world.setScene(sceneSelect.value);world.obstacle(-3.3,2.4,1.3,.6,0,2);};
  const wardrobeSelect=document.getElementById('wardrobeSelect');wardrobeSelect.replaceChildren(...GARMENTS.map(x=>new Option(x.name,x.id)));document.getElementById('wearBtn').onclick=()=>wardrobe.equip(selected(),GARMENTS.find(x=>x.id===wardrobeSelect.value));
@@ -442,7 +455,7 @@ renderer.setAnimationLoop(tick);
 async function enterXr(passthroughMode=false) {
   if (!navigator.xr) { banner("WebXR not available — use Quest Browser or Desktop look"); return; }
   try {
-    unlockVoice();
+    unlockVoice();unlockSfx();
     const xrDetail = Number(document.getElementById("quality").value) || 0.9;
     renderer.xr.setFramebufferScaleFactor(xrDetail);
     renderer.shadowMap.enabled=xrDetail>=.85;

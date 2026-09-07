@@ -1,4 +1,5 @@
 import * as T from 'three';
+import {playSfx,sfxForBreak} from './mira-v2-sfx.js?v=9.6';
 const V=()=>new T.Vector3(),Q=()=>new T.Quaternion();
 const MATERIALS={plaster:{health:48,density:650,color:0xc9c1b1},wood:{health:70,density:600,color:0x806047},glass:{health:11,density:2500,color:0x9fc1c7},stone:{health:210,density:2400,color:0x85847c},metal:{health:190,density:7800,color:0x929b9d}};
 export class Destruction {
@@ -10,7 +11,7 @@ export class Destruction {
  }
  register(mesh,kind='wood',obstacle=null){mesh.updateWorldMatrix(true,false);const box=new T.Box3().setFromObject(mesh),part={mesh,p:box.getCenter(V()),size:box.getSize(V()),kind,health:MATERIALS[kind].health,obstacle,broken:false};mesh.userData.piece=part;this.parts.push(part);if(!this.world.pickables.includes(mesh))this.world.pickables.push(mesh);return part;}
  impact(hit,energy,dir,kind='blunt',sharpness=0){const part=hit.object.userData.chunks?.[hit.instanceId]||hit.object.userData.piece;if(!part||part.broken)return false;const multiplier=kind==='cut'?(part.kind==='wood'?1+sharpness:part.kind==='plaster'?.85:.28):kind==='laser'?1.4:1;part.health-=Math.max(0,energy)*multiplier;if(part.health<=0)this.break(part,dir,energy);return part.broken;}
- break(part,dir,energy){if(part.broken)return;part.broken=true;if(part.index!==undefined){part.mesh.setMatrixAt(part.index,new T.Matrix4().makeScale(0,0,0));part.mesh.instanceMatrix.needsUpdate=true;}else part.mesh.visible=false;
+ break(part,dir,energy){if(part.broken)return;part.broken=true;playSfx(sfxForBreak(part.kind));if(part.index!==undefined){part.mesh.setMatrixAt(part.index,new T.Matrix4().makeScale(0,0,0));part.mesh.instanceMatrix.needsUpdate=true;}else part.mesh.visible=false;
   if(part.obstacle)this.world.removeObstacle(part.obstacle);const seat=part.mesh.userData.seat;if(seat){if(seat.occupant){const a=seat.occupant;a.seat=null;a.group.position.y=a.baseY||0;a.knockDown?.(dir);seat.occupant=null;}this.world.removeObstacle(seat.obstacle);this.world.seats=this.world.seats.filter(s=>s!==seat);seat.group.traverse(m=>{delete m.userData.seat;});}
   for(let i=0;i<6;i++){const offset=new T.Vector3((i%2-.5)*part.size.x*.55,((i>>1)%2-.5)*part.size.y*.55,((i>>2)%2-.5)*part.size.z*.55),velocity=dir.clone().multiplyScalar(Math.min(4,Math.sqrt(Math.max(0,energy))*.24)).add(new T.Vector3(Math.sin(i*2.4),.6+(i%3)*.22,Math.cos(i*2.4)));this.fragment(part.p.clone().add(offset),part.size.clone().multiplyScalar(.35),MATERIALS[part.kind].color,velocity);}
  }

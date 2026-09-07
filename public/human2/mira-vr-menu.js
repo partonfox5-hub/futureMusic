@@ -1,4 +1,4 @@
-import {WEAPONS} from './mira-v2-props.js?v=9.5';
+import {WEAPONS} from './mira-v2-props.js?v=9.6';
 import {draft,saveDraft,OUTFITS,PERSONAS,clothingItems,setDraftGarment} from './mira-v2-catalog.js?v=9.5';
 import {SCENES} from './mira-v2-world.js?v=9.5';
 import {GARMENTS} from './mira-v2-wardrobe.js?v=9.5';
@@ -7,7 +7,7 @@ import {SLIDERS,FACE_TYPES} from './mira-v2.js?v=9.5';
 import {shapeSliders,FACE_PRESETS,HAIR_STYLES,ACTIVITY_MODES,ACTION_LABELS,POSE_LABELS} from './mira-v2-controls.js?v=9.5';
 import {HAIR_COLORS} from './mira-v2.js?v=9.5';
 import {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES} from './mira-v2-features.js?v=9.5';
-export function createVRMenu({scene,renderer,camera,system,spawn,onSync,world,wardrobe,spawnConfigured,copyConfiguration,props}){
+export function createVRMenu({scene,renderer,camera,system,spawn,onSync,world,wardrobe,spawnConfigured,copyConfiguration,props,saveScene,loadScene}){
  const canvas=document.createElement('canvas');canvas.width=1024;canvas.height=1320;
  const ctx=canvas.getContext('2d'),tex=new THREE.CanvasTexture(canvas);tex.colorSpace=THREE.SRGBColorSpace;
  const panel=new THREE.Mesh(new THREE.PlaneGeometry(.74,.954),new THREE.MeshBasicMaterial({map:tex,side:THREE.DoubleSide,toneMapped:false,depthTest:false,depthWrite:false}));
@@ -49,10 +49,11 @@ export function createVRMenu({scene,renderer,camera,system,spawn,onSync,world,wa
   }else if(page===5){
    cycle('Diorama',330,SCENES,()=>world.name,name=>{world.setScene(name);world.obstacle(-3.3,2.4,1.3,.6,0,2);document.getElementById('sceneSelect').value=name;});
    cycle('Clothing',470,GARMENTS.map(g=>g.name),()=>GARMENTS[garmentIndex].name,name=>garmentIndex=GARMENTS.findIndex(g=>g.name===name));button('DRESS SELECTED NPC',40,590,942,65,()=>{notice=wardrobe.equip(active(),GARMENTS[garmentIndex])?'Clothing applied':'Select a v2 actor';draw();});
-   cycle('Table equipment',715,Object.values(WEAPONS).map(w=>w.name),()=>Object.values(WEAPONS)[weaponIndex].name,name=>weaponIndex=Object.values(WEAPONS).findIndex(w=>w.name===name));button('PICK UP',40,820,455,66,()=>{props.hold(props.items.find(x=>x.id===Object.keys(WEAPONS)[weaponIndex]),lastController);notice=props.status;draw();});button('DROP',515,820,467,66,()=>props.drop(lastController));
-   button('HAPTICS '+system.hands.haptics.gain.toFixed(1)+'×',40,925,455,72,()=>{system.hands.haptics.gain=(system.hands.haptics.gain+.5)%2.5;draw();});button('VOICE ON / OFF',515,925,467,72,()=>document.getElementById('micBtn')?.click());
-   button('REBUILD HOUSE',40,1040,942,72,()=>{world.setScene('Living room');notice='House rebuilt';draw();});
-   ctx.font='24px sans-serif';ctx.fillStyle='#c9d6e2';ctx.fillText('Grip: pick up / swing · Trigger: fire · Release grip: drop',40,1175);
+   cycle('Table equipment',700,Object.values(WEAPONS).map(w=>w.name),()=>Object.values(WEAPONS)[weaponIndex].name,name=>weaponIndex=Object.values(WEAPONS).findIndex(w=>w.name===name));button('PICK UP',40,800,455,62,()=>{props.hold(props.items.find(x=>x.id===Object.keys(WEAPONS)[weaponIndex]),lastController);notice=props.status;draw();});button('DROP',515,800,467,62,()=>props.drop(lastController));
+   button('HAPTICS '+system.hands.haptics.gain.toFixed(1)+'×',40,880,455,62,()=>{system.hands.haptics.gain=(system.hands.haptics.gain+.5)%2.5;draw();});button('VOICE ON / OFF',515,880,467,62,()=>document.getElementById('micBtn')?.click());
+   button('SAVE SCENE',40,958,455,62,()=>{notice=saveScene?('Saved '+saveScene()):'Save unavailable';draw();});button('LOAD LAST',515,958,467,62,()=>{notice=loadScene?loadScene():'Load unavailable';draw();});
+   button('REBUILD HOUSE',40,1036,942,62,()=>{world.setScene('Living room');notice='House rebuilt';draw();});
+   ctx.font='24px sans-serif';ctx.fillStyle='#c9d6e2';ctx.fillText('Squeeze again to drop · Trigger fires / swings',40,1175);
   }else if(page===0){
    button('SPAWN V1',40,300,455,80,()=>{spawn('v1');draw();});button('SPAWN V2',515,300,467,80,()=>{spawn('v2');draw();});
    button('SELECT NEXT',40,400,610,76,()=>{const list=system.actors;system.select(list[(list.indexOf(active())+1)%list.length]);onSync?.();draw();});
