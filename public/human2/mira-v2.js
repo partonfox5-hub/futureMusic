@@ -2,7 +2,7 @@ import {restoreSurfaceUV} from './mira-v2-uv.js?v=11.0';
 import {BodyContacts} from './mira-v2-contact.js?v=11.0';
 import {MiraSocial} from './mira-v2-social.js?v=11.0';
 import {ContactHaptics} from './mira-v2-haptics.js?v=11.0';
-import { createV2Class, repairArmRestData } from "./mira-v2-features.js?v=11.0";
+import { createV2Class, repairArmRestData } from "./mira-v2-features.js?v=11.1";
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { clone as cloneSkinned } from "three/addons/utils/SkeletonUtils.js";
@@ -1511,7 +1511,7 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
       noodleGrabI = ni;
       return;
     }
-    let bestA = null, bestH = null, bd = 0.2;
+    let bestA = null, bestH = null, bd = 0.28;
     for (const actor of actors) {
       const hit = actor.nearestHit(_v, bd);
       if (!hit) continue;

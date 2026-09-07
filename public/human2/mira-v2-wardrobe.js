@@ -36,7 +36,27 @@ export class Cloth {
    this.acc-=step;
   }this.sync();
  }
- sync(){const g=this.mesh.geometry;this.p.forEach((p,i)=>p.toArray(g.attributes.position.array,i*3));g.attributes.position.needsUpdate=true;g.computeVertexNormals();g.computeBoundingSphere();}
+ slash(point,dir,kind,energy=1){
+  const r=kind==='laser'?.05:kind==='bullet'?.038:.07+Math.min(.04,Math.sqrt(Math.max(0,energy))*.01);
+  let cut=0;
+  for(const e of this.edges){
+   if(e.broken)continue;
+   const mid=this.p[e.a].clone().lerp(this.p[e.b],.5);
+   if(mid.distanceToSquared(point)>r*r)continue;
+   e.broken=true;this.torn.add(e.a+','+e.b);cut++;
+   this.faces=this.faces.filter(f=>!(f.includes(e.a)&&f.includes(e.b)));
+  }
+  if(!cut)return 0;
+  if(this.faces.length)this.mesh.geometry.setIndex(this.faces.flat());
+  else this.mesh.visible=false;
+  if(kind==='laser'||kind==='bullet'){
+   const c=this.mesh.material.color;if(c)c.offsetHSL(0,-.12,kind==='laser'?-.18:-.28);
+   if(this.mesh.material.emissive)this.mesh.material.emissive.setHex(kind==='laser'?0x4a1808:0x111111);
+  }
+  if((kind==='cut'&&this.torn.size>=5)||this.torn.size>=8)this.detach();
+  this.sync();return cut;
+ }
+ sync(){const g=this.mesh.geometry;this.p.forEach((p,i)=>p.toArray(g.attributes.position.array,i*3));g.attributes.position.needsUpdate=true;if(this.faces.length){g.computeVertexNormals();g.computeBoundingSphere();}else this.mesh.visible=false;}
  dispose(scene){scene.remove(this.mesh);this.mesh.geometry.dispose();this.mesh.material.dispose();}
 }
 export class Wardrobe {
