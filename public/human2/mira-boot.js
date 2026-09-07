@@ -4,6 +4,17 @@ import {retryNeuralVoice} from './mira-neural-voice.js?v=9.5';
 import {FACE_PRESETS,HAIR_STYLES,EMOTION_NAMES,IDLE_NAMES,WALK_NAMES,ACTIVITY_MODES,ACTION_LABELS} from './mira-v2-controls.js?v=9.5';
 import {draft,saveDraft,OUTFITS,PERSONAS,clothingItems,setDraftGarment} from './mira-v2-catalog.js?v=9.5';
 const $=id=>document.getElementById(id);
+const hud=$('hud');
+if(hud){
+  let hudScroll=0;
+  const openSel=()=>{hudScroll=hud.scrollTop;hud.classList.add('hud-select-open');hud.scrollTop=hudScroll;};
+  const closeSel=()=>{hud.classList.remove('hud-select-open');hud.scrollTop=hudScroll;};
+  hud.addEventListener('mousedown',e=>{if(e.target.tagName==='SELECT')openSel();},true);
+  hud.addEventListener('pointerdown',e=>{if(e.target.tagName==='SELECT')openSel();},true);
+  hud.addEventListener('focusin',e=>{if(e.target.tagName==='SELECT')openSel();});
+  hud.addEventListener('focusout',e=>{if(e.target.tagName==='SELECT')setTimeout(closeSel,0);});
+  hud.addEventListener('change',e=>{if(e.target.tagName==='SELECT')closeSel();});
+}
 export function options(id,values){const el=$(id);if(el)el.replaceChildren(...values.map((x,i)=>new Option(typeof x==='string'?x:x.label,typeof x==='string'?String(i):String(x.value))));}
 options('activity',ACTIVITY_MODES.map(value=>({label:ACTION_LABELS[value],value})));options('walkStyle',WALK_NAMES);options('idlePose',['auto',...IDLE_NAMES]);options('expression',['context',...EMOTION_NAMES]);options('hairStyle',HAIR_STYLES);options('sceneSelect',['Living room','Jungle','Beach'].map(value=>({label:value,value})));
 options('npcFace',FACE_PRESETS.map(f=>f.name));options('npcHair',HAIR_STYLES);options('npcOutfit',OUTFITS.map(o=>o.name));options('npcPersona',PERSONAS.map(p=>p.name));
