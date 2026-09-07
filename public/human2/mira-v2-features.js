@@ -144,7 +144,7 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    this.emotionTarget={}; this.emotionCurrent={};this.expressionOverride=null;
    this.idleKind='rest';this.idleT=3;this.idleDur=3;this.idleChoice='auto';this.seed=Math.random()*100;
    this.gait=clamp(opts.gait||0,0,WALK_NAMES.length-1);
-   this.handTargets={};this.grabs=new Map();this.balance={state:'standing',time:0,stress:0,tilt:0,dir:V(),velocity:V(),recoverFrom:0};
+   this.handTargets={};this.grabs=new Map();this.balance={state:'standing',time:0,stress:0,tilt:0,dir:V(),velocity:V(),recoverFrom:0,airVel:0,groundedY:0};this.dead=false;this.headMissing=false;
    this.likeness=opts.likeness??1;this.geomState='';this.deform=[];this.poseQ={};this.skinMeshes=[];
    this.headTouch=new THREE.Vector3();this.headTouchGoal=new THREE.Vector3();this.attentionT=0;this.attention=V();this.externalHands=[];
    this.root.updateMatrixWorld(true);
@@ -401,6 +401,7 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    }
   }
   tickIdle(t,dt){
+   if(this.dead||this.balance.state!=='standing')return;
    this.idleT-=dt;
    if(this.idleT<=0){
     const choices=['rest','rest','rest','weightShift','breathe','lookAround','hairTuck','shoulderRoll','sigh','armStretch','neckStretch','wiggle','dance'];
@@ -433,14 +434,24 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    }
   }
   tickWalk(moving){
+   if(this.dead||this.balance.state!=='standing')return;
    super.tickWalk(moving);
    this.group.position.y-=.022*this.shape.height*clamp((this.speed-.5)/.18,0,1);
    const s=clamp(this.speed/.6,0,1),p=this.walkT;
    this.addE('Spine02',this.gait===3?.035*s:0,-Math.sin(p)*.025*s,0);
    this.addE('L_Clavicle',.016*Math.sin(p)*s,0,0);this.addE('R_Clavicle',-.016*Math.sin(p)*s,0,0);
   }
+  setMode(mode){if(this.dead){this.mode='idle';this.autoWander=false;this.autonomy=false;return;}super.setMode(mode);}
+  die(){
+   if(this.dead)return;
+   this.dead=true;this.autonomy=false;this.autoWander=false;this.dest=null;this.navigation=null;this.speed=0;this.pathSpeed=0;this.mode='idle';this.modeT=0;
+   this.socialPair?.cancel();this.endSpeech?.();this.directedWalk=null;
+   if(this.seat){this.seat.occupant=null;this.seat=null;}
+   if(this.balance.state==='standing')this.knockDown(new THREE.Vector3(0,0,-1));
+   else{this.balance.state='down';this.balance.time=0;}
+  }
   wander(dt){
-   if(this.balance.state!=='standing'||this.grabs.size){this.speed=damp(this.speed,0,10,dt);this.pathSpeed=this.speed;return false;}
+   if(this.dead||this.balance.state!=='standing'||this.grabs.size){this.speed=damp(this.speed,0,10,dt);this.pathSpeed=this.speed;return false;}
    if(this.pathSpeed!==undefined)this.speed=this.pathSpeed;
    // Base path steering, with six distinct speed/cadence styles.
    const before=this.group.position.clone();const moving=super.wander(dt);
@@ -463,6 +474,7 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    this.aimBone(a,b,joint);this.aimBone(b,c,pa.clone().addScaledVector(dir,dist));
   }
   poseArms(){
+   if(this.dead)return;
    const h=this.shape.height,t=this.time,w=this.gestureWeight||0,step=clamp(this.speed/.65,0,1);
    for(const side of ['L','R']){
     if([...this.grabs.values()].some(g=>g.side===side&&g.limb==='arm'))continue;
@@ -555,6 +567,7 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    this.group.updateMatrixWorld(true);
   }
   tickAwareness(dt,cam){
+   if(this.dead){this.autonomy=false;this.autoWander=false;this.dest=null;return;}
    this.greetingT-=dt;this.lifeT-=dt;
    if(this.socialPair||this.directedWalk||this.navigation||this.seat)return;
    if(this.balance.state!=='standing'||this.grabs.size||this.speech?.active||this.mode==='talk')return;
@@ -572,6 +585,7 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    }
   }
   tickGaze(dt,moving,cam){
+   if(this.dead||this.headMissing)return;
    if(!this.speech?.active)this.want.Jaw_Open=this.expressionJaw||0;
    this.attentionT-=dt;
    const hp=this.bones.Head.getWorldPosition(V());
@@ -601,6 +615,7 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    }
   }
   poseHeadContact(dt){
+   if(this.headMissing)return;
    const held=[...this.grabs.values()].some(g=>g.head);
    if(!held){
     this.headTouchGoal.multiplyScalar(Math.exp(-dt*4));
@@ -694,22 +709,24 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
      const deltaQ=g.ctrl.getWorldQuaternion(new THREE.Quaternion()).multiply(g.gripQ.clone().invert());
      const groupQ=this.group.getWorldQuaternion(new THREE.Quaternion());deltaQ.premultiply(groupQ.clone().invert()).multiply(groupQ);
      const e=new THREE.Euler().setFromQuaternion(deltaQ,'YXZ'),local=pull.clone().applyQuaternion(groupQ.invert());
-     this.headTouchGoal.copy(g.headStart).add(new THREE.Vector3(e.x-local.y*2.5,e.y+local.x*3,e.z*.4));continue;
+     this.headTouchGoal.copy(g.headStart).add(new THREE.Vector3(e.x-local.y*2.5,e.y+local.x*3,e.z*.4));
+     if(this.dead||this.balance.state!=='standing')this.carryByGrab(p,dt,g);
+     continue;
     }
     if(g.spring){
      const local=pull.clone().applyQuaternion(bone.parent.getWorldQuaternion(new THREE.Quaternion()).invert());
      const temp={...g.spring,x:local.x,y:local.y,z:local.z,vx:0,vy:0,vz:0};this.limitSoft(temp);g.tx=temp.x;g.ty=temp.y;g.tz=temp.z;
+     if(this.dead||this.balance.state!=='standing')this.carryByGrab(p,dt,g);
      continue;
     }
     const h=this.shape.height;
     if(g.body){
      const groupQ=this.group.getWorldQuaternion(new THREE.Quaternion()),dq=g.ctrl.getWorldQuaternion(new THREE.Quaternion()).multiply(g.gripQ.clone().invert());
-     dq.premultiply(groupQ.clone().invert()).multiply(groupQ);const e=new THREE.Euler().setFromQuaternion(dq,'YXZ'),local=pull.clone().applyQuaternion(groupQ.invert());
-     this.spineGoal.copy(g.spineStart).add(new THREE.Vector3(e.x+local.z*1.6,e.y*.40,e.z-local.x*1.8));
-     this.spineGoal.clamp(new THREE.Vector3(-.35,-.40,-.32),new THREE.Vector3(.55,.40,.32));
+     dq.premultiply(groupQ.clone().invert()).multiply(groupQ);const e=new THREE.Euler().setFromQuaternion(dq,'YXZ');
+     this.spineGoal.copy(g.spineStart).add(new THREE.Vector3(e.x*.35,e.y*.18,e.z*.28));
+     this.spineGoal.clamp(new THREE.Vector3(-.16,-.14,-.14),new THREE.Vector3(.18,.14,.14));
      const turn=Math.atan2(Math.sin(g.startYaw+e.y*.65-this.group.rotation.y),Math.cos(g.startYaw+e.y*.65-this.group.rotation.y));this.group.rotation.y+=clamp(turn,-1.2*dt,1.2*dt);
     }
-    // Preserve the contact offset even for an elbow/mid-limb grab.
     if(g.limb){
      const names=g.limb==='arm'?['Upperarm','Forearm','Hand']:['Thigh','Calf','Foot'];
      const proximal=g.hit.name===g.side+'_'+names[0];
@@ -718,28 +735,36 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
      if(proximal){const b=this.bones[g.side+'_'+names[0]],child=this.bones[g.side+'_'+names[1]];this.aimBone(b,child,child.getWorldPosition(V()).add(pull));}
      else this.solveChain(g.side,g.limb,tip,pole);
     }
-    // Pulling a leg removes one support. Arm pulls take a step before toppling.
     const horizontal=Math.hypot(pull.x,pull.z),leg=g.limb==='leg';
-    if(this.balance.state==='standing'){
+    if(this.balance.state==='standing'&&!this.dead){
      const threshold=leg?.13*h:.31*h;
      this.balance.stress=Math.max(this.balance.stress,Math.max(0,horizontal-threshold)+(leg?Math.max(0,pull.y-.1*h):0));
-     if(horizontal>threshold||!g.limb){
+     if(horizontal>threshold||g.body||!g.limb){
       const follow=cap(new THREE.Vector3(pull.x,0,pull.z),.35*h);
-      this.group.position.addScaledVector(follow,1-Math.exp(-dt*(leg?1.4:4)));
+      this.group.position.addScaledVector(follow,1-Math.exp(-dt*(leg?1.4:g.body?8:4)));
       this.balance.dir.copy(pull).setY(0);cap(this.balance.dir,1);
      }
-     if((leg&&(horizontal>.25*h||pull.y>.25*h))||horizontal>.63*h||this.balance.stress>.48*h)this.knockDown(pull,g.velocity);
-    }else{
-     this.group.position.addScaledVector(cap(pull.clone().setY(0),.4*h),1-Math.exp(-dt*4));
-    }
+     if((leg&&(horizontal>.25*h||pull.y>.25*h))||horizontal>.63*h||this.balance.stress>.48*h||((g.body||g.head)&&pull.y>.22*h))this.knockDown(pull,g.velocity);
+    }else this.carryByGrab(p,dt,g);
    }
    this.held=[...this.grabs.values()][0]||null;
+  }
+  carryByGrab(p,dt,g){
+   this.group.updateMatrixWorld(true);
+   const bone=this.bones[g.hit.name];if(!bone)return;
+   const remaining=p.clone().sub(bone.localToWorld(g.local.clone()));
+   const h=this.shape.height,k=1-Math.exp(-dt*(g.body||this.dead?9:7));
+   const step=remaining.multiplyScalar(k);
+   cap(step,.5*h);cap(step,2.6*dt+.07);
+   this.group.position.add(step);
+   const gy=this.balance.groundedY;
+   if(Number.isFinite(gy)&&this.group.position.y<gy)this.group.position.y=gy;
   }
   endGrab(ctrl){
    const list=ctrl?[this.grabs.get(ctrl)]:[...this.grabs.values()];
    for(const g of list){if(!g)continue;
     if(g.spring){const vv=g.velocity.clone().applyQuaternion(this.bones[g.hit.name].parent.getWorldQuaternion(new THREE.Quaternion()).invert()).multiplyScalar(.08);cap(vv,.2);g.spring.vx=vv.x;g.spring.vy=vv.y;g.spring.vz=vv.z;this.limitSoft(g.spring);}
-    else if(!g.head)this.balance.velocity.add(cap(g.velocity.clone().setY(0).multiplyScalar(.18),.6));
+    else if(!g.head){this.balance.velocity.add(cap(g.velocity.clone().setY(0).multiplyScalar(.18),.6));this.balance.airVel=(this.balance.airVel||0)+g.velocity.y*.42;}
     this.grabs.delete(g.ctrl);
    }
    this.held=[...this.grabs.values()][0]||null;this.feet={};
@@ -756,20 +781,19 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    this.group.position.addScaledVector(b.velocity,dt);b.velocity.multiplyScalar(Math.exp(-dt*5));
    if(b.state==='standing'){b.tilt=0;this.root.quaternion.identity();return;}
    this.feet={};
+   const held=this.grabs.size>0;
    if(b.state==='falling'){
     b.tilt=damp(b.tilt,1.45,6,dt);
-    if(b.time>.95){b.state='down';b.time=0;}
+    if(b.time>.95&&!held){b.state='down';b.time=0;}
    }else if(b.state==='down'){
     b.tilt=damp(b.tilt,1.45,8,dt);
-    if(b.time>1.1&&!this.grabs.size){b.state='recovering';b.time=0;b.recoverFrom=b.tilt;this.setEmotion('concerned',.42,{hold:5,source:'recovery'});}
+    if(b.time>1.1&&!held&&!this.dead){b.state='recovering';b.time=0;b.recoverFrom=b.tilt;this.setEmotion('concerned',.42,{hold:5,source:'recovery'});}
    }else if(b.state==='recovering'){
-    if(this.grabs.size){b.state='down';b.time=0;return;}
+    if(held||this.dead){b.state='down';b.time=0;return;}
     const u=clamp(b.time/3.2,0,1);b.tilt=b.recoverFrom*(1-smooth(u));
-    if(u===1){b.state='standing';b.time=0;b.tilt=0;this.root.quaternion.identity();this.group.position.y=this.baseY;this.feet={};this.handTargets={};this.poseQ={};}
+    if(u===1){b.state='standing';b.time=0;b.tilt=0;b.airVel=0;this.root.quaternion.identity();this.group.position.y=this.baseY;this.feet={};this.handTargets={};this.poseQ={};}
    }
    if(b.state==='standing')return;
-   // Rotate about the hip and place the lowest body capsule above the floor.
-   // Recovery is procedural animation, not a physically solved active ragdoll.
    const localDir=b.dir.clone().applyQuaternion(this.group.getWorldQuaternion(new THREE.Quaternion()).invert());
    const fallAxis=new THREE.Vector3(localDir.z,0,-localDir.x).normalize();
    this.root.quaternion.setFromAxisAngle(fallAxis,b.tilt);
@@ -777,7 +801,6 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    this.root.position.copy(this.baseRootPos||V());
    const pivot=new THREE.Vector3(0,.92*h,0),rot=pivot.clone().applyQuaternion(this.root.quaternion);
    this.root.position.add(pivot).sub(rot);
-   this.group.position.y=this.baseY-.016*h;
    if(b.state==='recovering'){
     const k=Math.sin(Math.PI*clamp(b.time/3.2,0,1));
     this.bones.L_Thigh.quaternion.multiply(q.setFromAxisAngle(new THREE.Vector3(1,0,0),.5*k));
@@ -788,7 +811,16 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    this.group.updateMatrixWorld(true);
    let min=Infinity;
    for(const spec of BODY_HIT){const bone=this.bones[spec.name];if(!bone)continue;min=Math.min(min,bone.getWorldPosition(tmp).y-spec.rad*h);}
-   this.group.position.y+=this.baseY+.012*h-min;
+   const groundedY=this.group.position.y+(this.baseY+.012*h-min);
+   b.groundedY=groundedY;
+   if(held){
+    b.airVel=0;
+    if(this.group.position.y<groundedY)this.group.position.y=groundedY;
+   }else{
+    b.airVel=(b.airVel||0)-9.81*dt;
+    this.group.position.y+=b.airVel*dt;
+    if(this.group.position.y<=groundedY){this.group.position.y=groundedY;b.airVel=0;}
+   }
    this.group.updateMatrixWorld(true);
    if(b.state==='recovering'){
     const u=clamp(b.time/3.2,0,1),brace=1-smooth((u-.35)/.45);
@@ -870,7 +902,7 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
   applyStrike(hit,n,c,g,p){
    super.applyStrike(hit,n,c,g,p);
    if(c>2.3&&['chest','hip','thigh','leg','head'].includes(hit.kind))this.knockDown(n.clone().negate(),n.clone().multiplyScalar(-Math.min(c*.15,.7)));
-   else if(c>.7)this.setEmotion('surprise',clamp(c*.15,0,.6),{hold:2,source:'contact'});
+   else if(c>.7&&!this.dead)this.setEmotion('surprise',clamp(c*.15,0,.6),{hold:2,source:'contact'});
   }
   resetPhysics(){
    this.socialPair?.cancel();this.directedWalk=null;if(this.navigation?.seat)this.navigation.seat.occupant=null;this.navigation=null;if(this.seat){this.seat.occupant=null;this.group.position.y=this.baseY||0;}this.seat=null;
@@ -882,15 +914,26 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    this.dt=clamp(dt,0,.05);this.time=t;dt=this.dt;this.tickAwareness(dt,cam);
    if(!this.seamsReady&&(this.seamTryT=(this.seamTryT||0)-dt)<=0){this.seamTryT=1;this.seamsReady=blendSkinSeams(this.skinMeshes);}
    this.root.position.copy(this.baseRootPos);this.root.quaternion.identity();
-   // The v1 animation pipeline dispatches through these v2 overrides.
+   if(this.dead){
+    const savedY=this.group.position.y;
+    this.poseAlpha=1;this.restoreBind();this.applyShape();this.tickRest();this.applyExtras();
+    this.group.position.y=savedY;
+    this.poseSpineContact(dt);this.group.updateMatrixWorld(true);
+    this.tickBalance(dt);this.tickGrab(dt);this.group.updateMatrixWorld(true);
+    this.tickSoft(dt);if(!this.headMissing)this.poseHeadContact(dt);this.group.updateMatrixWorld(true);
+    this.surfaceFlesh?.tick(dt);this.hairPhysics?.tick(dt);this.injuryDriver?.pose(this);
+    this.root.traverse(o=>{if(o.isSkinnedMesh)o.skeleton.update();});
+    return;
+   }
+   const savedY=this.balance.state==='standing'?null:this.group.position.y;
    this.inBaseTick=true;super.tick(dt,cam,t);this.inBaseTick=false;
+   if(savedY!==null)this.group.position.y=savedY;
    this.poseActivity();this.poseSpineContact(dt);this.poseArms();this.socialPair?.pose(this);this.group.updateMatrixWorld(true);
-   // Limb IK follows the final arm pose, including both controllers independently.
    this.tickBalance(dt);
    this.tickGrab(dt);
    this.group.updateMatrixWorld(true);
    this.tickSoft(dt);this.poseHeadContact(dt);this.group.updateMatrixWorld(true);
-   this.surfaceFlesh?.tick(dt);this.hairPhysics?.tick(dt);this.eyes?.tick(dt,t);this.injuryDriver?.pose(this);
+   this.surfaceFlesh?.tick(dt);this.hairPhysics?.tick(dt);if(!this.headMissing)this.eyes?.tick(dt,t);this.injuryDriver?.pose(this);
    this.root.traverse(o=>{if(o.isSkinnedMesh)o.skeleton.update();});
   }
   keepArmsClear(){} // final world-space IK chooses hand targets clear of the chest

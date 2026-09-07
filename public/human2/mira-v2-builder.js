@@ -1,5 +1,5 @@
 import * as T from 'three';
-import {FURNITURE,placeFurniture} from './mira-v2-furniture.js?v=11.0';
+import {FURNITURE,placeFurniture} from './mira-v2-furniture.js?v=11.4';
 export {FURNITURE};
 export const CELL=.6;
 export const SURFACES={Plaster:{kind:'plaster',color:0xc9c1b1},Brick:{kind:'stone',color:0xa26148},Wood:{kind:'wood',color:0x947051},Tile:{kind:'stone',color:0xc3c7c1},Stone:{kind:'stone',color:0x85847c},Metal:{kind:'metal',color:0x929b9d},Glass:{kind:'glass',color:0x9fc1c7}};
