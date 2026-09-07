@@ -1,0 +1,18 @@
+{
+  "passed": 11,
+  "checks": [
+    "Actual V2 class attaches both corneas and the real hair mesh",
+    "Classic spawn preserves original hair geometry and eye material layering",
+    "V1 remains independent and never attaches overhauls",
+    "Repeated Classic / Advanced switches restore exact source geometry and leave other actors untouched",
+    "Advanced style changes only affect the chosen actor",
+    "Eye and hair shader hooks populate rendered-material uniforms",
+    "Advanced pupils react to changed scene illumination; Classic stops simulation",
+    "Hair motion reaches actual shader offset buffers",
+    "Configured spawn carries independent eye and hair choices",
+    "Scene snapshots and restore propagate both appearance modes",
+    "Legacy V2 presets without appearance flags retain advanced default"
+  ],
+  "model": "Supplied mira.glb topology, Three.js r170",
+  "rendering": "Material/geometry/solver tests; no GPU or Quest render"
+}

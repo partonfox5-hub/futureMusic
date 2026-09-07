@@ -1,5 +1,5 @@
-import {GARMENTS} from './mira-v2-garments.js?v=10.0';
-import {draft,saveDraft} from './mira-v2-catalog.js?v=10.0';
+import {GARMENTS} from './mira-v2-garments.js?v=11.0';
+import {draft,saveDraft} from './mira-v2-catalog.js?v=11.0';
 import * as THREE from 'three';
 const STORE='mira.human2.presets.v1';
 const LAST=STORE+'.last';
@@ -13,7 +13,7 @@ export function snapshot({mira,world,wardrobe,props,camera,orbit}){
   const clothes=(wardrobe?.clothes||[]).filter(c=>c.actor===a&&!c.detached).map(c=>({id:c.style.id,color:c.style.color,slot:c.style.slot}));
   return {
    version:a.version||'v2',name:a.displayName||'Mira',bodyType:a.bodyType||'female',
-   faceType:a.faceType||0,hairStyle:a.hairStyle||0,hairColor:a.hairColor||0,
+   faceType:a.faceType||0,hairStyle:a.hairStyle||0,hairColor:a.hairColor||0,eyeDetail:a.eyeDetail||'classic',hairDetail:a.hairDetail||'classic',
    personality:a.personality||'',shape:{...(a.shape||{})},
    position:a.group.position.toArray(),yaw:a.group.rotation.y,
    mode:a.autonomy?'auto':a.mode,gait:a.gait||0,idleChoice:a.idleChoice||'auto',
@@ -25,7 +25,7 @@ export function snapshot({mira,world,wardrobe,props,camera,orbit}){
  return {
   v:1,savedAt:Date.now(),scene:world.name,builds:world.builder?.snapshot()||[],selected:Math.max(0,mira.actors.indexOf(mira.selected)),
   camera:{position:camera.position.toArray(),target:orbit?.target.toArray()||[0,1,0]},
-  draft:{name:draft.name,bodyType:draft.bodyType,faceType:draft.faceType,hairStyle:draft.hairStyle,hairColor:draft.hairColor,outfit:draft.outfit,persona:draft.persona,prompt:draft.prompt,shape:{...(draft.shape||{})},clothes:Array.isArray(draft.clothes)?[...draft.clothes]:undefined},
+  draft:{name:draft.name,bodyType:draft.bodyType,faceType:draft.faceType,hairStyle:draft.hairStyle,hairColor:draft.hairColor,eyeDetail:draft.eyeDetail,hairDetail:draft.hairDetail,outfit:draft.outfit,persona:draft.persona,prompt:draft.prompt,shape:{...(draft.shape||{})},clothes:Array.isArray(draft.clothes)?[...draft.clothes]:undefined},
   actors,car:car?{position:car.group.position.toArray(),yaw:car.group.rotation.y}:null
  };
 }
@@ -43,7 +43,7 @@ export function applyPreset(data,{mira,world,wardrobe,props,camera,orbit,syncHud
   try{
    const a=mira.spawn({
     version:rec.version||'v2',name:rec.name,bodyType:rec.bodyType,faceType:rec.faceType,
-    hairStyle:rec.hairStyle,hairColor:rec.hairColor,personality:rec.personality,
+    hairStyle:rec.hairStyle,hairColor:rec.hairColor,eyeDetail:rec.eyeDetail,hairDetail:rec.hairDetail,personality:rec.personality,
     shape:rec.shape||{},position:new THREE.Vector3().fromArray(rec.position||[0,0,0])
    });
    a.group.rotation.y=rec.yaw||0;a.gait=rec.gait||0;a.personality=rec.personality||a.personality;

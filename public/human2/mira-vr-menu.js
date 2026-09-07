@@ -1,13 +1,13 @@
-import {FURNITURE,SURFACES} from './mira-v2-builder.js?v=10.0';
-import {WEAPONS} from './mira-v2-props.js?v=10.0';
-import {draft,saveDraft,OUTFITS,PERSONAS,clothingItems,setDraftGarment} from './mira-v2-catalog.js?v=10.0';
-import {SCENES} from './mira-v2-world.js?v=10.0';
-import {GARMENTS} from './mira-v2-wardrobe.js?v=10.0';
+import {FURNITURE,SURFACES} from './mira-v2-builder.js?v=11.0';
+import {WEAPONS} from './mira-v2-props.js?v=11.0';
+import {draft,saveDraft,OUTFITS,PERSONAS,clothingItems,setDraftGarment} from './mira-v2-catalog.js?v=11.0';
+import {SCENES} from './mira-v2-world.js?v=11.0';
+import {GARMENTS} from './mira-v2-wardrobe.js?v=11.0';
 import * as THREE from 'three';
-import {SLIDERS,FACE_TYPES} from './mira-v2.js?v=10.0';
-import {shapeSliders,FACE_PRESETS,HAIR_STYLES,ACTIVITY_MODES,ACTION_LABELS,POSE_LABELS} from './mira-v2-controls.js?v=10.0';
-import {HAIR_COLORS} from './mira-v2.js?v=10.0';
-import {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES} from './mira-v2-features.js?v=10.0';
+import {SLIDERS,FACE_TYPES} from './mira-v2.js?v=11.0';
+import {shapeSliders,FACE_PRESETS,HAIR_STYLES,ACTIVITY_MODES,ACTION_LABELS,POSE_LABELS} from './mira-v2-controls.js?v=11.0';
+import {HAIR_COLORS} from './mira-v2.js?v=11.0';
+import {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES} from './mira-v2-features.js?v=11.0';
 export function createVRMenu({scene,renderer,camera,system,spawn,onSync,world,wardrobe,spawnConfigured,copyConfiguration,props,saveScene,loadScene}){
  const canvas=document.createElement('canvas');canvas.width=1024;canvas.height=1320;
  const ctx=canvas.getContext('2d'),tex=new THREE.CanvasTexture(canvas);tex.colorSpace=THREE.SRGBColorSpace;
@@ -15,7 +15,7 @@ export function createVRMenu({scene,renderer,camera,system,spawn,onSync,world,wa
  panel.visible=false;panel.renderOrder=20;scene.add(panel);
  const rays=system.hands.ctrl.map(ctrl=>{const line=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(),new THREE.Vector3(0,0,-2)]),new THREE.LineBasicMaterial({color:0x9bd6ff}));line.visible=false;ctrl.add(line);return line;});
  const raycaster=new THREE.Raycaster(),q=new THREE.Quaternion(),v=new THREE.Vector3();
- let page=4,shapePage=0,items=[],open=false,drag=[null,null],stamp='',lastDraw=0,notice='',hover=[-1,-1],cursor=[null,null],editField=null,bodyDraft=false,editClothes=false,garmentIndex=0,weaponIndex=0,lastController=1;
+ let page=4,shapePage=0,items=[],open=false,drag=[null,null],stamp='',lastDraw=0,notice='',hover=[-1,-1],cursor=[null,null],editField=null,bodyDraft=false,editClothes=false,editVisual=false,garmentIndex=0,weaponIndex=0,lastController=1;
  const modes=ACTIVITY_MODES;
  function active(){return system.selected;}
  function draw(){
@@ -48,7 +48,13 @@ export function createVRMenu({scene,renderer,camera,system,spawn,onSync,world,wa
    ctx.fillStyle='#dce8f2';ctx.font='28px sans-serif';ctx.fillText('Length: '+(l?.length||0).toFixed(2)+' m',40,735);ctx.fillStyle='#526c80';ctx.fillRect(365,719,600,24);if(l&&!l.broken){ctx.fillStyle='#9bd6ff';ctx.fillRect(365,719,600*l.length/5,24);items.push({x:345,y:692,w:640,h:65,slider:true,fn:px=>{r.setLength((px-365)/600*5);draw();}});}
    button('CUT · LEAVE ENDS',40,810,455,70,()=>{r.cut();draw();});button('REMOVE',515,810,467,70,()=>{r.remove();draw();});button('INJURIES '+(props.injuries.enabled?'ON':'OFF'),40,920,455,70,()=>{props.injuries.enabled=!props.injuries.enabled;draw();});button('DETACHMENT '+(props.injuries.allowSever?'ON':'OFF'),515,920,467,70,()=>{props.injuries.allowSever=!props.injuries.allowSever;draw();});button('RESTORE SELECTED NPC',40,1030,942,70,()=>{props.injuries.heal(a);draw();});ctx.font='24px sans-serif';ctx.fillText('Left stick click: attach · Sword or laser: cut a link',40,1180);
   }else if(page===6){
-   if(editClothes){for(const [i,slot] of ['top','bottom','underwear','dress'].entries()){const choices=[{id:'',name:'None'},...GARMENTS.filter(g=>g.slot===slot)];cycle('Spawning '+slot,325+i*150,choices.map(g=>g.name),()=>choices.find(g=>g.id===(clothingItems().find(id=>GARMENTS.find(g=>g.id===id)?.slot===slot)||''))?.name,name=>setDraftGarment(slot,choices.find(g=>g.name===name).id));}cycle('Hair colour',930,HAIR_COLORS.map(c=>c.name),()=>HAIR_COLORS[draft.hairColor].name,name=>{draft.hairColor=HAIR_COLORS.findIndex(c=>c.name===name);saveDraft();});button('DONE',40,1100,942,80,()=>{editClothes=false;dispatchEvent(new Event('mira:draft'));draw();});
+   if(editVisual){
+    const choices=['Classic','Advanced'];
+    cycle('Spawning eyes',325,choices,()=>draft.eyeDetail==='classic'?'Classic':'Advanced',x=>{draft.eyeDetail=x.toLowerCase();saveDraft();});
+    cycle('Spawning hair',505,choices,()=>draft.hairDetail==='classic'?'Classic':'Advanced',x=>{draft.hairDetail=x.toLowerCase();saveDraft();});
+    ctx.font='27px sans-serif';ctx.fillStyle='#c9d6e2';ctx.fillText('Classic: original eye materials and original hair cut.',40,750);ctx.fillText('Advanced: cornea effects, pupil response and hair guides.',40,805);ctx.fillText('These choices apply to the next configured NPC.',40,880);
+    button('DONE',40,1050,942,80,()=>{editVisual=false;dispatchEvent(new Event('mira:draft'));draw();});
+   }else if(editClothes){for(const [i,slot] of ['top','bottom','underwear','dress'].entries()){const choices=[{id:'',name:'None'},...GARMENTS.filter(g=>g.slot===slot)];cycle('Spawning '+slot,325+i*150,choices.map(g=>g.name),()=>choices.find(g=>g.id===(clothingItems().find(id=>GARMENTS.find(g=>g.id===id)?.slot===slot)||''))?.name,name=>setDraftGarment(slot,choices.find(g=>g.name===name).id));}cycle('Hair colour',930,HAIR_COLORS.map(c=>c.name),()=>HAIR_COLORS[draft.hairColor].name,name=>{draft.hairColor=HAIR_COLORS.findIndex(c=>c.name===name);saveDraft();});button('DONE',40,1100,942,80,()=>{editClothes=false;dispatchEvent(new Event('mira:draft'));draw();});
    }else if(editField){
     ctx.font='23px sans-serif';ctx.fillStyle='#dce8f2';const str=String(draft[editField]);for(let i=0;i<5;i++)ctx.fillText(str.slice(Math.max(0,str.length-250)+i*50,Math.max(0,str.length-250)+(i+1)*50),40,320+i*34);
     Array.from('qwertyuiopasdfghjklzxcvbnm.,!?').forEach((c,i)=>button(c,40+(i%10)*94,530+Math.floor(i/10)*90,82,75,()=>{draft[editField]=(draft[editField]+c).slice(0,editField==='name'?48:2000);saveDraft();draw();}));
@@ -56,10 +62,10 @@ export function createVRMenu({scene,renderer,camera,system,spawn,onSync,world,wa
    }else{
     cycle('Body profile',320,['Female','Male · adapted rig'],()=>draft.bodyType==='male'?'Male · adapted rig':'Female',x=>{draft.bodyType=x==='Female'?'female':'male';draft.name=draft.bodyType==='male'?'Alex':'Mira';draft.faceType=draft.bodyType==='male'?5:1;draft.hairStyle=draft.bodyType==='male'?8:0;draft.shape={};saveDraft();});
     cycle('Face',455,FACE_PRESETS.map(f=>f.name),()=>FACE_PRESETS[draft.faceType]?.name,x=>{draft.faceType=FACE_PRESETS.findIndex(f=>f.name===x);saveDraft();});
-    cycle('Hair',590,HAIR_STYLES,()=>HAIR_STYLES[draft.hairStyle],x=>{draft.hairStyle=HAIR_STYLES.indexOf(x);saveDraft();});
+    if(draft.hairDetail!=='classic')cycle('Hair',590,HAIR_STYLES,()=>HAIR_STYLES[draft.hairStyle],x=>{draft.hairStyle=HAIR_STYLES.indexOf(x);saveDraft();});
     cycle('Clothes',725,OUTFITS.map(x=>x.name),()=>OUTFITS[draft.outfit]?.name,x=>{draft.outfit=OUTFITS.findIndex(o=>o.name===x);delete draft.clothes;saveDraft();});
     cycle('Personality',860,PERSONAS.map(x=>x.name),()=>PERSONAS[draft.persona]?.name,x=>{draft.persona=PERSONAS.findIndex(p=>p.name===x);draft.prompt=PERSONAS[draft.persona].prompt;saveDraft();});
-    button('EDIT NAME',40,990,455,68,()=>{editField='name';draw();});button('EDIT PROMPT',515,990,467,68,()=>{editField='prompt';draw();});
+    button('EDIT NAME',40,990,290,68,()=>{editField='name';draw();});button('EDIT PROMPT',350,990,310,68,()=>{editField='prompt';draw();});button('EYES / HAIR',680,990,302,68,()=>{editVisual=true;draw();});
     button('COPY FEATURES',40,1080,455,68,()=>{copyConfiguration();draw();});button('MODULAR CLOTHES',515,1080,467,68,()=>{editClothes=true;draw();});button('SPAWN '+draft.name.toUpperCase(),40,1162,942,76,()=>{saveDraft();dispatchEvent(new Event('mira:draft'));spawnConfigured();draw();});
    }
   }else if(page===5){
@@ -109,11 +115,15 @@ export function createVRMenu({scene,renderer,camera,system,spawn,onSync,world,wa
    button(bodyDraft?'EDITING NEXT SPAWN':'EDITING SELECTED ACTOR',40,1160,942,66,()=>{bodyDraft=!bodyDraft;draw();});
   }else if(page===2&&a){
    const faces=a.version==='v2'?FACE_PRESETS:FACE_TYPES;
-   cycle('Face',330,faces.map(f=>f.name),()=>faces[a.faceType]?.name||faces[0].name,x=>{a.faceType=faces.findIndex(f=>f.name===x);a.applyLooks();});
-   if(a.version==='v2')cycle('Hairstyle',510,HAIR_STYLES,()=>HAIR_STYLES[a.hairStyle],x=>a.hairStyle=HAIR_STYLES.indexOf(x));
-   cycle('Hair colour',690,HAIR_COLORS.map(f=>f.name),()=>HAIR_COLORS[a.hairColor].name,x=>{a.hairColor=HAIR_COLORS.findIndex(f=>f.name===x);a.applyLooks();});
-   ctx.fillStyle='#b7c8d8';ctx.font='28px sans-serif';ctx.fillText('Hair responds to movement and brushing.',40,965);
-   ctx.fillText('Body pages include softness and skin detail.',40,1020);
+   cycle('Face',320,faces.map(f=>f.name),()=>faces[a.faceType]?.name||faces[0].name,x=>{a.faceType=faces.findIndex(f=>f.name===x);a.applyLooks();});
+   if(a.version==='v2'&&a.hairDetail!=='classic')cycle('Hairstyle',465,HAIR_STYLES,()=>HAIR_STYLES[a.hairStyle],x=>a.hairStyle=HAIR_STYLES.indexOf(x));
+   cycle('Hair colour',610,HAIR_COLORS.map(f=>f.name),()=>HAIR_COLORS[a.hairColor].name,x=>{a.hairColor=HAIR_COLORS.findIndex(f=>f.name===x);a.applyLooks();});
+   if(a.version==='v2'){
+    cycle('Eye rendering',755,['Classic','Advanced'],()=>a.eyeDetail==='classic'?'Classic':'Advanced',x=>a.setVisualDetail('eyes',x.toLowerCase()));
+    cycle('Hair rendering',900,['Classic','Advanced'],()=>a.hairDetail==='classic'?'Classic':'Advanced',x=>a.setVisualDetail('hair',x.toLowerCase()));
+   }
+   ctx.fillStyle='#b7c8d8';ctx.font='27px sans-serif';ctx.fillText(a.visualStatus?.()||'Original V1 appearance',40,1090);
+   ctx.font='25px sans-serif';ctx.fillText('Classic hair keeps the original cut.',40,1150);ctx.fillText('Advanced hair responds to movement and brushing.',40,1200);
   }else if(page===3&&a){
    if(a.version==='v2'){
     cycle('Expression',340,EMOTION_NAMES,()=>a.emotion.name,x=>{a.expressionOverride=x;a.setEmotion(x,.8,{source:'manual'});});

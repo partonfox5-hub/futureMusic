@@ -1,8 +1,8 @@
-import {restoreSurfaceUV} from './mira-v2-uv.js?v=10.0';
-import {BodyContacts} from './mira-v2-contact.js?v=10.0';
-import {MiraSocial} from './mira-v2-social.js?v=10.0';
-import {ContactHaptics} from './mira-v2-haptics.js?v=10.0';
-import { createV2Class, repairArmRestData } from "./mira-v2-features.js?v=10.0";
+import {restoreSurfaceUV} from './mira-v2-uv.js?v=11.0';
+import {BodyContacts} from './mira-v2-contact.js?v=11.0';
+import {MiraSocial} from './mira-v2-social.js?v=11.0';
+import {ContactHaptics} from './mira-v2-haptics.js?v=11.0';
+import { createV2Class, repairArmRestData } from "./mira-v2-features.js?v=11.0";
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { clone as cloneSkinned } from "three/addons/utils/SkeletonUtils.js";
@@ -1812,6 +1812,7 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
       social.cancel(actor);actor.endGrab();scene.remove(actor.group);scene.remove(blobs[i]);
       blobs[i].geometry.dispose();blobs[i].material.dispose();blobs.splice(i,1);
       if(actor.heldBall){actor.heldBall.held=null;actor.heldBall=null;}
+      actor.eyes?.disposeInactive();actor.hairPhysics?.disposeInactive();
       actor.root.traverse(o=>{if(!o.isMesh)return;if(actor.version==='v2')o.geometry.dispose();o.customDepthMaterial?.dispose();for(const m of Array.isArray(o.material)?o.material:[o.material])m?.dispose();});
       actors.splice(i,1);selectedActor=actors[actors.length-1]||null;
     },

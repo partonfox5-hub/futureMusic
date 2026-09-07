@@ -1,5 +1,5 @@
 import * as T from 'three';
-import {bodyVolumes,projectVolume} from './mira-v2-contact.js?v=10.0';
+import {bodyVolumes,projectVolume} from './mira-v2-contact.js?v=11.0';
 const V=()=>new T.Vector3(),Q=()=>new T.Quaternion(),up=new T.Vector3(0,1,0);
 export class Restraints {
  constructor(props){this.props=props;this.scene=props.scene;this.system=props.system;this.world=props.world;this.links=[];this.selected=null;this.pending=null;this.placing=false;this.mode='rope';this.button=new WeakMap();this.next=1;this.status='Click PLACE, then choose two anchor points.';}

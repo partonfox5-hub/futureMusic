@@ -1,5 +1,5 @@
 import * as T from 'three';
-import {playSfx,sfxForHit,unlockSfx} from './mira-v2-sfx.js?v=10.0';
+import {playSfx,sfxForHit,unlockSfx} from './mira-v2-sfx.js?v=11.0';
 const V=()=>new T.Vector3(),Q=()=>new T.Quaternion();
 const visible=o=>{while(o){if(!o.visible)return false;o=o.parent;}return true;};
 export const WEAPONS={sword:{name:'Sword',mass:1.4,reach:.95,sharpness:.85,kind:'cut'},mace:{name:'Mace',mass:2.8,reach:.66,sharpness:0,kind:'blunt'},pistol:{name:'Pistol',mass:.9,reach:.24,kind:'bullet'},laser:{name:'Laser pistol',mass:1.2,reach:.28,kind:'laser'}};

@@ -1,11 +1,11 @@
-import {LivingEyes} from './mira-v2-eyes.js?v=10.0';
-import {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES} from './mira-v2-controls.js?v=10.0';
-export {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES} from './mira-v2-controls.js?v=10.0';
+import {LivingEyes} from './mira-v2-eyes.js?v=11.0';
+import {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES} from './mira-v2-controls.js?v=11.0';
+export {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES} from './mira-v2-controls.js?v=11.0';
 import * as THREE from 'three';
-import {restoreSurfaceUV} from './mira-v2-uv.js?v=10.0';
-import {V2_EXTRA_SLIDERS,FACE_PRESETS,EXERCISE_MODES} from './mira-v2-controls.js?v=10.0';
-import {HairGuides} from './mira-v2-hair.js?v=10.0';
-import {SurfaceFlesh} from './mira-v2-tissue.js?v=10.0';
+import {restoreSurfaceUV} from './mira-v2-uv.js?v=11.0';
+import {V2_EXTRA_SLIDERS,FACE_PRESETS,EXERCISE_MODES} from './mira-v2-controls.js?v=11.0';
+import {HairGuides} from './mira-v2-hair.js?v=11.0';
+import {SurfaceFlesh} from './mira-v2-tissue.js?v=11.0';
 
 // Mira v2: a bounded real-time approximation for this CC3 rig, Three r170.
 const clamp = THREE.MathUtils.clamp, damp = THREE.MathUtils.damp;
@@ -205,8 +205,20 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    this.surfaceFlesh=new SurfaceFlesh(this);
    this.skinDetailMap=loadMap('skin_detail_v2.jpg',true);this.skinDetailMap.wrapS=this.skinDetailMap.wrapT=THREE.RepeatWrapping;
    this.applyLooks();
-   this.hairPhysics=new HairGuides(this,BODY_HIT);this.eyes=new LivingEyes(this,loadMap);
+   this.hairDetail=opts.hairDetail==='classic'?'classic':'advanced';this.eyeDetail=opts.eyeDetail==='classic'?'classic':'advanced';
+   this.hairPhysics=new HairGuides(this,BODY_HIT,this.hairDetail);this.eyes=new LivingEyes(this,loadMap,this.eyeDetail);
    this.root.traverse(o=>{if(o.isMesh){o.receiveShadow=!/Skin_/.test(o.material?.name);o.castShadow=!/hair|eyes/.test(o.name);}});
+  }
+  setVisualDetail(kind,value){
+   const mode=value==='classic'?'classic':'advanced';
+   if(kind==='eyes'){this.eyeDetail=mode;this.eyes?.setMode(mode);}
+   if(kind==='hair'){this.hairDetail=mode;this.hairPhysics?.setMode(mode);}
+   this.applyLooks();
+  }
+  visualStatus(){
+   const eyes=this.eyes?.shells.length===2?(this.eyeDetail==='classic'?'Classic eyes':'Advanced eyes'):'Eye setup unavailable';
+   const hair=this.hairPhysics?.mesh?(this.hairDetail==='classic'?'Classic hair':'Advanced hair'):'Hair setup unavailable';
+   return eyes+' · '+hair;
   }
   applyLooks(){
    if(!this.deform)return;

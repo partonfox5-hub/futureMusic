@@ -1,25 +1,25 @@
-import {Builder,FURNITURE,SURFACES} from './mira-v2-builder.js?v=10.0';
-import {SmoothLocomotion} from './mira-v2-locomotion.js?v=10.0';
-import {Car} from './mira-v2-car.js?v=10.0';
-import {Restraints} from './mira-v2-restraints.js?v=10.0';
-import {Injuries} from './mira-v2-injuries.js?v=10.0';
-import {Props,WEAPONS} from './mira-v2-props.js?v=10.0';
-import {RoomLight} from './mira-v2-light.js?v=10.0';
-import {draft,saveDraft,spawnOptions,OUTFITS,clothingItems} from './mira-v2-catalog.js?v=10.0';
-import {MiraWorld,SCENES} from './mira-v2-world.js?v=10.0';
-import {Wardrobe,GARMENTS} from './mira-v2-wardrobe.js?v=10.0';
+import {Builder,FURNITURE,SURFACES} from './mira-v2-builder.js?v=11.0';
+import {SmoothLocomotion} from './mira-v2-locomotion.js?v=11.0';
+import {Car} from './mira-v2-car.js?v=11.0';
+import {Restraints} from './mira-v2-restraints.js?v=11.0';
+import {Injuries} from './mira-v2-injuries.js?v=11.0';
+import {Props,WEAPONS} from './mira-v2-props.js?v=11.0';
+import {RoomLight} from './mira-v2-light.js?v=11.0';
+import {draft,saveDraft,spawnOptions,OUTFITS,clothingItems} from './mira-v2-catalog.js?v=11.0';
+import {MiraWorld,SCENES} from './mira-v2-world.js?v=11.0';
+import {Wardrobe,GARMENTS} from './mira-v2-wardrobe.js?v=11.0';
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { createVRMenu } from "./mira-vr-menu.js?v=10.0";
-import { snapshot, savePreset, loadPreset, applyPreset, listPresets, lastPresetName, downloadPreset } from "./mira-v2-preset.js?v=10.0";
-import { unlockSfx } from "./mira-v2-sfx.js?v=10.0";
-import { EMOTION_NAMES, IDLE_NAMES, WALK_NAMES } from "./mira-v2-features.js?v=10.0";
+import { createVRMenu } from "./mira-vr-menu.js?v=11.0";
+import { snapshot, savePreset, loadPreset, applyPreset, listPresets, lastPresetName, downloadPreset } from "./mira-v2-preset.js?v=11.0";
+import { unlockSfx } from "./mira-v2-sfx.js?v=11.0";
+import { EMOTION_NAMES, IDLE_NAMES, WALK_NAMES } from "./mira-v2-features.js?v=11.0";
 import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
-import { createMiraSystem, SLIDERS, FACE_TYPES, HAIR_COLORS } from "./mira-v2.js?v=10.0";
-import { DEFAULT_PERSONA, miraChat, miraSpeak, startMic, unlockVoice } from "./mira-voice-v2.js?v=10.0";
+import { createMiraSystem, SLIDERS, FACE_TYPES, HAIR_COLORS } from "./mira-v2.js?v=11.0";
+import { DEFAULT_PERSONA, miraChat, miraSpeak, startMic, unlockVoice } from "./mira-voice-v2.js?v=11.0";
 
-import {V2_EXTRA_SLIDERS,FACE_PRESETS,HAIR_STYLES,ACTIVITY_MODES,shapeSliders} from './mira-v2-controls.js?v=10.0';
+import {V2_EXTRA_SLIDERS,FACE_PRESETS,HAIR_STYLES,ACTIVITY_MODES,shapeSliders} from './mira-v2-controls.js?v=11.0';
 
 const QUEST = /OculusBrowser|Quest/i.test(navigator.userAgent);
 const loadEl = document.getElementById("load");
@@ -148,7 +148,7 @@ renderer.domElement.addEventListener('pointerup',e=>{if(clothPointer!==e.pointer
 renderer.domElement.addEventListener('pointercancel',()=>{wardrobe.cancel('desktop');clothPointer=null;orbit.enabled=true;});
 function spawnVersion(version){
  const a=selected(),n=mira.actors.length;try{const p=new THREE.Vector3(n===0?0:(n%2?-.8:.8),0,0);
-  mira.spawn({version,position:p,shape:a?{...a.shape}:undefined,faceType:version==='v2'?(a?.version==='v2'?a.faceType:1):a?.faceType||0,hairColor:a?.hairColor||0,hairStyle:a?.hairStyle||0});syncHud();
+  mira.spawn({version,position:p,shape:a?{...a.shape}:undefined,faceType:version==='v2'?(a?.version==='v2'?a.faceType:1):a?.faceType||0,hairColor:a?.hairColor||0,hairStyle:a?.hairStyle||0,eyeDetail:a?.eyeDetail||'advanced',hairDetail:a?.hairDetail||'advanced'});syncHud();
  }catch(e){banner(e.message);}
 }
 function frameActor(face){const a=selected();if(!a)return;const c=a.group.position.clone();c.y+=(face?1.5:1.0)*a.shape.height;orbit.target.copy(c);camera.position.copy(c).add(new THREE.Vector3(0,face?.015:.18,face?.53:2.6));camera.lookAt(c);orbit.update();}
@@ -157,12 +157,12 @@ function syncHud(){
  if(!a)return;document.getElementById('persona').value=a.personality||DEFAULT_PERSONA;document.getElementById('wearBtn').disabled=a.version!=='v2';for(const s of shapeSliders(SLIDERS,a)){const input=document.getElementById('s_'+s.key);if(input){input.min=s.min;input.max=s.max;input.value=a.shape[s.key]??s.value;}}for(const s of V2_EXTRA_SLIDERS){const input=document.getElementById('s_'+s.key);if(input)input.disabled=a.version!=='v2';}
  faceLab.textContent=a.version==='v2'?(FACE_PRESETS[a.faceType]?.name||'Natural'):FACE_TYPES[a.faceType].name;hairLab.textContent=HAIR_COLORS[a.hairColor].name;
  for(const id of ['idlePose','expression','testBalance','faceSmile','faceSurprise'])document.getElementById(id).disabled=a.version!=='v2';
- document.getElementById('hairStyle').disabled=a.version!=='v2';document.getElementById('hairStyle').value=String(a.hairStyle||0);document.getElementById('activity').disabled=a.version!=='v2';document.getElementById('activity').value=a.autonomy?'auto':a.mode;
+ document.getElementById('eyeDetail').disabled=document.getElementById('hairDetail').disabled=a.version!=='v2';document.getElementById('eyeDetail').value=a.eyeDetail||'classic';document.getElementById('hairDetail').value=a.hairDetail||'classic';document.getElementById('visualStatus').textContent=a.visualStatus?.()||'Original V1 appearance';document.getElementById('hairStyle').disabled=a.version!=='v2'||a.hairDetail==='classic';document.getElementById('hairStyle').value=String(a.hairStyle||0);document.getElementById('activity').disabled=a.version!=='v2';document.getElementById('activity').value=a.autonomy?'auto':a.mode;
  document.getElementById('walkStyle').value=String(a.gait);
  document.getElementById('idlePose').value=String(['auto',...IDLE_NAMES].indexOf(a.idleChoice||'auto'));
  document.getElementById('expression').value=String(['context',...EMOTION_NAMES].indexOf(a.expressionOverride||'context'));
 }
-function copyConfiguration(){const a=selected();if(!a)return;Object.assign(draft,{bodyType:a.bodyType||'female',faceType:a.faceType,hairStyle:a.hairStyle||0,hairColor:a.hairColor,shape:{...a.shape}});saveDraft();dispatchEvent(new Event('mira:draft'));}
+function copyConfiguration(){const a=selected();if(!a)return;Object.assign(draft,{bodyType:a.bodyType||'female',faceType:a.faceType,hairStyle:a.hairStyle||0,hairColor:a.hairColor,eyeDetail:a.eyeDetail||'classic',hairDetail:a.hairDetail||'classic',shape:{...a.shape}});saveDraft();dispatchEvent(new Event('mira:draft'));}
 function spawnConfigured(){if(!mira.ready)return;const n=mira.actors.length,p=new THREE.Vector3(n%2?-.8:.8,0,0),a=mira.spawn(spawnOptions(p));for(const id of clothingItems())wardrobe.equip(a,GARMENTS.find(g=>g.id===id));syncHud();}
 function captureScene(){return snapshot({mira,world,wardrobe,props,camera,orbit});}
 function refreshPresetSelect(){const el=document.getElementById('presetSelect');if(!el)return;const names=listPresets(),cur=el.value||lastPresetName();el.replaceChildren(...(names.length?names:['Slot 1']).map(n=>new Option(n,n)));if([...el.options].some(o=>o.value===cur))el.value=cur;}
@@ -485,3 +485,5 @@ document.getElementById('buildFurniture').onchange=e=>builder.furniture=e.target
 document.getElementById('buildHeight').onchange=e=>{builder.height=Math.round(THREE.MathUtils.clamp(Number(e.target.value)||0,0,6)/.6)*.6;e.target.value=builder.height;};
 document.getElementById('buildRotate').onclick=()=>{builder.yaw=(builder.yaw+Math.PI/2)%(Math.PI*2);document.getElementById('buildRotate').textContent='ROTATE '+Math.round(builder.yaw*180/Math.PI)+'°';};
 document.getElementById('buildStart').onclick=()=>builder.start();document.getElementById('buildStop').onclick=()=>builder.stop();document.getElementById('buildUndo').onclick=()=>builder.undo();
+
+for(const [id,kind] of [['eyeDetail','eyes'],['hairDetail','hair']])document.getElementById(id).onchange=e=>{selected()?.setVisualDetail?.(kind,e.target.value);syncHud();};

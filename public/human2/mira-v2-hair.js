@@ -13,16 +13,31 @@ export function projectHairPoint(p,c,margin=0){
  p.set(x+normal.x*r,y+normal.y*r,z+normal.z*r);return true;
 }
 export class HairGuides {
- constructor(actor,hits){
+ constructor(actor,hits,mode='advanced'){
   this.actor=actor;this.hits=hits;this.acc=0;this.ready=false;this.uniform=Array.from({length:COUNT},V);this.chains=[];this.capsules=[];this.previousCaps=[];
   this.capsA=Array.from({length:MAX_CAPS},()=>new THREE.Vector4());this.capsB=Array.from({length:MAX_CAPS},()=>new THREE.Vector4());this.capCount={value:0};
   actor.root.traverse(o=>{if(o.isSkinnedMesh&&/hair/i.test(o.name))this.mesh=o;});if(!this.mesh)return;
-  const mesh=this.mesh,old=mesh.geometry;this.source=old;this.refToHead=actor.bones.Head.matrixWorld.clone().invert().multiply(mesh.matrixWorld);
-  this.setStyle(actor.hairStyle||0);
-  mesh.material.roughness=.58;mesh.material.onBeforeCompile=s=>this.installShader(s);mesh.material.customProgramCacheKey=()=> 'mira-hair-r9-cubic-contact32';mesh.material.needsUpdate=true;
+  const mesh=this.mesh,old=mesh.geometry;this.source=old.clone();mesh.geometry=this.source;this.refToHead=actor.bones.Head.matrixWorld.clone().invert().multiply(mesh.matrixWorld);
+  this.originalCompile=mesh.material.onBeforeCompile;this.originalKey=mesh.material.customProgramCacheKey;this.originalRoughness=mesh.material.roughness;
+  this.setMode(mode);
  }
+ setMode(mode){
+  this.mode=mode==='classic'?'classic':'advanced';if(!this.mesh)return;
+  const m=this.mesh.material;
+  if(this.mode==='classic'){
+   if(this.mesh.geometry!==this.source)this.advancedGeometry=this.mesh.geometry;
+   this.mesh.geometry=this.source;m.roughness=this.originalRoughness;m.onBeforeCompile=this.originalCompile;m.customProgramCacheKey=this.originalKey;
+   this.mesh.visible=this.actor.hairStyle!==9;this.reset();
+  }else{
+   if(this.advancedGeometry){this.mesh.geometry=this.advancedGeometry;this.advancedGeometry=null;}
+   this.setStyle(this.actor.hairStyle||0);m.roughness=.58;m.onBeforeCompile=s=>this.installShader(s);m.customProgramCacheKey=()=> 'mira-hair-r11-cubic-contact32';
+  }
+  m.needsUpdate=true;
+ }
+ disposeInactive(){if(this.mesh?.geometry!==this.source)this.source?.dispose();if(this.advancedGeometry&&this.advancedGeometry!==this.mesh?.geometry)this.advancedGeometry.dispose();}
+
  setStyle(style){
-  if(!this.mesh)return;style=clamp(style|0,0,10);this.style=style;this.mesh.visible=style!==9;
+  if(!this.mesh)return;if(this.mode==='classic'){this.mesh.visible=style!==9;return;}style=clamp(style|0,0,10);this.style=style;this.mesh.visible=style!==9;
   const compact=style>=4,bun=style===4||style===7,layers=compact?1:2,old=this.source,count=old.attributes.position.count;
   const ring=48,rows=12,bunCount=bun?(ring+1)*(rows+1):0,total=count*layers+bunCount;
   const g=old.clone();g.clearGroups();g.morphAttributes={};
@@ -114,7 +129,7 @@ export class HairGuides {
  }
  reset(){this.ready=false;this.acc=0;this.previousCaps=[];this.uniform.forEach(v=>v.set(0,0,0));}
  tick(dt){
-  if(!this.mesh||!dt)return;if(this.actor.hairStyle!==this.style)this.setStyle(this.actor.hairStyle);if(this.style===9)return;
+  if(!this.mesh||!dt)return;if(this.mode==='classic'){this.mesh.visible=this.actor.hairStyle!==9;return;}if(this.actor.hairStyle!==this.style)this.setStyle(this.actor.hairStyle);if(this.style===9)return;
   const head=this.actor.bones.Head,h=this.actor.shape.height,headPos=head.getWorldPosition(V()),flex=(this.actor.shape.hairMotion??.68)*(this.compact?.38:1);
   for(const chain of this.chains)for(const n of chain){n.target.copy(n.rest).applyMatrix4(head.matrixWorld);if(!this.ready||n.p.distanceTo(n.target)>.55*h){n.p.copy(n.target);n.prev.copy(n.target);}}
   const caps=[];
