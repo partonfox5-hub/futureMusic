@@ -3,6 +3,7 @@ import {BodyContacts} from './mira-v2-contact.js?v=h4.1';
 import {MiraSocial} from './mira-v2-social.js?v=h4.1';
 import {ContactHaptics} from './mira-v2-haptics.js?v=h4.1';
 import { createV2Class, repairArmRestData } from "./mira-v2-features.js?v=h4.5";
+import { warmMixamo, applyMixamo } from "./mira-v2-motion.js?v=h4.67";
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { clone as cloneSkinned } from "three/addons/utils/SkeletonUtils.js";
@@ -1064,6 +1065,7 @@ class MiraActor {
       }
     }
     let targetSpeed = 0;
+    this.yawDelta = 0;
     if (canMove && this.dest) {
       _motion.copy(this.dest).sub(this.group.position); _motion.y = 0;
       const distance = _motion.length();
@@ -1073,6 +1075,7 @@ class MiraActor {
         const dyaw = wrapPi(desiredYaw - this.group.rotation.y);
         const maxTurn = 1.85 * dt;
         this.group.rotation.y += THREE.MathUtils.clamp(dyaw, -maxTurn, maxTurn);
+        this.yawDelta = dyaw;
         const turn = Math.abs(dyaw);
         const arrive = THREE.MathUtils.clamp(distance / 0.55, 0.35, 1);
         targetSpeed = 0.78 * this.shape.height * arrive * (turn > 0.85 ? 0.62 : 1);
@@ -1124,8 +1127,10 @@ class MiraActor {
     this.keepArmsClear(); this.applyExtras();
     this.poseAlpha = poseA;
     this.group.updateMatrixWorld(true);
+    this.mixamoDrive = applyMixamo(this, dt, moving);
     this.tickGrab(dt); this.group.updateMatrixWorld(true);
-    this.solveFeet(dt, moving); this.group.updateMatrixWorld(true);
+    if (!this.mixamoDrive) this.solveFeet(dt, moving);
+    this.group.updateMatrixWorld(true);
     this.tickSoft(dt); this.tickMorphs(dt);
     this.group.updateMatrixWorld(true);
     if (this.skeleton) this.skeleton.update();
@@ -1451,6 +1456,7 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
         template.position.y -= box.min.y * baseScale;
         template.scale.setScalar(baseScale);
         ready = true;
+        warmMixamo();
         spawn({ position: new THREE.Vector3(0, 0, 0), version: "v2", faceType: 1 });
         if (onDone) onDone();
       },
