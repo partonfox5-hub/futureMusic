@@ -1,12 +1,12 @@
-import {WEAPONS} from './mira-v2-props.js?v=h3.3';
-import {draft,saveDraft,OUTFITS,PERSONAS,clothingItems,setDraftGarment} from './mira-v2-catalog.js?v=h3.3';
-import {SCENES} from './mira-v2-world.js?v=h3.3';
-import {GARMENTS} from './mira-v2-wardrobe.js?v=h3.3';
+import {WEAPONS} from './mira-v2-props.js?v=h3.4';
+import {draft,saveDraft,OUTFITS,PERSONAS,clothingItems,setDraftGarment} from './mira-v2-catalog.js?v=h3.4';
+import {SCENES} from './mira-v2-world.js?v=h3.4';
+import {GARMENTS} from './mira-v2-wardrobe.js?v=h3.4';
 import * as THREE from 'three';
-import {SLIDERS,FACE_TYPES} from './mira-v2.js?v=h3.3';
-import {shapeSliders,FACE_PRESETS,HAIR_STYLES,ACTIVITY_MODES,ACTION_LABELS,POSE_LABELS} from './mira-v2-controls.js?v=h3.3';
-import {HAIR_COLORS} from './mira-v2.js?v=h3.3';
-import {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES} from './mira-v2-features.js?v=h3.3';
+import {SLIDERS,FACE_TYPES} from './mira-v2.js?v=h3.4';
+import {shapeSliders,FACE_PRESETS,HAIR_STYLES,ACTIVITY_MODES,ACTION_LABELS,POSE_LABELS} from './mira-v2-controls.js?v=h3.4';
+import {HAIR_COLORS} from './mira-v2.js?v=h3.4';
+import {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES} from './mira-v2-features.js?v=h3.4';
 export function createVRMenu({scene,renderer,camera,system,spawn,onSync,world,wardrobe,spawnConfigured,copyConfiguration,props}){
  const canvas=document.createElement('canvas');canvas.width=1024;canvas.height=1320;
  const ctx=canvas.getContext('2d'),tex=new THREE.CanvasTexture(canvas);tex.colorSpace=THREE.SRGBColorSpace;
@@ -53,7 +53,7 @@ export function createVRMenu({scene,renderer,camera,system,spawn,onSync,world,wa
    cycle('Table equipment',715,Object.values(WEAPONS).map(w=>w.name),()=>Object.values(WEAPONS)[weaponIndex].name,name=>weaponIndex=Object.values(WEAPONS).findIndex(w=>w.name===name));button('PICK UP',40,820,455,66,()=>{props.hold(props.items.find(x=>x.id===Object.keys(WEAPONS)[weaponIndex]),lastController);notice=props.status;draw();});button('DROP',515,820,467,66,()=>props.drop(lastController));
    button('HAPTICS '+system.hands.haptics.gain.toFixed(1)+'×',40,925,455,72,()=>{system.hands.haptics.gain=(system.hands.haptics.gain+.5)%2.5;draw();});button('VOICE ON / OFF',515,925,467,72,()=>document.getElementById('micBtn')?.click());
    button('REBUILD HOUSE',40,1040,942,72,()=>{world.setScene('Living room');notice='House rebuilt';draw();});
-   ctx.font='24px sans-serif';ctx.fillStyle='#c9d6e2';ctx.fillText('Grip: pick up / swing · Trigger: fire · Release grip: drop',40,1175);
+   ctx.font='24px sans-serif';ctx.fillStyle='#c9d6e2';ctx.fillText('Squeeze: pick up or drop · Trigger: fire / melee swing',40,1175);
   }else if(page===0){
    button('SPAWN V1',40,300,455,80,()=>{spawn('v1');draw();});button('SPAWN V2',515,300,467,80,()=>{spawn('v2');draw();});
    button('SELECT NEXT',40,400,610,76,()=>{const list=system.actors;system.select(list[(list.indexOf(active())+1)%list.length]);onSync?.();draw();});

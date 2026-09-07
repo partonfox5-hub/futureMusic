@@ -1,9 +1,9 @@
 import * as T from 'three';
-import {bodyVolumes,projectVolume} from './mira-v2-contact.js?v=h3.3';
+import {bodyVolumes,projectVolume} from './mira-v2-contact.js?v=h3.4';
 const V=()=>new T.Vector3();
-import {GARMENTS} from './mira-v2-garments.js?v=h3.3';
-export {GARMENTS} from './mira-v2-garments.js?v=h3.3';
-import {garmentPattern,fabricMaterial} from './mira-v2-garment-patterns.js?v=h3.3';
+import {GARMENTS} from './mira-v2-garments.js?v=h3.4';
+export {GARMENTS} from './mira-v2-garments.js?v=h3.4';
+import {garmentPattern,fabricMaterial} from './mira-v2-garment-patterns.js?v=h3.4';
 export class Cloth {
  constructor(scene,actor,style,surface){
   this.actor=actor;this.style=style;this.n=28;this.rows=9;this.p=[];this.prev=[];this.rest=[];this.anchor=[];this.edges=[];this.faces=[];this.torn=new Set();this.acc=0;this.hold=null;this.detached=false;this.age=0;this.anchorBone=actor.bones[style.top<1.05?'Hip':'Spine02'];this.shapeStamp='';this.surface=surface;this.skinAnchors=[];

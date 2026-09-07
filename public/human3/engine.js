@@ -1,21 +1,21 @@
-import {Car} from './mira-v2-car.js?v=h3.3';
-import {Restraints} from './mira-v2-restraints.js?v=h3.3';
-import {Injuries} from './mira-v2-injuries.js?v=h3.3';
-import {Props,WEAPONS} from './mira-v2-props.js?v=h3.3';
-import {RoomLight} from './mira-v2-light.js?v=h3.3';
-import {draft,saveDraft,spawnOptions,OUTFITS,clothingItems} from './mira-v2-catalog.js?v=h3.3';
-import {MiraWorld,SCENES} from './mira-v2-world.js?v=h3.3';
-import {Wardrobe,GARMENTS} from './mira-v2-wardrobe.js?v=h3.3';
+import {Car} from './mira-v2-car.js?v=h3.4';
+import {Restraints} from './mira-v2-restraints.js?v=h3.4';
+import {Injuries} from './mira-v2-injuries.js?v=h3.4';
+import {Props,WEAPONS} from './mira-v2-props.js?v=h3.4';
+import {RoomLight} from './mira-v2-light.js?v=h3.4';
+import {draft,saveDraft,spawnOptions,OUTFITS,clothingItems} from './mira-v2-catalog.js?v=h3.4';
+import {MiraWorld,SCENES} from './mira-v2-world.js?v=h3.4';
+import {Wardrobe,GARMENTS} from './mira-v2-wardrobe.js?v=h3.4';
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { createVRMenu } from "./mira-vr-menu.js?v=h3.3";
-import { EMOTION_NAMES, IDLE_NAMES, WALK_NAMES } from "./mira-v2-features.js?v=h3.3";
+import { createVRMenu } from "./mira-vr-menu.js?v=h3.4";
+import { EMOTION_NAMES, IDLE_NAMES, WALK_NAMES } from "./mira-v2-features.js?v=h3.4";
 import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
-import { createMiraSystem, SLIDERS, FACE_TYPES, HAIR_COLORS } from "./mira-v2.js?v=h3.3";
-import { DEFAULT_PERSONA, miraChat, miraSpeak, startMic, unlockVoice } from "./mira-voice-v2.js?v=h3.3";
+import { createMiraSystem, SLIDERS, FACE_TYPES, HAIR_COLORS } from "./mira-v2.js?v=h3.4";
+import { DEFAULT_PERSONA, miraChat, miraSpeak, startMic, unlockVoice } from "./mira-voice-v2.js?v=h3.4";
 
-import {V2_EXTRA_SLIDERS,FACE_PRESETS,HAIR_STYLES,ACTIVITY_MODES,shapeSliders} from './mira-v2-controls.js?v=h3.3';
+import {V2_EXTRA_SLIDERS,FACE_PRESETS,HAIR_STYLES,ACTIVITY_MODES,shapeSliders} from './mira-v2-controls.js?v=h3.4';
 
 const QUEST = /OculusBrowser|Quest/i.test(navigator.userAgent);
 const loadEl = document.getElementById("load");
