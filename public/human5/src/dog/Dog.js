@@ -27,7 +27,12 @@ export class DogModel {
     this.index=Object.fromEntries(BONE_NAMES.map((n,i)=>[n,i]));this.skeleton.calculateInverses();
     this.coat=this.material({color:0xffffff,roughness:.9,vertexColors:true});
     this.dark=this.material({color:0x241b16,roughness:.82});
-    this.eye=this.material({color:0x170f0a,roughness:.20});
+    this.eye=this.material({color:0xd9ccb6,roughness:.35});
+    this.noseMaterial=this.material({color:0x1a1210,roughness:.19,metalness:0,envMapIntensity:1.2});
+    this.irisMaterial=this.material({color:0x6a3a14,roughness:.28});
+    this.pupilMaterial=this.material({color:0x080604,roughness:.22});
+    this.rimMaterial=this.material({color:0x292019,roughness:.55});
+    this.corneaMaterial=this.material({color:0xffffff,roughness:.08,metalness:0,transparent:true,opacity:.40,depthWrite:false,envMapIntensity:1.2});
     this.buildBody();
   }
   material(opts){const m=new THREE.MeshStandardMaterial(opts);this.materials.add(m);return m;}
@@ -81,22 +86,52 @@ export class DogModel {
   buildBody(){
     this.body=this.tube('body',[[0,.44,-.365],[0,.455,-.30],[0,.453,-.21],[0,.445,-.09],[0,.437,.055],[0,.445,.18],[0,.45,.26],[0,.47,.30]],[[.07,.085],[.134,.14],[.143,.145],[.137,.137],[.135,.143],[.165,.155],[.143,.142],[.08,.09]],(x,y,z)=>{const t=clamp((z+.12)/.36);return [['Spine',1-t],['Chest',t]];},this.coat,20,true);
     this.tube('neck',[[0,.49,.205],[0,.565,.26],[0,.65,.315],[0,.715,.37]],[[.12,.125],[.111,.115],[.085,.089],[.07,.07]],(x,y,z)=>{const t=clamp((y-.53)/.15);return [['Chest',1-t],['Neck',t]];},this.coat,16,true);
-    this.ellipsoid('head',[0,.753,.407],[.090,.100,.105],'Head',this.coat,'coat',14,9,true);
-    this.ellipsoid('muzzle',[0,.711,.515],[.060,.047,.098],'Head',this.coat,'muzzle',12,7,true);
-    this.ellipsoid('nose',[0,.723,.603],[.044,.028,.022],'Head',this.dark,'coat',12,7);
-    const shine=this.material({color:0x090706,roughness:.31});
-    for(const s of [-1,1]){
-      this.ellipsoid('nostril',[s*.023,.727,.621],[.009,.005,.0035],'Head',shine,'coat',8,5);
-      this.ellipsoid('eyes',[s*.067,.786,.475],[.015,.015,.011],'Head',this.eye,'coat',12,8);
-      // Anatomical upper brow ridge, small eyes and semi-prick ears, not cartoon spheres.
-      this.ellipsoid('brow',[s*.065,.801,.467],[.027,.018,.021],'Head',this.coat,'coat',10,6);
-      this.ear(s);
+    this.ellipsoid('head',[0,.760,.402],[.090,.101,.099],'Head',this.coat,'coat',14,9,true);
+    this.ellipsoid('muzzle',[0,.704,.518],[.059,.040,.095],'Head',this.coat,'muzzle',12,7,true);
+    // Stop and cheek planes are small additions in existing Head bind space.
+    this.ellipsoid('stop',[0,.761,.463],[.046,.049,.030],'Head',this.coat,'coat',12,7,true);
+    this.planum();
+    for(const side of [-1,1]){
+      this.ellipsoid('cheek',[side*.069,.737,.444],[.030,.040,.038],'Head',this.coat,'coat',10,6,true);
+      this.ellipsoid('lip',[side*.037,.685,.537],[.022,.007,.060],'Head',this.rimMaterial,'muzzle',10,5);
+      this.dogEye(side);
+      this.ellipsoid('brow',[side*.065,.804,.469],[.025,.014,.020],'Head',this.coat,'coat',10,6);
+      this.ear(side);
     }
   }
+  dogEye(side){
+    const x=side*.067,y=.786,z=.478;
+    this.ellipsoid('eyes_sclera',[x,y,z],[.016,.013,.010],'Head',this.eye,'coat',12,8);
+    this.eyeDisc('eyes_iris',x,y,z+.0103,.0125,.0115,this.irisMaterial,24);
+    this.eyeDisc('eyes_pupil',x,y,z+.0106,.0052,.0064,this.pupilMaterial,20);
+    const rim=new THREE.TorusGeometry(.0145,.0017,4,20);rim.scale(1,.83,1);rim.translate(x,y,z+.0055);this.skin(rim,'Head');this.mesh('eye_rim',rim,this.rimMaterial);
+    // Front dome only: transparent Standard material, no transmission, no painted highlights.
+    const g=new THREE.SphereGeometry(1,12,6,0,Math.PI*2,0,Math.PI/2);g.rotateX(Math.PI/2);g.scale(.0132,.0124,.004);g.translate(x,y,z+.009);
+    this.skin(g,'Head');const cornea=this.mesh('eyes_cornea',g,this.corneaMaterial);cornea.castShadow=false;cornea.receiveShadow=false;cornea.renderOrder=3;
+  }
+  eyeDisc(name,x,y,z,rx,ry,material,segments){
+    const g=new THREE.CircleGeometry(1,segments);g.scale(rx,ry,1);g.translate(x,y,z);this.skin(g,'Head');return this.mesh(name,g,material);
+  }
+  planum(){
+    // Squared leather planum; physically recessed bowls replace protruding black beads.
+    const g=new THREE.SphereGeometry(1,20,12),p=g.getAttribute('position');
+    for(let i=0;i<p.count;i++){
+      let x=p.getX(i)*.045,y=p.getY(i)*.026,z=p.getZ(i)*.015;
+      if(z>0){const holes=Math.max(Math.exp(-(((x-.023)/.010)**2+((y-.003)/.007)**2)),Math.exp(-(((x+.023)/.010)**2+((y-.003)/.007)**2)));z-=holes*.009;}
+      p.setXYZ(i,x,.715+y,.606+z);
+    }
+    g.computeVertexNormals();this.skin(g,'Head');this.mesh('nose',g,this.noseMaterial);
+    for(const side of [-1,1])this.ellipsoid('nostril_cavity',[side*.023,.718,.613],[.0068,.0042,.0022],'Head',this.pupilMaterial,'coat',10,6);
+  }
+
   ear(s){
     const points=[[s*.054,.810,.395],[s*.110,.816,.370],[s*.116,.900,.365],[s*.099,.930,.386],[s*.080,.872,.427]];
     const p=points.flat(),idx=[0,1,4,1,2,4,2,3,4];const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(p,3));g.setAttribute('uv',new THREE.Float32BufferAttribute([0,1,1,1,1,.3,.6,0,.5,.6],2));g.setIndex(s<0?idx.flatMap((_,i)=>i%3===0?[idx[i],idx[i+2],idx[i+1]]:[]):idx);g.computeVertexNormals();this.skin(g,'Head');
     const m=this.material({color:0x574236,roughness:.95,side:THREE.DoubleSide});this.mesh(s>0?'ear_L':'ear_R',g,m);
+    const edgePos=[],edgeUV=[],edgeIndex=[];
+    for(const q of points){edgePos.push(q[0],q[1],q[2]-.002,q[0],q[1],q[2]+.002);edgeUV.push(0,0,1,1);}
+    for(let i=0;i<points.length;i++){const a=i*2,b=((i+1)%points.length)*2;edgeIndex.push(a,b,a+1,b,b+1,a+1);}
+    const edge=new THREE.BufferGeometry();edge.setAttribute('position',new THREE.Float32BufferAttribute(edgePos,3));edge.setAttribute('uv',new THREE.Float32BufferAttribute(edgeUV,2));edge.setIndex(edgeIndex);edge.computeVertexNormals();this.skin(edge,'Head');this.mesh('ear_edge',edge,this.rimMaterial);
     const inner=g.clone();const pp=inner.getAttribute('position');for(let i=0;i<pp.count;i++){pp.setXYZ(i,pp.getX(i)*.93,.85+(pp.getY(i)-.85)*.77,pp.getZ(i)+.0018);}inner.computeVertexNormals();this.mesh('ear_inner',inner,this.material({color:0x765845,roughness:.96,side:THREE.DoubleSide}));
   }
   compactMeshes(){
@@ -113,7 +148,7 @@ export class DogModel {
       const attributes=['position','normal','uv','skinIndex','skinWeight','color'],result=new THREE.BufferGeometry();let offset=0;const indices=[];
       for(const name of attributes){const first=list[0].geometry.getAttribute(name);if(!first)continue;const data=[];for(const m of list)data.push(...m.geometry.getAttribute(name).array);result.setAttribute(name,name==='skinIndex'?new THREE.Uint16BufferAttribute(data,first.itemSize):new THREE.Float32BufferAttribute(data,first.itemSize));}
       for(const m of list){const g=m.geometry;indices.push(...Array.from(g.index?.array||Array.from({length:g.attributes.position.count},(_,i)=>i),i=>i+offset));offset+=g.attributes.position.count;removedGeometry.add(g);m.removeFromParent();}
-      result.setIndex(indices);const m=new THREE.SkinnedMesh(result,list[0].material);m.name=list[0].material.name.startsWith('Dog_FurShell')?list[0].material.name:(list[0].material===this.coat?(list[0].name==='paws'?'paws':'body'):list[0].name);m.bind(this.skeleton,new THREE.Matrix4());m.castShadow=list[0].castShadow;m.receiveShadow=true;m.frustumCulled=false;m.userData.parts=list.map(x=>x.name);this.root.add(m);keep.push(m);
+      result.setIndex(indices);const m=new THREE.SkinnedMesh(result,list[0].material);m.name=list[0].material.name.startsWith('Dog_FurShell')?list[0].material.name:(list[0].material===this.coat?(list[0].name==='paws'?'paws':'body'):list[0].name);m.bind(this.skeleton,new THREE.Matrix4());m.castShadow=list[0].castShadow;m.receiveShadow=list[0].receiveShadow;m.renderOrder=list[0].renderOrder;m.frustumCulled=false;m.userData.parts=list.map(x=>x.name);this.root.add(m);keep.push(m);
     }
     const retained=new Set(keep.map(m=>m.geometry));for(const g of removedGeometry)if(!retained.has(g))g.dispose();this.meshes=keep;
   }

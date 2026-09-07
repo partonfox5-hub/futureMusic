@@ -9,8 +9,8 @@ export class DogFur {
     const load=(name,tex,color=false)=>{
       if(!loader)return tex;
       const img=new Image();
-      img.onload=()=>{if(this.disposed)return;tex.image=img;tex.colorSpace=color?THREE.SRGBColorSpace:THREE.NoColorSpace;tex.needsUpdate=true;};
-      img.onerror=()=>this.failedMaps.add(name);
+      img.onload=()=>{if(this.disposed)return;tex.image=img;tex.isDataTexture=false;tex.flipY=true;tex.generateMipmaps=true;tex.colorSpace=color?THREE.SRGBColorSpace:THREE.NoColorSpace;tex.needsUpdate=true;};
+      img.onerror=()=>{this.failedMaps.add(name);if(name==='fur_albedo_v2.jpg'&&!img.dataset.fallback){img.dataset.fallback='1';img.src=new URL('fur_albedo.jpg',ASSET_ROOT).href;}};
       img.src=new URL(name,ASSET_ROOT).href;
       tex.anisotropy=Math.min(4,renderer?.capabilities?.getMaxAnisotropy?.()||1);
       this.textures.push(tex);return tex;
@@ -21,10 +21,11 @@ export class DogFur {
     const roughness=placeholder([200,200,200],THREE.NoColorSpace);
     const flow=placeholder([128,128,128],THREE.NoColorSpace);
     const pad=placeholder([40,30,24],THREE.SRGBColorSpace);
-    load('fur_albedo.jpg',albedo,true);load('fur_normal.jpg',normal);load('fur_roughness.jpg',roughness);load('fur_flow.jpg',flow);
+    load('fur_albedo_v2.jpg',albedo,true);load('fur_normal.jpg',normal);load('fur_roughness.jpg',roughness);load('fur_flow.jpg',flow);
     Object.assign(model.coat,{map:albedo,normalMap:normal,roughnessMap:roughness,roughness:.88,vertexColors:true});
     model.coat.normalScale.set(.22,.22);model.coat.needsUpdate=true;
     if(pawMaterial){pawMaterial.map=pad;pawMaterial.needsUpdate=true;load('paw_pad.jpg',pad,true);}
+    const nose=placeholder([200,200,200],THREE.SRGBColorSpace);if(model.noseMaterial){model.noseMaterial.map=nose;model.noseMaterial.needsUpdate=true;load('nose.jpg',nose,true);}
     this.flow=flow;const sources=[...model.furMeshes];
     for(let layer=1;layer<=3;layer++){
       const material=model.coat.clone();material.name=`Dog_FurShell_${layer}`;material.alphaHash=true;material.side=THREE.FrontSide;material.depthWrite=true;material.transparent=false;material.roughness=.94;

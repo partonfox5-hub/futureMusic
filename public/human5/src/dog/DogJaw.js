@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { clamp } from './Dog.js?v=12.1';
+import { clamp } from './Dog.js?v=12.7';
 
 export class DogJaw {
   constructor(model){
@@ -10,7 +10,7 @@ export class DogJaw {
     const g=this.mesh.geometry,pos=g.getAttribute('position'),delta=new Float32Array(pos.count*3);
     for(let i=0;i<pos.count;i++)delta[i*3+1]=-.003*clamp((pos.getZ(i)-.45)/.12);
     const morph=new THREE.Float32BufferAttribute(delta,3);morph.name='Jaw_Open';g.morphAttributes.position=[morph];g.morphTargetsRelative=true;this.mesh.updateMorphTargets();
-    model.ellipsoid('tongue',[0,.684,.545],[.026,.008,.042],'Jaw',model.material({color:0xb9797b,roughness:.46}),'coat',10,6);
+    model.ellipsoid('tongue',[0,.684,.545],[.026,.008,.042],'Jaw',model.material({color:0xc27e85,roughness:.28}),'coat',10,6);
     for(const s of [-1,1])for(const z of [.475,.515,.561]){
       model.ellipsoid('teeth',[s*.037,.686,z],[.005,.011,.006],'Jaw',tooth,'coat',7,4);
       model.ellipsoid('teeth',[s*.037,.692,z],[.005,.010,.006],'Head',tooth,'coat',7,4);
