@@ -1,5 +1,5 @@
 import * as T from 'three';
-export const FURNITURE=['Chair','Couch','Table','Bed','Nightstand','Kitchen counter','Refrigerator','Bathtub','Sink','Wall picture','Clothing rack'];
+export const FURNITURE=['Chair','Couch','Table','Bed','Nightstand','Kitchen counter','Refrigerator','Bathtub','Sink','Wall picture','Clothing rack','Staircase'];
 export const DENSITY={wood:600,cloth:160,stone:2200,metal:2700,glass:1200,plastic:900};
 export const FURNITURE_MIX={
  Chair:{wood:.55,cloth:.45},
@@ -83,7 +83,25 @@ export function captureFurniture(world,id,objects,x,z){
  }
  assembleMovable(world,id,objects,x,z);
 }
+export function placeStairs(world,p,yaw=0){
+ const group=new T.Group();group.position.copy(p);group.rotation.y=yaw;world.root.add(group);
+ const steps=10,rise=.18,run=.26,width=1.02,wood=world.mat(0x8a6848),dark=world.mat(0x5c4634);
+ for(let i=0;i<steps;i++){
+  const tread=new T.Mesh(new T.BoxGeometry(width,rise*.42,run),wood);tread.position.set(0,(i+.5)*rise,(i+.5)*run);tread.castShadow=tread.receiveShadow=true;group.add(tread);
+  const riser=new T.Mesh(new T.BoxGeometry(width,rise,0.03),dark);riser.position.set(0,i*rise+rise/2,i*run);riser.castShadow=true;group.add(riser);
+ }
+ for(const sign of [-1,1]){
+  const rail=new T.Mesh(new T.BoxGeometry(.05,steps*rise+.12,steps*run+.08),dark);
+  rail.position.set(sign*(width/2+.04),(steps*rise)/2,(steps*run)/2);rail.castShadow=true;group.add(rail);
+ }
+ const totalRun=steps*run,totalRise=steps*rise;
+ group.userData.stairs={width,run:totalRun,rise:totalRise,steps,stepRun:run,stepRise:rise};
+ world.stairs??=[];world.stairs.push(group);
+ group.traverse(m=>{if(m.isMesh){world.pickables.push(m);m.userData.stairs=group.userData.stairs;}});
+ return group;
+}
 export function placeFurniture(world,wardrobe,id,p,yaw=0){
+ if(id==='Staircase')return placeStairs(world,p,yaw);
  if(id==='Chair'||id==='Couch'){
   const seat=world.chair(p.x,p.z,yaw,id==='Couch');seat.group.traverse(m=>{if(m.isMesh)world.fractures.register(m,'wood');});return seat.group;
  }

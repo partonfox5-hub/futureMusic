@@ -209,6 +209,7 @@ export async function transcribeBlob(blob,signal,status){
 export function startMic(onText,hooks={}){
  let stopped=false,stream=null,recorder=null,recognition=null,interval=0,restart=0,nativeMode=false,nativeResults=0,busy=false,segment=null;
  let noise=.004,lastStatus='',ctx=null;const abort=new AbortController(),pending=new Set();
+ const quest=/OculusBrowser|Quest|Oculus/i.test(navigator.userAgent||'');
  const status=(state,message)=>{if(lastStatus===state+message)return;lastStatus=state+message;hooks.onStatus?.({state,message});};
  const stop=(quiet=false)=>{
   if(stopped)return;stopped=true;clearInterval(interval);clearTimeout(restart);for(const t of pending)clearTimeout(t);pending.clear();abort.abort();stopLocalSpeech();
@@ -220,15 +221,15 @@ export function startMic(onText,hooks={}){
  const useServer=()=>{nativeMode=false;if(recognition){recognition.onend=null;recognition.abort();recognition=null;}};
  status('starting','Allow microphone access to start voice.');
  voiceServer();
- // Audio must be unlocked synchronously in the button/select gesture on Quest.
  try{ctx=new (window.AudioContext||window.webkitAudioContext)();ctx.resume().catch(()=>{});}catch(e){fail('Audio input is unavailable in this browser.');return {stop};}
  if(!navigator.mediaDevices?.getUserMedia){fail('Microphone requires HTTPS or localhost.');return {stop};}
- navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}}).then(async s=>{
+ const openMic=()=>navigator.mediaDevices.getUserMedia({audio:quest?{echoCancellation:false,noiseSuppression:false,autoGainControl:true}:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}}).catch(()=>navigator.mediaDevices.getUserMedia({audio:true}));
+ openMic().then(async s=>{
   if(stopped){s.getTracks().forEach(t=>t.stop());return;}stream=s;await ctx.resume();if(stopped)return;
   const src=ctx.createMediaStreamSource(s),analyser=ctx.createAnalyser();analyser.fftSize=1024;src.connect(analyser);const data=new Float32Array(analyser.fftSize);
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   if(!SR&&!await voiceServer())warmLocalSpeech(message=>status('loading',message)).catch(e=>{if(!stopped)fail(e.message);});
-  if(SR){try{
+  if(SR&&!quest){try{
    recognition=new SR();recognition.continuous=true;recognition.interimResults=false;recognition.lang='en-US';nativeMode=true;
    recognition.onresult=ev=>{for(let i=ev.resultIndex||0;i<ev.results.length;i++){const r=ev.results[i];if(r.isFinal){nativeResults++;deliver(r[0]?.transcript?.trim());}}};
    recognition.onerror=ev=>{if(stopped)return;if(ev.error==='not-allowed')fail('Microphone permission was denied. Allow it in the headset browser settings.');else if(ev.error!=='no-speech'&&ev.error!=='aborted')useServer();};
@@ -238,7 +239,7 @@ export function startMic(onText,hooks={}){
    if(!nativeMode){fail('This browser has no supported microphone recording or speech recognition.');return;}
    status('listening','Listening · browser speech recognition');return;
   }
-  const mime=['audio/webm;codecs=opus','audio/webm','audio/mp4'].find(m=>MediaRecorder.isTypeSupported(m));
+  const mime=(quest?['audio/mp4','audio/webm;codecs=opus','audio/webm']:['audio/webm;codecs=opus','audio/webm','audio/mp4']).find(m=>MediaRecorder.isTypeSupported(m));
   const begin=()=>{
    if(stopped||busy||hooks.isSpeaking?.())return;
    const seg={chunks:[],voiced:0,silence:0,elapsed:0,nativeAtStart:nativeResults,send:true};segment=seg;
@@ -270,12 +271,10 @@ export function startMic(onText,hooks={}){
    if(busy)return;
    if(!recorder||recorder.state==='inactive'){begin();return;}
    const seg=segment;seg.elapsed+=80;
-   const threshold=Math.max(.009,Math.min(.032,noise*2.5));
+   const threshold=quest?Math.max(.0035,Math.min(.016,noise*2.1)):Math.max(.009,Math.min(.032,noise*2.5));
    if(rms>threshold){seg.voiced+=80;seg.silence=0;status('hearing','Hearing you…');}
    else{seg.silence+=80;if(!seg.voiced)noise=noise*.98+Math.min(rms,.012)*.02;}
-   // Recording begins before speech, retaining initial syllables and a valid
-   // container header. Idle segments are discarded every two seconds.
-   if((seg.voiced>=160&&seg.silence>=720)||seg.elapsed>=12000||(!seg.voiced&&seg.elapsed>=2000)){recorder.stop();}
+   if((seg.voiced>=(quest?100:160)&&seg.silence>=(quest?560:720))||seg.elapsed>=12000||(!seg.voiced&&seg.elapsed>=2000)){recorder.stop();}
   },80);
  }).catch(e=>{if(!stopped)fail(e.name==='NotAllowedError'?'Microphone permission denied. Allow it in the headset browser settings.':'Microphone could not start: '+e.message);});
  return {stop};

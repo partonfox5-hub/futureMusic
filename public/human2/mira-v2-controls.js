@@ -24,6 +24,8 @@ export const FACE_PRESETS=[
 FACE_PRESETS.push({name:'Broad jaw',like:.2,jaw:.15,cheek:.015,length:.025,nose:.002},{name:'Long oval',like:.3,jaw:.04,cheek:-.025,length:.09,nose:.001},{name:'Angular',like:.1,jaw:.12,cheek:-.07,length:.035,nose:.002});
 export const HAIR_STYLES=['Long layers','Shoulder length','Soft bob','Swept back','Low bun','Pixie crop','Light short bob','High bun','Close crop','Bald','Short side part'];
 export const ACTIVITY_MODES=['auto','idle','wander','airSquats','stretch','jumpingJacks','march','sideSteps','dance','reach','heelRaises'];
+export const ATTENTION_MODES=['attentive','hyperattentive','ignoring'];
+export const ATTENTION_LABELS={attentive:'Attentive',hyperattentive:'Hyperattentive',ignoring:'Ignoring'};
 export const EXERCISE_MODES=ACTIVITY_MODES.slice(3);
 export function shapeSliders(base,actor){return actor?.version==='v2'?[...base.map(s=>s.key==='jiggle'?{...s,max:6,value:2.8}:s),...V2_EXTRA_SLIDERS]:base;}
 

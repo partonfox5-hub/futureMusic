@@ -27,7 +27,7 @@ export class Injuries {
   if(s.missing.has('head')||[...s.fractures,...s.missing].some(r=>r.endsWith('Leg'))){
    a.autonomy=false;a.dest=null;a.navigation=null;a.autoWander=false;
    if(a.balance.state==='standing')a.knockDown(new T.Vector3(0,0,-1));
-   if(a.balance.state==='down'||a.balance.state==='recovering'){a.balance.state='down';a.balance.time=0;}
+   if(a.balance.state==='down'||a.balance.state==='loose'||a.balance.state==='recovering'){a.balance.state='loose';a.balance.time=0;}
   }
   if(s.missing.has('head')){
    a.headMissing=true;

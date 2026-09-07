@@ -35,27 +35,71 @@ export class Props {
  equip(id){return this.hold(this.items.find(i=>i.id===id),'desktop');}
  drop(key){const item=this.held.get(key);if(!item)return;item.group.updateMatrixWorld(true);this.scene.attach(item.group);item.holder=null;item.lastTip=null;item.lastSamples=null;item.lastPoint=null;item.kick=0;this.held.delete(key);this.status='Dropped '+item.data.name;}
  nearestFurniture(pos,r=.2){let best=null,bd=r;for(const group of this.world.movables||[]){if(!group.parent)continue;const box=new T.Box3().setFromObject(group),closest=box.clampPoint(pos,V()),d=closest.distanceTo(pos);if(d<bd){bd=d;best={group,point:closest,distance:d};}}return best;}
- holdFurniture(group,key,point,ctrl=null){const furn=group.userData.furniture;if(!furn)return false;if(furn.held!=null&&furn.held!==key)this.releaseFurniture(furn.held);if(ctrl?.position)ctrl.position.copy(point);this.furnHolds.set(key,{group,local:group.worldToLocal(point.clone()),ctrl,last:point.clone()});furn.held=key;furn.velocity.set(0,0,0);furn.spin=0;this.status='Holding '+furn.id+' · '+Math.round(furn.mass)+' kg';if(typeof key==='number')this.system.hands.haptics?.contact(key,'prop',1,.01);return true;}
+ holdFurniture(group,key,point,ctrl=null){const furn=group.userData.furniture;if(!furn)return false;furn.holds??=new Set();
+  if(furn.held!=null&&furn.held!==key){const prev=this.furnHolds.get(furn.held);if(prev&&prev.group!==group)this.releaseFurniture(furn.held);}
+  if(ctrl?.position)ctrl.position.copy(point);this.furnHolds.set(key,{group,local:group.worldToLocal(point.clone()),ctrl,last:point.clone()});furn.holds.add(key);furn.held=key;furn.velocity.set(0,0,0);furn.spin=0;furn.omega=furn.omega||new T.Vector3();this.status='Holding '+furn.id+' · '+Math.round(furn.mass)+' kg';if(typeof key==='number')this.system.hands.haptics?.contact(key,'prop',1,.01);return true;}
  holdFurnitureAt(i){const palm=this.system.hands.palmPos(i),found=this.nearestFurniture(palm,.2);if(!found)return false;for(const actor of this.system.actors){const hit=actor.nearestHit(palm,found.distance);if(hit&&actor.lastHitDistance<found.distance-.01)return false;}const meshes=[];found.group.traverse(m=>{if(m.isMesh&&m.visible)meshes.push(m);});let point=found.point;if(meshes.length){const dir=found.point.clone().sub(palm),len=dir.length();if(len>1e-5){this.rc.ray.origin.copy(palm);this.rc.ray.direction.copy(dir.normalize());this.rc.near=0;this.rc.far=len+.05;const hit=this.rc.intersectObjects(meshes,false)[0];if(hit)point=hit.point;}}return this.holdFurniture(found.group,i,point);}
  grabFurnitureFromRay(ray,ctrl,key='desktop'){const meshes=[];for(const g of this.world.movables||[])g.traverse(m=>{if(m.isMesh&&m.visible)meshes.push(m);});if(!meshes.length)return false;this.rc.ray.copy(ray);this.rc.near=0;this.rc.far=8;const hit=this.rc.intersectObjects(meshes,false).find(h=>visible(h.object));if(!hit)return false;const group=furnitureRoot(hit.object);return group?this.holdFurniture(group,key,hit.point,ctrl):false;}
- releaseFurniture(key){const hold=this.furnHolds.get(key);if(!hold)return;const furn=hold.group.userData.furniture;if(furn)furn.held=null;this.furnHolds.delete(key);if(hold.group.parent)syncFurniture(this.world,hold.group);}
+ releaseFurniture(key){const hold=this.furnHolds.get(key);if(!hold)return;const furn=hold.group.userData.furniture;this.furnHolds.delete(key);if(furn){furn.holds?.delete(key);furn.held=furn.holds?.size?[...furn.holds][0]:null;}if(hold.group.parent)syncFurniture(this.world,hold.group);}
  shoveFurniture(furn,dir,wMass,speed,point){const n=dir.clone();n.y=0;if(n.lengthSq()<1e-6)n.set(0,0,-1);n.normalize();const impulse=Math.min(3.2,wMass*speed*1.6/Math.max(2,furn.mass));furn.velocity.addScaledVector(n,impulse);const group=furn.obstacle?.object;if(group&&point){const center=new T.Box3().setFromObject(group).getCenter(V());furn.spin+=((point.x-center.x)*n.z-(point.z-center.z)*n.x)*impulse*1.4;}}
+ holdTarget(hold,key){return hold.ctrl?hold.ctrl.getWorldPosition(V()):(typeof key==='number'?this.system.hands.palmPos(key):null);}
+ clampFurnitureFloor(group,furn){
+  group.updateWorldMatrix(true,true);const box=new T.Box3().setFromObject(group);
+  if(box.min.y<furn.floorY){group.position.y+=furn.floorY-box.min.y;if(furn.omega){furn.omega.x*=.35;furn.omega.z*=.35;}if(furn.velocity.y<0)furn.velocity.y=0;}
+ }
  tickFurniture(dt){
+  const byGroup=new Map();
   for(const [key,hold] of [...this.furnHolds]){
    const group=hold.group,furn=group.userData.furniture;if(!group.parent||!furn){this.furnHolds.delete(key);continue;}
-   const target=hold.ctrl?hold.ctrl.getWorldPosition(V()):(typeof key==='number'?this.system.hands.palmPos(key):null);if(!target){this.releaseFurniture(key);continue;}
-   group.updateWorldMatrix(true,true);const current=group.localToWorld(hold.local.clone()),delta=target.clone().sub(current);delta.y*=Math.min(1,18/furn.mass);
-   delta.multiplyScalar(1-Math.exp(-dt*(10/Math.sqrt(furn.mass/8))));const max=Math.max(.03,(7/furn.mass)*dt+.035);if(delta.length()>max)delta.setLength(max);
-   group.position.add(delta);if(group.position.y<furn.floorY)group.position.y=furn.floorY;
-   const center=new T.Box3().setFromObject(group).getCenter(V());furn.spin+=((current.x-center.x)*delta.z-(current.z-center.z)*delta.x)*8/furn.mass;furn.spin*=Math.exp(-dt*6);group.rotation.y+=furn.spin*dt;
-   furn.velocity.copy(delta).divideScalar(Math.max(.001,dt));
+   const target=this.holdTarget(hold,key);if(!target){this.releaseFurniture(key);continue;}
+   if(!byGroup.has(group))byGroup.set(group,[]);byGroup.get(group).push({key,hold,target});
+  }
+  for(const [group,list] of byGroup){
+   const furn=group.userData.furniture;furn.omega=furn.omega||new T.Vector3();
+   group.updateWorldMatrix(true,true);
+   if(list.length>=2){
+    const a=list[0],b=list[1],Ga=group.localToWorld(a.hold.local.clone()),Gb=group.localToWorld(b.hold.local.clone());
+    const midG=Ga.clone().lerp(Gb,.5),midT=a.target.clone().lerp(b.target,.5);
+    group.position.add(midT.sub(midG));
+    const from=Gb.clone().sub(Ga),to=b.target.clone().sub(a.target);
+    if(from.lengthSq()>.002&&to.lengthSq()>.002){
+     from.normalize();to.normalize();
+     const q=new T.Quaternion().setFromUnitVectors(from,to);
+     group.quaternion.premultiply(q);
+     group.updateWorldMatrix(true,true);
+     const mid2=group.localToWorld(a.hold.local.clone()).lerp(group.localToWorld(b.hold.local.clone()),.5);
+     group.position.add(a.target.clone().lerp(b.target,.5).sub(mid2));
+    }
+    furn.omega.set(0,0,0);furn.velocity.set(0,0,0);
+   }else{
+    const {hold,target}=list[0];
+    const current=group.localToWorld(hold.local.clone()),delta=target.clone().sub(current);delta.y*=Math.min(1,18/furn.mass);
+    delta.multiplyScalar(1-Math.exp(-dt*(10/Math.sqrt(furn.mass/8))));const max=Math.max(.03,(7/furn.mass)*dt+.035);if(delta.length()>max)delta.setLength(max);
+    group.position.add(delta);
+    group.updateWorldMatrix(true,true);
+    const G=group.localToWorld(hold.local.clone()),box=new T.Box3().setFromObject(group),com=box.getCenter(V());
+    const r=com.sub(G),torque=r.clone().cross(new T.Vector3(0,-9.81,0));
+    furn.omega.addScaledVector(torque,dt/Math.max(6,furn.mass*.45));furn.omega.multiplyScalar(Math.exp(-dt*2.2));
+    if(furn.omega.length()>5)furn.omega.setLength(5);
+    const ang=furn.omega.length();
+    if(ang>1e-4){
+     group.rotateOnWorldAxis(furn.omega.clone().normalize(),ang*dt);
+     group.updateWorldMatrix(true,true);
+     const G2=group.localToWorld(hold.local.clone());group.position.add(G.sub(G2));
+    }
+    furn.velocity.copy(delta).divideScalar(Math.max(.001,dt));
+   }
+   this.clampFurnitureFloor(group,furn);
    const p=group.position.clone(),rad=Math.max(.2,Math.hypot(furn.obstacle?.w||.4,furn.obstacle?.d||.4)/2);this.world.project(p,rad,.02,1.6,furn.obstacle);group.position.x=p.x;group.position.z=p.z;syncFurniture(this.world,group);
   }
   for(const group of this.world.movables||[]){
-   const furn=group.userData.furniture;if(!furn||furn.held!=null||!group.parent)continue;
-   if(furn.velocity.lengthSq()<1e-6&&Math.abs(furn.spin)<1e-4&&group.position.y<=furn.floorY+1e-4)continue;
-   group.position.addScaledVector(furn.velocity,dt);furn.velocity.y-=9.81*dt;furn.velocity.x*=Math.exp(-dt*(1.6+furn.mass*.03));furn.velocity.z*=Math.exp(-dt*(1.6+furn.mass*.03));furn.spin*=Math.exp(-dt*3);group.rotation.y+=furn.spin*dt;
-   if(group.position.y<=furn.floorY){group.position.y=furn.floorY;if(furn.velocity.y<0)furn.velocity.y=0;}
+   const furn=group.userData.furniture;if(!furn||furn.holds?.size||furn.held!=null||!group.parent)continue;
+   furn.omega=furn.omega||new T.Vector3();
+   if(furn.velocity.lengthSq()<1e-6&&furn.omega.lengthSq()<1e-6&&Math.abs(furn.spin)<1e-4&&group.position.y<=furn.floorY+1e-4)continue;
+   group.position.addScaledVector(furn.velocity,dt);furn.velocity.y-=9.81*dt;furn.velocity.x*=Math.exp(-dt*(1.6+furn.mass*.03));furn.velocity.z*=Math.exp(-dt*(1.6+furn.mass*.03));
+   furn.omega.multiplyScalar(Math.exp(-dt*2.4));const ang=furn.omega.length();if(ang>1e-4)group.rotateOnWorldAxis(furn.omega.clone().normalize(),ang*dt);
+   furn.spin*=Math.exp(-dt*3);group.rotation.y+=furn.spin*dt;
+   this.clampFurnitureFloor(group,furn);
    const p=group.position.clone(),rad=Math.max(.2,Math.hypot(furn.obstacle?.w||.4,furn.obstacle?.d||.4)/2);this.world.project(p,rad,.02,1.6,furn.obstacle);group.position.x=p.x;group.position.z=p.z;syncFurniture(this.world,group);
   }
   if(this.world.movables)this.world.movables=this.world.movables.filter(g=>g.parent);

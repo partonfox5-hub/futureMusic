@@ -11,7 +11,7 @@ export function deadzone(x,y,threshold=.14){
  return {x:x*gain,y:y*gain};
 }
 export class SmoothLocomotion {
- constructor(rig,camera,world){Object.assign(this,{rig,camera,world});this.forward=new T.Vector3(0,0,-1);}
+ constructor(rig,camera,world){Object.assign(this,{rig,camera,world});this.forward=new T.Vector3(0,0,-1);this.floorY=0;}
  tick(dt,sources,blocked=false){
   if(blocked||!(dt>0))return;dt=Math.min(dt,.05);
   const left=[...sources].find(s=>s.handedness==='left'&&!s.hand),right=[...sources].find(s=>s.handedness==='right'&&!s.hand);
@@ -21,7 +21,6 @@ export class SmoothLocomotion {
   if(forward.lengthSq()>.01)this.forward.copy(forward).normalize();
   const strafe=new T.Vector3(-this.forward.z,0,this.forward.x);
   const delta=this.forward.clone().multiplyScalar(-move.y).addScaledVector(strafe,move.x).multiplyScalar(1.45*dt);
-  // Turn around the current headset position, including physical room-scale offset.
   const angle=-turn*2.15*dt,offset=eye.clone().sub(this.rig.position);
   this.rig.position.add(offset).sub(offset.clone().applyAxisAngle(new T.Vector3(0,1,0),angle));
   this.rig.rotation.y+=angle;
@@ -30,6 +29,9 @@ export class SmoothLocomotion {
   target.x=T.MathUtils.clamp(target.x,-this.world.extent,this.world.extent);
   target.z=T.MathUtils.clamp(target.z,-this.world.extent,this.world.extent);
   this.rig.position.add(delta).add(target.sub(before));
+  const want=this.world.floorHeight?.(this.camera.getWorldPosition(new T.Vector3()))||0;
+  this.floorY=T.MathUtils.damp(this.floorY,want,14,dt);
+  this.rig.position.y=this.floorY;
   this.rig.updateWorldMatrix(true,true);
  }
 }

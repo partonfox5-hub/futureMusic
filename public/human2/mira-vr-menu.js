@@ -1,13 +1,13 @@
-import {FURNITURE,SURFACES} from './mira-v2-builder.js?v=11.4';
-import {WEAPONS} from './mira-v2-props.js?v=11.4';
+import {FURNITURE,SURFACES} from './mira-v2-builder.js?v=11.5';
+import {WEAPONS} from './mira-v2-props.js?v=11.5';
 import {draft,saveDraft,OUTFITS,PERSONAS,clothingItems,setDraftGarment} from './mira-v2-catalog.js?v=11.0';
 import {SCENES} from './mira-v2-world.js?v=11.0';
 import {GARMENTS} from './mira-v2-wardrobe.js?v=11.2';
 import * as THREE from 'three';
-import {SLIDERS,FACE_TYPES} from './mira-v2.js?v=11.4';
-import {shapeSliders,FACE_PRESETS,HAIR_STYLES,ACTIVITY_MODES,ACTION_LABELS,POSE_LABELS} from './mira-v2-controls.js?v=11.0';
-import {HAIR_COLORS} from './mira-v2.js?v=11.4';
-import {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES} from './mira-v2-features.js?v=11.4';
+import {SLIDERS,FACE_TYPES} from './mira-v2.js?v=11.5';
+import {shapeSliders,FACE_PRESETS,HAIR_STYLES,ACTIVITY_MODES,ACTION_LABELS,POSE_LABELS,ATTENTION_MODES,ATTENTION_LABELS} from './mira-v2-controls.js?v=11.5';
+import {HAIR_COLORS} from './mira-v2.js?v=11.5';
+import {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES} from './mira-v2-features.js?v=11.5';
 export function createVRMenu({scene,renderer,camera,system,spawn,onSync,world,wardrobe,spawnConfigured,copyConfiguration,props,saveScene,loadScene}){
  const canvas=document.createElement('canvas');canvas.width=1024;canvas.height=1320;
  const ctx=canvas.getContext('2d'),tex=new THREE.CanvasTexture(canvas);tex.colorSpace=THREE.SRGBColorSpace;
@@ -126,11 +126,12 @@ export function createVRMenu({scene,renderer,camera,system,spawn,onSync,world,wa
    ctx.font='25px sans-serif';ctx.fillText('Classic hair keeps the original cut.',40,1150);ctx.fillText('Advanced hair responds to movement and brushing.',40,1200);
   }else if(page===3&&a){
    if(a.version==='v2'){
-    cycle('Expression',340,EMOTION_NAMES,()=>a.emotion.name,x=>{a.expressionOverride=x;a.setEmotion(x,.8,{source:'manual'});});
-    button(a.expressionOverride?'USE CONVERSATION CONTEXT':'CONTEXT IS ACTIVE',40,495,942,80,()=>{a.expressionOverride=null;a.setEmotion('neutral',.5,{source:'idle'});draw();});
-    ctx.fillStyle='#c9d6e2';ctx.font='28px sans-serif';ctx.fillText('Expressions persist and gradually settle.',40,645);ctx.fillText('Use the desktop chat or voice to converse.',40,695);
-    button('PREVIEW SMILE CLIP',40,780,942,80,()=>a.playFaceReference?.('smile'));
-    button('PREVIEW SURPRISE CLIP',40,890,942,80,()=>a.playFaceReference?.('surprise'));
+    cycle('Attention',320,ATTENTION_MODES.map(m=>ATTENTION_LABELS[m]),()=>ATTENTION_LABELS[a.attentionMode||'attentive'],x=>{a.attentionMode=ATTENTION_MODES.find(m=>ATTENTION_LABELS[m]===x)||'attentive';onSync?.();});
+    cycle('Expression',470,EMOTION_NAMES,()=>a.emotion.name,x=>{a.expressionOverride=x;a.setEmotion(x,.8,{source:'manual'});});
+    button(a.expressionOverride?'USE CONVERSATION CONTEXT':'CONTEXT IS ACTIVE',40,620,942,70,()=>{a.expressionOverride=null;a.setEmotion('neutral',.5,{source:'idle'});draw();});
+    ctx.fillStyle='#c9d6e2';ctx.font='26px sans-serif';ctx.fillText('Hyperattentive stays close. Ignoring wanders off.',40,720);ctx.fillText('Attentive looks at you about half the time.',40,760);
+    button('PREVIEW SMILE CLIP',40,800,942,72,()=>a.playFaceReference?.('smile'));
+    button('PREVIEW SURPRISE CLIP',40,890,942,72,()=>a.playFaceReference?.('surprise'));
    }else{ctx.fillText('Select Mira v2 for context expression controls.',40,355);}
   }
   ctx.font='24px sans-serif';ctx.fillStyle='#acbecf';ctx.fillText((page===9?world.builder.status:notice)||system.voiceStatus||'Trigger: select / walk  ·  Grip: grab body',40,1280);for(let i=0;i<2;i++){const item=items[hover[i]];if(item){ctx.strokeStyle='#ffe5a0';ctx.lineWidth=6;ctx.strokeRect(item.x-3,item.y-3,item.w+6,item.h+6);}const p=cursor[i];if(p){ctx.beginPath();ctx.arc(p.x,p.y,8,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill();}}tex.needsUpdate=true;

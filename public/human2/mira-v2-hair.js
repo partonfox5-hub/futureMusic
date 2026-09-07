@@ -56,8 +56,11 @@ export class HairGuides {
    const j=i%count,x=src.getX(j),y=src.getY(j),z=src.getZ(j),w=smooth((1.665-y)/.17),layer=i>=count?.0035:0;
    let xx=x*(1+.32*w),yy=y,zz=-.045+(z+.045)*(1+.32*w);
    if(style===0||style===3)yy-=.22*smooth((1.58-y)/.18);
-   if(style===1)yy-=.10*smooth((1.57-y)/.18);
-   
+   if(style===1){
+    yy-=.10*smooth((1.57-y)/.18);
+    const bang=smooth((z-.008)/.055)*smooth((1.63-y)/.16)*(1-smooth((Math.abs(x)-.075)/.055));
+    yy+=.06*bang;zz-=.12*bang;xx*=1-.18*bang;
+   }
    if(style===2){yy+=.012*w;xx*=1+.08*w;}
    if(style===3){const back=smooth((1.59-y)/.23);xx*=1-.55*back;zz-=.11*back;}
    if(compact){

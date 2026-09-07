@@ -1,5 +1,5 @@
 import * as T from 'three';
-import {FURNITURE,placeFurniture} from './mira-v2-furniture.js?v=11.4';
+import {FURNITURE,placeFurniture} from './mira-v2-furniture.js?v=11.5';
 export {FURNITURE};
 export const CELL=.6;
 export const SURFACES={Plaster:{kind:'plaster',color:0xc9c1b1},Brick:{kind:'stone',color:0xa26148},Wood:{kind:'wood',color:0x947051},Tile:{kind:'stone',color:0xc3c7c1},Stone:{kind:'stone',color:0x85847c},Metal:{kind:'metal',color:0x929b9d},Glass:{kind:'glass',color:0x9fc1c7}};
@@ -31,6 +31,7 @@ export class Builder {
  start(i=1){if(!this.world.root.visible){this.status='Building is available in the visible VR scene.';return false;}this.controller=i;this.active=true;this.status=this.kind+' ready · trigger places · right stick click rotates · Y finishes';return true;}
  stop(){this.active=false;this.ghost.visible=false;if(!/ready|Rotated|Placed|Blocked|Aim/.test(this.status))this.status='Placement stopped.';}
  isWall(part){return part&&!part.broken&&part.size.y>=CELL*.8&&Math.min(part.size.x,part.size.z)<CELL*.4;}
+ isCeiling(part){return part&&!part.broken&&part.size.y<CELL*.45&&Math.min(part.size.x,part.size.z)>=CELL*.45&&part.p.y>.8;}
  wallSide(part){return part.size.x<part.size.z;}
  rotate(){this.yaw=(this.yaw+Math.PI/2)%(Math.PI*2);this.status='Rotated '+Math.round(this.yaw*180/Math.PI)+'° · right stick click to rotate';const btn=typeof document!=='undefined'&&document.getElementById('buildRotate');if(btn)btn.textContent='ROTATE '+Math.round(this.yaw*180/Math.PI)+'°';}
  tick(session){if(!this.active||!session)return;const right=[...session.inputSources].find(s=>s.handedness==='right'&&!s.hand);const click=!!right?.gamepad?.buttons[3]?.pressed;if(click&&!this.stickClick)this.rotate();this.stickClick=click;}
@@ -40,14 +41,22 @@ export class Builder {
   const hit=pick.length?rc.intersectObjects(pick,false).find(h=>!h.object.userData.chunks?.[h.instanceId]?.broken):null;
   const part=hit?.object.userData.chunks?.[hit.instanceId];
   let p;
-  if(this.isWall(part))p=new T.Vector3(part.p.x,0,part.p.z);
-  else{
+  if(this.kind==='Ceiling'&&this.isCeiling(part)){
+   const look=ray.direction.clone();look.y=0;if(look.lengthSq()<.0001)look.set(0,0,-1);look.normalize();
+   const alongX=Math.abs(look.x)>=Math.abs(look.z);
+   p=new T.Vector3(part.p.x+(alongX?Math.sign(look.x||1)*CELL:0),0,part.p.z+(!alongX?Math.sign(look.z||1)*CELL:0));
+   p._ceiling=part;
+  }else if(this.isWall(part))p=new T.Vector3(part.p.x,0,part.p.z);
+  else if(this.kind==='Ceiling'){
+   p=ray.intersectPlane(new T.Plane(new T.Vector3(0,1,0),-this.height),new T.Vector3());
+   if(!p||ray.origin.distanceTo(p)>18)p=ray.direction.y<-.015?ray.intersectPlane(new T.Plane(new T.Vector3(0,1,0),0),new T.Vector3()):null;
+  }else{
    p=ray.direction.y<-.015?ray.intersectPlane(new T.Plane(new T.Vector3(0,1,0),0),new T.Vector3()):null;
-   if(!p||ray.origin.distanceTo(p)>18)return null;
   }
-  p.x=Math.round(p.x/CELL)*CELL;p.z=Math.round(p.z/CELL)*CELL;p._wall=this.isWall(part)?part:null;return p;
+  if(!p||ray.origin.distanceTo(p)>18)return null;
+  p.x=Math.round(p.x/CELL)*CELL;p.z=Math.round(p.z/CELL)*CELL;p._wall=this.isWall(part)?part:null;p._ceiling=p._ceiling||(this.isCeiling(part)?part:null);return p;
  }
- specification(p){const spec={kind:this.kind,n:this.size,surface:this.surface,furniture:this.furniture,x:p.x,z:p.z,yaw:this.yaw,height:['Furniture','Floor'].includes(this.kind)?0:this.height};if(spec.kind==='Wall')this.snapStack(spec);if(spec.kind==='Ceiling')this.snapCeiling(spec,p._wall);return spec;}
+ specification(p){const spec={kind:this.kind,n:this.size,surface:this.surface,furniture:this.furniture,x:p.x,z:p.z,yaw:this.yaw,height:['Furniture','Floor'].includes(this.kind)?0:this.height};if(spec.kind==='Wall')this.snapStack(spec);if(spec.kind==='Ceiling')this.snapCeiling(spec,p._wall,p._ceiling);return spec;}
  snapStack(spec){
   const side=Math.round(spec.yaw/(Math.PI/2))%2!==0;
   const foot=[],seen=new Set();
@@ -61,10 +70,24 @@ export class Builder {
   }
   if(overlap&&top>-Infinity)spec.height=Math.round(top/CELL)*CELL;
  }
- snapCeiling(spec,wall){
+ snapCeiling(spec,wall,ceiling){
   let top=wall?wall.p.y+wall.size.y/2:-Infinity;
-  const reach=spec.n*CELL+CELL;
+  if(ceiling)top=Math.max(top,ceiling.p.y-ceiling.size.y/2);
+  const reach=spec.n*CELL+CELL*2;
   for(const part of this.world.fractures.parts){
+   if(this.isCeiling(part)){
+    const dx=Math.abs(part.p.x-spec.x),dz=Math.abs(part.p.z-spec.z);
+    if(dx<reach&&dz<reach){
+     top=Math.max(top,part.p.y-part.size.y/2);
+     const neighbor=dx<=spec.n*CELL+CELL*.51&&dz<=spec.n*CELL+CELL*.51;
+     if(neighbor){
+      if(dx>dz&&dx>CELL*.2)spec.x=part.p.x+Math.sign(spec.x-part.p.x||1)*CELL;
+      else if(dz>CELL*.2)spec.z=part.p.z+Math.sign(spec.z-part.p.z||1)*CELL;
+      spec.x=Math.round(spec.x/CELL)*CELL;spec.z=Math.round(spec.z/CELL)*CELL;
+     }
+    }
+    continue;
+   }
    if(!this.isWall(part))continue;
    if(Math.abs(part.p.x-spec.x)<reach&&Math.abs(part.p.z-spec.z)<reach)top=Math.max(top,part.p.y+part.size.y/2);
   }
@@ -93,6 +116,7 @@ export class Builder {
   const source=spec.furniture==='Clothing rack'?this.wardrobe.rack:this.world.furnitureTemplates.get(spec.furniture);
   let box;
   if(source){source.updateWorldMatrix(true,true);box=new T.Box3().setFromObject(source);if(spec.furniture==='Clothing rack')box.applyMatrix4(source.matrixWorld.clone().invert());}
+  else if(spec.furniture==='Staircase')box=new T.Box3(new T.Vector3(-.55,0,-.05),new T.Vector3(.55,1.85,2.7));
   else{const width=spec.furniture==='Couch'?1.65:.72;box=new T.Box3(new T.Vector3(-width/2,0,-.38),new T.Vector3(width/2,1,.38));}
   return box.applyMatrix4(new T.Matrix4().makeRotationY(spec.yaw)).translate(new T.Vector3(spec.x,0,spec.z));
  }
@@ -134,6 +158,7 @@ export class Builder {
   this.world.seats=this.world.seats.filter(s=>!objects.has(s.group));
   for(const part of this.world.fractures.parts.filter(p=>objects.has(p.mesh)))this.world.removeObstacle(part.obstacle);
   this.world.removeObstacle(record.object.userData.obstacle);
+  if(this.world.stairs)this.world.stairs=this.world.stairs.filter(g=>g!==record.object);
   this.world.fractures.parts=this.world.fractures.parts.filter(p=>!objects.has(p.mesh));this.world.pickables=this.world.pickables.filter(o=>!objects.has(o));this.wardrobe.tokens=this.wardrobe.tokens.filter(o=>!objects.has(o));
   record.object.removeFromParent();record.object.traverse(o=>{o.geometry?.dispose();if(o.material)for(const m of Array.isArray(o.material)?o.material:[o.material])m.dispose();});this.status='Removed last placement.';
  }

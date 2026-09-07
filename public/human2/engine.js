@@ -1,25 +1,25 @@
-import {Builder,FURNITURE,SURFACES} from './mira-v2-builder.js?v=11.4';
-import {SmoothLocomotion} from './mira-v2-locomotion.js?v=11.0';
+import {Builder,FURNITURE,SURFACES} from './mira-v2-builder.js?v=11.5';
+import {SmoothLocomotion} from './mira-v2-locomotion.js?v=11.5';
 import {Car} from './mira-v2-car.js?v=11.0';
 import {Restraints} from './mira-v2-restraints.js?v=11.0';
-import {Injuries} from './mira-v2-injuries.js?v=11.4';
-import {Props,WEAPONS} from './mira-v2-props.js?v=11.4';
+import {Injuries} from './mira-v2-injuries.js?v=11.5';
+import {Props,WEAPONS} from './mira-v2-props.js?v=11.5';
 import {RoomLight} from './mira-v2-light.js?v=11.0';
 import {draft,saveDraft,spawnOptions,OUTFITS,clothingItems} from './mira-v2-catalog.js?v=11.0';
-import {MiraWorld,SCENES} from './mira-v2-world.js?v=11.4';
+import {MiraWorld,SCENES} from './mira-v2-world.js?v=11.5';
 import {Wardrobe,GARMENTS} from './mira-v2-wardrobe.js?v=11.2';
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { createVRMenu } from "./mira-vr-menu.js?v=11.4";
-import { snapshot, savePreset, loadPreset, applyPreset, listPresets, lastPresetName, downloadPreset } from "./mira-v2-preset.js?v=11.0";
+import { createVRMenu } from "./mira-vr-menu.js?v=11.5";
+import { snapshot, savePreset, loadPreset, applyPreset, listPresets, lastPresetName, downloadPreset } from "./mira-v2-preset.js?v=11.5";
 import { unlockSfx } from "./mira-v2-sfx.js?v=11.0";
-import { EMOTION_NAMES, IDLE_NAMES, WALK_NAMES } from "./mira-v2-features.js?v=11.4";
+import { EMOTION_NAMES, IDLE_NAMES, WALK_NAMES, ATTENTION_MODES } from "./mira-v2-features.js?v=11.5";
 import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
-import { createMiraSystem, SLIDERS, FACE_TYPES, HAIR_COLORS } from "./mira-v2.js?v=11.4";
-import { DEFAULT_PERSONA, miraChat, miraSpeak, startMic, unlockVoice } from "./mira-voice-v2.js?v=11.0";
+import { createMiraSystem, SLIDERS, FACE_TYPES, HAIR_COLORS } from "./mira-v2.js?v=11.5";
+import { DEFAULT_PERSONA, miraChat, miraSpeak, startMic, unlockVoice } from "./mira-voice-v2.js?v=11.5";
 
-import {V2_EXTRA_SLIDERS,FACE_PRESETS,HAIR_STYLES,ACTIVITY_MODES,shapeSliders} from './mira-v2-controls.js?v=11.0';
+import {V2_EXTRA_SLIDERS,FACE_PRESETS,HAIR_STYLES,ACTIVITY_MODES,ATTENTION_LABELS,shapeSliders} from './mira-v2-controls.js?v=11.5';
 
 const QUEST = /OculusBrowser|Quest/i.test(navigator.userAgent);
 const loadEl = document.getElementById("load");
@@ -160,6 +160,7 @@ function syncHud(){
  document.getElementById('eyeDetail').disabled=document.getElementById('hairDetail').disabled=a.version!=='v2';document.getElementById('eyeDetail').value=a.eyeDetail||'classic';document.getElementById('hairDetail').value=a.hairDetail||'classic';document.getElementById('visualStatus').textContent=a.visualStatus?.()||'Original V1 appearance';document.getElementById('hairStyle').disabled=a.version!=='v2'||a.hairDetail==='classic';document.getElementById('hairStyle').value=String(a.hairStyle||0);document.getElementById('activity').disabled=a.version!=='v2';document.getElementById('activity').value=a.autonomy?'auto':a.mode;
  document.getElementById('walkStyle').value=String(a.gait);
  document.getElementById('idlePose').value=String(['auto',...IDLE_NAMES].indexOf(a.idleChoice||'auto'));
+ const att=document.getElementById('attentionMode');if(att){att.disabled=a.version!=='v2';att.value=a.attentionMode||'attentive';}
  document.getElementById('expression').value=String(['context',...EMOTION_NAMES].indexOf(a.expressionOverride||'context'));
 }
 function copyConfiguration(){const a=selected();if(!a)return;Object.assign(draft,{bodyType:a.bodyType||'female',faceType:a.faceType,hairStyle:a.hairStyle||0,hairColor:a.hairColor,eyeDetail:a.eyeDetail||'classic',hairDetail:a.hairDetail||'classic',shape:{...a.shape}});saveDraft();dispatchEvent(new Event('mira:draft'));}
@@ -250,6 +251,7 @@ function bindHud() {
   }
   const styleSelect=document.getElementById('hairStyle');styleSelect.replaceChildren(...HAIR_STYLES.map((name,i)=>new Option(name,String(i))));styleSelect.onchange=()=>{const a=selected();if(a?.version==='v2')a.hairStyle=Number(styleSelect.value);};
   const activity=document.getElementById('activity'),labels=['Lively idle','Stand','Walk','Squats','Overhead stretch','Jumping jacks','March','Side steps','Dance','Alternating reaches','Heel raises'];activity.replaceChildren(...ACTIVITY_MODES.map((m,i)=>new Option(labels[i],m)));activity.onchange=()=>{const a=selected();if(a?.version==='v2')a.setMode(activity.value);};
+  const att=document.getElementById('attentionMode');if(att){att.replaceChildren(...ATTENTION_MODES.map(m=>new Option(ATTENTION_LABELS[m]||m,m)));att.onchange=()=>{const a=selected();if(a?.version==='v2')a.attentionMode=att.value;};}
   document.getElementById('faceSmile').onclick=()=>selected()?.playFaceReference?.('smile');
   document.getElementById('faceSurprise').onclick=()=>selected()?.playFaceReference?.('surprise');
   document.getElementById('testBalance').onclick=()=>selected()?.knockDown?.(new THREE.Vector3(.2,0,-1));
@@ -382,6 +384,8 @@ function desktopMove(dt) {
   if (keys.KeyS) controls.moveForward(-sp);
   if (keys.KeyA) controls.moveRight(-sp);
   if (keys.KeyD) controls.moveRight(sp);
+  const obj=controls.getObject?.()||camera;
+  obj.position.y=1.6+(world.floorHeight?.(obj.position)||0);
 }
 
 const clock = new THREE.Clock();
@@ -429,7 +433,8 @@ async function enterXr(passthroughMode=false) {
     renderer.shadowMap.enabled=xrDetail>=.85;
     let session, passthrough = passthroughMode;
     renderer.xr.setReferenceSpaceType("local-floor");
-    session = await navigator.xr.requestSession(passthrough?"immersive-ar":"immersive-vr", { requiredFeatures: ["local-floor"], optionalFeatures: passthrough?["light-estimation"]:[] });
+    try{const grant=await navigator.mediaDevices.getUserMedia({audio:true});grant.getTracks().forEach(t=>t.stop());}catch(e){console.warn('mic preflight',e);}
+    session = await navigator.xr.requestSession(passthrough?"immersive-ar":"immersive-vr", { requiredFeatures: ["local-floor"], optionalFeatures: passthrough?["light-estimation","microphone"]:["microphone"] });
     if (controls && controls.isLocked) controls.unlock();
     orbit.enabled=false;
     rig.position.set(0, 0, 0); rig.rotation.set(0, 0, 0);

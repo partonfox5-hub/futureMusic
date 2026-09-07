@@ -17,7 +17,7 @@ export function snapshot({mira,world,wardrobe,props,camera,orbit}){
    personality:a.personality||'',shape:{...(a.shape||{})},
    position:a.group.position.toArray(),yaw:a.group.rotation.y,
    mode:a.autonomy?'auto':a.mode,gait:a.gait||0,idleChoice:a.idleChoice||'auto',
-   expression:a.expressionOverride||null,autoWander:!!a.autoWander,
+   expression:a.expressionOverride||null,autoWander:!!a.autoWander,attentionMode:a.attentionMode||'attentive',
    dest:a.dest?a.dest.toArray():null,clothes
   };
  });
@@ -49,6 +49,7 @@ export function applyPreset(data,{mira,world,wardrobe,props,camera,orbit,syncHud
    a.group.rotation.y=rec.yaw||0;a.gait=rec.gait||0;a.personality=rec.personality||a.personality;
    if(rec.expression){a.expressionOverride=rec.expression;a.setEmotion?.(rec.expression,.8,{source:'manual'});}
    if(rec.idleChoice)a.setIdlePose?.(rec.idleChoice);
+   if(rec.attentionMode)a.attentionMode=rec.attentionMode;
    if(rec.mode&&rec.mode!=='auto')a.setMode?.(rec.mode);else a.setMode?.('auto');
    if(rec.dest){a.dest=new THREE.Vector3().fromArray(rec.dest);a.autoWander=true;a.setMode?.('wander');}
    else if(rec.autoWander)a.autoWander=true;
