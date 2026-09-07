@@ -21,11 +21,11 @@ export class Props {
   const parent=this.handParent(key);if(!parent){this.drop(key);return;}
   if(item.group.parent!==parent)parent.attach(item.group);
   if(vr){
-   item.group.quaternion.setFromEuler(new T.Euler((gun?-.18:Math.PI/2)-(item.kick||0)*1.2,0,0));
+   item.group.quaternion.setFromEuler(new T.Euler((gun?-.18:0)-(item.kick||0)*1.2,0,gun?0:Math.PI/2));
    item.group.position.copy(new T.Vector3(0,-.012,-.05)).sub(item.handle.clone().applyQuaternion(item.group.quaternion));
   }else{
    item.group.position.set(gun?.16:.20,gun?-.11:-.14,gun?-.40:-.44);
-   item.group.rotation.set((gun?.16:-.12)-(item.kick||0)*1.2,item.swing>0?Math.sin(item.swing/.28*Math.PI)*1.05:0,0);
+   item.group.rotation.set((gun?.16:-.12)-(item.kick||0)*1.2,item.swing>0?Math.sin(item.swing/.28*Math.PI)*1.05:0,gun?0:Math.PI/2);
   }
   item.group.updateMatrixWorld(true);
  }

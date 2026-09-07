@@ -635,24 +635,40 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    if(this.handContactScale!==null&&this.handContactScale!==undefined)this.surfaceFlesh?.contact(hit,normal,closing*scale,push*scale);
   }
   nearestHit(pos,maxDist){
-   const pad=.055,A=tmp,B=tmp2,D=tmp3,P=axis;
-   let best=null,bd=maxDist+pad,limb=null,limbD=maxDist+pad,bestP=null,limbP=null;
-   for(const hit of BODY_HIT){
-    const radius=this.hitSegment(hit);if(!radius)continue;
-    const bone=this.bones[hit.name];if(!bone)continue;
-    A.set(...(hit.offset||[0,0,0])).applyMatrix4(bone.matrixWorld);
-    if(hit.end&&this.bones[hit.end])B.setFromMatrixPosition(this.bones[hit.end].matrixWorld);else B.copy(A);
-    D.subVectors(B,A);P.copy(pos).sub(A);
-    const u=clamp(P.dot(D)/Math.max(1e-10,D.lengthSq()),0,1);
-    P.copy(A).addScaledVector(D,u);
-    const dist=pos.distanceTo(P)-(radius+pad);
-    if(dist>=limbD&&dist>=bd)continue;
-    const isLimb=/arm|hand|thigh|leg|foot/.test(hit.kind);
-    if(isLimb&&dist<limbD){limbD=dist;limb=hit;limbP=P.clone();}
-    if(dist<bd){bd=dist;best=hit;bestP=P.clone();}
+   let best=super.nearestHit(pos,maxDist),bd=maxDist,point=null,chosen=null;
+   const seen=new Set();
+   this.root.traverse(mesh=>{
+    if(!mesh.isSkinnedMesh||!/body/.test(mesh.name)||seen.has(mesh.geometry.attributes.position))return;
+    seen.add(mesh.geometry.attributes.position);
+    const posAttr=mesh.geometry.attributes.position;
+    for(let i=0;i<posAttr.count;i+=2){
+     mesh.getVertexPosition(i,tmp).applyMatrix4(mesh.matrixWorld);const distance=tmp.distanceTo(pos);
+     if(distance>=bd)continue;
+     const si=mesh.geometry.attributes.skinIndex,sw=mesh.geometry.attributes.skinWeight;let weight=-1,bone=null;
+     for(let j=0;j<4;j++)if(sw.array[i*4+j]>weight){weight=sw.array[i*4+j];bone=mesh.skeleton.bones[si.array[i*4+j]];}
+     while(bone&&!BODY_HIT.some(h=>h.name===bone.name))bone=bone.parent;
+     const hit=bone&&BODY_HIT.find(h=>h.name===bone.name);
+     if(hit){bd=distance;chosen=hit;point=tmp.clone();}
+    }
+   });
+   const result=chosen||best;
+   if(result&&!/arm|hand|thigh|leg|foot/.test(result.kind)){
+    let limb=null,limbD=.12;
+    for(const hit of BODY_HIT){
+     if(!/arm|hand|thigh|leg|foot/.test(hit.kind))continue;
+     const radius=this.hitSegment(hit);if(!radius)continue;
+     const bone=this.bones[hit.name];if(!bone)continue;
+     tmp.set(...(hit.offset||[0,0,0])).applyMatrix4(bone.matrixWorld);
+     if(hit.end&&this.bones[hit.end])tmp2.setFromMatrixPosition(this.bones[hit.end].matrixWorld);else tmp2.copy(tmp);
+     tmp3.subVectors(tmp2,tmp);axis.copy(pos).sub(tmp);
+     const u=clamp(axis.dot(tmp3)/Math.max(1e-10,tmp3.lengthSq()),0,1);
+     axis.copy(tmp).addScaledVector(tmp3,u);
+     const d=pos.distanceTo(axis)-radius;
+     if(d<limbD){limbD=d;limb=hit;point=axis.clone();}
+    }
+    if(limb){chosen=limb;bd=limbD;}
    }
-   if(limb&&(limbD<.10||limbD<bd+.07)){best=limb;bd=limbD;bestP=limbP;}
-   this.lastHitDistance=best?bd:maxDist;this.lastSurfacePoint=bestP;return best;
+   this.lastSurfacePoint=point;this.lastHitDistance=chosen?bd:this.lastHitDistance;return chosen||best;
   }
   beginGrab(ctrl,hit,contact){
    this.socialPair?.cancel();this.directedWalk=null;if(this.navigation?.seat)this.navigation.seat.occupant=null;this.navigation=null;if(this.seat){this.seat.occupant=null;this.group.position.y=this.baseY||0;}this.seat=null;
@@ -671,7 +687,7 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    for(const g of this.grabs.values()){
     const bone=this.bones[g.hit.name],p=g.ctrl.getWorldPosition(V()).sub(g.offset);
     const delta=g.ctrl.getWorldPosition(V()).sub(g.last);g.last.copy(p).add(g.offset);
-    if(delta.length()>.85){this.endGrab(g.ctrl);continue;}
+    if(delta.length()>.55){this.endGrab(g.ctrl);continue;}
     g.velocity.lerp(cap(delta.multiplyScalar(1/Math.max(dt,.001)),3),1-Math.exp(-18*dt));g.elapsed+=dt;
     const anchor=bone.localToWorld(g.local.clone()),pull=p.clone().sub(anchor);g.pull.copy(pull);
     if(g.head){
