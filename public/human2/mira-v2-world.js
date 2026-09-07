@@ -49,11 +49,13 @@ export class MiraWorld {
  removeObstacle(o){if(!o)return;this.obstacles=this.obstacles.filter(x=>x!==o);this.grid=null;}
  nearby(p,r=.25){if(!this.grid){this.grid=new Map();for(const o of this.obstacles)for(let x=Math.floor(o.x-o.w/2);x<=Math.floor(o.x+o.w/2);x++)for(let z=Math.floor(o.z-o.d/2);z<=Math.floor(o.z+o.d/2);z++){const key=x+'/'+z;if(!this.grid.has(key))this.grid.set(key,[]);this.grid.get(key).push(o);}}const out=new Set();for(let x=Math.floor(p.x-r);x<=Math.floor(p.x+r);x++)for(let z=Math.floor(p.z-r);z<=Math.floor(p.z+r);z++)for(const o of this.grid.get(x+'/'+z)||[])out.add(o);return [...out];}
  blocked(p,r=.25,ignore=null){return this.nearby(p,r).some(o=>o!==ignore&&!o.walkable&&o.y<1.65&&o.y+o.h>.09&&Math.abs(p.x-o.x)<o.w/2+r&&Math.abs(p.z-o.z)<o.d/2+r);}
- floorHeight(p){
-  let h=this.terrain?terrainHeight(p.x,p.z,this.terrainPad??5.4,this.terrainAmp??1):0;
+ floorHeight(p,zArg){
+  const x=p&&typeof p==='object'?p.x:p,z=p&&typeof p==='object'?p.z:zArg;
+  const pt=p&&typeof p==='object'?p:new T.Vector3(x||0,0,z||0);
+  let h=this.terrain?terrainHeight(x||0,z||0,this.terrainPad??5.4,this.terrainAmp??1):0;
   for(const group of this.stairs||[]){
    if(!group.parent)continue;const data=group.userData.stairs;if(!data)continue;
-   const local=group.worldToLocal(p.clone());
+   const local=group.worldToLocal(pt.clone());
    if(Math.abs(local.x)>data.width/2+.08||local.z<-.08||local.z>data.run+.12)continue;
    const t=T.MathUtils.clamp(local.z/Math.max(.001,data.run),0,1);
    h=Math.max(h,t*data.rise);

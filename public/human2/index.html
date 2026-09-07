@@ -36,6 +36,11 @@
       #hud { font-size:14px; width:280px; } #hud h2 {margin-top:14px;} #hud select {width:100%;box-sizing:border-box;padding:8px;font-size:14px;background:#182331;color:#edf5ff;border:1px solid #667f98;border-radius:5px;}
       #hud p{font-size:13px;} button:disabled{opacity:.5;cursor:default;} #hud button{font-size:12px;} input:focus-visible,select:focus-visible,button:focus-visible{outline:3px solid #fff;outline-offset:2px;}
       @media(max-width:700px){#hud{width:210px;max-height:44vh;top:auto;}#hint{max-width:65vw;}#panel{margin-right:0;}#ui{padding:12px;align-items:center;}}
+      #restraintPopup{position:absolute;left:50%;bottom:22px;transform:translateX(-50%);z-index:70;background:rgba(18,14,12,.94);border:1px solid #7eb6ff;border-radius:12px;padding:12px 16px;width:min(360px,92vw);pointer-events:auto;box-shadow:0 8px 28px #0008;}
+      #restraintPopup[hidden]{display:none!important;}
+      #restraintPopup h3{margin:0 0 8px;font-size:13px;letter-spacing:.12em;color:#7eb6ff;}
+      #restraintPopup .row{display:flex;gap:6px;margin-top:8px;}
+      #restraintPopup button{flex:1;padding:8px 10px;margin:0;}
     </style>
     <script type="importmap">
       {
@@ -51,7 +56,7 @@
     <div id="hint"></div>
     <div id="stats">REALISM PASS</div>
     <div id="hud">
-      <h2>MIRA V1 + V2 · UPDATE 12.3</h2>
+      <h2>MIRA V1 + V2 · UPDATE 12.4</h2>
 <details open><summary>CREATE NPC</summary><p>Configure an NPC before spawning.</p>
 <label for="npcName">NPC name</label><input id="npcName" maxlength="48">
 <label for="npcBody">Body profile</label><select id="npcBody"><option value="female">Female · Mira rig</option><option value="male">Male · adapted rig</option></select>
@@ -106,6 +111,7 @@
         <button type="button" id="hairNext">&gt;</button>
       </div>
       <button type="button" class="go" id="spawnMira" data-runtime>SPAWN MIRA V2</button>
+      <button type="button" class="go" id="spawnDog" data-runtime>SPAWN DOG</button>
       <h2>EXPRESSION</h2>
       <label for="expression">Emotion or conversational context</label><select id="expression" data-runtime></select>
       <div class="row"><button id="faceSmile">SMILE CLIP</button><button id="faceSurprise">SURPRISE CLIP</button></div>
@@ -145,9 +151,20 @@
       <textarea id="persona" rows="5" style="width:100%;box-sizing:border-box;background:#1a1614;color:#f4efe8;border:1px solid #7eb6ff;border-radius:8px;padding:8px;font:12px/1.35 'Segoe UI',sans-serif;"></textarea>
       <p style="margin-top:12px;font-size:11px;opacity:.8">Type a line and press SAY, or enable voice and speak near her. Mouth and expression follow the reply. Left stick: walk. Right stick: turn. Y opens the VR menu. Right B (or B on desktop) spawns a ball.</p>
     </div>
+    <div id="restraintPopup" hidden>
+      <h3>LINK <span id="rpId">1</span> · LENGTH</h3>
+      <label for="rpRange">Length <span id="rpLen">1.00</span> m</label>
+      <input id="rpRange" type="range" min="0.03" max="5" step="0.01" value="1">
+      <div class="row">
+        <button type="button" id="rpShorter">SHORTER</button>
+        <button type="button" id="rpLonger">LONGER</button>
+        <button type="button" id="rpCut">CUT</button>
+      </div>
+      <button type="button" class="ghost" id="rpClose" style="width:100%;margin-top:8px;">CLOSE</button>
+    </div>
     <div id="ui">
       <div id="panel">
-        <div class="tag">MIRA V1 + V2 · UPDATE 12.3</div>
+        <div class="tag">MIRA V1 + V2 · UPDATE 12.4</div>
         <h1>HUMAN SIMULATOR</h1>
         <p>Choose Mira v1 or v2. Explore the face, poses and body interactions. Start with one actor on Quest 3.</p>
         <button type="button" id="enter" data-runtime>ENTER VR · VOICE STARTS</button>
@@ -156,6 +173,6 @@
         <button type="button" class="ghost" id="firstPerson" data-runtime>First person</button>
       </div>
     </div>
-    <script type="module" src="/human2/mira-boot.js?v=12.3"></script>
+    <script type="module" src="/human2/mira-boot.js?v=12.4"></script>
   </body>
 </html>

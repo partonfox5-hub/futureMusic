@@ -117,6 +117,7 @@ export class Props {
    }
    this.applyFurnitureGravity(group,furn,dt,list);
    if(list.length===1){group.updateWorldMatrix(true,true);const G=group.localToWorld(list[0].hold.local.clone());group.position.add(list[0].target.clone().sub(G));}
+   this.restraints?.constrainObject(group);
    const p=group.position.clone(),rad=Math.max(.2,Math.hypot(furn.obstacle?.w||.4,furn.obstacle?.d||.4)/2);this.world.project(p,rad,.02,1.6,furn.obstacle);group.position.x=p.x;group.position.z=p.z;syncFurniture(this.world,group);
   }
   for(const group of this.world.movables||[]){
@@ -127,16 +128,18 @@ export class Props {
    const maxLow=lows.reduce((m,c)=>Math.max(m,c.y),-1e9);
    if(furn.velocity.lengthSq()<1e-4&&furn.omega.lengthSq()<8e-5&&maxLow<=floor+.03)continue;
    this.applyFurnitureGravity(group,furn,dt,null);
+   this.restraints?.constrainObject(group);
    furn.velocity.x*=Math.exp(-dt*(1.2+furn.mass*.02));furn.velocity.z*=Math.exp(-dt*(1.2+furn.mass*.02));
    const p=group.position.clone(),rad=Math.max(.2,Math.hypot(furn.obstacle?.w||.4,furn.obstacle?.d||.4)/2);this.world.project(p,rad,.02,1.6,furn.obstacle);group.position.x=p.x;group.position.z=p.z;syncFurniture(this.world,group);
   }
   if(this.world.movables)this.world.movables=this.world.movables.filter(g=>g.parent);
+  this.restraints?.solve?.(dt);
  }
  grip(i){if(this.held.has(i)||this.furnHolds.has(i))return true;const palm=this.system.hands.palmPos(i),target=this.nearestFreeWeapon(palm,.22);if(target){const handle=target.group.localToWorld(target.handle.clone()),distance=handle.distanceTo(palm),block=distance>.001?this.hit(new T.Ray(palm,handle.clone().sub(palm).normalize()),distance,false):null;if(!block||block.distance>=distance-.035)return this.hold(target,i);}if(this.holdFurnitureAt(i))return true;return this.vehicle?.grip(i)||false;}
  release(i){this.drop(i);this.releaseFurniture(i);this.vehicle?.release(i);}
  resetMotion(){for(const item of this.items){item.lastTip=null;item.lastSamples=null;item.lastPoint=null;item.velocity.set(0,0,0);}}
- trigger(i){if(this.builder?.active){this.builder.controller=i;return this.builder.place(this.ray(i));}if(this.restraints?.placing)return this.restraints.place(this.ray(i));if(this.vehicle?.driving)return true;const held=this.held.get(i);if(held){if(['bullet','laser'].includes(held.data.kind))this.fire(held);return true;}return false;}
- desktop(ray){if(this.builder?.active)return this.builder.place(ray);if(this.vehicle?.driving)return true;if(this.restraints?.placing)return this.restraints.place(ray);const item=this.held.get('desktop');if(item){if(['bullet','laser'].includes(item.data.kind))this.fire(item,ray);else{item.swing=.30;const hit=this.hit(ray,1.45);if(hit)this.impact(hit,item.data.mass*18,ray.direction,item.data.kind,item.data.sharpness);}return true;}const rope=this.restraints?.hit(ray);if(rope){this.restraints.selected=rope.object.userData.restraint;this.restraints.status='Selected link '+this.restraints.selected.id;return true;}if(this.vehicle?.click(ray))return true;const picked=this.weaponHit(ray);return picked?this.hold(picked,'desktop'):false;}
+ trigger(i){if(this.builder?.active){this.builder.controller=i;return this.builder.place(this.ray(i));}if(this.restraints?.placing)return this.restraints.place(this.ray(i));if(this.vehicle?.driving)return true;const held=this.held.get(i);if(held){if(['bullet','laser'].includes(held.data.kind))this.fire(held);return true;}const rope=this.restraints?.hit(this.ray(i));if(rope){const link=rope.object.userData.restraint||this.restraints.selected;if(rope.object.userData.restraintPanel)this.restraints.panelAction(rope.uv);else this.restraints.select(link,rope.point);return true;}return false;}
+ desktop(ray){if(this.builder?.active)return this.builder.place(ray);if(this.vehicle?.driving)return true;if(this.restraints?.placing)return this.restraints.place(ray);const item=this.held.get('desktop');if(item){if(['bullet','laser'].includes(item.data.kind))this.fire(item,ray);else{item.swing=.30;const hit=this.hit(ray,1.45);if(hit)this.impact(hit,item.data.mass*18,ray.direction,item.data.kind,item.data.sharpness);}return true;}const rope=this.restraints?.hit(ray);if(rope){if(rope.object.userData.restraintPanel)this.restraints.panelAction(rope.uv);else this.restraints.select(rope.object.userData.restraint,rope.point);return true;}if(this.vehicle?.click(ray))return true;const picked=this.weaponHit(ray);return picked?this.hold(picked,'desktop'):false;}
  hit(ray,max=50,ropes=true,opts={}){
   this.rc.ray.copy(ray);this.rc.near=0;this.rc.far=max;
   const clothes=(this.wardrobe?.clothes||[]).map(c=>c.mesh).filter(m=>m&&visible(m));

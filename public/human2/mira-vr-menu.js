@@ -1,12 +1,12 @@
 import {FURNITURE,SURFACES} from './mira-v2-builder.js?v=12.3';
-import {WEAPONS} from './mira-v2-props.js?v=12.3';
+import {WEAPONS} from './mira-v2-props.js?v=12.4';
 import {draft,saveDraft,OUTFITS,PERSONAS,clothingItems,setDraftGarment} from './mira-v2-catalog.js?v=11.0';
-import {SCENES} from './mira-v2-world.js?v=12.3';
+import {SCENES} from './mira-v2-world.js?v=12.4';
 import {GARMENTS} from './mira-v2-wardrobe.js?v=11.2';
 import * as THREE from 'three';
-import {SLIDERS,FACE_TYPES} from './mira-v2.js?v=12.3';
+import {SLIDERS,FACE_TYPES} from './mira-v2.js?v=12.4';
 import {shapeSliders,FACE_PRESETS,HAIR_STYLES,ACTIVITY_MODES,ACTION_LABELS,POSE_LABELS,ATTENTION_MODES,ATTENTION_LABELS} from './mira-v2-controls.js?v=11.5';
-import {HAIR_COLORS} from './mira-v2.js?v=12.3';
+import {HAIR_COLORS} from './mira-v2.js?v=12.4';
 import {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES} from './mira-v2-features.js?v=12.3';
 export function createVRMenu({scene,renderer,camera,system,spawn,onSync,world,wardrobe,spawnConfigured,copyConfiguration,props,saveScene,loadScene}){
  const canvas=document.createElement('canvas');canvas.width=1024;canvas.height=1320;
@@ -86,6 +86,7 @@ export function createVRMenu({scene,renderer,camera,system,spawn,onSync,world,wa
      cycle('Idle pose',840,['auto',...IDLE_NAMES],()=>a.idleChoice,x=>a.setIdlePose(x));
     }
    }
+   button('SPAWN DOG',40,942,942,68,()=>{props.dogs?.spawn();draw();});
    button('TOSS BALL',40,1020,455,76,()=>{const c=camera;c.getWorldPosition(v);const dir=c.getWorldDirection(new THREE.Vector3());system.spawnBall(v.clone().addScaledVector(dir,.5),dir.multiplyScalar(2).setY(1));});
    button('VOICE ON / OFF',515,1020,467,76,()=>document.getElementById('micBtn')?.click());
    button('EXIT VR / AR',40,1130,942,76,()=>renderer.xr.getSession()?.end());

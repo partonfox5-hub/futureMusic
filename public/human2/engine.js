@@ -1,22 +1,23 @@
 import {Builder,FURNITURE,SURFACES} from './mira-v2-builder.js?v=12.3';
 import {SmoothLocomotion} from './mira-v2-locomotion.js?v=11.5';
 import {Car} from './mira-v2-car.js?v=11.0';
-import {Restraints} from './mira-v2-restraints.js?v=11.0';
+import {Restraints} from './mira-v2-restraints.js?v=12.4';
+import { createDogSystem } from './mira-v2-dog.js?v=12.4';
 import {Injuries} from './mira-v2-injuries.js?v=11.5';
-import {Props,WEAPONS} from './mira-v2-props.js?v=12.3';
+import {Props,WEAPONS} from './mira-v2-props.js?v=12.4';
 import {RoomLight} from './mira-v2-light.js?v=11.0';
 import {draft,saveDraft,spawnOptions,OUTFITS,clothingItems} from './mira-v2-catalog.js?v=11.0';
-import {MiraWorld,SCENES} from './mira-v2-world.js?v=12.3';
+import {MiraWorld,SCENES} from './mira-v2-world.js?v=12.4';
 import {Wardrobe,GARMENTS} from './mira-v2-wardrobe.js?v=11.2';
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { createVRMenu } from "./mira-vr-menu.js?v=12.3";
+import { createVRMenu } from "./mira-vr-menu.js?v=12.4";
 import { snapshot, savePreset, loadPreset, applyPreset, listPresets, lastPresetName, downloadPreset } from "./mira-v2-preset.js?v=11.5";
 import { unlockSfx } from "./mira-v2-sfx.js?v=11.0";
 import { EMOTION_NAMES, IDLE_NAMES, WALK_NAMES, ATTENTION_MODES } from "./mira-v2-features.js?v=12.3";
 import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
-import { createMiraSystem, SLIDERS, FACE_TYPES, HAIR_COLORS } from "./mira-v2.js?v=12.3";
+import { createMiraSystem, SLIDERS, FACE_TYPES, HAIR_COLORS } from "./mira-v2.js?v=12.4";
 import { DEFAULT_PERSONA, miraChat, miraSpeak, startMic, unlockVoice } from "./mira-voice-v2.js?v=12.3";
 
 import {V2_EXTRA_SLIDERS,FACE_PRESETS,HAIR_STYLES,ACTIVITY_MODES,ATTENTION_LABELS,shapeSliders} from './mira-v2-controls.js?v=11.5';
@@ -101,6 +102,7 @@ document.getElementById("enterAR").onclick=()=>enterXr(true);
 const mira = createMiraSystem({ scene, renderer, camera, xrOn: XR_ON, rig });
 const world=new MiraWorld(scene,mira);mira.setEnvironment(world);floor.visible=false;const wardrobe=new Wardrobe(scene,mira,mira.contacts,world);mira.setWardrobe(wardrobe);
 const props=new Props({scene,system:mira,world,wardrobe,camera,renderer,rig});world.interactions=props;props.restraints=new Restraints(props);props.injuries=new Injuries(props);props.vehicle=new Car(props,{orbit,keys,controls});
+const dogs=createDogSystem({scene,mira,system:mira,world,props,camera,renderer,THREE});props.dogs=dogs;
 const builder=new Builder(world,wardrobe,props);props.builder=builder;
 const roomLight=new RoomLight(scene,renderer,rig);
 let voiceSessionStart=()=>{},voiceSessionEnd=()=>{};
@@ -111,7 +113,8 @@ mira.load(
     if (loadEl) loadEl.remove();
     banner("Drag to orbit · wheel to zoom · Grab body or Shift-drag · VR: Y menu, right B ball");
     syncHud();document.dispatchEvent(new Event("mira:ready"));
-    if (new URLSearchParams(location.search).has("debug")) window.human2 = { mira, scene, renderer, camera, rig, keys, orbit, world, wardrobe, props };
+    dogs.spawnDefault();
+    if (new URLSearchParams(location.search).has("debug")) window.human2 = { mira, scene, renderer, camera, rig, keys, orbit, world, wardrobe, props, dogs };
   },
   (e) => { banner("LOAD FAILED — " + (e && e.message ? e.message : "glb")); console.error(e); }
 );
@@ -239,6 +242,7 @@ function bindHud() {
   };
   document.getElementById("spawnV1").onclick=()=>spawnVersion('v1');
   document.getElementById("spawnMira").onclick=()=>spawnVersion('v2');
+  document.getElementById("spawnDog")?.addEventListener("click",()=>dogs.spawn());
   document.getElementById("actorSelect").onchange=e=>{mira.select(mira.actors[Number(e.target.value)]);syncHud();};
   document.getElementById("removeActor").onclick=()=>{if(selected())mira.remove(selected());syncHud();};
   for(const [id,values] of [['walkStyle',WALK_NAMES],['idlePose',['auto',...IDLE_NAMES]],['expression',['context',...EMOTION_NAMES]]]){
@@ -406,9 +410,9 @@ function tick(time,frame) {
   const buildStatus=document.getElementById('buildStatus');if(buildStatus)buildStatus.textContent=builder.status;
   tickLocomotion(dt);
   if(XR_ON()&&!props.vehicle.driving){const eye=camera.getWorldPosition(new THREE.Vector3()),before=eye.clone();world.project(eye,.18,.10,1.5);eye.x=THREE.MathUtils.clamp(eye.x,-world.extent,world.extent);eye.z=THREE.MathUtils.clamp(eye.z,-world.extent,world.extent);rig.position.add(eye.sub(before));}
-  if (mira.ready) {mira.tick(dt, clock.elapsedTime, keys);props.tick(dt);}
+  if (mira.ready) {mira.tick(dt, clock.elapsedTime, keys);props.tick(dt);dogs.tick(dt);}
   const propStatus=document.getElementById("propStatus");if(propStatus&&propStatus.textContent!==props.status)propStatus.textContent=props.status;
-  const ls=document.getElementById('linkSelect'),stamp=props.restraints.links.map(l=>l.id+':'+l.broken).join('/');if(ls.dataset.stamp!==stamp){ls.replaceChildren(new Option('Select link',''),...props.restraints.links.map(l=>new Option('Link '+l.id+(l.broken?' · cut':''),l.id)));ls.dataset.stamp=stamp;}ls.value=props.restraints.selected?.id||'';if(document.activeElement?.id!=='linkLength')document.getElementById('linkLength').value=props.restraints.selected?.length||1;document.getElementById('linkStatus').textContent=props.restraints.status;
+  const ls=document.getElementById('linkSelect'),stamp=props.restraints.links.map(l=>l.id+':'+l.broken).join('/');if(ls.dataset.stamp!==stamp){ls.replaceChildren(new Option('Select link',''),...props.restraints.links.map(l=>new Option('Link '+l.id+(l.broken?' · cut':''),l.id)));ls.dataset.stamp=stamp;}ls.value=props.restraints.selected?.id||'';if(document.activeElement?.id!=='linkLength'&&document.activeElement?.id!=='rpRange')document.getElementById('linkLength').value=props.restraints.selected?.length||1;document.getElementById('linkStatus').textContent=props.restraints.status;
   document.getElementById('carStatus').textContent=props.vehicle.driving?Math.round(props.vehicle.velocity.length()*3.6)+' km/h · '+props.vehicle.status:props.vehicle.status;
   fpsFrames++;
   const now = performance.now();

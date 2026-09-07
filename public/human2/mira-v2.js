@@ -1775,7 +1775,7 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
     for (let i = 0; i < actors.length; i++) {
       if(actors[i].version==="v2"){actors[i].externalHands=hands.colliders;actors[i].neighbors=actors;}
       actors[i].tick(dt, camPos, tAbs);
-      if(actors[i].version==="v2")environment?.after(actors[i],dt);
+      if(actors[i].version==="v2"){environment?.after(actors[i],dt);environment?.interactions?.restraints?.constrainActor?.(actors[i]);}
       if (blobs[i]) {
         blobs[i].scale.setScalar(actors[i].shape.height);
         blobs[i].position.x = actors[i].group.position.x;
