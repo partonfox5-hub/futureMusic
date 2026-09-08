@@ -1,12 +1,12 @@
 import * as THREE from 'three';
 import { DogModel, clamp } from './src/dog/Dog.js?v=12.7';
-import { DogPaws, floorAt } from './src/dog/DogPaws.js?v=13.3';
+import { DogPaws, floorAt } from './src/dog/DogPaws.js?v=13.4';
 import { DogJaw } from './src/dog/DogJaw.js?v=12.7';
 import { DogTail } from './src/dog/DogTail.js?v=12.1';
 import { DogFur } from './src/dog/DogFur.js?v=12.7';
-import { DogAudio } from './src/dog/DogAudio.js?v=12.8';
-import { DogAI } from './src/dog/DogAI.js?v=13.3';
-import { DogAnim } from './src/dog/DogAnim.js?v=13.3';
+import { DogAudio } from './src/dog/DogAudio.js?v=13.4';
+import { DogAI } from './src/dog/DogAI.js?v=13.4';
+import { DogAnim } from './src/dog/DogAnim.js?v=13.4';
 import { BONE_NAMES } from './src/dog/Dog.js?v=12.7';
 const _p=new THREE.Vector3(),_q=new THREE.Vector3();
 function dogNearestHit(handle,pos,maxDist){
@@ -44,7 +44,7 @@ export function createDogSystem(input={}) {
   const step=dt=>{
     if(!handles.length||disposed)return;
     dt=clamp(dt,0,.1);if(!dt)return;
-    audio.tick();for(const h of [...handles]){h.tickGrab(dt);h._anim.tick(dt);h._fur.tick(dt,ctx.renderer);}
+    audio.tick();for(const h of [...handles]){h.tickGrab(dt);h.tickPet?.(dt);h._anim.tick(dt);h._fur.tick(dt,ctx.renderer);}
   };
   const ownFrame=t=>{raf=0;if(disposed||hostOwned||!handles.length)return;const dt=lastFrame?(t-lastFrame)/1000:1/60;lastFrame=t;step(dt);raf=requestAnimationFrame(ownFrame);};
   const ensureLoop=()=>{if(!hostOwned&&ctx.scene&&handles.length&&rafAvailable()&&!raf)raf=requestAnimationFrame(ownFrame);};
@@ -105,20 +105,53 @@ export function createDogSystem(input={}) {
           ai.held=true;ai.state='alert';handle._anim.nextBark=handle._anim.time;handle.bark();
         },
         tickGrab(dt){
-          if(!handle.grabs.size){ai.held=false;return;}
-          ai.held=true;
+          if(!handle.grabs.size){ai.held=false;handle._heldLimbs=null;return;}
+          ai.held=true;const held=new Set();
           for(const g of handle.grabs.values()){
-            const target=g.ctrl.getWorldPosition(new THREE.Vector3()),cur=g.bone.localToWorld(g.local.clone());
-            const delta=target.clone().sub(cur);if(delta.length()>.9){handle.endGrab(g.ctrl);continue;}
-            if(delta.length()>6*dt+.08)delta.setLength(6*dt+.08);
-            handle.root.position.add(delta);
-            if(!handle.root.userData.waterSwimming)handle.root.position.y=Math.max(floorAt(ctx.world,handle.root.position.x,handle.root.position.z,0),handle.root.position.y);
+            const bone=g.bone,name=bone?.name||'',target=g.ctrl.getWorldPosition(new THREE.Vector3());
+            const side=name.startsWith('L')?'L':name.startsWith('R')?'R':null;
+            const limb=/Shoulder|UpperArm|ForeArm|Paw/.test(name)?'front':/Hip|Thigh|Calf|Foot/.test(name)?'hind':/Neck|Head/.test(name)?'neck':'body';
+            if((limb==='front'||limb==='hind')&&side){
+              held.add(side+'_'+limb);
+              const leg=paws.legs.find(l=>l.front===(limb==='front')&&l.root.name.startsWith(side));
+              if(leg)paws.solve(leg,target);
+              const cur=bone.localToWorld(g.local.clone()),delta=target.clone().sub(cur);delta.y=0;
+              if(delta.length()>.32)handle.root.position.addScaledVector(delta,Math.min(.2,delta.length()*.25));
+            }else if(limb==='neck'){
+              const local=handle.root.worldToLocal(target.clone());
+              const yaw=clamp(Math.atan2(local.x,local.z),-1.25,1.25);
+              const pitch=clamp(-Math.atan2(local.y-.55,Math.hypot(local.x,local.z)),-.85,.75);
+              const neck=handle._model.bones.Neck,head=handle._model.bones.Head;
+              if(neck){neck.rotation.y=yaw*.58;neck.rotation.x=pitch*.5;}
+              if(head){head.rotation.y=yaw*.42;head.rotation.x=pitch*.55;}
+            }else{
+              const cur=bone.localToWorld(g.local.clone()),delta=target.clone().sub(cur);
+              if(delta.length()>.9){handle.endGrab(g.ctrl);continue;}
+              if(delta.length()>6*dt+.08)delta.setLength(6*dt+.08);
+              handle.root.position.add(delta);
+            }
+            if(!handle.root.userData.waterSwimming)handle.root.position.y=Math.max(floorAt(ctx.world,handle.root.position.x,handle.root.position.z,handle.root.position.y),handle.root.position.y);
             handle.root.updateMatrixWorld(true);
+          }
+          handle._heldLimbs=held;
+        },
+        tickPet(dt){
+          const hands=ctx.props?.system?.hands;if(!hands||handle.grabs.size)return;
+          handle._petAt=handle._petAt??-2;
+          for(let i=0;i<2;i++){
+            if((hands.squeeze?.[i]||0)>.38)continue;
+            const palm=hands.palmPos?.(i);if(!palm)continue;
+            const hit=handle.nearestHit(palm,.12);if(!hit)continue;
+            if(handle._anim.time-handle._petAt<.55)continue;
+            handle._petAt=handle._anim.time;
+            audio.whimper?.(()=>{},handle);
+            handle.setWag(1);ai.state='alert';
+            hands.haptics?.contact?.(i,'skin',.45,.01);
           }
         },
         endGrab(ctrl){
           if(ctrl)handle.grabs.delete(ctrl);else handle.grabs.clear();
-          if(!handle.grabs.size)ai.held=false;
+          if(!handle.grabs.size){ai.held=false;handle._heldLimbs=null;}
         },
         despawn(){system.despawn(handle);},
         _model:model,_paws:paws,_jaw:jaw,_tail:tail,_fur:fur,_ai:ai

@@ -1,7 +1,7 @@
-import {captureFurniture,tagMovable} from './mira-v2-furniture.js?v=13.0';
+import {captureFurniture,tagMovable} from './mira-v2-furniture.js?v=13.4';
 import {Destruction} from './mira-v2-destruction.js?v=11.0';
-import {buildHouse} from './mira-v2-house.js?v=13.0';
-import {plantTerrain,scatterTrees,tickNature,chopTree as chopNature,terrainHeight} from './mira-v2-nature.js?v=13.0';
+import {buildHouse} from './mira-v2-house.js?v=13.4';
+import {plantTerrain,scatterTrees,tickNature,chopTree as chopNature,terrainHeight} from './mira-v2-nature.js?v=13.4';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
 import * as T from 'three';
 const V=()=>new T.Vector3(),clamp=T.MathUtils.clamp,QUEST=/Quest|OculusBrowser/i.test(globalThis.navigator?.userAgent||'');
@@ -19,7 +19,7 @@ export class MiraWorld {
  }
  setScene(name){
   if(!SCENES.includes(name))return;for(const a of this.system.actors){a.seat=null;a.navigation=null;a.dest=null;a.directedWalk=null;a.group.position.y=a.baseY||0;this.system.social.cancel(a);a.setMode('auto');}
-  this.root.traverse(o=>{o.geometry?.dispose();if(o.material){for(const m of Array.isArray(o.material)?o.material:[o.material])m.dispose();}});this.root.clear();this.obstacles=[];this.seats=[];this.pickables=[];this.movables=[];this.stairs=[];this.floors=[];this.trees=[];this.terrain=null;this.grid=null;this.name=name;this.extent=144;this.builder?.clear();this.revision++;this.fractures.clear();
+  this.root.traverse(o=>{o.geometry?.dispose();if(o.material){for(const m of Array.isArray(o.material)?o.material:[o.material])m.dispose();}});this.root.clear();this.obstacles=[];this.seats=[];this.pickables=[];this.movables=[];this.stairs=[];this.floors=[];this.trees=[];this.terrain=null;this.grid=null;this.waterBeds=[];this.name=name;this.extent=144;this.builder?.clear();this.revision++;this.fractures.clear();
   const jungle=name==='Jungle',beach=name==='Beach';this.scene.background=new T.Color(jungle?0x637f76:beach?0xaedced:0xc2b5a3);this.scene.fog=new T.Fog(this.scene.background,110,360);
   this.terrainPad=jungle||beach?3.4:16;this.terrainAmp=beach?.4:jungle?1.15:1;
   plantTerrain(this,{size:312,pad:this.terrainPad,amp:this.terrainAmp,grass:jungle?0x4e6640:beach?0xd7c08c:0x5d7048,dirt:jungle?0x4a4030:beach?0xc2a56e:0x6a5a3e});
@@ -37,7 +37,12 @@ export class MiraWorld {
     const rock=this.mesh(new T.IcosahedronGeometry(s,2),this.mat(jungle?0x666c5c:0x929488),x,y+s*.57,z);rock.scale.set(1,.67,.82);rock.rotation.y=x;this.obstacle(x,z,s*1.85,s*1.55,y,s*1.3,rock);
    }
    this.chair(-1.2,1.25,-.35,beach);this.chair(1.6,-2.2,.4);
-   if(beach){const water=this.mesh(new T.PlaneGeometry(96,36,1,1),this.mat(0x539daa,.27),0,-.04,-24);water.rotation.x=-Math.PI/2;water.castShadow=false;this.water=water;}
+   if(beach){
+    const terr=this.terrain,pos=terr?.geometry?.attributes?.position;
+    if(pos){for(let i=0;i<pos.count;i++){const zz=pos.getZ(i);if(zz<-7.5){const t=T.MathUtils.clamp((-7.5-zz)/5,0,1);pos.setY(i,T.MathUtils.lerp(pos.getY(i),-1.65,t*t));}}pos.needsUpdate=true;terr.geometry.computeVertexNormals();}
+    this.waterBeds.push({rect:true,z0:-48,z1:-7.5,bed:-1.65});
+    const water=this.mesh(new T.PlaneGeometry(96,36,1,1),this.mat(0x539daa,.27),0,-.04,-24);water.rotation.x=-Math.PI/2;water.castShadow=false;this.water=water;
+   }
    else{this.water=null;for(let i=0;i<16;i++){const angle=i*2.399,x=Math.cos(angle)*(4.2+(i%2)*1.1),z=Math.sin(angle)*(4.2+(i%2)*1.1);const y=terrainHeight(x,z,this.terrainPad,this.terrainAmp);const bush=this.mesh(new T.SphereGeometry(.38,12,8),this.mat(i%2?0x65764b:0x4a6849),x,y+.25,z);bush.scale.y=.6;}}
   }
   if(this.builder?.wardrobe.rack){const b=new T.Box3().setFromObject(this.builder.wardrobe.rack),p=b.getCenter(V()),s=b.getSize(V());this.obstacle(p.x,p.z,s.x,s.z,b.min.y,s.y);}
@@ -48,11 +53,29 @@ export class MiraWorld {
  tree(x,z,height,palm){const trunk=this.mesh(new T.CylinderGeometry(.065,.11,height,10),this.mat(palm?0x9b8060:0x70614c),x,height/2,z);if(palm){for(let j=0;j<8;j++){const leaf=this.mesh(new T.SphereGeometry(1,12,6),this.mat(j%2?0x557450:0x6e884f),x+Math.cos(j*Math.PI/4)*.6,height-.12,z+Math.sin(j*Math.PI/4)*.6);leaf.scale.set(.85,.075,.19);leaf.rotation.set(0,-j*Math.PI/4,-.22);}}else{const crown=this.mesh(new T.IcosahedronGeometry(.72,2),this.mat(0x49644b),x,height-.12,z);crown.scale.set(1,1.1,1);}}
  removeObstacle(o){if(!o)return;this.obstacles=this.obstacles.filter(x=>x!==o);this.grid=null;}
  nearby(p,r=.25){if(!this.grid){this.grid=new Map();for(const o of this.obstacles)for(let x=Math.floor(o.x-o.w/2);x<=Math.floor(o.x+o.w/2);x++)for(let z=Math.floor(o.z-o.d/2);z<=Math.floor(o.z+o.d/2);z++){const key=x+'/'+z;if(!this.grid.has(key))this.grid.set(key,[]);this.grid.get(key).push(o);}}const out=new Set();for(let x=Math.floor(p.x-r);x<=Math.floor(p.x+r);x++)for(let z=Math.floor(p.z-r);z<=Math.floor(p.z+r);z++)for(const o of this.grid.get(x+'/'+z)||[])out.add(o);return [...out];}
- blocked(p,r=.25,ignore=null){return this.nearby(p,r).some(o=>o!==ignore&&!o.walkable&&o.y<1.65&&o.y+o.h>.09&&Math.abs(p.x-o.x)<o.w/2+r&&Math.abs(p.z-o.z)<o.d/2+r);}
- floorHeight(p,zArg){
+ blocked(p,r=.25,ignore=null){const y0=Number.isFinite(p?.y)?p.y:.1;return this.nearby(p,r).some(o=>o!==ignore&&!o.walkable&&y0<o.y+o.h&&y0+1.5>o.y&&Math.abs(p.x-o.x)<o.w/2+r&&Math.abs(p.z-o.z)<o.d/2+r);}
+ excavateWater(x,z,r,bedY){
+  this.waterBeds??=[];
+  this.waterBeds=this.waterBeds.filter(b=>Math.hypot(b.x-x,b.z-z)>0.4);
+  this.waterBeds.push({x,z,r,bed:bedY});
+  const mesh=this.terrain,pos=mesh?.geometry?.attributes?.position;if(!pos)return;
+  for(let i=0;i<pos.count;i++){
+   const px=pos.getX(i),pz=pos.getZ(i),d=Math.hypot(px-x,pz-z);
+   if(d>=r)continue;
+   const k=1-d/r,y=pos.getY(i),want=T.MathUtils.lerp(y,bedY,k*k);
+   pos.setY(i,Math.min(y,want));
+  }
+  pos.needsUpdate=true;mesh.geometry.computeVertexNormals();
+ }
+ floorHeight(p,zArg,maxStep){
   const x=p&&typeof p==='object'?p.x:p,z=p&&typeof p==='object'?p.z:zArg;
   const pt=new T.Vector3(x||0,(p&&typeof p==='object'&&Number.isFinite(p.y))?p.y:0,z||0);
+  const step=Number.isFinite(maxStep)?maxStep:(Number.isFinite(zArg)&&p&&typeof p==='object'&&zArg>0&&zArg<=2?zArg:.85);
   const yRef=Number.isFinite(pt.y)?pt.y:0,candidates=[this.terrain?terrainHeight(x||0,z||0,this.terrainPad??5.4,this.terrainAmp??1):0];
+  for(const b of this.waterBeds||[]){
+   if(b.rect){if((z||0)>=b.z0&&(z||0)<=b.z1)candidates.push(b.bed);}
+   else if(Math.hypot((x||0)-b.x,(z||0)-b.z)<(b.r||0))candidates.push(b.bed);
+  }
   for(const f of this.floors||[]){
    if(Math.abs((x||0)-f.x)<f.w/2+.01&&Math.abs((z||0)-f.z)<f.d/2+.01)candidates.push(f.y+f.h);
   }
@@ -63,7 +86,7 @@ export class MiraWorld {
    const t=T.MathUtils.clamp(local.z/Math.max(.001,data.run),0,1);
    candidates.push(t*data.rise);
   }
-  const below=candidates.filter(c=>c<=yRef+.85);
+  const below=candidates.filter(c=>c<=yRef+step);
   return below.length?Math.max(...below):Math.min(...candidates);
  }
  path(start,goal,r=.25){
@@ -84,9 +107,12 @@ export class MiraWorld {
    a.group.updateMatrixWorld(true);a.root.traverse(o=>{if(o.isSkinnedMesh)o.skeleton.update();});return;
   }
   if(a.balance.state==='standing'&&!a.waterSwimming&&!a.grabs.size)a.group.position.y=(a.baseY||0)+this.floorHeight(a.group.position);
-  this.project(a.group.position,.20*Math.sqrt(a.shape.hips),.1,1.55);a.group.updateMatrixWorld(true);
+  this.project(a.group.position,.20*Math.sqrt(a.shape.hips),.08,1.55);a.group.updateMatrixWorld(true);
  }
- project(p,r,y=0,height=.1,ignore=null){let hit=false;for(const o of this.nearby(p,r)){if(o===ignore||y>o.y+o.h||y+height<o.y)continue;const dx=p.x-o.x,dz=p.z-o.z,ex=o.w/2+r-Math.abs(dx),ez=o.d/2+r-Math.abs(dz);if(ex>0&&ez>0){if(ex<ez)p.x+=(dx>=0?1:-1)*ex;else p.z+=(dz>=0?1:-1)*ez;hit=true;}}return hit;}
+ project(p,r,y=0,height=.1,ignore=null){
+  const y0=Number.isFinite(p?.y)?p.y+y:y;
+  let hit=false;for(const o of this.nearby(p,r)){if(o===ignore||y0>o.y+o.h||y0+height<o.y)continue;const dx=p.x-o.x,dz=p.z-o.z,ex=o.w/2+r-Math.abs(dx),ez=o.d/2+r-Math.abs(dz);if(ex>0&&ez>0){if(ex<ez)p.x+=(dx>=0?1:-1)*ex;else p.z+=(dz>=0?1:-1)*ez;hit=true;}}return hit;
+ }
  projectSphere(p,r){let hit=false;for(const o of this.nearby(p,r)){const q=new T.Vector3(T.MathUtils.clamp(p.x,o.x-o.w/2,o.x+o.w/2),T.MathUtils.clamp(p.y,o.y,o.y+o.h),T.MathUtils.clamp(p.z,o.z-o.d/2,o.z+o.d/2)),d=p.clone().sub(q),l=d.length();if(l>=r)continue;if(l>.000001)p.copy(q).addScaledVector(d,r/l);else{const choices=[[o.x+o.w/2+r-p.x,'x',1],[p.x-(o.x-o.w/2-r),'x',-1],[o.y+o.h+r-p.y,'y',1],[p.y-o.y+r,'y',-1],[o.z+o.d/2+r-p.z,'z',1],[p.z-(o.z-o.d/2-r),'z',-1]].sort((a,b)=>a[0]-b[0]);p[choices[0][1]]+=choices[0][0]*choices[0][2];}hit=true;}return hit;}
  tick(dt){this.fractures.mesh.visible=this.root.visible;this.time+=dt;this.fractures.tick(dt);tickNature(this,dt);for(const seat of this.seats)if(seat.occupant&&!this.system.actors.includes(seat.occupant))seat.occupant=null;for(const b of this.system.balls){if(b.held)continue;const before=b.mesh.position.clone();if(this.projectSphere(b.mesh.position,b.rad)){const n=b.mesh.position.clone().sub(before).normalize(),v=b.vel.dot(n);if(v<0)b.vel.addScaledVector(n,-1.4*v);}}}
 }

@@ -21,6 +21,21 @@ export class DogAudio {
     }).catch(()=>{this.buffer=null;});
   }
   unlock(){const ctx=this.context();this.preload();if(ctx?.state==='suspended')ctx.resume().then(()=>this.tick()).catch(()=>{});else this.tick();}
+  whimper(start=()=>{},owner=null){
+    if(this.disposed)return false;
+    const ctx=this.context();if(!ctx){start();return false;}
+    this.preload();
+    if(ctx.state!=='running'){start();return false;}
+    const now=ctx.currentTime+.008,dur=.42,pitch=1.25+Math.random()*.18;
+    const osc=ctx.createOscillator(),gain=ctx.createGain(),filt=ctx.createBiquadFilter();
+    osc.type='sine';osc.frequency.setValueAtTime(320*pitch,now);osc.frequency.exponentialRampToValueAtTime(520*pitch,now+.12);osc.frequency.exponentialRampToValueAtTime(280*pitch,now+dur);
+    filt.type='bandpass';filt.frequency.value=900*pitch;filt.Q.value=1.4;
+    gain.gain.setValueAtTime(.0001,now);gain.gain.exponentialRampToValueAtTime(.22,now+.03);gain.gain.exponentialRampToValueAtTime(.0001,now+dur);
+    osc.connect(filt);filt.connect(gain);gain.connect(ctx.destination);
+    osc.start(now);osc.stop(now+dur+.02);
+    osc.onended=()=>{try{osc.disconnect();filt.disconnect();gain.disconnect();}catch(_){}};
+    this.busyUntil=now+dur*.5;start();return true;
+  }
   bark(start=()=>{},owner=null){
     if(this.disposed)return false;
     const ctx=this.context();

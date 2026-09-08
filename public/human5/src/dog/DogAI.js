@@ -17,6 +17,7 @@ export class DogAI {
   const root=m.root;
   const swimming=!!root.userData.waterSwimming;
   if(this.dead){this.state='sit';if(!swimming)root.position.y=floorAt(world,root.position.x,root.position.z,root.position.y);return;}
+  const handle=root.userData.dog,neckHeld=[...handle?.grabs?.values?.()||[]].some(g=>/Neck|Head/.test(g.bone?.name||''));
   if(this.held){this.state='alert';}
   const wp=root.getWorldPosition(V());
   const player=this.ctx.camera?.getWorldPosition?.(V())||actor?.group?.position;
@@ -37,12 +38,14 @@ export class DogAI {
   this.lookYaw=THREE.MathUtils.damp(this.lookYaw,wantYaw,5,dt);
   this.lookPitch=THREE.MathUtils.damp(this.lookPitch,wantPitch,5,dt);
   this.lookRoll=THREE.MathUtils.damp(this.lookRoll,wantRoll,4,dt);
-  m.bones.Neck.rotation.y=this.lookYaw*.42;
-  m.bones.Head.rotation.y=this.lookYaw*.58;
-  m.bones.Neck.rotation.x=this.lookPitch*.4+(this.held?-.12:0);
-  m.bones.Head.rotation.x=this.lookPitch*.62;
-  m.bones.Neck.rotation.z=this.lookRoll*.4;
-  m.bones.Head.rotation.z=this.lookRoll*.55;
+  if(!neckHeld){
+   m.bones.Neck.rotation.y=this.lookYaw*.42;
+   m.bones.Head.rotation.y=this.lookYaw*.58;
+   m.bones.Neck.rotation.x=this.lookPitch*.4+(this.held?-.12:0);
+   m.bones.Head.rotation.x=this.lookPitch*.62;
+   m.bones.Neck.rotation.z=this.lookRoll*.4;
+   m.bones.Head.rotation.z=this.lookRoll*.55;
+  }
   this.bodyYaw=THREE.MathUtils.damp(this.bodyYaw,this.lookYaw*.22,3,dt);
   if(this.held){this.state='alert';return;}
   if(this.state==='sit'){
@@ -86,7 +89,7 @@ export class DogAI {
   }
   const now=root.getWorldPosition(V());if(!swimming)root.position.y=floorAt(world,now.x,now.z,root.position.y);
   this.separate(world,actors,root);
-  if(world?.project){const p=root.position.clone();world.project(p,.22,.05,0.55);root.position.x=p.x;root.position.z=p.z;}
+  if(world?.project){const p=root.position.clone();world.project(p,.22,.02,0.55);root.position.x=p.x;root.position.z=p.z;}
  }
  separate(world,actors,root){
   const p=root.position;

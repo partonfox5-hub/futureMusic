@@ -1,20 +1,20 @@
 import {Builder,FURNITURE,SURFACES} from './mira-v2-builder.js?v=13.0';
-import {SmoothLocomotion} from './mira-v2-locomotion.js?v=13.3';
-import {Car} from './mira-v2-car.js?v=13.2';
-import {Restraints} from './mira-v2-restraints.js?v=12.4';
-import { createDogSystem } from './mira-v2-dog.js?v=13.3';
+import {SmoothLocomotion} from './mira-v2-locomotion.js?v=13.4';
+import {Car} from './mira-v2-car.js?v=13.4';
+import {Restraints} from './mira-v2-restraints.js?v=13.4';
+import { createDogSystem } from './mira-v2-dog.js?v=13.4';
 import {Injuries} from './mira-v2-injuries.js?v=12.9';
-import {Props,WEAPONS} from './mira-v2-props.js?v=13.3';
-import {syncFurniture} from './mira-v2-furniture.js?v=13.0';
+import {Props,WEAPONS} from './mira-v2-props.js?v=13.4';
+import {syncFurniture} from './mira-v2-furniture.js?v=13.4';
 import {installWater} from './mira-v2-water.js?v=13.3';
 import {createFloraSystem} from './mira-v2-flora.js?v=13.3';
 import {RoomLight} from './mira-v2-light.js?v=11.0';
 import {draft,saveDraft,spawnOptions,OUTFITS,clothingItems} from './mira-v2-catalog.js?v=11.0';
-import {MiraWorld,SCENES} from './mira-v2-world.js?v=13.3';
+import {MiraWorld,SCENES} from './mira-v2-world.js?v=13.4';
 import {Wardrobe,GARMENTS} from './mira-v2-wardrobe.js?v=11.2';
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { createVRMenu } from "./mira-vr-menu.js?v=13.3";
+import { createVRMenu } from "./mira-vr-menu.js?v=13.4";
 import { snapshot, savePreset, loadPreset, applyPreset, listPresets, lastPresetName, downloadPreset } from "./mira-v2-preset.js?v=11.5";
 import { unlockSfx } from "./mira-v2-sfx.js?v=11.0";
 import { EMOTION_NAMES, IDLE_NAMES, WALK_NAMES, ATTENTION_MODES } from "./mira-v2-features.js?v=13.3";
@@ -119,8 +119,9 @@ function ensureYardPond(){
  if(!water||world.name==='Beach'){if(props._yardPond){props._yardPond.despawn?.();props._yardPond=null;}return;}
  if(props._yardPond && props._pondScene===world.name)return;
  if(props._yardPond){props._yardPond.despawn?.();props._yardPond=null;}
- const x=12.4,z=1.8,y=(Number(world.floorHeight?.(new THREE.Vector3(x,0,z)))||0)+.32;
- props._yardPond=water.spawnBody({kind:'pond',center:[x,y,z],radius:2.3,depth:.32});
+ const x=12.4,z=1.8,r=2.5,probe=new THREE.Vector3(x,8,z),ground=Number(world.floorHeight?.(probe,undefined,.85))||0;
+ world.excavateWater?.(x,z,r+.35,ground-.95);
+ props._yardPond=water.spawnBody({kind:'pond',center:[x,ground-.05,z],radius:r,depth:.90});
  props._pondScene=world.name;
 }
 ensureYardPond();
@@ -203,7 +204,7 @@ const vrMenu=createVRMenu({spawnConfigured,copyConfiguration,scene,renderer,came
 function selected() { return mira.selected; }
 
 function bindHud() {
- document.getElementById('enterCar').onclick=()=>nearestCar().enter();document.getElementById('exitCar').onclick=()=>activeCar().exit();document.getElementById('carGear')?.addEventListener('click',()=>activeCar().cycleGear());document.getElementById('repairCar').onclick=()=>{for(const c of props.cars())c.reset();};document.getElementById('mirrorOn').onchange=e=>{for(const c of props.cars())c.mirrorEnabled=e.target.checked;};
+ document.getElementById('enterCar').onclick=()=>{const c=activeCar().driving?activeCar():nearestCar();c.driving?c.exit():c.enter();};document.getElementById('exitCar').onclick=()=>activeCar().exit();document.getElementById('jumpBtn')?.addEventListener('click',()=>{keys.Space=true;locomotion.jump?.();setTimeout(()=>keys.Space=false,120);});document.getElementById('carGear')?.addEventListener('click',()=>activeCar().cycleGear());document.getElementById('repairCar').onclick=()=>{for(const c of props.cars())c.reset();};document.getElementById('mirrorOn').onchange=e=>{for(const c of props.cars())c.mirrorEnabled=e.target.checked;};
 
  document.getElementById('placeLink').onclick=()=>props.restraints.start();document.getElementById('cancelLink').onclick=()=>props.restraints.cancel();document.getElementById('linkMode').onchange=e=>props.restraints.mode=e.target.value;document.getElementById('linkSelect').onchange=e=>props.restraints.selected=props.restraints.links.find(l=>l.id===Number(e.target.value));document.getElementById('linkLength').oninput=e=>props.restraints.setLength(e.target.value);document.getElementById('cutLink').onclick=()=>props.restraints.cut();document.getElementById('removeLink').onclick=()=>props.restraints.remove();document.getElementById('injuryEnabled').onchange=e=>props.injuries.enabled=e.target.checked;document.getElementById('allowSever').onchange=e=>props.injuries.allowSever=e.target.checked;document.getElementById('healActor').onclick=()=>props.injuries.heal(selected());document.getElementById('clearBodies').onclick=()=>{const msg=props.injuries.clearBodies();const st=document.getElementById('linkStatus');if(st)st.textContent=msg;syncHud();};
 
@@ -406,18 +407,24 @@ function tickLocomotion(dt) {
  if(XR_ON())locomotion.tick(dt,renderer.xr.getSession()?.inputSources||[],vrMenu.isOpen||props.driving());
 }
 
+let deskJumpVel=0,deskJumping=false;
 function desktopMove(dt) {
   if(props.driving())return;
   if (XR_ON()) return;
   if (!controls || !controls.isLocked) return;
   const obj=controls.getObject?.()||camera;
-  if(water?.playerSwimIntent({rig:obj,camera,dt,keys,blocked:vrMenu.isOpen||props.vehicle?.driving}).active)return;
+  if(water?.playerSwimIntent({rig:obj,camera,dt,keys,blocked:vrMenu.isOpen||props.vehicle?.driving}).active){deskJumping=false;deskJumpVel=0;return;}
   const sp = (keys.ShiftLeft ? 2.8 : 1.4) * dt;
   if (keys.KeyW) controls.moveForward(sp);
   if (keys.KeyS) controls.moveForward(-sp);
   if (keys.KeyA) controls.moveRight(-sp);
   if (keys.KeyD) controls.moveRight(sp);
-  if(!water?.playerSubmerged(camera))obj.position.y=1.6+(world.floorHeight?.(obj.position)||0);
+  const floor=1.6+(world.floorHeight?.(obj.position)||0);
+  if((keys.Space||keys.jump)&&!deskJumping){deskJumpVel=4.5;deskJumping=true;}
+  if(deskJumping){
+   deskJumpVel-=9.81*dt;obj.position.y+=deskJumpVel*dt;
+   if(obj.position.y<=floor&&deskJumpVel<=0){obj.position.y=floor;deskJumping=false;deskJumpVel=0;}
+  }else if(!water?.playerSubmerged(camera))obj.position.y=floor;
 }
 
 const clock = new THREE.Clock();
@@ -437,7 +444,7 @@ function tick(time,frame) {
   if(builder.active){if(XR_ON()){builder.tick(renderer.xr.getSession());builder.preview(props.ray(builder.controller));}else{if(controls?.isLocked)pickRay.setFromCamera(new THREE.Vector2(),camera);builder.preview(pickRay.ray);}}
   const buildStatus=document.getElementById('buildStatus');if(buildStatus)buildStatus.textContent=builder.status;
   tickLocomotion(dt);
-  if(XR_ON()&&!props.driving()){const eye=camera.getWorldPosition(new THREE.Vector3()),before=eye.clone();world.project(eye,.18,.10,1.5);eye.x=THREE.MathUtils.clamp(eye.x,-world.extent,world.extent);eye.z=THREE.MathUtils.clamp(eye.z,-world.extent,world.extent);rig.position.add(eye.sub(before));}
+  if(XR_ON()&&!props.driving()){const eye=camera.getWorldPosition(new THREE.Vector3()),before=eye.clone();world.project(eye,.18,-1.45,1.55);eye.x=THREE.MathUtils.clamp(eye.x,-world.extent,world.extent);eye.z=THREE.MathUtils.clamp(eye.z,-world.extent,world.extent);rig.position.add(eye.sub(before));}
   if (mira.ready) {
     ensureYardPond();
     if(water)for(const a of mira.actors)water.stepActor(a,dt);

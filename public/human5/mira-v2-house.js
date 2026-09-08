@@ -1,7 +1,7 @@
 import * as T from 'three';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
 import {makeSurfaceMap} from './mira-v2-builder.js?v=13.0';
-import {placeStairs,placeFurniture} from './mira-v2-furniture.js?v=13.0';
+import {placeStairs,placeFurniture} from './mira-v2-furniture.js?v=13.4';
 const STORY=3.05;
 export function buildHouse(w){
  const v=(x,y,z)=>new T.Vector3(x,y,z);

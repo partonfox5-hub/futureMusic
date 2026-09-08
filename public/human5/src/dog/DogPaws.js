@@ -5,7 +5,10 @@ const vec=a=>new THREE.Vector3(...a);
 export function floorAt(world,x,z,fallback=0) {
   if(!world)return fallback;
   try {
-    if(typeof world.floorHeight==='function'){const y=world.floorHeight(x,z);if(Number.isFinite(y))return y;}
+    if(typeof world.floorHeight==='function'){
+      const y=world.floorHeight(new THREE.Vector3(x,fallback,z),.2);
+      if(Number.isFinite(y))return y;
+    }
     else if(Number.isFinite(world.floorHeight))return world.floorHeight;
     if(typeof world.project==='function'){
       const point=new THREE.Vector3(x,fallback,z),r=world.project(point);
@@ -48,7 +51,10 @@ export class DogPaws {
   tick(time,state,moving=0){
     const m=this.model;m.root.updateMatrixWorld(true);
     if(m.root.userData.waterSwimming)return;
+    const held=m.root.userData.dog?._heldLimbs;
     this.legs.forEach((leg,i)=>{
+      const key=(leg.root.name.startsWith('L')?'L':'R')+'_'+(leg.front?'front':'hind');
+      if(held&&held.has(key))return;
       const target=leg.home.clone();
       // Compact alternating step only when follow movement is active.
       const phase=time*8.2+(i===0||i===3?0:Math.PI),lift=Math.max(0,Math.sin(phase))*.09*moving;

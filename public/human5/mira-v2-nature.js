@@ -234,7 +234,7 @@ export function tickNature(world,dt){
     g.rotateOnWorldAxis(piece.hinge,limit-piece.angle);
     piece.angle=limit;piece.settled=true;piece.angVel=0;
     g.updateWorldMatrix(true,true);
-    const box=new T.Box3().setFromObject(g),ground=terrainHeight(g.position.x,g.position.z,pad,amp)+.04;
+    const box=new T.Box3().setFromObject(g),ground=(world.floorHeight?.(g.position,.15)??terrainHeight(g.position.x,g.position.z,pad,amp))+.04;
     if(box.min.y<ground)g.position.y+=ground-box.min.y;
     settleWood(world,g,piece.id);
    }else{piece.angle+=da;g.rotateOnWorldAxis(piece.hinge,da);}

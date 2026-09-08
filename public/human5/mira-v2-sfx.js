@@ -36,4 +36,4 @@ export function playSfx(kind,vol=1){
  }catch{}
 }
 export function sfxForBreak(kind){if(kind==='glass')return 'glass';if(kind==='metal')return 'metal';if(kind==='wood'||kind==='plaster')return 'wood';return 'impact';}
-export function sfxForHit(kind){if(kind==='laser')return 'laser';if(kind==='bullet')return 'impact';if(kind==='cut')return 'whoosh';return 'thud';}
+export function sfxForHit(kind){if(kind==='laser')return 'laser';if(kind==='bullet')return 'impact';if(kind==='cut')return 'whoosh';if(kind==='scuff')return 'thud';return 'thud';}

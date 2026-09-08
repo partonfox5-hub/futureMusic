@@ -9,7 +9,7 @@ export class Car {
  constructor(props,{orbit,keys={},controls,color=0x28586b,stall=null,yaw=0,name='Car'}={}){
   Object.assign(this,{props,scene:props.scene,world:props.world,renderer:props.renderer,camera:props.camera,rig:props.rig,orbit,keys,controls,paintColor:color,stall:stall||new T.Vector3(6,0,3.8),homeYaw:yaw,carName:name});
   this.group=new T.Group();this.group.name=name||'Driveway sedan';this.group.rotation.order='YXZ';this.scene.add(this.group);this.parts=[];this.wheels=[];this.hinges=[];this.pickables=[];this.velocity=V();this.mass=1250;this.yawRate=0;this.heaveVelocity=0;this.pitchRate=0;this.rollRate=0;this.steer=0;this.steerTarget=0;this.grips=new Map();this.gear='P';this.inCabin=false;this.canDrive=false;this.driving=false;this.mirrorEnabled=true;this.mirrorClock=0;this.time=0;this.revision=-1;this.debris=[];this.status='';this.message=(name||'Car')+' in garage.';this.surfaceName='driveway';this.mu=.90;
-  this.cabinBox=new T.Box3(new T.Vector3(-.70,.70,-.55),new T.Vector3(.70,1.55,.85));this.build();this.reset();
+  this.cabinBox=new T.Box3(new T.Vector3(-.95,.40,-.90),new T.Vector3(.95,1.95,1.15));this.build();this.reset();
  }
  build(){
   const paint=new T.MeshPhysicalMaterial({color:this.paintColor,roughness:.23,metalness:.78,clearcoat:1,clearcoatRoughness:.12,envMapIntensity:1,side:T.DoubleSide}),trim=new T.MeshStandardMaterial({color:0x222729,roughness:.82}),alloy=new T.MeshStandardMaterial({color:0xb5bec0,roughness:.25,metalness:.82}),glass=new T.MeshPhysicalMaterial({color:0x93b1b9,transparent:true,opacity:.20,roughness:.12,metalness:0,side:T.DoubleSide,depthWrite:false});
@@ -62,13 +62,15 @@ export class Car {
   this.debris=[];const stall=(this.world.garageStalls||[]).find(s=>s.color===this.paintColor)||{position:this.stall,yaw:this.homeYaw};this.group.position.copy(stall.position||this.stall);this.group.rotation.set(0,stall.yaw??this.homeYaw,0);this.velocity.set(0,0,0);this.yawRate=this.heaveVelocity=this.pitchRate=this.rollRate=this.steer=this.steerTarget=0;this.setGear('P');this.inCabin=this.canDrive=false;this.message=(this.carName||'Car')+' parked.';this.group.updateMatrixWorld(true);this.syncCollider();this.updateStatus();
  }
  get liveCamera(){return this.renderer.xr?.isPresenting?(this.renderer.xr.getCamera?.(this.camera)||this.camera):this.camera;}
- updateOccupancy(){this.group.updateWorldMatrix(true,false);const p=this.liveCamera.getWorldPosition(V());this.inCabin=this.cabinBox.containsPoint(this.group.worldToLocal(p));this.canDrive=this.inCabin&&(this.gear==='D'||this.gear==='N');return this.canDrive;}
+ updateOccupancy(){this.group.updateWorldMatrix(true,false);const p=this.liveCamera.getWorldPosition(V());this.inCabin=this.driving||this.cabinBox.containsPoint(this.group.worldToLocal(p));this.canDrive=this.driving&&(this.gear==='D'||this.gear==='N');return this.canDrive;}
  enter(){
-  if(this.driving||this.world.name!=='Living room'||!this.world.root.visible)return false;for(const c of this.props.cars?.()||[])if(c!==this&&c.driving)c.exit();this.props.vehicle=this;this.props.drop?.('desktop');this.props.drop?.(0);this.props.drop?.(1);this.driving=true;this.controls?.unlock();if(this.orbit)this.orbit.enabled=false;
+  if(this.driving){this.exit();return true;}
+  if(this.world.name!=='Living room'||!this.world.root.visible)return false;for(const c of this.props.cars?.()||[])if(c!==this&&c.driving)c.exit();this.props.vehicle=this;this.props.drop?.('desktop');this.props.drop?.(0);this.props.drop?.(1);this.driving=true;this.controls?.unlock();if(this.orbit)this.orbit.enabled=false;
   this.group.updateMatrixWorld(true);const eye=this.group.localToWorld(new T.Vector3(-.40,1.25,.27));
   if(this.renderer.xr?.isPresenting){const cam=this.liveCamera,offset=cam.getWorldPosition(V()).sub(this.rig.getWorldPosition(V())),yaw=new T.Euler().setFromQuaternion(cam.getWorldQuaternion(Q()),'YXZ').y;this.rig.rotation.y+=this.group.rotation.y-yaw;this.rig.updateMatrixWorld(true);const head=cam.getWorldPosition(V());this.rig.position.add(eye.sub(head));}
   else{this.rig.position.set(0,0,0);this.rig.quaternion.identity();this.camera.position.copy(eye);this.camera.quaternion.copy(this.group.getWorldQuaternion(Q()));}
-  this.rideMatrix=this.group.matrixWorld.clone();this.updateOccupancy();this.message='Grip stalk for P/N/D; grip wheel to steer.';return true;
+  for(const h of this.hinges)if(h.kind==='door'&&!h.panel.broken){h.target=0;h.latched=false;h.grabbed=null;}
+  this.rideMatrix=this.group.matrixWorld.clone();this.updateOccupancy();this.message='Left trigger drives in D. E exits.';return true;
  }
  exit(){if(!this.driving)return;for(const i of [...this.grips.keys()])this.release(i);this.driving=false;const p=this.group.localToWorld(new T.Vector3(-1.5,0,-.1));this.world.project?.(p,.18,0,1.6);if(this.renderer.xr?.isPresenting){this.rig.position.copy(p).setY(0);this.rig.rotation.set(0,this.group.rotation.y,0);}else{this.rig.position.set(0,0,0);this.rig.rotation.set(0,0,0);this.camera.position.copy(p).add(new T.Vector3(0,1.55,0));if(this.orbit){this.orbit.target.copy(this.group.position).add(new T.Vector3(0,.9,0));this.camera.lookAt(this.orbit.target);this.orbit.enabled=true;}}this.rideMatrix=null;this.message='Exited car.';this.updateOccupancy();}
  syncSeat(){if(!this.driving||!this.rideMatrix)return;this.group.updateMatrixWorld(true);const delta=this.group.matrixWorld.clone().multiply(this.rideMatrix.clone().invert()),q=Q().setFromRotationMatrix(delta);const obj=this.renderer.xr?.isPresenting?this.rig:this.camera;obj.position.applyMatrix4(delta);obj.quaternion.premultiply(q);obj.updateMatrixWorld(true);this.rideMatrix.copy(this.group.matrixWorld);}
@@ -89,7 +91,7 @@ export class Car {
  updateGrips(dt){for(const [i,g] of this.grips){const p=this.palm(i);if(!p){this.release(i);continue;}if(g.type==='shifter')this.shifterLever.position.z=clamp(this.shifterBase.worldToLocal(p).z,-.075,.075);if(g.type==='hinge'){const h=g.hinge;if(h.panel.broken){this.release(i);continue;}const a=this.hingeHandAngle(h,this.group.worldToLocal(p).sub(h.pivot)),delta=Math.atan2(Math.sin(a-g.start),Math.cos(a-g.start));const physical=h.kind==='door'?delta:-delta;h.angle=h.target=clamp(g.angle+physical/h.sign,0,h.max);}}
   for(const h of this.hinges){if(h.panel.broken)continue;if(h.grabbed===null){h.velocity+=(55*(h.target-h.angle)-14*h.velocity)*dt;h.angle=clamp(h.angle+h.velocity*dt,0,h.max);if(h.target===0&&h.angle<.002){h.angle=h.velocity=0;h.latched=true;}}h.root.quaternion.setFromAxisAngle(h.axis,h.sign*h.angle);}
  }
- input(){let throttle=0,brake=0,steer=this.steerTarget;if(!this.driving)return {throttle,brake:0,steer};if(this.props.menu?.isOpen)return {throttle:0,brake:.5,steer};if(this.renderer.xr?.isPresenting){for(const src of this.renderer.xr.getSession()?.inputSources||[])if(src.handedness==='left'&&src.gamepad){throttle=src.gamepad.buttons[0]?.value||0;brake=src.gamepad.buttons[4]?.pressed?1:0;}const angles=[];for(const [i,g] of this.grips)if(g.type==='wheel'){const p=this.wheelRoot.worldToLocal(this.palm(i)),a=Math.atan2(p.y,p.x);angles.push(g.steer+Math.atan2(Math.sin(a-g.angle),Math.cos(a-g.angle))/5.2);}if(angles.length)this.steerTarget=clamp(angles.reduce((a,b)=>a+b,0)/angles.length,-.5585,.5585);else this.steerTarget*=.985;steer=this.steerTarget;}else{throttle=this.keys.KeyW?1:this.keys.KeyS?-.6:0;brake=this.keys.Space?1:0;steer=(this.keys.KeyA?.5585:0)-(this.keys.KeyD?.5585:0);}return {throttle:this.canDrive?throttle:0,brake,steer};}
+ input(){let throttle=0,brake=0,steer=this.steerTarget;if(!this.driving)return {throttle,brake:0,steer};if(this.props.menu?.isOpen)return {throttle:0,brake:.5,steer};if(this.renderer.xr?.isPresenting){for(const src of this.renderer.xr.getSession()?.inputSources||[]){const b=src.gamepad?.buttons||[],t=Math.max(b[0]?.value||0,b[0]?.pressed?1:0);if(src.handedness==='left'){throttle=Math.max(throttle,t);if(b[4]?.pressed)brake=1;}else if(src.handedness==='right'&&t>.95&&this.gear==='P'){/* right trigger does not drive */}}const angles=[];for(const [i,g] of this.grips)if(g.type==='wheel'){const p=this.wheelRoot.worldToLocal(this.palm(i)),a=Math.atan2(p.y,p.x);angles.push(g.steer+Math.atan2(Math.sin(a-g.angle),Math.cos(a-g.angle))/5.2);}if(angles.length)this.steerTarget=clamp(angles.reduce((a,b)=>a+b,0)/angles.length,-.5585,.5585);else this.steerTarget*=.985;steer=this.steerTarget;}else{throttle=this.keys.KeyW?1:this.keys.KeyS?-.6:0;brake=this.keys.Space?1:0;steer=(this.keys.KeyA?.5585:0)-(this.keys.KeyD?.5585:0);}return {throttle:this.driving&&this.gear==='D'?throttle:0,brake,steer};}
  syncCollider(){if(this.obstacle)this.world.removeObstacle(this.obstacle);if(this.world.name!=='Living room'){this.obstacle=null;return;}const yaw=this.group.rotation.y,w=Math.abs(Math.cos(yaw))*1.8+Math.abs(Math.sin(yaw))*4.35,d=Math.abs(Math.sin(yaw))*1.8+Math.abs(Math.cos(yaw))*4.35;this.obstacle=this.world.obstacle(this.group.position.x,this.group.position.z,w,d,.12,1.56);}
  pull(delta){this.group.position.add(delta.clone().clampLength(0,.004));this.syncCollider();}
  surfaceAt(x,z){const surface=this.world.surfaceAt?.(x,z);if(surface&&typeof surface==='object'&&Number.isFinite(surface.mu))return {mu:clamp(surface.mu,.1,1.2),name:surface.name||'surface'};if(this.world.name==='Beach')return {mu:.35,name:'sand'};if(this.world.name==='Jungle')return {mu:.50,name:'dirt'};return x>-.2&&x<8.2&&z>4.2&&z<11?{mu:.90,name:'driveway'}:{mu:.55,name:'interior'};}
@@ -97,8 +99,16 @@ export class Car {
  step(dt,input){
   dt=clamp(dt,0,.04);if(!dt)return;this.updateOccupancy();this.steer+=(input.steer-this.steer)*(1-Math.exp(-dt*8));this.group.updateMatrixWorld(true);
   const forward=new T.Vector3(0,0,-1).applyAxisAngle(Y,this.group.rotation.y),right=new T.Vector3(1,0,0).applyAxisAngle(Y,this.group.rotation.y),speed=this.velocity.dot(forward);
-  const throttle=this.canDrive&&this.gear==='D'?input.throttle:0; // N has no engine torque: occupied N can coast/reverse by momentum, never powered creep.
-  const parked=this.gear==='P'&&this.velocity.length()<.15,brake=this.gear==='P'?1:input.brake;
+  const throttle=this.driving&&this.gear==='D'?input.throttle:0;
+  const parked=this.gear==='P'&&this.velocity.length()<.2,brake=this.gear==='P'?1:input.brake;
+  if(parked){
+   this.velocity.set(0,0,0);this.yawRate=0;this.heaveVelocity=0;this.pitchRate*=Math.exp(-dt*10);this.rollRate*=Math.exp(-dt*10);
+   let support=0,n=0;
+   for(const w of this.wheels){const {p,floor}=this.wheelContact(w),radius=w.popped?.265:.34;w.omega=0;w.group.position.y=this.group.worldToLocal(p.clone().setY(floor+radius)).y;support+=floor;n++;}
+   if(n){const want=support/n;this.group.position.y+=(want-this.group.position.y)*Math.min(1,dt*8);}
+   this.group.rotation.x*=Math.exp(-dt*8);this.group.rotation.z*=Math.exp(-dt*8);
+   return;
+  }
   let upForce=0,pitchTorque=0,rollTorque=0,yawTorque=0;const force=V();this.mu=0;
   for(const w of this.wheels){
     const {p,floor}=this.wheelContact(w),radius=w.popped?.265:.34,rest=w.popped?.325:.345,raw=rest-(p.y-floor-radius),compression=clamp(raw,-.08,.08),rate=(compression-w.compression)/dt;
@@ -120,11 +130,10 @@ export class Car {
     if(w.saturated&&Math.abs(this.steer)>.08&&Math.abs(speed)>3)yawTorque+=Math.sign(this.steer*speed)*Math.min(80,Math.abs(vs)*30);
     w.roll+=w.omega*dt;w.spin.rotation.x=-w.roll;w.group.rotation.y=w.z<0?this.steer:0;
   }
-  this.heaveVelocity+=(upForce/this.mass-9.81)*dt;this.heaveVelocity*=Math.exp(-.7*dt);this.group.position.y+=this.heaveVelocity*dt;
+  this.heaveVelocity+=(upForce/this.mass-9.81)*dt;this.heaveVelocity*=Math.exp(-dt*4.5);this.group.position.y+=this.heaveVelocity*dt;
   this.pitchRate+=(pitchTorque/2200-this.pitchRate*2.0)*dt;this.rollRate+=(rollTorque/700-this.rollRate*2.0)*dt;
   this.group.rotation.x=clamp(this.group.rotation.x+this.pitchRate*dt,-.1396,.1396);this.group.rotation.z=clamp(this.group.rotation.z+this.rollRate*dt,-.1396,.1396);if(Math.abs(this.group.rotation.x)>=.1395)this.pitchRate=0;if(Math.abs(this.group.rotation.z)>=.1395)this.rollRate=0;
   this.steeringWheel.rotation.z=this.steer*5.2;
-  if(parked){this.velocity.set(0,0,0);this.yawRate=0;for(const w of this.wheels)w.omega=0;return;}
   const planar=this.velocity.length();if(planar>.001){const resistance=this.mass*9.81*.012+.5*.32*2.1*1.225*planar*planar;force.addScaledVector(this.velocity,-Math.min(resistance,this.mass*planar/dt)/planar);}
   const openDoors=this.hinges.filter(h=>h.kind==='door'&&!h.panel.broken&&h.angle>.262);if(openDoors.length&&planar>2){force.addScaledVector(this.velocity,-35*openDoors.length);yawTorque+=openDoors.reduce((n,h)=>n+h.sign,0)*Math.min(120,planar*12);}
   this.velocity.addScaledVector(force,dt/this.mass);if(brake&&!throttle&&planar<.08)this.velocity.set(0,0,0);
