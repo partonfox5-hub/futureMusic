@@ -1,14 +1,24 @@
 import * as T from 'three';
-import {FURNITURE,placeFurniture} from './mira-v2-furniture.js?v=12.9';
+import {FURNITURE,placeFurniture} from './mira-v2-furniture.js?v=13.0';
 export {FURNITURE};
 export const CELL=.6;
 export const SURFACES={Plaster:{kind:'plaster',color:0xc9c1b1},Brick:{kind:'stone',color:0xa26148},Wood:{kind:'wood',color:0x947051},Tile:{kind:'stone',color:0xc3c7c1},Stone:{kind:'stone',color:0x85847c},Metal:{kind:'metal',color:0x929b9d},Glass:{kind:'glass',color:0x9fc1c7}};
+export function makeSurfaceMap(name){
+ const canvas=document.createElement('canvas');canvas.width=canvas.height=128;const c=canvas.getContext('2d');c.fillStyle='#'+(SURFACES[name]||SURFACES.Plaster).color.toString(16).padStart(6,'0');c.fillRect(0,0,128,128);
+ c.strokeStyle=name==='Brick'?'#d2b5a1':'rgba(35,30,25,.22)';c.lineWidth=3;
+ if(name==='Brick'){for(let y=0;y<128;y+=32){c.beginPath();c.moveTo(0,y);c.lineTo(128,y);c.stroke();for(let x=(y/32%2)*32;x<128;x+=64){c.beginPath();c.moveTo(x,y);c.lineTo(x,y+32);c.stroke();}}}
+ else if(name==='Wood'){for(let x=0;x<128;x+=32){c.strokeRect(x,0,32,128);for(let j=0;j<5;j++){c.beginPath();c.moveTo(x+5+j*4,0);c.bezierCurveTo(x+j*5,40,x+20,80,x+5+j*4,128);c.stroke();}}}
+ else if(name==='Tile'){c.strokeStyle='rgba(90,90,95,.35)';for(let i=0;i<128;i+=32){c.strokeRect(i,0,32,128);c.strokeRect(0,i,128,32);}}
+ else if(name==='Stone'){c.strokeStyle='rgba(40,40,38,.28)';for(let i=0;i<8;i++){c.beginPath();c.arc(16+i*14,20+(i%3)*30,8+i%5,0,6.28);c.stroke();}}
+ else if(name==='Metal'){c.strokeStyle='rgba(240,245,250,.25)';for(let y=0;y<128;y+=4){c.beginPath();c.moveTo(0,y);c.lineTo(128,y);c.stroke();}}
+ const map=new T.CanvasTexture(canvas);map.colorSpace=T.SRGBColorSpace;map.wrapS=map.wrapT=T.RepeatWrapping;map.repeat.set(2,2);return map;
+}
 export function layout(kind,n,p,yaw=0,height=0){
  const cells=[],vertical=kind==='Wall',side=Math.round(yaw/(Math.PI/2))%2!==0;
  for(let a=0;a<n;a++)for(let b=0;b<n;b++){
   const center=new T.Vector3(p.x,height,p.z),size=new T.Vector3(CELL,.12,CELL);
   if(vertical){size.set(side?.12:CELL,CELL,side?CELL:.12);center[side?'z':'x']+=a*CELL;center.y+=(b+.5)*CELL;}
-  else{center.x+=a*CELL;center.z+=b*CELL;center.y+=kind==='Ceiling'?.06:-.06;}
+  else{center.x+=a*CELL;center.z+=b*CELL;center.y+=kind==='Ceiling'?.06:.025;}
   cells.push({center,size});
  }
  return cells;
@@ -43,8 +53,8 @@ export class Builder {
   let p;
   if(this.kind==='Ceiling'&&this.isCeiling(part)){
    const look=ray.direction.clone();look.y=0;if(look.lengthSq()<.0001)look.set(0,0,-1);look.normalize();
-   const alongX=Math.abs(look.x)>=Math.abs(look.z);
-   p=new T.Vector3(part.p.x+(alongX?Math.sign(look.x||1)*CELL:0),0,part.p.z+(!alongX?Math.sign(look.z||1)*CELL:0));
+   const alongX=Math.abs(look.x)>=Math.abs(look.z),gap=(1+this.size)*CELL/2;
+   p=new T.Vector3(part.p.x+(alongX?Math.sign(look.x||1)*gap:0),0,part.p.z+(!alongX?Math.sign(look.z||1)*gap:0));
    p._ceiling=part;
   }else if(this.isWall(part))p=new T.Vector3(part.p.x,0,part.p.z);
   else if(this.kind==='Ceiling'){
@@ -73,23 +83,26 @@ export class Builder {
  snapCeiling(spec,wall,ceiling){
   let top=wall?wall.p.y+wall.size.y/2:-Infinity;
   if(ceiling)top=Math.max(top,ceiling.p.y-ceiling.size.y/2);
-  const reach=spec.n*CELL+CELL*2;
+  const reach=spec.n*CELL+CELL*2,gap=(1+spec.n)*CELL/2;
+  let best=null,bd=1e9;
   for(const part of this.world.fractures.parts){
    if(this.isCeiling(part)){
     const dx=Math.abs(part.p.x-spec.x),dz=Math.abs(part.p.z-spec.z);
     if(dx<reach&&dz<reach){
      top=Math.max(top,part.p.y-part.size.y/2);
-     const neighbor=dx<=spec.n*CELL+CELL*.51&&dz<=spec.n*CELL+CELL*.51;
-     if(neighbor){
-      if(dx>dz&&dx>CELL*.2)spec.x=part.p.x+Math.sign(spec.x-part.p.x||1)*CELL;
-      else if(dz>CELL*.2)spec.z=part.p.z+Math.sign(spec.z-part.p.z||1)*CELL;
-      spec.x=Math.round(spec.x/CELL)*CELL;spec.z=Math.round(spec.z/CELL)*CELL;
-     }
+     const dist=Math.hypot(dx,dz);
+     if(dist<bd&&(dx>CELL*.2||dz>CELL*.2)){bd=dist;best=part;}
     }
     continue;
    }
    if(!this.isWall(part))continue;
    if(Math.abs(part.p.x-spec.x)<reach&&Math.abs(part.p.z-spec.z)<reach)top=Math.max(top,part.p.y+part.size.y/2);
+  }
+  if(best){
+   const dx=spec.x-best.p.x,dz=spec.z-best.p.z;
+   if(Math.abs(dx)>=Math.abs(dz)&&Math.abs(dx)>CELL*.2)spec.x=best.p.x+Math.sign(dx||1)*gap;
+   else if(Math.abs(dz)>CELL*.2)spec.z=best.p.z+Math.sign(dz||1)*gap;
+   spec.x=Math.round(spec.x/CELL)*CELL;spec.z=Math.round(spec.z/CELL)*CELL;
   }
   if(top>-Infinity)spec.height=Math.round(top/CELL)*CELL;
  }
@@ -126,16 +139,7 @@ export class Builder {
   const cells=spec.kind==='Furniture'?[{center:this.furnitureBounds(spec).getCenter(new T.Vector3()),size:this.furnitureBounds(spec).getSize(new T.Vector3())}]:this.cells(spec);
   this.ghost.children.forEach((m,i)=>{m.visible=i<cells.length;if(m.visible){m.position.copy(cells[i].center);m.scale.copy(cells[i].size);}});
  }
- texture(name){
-  if(this.maps.has(name))return this.maps.get(name);
-  const canvas=document.createElement('canvas');canvas.width=canvas.height=128;const c=canvas.getContext('2d');c.fillStyle='#'+SURFACES[name].color.toString(16).padStart(6,'0');c.fillRect(0,0,128,128);
-  c.strokeStyle=name==='Brick'?'#d2b5a1':'rgba(35,30,25,.22)';c.lineWidth=3;
-  if(name==='Brick'){for(let y=0;y<128;y+=32){c.beginPath();c.moveTo(0,y);c.lineTo(128,y);c.stroke();for(let x=(y/32%2)*32;x<128;x+=64){c.beginPath();c.moveTo(x,y);c.lineTo(x,y+32);c.stroke();}}}
-  else if(name==='Wood'){for(let x=0;x<128;x+=32){c.strokeRect(x,0,32,128);for(let j=0;j<5;j++){c.beginPath();c.moveTo(x+5+j*4,0);c.bezierCurveTo(x+j*5,40,x+20,80,x+5+j*4,128);c.stroke();}}}
-  else if(name==='Tile')c.strokeRect(2,2,124,124);
-  else if(name==='Metal'){c.strokeStyle='rgba(240,245,250,.25)';for(let y=0;y<128;y+=4){c.beginPath();c.moveTo(0,y);c.lineTo(128,y);c.stroke();}}
-  const map=new T.CanvasTexture(canvas);map.colorSpace=T.SRGBColorSpace;map.wrapS=map.wrapT=T.RepeatWrapping;this.maps.set(name,map);return map;
- }
+ texture(name){if(this.maps.has(name))return this.maps.get(name);const map=makeSurfaceMap(name);this.maps.set(name,map);return map;}
  place(ray){if(!this.active)return false;const p=this.target(ray);if(!p){this.status='Aim down at ground within 18 metres.';return true;}this.add(this.specification(p));return true;}
  add(spec,restoring=false){
   if(this.records.length>=240||!this.valid(spec)){this.status='Blocked, overlapping, outside map, or build limit reached.';return false;}
@@ -148,6 +152,7 @@ export class Builder {
    const cells=this.cells(spec),min=cells[0].center.clone(),max=cells[cells.length-1].center.clone(),size=max.clone().sub(min).add(cells[0].size),center=min.add(max).multiplyScalar(.5);
    object=this.world.fractures.panel(center,size,SURFACES[spec.surface].kind,()=>false,{cells,map:this.texture(spec.surface)});
    object.name=spec.surface+' '+spec.kind;
+   if(spec.kind==='Floor'){this.world.floors??=[];for(const c of cells)this.world.floors.push({x:c.center.x,z:c.center.z,w:c.size.x,d:c.size.z,y:c.center.y-c.size.y/2,h:c.size.y,object});}
   }
   if(!object)return false;this.records.push({spec:{...spec},object});this.status='Placed '+(spec.kind==='Furniture'?spec.furniture:spec.n+'×'+spec.n+' '+spec.surface+' '+spec.kind.toLowerCase());return true;
  }
@@ -160,6 +165,7 @@ export class Builder {
   this.world.removeObstacle(record.object.userData.obstacle);
   if(this.world.stairs)this.world.stairs=this.world.stairs.filter(g=>g!==record.object);
   this.world.fractures.parts=this.world.fractures.parts.filter(p=>!objects.has(p.mesh));this.world.pickables=this.world.pickables.filter(o=>!objects.has(o));this.wardrobe.tokens=this.wardrobe.tokens.filter(o=>!objects.has(o));
+  if(this.world.floors)this.world.floors=this.world.floors.filter(f=>f.object!==record.object);
   record.object.removeFromParent();record.object.traverse(o=>{o.geometry?.dispose();if(o.material)for(const m of Array.isArray(o.material)?o.material:[o.material])m.dispose();});this.status='Removed last placement.';
  }
  snapshot(){return this.records.map(r=>({...r.spec,broken:r.object.userData.chunks?.filter(p=>p.broken).map(p=>p.index)||[]}));}

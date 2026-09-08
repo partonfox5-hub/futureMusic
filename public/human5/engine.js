@@ -1,17 +1,17 @@
-import {Builder,FURNITURE,SURFACES} from './mira-v2-builder.js?v=12.9';
+import {Builder,FURNITURE,SURFACES} from './mira-v2-builder.js?v=13.0';
 import {SmoothLocomotion} from './mira-v2-locomotion.js?v=12.9';
-import {Car} from './mira-v2-car.js?v=11.0';
+import {Car} from './mira-v2-car.js?v=13.0';
 import {Restraints} from './mira-v2-restraints.js?v=12.4';
-import { createDogSystem } from './mira-v2-dog.js?v=12.9';
+import { createDogSystem } from './mira-v2-dog.js?v=13.0';
 import {Injuries} from './mira-v2-injuries.js?v=12.9';
-import {Props,WEAPONS} from './mira-v2-props.js?v=12.9';
+import {Props,WEAPONS} from './mira-v2-props.js?v=13.0';
 import {RoomLight} from './mira-v2-light.js?v=11.0';
 import {draft,saveDraft,spawnOptions,OUTFITS,clothingItems} from './mira-v2-catalog.js?v=11.0';
-import {MiraWorld,SCENES} from './mira-v2-world.js?v=12.9';
+import {MiraWorld,SCENES} from './mira-v2-world.js?v=13.0';
 import {Wardrobe,GARMENTS} from './mira-v2-wardrobe.js?v=11.2';
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { createVRMenu } from "./mira-vr-menu.js?v=12.9";
+import { createVRMenu } from "./mira-vr-menu.js?v=13.0";
 import { snapshot, savePreset, loadPreset, applyPreset, listPresets, lastPresetName, downloadPreset } from "./mira-v2-preset.js?v=11.5";
 import { unlockSfx } from "./mira-v2-sfx.js?v=11.0";
 import { EMOTION_NAMES, IDLE_NAMES, WALK_NAMES, ATTENTION_MODES } from "./mira-v2-features.js?v=12.9";
@@ -53,7 +53,7 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x6b5e52);
 const rig = new THREE.Group();
 scene.add(rig);
-const camera = new THREE.PerspectiveCamera(70, innerWidth / innerHeight, 0.05, 220);
+const camera = new THREE.PerspectiveCamera(70, innerWidth / innerHeight, 0.05, 450);
 camera.position.set(0, 1.45, 2.6);
 camera.lookAt(0, 0.95, 0);
 rig.add(camera);
@@ -61,8 +61,8 @@ scene.add(new THREE.HemisphereLight(0xf5f8ff, 0x82766d, 0.72));
 const key = new THREE.DirectionalLight(0xfff4ee, 1.65);
 key.position.set(1.4, 3.2, 2.8);
 key.castShadow=true;key.shadow.mapSize.set(QUEST?1024:2048,QUEST?1024:2048);
-key.shadow.camera.left=-2.5;key.shadow.camera.right=2.5;key.shadow.camera.top=2.7;key.shadow.camera.bottom=-1.0;
-key.shadow.camera.near=.1;key.shadow.camera.far=9;key.shadow.bias=-.0001;key.shadow.normalBias=.010;
+key.shadow.camera.left=-8;key.shadow.camera.right=8;key.shadow.camera.top=8;key.shadow.camera.bottom=-4;
+key.shadow.camera.near=.1;key.shadow.camera.far=28;key.shadow.bias=-.0001;key.shadow.normalBias=.010;
 scene.add(key);
 // Broad photographic key/fill balance. V2 skin avoids
 // low-resolution self-shadow acne; the floor retains contact shadows.
@@ -103,7 +103,10 @@ document.getElementById("enterVrSharp")?.addEventListener("click",()=>{unlockSfx
 
 const mira = createMiraSystem({ scene, renderer, camera, xrOn: XR_ON, rig });
 const world=new MiraWorld(scene,mira);mira.setEnvironment(world);floor.visible=false;const wardrobe=new Wardrobe(scene,mira,mira.contacts,world);mira.setWardrobe(wardrobe);
-const props=new Props({scene,system:mira,world,wardrobe,camera,renderer,rig});world.interactions=props;props.restraints=new Restraints(props);props.injuries=new Injuries(props);props.vehicle=new Car(props,{orbit,keys,controls});
+const props=new Props({scene,system:mira,world,wardrobe,camera,renderer,rig});world.interactions=props;props.restraints=new Restraints(props);props.injuries=new Injuries(props);
+const carBlue=new Car(props,{orbit,keys,controls,color:0x1e4f8a,name:'Blue car'});
+const carRed=new Car(props,{orbit,keys,controls,color:0xb42222,name:'Red car'});
+props.vehicle=carBlue;props.vehicles=[carBlue,carRed];
 const dogs=createDogSystem({scene,mira,system:mira,world,props,camera,renderer,THREE});props.dogs=dogs;
 const builder=new Builder(world,wardrobe,props);props.builder=builder;
 const roomLight=new RoomLight(scene,renderer,rig);
@@ -148,7 +151,9 @@ renderer.domElement.addEventListener('pointerdown',e=>{groundClick=!XR_ON()&&!gr
 renderer.domElement.addEventListener('pointerup',e=>{const c=groundClick;groundClick=null;if(!c||c.id!==e.pointerId||Math.hypot(c.x-e.clientX,c.y-e.clientY)>5||performance.now()-c.t>650)return;pointerRay(e);const result=mira.pointCommand(pickRay.ray);if(result)syncHud();});
 renderer.domElement.addEventListener('pointercancel',()=>groundClick=null);
 renderer.domElement.addEventListener('pointerdown',e=>{if(XR_ON()||e.shiftKey||grabMode||e.button!==0)return;pointerRay(e);if(props.desktop(pickRay.ray)){groundClick=null;e.preventDefault();e.stopImmediatePropagation();}},true);
-document.addEventListener('keydown',e=>{if(/INPUT|TEXTAREA|SELECT/.test(e.target.tagName))return;if(e.code==='KeyQ')props.drop('desktop');if(e.code==='Escape')builder.stop();if(e.code==='KeyE'){props.vehicle.driving?props.vehicle.exit():props.vehicle.enter();}});
+function activeCar(){return props.cars().find(c=>c.driving)||props.vehicle;}
+function nearestCar(){const p=camera.getWorldPosition(new THREE.Vector3());return props.cars().slice().sort((a,b)=>a.group.position.distanceToSquared(p)-b.group.position.distanceToSquared(p))[0]||props.vehicle;}
+document.addEventListener('keydown',e=>{if(/INPUT|TEXTAREA|SELECT/.test(e.target.tagName))return;if(e.code==='KeyQ')props.drop('desktop');if(e.code==='Escape')builder.stop();if(e.code==='KeyE'){const c=activeCar();c.driving?c.exit():nearestCar().enter();}});
 const clothHandle=new THREE.Object3D();let clothPointer=null;
 renderer.domElement.addEventListener('pointerdown',e=>{if(XR_ON()||e.shiftKey||grabMode||e.button!==0)return;pointerRay(e);if(wardrobe.begin(pickRay.ray,clothHandle,'desktop')){clothPointer=e.pointerId;orbit.enabled=false;renderer.domElement.setPointerCapture(e.pointerId);e.preventDefault();e.stopImmediatePropagation();}},true);
 renderer.domElement.addEventListener('pointermove',e=>{if(clothPointer!==e.pointerId)return;pointerRay(e);wardrobe.move('desktop',pickRay.ray);});
@@ -182,7 +187,7 @@ const vrMenu=createVRMenu({spawnConfigured,copyConfiguration,scene,renderer,came
 function selected() { return mira.selected; }
 
 function bindHud() {
- document.getElementById('enterCar').onclick=()=>props.vehicle.enter();document.getElementById('exitCar').onclick=()=>props.vehicle.exit();document.getElementById('repairCar').onclick=()=>props.vehicle.reset();document.getElementById('mirrorOn').onchange=e=>props.vehicle.mirrorEnabled=e.target.checked;
+ document.getElementById('enterCar').onclick=()=>nearestCar().enter();document.getElementById('exitCar').onclick=()=>activeCar().exit();document.getElementById('repairCar').onclick=()=>{for(const c of props.cars())c.reset();};document.getElementById('mirrorOn').onchange=e=>{for(const c of props.cars())c.mirrorEnabled=e.target.checked;};
 
  document.getElementById('placeLink').onclick=()=>props.restraints.start();document.getElementById('cancelLink').onclick=()=>props.restraints.cancel();document.getElementById('linkMode').onchange=e=>props.restraints.mode=e.target.value;document.getElementById('linkSelect').onchange=e=>props.restraints.selected=props.restraints.links.find(l=>l.id===Number(e.target.value));document.getElementById('linkLength').oninput=e=>props.restraints.setLength(e.target.value);document.getElementById('cutLink').onclick=()=>props.restraints.cut();document.getElementById('removeLink').onclick=()=>props.restraints.remove();document.getElementById('injuryEnabled').onchange=e=>props.injuries.enabled=e.target.checked;document.getElementById('allowSever').onchange=e=>props.injuries.allowSever=e.target.checked;document.getElementById('healActor').onclick=()=>props.injuries.heal(selected());document.getElementById('clearBodies').onclick=()=>{const msg=props.injuries.clearBodies();const st=document.getElementById('linkStatus');if(st)st.textContent=msg;syncHud();};
 
@@ -381,11 +386,11 @@ function bindHud() {
 
 const locomotion = new SmoothLocomotion(rig,camera,world);
 function tickLocomotion(dt) {
- if(XR_ON())locomotion.tick(dt,renderer.xr.getSession()?.inputSources||[],vrMenu.isOpen||props.vehicle.driving);
+ if(XR_ON())locomotion.tick(dt,renderer.xr.getSession()?.inputSources||[],vrMenu.isOpen||props.driving());
 }
 
 function desktopMove(dt) {
-  if(props.vehicle.driving)return;
+  if(props.driving())return;
   if (XR_ON()) return;
   if (!controls || !controls.isLocked) return;
   const sp = (keys.ShiftLeft ? 2.8 : 1.4) * dt;
@@ -414,11 +419,11 @@ function tick(time,frame) {
   if(builder.active){if(XR_ON()){builder.tick(renderer.xr.getSession());builder.preview(props.ray(builder.controller));}else{if(controls?.isLocked)pickRay.setFromCamera(new THREE.Vector2(),camera);builder.preview(pickRay.ray);}}
   const buildStatus=document.getElementById('buildStatus');if(buildStatus)buildStatus.textContent=builder.status;
   tickLocomotion(dt);
-  if(XR_ON()&&!props.vehicle.driving){const eye=camera.getWorldPosition(new THREE.Vector3()),before=eye.clone();world.project(eye,.18,.10,1.5);eye.x=THREE.MathUtils.clamp(eye.x,-world.extent,world.extent);eye.z=THREE.MathUtils.clamp(eye.z,-world.extent,world.extent);rig.position.add(eye.sub(before));}
+  if(XR_ON()&&!props.driving()){const eye=camera.getWorldPosition(new THREE.Vector3()),before=eye.clone();world.project(eye,.18,.10,1.5);eye.x=THREE.MathUtils.clamp(eye.x,-world.extent,world.extent);eye.z=THREE.MathUtils.clamp(eye.z,-world.extent,world.extent);rig.position.add(eye.sub(before));}
   if (mira.ready) {mira.tick(dt, clock.elapsedTime, keys);props.tick(dt);dogs.tick(dt);}
   const propStatus=document.getElementById("propStatus");if(propStatus&&propStatus.textContent!==props.status)propStatus.textContent=props.status;
   const ls=document.getElementById('linkSelect'),stamp=props.restraints.links.map(l=>l.id+':'+l.broken).join('/');if(ls.dataset.stamp!==stamp){ls.replaceChildren(new Option('Select link',''),...props.restraints.links.map(l=>new Option('Link '+l.id+(l.broken?' · cut':''),l.id)));ls.dataset.stamp=stamp;}ls.value=props.restraints.selected?.id||'';if(document.activeElement?.id!=='linkLength'&&document.activeElement?.id!=='rpRange')document.getElementById('linkLength').value=props.restraints.selected?.length||1;document.getElementById('linkStatus').textContent=props.restraints.status;
-  document.getElementById('carStatus').textContent=props.vehicle.driving?Math.round(props.vehicle.velocity.length()*3.6)+' km/h · '+props.vehicle.status:props.vehicle.status;
+  const car=activeCar();document.getElementById('carStatus').textContent=car.driving?Math.round(car.velocity.length()*3.6)+' km/h · '+car.status:props.cars().map(c=>c.status).join(' · ');
   fpsFrames++;
   const now = performance.now();
   if (statsEl && now - fpsLast > 400) {
@@ -428,7 +433,7 @@ function tick(time,frame) {
     statsEl.textContent = `MIRA  ${fps.toFixed(0)} fps  ·  ${mira.actors.length} actors  ·  ${renderer.info.render.calls} calls`+(XR_ON()&&xrStatus?`  ·  ${xrStatus}`:'');
     const a=selected();document.getElementById("emoLab").textContent=a?.emotion?`${a.emotion.name.toUpperCase()} · ${a.balance.state}`:"V1";
   }
-  props.vehicle.renderMirror();
+  activeCar().renderMirror();
   renderer.render(scene, camera);
 }
 renderer.setAnimationLoop(tick);
@@ -476,7 +481,7 @@ async function enterXr(opts={}) {
     if (ui) ui.style.display = "none";
     session.addEventListener("end", () => {
       sharpMode=false;xrHud.mode='';setXrStatus();
-      props.vehicle.exit();voiceSessionEnd();world.root.visible=true;floor.visible=false;
+      for(const c of props.cars())if(c.driving)c.exit();voiceSessionEnd();world.root.visible=true;floor.visible=false;
       rig.position.set(0, 0, 0); rig.rotation.set(0, 0, 0);
       scene.background = new THREE.Color(world.name==='Beach'?0xaedced:world.name==='Jungle'?0x637f76:0xc2b5a3);
       renderer.setClearColor(0x6b5e52, 1);

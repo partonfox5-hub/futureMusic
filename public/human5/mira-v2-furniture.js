@@ -99,9 +99,9 @@ export function captureFurniture(world,id,objects,x,z){
  }
  assembleMovable(world,id,objects,x,z);
 }
-export function placeStairs(world,p,yaw=0){
+export function placeStairs(world,p,yaw=0,opts={}){
  const group=new T.Group();group.position.copy(p);group.rotation.y=yaw;world.root.add(group);
- const steps=10,rise=.18,run=.26,width=1.02,wood=world.mat(0x8a6848),dark=world.mat(0x5c4634);
+ const steps=opts.steps||16,rise=opts.rise||.1875,run=opts.run||.25,width=opts.width||1.08,wood=world.mat(0x8a6848),dark=world.mat(0x5c4634);
  for(let i=0;i<steps;i++){
   const tread=new T.Mesh(new T.BoxGeometry(width,rise*.42,run),wood);tread.position.set(0,(i+.5)*rise,(i+.5)*run);tread.castShadow=tread.receiveShadow=true;group.add(tread);
   const riser=new T.Mesh(new T.BoxGeometry(width,rise,0.03),dark);riser.position.set(0,i*rise+rise/2,i*run);riser.castShadow=true;group.add(riser);

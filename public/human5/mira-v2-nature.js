@@ -113,10 +113,10 @@ function markLoose(mesh,tree){
  mesh.userData.tree=tree;
  if(mesh.userData.treeSeg)mesh.userData.treeSeg.mesh=mesh;
 }
-function retagWood(world,group,id){
- if(!world||!group?.parent)return null;
+function settleWood(world,group,id){
+ if(!world||!group?.parent||group.userData.furniture)return group;
  const furn=tagMovable(world,group,id||'Log');
- if(furn){furn.log=true;group.userData.log=true;}
+ if(furn){furn.log=true;furn.velocity.set(0,0,0);furn.omega.set(0,0,0);group.userData.log=true;}
  group.traverse(m=>{if(m.isMesh){m.userData.looseWood=true;if(world.fractures&&!m.userData.piece)world.fractures.register(m,'wood');}});
  return group;
 }
@@ -128,48 +128,45 @@ function detachFalling(tree,meshes,dir){
  const origin=live[0].getWorldPosition(V());
  upper.position.copy(origin);
  for(const mesh of live){mesh.updateWorldMatrix(true,true);upper.attach(mesh);markLoose(mesh,tree);}
- const side=new T.Vector3(dir.z,0,-dir.x);if(side.lengthSq()<1e-6)side.set(1,0,0);
- const vel=dir.clone().setY(Math.max(.12,dir.y)).multiplyScalar(.85).add(new T.Vector3(0,.22,0));
- const om=side.normalize().multiplyScalar(1.15);
- const piece={group:upper,velocity:vel,omega:om};
- tree.falling??=[];tree.falling.push(piece);
- upper.userData.tree=tree;upper.traverse(m=>{if(m.isMesh){m.userData.tree=tree;m.userData.looseWood=true;}});
+ const side=new T.Vector3(dir.z,0,-dir.x);if(side.lengthSq()<1e-6)side.set(1,0,0);side.normalize();
  const trunkish=live.some(m=>m.userData.treeSeg?.trunk);
- if(tree.world){
-  retagWood(tree.world,upper,trunkish?'Log':'Branch');
-  const furn=upper.userData.furniture;
-  if(furn){furn.velocity.copy(vel);furn.omega=om.clone();}
- }
+ const piece={group:upper,hinge:side,angle:0,angVel:trunkish?1.05:.7,settled:false,id:trunkish?'Log':'Branch'};
+ tree.falling??=[];tree.falling.push(piece);
+ upper.userData.tree=tree;upper.userData.fallingWood=piece;upper.traverse(m=>{if(m.isMesh){m.userData.tree=tree;m.userData.looseWood=true;}});
  return true;
 }
-function splitLogMesh(world,mesh,dir){
+function splitAlong(world,mesh){
  if(!mesh?.parent||!world)return false;
+ mesh.updateWorldMatrix(true,true);
  const box=new T.Box3().setFromObject(mesh),size=box.getSize(V()),center=box.getCenter(V());
- const axis=size.x>=size.y&&size.x>=size.z?'x':size.y>=size.z?'y':'z';
- if(size[axis]<.28){
-  if(mesh.userData.piece)return world.fractures.impact({object:mesh,point:center,face:{normal:dir.clone()}},28,dir,'cut',.7);
+ const long=Math.max(size.x,size.y,size.z);
+ if(long<.28){
+  if(mesh.userData.piece)return world.fractures.impact({object:mesh,point:center,face:{normal:new T.Vector3(0,1,0)}},24,new T.Vector3(0,-1,0),'cut',.7);
   mesh.visible=false;return true;
  }
+ const q=mesh.getWorldQuaternion(new T.Quaternion());
+ const axis=new T.Vector3(0,1,0).applyQuaternion(q).normalize();
+ const tree=mesh.userData.tree,parent=mesh.parent,id=long>.7?'Log':'Branch',half=long*.48;
  const mat=Array.isArray(mesh.material)?mesh.material[0].clone():mesh.material.clone();
- const half=size[axis]*.48,r=Math.max(.025,Math.min(size.x,size.y,size.z)*.38);
- const tree=mesh.userData.tree,parent=mesh.parent,id=size[axis]>.7?'Log':'Branch';
  for(const sign of [-1,1]){
   const g=new T.Group();world.root.add(g);
-  const cyl=new T.Mesh(new T.CylinderGeometry(r,r*.9,Math.max(.16,half),QUEST?6:8),mat);
-  if(axis==='x')cyl.rotation.z=Math.PI/2;else if(axis==='z')cyl.rotation.x=Math.PI/2;
-  g.position.copy(center);g.position[axis]+=sign*half*.52;g.add(cyl);
-  const seg={index:0,y0:0,y1:half,cut:0,radius:r,trunk:id==='Log',mesh:cyl};
-  cyl.userData.treeSeg=seg;cyl.castShadow=cyl.receiveShadow=true;
-  const stub=tree&&tree.world?tree:{group:g,height:half,radius:r,cut:[seg],fallen:true,falling:[],world};
-  cyl.userData.tree=stub;g.userData.tree=stub;markLoose(cyl,stub);
+  g.position.copy(center).addScaledVector(axis,sign*half*.52);g.quaternion.copy(q);
+  const copy=mesh.clone();copy.material=mat;copy.scale.y*=.48;copy.position.set(0,0,0);copy.quaternion.identity();
+  copy.castShadow=copy.receiveShadow=true;g.add(copy);
+  const seg={index:0,y0:0,y1:half,cut:0,radius:Math.min(size.x,size.z)*.35,trunk:id==='Log',mesh:copy};
+  copy.userData.treeSeg=seg;
+  const stub=tree&&tree.world?tree:{group:g,height:half,radius:seg.radius,cut:[seg],fallen:true,falling:[],world};
+  copy.userData.tree=stub;g.userData.tree=stub;markLoose(copy,stub);
   if(stub!==tree){world.trees??=[];if(!world.trees.includes(stub))world.trees.push(stub);}
   else stub.cut.push(seg);
-  retagWood(world,g,id);
-  const furn=g.userData.furniture;if(furn){furn.velocity.copy(dir.clone().multiplyScalar(sign*.45)).setY(.18);furn.omega=new T.Vector3(sign*.6,.2,-sign*.4);}
+  settleWood(world,g,id);
  }
  mesh.visible=false;mesh.removeFromParent();
- if(parent?.userData?.furniture&&!parent.children.length){world.movables=world.movables.filter(x=>x!==parent);if(parent.userData.furniture.obstacle)world.removeObstacle(parent.userData.furniture.obstacle);parent.removeFromParent();}
- else if(parent?.userData?.furniture)retagWood(world,parent,parent.userData.furniture.id);
+ if(parent?.userData?.furniture&&!parent.children.filter(c=>c.isMesh&&c.visible).length){
+  world.movables=world.movables.filter(x=>x!==parent);
+  if(parent.userData.furniture.obstacle)world.removeObstacle(parent.userData.furniture.obstacle);
+  parent.removeFromParent();
+ }
  return 'split';
 }
 export function ensureGrabbableWood(world,mesh){
@@ -178,7 +175,10 @@ export function ensureGrabbableWood(world,mesh){
  const tree=mesh.userData.tree,seg=mesh.userData.treeSeg;if(!tree||!seg)return null;
  const standingTrunk=seg.trunk&&mesh.parent===tree.group&&!tree.fallen&&!mesh.userData.looseWood;
  if(standingTrunk)return null;
- return detachFalling(tree,[mesh],new T.Vector3(0,.2,0))?furnitureRoot(mesh):null;
+ let group=mesh.parent;
+ if(group===tree.group){if(!detachFalling(tree,[mesh],new T.Vector3(0,0,1)))return null;group=mesh.parent;}
+ if(group?.userData?.fallingWood)group.userData.fallingWood.settled=true;
+ return settleWood(world,group,seg.trunk?'Log':'Branch');
 }
 export function chopTree(tree,point,energy,dir,kind='cut'){
  if(!tree||!tree.group)return false;
@@ -214,7 +214,7 @@ export function chopTree(tree,point,energy,dir,kind='cut'){
  if(loose&&mesh.parent&&mesh.parent.children.filter(c=>c.isMesh&&c.visible).length>1){
   return detachFalling(tree,[mesh],d)?'split':false;
  }
- if(loose)return splitLogMesh(tree.world,mesh,d);
+ if(loose)return splitAlong(tree.world,mesh);
  return detachFalling(tree,mesh?[mesh]:[],d)?'split':false;
 }
 export function tickNature(world,dt){
@@ -223,11 +223,21 @@ export function tickNature(world,dt){
  for(const tree of world.trees){
   for(const piece of tree.falling||[]){
    const g=piece.group;if(!g||!g.parent)continue;
-   if(g.userData.furniture)continue;
-   piece.velocity.y-=9.81*dt;g.position.addScaledVector(piece.velocity,dt);
-   const ang=piece.omega.length();if(ang>1e-4)g.rotateOnWorldAxis(piece.omega.clone().normalize(),ang*dt);piece.omega.multiplyScalar(Math.exp(-dt*1.25));
-   const ground=terrainHeight(g.position.x,g.position.z,pad,amp)+.1;
-   if(g.position.y<ground){g.position.y=ground;if(piece.velocity.y<0)piece.velocity.y*=-.08;piece.velocity.x*=.82;piece.velocity.z*=.82;piece.omega.multiplyScalar(.62);}
+   if(piece.settled||g.userData.furniture){
+    if(!g.userData.furniture)settleWood(world,g,piece.id);
+    continue;
+   }
+   piece.angVel+=8.2*dt*Math.cos(Math.min(piece.angle,1.15));
+   piece.angVel*=Math.exp(-dt*.45);
+   const da=piece.angVel*dt,limit=Math.PI/2-.03;
+   if(piece.angle+da>=limit){
+    g.rotateOnWorldAxis(piece.hinge,limit-piece.angle);
+    piece.angle=limit;piece.settled=true;piece.angVel=0;
+    g.updateWorldMatrix(true,true);
+    const box=new T.Box3().setFromObject(g),ground=terrainHeight(g.position.x,g.position.z,pad,amp)+.04;
+    if(box.min.y<ground)g.position.y+=ground-box.min.y;
+    settleWood(world,g,piece.id);
+   }else{piece.angle+=da;g.rotateOnWorldAxis(piece.hinge,da);}
   }
  }
 }

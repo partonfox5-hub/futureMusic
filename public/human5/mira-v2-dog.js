@@ -1,12 +1,12 @@
 import * as THREE from 'three';
 import { DogModel, clamp } from './src/dog/Dog.js?v=12.7';
-import { DogPaws, floorAt } from './src/dog/DogPaws.js?v=12.1';
+import { DogPaws, floorAt } from './src/dog/DogPaws.js?v=13.0';
 import { DogJaw } from './src/dog/DogJaw.js?v=12.7';
 import { DogTail } from './src/dog/DogTail.js?v=12.1';
 import { DogFur } from './src/dog/DogFur.js?v=12.7';
 import { DogAudio } from './src/dog/DogAudio.js?v=12.8';
-import { DogAI } from './src/dog/DogAI.js?v=12.9';
-import { DogAnim } from './src/dog/DogAnim.js?v=12.9';
+import { DogAI } from './src/dog/DogAI.js?v=13.0';
+import { DogAnim } from './src/dog/DogAnim.js?v=13.0';
 import { BONE_NAMES } from './src/dog/Dog.js?v=12.7';
 const _p=new THREE.Vector3(),_q=new THREE.Vector3();
 function dogNearestHit(handle,pos,maxDist){
