@@ -1,5 +1,5 @@
 import * as T from 'three';
-import {playSfx,unlockSfx} from './mira-v2-sfx.js?v=13.6';
+import {playSfx,unlockSfx} from './mira-v2-sfx.js?v=13.8';
 const V=()=>new T.Vector3(),Q=()=>new T.Quaternion(),M=()=>new T.Matrix4();
 const QUEST=/Quest|OculusBrowser/i.test(globalThis.navigator?.userAgent||'');
 export const GUNS=['pistol','laser','marker','marker2','portal'];

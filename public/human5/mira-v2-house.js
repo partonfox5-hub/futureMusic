@@ -1,6 +1,6 @@
 import * as T from 'three';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
-import {makeSurfaceMap} from './mira-v2-builder.js?v=13.0';
+import {makeSurfaceMap,wallMaterial} from './mira-v2-walls.js?v=13.8';
 import {placeStairs,placeFurniture} from './mira-v2-furniture.js?v=13.4';
 const STORY=3.05;
 export function buildHouse(w){
@@ -9,7 +9,7 @@ export function buildHouse(w){
  const panel=(x,y,z,sx,sy,sz,hole,kind='plaster',map=maps.plaster)=>w.fractures.panel(v(x,y,z),v(sx,sy,sz),kind,hole||(()=>false),{map});
  const round=(x,y,z,sx,sy,sz,color,r=.03)=>w.mesh(new RoundedBoxGeometry(sx,sy,sz,2,Math.min(r,Math.min(sx,sy,sz)*.3)),w.mat(color),x,y,z);
  const slab=(x,z,ww,dd,y,thick,map,kind='wood')=>{
-  const mat=w.mat(0xffffff,.9);mat.map=map;mat.needsUpdate=true;
+  const mat=wallMaterial(kind,map);
   const mesh=w.mesh(new T.BoxGeometry(ww,thick,dd),mat,x,y+thick/2,z);
   w.floors??=[];w.floors.push({x,z,w:ww,d:dd,y,h:thick});
   w.fractures.register(mesh,kind);return mesh;

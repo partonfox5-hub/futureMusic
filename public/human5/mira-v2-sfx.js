@@ -32,6 +32,8 @@ export function playSfx(kind,vol=1){
    const n=noise(c,.16),f=filt(c,'bandpass',900,1.1);env(g,t,.28,.0008,.14);n.connect(f);f.connect(g);n.start(t);n.stop(t+.16);
   }else if(kind==='thud'){
    const o=c.createOscillator();o.type='sine';o.frequency.setValueAtTime(70,t);o.frequency.exponentialRampToValueAtTime(28,t+.18);env(g,t,.7,.0008,.2);o.connect(g);o.start(t);o.stop(t+.2);
+  }else if(kind==='plaster'){
+   const n=noise(c,.22),f=filt(c,'bandpass',780,1.6);env(g,t,.62,.0008,.2);n.connect(f);f.connect(g);n.start(t);n.stop(t+.22);
   }else if(kind==='paint'){
    const n=noise(c,.08),f=filt(c,'bandpass',1400,1.1),o=c.createOscillator();o.type='square';o.frequency.setValueAtTime(420,t);o.frequency.exponentialRampToValueAtTime(90,t+.07);
    env(g,t,.55,.0008,.09);n.connect(f);f.connect(g);o.connect(g);n.start(t);n.stop(t+.08);o.start(t);o.stop(t+.08);
@@ -44,5 +46,5 @@ export function playSfx(kind,vol=1){
   }
  }catch{}
 }
-export function sfxForBreak(kind){if(kind==='glass')return 'glass';if(kind==='metal')return 'metal';if(kind==='wood'||kind==='plaster')return 'wood';return 'impact';}
+export function sfxForBreak(kind){if(kind==='glass')return 'glass';if(kind==='metal')return 'metal';if(kind==='plaster')return 'plaster';if(kind==='wood')return 'wood';return 'impact';}
 export function sfxForHit(kind){if(kind==='laser')return 'laser';if(kind==='bullet')return 'impact';if(kind==='cut')return 'whoosh';if(kind==='scuff')return 'thud';return 'thud';}

@@ -3,16 +3,7 @@ import {FURNITURE,placeFurniture} from './mira-v2-furniture.js?v=13.0';
 export {FURNITURE};
 export const CELL=.6;
 export const SURFACES={Plaster:{kind:'plaster',color:0xc9c1b1},Brick:{kind:'stone',color:0xa26148},Wood:{kind:'wood',color:0x947051},Tile:{kind:'stone',color:0xc3c7c1},Stone:{kind:'stone',color:0x85847c},Metal:{kind:'metal',color:0x929b9d},Glass:{kind:'glass',color:0x9fc1c7}};
-export function makeSurfaceMap(name){
- const canvas=document.createElement('canvas');canvas.width=canvas.height=128;const c=canvas.getContext('2d');c.fillStyle='#'+(SURFACES[name]||SURFACES.Plaster).color.toString(16).padStart(6,'0');c.fillRect(0,0,128,128);
- c.strokeStyle=name==='Brick'?'#d2b5a1':'rgba(35,30,25,.22)';c.lineWidth=3;
- if(name==='Brick'){for(let y=0;y<128;y+=32){c.beginPath();c.moveTo(0,y);c.lineTo(128,y);c.stroke();for(let x=(y/32%2)*32;x<128;x+=64){c.beginPath();c.moveTo(x,y);c.lineTo(x,y+32);c.stroke();}}}
- else if(name==='Wood'){for(let x=0;x<128;x+=32){c.strokeRect(x,0,32,128);for(let j=0;j<5;j++){c.beginPath();c.moveTo(x+5+j*4,0);c.bezierCurveTo(x+j*5,40,x+20,80,x+5+j*4,128);c.stroke();}}}
- else if(name==='Tile'){c.strokeStyle='rgba(90,90,95,.35)';for(let i=0;i<128;i+=32){c.strokeRect(i,0,32,128);c.strokeRect(0,i,128,32);}}
- else if(name==='Stone'){c.strokeStyle='rgba(40,40,38,.28)';for(let i=0;i<8;i++){c.beginPath();c.arc(16+i*14,20+(i%3)*30,8+i%5,0,6.28);c.stroke();}}
- else if(name==='Metal'){c.strokeStyle='rgba(240,245,250,.25)';for(let y=0;y<128;y+=4){c.beginPath();c.moveTo(0,y);c.lineTo(128,y);c.stroke();}}
- const map=new T.CanvasTexture(canvas);map.colorSpace=T.SRGBColorSpace;map.wrapS=map.wrapT=T.RepeatWrapping;map.repeat.set(2,2);return map;
-}
+export {makeSurfaceMap} from './mira-v2-walls.js?v=13.8';
 export function layout(kind,n,p,yaw=0,height=0){
  const cells=[],vertical=kind==='Wall',side=Math.round(yaw/(Math.PI/2))%2!==0;
  for(let a=0;a<n;a++)for(let b=0;b<n;b++){
