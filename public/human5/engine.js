@@ -1,6 +1,6 @@
 import {Builder,FURNITURE,SURFACES} from './mira-v2-builder.js?v=13.0';
 import {SmoothLocomotion} from './mira-v2-locomotion.js?v=12.9';
-import {Car} from './mira-v2-car.js?v=13.0';
+import {Car} from './mira-v2-car.js?v=13.2';
 import {Restraints} from './mira-v2-restraints.js?v=12.4';
 import { createDogSystem } from './mira-v2-dog.js?v=13.0';
 import {Injuries} from './mira-v2-injuries.js?v=12.9';
@@ -11,7 +11,7 @@ import {MiraWorld,SCENES} from './mira-v2-world.js?v=13.1';
 import {Wardrobe,GARMENTS} from './mira-v2-wardrobe.js?v=11.2';
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { createVRMenu } from "./mira-vr-menu.js?v=13.0";
+import { createVRMenu } from "./mira-vr-menu.js?v=13.2";
 import { snapshot, savePreset, loadPreset, applyPreset, listPresets, lastPresetName, downloadPreset } from "./mira-v2-preset.js?v=11.5";
 import { unlockSfx } from "./mira-v2-sfx.js?v=11.0";
 import { EMOTION_NAMES, IDLE_NAMES, WALK_NAMES, ATTENTION_MODES } from "./mira-v2-features.js?v=12.9";
@@ -187,7 +187,7 @@ const vrMenu=createVRMenu({spawnConfigured,copyConfiguration,scene,renderer,came
 function selected() { return mira.selected; }
 
 function bindHud() {
- document.getElementById('enterCar').onclick=()=>nearestCar().enter();document.getElementById('exitCar').onclick=()=>activeCar().exit();document.getElementById('repairCar').onclick=()=>{for(const c of props.cars())c.reset();};document.getElementById('mirrorOn').onchange=e=>{for(const c of props.cars())c.mirrorEnabled=e.target.checked;};
+ document.getElementById('enterCar').onclick=()=>nearestCar().enter();document.getElementById('exitCar').onclick=()=>activeCar().exit();document.getElementById('carGear')?.addEventListener('click',()=>activeCar().cycleGear());document.getElementById('repairCar').onclick=()=>{for(const c of props.cars())c.reset();};document.getElementById('mirrorOn').onchange=e=>{for(const c of props.cars())c.mirrorEnabled=e.target.checked;};
 
  document.getElementById('placeLink').onclick=()=>props.restraints.start();document.getElementById('cancelLink').onclick=()=>props.restraints.cancel();document.getElementById('linkMode').onchange=e=>props.restraints.mode=e.target.value;document.getElementById('linkSelect').onchange=e=>props.restraints.selected=props.restraints.links.find(l=>l.id===Number(e.target.value));document.getElementById('linkLength').oninput=e=>props.restraints.setLength(e.target.value);document.getElementById('cutLink').onclick=()=>props.restraints.cut();document.getElementById('removeLink').onclick=()=>props.restraints.remove();document.getElementById('injuryEnabled').onchange=e=>props.injuries.enabled=e.target.checked;document.getElementById('allowSever').onchange=e=>props.injuries.allowSever=e.target.checked;document.getElementById('healActor').onclick=()=>props.injuries.heal(selected());document.getElementById('clearBodies').onclick=()=>{const msg=props.injuries.clearBodies();const st=document.getElementById('linkStatus');if(st)st.textContent=msg;syncHud();};
 
@@ -423,7 +423,7 @@ function tick(time,frame) {
   if (mira.ready) {mira.tick(dt, clock.elapsedTime, keys);props.tick(dt);dogs.tick(dt);}
   const propStatus=document.getElementById("propStatus");if(propStatus&&propStatus.textContent!==props.status)propStatus.textContent=props.status;
   const ls=document.getElementById('linkSelect'),stamp=props.restraints.links.map(l=>l.id+':'+l.broken).join('/');if(ls.dataset.stamp!==stamp){ls.replaceChildren(new Option('Select link',''),...props.restraints.links.map(l=>new Option('Link '+l.id+(l.broken?' · cut':''),l.id)));ls.dataset.stamp=stamp;}ls.value=props.restraints.selected?.id||'';if(document.activeElement?.id!=='linkLength'&&document.activeElement?.id!=='rpRange')document.getElementById('linkLength').value=props.restraints.selected?.length||1;document.getElementById('linkStatus').textContent=props.restraints.status;
-  const car=activeCar();document.getElementById('carStatus').textContent=car.driving?Math.round(car.velocity.length()*3.6)+' km/h · '+car.status:props.cars().map(c=>c.status).join(' · ');
+  document.getElementById('carStatus').textContent=activeCar().status;
   fpsFrames++;
   const now = performance.now();
   if (statsEl && now - fpsLast > 400) {

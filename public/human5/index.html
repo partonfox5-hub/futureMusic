@@ -151,7 +151,7 @@
 <p id="presetStatus">Saves NPCs, clothes, construction, scene, camera, car and spawn settings.</p>
 <label for="wardrobeSelect">Clothing</label><select id="wardrobeSelect" data-runtime></select><button type="button" id="wearBtn" data-runtime>DRESS SELECTED MIRA</button>
 <p>Drag garments from the wooden rack onto Mira. Drag worn cloth to pull it off. Point at a chair to sit.</p>
-<h2>DRIVEWAY CAR</h2><div class="row"><button id="enterCar" data-runtime>ENTER CAR (E)</button><button id="exitCar" data-runtime>EXIT CAR (E)</button><button id="repairCar" data-runtime>REPAIR / RESET</button></div><label><input id="mirrorOn" type="checkbox" checked data-runtime> Rear-view mirror</label><p id="carStatus">Desktop: W/S drive/reverse, A/D steer, Space brake. VR: grip wheel, left trigger accelerates, X brakes.</p>
+<h2>GARAGE CARS</h2><div class="row"><button id="enterCar" data-runtime>ENTER CAR (E)</button><button id="exitCar" data-runtime>EXIT CAR (E)</button><button id="carGear" data-runtime>GEAR P / N / D</button><button id="repairCar" data-runtime>REPAIR / RESET</button></div><label><input id="mirrorOn" type="checkbox" checked data-runtime> Rear-view mirror</label><p id="carStatus">Desktop: W/S drive/reverse, A/D steer, Space brake. VR: grip stalk for P/N/D, grip wheel to steer, left trigger in D/N, X brakes. Two cars in the garage (blue + red).</p>
 <h2>LINKS &amp; INJURIES</h2><label for="linkMode">Attachment type</label><select id="linkMode" data-runtime><option value="rope">Flexible tether</option><option value="fuse">Short fixed link</option></select><div class="row"><button id="placeLink" data-runtime>PLACE TWO ANCHORS</button><button id="cancelLink" data-runtime>CANCEL</button></div><label for="linkSelect">Selected link</label><select id="linkSelect" data-runtime></select><label for="linkLength">Link length (metres)</label><input id="linkLength" type="range" min="0.03" max="5" step="0.01" value="1" data-runtime><div class="row"><button id="cutLink" data-runtime>CUT LINK</button><button id="removeLink" data-runtime>REMOVE LINK</button></div><p id="linkStatus">In VR, click left thumbstick to attach each endpoint.</p><label><input id="injuryEnabled" type="checkbox" checked data-runtime> Bloodless injury reactions</label><label><input id="allowSever" type="checkbox" checked data-runtime> Sharp weapons can sever limbs and heads</label><div class="row"><button id="healActor" data-runtime>RESTORE SELECTED NPC</button><button id="clearBodies" data-runtime>CLEAR BODIES</button></div>
 <h2>PERSONALITY</h2>
       <textarea id="persona" rows="5" style="width:100%;box-sizing:border-box;background:#1a1614;color:#f4efe8;border:1px solid #7eb6ff;border-radius:8px;padding:8px;font:12px/1.35 'Segoe UI',sans-serif;"></textarea>
@@ -180,6 +180,6 @@
         <button type="button" class="ghost" id="firstPerson" data-runtime>First person</button>
       </div>
     </div>
-    <script type="module" src="/human5/mira-boot.js?v=13.1"></script>
+    <script type="module" src="/human5/mira-boot.js?v=13.2"></script>
   </body>
 </html>
