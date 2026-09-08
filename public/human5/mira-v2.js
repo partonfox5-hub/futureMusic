@@ -2,7 +2,7 @@ import {restoreSurfaceUV} from './mira-v2-uv.js?v=11.0';
 import {BodyContacts} from './mira-v2-contact.js?v=11.0';
 import {MiraSocial} from './mira-v2-social.js?v=11.0';
 import {ContactHaptics} from './mira-v2-haptics.js?v=11.0';
-import { createV2Class, repairArmRestData } from "./mira-v2-features.js?v=13.3";
+import { createV2Class, repairArmRestData, makeFingerRig, fingerRotation } from "./mira-v2-features.js?v=13.7";
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { clone as cloneSkinned } from "three/addons/utils/SkeletonUtils.js";
@@ -1264,7 +1264,7 @@ class RubberBall {
 
 class PlayerHands {
   constructor(renderer,parent){
-    this.renderer=renderer;this.active=[false,false];this.colliders=[];this.haptics=new ContactHaptics(renderer);
+    this.fingerTime=0;this.renderer=renderer;this.active=[false,false];this.colliders=[];this.haptics=new ContactHaptics(renderer);
     this.ctrl=[renderer.xr.getController(0),renderer.xr.getController(1)];
     this.grip=[renderer.xr.getControllerGrip(0),renderer.xr.getControllerGrip(1)];
     this.squeeze=[0,0];this.hands=[];this.handedness=['none','none'];this.prevReady=[false,false];
@@ -1309,23 +1309,23 @@ class PlayerHands {
       const palmSign=side==='L'?-1:1;
       const canonical=new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(new THREE.Vector3(0,palmSign,0),new THREE.Vector3(0,0,-1),new THREE.Vector3(-palmSign,0,0)));
       root.quaternion.copy(canonical).multiply(wristQ.invert());root.position.copy(wristP).applyQuaternion(root.quaternion).negate().add(new THREE.Vector3(0,-.008,-.014));
-      root.visible=false;this.hands[i].add(root);this.hands[i].userData.rigs[side]={root,bones,bind,triangles};
+      root.visible=false;this.hands[i].add(root);this.hands[i].userData.rigs[side]={root,bones,bind,triangles,fingers:makeFingerRig(bones,bind,side)};
     }
   }
   palmPos(i,out=new THREE.Vector3()){return this.grip[i].localToWorld(out.set(0,-.012,-.05));}
   tick(dt,actors){
-    this.colliders.length=0;this.haptics.advance(dt);
+    this.fingerTime+=dt;this.colliders.length=0;this.haptics.advance(dt);
     for(let i=0;i<2;i++){
       const h=this.hands[i];h.visible=this.renderer.xr.isPresenting&&this.active[i]&&this.grip[i].visible;
       if(!h.visible){this.prevReady[i]=false;this.vel[i].set(0,0,0);continue;}
       const side=this.handedness[i]==='left'?'L':'R',rig=h.userData.rigs[side];h.userData.fallback.visible=!rig;
       for(const [s,r] of Object.entries(h.userData.rigs))r.root.visible=s===side;
       if(rig){
-        const curl=h.userData.curl=THREE.MathUtils.damp(h.userData.curl||.12,.12+this.squeeze[i]*.78,15,dt);
-        for(const [f,name] of ['Index','Mid','Ring','Pinky'].entries())for(let j=1;j<=3;j++){
-          const n=side+'_'+name+j,b=rig.bones[n];if(b)b.quaternion.copy(rig.bind[n]).multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(j===1?-(f-1.5)*.025:0,0,(side==='L'?-1:1)*curl*[.55,1.05,.72][j-1]*(.88+f*.08))));
+        const curl=h.userData.curl=THREE.MathUtils.damp(h.userData.curl??.21,.21+this.squeeze[i]*.69,15,dt);
+        const delta=new THREE.Quaternion();
+        for(const row of ['Thumb','Index','Mid','Ring','Pinky'])for(let j=1;j<=3;j++){
+          const n=side+'_'+row+j,b=rig.bones[n];if(b)b.quaternion.copy(rig.bind[n]).multiply(fingerRotation(rig.fingers,row,j,curl,this.fingerTime,delta));
         }
-        for(let j=1;j<=3;j++){const n=side+'_Thumb'+j,b=rig.bones[n];if(b)b.quaternion.copy(rig.bind[n]).multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(j===1?.08:0,j===1?(side==='L'?.15:-.15):0,(side==='L'?-1:1)*curl*.45)));}
       }
       const p=this.palmPos(i,new THREE.Vector3()),reacted=new Set(),firstCollider=this.colliders.length;
       const report=(kind,speed,depth)=>this.haptics.contact(i,kind,speed,depth);

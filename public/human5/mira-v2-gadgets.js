@@ -5,7 +5,17 @@ const QUEST=/Quest|OculusBrowser/i.test(globalThis.navigator?.userAgent||'');
 export const GUNS=['pistol','laser','marker','marker2','portal'];
 export const MELEE=['sword','axe','mace'];
 const PORTAL_COLORS=[0x3aa0ff,0xff9a32];
+const PORTAL_W=1.18,PORTAL_H=2.22,PORTAL_T=.05;
 const dummy=new T.Object3D();
+const portalVert=`varying vec4 vProj;uniform mat4 portalMatrix;
+void main(){vec4 world=modelMatrix*vec4(position,1.0);vProj=portalMatrix*world;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`;
+const portalFrag=`varying vec4 vProj;uniform sampler2D map;uniform vec3 col;uniform float hasPair;
+void main(){
+ if(hasPair<.5){gl_FragColor=vec4(col*.10,1.0);return;}
+ vec2 uv=vProj.xy/max(vProj.w,1e-4)*.5+.5;
+ if(uv.x<0.0||uv.x>1.0||uv.y<0.0||uv.y>1.0){gl_FragColor=vec4(col*.07,1.0);return;}
+ gl_FragColor=texture2D(map,uv);
+}`;
 
 function gVal(world){const g=world?.gravity;return Number.isFinite(g)?g:9.81;}
 
@@ -59,6 +69,12 @@ class Gadgets {
    m.castShadow=true;m.visible=false;this.scene.add(m);
    this.ballPool.push({mesh:m,live:false,vel:V(),age:0,color:0x2aa0e8});
   }
+  const rtW=QUEST?384:768,rtH=QUEST?704:1408;
+  this.portalRT=[0,1].map(()=>new T.WebGLRenderTarget(rtW,rtH,{minFilter:T.LinearFilter,magFilter:T.LinearFilter,generateMipmaps:false,depthBuffer:true}));
+  this.vcam=new T.PerspectiveCamera();this.vcam.matrixAutoUpdate=false;
+  this.portalFlip=new T.Matrix4().makeRotationY(Math.PI);
+  this._m1=new T.Matrix4();this._plane=new T.Vector4();this._q4=new T.Vector4();
+  this._rendering=false;
  }
 
  gravity(){return gVal(this.world);}
@@ -222,28 +238,44 @@ Gadgets.prototype.shootPortal=function(item,aim){
  if(typeof item.holder==='number')this.props.system.hands.haptics?.contact(item.holder,'prop',1,.006);
 };
 
+Gadgets.prototype.orientPortal=function(normal){
+ const z=normal.clone().normalize();
+ const y=new T.Vector3(0,1,0);
+ if(Math.abs(z.dot(y))>.92)y.set(0,0,-Math.sign(z.y)||-1);
+ y.addScaledVector(z,-y.dot(z)).normalize();
+ const x=new T.Vector3().crossVectors(y,z).normalize();
+ y.crossVectors(z,x).normalize();
+ return new T.Quaternion().setFromRotationMatrix(new T.Matrix4().makeBasis(x,y,z));
+};
+
 Gadgets.prototype.placePortal=function(idx,point,normal,object){
  this.clearPortal(idx);
+ const n=normal.clone();if(n.lengthSq()<1e-8)n.set(0,1,0);n.normalize();
+ const pos=point.clone().addScaledVector(n,.04);
+ if(Math.abs(n.y)<.35){
+  const floor=Number(this.world.floorHeight?.(pos,.85))||0;
+  pos.y=floor+PORTAL_H*.5+.02;
+ }
  const color=PORTAL_COLORS[idx],group=new T.Group();
- const ring=new T.Mesh(new T.TorusGeometry(.42,.028,10,28),new T.MeshBasicMaterial({color,transparent:true,opacity:.95}));
- const inner=new T.Mesh(new T.CircleGeometry(.40,28),new T.ShaderMaterial({
-  transparent:true,side:T.DoubleSide,depthWrite:false,
-  uniforms:{t:{value:0},col:{value:new T.Color(color)}},
-  vertexShader:'varying vec2 u;void main(){u=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
-  fragmentShader:`varying vec2 u;uniform float t;uniform vec3 col;
-   void main(){vec2 p=(u-.5)*2.0;float r=length(p);float ang=atan(p.y,p.x);
-   float swirl=.5+.5*sin(ang*6.0-t*3.0+r*8.0);float a=(1.0-smoothstep(.72,1.0,r))*mix(.45,.85,swirl);
-   vec3 c=mix(col,vec3(.02,.04,.08),smoothstep(.0,.85,r));gl_FragColor=vec4(c,a);}`
+ const W=PORTAL_W,H=PORTAL_H,T=PORTAL_T,D=.042,innerW=W-2*T,innerH=H-2*T;
+ const frame=new T.MeshStandardMaterial({color,roughness:.32,metalness:.18,emissive:color,emissiveIntensity:.7});
+ const bar=(w,h,x,y)=>{const m=new T.Mesh(new T.BoxGeometry(w,h,D),frame);m.position.set(x,y,-D*.28);m.castShadow=true;group.add(m);return m;};
+ bar(W,T,0,H/2-T/2);bar(W,T,0,-H/2+T/2);bar(T,H-2*T,-W/2+T/2,0);bar(T,H-2*T,W/2-T/2,0);
+ const inner=new T.Mesh(new T.PlaneGeometry(innerW,innerH),new T.ShaderMaterial({
+  toneMapped:false,side:T.FrontSide,depthWrite:true,
+  uniforms:{map:{value:this.portalRT[idx].texture},col:{value:new T.Color(color)},hasPair:{value:0},portalMatrix:{value:new T.Matrix4()}},
+  vertexShader:portalVert,fragmentShader:portalFrag
  }));
- inner.position.z=-.004;group.add(ring,inner);
- const q=new T.Quaternion().setFromUnitVectors(new T.Vector3(0,0,1),normal);
- group.quaternion.copy(q);group.position.copy(point).addScaledVector(normal,.03);
+ inner.position.z=.002;group.add(inner);
+ const q=this.orientPortal(n);
+ group.quaternion.copy(q);group.position.copy(pos);
  const parent=object.isInstancedMesh?this.world.root:object;
+ parent.updateWorldMatrix(true,false);
  const local=parent.worldToLocal(group.position.clone());
  parent.add(group);group.position.copy(local);
  group.quaternion.copy(parent.getWorldQuaternion(Q()).invert().premultiply(q));
  group.userData.portal=true;group.traverse(m=>{m.userData.portal=true;});
- this.portals[idx]={group,inner,idx,parent,normal:normal.clone(),point:point.clone(),radius:.42,hw:.34,hh:.42};
+ this.portals[idx]={group,inner,idx,parent,hw:innerW/2,hh:innerH/2};
  this.props.status=(idx?'Orange':'Blue')+' portal placed';
 };
 
@@ -259,33 +291,30 @@ Gadgets.prototype.portalWorld=function(p){
  p.group.updateWorldMatrix(true,false);
  const point=p.group.getWorldPosition(V());
  const normal=new T.Vector3(0,0,1).applyQuaternion(p.group.getWorldQuaternion(Q())).normalize();
- return {point,normal,radius:p.radius};
+ return {point,normal,hw:p.hw,hh:p.hh,group:p.group,idx:p.idx};
 };
 
-Gadgets.prototype.insidePortal=function(info,pos){
- const rel=pos.clone().sub(info.point),along=rel.dot(info.normal),flat=rel.addScaledVector(info.normal,-along);
- return Math.abs(along)<.22&&flat.length()<info.radius*.92;
-};
 Gadgets.prototype.coversPortal=function(point){
  if(!point)return false;
  for(const p of this.portals){
-  const w=this.portalWorld(p);if(!w)continue;
-  const rel=point.clone().sub(w.point),along=rel.dot(w.normal);
-  rel.addScaledVector(w.normal,-along);
-  if(Math.abs(along)<.38&&rel.length()<w.radius*.92)return true;
+  if(!p?.group)continue;
+  p.group.updateWorldMatrix(true,false);
+  const local=p.group.worldToLocal(point.clone());
+  if(Math.abs(local.x)<p.hw&&Math.abs(local.y)<p.hh&&Math.abs(local.z)<.38)return true;
  }
  return false;
 };
 
 Gadgets.prototype.tryCross=function(pos,prev,vel){
- const a=this.portals[0]&&this.portalWorld(this.portals[0]),b=this.portals[1]&&this.portalWorld(this.portals[1]);
- if(!a||!b||this.cool>0)return null;
- for(const [from,to] of [[a,b],[b,a]]){
+ const A=this.portals[0],B=this.portals[1];
+ if(!A||!B||this.cool>0)return null;
+ for(const [fromP,toP] of [[A,B],[B,A]]){
+  const from=this.portalWorld(fromP),to=this.portalWorld(toP);if(!from||!to)continue;
   const d0=prev.clone().sub(from.point).dot(from.normal),d1=pos.clone().sub(from.point).dot(from.normal);
   if(d0*d1>0)continue;
   const t=d0===d1?0:d0/(d0-d1),mid=prev.clone().lerp(pos,t);
-  const flat=mid.clone().sub(from.point);flat.addScaledVector(from.normal,-flat.dot(from.normal));
-  if(flat.length()>from.radius*.88)continue;
+  const local=from.group.worldToLocal(mid.clone());
+  if(Math.abs(local.x)>from.hw||Math.abs(local.y)>from.hh)continue;
   const q=new T.Quaternion().setFromUnitVectors(from.normal.clone().negate(),to.normal);
   const rel=pos.clone().sub(from.point).applyQuaternion(q);
   const out=to.point.clone().add(rel).addScaledVector(to.normal,.12);
@@ -395,9 +424,53 @@ Gadgets.prototype.tickBalls=function(dt){
  }
 };
 
+Gadgets.prototype.applyOblique=function(cam,to){
+ const n=new T.Vector3(0,0,1).applyQuaternion(to.group.getWorldQuaternion(Q())).normalize();
+ const p=to.group.getWorldPosition(V());
+ const nCam=n.clone().transformDirection(cam.matrixWorldInverse),pCam=p.clone().applyMatrix4(cam.matrixWorldInverse);
+ const clip=this._plane.set(nCam.x,nCam.y,nCam.z,-nCam.dot(pCam));
+ if(clip.w>0)clip.multiplyScalar(-1);
+ const m=cam.projectionMatrix.elements;if(Math.abs(m[14])<1e-8)return;
+ const q=this._q4;
+ q.x=(Math.sign(clip.x)+m[8])/m[0];q.y=(Math.sign(clip.y)+m[9])/m[5];q.z=-1;q.w=(1+m[10])/m[14];
+ const s=2/clip.dot(q);m[2]=clip.x*s;m[6]=clip.y*s;m[10]=clip.z*s+1;m[14]=clip.w*s;
+};
+
+Gadgets.prototype.renderOne=function(renderer,mainCam,from,to,camPos){
+ from.group.updateWorldMatrix(true,false);to.group.updateWorldMatrix(true,false);
+ const fromN=new T.Vector3(0,0,1).applyQuaternion(from.group.getWorldQuaternion(Q()));
+ const fromP=from.group.getWorldPosition(V());
+ const u=from.inner.material.uniforms;
+ if(camPos.clone().sub(fromP).dot(fromN)<.02){u.hasPair.value=0;return;}
+ const cam=this.vcam;
+ cam.projectionMatrix.copy(mainCam.projectionMatrix);
+ this._m1.copy(from.group.matrixWorld).invert();
+ cam.matrixWorld.copy(to.group.matrixWorld).multiply(this.portalFlip).multiply(this._m1).multiply(mainCam.matrixWorld);
+ cam.matrixWorldInverse.copy(cam.matrixWorld).invert();
+ this.applyOblique(cam,to);
+ renderer.setRenderTarget(this.portalRT[from.idx]);renderer.clear();renderer.render(this.scene,cam);
+ u.map.value=this.portalRT[from.idx].texture;u.hasPair.value=1;
+ u.portalMatrix.value.multiplyMatrices(cam.projectionMatrix,cam.matrixWorldInverse);
+};
+
+Gadgets.prototype.renderViews=function(renderer,mainCam){
+ if(this._rendering||!this.world.root.visible)return;
+ const a=this.portals[0],b=this.portals[1];
+ if(!a||!b){for(const p of this.portals)if(p?.inner?.material?.uniforms)p.inner.material.uniforms.hasPair.value=0;return;}
+ this._rendering=true;
+ const xr=renderer.xr.enabled,shadows=renderer.shadowMap.enabled,prev=renderer.getRenderTarget();
+ renderer.xr.enabled=false;renderer.shadowMap.enabled=false;
+ a.group.visible=false;b.group.visible=false;
+ const camPos=mainCam.getWorldPosition(V());
+ this.renderOne(renderer,mainCam,a,b,camPos);
+ this.renderOne(renderer,mainCam,b,a,camPos);
+ a.group.visible=true;b.group.visible=true;
+ renderer.shadowMap.enabled=shadows;renderer.xr.enabled=xr;renderer.setRenderTarget(prev);
+ this._rendering=false;
+};
+
 Gadgets.prototype.tickPortals=function(dt){
  this.cool=Math.max(0,this.cool-dt);
- for(const p of this.portals){if(p?.inner?.material?.uniforms)p.inner.material.uniforms.t.value=this.props.time;}
  const cam=this.props.camera.getWorldPosition(V());
  if(this.camReady){
   const mapped=this.tryCross(cam,this.prevCam,null);
@@ -476,6 +549,7 @@ Gadgets.prototype.tick=function(dt){
 
 Gadgets.prototype.dispose=function(){
  this.clearPaint();this.clearPortals();
+ for(const rt of this.portalRT||[])rt.dispose();
  if(this.rack)this.rack.removeFromParent();
  this.splatMesh.removeFromParent();this.splatMesh.dispose();
  for(const b of this.ballPool){b.mesh.removeFromParent();b.mesh.geometry.dispose();b.mesh.material.dispose();}

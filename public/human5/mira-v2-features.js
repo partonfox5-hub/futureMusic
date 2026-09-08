@@ -57,6 +57,44 @@ export function repairArmRestData(position,normal,indices,weights,names){
  }
 }
 
+// Cache anatomical bend axes from the CC3 bind hierarchy, shared by NPC/PlayerHands.
+export function makeFingerRig(bones,bind,side){
+ const hand=bones[side+'_Hand'],joints={},matrices=new Map(),rows=['Thumb','Index','Mid','Ring','Pinky'];
+ const frame=bone=>{
+  if(!bone||!hand)return null;if(matrices.has(bone))return matrices.get(bone);
+  const chain=[];let p=bone;for(;p&&p!==hand;p=p.parent)chain.unshift(p);if(p!==hand)return null;
+  const m=new THREE.Matrix4();for(const b of chain)m.multiply(new THREE.Matrix4().compose(b.position,bind[b.name]||b.quaternion,b.scale));matrices.set(bone,m);return m;
+ };
+ const point=row=>{const m=frame(bones[side+'_'+row+'1']);return m?new THREE.Vector3().setFromMatrixPosition(m):null;};
+ const index=point('Index'),pinky=point('Pinky'),mid=point('Mid');
+ const forward=(mid||new THREE.Vector3(0,1,0)).clone().normalize(),lateral=index&&pinky?index.clone().sub(pinky).normalize():new THREE.Vector3(0,0,1);
+ const palm=new THREE.Vector3().crossVectors(forward,lateral),palmar=new THREE.Vector3(side==='L'?1:-1,0,0);
+ if(palm.lengthSq()<1e-8)palm.copy(palmar);else{palm.normalize();if(palm.dot(palmar)<0)palm.negate();}
+ for(const row of rows)for(let j=1;j<=3;j++){
+  const name=side+'_'+row+j,b=bones[name],m=frame(b);if(!b||!m)continue;
+  const child=bones[side+'_'+row+(j+1)],inv=m.clone().invert();
+  const along=child?.parent===b?child.position.clone():b.position.clone().applyQuaternion((bind[name]||b.quaternion).clone().invert());
+  if(along.lengthSq()<1e-10)continue;along.normalize();
+  const normal=palm.clone().transformDirection(inv),across=lateral.clone().transformDirection(inv);
+  const flex=new THREE.Vector3().crossVectors(along,normal).normalize(),spread=new THREE.Vector3().crossVectors(along,across).normalize();
+  const thumbAcross=pinky?pinky.clone().sub(new THREE.Vector3().setFromMatrixPosition(m)).transformDirection(inv):normal;
+  joints[name]={flex,spread,oppose:new THREE.Vector3().crossVectors(along,thumbAcross).normalize(),row,j};
+ }
+ return {side,joints,phase:Object.fromEntries(rows.map(row=>[row,Math.random()*Math.PI*2])),q:new THREE.Quaternion()};
+}
+export function fingerRotation(rig,row,j,curl,time,out=new THREE.Quaternion()){
+ const joint=rig.joints[rig.side+'_'+row+j];out.identity();if(!joint)return out;
+ const f=['Index','Mid','Ring','Pinky'].indexOf(row),c=clamp(curl,0,1);
+ if(row==='Thumb'){
+  if(j===1)out.setFromAxisAngle(joint.oppose,.10+c*.16);
+  return out.multiply(rig.q.setFromAxisAngle(joint.flex,c*[.18,.32,.18][j-1]));
+ }
+ const micro=.025*Math.sin(time*.8+rig.phase[row]),amount=clamp(c*(.94+f*.04)+micro,0,1);
+ out.setFromAxisAngle(joint.flex,amount*[.55,1,.45][j-1]);
+ if(j===1)out.multiply(rig.q.setFromAxisAngle(joint.spread,([.018,.004,-.004,-.018][f])*(1-c)));
+ return out;
+}
+
 // Smooth, chest-anchored deformation in unscaled model coordinates. No animated
 // breast scale or negative scale: volume grows by moving the complete surface.
 export function shapePoint(x,y,z,size,likeness=0,butt=1,arms=1,options={}){
@@ -166,7 +204,7 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    this.spineTouch=V();this.spineGoal=V();this.armSwing={};
    this.emotion={name:'content',intensity:.65,time:0,hold:8,source:'idle',valence:.28,arousal:.18};this.blinkAsym=Math.random()<.5?-1:1;
    this.emotionTarget={}; this.emotionCurrent={};this.expressionOverride=null;
-   this.idleKind='rest';this.idleT=3;this.idleDur=3;this.idleChoice='auto';this.seed=Math.random()*100;
+   this.idleKind='rest';this.idleT=this.idleDur=6+Math.random()*6;this.idleChoice='auto';this.seed=Math.random()*100;
    this.gait=clamp(opts.gait||0,0,WALK_NAMES.length-1);
    this.handTargets={};this.grabs=new Map();this.balance={state:'standing',time:0,stress:0,tilt:0,dir:V(),velocity:V(),recoverFrom:0,airVel:0,groundedY:0,q:new THREE.Quaternion(),omega:V()};this.dead=false;this.headMissing=false;
    this.attentionMode=ATTENTION_MODES.includes(opts.attentionMode)?opts.attentionMode:'attentive';this.lookPhase=true;this.lookPhaseT=3+Math.random()*4;this.glanceT=1.5;this.smileLook=0;this.ignoreCloseT=0;this.followSide=Math.random()<.5?1:-1;
@@ -387,6 +425,7 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    }
    if(e.time>e.hold+25&&!this.expressionOverride){e.name='content';e.intensity=.62;e.time=0;e.source='idle';}
    if(this.idleKind==='sigh'&&!this.speech?.active)this.want.Jaw_Open=.065*(this.gestureWeight||0);
+   if(this.greetingSmileT>0){this.greetingSmileT=Math.max(0,this.greetingSmileT-dt);const smile=.24*smooth(this.greetingSmileT/.6);for(const n of ['Mouth_Smile','Mouth_Smile_L','Mouth_Smile_R'])if(n in this.want)this.want[n]=Math.max(this.want[n],smile);}
    this.expressionJaw=this.want.Jaw_Open;
    // Gaze-coupled lids: looking down drops the upper lid; looking up opens a little.
    // Rest Eye_Blink in the pose is the main stare-killer; this only adds a few percent.
@@ -420,36 +459,34 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    return true;
   }
   tickRest(){
-   this.addE('L_Upperarm',.01,.08,-1.20);this.addE('R_Upperarm',.01,-.08,1.20);
-   this.addE('L_Forearm',.12,0,0);this.addE('R_Forearm',.12,0,0);
+   // restArm/poseArms own the hanging arm pose; no additive T-pose shove.
   }
   tickFingers(curl){
-   const t=this.time||0;
+   const t=this.time||0;this.fingerRigs??={};
+   const rotation=new THREE.Quaternion(),e=new THREE.Euler();
    for(const side of ['L','R']){
     const holding=this.heldBall&&side==='R';
     const open=['wave','explain'].includes(this.idleKind)||this.speech?.active;
     const tense=this.emotion?.name==='angry'||this.emotion?.name==='afraid';
-    const target=holding?.88:tense?.6:open?.1:.34;
-    const cur=this['finger'+side]=damp(this['finger'+side]??.3,target,7,this.dt||.016);
-    for(const [i,row] of ['Index','Mid','Ring','Pinky'].entries()){
-     const c=cur*(.78+i*.13)+.018*Math.sin(t*.8+i*.7+(side==='L'?0:1));
-     for(let j=1;j<=3;j++)this.addE(side+'_'+row+j,j===1?-(i-1.5)*.025:0,0,(side==='L'?-1:1)*c*[.6,1.05,.67][j-1]);
+    const target=holding?.88:tense?.6:open?.08:.21;
+    const cur=this['finger'+side]=damp(this['finger'+side]??.21,target,7,this.dt||.016);
+    const rig=this.fingerRigs[side]||(this.fingerRigs[side]=makeFingerRig(this.bones,this.bindQ,side));
+    for(const row of ['Thumb','Index','Mid','Ring','Pinky'])for(let j=1;j<=3;j++){
+     fingerRotation(rig,row,j,cur,t,rotation);e.setFromQuaternion(rotation,'XYZ');this.addE(side+'_'+row+j,e.x,e.y,e.z);
     }
-    this.addE(side+'_Thumb1',.13,side==='L'?.12:-.12,0);
-    this.addE(side+'_Thumb2',0,0,(side==='L'?-1:1)*cur*.42);this.addE(side+'_Thumb3',0,0,(side==='L'?-1:1)*cur*.2);
    }
   }
   tickIdle(t,dt){
    if(this.dead||this.balance.state!=='standing')return;
    this.idleT-=dt;
    if(this.idleT<=0){
-    const choices=['rest','rest','rest','weightShift','breathe','lookAround','hairTuck','shoulderRoll','sigh','armStretch','neckStretch','wiggle','dance'];
+    const choices=['rest','rest','rest','rest','weightShift','weightShift','breathe','sigh','lookAround','shoulderRoll'];
     this.idleKind=this.idleChoice!=='auto'?this.idleChoice:choices[Math.floor(Math.random()*choices.length)];
     if(['sad','concerned','tired','angry'].includes(this.emotion.name)&&['dance','wiggle'].includes(this.idleKind))this.idleKind='breathe';
-    this.idleDur=this.idleKind==='rest'?5+Math.random()*5:4+Math.random()*3;this.idleT=this.idleDur;
+    this.idleDur=this.idleKind==='rest'?6+Math.random()*6:4+Math.random()*3;this.idleT=this.idleDur;
    }
    const u=clamp(1-this.idleT/this.idleDur,0,1);
-   this.gestureWeight=this.idleChoice!=='auto'?damp(this.gestureWeight||0,1,6,dt):smooth(u/.22)*smooth((1-u)/.24);
+   this.gestureWeight=this.idleChoice!=='auto'?damp(this.gestureWeight||0,1,6,dt):this.idleKind==='rest'?0:smooth(u/.22)*smooth((1-u)/.24);
    const w=this.gestureWeight;
    this.addE('Hip',0,Math.sin(t*.47+this.seed)*.013,.023*Math.sin(t*.32+this.seed));
    this.addE('Spine02',.009*Math.sin(t*1.15),0,-.01*Math.sin(t*.32+this.seed));
@@ -559,9 +596,10 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    state.last.copy(shoulder);state.vel.copy(velocity);
    const target=sign*Math.sin(this.walkT-.18)*.26*step+.014*Math.sin(this.time*.77+this.seed+sign);
    state.v=(state.v+dt*(31*(target-state.angle)-accel.z*.24))/(1+5.4*dt+31*dt*dt);state.angle=clamp(state.angle+dt*state.v,-.48,.48);
-   const clearance=.13+.06*Math.max(0,this.shape.hips-1)+.025*(this.shape.arms-1);
-   const upper=new THREE.Vector3(sign*clearance,-1,Math.sin(state.angle)-.015).normalize();
-   const lower=new THREE.Vector3(sign*(clearance*.70),-1,Math.sin(state.angle)+.14+.055*step).normalize();
+   const clearance=.08+.06*Math.max(0,this.shape.hips-1)+.025*(this.shape.arms-1);
+   const upperAngle=state.angle-.22,lowerAngle=state.angle+.30+.02*step;
+   const upper=new THREE.Vector3(sign*clearance,-Math.cos(upperAngle),Math.sin(upperAngle)).normalize();
+   const lower=new THREE.Vector3(sign*(clearance*.55),-Math.cos(lowerAngle),Math.sin(lowerAngle)).normalize();
    const rot=this.group.getWorldQuaternion(new THREE.Quaternion());upper.applyQuaternion(rot);lower.applyQuaternion(rot);
    elbow.copy(shoulder).addScaledVector(upper,l1);wrist.copy(elbow).addScaledVector(lower,l2);
    this.aimBone(a,b,elbow);this.aimBone(b,c,wrist);
@@ -614,7 +652,7 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    if(this.autonomy&&this.greetingT<=0){
     const candidates=[cam,...(this.neighbors||[]).filter(a=>a!==this).map(a=>a.bones.Head.getWorldPosition(V()))];
     const other=candidates.find(p=>p.distanceTo(this.bones.Head.getWorldPosition(V()))<3.2);
-    if(other){this.attention.copy(other);this.attentionT=3;this.idleKind='wave';this.idleT=this.idleDur=4.5;this.setEmotion('happy',.82,{hold:6,source:'greeting'});this.lifeT=Math.max(this.lifeT,5);}
+    if(other){this.attention.copy(other);this.attentionT=3;if(this.idleChoice==='auto'){this.idleKind='lookAround';this.idleT=this.idleDur=4.5;this.gestureWeight=0;}this.greetingSmileT=3;this.lifeT=Math.max(this.lifeT,5);}
     this.greetingT=22+Math.random()*22;
    }
    if(this.attentionMode==='hyperattentive')return;
