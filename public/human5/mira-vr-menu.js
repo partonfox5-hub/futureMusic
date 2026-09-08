@@ -1,7 +1,7 @@
 import {FURNITURE,SURFACES} from './mira-v2-builder.js?v=13.0';
 import {WEAPONS} from './mira-v2-props.js?v=13.0';
 import {draft,saveDraft,OUTFITS,PERSONAS,clothingItems,setDraftGarment} from './mira-v2-catalog.js?v=11.0';
-import {SCENES} from './mira-v2-world.js?v=13.0';
+import {SCENES} from './mira-v2-world.js?v=13.1';
 import {GARMENTS} from './mira-v2-wardrobe.js?v=11.2';
 import * as THREE from 'three';
 import {SLIDERS,FACE_TYPES} from './mira-v2.js?v=12.9';

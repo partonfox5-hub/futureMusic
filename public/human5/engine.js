@@ -7,7 +7,7 @@ import {Injuries} from './mira-v2-injuries.js?v=12.9';
 import {Props,WEAPONS} from './mira-v2-props.js?v=13.0';
 import {RoomLight} from './mira-v2-light.js?v=11.0';
 import {draft,saveDraft,spawnOptions,OUTFITS,clothingItems} from './mira-v2-catalog.js?v=11.0';
-import {MiraWorld,SCENES} from './mira-v2-world.js?v=13.0';
+import {MiraWorld,SCENES} from './mira-v2-world.js?v=13.1';
 import {Wardrobe,GARMENTS} from './mira-v2-wardrobe.js?v=11.2';
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";

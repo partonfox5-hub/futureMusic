@@ -51,19 +51,20 @@ export class MiraWorld {
  blocked(p,r=.25,ignore=null){return this.nearby(p,r).some(o=>o!==ignore&&!o.walkable&&o.y<1.65&&o.y+o.h>.09&&Math.abs(p.x-o.x)<o.w/2+r&&Math.abs(p.z-o.z)<o.d/2+r);}
  floorHeight(p,zArg){
   const x=p&&typeof p==='object'?p.x:p,z=p&&typeof p==='object'?p.z:zArg;
-  const pt=p&&typeof p==='object'?p:new T.Vector3(x||0,0,z||0);
-  let h=this.terrain?terrainHeight(x||0,z||0,this.terrainPad??5.4,this.terrainAmp??1):0;
+  const pt=new T.Vector3(x||0,(p&&typeof p==='object'&&Number.isFinite(p.y))?p.y:0,z||0);
+  const yRef=Number.isFinite(pt.y)?pt.y:0,candidates=[this.terrain?terrainHeight(x||0,z||0,this.terrainPad??5.4,this.terrainAmp??1):0];
   for(const f of this.floors||[]){
-   if(Math.abs((x||0)-f.x)<f.w/2+.01&&Math.abs((z||0)-f.z)<f.d/2+.01)h=Math.max(h,f.y+f.h);
+   if(Math.abs((x||0)-f.x)<f.w/2+.01&&Math.abs((z||0)-f.z)<f.d/2+.01)candidates.push(f.y+f.h);
   }
   for(const group of this.stairs||[]){
    if(!group.parent)continue;const data=group.userData.stairs;if(!data)continue;
    const local=group.worldToLocal(pt.clone());
    if(Math.abs(local.x)>data.width/2+.08||local.z<-.08||local.z>data.run+.12)continue;
    const t=T.MathUtils.clamp(local.z/Math.max(.001,data.run),0,1);
-   h=Math.max(h,t*data.rise);
+   candidates.push(t*data.rise);
   }
-  return h;
+  const below=candidates.filter(c=>c<=yRef+.85);
+  return below.length?Math.max(...below):Math.min(...candidates);
  }
  path(start,goal,r=.25){
   const distance=start.distanceTo(goal);let clear=true;for(let i=0;i<=Math.ceil(distance/.2);i++)if(this.blocked(start.clone().lerp(goal,i/Math.max(1,Math.ceil(distance/.2))),r)){clear=false;break;}if(clear)return [goal.clone().setY(0)];
