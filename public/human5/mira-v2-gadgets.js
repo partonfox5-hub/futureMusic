@@ -545,7 +545,6 @@ Gadgets.prototype.tickSplats=function(dt){
  }
  if(live||wet||this._splatDirty){this.writeSplats();this._splatDirty=!!live;}
 };
-};
 
 Gadgets.prototype.tick=function(dt){
  this.splatMesh.visible=this.world.root.visible;
