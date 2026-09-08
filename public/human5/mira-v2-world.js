@@ -83,7 +83,7 @@ export class MiraWorld {
    for(const side of ['L','R']){const sign=side==='L'?1:-1,foot=new T.Vector3(sign*.11*a.shape.height,0,.42*a.shape.height);seat.group.localToWorld(foot);foot.y=.065*a.shape.height;const pole=seat.group.localToWorld(new T.Vector3(sign*.16,.48,.8));a.solveChain(side,'leg',foot,pole);const hand=seat.group.localToWorld(new T.Vector3(sign*.13,.59,.21));a.solveChain(side,'arm',hand,seat.group.localToWorld(new T.Vector3(sign*.4,.8,.02)));}
    a.group.updateMatrixWorld(true);a.root.traverse(o=>{if(o.isSkinnedMesh)o.skeleton.update();});return;
   }
-  if(a.balance.state==='standing'&&!a.grabs.size)a.group.position.y=(a.baseY||0)+this.floorHeight(a.group.position);
+  if(a.balance.state==='standing'&&!a.waterSwimming&&!a.grabs.size)a.group.position.y=(a.baseY||0)+this.floorHeight(a.group.position);
   this.project(a.group.position,.20*Math.sqrt(a.shape.hips),.1,1.55);a.group.updateMatrixWorld(true);
  }
  project(p,r,y=0,height=.1,ignore=null){let hit=false;for(const o of this.nearby(p,r)){if(o===ignore||y>o.y+o.h||y+height<o.y)continue;const dx=p.x-o.x,dz=p.z-o.z,ex=o.w/2+r-Math.abs(dx),ez=o.d/2+r-Math.abs(dz);if(ex>0&&ez>0){if(ex<ez)p.x+=(dx>=0?1:-1)*ex;else p.z+=(dz>=0?1:-1)*ez;hit=true;}}return hit;}

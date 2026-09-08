@@ -888,7 +888,25 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    this.autoWander=false;this.dest=null;this.speed=0;
    if(!this.dead)this.setEmotion('surprise',.7,{hold:3,source:'balance'});
   }
+  wander(dt){
+   const moving=super.wander(dt);
+   const scale=this.waterSpeedScale??1;
+   if(scale!==1&&this.moveVel){
+    this.group.position.addScaledVector(this.moveVel,dt*(scale-1));
+    this.speed*=scale;this.moveVel.multiplyScalar(scale);
+   }
+   return moving;
+  }
   tickBalance(dt){
+   if(this.waterSwimming){
+    this.balance.airVel=this.waterVelocity?.y||0;
+    if(this.waterFaceUp){
+     const b=this.balance;b.q=b.q||new THREE.Quaternion();
+     b.q.slerp(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),Math.PI/2),1-Math.exp(-dt*1.2));
+     this.root.quaternion.copy(b.q);this.placeRootPivot?.();
+    }
+    return;
+   }
    const b=this.balance;b.time+=dt;b.stress=Math.max(0,b.stress-dt*.2);
    this.group.position.addScaledVector(b.velocity,dt);b.velocity.multiplyScalar(Math.exp(-dt*4.2));
    b.q=b.q||new THREE.Quaternion();b.omega=b.omega||V();
@@ -1040,7 +1058,9 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    const savedY=this.balance.state==='standing'?null:this.group.position.y;
    this.inBaseTick=true;super.tick(dt,cam,t);this.inBaseTick=false;
    if(savedY!==null)this.group.position.y=savedY;
-   this.poseActivity();this.poseSpineContact(dt);this.poseArms();this.socialPair?.pose(this);this.group.updateMatrixWorld(true);
+   this.poseActivity();this.poseSpineContact(dt);this.poseArms();this.socialPair?.pose(this);
+   if(this.bones.Hip&&this.waterBob)this.bones.Hip.position.y+=this.waterBob;
+   this.group.updateMatrixWorld(true);
    this.tickBalance(dt);
    this.tickGrab(dt);
    this.group.updateMatrixWorld(true);

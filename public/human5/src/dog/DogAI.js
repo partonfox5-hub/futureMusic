@@ -15,7 +15,8 @@ export class DogAI {
   const actors=(this.ctx.mira||this.ctx.system)?.actors||[],actor=actors[0],group=actor?.group,m=this.model,world=this.ctx.world;
   this.speed=0;this.turn=0;
   const root=m.root;
-  if(this.dead){this.state='sit';root.position.y=floorAt(world,root.position.x,root.position.z,root.position.y);return;}
+  const swimming=!!root.userData.waterSwimming;
+  if(this.dead){this.state='sit';if(!swimming)root.position.y=floorAt(world,root.position.x,root.position.z,root.position.y);return;}
   if(this.held){this.state='alert';}
   const wp=root.getWorldPosition(V());
   const player=this.ctx.camera?.getWorldPosition?.(V())||actor?.group?.position;
@@ -47,7 +48,7 @@ export class DogAI {
   if(this.state==='sit'){
    this.sitT+=dt;
    if(this.sitT>6+Math.random()*6){this.state='idle';this.sitT=0;if(this.seat){this.seat.occupant=null;this.seat=null;}this.lifeT=1;}
-   root.position.y=floorAt(world,wp.x,wp.z,root.position.y);this.separate(world,actors,root);return;
+   if(!swimming)root.position.y=floorAt(world,wp.x,wp.z,root.position.y);this.separate(world,actors,root);return;
   }
   const follow=this.follow||this.attentionMode==='hyperattentive'||(this.attentionMode==='attentive'&&this.lookPhase&&distance>2.2);
   if(follow&&group&&this.state!=='sit'){
@@ -83,7 +84,7 @@ export class DogAI {
     this.seat=this.pendingSeat;this.seat.occupant=this;this.pendingSeat=null;this.state='sit';this.sitT=0;this.speed=0;
    }else this.state=watch?'alert':'idle';
   }
-  const now=root.getWorldPosition(V());root.position.y=floorAt(world,now.x,now.z,root.position.y);
+  const now=root.getWorldPosition(V());if(!swimming)root.position.y=floorAt(world,now.x,now.z,root.position.y);
   this.separate(world,actors,root);
   if(world?.project){const p=root.position.clone();world.project(p,.22,.05,0.55);root.position.x=p.x;root.position.z=p.z;}
  }

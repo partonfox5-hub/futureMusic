@@ -4,7 +4,7 @@ export class DogAnim {
   tick(dt){
     this.time+=dt;
     const b=this.model.bones,ai=this.ai;
-    if(ai.dead){this.sit=Math.min(1,this.sit+dt*2.2);this.wag=0;ai.tick(dt);b.Spine.position.y=.445-this.sit*.10;b.Spine.rotation.x=-this.sit*.28;b.Chest.rotation.x=this.sit*.16;this.model.root.updateMatrixWorld(true);this.paws.tick(this.time,'sit',0);this.jaw.tick(dt);this.tail.tick(dt,this.time,0,'sit');this.model.root.updateMatrixWorld(true);return;}
+    if(ai.dead){this.sit=Math.min(1,this.sit+dt*2.2);this.wag=0;ai.tick(dt);b.Spine.position.y=.445-this.sit*.10;b.Spine.rotation.x=-this.sit*.28;b.Chest.rotation.x=this.sit*.16;this.model.root.updateMatrixWorld(true);this.ai.ctx.props?.water?.stepDog(this.model.root.userData.dog||{root:this.model.root,model:this.model},dt);if(!this.model.root.userData.waterSwimming)this.paws.tick(this.time,'sit',0);this.jaw.tick(dt);this.tail.tick(dt,this.time,0,'sit');this.model.root.updateMatrixWorld(true);return;}
     if(ai.held){if(this.time>=this.nextBark){this.bark();this.nextBark=this.time+.28+Math.random()*.22;}this.wag=1;}
     else if(this.time>=this.nextBark){this.bark();this.nextBark=this.time+5+Math.random()*4;}
     if(this.time>=this.nextBurst){this.wagUntil=this.time+.65+Math.random()*.8;this.nextBurst=this.time+6+Math.random()*8;}
@@ -18,7 +18,17 @@ export class DogAnim {
     b.Chest.rotation.x=this.sit*.22+ai.lookPitch*.16;
     b.Chest.rotation.y=ai.bodyYaw*.45;
     b.Chest.rotation.z=-sway*.06+ai.lookRoll*.18;
-    this.model.root.updateMatrixWorld(true);this.paws.tick(this.time,state,clamp(ai.speed/.58));
+    this.model.root.updateMatrixWorld(true);
+    const dog=this.model.root.userData.dog;
+    this.ai.ctx.props?.water?.stepDog(dog||{root:this.model.root,model:this.model},dt);
+    if(this.model.root.userData.waterSwimming){
+      const p=dog?.waterPaddle||0;
+      for(const s of ['L','R']){
+        const k=s==='L'?1:-1;
+        if(b[s+'_UpperArm'])b[s+'_UpperArm'].rotation.x=p*k*.45;
+        if(b[s+'_Thigh'])b[s+'_Thigh'].rotation.x=-p*k*.4;
+      }
+    }else this.paws.tick(this.time,state,clamp(ai.speed/.58));
     this.jaw.tick(dt);
     this.tail.tick(dt,this.time,Math.max(this.wag,this.time<this.wagUntil?.88:0),state);
     this.model.root.updateMatrixWorld(true);

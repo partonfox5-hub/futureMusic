@@ -14,6 +14,8 @@ export class SmoothLocomotion {
  constructor(rig,camera,world){Object.assign(this,{rig,camera,world});this.forward=new T.Vector3(0,0,-1);this.floorY=0;}
  tick(dt,sources,blocked=false){
   if(blocked||!(dt>0))return;dt=Math.min(dt,.05);
+  const water=this.world.waterSystem,camera=this.camera;
+  if(water?.playerSwimIntent({rig:this.rig,camera,dt,sources,blocked}).active)return;
   const left=[...sources].find(s=>s.handedness==='left'&&!s.hand),right=[...sources].find(s=>s.handedness==='right'&&!s.hand);
   const l=stickAxes(left?.gamepad),r=stickAxes(right?.gamepad),move=deadzone(l.x,l.y),turn=deadzone(r.x,0,.16).x;
   const trigger=left?.gamepad?.buttons?.[0],sprint=(trigger?.pressed||(trigger?.value||0)>.42)?2:1;
@@ -30,9 +32,11 @@ export class SmoothLocomotion {
   target.x=T.MathUtils.clamp(target.x,-this.world.extent,this.world.extent);
   target.z=T.MathUtils.clamp(target.z,-this.world.extent,this.world.extent);
   this.rig.position.add(delta).add(target.sub(before));
-  const want=this.world.floorHeight?.(this.camera.getWorldPosition(new T.Vector3()))||0;
-  this.floorY=T.MathUtils.damp(this.floorY,want,14,dt);
-  this.rig.position.y=this.floorY;
+  if(!water?.playerSubmerged(camera)){
+   const want=this.world.floorHeight?.(this.camera.getWorldPosition(new T.Vector3()))||0;
+   this.floorY=T.MathUtils.damp(this.floorY,want,14,dt);
+   this.rig.position.y=this.floorY;
+  }
   this.rig.updateWorldMatrix(true,true);
  }
 }

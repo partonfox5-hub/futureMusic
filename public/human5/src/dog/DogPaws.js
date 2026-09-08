@@ -47,6 +47,7 @@ export class DogPaws {
   }
   tick(time,state,moving=0){
     const m=this.model;m.root.updateMatrixWorld(true);
+    if(m.root.userData.waterSwimming)return;
     this.legs.forEach((leg,i)=>{
       const target=leg.home.clone();
       // Compact alternating step only when follow movement is active.

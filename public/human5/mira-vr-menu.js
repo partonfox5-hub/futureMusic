@@ -1,13 +1,13 @@
 import {FURNITURE,SURFACES} from './mira-v2-builder.js?v=13.0';
-import {WEAPONS} from './mira-v2-props.js?v=13.0';
+import {WEAPONS} from './mira-v2-props.js?v=13.3';
 import {draft,saveDraft,OUTFITS,PERSONAS,clothingItems,setDraftGarment} from './mira-v2-catalog.js?v=11.0';
-import {SCENES} from './mira-v2-world.js?v=13.1';
+import {SCENES} from './mira-v2-world.js?v=13.3';
 import {GARMENTS} from './mira-v2-wardrobe.js?v=11.2';
 import * as THREE from 'three';
-import {SLIDERS,FACE_TYPES} from './mira-v2.js?v=12.9';
+import {SLIDERS,FACE_TYPES} from './mira-v2.js?v=13.3';
 import {shapeSliders,FACE_PRESETS,HAIR_STYLES,ACTIVITY_MODES,ACTION_LABELS,POSE_LABELS,ATTENTION_MODES,ATTENTION_LABELS} from './mira-v2-controls.js?v=12.9';
-import {HAIR_COLORS} from './mira-v2.js?v=12.9';
-import {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES} from './mira-v2-features.js?v=12.9';
+import {HAIR_COLORS} from './mira-v2.js?v=13.3';
+import {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES} from './mira-v2-features.js?v=13.3';
 export function createVRMenu({scene,renderer,camera,system,spawn,onSync,world,wardrobe,spawnConfigured,copyConfiguration,props,saveScene,loadScene}){
  const canvas=document.createElement('canvas');canvas.width=1024;canvas.height=1320;
  const ctx=canvas.getContext('2d'),tex=new THREE.CanvasTexture(canvas);tex.colorSpace=THREE.SRGBColorSpace;
@@ -75,7 +75,8 @@ export function createVRMenu({scene,renderer,camera,system,spawn,onSync,world,wa
    button('HAPTICS '+system.hands.haptics.gain.toFixed(1)+'×',40,880,455,62,()=>{system.hands.haptics.gain=(system.hands.haptics.gain+.5)%2.5;draw();});button('VOICE ON / OFF',515,880,467,62,()=>document.getElementById('micBtn')?.click());
    button('SAVE SCENE',40,958,455,62,()=>{notice=saveScene?('Saved '+saveScene()):'Save unavailable';draw();});button('LOAD LAST',515,958,467,62,()=>{notice=loadScene?loadScene():'Load unavailable';draw();});
    button('REBUILD HOUSE',40,1036,942,62,()=>{world.setScene('Living room');notice='House rebuilt';draw();});
-   ctx.font='24px sans-serif';ctx.fillStyle='#c9d6e2';ctx.fillText('Hold grip to wield · Release to drop · Trigger fires',40,1175);
+   cycle('Vegetation',1105,['Off','Low','Normal','Lush'],()=>['Off','Low','Normal','Lush'][Math.round((props.flora?.density??.45)*3)],name=>{const v={Off:0,Low:.25,Normal:.45,Lush:.8}[name];props.flora?.setDensity(v);});
+   ctx.font='24px sans-serif';ctx.fillStyle='#c9d6e2';ctx.fillText('Hold grip to wield · Release to drop · Trigger fires',40,1240);
   }else if(page===0){
    button('SPAWN V1',40,300,455,80,()=>{spawn('v1');draw();});button('SPAWN V2',515,300,467,80,()=>{spawn('v2');draw();});
    button('SELECT NEXT',40,400,610,76,()=>{const list=system.actors;system.select(list[(list.indexOf(active())+1)%list.length]);onSync?.();draw();});
