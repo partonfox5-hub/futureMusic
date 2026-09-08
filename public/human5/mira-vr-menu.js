@@ -1,7 +1,7 @@
 import {FURNITURE,SURFACES} from './mira-v2-builder.js?v=13.8';
-import {WEAPONS} from './mira-v2-props.js?v=13.8';
+import {WEAPONS} from './mira-v2-props.js?v=13.9';
 import {draft,saveDraft,OUTFITS,PERSONAS,clothingItems,setDraftGarment} from './mira-v2-catalog.js?v=11.0';
-import {SCENES} from './mira-v2-world.js?v=13.4';
+import {SCENES} from './mira-v2-world.js?v=13.9';
 import {GARMENTS} from './mira-v2-wardrobe.js?v=11.2';
 import * as THREE from 'three';
 import {SLIDERS,FACE_TYPES} from './mira-v2.js?v=13.7';
@@ -41,7 +41,7 @@ export function createVRMenu({scene,renderer,camera,system,spawn,onSync,world,wa
    button('UNDO LAST',40,1110,455,70,()=>{b.undo();draw();});
    button('SAVE SCENE',515,1110,467,70,()=>{notice='Saved '+saveScene();draw();});
    ctx.font='22px sans-serif';ctx.fillStyle='#c9d6e2';ctx.fillText('Close Y to equip. Trigger places. Right stick click rotates.',40,1220);
-  }else if(page===8){const car=props.cars?.().find(c=>c.driving)||props.vehicle;button(car.driving?'EXIT CAR':'ENTER / EXIT',40,325,455,80,()=>{car.enter();draw();});button('GEAR '+(car.gear||'P'),515,325,467,80,()=>{car.cycleGear?.();draw();});button('JUMP',40,445,455,80,()=>{document.getElementById('jumpBtn')?.click();draw();});button('REPAIR / RESET CAR',515,445,467,80,()=>{for(const c of props.cars?.()||[car])c.reset();draw();});button('REAR VIEW MIRROR '+(car.mirrorEnabled?'ON':'OFF'),40,565,942,80,()=>{car.mirrorEnabled=!car.mirrorEnabled;draw();});ctx.fillStyle='#dce8f2';ctx.font='27px sans-serif';ctx.fillText(car.telemetry||car.status||'',40,690);ctx.font='29px sans-serif';for(const [i,text] of ['Same ENTER button exits. Doors close on enter.','Left trigger drives in D. Grip stalk for P/N/D.','Grip wheel to steer. Left X / Space brakes.','Right A or JUMP hops. Y menu applies brake.'].entries())ctx.fillText(text,40,750+i*57);
+  }else if(page===8){const car=props.cars?.().find(c=>c.driving)||props.vehicle;button(car.driving?'EXIT CAR':'ENTER / EXIT',40,325,455,80,()=>{car.enter();draw();});button('GEAR '+(car.gear||'P'),515,325,467,80,()=>{car.cycleGear?.();draw();});button('JUMP',40,445,455,80,()=>{document.getElementById('jumpBtn')?.click();draw();});button('REPAIR / RESET CAR',515,445,467,80,()=>{for(const c of props.cars?.()||[car])c.reset();draw();});button('REAR VIEW MIRROR '+(car.mirrorEnabled?'ON':'OFF'),40,565,942,80,()=>{car.mirrorEnabled=!car.mirrorEnabled;draw();});ctx.fillStyle='#dce8f2';ctx.font='27px sans-serif';ctx.fillText(car.telemetry||car.status||'',40,690);ctx.font='29px sans-serif';for(const [i,text] of ['Same ENTER button exits. Doors close on enter.','Left trigger drives in D and R. Grip stalk P/R/N/D.','Grip wheel to steer. Left X / Space / S brakes.','Right A or JUMP hops. Y menu applies brake.'].entries())ctx.fillText(text,40,750+i*57);
   }else if(page===7){
    const r=props.restraints,l=r.selected;cycle('Attachment',325,['Flexible tether','Short fixed link'],()=>r.mode==='rope'?'Flexible tether':'Short fixed link',x=>r.mode=x==='Flexible tether'?'rope':'fuse');button('PLACE TWO ANCHORS',40,445,600,70,()=>{r.start();notice='Close Y, point + trigger twice';draw();});button('CANCEL',660,445,322,70,()=>{r.cancel();draw();});
    cycle('Selected link',580,['None',...r.links.map(l=>'Link '+l.id+(l.broken?' · cut':''))],()=>l?'Link '+l.id+(l.broken?' · cut':''):'None',name=>r.selected=r.links.find(x=>name==='Link '+x.id+(x.broken?' · cut':''))||null);

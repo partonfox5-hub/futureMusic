@@ -37,7 +37,8 @@ export class SmoothLocomotion {
   target.x=T.MathUtils.clamp(target.x,-this.world.extent,this.world.extent);
   target.z=T.MathUtils.clamp(target.z,-this.world.extent,this.world.extent);
   this.rig.position.add(delta).add(target.sub(before));
-  const want=this.world.floorHeight?.(this.camera.getWorldPosition(new T.Vector3()))||0;
+  const feet=eye.clone();feet.y=this.rig.position.y;
+  const want=this.world.floorHeight?.(feet,undefined,.42)||0;
   const grav=Number.isFinite(this.world.gravity)?this.world.gravity:9.81;
   if(grav<0.5){
    const look=new T.Vector3(0,0,-1).applyQuaternion(this.camera.getWorldQuaternion(new T.Quaternion()));

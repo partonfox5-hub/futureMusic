@@ -457,11 +457,15 @@ Gadgets.prototype.renderViews=function(renderer,mainCam){
  if(this._rendering||!this.world.root.visible)return;
  const a=this.portals[0],b=this.portals[1];
  if(!a||!b){for(const p of this.portals)if(p?.inner?.material?.uniforms)p.inner.material.uniforms.hasPair.value=0;return;}
+ const camPos=mainCam.getWorldPosition(V());
+ const near=a.group.getWorldPosition(V()).distanceTo(camPos)<22||b.group.getWorldPosition(V()).distanceTo(camPos)<22;
+ if(!near){for(const p of this.portals)if(p?.inner?.material?.uniforms)p.inner.material.uniforms.hasPair.value=0;return;}
+ this._portalFrame=(this._portalFrame||0)+1;
+ if(QUEST&&(this._portalFrame&1))return;
  this._rendering=true;
  const xr=renderer.xr.enabled,shadows=renderer.shadowMap.enabled,prev=renderer.getRenderTarget();
  renderer.xr.enabled=false;renderer.shadowMap.enabled=false;
  a.group.visible=false;b.group.visible=false;
- const camPos=mainCam.getWorldPosition(V());
  this.renderOne(renderer,mainCam,a,b,camPos);
  this.renderOne(renderer,mainCam,b,a,camPos);
  a.group.visible=true;b.group.visible=true;
@@ -519,24 +523,28 @@ Gadgets.prototype.tickPortals=function(dt){
 };
 
 Gadgets.prototype.tickSplats=function(dt){
+ let live=0,wet=false;
  for(const s of this.splats){
-  if(!s.live)continue;
+  if(!s.live)continue;live++;
   s.age+=dt;s.wet=Math.max(0,s.wet-dt*.22);
-  if(s.wet>0)s.r=Math.min(.22,s.r+dt*.055*s.wet);
+  if(s.wet>0){wet=true;s.r=Math.min(.22,s.r+dt*.055*s.wet);}
   if(s.age>90)s.live=false;
  }
- for(let i=0;i<this.splats.length;i++){
-  const a=this.splats[i];if(!a.live)continue;
-  for(let j=i+1;j<this.splats.length;j++){
-   const b=this.splats[j];if(!b.live||a.parent!==b.parent)continue;
-   if(a.color.getHex()!==b.color.getHex())continue;
-   if(a.local.distanceTo(b.local)<(a.r+b.r)*.55){
-    if(a.r>=b.r){a.r=Math.min(.24,a.r+.012);b.live=false;}
-    else{b.r=Math.min(.24,b.r+.012);a.live=false;break;}
+ if(live>1){
+  for(let i=0;i<this.splats.length;i++){
+   const a=this.splats[i];if(!a.live)continue;
+   for(let j=i+1;j<this.splats.length;j++){
+    const b=this.splats[j];if(!b.live||a.parent!==b.parent)continue;
+    if(a.color.getHex()!==b.color.getHex())continue;
+    if(a.local.distanceTo(b.local)<(a.r+b.r)*.55){
+     if(a.r>=b.r){a.r=Math.min(.24,a.r+.012);b.live=false;}
+     else{b.r=Math.min(.24,b.r+.012);a.live=false;break;}
+    }
    }
   }
  }
- this.writeSplats();
+ if(live||wet||this._splatDirty){this.writeSplats();this._splatDirty=!!live;}
+};
 };
 
 Gadgets.prototype.tick=function(dt){

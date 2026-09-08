@@ -1,7 +1,7 @@
 import {captureFurniture,tagMovable} from './mira-v2-furniture.js?v=13.4';
 import {Destruction} from './mira-v2-destruction.js?v=13.8';
 import {buildHouse} from './mira-v2-house.js?v=13.8';
-import {plantTerrain,scatterTrees,tickNature,chopTree as chopNature,terrainHeight} from './mira-v2-nature.js?v=13.4';
+import {plantTerrain,scatterTrees,tickNature,chopTree as chopNature,ramTree as ramNature,terrainHeight} from './mira-v2-nature.js?v=13.9';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
 import * as T from 'three';
 const V=()=>new T.Vector3(),clamp=T.MathUtils.clamp,QUEST=/Quest|OculusBrowser/i.test(globalThis.navigator?.userAgent||'');
@@ -50,6 +50,7 @@ export class MiraWorld {
   for(const [x,z,w,d] of [[-144.2,0,.2,289],[144.2,0,.2,289],[0,-144.2,289,.2],[0,144.2,289,.2]])this.obstacle(x,z,w,d,0,4);
  }
  chopTree(tree,point,energy,dir,kind){return chopNature(tree,point,energy,dir,kind);}
+ ramTree(tree,point,energy,dir){return ramNature(tree,point,energy,dir);}
  tree(x,z,height,palm){const trunk=this.mesh(new T.CylinderGeometry(.065,.11,height,10),this.mat(palm?0x9b8060:0x70614c),x,height/2,z);if(palm){for(let j=0;j<8;j++){const leaf=this.mesh(new T.SphereGeometry(1,12,6),this.mat(j%2?0x557450:0x6e884f),x+Math.cos(j*Math.PI/4)*.6,height-.12,z+Math.sin(j*Math.PI/4)*.6);leaf.scale.set(.85,.075,.19);leaf.rotation.set(0,-j*Math.PI/4,-.22);}}else{const crown=this.mesh(new T.IcosahedronGeometry(.72,2),this.mat(0x49644b),x,height-.12,z);crown.scale.set(1,1.1,1);}}
  removeObstacle(o){if(!o)return;this.obstacles=this.obstacles.filter(x=>x!==o);this.grid=null;}
  nearby(p,r=.25){if(!this.grid){this.grid=new Map();for(const o of this.obstacles)for(let x=Math.floor(o.x-o.w/2);x<=Math.floor(o.x+o.w/2);x++)for(let z=Math.floor(o.z-o.d/2);z<=Math.floor(o.z+o.d/2);z++){const key=x+'/'+z;if(!this.grid.has(key))this.grid.set(key,[]);this.grid.get(key).push(o);}}const out=new Set();for(let x=Math.floor(p.x-r);x<=Math.floor(p.x+r);x++)for(let z=Math.floor(p.z-r);z<=Math.floor(p.z+r);z++)for(const o of this.grid.get(x+'/'+z)||[])out.add(o);return [...out];}
@@ -68,9 +69,10 @@ export class MiraWorld {
   pos.needsUpdate=true;mesh.geometry.computeVertexNormals();
  }
  floorHeight(p,zArg,maxStep){
+  // p.y is feet (or a wheel), never eye height. Step is one stair, not a whole story.
   const x=p&&typeof p==='object'?p.x:p,z=p&&typeof p==='object'?p.z:zArg;
   const pt=new T.Vector3(x||0,(p&&typeof p==='object'&&Number.isFinite(p.y))?p.y:0,z||0);
-  const step=Number.isFinite(maxStep)?maxStep:(Number.isFinite(zArg)&&p&&typeof p==='object'&&zArg>0&&zArg<=2?zArg:.85);
+  const step=Number.isFinite(maxStep)?maxStep:(Number.isFinite(zArg)&&p&&typeof p==='object'&&zArg>0&&zArg<=2?zArg:.42);
   const yRef=Number.isFinite(pt.y)?pt.y:0,candidates=[this.terrain?terrainHeight(x||0,z||0,this.terrainPad??5.4,this.terrainAmp??1):0];
   for(const b of this.waterBeds||[]){
    if(b.rect){if((z||0)>=b.z0&&(z||0)<=b.z1)candidates.push(b.bed);}
@@ -86,8 +88,11 @@ export class MiraWorld {
    const t=T.MathUtils.clamp(local.z/Math.max(.001,data.run),0,1);
    candidates.push(t*data.rise);
   }
-  const below=candidates.filter(c=>c<=yRef+step);
-  return below.length?Math.max(...below):Math.min(...candidates);
+  const reachable=candidates.filter(c=>c<=yRef+step);
+  if(reachable.length)return Math.max(...reachable);
+  const below=candidates.filter(c=>c<=yRef+0.02);
+  if(below.length)return Math.max(...below);
+  return Math.min(...candidates);
  }
  path(start,goal,r=.25){
   const distance=start.distanceTo(goal);let clear=true;for(let i=0;i<=Math.ceil(distance/.2);i++)if(this.blocked(start.clone().lerp(goal,i/Math.max(1,Math.ceil(distance/.2))),r)){clear=false;break;}if(clear)return [goal.clone().setY(0)];

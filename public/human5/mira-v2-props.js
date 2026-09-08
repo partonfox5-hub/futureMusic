@@ -1,8 +1,8 @@
 import * as T from 'three';
 import {playSfx,sfxForHit,unlockSfx} from './mira-v2-sfx.js?v=13.6';
 import {furnitureRoot,syncFurniture} from './mira-v2-furniture.js?v=13.4';
-import {ensureGrabbableWood} from './mira-v2-nature.js?v=13.4';
-import {GUNS,MELEE,buildMarker,buildPortalGun} from './mira-v2-gadgets.js?v=13.8';
+import {ensureGrabbableWood} from './mira-v2-nature.js?v=13.9';
+import {GUNS,MELEE,buildMarker,buildPortalGun} from './mira-v2-gadgets.js?v=13.9';
 const V=()=>new T.Vector3(),Q=()=>new T.Quaternion();
 const visible=o=>{while(o){if(!o.visible)return false;o=o.parent;}return true;};
 const G=w=>Number.isFinite(w?.gravity)?w.gravity:9.81;

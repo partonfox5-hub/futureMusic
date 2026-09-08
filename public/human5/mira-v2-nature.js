@@ -180,6 +180,31 @@ export function ensureGrabbableWood(world,mesh){
  if(group?.userData?.fallingWood)group.userData.fallingWood.settled=true;
  return settleWood(world,group,seg.trunk?'Log':'Branch');
 }
+export function ramTree(tree,point,energy,dir){
+ if(!tree||tree.fallen||!tree.group)return false;
+ const d=(dir&&dir.lengthSq()?dir.clone():new T.Vector3(1,0,0)).setY(0);
+ if(d.lengthSq()<1e-6)d.set(1,0,0);d.normalize();
+ tree.ram=(tree.ram||0)+Math.max(0,energy);
+ const stout=220+tree.height*70;
+ if(tree.ram<stout&&energy<stout*.62)return false;
+ const meshes=[];
+ for(const child of [...tree.group.children]){
+  const seg=child.userData.treeSeg;
+  if(seg&&seg.y0>=.28)meshes.push(child);
+ }
+ if(!meshes.length)return false;
+ const fell=detachFalling(tree,meshes,d);
+ if(fell){
+  tree.fallen=true;
+  if(tree.obstacle){
+   tree.obstacle.h=Math.max(.2,.3);
+   tree.obstacle.w=Math.max(.14,(tree.radius||.08)*2.2);
+   tree.obstacle.d=tree.obstacle.w;
+   if(tree.world)tree.world.grid=null;
+  }
+ }
+ return fell;
+}
 export function chopTree(tree,point,energy,dir,kind='cut'){
  if(!tree||!tree.group)return false;
  const gain=kind==='cut'?1.15:kind==='laser'?.32:.22;

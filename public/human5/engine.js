@@ -1,21 +1,21 @@
 import {Builder,FURNITURE,SURFACES} from './mira-v2-builder.js?v=13.8';
-import {SmoothLocomotion} from './mira-v2-locomotion.js?v=13.6';
-import {Car} from './mira-v2-car.js?v=13.6';
+import {SmoothLocomotion} from './mira-v2-locomotion.js?v=13.9';
+import {Car} from './mira-v2-car.js?v=13.9';
 import {Restraints} from './mira-v2-restraints.js?v=13.4';
 import { createDogSystem } from './mira-v2-dog.js?v=13.6';
-import { installGadgets } from './mira-v2-gadgets.js?v=13.8';
+import { installGadgets } from './mira-v2-gadgets.js?v=13.9';
 import {Injuries} from './mira-v2-injuries.js?v=12.9';
-import {Props,WEAPONS} from './mira-v2-props.js?v=13.8';
+import {Props,WEAPONS} from './mira-v2-props.js?v=13.9';
 import {syncFurniture} from './mira-v2-furniture.js?v=13.4';
 import {installWater} from './mira-v2-water.js?v=13.3';
 import {createFloraSystem} from './mira-v2-flora.js?v=13.3';
 import {RoomLight} from './mira-v2-light.js?v=11.0';
 import {draft,saveDraft,spawnOptions,OUTFITS,clothingItems} from './mira-v2-catalog.js?v=11.0';
-import {MiraWorld,SCENES} from './mira-v2-world.js?v=13.8';
+import {MiraWorld,SCENES} from './mira-v2-world.js?v=13.9';
 import {Wardrobe,GARMENTS} from './mira-v2-wardrobe.js?v=11.2';
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { createVRMenu } from "./mira-vr-menu.js?v=13.8";
+import { createVRMenu } from "./mira-vr-menu.js?v=13.9";
 import { snapshot, savePreset, loadPreset, applyPreset, listPresets, lastPresetName, downloadPreset } from "./mira-v2-preset.js?v=11.5";
 import { unlockSfx } from "./mira-v2-sfx.js?v=11.0";
 import { EMOTION_NAMES, IDLE_NAMES, WALK_NAMES, ATTENTION_MODES } from "./mira-v2-features.js?v=13.7";
@@ -461,7 +461,8 @@ function desktopMove(dt) {
   if (keys.KeyS) controls.moveForward(-sp);
   if (keys.KeyA) controls.moveRight(-sp);
   if (keys.KeyD) controls.moveRight(sp);
-  const floor=1.6+(world.floorHeight?.(obj.position)||0);
+  const feet=obj.position.clone();feet.y-=1.6;
+  const floor=1.6+(world.floorHeight?.(feet,undefined,.42)||0);
   const grav=Number.isFinite(world.gravity)?world.gravity:9.81;
   if(grav<0.5){
    if(keys.Space||keys.jump)deskJumpVel+=8*dt;
@@ -487,7 +488,7 @@ function tick(time,frame) {
  }
  roomLight.tick(frame);
   const rawDt = clock.getDelta();
-  if (rawDt > 0.12 && mira.ready) { mira.resetPhysics(false); props.resetMotion(); }
+  if (rawDt > 0.22 && mira.ready) { mira.resetPhysics(false); props.resetMotion(); }
   const dt = Math.min(rawDt, 0.05);
   desktopMove(dt);
   if(!XR_ON()&&orbit.enabled)orbit.update();
