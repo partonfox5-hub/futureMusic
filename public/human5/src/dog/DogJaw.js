@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { clamp } from './Dog.js?v=12.7';
+import { clamp } from './Dog.js?v=13.5';
 
 export class DogJaw {
   constructor(model){
@@ -20,7 +20,7 @@ export class DogJaw {
   bark(){this.barkAge=0;this.peak=.55+Math.random()*.30;}
   apply(t){this.value=t;this.model.bones.Jaw.rotation.x=t*.32;this.mesh.morphTargetInfluences[0]=t;}
   tick(dt){
-    this.barkAge+=dt;let v=this.manual,t=this.barkAge;
+    this.barkAge+=dt;let v=Math.max(this.manual,this.activity||0),t=this.barkAge;
     if(t<.2)v=this.peak*(t/.2);else if(t<.32)v=this.peak;else if(t<.57)v=this.peak*(1-(t-.32)/.25);
     this.apply(clamp(v));
   }

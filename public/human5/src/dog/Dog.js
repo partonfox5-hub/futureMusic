@@ -8,7 +8,7 @@ export const clamp = (v,lo=0,hi=1) => Math.max(lo,Math.min(hi,Number.isFinite(+v
 export class DogModel {
   constructor() {
     this.root=new THREE.Group(); this.root.name='Human2_Dog';
-    this.bones={}; this.bind={}; this.meshes=[]; this.furMeshes=[]; this.materials=new Set();
+    this.ears=[];this.bones={}; this.bind={}; this.meshes=[]; this.furMeshes=[]; this.materials=new Set();
     const add=(name,parent,point)=>{
       const b=new THREE.Bone();b.name=name;this.bind[name]=V(point);
       b.position.copy(this.bind[name]); if(parent)b.position.sub(this.bind[parent]);
@@ -25,7 +25,7 @@ export class DogModel {
     }
     this.root.updateMatrixWorld(true);this.skeleton=new THREE.Skeleton(BONE_NAMES.map(n=>this.bones[n]));
     this.index=Object.fromEntries(BONE_NAMES.map((n,i)=>[n,i]));this.skeleton.calculateInverses();
-    this.coat=this.material({color:0xffffff,roughness:.9,vertexColors:true});
+    this.coat=this.material({color:0xb68952,roughness:.9,vertexColors:true});this.coat.userData.dogCoat=true;
     this.dark=this.material({color:0x241b16,roughness:.82});
     this.eye=this.material({color:0xd9ccb6,roughness:.35});
     this.noseMaterial=this.material({color:0x1a1210,roughness:.19,metalness:0,envMapIntensity:1.2});
@@ -53,14 +53,14 @@ export class DogModel {
     this.meshes.push(mesh);if(fur)this.furMeshes.push(mesh);return mesh;
   }
   skin(geometry,weights){
-    const p=geometry.getAttribute('position'),j=[],w=[],c=[];
+    const p=geometry.getAttribute('position'),j=[],w=[],c=[],length=[];
     for(let i=0;i<p.count;i++){
       const x=p.getX(i),y=p.getY(i),z=p.getZ(i),pairs=typeof weights==='function'?weights(x,y,z):[[weights,1]];
       for(let k=0;k<4;k++){j.push(pairs[k]?this.index[pairs[k][0]]:0);w.push(pairs[k]?pairs[k][1]:0);}
-      const cc=this.coatColor(x,y,z);c.push(cc.r,cc.g,cc.b);
+      const cc=this.coatColor(x,y,z);c.push(cc.r,cc.g,cc.b);length.push(z>.46?.4:z<-.35||y>.5&&z>.15&&z<.36?1.6:1);
     }
     geometry.setAttribute('skinIndex',new THREE.Uint16BufferAttribute(j,4));geometry.setAttribute('skinWeight',new THREE.Float32BufferAttribute(w,4));
-    geometry.setAttribute('color',new THREE.Float32BufferAttribute(c,3));return geometry;
+    geometry.setAttribute('color',new THREE.Float32BufferAttribute(c,3));geometry.setAttribute('dogFurLength',new THREE.Float32BufferAttribute(length,1));return geometry;
   }
   ellipsoid(name,center,scale,bone,material=this.coat,kind='coat',segments=12,rings=8,fur=false){
     const g=new THREE.SphereGeometry(1,segments,rings);g.scale(...scale);g.translate(...center);this.skin(g,bone);
@@ -91,6 +91,7 @@ export class DogModel {
     // Stop and cheek planes are small additions in existing Head bind space.
     this.ellipsoid('stop',[0,.761,.463],[.046,.049,.030],'Head',this.coat,'coat',12,7,true);
     this.planum();
+    for(const side of [-1,1])this.ellipsoid('haunch',[side*.11,.375,-.245],[.072,.113,.095],`${side>0?'L':'R'}_Thigh`,this.coat,'coat',12,8,true);
     for(const side of [-1,1]){
       this.ellipsoid('cheek',[side*.069,.737,.444],[.030,.040,.038],'Head',this.coat,'coat',10,6,true);
       this.ellipsoid('lip',[side*.037,.685,.537],[.022,.007,.060],'Head',this.rimMaterial,'muzzle',10,5);
@@ -127,13 +128,21 @@ export class DogModel {
   ear(s){
     const points=[[s*.054,.810,.395],[s*.110,.816,.370],[s*.116,.900,.365],[s*.099,.930,.386],[s*.080,.872,.427]];
     const p=points.flat(),idx=[0,1,4,1,2,4,2,3,4];const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(p,3));g.setAttribute('uv',new THREE.Float32BufferAttribute([0,1,1,1,1,.3,.6,0,.5,.6],2));g.setIndex(s<0?idx.flatMap((_,i)=>i%3===0?[idx[i],idx[i+2],idx[i+1]]:[]):idx);g.computeVertexNormals();this.skin(g,'Head');
-    const m=this.material({color:0x574236,roughness:.95,side:THREE.DoubleSide});this.mesh(s>0?'ear_L':'ear_R',g,m);
+    const m=this.material({color:0x574236,roughness:.95,side:THREE.DoubleSide});m.userData.dogCoat=true;this.earHinge(this.mesh(s>0?'ear_L':'ear_R',g,m),s);
     const edgePos=[],edgeUV=[],edgeIndex=[];
     for(const q of points){edgePos.push(q[0],q[1],q[2]-.002,q[0],q[1],q[2]+.002);edgeUV.push(0,0,1,1);}
     for(let i=0;i<points.length;i++){const a=i*2,b=((i+1)%points.length)*2;edgeIndex.push(a,b,a+1,b,b+1,a+1);}
-    const edge=new THREE.BufferGeometry();edge.setAttribute('position',new THREE.Float32BufferAttribute(edgePos,3));edge.setAttribute('uv',new THREE.Float32BufferAttribute(edgeUV,2));edge.setIndex(edgeIndex);edge.computeVertexNormals();this.skin(edge,'Head');this.mesh('ear_edge',edge,this.rimMaterial);
-    const inner=g.clone();const pp=inner.getAttribute('position');for(let i=0;i<pp.count;i++){pp.setXYZ(i,pp.getX(i)*.93,.85+(pp.getY(i)-.85)*.77,pp.getZ(i)+.0018);}inner.computeVertexNormals();this.mesh('ear_inner',inner,this.material({color:0x765845,roughness:.96,side:THREE.DoubleSide}));
+    const edge=new THREE.BufferGeometry();edge.setAttribute('position',new THREE.Float32BufferAttribute(edgePos,3));edge.setAttribute('uv',new THREE.Float32BufferAttribute(edgeUV,2));edge.setIndex(edgeIndex);edge.computeVertexNormals();this.skin(edge,'Head');this.earHinge(this.mesh('ear_edge',edge,this.rimMaterial),s);
+    const inner=g.clone();const pp=inner.getAttribute('position');for(let i=0;i<pp.count;i++){pp.setXYZ(i,pp.getX(i)*.93,.85+(pp.getY(i)-.85)*.77,pp.getZ(i)+.0018);}inner.computeVertexNormals();this.earHinge(this.mesh('ear_inner',inner,this.material({color:0x765845,roughness:.96,side:THREE.DoubleSide})),s);
   }
+  earHinge(mesh,side){
+    // One hinge deformation in bind space: meshes remain rooted, with no new bones.
+    const p=mesh.geometry.attributes.position,delta=[],pivot=new THREE.Vector3(side*.08,.818,.395);
+    for(let i=0;i<p.count;i++){const v=new THREE.Vector3().fromBufferAttribute(p,i),to=v.clone().sub(pivot).applyAxisAngle(new THREE.Vector3(1,0,0),-1.05).add(pivot).sub(v);delta.push(to.x,to.y,to.z);}
+    mesh.geometry.morphAttributes.position=[new THREE.Float32BufferAttribute(delta,3)];mesh.geometry.morphTargetsRelative=true;mesh.updateMorphTargets();this.ears.push(mesh);
+  }
+  setEars(drop){for(const mesh of this.ears)mesh.morphTargetInfluences[0]=clamp(drop);}
+  setCoat(hex){if(!/^#[0-9a-f]{6}$/i.test(String(hex)))return false;for(const m of this.materials)if(m.userData.dogCoat)m.color.set(hex);this.coatHex=hex;return true;}
   compactMeshes(){
     // Batch skinned parts sharing a material/category. Skeleton and morph semantics survive.
     const all=[];this.root.traverse(o=>{if(o.isSkinnedMesh)all.push(o);});const groups=new Map(),keep=[];
@@ -145,7 +154,7 @@ export class DogModel {
     const removedGeometry=new Set();
     for(const list of groups.values()){
       if(list.length===1){keep.push(list[0]);continue;}
-      const attributes=['position','normal','uv','skinIndex','skinWeight','color'],result=new THREE.BufferGeometry();let offset=0;const indices=[];
+      const attributes=['position','normal','uv','skinIndex','skinWeight','color','dogFurLength'],result=new THREE.BufferGeometry();let offset=0;const indices=[];
       for(const name of attributes){const first=list[0].geometry.getAttribute(name);if(!first)continue;const data=[];for(const m of list)data.push(...m.geometry.getAttribute(name).array);result.setAttribute(name,name==='skinIndex'?new THREE.Uint16BufferAttribute(data,first.itemSize):new THREE.Float32BufferAttribute(data,first.itemSize));}
       for(const m of list){const g=m.geometry;indices.push(...Array.from(g.index?.array||Array.from({length:g.attributes.position.count},(_,i)=>i),i=>i+offset));offset+=g.attributes.position.count;removedGeometry.add(g);m.removeFromParent();}
       result.setIndex(indices);const m=new THREE.SkinnedMesh(result,list[0].material);m.name=list[0].material.name.startsWith('Dog_FurShell')?list[0].material.name:(list[0].material===this.coat?(list[0].name==='paws'?'paws':'body'):list[0].name);m.bind(this.skeleton,new THREE.Matrix4());m.castShadow=list[0].castShadow;m.receiveShadow=list[0].receiveShadow;m.renderOrder=list[0].renderOrder;m.frustumCulled=false;m.userData.parts=list.map(x=>x.name);this.root.add(m);keep.push(m);

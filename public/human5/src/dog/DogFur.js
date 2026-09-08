@@ -7,13 +7,13 @@ export class DogFur {
     const xr=renderer?.xr;this.shellCount=3;const loader=typeof document!=='undefined'?new THREE.TextureLoader():null;
     const placeholder=(rgb,space)=>{const t=new THREE.DataTexture(new Uint8Array([...rgb,255]),1,1);t.colorSpace=space;t.needsUpdate=true;t.wrapS=t.wrapT=THREE.RepeatWrapping;return t;};
     const load=(name,tex,color=false)=>{
-      if(!loader)return tex;
+      this.textures.push(tex);if(!loader)return tex;
       const img=new Image();
       img.onload=()=>{if(this.disposed)return;tex.image=img;tex.isDataTexture=false;tex.flipY=true;tex.generateMipmaps=true;tex.colorSpace=color?THREE.SRGBColorSpace:THREE.NoColorSpace;tex.needsUpdate=true;};
       img.onerror=()=>{this.failedMaps.add(name);if(name==='fur_albedo_v2.jpg'&&!img.dataset.fallback){img.dataset.fallback='1';img.src=new URL('fur_albedo.jpg',ASSET_ROOT).href;}};
       img.src=new URL(name,ASSET_ROOT).href;
       tex.anisotropy=Math.min(4,renderer?.capabilities?.getMaxAnisotropy?.()||1);
-      this.textures.push(tex);return tex;
+      return tex;
     };
     this.failedMaps=new Set();
     const albedo=placeholder([255,255,255],THREE.SRGBColorSpace);
@@ -31,8 +31,8 @@ export class DogFur {
       const material=model.coat.clone();material.name=`Dog_FurShell_${layer}`;material.alphaHash=true;material.side=THREE.FrontSide;material.depthWrite=true;material.transparent=false;material.roughness=.94;
       material.onBeforeCompile=shader=>{
         shader.uniforms.dogShell={value:layer*.002};shader.uniforms.dogFlow={value:flow};shader.uniforms.dogLayer={value:layer};
-        shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nuniform float dogShell; varying vec2 dogFurUV;');
-        shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\ntransformed += objectNormal * dogShell; dogFurUV = uv;');
+        shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nuniform float dogShell; attribute float dogFurLength; varying vec2 dogFurUV;');
+        shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\ntransformed += normal * dogShell * dogFurLength; dogFurUV = uv;');
         shader.fragmentShader=shader.fragmentShader.replace('#include <common>',`#include <common>
           uniform sampler2D dogFlow; uniform float dogLayer; varying vec2 dogFurUV;
           float dogHash(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453123); }`);
@@ -55,7 +55,7 @@ export class DogFur {
           outgoingLight += diffuseColor.rgb*dogGrazing*.045;
           #include <opaque_fragment>`);
       };
-      material.customProgramCacheKey=()=>`dog-fur-r170-${layer}`;model.materials.add(material);
+      material.customProgramCacheKey=()=>`dog-fur-r170-13.5-${layer}`;model.materials.add(material);
       for(const source of sources){
         const shell=new THREE.SkinnedMesh(source.geometry,material);shell.name=`${source.name}_fur_${layer}`;shell.bind(model.skeleton,new THREE.Matrix4());shell.frustumCulled=false;shell.castShadow=false;shell.receiveShadow=true;model.root.add(shell);this.layers.push({mesh:shell,layer});
       }
@@ -67,14 +67,14 @@ export class DogFur {
     const g=new THREE.PlaneGeometry(width,height,3,4);g.rotateY(Math.PI);g.translate(...p);this.model.skin(g,bone);
     const m=this.model.coat.clone();m.side=THREE.DoubleSide;m.alphaHash=true;m.transparent=false;m.depthWrite=true;
     m.onBeforeCompile=s=>{s.vertexShader=s.vertexShader.replace('#include <common>','#include <common>\nvarying vec2 dogTuftUV;').replace('#include <begin_vertex>','#include <begin_vertex>\ndogTuftUV=uv;');s.fragmentShader=s.fragmentShader.replace('#include <common>','#include <common>\nvarying vec2 dogTuftUV;');s.fragmentShader=s.fragmentShader.replace('#include <alphahash_fragment>',`float fringe=0.12+0.80*abs(sin(dogTuftUV.x*49.0)); if(dogTuftUV.y<fringe*.55 || abs(dogTuftUV.x-.5)>.50*dogTuftUV.y)discard; diffuseColor.a=.58;\n#include <alphahash_fragment>`);};
-    m.customProgramCacheKey=()=>`dog-tuft-r170`;this.model.materials.add(m);this.model.mesh(name,g,m);
+    m.customProgramCacheKey=()=>`dog-tuft-r170`;this.model.materials.add(m);const mesh=this.model.mesh(name,g,m);mesh.castShadow=false;
   }
   rebindLayers(){this.layers=[];this.model.root.traverse(mesh=>{if(mesh.isMesh&&mesh.material.name.startsWith('Dog_FurShell_'))this.layers.push({mesh,layer:Number(mesh.material.name.split('_').at(-1))});});}
   setLayers(n){this.shellCount=n===2?2:3;for(const {mesh,layer} of this.layers)mesh.visible=layer<=this.shellCount;}
   tick(dt,renderer){
     // Sustained slow XR frames drop only the outer shell. No grip/app timing changes.
-    this.slowFrames=(renderer?.xr?.isPresenting&&dt>1/55)?(this.slowFrames||0)+1:Math.max(0,(this.slowFrames||0)-1);
-    if(this.slowFrames>60)this.setLayers(2);
+    this.slowFrames=(dt>1/50)?(this.slowFrames||0)+1:0;
+    if(this.slowFrames>=30)this.setLayers(2);
   }
   dispose(){this.disposed=true;for(const {mesh} of this.layers)mesh.removeFromParent();for(const t of this.textures)t.dispose();}
 }

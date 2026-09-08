@@ -120,6 +120,20 @@
       </div>
       <button type="button" class="go" id="spawnMira" data-runtime>SPAWN MIRA V2</button>
       <button type="button" class="go" id="spawnDog" data-runtime>SPAWN DOG</button>
+      <h2>DOG</h2>
+      <label for="dogName">Name</label>
+      <input id="dogName" maxlength="24" value="Buddy" autocomplete="off" data-runtime>
+      <label for="dogCoat">Coat</label>
+      <input id="dogCoat" type="color" value="#b68952" data-runtime>
+      <div class="row">
+        <button type="button" id="callDog" data-runtime>CALL DOG</button>
+        <button type="button" id="dogBone" data-runtime>GIVE BONE</button>
+      </div>
+      <div class="row">
+        <button type="button" id="dogBag" data-runtime>KIBBLE BAG</button>
+        <button type="button" id="dogBowl" data-runtime>BOWL</button>
+      </div>
+      <p id="dogStatus">Name the dog here, or say “your name is …” on Quest voice. Saying its name (mishearings count) makes it come to you.</p>
       <h2>EXPRESSION</h2>
       <label for="expression">Emotion or conversational context</label><select id="expression" data-runtime></select>
       <div class="row"><button id="faceSmile">SMILE CLIP</button><button id="faceSurprise">SURPRISE CLIP</button></div>
@@ -185,6 +199,6 @@
         <button type="button" class="ghost" id="firstPerson" data-runtime>First person</button>
       </div>
     </div>
-    <script type="module" src="/human5/mira-boot.js?v=13.4"></script>
+    <script type="module" src="/human5/mira-boot.js?v=13.5"></script>
   </body>
 </html>

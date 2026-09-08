@@ -2,7 +2,7 @@ import {Builder,FURNITURE,SURFACES} from './mira-v2-builder.js?v=13.0';
 import {SmoothLocomotion} from './mira-v2-locomotion.js?v=13.4';
 import {Car} from './mira-v2-car.js?v=13.4';
 import {Restraints} from './mira-v2-restraints.js?v=13.4';
-import { createDogSystem } from './mira-v2-dog.js?v=13.4';
+import { createDogSystem } from './mira-v2-dog.js?v=13.5';
 import {Injuries} from './mira-v2-injuries.js?v=12.9';
 import {Props,WEAPONS} from './mira-v2-props.js?v=13.4';
 import {syncFurniture} from './mira-v2-furniture.js?v=13.4';
@@ -14,7 +14,7 @@ import {MiraWorld,SCENES} from './mira-v2-world.js?v=13.4';
 import {Wardrobe,GARMENTS} from './mira-v2-wardrobe.js?v=11.2';
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { createVRMenu } from "./mira-vr-menu.js?v=13.4";
+import { createVRMenu } from "./mira-vr-menu.js?v=13.5";
 import { snapshot, savePreset, loadPreset, applyPreset, listPresets, lastPresetName, downloadPreset } from "./mira-v2-preset.js?v=11.5";
 import { unlockSfx } from "./mira-v2-sfx.js?v=11.0";
 import { EMOTION_NAMES, IDLE_NAMES, WALK_NAMES, ATTENTION_MODES } from "./mira-v2-features.js?v=13.3";
@@ -136,6 +136,8 @@ mira.load(
     banner("Drag to orbit · wheel to zoom · Grab body or Shift-drag · VR: Y menu, right B ball");
     syncHud();document.dispatchEvent(new Event("mira:ready"));
     dogs.spawnDefault();
+    const dogNameEl=document.getElementById('dogName');
+    if(dogNameEl)dogNameEl.value=dogs.list?.()[0]?.displayName||'Buddy';
     if (new URLSearchParams(location.search).has("debug")) window.human2 = { mira, scene, renderer, camera, rig, keys, orbit, world, wardrobe, props, dogs, water, flora };
   },
   (e) => { banner("LOAD FAILED — " + (e && e.message ? e.message : "glb")); console.error(e); }
@@ -270,7 +272,19 @@ function bindHud() {
   };
   document.getElementById("spawnV1").onclick=()=>spawnVersion('v1');
   document.getElementById("spawnMira").onclick=()=>spawnVersion('v2');
-  document.getElementById("spawnDog")?.addEventListener("click",()=>dogs.spawn());
+  document.getElementById("spawnDog")?.addEventListener("click",()=>{const n=document.getElementById('dogName')?.value;if(n)dogs.setName?.(n);dogs.spawn();});
+  const dogNameEl=document.getElementById('dogName');
+  if(dogNameEl){
+    dogNameEl.value=dogs.list?.()[0]?.displayName||dogNameEl.value;
+    const applyName=()=>{const name=dogs.setName?.(dogNameEl.value);if(name)dogNameEl.value=name;const st=document.getElementById('dogStatus');if(st)st.textContent='Named '+(name||dogNameEl.value);};
+    dogNameEl.addEventListener('change',applyName);
+    dogNameEl.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();dogNameEl.blur();applyName();}});
+  }
+  document.getElementById('dogCoat')?.addEventListener('input',e=>dogs.setCoat?.(e.target.value));
+  document.getElementById('callDog')?.addEventListener('click',()=>{const h=dogs.list?.()[0];h?.recall?.();const st=document.getElementById('dogStatus');if(st)st.textContent=(h?.displayName||'Dog')+' is coming';});
+  document.getElementById('dogBone')?.addEventListener('click',()=>dogs.list?.()[0]?.giveBone?.());
+  document.getElementById('dogBag')?.addEventListener('click',()=>dogs.list?.()[0]?.giveBag?.());
+  document.getElementById('dogBowl')?.addEventListener('click',()=>dogs.list?.()[0]?.giveBowl?.());
   document.getElementById("actorSelect").onchange=e=>{mira.select(mira.actors[Number(e.target.value)]);syncHud();};
   document.getElementById("removeActor").onclick=()=>{if(selected())mira.remove(selected());syncHud();};
   for(const [id,values] of [['walkStyle',WALK_NAMES],['idlePose',['auto',...IDLE_NAMES]],['expression',['context',...EMOTION_NAMES]]]){
@@ -321,10 +335,32 @@ function bindHud() {
     chatLog.scrollTop = chatLog.scrollHeight;
   }
   async function converse(text) {
-    if (!text || talking) return;
+    if (!text) return;
+    const renamed=dogs.parseNameCommand?.(text);
+    if(renamed){
+      dogs.setName(renamed);
+      const el=document.getElementById('dogName');if(el)el.value=renamed;
+      for(const h of dogs.list?.()||[])h.recall?.();
+      addChat("you", text);
+      banner('Named '+renamed);
+      const st=document.getElementById('dogStatus');if(st)st.textContent='Named '+renamed+' · coming';
+      return;
+    }
+    let dogHeard=false;
+    if (dogs.callByVoice?.(text)) {
+      dogHeard=true;
+      const words=String(text).trim().split(/\s+/).filter(Boolean).length;
+      const callish=/\b(come|here|boy|girl|pup|puppy|\bdog\b)\b/i.test(text);
+      addChat("you", text);
+      const named=dogs.list?.()[0]?.displayName||'the dog';
+      banner(named+' is coming');
+      const st=document.getElementById('dogStatus');if(st)st.textContent=named+' heard you · coming';
+      if(words<=6||callish)return;
+    }
+    if (talking) return;
     talking = true;
     banner("heard: " + text);
-    addChat("you", text);
+    if(!dogHeard)addChat("you", text);
     const cam = camera;
     cam.getWorldPosition(_fwd);
     const actor = mira.nearestTo(_fwd, 2.6) || mira.selected;

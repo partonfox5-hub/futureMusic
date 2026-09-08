@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { clamp } from './Dog.js?v=12.1';
+import { clamp } from './Dog.js?v=13.5';
 export class DogTail {
   constructor(model){
     this.model=model;this.amount=0;this.points=[];this.previous=[];this.lengths=[];this.accumulator=0;this.time=0;
@@ -12,8 +12,8 @@ export class DogTail {
     for(let i=0;i<6;i++){const q=this.bones[i].getWorldPosition(new THREE.Vector3());this.points.push(q);this.previous.push(q.clone());if(i)this.lengths.push(this.rest[i].distanceTo(this.rest[i-1]));}
     this.anchor=this.points[0].clone();
   }
-  tick(dt,time,amount=0,state='idle'){
-    this.time=time;this.amount=clamp(amount);this.accumulator+=Math.min(dt,.1);
+  tick(dt,time,amount=0,state='idle',mood={}){
+    this.mood=mood;this.state=state;this.time=time;this.amount=clamp(amount);this.accumulator+=Math.min(dt,.1);
     const m=this.model;m.root.updateMatrixWorld(true);
     const anchor=this.bones[0].getWorldPosition(new THREE.Vector3()),shift=anchor.clone().sub(this.anchor);
     // Teleports and host rig relocation must not fling a tail through the room.
@@ -30,16 +30,19 @@ export class DogTail {
     this.bones[5].quaternion.identity();
   }
   step(h,anchor,state){
-    const root=this.model.root,amount=this.amount,alert=state==='alert';this.points[0].copy(anchor);this.previous[0].copy(anchor);
+    const root=this.model.root,amount=this.amount,alert=state==='alert',mood=this.mood||{},low=mood.sleepy||mood.hungry||state==='sleep'||state==='sit';this.points[0].copy(anchor);this.previous[0].copy(anchor);
     for(let i=1;i<6;i++){
       const p=this.points[i],old=p.clone(),v=p.clone().sub(this.previous[i]).multiplyScalar(.86);
       p.add(v);p.y-=9.8*.35*h*h;this.previous[i].copy(old);
       const target=this.rest[i].clone();const phase=this.time*(amount>.12?2.2:.9)*Math.PI*2-i*.23;
       target.x+=Math.sin(phase)*(.010+.063*amount)*(i/5);
-      if(alert)target.y+=.18*(i/5);
-      target.applyMatrix4(root.matrixWorld);p.lerp(target,alert?.30:.12);
+      if(alert||mood.greeting)target.y+=.18*(i/5);
+      if(low)target.y-=.07*(i/5);
+      if(mood.hurt){target.y-=.1*(i/5);target.z+=.12*(i/5);}
+      // Transform the groom target through the current Spine frame, including turn bend.
+      target.sub(this.model.bind.Spine);target.applyMatrix4(this.model.bones.Spine.matrixWorld);p.lerp(target,alert?.30:.12);
     }
-    const baseDirection=this.rest[1].clone().sub(this.rest[0]).normalize().transformDirection(root.matrixWorld);
+    const baseDirection=this.rest[1].clone().sub(this.rest[0]).normalize().transformDirection(this.model.bones.Spine.matrixWorld);
     for(let pass=0;pass<5;pass++){
       this.points[0].copy(anchor);let previousDir=baseDirection.clone();
       for(let i=1;i<6;i++){

@@ -87,10 +87,14 @@ export function createVRMenu({scene,renderer,camera,system,spawn,onSync,world,wa
      cycle('Idle pose',840,['auto',...IDLE_NAMES],()=>a.idleChoice,x=>a.setIdlePose(x));
     }
    }
-   button('SPAWN DOG',40,942,942,68,()=>{props.dogs?.spawn();draw();});
-   button('TOSS BALL',40,1020,455,76,()=>{const c=camera;c.getWorldPosition(v);const dir=c.getWorldDirection(new THREE.Vector3());system.spawnBall(v.clone().addScaledVector(dir,.5),dir.multiplyScalar(2).setY(1));});
-   button('VOICE ON / OFF',515,1020,467,76,()=>document.getElementById('micBtn')?.click());
-   button('EXIT VR / AR',40,1130,942,76,()=>renderer.xr.getSession()?.end());
+   button('SPAWN DOG',40,942,455,68,()=>{props.dogs?.spawn();draw();});
+   button('CALL '+(props.dogs?.list?.()[0]?.displayName||'DOG').toUpperCase(),515,942,467,68,()=>{props.dogs?.list?.()[0]?.recall?.();draw();});
+   button('GIVE BONE',40,1020,300,68,()=>{props.dogs?.list?.()[0]?.giveBone?.();draw();});
+   button('KIBBLE',355,1020,300,68,()=>{props.dogs?.list?.()[0]?.giveBag?.();draw();});
+   button('BOWL',670,1020,312,68,()=>{props.dogs?.list?.()[0]?.giveBowl?.();draw();});
+   button('TOSS BALL',40,1100,455,68,()=>{const c=camera;c.getWorldPosition(v);const dir=c.getWorldDirection(new THREE.Vector3());system.spawnBall(v.clone().addScaledVector(dir,.5),dir.multiplyScalar(2).setY(1));});
+   button('VOICE ON / OFF',515,1100,467,68,()=>document.getElementById('micBtn')?.click());
+   button('EXIT VR / AR',40,1180,942,68,()=>renderer.xr.getSession()?.end());
   }else if(page===4&&a){
    const choices=['idle','auto','wander','handsOnHips','airSquats','stretch','jumpingJacks','march','dance','sideSteps','reach','heelRaises','hug','armAround'];
    choices.forEach((mode,i)=>button(ACTION_LABELS[mode]||({handsOnHips:'Hands on hips',hug:'Hug nearby Mira',armAround:'Arm around Mira'})[mode],40+(i%2)*475,315+Math.floor(i/2)*82,455,68,()=>{
