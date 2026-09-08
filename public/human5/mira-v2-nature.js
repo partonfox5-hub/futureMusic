@@ -1,4 +1,5 @@
 import * as T from 'three';
+import {tagMovable,furnitureRoot} from './mira-v2-furniture.js?v=12.9';
 const V=()=>new T.Vector3(),QUEST=/Quest|OculusBrowser/i.test(globalThis.navigator?.userAgent||'');
 const hash=(x,z)=>{const n=Math.sin(x*127.1+z*311.7)*43758.5453;return n-Math.floor(n);};
 const smooth=t=>t*t*(3-2*t);
@@ -14,7 +15,7 @@ export function terrainHeight(x,z,pad=5.4,amp=1){
  return t*amp*(.22*fbm(x*.035,z*.035)+.55*fbm(x*.012,z*.012)-.12);
 }
 export function plantTerrain(world,opts={}){
- const size=opts.size||78,seg=QUEST?40:72,pad=opts.pad??5.4,amp=opts.amp??1;
+ const size=opts.size||156,seg=QUEST?52:88,pad=opts.pad??5.4,amp=opts.amp??1;
  const geo=new T.PlaneGeometry(size,size,seg,seg);geo.rotateX(-Math.PI/2);
  const pos=geo.attributes.position,col=new Float32Array(pos.count*3);
  const grass=new T.Color(opts.grass||0x5d7048),dirt=new T.Color(opts.dirt||0x6a5a3e),mix=new T.Color();
@@ -106,51 +107,115 @@ function collectSegs(tree){
  for(const piece of tree.falling||[])visit(piece.group);
  return segs;
 }
+function markLoose(mesh,tree){
+ if(!mesh)return;
+ mesh.userData.looseWood=true;
+ mesh.userData.tree=tree;
+ if(mesh.userData.treeSeg)mesh.userData.treeSeg.mesh=mesh;
+}
+function retagWood(world,group,id){
+ if(!world||!group?.parent)return null;
+ const furn=tagMovable(world,group,id||'Log');
+ if(furn){furn.log=true;group.userData.log=true;}
+ group.traverse(m=>{if(m.isMesh){m.userData.looseWood=true;if(world.fractures&&!m.userData.piece)world.fractures.register(m,'wood');}});
+ return group;
+}
 function detachFalling(tree,meshes,dir){
- if(!meshes.length||!tree.group.parent)return false;
+ if(!meshes.length||!tree.group?.parent)return false;
+ const live=meshes.filter(m=>m&&m.parent);if(!live.length)return false;
  const upper=new T.Group();tree.group.parent.add(upper);
  tree.group.updateWorldMatrix(true,true);
- const origin=meshes[0].getWorldPosition(V());
+ const origin=live[0].getWorldPosition(V());
  upper.position.copy(origin);
- for(const mesh of meshes){
-  if(!mesh.parent)continue;
-  mesh.updateWorldMatrix(true,true);
-  upper.attach(mesh);
- }
+ for(const mesh of live){mesh.updateWorldMatrix(true,true);upper.attach(mesh);markLoose(mesh,tree);}
  const side=new T.Vector3(dir.z,0,-dir.x);if(side.lengthSq()<1e-6)side.set(1,0,0);
- const piece={group:upper,velocity:dir.clone().setY(Math.max(.15,dir.y)).multiplyScalar(1.05).add(new T.Vector3(0,.35,0)),omega:side.normalize().multiplyScalar(1.7)};
+ const vel=dir.clone().setY(Math.max(.12,dir.y)).multiplyScalar(.85).add(new T.Vector3(0,.22,0));
+ const om=side.normalize().multiplyScalar(1.15);
+ const piece={group:upper,velocity:vel,omega:om};
  tree.falling??=[];tree.falling.push(piece);
- upper.userData.tree=tree;upper.traverse(m=>{if(m.isMesh)m.userData.tree=tree;});
+ upper.userData.tree=tree;upper.traverse(m=>{if(m.isMesh){m.userData.tree=tree;m.userData.looseWood=true;}});
+ const trunkish=live.some(m=>m.userData.treeSeg?.trunk);
+ if(tree.world){
+  retagWood(tree.world,upper,trunkish?'Log':'Branch');
+  const furn=upper.userData.furniture;
+  if(furn){furn.velocity.copy(vel);furn.omega=om.clone();}
+ }
  return true;
+}
+function splitLogMesh(world,mesh,dir){
+ if(!mesh?.parent||!world)return false;
+ const box=new T.Box3().setFromObject(mesh),size=box.getSize(V()),center=box.getCenter(V());
+ const axis=size.x>=size.y&&size.x>=size.z?'x':size.y>=size.z?'y':'z';
+ if(size[axis]<.28){
+  if(mesh.userData.piece)return world.fractures.impact({object:mesh,point:center,face:{normal:dir.clone()}},28,dir,'cut',.7);
+  mesh.visible=false;return true;
+ }
+ const mat=Array.isArray(mesh.material)?mesh.material[0].clone():mesh.material.clone();
+ const half=size[axis]*.48,r=Math.max(.025,Math.min(size.x,size.y,size.z)*.38);
+ const tree=mesh.userData.tree,parent=mesh.parent,id=size[axis]>.7?'Log':'Branch';
+ for(const sign of [-1,1]){
+  const g=new T.Group();world.root.add(g);
+  const cyl=new T.Mesh(new T.CylinderGeometry(r,r*.9,Math.max(.16,half),QUEST?6:8),mat);
+  if(axis==='x')cyl.rotation.z=Math.PI/2;else if(axis==='z')cyl.rotation.x=Math.PI/2;
+  g.position.copy(center);g.position[axis]+=sign*half*.52;g.add(cyl);
+  const seg={index:0,y0:0,y1:half,cut:0,radius:r,trunk:id==='Log',mesh:cyl};
+  cyl.userData.treeSeg=seg;cyl.castShadow=cyl.receiveShadow=true;
+  const stub=tree&&tree.world?tree:{group:g,height:half,radius:r,cut:[seg],fallen:true,falling:[],world};
+  cyl.userData.tree=stub;g.userData.tree=stub;markLoose(cyl,stub);
+  if(stub!==tree){world.trees??=[];if(!world.trees.includes(stub))world.trees.push(stub);}
+  else stub.cut.push(seg);
+  retagWood(world,g,id);
+  const furn=g.userData.furniture;if(furn){furn.velocity.copy(dir.clone().multiplyScalar(sign*.45)).setY(.18);furn.omega=new T.Vector3(sign*.6,.2,-sign*.4);}
+ }
+ mesh.visible=false;mesh.removeFromParent();
+ if(parent?.userData?.furniture&&!parent.children.length){world.movables=world.movables.filter(x=>x!==parent);if(parent.userData.furniture.obstacle)world.removeObstacle(parent.userData.furniture.obstacle);parent.removeFromParent();}
+ else if(parent?.userData?.furniture)retagWood(world,parent,parent.userData.furniture.id);
+ return 'split';
+}
+export function ensureGrabbableWood(world,mesh){
+ if(!mesh||!world)return null;
+ const existing=furnitureRoot(mesh);if(existing?.userData?.furniture)return existing;
+ const tree=mesh.userData.tree,seg=mesh.userData.treeSeg;if(!tree||!seg)return null;
+ const standingTrunk=seg.trunk&&mesh.parent===tree.group&&!tree.fallen&&!mesh.userData.looseWood;
+ if(standingTrunk)return null;
+ return detachFalling(tree,[mesh],new T.Vector3(0,.2,0))?furnitureRoot(mesh):null;
 }
 export function chopTree(tree,point,energy,dir,kind='cut'){
  if(!tree||!tree.group)return false;
- const gain=kind==='cut'?1.35:kind==='laser'?.4:.25;
+ const gain=kind==='cut'?1.15:kind==='laser'?.32:.22;
  let best=null,bd=1e9;
  for(const seg of collectSegs(tree)){
-  const mesh=seg.mesh;if(!mesh||!mesh.parent)continue;
+  const mesh=seg.mesh;if(!mesh||!mesh.parent||!mesh.visible)continue;
   mesh.updateWorldMatrix(true,true);
   const d=mesh.getWorldPosition(V()).distanceTo(point);
   if(d<bd){bd=d;best=seg;}
  }
- if(!best||bd>1.15)return false;
- best.cut=Math.min(1,best.cut+energy*gain*.028);
- if(best.mesh?.material){best.mesh.material=best.mesh.material.clone();best.mesh.material.color.offsetHSL(0,-.05,-.07);}
- if(best.cut<.5)return false;
- if(best.trunk){
+ if(!best||bd>1.25)return false;
+ const mesh=best.mesh,loose=!!mesh.userData.looseWood||mesh.parent!==tree.group;
+ best.cut=Math.min(1,best.cut+energy*gain*.010);
+ if(mesh.material&&!mesh.userData.chopTint){mesh.userData.chopTint=true;mesh.material=mesh.material.clone();mesh.material.color.offsetHSL(0,-.04,-.05);}
+ const need=loose?0.52:(best.trunk?0.82:0.70);
+ if(best.cut<need)return false;
+ best.cut=0;
+ const d=dir||new T.Vector3(1,0,0);
+ if(!loose&&best.trunk){
   const meshes=[];
   for(const child of [...tree.group.children]){
    const seg=child.userData.treeSeg;
    if(seg&&seg.y0>=best.y0-.01)meshes.push(child);
   }
-  const fell=detachFalling(tree,meshes,dir||new T.Vector3(1,0,0));
+  const fell=detachFalling(tree,meshes,d);
   if(fell){
    tree.fallen=true;
    if(tree.obstacle){tree.obstacle.h=Math.max(.18,best.y0);if(tree.world)tree.world.grid=null;}
   }
-  return fell;
+  return fell?'fell':false;
  }
- return detachFalling(tree,best.mesh?[best.mesh]:[],dir||new T.Vector3(1,0,0));
+ if(loose&&mesh.parent&&mesh.parent.children.filter(c=>c.isMesh&&c.visible).length>1){
+  return detachFalling(tree,[mesh],d)?'split':false;
+ }
+ if(loose)return splitLogMesh(tree.world,mesh,d);
+ return detachFalling(tree,mesh?[mesh]:[],d)?'split':false;
 }
 export function tickNature(world,dt){
  if(!world.trees)return;
@@ -158,10 +223,11 @@ export function tickNature(world,dt){
  for(const tree of world.trees){
   for(const piece of tree.falling||[]){
    const g=piece.group;if(!g||!g.parent)continue;
+   if(g.userData.furniture)continue;
    piece.velocity.y-=9.81*dt;g.position.addScaledVector(piece.velocity,dt);
    const ang=piece.omega.length();if(ang>1e-4)g.rotateOnWorldAxis(piece.omega.clone().normalize(),ang*dt);piece.omega.multiplyScalar(Math.exp(-dt*1.25));
    const ground=terrainHeight(g.position.x,g.position.z,pad,amp)+.1;
-   if(g.position.y<ground){g.position.y=ground;if(piece.velocity.y<0)piece.velocity.y*=-.12;piece.velocity.x*=.86;piece.velocity.z*=.86;piece.omega.multiplyScalar(.68);}
+   if(g.position.y<ground){g.position.y=ground;if(piece.velocity.y<0)piece.velocity.y*=-.08;piece.velocity.x*=.82;piece.velocity.z*=.82;piece.omega.multiplyScalar(.62);}
   }
  }
 }

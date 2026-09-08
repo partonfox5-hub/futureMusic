@@ -11,7 +11,7 @@ export const V2_EXTRA_SLIDERS=[
  {key:'damping',label:'Motion damping',min:0,max:1,step:.02,value:.36,section:'physics'},
  {key:'bodySoftness',label:'Waist / thigh motion',min:0,max:1,step:.02,value:.5,section:'physics'},
  {key:'faceSoftness',label:'Cheek softness',min:0,max:1,step:.02,value:.4,section:'physics'},
- {key:'hairMotion',label:'Hair flexibility',min:0,max:1,step:.02,value:.68,section:'physics'},
+ {key:'hairMotion',label:'Hair flexibility',min:0,max:1,step:.02,value:.48,section:'physics'},
  {key:'skinDetail',label:'Skin microdetail',min:0,max:1,step:.02,value:.32,section:'skin'},
 ];
 export const FACE_PRESETS=[

@@ -4,7 +4,7 @@ import {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES,V2_EXTRA_SLIDERS,FACE_PRESETS,EXERCI
 export {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES,ATTENTION_MODES} from './mira-v2-controls.js?v=11.5';
 import * as THREE from 'three';
 import {restoreSurfaceUV} from './mira-v2-uv.js?v=11.0';
-import {HairGuides} from './mira-v2-hair.js?v=12.2';
+import {HairGuides} from './mira-v2-hair.js?v=12.9';
 import {SurfaceFlesh} from './mira-v2-tissue.js?v=12.0';
 
 // Mira v2: a bounded real-time approximation for this CC3 rig, Three r170.

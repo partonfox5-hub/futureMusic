@@ -7,12 +7,13 @@ export class DogAI {
   this.model=model;this.ctx=ctx;this.follow=false;this.state='idle';this.speed=0;
   this.target=V();this.goal=V();this.q=new THREE.Quaternion();
   this.attentionMode='attentive';this.lookPhase=true;this.lookPhaseT=2+Math.random()*3;
-  this.lifeT=1+Math.random()*2;this.sitT=0;this.held=false;this.seat=null;
+  this.lifeT=1+Math.random()*2;this.sitT=0;this.held=false;this.seat=null;this.hurt=false;this.dead=false;
  }
  setAttention(mode){if(['attentive','hyperattentive','ignoring'].includes(mode))this.attentionMode=mode;return this;}
  tick(dt){
   const actors=(this.ctx.mira||this.ctx.system)?.actors||[],actor=actors[0],group=actor?.group,m=this.model,world=this.ctx.world;
   this.speed=0;
+  if(this.dead){this.speed=0;this.state='sit';m.root.position.y=floorAt(world,m.root.position.x,m.root.position.z,m.root.position.y);return;}
   if(this.held){this.state='alert';m.bones.Neck.rotation.x=THREE.MathUtils.damp(m.bones.Neck.rotation.x,-.12,8,dt);return;}
   const root=m.root,wp=root.getWorldPosition(V());
   const player=this.ctx.camera?.getWorldPosition?.(V())||actor?.group?.position;
@@ -58,7 +59,7 @@ export class DogAI {
    if(root.parent?.worldToLocal){/* goal already world-ish in scene */}
    const d=this.goal.clone().sub(root.position);d.y=0;const length=d.length();
    if(length>.18){
-    this.state='idle';this.speed=Math.min(.62,(length-.18)*1.15);
+    this.state='idle';this.speed=Math.min(this.hurt?0.28:0.62,(length-.18)*1.15);
     root.position.addScaledVector(d,this.speed*dt/length);
     const desired=Math.atan2(d.x,d.z),delta=Math.atan2(Math.sin(desired-root.rotation.y),Math.cos(desired-root.rotation.y));
     root.rotation.y+=delta*Math.min(1,dt*3.2);

@@ -16,11 +16,12 @@ export class SmoothLocomotion {
   if(blocked||!(dt>0))return;dt=Math.min(dt,.05);
   const left=[...sources].find(s=>s.handedness==='left'&&!s.hand),right=[...sources].find(s=>s.handedness==='right'&&!s.hand);
   const l=stickAxes(left?.gamepad),r=stickAxes(right?.gamepad),move=deadzone(l.x,l.y),turn=deadzone(r.x,0,.16).x;
+  const trigger=left?.gamepad?.buttons?.[0],sprint=(trigger?.pressed||(trigger?.value||0)>.42)?2:1;
   const eye=this.camera.getWorldPosition(new T.Vector3());
   const forward=new T.Vector3(0,0,-1).applyQuaternion(this.camera.getWorldQuaternion(new T.Quaternion())).setY(0);
   if(forward.lengthSq()>.01)this.forward.copy(forward).normalize();
   const strafe=new T.Vector3(-this.forward.z,0,this.forward.x);
-  const delta=this.forward.clone().multiplyScalar(-move.y).addScaledVector(strafe,move.x).multiplyScalar(1.45*dt);
+  const delta=this.forward.clone().multiplyScalar(-move.y).addScaledVector(strafe,move.x).multiplyScalar(1.45*sprint*dt);
   const angle=-turn*2.15*dt,offset=eye.clone().sub(this.rig.position);
   this.rig.position.add(offset).sub(offset.clone().applyAxisAngle(new T.Vector3(0,1,0),angle));
   this.rig.rotation.y+=angle;

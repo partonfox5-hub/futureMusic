@@ -32,8 +32,9 @@ export class HairGuides {
    this.mesh.visible=this.actor.hairStyle!==9;this.reset();
   }else{
    if(this.advancedGeometry){this.mesh.geometry=this.advancedGeometry;this.advancedGeometry=null;}
-   this.setStyle(this.actor.hairStyle||0);m.roughness=.46;m.onBeforeCompile=s=>this.installShader(s);m.customProgramCacheKey=()=> 'mira-hair-r12.2-kajiya-hash';
-   m.transparent=false;m.alphaTest=0;m.alphaToCoverage=false;m.alphaHash=true;m.depthWrite=true;
+   this.setStyle(this.actor.hairStyle||0);m.roughness=.46;m.onBeforeCompile=s=>this.installShader(s);m.customProgramCacheKey=()=> 'mira-hair-r12.9-kajiya-clip';
+   // Alpha-hash dither reads as frizz/fuzz, especially on Quest with MSAA off.
+   m.transparent=false;m.alphaTest=.40;m.alphaToCoverage=false;m.alphaHash=false;m.depthWrite=true;
   }
   m.needsUpdate=true;
  }
@@ -56,7 +57,7 @@ export class HairGuides {
   const attr=g.attributes.position,norm=g.attributes.normal,src=old.attributes.position,srcN=old.attributes.normal;
   let low=Infinity;
   for(let i=0;i<count*layers;i++){
-   const j=i%count,x=src.getX(j),y=src.getY(j),z=src.getZ(j),w=smooth((1.665-y)/.17),layer=i>=count?.0035:0;
+   const j=i%count,x=src.getX(j),y=src.getY(j),z=src.getZ(j),w=smooth((1.665-y)/.17),layer=i>=count?.0016:0;
    let xx=x*(1+.32*w),yy=y,zz=-.045+(z+.045)*(1+.32*w);
    if(style===0||style===3)yy-=.22*smooth((1.58-y)/.18);
    if(style===1){
@@ -152,7 +153,7 @@ export class HairGuides {
  reset(){this.ready=false;this.acc=0;this.previousCaps=[];this.uniform.forEach(v=>v.set(0,0,0));}
  tick(dt){
   if(!this.mesh||!dt)return;if(this.mode==='classic'){this.mesh.visible=this.actor.hairStyle!==9;return;}if(this.actor.hairStyle!==this.style)this.setStyle(this.actor.hairStyle);if(this.style===9)return;
-  const head=this.actor.bones.Head,h=this.actor.shape.height,headPos=head.getWorldPosition(V()),flex=(this.actor.shape.hairMotion??.68)*(this.compact?.62:1);
+  const head=this.actor.bones.Head,h=this.actor.shape.height,headPos=head.getWorldPosition(V()),flex=Math.min(.52,(this.actor.shape.hairMotion??.48))*(this.compact?.55:1)*.82;
   for(const chain of this.chains)for(const n of chain){n.target.copy(n.rest).applyMatrix4(head.matrixWorld);if(!this.ready||n.p.distanceTo(n.target)>.55*h){n.p.copy(n.target);n.prev.copy(n.target);}}
   const caps=[];
   for(const spec of this.hits){
@@ -178,15 +179,15 @@ export class HairGuides {
    for(const chain of this.chains){
     chain[0].p.copy(chain[0].target);chain[0].prev.copy(chain[0].p);
     for(let j=1;j<LEVELS;j++){
-     const n=chain[j];vel.subVectors(n.p,n.prev).multiplyScalar(Math.exp(-step*(3.0+3*(1-flex))));if(vel.length()>.035*h)vel.setLength(.035*h);
-     n.prev.copy(n.p);n.p.add(vel);n.p.y-=9.81*step*step;
-     n.p.lerp(n.target,1-Math.exp(-step*((j===1?6.2:j<4?1.6:.8)*(1.05-flex*.75))));n.lambda=0;
+     const n=chain[j];vel.subVectors(n.p,n.prev).multiplyScalar(Math.exp(-step*(5.2+4.5*(1-flex))));if(vel.length()>.022*h)vel.setLength(.022*h);
+     n.prev.copy(n.p);n.p.add(vel);n.p.y-=9.81*step*step*.55;
+     n.p.lerp(n.target,1-Math.exp(-step*((j===1?8.4:j<4?3.1:1.7)*(1.2-flex*.5))));n.lambda=0;
     }
     for(let iter=0;iter<4;iter++){
      for(let j=1;j<LEVELS;j++){
       const a=chain[j-1],b=chain[j];delta.subVectors(b.p,a.p);const length=delta.length(),rest=a.target.distanceTo(b.target),compliance=(.0000003+flex*.000002)/(step*step),wa=j===1?0:1;
       if(length>1e-8){const dl=(-(length-rest)-compliance*b.lambda)/(wa+1+compliance);b.lambda+=dl;delta.multiplyScalar(dl/length);b.p.add(delta);if(wa)a.p.sub(delta);}
-      delta.subVectors(b.p,b.target);const bound=h*(.08+.28*flex)*(j/(LEVELS-1));if(delta.length()>bound)b.p.copy(b.target).add(delta.setLength(bound));
+      delta.subVectors(b.p,b.target);const bound=h*(.035+.14*flex)*(j/(LEVELS-1));if(delta.length()>bound)b.p.copy(b.target).add(delta.setLength(bound));
      }
      for(let j=1;j<LEVELS;j++){
       const n=chain[j];

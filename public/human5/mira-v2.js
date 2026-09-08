@@ -2,7 +2,7 @@ import {restoreSurfaceUV} from './mira-v2-uv.js?v=11.0';
 import {BodyContacts} from './mira-v2-contact.js?v=11.0';
 import {MiraSocial} from './mira-v2-social.js?v=11.0';
 import {ContactHaptics} from './mira-v2-haptics.js?v=11.0';
-import { createV2Class, repairArmRestData } from "./mira-v2-features.js?v=12.6";
+import { createV2Class, repairArmRestData } from "./mira-v2-features.js?v=12.9";
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { clone as cloneSkinned } from "three/addons/utils/SkeletonUtils.js";
@@ -1466,7 +1466,8 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
   const targetMarker=new THREE.Mesh(new THREE.RingGeometry(.075,.10,32),new THREE.MeshBasicMaterial({color:0x98e4bc,side:THREE.DoubleSide,depthWrite:false,toneMapped:false}));targetMarker.rotation.x=-Math.PI/2;targetMarker.visible=false;scene.add(targetMarker);
   function floorTarget(ray){
     if(ray.direction.y>=-.025)return null;const p=ray.intersectPlane(groundPlane,new THREE.Vector3());
-    return p&&ray.origin.distanceTo(p)<24&&Math.abs(p.x)<=(environment?.extent||3.8)&&Math.abs(p.z)<=(environment?.extent||3.8)?p:null;
+    const reach=Math.max(48,(environment?.extent||24)*1.8);
+    return p&&ray.origin.distanceTo(p)<reach&&Math.abs(p.x)<=(environment?.extent||3.8)&&Math.abs(p.z)<=(environment?.extent||3.8)?p:null;
   }
   function walkTo(point,actor=selectedActor){
     if(!actor||!point||!point.toArray().every(Number.isFinite)||Math.abs(point.x)>(environment?.extent||3.8)||Math.abs(point.z)>(environment?.extent||3.8)||actor.held||actor.balance&&actor.balance.state!=='standing')return false;

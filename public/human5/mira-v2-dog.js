@@ -5,8 +5,8 @@ import { DogJaw } from './src/dog/DogJaw.js?v=12.7';
 import { DogTail } from './src/dog/DogTail.js?v=12.1';
 import { DogFur } from './src/dog/DogFur.js?v=12.7';
 import { DogAudio } from './src/dog/DogAudio.js?v=12.8';
-import { DogAI } from './src/dog/DogAI.js?v=12.6';
-import { DogAnim } from './src/dog/DogAnim.js?v=12.6';
+import { DogAI } from './src/dog/DogAI.js?v=12.9';
+import { DogAnim } from './src/dog/DogAnim.js?v=12.9';
 import { BONE_NAMES } from './src/dog/Dog.js?v=12.7';
 const _p=new THREE.Vector3(),_q=new THREE.Vector3();
 function dogNearestHit(handle,pos,maxDist){
@@ -80,7 +80,7 @@ export function createDogSystem(input={}) {
       if(ctx.scene?.add)ctx.scene.add(model.root);
       model.root.updateMatrixWorld(true);
       const handle={
-        id,root:model.root,grabs:new Map(),
+        id,root:model.root,group:model.root,version:'dog',kind:'dog',bones:model.bones,grabs:new Map(),
         setJaw(t){jaw.set(t);return handle;},
         bark(){audio.bark(()=>jaw.bark(),handle);return handle;},
         setWag(amount){handle._anim.wag=clamp(amount);return handle;},
@@ -88,6 +88,16 @@ export function createDogSystem(input={}) {
         setAttention(mode){ai.setAttention(mode);return handle;},
         setState(state){if(['idle','sit','stand','alert'].includes(state))ai.state=state;return handle;},
         nearestHit(pos,maxDist=.2){return dogNearestHit(handle,pos,maxDist);},
+        applyStrike(hit,dir,mag=1){
+          const n=(dir||new THREE.Vector3(0,0,-1)).clone();n.y=0;if(n.lengthSq()<1e-6)n.set(0,0,-1);n.normalize();
+          handle.root.position.addScaledVector(n,Math.min(.14,mag*.05));
+          ai.hurt=true;ai.state='alert';handle.bark();
+        },
+        knockDown(dir){
+          ai.hurt=true;ai.state='sit';
+          handle.root.rotation.z=dir&&dir.x>0?.28:-.28;
+        },
+        die(){ai.dead=true;ai.speed=0;ai.held=false;handle.dead=true;handle.endGrab();},
         beginGrab(ctrl,hit,point){
           if(!hit||handle.grabs.has(ctrl))return;
           const bone=hit.bone||handle._model.bones.Spine,pt=point||hit.point;
@@ -113,7 +123,7 @@ export function createDogSystem(input={}) {
         despawn(){system.despawn(handle);},
         _model:model,_paws:paws,_jaw:jaw,_tail:tail,_fur:fur,_ai:ai
       };
-      handle.root.userData.dog=handle;
+      handle.root.userData.dog=handle;handle.root.traverse(m=>{if(m.isMesh)m.userData.dog=handle;});
       handle._anim=new DogAnim(model,paws,jaw,tail,ai,()=>handle.bark());
       handles.push(handle);announce();ensureLoop();return handle;
     },

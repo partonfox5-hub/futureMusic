@@ -52,7 +52,8 @@ export function tagMovable(world,group,id){
  const box=new T.Box3().setFromObject(group),size=box.getSize(new T.Vector3()),center=box.getCenter(new T.Vector3());
  const mix={...(FURNITURE_MIX[id]||{wood:1})};
  const volume=Math.max(.02,size.x*size.y*size.z),density=blendedDensity(mix);
- const mass=Math.min(70,Math.max(2,volume*density*.09));
+ // AABB over-counts empty space; 0.28 still keeps chairs/tables in a real kg range instead of foam.
+ const mass=Math.min(160,Math.max(4,volume*density*.28));
  group.traverse(m=>{
   if(m.userData.obstacle&&m!==group){world.removeObstacle(m.userData.obstacle);delete m.userData.obstacle;}
   if(m.isMesh)m.userData.furnRoot=group;

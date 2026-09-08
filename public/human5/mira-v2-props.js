@@ -1,6 +1,7 @@
 import * as T from 'three';
 import {playSfx,sfxForHit,unlockSfx} from './mira-v2-sfx.js?v=11.0';
-import {furnitureRoot,syncFurniture} from './mira-v2-furniture.js?v=12.6';
+import {furnitureRoot,syncFurniture} from './mira-v2-furniture.js?v=12.9';
+import {ensureGrabbableWood} from './mira-v2-nature.js?v=12.9';
 const V=()=>new T.Vector3(),Q=()=>new T.Quaternion();
 const visible=o=>{while(o){if(!o.visible)return false;o=o.parent;}return true;};
 export const WEAPONS={sword:{name:'Sword',mass:1.4,reach:.95,sharpness:.85,kind:'cut'},axe:{name:'Axe',mass:2.1,reach:.78,sharpness:.7,kind:'cut'},mace:{name:'Mace',mass:2.8,reach:.66,sharpness:0,kind:'blunt'},pistol:{name:'Pistol',mass:.9,reach:.24,kind:'bullet'},laser:{name:'Laser pistol',mass:1.2,reach:.28,kind:'laser'}};
@@ -39,10 +40,18 @@ export class Props {
  holdFurniture(group,key,point,ctrl=null){const furn=group.userData.furniture;if(!furn)return false;furn.holds??=new Set();
   if(furn.held!=null&&furn.held!==key){const prev=this.furnHolds.get(furn.held);if(prev&&prev.group!==group)this.releaseFurniture(furn.held);}
   if(ctrl?.position)ctrl.position.copy(point);this.furnHolds.set(key,{group,local:group.worldToLocal(point.clone()),ctrl,last:point.clone()});furn.holds.add(key);furn.held=key;furn.velocity.set(0,0,0);furn.spin=0;furn.omega=furn.omega||new T.Vector3();this.status='Holding '+furn.id+' · '+Math.round(furn.mass)+' kg';if(typeof key==='number')this.system.hands.haptics?.contact(key,'prop',1,.01);return true;}
- holdFurnitureAt(i){const palm=this.system.hands.palmPos(i),found=this.nearestFurniture(palm,.2);if(!found)return false;for(const actor of this.system.actors){const hit=actor.nearestHit(palm,found.distance);if(hit&&actor.lastHitDistance<found.distance-.01)return false;}for(const d of this.dogs?.list?.()||[]){const hit=d.nearestHit(palm,found.distance);if(hit&&d.lastHitDistance<found.distance-.01)return false;}const meshes=[];found.group.traverse(m=>{if(m.isMesh&&m.visible)meshes.push(m);});let point=found.point;if(meshes.length){const dir=found.point.clone().sub(palm),len=dir.length();if(len>1e-5){this.rc.ray.origin.copy(palm);this.rc.ray.direction.copy(dir.normalize());this.rc.near=0;this.rc.far=len+.05;const hit=this.rc.intersectObjects(meshes,false)[0];if(hit)point=hit.point;}}return this.holdFurniture(found.group,i,point);}
- grabFurnitureFromRay(ray,ctrl,key='desktop'){const meshes=[];for(const g of this.world.movables||[])g.traverse(m=>{if(m.isMesh&&m.visible)meshes.push(m);});if(!meshes.length)return false;this.rc.ray.copy(ray);this.rc.near=0;this.rc.far=8;const hit=this.rc.intersectObjects(meshes,false).find(h=>visible(h.object));if(!hit)return false;const group=furnitureRoot(hit.object);return group?this.holdFurniture(group,key,hit.point,ctrl):false;}
+ holdFurnitureAt(i){const palm=this.system.hands.palmPos(i),found=this.nearestFurniture(palm,.22);let group=found?.group,point=found?.point,dist=found?.distance??.22;
+  if(!group){const wood=this.nearestWoodMesh(palm,.22);if(wood){group=ensureGrabbableWood(this.world,wood.mesh);point=wood.point;dist=wood.distance;}}
+  if(!group)return false;
+  for(const actor of this.system.actors){const hit=actor.nearestHit(palm,dist);if(hit&&actor.lastHitDistance<dist-.01)return false;}
+  for(const d of this.dogs?.list?.()||[]){const hit=d.nearestHit(palm,dist);if(hit&&d.lastHitDistance<dist-.01)return false;}
+  const meshes=[];group.traverse(m=>{if(m.isMesh&&m.visible)meshes.push(m);});
+  if(meshes.length&&point){const dir=point.clone().sub(palm),len=dir.length();if(len>1e-5){this.rc.ray.origin.copy(palm);this.rc.ray.direction.copy(dir.normalize());this.rc.near=0;this.rc.far=len+.05;const hit=this.rc.intersectObjects(meshes,false)[0];if(hit)point=hit.point;}}
+  return this.holdFurniture(group,i,point||palm.clone());}
+ grabFurnitureFromRay(ray,ctrl,key='desktop'){const meshes=[];for(const g of this.world.movables||[])g.traverse(m=>{if(m.isMesh&&m.visible)meshes.push(m);});for(const tree of this.world.trees||[]){tree.group?.traverse(m=>{if(m.isMesh&&m.visible&&m.userData.treeSeg&&!m.userData.treeSeg.trunk)meshes.push(m);});for(const piece of tree.falling||[])piece.group?.traverse(m=>{if(m.isMesh&&m.visible)meshes.push(m);});}if(!meshes.length)return false;this.rc.ray.copy(ray);this.rc.near=0;this.rc.far=8;const hit=this.rc.intersectObjects(meshes,false).find(h=>visible(h.object));if(!hit)return false;const group=furnitureRoot(hit.object)||ensureGrabbableWood(this.world,hit.object);return group?this.holdFurniture(group,key,hit.point,ctrl):false;}
+ nearestWoodMesh(pos,r=.22){let best=null,bd=r;for(const tree of this.world.trees||[]){const visit=mesh=>{if(!mesh?.isMesh||!mesh.visible||!mesh.userData.treeSeg)return;const standingTrunk=mesh.userData.treeSeg.trunk&&mesh.parent===tree.group&&!tree.fallen&&!mesh.userData.looseWood;if(standingTrunk)return;const box=new T.Box3().setFromObject(mesh),closest=box.clampPoint(pos,V()),d=closest.distanceTo(pos);if(d<bd){bd=d;best={mesh,point:closest.clone(),distance:d};}};tree.group?.traverse(m=>visit(m));for(const piece of tree.falling||[])piece.group?.traverse(m=>visit(m));}return best;}
  releaseFurniture(key){const hold=this.furnHolds.get(key);if(!hold)return;const furn=hold.group.userData.furniture;this.furnHolds.delete(key);if(furn){furn.holds?.delete(key);furn.held=furn.holds?.size?[...furn.holds][0]:null;}if(hold.group.parent)syncFurniture(this.world,hold.group);}
- shoveFurniture(furn,dir,wMass,speed,point){const n=dir.clone();n.y=0;if(n.lengthSq()<1e-6)n.set(0,0,-1);n.normalize();const impulse=Math.min(3.2,wMass*speed*1.6/Math.max(2,furn.mass));furn.velocity.addScaledVector(n,impulse);const group=furn.obstacle?.object;if(group&&point){const center=new T.Box3().setFromObject(group).getCenter(V());furn.spin+=((point.x-center.x)*n.z-(point.z-center.z)*n.x)*impulse*1.4;}}
+ shoveFurniture(furn,dir,wMass,speed,point){const n=dir.clone();n.y=0;if(n.lengthSq()<1e-6)n.set(0,0,-1);n.normalize();const impulse=Math.min(1.15,wMass*speed*.55/Math.max(6,furn.mass));furn.velocity.addScaledVector(n,impulse);const group=furn.obstacle?.object;if(group&&point){const center=new T.Box3().setFromObject(group).getCenter(V());furn.spin+=((point.x-center.x)*n.z-(point.z-center.z)*n.x)*impulse*.7;furn.omega=furn.omega||new T.Vector3();furn.omega.y+=impulse*.35;}}
  holdTarget(hold,key){return hold.ctrl?hold.ctrl.getWorldPosition(V()):(typeof key==='number'?this.system.hands.palmPos(key):null);}
  furnitureCorners(group,furn){
   group.updateWorldMatrix(true,true);
@@ -60,7 +69,7 @@ export class Props {
   furn.omega=furn.omega||new T.Vector3();furn.velocity=furn.velocity||new T.Vector3();
   group.updateWorldMatrix(true,true);
   const box=new T.Box3().setFromObject(group),com=box.getCenter(V());
-  const I=Math.max(.8,furn.mass*(box.getSize(V()).lengthSq())/16);
+  const I=Math.max(2.4,furn.mass*(box.getSize(V()).lengthSq())/12);
   const floor=this.world.floorHeight?.(com)??furn.floorY;
   furn.velocity.y-=9.81*dt;
   let pivot=com;
@@ -68,8 +77,8 @@ export class Props {
    pivot=group.localToWorld(holds[0].hold.local.clone());
    furn.omega.addScaledVector(com.clone().sub(pivot).cross(new T.Vector3(0,-9.81*furn.mass,0)),dt/I);
   }
-  furn.omega.multiplyScalar(Math.exp(-dt*(holds?.length>1?5.5:.42)));
-  if(furn.omega.length()>8)furn.omega.setLength(8);
+  furn.omega.multiplyScalar(Math.exp(-dt*(holds?.length>1?6.5:.85)));
+  if(furn.omega.length()>5.5)furn.omega.setLength(5.5);
   const ang=furn.omega.length();
   if(ang>1e-4)this.rotateAround(group,pivot,furn.omega.clone().normalize(),ang*dt);
   if(!holds?.length)group.position.addScaledVector(furn.velocity,dt);
@@ -79,15 +88,22 @@ export class Props {
   const contacting=corners.filter(c=>c.y<=floor+.02);
   if(contacting.length){
    const Fn=furn.mass*9.81/contacting.length;
+   let maxPen=0;
    for(const c of contacting){
     const r=c.clone().sub(com2),pen=Math.max(0,floor-c.y);
-    furn.omega.add(r.clone().cross(new T.Vector3(0,Fn+pen*48,0)).multiplyScalar(dt/I));
-    if(pen>0){furn.velocity.y+=pen*30;if(furn.velocity.y<0)furn.velocity.y*=.16;}
-    furn.velocity.x*=.88;furn.velocity.z*=.88;
+    maxPen=Math.max(maxPen,pen);
+    furn.omega.add(r.clone().cross(new T.Vector3(0,Fn+pen*10,0)).multiplyScalar(dt/I));
+    furn.velocity.x*=.78;furn.velocity.z*=.78;
+   }
+   furn.omega.multiplyScalar(Math.exp(-dt*4.2));
+   if(furn.velocity.y<0)furn.velocity.y*=.03;
+   if(maxPen>0){
+    group.position.y+=Math.min(.08,maxPen);
+    if(furn.velocity.y<0.12)furn.velocity.y=0;
    }
    group.updateWorldMatrix(true,true);
    const low=new T.Box3().setFromObject(group).min.y;
-   if(low<floor)group.position.y+=Math.min(.07,floor-low)*.55;
+   if(low<floor)group.position.y+=Math.min(.06,floor-low);
   }
  }
  tickFurniture(dt){
@@ -147,21 +163,24 @@ export class Props {
   const meshes=[];
   if(opts.world!==false)meshes.push(...this.world.pickables,...(this.vehicle?.pickables||[]));
   for(const a of this.system.actors)a.root.traverse(m=>{if(m.isSkinnedMesh&&/^body/.test(m.name))meshes.push(m);});
+  for(const d of this.dogs?.list?.()||[])d.root.traverse(m=>{if(m.isSkinnedMesh&&m.visible)meshes.push(m);});
   const hit=meshes.length?this.rc.intersectObjects(meshes,false).find(h=>visible(h.object)&&!h.object.userData.chunks?.[h.instanceId]?.broken):null;
   const rope=ropes&&this.restraints?.hit(ray,max);
   const candidates=[clothHit,hit,rope].filter(Boolean).sort((a,b)=>a.distance-b.distance);
   return candidates[0]||null;
  }
  actorFor(o){while(o){const a=this.system.actors.find(a=>a.root===o);if(a)return a;o=o.parent;}return null;}
+ dogFor(o){while(o){if(o.userData?.dog?.root)return o.userData.dog;const d=this.dogs?.list?.().find(d=>d.root===o);if(d)return d;o=o.parent;}return null;}
  fire(item,aim){if(this.time-(item.lastFire??-2)<(item.id==='laser'?.18:.22))return;item.lastFire=this.time;item.kick=Math.min(.12,(item.kick||0)+.05);unlockSfx();playSfx(item.id==='laser'?'laser':'gun');const muzzle=item.group.localToWorld(new T.Vector3(0,.032,-item.data.reach)),dir=aim?(this.hit(aim,35)?.point||aim.at(15,V())).clone().sub(muzzle).normalize():new T.Vector3(0,0,-1).applyQuaternion(item.group.getWorldQuaternion(Q())),ray=new T.Ray(muzzle,dir);if(item.id==='laser'){const hit=this.hit(ray,35),end=hit?.point||ray.at(35,V());this.beam(muzzle,end,0x99f7ff,.10);if(hit)this.impact(hit,24,dir,'laser',0);}else{this.shots.push({position:muzzle.clone(),velocity:dir.clone().multiplyScalar(85),age:0});this.beam(muzzle,muzzle.clone().addScaledVector(dir,.12),0xffde9c,.04);}if(typeof item.holder==='number')this.system.hands.haptics.contact(item.holder,'prop',1,.004);}
  beam(a,b,color,ttl){const length=a.distanceTo(b),m=new T.Mesh(new T.CylinderGeometry(.003,.003,Math.max(.001,length),5),new T.MeshBasicMaterial({color,transparent:true}));m.position.copy(a).lerp(b,.5);m.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),b.clone().sub(a).normalize());this.scene.add(m);this.effects.push({mesh:m,ttl,life:ttl,velocity:V(),expand:0});}
  impact(hit,energy,dir,kind,sharpness=0){unlockSfx();playSfx(sfxForHit(kind));if(hit.object.userData.restraint){if(kind==='cut'||kind==='laser')this.restraints.cut(hit.object.userData.restraint);return;}
   const cloth=hit.object.userData.cloth;if(cloth&&['cut','laser','bullet'].includes(kind)){const n=cloth.slash(hit.point,dir,kind,energy);this.status=(kind==='laser'?'Laser burned':kind==='bullet'?'Shot through': 'Cut')+' clothing'+(n?' · '+n+' tears':'');
    const wearer=cloth.actor;if(wearer){const region=wearer.nearestHit(hit.point,.18);if(region){if(this.injuries)this.injuries.impact(wearer,hit,energy*.65,kind,dir);else wearer.applyStrike?.(region,dir.clone().negate(),Math.min(3,Math.sqrt(energy)*.25),0,hit.point);}}
    this.mark(hit,wearer||null,kind,dir,energy);return;}
-  const actor=this.actorFor(hit.object);let result=null;if(actor){if(this.injuries)result=this.injuries.impact(actor,hit,energy,kind,dir);else{const region=actor.nearestHit(hit.point,.15);if(region)actor.applyStrike?.(region,dir.clone().negate(),Math.min(3,Math.sqrt(energy)*.3),0,hit.point);}}
-  else if(hit.object.userData.tree){const fell=this.world.chopTree?.(hit.object.userData.tree,hit.point,energy,dir,kind);this.status=fell?'Tree falling':'Chopping wood';this.mark(hit,null,kind,dir,energy);return;}
-  else if(hit.object.userData.carPart)this.vehicle.damage(hit,energy,kind,dir);else this.world.fractures.impact(hit,energy,dir,kind,sharpness);if(!actor||this.injuries?.enabled!==false)this.mark(hit,actor,kind,dir,energy);this.status=(kind==='laser'?'Laser burn':kind==='bullet'?'Bullet impact':kind==='cut'?'Blade cut':'Blunt bruise')+(result?' · '+result.region+(result.severed?' · severed':result.fractured?' · fractured':''):'');
+  const actor=this.actorFor(hit.object),dog=!actor&&this.dogFor(hit.object);let result=null;if(actor){if(this.injuries)result=this.injuries.impact(actor,hit,energy,kind,dir);else{const region=actor.nearestHit(hit.point,.15);if(region)actor.applyStrike?.(region,dir.clone().negate(),Math.min(3,Math.sqrt(energy)*.3),0,hit.point);}}
+  else if(dog){if(this.injuries)result=this.injuries.impact(dog,hit,energy,kind,dir);else dog.applyStrike?.(dog.nearestHit(hit.point,.2),dir.clone().negate(),Math.min(3,Math.sqrt(energy)*.3),0,hit.point);}
+  else if(hit.object.userData.tree){const fell=this.world.chopTree?.(hit.object.userData.tree,hit.point,energy,dir,kind);this.status=fell?(fell==='split'?'Wood split':fell==='fell'?'Tree falling':'Chopping wood'):'Chopping wood';this.mark(hit,null,kind,dir,energy);return;}
+  else if(hit.object.userData.carPart)this.vehicle.damage(hit,energy,kind,dir);else this.world.fractures.impact(hit,energy,dir,kind,sharpness);if((!actor&&!dog)||this.injuries?.enabled!==false)this.mark(hit,actor||dog,kind,dir,energy);this.status=(kind==='laser'?'Laser burn':kind==='bullet'?'Bullet impact':kind==='cut'?'Blade cut':'Blunt bruise')+(result?' · '+result.region+(result.severed?' · severed':result.fractured?' · fractured':''):'');
  if(kind==='laser')for(let j=0;j<5;j++){const m=new T.Mesh(new T.IcosahedronGeometry(.008,0),new T.MeshBasicMaterial({color:j<3?0xffb46b:0x878681,transparent:true,opacity:.8}));m.position.copy(hit.point);this.scene.add(m);this.effects.push({mesh:m,ttl:.55,life:.55,velocity:dir.clone().multiplyScalar(-.35).add(new T.Vector3(Math.sin(j*2.3)*.3,.25+j*.08,Math.cos(j*2.3)*.3)),expand:j>2?2:0});}}
  mark(hit,actor,kind,dir=new T.Vector3(1,0,0),energy=12){
   const cut=kind==='cut',bruise=kind==='blunt'&&!!actor,laser=kind==='laser',bullet=kind==='bullet';
@@ -204,7 +223,14 @@ void main(){
   const bin=new T.Vector3().crossVectors(normal,along).normalize();
   mesh.quaternion.setFromRotationMatrix(new T.Matrix4().makeBasis(along,bin,normal));
   mesh.position.copy(hit.point).addScaledVector(normal,.0016);
-  let anchor=null;if(actor){const surface=this.system.contacts.surface(actor);surface.begin();surface.project(hit.point.clone(),.004);anchor=surface.lastClosest?{surface,ref:surface.lastClosest}:null;}else if(!hit.object.isInstancedMesh)hit.object.attach(mesh);if(!mesh.parent)this.scene.add(mesh);this.marks.push({mesh,actor,anchor,object:hit.object,piece:hit.object.userData.chunks?.[hit.instanceId]||hit.object.userData.piece,age:0,along:cut?along.clone():null});while(this.marks.length>80)this.dispose(this.marks.shift().mesh);
+  let anchor=null;
+  if(actor?.version==='v2'){const surface=this.system.contacts.surface(actor);surface.begin();surface.project(hit.point.clone(),.004);anchor=surface.lastClosest?{surface,ref:surface.lastClosest}:null;}
+  else if(actor?.version==='dog'){
+   const bone=actor.nearestHit(hit.point,.3)?.bone;
+   if(bone){const worldQ=mesh.quaternion.clone();bone.updateWorldMatrix(true,false);bone.attach(mesh);mesh.position.copy(bone.worldToLocal(hit.point.clone()));mesh.quaternion.copy(bone.getWorldQuaternion(Q()).invert().premultiply(worldQ));}
+   else if(!hit.object.isInstancedMesh)hit.object.attach(mesh);
+  }else if(!hit.object.isInstancedMesh)hit.object.attach(mesh);
+  if(!mesh.parent)this.scene.add(mesh);this.marks.push({mesh,actor,anchor,object:hit.object,piece:hit.object.userData.chunks?.[hit.instanceId]||hit.object.userData.piece,age:0,along:cut?along.clone():null});while(this.marks.length>80)this.dispose(this.marks.shift().mesh);
  }
  dispose(m){m.removeFromParent();m.geometry?.dispose();m.material?.dispose();}
  tick(dt){this.time+=dt;this.syncWorld();for(const item of this.items)item.group.visible=this.world.root.visible;if(!this.world.root.visible){this.vehicle?.tick(dt);return;}this.vehicle?.tick(dt);this.restraints?.tick(dt);this.injuries?.tick(dt);this.tickFurniture(dt);for(const item of this.items){if(item.holder!==null){item.kick*=Math.exp(-dt*14);if(item.swing>0)item.swing=Math.max(0,item.swing-dt);this.applyHoldPose(item);
@@ -212,19 +238,20 @@ void main(){
  if(item.lastSamples&&item.holder!=='desktop'&&['cut','blunt'].includes(item.data.kind)&&this.time>=(item.armedAt||0))for(let j=0;j<samples.length;j++){
   const point=samples[j],old=item.lastSamples[j],dist=point.distanceTo(old),speed=Math.min(12,dist/Math.max(.001,dt));
   if(dist>.004&&dist<.75){const ray=new T.Ray(old.clone(),point.clone().sub(old).normalize()),hit=this.hit(ray,dist+.03,false,{world:true});if(!hit)continue;
-   const furn=furnitureRoot(hit.object)?.userData.furniture,body=this.actorFor(hit.object)||hit.object.userData.cloth;
-   const key=hit.object.userData.cloth?'c'+hit.object.uuid:(furn?'f'+(furn.obstacle?.object?.uuid||hit.object.uuid):(this.actorFor(hit.object)?.group.uuid||hit.object.uuid));
+   const furn=furnitureRoot(hit.object)?.userData.furniture,dog=this.dogFor(hit.object),body=this.actorFor(hit.object)||hit.object.userData.cloth||dog;
+   const key=hit.object.userData.cloth?'c'+hit.object.uuid:(furn?'f'+(furn.obstacle?.object?.uuid||hit.object.uuid):(dog?('d'+dog.id):(this.actorFor(hit.object)?.group.uuid||hit.object.uuid)));
    if(this.time-(item.lastHit.get(key)??-2)<.28)continue;
    const tree=hit.object.userData.tree;
-   if(tree&&speed>.85){item.lastHit.set(key,this.time);this.impact(hit,.5*item.data.mass*speed*speed,ray.direction,item.data.kind,item.data.sharpness);this.system.hands.haptics?.contact(item.holder,'prop',speed,.01);continue;}
-   if(furn&&speed<1.55){item.lastHit.set(key,this.time);this.shoveFurniture(furn,ray.direction,item.data.mass,speed,hit.point);this.system.hands.haptics?.contact(item.holder,'prop',Math.min(1,speed),.006);continue;}
-   if((body&&speed>1.15)||(!body&&!furn&&speed>2.2)||(furn&&speed>=1.55)){item.lastHit.set(key,this.time);this.impact(hit,.5*item.data.mass*speed*speed,ray.direction,item.data.kind,item.data.sharpness);this.system.hands.haptics?.contact(item.holder,'prop',speed,.01);}
+   const energy=.5*item.data.mass*speed*speed;
+   if(tree&&speed>.7){item.lastHit.set(key,this.time);this.impact(hit,energy,ray.direction,item.data.kind,item.data.sharpness);this.system.hands.haptics?.contact(item.holder,'prop',speed,.01);continue;}
+   if(furn){item.lastHit.set(key,this.time);this.shoveFurniture(furn,ray.direction,item.data.mass,speed,hit.point);if(speed>=.7)this.impact(hit,energy,ray.direction,item.data.kind,item.data.sharpness);this.system.hands.haptics?.contact(item.holder,'prop',Math.min(1,speed),.008);continue;}
+   if((body&&speed>1.05)||(!body&&speed>2.2)){item.lastHit.set(key,this.time);this.impact(hit,energy,ray.direction,item.data.kind,item.data.sharpness);this.system.hands.haptics?.contact(item.holder,'prop',speed,.01);}
   }
  }
  item.lastSamples=samples;const p=item.group.getWorldPosition(V());if(item.lastPoint)item.velocity.copy(p).sub(item.lastPoint).divideScalar(Math.max(.001,dt)).clampLength(0,8);item.lastPoint=p.clone();
  }else{item.velocity.y-=9.81*dt;item.group.position.addScaledVector(item.velocity,dt);const p=item.group.position,old=p.clone();if(this.world.projectSphere(p,.055)){const n=p.clone().sub(old).normalize(),vn=item.velocity.dot(n);if(vn<0)item.velocity.addScaledVector(n,-1.1*vn);item.velocity.multiplyScalar(.8);}if(p.y<.05){p.y=.05;item.velocity.multiplyScalar(.85);item.velocity.y=Math.abs(item.velocity.y)*.12;}}}
  for(const shot of this.shots){shot.age+=dt;const next=shot.position.clone().addScaledVector(shot.velocity,dt),dist=next.distanceTo(shot.position),ray=new T.Ray(shot.position.clone(),shot.velocity.clone().normalize()),hit=this.hit(ray,dist);this.beam(shot.position,hit?.point||next,0xffe5ac,.035);if(hit){this.impact(hit,32,ray.direction,'bullet');shot.age=2;}shot.position.copy(next);shot.velocity.y-=9.81*dt;}this.shots=this.shots.filter(x=>x.age<.8).slice(-12);
  for(const e of this.effects){e.ttl-=dt;e.mesh.position.addScaledVector(e.velocity,dt);e.mesh.material.opacity=Math.max(0,e.ttl/e.life);if(e.expand)e.mesh.scale.addScalar(dt*e.expand*10);if(e.ttl<=0)this.dispose(e.mesh);}this.effects=this.effects.filter(e=>e.ttl>0);while(this.effects.length>80)this.dispose(this.effects.shift().mesh);
- const updated=new Set();for(const m of this.marks){m.age+=dt;m.mesh.material.uniforms.age.value=m.age;if(m.anchor&&this.system.actors.includes(m.actor)){const {surface,ref}=m.anchor;if(!updated.has(surface)){surface.begin();updated.add(surface);}const tri=new T.Triangle();surface.vertex(ref.cache,ref.ids[0],tri.a);surface.vertex(ref.cache,ref.ids[1],tri.b);surface.vertex(ref.cache,ref.ids[2],tri.c);const normal=tri.getNormal(V());m.mesh.position.copy(tri.a).multiplyScalar(ref.bary.x).addScaledVector(tri.b,ref.bary.y).addScaledVector(tri.c,ref.bary.z).addScaledVector(normal,.002);if(m.along){const along=m.along.clone().addScaledVector(normal,-m.along.dot(normal));if(along.lengthSq()<1e-6)along.copy(m.along);along.normalize();const bin=new T.Vector3().crossVectors(normal,along).normalize();m.mesh.quaternion.setFromRotationMatrix(new T.Matrix4().makeBasis(along,bin,normal));}else m.mesh.quaternion.setFromUnitVectors(new T.Vector3(0,0,1),normal);}if(m.age>100||m.piece?.broken||m.actor&&!this.system.actors.includes(m.actor))this.dispose(m.mesh);}this.marks=this.marks.filter(m=>m.mesh.parent);
+ const updated=new Set();for(const m of this.marks){m.age+=dt;m.mesh.material.uniforms.age.value=m.age;if(m.anchor&&m.actor?.version==='v2'&&this.system.actors.includes(m.actor)){const {surface,ref}=m.anchor;if(!updated.has(surface)){surface.begin();updated.add(surface);}const tri=new T.Triangle();surface.vertex(ref.cache,ref.ids[0],tri.a);surface.vertex(ref.cache,ref.ids[1],tri.b);surface.vertex(ref.cache,ref.ids[2],tri.c);const normal=tri.getNormal(V());m.mesh.position.copy(tri.a).multiplyScalar(ref.bary.x).addScaledVector(tri.b,ref.bary.y).addScaledVector(tri.c,ref.bary.z).addScaledVector(normal,.002);if(m.along){const along=m.along.clone().addScaledVector(normal,-m.along.dot(normal));if(along.lengthSq()<1e-6)along.copy(m.along);along.normalize();const bin=new T.Vector3().crossVectors(normal,along).normalize();m.mesh.quaternion.setFromRotationMatrix(new T.Matrix4().makeBasis(along,bin,normal));}else m.mesh.quaternion.setFromUnitVectors(new T.Vector3(0,0,1),normal);}if(m.age>100||m.piece?.broken||m.actor&&!this.system.actors.includes(m.actor))this.dispose(m.mesh);}this.marks=this.marks.filter(m=>m.mesh.parent);
  }
 }
