@@ -38,8 +38,15 @@ export class SmoothLocomotion {
   target.z=T.MathUtils.clamp(target.z,-this.world.extent,this.world.extent);
   this.rig.position.add(delta).add(target.sub(before));
   const want=this.world.floorHeight?.(this.camera.getWorldPosition(new T.Vector3()))||0;
-  if(this.jumping){
-   this.jumpVel-=9.81*dt;this.rig.position.y+=this.jumpVel*dt;this.floorY=this.rig.position.y;
+  const grav=Number.isFinite(this.world.gravity)?this.world.gravity:9.81;
+  if(grav<0.5){
+   const look=new T.Vector3(0,0,-1).applyQuaternion(this.camera.getWorldQuaternion(new T.Quaternion()));
+   if(right?.gamepad?.buttons?.[4]?.pressed)this.jumpVel+= (look.y<-.35?-1:1)*9.5*dt;
+   this.jumpVel*=Math.exp(-dt*.35);
+   this.rig.position.y+=this.jumpVel*dt;
+   this.floorY=this.rig.position.y;this.jumping=false;
+  }else if(this.jumping){
+   this.jumpVel-=grav*dt;this.rig.position.y+=this.jumpVel*dt;this.floorY=this.rig.position.y;
    if(this.rig.position.y<=want&&this.jumpVel<=0){this.rig.position.y=want;this.floorY=want;this.jumpVel=0;this.jumping=false;}
   }else if(!water?.playerSubmerged(camera)){
    this.floorY=T.MathUtils.damp(this.floorY,want,14,dt);

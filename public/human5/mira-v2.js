@@ -1643,7 +1643,7 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
   }
 
   function tickBalls(dt) {
-    const g = 9.81;
+    const g = Number.isFinite(environment?.gravity)?environment.gravity:9.81;
     for (const b of balls) {
       if (b.held && b.held.kind === "player") {
         b.held.ctrl.getWorldPosition(_v);

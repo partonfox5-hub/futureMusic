@@ -32,6 +32,15 @@ export function playSfx(kind,vol=1){
    const n=noise(c,.16),f=filt(c,'bandpass',900,1.1);env(g,t,.28,.0008,.14);n.connect(f);f.connect(g);n.start(t);n.stop(t+.16);
   }else if(kind==='thud'){
    const o=c.createOscillator();o.type='sine';o.frequency.setValueAtTime(70,t);o.frequency.exponentialRampToValueAtTime(28,t+.18);env(g,t,.7,.0008,.2);o.connect(g);o.start(t);o.stop(t+.2);
+  }else if(kind==='paint'){
+   const n=noise(c,.08),f=filt(c,'bandpass',1400,1.1),o=c.createOscillator();o.type='square';o.frequency.setValueAtTime(420,t);o.frequency.exponentialRampToValueAtTime(90,t+.07);
+   env(g,t,.55,.0008,.09);n.connect(f);f.connect(g);o.connect(g);n.start(t);n.stop(t+.08);o.start(t);o.stop(t+.08);
+  }else if(kind==='splat'){
+   const n=noise(c,.16),f=filt(c,'lowpass',900,0.8);env(g,t,.7,.0008,.16);n.connect(f);f.connect(g);n.start(t);n.stop(t+.16);
+  }else if(kind==='portal'){
+   const o=c.createOscillator();o.type='sine';o.frequency.setValueAtTime(240,t);o.frequency.exponentialRampToValueAtTime(720,t+.18);
+   const o2=c.createOscillator();o2.type='triangle';o2.frequency.setValueAtTime(90,t);o2.frequency.linearRampToValueAtTime(40,t+.28);
+   env(g,t,.4,.0008,.28);o.connect(g);o2.connect(g);o.start(t);o.stop(t+.2);o2.start(t);o2.stop(t+.3);
   }
  }catch{}
 }

@@ -182,7 +182,7 @@ export class DogAI {
     if(!w.blocked(p.clone().addScaledVector(side,.18),.22)){next=p;heading=Math.atan2(side.x,side.z);found=true;break;}}
    if(!found){this.roamT=0;this.speed=0;return;}
   }
-  w?.project?.(next,.22,.05,.55);next.y=floorAt(w,next.x,next.z,wp.y);
+  w?.project?.(next,.22,.05,.55);if((w?.gravity??9.81)>0.5)next.y=floorAt(w,next.x,next.z,wp.y);
   root.position.copy(root.parent?.worldToLocal(next.clone())||next);root.rotation.y+=angle(heading-this.worldYaw())*Math.min(1,dt*4);
   this.speed=wp.distanceTo(next)/Math.max(dt,.001);this.separate();root.updateMatrixWorld(true);
  }

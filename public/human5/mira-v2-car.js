@@ -130,7 +130,8 @@ export class Car {
     if(w.saturated&&Math.abs(this.steer)>.08&&Math.abs(speed)>3)yawTorque+=Math.sign(this.steer*speed)*Math.min(80,Math.abs(vs)*30);
     w.roll+=w.omega*dt;w.spin.rotation.x=-w.roll;w.group.rotation.y=w.z<0?this.steer:0;
   }
-  this.heaveVelocity+=(upForce/this.mass-9.81)*dt;this.heaveVelocity*=Math.exp(-dt*4.5);this.group.position.y+=this.heaveVelocity*dt;
+  const grav=Number.isFinite(this.world?.gravity)?this.world.gravity:9.81;
+  this.heaveVelocity+=(upForce/this.mass-grav)*dt;this.heaveVelocity*=Math.exp(-dt*(grav<0.5?.2:4.5));this.group.position.y+=this.heaveVelocity*dt;
   this.pitchRate+=(pitchTorque/2200-this.pitchRate*2.0)*dt;this.rollRate+=(rollTorque/700-this.rollRate*2.0)*dt;
   this.group.rotation.x=clamp(this.group.rotation.x+this.pitchRate*dt,-.1396,.1396);this.group.rotation.z=clamp(this.group.rotation.z+this.rollRate*dt,-.1396,.1396);if(Math.abs(this.group.rotation.x)>=.1395)this.pitchRate=0;if(Math.abs(this.group.rotation.z)>=.1395)this.rollRate=0;
   this.steeringWheel.rotation.z=this.steer*5.2;

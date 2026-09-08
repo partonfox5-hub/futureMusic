@@ -116,7 +116,7 @@ export class DogItems {
    const movingExternally=w.distanceToSquared(a.previous)>1e-8;
    // A furniture integrator that already moved the object owns this frame's motion.
    if(!held&&!a.owner&&!movingExternally){
-    a.velocity.y-=9.8*dt;w.addScaledVector(a.velocity,dt);const floor=floorAt(this.ctx.world,w.x,w.z,0);
+    a.velocity.y-=(Number.isFinite(this.ctx.world?.gravity)?this.ctx.world.gravity:9.8)*dt;w.addScaledVector(a.velocity,dt);const floor=floorAt(this.ctx.world,w.x,w.z,0);
     if(w.y<floor){w.y=floor;a.velocity.y=0;a.velocity.x*=Math.exp(-6*dt);a.velocity.z*=Math.exp(-6*dt);}
     const center=w.clone().add(new THREE.Vector3(0,.04,0));this.ctx.world?.projectSphere?.(center,.04);w.copy(center).add(new THREE.Vector3(0,-.04,0));g.position.copy(g.parent?.worldToLocal(w.clone())||w);
    }else if(!held&&!a.owner&&measured.length()>1.2&&a.type==='bone'&&this.time>(a.externalThrowUntil||0)){a.throwSerial++;a.externalThrowUntil=this.time+1;}

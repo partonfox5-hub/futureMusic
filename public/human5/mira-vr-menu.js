@@ -1,5 +1,5 @@
 import {FURNITURE,SURFACES} from './mira-v2-builder.js?v=13.0';
-import {WEAPONS} from './mira-v2-props.js?v=13.4';
+import {WEAPONS} from './mira-v2-props.js?v=13.6';
 import {draft,saveDraft,OUTFITS,PERSONAS,clothingItems,setDraftGarment} from './mira-v2-catalog.js?v=11.0';
 import {SCENES} from './mira-v2-world.js?v=13.4';
 import {GARMENTS} from './mira-v2-wardrobe.js?v=11.2';
@@ -71,12 +71,16 @@ export function createVRMenu({scene,renderer,camera,system,spawn,onSync,world,wa
   }else if(page===5){
    cycle('Diorama',330,SCENES,()=>world.name,name=>{world.setScene(name);document.getElementById('sceneSelect').value=name;});
    cycle('Clothing',470,GARMENTS.map(g=>g.name),()=>GARMENTS[garmentIndex].name,name=>garmentIndex=GARMENTS.findIndex(g=>g.name===name));button('DRESS SELECTED NPC',40,590,942,65,()=>{notice=wardrobe.equip(active(),GARMENTS[garmentIndex])?'Clothing applied':'Select a v2 actor';draw();});
-   cycle('Table equipment',700,Object.values(WEAPONS).map(w=>w.name),()=>Object.values(WEAPONS)[weaponIndex].name,name=>weaponIndex=Object.values(WEAPONS).findIndex(w=>w.name===name));button('FIND WEAPON',40,800,455,62,()=>{notice='Reach for the table handle and hold grip';draw();});button('DROP',515,800,467,62,()=>props.drop(lastController));
-   button('HAPTICS '+system.hands.haptics.gain.toFixed(1)+'×',40,880,455,62,()=>{system.hands.haptics.gain=(system.hands.haptics.gain+.5)%2.5;draw();});button('VOICE ON / OFF',515,880,467,62,()=>document.getElementById('micBtn')?.click());
-   button('SAVE SCENE',40,958,455,62,()=>{notice=saveScene?('Saved '+saveScene()):'Save unavailable';draw();});button('LOAD LAST',515,958,467,62,()=>{notice=loadScene?loadScene():'Load unavailable';draw();});
-   button('REBUILD HOUSE',40,1036,942,62,()=>{world.setScene('Living room');notice='House rebuilt';draw();});
-   cycle('Vegetation',1105,['Off','Low','Normal','Lush'],()=>['Off','Low','Normal','Lush'][Math.round((props.flora?.density??.45)*3)],name=>{const v={Off:0,Low:.25,Normal:.45,Lush:.8}[name];props.flora?.setDensity(v);});
-   ctx.font='24px sans-serif';ctx.fillStyle='#c9d6e2';ctx.fillText('Hold grip to wield · Release to drop · Trigger fires',40,1240);
+   cycle('Gun / tool',700,Object.values(WEAPONS).map(w=>w.name),()=>Object.values(WEAPONS)[weaponIndex].name,name=>weaponIndex=Object.values(WEAPONS).findIndex(w=>w.name===name));
+   button('SPAWN ON RACK',40,800,455,62,()=>{const id=Object.keys(WEAPONS)[weaponIndex];props.gadgets?.spawn(id);notice='Spawned on the wall rack';draw();});
+   button('PICK UP',515,800,467,62,()=>{const id=Object.keys(WEAPONS)[weaponIndex];props.equip(id);draw();});
+   button(props.gadgets?.zeroG?.()?'GRAVITY ON':'ZERO GRAVITY',40,880,455,62,()=>{props.gadgets?.toggleZeroG();draw();});
+   button('CLEAR PAINT',515,880,467,62,()=>{props.gadgets?.clearPaint();draw();});
+   button('CLEAR PORTALS',40,958,455,62,()=>{props.gadgets?.clearPortals();draw();});
+   button('DROP',515,958,467,62,()=>props.drop(lastController));
+   button('SAVE SCENE',40,1036,455,62,()=>{notice=saveScene?('Saved '+saveScene()):'Save unavailable';draw();});button('LOAD LAST',515,1036,467,62,()=>{notice=loadScene?loadScene():'Load unavailable';draw();});
+   button('REBUILD HOUSE',40,1114,942,62,()=>{world.setScene('Living room');notice='House rebuilt';draw();});
+   ctx.font='22px sans-serif';ctx.fillStyle='#c9d6e2';ctx.fillText('Guns hang on the kitchen-wall rack. Trigger fires. Portal gun: blue then orange.',40,1248);
   }else if(page===0){
    button('SPAWN V1',40,300,455,80,()=>{spawn('v1');draw();});button('SPAWN V2',515,300,467,80,()=>{spawn('v2');draw();});
    button('SELECT NEXT',40,400,610,76,()=>{const list=system.actors;system.select(list[(list.indexOf(active())+1)%list.length]);onSync?.();draw();});

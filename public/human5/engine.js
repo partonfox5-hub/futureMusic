@@ -1,26 +1,27 @@
 import {Builder,FURNITURE,SURFACES} from './mira-v2-builder.js?v=13.0';
-import {SmoothLocomotion} from './mira-v2-locomotion.js?v=13.4';
-import {Car} from './mira-v2-car.js?v=13.4';
+import {SmoothLocomotion} from './mira-v2-locomotion.js?v=13.6';
+import {Car} from './mira-v2-car.js?v=13.6';
 import {Restraints} from './mira-v2-restraints.js?v=13.4';
-import { createDogSystem } from './mira-v2-dog.js?v=13.5';
+import { createDogSystem } from './mira-v2-dog.js?v=13.6';
+import { installGadgets } from './mira-v2-gadgets.js?v=13.6';
 import {Injuries} from './mira-v2-injuries.js?v=12.9';
-import {Props,WEAPONS} from './mira-v2-props.js?v=13.4';
+import {Props,WEAPONS} from './mira-v2-props.js?v=13.6';
 import {syncFurniture} from './mira-v2-furniture.js?v=13.4';
 import {installWater} from './mira-v2-water.js?v=13.3';
 import {createFloraSystem} from './mira-v2-flora.js?v=13.3';
 import {RoomLight} from './mira-v2-light.js?v=11.0';
 import {draft,saveDraft,spawnOptions,OUTFITS,clothingItems} from './mira-v2-catalog.js?v=11.0';
-import {MiraWorld,SCENES} from './mira-v2-world.js?v=13.4';
+import {MiraWorld,SCENES} from './mira-v2-world.js?v=13.6';
 import {Wardrobe,GARMENTS} from './mira-v2-wardrobe.js?v=11.2';
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { createVRMenu } from "./mira-vr-menu.js?v=13.5";
+import { createVRMenu } from "./mira-vr-menu.js?v=13.6";
 import { snapshot, savePreset, loadPreset, applyPreset, listPresets, lastPresetName, downloadPreset } from "./mira-v2-preset.js?v=11.5";
 import { unlockSfx } from "./mira-v2-sfx.js?v=11.0";
 import { EMOTION_NAMES, IDLE_NAMES, WALK_NAMES, ATTENTION_MODES } from "./mira-v2-features.js?v=13.3";
 import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
-import { createMiraSystem, SLIDERS, FACE_TYPES, HAIR_COLORS } from "./mira-v2.js?v=13.3";
+import { createMiraSystem, SLIDERS, FACE_TYPES, HAIR_COLORS } from "./mira-v2.js?v=13.6";
 import { DEFAULT_PERSONA, miraChat, miraSpeak, startMic, unlockVoice } from "./mira-voice-v2.js?v=12.3";
 
 import {V2_EXTRA_SLIDERS,FACE_PRESETS,HAIR_STYLES,ACTIVITY_MODES,ATTENTION_LABELS,shapeSliders} from './mira-v2-controls.js?v=12.9';
@@ -111,6 +112,7 @@ const carBlue=new Car(props,{orbit,keys,controls,color:0x1e4f8a,name:'Blue car'}
 const carRed=new Car(props,{orbit,keys,controls,color:0xb42222,name:'Red car'});
 props.vehicle=carBlue;props.vehicles=[carBlue,carRed];
 const dogs=createDogSystem({scene,mira,system:mira,world,props,camera,renderer,THREE});props.dogs=dogs;
+const gadgets=installGadgets(props);props.gadgets=gadgets;
 const water=installWater({scene,world,camera,renderer,props,mira,THREE,syncFurniture,rig});
 world.waterSystem=water;props.water=water;
 const flora=createFloraSystem({scene,mira,system:mira,world,props,camera,renderer,THREE});
@@ -138,7 +140,7 @@ mira.load(
     dogs.spawnDefault();
     const dogNameEl=document.getElementById('dogName');
     if(dogNameEl)dogNameEl.value=dogs.list?.()[0]?.displayName||'Buddy';
-    if (new URLSearchParams(location.search).has("debug")) window.human2 = { mira, scene, renderer, camera, rig, keys, orbit, world, wardrobe, props, dogs, water, flora };
+    if (new URLSearchParams(location.search).has("debug")) window.human2 = { mira, scene, renderer, camera, rig, keys, orbit, world, wardrobe, props, dogs, water, flora, gadgets };
   },
   (e) => { banner("LOAD FAILED — " + (e && e.message ? e.message : "glb")); console.error(e); }
 );
@@ -211,6 +213,10 @@ function bindHud() {
  document.getElementById('placeLink').onclick=()=>props.restraints.start();document.getElementById('cancelLink').onclick=()=>props.restraints.cancel();document.getElementById('linkMode').onchange=e=>props.restraints.mode=e.target.value;document.getElementById('linkSelect').onchange=e=>props.restraints.selected=props.restraints.links.find(l=>l.id===Number(e.target.value));document.getElementById('linkLength').oninput=e=>props.restraints.setLength(e.target.value);document.getElementById('cutLink').onclick=()=>props.restraints.cut();document.getElementById('removeLink').onclick=()=>props.restraints.remove();document.getElementById('injuryEnabled').onchange=e=>props.injuries.enabled=e.target.checked;document.getElementById('allowSever').onchange=e=>props.injuries.allowSever=e.target.checked;document.getElementById('healActor').onclick=()=>props.injuries.heal(selected());document.getElementById('clearBodies').onclick=()=>{const msg=props.injuries.clearBodies();const st=document.getElementById('linkStatus');if(st)st.textContent=msg;syncHud();};
 
  const weaponSelect=document.getElementById('weaponSelect');weaponSelect.replaceChildren(...Object.entries(WEAPONS).map(([id,w])=>new Option(w.name,id)));document.getElementById('equipWeapon').onclick=()=>props.equip(weaponSelect.value);document.getElementById('dropWeapon').onclick=()=>props.drop('desktop');document.getElementById('resetHouse').onclick=()=>world.setScene('Living room');
+ document.getElementById('spawnRack')?.addEventListener('click',()=>{gadgets.restock(weaponSelect.value);const st=document.getElementById('propStatus');if(st)st.textContent='Spawned '+ (WEAPONS[weaponSelect.value]?.name||weaponSelect.value)+' on the rack';});
+ document.getElementById('zeroG')?.addEventListener('click',()=>{const on=gadgets.toggleZeroG();const b=document.getElementById('zeroG');if(b)b.textContent=on?'GRAVITY ON':'ZERO GRAVITY';const st=document.getElementById('propStatus');if(st)st.textContent=on?'Zero gravity':'Gravity restored';});
+ document.getElementById('clearPaint')?.addEventListener('click',()=>gadgets.clearPaint());
+ document.getElementById('clearPortals')?.addEventListener('click',()=>gadgets.clearPortals());
  const presetName=document.getElementById('presetName');if(presetName)presetName.value=lastPresetName();
  refreshPresetSelect();
  document.getElementById('savePreset').onclick=()=>persistScene(document.getElementById('presetName').value);
@@ -456,11 +462,20 @@ function desktopMove(dt) {
   if (keys.KeyA) controls.moveRight(-sp);
   if (keys.KeyD) controls.moveRight(sp);
   const floor=1.6+(world.floorHeight?.(obj.position)||0);
-  if((keys.Space||keys.jump)&&!deskJumping){deskJumpVel=4.5;deskJumping=true;}
-  if(deskJumping){
-   deskJumpVel-=9.81*dt;obj.position.y+=deskJumpVel*dt;
-   if(obj.position.y<=floor&&deskJumpVel<=0){obj.position.y=floor;deskJumping=false;deskJumpVel=0;}
-  }else if(!water?.playerSubmerged(camera))obj.position.y=floor;
+  const grav=Number.isFinite(world.gravity)?world.gravity:9.81;
+  if(grav<0.5){
+   if(keys.Space||keys.jump)deskJumpVel+=8*dt;
+   if(keys.ControlLeft||keys.KeyC)deskJumpVel-=8*dt;
+   deskJumpVel*=Math.exp(-dt*.35);
+   obj.position.y+=deskJumpVel*dt;
+   deskJumping=false;
+  }else{
+   if((keys.Space||keys.jump)&&!deskJumping){deskJumpVel=4.5;deskJumping=true;}
+   if(deskJumping){
+    deskJumpVel-=grav*dt;obj.position.y+=deskJumpVel*dt;
+    if(obj.position.y<=floor&&deskJumpVel<=0){obj.position.y=floor;deskJumping=false;deskJumpVel=0;}
+   }else if(!water?.playerSubmerged(camera))obj.position.y=floor;
+  }
 }
 
 const clock = new THREE.Clock();
