@@ -1,0 +1,7 @@
+# Python 3.11. Install CUDA PyTorch FIRST, then this file.
+# CPU works but is too slow for production-quality clones.
+chatterbox-tts
+gradio>=4.44
+torchaudio
+soundfile
+numpy

@@ -1,0 +1,1 @@
+Put Mira's default-mood MP3s in this folder, then Prepare voice with id mira-default.

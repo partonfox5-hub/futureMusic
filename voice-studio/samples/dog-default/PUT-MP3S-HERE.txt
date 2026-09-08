@@ -1,0 +1,1 @@
+Spoken owner lines about the dog ("he looks hungry"), not bark SFX. Prepare voice with id dog-default.

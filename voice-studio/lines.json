@@ -1,0 +1,51 @@
+{
+  "voices": {
+    "mira-default": {
+      "label": "Mira · default",
+      "ref": "voices/mira-default/ref.wav",
+      "folder": "mira"
+    },
+    "mira-calm": {
+      "label": "Mira · calm / close-mic",
+      "ref": "voices/mira-calm/ref.wav",
+      "folder": "mira"
+    },
+    "mira-hurt": {
+      "label": "Mira · hurt",
+      "ref": "voices/mira-hurt/ref.wav",
+      "folder": "mira"
+    },
+    "mira-play": {
+      "label": "Mira · play",
+      "ref": "voices/mira-play/ref.wav",
+      "folder": "mira"
+    },
+    "dog-default": {
+      "label": "Dog needs (spoken owner lines)",
+      "ref": "voices/dog-default/ref.wav",
+      "folder": "dog"
+    }
+  },
+  "lines": [
+    { "id": "greet_01", "voice": "mira-default", "text": "Hey — you made it." },
+    { "id": "greet_02", "voice": "mira-default", "text": "Hi. It is good to see you." },
+    { "id": "idle_01", "voice": "mira-calm", "text": "I am fine. Just here." },
+    { "id": "idle_02", "voice": "mira-calm", "text": "Take your time. I am not going anywhere." },
+    { "id": "come_01", "voice": "mira-default", "text": "Come here." },
+    { "id": "come_02", "voice": "mira-play", "text": "Over here. Come on." },
+    { "id": "object_cup", "voice": "mira-default", "text": "That cup is yours if you want it." },
+    { "id": "object_door", "voice": "mira-default", "text": "The door is open." },
+    { "id": "hurt_01", "voice": "mira-hurt", "text": "Ah — that hurt." },
+    { "id": "hurt_02", "voice": "mira-hurt", "text": "Okay. I am still here." },
+    { "id": "play_01", "voice": "mira-play", "text": "Catch me if you can." },
+    { "id": "play_02", "voice": "mira-play", "text": "Do that again." },
+    { "id": "thanks_01", "voice": "mira-calm", "text": "Thank you." },
+    { "id": "bye_01", "voice": "mira-default", "text": "See you in a bit." },
+    { "id": "need_food", "voice": "dog-default", "text": "He looks hungry." },
+    { "id": "need_water", "voice": "dog-default", "text": "He needs water." },
+    { "id": "need_sleep", "voice": "dog-default", "text": "He is tired." },
+    { "id": "need_play", "voice": "dog-default", "text": "Throw the ball." },
+    { "id": "dog_good", "voice": "mira-play", "text": "Good boy." },
+    { "id": "dog_come", "voice": "mira-default", "text": "Come here, buddy." }
+  ]
+}
