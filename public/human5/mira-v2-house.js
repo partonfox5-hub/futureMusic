@@ -21,8 +21,10 @@ export function buildHouse(w){
  slab(-3.4,-4.2,7.6,5.2,.02,.05,maps.wood);
  slab(3.8,7.5,6.8,6.2,.02,.05,maps.stone,'stone');
  slab(-5.4,-4.2,3.6,5.2,.02,.05,maps.tile,'stone');
- // Second floor decks
- slab(-3.4,-.4,7.6,10.0,STORY,.07,maps.wood);
+ // Second floor decks (gap over the stair run so you can walk down)
+ slab(-3.96,-.4,6.48,10.0,STORY,.07,maps.wood);
+ slab(-.16,-3.425,1.12,3.95,STORY,.07,maps.wood);
+ slab(-.16,3.675,1.12,1.85,STORY,.07,maps.wood);
  slab(3.8,-.4,6.8,10.0,STORY,.07,maps.wood);
  slab(-5.4,3.1,3.6,3.6,STORY,.07,maps.tile,'stone');
  // Outer walls ground (story 3m)

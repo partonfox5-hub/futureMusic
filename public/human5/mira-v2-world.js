@@ -1,6 +1,6 @@
 import {captureFurniture,tagMovable} from './mira-v2-furniture.js?v=13.4';
 import {Destruction} from './mira-v2-destruction.js?v=13.8';
-import {buildHouse} from './mira-v2-house.js?v=13.8';
+import {buildHouse} from './mira-v2-house.js?v=13.9';
 import {plantTerrain,scatterTrees,tickNature,chopTree as chopNature,ramTree as ramNature,terrainHeight} from './mira-v2-nature.js?v=13.9';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
 import * as T from 'three';
@@ -81,13 +81,17 @@ export class MiraWorld {
   for(const f of this.floors||[]){
    if(Math.abs((x||0)-f.x)<f.w/2+.01&&Math.abs((z||0)-f.z)<f.d/2+.01)candidates.push(f.y+f.h);
   }
+  let stairH=null;
   for(const group of this.stairs||[]){
    if(!group.parent)continue;const data=group.userData.stairs;if(!data)continue;
    const local=group.worldToLocal(pt.clone());
    if(Math.abs(local.x)>data.width/2+.08||local.z<-.08||local.z>data.run+.12)continue;
    const t=T.MathUtils.clamp(local.z/Math.max(.001,data.run),0,1);
-   candidates.push(t*data.rise);
+   stairH=t*data.rise;
+   candidates.push(stairH);
   }
+  // Stairs win over the slab they pass through, or you snap back upstairs.
+  if(stairH!=null)return stairH;
   const reachable=candidates.filter(c=>c<=yRef+step);
   if(reachable.length)return Math.max(...reachable);
   const below=candidates.filter(c=>c<=yRef+0.02);
