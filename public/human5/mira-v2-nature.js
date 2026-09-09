@@ -44,7 +44,7 @@ function addLeaf(parent,mat,size,pos){
 export function plantTree(world,x,z,opts={}){
  const palm=!!opts.palm,h=opts.height||(palm?3.1+hash(x,z)*1.1:2.5+hash(x,z)*2.4);
  const pad=opts.pad??world.terrainPad??5.4,amp=world.terrainAmp??1;
- const y0=terrainHeight(x,z,pad,amp);
+ const y0=world.terrainFeatures?.heightAt(x,z)??terrainHeight(x,z,pad,amp);
  const group=new T.Group();group.position.set(x,y0,z);world.root.add(group);
  const bark=woodMat(palm?0x9a7a58:0x5a4634),leaf=leafMat(palm?0x5e8848:(hash(x+2,z)>.5?0x3f5d32:0x4a6a38));
  const segs=palm?5:7,radius=.07+h*.018,cut=[];
@@ -121,7 +121,7 @@ function settleWood(world,group,id){
  return group;
 }
 function groundY(world,x,z){
- return terrainHeight(x,z,world?.terrainPad??5.4,world?.terrainAmp??1);
+ return world?.terrainFeatures?.heightAt(x,z)??terrainHeight(x,z,world?.terrainPad??5.4,world?.terrainAmp??1);
 }
 function snapGroupToGround(world,group){
  if(!group?.parent)return;

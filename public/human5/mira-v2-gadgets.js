@@ -2,7 +2,7 @@ import * as T from 'three';
 import {playSfx,unlockSfx} from './mira-v2-sfx.js?v=13.8';
 const V=()=>new T.Vector3(),Q=()=>new T.Quaternion(),M=()=>new T.Matrix4();
 const QUEST=/Quest|OculusBrowser/i.test(globalThis.navigator?.userAgent||'');
-export const GUNS=['pistol','laser','marker','marker2','portal'];
+export const GUNS=['pistol','laser','rifle','sniper','shotgun','uzi','marker','marker2','portal'];
 export const MELEE=['sword','axe','mace'];
 const PORTAL_COLORS=[0x3aa0ff,0xff9a32];
 const PORTAL_W=1.18,PORTAL_H=2.22,PORTAL_T=.05;
@@ -19,8 +19,8 @@ void main(){
 
 function gVal(world){const g=world?.gravity;return Number.isFinite(g)?g:9.81;}
 
-const splatVert=`varying vec2 u;varying float vWet;varying vec3 vCol;attribute float aWet;attribute vec3 instanceColor;
-void main(){u=uv;vWet=aWet;vCol=instanceColor;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`;
+const splatVert=`varying vec2 u;varying float vWet;varying vec3 vCol;attribute float aWet;
+void main(){u=uv;vWet=aWet;vCol=instanceColor;gl_Position=projectionMatrix*modelViewMatrix*instanceMatrix*vec4(position,1.0);}`;
 const splatFrag=`varying vec2 u;varying float vWet;varying vec3 vCol;
 void main(){
  vec2 p=(u-.5)*2.0;
@@ -137,8 +137,8 @@ Gadgets.prototype.decorate=function(item){
 };
 
 Gadgets.prototype.slotPose=function(i){
- const n=GUNS.length,x=0.255,y=1.22,z0=-1.05,span=1.52;
- const z=z0+(n<=1?0:i/(n-1)*span);
+ const cols=5,row=Math.floor(i/cols),col=i%cols,x=0.255,y=1.46-row*.36,z0=-1.12,span=1.7;
+ const z=z0+(cols<=1?0:col/(cols-1)*span);
  return {x,y,z,yaw:Math.PI/2};
 };
 
@@ -149,9 +149,10 @@ Gadgets.prototype.rebuildRack=function(){
  const board=new T.Group();board.name='GunRack';
  const wood=new T.MeshStandardMaterial({color:0x6a4e38,roughness:.86});
  const peg=new T.MeshStandardMaterial({color:0x3d3228,roughness:.7});
- const plate=new T.Mesh(new T.BoxGeometry(.04,.92,1.78),wood);plate.position.set(.33,1.18,-.28);plate.castShadow=plate.receiveShadow=true;board.add(plate);
- const rail=new T.Mesh(new T.BoxGeometry(.05,.06,1.78),peg);rail.position.set(.31,1.58,-.28);board.add(rail);
- const rail2=rail.clone();rail2.position.y=.78;board.add(rail2);
+ const plate=new T.Mesh(new T.BoxGeometry(.04,1.22,1.96),wood);plate.position.set(.33,1.22,-.28);plate.castShadow=plate.receiveShadow=true;board.add(plate);
+ const rail=new T.Mesh(new T.BoxGeometry(.05,.06,1.96),peg);rail.position.set(.31,1.72,-.28);board.add(rail);
+ const rail2=rail.clone();rail2.position.y=1.22;board.add(rail2);
+ const rail3=rail.clone();rail3.position.y=.78;board.add(rail3);
  GUNS.forEach((_,i)=>{
   const s=this.slotPose(i);
   const p=new T.Mesh(new T.CylinderGeometry(.012,.012,.07,8),peg);
@@ -185,7 +186,7 @@ Gadgets.prototype.restock=function(id){
 };
 
 Gadgets.prototype.spawn=function(id){
- if(!GUNS.includes(id)&&id!=='sword'&&id!=='axe'&&id!=='mace')id='marker';
+ if(!GUNS.includes(id)&&!MELEE.includes(id))id='marker';
  let item=this.props.items.find(x=>x.id===id);
  if(!item){item=this.props.make(id);this.props.items.push(item);}
  if(item.holder==null){
@@ -360,12 +361,15 @@ Gadgets.prototype.splat=function(point,normal,object,color,scale=1){
 Gadgets.prototype.impactPaint=function(hit,color){
  const n=(hit.face?.normal.clone().transformDirection(hit.object.matrixWorld)||new T.Vector3(0,1,0));
  if(n.lengthSq()<1e-8)n.set(0,1,0);n.normalize();
- this.splat(hit.point,n,hit.object,color,1.15);
+ const actor=this.props.actorFor?.(hit.object),dog=this.props.dogFor?.(hit.object);
+ const bone=actor?.nearestHit?.(hit.point,.22)?.bone||dog?.nearestHit?.(hit.point,.28)?.bone;
+ const target=bone||hit.object;
+ this.splat(hit.point,n,target,color,1.15);
  const tan=new T.Vector3(1,0,0).cross(n);if(tan.lengthSq()<1e-6)tan.set(0,0,1).cross(n);tan.normalize();
  const bit=new T.Vector3().crossVectors(n,tan);
  for(let i=0;i<6;i++){
   const o=tan.clone().multiplyScalar((Math.random()-.5)*.16).addScaledVector(bit,(Math.random()-.5)*.16);
-  this.splat(hit.point.clone().add(o).addScaledVector(n,.001),n,hit.object,color,.45+Math.random()*.4);
+  this.splat(hit.point.clone().add(o).addScaledVector(n,.001),n,target,color,.45+Math.random()*.4);
  }
  playSfx('splat');
  this.props.status='Paint coverage';

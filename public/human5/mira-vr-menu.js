@@ -1,5 +1,5 @@
 import {FURNITURE,SURFACES} from './mira-v2-builder.js?v=13.8';
-import {WEAPONS} from './mira-v2-props.js?v=13.91';
+import {WEAPONS} from './mira-v2-props.js?v=14.2';
 import {draft,saveDraft,OUTFITS,PERSONAS,clothingItems,setDraftGarment} from './mira-v2-catalog.js?v=11.0';
 import {SCENES} from './mira-v2-world.js?v=13.9';
 import {GARMENTS} from './mira-v2-wardrobe.js?v=11.2';
@@ -71,8 +71,8 @@ export function createVRMenu({scene,renderer,camera,system,spawn,onSync,world,wa
   }else if(page===5){
    cycle('Diorama',330,SCENES,()=>world.name,name=>{world.setScene(name);document.getElementById('sceneSelect').value=name;});
    cycle('Clothing',470,GARMENTS.map(g=>g.name),()=>GARMENTS[garmentIndex].name,name=>garmentIndex=GARMENTS.findIndex(g=>g.name===name));button('DRESS SELECTED NPC',40,590,942,65,()=>{notice=wardrobe.equip(active(),GARMENTS[garmentIndex])?'Clothing applied':'Select a v2 actor';draw();});
-   cycle('Gun / tool',700,Object.values(WEAPONS).map(w=>w.name),()=>Object.values(WEAPONS)[weaponIndex].name,name=>weaponIndex=Object.values(WEAPONS).findIndex(w=>w.name===name));
-   button('SPAWN ON RACK',40,800,455,62,()=>{const id=Object.keys(WEAPONS)[weaponIndex];props.gadgets?.spawn(id);notice='Spawned on the wall rack';draw();});
+   cycle('Weapons',700,Object.values(WEAPONS).map(w=>w.name),()=>Object.values(WEAPONS)[weaponIndex].name,name=>weaponIndex=Object.values(WEAPONS).findIndex(w=>w.name===name));
+   button('SPAWN ON RACK',40,800,455,62,()=>{const id=Object.keys(WEAPONS)[weaponIndex];props.gadgets?.spawn(id);notice='Spawned '+WEAPONS[id].name;draw();});
    button('PICK UP',515,800,467,62,()=>{const id=Object.keys(WEAPONS)[weaponIndex];props.equip(id);draw();});
    button(props.gadgets?.zeroG?.()?'GRAVITY ON':'ZERO GRAVITY',40,880,455,62,()=>{props.gadgets?.toggleZeroG();draw();});
    button('CLEAR PAINT',515,880,467,62,()=>{props.gadgets?.clearPaint();draw();});

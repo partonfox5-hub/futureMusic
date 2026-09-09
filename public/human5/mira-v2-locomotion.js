@@ -33,7 +33,7 @@ export class SmoothLocomotion {
   this.rig.position.add(offset).sub(offset.clone().applyAxisAngle(new T.Vector3(0,1,0),angle));
   this.rig.rotation.y+=angle;
   const target=eye.clone().add(delta),before=target.clone();
-  this.world.project(target,.18,-1.45,1.55);
+  this.world.project(target,.32,-1.5,1.7);
   target.x=T.MathUtils.clamp(target.x,-this.world.extent,this.world.extent);
   target.z=T.MathUtils.clamp(target.z,-this.world.extent,this.world.extent);
   this.rig.position.add(delta).add(target.sub(before));

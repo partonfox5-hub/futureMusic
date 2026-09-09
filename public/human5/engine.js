@@ -1,21 +1,22 @@
 import {Builder,FURNITURE,SURFACES} from './mira-v2-builder.js?v=13.8';
-import {SmoothLocomotion} from './mira-v2-locomotion.js?v=13.9';
+import {SmoothLocomotion} from './mira-v2-locomotion.js?v=14.2';
 import {Car} from './mira-v2-car.js?v=14.1';
 import {Restraints} from './mira-v2-restraints.js?v=13.4';
-import { createDogSystem } from './mira-v2-dog.js?v=13.6';
-import { installGadgets } from './mira-v2-gadgets.js?v=13.91';
+import { createDogSystem } from './mira-v2-dog.js?v=14.2';
+import { installGadgets } from './mira-v2-gadgets.js?v=14.2';
 import {Injuries} from './mira-v2-injuries.js?v=12.9';
-import {Props,WEAPONS} from './mira-v2-props.js?v=14.1';
+import {Props,WEAPONS,GUNS} from './mira-v2-props.js?v=14.2';
+import {installTerrainFeatures} from './mira-v2-terrain-features.js?v=14.2';
 import {syncFurniture} from './mira-v2-furniture.js?v=14.0';
 import {installWater} from './mira-v2-water.js?v=13.3';
 import {createFloraSystem} from './mira-v2-flora.js?v=13.3';
 import {RoomLight} from './mira-v2-light.js?v=11.0';
 import {draft,saveDraft,spawnOptions,OUTFITS,clothingItems} from './mira-v2-catalog.js?v=11.0';
-import {MiraWorld,SCENES} from './mira-v2-world.js?v=14.1';
+import {MiraWorld,SCENES} from './mira-v2-world.js?v=14.2';
 import {Wardrobe,GARMENTS} from './mira-v2-wardrobe.js?v=11.2';
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { createVRMenu } from "./mira-vr-menu.js?v=13.91";
+import { createVRMenu } from "./mira-vr-menu.js?v=14.2";
 import { snapshot, savePreset, loadPreset, applyPreset, listPresets, lastPresetName, downloadPreset } from "./mira-v2-preset.js?v=11.5";
 import { unlockSfx } from "./mira-v2-sfx.js?v=11.0";
 import { EMOTION_NAMES, IDLE_NAMES, WALK_NAMES, ATTENTION_MODES } from "./mira-v2-features.js?v=13.7";
@@ -117,6 +118,7 @@ const water=installWater({scene,world,camera,renderer,props,mira,THREE,syncFurni
 world.waterSystem=water;props.water=water;
 const flora=createFloraSystem({scene,mira,system:mira,world,props,camera,renderer,THREE});
 props.flora=flora;
+const terrainFeatures=installTerrainFeatures({world,props,WEAPONS,GUNS});
 function ensureYardPond(){
  if(!water||world.name==='Beach'){if(props._yardPond){props._yardPond.despawn?.();props._yardPond=null;}return;}
  if(props._yardPond && props._pondScene===world.name)return;
@@ -140,7 +142,7 @@ mira.load(
     dogs.spawnDefault();
     const dogNameEl=document.getElementById('dogName');
     if(dogNameEl)dogNameEl.value=dogs.list?.()[0]?.displayName||'Buddy';
-    if (new URLSearchParams(location.search).has("debug")) window.human2 = { mira, scene, renderer, camera, rig, keys, orbit, world, wardrobe, props, dogs, water, flora, gadgets };
+    if (new URLSearchParams(location.search).has("debug")) window.human2 = { mira, scene, renderer, camera, rig, keys, orbit, world, wardrobe, props, dogs, water, flora, gadgets, terrainFeatures };
   },
   (e) => { banner("LOAD FAILED — " + (e && e.message ? e.message : "glb")); console.error(e); }
 );
@@ -212,7 +214,17 @@ function bindHud() {
 
  document.getElementById('placeLink').onclick=()=>props.restraints.start();document.getElementById('cancelLink').onclick=()=>props.restraints.cancel();document.getElementById('linkMode').onchange=e=>props.restraints.mode=e.target.value;document.getElementById('linkSelect').onchange=e=>props.restraints.selected=props.restraints.links.find(l=>l.id===Number(e.target.value));document.getElementById('linkLength').oninput=e=>props.restraints.setLength(e.target.value);document.getElementById('cutLink').onclick=()=>props.restraints.cut();document.getElementById('removeLink').onclick=()=>props.restraints.remove();document.getElementById('injuryEnabled').onchange=e=>props.injuries.enabled=e.target.checked;document.getElementById('allowSever').onchange=e=>props.injuries.allowSever=e.target.checked;document.getElementById('healActor').onclick=()=>props.injuries.heal(selected());document.getElementById('clearBodies').onclick=()=>{const msg=props.injuries.clearBodies();const st=document.getElementById('linkStatus');if(st)st.textContent=msg;syncHud();};
 
- const weaponSelect=document.getElementById('weaponSelect');weaponSelect.replaceChildren(...Object.entries(WEAPONS).map(([id,w])=>new Option(w.name,id)));document.getElementById('equipWeapon').onclick=()=>props.equip(weaponSelect.value);document.getElementById('dropWeapon').onclick=()=>props.drop('desktop');document.getElementById('resetHouse').onclick=()=>world.setScene('Living room');
+ const weaponSelect=document.getElementById('weaponSelect');
+ const groups={melee:'Melee',firearm:'Firearms',tool:'Tools'};
+ weaponSelect.replaceChildren();
+ for(const [cat,label] of Object.entries(groups)){
+  const og=document.createElement('optgroup');og.label=label;
+  for(const [id,w] of Object.entries(WEAPONS))if((w.category||'tool')===cat)og.append(new Option(w.name,id));
+  if(og.childElementCount)weaponSelect.append(og);
+ }
+ const extras=Object.entries(WEAPONS).filter(([,w])=>!groups[w.category||'tool']);
+ for(const [id,w] of extras)weaponSelect.append(new Option(w.name,id));
+ document.getElementById('equipWeapon').onclick=()=>props.equip(weaponSelect.value);document.getElementById('dropWeapon').onclick=()=>props.drop('desktop');document.getElementById('resetHouse').onclick=()=>world.setScene('Living room');
  document.getElementById('spawnRack')?.addEventListener('click',()=>{gadgets.restock(weaponSelect.value);const st=document.getElementById('propStatus');if(st)st.textContent='Spawned '+ (WEAPONS[weaponSelect.value]?.name||weaponSelect.value)+' on the rack';});
  document.getElementById('zeroG')?.addEventListener('click',()=>{const on=gadgets.toggleZeroG();const b=document.getElementById('zeroG');if(b)b.textContent=on?'GRAVITY ON':'ZERO GRAVITY';const st=document.getElementById('propStatus');if(st)st.textContent=on?'Zero gravity':'Gravity restored';});
  document.getElementById('clearPaint')?.addEventListener('click',()=>gadgets.clearPaint());
@@ -461,6 +473,9 @@ function desktopMove(dt) {
   if (keys.KeyS) controls.moveForward(-sp);
   if (keys.KeyA) controls.moveRight(-sp);
   if (keys.KeyD) controls.moveRight(sp);
+  const before=obj.position.clone();
+  world.project(obj.position,.32,-1.55,1.7);
+  obj.position.y=before.y;
   const feet=obj.position.clone();feet.y-=1.6;
   const floor=1.6+(world.floorHeight?.(feet,undefined,.42)||0);
   const grav=Number.isFinite(world.gravity)?world.gravity:9.81;
@@ -496,7 +511,7 @@ function tick(time,frame) {
   if(builder.active){if(XR_ON()){builder.tick(renderer.xr.getSession());builder.preview(props.ray(builder.controller));}else{if(controls?.isLocked)pickRay.setFromCamera(new THREE.Vector2(),camera);builder.preview(pickRay.ray);}}
   const buildStatus=document.getElementById('buildStatus');if(buildStatus)buildStatus.textContent=builder.status;
   tickLocomotion(dt);
-  if(XR_ON()&&!props.driving()){const eye=camera.getWorldPosition(new THREE.Vector3()),before=eye.clone();world.project(eye,.18,-1.45,1.55);eye.x=THREE.MathUtils.clamp(eye.x,-world.extent,world.extent);eye.z=THREE.MathUtils.clamp(eye.z,-world.extent,world.extent);rig.position.add(eye.sub(before));}
+  if(XR_ON()&&!props.driving()){const eye=camera.getWorldPosition(new THREE.Vector3()),before=eye.clone();world.project(eye,.32,-1.5,1.7);eye.x=THREE.MathUtils.clamp(eye.x,-world.extent,world.extent);eye.z=THREE.MathUtils.clamp(eye.z,-world.extent,world.extent);rig.position.add(eye.sub(before));}
   if (mira.ready) {
     ensureYardPond();
     if(water)for(const a of mira.actors)water.stepActor(a,dt);

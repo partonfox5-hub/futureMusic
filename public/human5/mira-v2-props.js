@@ -1,19 +1,21 @@
 import * as T from 'three';
 import {playSfx,sfxForHit,unlockSfx} from './mira-v2-sfx.js?v=13.6';
 import {furnitureRoot,syncFurniture} from './mira-v2-furniture.js?v=14.0';
-import {ensureGrabbableWood} from './mira-v2-nature.js?v=14.1';
-import {GUNS,MELEE,buildMarker,buildPortalGun} from './mira-v2-gadgets.js?v=13.91';
+import {ensureGrabbableWood} from './mira-v2-nature.js?v=14.2';
+import {GUNS,MELEE,buildMarker,buildPortalGun} from './mira-v2-gadgets.js?v=14.2';
+import {FIREARMS,buildFirearm,firearmSpread} from './mira-v2-firearms.js?v=14.2';
 const V=()=>new T.Vector3(),Q=()=>new T.Quaternion();
 const visible=o=>{while(o){if(!o.visible)return false;o=o.parent;}return true;};
 const G=w=>Number.isFinite(w?.gravity)?w.gravity:9.81;
 const isGun=k=>k==='bullet'||k==='laser'||k==='paint'||k==='portal';
-export const WEAPONS={sword:{name:'Sword',mass:1.4,reach:.95,sharpness:.85,kind:'cut'},axe:{name:'Axe',mass:2.1,reach:.78,sharpness:.7,kind:'cut'},mace:{name:'Mace',mass:2.8,reach:.66,sharpness:0,kind:'blunt'},pistol:{name:'Pistol',mass:.9,reach:.24,kind:'bullet'},laser:{name:'Laser pistol',mass:1.2,reach:.28,kind:'laser'},marker:{name:'Paintball marker · blue',mass:1.05,reach:.42,kind:'paint',color:0x2aa0e8},marker2:{name:'Paintball marker · red',mass:1.05,reach:.42,kind:'paint',color:0xc43b3b},portal:{name:'Portal gun',mass:1.35,reach:.32,kind:'portal'}};
+export const WEAPONS={sword:{name:'Sword',mass:1.4,reach:.95,sharpness:.85,kind:'cut',category:'melee'},axe:{name:'Axe',mass:2.1,reach:.78,sharpness:.7,kind:'cut',category:'melee'},mace:{name:'Mace',mass:2.8,reach:.66,sharpness:0,kind:'blunt',category:'melee'},pistol:{name:'Pistol',mass:.9,reach:.24,kind:'bullet',category:'firearm',fireRate:.22,energy:32,spread:.018,pellets:1},laser:{name:'Laser pistol',mass:1.2,reach:.28,kind:'laser',category:'firearm'},...FIREARMS,marker:{name:'Paintball marker · blue',mass:1.05,reach:.42,kind:'paint',color:0x2aa0e8,category:'tool'},marker2:{name:'Paintball marker · red',mass:1.05,reach:.42,kind:'paint',color:0xc43b3b,category:'tool'},portal:{name:'Portal gun',mass:1.35,reach:.32,kind:'portal',category:'tool'}};
 export {GUNS,MELEE};
 export class Props {
  constructor({scene,system,world,wardrobe,camera,renderer,rig}){Object.assign(this,{scene,system,world,wardrobe,camera,renderer,rig});this.items=[];this.held=new Map();this.furnHolds=new Map();this.shots=[];this.effects=[];this.marks=[];this.time=0;this.revision=-1;this.rc=new T.Raycaster();this.status='Guns hang on the living-room wall rack.';this.syncWorld();}
  make(id){const data=WEAPONS[id],group=new T.Group(),metal=new T.MeshStandardMaterial({color:id==='laser'?0x467e8a:0x8b9298,roughness:.32,metalness:.75}),grip=new T.MeshStandardMaterial({color:0x362e2b,roughness:.95}),add=(geom,mat,x,y,z)=>{const m=new T.Mesh(geom,mat);m.position.set(x,y,z);m.castShadow=true;group.add(m);return m;};
  if(id==='marker'||id==='marker2')buildMarker(id,add);
  else if(id==='portal')buildPortalGun(add);
+ else if(FIREARMS[id]){buildFirearm(id,add);group.userData.firearm=id;}
  else{
   add(new T.BoxGeometry(.037,.06,.15),grip,0,-.025,0);
   if(id==='sword'){add(new T.BoxGeometry(.24,.02,.035),metal,0,0,-.14);add(new T.BoxGeometry(.042,.009,.70,1,1,8),metal,0,0,-.505);const tip=add(new T.ConeGeometry(.028,.12,4),metal,0,0,-.915);tip.rotation.x=-Math.PI/2;tip.rotation.z=Math.PI/4;}
@@ -21,7 +23,7 @@ export class Props {
   else if(id==='mace'){const shaft=add(new T.CylinderGeometry(.016,.022,.53,12),grip,0,0,-.25);shaft.rotation.x=Math.PI/2;add(new T.IcosahedronGeometry(.088,1),metal,0,0,-.57);for(let i=0;i<6;i++){const m=add(new T.BoxGeometry(.026,.19,.105),metal,0,0,-.57);m.rotation.z=i*Math.PI/3;}}
   else{add(new T.BoxGeometry(.055,.075,.24),metal,0,.03,-.08);const handle=add(new T.BoxGeometry(.044,.11,.055),grip,0,-.057,.016);handle.rotation.x=-.2;add(new T.TorusGeometry(.029,.005,6,14),metal,0,-.045,-.057).rotation.y=Math.PI/2;add(new T.BoxGeometry(.018,.012,.014),grip,0,.075,-.15);if(id==='laser')for(const x of [-.033,.033])add(new T.BoxGeometry(.008,.017,.13),new T.MeshBasicMaterial({color:0x9df5ff}),x,.035,-.09);}
  }
- group.traverse(m=>m.userData.weapon=id);const gunGrip=['pistol','laser','marker','marker2','portal'].includes(id);
+ group.traverse(m=>m.userData.weapon=id);const gunGrip=isGun(data.kind)||['pistol','laser','marker','marker2','portal','rifle','sniper','shotgun','uzi'].includes(id);
  const item={id,data,group,holder:null,lastTip:null,lastPoint:null,handle:new T.Vector3(0,gunGrip?-.057:-.025,gunGrip?.016:0),velocity:V(),lastHit:new Map(),kick:0,swing:0,portalNext:0};this.scene.add(group);this.gadgets?.decorate?.(item);return item;}
  syncWorld(){if(this.revision===this.world.revision)return;this.revision=this.world.revision;this.furnHolds.clear();if(this.restraints){for(const l of [...this.restraints.links])this.restraints.remove(l);this.restraints.cancel();}for(const m of this.marks.filter(m=>!m.actor))this.dispose(m.mesh);this.marks=this.marks.filter(m=>m.actor);this.shots=[];for(const e of this.effects)this.dispose(e.mesh);this.effects=[];this.gadgets?.clearPaint?.();this.gadgets?.clearPortals?.();const kept=[];for(const item of this.items){if(item.holder!==null){kept.push(item);continue;}item.group.removeFromParent();item.group.traverse(m=>{m.geometry?.dispose();m.material?.dispose();});}this.items=kept;const heldIds=new Set(kept.map(i=>i.id));if(this.world.name!=='Living room'){this.gadgets?.rebuildRack?.();return;}const p=this.world.tableAnchor;if(p)MELEE.forEach((id,i)=>{if(heldIds.has(id))return;const item=this.make(id);item.group.position.set(p.x-.45+i*.45,p.y+.055,p.z+(i%2?.18:-.16));item.group.rotation.y=-Math.PI/2;this.items.push(item);});this.gadgets?this.gadgets.rebuildRack():GUNS.forEach((id,i)=>{if(heldIds.has(id))return;const item=this.make(id);item.group.position.set(.255,1.22,-1.05+i*.38);item.group.rotation.y=Math.PI/2;this.items.push(item);});}
  ray(i){const c=this.system.hands.ctrl[i];return new T.Ray(c.getWorldPosition(V()),new T.Vector3(0,0,-1).applyQuaternion(c.getWorldQuaternion(Q())));}
@@ -40,10 +42,31 @@ export class Props {
    item.group.rotation.set((gun?.16:-.12)-(item.kick||0)*1.2,item.swing>0?Math.sin(item.swing/.28*Math.PI)*1.05:0,gun?0:Math.PI/2);
   }
   item.group.updateMatrixWorld(true);
+  this.resolveHeldWall(item);
+ }
+ resolveHeldWall(item){
+  if(!item?.group?.parent)return;
+  const parent=item.group.parent,reach=Math.max(.18,item.data.reach||.4);
+  const handle=item.group.localToWorld(item.handle.clone());
+  const tip=item.group.localToWorld(new T.Vector3(0,0,-reach));
+  const span=tip.clone().sub(handle),len=span.length();if(len<1e-4)return;
+  const dir=span.clone().normalize(),ray=new T.Ray(handle,dir),hit=this.hit(ray,len+.02,false,{world:true});
+  if(!hit)return;
+  if(this.actorFor(hit.object)||this.dogFor(hit.object)||hit.object.userData?.cloth)return;
+  const pen=len-hit.distance+.012;if(pen<=0)return;
+  const worldBack=dir.clone().multiplyScalar(-pen);
+  const from=parent.worldToLocal(handle.clone()),to=parent.worldToLocal(handle.clone().add(worldBack));
+  item.group.position.add(to.sub(from));
+  item.group.updateMatrixWorld(true);
+  if(item.holder==='desktop'&&this.rig){
+   const eye=this.camera.getWorldPosition(V()),before=eye.clone();
+   this.world.project(eye,.30,-1.55,1.7);
+   this.rig.position.add(eye.sub(before));
+  }
  }
  nearestFreeWeapon(p,r=.22){let best=null,bd=r*r;for(const item of this.items){if(item.holder!==null)continue;const d=item.group.localToWorld(item.handle.clone()).distanceToSquared(p);if(d<bd){bd=d;best=item;}}return best;}
  hold(item,key){if(!item||item.holder!==null)return false;unlockSfx();this.drop(key);item.holder=key;item.carSeat=null;item.lastTip=null;item.lastSamples=null;item.lastPoint=null;item.kick=0;item.swing=0;item.armedAt=this.time+.22;item.velocity.set(0,0,0);this.held.set(key,item);this.applyHoldPose(item);this.status=item.data.name+' held · '+(key==='desktop'?'click to use, Q to drop':'release grip to drop · trigger fires · swing your hand for melee');if(typeof key==='number')this.system.hands.haptics?.contact(key,'prop',1,.008);return true;}
- equip(id){return this.hold(this.items.find(i=>i.id===id),'desktop');}
+ equip(id){let item=this.items.find(i=>i.id===id&&i.holder==null);if(!item&&WEAPONS[id]){item=this.make(id);this.items.push(item);}return this.hold(item,'desktop');}
  drop(key){const item=this.held.get(key);if(!item)return;item.group.updateMatrixWorld(true);item.holder=null;item.lastTip=null;item.lastSamples=null;item.lastPoint=null;item.kick=0;this.held.delete(key);
   const car=this.cars().find(c=>c.driving||c.inCabin);
   if(car&&this.placeOnCarSeat(item,car)){this.status=item.data.name+' on the front seat';return;}
@@ -204,7 +227,7 @@ export class Props {
   const clothes=(this.wardrobe?.clothes||[]).map(c=>c.mesh).filter(m=>m&&visible(m));
   const clothHit=clothes.length?this.rc.intersectObjects(clothes,false).find(h=>visible(h.object)):null;
   const meshes=[];
-  if(opts.world!==false){meshes.push(...this.world.pickables);for(const c of this.cars())meshes.push(...(c.pickables||[]));}
+  if(opts.world!==false){meshes.push(...this.world.pickables);for(const c of this.cars())meshes.push(...(c.pickables||[]));for(const p of this.world.fractures?.parts||[])if(p.frame&&p.mesh&&!p.broken)p.mesh.traverse(m=>{if(m.isMesh&&m.visible)meshes.push(m);});}
   for(const a of this.system.actors)a.root.traverse(m=>{if(m.isSkinnedMesh&&/^body/.test(m.name))meshes.push(m);});
   for(const d of this.dogs?.list?.()||[])d.root.traverse(m=>{if(m.isSkinnedMesh&&m.visible)meshes.push(m);});
   const hit=meshes.length?this.rc.intersectObjects(meshes,false).find(h=>visible(h.object)&&!h.object.userData.chunks?.[h.instanceId]?.broken):null;
@@ -217,7 +240,17 @@ export class Props {
  fire(item,aim){
   if(item.data.kind==='paint'){this.gadgets?.shootPaint(item,aim);return;}
   if(item.data.kind==='portal'){this.gadgets?.shootPortal(item,aim);return;}
-  if(this.time-(item.lastFire??-2)<(item.id==='laser'?.18:.22))return;item.lastFire=this.time;item.kick=Math.min(.12,(item.kick||0)+.05);unlockSfx();playSfx(item.id==='laser'?'laser':'gun');const muzzle=item.group.localToWorld(new T.Vector3(0,.032,-item.data.reach)),dir=aim?(this.hit(aim,35)?.point||aim.at(15,V())).clone().sub(muzzle).normalize():new T.Vector3(0,0,-1).applyQuaternion(item.group.getWorldQuaternion(Q())),ray=new T.Ray(muzzle,dir);if(item.id==='laser'){const hit=this.hit(ray,35),end=hit?.point||ray.at(35,V());this.beam(muzzle,end,0x99f7ff,.10);if(hit)this.impact(hit,24,dir,'laser',0);}else{this.shots.push({position:muzzle.clone(),velocity:dir.clone().multiplyScalar(85),age:0});this.beam(muzzle,muzzle.clone().addScaledVector(dir,.12),0xffde9c,.04);}if(typeof item.holder==='number')this.system.hands.haptics.contact(item.holder,'prop',1,.004);}
+  const rate=item.data.fireRate??(item.id==='laser'?.18:.22);
+  if(this.time-(item.lastFire??-2)<rate)return;item.lastFire=this.time;item.kick=Math.min(.16,(item.kick||0)+.05+(item.data.mass||1)*.008);unlockSfx();playSfx(item.id==='laser'?'laser':'gun');
+  const muzzle=item.group.localToWorld(new T.Vector3(0,.032,-item.data.reach));
+  const aimDir=aim?(this.hit(aim,48)?.point||aim.at(18,V())).clone().sub(muzzle).normalize():new T.Vector3(0,0,-1).applyQuaternion(item.group.getWorldQuaternion(Q()));
+  const pellets=Math.max(1,item.data.pellets||1),spread=item.data.spread||0,energy=item.data.energy||32,speed=item.id==='sniper'?120:item.id==='shotgun'?68:85;
+  for(let i=0;i<pellets;i++){
+   const dir=spread?firearmSpread(aimDir,spread):aimDir.clone(),ray=new T.Ray(muzzle,dir);
+   if(item.id==='laser'){const hit=this.hit(ray,35),end=hit?.point||ray.at(35,V());this.beam(muzzle,end,0x99f7ff,.10);if(hit)this.impact(hit,24,dir,'laser',0);}
+   else{this.shots.push({position:muzzle.clone(),velocity:dir.clone().multiplyScalar(speed+(Math.random()-.5)*4),age:0,energy});this.beam(muzzle,muzzle.clone().addScaledVector(dir,.14+Math.min(.2,item.data.reach*.12)),item.id==='shotgun'?0xffc07a:0xffde9c,.04);}
+  }
+  if(typeof item.holder==='number')this.system.hands.haptics.contact(item.holder,'prop',1,.004);}
  beam(a,b,color,ttl){const length=a.distanceTo(b),m=new T.Mesh(new T.CylinderGeometry(.003,.003,Math.max(.001,length),5),new T.MeshBasicMaterial({color,transparent:true}));m.position.copy(a).lerp(b,.5);m.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),b.clone().sub(a).normalize());this.scene.add(m);this.effects.push({mesh:m,ttl,life:ttl,velocity:V(),expand:0});}
  impact(hit,energy,dir,kind,sharpness=0){unlockSfx();playSfx(sfxForHit(kind));if(hit.object.userData.restraint){if(kind==='cut'||kind==='laser')this.restraints.cut(hit.object.userData.restraint);return;}
   const cloth=hit.object.userData.cloth;if(cloth&&['cut','laser','bullet'].includes(kind)){const n=cloth.slash(hit.point,dir,kind,energy);this.status=(kind==='laser'?'Laser burned':kind==='bullet'?'Shot through': 'Cut')+' clothing'+(n?' · '+n+' tears':'');
@@ -338,7 +371,7 @@ void main(){
  item.lastSamples=samples;const p=item.group.getWorldPosition(V());if(item.lastPoint)item.velocity.copy(p).sub(item.lastPoint).divideScalar(Math.max(.001,dt)).clampLength(0,8);item.lastPoint=p.clone();
  }else{item.velocity.y-=G(this.world)*dt;item.group.position.addScaledVector(item.velocity,dt);const p=item.group.position,old=p.clone();if(this.world.projectSphere(p,.08)){const n=p.clone().sub(old).normalize(),vn=item.velocity.dot(n);if(vn<0)item.velocity.addScaledVector(n,-1.1*vn);item.velocity.multiplyScalar(.8);}item.group.updateWorldMatrix(true,true);const box=new T.Box3().setFromObject(item.group),floor=(this.world.floorHeight?.(p,.12)??0)+.02;if(box.min.y<floor){item.group.position.y+=floor-box.min.y;if(G(this.world)>0.5){if(item.velocity.y<0)item.velocity.y=Math.abs(item.velocity.y)*.1;item.velocity.x*=.82;item.velocity.z*=.82;}else if(item.velocity.y<0)item.velocity.y=Math.abs(item.velocity.y)*.4;}}}
  this.gadgets?.tick?.(dt);
- for(const shot of this.shots){shot.age+=dt;const next=shot.position.clone().addScaledVector(shot.velocity,dt),dist=next.distanceTo(shot.position),ray=new T.Ray(shot.position.clone(),shot.velocity.clone().normalize()),hit=this.hit(ray,dist);this.beam(shot.position,hit?.point||next,0xffe5ac,.035);if(hit){this.impact(hit,32,ray.direction,'bullet');shot.age=2;}shot.position.copy(next);shot.velocity.y-=G(this.world)*dt;}this.shots=this.shots.filter(x=>x.age<.8).slice(-12);
+ for(const shot of this.shots){shot.age+=dt;const next=shot.position.clone().addScaledVector(shot.velocity,dt),dist=next.distanceTo(shot.position),ray=new T.Ray(shot.position.clone(),shot.velocity.clone().normalize()),hit=this.hit(ray,dist);this.beam(shot.position,hit?.point||next,0xffe5ac,.035);if(hit){this.impact(hit,shot.energy||32,ray.direction,'bullet');shot.age=2;}shot.position.copy(next);shot.velocity.y-=G(this.world)*dt;}this.shots=this.shots.filter(x=>x.age<.8).slice(-12);
  for(const e of this.effects){e.ttl-=dt;e.mesh.position.addScaledVector(e.velocity,dt);e.mesh.material.opacity=Math.max(0,e.ttl/e.life);if(e.expand)e.mesh.scale.addScalar(dt*e.expand*10);if(e.ttl<=0)this.dispose(e.mesh);}this.effects=this.effects.filter(e=>e.ttl>0);while(this.effects.length>80)this.dispose(this.effects.shift().mesh);
  const updated=new Set();for(const m of this.marks){m.age+=dt;m.mesh.material.uniforms.age.value=m.age;if(m.anchor&&m.actor?.version==='v2'&&this.system.actors.includes(m.actor)){const {surface,ref}=m.anchor;if(!updated.has(surface)){surface.begin();updated.add(surface);}const tri=new T.Triangle();surface.vertex(ref.cache,ref.ids[0],tri.a);surface.vertex(ref.cache,ref.ids[1],tri.b);surface.vertex(ref.cache,ref.ids[2],tri.c);const normal=tri.getNormal(V());m.mesh.position.copy(tri.a).multiplyScalar(ref.bary.x).addScaledVector(tri.b,ref.bary.y).addScaledVector(tri.c,ref.bary.z).addScaledVector(normal,.002);if(m.along){const along=m.along.clone().addScaledVector(normal,-m.along.dot(normal));if(along.lengthSq()<1e-6)along.copy(m.along);along.normalize();const bin=new T.Vector3().crossVectors(normal,along).normalize();m.mesh.quaternion.setFromRotationMatrix(new T.Matrix4().makeBasis(along,bin,normal));}else m.mesh.quaternion.setFromUnitVectors(new T.Vector3(0,0,1),normal);}if(m.age>100||m.piece?.broken||m.actor&&!this.system.actors.includes(m.actor))this.dispose(m.mesh);}this.marks=this.marks.filter(m=>m.mesh.parent);
  }

@@ -1,6 +1,6 @@
 import * as T from 'three';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
-import {makeSurfaceMap,wallMaterial} from './mira-v2-walls.js?v=14.0';
+import {makeSurfaceMap,wallMaterial} from './mira-v2-walls.js?v=14.2';
 import {placeStairs,placeFurniture} from './mira-v2-furniture.js?v=14.0';
 import {HouseDoors} from './mira-v2-doors.js?v=14.0';
 const STORY=3.05,CELL=.6;

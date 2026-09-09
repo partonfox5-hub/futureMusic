@@ -95,7 +95,7 @@ vWallN = normalize(mat3(modelMatrix) * objectNormal);
  diffuseColor.rgb *= wallDirt;`)
    .replace('#include <roughnessmap_fragment>','#include <roughnessmap_fragment>\nroughnessFactor=clamp(roughnessFactor+(1.0-wallDirt)*0.08,0.72,0.96);');
  };
- mat.customProgramCacheKey=()=>'mira-wall-ws-14.0';
+ mat.customProgramCacheKey=()=>'mira-wall-ws-14.2';
  return mat;
 }
 
@@ -193,6 +193,8 @@ export class WallSystem {
   const parts=mesh.userData.chunks||[];
   for(const cell of wall){
    const p=cell.p||cell.center,s=cell.s||cell.size,axis=thinAxis(s),along=axis==='x'?'z':'x';
+   const localY=((p.y%STORY)+STORY)%STORY;
+   if(localY>.82&&localY<2.35)continue;
    for(const dir of [-1,1]){
     const n=p.clone();n[along]+=dir*CELL;
     if(n[along]<bounds.min[along]-.05||n[along]>bounds.max[along]+.05)continue;
@@ -271,19 +273,23 @@ export class WallSystem {
   part.framed=true;
   const s=part.size,axis=thinAxis(s),along=axis==='x'?'z':'x';
   if(!isWallCell(s))return;
-  const studW=.038,studD=.089,h=Math.max(.12,s.y*.92);
-  const offsets=[-s[along]*.33,s[along]*.33];
+  const studW=.038,studD=.089,h=s.y,len=s[along];
   const wood=new T.MeshStandardMaterial({map:makeSurfaceMap('Wood'),color:0xffffff,roughness:.84});
-  for(const off of offsets){
-   const p=part.p.clone();p[along]+=off;
-   const sx=axis==='x'?studW:studD,sz=axis==='x'?studD:studW;
-   const mesh=new T.Mesh(new T.BoxGeometry(sx,h,sz),wood);
-   mesh.position.copy(p);mesh.castShadow=true;mesh.receiveShadow=true;mesh.name='Wall stud';
-   this.world.root.add(mesh);
-   const o=this.world.obstacle(p.x,p.z,sx,sz,p.y-h/2,h,mesh);
-   const piece=this.fractures.register(mesh,'wood',o);
-   if(piece)piece.frame=true;
+  const group=new T.Group();group.name='Wall frame';group.position.copy(part.p);
+  const add=(sx,sy,sz,x,y,z)=>{const m=new T.Mesh(new T.BoxGeometry(sx,sy,sz),wood);m.position.set(x,y,z);m.castShadow=m.receiveShadow=true;m.name='Wall stud';group.add(m);return m;};
+  const plate=(y)=>axis==='x'?add(studW,.038,len*.96,0,y,0):add(len*.96,.038,studW,0,y,0);
+  plate(h/2-.03);plate(-(h/2-.03));
+  for(const off of [-len*.33,0,len*.33]){
+   if(axis==='x')add(studW,h*.86,studD,0,0,off);
+   else add(studD,h*.86,studW,off,0,0);
   }
+  this.world.root.add(group);
+  const o=this.world.obstacle(part.p.x,part.p.z,s.x,s.z,part.p.y-s.y/2,s.y,group);
+  const piece=this.fractures.register(group,'wood',o);
+  if(piece){piece.frame=true;piece.shell=part;}
+  group.userData.piece=piece;
+  group.traverse(m=>{if(m.isMesh){m.userData.piece=piece;if(!this.world.pickables.includes(m))this.world.pickables.push(m);}});
+  part.frameGroup=group;
  }
  puff(part,dir,energy){
   const n=Math.min(this.maxDust,12);
@@ -298,6 +304,11 @@ export class WallSystem {
   if(hole){hole.removeFromParent();this.holes.delete(part);}
   this.hideTrim(part);
   if(part.kind==='plaster')this.revealFrame(part);
+  if(part.frame&&part.mesh){
+   part.mesh.traverse(m=>{if(m.isMesh)m.visible=false;});
+   part.mesh.removeFromParent();
+   if(this.world.pickables)this.world.pickables=this.world.pickables.filter(o=>o!==part.mesh&&o.parent!==part.mesh);
+  }
   this.puff(part,dir,energy);
  }
  tick(dt){

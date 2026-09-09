@@ -1465,6 +1465,7 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
   const commandRay=new THREE.Raycaster(),groundPlane=new THREE.Plane(new THREE.Vector3(0,1,0),0);
   const targetMarker=new THREE.Mesh(new THREE.RingGeometry(.075,.10,32),new THREE.MeshBasicMaterial({color:0x98e4bc,side:THREE.DoubleSide,depthWrite:false,toneMapped:false}));targetMarker.rotation.x=-Math.PI/2;targetMarker.visible=false;scene.add(targetMarker);
   function floorTarget(ray){
+    if(environment?.terrainFeatures)return environment.terrainFeatures.raycast(ray,Math.max(48,environment.extent*1.8))?.point||null;
     if(ray.direction.y>=-.025)return null;const p=ray.intersectPlane(groundPlane,new THREE.Vector3());
     const reach=Math.max(48,(environment?.extent||24)*1.8);
     return p&&ray.origin.distanceTo(p)<reach&&Math.abs(p.x)<=(environment?.extent||3.8)&&Math.abs(p.z)<=(environment?.extent||3.8)?p:null;
