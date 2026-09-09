@@ -101,19 +101,30 @@ export function captureFurniture(world,id,objects,x,z){
 }
 export function placeStairs(world,p,yaw=0,opts={}){
  const group=new T.Group();group.position.copy(p);group.rotation.y=yaw;world.root.add(group);
- const steps=opts.steps||16,rise=opts.rise||.1875,run=opts.run||.25,width=opts.width||1.08,wood=world.mat(0x8a6848),dark=world.mat(0x5c4634);
+ const steps=opts.steps||16,rise=opts.rise||.1875,run=opts.run||.25,width=opts.width||1.08;
+ const wood=world.mat(0x8a6848),dark=world.mat(0x5c4634),railMat=world.mat(0x4a372c);
+ const totalRun=steps*run,totalRise=steps*rise;
  for(let i=0;i<steps;i++){
-  const tread=new T.Mesh(new T.BoxGeometry(width,rise*.42,run),wood);tread.position.set(0,(i+.5)*rise,(i+.5)*run);tread.castShadow=tread.receiveShadow=true;group.add(tread);
-  const riser=new T.Mesh(new T.BoxGeometry(width,rise,0.03),dark);riser.position.set(0,i*rise+rise/2,i*run);riser.castShadow=true;group.add(riser);
+  const tread=new T.Mesh(new T.BoxGeometry(width,.038,run+.012),wood);
+  tread.position.set(0,(i+1)*rise-.019,(i+.5)*run);tread.castShadow=tread.receiveShadow=true;group.add(tread);
+  const riser=new T.Mesh(new T.BoxGeometry(width-.02,rise-.02,.022),dark);
+  riser.position.set(0,i*rise+rise/2,i*run+.01);riser.castShadow=true;group.add(riser);
  }
  for(const sign of [-1,1]){
-  const rail=new T.Mesh(new T.BoxGeometry(.05,steps*rise+.12,steps*run+.08),dark);
-  rail.position.set(sign*(width/2+.04),(steps*rise)/2,(steps*run)/2);rail.castShadow=true;group.add(rail);
+  const stringer=new T.Mesh(new T.BoxGeometry(.046,rise*.55,totalRun+.06),dark);
+  stringer.position.set(sign*(width/2-.02),rise*.4,totalRun/2);stringer.castShadow=true;group.add(stringer);
+  const pitch=Math.atan2(totalRise,totalRun);
+  const rail=new T.Mesh(new T.BoxGeometry(.032,.04,Math.hypot(totalRun,totalRise)+.08),railMat);
+  rail.position.set(sign*(width/2+.045),totalRise*.5+.86,totalRun/2);
+  rail.rotation.x=-pitch;rail.castShadow=true;group.add(rail);
+  for(let i=0;i<=steps;i+=2){
+   const post=new T.Mesh(new T.CylinderGeometry(.012,.012,.92,6),railMat);
+   post.position.set(sign*(width/2+.045),i*rise+.48,i*run);post.castShadow=true;group.add(post);
+  }
  }
- const totalRun=steps*run,totalRise=steps*rise;
- group.userData.stairs={width,run:totalRun,rise:totalRise,steps,stepRun:run,stepRise:rise};
- world.stairs??=[];world.stairs.push(group);
- group.traverse(m=>{if(m.isMesh){world.pickables.push(m);m.userData.stairs=group.userData.stairs;}});
+ const data={width,run:totalRun,rise:totalRise,steps,stepRun:run,stepRise:rise};
+ group.userData.stairs=data;world.stairs??=[];world.stairs.push(group);
+ group.traverse(m=>{if(m.isMesh){world.pickables.push(m);m.userData.stairs=data;}});
  return group;
 }
 export function placeFurniture(world,wardrobe,id,p,yaw=0){

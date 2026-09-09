@@ -1,7 +1,7 @@
 import * as T from 'three';
 import {playSfx,sfxForHit,unlockSfx} from './mira-v2-sfx.js?v=13.6';
-import {furnitureRoot,syncFurniture} from './mira-v2-furniture.js?v=13.4';
-import {ensureGrabbableWood} from './mira-v2-nature.js?v=13.9';
+import {furnitureRoot,syncFurniture} from './mira-v2-furniture.js?v=14.0';
+import {ensureGrabbableWood} from './mira-v2-nature.js?v=14.1';
 import {GUNS,MELEE,buildMarker,buildPortalGun} from './mira-v2-gadgets.js?v=13.91';
 const V=()=>new T.Vector3(),Q=()=>new T.Quaternion();
 const visible=o=>{while(o){if(!o.visible)return false;o=o.parent;}return true;};
@@ -42,9 +42,33 @@ export class Props {
   item.group.updateMatrixWorld(true);
  }
  nearestFreeWeapon(p,r=.22){let best=null,bd=r*r;for(const item of this.items){if(item.holder!==null)continue;const d=item.group.localToWorld(item.handle.clone()).distanceToSquared(p);if(d<bd){bd=d;best=item;}}return best;}
- hold(item,key){if(!item||item.holder!==null)return false;unlockSfx();this.drop(key);item.holder=key;item.lastTip=null;item.lastSamples=null;item.lastPoint=null;item.kick=0;item.swing=0;item.armedAt=this.time+.22;item.velocity.set(0,0,0);this.held.set(key,item);this.applyHoldPose(item);this.status=item.data.name+' held · '+(key==='desktop'?'click to use, Q to drop':'release grip to drop · trigger fires · swing your hand for melee');if(typeof key==='number')this.system.hands.haptics?.contact(key,'prop',1,.008);return true;}
+ hold(item,key){if(!item||item.holder!==null)return false;unlockSfx();this.drop(key);item.holder=key;item.carSeat=null;item.lastTip=null;item.lastSamples=null;item.lastPoint=null;item.kick=0;item.swing=0;item.armedAt=this.time+.22;item.velocity.set(0,0,0);this.held.set(key,item);this.applyHoldPose(item);this.status=item.data.name+' held · '+(key==='desktop'?'click to use, Q to drop':'release grip to drop · trigger fires · swing your hand for melee');if(typeof key==='number')this.system.hands.haptics?.contact(key,'prop',1,.008);return true;}
  equip(id){return this.hold(this.items.find(i=>i.id===id),'desktop');}
- drop(key){const item=this.held.get(key);if(!item)return;item.group.updateMatrixWorld(true);this.scene.attach(item.group);item.holder=null;item.lastTip=null;item.lastSamples=null;item.lastPoint=null;item.kick=0;item.velocity.y=Math.min(item.velocity.y,1.2);item.velocity.multiplyScalar(.4);this.held.delete(key);this.status='Dropped '+item.data.name;}
+ drop(key){const item=this.held.get(key);if(!item)return;item.group.updateMatrixWorld(true);item.holder=null;item.lastTip=null;item.lastSamples=null;item.lastPoint=null;item.kick=0;this.held.delete(key);
+  const car=this.cars().find(c=>c.driving||c.inCabin);
+  if(car&&this.placeOnCarSeat(item,car)){this.status=item.data.name+' on the front seat';return;}
+  this.scene.attach(item.group);item.velocity.y=Math.min(item.velocity.y,1.2);item.velocity.multiplyScalar(.4);this.status='Dropped '+item.data.name;}
+ ejectSeatItems(car){
+  if(!car)return;
+  for(const item of this.items){
+   if(item.carSeat!==car||item.holder!=null)continue;
+   item.group.updateMatrixWorld(true);
+   this.scene.attach(item.group);
+   item.carSeat=null;
+  }
+ }
+ placeOnCarSeat(item,car){
+  if(!item?.group||!car?.group)return false;
+  car.group.updateMatrixWorld(true,true);item.group.updateMatrixWorld(true,true);
+  const local=car.group.worldToLocal(item.group.getWorldPosition(V()));
+  const inCabin=Math.abs(local.x)<1.05&&local.y>.25&&local.y<1.7&&local.z>-.95&&local.z<1.2;
+  if(!inCabin&&!(car.driving&&local.distanceTo(new T.Vector3(.40,.72,.12))<.7))return false;
+  car.group.attach(item.group);
+  item.group.position.set(local.x<-.12?-0.40:.40,.70,.10);
+  item.group.rotation.set(0,0,Math.PI/2);
+  item.carSeat=car;item.velocity.set(0,0,0);
+  return true;
+ }
  nearestFurniture(pos,r=.2){let best=null,bd=r;for(const group of this.world.movables||[]){if(!group.parent)continue;const box=new T.Box3().setFromObject(group),closest=box.clampPoint(pos,V()),d=closest.distanceTo(pos);if(d<bd){bd=d;best={group,point:closest,distance:d};}}return best;}
  holdFurniture(group,key,point,ctrl=null){const furn=group.userData.furniture;if(!furn)return false;furn.holds??=new Set();
   if(furn.held!=null&&furn.held!==key){const prev=this.furnHolds.get(furn.held);if(prev&&prev.group!==group)this.releaseFurniture(furn.held);}
@@ -167,11 +191,14 @@ export class Props {
  }
  cars(){return this.vehicles||(this.vehicle?[this.vehicle]:[]);}
  driving(){return this.cars().some(c=>c.driving);}
- grip(i){if(this.held.has(i)||this.furnHolds.has(i))return true;if(this.water?.grip(i))return true;const palm=this.system.hands.palmPos(i),target=this.nearestFreeWeapon(palm,.22);if(target){const handle=target.group.localToWorld(target.handle.clone()),distance=handle.distanceTo(palm),block=distance>.001?this.hit(new T.Ray(palm,handle.clone().sub(palm).normalize()),distance,false):null;if(!block||block.distance>=distance-.035)return this.hold(target,i);}if(this.holdFurnitureAt(i))return true;for(const c of this.cars())if(c.grip(i))return true;return false;}
- release(i){this.water?.release(i);this.drop(i);this.releaseFurniture(i);for(const c of this.cars())c.release(i);}
+ grip(i){if(this.furnHolds.has(i))return true;if(this.water?.grip(i))return true;if(this.world.doors?.grip?.(i,this))return true;
+  const palm0=this.system.hands.palmPos(i);
+  if(palm0){for(const c of this.cars()){if(!c.driving)continue;for(const h of c.hinges)if(c.doorReach?.(h,palm0))return c.grip(i);}}
+  if(this.held.has(i))return true;const palm=palm0||this.system.hands.palmPos(i),target=this.nearestFreeWeapon(palm,.22);if(target){const handle=target.group.localToWorld(target.handle.clone()),distance=handle.distanceTo(palm),block=distance>.001?this.hit(new T.Ray(palm,handle.clone().sub(palm).normalize()),distance,false):null;if(!block||block.distance>=distance-.035)return this.hold(target,i);}if(this.holdFurnitureAt(i))return true;for(const c of this.cars())if(c.grip(i))return true;return false;}
+ release(i){this.water?.release(i);this.drop(i);this.releaseFurniture(i);this.world.doors?.release?.(i);for(const c of this.cars())c.release(i);}
  resetMotion(){for(const item of this.items){item.lastTip=null;item.lastSamples=null;item.lastPoint=null;item.velocity.set(0,0,0);}}
  trigger(i){if(this.builder?.active){this.builder.controller=i;return this.builder.place(this.ray(i));}if(this.restraints?.placing)return this.restraints.place(this.ray(i));if(this.driving())return true;const held=this.held.get(i);if(held){if(isGun(held.data.kind))this.fire(held);return true;}const rope=this.restraints?.hit(this.ray(i));if(rope){const link=rope.object.userData.restraint||this.restraints.selected;if(rope.object.userData.restraintPanel)this.restraints.panelAction(rope.uv);else this.restraints.select(link,rope.point);return true;}return false;}
- desktop(ray){if(this.builder?.active)return this.builder.place(ray);if(this.driving())return true;if(this.restraints?.placing)return this.restraints.place(ray);const item=this.held.get('desktop');if(item){if(isGun(item.data.kind))this.fire(item,ray);else{item.swing=.30;const hit=this.hit(ray,1.45);if(hit)this.impact(hit,item.data.mass*18,ray.direction,item.data.kind,item.data.sharpness);}return true;}const rope=this.restraints?.hit(ray);if(rope){if(rope.object.userData.restraintPanel)this.restraints.panelAction(rope.uv);else this.restraints.select(rope.object.userData.restraint,rope.point);return true;}if(this.water?.click(ray))return true;for(const c of this.cars())if(c.click(ray))return true;const picked=this.weaponHit(ray);return picked?this.hold(picked,'desktop'):false;}
+ desktop(ray){if(this.builder?.active)return this.builder.place(ray);if(this.driving())return true;if(this.restraints?.placing)return this.restraints.place(ray);const item=this.held.get('desktop');if(item){if(isGun(item.data.kind))this.fire(item,ray);else{item.swing=.30;const hit=this.hit(ray,1.45);if(hit)this.impact(hit,item.data.mass*18,ray.direction,item.data.kind,item.data.sharpness);}return true;}const rope=this.restraints?.hit(ray);if(rope){if(rope.object.userData.restraintPanel)this.restraints.panelAction(rope.uv);else this.restraints.select(rope.object.userData.restraint,rope.point);return true;}if(this.water?.click(ray))return true;if(this.world.doors?.click?.(ray,this))return true;for(const c of this.cars())if(c.click(ray))return true;const picked=this.weaponHit(ray);return picked?this.hold(picked,'desktop'):false;}
  hit(ray,max=50,ropes=true,opts={}){
   this.rc.ray.copy(ray);this.rc.near=0;this.rc.far=max;
   const clothes=(this.wardrobe?.clothes||[]).map(c=>c.mesh).filter(m=>m&&visible(m));

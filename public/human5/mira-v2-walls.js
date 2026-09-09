@@ -2,7 +2,7 @@ import * as T from 'three';
 import {playSfx} from './mira-v2-sfx.js?v=13.8';
 const V=()=>new T.Vector3(),Q=()=>new T.Quaternion(),CELL=.6,STORY=3.05;
 const QUEST=/Quest|OculusBrowser/i.test(globalThis.navigator?.userAgent||'');
-const PALETTE={Plaster:0xc9c1b1,Brick:0xa26148,Wood:0x947051,Tile:0xc3c7c1,Stone:0x85847c,Metal:0x929b9d,Glass:0x9fc1c7};
+const PALETTE={Plaster:0xc9c1b1,Brick:0xa26148,Wood:0x947051,Tile:0xc3c7c1,Stone:0x85847c,Metal:0x929b9d,Glass:0x9fc1c7,Shingle:0x5c4034};
 const maps=new Map();
 
 function hash(x,y){const n=Math.sin(x*127.1+y*311.7)*43758.5453;return n-Math.floor(n);}
@@ -40,6 +40,13 @@ export function makeSurfaceMap(name){
    r=base[0]+(blot-.5)*28+(n-.5)*16;g=base[1]+(blot-.5)*24;b=base[2]+(blot-.5)*18;
   }else if(name==='Metal'){
    const line=Math.sin(v*size*.4)*8;r=base[0]+line;g=base[1]+line;b=base[2]+line+(n-.5)*10;
+  }else if(name==='Shingle'){
+   const row=Math.floor(v*16),col=Math.floor(u*9+(row%2)*.5);
+   const mortar=Math.abs((v*16)%1)<.07||Math.abs((u*9+(row%2)*.5)%1)<.035;
+   const tone=hash(col,row);
+   r=mortar?46:78+tone*36;g=mortar?40:52+tone*22;b=mortar?38:48+tone*16;
+   r+=(n-.5)*14;g+=(n-.5)*10;
+   if(v<.08){r*=.78;g*=.78;b*=.8;}
   }else{r+= (n-.5)*10;g+=(n-.5)*10;b+=(n-.5)*10;}
   const i=(y*size+x)*4;d[i]=Math.max(0,Math.min(255,r));d[i+1]=Math.max(0,Math.min(255,g));d[i+2]=Math.max(0,Math.min(255,b));d[i+3]=255;
  }
@@ -49,17 +56,18 @@ export function makeSurfaceMap(name){
 }
 
 function kindMap(kind){
- return makeSurfaceMap({plaster:'Plaster',wood:'Wood',stone:'Stone',glass:'Glass',metal:'Metal'}[kind]||(kind==='brick'?'Brick':'Plaster'));
+ return makeSurfaceMap({plaster:'Plaster',wood:'Wood',stone:'Stone',glass:'Glass',metal:'Metal',shingle:'Shingle'}[kind]||(kind==='brick'?'Brick':'Plaster'));
 }
 
 export function wallMaterial(kind,map){
  const glass=kind==='glass';
+ const shingle=kind==='shingle';
  const mat=new T.MeshStandardMaterial({
   map:glass?null:(map||kindMap(kind)),color:glass?0x9fc1c7:0xffffff,
-  roughness:glass?.18:kind==='metal'?.38:.88,metalness:kind==='metal'?.62:0,
-  transparent:glass,opacity:glass?.30:1,envMapIntensity:glass?1.1:.45
+  roughness:glass?.18:kind==='metal'?.38:shingle?.78:.88,metalness:kind==='metal'?.62:0,
+  transparent:glass,opacity:glass?.30:1,envMapIntensity:glass?1.1:shingle?.35:.45
  });
- if(glass)return mat;
+ if(glass||shingle)return mat;
  mat.onBeforeCompile=shader=>{
   shader.vertexShader=shader.vertexShader
    .replace('#include <common>','#include <common>\nvarying vec3 vWallP;varying vec3 vWallN;')
@@ -87,7 +95,7 @@ vWallN = normalize(mat3(modelMatrix) * objectNormal);
  diffuseColor.rgb *= wallDirt;`)
    .replace('#include <roughnessmap_fragment>','#include <roughnessmap_fragment>\nroughnessFactor=clamp(roughnessFactor+(1.0-wallDirt)*0.08,0.72,0.96);');
  };
- mat.customProgramCacheKey=()=>'mira-wall-ws-13.8';
+ mat.customProgramCacheKey=()=>'mira-wall-ws-14.0';
  return mat;
 }
 
@@ -258,17 +266,24 @@ export class WallSystem {
  neighborAlive(part){
   return this.fractures.parts.some(p=>p!==part&&!p.broken&&p.mesh===part.mesh&&p.kind===part.kind&&Math.hypot(p.p.x-part.p.x,p.p.z-part.p.z)<CELL*1.15&&Math.abs(p.p.y-part.p.y)<CELL*.7);
  }
- studs(part){
-  if(!this.neighborAlive(part)||this.studN>=this.maxStud-2)return;
+ revealFrame(part){
+  if(part.kind!=='plaster'||part.frame||part.framed)return;
+  part.framed=true;
   const s=part.size,axis=thinAxis(s),along=axis==='x'?'z':'x';
-  for(const k of [-.16,0,.16]){
-   if(this.studN>=this.maxStud)break;
-   const i=this.studN++,p=part.p.clone();p[along]+=k;
-   this.dummy.position.copy(p);this.dummy.rotation.set(0,0,0);
-   const sc=V().set(.035,Math.min(s.y,.55),.089);if(axis==='x')sc.set(.089,Math.min(s.y,.55),.035);
-   this.dummy.scale.copy(sc);this.dummy.updateMatrix();this.studMesh.setMatrixAt(i,this.dummy.matrix);
+  if(!isWallCell(s))return;
+  const studW=.038,studD=.089,h=Math.max(.12,s.y*.92);
+  const offsets=[-s[along]*.33,s[along]*.33];
+  const wood=new T.MeshStandardMaterial({map:makeSurfaceMap('Wood'),color:0xffffff,roughness:.84});
+  for(const off of offsets){
+   const p=part.p.clone();p[along]+=off;
+   const sx=axis==='x'?studW:studD,sz=axis==='x'?studD:studW;
+   const mesh=new T.Mesh(new T.BoxGeometry(sx,h,sz),wood);
+   mesh.position.copy(p);mesh.castShadow=true;mesh.receiveShadow=true;mesh.name='Wall stud';
+   this.world.root.add(mesh);
+   const o=this.world.obstacle(p.x,p.z,sx,sz,p.y-h/2,h,mesh);
+   const piece=this.fractures.register(mesh,'wood',o);
+   if(piece)piece.frame=true;
   }
-  this.studMesh.instanceMatrix.needsUpdate=true;
  }
  puff(part,dir,energy){
   const n=Math.min(this.maxDust,12);
@@ -280,8 +295,10 @@ export class WallSystem {
  }
  shatter(part,dir,energy){
   const hole=this.holes.get(part);
-  if(hole){const back=hole.children[hole.children.length-1];if(back)back.visible=false;}
-  this.hideTrim(part);this.studs(part);this.puff(part,dir,energy);
+  if(hole){hole.removeFromParent();this.holes.delete(part);}
+  this.hideTrim(part);
+  if(part.kind==='plaster')this.revealFrame(part);
+  this.puff(part,dir,energy);
  }
  tick(dt){
   for(const d of this.decalList){d.age+=dt;d.flash=Math.max(0,d.flash-dt*5);}

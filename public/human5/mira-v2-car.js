@@ -59,6 +59,7 @@ export class Car {
  }
  makeHinge(mesh,children,pivot,kind,sign,axis,max,handle=null){const root=new T.Group();root.position.fromArray(pivot);this.group.add(root);this.group.updateMatrixWorld(true);const panel=mesh.userData.carPart,h={root,panel,kind,sign,axis,max,angle:0,target:0,velocity:0,latched:true,pivot:root.position.clone(),handle:handle||mesh,grabbed:null,members:[mesh,...children]};for(const m of h.members){root.attach(m);m.userData.carHinge=h;m.userData.carPart.hinge=h;}this.hinges.push(h);return h;}
  reset(){
+  this.props?.ejectSeatItems?.(this);
   if(this.driving)this.exit();this.grips.clear();for(const h of this.hinges){this.group.add(h.root);h.root.position.copy(h.pivot);h.root.quaternion.identity();h.angle=h.target=h.velocity=0;h.latched=true;h.grabbed=null;}
   for(const p of this.parts){p.originalParent.add(p.mesh);p.mesh.visible=true;p.mesh.position.copy(p.originalPosition);p.mesh.quaternion.copy(p.originalQuaternion);p.mesh.geometry.attributes.position.array.set(p.original);p.mesh.geometry.attributes.position.needsUpdate=true;p.mesh.geometry.computeVertexNormals();p.mesh.geometry.computeBoundingSphere();p.mesh.material.roughness=p.baseRoughness;p.health=p.max;p.broken=false;}
   for(const w of this.wheels){this.group.add(w.group);w.group.position.set(w.side*.89,.34,w.z);w.group.rotation.set(0,0,0);w.group.scale.set(1,1,1);w.spin.rotation.set(0,0,0);w.popped=w.broken=false;w.health=w.max;w.roll=w.omega=0;w.compression=.035;w.load=this.mass*9.81/4;}
@@ -69,14 +70,38 @@ export class Car {
  updateOccupancy(){this.group.updateWorldMatrix(true,false);const p=this.liveCamera.getWorldPosition(V());this.inCabin=this.driving||this.cabinBox.containsPoint(this.group.worldToLocal(p));this.canDrive=this.driving&&(this.gear==='D'||this.gear==='R');return this.canDrive;}
  enter(){
   if(this.driving){this.exit();return true;}
-  if(this.world.name!=='Living room'||!this.world.root.visible)return false;for(const c of this.props.cars?.()||[])if(c!==this&&c.driving)c.exit();this.props.vehicle=this;this.props.drop?.('desktop');this.props.drop?.(0);this.props.drop?.(1);this.driving=true;this.controls?.unlock();if(this.orbit)this.orbit.enabled=false;
+  if(this.world.name!=='Living room'||!this.world.root.visible)return false;for(const c of this.props.cars?.()||[])if(c!==this&&c.driving)c.exit();this.props.vehicle=this;this.driving=true;this.controls?.unlock();if(this.orbit)this.orbit.enabled=false;
   this.group.updateMatrixWorld(true);const eye=this.group.localToWorld(new T.Vector3(-.40,1.25,.27));
   if(this.renderer.xr?.isPresenting){const cam=this.liveCamera,offset=cam.getWorldPosition(V()).sub(this.rig.getWorldPosition(V())),yaw=new T.Euler().setFromQuaternion(cam.getWorldQuaternion(Q()),'YXZ').y;this.rig.rotation.y+=this.group.rotation.y-yaw;this.rig.updateMatrixWorld(true);const head=cam.getWorldPosition(V());this.rig.position.add(eye.sub(head));}
   else{this.rig.position.set(0,0,0);this.rig.quaternion.identity();this.camera.position.copy(eye);this.camera.quaternion.copy(this.group.getWorldQuaternion(Q()));}
   for(const h of this.hinges)if(h.kind==='door'&&!h.panel.broken){h.target=0;h.latched=false;h.grabbed=null;}
-  this.rideMatrix=this.group.matrixWorld.clone();this.updateOccupancy();this.message='Left trigger drives in D or R. E exits.';return true;
+  this.rideMatrix=this.group.matrixWorld.clone();this.updateOccupancy();this.message='Hands stay armed. Open a door handle to get out.';return true;
  }
- exit(){if(!this.driving)return;for(const i of [...this.grips.keys()])this.release(i);this.driving=false;const p=this.group.localToWorld(new T.Vector3(-1.5,0,-.1));this.world.project?.(p,.18,0,1.6);if(this.renderer.xr?.isPresenting){this.rig.position.copy(p).setY(0);this.rig.rotation.set(0,this.group.rotation.y,0);}else{this.rig.position.set(0,0,0);this.rig.rotation.set(0,0,0);this.camera.position.copy(p).add(new T.Vector3(0,1.55,0));if(this.orbit){this.orbit.target.copy(this.group.position).add(new T.Vector3(0,.9,0));this.camera.lookAt(this.orbit.target);this.orbit.enabled=true;}}this.rideMatrix=null;this.message='Exited car.';this.updateOccupancy();}
+ exit(opts={}){
+  if(!this.driving)return;
+  for(const i of [...this.grips.keys()])this.release(i);
+  this.driving=false;
+  const side=opts.side??-1,z=Number.isFinite(opts.z)?opts.z:-.1;
+  const p=this.group.localToWorld(new T.Vector3(side*1.55,0,z));
+  this.world.project?.(p,.18,0,1.6);
+  if(this.renderer.xr?.isPresenting){this.rig.position.copy(p).setY(0);this.rig.rotation.set(0,this.group.rotation.y,0);}
+  else{this.rig.position.set(0,0,0);this.rig.rotation.set(0,0,0);this.camera.position.copy(p).add(new T.Vector3(0,1.55,0));if(this.orbit){this.orbit.target.copy(this.group.position).add(new T.Vector3(0,.9,0));this.camera.lookAt(this.orbit.target);this.orbit.enabled=true;}}
+  this.rideMatrix=null;this.message='Exited car.';this.updateOccupancy();
+ }
+ doorReach(h,p){
+  if(!h||h.kind!=='door'||h.panel.broken)return false;
+  const handle=h.handle.getWorldPosition(V());
+  if(p.distanceTo(handle)<(this.driving?.18:.085))return true;
+  if(!this.driving)return false;
+  const door=h.members.find(m=>m?.isMesh)||h.panel.mesh;
+  if(!door)return false;
+  return new T.Box3().setFromObject(door).expandByScalar(.06).containsPoint(p)||new T.Box3().setFromObject(door).distanceToPoint(p)<.12;
+ }
+ maybeExitFromDoor(h){
+  if(!this.driving||h.kind!=='door'||h.panel.broken||h.angle<.30)return false;
+  this.exit({side:h.sign<0?-1:1,z:h.pivot?.z??-.1});
+  return true;
+ }
  syncSeat(){if(!this.driving||!this.rideMatrix)return;this.group.updateMatrixWorld(true);const delta=this.group.matrixWorld.clone().multiply(this.rideMatrix.clone().invert()),q=Q().setFromRotationMatrix(delta);const obj=this.renderer.xr?.isPresenting?this.rig:this.camera;obj.position.applyMatrix4(delta);obj.quaternion.premultiply(q);obj.updateMatrixWorld(true);this.rideMatrix.copy(this.group.matrixWorld);}
  setGear(gear){if(!GEARS.includes(gear))return false;this.gear=gear;this.shifterLever.position.z=gearZ(gear);this.paintGears();this.updateOccupancy();return true;}
  cycleGear(){this.setGear(GEARS[(GEARS.indexOf(this.gear)+1)%GEARS.length]);return this.gear;}
@@ -86,14 +111,23 @@ export class Car {
   if(this.grips.has(i))return true;const p=this.palm(i);if(!p)return false;this.group.updateMatrixWorld(true);
   if(p.distanceTo(this.shifterKnob.getWorldPosition(V()))<.08){this.grips.set(i,{type:'shifter'});return true;}
   const local=this.wheelRoot.worldToLocal(p.clone()),radius=Math.hypot(local.x,local.y);if(this.driving&&Math.abs(local.z)<.16&&Math.abs(radius-.172)<.11){this.grips.set(i,{type:'wheel',angle:Math.atan2(local.y,local.x),steer:this.steerTarget});return true;}
-  for(const h of this.hinges){if(h.panel.broken||h.grabbed!==null)continue;let grab=h.handle.getWorldPosition(V());if(h.kind!=='door'){grab=h.root.localToWorld(new T.Vector3(0,-.10,h.kind==='hood'?-.95:.90));}if(p.distanceTo(grab)<.085){const local=this.group.worldToLocal(p.clone()).sub(h.pivot);this.grips.set(i,{type:'hinge',hinge:h,start:this.hingeHandAngle(h,local),angle:h.angle});h.grabbed=i;h.latched=false;h.velocity=0;return true;}}
+  for(const h of this.hinges){if(h.panel.broken||h.grabbed!==null)continue;
+   let grab=false;
+   if(h.kind==='door')grab=this.doorReach(h,p);
+   else{const pt=h.root.localToWorld(new T.Vector3(0,-.10,h.kind==='hood'?-.95:.90));grab=p.distanceTo(pt)<.085;}
+   if(!grab)continue;
+   const local=this.group.worldToLocal(p.clone()).sub(h.pivot);
+   this.grips.set(i,{type:'hinge',hinge:h,start:this.hingeHandAngle(h,local),angle:h.angle});
+   h.grabbed=i;h.latched=false;h.velocity=0;
+   if(this.driving&&h.kind==='door')this.message='Pull the door open to get out.';
+   return true;}
   if(!this.driving){const near=this.group.worldToLocal(p.clone());if(Math.abs(near.x)<1.2&&near.y>.5&&near.y<1.7&&Math.abs(near.z)<.9)return this.enter();}return false;
  }
  hingeHandAngle(h,p){return h.kind==='door'?Math.atan2(p.x,p.z):Math.atan2(p.y,p.z);}
  release(i){const g=this.grips.get(i);if(!g)return;if(g.type==='shifter'){this.setGear(GEARS[gearIndex(this.shifterLever.position.z)]);this.pulse(i);}if(g.type==='hinge'){const h=g.hinge;h.grabbed=null;h.target=h.angle<8*Math.PI/180?0:h.max;h.latched=h.target===0;this.pulse(i);}this.grips.delete(i);}
- click(ray){const hit=this.props.hit(ray,15,false);if(hit?.object.userData.carControl==='shifter'){this.cycleGear();return true;}const h=hit?.object.userData.carHinge;if(h&&!h.panel.broken){h.target=h.target>0?0:h.max;h.latched=false;return true;}return hit?.object.userData.carPart?this.enter():false;}
+ click(ray){const hit=this.props.hit(ray,15,false);if(hit?.object.userData.carControl==='shifter'){this.cycleGear();return true;}const h=hit?.object.userData.carHinge;if(h&&!h.panel.broken){const opening=h.target<=0;h.target=opening?h.max:0;h.latched=false;if(this.driving&&h.kind==='door'&&opening){h.angle=Math.max(h.angle,.35);this.maybeExitFromDoor(h);}return true;}return hit?.object.userData.carPart?this.enter():false;}
  updateGrips(dt){for(const [i,g] of this.grips){const p=this.palm(i);if(!p){this.release(i);continue;}if(g.type==='shifter')this.shifterLever.position.z=clamp(this.shifterBase.worldToLocal(p).z,-1.5*GEAR_SPAN,1.5*GEAR_SPAN);if(g.type==='hinge'){const h=g.hinge;if(h.panel.broken){this.release(i);continue;}const a=this.hingeHandAngle(h,this.group.worldToLocal(p).sub(h.pivot)),delta=Math.atan2(Math.sin(a-g.start),Math.cos(a-g.start));const physical=h.kind==='door'?delta:-delta;h.angle=h.target=clamp(g.angle+physical/h.sign,0,h.max);}}
-  for(const h of this.hinges){if(h.panel.broken)continue;if(h.grabbed===null){h.velocity+=(55*(h.target-h.angle)-14*h.velocity)*dt;h.angle=clamp(h.angle+h.velocity*dt,0,h.max);if(h.target===0&&h.angle<.002){h.angle=h.velocity=0;h.latched=true;}}h.root.quaternion.setFromAxisAngle(h.axis,h.sign*h.angle);}
+  for(const h of this.hinges){if(h.panel.broken)continue;if(h.grabbed===null){h.velocity+=(55*(h.target-h.angle)-14*h.velocity)*dt;h.angle=clamp(h.angle+h.velocity*dt,0,h.max);if(h.target===0&&h.angle<.002){h.angle=h.velocity=0;h.latched=true;}}h.root.quaternion.setFromAxisAngle(h.axis,h.sign*h.angle);if(this.driving&&h.kind==='door')this.maybeExitFromDoor(h);}
  }
  input(){let throttle=0,brake=0,steer=this.steerTarget;if(!this.driving)return {throttle,brake:0,steer};if(this.props.menu?.isOpen)return {throttle:0,brake:.5,steer};if(this.renderer.xr?.isPresenting){for(const src of this.renderer.xr.getSession()?.inputSources||[]){const b=src.gamepad?.buttons||[],t=Math.max(b[0]?.value||0,b[0]?.pressed?1:0);if(src.handedness==='left'){throttle=Math.max(throttle,t);if(b[4]?.pressed)brake=1;}}const angles=[];for(const [i,g] of this.grips)if(g.type==='wheel'){const p=this.wheelRoot.worldToLocal(this.palm(i)),a=Math.atan2(p.y,p.x);angles.push(g.steer+Math.atan2(Math.sin(a-g.angle),Math.cos(a-g.angle))/5.2);}if(angles.length)this.steerTarget=clamp(angles.reduce((a,b)=>a+b,0)/angles.length,-.5585,.5585);else this.steerTarget*=.985;steer=this.steerTarget;}else{throttle=this.keys.KeyW?1:0;brake=(this.keys.Space||this.keys.KeyS)?1:0;steer=(this.keys.KeyA?.5585:0)-(this.keys.KeyD?.5585:0);}return {throttle,brake,steer};}
  syncCollider(){
@@ -230,7 +264,7 @@ export class Car {
     if(!overlap)continue;const hip=actor.bones?.Hip?.getWorldPosition(V())||bodyPoint,push=bodyPoint.clone().sub(this.group.position).setY(0).normalize();if(push.lengthSq()<.1)push.set(1,0,0);actor.group.position.addScaledVector(push,.12);actor.knockDown?.(push,this.velocity.clone().multiplyScalar(.06));
     const body=actor.skinMeshes?.[0];if(body&&this.velocity.length()>1.2&&this.time-(actor.carImpactTime??-2)>.5){actor.carImpactTime=this.time;this.props.injuries?.impact(actor,{object:body,point:hip},Math.min(95,this.velocity.lengthSq()*4),'blunt',push);}this.velocity.multiplyScalar(.96);
   }
-  const extent=Math.min(50,this.world.extent||12)-1;if(Math.abs(this.group.position.x)>extent||Math.abs(this.group.position.z)>extent)this.velocity.multiplyScalar(.6);this.group.position.x=clamp(this.group.position.x,-extent,extent);this.group.position.z=clamp(this.group.position.z,-extent,extent);
+  const extent=Math.max(40,(this.world.extent||144)-2);if(Math.abs(this.group.position.x)>extent||Math.abs(this.group.position.z)>extent)this.velocity.multiplyScalar(.55);this.group.position.x=clamp(this.group.position.x,-extent,extent);this.group.position.z=clamp(this.group.position.z,-extent,extent);
  }
  tick(dt){dt=clamp(dt,0,.1);this.time+=dt;if(this.revision!==this.world.revision){this.revision=this.world.revision;this.reset();}this.group.visible=this.world.name==='Living room'&&this.world.root.visible;for(const d of this.debris)d.mesh.visible=this.group.visible;if(!this.group.visible){if(this.driving)this.exit();return;}this.updateOccupancy();this.updateGrips(dt);this._dents=0;this._rammed=new Set();const input=this.input(),steps=Math.max(1,Math.min(3,Math.ceil(this.velocity.length()*dt/.14)));for(let i=0;i<steps;i++){this.step(dt/steps,input);this.group.updateMatrixWorld(true);this.collide(dt/steps);}this.syncCollider();this.syncSeat();for(const d of this.debris){d.velocity.y-=9.81*dt;const before=d.mesh.position.clone();d.mesh.position.addScaledVector(d.velocity,dt);if(this.world.projectSphere(d.mesh.position,.10)){const n=d.mesh.position.clone().sub(before).normalize(),vn=d.velocity.dot(n);if(vn<0)d.velocity.addScaledVector(n,-1.15*vn);}if(d.mesh.position.y<.12){d.mesh.position.y=.12;d.velocity.y=Math.abs(d.velocity.y)*.15;d.velocity.x*=.9;d.velocity.z*=.9;d.spin.multiplyScalar(.94);}d.mesh.rotateX(d.spin.x*dt);d.mesh.rotateZ(d.spin.z*dt);}this.mirrorClock+=dt;this.updateStatus();}
  get telemetry(){return `${this.gear} · cabin ${this.inCabin?'IN':'OUT'} · ${Math.round(this.velocity.length()*3.6)} km/h · ${this.surfaceName} µ ${this.mu.toFixed(2)}`;}

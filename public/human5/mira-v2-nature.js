@@ -120,17 +120,32 @@ function settleWood(world,group,id){
  group.traverse(m=>{if(m.isMesh){m.userData.looseWood=true;if(world.fractures&&!m.userData.piece)world.fractures.register(m,'wood');}});
  return group;
 }
+function groundY(world,x,z){
+ return terrainHeight(x,z,world?.terrainPad??5.4,world?.terrainAmp??1);
+}
+function snapGroupToGround(world,group){
+ if(!group?.parent)return;
+ group.updateWorldMatrix(true,true);
+ const box=new T.Box3().setFromObject(group);if(!Number.isFinite(box.min.y))return;
+ const c=box.getCenter(V()),ground=groundY(world,c.x,c.z);
+ group.position.y+=ground-box.min.y;
+}
 function detachFalling(tree,meshes,dir){
  if(!meshes.length||!tree.group?.parent)return false;
  const live=meshes.filter(m=>m&&m.parent);if(!live.length)return false;
  const upper=new T.Group();tree.group.parent.add(upper);
  tree.group.updateWorldMatrix(true,true);
- const origin=live[0].getWorldPosition(V());
+ const box=new T.Box3();
+ for(const mesh of live){mesh.updateWorldMatrix(true,true);box.expandByObject(mesh);}
+ const origin=box.getCenter(V());
+ origin.y=box.min.y;
+ const ground=groundY(tree.world,origin.x,origin.z);
+ origin.y=Math.min(origin.y,ground+.04);
  upper.position.copy(origin);
  for(const mesh of live){mesh.updateWorldMatrix(true,true);upper.attach(mesh);markLoose(mesh,tree);}
  const side=new T.Vector3(dir.z,0,-dir.x);if(side.lengthSq()<1e-6)side.set(1,0,0);side.normalize();
  const trunkish=live.some(m=>m.userData.treeSeg?.trunk);
- const piece={group:upper,hinge:side,angle:0,angVel:trunkish?1.05:.7,settled:false,id:trunkish?'Log':'Branch'};
+ const piece={group:upper,hinge:side,angle:0,angVel:trunkish?1.15:.85,settled:false,id:trunkish?'Log':'Branch'};
  tree.falling??=[];tree.falling.push(piece);
  upper.userData.tree=tree;upper.userData.fallingWood=piece;upper.traverse(m=>{if(m.isMesh){m.userData.tree=tree;m.userData.looseWood=true;}});
  return true;
@@ -244,25 +259,29 @@ export function chopTree(tree,point,energy,dir,kind='cut'){
 }
 export function tickNature(world,dt){
  if(!world.trees)return;
- const pad=world.terrainPad??5.4,amp=world.terrainAmp??1;
  for(const tree of world.trees){
   for(const piece of tree.falling||[]){
    const g=piece.group;if(!g||!g.parent)continue;
    if(piece.settled||g.userData.furniture){
-    if(!g.userData.furniture)settleWood(world,g,piece.id);
+    if(!g.userData.furniture){snapGroupToGround(world,g);settleWood(world,g,piece.id);}
+    else if(!g.userData.furniture.holds?.size&&Math.hypot(g.position.x,g.position.z)>16)snapGroupToGround(world,g);
     continue;
    }
-   piece.angVel+=8.2*dt*Math.cos(Math.min(piece.angle,1.15));
-   piece.angVel*=Math.exp(-dt*.45);
-   const da=piece.angVel*dt,limit=Math.PI/2-.03;
+   piece.angVel+=9.4*dt*Math.cos(Math.min(piece.angle,1.15));
+   piece.angVel*=Math.exp(-dt*.38);
+   const da=piece.angVel*dt,limit=Math.PI/2-.02;
    if(piece.angle+da>=limit){
     g.rotateOnWorldAxis(piece.hinge,limit-piece.angle);
     piece.angle=limit;piece.settled=true;piece.angVel=0;
-    g.updateWorldMatrix(true,true);
-    const box=new T.Box3().setFromObject(g),ground=(world.floorHeight?.(g.position,.15)??terrainHeight(g.position.x,g.position.z,pad,amp))+.04;
-    if(box.min.y<ground)g.position.y+=ground-box.min.y;
+    snapGroupToGround(world,g);
     settleWood(world,g,piece.id);
-   }else{piece.angle+=da;g.rotateOnWorldAxis(piece.hinge,da);}
+   }else{
+    piece.angle+=da;g.rotateOnWorldAxis(piece.hinge,da);
+    g.updateWorldMatrix(true,true);
+    const box=new T.Box3().setFromObject(g),c=box.getCenter(V()),ground=groundY(world,c.x,c.z);
+    if(box.min.y>ground+.03)g.position.y-=Math.min(box.min.y-ground,10*dt);
+    else if(box.min.y<ground)g.position.y+=ground-box.min.y;
+   }
   }
  }
 }
