@@ -76,7 +76,8 @@ export class Car {
   if(this.renderer.xr?.isPresenting){const cam=this.liveCamera,offset=cam.getWorldPosition(V()).sub(this.rig.getWorldPosition(V())),yaw=new T.Euler().setFromQuaternion(cam.getWorldQuaternion(Q()),'YXZ').y;this.rig.rotation.y+=this.group.rotation.y-yaw;this.rig.updateMatrixWorld(true);const head=cam.getWorldPosition(V());this.rig.position.add(eye.sub(head));}
   else{this.rig.position.set(0,0,0);this.rig.quaternion.identity();this.camera.position.copy(eye);this.camera.quaternion.copy(this.group.getWorldQuaternion(Q()));}
   for(const h of this.hinges)if(h.kind==='door'&&!h.panel.broken){h.target=0;h.latched=false;h.grabbed=null;}
-  this.rideMatrix=this.group.matrixWorld.clone();this.updateOccupancy();this.message='Hands stay armed. Open a door handle to get out.';return true;
+  this.props.stashHeldInCar?.(this);
+  this.rideMatrix=this.group.matrixWorld.clone();this.updateOccupancy();this.message='Weapons stay on the seat. Trigger still fires. Open a door handle to get out.';return true;
  }
  exit(opts={}){
   if(!this.driving)return;
@@ -166,7 +167,7 @@ export class Car {
     if(!N||w.broken)continue;
     const wf=forward.clone().applyAxisAngle(Y,w.z<0?this.steer:0),wr=right.clone().applyAxisAngle(Y,w.z<0?this.steer:0),r=p.clone().sub(this.group.position).setY(0),v=this.velocity.clone().add(new T.Vector3(this.yawRate*r.z,0,-this.yawRate*r.x)),vl=v.dot(wf),vs=v.dot(wr);
     // Rear axle (+local Z) driven, as in the supplied car; damaged tires receive no drive torque.
-    const torque=w.z>0&&!w.popped?throttle*535*(1-.10*Math.min(1,Math.abs(vl)/17)):0,I=1.8;
+    const torque=w.z>0&&!w.popped?throttle*669*(1-.08*Math.min(1,Math.abs(vl)/18)):0,I=1.8;
     let omega=w.omega+torque*dt/I;omega=Math.sign(omega||vl)*Math.max(0,Math.abs(omega)-brake*mu*N*radius*dt/I);
     const limit=mu*N,den=Math.max(Math.abs(vl),.7),stiff=limit*4;
     let long=stiff*(radius*omega-vl)/(den+stiff*radius*radius*dt/I);
@@ -183,12 +184,12 @@ export class Car {
   this.pitchRate+=(pitchTorque/2200-this.pitchRate*2.0)*dt;this.rollRate+=(rollTorque/700-this.rollRate*2.0)*dt;
   this.group.rotation.x=clamp(this.group.rotation.x+this.pitchRate*dt,-.1396,.1396);this.group.rotation.z=clamp(this.group.rotation.z+this.rollRate*dt,-.1396,.1396);if(Math.abs(this.group.rotation.x)>=.1395)this.pitchRate=0;if(Math.abs(this.group.rotation.z)>=.1395)this.rollRate=0;
   this.steeringWheel.rotation.z=this.steer*5.2;
-  const planar=this.velocity.length();if(planar>.001){const resistance=this.mass*9.81*.012+.5*.32*2.1*1.225*planar*planar;force.addScaledVector(this.velocity,-Math.min(resistance,this.mass*planar/dt)/planar);}
+  const planar=this.velocity.length();if(planar>.001){const resistance=this.mass*9.81*.009+.5*.32*2.1*1.225*planar*planar;force.addScaledVector(this.velocity,-Math.min(resistance,this.mass*planar/dt)/planar);}
   const openDoors=this.hinges.filter(h=>h.kind==='door'&&!h.panel.broken&&h.angle>.262);if(openDoors.length&&planar>2){force.addScaledVector(this.velocity,-35*openDoors.length);yawTorque+=openDoors.reduce((n,h)=>n+h.sign,0)*Math.min(120,planar*12);}
   this.velocity.addScaledVector(force,dt/this.mass);if(brake&&!throttle&&planar<.08)this.velocity.set(0,0,0);
   let newSpeed=this.velocity.dot(forward);
   if(this.gear==='R'){if(newSpeed>1.2)this.velocity.addScaledVector(forward,1.2-newSpeed);if(newSpeed<-12)this.velocity.addScaledVector(forward,-12-newSpeed);}
-  else{if(newSpeed>28)this.velocity.addScaledVector(forward,28-newSpeed);if(newSpeed<-4)this.velocity.addScaledVector(forward,-4-newSpeed);}
+  else{if(newSpeed>32)this.velocity.addScaledVector(forward,32-newSpeed);if(newSpeed<-4)this.velocity.addScaledVector(forward,-4-newSpeed);}
   this.yawRate+=(yawTorque/2400-this.yawRate*.75)*dt;this.yawRate=clamp(this.yawRate,-1.5,1.5);this.group.rotation.y+=this.yawRate*dt;this.group.position.addScaledVector(this.velocity,dt);
  }
  damage(hit,energy,kind,dir,impulse=null){
@@ -228,7 +229,7 @@ export class Car {
   if(nearest)this.damage({object:nearest.mesh,point},dmg,'blunt',n.clone(),impulse);
  }
  collide(dt){
-  const points=[];for(const x of [-.78,.78])for(const z of [-2.06,-.9,0,.9,2.06])for(const y of [.46,.96])points.push(this.group.localToWorld(new T.Vector3(x,y,z)));
+  const points=[];for(const x of [-.78,.78])for(const z of [-2.06,0,2.06])points.push(this.group.localToWorld(new T.Vector3(x,.72,z)));
   for(const point of points){for(const o of this.world.nearby(point,.16)||[]){
     if(o===this.obstacle||o.y>1.65)continue;
     const closest=new T.Vector3(clamp(point.x,o.x-o.w/2,o.x+o.w/2),clamp(point.y,o.y,o.y+o.h),clamp(point.z,o.z-o.d/2,o.z+o.d/2)),delta=point.clone().sub(closest),distance=delta.length();if(distance>=.16)continue;
@@ -268,7 +269,7 @@ export class Car {
   }
   const extent=Math.max(40,(this.world.extent||144)-2);if(Math.abs(this.group.position.x)>extent||Math.abs(this.group.position.z)>extent)this.velocity.multiplyScalar(.55);this.group.position.x=clamp(this.group.position.x,-extent,extent);this.group.position.z=clamp(this.group.position.z,-extent,extent);
  }
- tick(dt){dt=clamp(dt,0,.1);this.time+=dt;if(this.revision!==this.world.revision){this.revision=this.world.revision;this.reset();}this.group.visible=this.world.name==='Living room'&&this.world.root.visible;for(const d of this.debris)d.mesh.visible=this.group.visible;if(!this.group.visible){if(this.driving)this.exit();this.audio?.tick(this,{throttle:0},dt);return;}this.updateOccupancy();this.updateGrips(dt);this.pollHorn();this._dents=0;this._rammed=new Set();const input=this.input(),steps=Math.max(1,Math.min(3,Math.ceil(this.velocity.length()*dt/.14)));for(let i=0;i<steps;i++){this.step(dt/steps,input);this.group.updateMatrixWorld(true);this.collide(dt/steps);}this.syncCollider();this.syncSeat();this.audio?.tick(this,input,dt);for(const d of this.debris){d.velocity.y-=9.81*dt;const before=d.mesh.position.clone();d.mesh.position.addScaledVector(d.velocity,dt);if(this.world.projectSphere(d.mesh.position,.10)){const n=d.mesh.position.clone().sub(before).normalize(),vn=d.velocity.dot(n);if(vn<0)d.velocity.addScaledVector(n,-1.15*vn);}if(d.mesh.position.y<.12){d.mesh.position.y=.12;d.velocity.y=Math.abs(d.velocity.y)*.15;d.velocity.x*=.9;d.velocity.z*=.9;d.spin.multiplyScalar(.94);}d.mesh.rotateX(d.spin.x*dt);d.mesh.rotateZ(d.spin.z*dt);}this.mirrorClock+=dt;this.updateStatus();}
+ tick(dt){dt=clamp(dt,0,.1);this.time+=dt;if(this.revision!==this.world.revision){this.revision=this.world.revision;this.reset();}this.group.visible=this.world.name==='Living room'&&this.world.root.visible;for(const d of this.debris)d.mesh.visible=this.group.visible;if(!this.group.visible){if(this.driving)this.exit();this.audio?.tick(this,{throttle:0},dt);return;}this.updateOccupancy();this.updateGrips(dt);if(this.driving)this.pollHorn();this._dents=0;this._rammed=new Set();const input=this.input(),moving=this.driving||this.velocity.length()>.08,steps=moving?Math.max(1,Math.min(2,Math.ceil(this.velocity.length()*dt/.18))):1;for(let i=0;i<steps;i++){this.step(dt/steps,input);this.group.updateMatrixWorld(true);if(moving)this.collide(dt/steps);}this.syncCollider();this.syncSeat();this.audio?.tick(this,input,dt);for(const d of this.debris){d.velocity.y-=9.81*dt;const before=d.mesh.position.clone();d.mesh.position.addScaledVector(d.velocity,dt);if(this.world.projectSphere(d.mesh.position,.10)){const n=d.mesh.position.clone().sub(before).normalize(),vn=d.velocity.dot(n);if(vn<0)d.velocity.addScaledVector(n,-1.15*vn);}if(d.mesh.position.y<.12){d.mesh.position.y=.12;d.velocity.y=Math.abs(d.velocity.y)*.15;d.velocity.x*=.9;d.velocity.z*=.9;d.spin.multiplyScalar(.94);}d.mesh.rotateX(d.spin.x*dt);d.mesh.rotateZ(d.spin.z*dt);}this.mirrorClock+=dt;this.updateStatus();}
  pollHorn(){
   if(!this.driving||!this.hornPad)return;
   this.group.updateMatrixWorld(true);
@@ -277,5 +278,5 @@ export class Car {
  }
  get telemetry(){return `${this.gear} · cabin ${this.inCabin?'IN':'OUT'} · ${Math.round(this.velocity.length()*3.6)} km/h · ${this.surfaceName} µ ${this.mu.toFixed(2)}`;}
  updateStatus(){this.status=`${this.gear} · cabin ${this.inCabin?'IN':'OUT'} · ${Math.round(this.velocity.length()*3.6)} km/h · ${this.surfaceName} µ ${this.mu.toFixed(2)} · ${this.message}`;}
- renderMirror(){if(!this.driving||!this.mirrorEnabled||this.mirrorClock<1/15)return;this.mirrorClock=0;const renderer=this.renderer,wasXR=renderer.xr.enabled,wasShadow=renderer.shadowMap.autoUpdate,target=renderer.getRenderTarget(),face=renderer.getActiveCubeFace(),mip=renderer.getActiveMipmapLevel(),viewport=renderer.getViewport(new T.Vector4()),scissor=renderer.getScissor(new T.Vector4()),scissorTest=renderer.getScissorTest(),visible=this.mirror.visible,panel=this.props.menu?.panel,panelVisible=panel?.visible;this.rearCamera.position.copy(this.group.localToWorld(new T.Vector3(-.10,1.35,-.65)));this.rearCamera.lookAt(this.group.localToWorld(new T.Vector3(-.10,1.25,10)));this.mirror.visible=false;if(panel)panel.visible=false;try{renderer.xr.enabled=false;renderer.shadowMap.autoUpdate=false;renderer.setRenderTarget(this.target);renderer.setViewport(0,0,384,192);renderer.setScissorTest(false);renderer.render(this.scene,this.rearCamera);}finally{renderer.setRenderTarget(target,face,mip);renderer.setViewport(viewport);renderer.setScissor(scissor);renderer.setScissorTest(scissorTest);renderer.shadowMap.autoUpdate=wasShadow;renderer.xr.enabled=wasXR;this.mirror.visible=visible;if(panel)panel.visible=panelVisible;}}
+ renderMirror(){if(!this.driving||!this.mirrorEnabled||this.mirrorClock<(this.velocity.length()>2?1/8:1/5))return;this.mirrorClock=0;const renderer=this.renderer,wasXR=renderer.xr.enabled,wasShadow=renderer.shadowMap.autoUpdate,target=renderer.getRenderTarget(),face=renderer.getActiveCubeFace(),mip=renderer.getActiveMipmapLevel(),viewport=renderer.getViewport(new T.Vector4()),scissor=renderer.getScissor(new T.Vector4()),scissorTest=renderer.getScissorTest(),visible=this.mirror.visible,panel=this.props.menu?.panel,panelVisible=panel?.visible;this.rearCamera.position.copy(this.group.localToWorld(new T.Vector3(-.10,1.35,-.65)));this.rearCamera.lookAt(this.group.localToWorld(new T.Vector3(-.10,1.25,10)));this.mirror.visible=false;if(panel)panel.visible=false;try{renderer.xr.enabled=false;renderer.shadowMap.autoUpdate=false;renderer.setRenderTarget(this.target);renderer.setViewport(0,0,384,192);renderer.setScissorTest(false);renderer.render(this.scene,this.rearCamera);}finally{renderer.setRenderTarget(target,face,mip);renderer.setViewport(viewport);renderer.setScissor(scissor);renderer.setScissorTest(scissorTest);renderer.shadowMap.autoUpdate=wasShadow;renderer.xr.enabled=wasXR;this.mirror.visible=visible;if(panel)panel.visible=panelVisible;}}
 }

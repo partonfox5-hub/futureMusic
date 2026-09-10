@@ -1,10 +1,10 @@
 import * as THREE from 'three';
-import { clamp } from './Dog.js?v=13.5';
+import { clamp } from './Dog.js?v=15.0';
 export class DogTail {
   constructor(model){
     this.model=model;this.amount=0;this.points=[];this.previous=[];this.lengths=[];this.accumulator=0;this.time=0;
-    const names=Array.from({length:6},(_,i)=>`Tail${i}`),p=names.map(n=>model.bind[n].toArray());p.push([0,.155,-.65]);
-    model.tube('tail',p,[.046,.043,.036,.030,.024,.016,.005],(x,y,z)=>{
+    const names=Array.from({length:6},(_,i)=>`Tail${i}`),cat=model.species==='cat',p=names.map(n=>model.bind[n].toArray());p.push(cat?[0,.14,-.78]:[0,.155,-.65]);
+    model.tube('tail',p,cat?[.028,.026,.022,.018,.014,.010,.004]:[.046,.043,.036,.030,.024,.016,.005],(x,y,z)=>{
       const u=clamp((-.35-z)/.30)*5,a=Math.floor(u),b=Math.min(5,a+1);return [[`Tail${a}`,1-(u-a)],[`Tail${b}`,u-a]];
     },model.coat,10,true);
     model.root.updateMatrixWorld(true);

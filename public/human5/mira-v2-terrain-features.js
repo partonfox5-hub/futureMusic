@@ -2,7 +2,7 @@ import * as T from 'three';
 import {TerrainHeightfield} from './src/terrain/TerrainHeightfield.js';
 import {TerrainMesh} from './src/terrain/TerrainMesh.js';
 import {QuestGrass} from './src/terrain/QuestGrass.js';
-import {ProceduralTrees} from './src/trees/RealisticTrees.js';
+import {ProceduralTrees} from './src/trees/RealisticTrees.js?v=15.0';
 import {TerrainGun,TERRAIN_WEAPONS,isTerrainGun,makeTerrainGun} from './src/terrain/TerrainGun.js';
 import {DEFAULT_MAP,defaultMapOptions} from './src/terrain/DefaultMap.js';
 export {TerrainHeightfield,TerrainMesh,QuestGrass,ProceduralTrees,TerrainGun,TERRAIN_WEAPONS,DEFAULT_MAP};
@@ -142,7 +142,7 @@ export function installTerrainFeatures({world,props,WEAPONS,GUNS,weaponCatalogs=
       if(disposed)return;if(world.revision!==lastRevision){const legacy=detach();legacy?.geometry?.dispose();legacy?.material?.dispose();populate();}
       if(!current)return;dt=T.MathUtils.clamp(Number.isFinite(dt)?dt:0,0,.05);
       props.camera.getWorldPosition(viewer);gun.tick(dt);current.mesh.tick(dt,viewer);
-      if(world.root.visible){current.grass.tick(dt,viewer);current.trees.tick(dt,viewer);}suppressOldGrass();
+      if(world.root.visible){if(!props.driving?.())current.grass.tick(dt,viewer);current.trees.tick(dt,viewer);}suppressOldGrass();
     },
     dispose(){
       if(disposed)return;disposed=api.disposed=true;gun.dispose();const legacy=detach();

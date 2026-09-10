@@ -1,6 +1,6 @@
-import {captureFurniture,tagMovable} from './mira-v2-furniture.js?v=14.0';
-import {Destruction} from './mira-v2-destruction.js?v=14.4';
-import {buildHouse} from './mira-v2-house.js?v=14.4';
+import {captureFurniture,tagMovable} from './mira-v2-furniture.js?v=14.6';
+import {Destruction} from './mira-v2-destruction.js?v=14.6';
+import {buildHouse} from './mira-v2-house.js?v=14.8';
 import {plantTerrain,scatterTrees,tickNature,chopTree as chopNature,ramTree as ramNature,terrainHeight} from './mira-v2-nature.js?v=14.2';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
 import * as T from 'three';
@@ -15,7 +15,7 @@ export class MiraWorld {
  obstacle(x,z,w,d,y=0,h=1,object=null){const o={x,z,w,d,y,h,object};this.obstacles.push(o);this.grid=null;if(object){object.userData.obstacle=o;this.pickables.push(object);}return o;}
  chair(x,z,yaw=0,couch=false){const group=new T.Group();this.root.add(group);const wood=this.mat(0x765239),cloth=this.mat(couch?0x677e74:0xcb9f6d);const add=(w,h,d,y,z0,m)=>{const o=new T.Mesh(new RoundedBoxGeometry(w,h,d,2,Math.min(.045,w*.2,h*.2,d*.2)),m);o.position.set(0,y,z0);o.castShadow=o.receiveShadow=true;group.add(o);return o;};const w=couch?1.55:.62;add(w,.16,.62,.43,0,cloth);add(w,.48,.16,.73,-.29,cloth);for(const sign of [-1,1]){const leg=add(.075,.36,.075,.18,.22,wood);leg.position.x=sign*(w/2-.09);const back=leg.clone();back.position.z=-.22;group.add(back);const arm=add(.10,.18,.61,.65,0,cloth);arm.position.x=sign*(w/2+.015);}
  group.position.set(x,0,z);group.rotation.y=yaw;group.updateMatrixWorld(true);
- const seat={group,position:new T.Vector3(x,.51,z),yaw,approach:group.localToWorld(new T.Vector3(0,0,1.02)),occupant:null};group.traverse(o=>{if(o.isMesh){o.userData.seat=seat;this.pickables.push(o);}});this.seats.push(seat);const furn=tagMovable(this,group,couch?'Couch':'Chair');furn.seat=seat;seat.obstacle=furn.obstacle;return seat;
+ const seat={group,position:new T.Vector3(x,.51,z),yaw,approach:group.localToWorld(new T.Vector3(0,0,1.02)),occupant:null};group.traverse(o=>{if(o.isMesh){o.userData.seat=seat;this.pickables.push(o);this.fractures.register(o,'wood');if(o.userData.piece){o.userData.piece.health=24;o.userData.piece.maxHealth=24;}}});this.seats.push(seat);const furn=tagMovable(this,group,couch?'Couch':'Chair');furn.seat=seat;seat.obstacle=furn.obstacle;furn.health=24;return seat;
  }
  setScene(name){
   if(!SCENES.includes(name))return;for(const a of this.system.actors){a.seat=null;a.navigation=null;a.dest=null;a.directedWalk=null;a.group.position.y=a.baseY||0;this.system.social.cancel(a);a.setMode('auto');}

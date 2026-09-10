@@ -2,7 +2,7 @@ import * as T from 'three';
 import {playSfx,unlockSfx} from './mira-v2-sfx.js?v=13.8';
 const V=()=>new T.Vector3(),Q=()=>new T.Quaternion(),M=()=>new T.Matrix4();
 const QUEST=/Quest|OculusBrowser/i.test(globalThis.navigator?.userAgent||'');
-export const GUNS=['pistol','laser','rifle','sniper','shotgun','uzi','marker','marker2','portal'];
+export const GUNS=['pistol','laser','rifle','sniper','shotgun','uzi','marker','marker2','portal','torch','extinguisher'];
 export const MELEE=['sword','axe','mace'];
 const PORTAL_COLORS=[0x3aa0ff,0xff9a32];
 const PORTAL_W=1.18,PORTAL_H=2.22,PORTAL_T=.05;

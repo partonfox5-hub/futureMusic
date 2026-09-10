@@ -61,7 +61,7 @@ export class DogFur {
       }
     }
     // Two optional tufts are represented by tiny groomed cards, never runtime strands.
-    this.tuft('neck_ruff',[0,.55,.275],.16,.16,'Neck');this.tuft('tail_tuft',[0,.30,-.555],.09,.12,'Tail3');
+    if(model.species!=='cat')this.tuft('neck_ruff',[0,.55,.275],.16,.16,'Neck');this.tuft('tail_tuft',[0,.30,-.555],.09,.12,'Tail3');
   }
   tuft(name,p,width,height,bone){
     const g=new THREE.PlaneGeometry(width,height,3,4);g.rotateY(Math.PI);g.translate(...p);this.model.skin(g,bone);

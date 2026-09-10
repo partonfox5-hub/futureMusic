@@ -1,8 +1,8 @@
 import * as T from 'three';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
 import {makeSurfaceMap,wallMaterial} from './mira-v2-walls.js?v=14.4';
-import {placeStairs,placeFurniture} from './mira-v2-furniture.js?v=14.0';
-import {HouseDoors} from './mira-v2-doors.js?v=14.4';
+import {placeStairs,placeFurniture,tagMovable} from './mira-v2-furniture.js?v=14.6';
+import {HouseDoors} from './mira-v2-doors.js?v=14.6';
 const STORY=3.05,CELL=.6;
 const doorHole=(axis,c,w=1.14,head=2.14)=>{
  const r=w/2+CELL*.55;
@@ -88,7 +88,6 @@ export function buildHouse(w){
  const furniture=(mesh,sx,sz,kind='wood')=>{const p=mesh.position,o=w.obstacle(p.x,p.z,sx,sz,p.y-.4,new T.Box3().setFromObject(mesh).max.y,mesh);w.fractures.register(mesh,kind,o);return mesh;};
  let furnitureStart=w.root.children.length;
  const couch=w.chair(-3.6,2.2,0,true),chair=w.chair(-1.2,2.8,-Math.PI/2);
- for(const seat of [couch,chair])seat.group.traverse(m=>{if(m.isMesh)w.fractures.register(m,'wood',null);});
  const table=round(-2.4,.635,1.35,1.7,.09,.85,0x72503b,.018);furniture(table,1.7,.85);w.tableAnchor={x:-2.4,y:.68,z:1.35};
  for(const x of [-3.08,-1.72])for(const z of [1.07,1.63]){const leg=round(x,.3,z,.07,.60,.07,0x4a3930);w.fractures.register(leg,'wood');}
  w.captureFurniture('Table',furnitureStart,-2.4,1.35);furnitureStart=w.root.children.length;
@@ -120,8 +119,17 @@ export function buildHouse(w){
  w.chair(3.2,3.1,-.4);
 
  furnitureStart=w.root.children.length;
- const bed3=round(-1.6,.30,-4.4,1.65,.48,2.05,0x684d3c);furniture(bed3,1.65,2.05);round(-1.6,.61,-4.4,1.58,.24,1.94,0xe0d8c9,.1);
- w.captureFurniture('Bed',furnitureStart,-1.6,-4.4);furnitureStart=w.root.children.length;
+ const bed3=round(-1.6,.30,-4.4,1.65,.48,2.05,0x684d3c);furniture(bed3,1.65,2.05);
+ w.captureFurniture('Bed',furnitureStart,-1.6,-4.4);
+ const bedGroup=(w.movables||[]).filter(g=>g.userData.furniture?.id==='Bed').at(-1);
+ furnitureStart=w.root.children.length;
+ const mattress=round(-1.6,.64,-4.4,1.58,.18,1.94,0xe0d8c9,.1);
+ mattress.position.set(-1.6,.64,-4.4);
+ const mf=tagMovable(w,mattress,'Mattress');if(mf){mf.mass=Math.min(16,mf.mass);mf.soft=true;mf.health=22;mf.velocity.set(0,0,0);}
+ w.fractures.register(mattress,'wood');if(mattress.userData.piece){mattress.userData.piece.health=22;mattress.userData.piece.maxHealth=22;}
+ if(bedGroup?.userData.furniture)bedGroup.userData.furniture.mattress=mattress;
+ mattress.userData.bedFrame=bedGroup;
+ furnitureStart=w.root.children.length;
  const night=round(-2.9,.34,-4.9,.55,.66,.57,0x826144);furniture(night,.55,.57);
  w.captureFurniture('Nightstand',furnitureStart,-2.9,-4.9);furnitureStart=w.root.children.length;
  const desk=round(-.4,.41,-3.4,1.05,.08,.58,0x70543c);furniture(desk,1.05,.58);

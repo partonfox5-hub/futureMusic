@@ -1,18 +1,19 @@
 import {Builder,FURNITURE,SURFACES} from './mira-v2-builder.js?v=13.8';
-import {SmoothLocomotion} from './mira-v2-locomotion.js?v=14.2';
-import {Car} from './mira-v2-car.js?v=14.5';
+import {SmoothLocomotion} from './mira-v2-locomotion.js?v=14.6';
+import {Car} from './mira-v2-car.js?v=14.6';
 import {Restraints} from './mira-v2-restraints.js?v=13.4';
-import { createDogSystem } from './mira-v2-dog.js?v=14.5';
-import { installGadgets } from './mira-v2-gadgets.js?v=14.3';
+import { createDogSystem } from './mira-v2-dog.js?v=15.1';
+import { installGadgets } from './mira-v2-gadgets.js?v=14.6';
 import {Injuries} from './mira-v2-injuries.js?v=14.3';
-import {Props,WEAPONS,GUNS} from './mira-v2-props.js?v=14.4';
-import {installTerrainFeatures} from './mira-v2-terrain-features.js?v=14.5';
+import {Props,WEAPONS,GUNS} from './mira-v2-props.js?v=14.9';
+import {installFire} from './mira-v2-fire.js?v=14.7';
+import {installTerrainFeatures} from './mira-v2-terrain-features.js?v=15.0';
 import {syncFurniture} from './mira-v2-furniture.js?v=14.0';
 import {installWater} from './mira-v2-water.js?v=13.3';
 import {createFloraSystem} from './mira-v2-flora.js?v=13.3';
 import {RoomLight} from './mira-v2-light.js?v=11.0';
 import {draft,saveDraft,spawnOptions,OUTFITS,clothingItems} from './mira-v2-catalog.js?v=11.0';
-import {MiraWorld,SCENES} from './mira-v2-world.js?v=14.4';
+import {MiraWorld,SCENES} from './mira-v2-world.js?v=14.8';
 import {Wardrobe,GARMENTS} from './mira-v2-wardrobe.js?v=11.2';
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
@@ -114,6 +115,7 @@ const carRed=new Car(props,{orbit,keys,controls,color:0xb42222,name:'Red car'});
 props.vehicle=carBlue;props.vehicles=[carBlue,carRed];
 const dogs=createDogSystem({scene,mira,system:mira,world,props,camera,renderer,THREE});props.dogs=dogs;
 const gadgets=installGadgets(props);props.gadgets=gadgets;
+const fire=installFire(props);props.fire=fire;
 const water=installWater({scene,world,camera,renderer,props,mira,THREE,syncFurniture,rig});
 world.waterSystem=water;props.water=water;
 const flora=createFloraSystem({scene,mira,system:mira,world,props,camera,renderer,THREE});
@@ -144,7 +146,7 @@ mira.load(
     dogs.spawnDefaultCat?.();
     const dogNameEl=document.getElementById('dogName');
     if(dogNameEl)dogNameEl.value=dogs.list?.()[0]?.displayName||'Buddy';
-    if (new URLSearchParams(location.search).has("debug")) window.human2 = { mira, scene, renderer, camera, rig, keys, orbit, world, wardrobe, props, dogs, water, flora, gadgets, terrainFeatures };
+    if (new URLSearchParams(location.search).has("debug")) window.human2 = { mira, scene, renderer, camera, rig, keys, orbit, world, wardrobe, props, dogs, water, flora, gadgets, terrainFeatures, fire };
   },
   (e) => { banner("LOAD FAILED — " + (e && e.message ? e.message : "glb")); console.error(e); }
 );
@@ -467,18 +469,26 @@ function tickLocomotion(dt) {
  if(XR_ON())locomotion.tick(dt,renderer.xr.getSession()?.inputSources||[],vrMenu.isOpen||props.driving());
 }
 
-let deskJumpVel=0,deskJumping=false;
+let deskJumpVel=0,deskJumping=false,deskPace=0,deskHeading=new THREE.Vector3(0,0,-1);
 function desktopMove(dt) {
   if(props.driving())return;
   if (XR_ON()) return;
   if (!controls || !controls.isLocked) return;
   const obj=controls.getObject?.()||camera;
-  if(water?.playerSwimIntent({rig:obj,camera,dt,keys,blocked:vrMenu.isOpen||props.vehicle?.driving}).active){deskJumping=false;deskJumpVel=0;return;}
-  const sp = (keys.ShiftLeft ? 2.8 : 1.4) * dt;
-  if (keys.KeyW) controls.moveForward(sp);
-  if (keys.KeyS) controls.moveForward(-sp);
-  if (keys.KeyA) controls.moveRight(-sp);
-  if (keys.KeyD) controls.moveRight(sp);
+  if(water?.playerSwimIntent({rig:obj,camera,dt,keys,blocked:vrMenu.isOpen||props.vehicle?.driving}).active){deskJumping=false;deskJumpVel=0;deskPace=0;return;}
+  const max=(keys.ShiftLeft ? 2.8 : 1.4)*1.25;
+  const ix=(keys.KeyD?1:0)-(keys.KeyA?1:0),iz=(keys.KeyW?1:0)-(keys.KeyS?1:0),input=Math.hypot(ix,iz);
+  if(input>.01)deskPace+=(max-deskPace)*Math.min(1,dt/.55);
+  else deskPace=Math.max(0,deskPace-max*dt);
+  const sp=deskPace*dt;
+  if(input>.01){
+   if(keys.KeyW) controls.moveForward(sp*(iz>0?iz/input:0));
+   if(keys.KeyS) controls.moveForward(-sp*(iz<0?-iz/input:0));
+   if(keys.KeyA) controls.moveRight(-sp*(ix<0?-ix/input:0));
+   if(keys.KeyD) controls.moveRight(sp*(ix>0?ix/input:0));
+  }else if(deskPace>.02){
+   controls.moveForward(sp);
+  }
   const before=obj.position.clone();
   world.project(obj.position,.32,-1.55,1.7);
   obj.position.y=before.y;

@@ -1,16 +1,16 @@
 import * as THREE from 'three';
-import { DogModel, clamp } from './src/dog/Dog.js?v=14.5';
-import { DogPaws, floorAt } from './src/dog/DogPaws.js?v=13.5';
-import { DogJaw } from './src/dog/DogJaw.js?v=13.5';
-import { DogTail } from './src/dog/DogTail.js?v=13.5';
-import { DogFur } from './src/dog/DogFur.js?v=13.5';
+import { DogModel, clamp } from './src/dog/Dog.js?v=15.1';
+import { DogPaws, floorAt } from './src/dog/DogPaws.js?v=15.0';
+import { DogJaw } from './src/dog/DogJaw.js?v=15.1';
+import { DogTail } from './src/dog/DogTail.js?v=15.0';
+import { DogFur } from './src/dog/DogFur.js?v=15.0';
 import { DogAudio } from './src/dog/DogAudio.js?v=14.5';
 import { DogAI } from './src/dog/DogAI.js?v=14.5';
 import { DogAnim } from './src/dog/DogAnim.js?v=13.5';
 import { DogNeeds } from './src/dog/DogNeeds.js?v=13.5';
 import { DogItems } from './src/dog/DogItems.js?v=14.5';
-import { DogBite } from './src/dog/DogBite.js?v=13.5';
-import { BONE_NAMES } from './src/dog/Dog.js?v=14.5';
+import { DogBite } from './src/dog/DogBite.js?v=15.0';
+import { BONE_NAMES } from './src/dog/Dog.js?v=15.0';
 const _p=new THREE.Vector3(),_q=new THREE.Vector3();
 function dogNearestHit(handle,pos,maxDist){
  let best=null,bd=maxDist,point=new THREE.Vector3();
@@ -141,6 +141,7 @@ export function createDogSystem(input={}) {
       const mira0=(ctx.mira||ctx.system)?.actors?.[0];
       ai.setAttention(opts.attentionMode||mira0?.attentionMode||'attentive');
       model.compactMeshes();fur.rebindLayers();model.setCoat(opts.coat||(species==='cat'?'#c47a32':coat));
+      if(species==='cat')model.root.scale.setScalar(model.bodyScale||.46);
       const tf=defaultTransform(),last=handles.at(-1);let position=tf.position,yaw=tf.yaw;
       if(last&&!opts.default){position=last.root.position.clone().add(new THREE.Vector3(.6,0,0).applyAxisAngle(Y,last.root.rotation.y));yaw=last.root.rotation.y;}
       if(opts.position){if(Array.isArray(opts.position))position.fromArray(opts.position);else position.copy(opts.position);}

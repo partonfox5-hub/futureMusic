@@ -1,6 +1,6 @@
 import * as T from 'three';
-import {makeTreeGeometry,makeTreeMaterial,random,SPECIES} from './TreeGeometry.js';
-import {FallingLeaves} from './FallingLeaves.js';
+import {makeTreeGeometry,makeTreeMaterial,random,SPECIES} from './TreeGeometry.js?v=15.0';
+import {FallingLeaves} from './FallingLeaves.js?v=15.0';
 export const FOREST_PRESETS=Object.freeze({quest:{near:28,mid:65,far:180,nearCount:6,midCount:24,leaves:48},quality:{near:40,mid:90,far:240,nearCount:12,midCount:40,leaves:80}});
 // API-compatible replacement for the first terrain module's ProceduralTrees.
 export class ProceduralTrees {
@@ -13,12 +13,12 @@ export class ProceduralTrees {
    const gx=Math.floor(x/spacing),gz=Math.floor(z/spacing);let blocked=false;
    for(let dz=-1;dz<=1;dz++)for(let dx=-1;dx<=1;dx++)for(const p of grid.get(`${gx+dx}/${gz+dz}`)||[])if(Math.hypot(x-p.x,z-p.z)<spacing)blocked=true;
    if(blocked)continue;
-   const species=y>22&&rnd()<.65?2:Math.floor(rnd()*4),variant=Math.floor(rnd()*2),age=.48+Math.pow(rnd(),.65)*.83,width=age*(.85+rnd()*.30);
+   const species=pickGroveSpecies(x,z,y,rnd,field.options.seed),variant=Math.floor(rnd()*2),age=.48+Math.pow(rnd(),.65)*.83,width=age*(.85+rnd()*.30);
    const tree={x,y,z,species,variant,yaw:rnd()*Math.PI*2,scale:age,scaleXYZ:new T.Vector3(width,age*(.90+rnd()*.22),width),lod:2,tips:[],obstacle:null};this.trees.push(tree);
    const key=`${gx}/${gz}`;if(!grid.has(key))grid.set(key,[]);grid.get(key).push(tree);
-   if(world?.obstacle){const radius=(species===0?.24:.18)*width;tree.obstacle=world.obstacle(x,z,radius*2,radius*2,y,SPECIES[species].height*age*.7);tree.obstacle.terrainTree=true;this.obstacles.push(tree.obstacle);}
+   if(world?.obstacle){const radius=((SPECIES[species].kind==='oak'||SPECIES[species].kind==='maple')?.24:.18)*width;tree.obstacle=world.obstacle(x,z,radius*2,radius*2,y,SPECIES[species].height*age*.7);tree.obstacle.terrainTree=true;this.obstacles.push(tree.obstacle);}
   }
-  for(let species=0;species<4;species++)for(let variant=0;variant<2;variant++)for(let lod=0;lod<3;lod++){
+  for(let species=0;species<SPECIES.length;species++)for(let variant=0;variant<2;variant++)for(let lod=0;lod<3;lod++){
    const g=makeTreeGeometry(species,variant,lod),mesh=new T.InstancedMesh(g,this.material,Math.max(1,this.trees.length));this.geometries.push(g);mesh.count=0;mesh.name=`${SPECIES[species].name} ${variant} LOD${lod}`;mesh.receiveShadow=true;mesh.castShadow=false;mesh.instanceMatrix.setUsage(T.DynamicDrawUsage);mesh.raycast=()=>{};this.root.add(mesh);this.batches.push({species,variant,lod,mesh});
    if(lod===0)for(const t of this.trees)if(t.species===species&&t.variant===variant)t.tips=g.userData.tips;
   }
@@ -36,3 +36,16 @@ export class ProceduralTrees {
  dispose(){this.off?.();this.leaves.dispose();this.root.removeFromParent();for(const g of this.geometries)g.dispose();this.material.dispose();for(const o of this.obstacles)this.world?.removeObstacle?.(o);}
 }
 export {ProceduralTrees as RealisticTrees};
+
+// Large single-species groves (~48 m cells) with a thin mixed edge and a few stray trees.
+function pickGroveSpecies(x,z,y,rnd,seed){
+ const GROVE=48,n=SPECIES.length,pine=SPECIES.findIndex(s=>s.kind==='pine');
+ const gx=Math.floor(x/GROVE),gz=Math.floor(z/GROVE);
+ const cell=(ix,iz)=>Math.floor(random((seed+90317+Math.imul(ix,73856093)+Math.imul(iz,19349663))>>>0)()*n);
+ let species=cell(gx,gz);
+ const fx=x/GROVE-gx,fz=z/GROVE-gz,ex=Math.min(fx,1-fx),ez=Math.min(fz,1-fz),edge=Math.min(ex,ez),BLEND=.22;
+ if(edge<BLEND){const nx=fx<.5?gx-1:gx+1,nz=fz<.5?gz-1:gz+1,neighbor=ex<=ez?cell(nx,gz):cell(gx,nz);if(rnd()<(BLEND-edge)/BLEND*.48)species=neighbor;}
+ if(rnd()<.07)species=Math.floor(rnd()*n);
+ if(y>22&&pine>=0&&species!==pine&&rnd()<.16)species=pine;
+ return species;
+}

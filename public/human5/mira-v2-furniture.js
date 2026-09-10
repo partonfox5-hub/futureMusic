@@ -1,11 +1,13 @@
 import * as T from 'three';
-export const FURNITURE=['Chair','Couch','Table','Bed','Nightstand','Kitchen counter','Refrigerator','Bathtub','Sink','Wall picture','Clothing rack','Staircase','Coffee table','TV stand','Bookshelf','Dresser','Desk','Side table','Ottoman','Floor lamp','Toilet','Cabinet','Bar stool','Microwave','Mirror'];
+export const FURNITURE=['Chair','Couch','Table','Bed','Mattress','Firewood','Nightstand','Kitchen counter','Refrigerator','Bathtub','Sink','Wall picture','Clothing rack','Staircase','Coffee table','TV stand','Bookshelf','Dresser','Desk','Side table','Ottoman','Floor lamp','Toilet','Cabinet','Bar stool','Microwave','Mirror'];
 export const DENSITY={wood:600,cloth:160,stone:2200,metal:2700,glass:1200,plastic:900};
 export const FURNITURE_MIX={
  Chair:{wood:.55,cloth:.45},
  Couch:{wood:.35,cloth:.65},
  Table:{wood:1},
- Bed:{wood:.4,cloth:.6},
+ Bed:{wood:.85,cloth:.15},
+ Mattress:{cloth:1},
+ Firewood:{wood:1},
  Nightstand:{wood:1},
  'Kitchen counter':{wood:.25,stone:.75},
  Refrigerator:{metal:.85,plastic:.15},
@@ -62,8 +64,8 @@ export function tagMovable(world,group,id){
  const obstacle=world.obstacle(center.x,center.z,Math.max(.08,size.x),Math.max(.08,size.z),box.min.y,Math.max(.04,size.y),null);
  obstacle.object=group;
  const prev=group.userData.furniture;
- const furn=prev||{id,mix,mass,volume,density,velocity:new T.Vector3(),spin:0,omega:new T.Vector3(),held:null,obstacle,floorY:group.position.y,health:['Chair','Couch'].includes(id)?55:80};
- furn.id=id;furn.mix=mix;furn.mass=mass;furn.volume=volume;furn.density=density;furn.obstacle=obstacle;if(furn.health==null)furn.health=['Chair','Couch'].includes(id)?55:80;
+ const furn=prev||{id,mix,mass,volume,density,velocity:new T.Vector3(),spin:0,omega:new T.Vector3(),held:null,obstacle,floorY:group.position.y,health:['Chair','Couch','Mattress','Firewood'].includes(id)?24:id==='Bed'?40:80};
+ furn.id=id;furn.mix=mix;furn.mass=mass;furn.volume=volume;furn.density=density;furn.obstacle=obstacle;if(furn.health==null)furn.health=['Chair','Couch','Mattress','Firewood'].includes(id)?24:id==='Bed'?40:80;
  if(!furn.velocity)furn.velocity=new T.Vector3();if(!furn.omega)furn.omega=new T.Vector3();
  if(!Number.isFinite(furn.floorY))furn.floorY=group.position.y;
  const inv=group.matrixWorld.clone().invert();
@@ -130,7 +132,7 @@ export function placeStairs(world,p,yaw=0,opts={}){
 export function placeFurniture(world,wardrobe,id,p,yaw=0){
  if(id==='Staircase')return placeStairs(world,p,yaw);
  if(id==='Chair'||id==='Couch'){
-  const seat=world.chair(p.x,p.z,yaw,id==='Couch');seat.group.traverse(m=>{if(m.isMesh)world.fractures.register(m,'wood');});return seat.group;
+  const seat=world.chair(p.x,p.z,yaw,id==='Couch');return seat.group;
  }
  const source=id==='Clothing rack'?wardrobe.rack:world.furnitureTemplates.get(id);if(!source)return null;
  const group=cloneFurniture(source);group.position.copy(p);group.rotation.set(0,yaw,0);world.root.add(group);group.updateWorldMatrix(true,true);
