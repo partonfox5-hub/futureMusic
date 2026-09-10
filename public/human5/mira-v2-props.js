@@ -263,6 +263,7 @@ export class Props {
   const hits=meshes.length?this.rc.intersectObjects(meshes,false):[];
   const hit=hits.find(h=>{
    if(!visible(h.object))return false;
+   if(h.object.userData.noHit||h.object.userData.weatherSkip||h.object.userData.pianoKey)return false;
    const chunks=h.object.userData.chunks;
    if(chunks){if(h.instanceId==null)return false;const ch=chunks[h.instanceId];if(!ch||ch.broken)return false;}
    const piece=h.object.userData.piece||h.object.userData.wallPart;
@@ -289,8 +290,8 @@ export class Props {
    const rate=item.data.fireRate??.16;if(this.time-(item.lastFire??-2)<rate)return;item.lastFire=this.time;item.kick=.04;unlockSfx();
    const muzzle=item.group.localToWorld(new T.Vector3(0,.03,-item.data.reach));
    const dir=aim?(this.hit(aim,12)?.point||aim.at(8,V())).clone().sub(muzzle).normalize():new T.Vector3(0,0,-1).applyQuaternion(item.group.getWorldQuaternion(Q()));
-   if(item.data.kind==='flame'){const hit=this.hit(new T.Ray(muzzle,dir),4.2);this.beam(muzzle,hit?.point||muzzle.clone().addScaledVector(dir,1.1),0xff7a28,.12);if(hit)this.fire?.ignite(hit,true);}
-   else{this.beam(muzzle,muzzle.clone().addScaledVector(dir,2.2),0xdfe8ee,.14);this.fire?.spray(muzzle,dir);}
+   if(item.data.kind==='flame'){const hit=this.hit(new T.Ray(muzzle,dir),4.2);this.beam(muzzle,hit?.point||muzzle.clone().addScaledVector(dir,1.1),0xff7a28,.12);if(hit)this.flames?.ignite(hit,true);}
+   else{this.beam(muzzle,muzzle.clone().addScaledVector(dir,2.2),0xdfe8ee,.14);this.flames?.spray(muzzle,dir);}
    return;
   }
   const rate=item.data.fireRate??(item.id==='laser'?.18:.22);
@@ -441,7 +442,7 @@ void main(){
  }
  item.lastSamples=samples;const p=item.group.getWorldPosition(V());if(item.lastPoint)item.velocity.copy(p).sub(item.lastPoint).divideScalar(Math.max(.001,dt)).clampLength(0,8);item.lastPoint=p.clone();
  }else{item.velocity.y-=G(this.world)*dt;item.group.position.addScaledVector(item.velocity,dt);const p=item.group.position,old=p.clone();if(this.world.projectSphere(p,.08)){const n=p.clone().sub(old).normalize(),vn=item.velocity.dot(n);if(vn<0)item.velocity.addScaledVector(n,-1.1*vn);item.velocity.multiplyScalar(.8);}item.group.updateWorldMatrix(true,true);const box=new T.Box3().setFromObject(item.group),floor=(this.world.floorHeight?.(p,.12)??0)+.02;if(box.min.y<floor){item.group.position.y+=floor-box.min.y;if(G(this.world)>0.5){if(item.velocity.y<0)item.velocity.y=Math.abs(item.velocity.y)*.1;item.velocity.x*=.82;item.velocity.z*=.82;}else if(item.velocity.y<0)item.velocity.y=Math.abs(item.velocity.y)*.4;}}}
- this.gadgets?.tick?.(dt);this.fire?.tick?.(dt);this.weights?.tick?.(dt);this.world.piano?.tick?.(this.camera);
+ this.gadgets?.tick?.(dt);this.flames?.tick?.(dt);this.weights?.tick?.(dt);this.world.piano?.tick?.(this.camera);
  for(const shot of this.shots){shot.age+=dt;const next=shot.position.clone().addScaledVector(shot.velocity,dt),dist=next.distanceTo(shot.position),ray=new T.Ray(shot.position.clone(),shot.velocity.clone().normalize()),hit=this.hit(ray,dist);this.beam(shot.position,hit?.point||next,0xffe5ac,.035);if(hit){hit.weaponId=shot.weaponId;hit.stagger=shot.stagger;this.impact(hit,shot.energy||32,ray.direction,'bullet');shot.age=2;}shot.position.copy(next);shot.velocity.y-=G(this.world)*dt;}this.shots=this.shots.filter(x=>x.age<.8).slice(-12);
  for(const e of this.effects){e.ttl-=dt;e.mesh.position.addScaledVector(e.velocity,dt);e.mesh.material.opacity=Math.max(0,e.ttl/e.life);if(e.expand)e.mesh.scale.addScalar(dt*e.expand*10);if(e.ttl<=0)this.dispose(e.mesh);}this.effects=this.effects.filter(e=>e.ttl>0);while(this.effects.length>80)this.dispose(this.effects.shift().mesh);
  const updated=new Set();for(const m of this.marks){m.age+=dt;m.mesh.material.uniforms.age.value=m.age;if(m.anchor&&m.actor?.version==='v2'&&this.system.actors.includes(m.actor)){const {surface,ref}=m.anchor;if(!updated.has(surface)){surface.begin();updated.add(surface);}const tri=new T.Triangle();surface.vertex(ref.cache,ref.ids[0],tri.a);surface.vertex(ref.cache,ref.ids[1],tri.b);surface.vertex(ref.cache,ref.ids[2],tri.c);const normal=tri.getNormal(V());m.mesh.position.copy(tri.a).multiplyScalar(ref.bary.x).addScaledVector(tri.b,ref.bary.y).addScaledVector(tri.c,ref.bary.z).addScaledVector(normal,.002);if(m.along){const along=m.along.clone().addScaledVector(normal,-m.along.dot(normal));if(along.lengthSq()<1e-6)along.copy(m.along);along.normalize();const bin=new T.Vector3().crossVectors(normal,along).normalize();m.mesh.quaternion.setFromRotationMatrix(new T.Matrix4().makeBasis(along,bin,normal));}else m.mesh.quaternion.setFromUnitVectors(new T.Vector3(0,0,1),normal);}if(m.age>100||m.piece?.broken||m.actor&&!this.system.actors.includes(m.actor))this.dispose(m.mesh);}this.marks=this.marks.filter(m=>m.mesh.parent);

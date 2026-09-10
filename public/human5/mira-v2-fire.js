@@ -285,5 +285,5 @@ export function buildExtinguisher(add){
 }
 
 export function installFire(props){
- const sys=new FireSystem(props);props.fire=sys;props.world.fire=sys;sys.buildHearth(props.world);return sys;
+ const sys=new FireSystem(props);props.flames=sys;props.world.fire=sys;sys.buildHearth(props.world);return sys;
 }

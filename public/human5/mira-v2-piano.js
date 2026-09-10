@@ -98,44 +98,138 @@ export const SONGS=[
 ];
 for(const s of SONGS)s.notes=compile(s.bpm,s.src);
 
-function plaque(title,sub){
- const c=document.createElement('canvas');c.width=512;c.height=160;
- const g=c.getContext('2d');g.fillStyle='#1a120c';g.fillRect(0,0,512,160);
- g.fillStyle='#e8d7b0';g.font='700 36px Georgia,serif';g.textAlign='center';g.fillText(title,256,70);
- g.font='16px Georgia,serif';g.fillStyle='#c4b089';g.fillText(sub,256,112);
+function woodMap(){
+ const c=document.createElement('canvas');c.width=256;c.height=256;
+ const g=c.getContext('2d');
+ g.fillStyle='#4a2a16';g.fillRect(0,0,256,256);
+ for(let i=0;i<48;i++){
+  const x=i*5.4+(i%3)*1.7;
+  g.strokeStyle=`rgba(${28+i%8},${12+i%5},${6},${.1+((i*17)%8)/40})`;
+  g.lineWidth=1.1+(i%4)*.4;
+  g.beginPath();g.moveTo(x,-4);
+  g.bezierCurveTo(x+4,80,x-6,160,x+2,260);g.stroke();
+ }
+ const t=new T.CanvasTexture(c);t.colorSpace=T.SRGBColorSpace;t.wrapS=t.wrapT=T.RepeatWrapping;t.repeat.set(2,1);t.anisotropy=4;return t;
+}
+function sheetMap(title,sub){
+ const c=document.createElement('canvas');c.width=512;c.height=704;
+ const g=c.getContext('2d');
+ g.fillStyle='#efe6d2';g.fillRect(0,0,512,704);
+ g.fillStyle='#e4d7bc';g.fillRect(18,18,476,668);
+ g.strokeStyle='#cbb892';g.strokeRect(18,18,476,668);
+ g.fillStyle='#3a2a18';g.font='700 28px Georgia,serif';g.textAlign='center';g.fillText(title,256,58);
+ g.font='italic 16px Georgia,serif';g.fillStyle='#6a5438';g.fillText(sub,256,82);
+ g.fillStyle='#1c1710';
+ for(let staff=0;staff<5;staff++){
+  const y0=128+staff*108;
+  g.strokeStyle='#2a2218';g.lineWidth=1.2;
+  for(let l=0;l<5;l++){g.beginPath();g.moveTo(48,y0+l*9);g.lineTo(464,y0+l*9);g.stroke();}
+  g.font='700 34px Georgia,serif';g.textAlign='left';g.fillText('G',50,y0+34);
+  for(let n=0;n<11;n++){
+   const x=118+n*30,y=y0+6+((n*3+staff)%9)*4.2;
+   g.beginPath();g.ellipse(x,y,7,5, -.4,0,Math.PI*2);g.fill();
+   g.beginPath();g.moveTo(x+6,y);g.lineTo(x+6,y-22);g.stroke();
+  }
+ }
  const map=new T.CanvasTexture(c);map.colorSpace=T.SRGBColorSpace;map.needsUpdate=true;return map;
 }
+const _p=new T.Vector3(),_d=new T.Vector3(),_u=new T.Vector3(),_q=new T.Quaternion();
 
 export function installPiano(world,origin=new T.Vector3(-5.85,0,.35),yaw=Math.PI/2){
  const root=new T.Group();root.position.copy(origin);root.rotation.y=yaw;world.root.add(root);
- const wood=world.mat(0x3c2416,.78),black=world.mat(0x111111,.4),ivory=world.mat(0xf3efe4,.55);
- const body=new T.Mesh(new T.BoxGeometry(1.48,.62,.58),wood);body.position.set(0,.56,-.04);root.add(body);
- const rim=new T.Mesh(new T.BoxGeometry(1.52,.08,.62),wood);rim.position.set(0,.90,-.04);root.add(rim);
- const fall=new T.Mesh(new T.BoxGeometry(1.46,.04,.16),wood);fall.position.set(0,.95,.28);root.add(fall);
- const keys=new T.Group();keys.position.set(-.66,.91,.22);root.add(keys);
- const whites=['C','D','E','F','G','A','B'];
- for(let i=0;i<14;i++){
-  const k=new T.Mesh(new T.BoxGeometry(.088,.028,.28),ivory);
-  k.position.set(i*.094,0,0);keys.add(k);k.userData.pianoKey=true;
+ const grain=woodMap();
+ const mahogany=new T.MeshStandardMaterial({map:grain,color:0x6a3a22,roughness:.38,metalness:.08});
+ const dark=new T.MeshStandardMaterial({map:grain,color:0x3a2014,roughness:.42,metalness:.06});
+ const polish=new T.MeshStandardMaterial({color:0x2a160e,roughness:.22,metalness:.12});
+ const brass=new T.MeshStandardMaterial({color:0xb08a4a,roughness:.32,metalness:.78});
+ const ivory=new T.MeshStandardMaterial({color:0xf4efe6,roughness:.52,metalness:0});
+ const ebony=new T.MeshStandardMaterial({color:0x161412,roughness:.34,metalness:.08});
+ const felt=new T.MeshStandardMaterial({color:0x7a1822,roughness:.9,metalness:0});
+ const clickables=[],sheets=[];
+ function part(mesh,kind='wood',health){
+  mesh.castShadow=mesh.receiveShadow=true;
+  const p=world.fractures.register(mesh,kind);
+  if(health){p.health=health;p.maxHealth=health;}
+  clickables.push(mesh);root.add(mesh);return mesh;
  }
- for(const i of [0,1,3,4,5,7,8,10,11,12]){
-  const k=new T.Mesh(new T.BoxGeometry(.056,.018,.17),black);
-  k.position.set(i*.094+.048,.018,-.04);keys.add(k);k.userData.pianoKey=true;
+ function add(mesh,x,y,z){mesh.position.set(x,y,z);return mesh;}
+
+ const body=part(add(new T.Mesh(new T.BoxGeometry(1.48,.62,.58),mahogany),0,.53,-.08),'wood',92);
+ const back=part(add(new T.Mesh(new T.BoxGeometry(1.50,1.18,.07),dark),0,.81,-.36),'wood',80);
+ const left=part(add(new T.Mesh(new T.BoxGeometry(.07,1.18,.78),dark),-.745,.81,0),'wood',64);
+ const right=part(add(new T.Mesh(new T.BoxGeometry(.07,1.18,.78),dark),.745,.81,0),'wood',64);
+ const lid=part(add(new T.Mesh(new T.BoxGeometry(1.50,.04,.64),polish),0,1.42,-.08),'wood',48);
+ const fall=part(add(new T.Mesh(new T.BoxGeometry(1.36,.05,.16),mahogany),0,.94,.22),'wood',36);
+ const keybed=part(add(new T.Mesh(new T.BoxGeometry(1.28,.05,.28),dark),0,.66,.22),'wood',52);
+ const apron=part(add(new T.Mesh(new T.BoxGeometry(1.36,.28,.07),mahogany),0,.52,.34),'wood',40);
+ const cheekL=part(add(new T.Mesh(new T.BoxGeometry(.08,.16,.30),mahogany),-.68,.76,.22),'wood',28);
+ const cheekR=part(add(new T.Mesh(new T.BoxGeometry(.08,.16,.30),mahogany),.68,.76,.22),'wood',28);
+ const upper=part(add(new T.Mesh(new T.BoxGeometry(1.36,.46,.04),mahogany),0,1.16,.18),'wood',55);
+ const rail=part(add(new T.Mesh(new T.BoxGeometry(1.36,.03,.04),brass),0,1.38,.20),'metal',40);
+ const strip=add(new T.Mesh(new T.BoxGeometry(1.24,.01,.26),felt),0,.69,.22);strip.castShadow=false;root.add(strip);clickables.push(strip);
+
+ for(const [x,z] of [[-.62,-.22],[-.21,-.22],[.21,-.22],[.62,-.22],[-.62,.16],[.62,.16]]){
+  part(add(new T.Mesh(new T.CylinderGeometry(.028,.034,.58,10),mahogany),x,.29,z),'wood',32);
+  part(add(new T.Mesh(new T.CylinderGeometry(.042,.048,.035,10),dark),x,.02,z),'wood',22);
+  const ring=add(new T.Mesh(new T.TorusGeometry(.032,.007,6,12),brass),x,.12,z);ring.rotation.x=Math.PI/2;root.add(ring);clickables.push(ring);
  }
- const stand=new T.Mesh(new T.BoxGeometry(.42,.28,.02),new T.MeshStandardMaterial({map:plaque(SONGS[0].name,SONGS[0].composer),roughness:.86}));
- stand.position.set(0,1.18,.02);root.add(stand);
- const bench=new T.Group();bench.position.set(0,0,.62);root.add(bench);
- const pad=new T.Mesh(new T.BoxGeometry(.46,.07,.28),world.mat(0x5a3a28,.9));pad.position.y=.46;bench.add(pad);
- for(const s of [-1,1]){const leg=new T.Mesh(new T.BoxGeometry(.05,.46,.05),wood);leg.position.set(s*.16,.23,.08);bench.add(leg);const b=leg.clone();b.position.z=-.08;bench.add(b);}
- root.traverse(m=>{if(m.isMesh){m.castShadow=m.receiveShadow=true;world.pickables.push(m);world.fractures.register(m,'wood');}});
- world.obstacle(origin.x,origin.z,1.2,.8,0,.95,body);
- const seat={group:bench,position:bench.localToWorld(new T.Vector3(0,.48,0)),yaw:yaw+Math.PI,approach:root.localToWorld(new T.Vector3(0,0,1.15)),occupant:null,piano:true,sitDuration:34,keyboard:keys};
+ const lyre=part(add(new T.Mesh(new T.BoxGeometry(.22,.28,.04),dark),0,.28,.22),'wood',24);
+ for(const x of [-.07,0,.07]){
+  const ped=part(add(new T.Mesh(new T.BoxGeometry(.04,.012,.09),brass),x,.12,.30),'metal',18);
+  ped.rotation.x=.18;
+ }
+
+ const keys=new T.Group();keys.position.set(-.61,.71,.26);root.add(keys);
+ const nWhite=52,ww=.0234,dummy=new T.Object3D();
+ const whites=new T.InstancedMesh(new T.BoxGeometry(ww*.92,.014,.145),ivory,nWhite);
+ whites.instanceMatrix.setUsage(T.DynamicDrawUsage);whites.castShadow=true;whites.raycast=()=>{};whites.userData.pianoKey=true;whites.userData.noHit=true;
+ for(let i=0;i<nWhite;i++){dummy.position.set(i*ww,0,0);dummy.rotation.set(0,0,0);dummy.scale.set(1,1,1);dummy.updateMatrix();whites.setMatrixAt(i,dummy.matrix);}
+ keys.add(whites);
+ const blackIdx=[];
+ for(let i=0;i<nWhite-1;i++){const p=i%7;if(p===2||p===6)continue;blackIdx.push(i);}
+ const blacks=new T.InstancedMesh(new T.BoxGeometry(ww*.58,.012,.09),ebony,blackIdx.length);
+ blacks.instanceMatrix.setUsage(T.DynamicDrawUsage);blacks.castShadow=true;blacks.raycast=()=>{};blacks.userData.pianoKey=true;blacks.userData.noHit=true;
+ blackIdx.forEach((i,n)=>{dummy.position.set(i*ww+ww*.52,.012,-.026);dummy.updateMatrix();blacks.setMatrixAt(n,dummy.matrix);});
+ keys.add(blacks);
+
+ const rack=part(add(new T.Mesh(new T.BoxGeometry(.56,.02,.16),dark),0,1.12,.12),'wood',22);
+ rack.rotation.x=-.42;
+ const sheetMat=new T.MeshStandardMaterial({map:sheetMap(SONGS[0].name,SONGS[0].composer),roughness:.88,metalness:0,side:T.DoubleSide});
+ const leafL=new T.Mesh(new T.PlaneGeometry(.24,.34),sheetMat);
+ const leafR=new T.Mesh(new T.PlaneGeometry(.24,.34),sheetMat);
+ leafL.position.set(-.13,1.28,.18);leafR.position.set(.13,1.28,.18);
+ leafL.rotation.x=-.28;leafR.rotation.x=-.28;
+ leafL.userData.pianoSheet=leafR.userData.pianoSheet=true;
+ root.add(leafL,leafR);sheets.push(leafL,leafR);clickables.push(leafL,leafR);
+ for(const leaf of [leafL,leafR]){const p=world.fractures.register(leaf,'wood');p.health=p.maxHealth=12;}
+
+ const bench=new T.Group();bench.position.set(0,0,.72);root.add(bench);
+ const pad=new T.Mesh(new T.BoxGeometry(.5,.06,.28),new T.MeshStandardMaterial({color:0x4a2e22,roughness:.86}));pad.position.y=.48;bench.add(pad);
+ const top=new T.Mesh(new T.BoxGeometry(.5,.04,.28),mahogany);top.position.y=.44;bench.add(top);
+ for(const s of [-1,1])for(const z of [-1,1]){
+  const leg=new T.Mesh(new T.CylinderGeometry(.018,.024,.44,8),mahogany);leg.position.set(s*.18,.22,z*.09);bench.add(leg);
+ }
+ bench.traverse(m=>{if(m.isMesh){m.castShadow=m.receiveShadow=true;world.fractures.register(m,'wood');}});
+
+ world.obstacle(origin.x,origin.z,1.22,.62,0,1.28,body);
+ const seat={group:bench,position:bench.localToWorld(new T.Vector3(0,.50,0)),yaw:yaw+Math.PI,approach:root.localToWorld(new T.Vector3(0,0,1.35)),occupant:null,piano:true,sitDuration:48,keyboard:keys};
  bench.traverse(m=>{if(m.isMesh)m.userData.seat=seat;});
  world.seats.push(seat);tagMovable(world,bench,'Chair');
+ const rc=new T.Raycaster();
  const api={
-  root,keys,stand,seat,index:0,playing:null,started:0,panner:null,listener:null,
+  root,keys,seat,index:0,playing:null,started:0,panner:null,listener:null,clickables,sheets,
   songs:SONGS,
-  setSong(i){this.index=((i%SONGS.length)+SONGS.length)%SONGS.length;const s=SONGS[this.index];if(stand.material.map)stand.material.map.dispose();stand.material.map=plaque(s.name,s.composer);stand.material.needsUpdate=true;},
+  paintSheet(){
+   const s=SONGS[this.index],map=sheetMap(s.name,s.composer),old=sheets[0]?.material.map;
+   for(const leaf of sheets){leaf.material.map=map;leaf.material.needsUpdate=true;}
+   if(old&&old!==map)old.dispose();
+  },
+  setSong(i){this.index=((i%SONGS.length)+SONGS.length)%SONGS.length;this.paintSheet();},
+  cycleSong(){
+   const actor=this.playing?.actor||null;
+   this.setSong(this.index+1);
+   if(actor||this.playing){this.play();if(this.playing)this.playing.actor=actor;}
+  },
   ensureAudio(){
    const c=audioContext();if(!c)return null;
    if(!this.panner){
@@ -149,8 +243,8 @@ export function installPiano(world,origin=new T.Vector3(-5.85,0,.35),yaw=Math.PI
    unlockSfx();const c=this.ensureAudio();if(!c)return;
    this.stop();
    if(id!=null){const i=SONGS.findIndex(s=>s.id===id);if(i>=0)this.setSong(i);}
-   const song=SONGS[this.index],now=c.currentTime;
-   this.playing={song,end:now+song.notes[song.notes.length-1].t+song.notes[song.notes.length-1].d+0.4,actor:null};
+   const song=SONGS[this.index],now=c.currentTime,last=song.notes[song.notes.length-1];
+   this.playing={song,end:now+(last?last.t+last.d:1)+0.4,actor:null};
    this.started=now;
    for(const n of song.notes)this.note(c,now+n.t,n);
   },
@@ -162,39 +256,67 @@ export function installPiano(world,origin=new T.Vector3(-5.85,0,.35),yaw=Math.PI
    o.connect(g);o2.connect(g);g.connect(f);f.connect(this.panner);
    o.start(t);o2.start(t);o.stop(t+n.d+.22);o2.stop(t+n.d+.22);
   },
-  stop(){this.playing=null;const c=audioContext();if(!c||!this.panner)return;const g=c.createGain();},
+  stop(){this.playing=null;},
   ensurePlaying(actor){
    if(this.playing?.actor===actor)return;
    this.play();if(this.playing)this.playing.actor=actor;
   },
   stopIf(actor){if(this.playing?.actor===actor)this.stop();},
   keepPlaying(actor){if(!this.playing||audioContext()?.currentTime>this.playing.end){this.setSong(this.index+1);this.ensurePlaying(actor);}},
+  invite(actor,props){
+   if(!actor||actor.version!=='v2'){if(props)props.status='Select a Mira, then point at the piano';return true;}
+   if(actor.seat===this.seat){this.ensurePlaying(actor);if(props)props.status=(actor.displayName||'Mira')+' · playing '+SONGS[this.index].name;return true;}
+   if(this.seat.occupant&&this.seat.occupant!==actor){if(props)props.status='Piano · occupied';return true;}
+   actor.sitHold=0;
+   const name=actor.displayName||'Mira';
+   let ok=world.walk(actor,this.seat.approach,this.seat);
+   if(!ok){
+    for(const off of [[0,0,1.55],[.95,0,1.15],[-.95,0,1.15],[1.15,0,.35],[-1.15,0,.35],[0,0,1.9]]){
+     const p=root.localToWorld(new T.Vector3(off[0],off[1],off[2]));
+     if(!world.blocked(p,.22)&&world.walk(actor,p,this.seat)){ok=true;break;}
+    }
+   }
+   if(!ok){
+    if(actor.seat){actor.group.position.copy(actor.seat.approach);actor.seat.occupant=null;actor.seat=null;}
+    this.seat.occupant=actor;
+    const goal=this.seat.approach.clone();
+    if(actor.walkTo?.(goal)){
+     actor.navigation={points:[goal.clone()],index:0,goal,seat:this.seat};
+     actor.directedWalk=goal.clone();actor.setMode('wander');actor.autoWander=true;ok=true;
+    }
+   }
+   if(props)props.status=ok?name+' · to the piano':'Piano · no path';
+   return true;
+  },
   click(ray,props){
-   const hit=props.hit(ray,6,false);if(!hit)return false;
-   let o=hit.object,on=false;while(o){if(o===root||o===bench){on=true;break;}o=o.parent;}
-   if(!on)return false;
-   if(hit.object.userData.seat)return false;
-   if(hit.object===stand||hit.object.userData.pianoKey){
-    if(this.playing&&!this.playing.actor)this.stop();else this.play(hit.object===stand?SONGS[(this.index+1)%SONGS.length].id:undefined);
-    props.status=this.playing?'Piano · '+this.playing.song.name:'Piano stopped';
+   const r=ray?.isRaycaster?ray.ray:ray;if(!r?.origin)return false;
+   rc.ray.copy(r);rc.near=0;rc.far=6;
+   const live=clickables.filter(m=>m.visible&&m.parent);
+   const hits=rc.intersectObjects(live,false);if(!hits.length)return false;
+   const first=hits[0];
+   if(first.object.userData.seat)return false;
+   const sheet=hits.find(h=>h.object.userData.pianoSheet&&h.distance<=first.distance+.3);
+   if(sheet){
+    this.cycleSong();
+    if(props)props.status='Piano · '+SONGS[this.index].name;
     return true;
    }
-   this.play();props.status='Piano · '+SONGS[this.index].name;return true;
+   const actor=props?.system?.selected||props?.system?.select?.();
+   return this.invite(actor,props);
   },
   tick(camera){
    const c=audioContext();if(!c||!this.panner)return;
    root.updateWorldMatrix(true,true);
-   const p=root.getWorldPosition(new T.Vector3());
-   const t=c.currentTime;
+   const p=root.getWorldPosition(_p),t=c.currentTime;
    if(this.panner.positionX){this.panner.positionX.setValueAtTime(p.x,t);this.panner.positionY.setValueAtTime(p.y+.9,t);this.panner.positionZ.setValueAtTime(p.z,t);}
    else this.panner.setPosition(p.x,p.y+.9,p.z);
    const lis=c.listener,cam=camera;if(!cam||!lis)return;
-   const wp=cam.getWorldPosition(new T.Vector3()),dir=new T.Vector3(0,0,-1).applyQuaternion(cam.getWorldQuaternion(new T.Quaternion())),up=new T.Vector3(0,1,0).applyQuaternion(cam.getWorldQuaternion(new T.Quaternion()));
+   const wp=cam.getWorldPosition(_d),dir=new T.Vector3(0,0,-1).applyQuaternion(cam.getWorldQuaternion(_q)),up=_u.set(0,1,0).applyQuaternion(cam.getWorldQuaternion(new T.Quaternion()));
    if(lis.positionX){lis.positionX.setValueAtTime(wp.x,t);lis.positionY.setValueAtTime(wp.y,t);lis.positionZ.setValueAtTime(wp.z,t);lis.forwardX.setValueAtTime(dir.x,t);lis.forwardY.setValueAtTime(dir.y,t);lis.forwardZ.setValueAtTime(dir.z,t);lis.upX.setValueAtTime(up.x,t);lis.upY.setValueAtTime(up.y,t);lis.upZ.setValueAtTime(up.z,t);}
    else{lis.setPosition(wp.x,wp.y,wp.z);lis.setOrientation(dir.x,dir.y,dir.z,up.x,up.y,up.z);}
    if(this.playing&&c.currentTime>this.playing.end&&!this.playing.actor)this.playing=null;
-   seat.position.copy(bench.localToWorld(new T.Vector3(0,.48,0)));
-   seat.approach.copy(root.localToWorld(new T.Vector3(0,0,1.15)));
+   seat.position.copy(bench.localToWorld(new T.Vector3(0,.50,0)));
+   seat.approach.copy(root.localToWorld(new T.Vector3(0,0,1.35)));
   }
  };
  world.piano=api;return api;

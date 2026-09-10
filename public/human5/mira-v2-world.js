@@ -1,6 +1,6 @@
 import {captureFurniture,tagMovable} from './mira-v2-furniture.js?v=14.6';
 import {Destruction} from './mira-v2-destruction.js?v=14.6';
-import {buildHouse} from './mira-v2-house.js?v=15.3';
+import {buildHouse} from './mira-v2-house.js?v=15.5';
 import {buildCastle,inCastleClearing} from './mira-v2-castle.js?v=15.2';
 import {plantTerrain,scatterTrees,tickNature,chopTree as chopNature,ramTree as ramNature,terrainHeight} from './mira-v2-nature.js?v=14.2';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
@@ -120,7 +120,7 @@ export class MiraWorld {
     const sign=side==='L'?1:-1,foot=new T.Vector3(sign*.11*a.shape.height,0,.42*a.shape.height);seat.group.localToWorld(foot);foot.y=.065*a.shape.height;const pole=seat.group.localToWorld(new T.Vector3(sign*.16,.48,.8));a.solveChain(side,'leg',foot,pole);
     if(seat.piano&&seat.keyboard){
      seat.keyboard.updateWorldMatrix(true,true);
-     const hand=seat.keyboard.localToWorld(new T.Vector3(.55+sign*.22,.03,.02+Math.sin((this.time||0)*10+sign)*.04));
+     const hand=seat.keyboard.localToWorld(new T.Vector3(.61+sign*.24,.03,.02+Math.sin((this.time||0)*10+sign)*.04));
      a.solveChain(side,'arm',hand,seat.keyboard.localToWorld(new T.Vector3(sign*.25,.28,-.12)));
     }else{
      const hand=seat.group.localToWorld(new T.Vector3(sign*.13,.59,.21));a.solveChain(side,'arm',hand,seat.group.localToWorld(new T.Vector3(sign*.4,.8,.02)));

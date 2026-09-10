@@ -120,7 +120,9 @@ export function installLaundry(world,origin=new T.Vector3(9.85,0,-4.2)){
    }
   },
   click(ray,props){
-   const hit=props.hit(ray,5,false);const app=hit?.object?.userData?.appliance;if(!app)return false;
+   const r=ray?.isRaycaster?ray.ray:ray;if(!r?.origin)return false;
+   this.rc??=new T.Raycaster();this.rc.ray.copy(r);this.rc.near=0;this.rc.far=5;
+   const hit=this.rc.intersectObjects(this.machines.map(a=>a.group),true).find(h=>h.object.userData.appliance);const app=hit?.object?.userData?.appliance;if(!app)return false;
    if(hit.object.userData.applianceButton){
     if(app.open){props.status='Close the lid first';return true;}
     this.start(app);props.status=app.kind==='washer'?'Washer filling':'Dryer tumbling';return true;

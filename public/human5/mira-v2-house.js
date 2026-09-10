@@ -3,8 +3,8 @@ import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js'
 import {makeSurfaceMap,wallMaterial} from './mira-v2-walls.js?v=15.2';
 import {placeStairs,placeFurniture,tagMovable} from './mira-v2-furniture.js?v=15.2';
 import {installWeights} from './mira-v2-weights.js?v=15.2';
-import {installLaundry,installPantry} from './mira-v2-laundry.js?v=15.3';
-import {installPiano} from './mira-v2-piano.js?v=15.3';
+import {installLaundry,installPantry} from './mira-v2-laundry.js?v=15.5';
+import {installPiano} from './mira-v2-piano.js?v=15.5';
 import {HouseDoors} from './mira-v2-doors.js?v=14.6';
 const STORY=3.05,CELL=.6;
 const doorHole=(axis,c,w=1.14,head=2.14)=>{
