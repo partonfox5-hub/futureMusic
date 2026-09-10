@@ -19,9 +19,19 @@ export function throwSpeed(mass){
 function plateGeom(r,t){
  const shape=new T.Shape();
  shape.absarc(0,0,r,0,Math.PI*2,false);
- const hole=new T.Path();hole.absarc(0,0,.026,0,Math.PI*2,true);shape.holes.push(hole);
- const g=new T.ExtrudeGeometry(shape,{depth:t,bevelEnabled:false,curveSegments:20});
- g.rotateX(-Math.PI/2);g.translate(0,t/2,0);return g;
+ const hole=new T.Path();hole.absarc(0,0,.0254,0,Math.PI*2,true);shape.holes.push(hole);
+ const g=new T.ExtrudeGeometry(shape,{depth:t,bevelEnabled:true,bevelThickness:Math.min(.006,t*.18),bevelSize:Math.min(.01,r*.04),bevelSegments:1,curveSegments:22});
+ g.translate(0,0,-t/2);return g;
+}
+function plateLabel(kg,hex){
+ const c=document.createElement('canvas');c.width=256;c.height=256;
+ const g=c.getContext('2d');
+ g.fillStyle='#'+hex.toString(16).padStart(6,'0');g.beginPath();g.arc(128,128,124,0,Math.PI*2);g.fill();
+ g.globalCompositeOperation='destination-out';g.beginPath();g.arc(128,128,30,0,Math.PI*2);g.fill();
+ g.globalCompositeOperation='source-over';
+ g.fillStyle='#f2f2f0';g.font='700 70px Arial,sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(String(kg),128,122);
+ g.font='600 22px Arial,sans-serif';g.fillText('kg',128,168);
+ const t=new T.CanvasTexture(c);t.colorSpace=T.SRGBColorSpace;t.anisotropy=4;return t;
 }
 
 function metal(color,rough=.38,metalness=.72){
@@ -30,13 +40,18 @@ function metal(color,rough=.38,metalness=.72){
 
 export function spawnPlate(world,p,spec){
  const group=new T.Group();group.position.copy(p);world.root.add(group);
- const mesh=new T.Mesh(plateGeom(spec.r,spec.t),metal(spec.color,.45,.35));
+ const mesh=new T.Mesh(plateGeom(spec.r,spec.t),metal(spec.color,.42,.28));
  mesh.castShadow=mesh.receiveShadow=true;group.add(mesh);
- const lip=new T.Mesh(new T.TorusGeometry(spec.r*.92,.008,6,18),metal(0x1a1a1a,.5,.4));
- lip.rotation.x=Math.PI/2;lip.position.y=spec.t*.5;group.add(lip);
+ const hub=new T.Mesh(new T.CylinderGeometry(.046,.046,spec.t+.01,16),metal(0xc5c8cc,.3,.8));
+ hub.rotation.x=Math.PI/2;group.add(hub);
+ const map=plateLabel(spec.kg,spec.color);
+ for(const s of [-1,1]){
+  const face=new T.Mesh(new T.CircleGeometry(spec.r*.72,24),new T.MeshStandardMaterial({map,roughness:.55,metalness:.12}));
+  face.position.z=s*(spec.t*.5+.001);if(s<0)face.rotation.y=Math.PI;group.add(face);
+ }
  const furn=tagMovable(world,group,'Weight plate');
  furn.mass=spec.kg;furn.throwable=true;furn.health=220;furn.maxHealth=220;
- group.userData.plate={kg:spec.kg,r:spec.r,t:spec.t,onBar:null,side:-1};
+ group.userData.plate={kg:spec.kg,r:spec.r,t:spec.t,onBar:null,onPeg:null,side:-1};
  mesh.userData.weightPlate=group.userData.plate;
  group.traverse(m=>{if(m.isMesh){m.userData.weightPlate=group.userData.plate;world.fractures.register(m,'metal');}});
  return group;
@@ -79,22 +94,24 @@ export function spawnBarbell(world,p,yaw=0){
 
 export function spawnBench(world,p,yaw=0){
  const group=new T.Group();group.position.copy(p);group.rotation.y=yaw;world.root.add(group);
- const pad=new T.Mesh(new T.BoxGeometry(1.28,.08,.32),new T.MeshStandardMaterial({color:0x3a2a28,roughness:.9}));
+ const pad=new T.Mesh(new T.BoxGeometry(1.32,.08,.34),new T.MeshStandardMaterial({color:0x3a2a28,roughness:.9}));
  pad.position.set(0,.44,0);group.add(pad);
- const frame=new T.Mesh(new T.BoxGeometry(1.22,.06,.26),metal(0x4a4a4e,.5,.4));
+ const frame=new T.Mesh(new T.BoxGeometry(1.24,.06,.28),metal(0x4a4a4e,.5,.4));
  frame.position.set(0,.38,0);group.add(frame);
- for(const [x,z] of [[-.5,.11],[-.5,-.11],[.5,.11],[.5,-.11]]){
+ for(const [x,z] of [[-.52,.12],[-.52,-.12],[.42,.12],[.42,-.12]]){
   const leg=new T.Mesh(new T.BoxGeometry(.05,.38,.05),metal(0x33363a));
   leg.position.set(x,.19,z);group.add(leg);
  }
+ const cross=new T.Mesh(new T.BoxGeometry(.05,.05,1.16),metal(0x33363a));
+ cross.position.set(.58,1.12,0);group.add(cross);
  for(const s of [-1,1]){
-  const up=new T.Mesh(new T.BoxGeometry(.05,1.22,.05),metal(0x33363a));
-  up.position.set(.52,.72,s*.22);group.add(up);
-  const hook=new T.Mesh(new T.BoxGeometry(.12,.03,.04),metal(0x8a9096));
-  hook.position.set(.42,1.18,s*.22);group.add(hook);
+  const up=new T.Mesh(new T.BoxGeometry(.05,1.28,.05),metal(0x33363a));
+  up.position.set(.58,.70,s*.56);group.add(up);
+  const hook=new T.Mesh(new T.BoxGeometry(.16,.028,.05),metal(0x8a9096));
+  hook.position.set(.46,1.16,s*.56);group.add(hook);
  }
  const furn=tagMovable(world,group,'Bench');
- furn.mass=38;furn.health=90;furn.rackY=1.18;furn.rackX=.42;
+ furn.mass=38;furn.health=90;furn.rackY=1.16;furn.rackX=.46;
  group.traverse(m=>{if(m.isMesh)world.fractures.register(m,m===pad?'wood':'metal');});
  return group;
 }
@@ -106,21 +123,39 @@ function refreshBar(bar){
  bb.mass=m;furn.mass=m;
 }
 
-export function detachPlate(world,plate){
- const info=plate.userData.plate;if(!info?.onBar)return plate;
- const bar=info.onBar,bb=bar.userData.barbell,side=info.side;
- const list=bb.sides[side];
- const i=list.indexOf(plate);if(i>=0)list.splice(i);
+function popFromWorld(world,plate){
  plate.updateWorldMatrix(true,true);
  const wp=plate.getWorldPosition(new T.Vector3());
  const wq=plate.getWorldQuaternion(new T.Quaternion());
- (world?.root||bar.parent).attach(plate);
+ (world?.root||plate.parent).attach(plate);
  plate.position.copy(wp);plate.quaternion.copy(wq);
- info.onBar=null;info.side=-1;
+ return plate;
+}
+export function detachPlate(world,plate){
+ const info=plate.userData.plate;if(!info)return plate;
+ if(info.onPeg){
+  const peg=info.onPeg,list=peg.plates,i=list.indexOf(plate);if(i>=0)list.splice(i);
+  popFromWorld(world,plate);info.onPeg=null;info.side=-1;
+  restackPeg(peg);
+ }else if(info.onBar){
+  const bar=info.onBar,bb=bar.userData.barbell,side=info.side;
+  const list=bb.sides[side],i=list.indexOf(plate);if(i>=0)list.splice(i);
+  popFromWorld(world,plate);info.onBar=null;info.side=-1;
+  restack(bar,side);refreshBar(bar);
+ }else return plate;
  const furn=tagMovable(world,plate,'Weight plate');
  furn.mass=info.kg;furn.throwable=true;furn.health=220;
- restack(bar,side);refreshBar(bar);
  return plate;
+}
+function restackPeg(peg){
+ const sign=Math.sign(peg.z)||1;
+ let z=peg.z+sign*.04;
+ for(const pl of peg.plates){
+  const t=pl.userData.plate.t;
+  z+=sign*(t*.5+.003);
+  pl.position.set(0,peg.y,z);pl.rotation.set(0,0,0);
+  z+=sign*(t*.5);
+ }
 }
 
 function restack(bar,side){
@@ -129,7 +164,7 @@ function restack(bar,side){
  for(const pl of list){
   const t=pl.userData.plate.t;
   x+=sign*(t*.5+.002);
-  pl.position.set(x,.014,0);pl.rotation.set(0,0,0);
+  pl.position.set(x,.014,0);pl.rotation.set(0,Math.PI/2,0);
   x+=sign*(t*.5);
  }
 }
@@ -160,32 +195,88 @@ export function tryLoadPlate(world,bar,plate){
 export function rackBarbell(bench,bar){
  const bf=bench.userData.furniture,bb=bar.userData.barbell;if(!bf||!bb)return false;
  bench.updateWorldMatrix(true,true);bar.updateWorldMatrix(true,true);
- const hook=bench.localToWorld(new T.Vector3(.08,1.20,0));
+ const hook=bench.localToWorld(new T.Vector3(.46,1.16,0));
  const mid=bar.getWorldPosition(new T.Vector3());
- if(hook.distanceTo(mid)>.62)return false;
- bar.position.copy(hook);bar.quaternion.copy(bench.getWorldQuaternion(new T.Quaternion()));
- if(bf) {const furn=bar.userData.furniture;if(furn){furn.velocity.set(0,0,0);furn.omega=furn.omega||new T.Vector3();furn.omega.set(0,0,0);furn.racked=true;}}
+ if(hook.distanceTo(mid)>.72)return false;
+ bar.position.copy(hook);
+ const q=bench.getWorldQuaternion(new T.Quaternion()).multiply(new T.Quaternion().setFromAxisAngle(new T.Vector3(0,1,0),Math.PI/2));
+ bar.quaternion.copy(q);
+ const furn=bar.userData.furniture;if(furn){furn.velocity.set(0,0,0);furn.omega=furn.omega||new T.Vector3();furn.omega.set(0,0,0);furn.racked=true;}
  return true;
+}
+
+export function spawnPlateTree(world,p,yaw=0){
+ const group=new T.Group();group.position.copy(p);group.rotation.y=yaw;world.root.add(group);
+ const steel=metal(0x3a3e42,.45,.55),chrome=metal(0xb8bdc2,.32,.75);
+ const post=new T.Mesh(new T.CylinderGeometry(.028,.034,1.18,10),steel);post.position.y=.59;group.add(post);
+ const base=new T.Mesh(new T.CylinderGeometry(.15,.17,.05,12),steel);base.position.y=.025;group.add(base);
+ const pegs=[];
+ PLATES.forEach((spec,i)=>{
+  const y=.20+i*.135;
+  for(const side of [-1,1]){
+   const peg=new T.Mesh(new T.CylinderGeometry(.012,.012,.30,8),chrome);
+   peg.rotation.x=Math.PI/2;peg.position.set(0,y,side*.20);group.add(peg);
+   pegs.push({mesh:peg,y,z:side*.20,kg:spec.kg,plates:[],tree:group});
+  }
+ });
+ group.userData.plateTree={pegs};
+ group.traverse(m=>{if(m.isMesh){m.castShadow=true;world.fractures.register(m,'metal');}});
+ world.obstacle(p.x,p.z,.28,.55,0,1.2,group);
+ return group;
+}
+function putPlateOnPeg(world,peg,plate){
+ const info=plate.userData.plate,tree=peg.tree;if(!info||!tree||info.onBar||info.onPeg)return false;
+ const furn=plate.userData.furniture;
+ if(furn?.obstacle)world.removeObstacle(furn.obstacle);
+ if(world.movables)world.movables=world.movables.filter(g=>g!==plate);
+ tree.attach(plate);info.onPeg=peg;peg.plates.push(plate);restackPeg(peg);
+ if(furn){furn.held=null;furn.holds?.clear?.();furn.velocity?.set(0,0,0);}
+ return true;
+}
+export function tryRackPlate(world,tree,plate){
+ const info=plate.userData.plate,pt=tree.userData.plateTree;if(!info||!pt||info.onBar||info.onPeg)return false;
+ plate.updateWorldMatrix(true,true);tree.updateWorldMatrix(true,true);
+ const p=plate.getWorldPosition(new T.Vector3());
+ let best=null,bd=.28;
+ for(const peg of pt.pegs){
+  if(Math.abs(peg.kg-info.kg)>0.01)continue;
+  const tip=tree.localToWorld(new T.Vector3(0,peg.y,peg.z+Math.sign(peg.z)*.12));
+  const d=p.distanceTo(tip);if(d<bd){bd=d;best=peg;}
+ }
+ if(!best){
+  for(const peg of pt.pegs){
+   const tip=tree.localToWorld(new T.Vector3(0,peg.y,peg.z+Math.sign(peg.z)*.12));
+   const d=p.distanceTo(tip);if(d<bd){bd=d;best=peg;}
+  }
+ }
+ return best?putPlateOnPeg(world,best,plate):false;
 }
 
 export function installWeights(world,origin=new T.Vector3(10.1,0,1.2),yaw=0){
  const q=new T.Quaternion().setFromAxisAngle(new T.Vector3(0,1,0),yaw);
  const at=(x,y,z)=>origin.clone().add(new T.Vector3(x,y,z).applyQuaternion(q));
  const bench=spawnBench(world,at(0,0,0),yaw);
- const bar=spawnBarbell(world,at(.08,1.20,0),yaw);
+ const bar=spawnBarbell(world,at(.46,1.16,0),yaw+Math.PI/2);
  if(bar.userData.furniture){bar.userData.furniture.racked=true;bar.userData.furniture.velocity.set(0,0,0);}
+ const trees=[spawnPlateTree(world,at(-1.05,0,-1.15),yaw),spawnPlateTree(world,at(-1.05,0,1.15),yaw)];
  const plates=[];
- let px=-1.55,pz=-1.55;
+ const used=new Map();
  for(const spec of PLATES){
   for(let i=0;i<spec.n;i++){
-   const g=spawnPlate(world,at(px,0,pz+(i*.08)),spec);
+   const g=spawnPlate(world,at(-1.05,spec.r,.2),spec);
    plates.push(g);
+   let peg=null;
+   for(const tree of trees){
+    const free=tree.userData.plateTree.pegs.find(p=>p.kg===spec.kg&&(used.get(p)||0)<Math.ceil(spec.n/2));
+    if(free){peg=free;break;}
+   }
+   if(!peg)for(const tree of trees){peg=tree.userData.plateTree.pegs.find(p=>p.kg===spec.kg);if(peg)break;}
+   if(peg){putPlateOnPeg(world,peg,g);used.set(peg,(used.get(peg)||0)+1);}
   }
-  px+=.42;if(px>1.6){px=-1.55;pz+=.55;}
  }
  const bells=[];
- [[5,-1.7,1.35],[5,-1.7,1.55],[10,-1.35,1.35],[10,-1.35,1.55],[15,-1.0,1.35],[15,-1.0,1.55]].forEach(([kg,x,z])=>bells.push(spawnDumbbell(world,at(x,0,z),kg)));
- world.gym={bench,bar,plates,bells};
+ [[5,-1.85,.85],[5,-1.85,1.05],[10,-1.55,.85],[10,-1.55,1.05],[15,-1.25,.85],[15,-1.25,1.05]].forEach(([kg,x,z])=>bells.push(spawnDumbbell(world,at(x,0,z),kg)));
+ world.gym={bench,bar,plates,bells,trees};
  return world.gym;
 }
 
@@ -206,7 +297,7 @@ export function installWeightPhysics(props){
   pickPlate(object){
    let g=object;while(g&&!g.userData?.plate)g=g.parent;
    if(!g?.userData?.plate)return null;
-   if(g.userData.plate.onBar)detachPlate(props.world,g);
+   if(g.userData.plate.onBar||g.userData.plate.onPeg)detachPlate(props.world,g);
    return g;
   },
   onRelease(group){
@@ -216,6 +307,7 @@ export function installWeightPhysics(props){
     for(const bar of [gym.bar,...(props.world.movables||[]).filter(m=>m.userData.barbell)]){
      if(tryLoadPlate(props.world,bar,group))return;
     }
+    for(const tree of gym.trees||[])if(tryRackPlate(props.world,tree,group))return;
    }
    if(group.userData.barbell&&gym.bench)rackBarbell(gym.bench,group);
   },

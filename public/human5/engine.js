@@ -1,11 +1,11 @@
 import {Builder,FURNITURE,SURFACES} from './mira-v2-builder.js?v=15.2';
 import {SmoothLocomotion} from './mira-v2-locomotion.js?v=14.6';
-import {Car} from './mira-v2-car.js?v=14.6';
+import {Car} from './mira-v2-car.js?v=15.6';
 import {Restraints} from './mira-v2-restraints.js?v=13.4';
 import { createDogSystem } from './mira-v2-dog.js?v=15.1';
 import { installGadgets } from './mira-v2-gadgets.js?v=14.6';
 import {Injuries} from './mira-v2-injuries.js?v=14.3';
-import {Props,WEAPONS,GUNS} from './mira-v2-props.js?v=15.5';
+import {Props,WEAPONS,GUNS} from './mira-v2-props.js?v=15.6';
 import {installFire} from './mira-v2-fire.js?v=15.5';
 import {installWeather} from './mira-v2-weather.js?v=15.5';
 import {installTerrainFeatures} from './mira-v2-terrain-features.js?v=15.2';
@@ -14,7 +14,7 @@ import {installWater} from './mira-v2-water.js?v=13.3';
 import {createFloraSystem} from './mira-v2-flora.js?v=13.3';
 import {RoomLight} from './mira-v2-light.js?v=11.0';
 import {draft,saveDraft,spawnOptions,OUTFITS,clothingItems} from './mira-v2-catalog.js?v=11.0';
-import {MiraWorld,SCENES} from './mira-v2-world.js?v=15.5';
+import {MiraWorld,SCENES} from './mira-v2-world.js?v=15.6';
 import {Wardrobe,GARMENTS} from './mira-v2-wardrobe.js?v=11.2';
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
@@ -24,7 +24,7 @@ import { unlockSfx } from "./mira-v2-sfx.js?v=11.0";
 import { EMOTION_NAMES, IDLE_NAMES, WALK_NAMES, ATTENTION_MODES } from "./mira-v2-features.js?v=13.7";
 import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
-import { createMiraSystem, SLIDERS, FACE_TYPES, HAIR_COLORS } from "./mira-v2.js?v=15.3";
+import { createMiraSystem, SLIDERS, FACE_TYPES, HAIR_COLORS } from "./mira-v2.js?v=15.6";
 import { DEFAULT_PERSONA, miraChat, miraSpeak, startMic, unlockVoice } from "./mira-voice-v2.js?v=12.3";
 
 import {V2_EXTRA_SLIDERS,FACE_PRESETS,HAIR_STYLES,ACTIVITY_MODES,ATTENTION_LABELS,shapeSliders} from './mira-v2-controls.js?v=12.9';
@@ -45,13 +45,13 @@ function banner(msg) {
 // Quest: skip MSAA (tiled Adreno pays a full extra render pass). Spend that budget on framebuffer scale instead.
 const renderer = new THREE.WebGLRenderer({ antialias: !QUEST, alpha: true, powerPreference: "high-performance" });
 const XR_ON = () => renderer.xr.isPresenting;
-renderer.setPixelRatio(Math.min(devicePixelRatio, QUEST ? 1.25 : 1.5));
+renderer.setPixelRatio(Math.min(devicePixelRatio, QUEST ? 1.12 : 1.5));
 renderer.setSize(innerWidth, innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.05;
 renderer.xr.enabled = true;
-renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.shadowMap.enabled=true;renderer.shadowMap.type=QUEST?THREE.BasicShadowMap:THREE.PCFSoftShadowMap;
 if (QUEST) renderer.xr.setFramebufferScaleFactor(0.9);
 renderer.setClearColor(0x6b5e52, 1);
 document.body.prepend(renderer.domElement);

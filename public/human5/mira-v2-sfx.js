@@ -41,6 +41,11 @@ export function playSfx(kind,vol=1){
    env(g,t,.55,.0008,.09);n.connect(f);f.connect(g);o.connect(g);n.start(t);n.stop(t+.08);o.start(t);o.stop(t+.08);
   }else if(kind==='splat'){
    const n=noise(c,.16),f=filt(c,'lowpass',900,0.8);env(g,t,.7,.0008,.16);n.connect(f);f.connect(g);n.start(t);n.stop(t+.16);
+  }else if(kind==='reload'){
+   const n=noise(c,.22),f=filt(c,'bandpass',900,1.8),o=c.createOscillator();o.type='square';o.frequency.setValueAtTime(180,t);o.frequency.exponentialRampToValueAtTime(70,t+.12);
+   const o2=c.createOscillator();o2.type='triangle';o2.frequency.setValueAtTime(520,t+.14);o2.frequency.exponentialRampToValueAtTime(140,t+.38);
+   const g2=c.createGain();g2.gain.setValueAtTime(0,t);g2.gain.linearRampToValueAtTime(.22,t+.16);g2.gain.exponentialRampToValueAtTime(.0001,t+.42);
+   env(g,t,.55,.0008,.2);n.connect(f);f.connect(g);o.connect(g);o2.connect(g2);g2.connect(g);n.start(t);n.stop(t+.22);o.start(t);o.stop(t+.14);o2.start(t+.12);o2.stop(t+.42);
   }else if(kind==='portal'){
    const o=c.createOscillator();o.type='sine';o.frequency.setValueAtTime(240,t);o.frequency.exponentialRampToValueAtTime(720,t+.18);
    const o2=c.createOscillator();o2.type='triangle';o2.frequency.setValueAtTime(90,t);o2.frequency.linearRampToValueAtTime(40,t+.28);

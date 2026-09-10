@@ -1,10 +1,10 @@
 import * as T from 'three';
 
 export const FIREARMS={
- rifle:{name:'Assault rifle',mass:3.4,reach:.78,kind:'bullet',category:'firearm',fireRate:.09,energy:38,spread:.014,pellets:1,stagger:.5,knockback:.05},
- sniper:{name:'Sniper rifle',mass:5.2,reach:1.18,kind:'bullet',category:'firearm',fireRate:.78,energy:78,spread:.0012,pellets:1,scope:true,stagger:1.8,knockback:1.05},
- shotgun:{name:'Shotgun',mass:3.6,reach:.72,kind:'bullet',category:'firearm',fireRate:.52,energy:16,spread:.085,pellets:8,stagger:1.35,knockback:.28},
- uzi:{name:'Uzi',mass:2.15,reach:.38,kind:'bullet',category:'firearm',fireRate:.05,energy:16,spread:.038,pellets:1,stagger:.85,knockback:.07}
+ rifle:{name:'Assault rifle',mass:3.4,reach:.78,kind:'bullet',category:'firearm',fireRate:.09,energy:38,spread:.014,pellets:1,stagger:.5,knockback:.05,magSize:30,reload:2.1},
+ sniper:{name:'Sniper rifle',mass:5.2,reach:1.18,kind:'bullet',category:'firearm',fireRate:.78,energy:78,spread:.0012,pellets:1,scope:true,stagger:1.8,knockback:1.05,magSize:5,reload:2.6},
+ shotgun:{name:'Shotgun',mass:3.6,reach:.72,kind:'bullet',category:'firearm',fireRate:.52,energy:16,spread:.085,pellets:8,stagger:1.35,knockback:.28,magSize:6,reload:2.4},
+ uzi:{name:'Uzi',mass:2.15,reach:.38,kind:'bullet',category:'firearm',fireRate:.05,energy:16,spread:.038,pellets:1,stagger:.85,knockback:.07,magSize:25,reload:1.8}
 };
 
 const steel=()=>new T.MeshStandardMaterial({color:0x6d7378,roughness:.28,metalness:.82});
@@ -41,12 +41,17 @@ function buildSniper(add){
  const barrel=add(new T.CylinderGeometry(.01,.011,.72,10),steel(),0,.03,-.62);barrel.rotation.x=Math.PI/2;
  const brake=add(new T.CylinderGeometry(.016,.014,.06,8),steel(),0,.03,-.98);brake.rotation.x=Math.PI/2;
  const stock=add(new T.BoxGeometry(.04,.09,.22),wood(),0,.01,.2);stock.rotation.x=-.08;
- const tube=add(new T.CylinderGeometry(.018,.018,.16,12),black(),0,.092,-.12);tube.rotation.x=Math.PI/2;
- add(new T.CylinderGeometry(.022,.022,.03,12),steel(),0,.092,-.04);
- add(new T.CylinderGeometry(.022,.022,.03,12),steel(),0,.092,-.2);
- const lens=add(new T.CircleGeometry(.016,16),glass(),0,.092,-.205);lens.rotation.x=Math.PI;
- const lens2=add(new T.CircleGeometry(.016,16),glass(),0,.092,-.035);
- add(new T.BoxGeometry(.004,.03,.03),black(),0,.122,-.12);
+ const tube=add(new T.CylinderGeometry(.022,.024,.28,14),black(),0,.112,-.16);tube.rotation.x=Math.PI/2;
+ add(new T.CylinderGeometry(.028,.028,.035,14),steel(),0,.112,-.02);
+ add(new T.CylinderGeometry(.03,.03,.04,14),steel(),0,.112,-.30);
+ const bell=add(new T.CylinderGeometry(.034,.028,.03,14),steel(),0,.112,-.33);bell.rotation.x=Math.PI/2;
+ const eye=add(new T.CylinderGeometry(.02,.022,.04,12),black(),0,.112,.04);eye.rotation.x=Math.PI/2;
+ const turret=add(new T.CylinderGeometry(.012,.012,.028,10),steel(),0,.138,-.16);
+ const wind=add(new T.CylinderGeometry(.012,.012,.028,10),steel(),.028,.112,-.16);wind.rotation.z=Math.PI/2;
+ const glassMat=new T.MeshPhysicalMaterial({color:0x6a90a8,roughness:.06,metalness:.12,transparent:true,opacity:.42,transmission:.55,thickness:.02,ior:1.52});
+ const obj=add(new T.CircleGeometry(.026,20),glassMat,0,.112,-.348);obj.rotation.x=Math.PI;obj.userData.scopeLens=true;obj.userData.scopeZoom=4.5;
+ const oc=add(new T.CircleGeometry(.014,16),glassMat,0,.112,.06);oc.rotation.x=0;
+ add(new T.BoxGeometry(.008,.04,.05),black(),0,.148,-.16);
 }
 
 function buildShotgun(add){

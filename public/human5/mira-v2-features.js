@@ -532,7 +532,14 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
   wander(dt){
    if(this.dead||this.balance.state!=='standing'||this.grabs.size){this.speed=damp(this.speed,0,10,dt);this.pathSpeed=this.speed;return false;}
    if(this.pathSpeed!==undefined)this.speed=this.pathSpeed;
-   // Base path steering, with six distinct speed/cadence styles.
+   if(this.autoWander&&this.mode==='wander'&&!this.dest&&!this.held&&(this.miraWalk||0)<=0){
+    this.miraWalk=5+Math.random()*6;
+    const here=this.group.position;
+    for(let k=0;k<10;k++){
+     const p=here.clone();p.x+=(Math.random()-.5)*7;p.z+=(Math.random()-.5)*7;p.y=0;
+     if(!this.world?.blocked?.(p,.3)){this.dest=p;break;}
+    }
+   }
    const before=this.group.position.clone();const moving=super.wander(dt);
    if(this.directedWalk&&!this.dest&&!this.navigation){this.directedWalk=null;this.autoWander=false;this.mode='idle';this.modeT=0;this.speed=0;this.pathSpeed=0;}
    const moodSpeed=['sad','tired'].includes(this.emotion.name)?.8:1;

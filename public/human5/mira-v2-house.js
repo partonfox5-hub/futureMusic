@@ -2,9 +2,9 @@ import * as T from 'three';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
 import {makeSurfaceMap,wallMaterial} from './mira-v2-walls.js?v=15.2';
 import {placeStairs,placeFurniture,tagMovable} from './mira-v2-furniture.js?v=15.2';
-import {installWeights} from './mira-v2-weights.js?v=15.2';
+import {installWeights} from './mira-v2-weights.js?v=15.6';
 import {installLaundry,installPantry} from './mira-v2-laundry.js?v=15.5';
-import {installPiano} from './mira-v2-piano.js?v=15.5';
+import {installPiano} from './mira-v2-piano.js?v=15.6';
 import {HouseDoors} from './mira-v2-doors.js?v=14.6';
 const STORY=3.05,CELL=.6;
 const doorHole=(axis,c,w=1.14,head=2.14)=>{
@@ -21,10 +21,9 @@ export function buildHouse(w){
  const panel=(x,y,z,sx,sy,sz,hole,kind='plaster',map=maps.plaster)=>w.fractures.panel(v(x,y,z),v(sx,sy,sz),kind,hole||(()=>false),{map});
  const round=(x,y,z,sx,sy,sz,color,r=.03)=>w.mesh(new RoundedBoxGeometry(sx,sy,sz,2,Math.min(r,Math.min(sx,sy,sz)*.3)),w.mat(color),x,y,z);
  const slab=(x,z,ww,dd,y,thick,map,kind='wood')=>{
-  const mat=wallMaterial(kind,map);
-  const mesh=w.mesh(new T.BoxGeometry(ww,thick,dd),mat,x,y+thick/2,z);
+  const mesh=w.fractures.panel(v(x,y+thick/2,z),v(ww,thick,dd),kind,()=>false,{map,skipObstacle:true,cell:Math.max(.55,Math.min(ww,dd)>8?.9:.62)});
   w.floors??=[];w.floors.push({x,z,w:ww,d:dd,y,h:thick});
-  w.fractures.register(mesh,kind);return mesh;
+  return mesh;
  };
  const pane=(x,y,z,sx,sy,sz)=>w.fractures.panel(v(x,y,z),v(sx,sy,sz),'glass');
  w.doors?.clear?.();

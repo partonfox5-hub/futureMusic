@@ -282,7 +282,7 @@ export function installPiano(world,origin=new T.Vector3(-5.85,0,.35),yaw=Math.PI
     const goal=this.seat.approach.clone();
     if(actor.walkTo?.(goal)){
      actor.navigation={points:[goal.clone()],index:0,goal,seat:this.seat};
-     actor.directedWalk=goal.clone();actor.setMode('wander');actor.autoWander=true;ok=true;
+     actor.directedWalk=goal.clone();actor.dest=goal.clone();actor.autoWander=true;ok=true;
     }
    }
    if(props)props.status=ok?name+' · to the piano':'Piano · no path';

@@ -1,7 +1,8 @@
 import * as T from 'three';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
-import {CarAudio,unlockSfx} from './mira-v2-sfx.js?v=14.5';
+import {CarAudio,unlockSfx} from './mira-v2-sfx.js?v=15.6';
 const V=()=>new T.Vector3(),Q=()=>new T.Quaternion(),clamp=T.MathUtils.clamp,Y=new T.Vector3(0,1,0);
+const QUEST=/Quest|OculusBrowser/i.test(globalThis.navigator?.userAgent||'');
 const GEARS=['P','R','N','D'];
 const GEAR_SPAN=.06;
 const gearZ=g=>(GEARS.indexOf(g)-1.5)*GEAR_SPAN;
@@ -16,7 +17,7 @@ export class Car {
   this.cabinBox=new T.Box3(new T.Vector3(-.95,.40,-.90),new T.Vector3(.95,1.95,1.15));this.audio=new CarAudio();this.build();this.reset();
  }
  build(){
-  const paint=new T.MeshPhysicalMaterial({color:this.paintColor,roughness:.23,metalness:.78,clearcoat:1,clearcoatRoughness:.12,envMapIntensity:1,side:T.DoubleSide}),trim=new T.MeshStandardMaterial({color:0x222729,roughness:.82}),alloy=new T.MeshStandardMaterial({color:0xb5bec0,roughness:.25,metalness:.82}),glass=new T.MeshPhysicalMaterial({color:0x93b1b9,transparent:true,opacity:.20,roughness:.12,metalness:0,side:T.DoubleSide,depthWrite:false});
+  const paint=QUEST?new T.MeshStandardMaterial({color:this.paintColor,roughness:.28,metalness:.72,envMapIntensity:.9,side:T.DoubleSide}):new T.MeshPhysicalMaterial({color:this.paintColor,roughness:.23,metalness:.78,clearcoat:1,clearcoatRoughness:.12,envMapIntensity:1,side:T.DoubleSide}),trim=new T.MeshStandardMaterial({color:0x222729,roughness:.82}),alloy=new T.MeshStandardMaterial({color:0xb5bec0,roughness:.25,metalness:.82}),glass=QUEST?new T.MeshStandardMaterial({color:0x93b1b9,transparent:true,opacity:.22,roughness:.14,metalness:0,side:T.DoubleSide,depthWrite:false}):new T.MeshPhysicalMaterial({color:0x93b1b9,transparent:true,opacity:.20,roughness:.12,metalness:0,side:T.DoubleSide,depthWrite:false});
   const add=(name,geom,material=paint,health=110)=>{const mesh=new T.Mesh(geom,material.clone());mesh.name=name;mesh.castShadow=mesh.receiveShadow=true;this.group.add(mesh);const part={name,mesh,health,max:health,kind:'panel',broken:false,stiffness:name==='Chassis'?85000:18000,baseRoughness:mesh.material.roughness};mesh.userData.carPart=part;this.parts.push(part);this.pickables.push(mesh);return mesh;};
   const box=(p,s,mat=trim)=>{const m=new T.Mesh(new RoundedBoxGeometry(...s,1,.025),mat);m.position.fromArray(p);this.group.add(m);return m;};
   const sideX=(y)=>.835+.055*Math.sin(clamp((y-.38)/.62,0,1)*Math.PI);
@@ -142,10 +143,10 @@ export class Car {
   if(cell)this.world.grid=null;
  }
  pull(delta){this.group.position.add(delta.clone().clampLength(0,.004));this.syncCollider();}
- surfaceAt(x,z){const surface=this.world.surfaceAt?.(x,z);if(surface&&typeof surface==='object'&&Number.isFinite(surface.mu))return {mu:clamp(surface.mu,.1,1.2),name:surface.name||'surface'};if(this.world.name==='Beach')return {mu:.35,name:'sand'};if(this.world.name==='Jungle')return {mu:.50,name:'dirt'};return x>-.2&&x<8.2&&z>4.2&&z<11?{mu:.90,name:'driveway'}:{mu:.55,name:'interior'};}
+ surfaceAt(x,z){const surface=this.world.surfaceAt?.(x,z);if(surface&&typeof surface==='object'&&Number.isFinite(surface.mu))return {mu:clamp(surface.mu,.1,1.2),name:surface.name||'surface'};if(this.world.name==='Beach')return {mu:.42,name:'sand'};if(this.world.name==='Jungle')return {mu:.62,name:'dirt'};if(x>-.2&&x<8.2&&z>4.2&&z<11)return {mu:.96,name:'driveway'};if(Math.abs(x)<7.5&&z>-7.2&&z<11.2)return {mu:.78,name:'floor'};return {mu:.84,name:'grass'};}
  wheelContact(w){const p=this.group.localToWorld(new T.Vector3(w.side*.89,.65,w.z));let floor=this.world.floorHeight?.(p)??0;if(!Number.isFinite(floor))floor=0;for(const o of this.world.nearby?.(p,.02)||[]){if(o===this.obstacle)continue;const top=o.y+o.h;if(Math.abs(p.x-o.x)<=o.w/2&&Math.abs(p.z-o.z)<=o.d/2&&top<=p.y&&top>floor)floor=top;}return {p,floor};}
  step(dt,input){
-  dt=clamp(dt,0,.04);if(!dt)return;this.updateOccupancy();this.steer+=(input.steer-this.steer)*(1-Math.exp(-dt*8));this.group.updateMatrixWorld(true);
+  dt=clamp(dt,0,.04);if(!dt)return;this.updateOccupancy();this.steer+=(input.steer-this.steer)*(1-Math.exp(-dt*14));this.group.updateMatrixWorld(true);
   const forward=new T.Vector3(0,0,-1).applyAxisAngle(Y,this.group.rotation.y),right=new T.Vector3(1,0,0).applyAxisAngle(Y,this.group.rotation.y),speed=this.velocity.dot(forward);
   const drive=this.driving&&(this.gear==='D'||this.gear==='R');
   const throttle=drive?(this.gear==='R'?-Math.abs(input.throttle||0):(input.throttle||0)):0;
@@ -169,14 +170,13 @@ export class Car {
     // Rear axle (+local Z) driven, as in the supplied car; damaged tires receive no drive torque.
     const torque=w.z>0&&!w.popped?throttle*669*(1-.08*Math.min(1,Math.abs(vl)/18)):0,I=1.8;
     let omega=w.omega+torque*dt/I;omega=Math.sign(omega||vl)*Math.max(0,Math.abs(omega)-brake*mu*N*radius*dt/I);
-    const limit=mu*N,den=Math.max(Math.abs(vl),.7),stiff=limit*4;
+    const limit=mu*N*1.15,den=Math.max(Math.abs(vl),.28),stiff=limit*7.5;
     let long=stiff*(radius*omega-vl)/(den+stiff*radius*radius*dt/I);
-    const slip=Math.atan2(vs,Math.max(Math.abs(vl),.4));let lat=-limit*Math.sin(clamp(slip/.16,-1,1)*Math.PI/2)*(1-.15*clamp((Math.abs(slip)-.16)/.6,0,1));
+    const slip=Math.atan2(vs,Math.max(Math.abs(vl),.18));let lat=-limit*Math.sin(clamp(slip/.07,-1,1)*Math.PI/2);
     const demand=Math.hypot(long,lat),scale=Math.min(1,limit/Math.max(.001,demand));long*=scale;lat*=scale;
     w.omega=omega-long*radius*dt/I;w.slip=slip;w.saturated=demand>=limit*.99;
     const f=wf.multiplyScalar(long).addScaledVector(wr,lat);force.add(f);yawTorque+=r.z*f.x-r.x*f.z;
     const localF=f.clone().applyAxisAngle(Y,-this.group.rotation.y);pitchTorque-=.25*localF.z;rollTorque+=.25*localF.x;
-    if(w.saturated&&Math.abs(this.steer)>.08&&Math.abs(speed)>3)yawTorque+=Math.sign(this.steer*speed)*Math.min(80,Math.abs(vs)*30);
     w.roll+=w.omega*dt;w.spin.rotation.x=-w.roll;w.group.rotation.y=w.z<0?this.steer:0;
   }
   const grav=Number.isFinite(this.world?.gravity)?this.world.gravity:9.81;
@@ -186,11 +186,13 @@ export class Car {
   this.steeringWheel.rotation.z=this.steer*5.2;
   const planar=this.velocity.length();if(planar>.001){const resistance=this.mass*9.81*.009+.5*.32*2.1*1.225*planar*planar;force.addScaledVector(this.velocity,-Math.min(resistance,this.mass*planar/dt)/planar);}
   const openDoors=this.hinges.filter(h=>h.kind==='door'&&!h.panel.broken&&h.angle>.262);if(openDoors.length&&planar>2){force.addScaledVector(this.velocity,-35*openDoors.length);yawTorque+=openDoors.reduce((n,h)=>n+h.sign,0)*Math.min(120,planar*12);}
-  this.velocity.addScaledVector(force,dt/this.mass);if(brake&&!throttle&&planar<.08)this.velocity.set(0,0,0);
+  this.velocity.addScaledVector(force,dt/this.mass);
+  const latVel=this.velocity.dot(right);this.velocity.addScaledVector(right,-latVel*(1-Math.exp(-dt*(9+brake*14))));
+  if(brake&&!throttle&&planar<.12)this.velocity.set(0,0,0);
   let newSpeed=this.velocity.dot(forward);
   if(this.gear==='R'){if(newSpeed>1.2)this.velocity.addScaledVector(forward,1.2-newSpeed);if(newSpeed<-12)this.velocity.addScaledVector(forward,-12-newSpeed);}
   else{if(newSpeed>32)this.velocity.addScaledVector(forward,32-newSpeed);if(newSpeed<-4)this.velocity.addScaledVector(forward,-4-newSpeed);}
-  this.yawRate+=(yawTorque/2400-this.yawRate*.75)*dt;this.yawRate=clamp(this.yawRate,-1.5,1.5);this.group.rotation.y+=this.yawRate*dt;this.group.position.addScaledVector(this.velocity,dt);
+  this.yawRate+=(yawTorque/2400-this.yawRate*2.4)*dt;this.yawRate=clamp(this.yawRate,-1.15,1.15);this.group.rotation.y+=this.yawRate*dt;this.group.position.addScaledVector(this.velocity,dt);
  }
  damage(hit,energy,kind,dir,impulse=null){
   const p=hit?.object?.userData.carPart;if(!p||p.broken)return;energy=Math.max(0,Number(energy)||0);const loss=kind==='laser'?energy*1.4:energy;p.health-=loss;
@@ -278,5 +280,5 @@ export class Car {
  }
  get telemetry(){return `${this.gear} · cabin ${this.inCabin?'IN':'OUT'} · ${Math.round(this.velocity.length()*3.6)} km/h · ${this.surfaceName} µ ${this.mu.toFixed(2)}`;}
  updateStatus(){this.status=`${this.gear} · cabin ${this.inCabin?'IN':'OUT'} · ${Math.round(this.velocity.length()*3.6)} km/h · ${this.surfaceName} µ ${this.mu.toFixed(2)} · ${this.message}`;}
- renderMirror(){if(!this.driving||!this.mirrorEnabled||this.mirrorClock<(this.velocity.length()>2?1/8:1/5))return;this.mirrorClock=0;const renderer=this.renderer,wasXR=renderer.xr.enabled,wasShadow=renderer.shadowMap.autoUpdate,target=renderer.getRenderTarget(),face=renderer.getActiveCubeFace(),mip=renderer.getActiveMipmapLevel(),viewport=renderer.getViewport(new T.Vector4()),scissor=renderer.getScissor(new T.Vector4()),scissorTest=renderer.getScissorTest(),visible=this.mirror.visible,panel=this.props.menu?.panel,panelVisible=panel?.visible;this.rearCamera.position.copy(this.group.localToWorld(new T.Vector3(-.10,1.35,-.65)));this.rearCamera.lookAt(this.group.localToWorld(new T.Vector3(-.10,1.25,10)));this.mirror.visible=false;if(panel)panel.visible=false;try{renderer.xr.enabled=false;renderer.shadowMap.autoUpdate=false;renderer.setRenderTarget(this.target);renderer.setViewport(0,0,384,192);renderer.setScissorTest(false);renderer.render(this.scene,this.rearCamera);}finally{renderer.setRenderTarget(target,face,mip);renderer.setViewport(viewport);renderer.setScissor(scissor);renderer.setScissorTest(scissorTest);renderer.shadowMap.autoUpdate=wasShadow;renderer.xr.enabled=wasXR;this.mirror.visible=visible;if(panel)panel.visible=panelVisible;}}
+ renderMirror(){if(!this.driving||!this.mirrorEnabled||this.mirrorClock<(QUEST?(this.velocity.length()>2?1/4:1/3):(this.velocity.length()>2?1/8:1/5)))return;this.mirrorClock=0;const renderer=this.renderer,wasXR=renderer.xr.enabled,wasShadow=renderer.shadowMap.autoUpdate,target=renderer.getRenderTarget(),face=renderer.getActiveCubeFace(),mip=renderer.getActiveMipmapLevel(),viewport=renderer.getViewport(new T.Vector4()),scissor=renderer.getScissor(new T.Vector4()),scissorTest=renderer.getScissorTest(),visible=this.mirror.visible,panel=this.props.menu?.panel,panelVisible=panel?.visible;this.rearCamera.position.copy(this.group.localToWorld(new T.Vector3(-.10,1.35,-.65)));this.rearCamera.lookAt(this.group.localToWorld(new T.Vector3(-.10,1.25,10)));this.mirror.visible=false;if(panel)panel.visible=false;try{renderer.xr.enabled=false;renderer.shadowMap.autoUpdate=false;renderer.setRenderTarget(this.target);renderer.setViewport(0,0,384,192);renderer.setScissorTest(false);renderer.render(this.scene,this.rearCamera);}finally{renderer.setRenderTarget(target,face,mip);renderer.setViewport(viewport);renderer.setScissor(scissor);renderer.setScissorTest(scissorTest);renderer.shadowMap.autoUpdate=wasShadow;renderer.xr.enabled=wasXR;this.mirror.visible=visible;if(panel)panel.visible=panelVisible;}}
 }

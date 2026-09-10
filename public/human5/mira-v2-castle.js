@@ -31,9 +31,9 @@ export function buildCastle(w){
  const maps={wood:makeSurfaceMap('Wood'),stone:makeSurfaceMap('Stone'),brick:makeSurfaceMap('Brick'),castle:makeSurfaceMap('Castle'),shingle:makeSurfaceMap('Shingle')};
  const panel=(x,y,z,sx,sy,sz,hole,kind='stone',map=maps.castle)=>w.fractures.panel(v(x,y,z),v(sx,sy,sz),kind,hole||(()=>false),{map});
  const slab=(x,z,ww,dd,y,thick,map,kind='stone')=>{
-  const mesh=w.mesh(new T.BoxGeometry(ww,thick,dd),wallMaterial(kind,map),x,y+thick/2,z);
+  const mesh=w.fractures.panel(v(x,y+thick/2,z),v(ww,thick,dd),kind,()=>false,{map,skipObstacle:true,cell:Math.max(.7,Math.min(ww,dd)>10?1.05:.7)});
   w.floors??=[];w.floors.push({x,z,w:ww,d:dd,y,h:thick});
-  w.fractures.register(mesh,kind);return mesh;
+  return mesh;
  };
  const H=5.05,hy=H/2,TH=7.35,thy=TH/2;
  const cx=CASTLE.x,cz=CASTLE.z,hw=8.4,hd=8.4;
