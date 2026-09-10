@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import {restoreSurfaceUV} from './mira-v2-uv.js?v=11.0';
 import {HairGuides} from './mira-v2-hair.js?v=12.9';
 import {SurfaceFlesh} from './mira-v2-tissue.js?v=12.0';
+import {installV2Realism} from './mira-v2-realism.js?v=14.5';
 
 // Mira v2: a bounded real-time approximation for this CC3 rig, Three r170.
 const clamp = THREE.MathUtils.clamp, damp = THREE.MathUtils.damp;
@@ -272,6 +273,9 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    this.hairDetail=opts.hairDetail==='classic'?'classic':'advanced';this.eyeDetail=opts.eyeDetail==='classic'?'classic':'advanced';
    this.hairPhysics=new HairGuides(this,BODY_HIT,this.hairDetail);this.eyes=new LivingEyes(this,loadMap,this.eyeDetail);this.enhanceEyes=new EnhanceEyes(this);
    this.root.traverse(o=>{if(o.isMesh){o.receiveShadow=!/Skin_/.test(o.material?.name);o.castShadow=!/hair|eyes/.test(o.name);}});
+   if(!/OculusBrowser|Quest/i.test(globalThis.navigator?.userAgent||'')){
+    try{installV2Realism(this,{loadMap,shapePoint,fingerRotation});}catch(err){console.warn('v2 realism skipped',err);}
+   }
   }
   setVisualDetail(kind,value){
    const mode=value==='classic'?'classic':'advanced';

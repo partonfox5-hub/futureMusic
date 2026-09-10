@@ -1,16 +1,16 @@
 import * as THREE from 'three';
-import { DogModel, clamp } from './src/dog/Dog.js?v=13.5';
+import { DogModel, clamp } from './src/dog/Dog.js?v=14.5';
 import { DogPaws, floorAt } from './src/dog/DogPaws.js?v=13.5';
 import { DogJaw } from './src/dog/DogJaw.js?v=13.5';
 import { DogTail } from './src/dog/DogTail.js?v=13.5';
 import { DogFur } from './src/dog/DogFur.js?v=13.5';
-import { DogAudio } from './src/dog/DogAudio.js?v=13.5';
-import { DogAI } from './src/dog/DogAI.js?v=14.2';
+import { DogAudio } from './src/dog/DogAudio.js?v=14.5';
+import { DogAI } from './src/dog/DogAI.js?v=14.5';
 import { DogAnim } from './src/dog/DogAnim.js?v=13.5';
 import { DogNeeds } from './src/dog/DogNeeds.js?v=13.5';
-import { DogItems } from './src/dog/DogItems.js?v=13.6';
+import { DogItems } from './src/dog/DogItems.js?v=14.5';
 import { DogBite } from './src/dog/DogBite.js?v=13.5';
-import { BONE_NAMES } from './src/dog/Dog.js?v=13.5';
+import { BONE_NAMES } from './src/dog/Dog.js?v=14.5';
 const _p=new THREE.Vector3(),_q=new THREE.Vector3();
 function dogNearestHit(handle,pos,maxDist){
  let best=null,bd=maxDist,point=new THREE.Vector3();
@@ -35,10 +35,14 @@ function dogNearestHit(handle,pos,maxDist){
 
 const byScene=new WeakMap(),byContext=new WeakMap();let emptySystem=null;
 const Y=new THREE.Vector3(0,1,0);
-const NAME_KEY='human5-dog-name';
-function loadDogName(){try{const n=localStorage.getItem(NAME_KEY);if(n&&n.trim())return n.trim().slice(0,24);}catch{}return 'Buddy';}
-function saveDogName(n){try{localStorage.setItem(NAME_KEY,n);}catch{}}
-function cleanName(n){return String(n||'').replace(/["'`]+/g,'').replace(/[.!?]+$/g,'').trim().slice(0,24)||'Buddy';}
+const NAME_KEY='human5-dog-name',CAT_NAME_KEY='human5-cat-name';
+function loadPetName(key,fallback){try{const n=localStorage.getItem(key);if(n&&n.trim())return n.trim().slice(0,24);}catch{}return fallback;}
+function savePetName(key,n){try{localStorage.setItem(key,n);}catch{}}
+function loadDogName(){return loadPetName(NAME_KEY,'Buddy');}
+function saveDogName(n){savePetName(NAME_KEY,n);}
+function loadCatName(){return loadPetName(CAT_NAME_KEY,'Miso');}
+function saveCatName(n){savePetName(CAT_NAME_KEY,n);}
+function cleanName(n,fallback='Buddy'){return String(n||'').replace(/["'`]+/g,'').replace(/[.!?]+$/g,'').trim().slice(0,24)||fallback;}
 function tokens(s){return String(s||'').toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim().split(/\s+/).filter(Boolean);}
 function phon(s){return s.replace(/[aeiouy]/g,'').replace(/(.)\1+/g,'$1');}
 function lev(a,b){if(a===b)return 0;const m=a.length,n=b.length;if(!m)return n;if(!n)return m;const d=Array.from({length:m+1},(_,i)=>[i,...Array(n).fill(0)]);for(let j=1;j<=n;j++)d[0][j]=j;for(let i=1;i<=m;i++)for(let j=1;j<=n;j++)d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+(a[i-1]===b[j-1]?0:1));return d[m][n];}
@@ -66,7 +70,7 @@ export function spokenNameMatch(spoken,name){
  if(joined===want||joined.includes(want)||joined.replace(/\s+/g,'')===glued)return true;
  if(joined.length>=3&&want.includes(joined)&&joined.length>=Math.max(3,want.length-2))return true;
  const names=parts.concat(glued);
- const stop=new Set(['the','a','an','to','my','you','me','hey','hi','yo','please','can','come','here','boy','girl','and','for','mira','her','him','that','this','okay','ok','yeah','yes','no','just','dog','puppy','pup','good','whoa','whoah']);
+ const stop=new Set(['the','a','an','to','my','you','me','hey','hi','yo','please','can','come','here','boy','girl','and','for','mira','her','him','that','this','okay','ok','yeah','yes','no','just','dog','puppy','pup','cat','kitty','kitten','good','whoa','whoah']);
  const variants=new Set();
  for(const p of names)for(const f of fuzz(p))variants.add(f);
  for(const tok of spokenTok){
@@ -130,24 +134,25 @@ export function createDogSystem(input={}) {
     get disposed(){return disposed;},
     spawn(opts={}){
       if(disposed)return null;opts=opts&&typeof opts==='object'?opts:{};
-      const id=opts.id==null?`dog-${++serial}`:String(opts.id),found=handles.find(h=>h.id===id);if(found)return found;if(handles.length>=2)return null;
-      const model=new DogModel(),paws=new DogPaws(model,ctx.world),jaw=new DogJaw(model),tail=new DogTail(model);
+      const species=opts.species==='cat'?'cat':'dog';
+      const id=opts.id==null?`${species}-${++serial}`:String(opts.id),found=handles.find(h=>h.id===id);if(found)return found;if(handles.length>=4)return null;
+      const model=new DogModel(species),paws=new DogPaws(model,ctx.world),jaw=new DogJaw(model),tail=new DogTail(model);
       const fur=new DogFur(model,ctx.renderer,paws.padMaterial),ai=new DogAI(model,ctx);
       const mira0=(ctx.mira||ctx.system)?.actors?.[0];
       ai.setAttention(opts.attentionMode||mira0?.attentionMode||'attentive');
-      model.compactMeshes();fur.rebindLayers();model.setCoat(opts.coat||coat);
+      model.compactMeshes();fur.rebindLayers();model.setCoat(opts.coat||(species==='cat'?'#c47a32':coat));
       const tf=defaultTransform(),last=handles.at(-1);let position=tf.position,yaw=tf.yaw;
       if(last&&!opts.default){position=last.root.position.clone().add(new THREE.Vector3(.6,0,0).applyAxisAngle(Y,last.root.rotation.y));yaw=last.root.rotation.y;}
       if(opts.position){if(Array.isArray(opts.position))position.fromArray(opts.position);else position.copy(opts.position);}
       if(Number.isFinite(opts.yaw))yaw=opts.yaw;
-      model.root.position.copy(position);model.root.rotation.y=yaw;model.root.name='Human2_Dog';
+      model.root.position.copy(position);model.root.rotation.y=yaw;model.root.name=species==='cat'?'Human2_Cat':'Human2_Dog';
       model.root.userData.dogHandle=true;
       if(ctx.scene?.add)ctx.scene.add(model.root);
       model.root.updateMatrixWorld(true);
       const handle={
-        id,root:model.root,group:model.root,version:'dog',kind:'dog',bones:model.bones,grabs:new Map(),needs:new DogNeeds(),
-        displayName:opts.name||loadDogName(),
-        setName(n){const name=cleanName(n);handle.displayName=name;saveDogName(name);return handle;},
+        id,root:model.root,group:model.root,version:species,kind:species,bones:model.bones,grabs:new Map(),needs:new DogNeeds(),
+        displayName:opts.name||(species==='cat'?loadCatName():loadDogName()),
+        setName(n){const name=cleanName(n,species==='cat'?'Miso':'Buddy');handle.displayName=name;species==='cat'?saveCatName(name):saveDogName(name);return handle;},
         recall(){
           const cam=ctx.camera,player=new THREE.Vector3();
           if(cam?.getWorldPosition)cam.getWorldPosition(player);
@@ -158,7 +163,8 @@ export function createDogSystem(input={}) {
         },
         setCoat(hex){model.setCoat(hex);return handle;},
         giveBone(){return system.spawnBone(model.root.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(.35,.1,.35)));},
-        giveBag(){return system.spawnKibbleBag(model.root.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(.5,.1,.35)));},
+        giveChicken(){return system.spawnChicken(model.root.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(.4,.1,.3)));},
+        giveBag(){return species==='cat'?system.spawnCatBag(model.root.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(.5,.1,.35))):system.spawnKibbleBag(model.root.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(.5,.1,.35)));},
         giveBowl(){return system.spawnBowl(model.root.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(-.4,0,.4)));},
         setJaw(t){jaw.set(t);return handle;},
         bark(pattern='ambient'){audio.bark(()=>jaw.bark(),handle,pattern);return handle;},
@@ -242,11 +248,23 @@ export function createDogSystem(input={}) {
       handle._anim=new DogAnim(model,paws,jaw,tail,ai,pattern=>handle.bark(pattern));
       handles.push(handle);announce();ensureLoop();return handle;
     },
-    spawnDefault(){return handles.find(h=>h.id==='dog-default')||system.spawn({id:'dog-default',default:true});},
+    spawnDefault(){return handles.find(h=>h.id==='dog-default')||system.spawn({id:'dog-default',default:true,species:'dog'});},
+    spawnDefaultCat(){
+      const existing=handles.find(h=>h.id==='cat-default');if(existing)return existing;
+      const dog=handles.find(h=>h.kind==='dog');
+      const pos=dog?dog.root.position.clone().add(new THREE.Vector3(-.85,0,.35)):undefined;
+      const cat=system.spawn({id:'cat-default',species:'cat',name:loadCatName(),coat:'#c47a32',position:pos,yaw:dog?dog.root.rotation.y+.4:undefined});
+      if(cat){
+        const p=cat.root.getWorldPosition(new THREE.Vector3());
+        system.spawnChicken(p.clone().add(new THREE.Vector3(.45,.08,.2)));
+        system.spawnCatBag(p.clone().add(new THREE.Vector3(.7,.08,-.15)));
+      }
+      return cat;
+    },
     despawn(idOrHandle){const id=typeof idOrHandle==='object'?idOrHandle?.id:idOrHandle,i=handles.findIndex(h=>h.id===id);if(i<0)return false;const h=handles.splice(i,1)[0];h.endGrab();items.releaseDog(h);h._ai.releaseSeat();audio.cancel(h);h._fur.dispose();h._model.dispose();if(!handles.length)cancelLoop();return true;},
     tick(dt){if(!hostOwned){hostOwned=true;cancelLoop();}step(dt);},
     list(){return handles.slice();},
-    setName(n,handle){const name=cleanName(n);saveDogName(name);(handle||handles[0])?.setName(name);return (handle||handles[0])?.displayName||name;},
+    setName(n,handle){const h=handle||handles.find(x=>x.kind==='dog')||handles[0];const name=cleanName(n,h?.kind==='cat'?'Miso':'Buddy');h?.setName(name);return h?.displayName||name;},
     parseNameCommand,
     callByVoice(text){
       const spoken=String(text||'');
@@ -260,7 +278,9 @@ export function createDogSystem(input={}) {
     },
     setCoat(hex){if(!/^#[0-9a-f]{6}$/i.test(String(hex)))return false;coat=hex;for(const h of handles)h.setCoat(hex);return true;},
     spawnBone(pos){if(disposed)return null;const g=items.spawnBone(pos);ensureLoop();return g;},
+    spawnChicken(pos){if(disposed)return null;const g=items.spawnChicken(pos);ensureLoop();return g;},
     spawnKibbleBag(pos){if(disposed)return null;const g=items.spawnKibbleBag(pos);ensureLoop();return g;},
+    spawnCatBag(pos){if(disposed)return null;const g=items.spawnCatBag(pos);ensureLoop();return g;},
     spawnBowl(pos){if(disposed)return null;const g=items.spawnBowl(pos);ensureLoop();return g;},
     impact(hit,energy,dir,kind,sharpness){return items.impact(hit,energy,dir,kind,sharpness);},
     setItemHeld(group,controller,velocity){return items.setHeld(group,controller,velocity);},
@@ -270,9 +290,9 @@ export function createDogSystem(input={}) {
     endGrab(ctrl,velocity){for(const [c,a] of [...itemGrabs])if(!ctrl||c===ctrl){const v=velocity||a.sampleVelocity;items.setHeld(a.group,null,v);items.drop(a,null,v);itemGrabs.delete(c);}for(const h of handles){if(ctrl)h.grabs.delete(ctrl);else h.grabs.clear();h._ai.held=h.grabs.size>0;}},
     // Optional lifecycle helper for fork reloads. Normal host use only needs tick().
     dispose(){system.endGrab();for(const h of [...handles])system.despawn(h);disposed=true;cancelLoop();items.dispose();audio.dispose();byContext.delete(context);if(emptySystem===system)emptySystem=null;if(typeof document!=='undefined')document.removeEventListener('mira:ready',onReady);if(ctx.scene)byScene.delete(ctx.scene);if(ctx.props?.dogs===system)delete ctx.props.dogs;if(typeof window!=='undefined'&&window.HUMAN2_DOG===system)delete window.HUMAN2_DOG;},
-    _install(next){if(disposed)return;Object.assign(ctx,next);items.bindImpact();hostOwned=hostOwned||!!ctx.props||ctx.hostTick===true;if(hostOwned)cancelLoop();if(ctx.scene){byScene.set(ctx.scene,system);for(const h of handles)if(!h.root.parent)ctx.scene.add(h.root);}byContext.set(next,system);announce();if(ctx.scene&&(readySeen||(ctx.mira||ctx.system)?.ready===true))system.spawnDefault();ensureLoop();}
+    _install(next){if(disposed)return;Object.assign(ctx,next);items.bindImpact();hostOwned=hostOwned||!!ctx.props||ctx.hostTick===true;if(hostOwned)cancelLoop();if(ctx.scene){byScene.set(ctx.scene,system);for(const h of handles)if(!h.root.parent)ctx.scene.add(h.root);}byContext.set(next,system);announce();if(ctx.scene&&(readySeen||(ctx.mira||ctx.system)?.ready===true)){system.spawnDefault();system.spawnDefaultCat();}ensureLoop();}
   };
-  function onReady(){readySeen=true;if(ctx.scene&&!disposed)system.spawnDefault();}
+  function onReady(){readySeen=true;if(ctx.scene&&!disposed){system.spawnDefault();system.spawnDefaultCat();}}
   if(typeof document!=='undefined')document.addEventListener('mira:ready',onReady,{once:true});
   byContext.set(context,system);if(!Object.keys(context).length)emptySystem=system;
   system._install(context);return system;

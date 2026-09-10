@@ -6,8 +6,9 @@ export const clamp = (v,lo=0,hi=1) => Math.max(lo,Math.min(hi,Number.isFinite(+v
 
 // Geometry is generated in dog bind space, metres, forward +Z. No human assets.
 export class DogModel {
-  constructor() {
-    this.root=new THREE.Group(); this.root.name='Human2_Dog';
+  constructor(species='dog') {
+    this.species=species==='cat'?'cat':'dog';
+    this.root=new THREE.Group(); this.root.name=this.species==='cat'?'Human2_Cat':'Human2_Dog';
     this.ears=[];this.bones={}; this.bind={}; this.meshes=[]; this.furMeshes=[]; this.materials=new Set();
     const add=(name,parent,point)=>{
       const b=new THREE.Bone();b.name=name;this.bind[name]=V(point);
@@ -25,11 +26,11 @@ export class DogModel {
     }
     this.root.updateMatrixWorld(true);this.skeleton=new THREE.Skeleton(BONE_NAMES.map(n=>this.bones[n]));
     this.index=Object.fromEntries(BONE_NAMES.map((n,i)=>[n,i]));this.skeleton.calculateInverses();
-    this.coat=this.material({color:0xb68952,roughness:.9,vertexColors:true});this.coat.userData.dogCoat=true;
+    this.coat=this.material({color:this.species==='cat'?0xc47a32:0xb68952,roughness:.9,vertexColors:true});this.coat.userData.dogCoat=true;
     this.dark=this.material({color:0x241b16,roughness:.82});
     this.eye=this.material({color:0xd9ccb6,roughness:.35});
-    this.noseMaterial=this.material({color:0x1a1210,roughness:.19,metalness:0,envMapIntensity:1.2});
-    this.irisMaterial=this.material({color:0x6a3a14,roughness:.28});
+    this.noseMaterial=this.material({color:this.species==='cat'?0xc48a7a:0x1a1210,roughness:.19,metalness:0,envMapIntensity:1.2});
+    this.irisMaterial=this.material({color:this.species==='cat'?0xd4c44a:0x6a3a14,roughness:.28});
     this.pupilMaterial=this.material({color:0x080604,roughness:.22});
     this.rimMaterial=this.material({color:0x292019,roughness:.55});
     this.corneaMaterial=this.material({color:0xffffff,roughness:.08,metalness:0,transparent:true,opacity:.40,depthWrite:false,envMapIntensity:1.2});
@@ -37,6 +38,16 @@ export class DogModel {
   }
   material(opts){const m=new THREE.MeshStandardMaterial(opts);this.materials.add(m);return m;}
   coatColor(x,y,z,kind='coat'){
+    if(this.species==='cat'){
+      const orange=new THREE.Color(0xc47a32),cream=new THREE.Color(0xf0d9b0),brown=new THREE.Color(0x5a3218);
+      if(kind==='muzzle')return cream.clone().lerp(orange,.28);
+      if(kind==='cream')return cream;
+      if(kind==='ear')return orange.clone().lerp(brown,.45);
+      const stripe=Math.abs(Math.sin(z*22+x*9))*Math.abs(Math.sin(y*16+z*4+x*3));
+      const tabby=clamp(stripe*1.45-.15);
+      const chest=clamp((z-.10)/.20)*clamp((.52-y)/.14);
+      return orange.lerp(brown,tabby*.78).lerp(cream,chest*.62);
+    }
     const tan=new THREE.Color(0xb68952),cream=new THREE.Color(0xe0d1af),sable=new THREE.Color(0x463327);
     if(kind==='muzzle')return new THREE.Color(0x574439);
     if(kind==='cream')return cream;
@@ -86,8 +97,13 @@ export class DogModel {
   buildBody(){
     this.body=this.tube('body',[[0,.44,-.365],[0,.455,-.30],[0,.453,-.21],[0,.445,-.09],[0,.437,.055],[0,.445,.18],[0,.45,.26],[0,.47,.30]],[[.07,.085],[.134,.14],[.143,.145],[.137,.137],[.135,.143],[.165,.155],[.143,.142],[.08,.09]],(x,y,z)=>{const t=clamp((z+.12)/.36);return [['Spine',1-t],['Chest',t]];},this.coat,20,true);
     this.tube('neck',[[0,.49,.205],[0,.565,.26],[0,.65,.315],[0,.715,.37]],[[.12,.125],[.111,.115],[.085,.089],[.07,.07]],(x,y,z)=>{const t=clamp((y-.53)/.15);return [['Chest',1-t],['Neck',t]];},this.coat,16,true);
-    this.ellipsoid('head',[0,.760,.402],[.090,.101,.099],'Head',this.coat,'coat',14,9,true);
-    this.ellipsoid('muzzle',[0,.704,.518],[.059,.040,.095],'Head',this.coat,'muzzle',12,7,true);
+    if(this.species==='cat'){
+      this.ellipsoid('head',[0,.758,.392],[.094,.090,.086],'Head',this.coat,'coat',14,9,true);
+      this.ellipsoid('muzzle',[0,.722,.468],[.042,.032,.052],'Head',this.coat,'muzzle',12,7,true);
+    }else{
+      this.ellipsoid('head',[0,.760,.402],[.090,.101,.099],'Head',this.coat,'coat',14,9,true);
+      this.ellipsoid('muzzle',[0,.704,.518],[.059,.040,.095],'Head',this.coat,'muzzle',12,7,true);
+    }
     // Stop and cheek planes are small additions in existing Head bind space.
     this.ellipsoid('stop',[0,.761,.463],[.046,.049,.030],'Head',this.coat,'coat',12,7,true);
     this.planum();
@@ -104,7 +120,8 @@ export class DogModel {
     const x=side*.067,y=.786,z=.478;
     this.ellipsoid('eyes_sclera',[x,y,z],[.016,.013,.010],'Head',this.eye,'coat',12,8);
     this.eyeDisc('eyes_iris',x,y,z+.0103,.0125,.0115,this.irisMaterial,24);
-    this.eyeDisc('eyes_pupil',x,y,z+.0106,.0052,.0064,this.pupilMaterial,20);
+    if(this.species==='cat')this.eyeDisc('eyes_pupil',x,y,z+.0107,.0026,.0108,this.pupilMaterial,16);
+    else this.eyeDisc('eyes_pupil',x,y,z+.0106,.0052,.0064,this.pupilMaterial,20);
     const rim=new THREE.TorusGeometry(.0145,.0017,4,20);rim.scale(1,.83,1);rim.translate(x,y,z+.0055);this.skin(rim,'Head');this.mesh('eye_rim',rim,this.rimMaterial);
     // Front dome only: transparent Standard material, no transmission, no painted highlights.
     const g=new THREE.SphereGeometry(1,12,6,0,Math.PI*2,0,Math.PI/2);g.rotateX(Math.PI/2);g.scale(.0132,.0124,.004);g.translate(x,y,z+.009);
@@ -126,6 +143,13 @@ export class DogModel {
   }
 
   ear(s){
+    if(this.species==='cat'){
+      const points=[[s*.038,.805,.400],[s*.108,.818,.372],[s*.072,.978,.348]];
+      const p=points.flat(),idx=[0,1,2];const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(p,3));g.setAttribute('uv',new THREE.Float32BufferAttribute([0,0,1,0,.5,1],2));g.setIndex(s<0?[0,2,1]:idx);g.computeVertexNormals();this.skin(g,'Head');
+      const m=this.material({color:0xc47a32,roughness:.95,side:THREE.DoubleSide,vertexColors:true});m.userData.dogCoat=true;this.mesh(s>0?'ear_L':'ear_R',g,m,true);
+      const inner=g.clone();const pp=inner.getAttribute('position');for(let i=0;i<pp.count;i++){pp.setXYZ(i,pp.getX(i)*.88,.82+(pp.getY(i)-.82)*.72,pp.getZ(i)+.002);}inner.computeVertexNormals();this.skin(inner,'Head');this.mesh('ear_inner',inner,this.material({color:0xe8b89a,roughness:.96,side:THREE.DoubleSide}));
+      return;
+    }
     const points=[[s*.054,.810,.395],[s*.110,.816,.370],[s*.116,.900,.365],[s*.099,.930,.386],[s*.080,.872,.427]];
     const p=points.flat(),idx=[0,1,4,1,2,4,2,3,4];const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(p,3));g.setAttribute('uv',new THREE.Float32BufferAttribute([0,1,1,1,1,.3,.6,0,.5,.6],2));g.setIndex(s<0?idx.flatMap((_,i)=>i%3===0?[idx[i],idx[i+2],idx[i+1]]:[]):idx);g.computeVertexNormals();this.skin(g,'Head');
     const m=this.material({color:0x574236,roughness:.95,side:THREE.DoubleSide});m.userData.dogCoat=true;this.earHinge(this.mesh(s>0?'ear_L':'ear_R',g,m),s);
@@ -141,7 +165,7 @@ export class DogModel {
     for(let i=0;i<p.count;i++){const v=new THREE.Vector3().fromBufferAttribute(p,i),to=v.clone().sub(pivot).applyAxisAngle(new THREE.Vector3(1,0,0),-1.05).add(pivot).sub(v);delta.push(to.x,to.y,to.z);}
     mesh.geometry.morphAttributes.position=[new THREE.Float32BufferAttribute(delta,3)];mesh.geometry.morphTargetsRelative=true;mesh.updateMorphTargets();this.ears.push(mesh);
   }
-  setEars(drop){for(const mesh of this.ears)mesh.morphTargetInfluences[0]=clamp(drop);}
+  setEars(drop){if(this.species==='cat')return;for(const mesh of this.ears)if(mesh.morphTargetInfluences)mesh.morphTargetInfluences[0]=clamp(drop);}
   setCoat(hex){if(!/^#[0-9a-f]{6}$/i.test(String(hex)))return false;for(const m of this.materials)if(m.userData.dogCoat)m.color.set(hex);this.coatHex=hex;return true;}
   compactMeshes(){
     // Batch skinned parts sharing a material/category. Skeleton and morph semantics survive.

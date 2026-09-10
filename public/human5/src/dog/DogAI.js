@@ -51,10 +51,10 @@ export class DogAI {
    this.look(dt);return;
   }
   if(n.hunger===0&&!items.bowlFood()){
-   const bag=items.items.filter(a=>a.type==='bag'&&!a.torn&&!items.isHeld(a)&&a.group.getWorldPosition(V()).distanceTo(wp)<2).sort((a,b)=>a.group.position.distanceToSquared(root.position)-b.group.position.distanceToSquared(root.position))[0];
+   const bag=items.items.filter(a=>(a.type==='bag'||a.type==='catbag')&&!a.torn&&!items.isHeld(a)&&a.group.getWorldPosition(V()).distanceTo(wp)<2).sort((a,b)=>a.group.position.distanceToSquared(root.position)-b.group.position.distanceToSquared(root.position))[0];
    if(bag){this.releaseSeat();this.interest=bag.group.localToWorld(new THREE.Vector3(0,.22,0));this.approach(this.interest,.68,dt,.58);this.state='eat-bag';this.look(dt);return;}
   }
-  if(this.boneBehavior(dt,wp)){this.releaseSeat();this.look(dt);return;}
+  if(this.toyBehavior(dt,wp)){this.releaseSeat();this.look(dt);return;}
   if(this.command){
    this.actionT-=dt;this.state=this.command;this.interest=this.player;
    if(this.command==='destroy'){const target=this.weakProp(wp);if(target){this.interest=target.point;this.approach(target.point,.70,dt,.5);this.state='destroy';}}
@@ -96,11 +96,16 @@ export class DogAI {
   if(this.attentionMode!=='ignoring'&&distance<5&&Math.sin(this.clock*.45)>.2)this.interest=this.player;
   this.look(dt);
  }
- boneBehavior(dt,wp){
-  const items=this.items,h=this.handle,n=this.needs;
+ wantsToy(item){
+  if(!item)return false;
+  if(this.handle.kind==='cat')return item.type==='chicken';
+  return item.type==='bone'||item.type==='chicken';
+ }
+ toyBehavior(dt,wp){
+  const items=this.items,h=this.handle,n=this.needs,cat=h.kind==='cat';
   for(const bone of items.items){
-   if(this.fetch&&['chew','stash'].includes(this.fetch.phase)&&this.fetch.bone.owner===h)break;
-   if(bone.type!=='bone')continue;
+   if(this.fetch&&['chew','stash','flee','keep','tug'].includes(this.fetch.phase)&&this.fetch.bone.owner===h)break;
+   if(!this.wantsToy(bone))continue;
    const bp=bone.group.getWorldPosition(V()),distance=wp.distanceTo(bp);
    if(items.isHeld(bone)&&distance<4){
     if(this.fetch?.bone===bone&&this.fetch.phase==='wait')this.fetch=null;
@@ -111,31 +116,62 @@ export class DogAI {
   }
   if(this.boneAttention){this.attentionMode=this.boneAttention;this.boneAttention=null;}
   if(!this.fetch||this.fetch.phase==='wait')for(const bone of items.items){
-   if(bone.type!=='bone'||bone.owner||items.isHeld(bone))continue;
+   if(!this.wantsToy(bone)||bone.owner||items.isHeld(bone))continue;
    if(bone.throwSerial>(this.seenThrows.get(bone)||0)){this.seenThrows.set(bone,bone.throwSerial);if(bone.group.getWorldPosition(V()).distanceTo(wp)<12){this.fetch={bone,phase:'chase',thrown:true};break;}}
   }
   let f=this.fetch;
   if(!f){for(const bone of items.items){
-   if(bone.type!=='bone'||bone.owner||items.isHeld(bone)||items.time<bone.nextInterest||bone.velocity.length()>.2)continue;
+   if(!this.wantsToy(bone)||bone.owner||items.isHeld(bone)||items.time<bone.nextInterest||bone.velocity.length()>.2)continue;
    const p=bone.group.getWorldPosition(V());if(p.distanceTo(wp)>3.5)continue;
    bone.nextInterest=items.time+12+Math.random()*8;const r=Math.random();
-   if(r<.3)continue;f=this.fetch={bone,phase:'chase',choice:r<.7?'keep':'return',thrown:false};break;
+   if(r<.3)continue;f=this.fetch={bone,phase:'chase',choice:cat?'flee':(r<.7?'keep':'return'),thrown:false};break;
   }}
   if(!f)return false;const bone=f.bone;
-  if(!bone.group.parent||items.isHeld(bone)||bone.owner&&bone.owner!==h){this.fetch=null;return false;}
+  if(!bone.group.parent||items.isHeld(bone)||(bone.owner&&bone.owner!==h&&f.phase!=='tug'&&f.phase!=='chase')){if(f.phase!=='tug')this.fetch=null;if(f.phase!=='tug')return false;}
   const bp=bone.group.getWorldPosition(V());this.interest=bp;
+  if(f.phase==='chase'&&bone.type==='chicken'){
+   const dogs=this.ctx.props?.dogs?.list?.()||[];
+   const rival=dogs.find(o=>o!==h&&o._ai?.fetch?.bone===bone&&['chase','tug'].includes(o._ai.fetch.phase));
+   if(rival&&wp.distanceTo(rival.root.getWorldPosition(V()))<1.35&&wp.distanceTo(bp)<1.4){
+    if(!items.tug)items.tug={toy:bone,a:h,b:rival,t:0};
+    f.phase='tug';rival._ai.fetch.phase='tug';
+   }
+  }
+  if(f.phase==='tug'){
+   this.state='tug';this.approach(bp,.22,dt,.55);
+   if(items.tug&&items.tug.toy===bone&&items.tug.a===h){
+    items.tug.t+=dt;
+    if(items.tug.t>1.15){
+     const winner=Math.random()<.5?items.tug.a:items.tug.b,loser=winner===items.tug.a?items.tug.b:items.tug.a;
+     if(bone.owner)items.drop(bone);
+     items.carry(bone,winner);
+     winner._ai.fetch={bone,phase:winner.kind==='cat'?'flee':'return',choice:winner.kind==='cat'?'flee':'return',timer:0};
+     if(winner.kind!=='cat')winner._ai.fetch.spot=wp.clone().add(wp.clone().sub(this.player).setY(0).normalize().multiplyScalar(1.1));
+     loser._ai.fetch=null;loser._ai.say('warning-destroy',4);items.tug=null;
+    }
+   }
+   return true;
+  }
   if(f.phase==='chase'){
    this.state='fetch';this.approach(bp,.38,dt,n.energy>40?1.52:.68);
    if(wp.distanceTo(bp)<.85&&bone.velocity.length()<2){
-    // Lower muzzle into pickup reach instead of teleporting a distant bone.
     this.state='pickup';const mouth=h._bite.muzzle(),flat=bp.clone().sub(mouth).setY(0);
     if(flat.length()>.07)this.move(wp.clone().add(flat),dt,.3,.035);
     if(mouth.distanceTo(bp.clone().add(new THREE.Vector3(0,.04,0)))<.19&&items.carry(bone,h)){
-     const choice=f.choice||(Math.random()<(n.restless?.2:.5)?'return':'keep');f.phase=choice==='return'?'return':'stash';f.timer=0;
-     if(choice==='keep')f.spot=wp.clone().add(wp.clone().sub(this.player).setY(0).normalize().multiplyScalar(1.2));
+     if(cat){f.phase='flee';f.timer=0;f.spot=null;}
+     else if(bone.type==='chicken'&&f.thrown){f.phase='return';f.timer=0;}
+     else{const choice=f.choice||(Math.random()<(n.restless?.2:.5)?'return':'keep');f.phase=choice==='return'?'return':'stash';f.timer=0;
+     if(choice==='keep')f.spot=wp.clone().add(wp.clone().sub(this.player).setY(0).normalize().multiplyScalar(1.2));}
     }
    }return true;
   }
+  if(f.phase==='flee'){
+   this.state='carry';
+   if(!f.spot){const away=wp.clone().sub(this.player).setY(0);if(away.lengthSq()<1e-4)away.set(1,0,.2);f.spot=wp.clone().addScaledVector(away.normalize(),4.2+Math.random()*2.4);}
+   this.interest=f.spot;this.move(f.spot,dt,1.38);
+   if(wp.distanceTo(f.spot)<.45){f.phase='keep';f.timer=7;}return true;
+  }
+  if(f.phase==='keep'){this.state='chew';this.interest=null;f.timer-=dt;if(f.timer<=0){items.drop(bone);this.fetch=null;this.state='sit';}return true;}
   if(f.phase==='stash'){this.state='carry';this.interest=f.spot;this.move(f.spot,dt,.58);if(wp.distanceTo(f.spot)<.25){f.phase='chew';f.timer=8;}return true;}
   if(f.phase==='chew'){
    this.state='chew';this.interest=null;f.timer-=dt;if(f.timer<=0){items.drop(bone);this.fetch=null;this.state='sit';}return true;

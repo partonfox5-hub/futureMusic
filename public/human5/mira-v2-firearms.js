@@ -1,10 +1,10 @@
 import * as T from 'three';
 
 export const FIREARMS={
- rifle:{name:'Assault rifle',mass:3.4,reach:.78,kind:'bullet',category:'firearm',fireRate:.09,energy:38,spread:.014,pellets:1},
- sniper:{name:'Sniper rifle',mass:5.2,reach:1.18,kind:'bullet',category:'firearm',fireRate:.78,energy:78,spread:.0012,pellets:1,scope:true},
- shotgun:{name:'Shotgun',mass:3.6,reach:.72,kind:'bullet',category:'firearm',fireRate:.52,energy:16,spread:.085,pellets:8},
- uzi:{name:'Uzi',mass:2.15,reach:.38,kind:'bullet',category:'firearm',fireRate:.05,energy:16,spread:.038,pellets:1}
+ rifle:{name:'Assault rifle',mass:3.4,reach:.78,kind:'bullet',category:'firearm',fireRate:.09,energy:38,spread:.014,pellets:1,stagger:.5,knockback:.05},
+ sniper:{name:'Sniper rifle',mass:5.2,reach:1.18,kind:'bullet',category:'firearm',fireRate:.78,energy:78,spread:.0012,pellets:1,scope:true,stagger:1.8,knockback:1.05},
+ shotgun:{name:'Shotgun',mass:3.6,reach:.72,kind:'bullet',category:'firearm',fireRate:.52,energy:16,spread:.085,pellets:8,stagger:1.35,knockback:.28},
+ uzi:{name:'Uzi',mass:2.15,reach:.38,kind:'bullet',category:'firearm',fireRate:.05,energy:16,spread:.038,pellets:1,stagger:.85,knockback:.07}
 };
 
 const steel=()=>new T.MeshStandardMaterial({color:0x6d7378,roughness:.28,metalness:.82});

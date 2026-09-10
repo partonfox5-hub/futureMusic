@@ -2,7 +2,7 @@ import * as T from 'three';
 import {TerrainHeightfield} from './src/terrain/TerrainHeightfield.js';
 import {TerrainMesh} from './src/terrain/TerrainMesh.js';
 import {QuestGrass} from './src/terrain/QuestGrass.js';
-import {ProceduralTrees} from './src/terrain/ProceduralTrees.js';
+import {ProceduralTrees} from './src/trees/RealisticTrees.js';
 import {TerrainGun,TERRAIN_WEAPONS,isTerrainGun,makeTerrainGun} from './src/terrain/TerrainGun.js';
 import {DEFAULT_MAP,defaultMapOptions} from './src/terrain/DefaultMap.js';
 export {TerrainHeightfield,TerrainMesh,QuestGrass,ProceduralTrees,TerrainGun,TERRAIN_WEAPONS,DEFAULT_MAP};
@@ -69,7 +69,7 @@ export function installTerrainFeatures({world,props,WEAPONS,GUNS,weaponCatalogs=
     }
     world.grid=null;
     const grass=new QuestGrass(field,{root:mesh.root,preset:config.grassPreset,exclude});
-    const trees=new ProceduralTrees(field,{root:mesh.root,world,count:world.name==='Beach'?Math.round(config.treeCount*.35):config.treeCount,clearance:world.name==='Living room'?config.treeClearance:8,exclude});
+    const trees=new ProceduralTrees(field,{root:mesh.root,world,count:world.name==='Beach'?Math.round(config.treeCount*.35):config.treeCount,clearance:world.name==='Living room'?config.treeClearance:8,exclude,preset:/Quest|OculusBrowser/i.test(globalThis.navigator?.userAgent||'')?'quest':'quality'});
     const off=field.onChange(r=>{
       for(const a of anchors){const p=a.group.position;if(!a.group.parent||a.tree?.fallen)continue;
         if(r.radius&&Math.hypot(p.x-r.x,p.z-r.z)>r.radius+field.cell*2)continue;

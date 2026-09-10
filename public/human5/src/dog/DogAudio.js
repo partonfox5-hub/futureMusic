@@ -9,14 +9,22 @@ export class DogAudio {
  bark(start=()=>{},owner=null,pattern='ambient'){
   if(this.disposed)return false;const c=this.context(),p=PATTERNS[pattern]||PATTERNS.ambient;
   if(!c){start();return false;}if(this.queue.some(q=>q.owner===owner))return false;
-  for(let i=0;i<p[2];i++)this.queue.push({start,owner,pitch:p[0]*(.94+Math.random()*.12),gain:p[1],ready:c.currentTime+i*.35,quiet:pattern==='sleepy-grumble',fired:false});
+  const cat=owner?.kind==='cat';
+  for(let i=0;i<(cat?1:p[2]);i++)this.queue.push({start,owner,pitch:p[0]*(.94+Math.random()*.12),gain:p[1],ready:c.currentTime+i*.35,quiet:pattern==='sleepy-grumble',fired:false,voice:cat?'cat':'dog'});
   if(c.state!=='running'){this.queue[0].start();this.queue[0].fired=true;return false;}return this.tick();
  }
  tick(){
   const c=this.ctx;if(this.disposed||!c||c.state!=='running'||c.currentTime<this.busyUntil||!this.queue.length||this.queue[0].ready>c.currentTime)return false;
   const a=this.queue.shift(),now=c.currentTime+.006,gain=c.createGain(),nodes=[gain],sources=[];
   let duration;
-  if(this.buffer){const s=c.createBufferSource();s.buffer=this.buffer;s.playbackRate.value=a.pitch;duration=Math.min(this.buffer.duration/a.pitch,a.quiet?.4:.72);s.connect(gain);sources.push(s);nodes.push(s);s.start(now);s.stop(now+duration);}
+  if(a.voice==='cat'){
+   duration=a.quiet?.22:.38;const o=c.createOscillator(),o2=c.createOscillator(),f=c.createBiquadFilter(),tone=c.createGain();
+   o.type='triangle';o2.type='sine';f.type='bandpass';f.frequency.value=1400*a.pitch;f.Q.value=2.4;
+   o.frequency.setValueAtTime(920*a.pitch,now);o.frequency.exponentialRampToValueAtTime(420*a.pitch,now+duration);
+   o2.frequency.setValueAtTime(1380*a.pitch,now);o2.frequency.exponentialRampToValueAtTime(640*a.pitch,now+duration);
+   tone.gain.value=.22;o.connect(f);o2.connect(tone);tone.connect(f);f.connect(gain);
+   o.start(now);o2.start(now);o.stop(now+duration);o2.stop(now+duration);sources.push(o,o2);nodes.push(o,o2,f,tone);
+  }else if(this.buffer){const s=c.createBufferSource();s.buffer=this.buffer;s.playbackRate.value=a.pitch;duration=Math.min(this.buffer.duration/a.pitch,a.quiet?.4:.72);s.connect(gain);sources.push(s);nodes.push(s);s.start(now);s.stop(now+duration);}
   else{
    duration=a.quiet?.38:.48;const data=c.createBuffer(1,Math.ceil(c.sampleRate*duration*a.pitch)+1,c.sampleRate),samples=data.getChannelData(0);let last=0;
    for(let i=0;i<samples.length;i++){last=last*.35+(Math.random()*2-1)*.65;samples[i]=last*(.6+.4*Math.sin(i/c.sampleRate*704));}

@@ -19,15 +19,19 @@ void main(){
 
 function gVal(world){const g=world?.gravity;return Number.isFinite(g)?g:9.81;}
 
-const splatVert=`varying vec2 u;varying float vWet;varying vec3 vCol;attribute float aWet;
-void main(){u=uv;vWet=aWet;vCol=instanceColor;gl_Position=projectionMatrix*modelViewMatrix*instanceMatrix*vec4(position,1.0);}`;
-const splatFrag=`varying vec2 u;varying float vWet;varying vec3 vCol;
+const splatVert=`varying vec2 u;varying float vWet;varying float vStreak;varying vec3 vCol;attribute float aWet;attribute float aStreak;
+void main(){u=uv;vWet=aWet;vStreak=aStreak;vCol=instanceColor;gl_Position=projectionMatrix*modelViewMatrix*instanceMatrix*vec4(position,1.0);}`;
+const splatFrag=`varying vec2 u;varying float vWet;varying float vStreak;varying vec3 vCol;
 void main(){
  vec2 p=(u-.5)*2.0;
+ p.y=p.y*(1.0+vStreak*2.6)+vStreak*0.85;
  float n=sin(p.x*9.4+p.y*7.1)*sin(p.x*13.0-p.y*11.2)*.12;
- float e=length(p*vec2(1.0,.78))+n;
- float edge=1.0-smoothstep(.42,.98,e);
- float holes=smoothstep(.16,.22,abs(sin(p.x*17.0+p.y*13.0)))*.12;
+ float e=length(p*vec2(1.0,.62+vStreak*.2))+n;
+ float drip=max(0.0,p.y)*vStreak;
+ float fingers=abs(sin(p.x*11.0+vStreak*7.0));
+ e-=(1.0-fingers)*drip*.55;
+ float edge=1.0-smoothstep(.38,.98,e);
+ float holes=smoothstep(.16,.22,abs(sin(p.x*17.0+p.y*13.0)))*.10*(1.0-vStreak);
  float alpha=max(0.0,edge-holes);
  if(alpha<.04)discard;
  float rim=smoothstep(.55,.95,e);
@@ -49,11 +53,12 @@ class Gadgets {
  constructor(props){
   this.props=props;this.world=props.world;this.scene=props.scene;
   this.paintColor=null;this.balls=[];this.splats=[];this.portals=[null,null];
-  this.prevCam=V();this.camReady=false;this.cool=0;this.rack=null;this.pegs=[];
+  this.prevCam=V();this.camReady=false;this.cool=0;this.rack=null;this.pegs=[];this.rc=new T.Raycaster();
   this.CAP=QUEST?140:240;
   const geom=new T.PlaneGeometry(1,1,1,1);
   this.wet=new T.InstancedBufferAttribute(new Float32Array(this.CAP),1);
-  geom.setAttribute('aWet',this.wet);
+  this.streakAttr=new T.InstancedBufferAttribute(new Float32Array(this.CAP),1);
+  geom.setAttribute('aWet',this.wet);geom.setAttribute('aStreak',this.streakAttr);
   this.splatMat=new T.ShaderMaterial({transparent:true,depthWrite:false,side:T.DoubleSide,polygonOffset:true,polygonOffsetFactor:-6,
    vertexShader:splatVert,fragmentShader:splatFrag});
   this.splatMesh=new T.InstancedMesh(geom,this.splatMat,this.CAP);
@@ -61,7 +66,7 @@ class Gadgets {
   this.scene.add(this.splatMesh);
   this.splatMesh.setColorAt(0,new T.Color(1,1,1));
   dummy.scale.setScalar(0);dummy.updateMatrix();
-  for(let i=0;i<this.CAP;i++){this.splatMesh.setMatrixAt(i,dummy.matrix);this.splats.push({live:false,parent:null,local:V(),localN:V(),color:new T.Color(),r:0,wet:0,age:0,seed:0});}
+  for(let i=0;i<this.CAP;i++){this.splatMesh.setMatrixAt(i,dummy.matrix);this.splats.push({live:false,parent:null,local:V(),localN:V(),color:new T.Color(),r:0,wet:0,age:0,seed:0,streak:0,body:false});}
   this.ballPool=[];
   const ballMat=new T.MeshStandardMaterial({roughness:.35,metalness:.05});
   for(let i=0;i<24;i++){
@@ -137,26 +142,30 @@ Gadgets.prototype.decorate=function(item){
 };
 
 Gadgets.prototype.slotPose=function(i){
- const cols=5,row=Math.floor(i/cols),col=i%cols,x=0.255,y=1.46-row*.36,z0=-1.12,span=1.7;
- const z=z0+(cols<=1?0:col/(cols-1)*span);
- return {x,y,z,yaw:Math.PI/2};
+ const cols=5,row=Math.floor(i/cols),col=i%cols;
+ const z=-.78+(cols<=1?0:col/(cols-1)*1.56);
+ return {x:.07,y:1.48-row*.36,z,yaw:0};
 };
 
 Gadgets.prototype.rebuildRack=function(){
- if(this.rack){this.rack.removeFromParent();this.rack.traverse(o=>{o.geometry?.dispose?.();if(o.material&&!o.material.map)o.material.dispose?.();});this.rack=null;}
+ if(this.rack){
+  for(const item of this.props.items||[])if(item.group?.parent===this.rack)this.props.scene.attach(item.group);
+  this.rack.removeFromParent();this.rack.traverse(o=>{o.geometry?.dispose?.();if(o.material&&!o.material.map)o.material.dispose?.();});this.rack=null;
+ }
  this.pegs=[];
  if(this.world.name!=='Living room')return;
  const board=new T.Group();board.name='GunRack';
+ board.position.set(-6.97,0,.92);
  const wood=new T.MeshStandardMaterial({color:0x6a4e38,roughness:.86});
  const peg=new T.MeshStandardMaterial({color:0x3d3228,roughness:.7});
- const plate=new T.Mesh(new T.BoxGeometry(.04,1.22,1.96),wood);plate.position.set(.33,1.22,-.28);plate.castShadow=plate.receiveShadow=true;board.add(plate);
- const rail=new T.Mesh(new T.BoxGeometry(.05,.06,1.96),peg);rail.position.set(.31,1.72,-.28);board.add(rail);
- const rail2=rail.clone();rail2.position.y=1.22;board.add(rail2);
- const rail3=rail.clone();rail3.position.y=.78;board.add(rail3);
+ const plate=new T.Mesh(new T.BoxGeometry(.04,1.28,1.88),wood);plate.position.set(0,1.24,0);plate.castShadow=plate.receiveShadow=true;board.add(plate);
+ const rail=new T.Mesh(new T.BoxGeometry(.05,.06,1.88),peg);rail.position.set(-.005,1.74,0);board.add(rail);
+ const rail2=rail.clone();rail2.position.y=1.38;board.add(rail2);
+ const rail3=rail.clone();rail3.position.y=.98;board.add(rail3);
  GUNS.forEach((_,i)=>{
   const s=this.slotPose(i);
   const p=new T.Mesh(new T.CylinderGeometry(.012,.012,.07,8),peg);
-  p.rotation.z=Math.PI/2;p.position.set(s.x+.04,s.y-.02,s.z);board.add(p);this.pegs.push(p);
+  p.rotation.z=Math.PI/2;p.position.set(s.x-.02,s.y-.02,s.z);board.add(p);this.pegs.push(p);
  });
  this.world.root.add(board);this.rack=board;
  const box=new T.Box3().setFromObject(board),c=box.getCenter(V()),sz=box.getSize(V());
@@ -165,8 +174,9 @@ Gadgets.prototype.rebuildRack=function(){
 };
 
 Gadgets.prototype.hang=function(item){
- const i=GUNS.indexOf(item.id);if(i<0)return;
+ const i=GUNS.indexOf(item.id);if(i<0||!this.rack)return;
  const s=this.slotPose(i);
+ this.rack.attach(item.group);
  item.group.position.set(s.x,s.y,s.z);
  item.group.rotation.set(0,s.yaw,0);
  item.velocity.set(0,0,0);
@@ -345,17 +355,86 @@ Gadgets.prototype.allocSplat=function(){
  return s;
 };
 
-Gadgets.prototype.splat=function(point,normal,object,color,scale=1){
+Gadgets.prototype.splat=function(point,normal,object,color,scale=1,opts={}){
  if(!object||object.userData?.portal)return;
  const n=normal.clone();if(n.lengthSq()<1e-8)n.set(0,1,0);n.normalize();
  const parent=object.isInstancedMesh?this.world.root:object;
  parent.updateWorldMatrix(true,false);
  const inv=parent.matrixWorld.clone().invert();
  const s=this.allocSplat();
- s.live=true;s.parent=parent;s.age=0;s.wet=1;s.r=(.07+Math.random()*.05)*scale;s.seed=Math.random()*6.28;
- s.color.setHex(color);
+ s.live=true;s.parent=parent;s.age=0;s.wet=1;s.streak=0;s.body=!!opts.body;s.seed=Math.random()*6.28;
+ s.r=(.055+Math.random()*.04)*scale;s.color.setHex(color);
  s.local.copy(point).applyMatrix4(inv);
  s.localN.copy(n).transformDirection(inv).normalize();
+};
+
+Gadgets.prototype.wrapHits=function(mesh,point,normal,radius=0.11,count=10){
+ const hits=[{point:point.clone(),normal:normal.clone(),object:mesh,uv:null}];
+ const tan=new T.Vector3(1,0,0).cross(normal);if(tan.lengthSq()<1e-6)tan.set(0,0,1).cross(normal);tan.normalize();
+ const bit=new T.Vector3().crossVectors(normal,tan);
+ this.rc.near=0;this.rc.far=radius*2.6;
+ for(let i=0;i<count;i++){
+  const a=i/count*Math.PI*2,r=radius*(.28+.72*((i%4)/3));
+  const offset=tan.clone().multiplyScalar(Math.cos(a)*r).addScaledVector(bit,Math.sin(a)*r);
+  this.rc.ray.origin.copy(point).add(offset).addScaledVector(normal,.12);
+  this.rc.ray.direction.copy(normal).multiplyScalar(-1).addScaledVector(offset,-.4).normalize();
+  const h=this.rc.intersectObject(mesh,false)[0];
+  if(h&&h.distance<radius*2.8)hits.push(h);
+ }
+ return hits;
+};
+
+Gadgets.prototype.injectDogPaint=function(model,tex){
+ const hook=mat=>{
+  if(!mat||mat.userData.dogPaintHook){if(mat?.userData.dogPaint)mat.userData.dogPaint.value=tex;return;}
+  const u={value:tex};mat.userData.dogPaint=u;mat.userData.dogPaintHook=true;
+  const prev=mat.onBeforeCompile,oldKey=mat.customProgramCacheKey?.bind(mat);
+  mat.onBeforeCompile=(shader,renderer)=>{
+   prev?.(shader,renderer);
+   shader.uniforms.dogPaint=u;
+   if(!shader.fragmentShader.includes('uniform sampler2D dogPaint')){
+    shader.fragmentShader=shader.fragmentShader
+     .replace('#include <common>','#include <common>\nuniform sampler2D dogPaint;')
+     .replace('#include <map_fragment>',`#include <map_fragment>
+      vec4 dogP=texture2D(dogPaint,vMapUv);
+      diffuseColor.rgb=mix(diffuseColor.rgb,mix(diffuseColor.rgb*0.32,dogP.rgb,0.88),dogP.a);
+     `)
+     .replace('#include <roughnessmap_fragment>',`#include <roughnessmap_fragment>
+      roughnessFactor=mix(roughnessFactor,0.98,texture2D(dogPaint,vMapUv).a);`);
+   }
+  };
+  mat.customProgramCacheKey=()=>(oldKey?oldKey():(mat.name||''))+'-dpaint';
+  mat.needsUpdate=true;
+ };
+ hook(model.coat);
+ model.root?.traverse(o=>{if(o.isMesh&&o.material?.name?.startsWith('Dog_FurShell'))hook(o.material);});
+};
+
+Gadgets.prototype.matDogFur=function(dog,hit,color){
+ const model=dog._model||dog.model;if(!model?.coat)return;
+ let pack=dog._paint;
+ if(!pack){
+  const c=document.createElement('canvas');c.width=c.height=512;
+  const ctx=c.getContext('2d');ctx.clearRect(0,0,512,512);
+  const tex=new T.CanvasTexture(c);tex.colorSpace=T.SRGBColorSpace;tex.flipY=true;
+  pack=dog._paint={canvas:c,ctx,tex};
+  this.injectDogPaint(model,tex);
+ }
+ const uv=hit.uv;if(!uv)return;
+ const ctx=pack.ctx,x=uv.x*512,y=(1-uv.y)*512,col=new T.Color(color);
+ const r=(col.r*255)|0,g=(col.g*255)|0,b=(col.b*255)|0;
+ const grd=ctx.createRadialGradient(x,y,2,x,y,34);
+ grd.addColorStop(0,`rgba(${r},${g},${b},0.95)`);
+ grd.addColorStop(.4,`rgba(${(r*.55)|0},${(g*.55)|0},${(b*.55)|0},0.78)`);
+ grd.addColorStop(1,`rgba(${(r*.25)|0},${(g*.25)|0},${(b*.25)|0},0)`);
+ ctx.globalCompositeOperation='source-over';ctx.fillStyle=grd;
+ ctx.beginPath();ctx.arc(x,y,34,0,Math.PI*2);ctx.fill();
+ for(let i=0;i<10;i++){
+  const a=Math.random()*Math.PI*2,rr=6+Math.random()*22;
+  ctx.fillStyle=`rgba(${(r*.45)|0},${(g*.45)|0},${(b*.45)|0},${.28+Math.random()*.4})`;
+  ctx.beginPath();ctx.ellipse(x+Math.cos(a)*rr,y+Math.sin(a)*rr,2+Math.random()*4,4+Math.random()*7,a,0,Math.PI*2);ctx.fill();
+ }
+ pack.tex.needsUpdate=true;
 };
 
 Gadgets.prototype.impactPaint=function(hit,color){
@@ -363,49 +442,72 @@ Gadgets.prototype.impactPaint=function(hit,color){
  if(n.lengthSq()<1e-8)n.set(0,1,0);n.normalize();
  const actor=this.props.actorFor?.(hit.object),dog=this.props.dogFor?.(hit.object);
  const bone=actor?.nearestHit?.(hit.point,.22)?.bone||dog?.nearestHit?.(hit.point,.28)?.bone;
- const target=bone||hit.object;
- this.splat(hit.point,n,target,color,1.15);
- const tan=new T.Vector3(1,0,0).cross(n);if(tan.lengthSq()<1e-6)tan.set(0,0,1).cross(n);tan.normalize();
- const bit=new T.Vector3().crossVectors(n,tan);
- for(let i=0;i<6;i++){
-  const o=tan.clone().multiplyScalar((Math.random()-.5)*.16).addScaledVector(bit,(Math.random()-.5)*.16);
-  this.splat(hit.point.clone().add(o).addScaledVector(n,.001),n,target,color,.45+Math.random()*.4);
+ if(dog)this.matDogFur(dog,hit,color);
+ if(actor||dog){
+  const mesh=hit.object,samples=this.wrapHits(mesh,hit.point,n,.12,12);
+  for(const h of samples){
+   const hn=(h.face?.normal.clone().transformDirection(mesh.matrixWorld)||n.clone());
+   if(hn.lengthSq()<1e-8)hn.copy(n);hn.normalize();
+   const parent=bone||mesh;
+   this.splat(h.point||hit.point,hn,parent,color,.42+Math.random()*.28,{body:true});
+  }
+ }else{
+  this.splat(hit.point,n,hit.object,color,1.15);
+  const tan=new T.Vector3(1,0,0).cross(n);if(tan.lengthSq()<1e-6)tan.set(0,0,1).cross(n);tan.normalize();
+  const bit=new T.Vector3().crossVectors(n,tan);
+  for(let i=0;i<6;i++){
+   const o=tan.clone().multiplyScalar((Math.random()-.5)*.16).addScaledVector(bit,(Math.random()-.5)*.16);
+   this.splat(hit.point.clone().add(o).addScaledVector(n,.001),n,hit.object,color,.45+Math.random()*.4);
+  }
  }
  playSfx('splat');
- this.props.status='Paint coverage';
+ this.props.status=dog?'Paint in the fur':actor?'Paint on skin':'Paint coverage';
 };
 
 Gadgets.prototype.writeSplats=function(){
  const up=new T.Vector3(0,1,0),g=this.gravity();
  for(let i=0;i<this.CAP;i++){
   const s=this.splats[i];
-  if(!s.live||!s.parent?.parent){dummy.scale.setScalar(0);dummy.updateMatrix();this.splatMesh.setMatrixAt(i,dummy.matrix);this.wet.setX(i,0);continue;}
+  if(!s.live||!s.parent?.parent){dummy.scale.setScalar(0);dummy.updateMatrix();this.splatMesh.setMatrixAt(i,dummy.matrix);this.wet.setX(i,0);this.streakAttr.setX(i,0);continue;}
   s.parent.updateWorldMatrix(true,false);
   const p=s.local.clone().applyMatrix4(s.parent.matrixWorld);
   const n=s.localN.clone().transformDirection(s.parent.matrixWorld).normalize();
-  dummy.position.copy(p).addScaledVector(n,.0024);
-  dummy.quaternion.setFromUnitVectors(new T.Vector3(0,0,1),n);
-  dummy.scale.set(s.r*2.05,s.r*1.7,1);
+  const vertical=Math.abs(n.dot(up))<.82;
+  dummy.position.copy(p).addScaledVector(n,s.body?.0018:.0024);
+  if(vertical&&s.streak>0.02){
+   const down=up.clone().multiplyScalar(-1).addScaledVector(n,n.dot(up));
+   if(down.lengthSq()>1e-6)down.normalize();else down.set(0,-1,0);
+   const right=new T.Vector3().crossVectors(n,down);if(right.lengthSq()<1e-6)right.set(1,0,0);right.normalize();
+   down.crossVectors(n,right).normalize();
+   dummy.quaternion.setFromRotationMatrix(new T.Matrix4().makeBasis(right,down,n));
+  }else dummy.quaternion.setFromUnitVectors(new T.Vector3(0,0,1),n);
+  dummy.scale.set(s.r*(s.body?1.35:1.7),s.r*(s.body?1.25:1.5)+s.streak,1);
   dummy.updateMatrix();
   this.splatMesh.setMatrixAt(i,dummy.matrix);
   this.splatMesh.setColorAt(i,s.color);
-  this.wet.setX(i,s.wet);
-  if(s.wet>.12&&g>0.5&&Math.abs(n.dot(up))<.82){
+  this.wet.setX(i,s.wet);this.streakAttr.setX(i,s.body?s.streak*.25:s.streak);
+  if(s.wet>.08&&g>0.5&&vertical&&!s.body){
    const down=up.clone().multiplyScalar(-1).addScaledVector(n,n.dot(up));
    if(down.lengthSq()>1e-6){
     down.normalize();
-    const world=p.clone().addScaledVector(down,0.018*s.wet);
+    const world=p.clone().addScaledVector(down,dtSafe(this)*.12*s.wet);
     s.local.copy(world).applyMatrix4(s.parent.matrixWorld.clone().invert());
    }
   }
  }
  this.splatMesh.instanceMatrix.needsUpdate=true;
  if(this.splatMesh.instanceColor)this.splatMesh.instanceColor.needsUpdate=true;
- this.wet.needsUpdate=true;
+ this.wet.needsUpdate=true;this.streakAttr.needsUpdate=true;
 };
+
+function dtSafe(g){return Math.min(.05,g._dt||.016);}
 
 Gadgets.prototype.clearPaint=function(){
  for(const s of this.splats)s.live=false;
+ for(const d of this.props.dogs?.list?.()||[]){
+  const pack=d._paint;if(!pack)continue;
+  pack.ctx.clearRect(0,0,pack.canvas.width,pack.canvas.height);pack.tex.needsUpdate=true;
+ }
  this.writeSplats();
  this.props.status='Paint cleared';
 };
@@ -530,15 +632,18 @@ Gadgets.prototype.tickSplats=function(dt){
  let live=0,wet=false;
  for(const s of this.splats){
   if(!s.live)continue;live++;
-  s.age+=dt;s.wet=Math.max(0,s.wet-dt*.22);
-  if(s.wet>0){wet=true;s.r=Math.min(.22,s.r+dt*.055*s.wet);}
+  s.age+=dt;s.wet=Math.max(0,s.wet-dt*.16);
+  if(s.wet>0){
+   wet=true;s.r=Math.min(.22,s.r+dt*.04*s.wet);
+   if(!s.body)s.streak=Math.min(.62,s.streak+dt*.55*s.wet);
+  }
   if(s.age>90)s.live=false;
  }
  if(live>1){
   for(let i=0;i<this.splats.length;i++){
-   const a=this.splats[i];if(!a.live)continue;
+   const a=this.splats[i];if(!a.live||a.streak>.1)continue;
    for(let j=i+1;j<this.splats.length;j++){
-    const b=this.splats[j];if(!b.live||a.parent!==b.parent)continue;
+    const b=this.splats[j];if(!b.live||a.parent!==b.parent||b.streak>.1)continue;
     if(a.color.getHex()!==b.color.getHex())continue;
     if(a.local.distanceTo(b.local)<(a.r+b.r)*.55){
      if(a.r>=b.r){a.r=Math.min(.24,a.r+.012);b.live=false;}
@@ -551,6 +656,7 @@ Gadgets.prototype.tickSplats=function(dt){
 };
 
 Gadgets.prototype.tick=function(dt){
+ this._dt=dt;
  this.splatMesh.visible=this.world.root.visible;
  if(!this.world.root.visible)return;
  this.tickBalls(dt);

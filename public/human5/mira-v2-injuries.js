@@ -19,14 +19,15 @@ export class Injuries {
  state(a){if(!this.states.has(a)){const state={damage:{},fractures:new Set(),missing:new Set(),original:new Map(),hidden:new Map(),caps:[]};this.states.set(a,state);a.injuryDriver=this;}return this.states.get(a);}
  fatal(s){return s.missing.has('head')||(s.missing.has('LLeg')&&s.missing.has('RLeg'))||(s.damage.torso||0)>160||(s.damage.head||0)>140;}
  liveDog(a){return isDog(a)&&!!(this.props.dogs?.list?.().includes(a)||a.root?.parent);}
- impact(actor,hit,energy,kind,dir){
+ impact(actor,hit,energy,kind,dir,weaponId){
   if(!this.enabled)return null;
   const dog=isDog(actor);
   if(!dog&&actor.version!=='v2')return null;
   const nearest=actor.nearestHit(hit.point,dog?.32:.25);if(!nearest)return null;
   const s=this.state(actor),r=region(nearest.name,dog),damage=energy*(kind==='laser'?.60:kind==='bullet'?1.2:kind==='cut'?1.15:1);
   s.damage[r]=(s.damage[r]||0)+damage;
-  actor.applyStrike?.(nearest,dir.clone().negate(),Math.min(4,Math.sqrt(energy)*.4),0,hit.point);
+  const stagger=hit.stagger??(weaponId==='rifle'?.5:weaponId==='sniper'?1.8:weaponId==='shotgun'?1.35:1);
+  actor.applyStrike?.(nearest,dir.clone().negate(),Math.min(4.8,Math.sqrt(energy)*.4*stagger),0,hit.point);
   if(dog){actor.bark?.();if(actor._ai){actor._ai.hurt=true;actor._ai.state='alert';}}
   else if(!actor.dead)actor.setEmotion('concerned',.65,{source:'impact',hold:5});
   if(s.damage[r]>80&&r!=='torso'&&r!=='head')s.fractures.add(r);

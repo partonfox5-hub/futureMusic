@@ -6,13 +6,16 @@ const pos=(p,out=V())=>Array.isArray(p)?out.fromArray(p):p?.isVector3?out.copy(p
 export class DogItems {
  constructor(ctx){
   this.ctx=ctx;this.items=[];this.serial=0;this.time=0;this.disposed=false;this.slow=false;
-  this.particles=Array.from({length:CAP},()=>({active:false,p:V(),v:V(),rest:false,bowl:null,local:V()}));
+  this.particles=Array.from({length:CAP},()=>({active:false,p:V(),v:V(),rest:false,bowl:null,local:V(),cat:false}));
   this.dummy=new THREE.Object3D();this.material=new THREE.MeshStandardMaterial({color:0x9b6332,roughness:.96});
   this.mesh=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(R,0),this.material,CAP);
   this.mesh.name='Dog_Kibble_200';this.mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);this.mesh.frustumCulled=false;
   this.mesh.castShadow=false;this.mesh.receiveShadow=true;
-  this.dummy.scale.setScalar(0);this.dummy.updateMatrix();for(let i=0;i<CAP;i++)this.mesh.setMatrixAt(i,this.dummy.matrix);
-  ctx.scene?.add(this.mesh);this.bindImpact();
+  this.catMat=new THREE.MeshStandardMaterial({color:0xd4a24a,roughness:.9});
+  this.catMesh=new THREE.InstancedMesh(new THREE.BoxGeometry(.022,.01,.016),this.catMat,CAP);
+  this.catMesh.name='Cat_Kibble_200';this.catMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);this.catMesh.frustumCulled=false;
+  this.dummy.scale.setScalar(0);this.dummy.updateMatrix();for(let i=0;i<CAP;i++){this.mesh.setMatrixAt(i,this.dummy.matrix);this.catMesh.setMatrixAt(i,this.dummy.matrix);}
+  ctx.scene?.add(this.mesh,this.catMesh);this.tug=null;this.bindImpact();
  }
  bindImpact(){
   const props=this.ctx.props;if(!props||props.impact===this.wrapper)return;
@@ -44,10 +47,10 @@ export class DogItems {
  }
  register(type,g,p,mass,volume){
   g.name=`Dog_${type}_${++this.serial}`;this.ctx.scene?.add(g);g.position.copy(this.ctx.scene?.worldToLocal(pos(p))||pos(p));
-  const item={id:g.name,type,group:g,owner:null,controller:null,velocity:V(),angularVelocity:V(),previous:g.getWorldPosition(V()),heldLast:false,heldSince:0,stillFor:0,throwSerial:0,health:type==='bag'?24:100,remaining:type==='bag'?200:0,torn:false,nextInterest:0};
+  const item={id:g.name,type,group:g,owner:null,controller:null,velocity:V(),angularVelocity:V(),previous:g.getWorldPosition(V()),heldLast:false,heldSince:0,stillFor:0,throwSerial:0,health:(type==='bag'||type==='catbag')?24:100,remaining:(type==='bag'||type==='catbag')?200:0,torn:false,nextInterest:0};
   g.userData.dogItem=item;g.userData.pickable=true;
   g.userData.furniture={id:item.id,mass,volume,density:mass/volume,velocity:item.velocity,vel:item.velocity,angularVelocity:item.angularVelocity,heldBy:null};
-  g.userData.health=item.health;g.userData.kind=type==='bag'?'paper':type==='bone'?'bone':'ceramic';
+  g.userData.health=item.health;g.userData.kind=type==='bag'||type==='catbag'?'paper':type==='bone'?'bone':type==='chicken'?'rubber':'ceramic';
   g.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;o.userData.dogItem=item;}});
   const w=this.ctx.world;if(w){w.movables??=[];if(w.movables instanceof Set)w.movables.add(g);else if(Array.isArray(w.movables)&&!w.movables.includes(g))w.movables.push(g);}
   this.items.push(item);return g;
@@ -57,6 +60,27 @@ export class DogItems {
   const shaft=new THREE.Mesh(new THREE.CylinderGeometry(.025,.025,.20,9),m);shaft.rotation.z=Math.PI/2;shaft.position.y=.04;g.add(shaft);
   const geo=new THREE.SphereGeometry(.037,9,6);for(const x of [-.105,.105])for(const z of [-.018,.018]){const a=new THREE.Mesh(geo,m);a.position.set(x,.04,z);g.add(a);}
   return this.register('bone',g,p,.18,.0007);
+ }
+ spawnChicken(p){
+  const g=new THREE.Group(),yel=new THREE.MeshStandardMaterial({color:0xf0c93a,roughness:.55}),red=new THREE.MeshStandardMaterial({color:0xc43b3b,roughness:.7}),org=new THREE.MeshStandardMaterial({color:0xe07a28,roughness:.6});
+  const body=new THREE.Mesh(new THREE.SphereGeometry(.055,10,8),yel);body.scale.set(1.15,.85,1);body.position.y=.055;g.add(body);
+  const head=new THREE.Mesh(new THREE.SphereGeometry(.028,8,6),yel);head.position.set(.05,.08,0);g.add(head);
+  const beak=new THREE.Mesh(new THREE.ConeGeometry(.012,.028,6),org);beak.rotation.z=-Math.PI/2;beak.position.set(.078,.078,0);g.add(beak);
+  const comb=new THREE.Mesh(new THREE.BoxGeometry(.018,.022,.008),red);comb.position.set(.048,.108,0);g.add(comb);
+  const wattle=new THREE.Mesh(new THREE.SphereGeometry(.008,6,4),red);wattle.position.set(.062,.058,0);g.add(wattle);
+  return this.register('chicken',g,p,.12,.0005);
+ }
+ spawnCatBag(p){
+  const g=new THREE.Group(),paper=new THREE.MeshStandardMaterial({color:0x3d8b8a,roughness:.99}),cream=new THREE.MeshStandardMaterial({color:0xf0e6c8,roughness:1}),ink=new THREE.MeshStandardMaterial({color:0x1f4f52,roughness:1});
+  const geo=new THREE.BoxGeometry(.24,.34,.13,2,3,1),a=geo.attributes.position;
+  for(let i=0;i<a.count;i++){const y=a.getY(i),t=(y+.17)/.34;a.setXYZ(i,a.getX(i)*(1-.16*t),y+.17,a.getZ(i)*(1-.30*t));}
+  geo.computeVertexNormals();const body=new THREE.Mesh(geo,paper);g.add(body);
+  const band=new THREE.Mesh(new THREE.BoxGeometry(.22,.07,.132),cream);band.position.y=.16;g.add(band);
+  const fish=new THREE.Mesh(new THREE.SphereGeometry(.04,8,6),ink);fish.scale.set(1.4,.55,.35);fish.position.set(0,.16,.07);g.add(fish);
+  const top=new THREE.Mesh(new THREE.BoxGeometry(.20,.022,.09),paper);top.position.y=.35;g.add(top);
+  const flap=new THREE.Mesh(new THREE.ConeGeometry(.11,.11,5,1,true),paper);flap.position.y=.32;flap.rotation.z=.75;flap.visible=false;g.add(flap);
+  const mouth=new THREE.Mesh(new THREE.CircleGeometry(.075,8),ink);mouth.rotation.x=-Math.PI/2;mouth.position.y=.341;mouth.visible=false;g.add(mouth);
+  this.register('catbag',g,p,.65,.011);Object.assign(g.userData.dogItem,{top,flap,mouth});return g;
  }
  spawnKibbleBag(p){
   const g=new THREE.Group(),paper=new THREE.MeshStandardMaterial({color:0xc9ac75,roughness:.99}),ink=new THREE.MeshStandardMaterial({color:0x69513a,roughness:1});
@@ -76,7 +100,7 @@ export class DogItems {
   const out=this.register('bowl',g,p,.45,.005);out.userData.dogItem.bounds=new THREE.Box3();return out;
  }
  impact(hit,energy,dir,kind='blunt',sharpness=0){
-  const a=this.resolve(hit);if(!a||a.type!=='bag')return false;
+  const a=this.resolve(hit);if(!a||(a.type!=='bag'&&a.type!=='catbag'))return false;
   if(a.torn)return true;
   a.health=Math.max(0,a.health-Math.max(0,Number(energy)||0)*(kind==='cut'?1: .35));a.group.userData.health=a.health;
   if(a.health===0){a.torn=true;a.top.visible=false;a.flap.visible=true;a.mouth.visible=true;}
@@ -84,12 +108,16 @@ export class DogItems {
  }
  spill(item){
   if(!item.torn||item.remaining<=0)return;
-  const origin=item.group.localToWorld(new THREE.Vector3(0,.37,0));let emitted=0;
-  for(const p of this.particles){if(p.active)continue;p.active=true;p.rest=false;p.bowl=null;p.p.copy(origin).add(new THREE.Vector3((Math.random()-.5)*.18,Math.random()*.10,(Math.random()-.5)*.12));p.v.set((Math.random()-.5)*.7,.25+Math.random()*.6,(Math.random()-.5)*.7);item.remaining--;if(++emitted>=200||!item.remaining)break;}
+  const origin=item.group.localToWorld(new THREE.Vector3(0,.37,0));let emitted=0;const cat=item.type==='catbag';
+  for(const p of this.particles){if(p.active)continue;p.active=true;p.rest=false;p.bowl=null;p.cat=cat;p.p.copy(origin).add(new THREE.Vector3((Math.random()-.5)*.18,Math.random()*.10,(Math.random()-.5)*.12));p.v.set((Math.random()-.5)*.7,.25+Math.random()*.6,(Math.random()-.5)*.7);item.remaining--;if(++emitted>=200||!item.remaining)break;}
  }
+ isToy(item){return item&&(item.type==='bone'||item.type==='chicken');}
  carry(item,handle){
-  if(!item||item.type!=='bone'||this.isHeld(item)||item.owner)return false;
-  this.movable(item.group,false);item.owner=handle;item.velocity.set(0,0,0);handle.bones.Jaw.add(item.group);item.group.position.set(0,-.03,.13);item.group.rotation.set(0,0,0);item.previous.copy(item.group.getWorldPosition(V()));return true;
+  if(!this.isToy(item)||this.isHeld(item))return false;
+  if(item.owner&&item.owner!==handle)this.drop(item);
+  this.movable(item.group,false);item.owner=handle;item.velocity.set(0,0,0);handle.bones.Jaw.add(item.group);
+  item.group.position.set(0,item.type==='chicken'?-.02:-.03,item.type==='chicken'?.11:.13);
+  item.group.rotation.set(0,item.type==='chicken'?.4:0,0);item.previous.copy(item.group.getWorldPosition(V()));return true;
  }
  drop(item,p,velocity){
   if(!item)return;const old=item.group.getWorldPosition(V());this.ctx.scene?.attach(item.group);
@@ -105,9 +133,13 @@ export class DogItems {
   const p=this.particles.find(p=>p.active&&p.p.distanceTo(point)<radius);if(!p)return false;
   p.active=false;p.rest=true;p.bowl=null;p.v.set(0,0,0);needs.eat();this.write(this.particles.indexOf(p));return true;
  }
- write(i){const p=this.particles[i];this.dummy.position.copy(p.p);if(this.mesh.parent)this.mesh.parent.worldToLocal(this.dummy.position);this.dummy.scale.setScalar(p.active?1:0);this.dummy.updateMatrix();this.mesh.setMatrixAt(i,this.dummy.matrix);this.mesh.instanceMatrix.needsUpdate=true;}
+ write(i){
+  const p=this.particles[i];this.dummy.position.copy(p.p);if(this.mesh.parent)this.mesh.parent.worldToLocal(this.dummy.position);
+  this.dummy.scale.setScalar(p.active&&!p.cat?1:0);this.dummy.updateMatrix();this.mesh.setMatrixAt(i,this.dummy.matrix);this.mesh.instanceMatrix.needsUpdate=true;
+  this.dummy.scale.setScalar(p.active&&p.cat?1:0);this.dummy.rotation.y=i*.7;this.dummy.updateMatrix();this.catMesh.setMatrixAt(i,this.dummy.matrix);this.catMesh.instanceMatrix.needsUpdate=true;this.dummy.rotation.set(0,0,0);
+ }
  tick(dt){
-  if(this.disposed)return;this.time+=dt;this.bindImpact();if(!this.mesh.parent)this.ctx.scene?.add(this.mesh);
+  if(this.disposed)return;this.time+=dt;this.bindImpact();if(!this.mesh.parent)this.ctx.scene?.add(this.mesh);if(!this.catMesh.parent)this.ctx.scene?.add(this.catMesh);
   for(const a of this.items){
    const g=a.group,w=g.getWorldPosition(V()),held=this.isHeld(a),measured=w.clone().sub(a.previous).divideScalar(Math.max(dt,.001));
    if(held){if(!a.heldLast)a.heldSince=this.time;a.owner='player';a.stillFor=measured.length()<.06?a.stillFor+dt:0;a.sampleVelocity=measured.clone();}
@@ -119,7 +151,7 @@ export class DogItems {
     a.velocity.y-=(Number.isFinite(this.ctx.world?.gravity)?this.ctx.world.gravity:9.8)*dt;w.addScaledVector(a.velocity,dt);const floor=floorAt(this.ctx.world,w.x,w.z,0);
     if(w.y<floor){w.y=floor;a.velocity.y=0;a.velocity.x*=Math.exp(-6*dt);a.velocity.z*=Math.exp(-6*dt);}
     const center=w.clone().add(new THREE.Vector3(0,.04,0));this.ctx.world?.projectSphere?.(center,.04);w.copy(center).add(new THREE.Vector3(0,-.04,0));g.position.copy(g.parent?.worldToLocal(w.clone())||w);
-   }else if(!held&&!a.owner&&measured.length()>1.2&&a.type==='bone'&&this.time>(a.externalThrowUntil||0)){a.throwSerial++;a.externalThrowUntil=this.time+1;}
+   }else if(!held&&!a.owner&&measured.length()>1.2&&this.isToy(a)&&this.time>(a.externalThrowUntil||0)){a.throwSerial++;a.externalThrowUntil=this.time+1;}
    a.heldLast=held;a.previous.copy(g.getWorldPosition(V()));if(a.torn)this.spill(a);
   }
   const bowls=this.items.filter(a=>a.type==='bowl');for(const a of bowls){a.group.updateWorldMatrix(true,true);a.bounds.setFromObject(a.group);}
@@ -158,6 +190,8 @@ export class DogItems {
   this.disposed=true;this.unbindImpact();const geometries=new Set(),materials=new Set();
   for(const a of this.items){const w=this.ctx.world?.movables;if(w instanceof Set)w.delete(a.group);else if(Array.isArray(w)){const i=w.indexOf(a.group);if(i>=0)w.splice(i,1);}a.group.traverse(o=>{if(o.geometry)geometries.add(o.geometry);if(o.material)materials.add(o.material);});a.group.removeFromParent();}
   for(const g of geometries)g.dispose();for(const m of materials)m.dispose();this.items.length=0;
-  this.mesh.removeFromParent();this.mesh.geometry.dispose();this.material.dispose();this.mesh.dispose();for(const p of this.particles)p.active=false;
+  this.mesh.removeFromParent();this.mesh.geometry.dispose();this.material.dispose();this.mesh.dispose();
+  this.catMesh.removeFromParent();this.catMesh.geometry.dispose();this.catMat.dispose();this.catMesh.dispose();
+  for(const p of this.particles)p.active=false;
  }
 }

@@ -1,18 +1,18 @@
 import {Builder,FURNITURE,SURFACES} from './mira-v2-builder.js?v=13.8';
 import {SmoothLocomotion} from './mira-v2-locomotion.js?v=14.2';
-import {Car} from './mira-v2-car.js?v=14.1';
+import {Car} from './mira-v2-car.js?v=14.5';
 import {Restraints} from './mira-v2-restraints.js?v=13.4';
-import { createDogSystem } from './mira-v2-dog.js?v=14.2';
-import { installGadgets } from './mira-v2-gadgets.js?v=14.2';
-import {Injuries} from './mira-v2-injuries.js?v=12.9';
-import {Props,WEAPONS,GUNS} from './mira-v2-props.js?v=14.2';
-import {installTerrainFeatures} from './mira-v2-terrain-features.js?v=14.2';
+import { createDogSystem } from './mira-v2-dog.js?v=14.5';
+import { installGadgets } from './mira-v2-gadgets.js?v=14.3';
+import {Injuries} from './mira-v2-injuries.js?v=14.3';
+import {Props,WEAPONS,GUNS} from './mira-v2-props.js?v=14.4';
+import {installTerrainFeatures} from './mira-v2-terrain-features.js?v=14.5';
 import {syncFurniture} from './mira-v2-furniture.js?v=14.0';
 import {installWater} from './mira-v2-water.js?v=13.3';
 import {createFloraSystem} from './mira-v2-flora.js?v=13.3';
 import {RoomLight} from './mira-v2-light.js?v=11.0';
 import {draft,saveDraft,spawnOptions,OUTFITS,clothingItems} from './mira-v2-catalog.js?v=11.0';
-import {MiraWorld,SCENES} from './mira-v2-world.js?v=14.2';
+import {MiraWorld,SCENES} from './mira-v2-world.js?v=14.4';
 import {Wardrobe,GARMENTS} from './mira-v2-wardrobe.js?v=11.2';
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
@@ -22,7 +22,7 @@ import { unlockSfx } from "./mira-v2-sfx.js?v=11.0";
 import { EMOTION_NAMES, IDLE_NAMES, WALK_NAMES, ATTENTION_MODES } from "./mira-v2-features.js?v=13.7";
 import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
-import { createMiraSystem, SLIDERS, FACE_TYPES, HAIR_COLORS } from "./mira-v2.js?v=13.7";
+import { createMiraSystem, SLIDERS, FACE_TYPES, HAIR_COLORS } from "./mira-v2.js?v=14.5";
 import { DEFAULT_PERSONA, miraChat, miraSpeak, startMic, unlockVoice } from "./mira-voice-v2.js?v=12.3";
 
 import {V2_EXTRA_SLIDERS,FACE_PRESETS,HAIR_STYLES,ACTIVITY_MODES,ATTENTION_LABELS,shapeSliders} from './mira-v2-controls.js?v=12.9';
@@ -119,6 +119,7 @@ world.waterSystem=water;props.water=water;
 const flora=createFloraSystem({scene,mira,system:mira,world,props,camera,renderer,THREE});
 props.flora=flora;
 const terrainFeatures=installTerrainFeatures({world,props,WEAPONS,GUNS});
+props.gadgets?.rebuildRack?.();
 function ensureYardPond(){
  if(!water||world.name==='Beach'){if(props._yardPond){props._yardPond.despawn?.();props._yardPond=null;}return;}
  if(props._yardPond && props._pondScene===world.name)return;
@@ -140,6 +141,7 @@ mira.load(
     banner("Drag to orbit · wheel to zoom · Grab body or Shift-drag · VR: Y menu, right B ball");
     syncHud();document.dispatchEvent(new Event("mira:ready"));
     dogs.spawnDefault();
+    dogs.spawnDefaultCat?.();
     const dogNameEl=document.getElementById('dogName');
     if(dogNameEl)dogNameEl.value=dogs.list?.()[0]?.displayName||'Buddy';
     if (new URLSearchParams(location.search).has("debug")) window.human2 = { mira, scene, renderer, camera, rig, keys, orbit, world, wardrobe, props, dogs, water, flora, gadgets, terrainFeatures };
@@ -300,9 +302,13 @@ function bindHud() {
   }
   document.getElementById('dogCoat')?.addEventListener('input',e=>dogs.setCoat?.(e.target.value));
   document.getElementById('callDog')?.addEventListener('click',()=>{const h=dogs.list?.()[0];h?.recall?.();const st=document.getElementById('dogStatus');if(st)st.textContent=(h?.displayName||'Dog')+' is coming';});
-  document.getElementById('dogBone')?.addEventListener('click',()=>dogs.list?.()[0]?.giveBone?.());
-  document.getElementById('dogBag')?.addEventListener('click',()=>dogs.list?.()[0]?.giveBag?.());
-  document.getElementById('dogBowl')?.addEventListener('click',()=>dogs.list?.()[0]?.giveBowl?.());
+  document.getElementById('dogBone')?.addEventListener('click',()=>dogs.list?.().find(h=>h.kind==='dog')?.giveBone?.());
+  document.getElementById('dogBag')?.addEventListener('click',()=>dogs.list?.().find(h=>h.kind==='dog')?.giveBag?.());
+  document.getElementById('dogBowl')?.addEventListener('click',()=>dogs.list?.().find(h=>h.kind==='dog')?.giveBowl?.());
+  document.getElementById('spawnCat')?.addEventListener('click',()=>dogs.spawn?.({species:'cat'}));
+  document.getElementById('callCat')?.addEventListener('click',()=>{const h=dogs.list?.().find(x=>x.kind==='cat');h?.recall?.();const st=document.getElementById('dogStatus');if(st)st.textContent=(h?.displayName||'Cat')+' is coming';});
+  document.getElementById('catChicken')?.addEventListener('click',()=>{const cat=dogs.list?.().find(h=>h.kind==='cat');const p=new THREE.Vector3();if(cat?.root)cat.root.getWorldPosition(p).add(new THREE.Vector3(.4,.1,.25));else p.set(.6,.08,.4);dogs.spawnChicken?.(p);});
+  document.getElementById('catBag')?.addEventListener('click',()=>dogs.list?.().find(h=>h.kind==='cat')?.giveBag?.());
   document.getElementById("actorSelect").onchange=e=>{mira.select(mira.actors[Number(e.target.value)]);syncHud();};
   document.getElementById("removeActor").onclick=()=>{if(selected())mira.remove(selected());syncHud();};
   for(const [id,values] of [['walkStyle',WALK_NAMES],['idlePose',['auto',...IDLE_NAMES]],['expression',['context',...EMOTION_NAMES]]]){

@@ -10,6 +10,7 @@ export class HouseDoors {
  constructor(world){
   this.world=world;
   this.list=[];
+  this.casings=[];
   this.grips=new Map();
  }
  clear(){
@@ -17,7 +18,16 @@ export class HouseDoors {
    if(d.obstacle)this.world.removeObstacle(d.obstacle);
    d.root.removeFromParent();
   }
-  this.list=[];this.grips.clear();
+  for(const f of this.casings){
+   f.traverse(m=>{
+    const piece=m.userData?.piece;
+    if(piece?.obstacle)this.world.removeObstacle(piece.obstacle);
+    if(piece)piece.broken=true;
+    if(this.world.pickables)this.world.pickables=this.world.pickables.filter(o=>o!==m);
+   });
+   f.removeFromParent();
+  }
+  this.list=[];this.casings=[];this.grips.clear();
  }
  place(x,y,z,yaw,opts={}){
   const width=opts.width??.9,height=opts.height??2.04,thick=opts.thick??.042;
@@ -31,19 +41,55 @@ export class HouseDoors {
   stile.position.set(-hingeSign*width*.42,0,0);panel.add(stile);
   const mid=new T.Mesh(new T.BoxGeometry(width*.72,.06,thick+.008),woodMat(0x5a412e));
   mid.position.set(-hingeSign*width*.02,-height*.08,0);panel.add(mid);
-  const latchX=-hingeSign*(width-.08);
-  const knob=new T.Mesh(new T.SphereGeometry(.028,10,8),new T.MeshStandardMaterial({color:0xc4b089,roughness:.35,metalness:.65}));
-  knob.position.set(latchX,-height*.04,thick*.55);panel.add(knob);
-  const plate=new T.Mesh(new T.BoxGeometry(.04,.11,.01),new T.MeshStandardMaterial({color:0xb09a72,roughness:.4,metalness:.55}));
-  plate.position.set(latchX,-height*.04,thick*.52);panel.add(plate);
+  const half=width/2,knobR=.032,inset=Math.min(.07,Math.max(.045,half-knobR-.02));
+  const latchX=clamp(-hingeSign*(half-inset),-half+knobR+.015,half-knobR-.015);
+  const knobY=.92-height/2;
+  const metal=new T.MeshStandardMaterial({color:0xd4c4a0,roughness:.32,metalness:.7});
+  const plateMat=new T.MeshStandardMaterial({color:0xb09a72,roughness:.4,metalness:.55});
   const o=this.world.obstacle(x,z,axisAligned(yaw,width,thick).w,axisAligned(yaw,width,thick).d,y,height,panel);
   const part=this.world.fractures.register(panel,'wood',o);
-  const door={root,panel,knob,hingeSign,swing,max,angle:0,target:0,velocity:0,latched:true,grabbed:null,obstacle:o,part,width,height,thick,yaw,x,y,z};
-  panel.userData.houseDoor=door;knob.userData.houseDoor=door;plate.userData.houseDoor=door;
-  this.world.pickables.push(knob,plate);
+  const door={root,panel,knob:null,knobs:[],hingeSign,swing,max,angle:0,target:0,velocity:0,latched:true,grabbed:null,obstacle:o,part,width,height,thick,yaw,x,y,z};
+  const spindle=new T.Mesh(new T.CylinderGeometry(.008,.008,thick+.016,8),metal);
+  spindle.rotation.x=Math.PI/2;spindle.position.set(latchX,knobY,0);panel.add(spindle);
+  const mount=(side)=>{
+   const zFace=side*(thick/2);
+   const plate=new T.Mesh(new T.BoxGeometry(.05,.12,.008),plateMat);
+   plate.position.set(latchX,knobY,zFace+side*.004);panel.add(plate);
+   const neck=new T.Mesh(new T.CylinderGeometry(.011,.011,.022,8),metal);
+   neck.rotation.x=Math.PI/2;neck.position.set(latchX,knobY,zFace+side*.015);panel.add(neck);
+   const knob=new T.Mesh(new T.SphereGeometry(knobR,12,10),metal);
+   knob.position.set(latchX,knobY,zFace+side*(.022+knobR));panel.add(knob);
+   plate.userData.houseDoor=door;neck.userData.houseDoor=door;knob.userData.houseDoor=door;
+   this.world.pickables.push(knob,plate);
+   door.knobs.push(knob);
+   return knob;
+  };
+  door.knob=mount(1);mount(-1);
+  panel.userData.houseDoor=door;
+  this.placeCasing(x,y,z,yaw,width,height);
   this.list.push(door);
   this.syncObstacle(door);
   return door;
+ }
+ placeCasing(x,y,z,yaw,width,height){
+  const coverW=1.62,coverH=2.16,thick=.15,innerW=width+.05,innerH=height+.03;
+  const sideW=Math.max(.08,(coverW-innerW)/2),headH=Math.max(.08,coverH-innerH);
+  const frame=new T.Group();frame.name='Door casing';frame.position.set(x,0,z);frame.rotation.y=yaw;this.world.root.add(frame);this.casings.push(frame);
+  const mat=woodMat(0x5c4634);
+  const add=(sx,sy,sz,px,py,pz)=>{
+   const m=new T.Mesh(new T.BoxGeometry(sx,sy,sz),mat);
+   m.position.set(px,py,pz);m.castShadow=m.receiveShadow=true;m.name='Door jamb';frame.add(m);
+  };
+  add(sideW,innerH,thick,-(innerW+sideW)/2,y+innerH/2,0);
+  add(sideW,innerH,thick,(innerW+sideW)/2,y+innerH/2,0);
+  add(innerW+sideW*2,headH,thick,0,y+innerH+headH/2,0);
+  frame.updateWorldMatrix(true,true);
+  frame.traverse(m=>{
+   if(!m.isMesh)return;
+   const box=new T.Box3().setFromObject(m),c=box.getCenter(V()),s=box.getSize(V());
+   const o=this.world.obstacle(c.x,c.z,Math.max(.06,s.x),Math.max(.06,s.z),box.min.y,s.y,m);
+   this.world.fractures.register(m,'wood',o);
+  });
  }
  syncObstacle(d){
   if(!d.obstacle||d.part?.broken)return;
@@ -67,8 +113,8 @@ export class HouseDoors {
   for(const d of this.list){
    if(d.part?.broken||d.grabbed!=null)continue;
    d.root.updateWorldMatrix(true,true);
-   const handle=d.knob.getWorldPosition(V());
-   if(p.distanceTo(handle)>.11)continue;
+   const knobs=d.knobs?.length?d.knobs:[d.knob];
+   if(!knobs.some(k=>p.distanceTo(k.getWorldPosition(V()))<.12))continue;
    this.grips.set(i,{door:d,start:this.hingeAngle(d,p),angle:d.angle});
    d.grabbed=i;d.latched=false;d.velocity=0;
    props.status='Door · pull to swing, release to latch or leave open';

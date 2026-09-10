@@ -48,3 +48,75 @@ export function playSfx(kind,vol=1){
 }
 export function sfxForBreak(kind){if(kind==='glass')return 'glass';if(kind==='metal')return 'metal';if(kind==='plaster')return 'plaster';if(kind==='wood')return 'wood';return 'impact';}
 export function sfxForHit(kind){if(kind==='laser')return 'laser';if(kind==='bullet')return 'impact';if(kind==='cut')return 'whoosh';if(kind==='scuff')return 'thud';return 'thud';}
+
+export class CarAudio {
+ constructor(){this.rpm=850;this.hornUntil=0;this.started=false;this.nodes=null;}
+ ensure(){
+  unlockSfx();const c=ac();if(!c||this.nodes)return c;
+  const master=c.createGain();master.gain.value=0;master.connect(c.destination);
+  const osc=c.createOscillator();osc.type='sawtooth';osc.frequency.value=70;
+  const osc2=c.createOscillator();osc2.type='square';osc2.frequency.value=35;
+  const og=c.createGain();og.gain.value=.18;const og2=c.createGain();og2.gain.value=.07;
+  const n=noise(c,1.6);n.loop=true;const ng=c.createGain();ng.gain.value=.12;
+  const lp=filt(c,'lowpass',420,0.8),bp=filt(c,'bandpass',180,1.1);
+  osc.connect(og);osc2.connect(og2);n.connect(ng);og.connect(bp);og2.connect(lp);ng.connect(lp);bp.connect(lp);lp.connect(master);
+  osc.start();osc2.start();n.start();
+  this.nodes={c,master,osc,osc2,og,og2,n,ng,lp,bp};
+  return c;
+ }
+ tick(car,input,dt){
+  const c=this.ensure();if(!c||!this.nodes)return;
+  const drive=!!car.driving&&(car.gear==='D'||car.gear==='R');
+  const speed=car.velocity?.length?.()||0,throttle=drive?Math.max(0,input?.throttle||0):0;
+  const target=drive?820+throttle*3400+speed*62+(car.gear==='R'?180:0):car.driving?780:0;
+  this.rpm+=(target-this.rpm)*Math.min(1,dt*3.2);
+  const load=throttle*(.55+.45*Math.min(1,speed/8));
+  const vol=drive?.07+throttle*.26+Math.min(.16,speed*.018):car.driving?.04:0;
+  const t=c.currentTime,n=this.nodes;
+  n.osc.frequency.setTargetAtTime(this.rpm/12.2,t,.05);
+  n.osc2.frequency.setTargetAtTime(this.rpm/24.4,t,.05);
+  n.lp.frequency.setTargetAtTime(280+this.rpm*.22+load*90,t,.08);
+  n.og.gain.setTargetAtTime(.12+.16*load,t,.08);
+  n.ng.gain.setTargetAtTime(.08+.14*throttle,t,.08);
+  n.master.gain.setTargetAtTime(vol,t,.12);
+  if(drive&&!this.started){this.started=true;this.crank();}
+  if(!car.driving)this.started=false;
+ }
+ crank(){
+  try{
+   const c=ac(),t=c.currentTime,g=c.createGain();g.connect(master);
+   const o=c.createOscillator();o.type='sawtooth';o.frequency.setValueAtTime(48,t);o.frequency.exponentialRampToValueAtTime(90,t+.18);
+   env(g,t,.28,.0008,.22);o.connect(g);o.start(t);o.stop(t+.24);
+  }catch{}
+ }
+ horn(){
+  const now=typeof performance!=='undefined'?performance.now()/1000:0;
+  if(now<this.hornUntil)return false;this.hornUntil=now+.38;
+  try{
+   const c=this.ensure(),t=c.currentTime,g=c.createGain();g.connect(master);
+   const o=c.createOscillator();o.type='square';o.frequency.setValueAtTime(412,t);
+   const o2=c.createOscillator();o2.type='square';o2.frequency.setValueAtTime(349,t);
+   env(g,t,.55,.0008,.22);o.connect(g);o2.connect(g);o.start(t);o.stop(t+.2);o2.start(t);o2.stop(t+.2);
+  }catch{}
+  return true;
+ }
+ shifter(){
+  try{
+   const c=this.ensure(),t=c.currentTime,g=c.createGain();g.connect(master);
+   const n=noise(c,.05),f=filt(c,'bandpass',2100,4.5),o=c.createOscillator();o.type='square';o.frequency.setValueAtTime(190,t);o.frequency.exponentialRampToValueAtTime(90,t+.04);
+   env(g,t,.32,.0008,.07);n.connect(f);f.connect(g);o.connect(g);n.start(t);n.stop(t+.05);o.start(t);o.stop(t+.05);
+  }catch{}
+ }
+ door(open){
+  try{
+   const c=this.ensure(),t=c.currentTime,g=c.createGain();g.connect(master);
+   if(open){
+    const n=noise(c,.18),f=filt(c,'bandpass',380,1.4);env(g,t,.42,.0008,.2);n.connect(f);f.connect(g);n.start(t);n.stop(t+.18);
+    const o=c.createOscillator();o.type='triangle';o.frequency.setValueAtTime(140,t);o.frequency.exponentialRampToValueAtTime(70,t+.12);o.connect(g);o.start(t);o.stop(t+.14);
+   }else{
+    const n=noise(c,.12),f=filt(c,'lowpass',520,0.9),o=c.createOscillator();o.type='sine';o.frequency.setValueAtTime(90,t);o.frequency.exponentialRampToValueAtTime(42,t+.1);
+    env(g,t,.7,.0008,.16);n.connect(f);f.connect(g);o.connect(g);n.start(t);n.stop(t+.12);o.start(t);o.stop(t+.14);
+   }
+  }catch{}
+ }
+}

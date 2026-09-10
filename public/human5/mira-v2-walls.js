@@ -273,24 +273,30 @@ export class WallSystem {
   part.framed=true;
   const s=part.size,axis=thinAxis(s),along=axis==='x'?'z':'x';
   if(!isWallCell(s))return;
-  const studW=.038,studD=.089,h=s.y,len=s[along];
+  const studW=.055,studD=.10,h=s.y,len=s[along];
   const wood=new T.MeshStandardMaterial({map:makeSurfaceMap('Wood'),color:0xffffff,roughness:.84});
-  const group=new T.Group();group.name='Wall frame';group.position.copy(part.p);
-  const add=(sx,sy,sz,x,y,z)=>{const m=new T.Mesh(new T.BoxGeometry(sx,sy,sz),wood);m.position.set(x,y,z);m.castShadow=m.receiveShadow=true;m.name='Wall stud';group.add(m);return m;};
-  const plate=(y)=>axis==='x'?add(studW,.038,len*.96,0,y,0):add(len*.96,.038,studW,0,y,0);
+  const members=[];
+  const place=(sx,sy,sz,ox,oy,oz)=>{
+   const mesh=new T.Mesh(new T.BoxGeometry(sx,sy,sz),wood);
+   mesh.position.set(part.p.x+ox,part.p.y+oy,part.p.z+oz);
+   mesh.castShadow=mesh.receiveShadow=true;mesh.name='Wall stud';
+   this.world.root.add(mesh);
+   const o=this.world.obstacle(mesh.position.x,mesh.position.z,Math.max(.07,sx),Math.max(.07,sz),mesh.position.y-sy/2,sy,mesh);
+   const piece=this.fractures.register(mesh,'wood',o);
+   if(piece){piece.frame=true;piece.shell=part;piece.health=28;piece.maxHealth=28;}
+   mesh.userData.piece=piece;mesh.userData.wallPart=piece;
+   members.push(piece);
+   return mesh;
+  };
+  const plate=(oy)=>axis==='x'?place(studW,.05,len*.96,0,oy,0):place(len*.96,.05,studW,0,oy,0);
   plate(h/2-.03);plate(-(h/2-.03));
   for(const off of [-len*.33,0,len*.33]){
-   if(axis==='x')add(studW,h*.86,studD,0,0,off);
-   else add(studD,h*.86,studW,off,0,0);
+   if(axis==='x')place(studW,h*.86,studD,0,0,off);
+   else place(studD,h*.86,studW,off,0,0);
   }
-  this.world.root.add(group);
-  const o=this.world.obstacle(part.p.x,part.p.z,s.x,s.z,part.p.y-s.y/2,s.y,group);
-  const piece=this.fractures.register(group,'wood',o);
-  if(piece){piece.frame=true;piece.shell=part;}
-  group.userData.piece=piece;
-  group.traverse(m=>{if(m.isMesh){m.userData.piece=piece;if(!this.world.pickables.includes(m))this.world.pickables.push(m);}});
-  part.frameGroup=group;
+  part.frameMembers=members;
  }
+
  puff(part,dir,energy){
   const n=Math.min(this.maxDust,12);
   for(let k=0;k<n;k++){
@@ -301,13 +307,21 @@ export class WallSystem {
  }
  shatter(part,dir,energy){
   const hole=this.holes.get(part);
-  if(hole){hole.removeFromParent();this.holes.delete(part);}
+  if(hole){
+   hole.traverse(m=>{if(m.isMesh)m.visible=false;});
+   hole.removeFromParent();
+   if(this.world.pickables)this.world.pickables=this.world.pickables.filter(o=>{
+    let p=o;while(p){if(p===hole)return false;p=p.parent;}
+    return o!==hole;
+   });
+   this.holes.delete(part);
+  }
   this.hideTrim(part);
   if(part.kind==='plaster')this.revealFrame(part);
   if(part.frame&&part.mesh){
-   part.mesh.traverse(m=>{if(m.isMesh)m.visible=false;});
+   part.mesh.visible=false;
    part.mesh.removeFromParent();
-   if(this.world.pickables)this.world.pickables=this.world.pickables.filter(o=>o!==part.mesh&&o.parent!==part.mesh);
+   if(this.world.pickables)this.world.pickables=this.world.pickables.filter(o=>o!==part.mesh);
   }
   this.puff(part,dir,energy);
  }

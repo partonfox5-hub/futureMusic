@@ -2,8 +2,8 @@ import * as T from 'three';
 import {playSfx,sfxForHit,unlockSfx} from './mira-v2-sfx.js?v=13.6';
 import {furnitureRoot,syncFurniture} from './mira-v2-furniture.js?v=14.0';
 import {ensureGrabbableWood} from './mira-v2-nature.js?v=14.2';
-import {GUNS,MELEE,buildMarker,buildPortalGun} from './mira-v2-gadgets.js?v=14.2';
-import {FIREARMS,buildFirearm,firearmSpread} from './mira-v2-firearms.js?v=14.2';
+import {GUNS,MELEE,buildMarker,buildPortalGun} from './mira-v2-gadgets.js?v=14.3';
+import {FIREARMS,buildFirearm,firearmSpread} from './mira-v2-firearms.js?v=14.3';
 const V=()=>new T.Vector3(),Q=()=>new T.Quaternion();
 const visible=o=>{while(o){if(!o.visible)return false;o=o.parent;}return true;};
 const G=w=>Number.isFinite(w?.gravity)?w.gravity:9.81;
@@ -230,7 +230,15 @@ export class Props {
   if(opts.world!==false){meshes.push(...this.world.pickables);for(const c of this.cars())meshes.push(...(c.pickables||[]));for(const p of this.world.fractures?.parts||[])if(p.frame&&p.mesh&&!p.broken)p.mesh.traverse(m=>{if(m.isMesh&&m.visible)meshes.push(m);});}
   for(const a of this.system.actors)a.root.traverse(m=>{if(m.isSkinnedMesh&&/^body/.test(m.name))meshes.push(m);});
   for(const d of this.dogs?.list?.()||[])d.root.traverse(m=>{if(m.isSkinnedMesh&&m.visible)meshes.push(m);});
-  const hit=meshes.length?this.rc.intersectObjects(meshes,false).find(h=>visible(h.object)&&!h.object.userData.chunks?.[h.instanceId]?.broken):null;
+  const hits=meshes.length?this.rc.intersectObjects(meshes,false):[];
+  const hit=hits.find(h=>{
+   if(!visible(h.object))return false;
+   const chunks=h.object.userData.chunks;
+   if(chunks){if(h.instanceId==null)return false;const ch=chunks[h.instanceId];if(!ch||ch.broken)return false;}
+   const piece=h.object.userData.piece||h.object.userData.wallPart;
+   if(piece?.broken)return false;
+   return true;
+  })||null;
   const rope=ropes&&this.restraints?.hit(ray,max);
   const candidates=[clothHit,hit,rope].filter(Boolean).sort((a,b)=>a.distance-b.distance);
   return candidates[0]||null;
@@ -248,7 +256,7 @@ export class Props {
   for(let i=0;i<pellets;i++){
    const dir=spread?firearmSpread(aimDir,spread):aimDir.clone(),ray=new T.Ray(muzzle,dir);
    if(item.id==='laser'){const hit=this.hit(ray,35),end=hit?.point||ray.at(35,V());this.beam(muzzle,end,0x99f7ff,.10);if(hit)this.impact(hit,24,dir,'laser',0);}
-   else{this.shots.push({position:muzzle.clone(),velocity:dir.clone().multiplyScalar(speed+(Math.random()-.5)*4),age:0,energy});this.beam(muzzle,muzzle.clone().addScaledVector(dir,.14+Math.min(.2,item.data.reach*.12)),item.id==='shotgun'?0xffc07a:0xffde9c,.04);}
+   else{this.shots.push({position:muzzle.clone(),velocity:dir.clone().multiplyScalar(speed+(Math.random()-.5)*4),age:0,energy,weaponId:item.id,knockback:item.data.knockback,stagger:item.data.stagger});this.beam(muzzle,muzzle.clone().addScaledVector(dir,.14+Math.min(.2,item.data.reach*.12)),item.id==='shotgun'?0xffc07a:0xffde9c,.04);}
   }
   if(typeof item.holder==='number')this.system.hands.haptics.contact(item.holder,'prop',1,.004);}
  beam(a,b,color,ttl){const length=a.distanceTo(b),m=new T.Mesh(new T.CylinderGeometry(.003,.003,Math.max(.001,length),5),new T.MeshBasicMaterial({color,transparent:true}));m.position.copy(a).lerp(b,.5);m.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),b.clone().sub(a).normalize());this.scene.add(m);this.effects.push({mesh:m,ttl,life:ttl,velocity:V(),expand:0});}
@@ -256,13 +264,26 @@ export class Props {
   const cloth=hit.object.userData.cloth;if(cloth&&['cut','laser','bullet'].includes(kind)){const n=cloth.slash(hit.point,dir,kind,energy);this.status=(kind==='laser'?'Laser burned':kind==='bullet'?'Shot through': 'Cut')+' clothing'+(n?' · '+n+' tears':'');
    const wearer=cloth.actor;if(wearer){const region=wearer.nearestHit(hit.point,.18);if(region){if(this.injuries)this.injuries.impact(wearer,hit,energy*.65,kind,dir);else wearer.applyStrike?.(region,dir.clone().negate(),Math.min(3,Math.sqrt(energy)*.25),0,hit.point);}}
    this.mark(hit,wearer||null,kind,dir,energy);return;}
-  const actor=this.actorFor(hit.object),dog=!actor&&this.dogFor(hit.object);let result=null;if(actor){if(this.injuries)result=this.injuries.impact(actor,hit,energy,kind,dir);else{const region=actor.nearestHit(hit.point,.15);if(region)actor.applyStrike?.(region,dir.clone().negate(),Math.min(3,Math.sqrt(energy)*.3),0,hit.point);}}
-  else if(dog){if(this.injuries)result=this.injuries.impact(dog,hit,energy,kind,dir);else dog.applyStrike?.(dog.nearestHit(hit.point,.2),dir.clone().negate(),Math.min(3,Math.sqrt(energy)*.3),0,hit.point);}
+  const actor=this.actorFor(hit.object),dog=!actor&&this.dogFor(hit.object);let result=null;if(actor){if(this.injuries)result=this.injuries.impact(actor,hit,energy,kind,dir,hit.weaponId);else{const region=actor.nearestHit(hit.point,.15);if(region)actor.applyStrike?.(region,dir.clone().negate(),Math.min(3,Math.sqrt(energy)*.3)*(hit.stagger??1),0,hit.point);}this.impulseTarget(actor,dir,energy,hit.weaponId);}
+  else if(dog){if(this.injuries)result=this.injuries.impact(dog,hit,energy,kind,dir,hit.weaponId);else dog.applyStrike?.(dog.nearestHit(hit.point,.2),dir.clone().negate(),Math.min(3,Math.sqrt(energy)*.3)*(hit.stagger??1),0,hit.point);this.impulseTarget(dog,dir,energy,hit.weaponId);}
   else if(hit.object.userData.tree){const fell=this.world.chopTree?.(hit.object.userData.tree,hit.point,energy,dir,kind);this.status=fell?(fell==='split'?'Wood split':fell==='fell'?'Tree falling':'Chopping wood'):'Chopping wood';this.mark(hit,null,kind,dir,energy);return;}
   else if(hit.object.userData.carPart){const part=hit.object.userData.carPart,car=this.cars().find(c=>c.parts.includes(part)||c.wheels.includes(part));car?.damage(hit,energy,kind,dir);}
   else{const furn=furnitureRoot(hit.object)?.userData.furniture;this.world.fractures.impact(hit,energy,dir,kind,sharpness);if(furn)this.damageFurniture(furn,energy,dir,kind,sharpness,hit);}
   if((!actor&&!dog)||this.injuries?.enabled!==false)this.mark(hit,actor||dog,kind,dir,energy);this.status=(kind==='laser'?'Laser burn':kind==='bullet'?'Bullet impact':kind==='cut'?'Blade cut':kind==='scuff'?'Scuff':'Blunt bruise')+(result?' · '+result.region+(result.severed?' · severed':result.fractured?' · fractured':''):'');
  if(kind==='laser')for(let j=0;j<5;j++){const m=new T.Mesh(new T.IcosahedronGeometry(.008,0),new T.MeshBasicMaterial({color:j<3?0xffb46b:0x878681,transparent:true,opacity:.8}));m.position.copy(hit.point);this.scene.add(m);this.effects.push({mesh:m,ttl:.55,life:.55,velocity:dir.clone().multiplyScalar(-.35).add(new T.Vector3(Math.sin(j*2.3)*.3,.25+j*.08,Math.cos(j*2.3)*.3)),expand:j>2?2:0});}}
+ impulseTarget(target,dir,energy,weaponId){
+  if(!target)return;
+  const n=dir.clone();n.y*=.18;if(n.lengthSq()<1e-8)n.set(0,0,1);n.normalize();
+  const push=weaponId==='sniper'?1.05:weaponId==='shotgun'?.28:weaponId==='rifle'?.05:.08;
+  const root=target.group||target.root;if(!root)return;
+  root.position.addScaledVector(n,push);
+  this.world.project?.(root.position,target.version==='dog'?.3:.34,.06,1.7);
+  if(weaponId==='sniper'){
+   target.knockDown?.(n,n.clone().multiplyScalar(.9));
+  }else if(weaponId==='shotgun'){
+   if(this.time-(target._shotgunDump||0)>.12){target._shotgunDump=this.time;target.knockDown?.(n,n.clone().multiplyScalar(.42));}
+  }
+ }
  damageFurniture(furn,energy,dir,kind,sharpness,hit){
   if(!furn||furn.broken)return;
   furn.health??=['Chair','Couch','Table','Coffee table','Desk','Nightstand','Dresser','Bookshelf','Bed'].includes(furn.id)?55:80;
@@ -371,7 +392,7 @@ void main(){
  item.lastSamples=samples;const p=item.group.getWorldPosition(V());if(item.lastPoint)item.velocity.copy(p).sub(item.lastPoint).divideScalar(Math.max(.001,dt)).clampLength(0,8);item.lastPoint=p.clone();
  }else{item.velocity.y-=G(this.world)*dt;item.group.position.addScaledVector(item.velocity,dt);const p=item.group.position,old=p.clone();if(this.world.projectSphere(p,.08)){const n=p.clone().sub(old).normalize(),vn=item.velocity.dot(n);if(vn<0)item.velocity.addScaledVector(n,-1.1*vn);item.velocity.multiplyScalar(.8);}item.group.updateWorldMatrix(true,true);const box=new T.Box3().setFromObject(item.group),floor=(this.world.floorHeight?.(p,.12)??0)+.02;if(box.min.y<floor){item.group.position.y+=floor-box.min.y;if(G(this.world)>0.5){if(item.velocity.y<0)item.velocity.y=Math.abs(item.velocity.y)*.1;item.velocity.x*=.82;item.velocity.z*=.82;}else if(item.velocity.y<0)item.velocity.y=Math.abs(item.velocity.y)*.4;}}}
  this.gadgets?.tick?.(dt);
- for(const shot of this.shots){shot.age+=dt;const next=shot.position.clone().addScaledVector(shot.velocity,dt),dist=next.distanceTo(shot.position),ray=new T.Ray(shot.position.clone(),shot.velocity.clone().normalize()),hit=this.hit(ray,dist);this.beam(shot.position,hit?.point||next,0xffe5ac,.035);if(hit){this.impact(hit,shot.energy||32,ray.direction,'bullet');shot.age=2;}shot.position.copy(next);shot.velocity.y-=G(this.world)*dt;}this.shots=this.shots.filter(x=>x.age<.8).slice(-12);
+ for(const shot of this.shots){shot.age+=dt;const next=shot.position.clone().addScaledVector(shot.velocity,dt),dist=next.distanceTo(shot.position),ray=new T.Ray(shot.position.clone(),shot.velocity.clone().normalize()),hit=this.hit(ray,dist);this.beam(shot.position,hit?.point||next,0xffe5ac,.035);if(hit){hit.weaponId=shot.weaponId;hit.stagger=shot.stagger;this.impact(hit,shot.energy||32,ray.direction,'bullet');shot.age=2;}shot.position.copy(next);shot.velocity.y-=G(this.world)*dt;}this.shots=this.shots.filter(x=>x.age<.8).slice(-12);
  for(const e of this.effects){e.ttl-=dt;e.mesh.position.addScaledVector(e.velocity,dt);e.mesh.material.opacity=Math.max(0,e.ttl/e.life);if(e.expand)e.mesh.scale.addScalar(dt*e.expand*10);if(e.ttl<=0)this.dispose(e.mesh);}this.effects=this.effects.filter(e=>e.ttl>0);while(this.effects.length>80)this.dispose(this.effects.shift().mesh);
  const updated=new Set();for(const m of this.marks){m.age+=dt;m.mesh.material.uniforms.age.value=m.age;if(m.anchor&&m.actor?.version==='v2'&&this.system.actors.includes(m.actor)){const {surface,ref}=m.anchor;if(!updated.has(surface)){surface.begin();updated.add(surface);}const tri=new T.Triangle();surface.vertex(ref.cache,ref.ids[0],tri.a);surface.vertex(ref.cache,ref.ids[1],tri.b);surface.vertex(ref.cache,ref.ids[2],tri.c);const normal=tri.getNormal(V());m.mesh.position.copy(tri.a).multiplyScalar(ref.bary.x).addScaledVector(tri.b,ref.bary.y).addScaledVector(tri.c,ref.bary.z).addScaledVector(normal,.002);if(m.along){const along=m.along.clone().addScaledVector(normal,-m.along.dot(normal));if(along.lengthSq()<1e-6)along.copy(m.along);along.normalize();const bin=new T.Vector3().crossVectors(normal,along).normalize();m.mesh.quaternion.setFromRotationMatrix(new T.Matrix4().makeBasis(along,bin,normal));}else m.mesh.quaternion.setFromUnitVectors(new T.Vector3(0,0,1),normal);}if(m.age>100||m.piece?.broken||m.actor&&!this.system.actors.includes(m.actor))this.dispose(m.mesh);}this.marks=this.marks.filter(m=>m.mesh.parent);
  }
