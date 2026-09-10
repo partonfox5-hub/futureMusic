@@ -1,7 +1,7 @@
 import {LivingEyes} from './mira-v2-eyes.js?v=12.2';
 import {EnhanceEyes} from './mira-v2-tearline.js?v=12.2';
-import {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES,V2_EXTRA_SLIDERS,FACE_PRESETS,EXERCISE_MODES,ATTENTION_MODES} from './mira-v2-controls.js?v=11.5';
-export {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES,ATTENTION_MODES} from './mira-v2-controls.js?v=11.5';
+import {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES,V2_EXTRA_SLIDERS,FACE_PRESETS,EXERCISE_MODES,ATTENTION_MODES} from './mira-v2-controls.js?v=16.0';
+export {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES,ATTENTION_MODES} from './mira-v2-controls.js?v=16.0';
 import * as THREE from 'three';
 import {restoreSurfaceUV} from './mira-v2-uv.js?v=11.0';
 import {HairGuides} from './mira-v2-hair.js?v=12.9';
@@ -543,7 +543,7 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    const before=this.group.position.clone();const moving=super.wander(dt);
    if(this.directedWalk&&!this.dest&&!this.navigation){this.directedWalk=null;this.autoWander=false;this.mode='idle';this.modeT=0;this.speed=0;this.pathSpeed=0;}
    const moodSpeed=['sad','tired'].includes(this.emotion.name)?.8:1;
-   const factor=([1,1.12,.84,1.25,.68,.92][this.gait]||1)*moodSpeed;
+   const factor=([1,1.12,.84,1.25,.68,.92][this.gait]||1)*moodSpeed*((this.directedWalk||this.navigation)?1.45:1);
    this.group.position.sub(before).multiplyScalar(factor).add(before);this.pathSpeed=this.speed;this.speed*=factor;
    return moving;
   }
@@ -775,7 +775,7 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    this.group.updateMatrixWorld(true);
   }
   handContact(pos,rad,velocity,react=true){
-   this.handContactScale=this.shape.handResponse??1.35;
+   this.handContactScale=this.shape.handResponse??2.7;
    try{return super.collidePoint(pos,rad,velocity,true,react);}finally{this.handContactScale=null;}
   }
   contactSoft(hit,normal,push,closing){

@@ -5,7 +5,7 @@ import {SCENES} from './mira-v2-world.js?v=13.9';
 import {GARMENTS} from './mira-v2-wardrobe.js?v=11.2';
 import * as THREE from 'three';
 import {SLIDERS,FACE_TYPES} from './mira-v2.js?v=13.7';
-import {shapeSliders,FACE_PRESETS,HAIR_STYLES,ACTIVITY_MODES,ACTION_LABELS,POSE_LABELS,ATTENTION_MODES,ATTENTION_LABELS} from './mira-v2-controls.js?v=12.9';
+import {shapeSliders,FACE_PRESETS,HAIR_STYLES,ACTIVITY_MODES,ACTION_LABELS,POSE_LABELS,ATTENTION_MODES,ATTENTION_LABELS} from './mira-v2-controls.js?v=16.0';
 import {HAIR_COLORS} from './mira-v2.js?v=13.7';
 import {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES} from './mira-v2-features.js?v=13.7';
 export function createVRMenu({scene,renderer,camera,system,spawn,onSync,world,wardrobe,spawnConfigured,copyConfiguration,props,saveScene,loadScene}){

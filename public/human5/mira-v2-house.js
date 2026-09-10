@@ -1,10 +1,11 @@
 import * as T from 'three';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
 import {makeSurfaceMap,wallMaterial} from './mira-v2-walls.js?v=15.2';
-import {placeStairs,placeFurniture,tagMovable} from './mira-v2-furniture.js?v=15.2';
+import {placeStairs,placeFurniture,tagMovable} from './mira-v2-furniture.js?v=16.0';
+import {detailToilet,detailFridge,detailMicrowave,detailSink,detailBathtub,detailLamp,detailTvStand,detailBed,detailNightstand,detailDresser,detailBookshelf,detailDesk,detailBarStool,detailCabinet,detailMirror,detailCounter,detailCoffee,detailTable} from './mira-v2-furnish.js?v=16.0';
 import {installWeights} from './mira-v2-weights.js?v=15.6';
 import {installLaundry,installPantry} from './mira-v2-laundry.js?v=15.5';
-import {installPiano} from './mira-v2-piano.js?v=15.6';
+import {installPiano} from './mira-v2-piano.js?v=15.7';
 import {HouseDoors} from './mira-v2-doors.js?v=14.6';
 const STORY=3.05,CELL=.6;
 const doorHole=(axis,c,w=1.14,head=2.14)=>{
@@ -91,66 +92,60 @@ export function buildHouse(w){
  addRoof(w,maps);
 
 
- const furniture=(mesh,sx,sz,kind='wood')=>{const p=mesh.position,o=w.obstacle(p.x,p.z,sx,sz,p.y-.4,new T.Box3().setFromObject(mesh).max.y,mesh);w.fractures.register(mesh,kind,o);return mesh;};
  let furnitureStart=w.root.children.length;
  const couch=w.chair(-3.6,2.2,0,true),chair=w.chair(-1.2,2.8,-Math.PI/2);
- const table=round(-2.4,.635,1.35,1.7,.09,.85,0x72503b,.018);furniture(table,1.7,.85);w.tableAnchor={x:-2.4,y:.68,z:1.35};
- for(const x of [-3.08,-1.72])for(const z of [1.07,1.63]){const leg=round(x,.3,z,.07,.60,.07,0x4a3930);w.fractures.register(leg,'wood');}
+ w.tableAnchor={x:-2.4,y:.68,z:1.35};
+ detailTable(w,-2.4,1.35);
  w.captureFurniture('Table',furnitureStart,-2.4,1.35);furnitureStart=w.root.children.length;
- const coffee=round(-3.5,.21,1.55,.92,.10,.58,0x6a4e3a,.02);furniture(coffee,.92,.58);
+ detailCoffee(w,-3.5,1.55);
  w.captureFurniture('Coffee table',furnitureStart,-3.5,1.55);furnitureStart=w.root.children.length;
- const tv=round(-3.4,.32,4.05,1.55,.52,.42,0x3e3a36);furniture(tv,1.55,.42,'wood');round(-3.4,.78,4.05,1.28,.04,.06,0x1a1c1e);
+ detailTvStand(w,-3.4,4.05);
  w.captureFurniture('TV stand',furnitureStart,-3.4,4.05);furnitureStart=w.root.children.length;
- const shelf=round(-6.7,.92,2.4,.28,1.72,.92,0x6d5340);furniture(shelf,.28,.92);for(const y of [.35,.7,1.05,1.4])round(-6.7,y,2.4,.26,.03,.88,0x5a4434);
+ detailBookshelf(w,-6.7,2.4);
  w.captureFurniture('Bookshelf',furnitureStart,-6.7,2.4);furnitureStart=w.root.children.length;
- const lamp=round(-5.6,.78,.6,.08,1.42,.08,0x9aa0a4);furniture(lamp,.18,.18,'metal');round(-5.6,1.52,.6,.22,.06,.22,0xd8c9a6,.08);
+ detailLamp(w,-5.6,.6);
  w.captureFurniture('Floor lamp',furnitureStart,-5.6,.6);furnitureStart=w.root.children.length;
- const ottoman=round(-2.6,.18,.7,.48,.22,.42,0x6d5a4a,.06);furniture(ottoman,.48,.42);
- w.captureFurniture('Ottoman',furnitureStart,-2.6,.7);furnitureStart=w.root.children.length;
- const side=round(-5.5,.28,3.5,.38,.42,.38,0x7a5a40);furniture(side,.38,.38);
- w.captureFurniture('Side table',furnitureStart,-5.5,3.5);
- w.chair(-4.4,.9,Math.PI);w.chair(-2.8,.9,Math.PI);w.chair(-1.1,1.1,.4);
+ w.chair(-1.1,1.8,.35);
 
  furnitureStart=w.root.children.length;
- const counter=round(4.6,.46,1.6,.78,.91,2.7,0x58695e);furniture(counter,.78,2.7);round(4.6,.95,1.6,.88,.075,2.8,0xd5d2c6);
+ detailCounter(w,4.6,1.6);
  w.captureFurniture('Kitchen counter',furnitureStart,4.6,1.6);furnitureStart=w.root.children.length;
- const fridge=round(6.3,1.02,3.5,.89,2.04,.77,0xd8d7cc);furniture(fridge,.89,.77,'metal');
+ detailFridge(w,6.3,3.5);
  w.captureFurniture('Refrigerator',furnitureStart,6.3,3.5);furnitureStart=w.root.children.length;
- const cabinet=round(6.4,.48,.2,.52,.88,.70,0x5e6a62);furniture(cabinet,.52,.70);
+ detailCabinet(w,6.4,.2);
  w.captureFurniture('Cabinet',furnitureStart,6.4,.2);furnitureStart=w.root.children.length;
- const micro=round(4.2,1.18,.4,.42,.28,.38,0xc5c6c2);furniture(micro,.42,.38,'metal');
+ detailMicrowave(w,4.2,.4);
  w.captureFurniture('Microwave',furnitureStart,4.2,.4);furnitureStart=w.root.children.length;
- const stool=round(3.6,.46,2.4,.28,.08,.28,0x5a4638);furniture(stool,.28,.28);round(3.6,.22,2.4,.05,.42,.05,0x4a3930);
+ detailBarStool(w,3.6,2.4);
  w.captureFurniture('Bar stool',furnitureStart,3.6,2.4);
- w.chair(3.2,3.1,-.4);
 
  furnitureStart=w.root.children.length;
- const bed3=round(-1.6,.30,-4.4,1.65,.48,2.05,0x684d3c);furniture(bed3,1.65,2.05);
+ detailBed(w,-1.6,-4.4);
  w.captureFurniture('Bed',furnitureStart,-1.6,-4.4);
  const bedGroup=(w.movables||[]).filter(g=>g.userData.furniture?.id==='Bed').at(-1);
  furnitureStart=w.root.children.length;
- const mattress=round(-1.6,.64,-4.4,1.58,.18,1.94,0xe0d8c9,.1);
- mattress.position.set(-1.6,.64,-4.4);
+ const mattress=round(-1.6,.58,-4.4,1.58,.16,1.94,0xe0d8c9,.1);
+ mattress.position.set(-1.6,.58,-4.4);
  const mf=tagMovable(w,mattress,'Mattress');if(mf){mf.mass=Math.min(16,mf.mass);mf.soft=true;mf.health=22;mf.velocity.set(0,0,0);}
  w.fractures.register(mattress,'wood');if(mattress.userData.piece){mattress.userData.piece.health=22;mattress.userData.piece.maxHealth=22;}
  if(bedGroup?.userData.furniture)bedGroup.userData.furniture.mattress=mattress;
  mattress.userData.bedFrame=bedGroup;
  furnitureStart=w.root.children.length;
- const night=round(-2.9,.34,-4.9,.55,.66,.57,0x826144);furniture(night,.55,.57);
+ detailNightstand(w,-2.9,-4.9);
  w.captureFurniture('Nightstand',furnitureStart,-2.9,-4.9);furnitureStart=w.root.children.length;
- const desk=round(-.4,.41,-3.4,1.05,.08,.58,0x70543c);furniture(desk,1.05,.58);
+ detailDesk(w,-.4,-3.4);
  w.captureFurniture('Desk',furnitureStart,-.4,-3.4);furnitureStart=w.root.children.length;
- const dresser=round(-2.2,.48,-6.2,.95,.84,.42,0x7a5c44);furniture(dresser,.95,.42);
+ detailDresser(w,-2.2,-6.2);
  w.captureFurniture('Dresser',furnitureStart,-2.2,-6.2);
 
  furnitureStart=w.root.children.length;
- const bath=round(-5.6,.30,-4.6,1.2,.59,1.25,0xd6d8cf,.12);furniture(bath,1.2,1.25,'stone');
+ detailBathtub(w,-5.6,-4.6);
  w.captureFurniture('Bathtub',furnitureStart,-5.6,-4.6);furnitureStart=w.root.children.length;
- const basin=round(-6.4,.77,-3.2,.70,.18,.62,0xdbded5,.08);furniture(basin,.70,.62,'stone');
+ detailSink(w,-6.4,-3.2);
  w.captureFurniture('Sink',furnitureStart,-6.4,-3.2);furnitureStart=w.root.children.length;
- const toilet=round(-4.5,.26,-3.3,.42,.40,.52,0xe4e6e0,.08);furniture(toilet,.42,.52,'stone');
+ detailToilet(w,-4.5,-3.3);
  w.captureFurniture('Toilet',furnitureStart,-4.5,-3.3);furnitureStart=w.root.children.length;
- const mirror=round(-6.4,1.45,-3.7,.55,.62,.04,0x8aa8a6);furniture(mirror,.55,.08,'glass');
+ detailMirror(w,-6.4,-3.7);
  w.captureFurniture('Mirror',furnitureStart,-6.4,-3.7);furnitureStart=w.root.children.length;
  const frame=round(-6.9,1.73,0.2,.04,1.15,.85,0x41392f);w.fractures.register(frame,'wood');round(-6.87,1.73,0.2,.016,.99,.70,0x819c99);
  w.captureFurniture('Wall picture',furnitureStart,-6.9,0.2);
@@ -159,15 +154,11 @@ export function buildHouse(w){
 
  placeFurniture(w,w.builder?.wardrobe||{rack:null,tokens:[]},'Bed',new T.Vector3(-4.6,STORY,-3.8),0);
  placeFurniture(w,w.builder?.wardrobe||{rack:null,tokens:[]},'Nightstand',new T.Vector3(-5.9,STORY,-4.2),0);
- placeFurniture(w,w.builder?.wardrobe||{rack:null,tokens:[]},'Dresser',new T.Vector3(-2.4,STORY,-6.0),0);
- placeFurniture(w,w.builder?.wardrobe||{rack:null,tokens:[]},'Bed',new T.Vector3(4.2,STORY,-3.6),0);
- placeFurniture(w,w.builder?.wardrobe||{rack:null,tokens:[]},'Desk',new T.Vector3(6.0,STORY,-1.6),0);
  placeFurniture(w,w.builder?.wardrobe||{rack:null,tokens:[]},'Toilet',new T.Vector3(-6.2,STORY,2.6),0);
  placeFurniture(w,w.builder?.wardrobe||{rack:null,tokens:[]},'Sink',new T.Vector3(-4.8,STORY,3.6),0);
- const loftChair=w.chair(-4.8,-2.2,.4);loftChair.group.position.y=STORY;
  installPantry(w);
  installPiano(w,new T.Vector3(-4.95,0,-1.12),0);
- const gndLights=[[-3.2,2.70,1.4,0xffdec0],[4.2,2.70,1.6,0xe5efff],[-3.2,STORY+2.70,-2.2,0xffe6c8],[4.2,STORY+2.70,-2.0,0xe8f0ff],[3.8,2.70,7.5,0xf2efe6],[10.0,2.70,1.4,0xe8e4d8],[10.0,2.70,-4.2,0xe4efe8],[-4.9,2.2,-.6,0xffe6c8]];
+ const gndLights=[[-3.2,2.70,1.4,0xffdec0],[4.2,2.70,1.6,0xe5efff],[10.0,2.70,1.4,0xe8e4d8],[-4.9,2.2,-.6,0xffe6c8]];
  for(const [x,y,z,color] of gndLights){const light=new T.PointLight(color,9,7,2);light.position.set(x,y,z);w.root.add(light);round(x,y+.24,z,.40,.04,.40,0xe7dfca);}
  for(const seat of w.seats)if(w.blocked(seat.approach,.23)){for(const offset of [[-.85,0,.7],[.85,0,.7],[0,0,1.35]]){const p=seat.group.localToWorld(v(...offset));if(!w.blocked(p,.23)){seat.approach.copy(p);break;}}}
 }

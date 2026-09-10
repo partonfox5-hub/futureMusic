@@ -6,7 +6,7 @@ export const V2_EXTRA_SLIDERS=[
  {key:'buttHeight',label:'Buttock placement',min:-1,max:1,step:.02,value:0,section:'shape'},
  {key:'buttSpacing',label:'Buttock spacing',min:-1,max:1,step:.02,value:0,section:'shape'},
  {key:'buttAngle',label:'Buttock angle',min:-1,max:1,step:.02,value:0,section:'shape'},
- {key:'handResponse',label:'Hand contact response',min:0,max:8,step:.05,value:1.35,section:'physics'},
+ {key:'handResponse',label:'Hand contact response',min:0,max:16,step:.05,value:2.7,section:'physics'},
  {key:'softness',label:'Tissue softness',min:0,max:1,step:.02,value:.62,section:'physics'},
  {key:'damping',label:'Motion damping',min:0,max:1,step:.02,value:.36,section:'physics'},
  {key:'bodySoftness',label:'Waist / thigh motion',min:0,max:1,step:.02,value:.5,section:'physics'},

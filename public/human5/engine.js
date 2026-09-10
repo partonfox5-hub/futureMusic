@@ -1,11 +1,11 @@
 import {Builder,FURNITURE,SURFACES} from './mira-v2-builder.js?v=15.2';
-import {SmoothLocomotion} from './mira-v2-locomotion.js?v=14.6';
-import {Car} from './mira-v2-car.js?v=15.6';
+import {SmoothLocomotion} from './mira-v2-locomotion.js?v=15.7';
+import {Car} from './mira-v2-car.js?v=16.0';
 import {Restraints} from './mira-v2-restraints.js?v=13.4';
 import { createDogSystem } from './mira-v2-dog.js?v=15.1';
 import { installGadgets } from './mira-v2-gadgets.js?v=14.6';
 import {Injuries} from './mira-v2-injuries.js?v=14.3';
-import {Props,WEAPONS,GUNS} from './mira-v2-props.js?v=15.6';
+import {Props,WEAPONS,GUNS} from './mira-v2-props.js?v=16.0';
 import {installFire} from './mira-v2-fire.js?v=15.5';
 import {installWeather} from './mira-v2-weather.js?v=15.5';
 import {installTerrainFeatures} from './mira-v2-terrain-features.js?v=15.2';
@@ -14,20 +14,20 @@ import {installWater} from './mira-v2-water.js?v=13.3';
 import {createFloraSystem} from './mira-v2-flora.js?v=13.3';
 import {RoomLight} from './mira-v2-light.js?v=11.0';
 import {draft,saveDraft,spawnOptions,OUTFITS,clothingItems} from './mira-v2-catalog.js?v=11.0';
-import {MiraWorld,SCENES} from './mira-v2-world.js?v=15.6';
+import {MiraWorld,SCENES} from './mira-v2-world.js?v=16.0';
 import {Wardrobe,GARMENTS} from './mira-v2-wardrobe.js?v=11.2';
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { createVRMenu } from "./mira-vr-menu.js?v=14.2";
+import { createVRMenu } from "./mira-vr-menu.js?v=16.0";
 import { snapshot, savePreset, loadPreset, applyPreset, listPresets, lastPresetName, downloadPreset } from "./mira-v2-preset.js?v=11.5";
 import { unlockSfx } from "./mira-v2-sfx.js?v=11.0";
-import { EMOTION_NAMES, IDLE_NAMES, WALK_NAMES, ATTENTION_MODES } from "./mira-v2-features.js?v=13.7";
+import { EMOTION_NAMES, IDLE_NAMES, WALK_NAMES, ATTENTION_MODES } from "./mira-v2-features.js?v=16.0";
 import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
-import { createMiraSystem, SLIDERS, FACE_TYPES, HAIR_COLORS } from "./mira-v2.js?v=15.6";
+import { createMiraSystem, SLIDERS, FACE_TYPES, HAIR_COLORS } from "./mira-v2.js?v=16.0";
 import { DEFAULT_PERSONA, miraChat, miraSpeak, startMic, unlockVoice } from "./mira-voice-v2.js?v=12.3";
 
-import {V2_EXTRA_SLIDERS,FACE_PRESETS,HAIR_STYLES,ACTIVITY_MODES,ATTENTION_LABELS,shapeSliders} from './mira-v2-controls.js?v=12.9';
+import {V2_EXTRA_SLIDERS,FACE_PRESETS,HAIR_STYLES,ACTIVITY_MODES,ATTENTION_LABELS,shapeSliders} from './mira-v2-controls.js?v=16.0';
 
 const QUEST = /OculusBrowser|Quest/i.test(navigator.userAgent);
 const loadEl = document.getElementById("load");
@@ -249,7 +249,7 @@ function bindHud() {
  document.getElementById('downloadPreset').onclick=()=>{const n=document.getElementById('presetName').value||lastPresetName();downloadPreset(n,captureScene());document.getElementById('presetStatus').textContent='Downloaded '+n+'.json';};
  document.getElementById('presetFile').onchange=e=>{const file=e.target.files?.[0];if(!file)return;file.text().then(text=>{try{const data=JSON.parse(text);const n=savePreset(file.name.replace(/\.json$/i,''),data);document.getElementById('presetName').value=n;refreshPresetSelect();document.getElementById('presetSelect').value=n;document.getElementById('presetStatus').textContent=applyPreset(data,{mira,world,wardrobe,props,camera,orbit,syncHud});}catch(err){document.getElementById('presetStatus').textContent=err.message||'Invalid preset file';}});e.target.value='';};
  addEventListener('pointerdown',unlockSfx,{once:true});
- document.getElementById("spawnNpc").onclick=spawnConfigured;document.getElementById("copyNpc").onclick=copyConfiguration;document.getElementById("foveation")?.addEventListener("input",e=>{const v=Number(e.target.value);applyXrFoveation(v);if(XR_ON())setXrStatus({ffr:v});});document.getElementById("hapticGain").oninput=e=>mira.hands.haptics.gain=Number(e.target.value);document.getElementById("quality")?.addEventListener("change",()=>{if(!XR_ON())return;const ffr=sessionFoveation();applyXrFoveation(ffr);setXrStatus({ffr});});
+ document.getElementById("spawnNpc").onclick=spawnConfigured;document.getElementById("copyNpc").onclick=copyConfiguration;document.getElementById("foveation")?.addEventListener("input",e=>{const v=Number(e.target.value);applyXrFoveation(v);if(XR_ON())setXrStatus({ffr:v});});mira.hands.haptics.gain=Number(document.getElementById('hapticGain')?.value)||2;document.getElementById("hapticGain").oninput=e=>mira.hands.haptics.gain=Number(e.target.value);document.getElementById("quality")?.addEventListener("change",()=>{if(!XR_ON())return;const ffr=sessionFoveation();applyXrFoveation(ffr);setXrStatus({ffr});});
  const sceneSelect=document.getElementById('sceneSelect');sceneSelect.replaceChildren(...SCENES.map(x=>new Option(x,x)));sceneSelect.value=world.name;sceneSelect.onchange=()=>{world.setScene(sceneSelect.value);ensureYardPond();};
  document.getElementById('floraDensity')?.addEventListener('input',e=>flora?.setDensity(Number(e.target.value)));
  const wardrobeSelect=document.getElementById('wardrobeSelect');wardrobeSelect.replaceChildren(...GARMENTS.map(x=>new Option(x.name,x.id)));document.getElementById('wearBtn').onclick=()=>wardrobe.equip(selected(),GARMENTS.find(x=>x.id===wardrobeSelect.value));
@@ -485,7 +485,7 @@ function desktopMove(dt) {
   if (!controls || !controls.isLocked) return;
   const obj=controls.getObject?.()||camera;
   if(water?.playerSwimIntent({rig:obj,camera,dt,keys,blocked:vrMenu.isOpen||props.vehicle?.driving}).active){deskJumping=false;deskJumpVel=0;deskPace=0;return;}
-  const max=(keys.ShiftLeft ? 2.8 : 1.4)*1.25;
+  const max=(keys.ShiftLeft ? 2.8 : 1.4)*1.25*1.15;
   const ix=(keys.KeyD?1:0)-(keys.KeyA?1:0),iz=(keys.KeyW?1:0)-(keys.KeyS?1:0),input=Math.hypot(ix,iz);
   if(input>.01)deskPace+=(max-deskPace)*Math.min(1,dt/.55);
   else deskPace=Math.max(0,deskPace-max*dt);
@@ -544,7 +544,7 @@ function tick(time,frame) {
     mira.tick(dt, clock.elapsedTime, keys);
     water?.tick(dt);
     props.tick(dt);
-    flora?.tick(dt);
+    if(!QUEST||(fpsFrames&1)===0)flora?.tick(dt);
     dogs.tick(dt);
     weather?.tick(dt,camera);
   }

@@ -1,6 +1,6 @@
-import {captureFurniture,tagMovable} from './mira-v2-furniture.js?v=14.6';
+import {captureFurniture,tagMovable} from './mira-v2-furniture.js?v=16.0';
 import {Destruction} from './mira-v2-destruction.js?v=15.6';
-import {buildHouse} from './mira-v2-house.js?v=15.6';
+import {buildHouse} from './mira-v2-house.js?v=16.0';
 import {buildCastle,inCastleClearing} from './mira-v2-castle.js?v=15.6';
 import {plantTerrain,scatterTrees,tickNature,chopTree as chopNature,ramTree as ramNature,terrainHeight} from './mira-v2-nature.js?v=14.2';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
@@ -14,7 +14,7 @@ export class MiraWorld {
  mesh(g,m,x,y,z){const o=new T.Mesh(g,m);o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;this.root.add(o);return o;}
  box(x,y,z,w,h,d,color){return this.mesh(new T.BoxGeometry(w,h,d),this.mat(color),x,y,z);}
  obstacle(x,z,w,d,y=0,h=1,object=null){const o={x,z,w,d,y,h,object};this.obstacles.push(o);this.grid=null;if(object){object.userData.obstacle=o;this.pickables.push(object);}return o;}
- chair(x,z,yaw=0,couch=false){const group=new T.Group();this.root.add(group);const wood=this.mat(0x765239),cloth=this.mat(couch?0x677e74:0xcb9f6d);const add=(w,h,d,y,z0,m)=>{const o=new T.Mesh(new RoundedBoxGeometry(w,h,d,2,Math.min(.045,w*.2,h*.2,d*.2)),m);o.position.set(0,y,z0);o.castShadow=o.receiveShadow=true;group.add(o);return o;};const w=couch?1.55:.62;add(w,.16,.62,.43,0,cloth);add(w,.48,.16,.73,-.29,cloth);for(const sign of [-1,1]){const leg=add(.075,.36,.075,.18,.22,wood);leg.position.x=sign*(w/2-.09);const back=leg.clone();back.position.z=-.22;group.add(back);const arm=add(.10,.18,.61,.65,0,cloth);arm.position.x=sign*(w/2+.015);}
+ chair(x,z,yaw=0,couch=false){const group=new T.Group();this.root.add(group);const wood=this.mat(0x765239),cloth=this.mat(couch?0x677e74:0xcb9f6d),cushion=this.mat(couch?0x738a80:0xd4ab78);const add=(ww,h,d,y,z0,m)=>{const o=new T.Mesh(new RoundedBoxGeometry(ww,h,d,2,Math.min(.045,ww*.2,h*.2,d*.2)),m);o.position.set(0,y,z0);o.castShadow=o.receiveShadow=true;group.add(o);return o;};const w=couch?1.55:.62;add(w,.12,.62,.40,0,cloth);add(w-.06,.07,.54,.48,.02,cushion);add(w,.50,.12,.74,-.30,cloth);if(couch)for(const sx of [-.48,0,.48]){const p=add(.46,.20,.13,.88,-.24,cushion);p.position.x=sx;}for(const sign of [-1,1]){const leg=add(.07,.38,.07,.19,.24,wood);leg.position.x=sign*(w/2-.09);const back=leg.clone();back.position.z=-.24;group.add(back);const arm=add(.09,.16,.58,.64,0,cloth);arm.position.x=sign*(w/2+.02);}if(!couch){const slat=add(.04,.42,.04,.72,-.30,wood);slat.position.x=0;}
  group.position.set(x,0,z);group.rotation.y=yaw;group.updateMatrixWorld(true);
  const seat={group,position:new T.Vector3(x,.51,z),yaw,approach:group.localToWorld(new T.Vector3(0,0,1.02)),occupant:null};group.traverse(o=>{if(o.isMesh){o.userData.seat=seat;this.pickables.push(o);this.fractures.register(o,'wood');if(o.userData.piece){o.userData.piece.health=24;o.userData.piece.maxHealth=24;}}});this.seats.push(seat);const furn=tagMovable(this,group,couch?'Couch':'Chair');furn.seat=seat;seat.obstacle=furn.obstacle;furn.health=24;return seat;
  }
@@ -135,7 +135,31 @@ export class MiraWorld {
   let o=hit.object;while(o){if(o===this.piano?.root){this.piano.invite(actor,{status:''});return 'piano';}if(o.userData?.pianoSheet){this.piano?.cycleSong?.();return 'piano';}o=o.parent;}
   return null;
  }
- before(a){if(a.dead){a.dest=null;a.navigation=null;a.autoWander=false;a.autonomy=false;return;}if(a.autonomy&&a.mode==='wander'&&a.dest&&!a.navigation&&!a.socialPair&&!a.seat){const points=this.path(a.group.position,a.dest,.32*Math.sqrt(a.shape.hips||1));if(points?.length){a.navigation={points,index:0,goal:a.dest.clone(),auto:true};a.dest=points[0].clone();}}if(a.navigation&&a.balance.state!=='standing'){if(a.navigation.seat)a.navigation.seat.occupant=null;a.navigation=null;}const n=a.navigation;if(n){const p=n.points[n.index];if(a.group.position.clone().setY(0).distanceTo(p)<.085||!a.dest){n.index++;if(n.index<n.points.length){a.dest=n.points[n.index].clone();a.directedWalk=n.goal.clone();a.mode='wander';a.autoWander=true;}else{a.navigation=null;a.dest=null;a.directedWalk=null;a.setMode(n.auto?'auto':'idle');if(n.seat){a.seat=n.seat;n.seat.occupant=a;a.seatBlend=0;}}}}}
+ before(a){
+  if(a.dead){a.dest=null;a.navigation=null;a.autoWander=false;a.autonomy=false;return;}
+  if(a.autonomy&&a.mode==='wander'&&a.dest&&!a.navigation&&!a.socialPair&&!a.seat){
+   const points=this.path(a.group.position,a.dest,.32*Math.sqrt(a.shape.hips||1));
+   if(points?.length){a.navigation={points,index:0,goal:a.dest.clone(),auto:true};a.dest=points[0].clone();}
+  }
+  if(a.navigation&&a.balance.state!=='standing'){if(a.navigation.seat)a.navigation.seat.occupant=null;a.navigation=null;}
+  const n=a.navigation;if(!n)return;
+  const here=a.group.position.clone().setY(0);
+  const seatAt=n.seat?.approach?n.seat.approach.clone().setY(0):null;
+  if(n.seat&&seatAt&&here.distanceTo(seatAt)<.7){
+   a.navigation=null;a.dest=null;a.directedWalk=null;a.autoWander=false;a.mode='idle';
+   a.seat=n.seat;n.seat.occupant=a;a.seatBlend=0;return;
+  }
+  const p=n.points[n.index];
+  if(here.distanceTo(p)<.32||!a.dest){
+   n.index++;
+   if(n.index<n.points.length){a.dest=n.points[n.index].clone();a.directedWalk=n.goal.clone();a.mode='wander';a.autoWander=true;}
+   else{
+    a.navigation=null;a.dest=null;a.directedWalk=null;a.autoWander=false;a.mode=n.auto?'idle':'idle';
+    if(n.seat){a.seat=n.seat;n.seat.occupant=a;a.seatBlend=0;}
+    else if(n.auto)a.autonomy=true;
+   }
+  }
+ }
  after(a,dt){
   if(a.seat){const seat=a.seat;a.seatBlend=Math.min(1,(a.seatBlend||0)+dt/.9);const k=a.seatBlend*a.seatBlend*(3-2*a.seatBlend);a.group.rotation.y+=Math.atan2(Math.sin(seat.yaw-a.group.rotation.y),Math.cos(seat.yaw-a.group.rotation.y))*(1-Math.exp(-dt*5));const pos=seat.position.clone();pos.y=a.group.position.y+(seat.position.y+.08*a.shape.height-a.bones.Hip.getWorldPosition(V()).y)*k;a.group.position.lerp(pos,1-Math.exp(-dt*7));a.group.position.y=pos.y;a.group.updateMatrixWorld(true);
    for(const side of ['L','R']){

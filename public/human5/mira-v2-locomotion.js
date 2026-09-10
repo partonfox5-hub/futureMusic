@@ -28,7 +28,7 @@ export class SmoothLocomotion {
   const forward=new T.Vector3(0,0,-1).applyQuaternion(this.camera.getWorldQuaternion(new T.Quaternion())).setY(0);
   if(forward.lengthSq()>.01)this.forward.copy(forward).normalize();
   const strafe=new T.Vector3(-this.forward.z,0,this.forward.x);
-  const input=Math.hypot(move.x,move.y),max=1.45*1.25*sprint;
+  const input=Math.hypot(move.x,move.y),max=1.45*1.25*1.15*sprint;
   if(input>.02)this.pace+=(max-this.pace)*Math.min(1,dt/.55);
   else this.pace=Math.max(0,this.pace-max*dt);
   const delta=this.forward.clone().multiplyScalar(-move.y).addScaledVector(strafe,move.x);

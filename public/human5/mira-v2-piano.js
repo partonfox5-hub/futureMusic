@@ -133,7 +133,7 @@ function sheetMap(title,sub){
  }
  const map=new T.CanvasTexture(c);map.colorSpace=T.SRGBColorSpace;map.needsUpdate=true;return map;
 }
-const _p=new T.Vector3(),_d=new T.Vector3(),_u=new T.Vector3(),_q=new T.Quaternion();
+const _p=new T.Vector3(),_d=new T.Vector3(),_u=new T.Vector3(),_q=new T.Quaternion(),_k=new T.Vector3();
 
 export function installPiano(world,origin=new T.Vector3(-5.85,0,.35),yaw=Math.PI/2){
  const root=new T.Group();root.position.copy(origin);root.rotation.y=yaw;world.root.add(root);
@@ -181,16 +181,21 @@ export function installPiano(world,origin=new T.Vector3(-5.85,0,.35),yaw=Math.PI
 
  const keys=new T.Group();keys.position.set(-.61,.71,.26);root.add(keys);
  const nWhite=52,ww=.0234,dummy=new T.Object3D();
+ const whiteMidi=[];let midiN=21;for(let i=0;i<nWhite;i++){whiteMidi.push(midiN);const nm=['A','B','C','D','E','F','G'][i%7];midiN+=(nm==='B'||nm==='E')?1:2;}
  const whites=new T.InstancedMesh(new T.BoxGeometry(ww*.92,.014,.145),ivory,nWhite);
- whites.instanceMatrix.setUsage(T.DynamicDrawUsage);whites.castShadow=true;whites.raycast=()=>{};whites.userData.pianoKey=true;whites.userData.noHit=true;
- for(let i=0;i<nWhite;i++){dummy.position.set(i*ww,0,0);dummy.rotation.set(0,0,0);dummy.scale.set(1,1,1);dummy.updateMatrix();whites.setMatrixAt(i,dummy.matrix);}
+ whites.instanceMatrix.setUsage(T.DynamicDrawUsage);whites.castShadow=false;whites.raycast=()=>{};whites.userData.pianoKey=true;whites.userData.noHit=true;
+ const whiteX=new Float32Array(nWhite),whiteDown=new Float32Array(nWhite);
+ for(let i=0;i<nWhite;i++){whiteX[i]=i*ww;dummy.position.set(i*ww,0,0);dummy.rotation.set(0,0,0);dummy.scale.set(1,1,1);dummy.updateMatrix();whites.setMatrixAt(i,dummy.matrix);}
  keys.add(whites);
- const blackIdx=[];
- for(let i=0;i<nWhite-1;i++){const p=i%7;if(p===2||p===6)continue;blackIdx.push(i);}
+ const blackIdx=[],blackMidi=[];
+ for(let i=0;i<nWhite-1;i++){if(whiteMidi[i+1]-whiteMidi[i]===2){blackIdx.push(i);blackMidi.push(whiteMidi[i]+1);}}
  const blacks=new T.InstancedMesh(new T.BoxGeometry(ww*.58,.012,.09),ebony,blackIdx.length);
- blacks.instanceMatrix.setUsage(T.DynamicDrawUsage);blacks.castShadow=true;blacks.raycast=()=>{};blacks.userData.pianoKey=true;blacks.userData.noHit=true;
- blackIdx.forEach((i,n)=>{dummy.position.set(i*ww+ww*.52,.012,-.026);dummy.updateMatrix();blacks.setMatrixAt(n,dummy.matrix);});
+ blacks.instanceMatrix.setUsage(T.DynamicDrawUsage);blacks.castShadow=false;blacks.raycast=()=>{};blacks.userData.pianoKey=true;blacks.userData.noHit=true;
+ const blackX=new Float32Array(blackIdx.length),blackDown=new Float32Array(blackIdx.length);
+ blackIdx.forEach((i,n)=>{blackX[n]=i*ww+ww*.52;dummy.position.set(blackX[n],.012,-.026);dummy.updateMatrix();blacks.setMatrixAt(n,dummy.matrix);});
  keys.add(blacks);
+ const keyPad=new T.Mesh(new T.BoxGeometry(1.24,.03,.16),new T.MeshBasicMaterial({visible:false}));
+ keyPad.position.set(0,.73,.26);keyPad.userData.pianoBody=true;root.add(keyPad);clickables.push(keyPad);
 
  const rack=part(add(new T.Mesh(new T.BoxGeometry(.56,.02,.16),dark),0,1.12,.12),'wood',22);
  rack.rotation.x=-.42;
@@ -263,12 +268,22 @@ export function installPiano(world,origin=new T.Vector3(-5.85,0,.35),yaw=Math.PI
   },
   stopIf(actor){if(this.playing?.actor===actor)this.stop();},
   keepPlaying(actor){if(!this.playing||audioContext()?.currentTime>this.playing.end){this.setSong(this.index+1);this.ensurePlaying(actor);}},
+  sitNow(actor){
+   if(actor.seat&&actor.seat!==this.seat){actor.seat.occupant=null;actor.group.position.copy(actor.seat.approach);}
+   actor.navigation=null;actor.dest=null;actor.directedWalk=null;actor.autoWander=false;actor.mode='idle';actor.sitHold=0;
+   this.seat.occupant=actor;actor.seat=this.seat;actor.seatBlend=Math.max(actor.seatBlend||0,.15);
+   this.ensurePlaying(actor);
+  },
   invite(actor,props){
    if(!actor||actor.version!=='v2'){if(props)props.status='Select a Mira, then point at the piano';return true;}
    if(actor.seat===this.seat){this.ensurePlaying(actor);if(props)props.status=(actor.displayName||'Mira')+' · playing '+SONGS[this.index].name;return true;}
    if(this.seat.occupant&&this.seat.occupant!==actor){if(props)props.status='Piano · occupied';return true;}
    actor.sitHold=0;
    const name=actor.displayName||'Mira';
+   const here=actor.group.position.clone().setY(0),ap=this.seat.approach.clone().setY(0);
+   if(here.distanceTo(ap)<.9&&actor.balance?.state==='standing'){
+    this.sitNow(actor);if(props)props.status=name+' · playing '+SONGS[this.index].name;return true;
+   }
    let ok=world.walk(actor,this.seat.approach,this.seat);
    if(!ok){
     for(const off of [[0,0,1.55],[.95,0,1.15],[-.95,0,1.15],[1.15,0,.35],[-1.15,0,.35],[0,0,1.9]]){
@@ -278,11 +293,11 @@ export function installPiano(world,origin=new T.Vector3(-5.85,0,.35),yaw=Math.PI
    }
    if(!ok){
     if(actor.seat){actor.group.position.copy(actor.seat.approach);actor.seat.occupant=null;actor.seat=null;}
-    this.seat.occupant=actor;
     const goal=this.seat.approach.clone();
     if(actor.walkTo?.(goal)){
      actor.navigation={points:[goal.clone()],index:0,goal,seat:this.seat};
      actor.directedWalk=goal.clone();actor.dest=goal.clone();actor.autoWander=true;ok=true;
+     this.seat.occupant=actor;
     }
    }
    if(props)props.status=ok?name+' · to the piano':'Piano · no path';
@@ -304,8 +319,41 @@ export function installPiano(world,origin=new T.Vector3(-5.85,0,.35),yaw=Math.PI
    const actor=props?.system?.selected||props?.system?.select?.();
    return this.invite(actor,props);
   },
-  tick(camera){
-   const c=audioContext();if(!c||!this.panner)return;
+  writeKey(mesh,i,x,y,z){
+   dummy.position.set(x,y,z);dummy.rotation.set(0,0,0);dummy.scale.set(1,1,1);dummy.updateMatrix();mesh.setMatrixAt(i,dummy.matrix);
+  },
+  pressKey(kind,i,midiN){
+   const down=kind==='w'?whiteDown:blackDown;if(down[i]>.5)return;
+   down[i]=1;
+   if(kind==='w')this.writeKey(whites,i,whiteX[i],-.008,0);else this.writeKey(blacks,i,blackX[i],.004,-.026);
+   unlockSfx();const c=this.ensureAudio();if(c)this.note(c,c.currentTime,{n:midiN,d:.22,v:.85});
+  },
+  releaseKey(kind,i){
+   const down=kind==='w'?whiteDown:blackDown;if(down[i]<.5)return;down[i]=0;
+   if(kind==='w')this.writeKey(whites,i,whiteX[i],0,0);else this.writeKey(blacks,i,blackX[i],.012,-.026);
+  },
+  tickPlayerKeys(props){
+   const hands=props?.system?.hands;if(!hands?.palmPos)return;
+   keys.updateWorldMatrix(true,true);
+   const tips=[];
+   for(let i=0;i<2;i++){const p=hands.palmPos(i);if(p)tips.push(p);}
+   if(!tips.length)return;
+   const hit=(x,y,z,rx,rz)=>{
+    const wp=keys.localToWorld(_k.set(x,y,z));
+    for(const t of tips){if(Math.abs(t.x-wp.x)<rx&&Math.abs(t.z-wp.z)<rz&&t.y<wp.y+.045&&t.y>wp.y-.09)return true;}
+    return false;
+   };
+   for(let i=0;i<nWhite;i++){
+    if(hit(whiteX[i],.01,0,ww*.48,.08))this.pressKey('w',i,whiteMidi[i]);else this.releaseKey('w',i);
+   }
+   for(let i=0;i<blackIdx.length;i++){
+    if(hit(blackX[i],.02,-.026,ww*.32,.055))this.pressKey('b',i,blackMidi[i]);else this.releaseKey('b',i);
+   }
+   whites.instanceMatrix.needsUpdate=true;blacks.instanceMatrix.needsUpdate=true;
+  },
+  tick(camera,props){
+   this.tickPlayerKeys(props);
+   const c=audioContext();if(!c||!this.panner){seat.position.copy(bench.localToWorld(new T.Vector3(0,.50,0)));seat.approach.copy(root.localToWorld(new T.Vector3(0,0,1.35)));return;}
    root.updateWorldMatrix(true,true);
    const p=root.getWorldPosition(_p),t=c.currentTime;
    if(this.panner.positionX){this.panner.positionX.setValueAtTime(p.x,t);this.panner.positionY.setValueAtTime(p.y+.9,t);this.panner.positionZ.setValueAtTime(p.z,t);}

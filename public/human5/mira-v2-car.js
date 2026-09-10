@@ -149,7 +149,9 @@ export class Car {
   dt=clamp(dt,0,.04);if(!dt)return;this.updateOccupancy();this.steer+=(input.steer-this.steer)*(1-Math.exp(-dt*14));this.group.updateMatrixWorld(true);
   const forward=new T.Vector3(0,0,-1).applyAxisAngle(Y,this.group.rotation.y),right=new T.Vector3(1,0,0).applyAxisAngle(Y,this.group.rotation.y),speed=this.velocity.dot(forward);
   const drive=this.driving&&(this.gear==='D'||this.gear==='R');
-  const throttle=drive?(this.gear==='R'?-Math.abs(input.throttle||0):(input.throttle||0)):0;
+  const userThrot=Math.abs(input.throttle||0);
+  const idleRev=drive&&this.gear==='R'&&!input.brake&&userThrot<.04;
+  const throttle=drive?(this.gear==='R'?-(userThrot||(idleRev?.22:0)):(input.throttle||0)):0;
   const parked=this.gear==='P'&&this.velocity.length()<.2,brake=this.gear==='P'?1:input.brake;
   if(parked){
    this.velocity.set(0,0,0);this.yawRate=0;this.heaveVelocity=0;this.pitchRate*=Math.exp(-dt*10);this.rollRate*=Math.exp(-dt*10);
@@ -190,7 +192,7 @@ export class Car {
   const latVel=this.velocity.dot(right);this.velocity.addScaledVector(right,-latVel*(1-Math.exp(-dt*(9+brake*14))));
   if(brake&&!throttle&&planar<.12)this.velocity.set(0,0,0);
   let newSpeed=this.velocity.dot(forward);
-  if(this.gear==='R'){if(newSpeed>1.2)this.velocity.addScaledVector(forward,1.2-newSpeed);if(newSpeed<-12)this.velocity.addScaledVector(forward,-12-newSpeed);}
+  if(this.gear==='R'){if(newSpeed>1.2)this.velocity.addScaledVector(forward,1.2-newSpeed);if(idleRev&&newSpeed<-.42)this.velocity.addScaledVector(forward,-.42-newSpeed);else if(newSpeed<-12)this.velocity.addScaledVector(forward,-12-newSpeed);}
   else{if(newSpeed>32)this.velocity.addScaledVector(forward,32-newSpeed);if(newSpeed<-4)this.velocity.addScaledVector(forward,-4-newSpeed);}
   this.yawRate+=(yawTorque/2400-this.yawRate*2.4)*dt;this.yawRate=clamp(this.yawRate,-1.15,1.15);this.group.rotation.y+=this.yawRate*dt;this.group.position.addScaledVector(this.velocity,dt);
  }
