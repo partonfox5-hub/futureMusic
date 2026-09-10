@@ -27,7 +27,24 @@ export class TerrainHeightfield {
     this.heights=new Float32Array(this.stride*this.stride);this.listeners=new Set();this.revision=0;
     this.generate();this.base=this.heights.slice();
   }
-  padWeight(x,z){return smooth(this.options.pad,this.options.pad+this.options.padBlend,Math.max(Math.abs(x),Math.abs(z)));}
+  padWeight(x,z){
+   let w=smooth(this.options.pad,this.options.pad+this.options.padBlend,Math.max(Math.abs(x),Math.abs(z)));
+   const blend=this.options.padBlend||14;
+   for(const c of this.options.clearings||[]){
+    let d=0;
+    if(Number.isFinite(c.r))d=Math.max(0,Math.hypot(x-(c.x||0),z-(c.z||0))-c.r);
+    else if(Number.isFinite(c.z0)&&Number.isFinite(c.z1)){
+     const dx=Math.max(0,Math.abs(x-(c.x||0))-(c.w||1.6)/2);
+     const dz=z>Math.max(c.z0,c.z1)?z-Math.max(c.z0,c.z1):(z<Math.min(c.z0,c.z1)?Math.min(c.z0,c.z1)-z:0);
+     d=Math.hypot(dx,dz);
+    }else{
+     const dx=Math.max(0,Math.abs(x-(c.x||0))-(c.w||8)/2),dz=Math.max(0,Math.abs(z-(c.z||0))-(c.d||8)/2);
+     d=Math.hypot(dx,dz);
+    }
+    w=Math.min(w,smooth(0,blend,d));
+   }
+   return w;
+  }
   procedural(x,z) {
     const o=this.options,s=o.seed;
     // Domain warping bends connected ridges; anisotropic envelopes keep peaks in ranges.

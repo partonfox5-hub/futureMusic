@@ -3,6 +3,7 @@ import {TerrainHeightfield} from './src/terrain/TerrainHeightfield.js';
 import {TerrainMesh} from './src/terrain/TerrainMesh.js';
 import {QuestGrass} from './src/terrain/QuestGrass.js';
 import {ProceduralTrees} from './src/trees/RealisticTrees.js?v=15.0';
+import {inCastleClearing} from './mira-v2-castle.js?v=15.2';
 import {TerrainGun,TERRAIN_WEAPONS,isTerrainGun,makeTerrainGun} from './src/terrain/TerrainGun.js';
 import {DEFAULT_MAP,defaultMapOptions} from './src/terrain/DefaultMap.js';
 export {TerrainHeightfield,TerrainMesh,QuestGrass,ProceduralTrees,TerrainGun,TERRAIN_WEAPONS,DEFAULT_MAP};
@@ -24,6 +25,7 @@ export function installTerrainFeatures({world,props,WEAPONS,GUNS,weaponCatalogs=
   const addedGuns=[];for(const id of Object.keys(TERRAIN_WEAPONS))if(!GUNS.includes(id)){GUNS.push(id);addedGuns.push(id);}
   function exclude(x,z,y){
     if(world.name==='Living room'&&Math.max(Math.abs(x),Math.abs(z))<config.pad+1)return true;
+    if(world.name==='Living room'&&inCastleClearing(x,z))return true;
     if(world.name==='Beach'&&z<-4)return true;
     for(const b of world.waterBeds||[]){if(b.rect){if(z>=b.z0&&z<=b.z1)return true;}else if(Math.hypot(x-b.x,z-b.z)<b.r+.2)return true;}
     for(const f of world.floors||[])if(Math.abs(x-f.x)<f.w/2+.1&&Math.abs(z-f.z)<f.d/2+.1&&f.y+f.h>=y-.05&&f.y<y+2)return true;
@@ -40,6 +42,7 @@ export function installTerrainFeatures({world,props,WEAPONS,GUNS,weaponCatalogs=
     const biome=world.name==='Beach'?'beach':world.name==='Jungle'?'jungle':config.biome;
     const fieldKeys=['seed','size','segments','pad','padBlend','mountainHeight','minHeight','maxHeight','biome','thermalPasses','protectPad'];
     const options=Object.fromEntries(fieldKeys.map(k=>[k,config[k]]));options.biome=biome;if(world.name!=='Living room')options.pad=3.4;
+    if(world.name==='Living room'&&config.clearings)options.clearings=config.clearings;
     const field=new TerrainHeightfield(options);
     for(const b of world.waterBeds||[])if(!b.rect)field.excavate(b.x,b.z,b.r,b.bed);
     const mesh=new TerrainMesh(field);legacy?.removeFromParent();world.root.add(mesh.root);world.terrain=mesh.root;world.pickables.push(mesh.root);

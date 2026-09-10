@@ -1,6 +1,7 @@
 import {captureFurniture,tagMovable} from './mira-v2-furniture.js?v=14.6';
 import {Destruction} from './mira-v2-destruction.js?v=14.6';
-import {buildHouse} from './mira-v2-house.js?v=14.8';
+import {buildHouse} from './mira-v2-house.js?v=15.2';
+import {buildCastle,inCastleClearing} from './mira-v2-castle.js?v=15.2';
 import {plantTerrain,scatterTrees,tickNature,chopTree as chopNature,ramTree as ramNature,terrainHeight} from './mira-v2-nature.js?v=14.2';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
 import * as T from 'three';
@@ -26,8 +27,10 @@ export class MiraWorld {
   plantTerrain(this,{size:312,pad:this.terrainPad,amp:this.terrainAmp,grass:jungle?0x4e6640:beach?0xd7c08c:0x5d7048,dirt:jungle?0x4a4030:beach?0xc2a56e:0x6a5a3e});
   if(!jungle&&!beach){
    buildHouse(this);
-   scatterTrees(this,{count:QUEST?28:85,pad:18,extent:80,flat:this.terrainPad});
+   buildCastle(this);
+   scatterTrees(this,{count:QUEST?28:85,pad:18,extent:80,flat:this.terrainPad,avoid:inCastleClearing});
    for(const [x,z,s] of [[8.6,-6.4,.52],[-9.4,7.2,.44],[12.1,3.4,.36],[-7.6,-11.2,.58],[15.2,-8.1,.4],[28,-18,.62],[-24,22,.48],[32,14,.4],[-30,-12,.55],[48,20,.55],[-52,-28,.48],[60,-8,.4]]){
+    if(inCastleClearing(x,z))continue;
     const y=terrainHeight(x,z,this.terrainPad,this.terrainAmp);
     const rock=this.mesh(new T.IcosahedronGeometry(s,2),this.mat(0x6a6e62),x,y+s*.55,z);rock.scale.set(1,.68,.84);rock.rotation.y=x;this.obstacle(x,z,s*1.8,s*1.5,y,s*1.2,rock);
    }

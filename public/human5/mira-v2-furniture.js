@@ -1,5 +1,5 @@
 import * as T from 'three';
-export const FURNITURE=['Chair','Couch','Table','Bed','Mattress','Firewood','Nightstand','Kitchen counter','Refrigerator','Bathtub','Sink','Wall picture','Clothing rack','Staircase','Coffee table','TV stand','Bookshelf','Dresser','Desk','Side table','Ottoman','Floor lamp','Toilet','Cabinet','Bar stool','Microwave','Mirror'];
+export const FURNITURE=['Chair','Couch','Table','Bed','Mattress','Firewood','Nightstand','Kitchen counter','Refrigerator','Bathtub','Sink','Wall picture','Clothing rack','Staircase','Coffee table','TV stand','Bookshelf','Dresser','Desk','Side table','Ottoman','Floor lamp','Toilet','Cabinet','Bar stool','Microwave','Mirror','Bench','Barbell','Weight plate','Dumbbell'];
 export const DENSITY={wood:600,cloth:160,stone:2200,metal:2700,glass:1200,plastic:900};
 export const FURNITURE_MIX={
  Chair:{wood:.55,cloth:.45},
@@ -27,7 +27,11 @@ export const FURNITURE_MIX={
  Cabinet:{wood:.8,metal:.2},
  'Bar stool':{wood:.7,metal:.3},
  Microwave:{metal:.9,plastic:.1},
- Mirror:{wood:.4,glass:.6}
+ Mirror:{wood:.4,glass:.6},
+ Bench:{metal:.7,wood:.3},
+ Barbell:{metal:1},
+ 'Weight plate':{metal:1},
+ Dumbbell:{metal:1}
 };
 export function blendedDensity(mix){
  let d=0,s=0;for(const [k,w] of Object.entries(mix||{})){d+=(DENSITY[k]||400)*w;s+=w;}return s>0?d/s:DENSITY.wood;

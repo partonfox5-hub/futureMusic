@@ -2,7 +2,7 @@ import * as T from 'three';
 import {playSfx} from './mira-v2-sfx.js?v=13.8';
 const V=()=>new T.Vector3(),Q=()=>new T.Quaternion(),CELL=.6,STORY=3.05;
 const QUEST=/Quest|OculusBrowser/i.test(globalThis.navigator?.userAgent||'');
-const PALETTE={Plaster:0xc9c1b1,Brick:0xa26148,Wood:0x947051,Tile:0xc3c7c1,Stone:0x85847c,Metal:0x929b9d,Glass:0x9fc1c7,Shingle:0x5c4034};
+const PALETTE={Plaster:0xc9c1b1,Brick:0xa26148,Wood:0x947051,Tile:0xc3c7c1,Stone:0x85847c,Castle:0x8a8478,Metal:0x929b9d,Glass:0x9fc1c7,Shingle:0x5c4034};
 const maps=new Map();
 
 function hash(x,y){const n=Math.sin(x*127.1+y*311.7)*43758.5453;return n-Math.floor(n);}
@@ -35,6 +35,13 @@ export function makeSurfaceMap(name){
   }else if(name==='Tile'){
    const grout=Math.abs((u*6)%1)<.04||Math.abs((v*6)%1)<.04;
    r=grout?150:base[0]+(n-.5)*14;g=grout?154:base[1]+(n-.5)*14;b=grout?158:base[2]+(n-.5)*12;
+  }else if(name==='Castle'){
+   const row=Math.floor(v*5),col=Math.floor(u*3+(row%2)*.5);
+   const mortar=Math.abs((v*5)%1-.03)<.09||Math.abs((u*3+(row%2)*.5)%1-.03)<.07;
+   const tone=hash(col,row),chip=hash(x*.3,y*.11);
+   r=mortar?96:108+tone*42;g=mortar?90:102+tone*32;b=mortar?82:90+tone*24;
+   r+=(n-.5)*16+(chip>.92?-18:0);g+=(n-.5)*12;b+=(n-.5)*10;
+   if(v>.9){r*=.88;g*=.88;b*=.9;}
   }else if(name==='Stone'){
    const blot=valueN(u*7,v*9);
    r=base[0]+(blot-.5)*28+(n-.5)*16;g=base[1]+(blot-.5)*24;b=base[2]+(blot-.5)*18;
@@ -56,7 +63,7 @@ export function makeSurfaceMap(name){
 }
 
 function kindMap(kind){
- return makeSurfaceMap({plaster:'Plaster',wood:'Wood',stone:'Stone',glass:'Glass',metal:'Metal',shingle:'Shingle'}[kind]||(kind==='brick'?'Brick':'Plaster'));
+ return makeSurfaceMap({plaster:'Plaster',wood:'Wood',stone:'Stone',castle:'Castle',glass:'Glass',metal:'Metal',shingle:'Shingle'}[kind]||(kind==='brick'?'Brick':'Plaster'));
 }
 
 export function wallMaterial(kind,map){

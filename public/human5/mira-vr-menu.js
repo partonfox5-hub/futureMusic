@@ -1,4 +1,4 @@
-import {FURNITURE,SURFACES} from './mira-v2-builder.js?v=13.8';
+import {FURNITURE,SURFACES} from './mira-v2-builder.js?v=15.2';
 import {WEAPONS} from './mira-v2-props.js?v=14.2';
 import {draft,saveDraft,OUTFITS,PERSONAS,clothingItems,setDraftGarment} from './mira-v2-catalog.js?v=11.0';
 import {SCENES} from './mira-v2-world.js?v=13.9';

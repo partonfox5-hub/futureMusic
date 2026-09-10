@@ -1,7 +1,8 @@
 import * as T from 'three';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
-import {makeSurfaceMap,wallMaterial} from './mira-v2-walls.js?v=14.4';
-import {placeStairs,placeFurniture,tagMovable} from './mira-v2-furniture.js?v=14.6';
+import {makeSurfaceMap,wallMaterial} from './mira-v2-walls.js?v=15.2';
+import {placeStairs,placeFurniture,tagMovable} from './mira-v2-furniture.js?v=15.2';
+import {installWeights} from './mira-v2-weights.js?v=15.2';
 import {HouseDoors} from './mira-v2-doors.js?v=14.6';
 const STORY=3.05,CELL=.6;
 const doorHole=(axis,c,w=1.14,head=2.14)=>{
@@ -42,7 +43,7 @@ export function buildHouse(w){
  panel(-3.4,hy,-6.8,7.6,H,.14,winHole('x',-2.2));
  panel(3.8,hy,-6.8,6.8,H,.14,winHole('x',5.0));
  panel(-7.2,hy,-1.2,.14,H,11.2,winHole('z',-4.2));
- panel(7.2,hy,-1.2,.14,H,11.2,winHole('z',1.4));
+ panel(7.2,hy,-1.2,.14,H,11.2,p=>doorHole('z',1.4)(p)||winHole('z',-4.2)(p));
  panel(7.2,hy,7.5,.14,H,6.2,winHole('z',7.5,1.2));
  panel(-3.4,hy,4.4,7.6,H,.14,doorHole('x',-2.0));
  panel(3.8,hy,4.4,6.8,H,.14,doorHole('x',3.8));
@@ -54,7 +55,7 @@ export function buildHouse(w){
  pane(-7.18,1.58,-4.2,.035,1.22,1.42);
  pane(-2.2,1.58,-6.78,1.48,1.22,.035);
  pane(5.0,1.58,-6.78,1.42,1.22,.035);
- pane(7.18,1.58,1.4,.035,1.22,1.42);
+ pane(7.18,1.58,-4.2,.035,1.22,1.42);
  pane(7.18,1.58,7.5,.035,1.1,1.15);
  panel(-3.4,y2,-6.8,7.6,H,.14,p=>p.y>STORY+.92&&p.y<STORY+2.22&&Math.abs(p.x+2.2)<.95);
  panel(3.8,y2,-6.8,6.8,H,.14,p=>p.y>STORY+.92&&p.y<STORY+2.22&&Math.abs(p.x-5.2)<.9);
@@ -80,6 +81,8 @@ export function buildHouse(w){
  w.doors.place(-5.4,0,-1.6,0,{hinge:-1,swing:-1});
  w.doors.place(-1.6,0,-1.6,0,{hinge:1,swing:-1});
  w.doors.place(3.8,0,-1.6,0,{hinge:-1,swing:-1});
+ w.doors.place(7.2,0,1.4,Math.PI/2,{hinge:-1,swing:1});
+ addGym(w,maps,panel,slab,round,pane,H,hy);
  w.doors.place(-3.6,0,-4.2,Math.PI/2,{hinge:-1,swing:1});
  w.doors.place(.55,STORY,3.15,Math.PI/2,{hinge:-1,swing:-1});
  addRoof(w,maps);
@@ -159,9 +162,24 @@ export function buildHouse(w){
  placeFurniture(w,w.builder?.wardrobe||{rack:null,tokens:[]},'Toilet',new T.Vector3(-6.2,STORY,2.6),0);
  placeFurniture(w,w.builder?.wardrobe||{rack:null,tokens:[]},'Sink',new T.Vector3(-4.8,STORY,3.6),0);
  const loftChair=w.chair(-4.8,-2.2,.4);loftChair.group.position.y=STORY;
- const gndLights=[[-3.2,2.70,1.4,0xffdec0],[4.2,2.70,1.6,0xe5efff],[-3.2,STORY+2.70,-2.2,0xffe6c8],[4.2,STORY+2.70,-2.0,0xe8f0ff],[3.8,2.70,7.5,0xf2efe6]];
+ const gndLights=[[-3.2,2.70,1.4,0xffdec0],[4.2,2.70,1.6,0xe5efff],[-3.2,STORY+2.70,-2.2,0xffe6c8],[4.2,STORY+2.70,-2.0,0xe8f0ff],[3.8,2.70,7.5,0xf2efe6],[10.0,2.70,1.4,0xe8e4d8]];
  for(const [x,y,z,color] of gndLights){const light=new T.PointLight(color,9,7,2);light.position.set(x,y,z);w.root.add(light);round(x,y+.24,z,.40,.04,.40,0xe7dfca);}
  for(const seat of w.seats)if(w.blocked(seat.approach,.23)){for(const offset of [[-.85,0,.7],[.85,0,.7],[0,0,1.35]]){const p=seat.group.localToWorld(v(...offset));if(!w.blocked(p,.23)){seat.approach.copy(p);break;}}}
+}
+
+function addGym(w,maps,panel,slab,round,pane,H,hy){
+ slab(9.85,1.4,5.3,6.0,.02,.05,maps.stone,'stone');
+ panel(12.5,hy,1.4,.16,H,6.0,winHole('z',1.4));
+ panel(9.85,hy,-1.6,5.3,H,.16,winHole('x',9.85));
+ panel(9.85,hy,4.4,5.3,H,.16);
+ pane(12.48,1.58,1.4,.035,1.18,1.35);
+ pane(9.85,1.58,-1.58,1.35,1.18,.035);
+ panel(9.85,H,1.4,5.4,.12,6.1,null,'wood',maps.wood);
+ const rubber=w.mesh(new T.BoxGeometry(5.1,.02,5.8),w.mat(0x2c2c2e,.95),9.85,.045,1.4);
+ rubber.receiveShadow=true;
+ const gymRoof=w.mesh(new T.BoxGeometry(5.8,.1,6.5),wallMaterial('shingle',maps.shingle),10.05,H+.72,1.4);
+ gymRoof.rotation.z=-.16;w.fractures.register(gymRoof,'wood');
+ installWeights(w,new T.Vector3(10.05,.06,1.15),0);
 }
 
 function addStairRail(w,round){

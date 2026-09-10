@@ -1,19 +1,19 @@
-import {Builder,FURNITURE,SURFACES} from './mira-v2-builder.js?v=13.8';
+import {Builder,FURNITURE,SURFACES} from './mira-v2-builder.js?v=15.2';
 import {SmoothLocomotion} from './mira-v2-locomotion.js?v=14.6';
 import {Car} from './mira-v2-car.js?v=14.6';
 import {Restraints} from './mira-v2-restraints.js?v=13.4';
 import { createDogSystem } from './mira-v2-dog.js?v=15.1';
 import { installGadgets } from './mira-v2-gadgets.js?v=14.6';
 import {Injuries} from './mira-v2-injuries.js?v=14.3';
-import {Props,WEAPONS,GUNS} from './mira-v2-props.js?v=14.9';
+import {Props,WEAPONS,GUNS} from './mira-v2-props.js?v=15.2';
 import {installFire} from './mira-v2-fire.js?v=14.7';
-import {installTerrainFeatures} from './mira-v2-terrain-features.js?v=15.0';
+import {installTerrainFeatures} from './mira-v2-terrain-features.js?v=15.2';
 import {syncFurniture} from './mira-v2-furniture.js?v=14.0';
 import {installWater} from './mira-v2-water.js?v=13.3';
 import {createFloraSystem} from './mira-v2-flora.js?v=13.3';
 import {RoomLight} from './mira-v2-light.js?v=11.0';
 import {draft,saveDraft,spawnOptions,OUTFITS,clothingItems} from './mira-v2-catalog.js?v=11.0';
-import {MiraWorld,SCENES} from './mira-v2-world.js?v=14.8';
+import {MiraWorld,SCENES} from './mira-v2-world.js?v=15.2';
 import {Wardrobe,GARMENTS} from './mira-v2-wardrobe.js?v=11.2';
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
@@ -180,7 +180,7 @@ renderer.domElement.addEventListener('pointercancel',()=>groundClick=null);
 renderer.domElement.addEventListener('pointerdown',e=>{if(XR_ON()||e.shiftKey||grabMode||e.button!==0)return;pointerRay(e);if(props.desktop(pickRay.ray)){groundClick=null;e.preventDefault();e.stopImmediatePropagation();}},true);
 function activeCar(){return props.cars().find(c=>c.driving)||props.vehicle;}
 function nearestCar(){const p=camera.getWorldPosition(new THREE.Vector3());return props.cars().slice().sort((a,b)=>a.group.position.distanceToSquared(p)-b.group.position.distanceToSquared(p))[0]||props.vehicle;}
-document.addEventListener('keydown',e=>{if(/INPUT|TEXTAREA|SELECT/.test(e.target.tagName))return;if(e.code==='KeyQ')props.drop('desktop');if(e.code==='Escape')builder.stop();if(e.code==='KeyE'){const c=activeCar();c.driving?c.exit():nearestCar().enter();}});
+document.addEventListener('keydown',e=>{if(/INPUT|TEXTAREA|SELECT/.test(e.target.tagName))return;if(e.code==='KeyQ'){if(props.furnHolds.has('desktop')&&props.weights?.throwHeld('desktop'))return;props.drop('desktop');}if(e.code==='Escape')builder.stop();if(e.code==='KeyE'){const c=activeCar();c.driving?c.exit():nearestCar().enter();}});
 const clothHandle=new THREE.Object3D();let clothPointer=null;
 renderer.domElement.addEventListener('pointerdown',e=>{if(XR_ON()||e.shiftKey||grabMode||e.button!==0)return;pointerRay(e);if(wardrobe.begin(pickRay.ray,clothHandle,'desktop')){clothPointer=e.pointerId;orbit.enabled=false;renderer.domElement.setPointerCapture(e.pointerId);e.preventDefault();e.stopImmediatePropagation();}},true);
 renderer.domElement.addEventListener('pointermove',e=>{if(clothPointer!==e.pointerId)return;pointerRay(e);wardrobe.move('desktop',pickRay.ray);});
