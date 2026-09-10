@@ -5,15 +5,16 @@ import {Restraints} from './mira-v2-restraints.js?v=13.4';
 import { createDogSystem } from './mira-v2-dog.js?v=15.1';
 import { installGadgets } from './mira-v2-gadgets.js?v=14.6';
 import {Injuries} from './mira-v2-injuries.js?v=14.3';
-import {Props,WEAPONS,GUNS} from './mira-v2-props.js?v=15.2';
+import {Props,WEAPONS,GUNS} from './mira-v2-props.js?v=15.3';
 import {installFire} from './mira-v2-fire.js?v=14.7';
+import {installWeather} from './mira-v2-weather.js?v=15.4';
 import {installTerrainFeatures} from './mira-v2-terrain-features.js?v=15.2';
 import {syncFurniture} from './mira-v2-furniture.js?v=14.0';
 import {installWater} from './mira-v2-water.js?v=13.3';
 import {createFloraSystem} from './mira-v2-flora.js?v=13.3';
 import {RoomLight} from './mira-v2-light.js?v=11.0';
 import {draft,saveDraft,spawnOptions,OUTFITS,clothingItems} from './mira-v2-catalog.js?v=11.0';
-import {MiraWorld,SCENES} from './mira-v2-world.js?v=15.2';
+import {MiraWorld,SCENES} from './mira-v2-world.js?v=15.3';
 import {Wardrobe,GARMENTS} from './mira-v2-wardrobe.js?v=11.2';
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
@@ -23,7 +24,7 @@ import { unlockSfx } from "./mira-v2-sfx.js?v=11.0";
 import { EMOTION_NAMES, IDLE_NAMES, WALK_NAMES, ATTENTION_MODES } from "./mira-v2-features.js?v=13.7";
 import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
-import { createMiraSystem, SLIDERS, FACE_TYPES, HAIR_COLORS } from "./mira-v2.js?v=14.5";
+import { createMiraSystem, SLIDERS, FACE_TYPES, HAIR_COLORS } from "./mira-v2.js?v=15.3";
 import { DEFAULT_PERSONA, miraChat, miraSpeak, startMic, unlockVoice } from "./mira-voice-v2.js?v=12.3";
 
 import {V2_EXTRA_SLIDERS,FACE_PRESETS,HAIR_STYLES,ACTIVITY_MODES,ATTENTION_LABELS,shapeSliders} from './mira-v2-controls.js?v=12.9';
@@ -121,7 +122,14 @@ world.waterSystem=water;props.water=water;
 const flora=createFloraSystem({scene,mira,system:mira,world,props,camera,renderer,THREE});
 props.flora=flora;
 const terrainFeatures=installTerrainFeatures({world,props,WEAPONS,GUNS});
+const weather=installWeather({scene,world,camera,renderer,lights:{key,fill,rim}});
 props.gadgets?.rebuildRack?.();
+function stockPantry(){
+ if(world.name!=='Living room'||!world.pantry||world.pantry.stocked||!dogs)return;
+ world.pantry.stocked=true;
+ for(const p of world.pantry.dog||[])dogs.spawnKibbleBag?.(p);
+ for(const p of world.pantry.cat||[])dogs.spawnCatBag?.(p);
+}
 function ensureYardPond(){
  if(!water||world.name==='Beach'){if(props._yardPond){props._yardPond.despawn?.();props._yardPond=null;}return;}
  if(props._yardPond && props._pondScene===world.name)return;
@@ -144,9 +152,10 @@ mira.load(
     syncHud();document.dispatchEvent(new Event("mira:ready"));
     dogs.spawnDefault();
     dogs.spawnDefaultCat?.();
+    stockPantry();
     const dogNameEl=document.getElementById('dogName');
     if(dogNameEl)dogNameEl.value=dogs.list?.()[0]?.displayName||'Buddy';
-    if (new URLSearchParams(location.search).has("debug")) window.human2 = { mira, scene, renderer, camera, rig, keys, orbit, world, wardrobe, props, dogs, water, flora, gadgets, terrainFeatures, fire };
+    if (new URLSearchParams(location.search).has("debug")) window.human2 = { mira, scene, renderer, camera, rig, keys, orbit, world, wardrobe, props, dogs, water, flora, gadgets, terrainFeatures, fire, weather };
   },
   (e) => { banner("LOAD FAILED — " + (e && e.message ? e.message : "glb")); console.error(e); }
 );
@@ -530,12 +539,14 @@ function tick(time,frame) {
   if(XR_ON()&&!props.driving()){const eye=camera.getWorldPosition(new THREE.Vector3()),before=eye.clone();world.project(eye,.32,-1.5,1.7);eye.x=THREE.MathUtils.clamp(eye.x,-world.extent,world.extent);eye.z=THREE.MathUtils.clamp(eye.z,-world.extent,world.extent);rig.position.add(eye.sub(before));}
   if (mira.ready) {
     ensureYardPond();
+    stockPantry();
     if(water)for(const a of mira.actors)water.stepActor(a,dt);
     mira.tick(dt, clock.elapsedTime, keys);
     water?.tick(dt);
     props.tick(dt);
     flora?.tick(dt);
     dogs.tick(dt);
+    weather?.tick(dt,camera);
   }
   const propStatus=document.getElementById("propStatus");if(propStatus&&propStatus.textContent!==props.status)propStatus.textContent=props.status;
   const ls=document.getElementById('linkSelect'),stamp=props.restraints.links.map(l=>l.id+':'+l.broken).join('/');if(ls.dataset.stamp!==stamp){ls.replaceChildren(new Option('Select link',''),...props.restraints.links.map(l=>new Option('Link '+l.id+(l.broken?' · cut':''),l.id)));ls.dataset.stamp=stamp;}ls.value=props.restraints.selected?.id||'';if(document.activeElement?.id!=='linkLength'&&document.activeElement?.id!=='rpRange')document.getElementById('linkLength').value=props.restraints.selected?.length||1;document.getElementById('linkStatus').textContent=props.restraints.status;
@@ -546,7 +557,7 @@ function tick(time,frame) {
     const fps = (fpsFrames * 1000) / (now - fpsLast);
     fpsFrames = 0;
     fpsLast = now;
-    statsEl.textContent = `MIRA  ${fps.toFixed(0)} fps  ·  ${mira.actors.length} actors  ·  ${renderer.info.render.calls} calls`+(XR_ON()&&xrStatus?`  ·  ${xrStatus}`:'');
+    statsEl.textContent = `MIRA  ${fps.toFixed(0)} fps  ·  ${mira.actors.length} actors  ·  ${renderer.info.render.calls} calls`+(weather?.label?`  ·  ${weather.label}`:'')+(XR_ON()&&xrStatus?`  ·  ${xrStatus}`:'');
     const a=selected();document.getElementById("emoLab").textContent=a?.emotion?`${a.emotion.name.toUpperCase()} · ${a.balance.state}`:"V1";
   }
   activeCar().renderMirror();

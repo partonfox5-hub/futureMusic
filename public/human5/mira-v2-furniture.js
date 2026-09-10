@@ -31,7 +31,8 @@ export const FURNITURE_MIX={
  Bench:{metal:.7,wood:.3},
  Barbell:{metal:1},
  'Weight plate':{metal:1},
- Dumbbell:{metal:1}
+ Dumbbell:{metal:1},
+ Clothes:{cloth:1}
 };
 export function blendedDensity(mix){
  let d=0,s=0;for(const [k,w] of Object.entries(mix||{})){d+=(DENSITY[k]||400)*w;s+=w;}return s>0?d/s:DENSITY.wood;

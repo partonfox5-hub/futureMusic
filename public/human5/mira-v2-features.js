@@ -650,7 +650,7 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    if(this.dead){this.autonomy=false;this.autoWander=false;this.dest=null;return;}
    this.tickAttention(dt,cam);
    this.greetingT-=dt;this.lifeT-=dt;
-   if(this.seat){this.sitHold=(this.sitHold||0)+dt;if(this.sitHold>7+Math.random()*8){this.seat.occupant=null;this.group.position.copy(this.seat.approach);this.seat=null;this.sitHold=0;this.setMode('wander');this.lifeT=6+Math.random()*6;}return;}
+   if(this.seat){this.sitHold=(this.sitHold||0)+dt;if(this.seat.piano)this.world.piano?.keepPlaying?.(this);const limit=this.seat.sitDuration||(7+Math.random()*8);if(this.sitHold>limit){this.world.piano?.stopIf?.(this);this.seat.occupant=null;this.group.position.copy(this.seat.approach);this.seat=null;this.sitHold=0;this.setMode('wander');this.lifeT=6+Math.random()*6;}return;}
    if(this.socialPair||this.directedWalk||this.navigation)return;
    if(this.balance.state!=='standing'||this.grabs.size||this.speech?.active||this.mode==='talk')return;
    if(this.autonomy&&this.greetingT<=0){

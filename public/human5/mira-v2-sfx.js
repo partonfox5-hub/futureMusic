@@ -5,6 +5,8 @@ function ac(){
  return ctx;
 }
 export function unlockSfx(){unlocked=true;try{ac();}catch{}}
+export function audioContext(){unlockSfx();try{return ac();}catch{return null;}}
+export function sfxMaster(){audioContext();return master;}
 function env(g,t,a,s,d){g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(a,t+.004);g.gain.exponentialRampToValueAtTime(Math.max(.0001,s),t+d);}
 function noise(c,dur){const n=Math.max(1,Math.floor(c.sampleRate*dur)),b=c.createBuffer(1,n,c.sampleRate),d=b.getChannelData(0);for(let i=0;i<n;i++)d[i]=Math.random()*2-1;const s=c.createBufferSource();s.buffer=b;return s;}
 function filt(c,type,freq,q=1){const f=c.createBiquadFilter();f.type=type;f.frequency.value=freq;f.Q.value=q;return f;}
