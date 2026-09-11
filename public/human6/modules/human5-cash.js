@@ -1,6 +1,6 @@
 import * as T from 'three';
-import {WEAPONS} from '../mira-v2-props.js?v=18.0.0';
-import {wrapMethod} from './human5-common.js?v=18.0.0';
+import {WEAPONS} from '../mira-v2-props.js?v=19.1.0';
+import {wrapMethod} from './human5-common.js?v=19.1.0';
 export const CASH_LIMITS=Object.freeze({bills:192,billsPerBundle:32,bundles:8,handful:12});
 function noteTexture(){const c=document.createElement('canvas');c.width=1024;c.height=448;const x=c.getContext('2d');x.fillStyle='#d3d5b8';x.fillRect(0,0,c.width,c.height);let seed=143;for(let i=0;i<12000;i++){seed=(Math.imul(seed,1664525)+1013904223)|0;const a=(seed>>>0)/4294967296;seed=(Math.imul(seed,1664525)+1013904223)|0;const b=(seed>>>0)/4294967296;x.fillStyle=i%3?'#82917918':'#f4ecd740';x.fillRect(a*1024,b*448,1.5,3);}
  x.strokeStyle='#4a634f';for(let i=0;i<7;i++)x.strokeRect(13+i*3,12+i*3,998-i*6,424-i*6);x.lineWidth=1;for(let j=0;j<28;j++){x.beginPath();for(let i=0;i<400;i++){const a=i/400*Math.PI*2,r=98+11*Math.sin(a*14+j*.24);x.lineTo(448+Math.cos(a)*r,225+Math.sin(a)*r*1.4);}x.closePath();x.stroke();}

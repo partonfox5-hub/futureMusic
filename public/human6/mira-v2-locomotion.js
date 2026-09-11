@@ -29,7 +29,7 @@ export class SmoothLocomotion {
   const forward=new T.Vector3(0,0,-1).applyQuaternion(this.camera.getWorldQuaternion(new T.Quaternion())).setY(0);
   if(forward.lengthSq()>.01)this.forward.copy(forward).normalize();
   const strafe=new T.Vector3(-this.forward.z,0,this.forward.x);
-  const input=Math.hypot(move.x,move.y),max=1.45*1.25*1.15*sprint*(this.world.h5Combat?.speedScale()||1);
+  const input=Math.hypot(move.x,move.y),max=1.45*1.25*1.15*1.30*sprint*(this.world.h5Combat?.speedScale()||1);
   // Releasing the stick stops translation. Never invent a forward direction.
   if(input>.02)this.pace+=(max*input-this.pace)*(1-Math.exp(-dt/ .12));
   else this.pace=0;

@@ -1,0 +1,3 @@
+All performance data: Linux Chromium SwiftShader, monoscopic, simulated Quest user agent. No Quest or NVIDIA GPU measurements.
+Final eye/Studio import and source tests ran against the frozen 19.1 cache tags. Whole-project profile ran on identical runtime code before the version-tag normalization.
+final-stress/report.json covers the reproduced house-wall impact, lights, forest damage, six pet rigs and audio pools. It predates the last crown smoothing and batch visibility change; those have their own final regressions.

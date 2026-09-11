@@ -1,132 +1,43 @@
 import * as THREE from 'three';
-
-// CC3 Enhance-Eyes stand-in: tiny Head-parented cards. The eyeball keeps
-// rotating on L_Eye/R_Eye; these stay in the socket. No new GLB morphs.
-const V = () => new THREE.Vector3();
-
-function ribbon(w, h, segs=8){
-  const g = new THREE.PlaneGeometry(w, h, segs, 1);
-  const pos = g.attributes.position;
-  for(let i=0;i<pos.count;i++){
-    const x = pos.getX(i), y = pos.getY(i);
-    pos.setZ(i, -0.010*x*x/Math.max(w*w,1e-6) + y*y*0.15);
-  }
-  g.computeVertexNormals();
-  return g;
-}
-
-function occMat(){
-  return new THREE.ShaderMaterial({
-    name: 'Std_EyeOcclusion',
-    transparent: true,
-    depthWrite: false,
-    depthTest: true,
-    side: THREE.DoubleSide,
-    uniforms: { uBlink: {value: 0}, uGain: {value: 0.42} },
-    vertexShader: `varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
-    fragmentShader: `
-      uniform float uBlink, uGain; varying vec2 vUv;
-      void main(){
-        vec2 p = vUv*2.0-1.0;
-        float r = length(p*vec2(1.0,1.18+uBlink*0.55));
-        // Open iris window; darken only the lid contact ring.
-        float ring = smoothstep(0.34, 0.62, r) * (1.0-smoothstep(0.88, 1.08, r));
-        float lid = smoothstep(0.12, 0.55, abs(p.y)+uBlink*0.35);
-        float a = clamp(uGain*(0.22+0.55*ring+0.28*lid)*(0.55+0.45*uBlink), 0.0, 0.62);
-        if(a<0.02) discard;
-        gl_FragColor = vec4(0.07, 0.045, 0.04, a);
-      }`
-  });
-}
-
-function tearMat(){
-  return new THREE.MeshPhysicalMaterial({
-    name: 'Std_TearLine',
-    color: 0xc8d8e4,
-    roughness: 0.12,
-    metalness: 0,
-    transparent: true,
-    opacity: 0.38,
-    depthWrite: false,
-    side: THREE.DoubleSide,
-    envMapIntensity: 0.85,
-    clearcoat: 0.55,
-    clearcoatRoughness: 0.08
-  });
-}
-
+const V=()=>new THREE.Vector3();
+const landmarks=[
+ [[-.04842627,1.512048,.07326356],[-.01385653,1.513815,.08413012],[-.03068605,1.519135,.08106538],[-.03244476,1.507449,.08035913]],
+ [[.04856252,1.511613,.07291369],[.01561538,1.515662,.08358459],[.03258345,1.518444,.08030942],[.03076435,1.506600,.08014513]]
+];
+/** Socket details follow the actual morphed skin, not fixed planes across the iris.
+ * Two thin ribbon draws cover both eyes. Eight skin samples per update.
+ */
 export class EyeFinish {
-  constructor(actor){
-    this.actor = actor;
-    this.ready = false;
-    this.sides = [];
-    const head = actor.bones?.Head;
-    if(!head || !actor.bones.L_Eye || !actor.bones.R_Eye) return;
-    this.group = new THREE.Group();
-    this.group.name = 'MiraEyeFinish';
-    head.add(this.group);
-    actor.root.updateMatrixWorld(true);
-    const inv = new THREE.Matrix4().copy(head.matrixWorld).invert();
-    const L = actor.bones.L_Eye.getWorldPosition(V()).applyMatrix4(inv);
-    const R = actor.bones.R_Eye.getWorldPosition(V()).applyMatrix4(inv);
-    const across = V().subVectors(R, L);
-    if(across.lengthSq()<1e-8) across.set(0,0,0.06);
-    const up = V().set(0,1,0);
-    const fwd = V().crossVectors(across, up);
-    if(fwd.lengthSq()<1e-8) fwd.set(0,0,1);
-    fwd.normalize();
-    const worldFwd = fwd.clone().transformDirection(head.matrixWorld);
-    if(worldFwd.z < 0) fwd.negate();
-    const half = across.length()*0.5;
-    const basis = new THREE.Matrix4().makeBasis(
-      across.clone().normalize(),
-      up.clone().crossVectors(fwd, across.clone().normalize()).normalize(),
-      fwd
-    );
-    const quat = new THREE.Quaternion().setFromRotationMatrix(basis);
-    for(const side of ['L','R']){
-      const center = side==='L'?L:R;
-      const hold = new THREE.Group();
-      hold.name = 'EyeFinish_'+side;
-      hold.position.copy(center);
-      hold.quaternion.copy(quat);
-      this.group.add(hold);
-      const occ = new THREE.Mesh(ribbon(0.036, 0.026, 10), occMat());
-      occ.name = 'Mira_EyeOcclusion_'+side;
-      occ.position.set(0, 0.001, 0.0115);
-      occ.renderOrder = 3;
-      occ.frustumCulled = false;
-      occ.castShadow = occ.receiveShadow = false;
-      hold.add(occ);
-      const tear = new THREE.Mesh(ribbon(0.028, 0.0024, 8), tearMat());
-      tear.name = 'Mira_TearLine_'+side;
-      tear.position.set(0, -0.0108, 0.0132);
-      tear.renderOrder = 4;
-      tear.frustumCulled = false;
-      tear.castShadow = tear.receiveShadow = false;
-      hold.add(tear);
-      this.sides.push({side, hold, occ, tear, restY: tear.position.y});
+ constructor(actor){
+  this.actor=actor;this.mode=actor.eyeDetail||'advanced';this.sides=[];this.ready=false;
+  this.skin=actor.skinMeshes?.find(m=>/Skin_Head/.test(m.material?.name));if(!this.skin)return;
+  const base=actor.deform?.find(d=>d.position===this.skin.geometry.attributes.position)?.base||this.skin.geometry.attributes.position.array;
+  this.indices=landmarks.map(points=>points.map(p=>{let best=Infinity,index=0;for(let i=0;i<base.length;i+=3){const d=(base[i]-p[0])**2+(base[i+1]-p[1])**2+(base[i+2]-p[2])**2;if(d<best){best=d;index=i/3;}}return index;}));
+  this.group=new THREE.Group();this.group.name='MiraEyeFinish';actor.bones.Head.add(this.group);this.inverse=new THREE.Matrix4();this.p=V();this.q=V();this.control=V();this.points=landmarks.map(()=>Array.from({length:4},V));
+  const build=(ribbons,material)=>{const p=new Float32Array(ribbons*17*2*3),uv=[],ids=[];for(let r=0;r<ribbons;r++)for(let j=0;j<=16;j++)for(let k=0;k<2;k++){uv.push(j/16,k);if(j<16&&k===0){const a=r*34+j*2;ids.push(a,a+1,a+2,a+1,a+3,a+2);}}const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(p,3).setUsage(THREE.DynamicDrawUsage));g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));g.setIndex(ids);const m=new THREE.Mesh(g,material);m.frustumCulled=false;m.castShadow=m.receiveShadow=false;this.group.add(m);return m;};
+  const occ=new THREE.ShaderMaterial({name:'Fitted eyelid contact shade',side:THREE.DoubleSide,transparent:true,depthWrite:false,uniforms:{},vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',fragmentShader:'varying vec2 vUv;void main(){float a=(1.-vUv.y)*.20*smoothstep(0.,.12,vUv.x)*(1.-smoothstep(.88,1.,vUv.x));gl_FragColor=vec4(.028,.018,.013,a);}'});
+  this.occ=build(4,occ);this.occ.renderOrder=3;
+  this.tear=build(2,new THREE.MeshPhysicalMaterial({name:'Fitted lower tear meniscus',color:0x69574c,roughness:.13,metalness:0,ior:1.336,specularIntensity:1,clearcoat:0,transparent:true,opacity:.32,depthWrite:false,side:THREE.DoubleSide,envMapIntensity:.75}));this.tear.renderOrder=4;
+  actor.root.updateWorldMatrix(true,true);this.skin.skeleton.update();this.ready=true;this.tick();
+ }
+ setMode(mode){this.mode=mode==='classic'?'classic':'advanced';if(this.group)this.group.visible=this.mode==='advanced'&&!this.actor.headMissing;}
+ tick(){
+  if(!this.ready)return;this.group.visible=this.mode==='advanced'&&!this.actor.headMissing;if(!this.group.visible)return;
+  this.group.updateWorldMatrix(true,false);this.skin.updateWorldMatrix(true,false);this.inverse.copy(this.group.matrixWorld).invert();
+  const occ=this.occ.geometry.attributes.position,tear=this.tear.geometry.attributes.position;
+  const {p,q,control}=this;
+  for(let side=0;side<2;side++){
+   const points=this.points[side];for(let j=0;j<4;j++)this.skin.getVertexPosition(this.indices[side][j],points[j]).applyMatrix4(this.skin.matrixWorld).applyMatrix4(this.inverse);
+   const [a,b,upper,lower]=points;
+   for(let lid=0;lid<2;lid++){
+    const mid=lid?lower:upper;control.copy(mid).multiplyScalar(2).addScaledVector(a,-.5).addScaledVector(b,-.5);
+    for(let j=0;j<=16;j++){const t=j/16,width=Math.sin(Math.PI*t),u=1-t;p.copy(a).multiplyScalar(u*u).addScaledVector(control,2*u*t).addScaledVector(b,t*t);p.z+=.00028;
+     for(let k=0;k<2;k++){q.copy(p);q.y+=(lid?1:-1)*k*.00075*width;q.toArray(occ.array,((side*2+lid)*34+j*2+k)*3);if(lid){q.copy(p);q.y+=(k-.5)*.00032*width;q.z+=.00008;q.toArray(tear.array,(side*34+j*2+k)*3);}}
     }
-    this.ready = true;
-    this.setMode(actor.eyeDetail||'advanced');
+   }
   }
-  setMode(mode){
-    this.mode = mode==='classic'?'classic':'advanced';
-    if(this.group) this.group.visible = this.mode==='advanced' && !this.actor.headMissing;
-  }
-  tick(){
-    if(!this.ready) return;
-    if(this.actor.headMissing){ this.group.visible=false; return; }
-    this.group.visible = this.mode==='advanced';
-    if(this.mode!=='advanced') return;
-    for(const s of this.sides){
-      const blink = THREE.MathUtils.clamp(this.actor.cur?.['Eye_Blink_'+s.side]||0, 0, 1);
-      s.occ.material.uniforms.uBlink.value = blink;
-      s.occ.scale.set(1, 1+blink*0.22, 1);
-      s.tear.position.y = s.restY + blink*0.0035;
-      s.tear.material.opacity = 0.32 + blink*0.22;
-    }
-  }
+  occ.needsUpdate=true;tear.needsUpdate=true;this.tear.geometry.computeVertexNormals();
+ }
+ dispose(){if(!this.ready)return;for(const m of [this.occ,this.tear]){m.geometry.dispose();m.material.dispose();}this.group.removeFromParent();this.ready=false;}
 }
-
-export { EyeFinish as EnhanceEyes };
+export {EyeFinish as EnhanceEyes};

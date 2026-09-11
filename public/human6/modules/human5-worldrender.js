@@ -1,6 +1,6 @@
-import {seasons,crownGeometry,branchedTrunkGeometry,canopyMaterial,treeTint} from './human5-seasons.js?v=18.0.0';
+import {seasons,crownGeometry,branchedTrunkGeometry,canopyMaterial,treeTint} from './human5-seasons.js?v=19.1.0';
 import * as T from 'three';
-import {WorldField,WORLD_SIZE,CELL_SIZE,hash2,LAKE,RIVER,OUTFLOW,cellKey} from './human5-worldfield.js?v=18.0.0';
+import {WorldField,WORLD_SIZE,CELL_SIZE,hash2,LAKE,RIVER,OUTFLOW,cellKey} from './human5-worldfield.js?v=19.1.0';
 import {createTerrainMaterial} from '../src/terrain/TerrainSurface.js';
 const V=()=>new T.Vector3(),clamp=T.MathUtils.clamp;
 function geometry(p,ids,uv=null,color=null){const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(p,3));g.setIndex(ids);if(uv)g.setAttribute('uv',new T.Float32BufferAttribute(uv,2));if(color)g.setAttribute('color',new T.Float32BufferAttribute(color,3));g.computeVertexNormals();g.computeBoundingSphere();return g;}
@@ -40,7 +40,7 @@ export function createLandscapeWater(field){const root=new T.Group(),time={value
  return {root,lava,tick(dt,viewer){time.value+=dt;lavaMat.emissiveIntensity=1.3+.16*Math.sin(time.value*2);smoke.visible=viewer.distanceToSquared(lava.position)<850*850;if(smoke.visible){for(let i=0;i<10;i++){const t=(time.value*.08+i/10)%1;dummy.position.copy(lava.position).add(new T.Vector3(t*15,4+t*75,Math.sin(i)*t*7));dummy.scale.setScalar(2+t*8);dummy.updateMatrix();smoke.setMatrixAt(i,dummy.matrix);}smoke.instanceMatrix.needsUpdate=true;}},dispose(){root.removeFromParent();root.traverse(m=>m.geometry?.dispose());material.dispose();lavaMat.dispose();smokeMat.dispose();}};
 }
 export function createForestCell(field,cx,cz,state,{quest=true}={}){
- const root=new T.Group();root.name='Forest '+cx+'/'+cz;const count=quest?100:170,trees=[],trunkMat=new T.MeshStandardMaterial({color:0x67533d,roughness:.95}),leafMat=canopyMaterial(false),pineMat=canopyMaterial(true);
+ const root=new T.Group();root.name='Forest '+cx+'/'+cz;const count=quest?72:170,trees=[],trunkMat=new T.MeshStandardMaterial({color:0x67533d,roughness:.95}),leafMat=canopyMaterial(false),pineMat=canopyMaterial(true);
  const trunk=new T.InstancedMesh(branchedTrunkGeometry(),trunkMat,count),broad=new T.InstancedMesh(crownGeometry(false),leafMat,count*2),pine=new T.InstancedMesh(crownGeometry(true),pineMat,count*2);root.add(trunk,broad,pine);for(const m of [trunk,broad,pine]){m.castShadow=m.receiveShadow=true;m.userData.h5Forest=trees;m.frustumCulled=true;}const dummy=new T.Object3D();let n=0;const broadTrees=[],pineTrees=[];broad.userData.h5Forest=broadTrees;pine.userData.h5Forest=pineTrees;
  for(let i=0;i<count*3&&n<count;i++){const x=(cx+hash2(i,cx,cz*373+79))*CELL_SIZE,z=(cz+hash2(i,cz,cx*353+191))*CELL_SIZE,y=field.heightAt(x,z),route=field.routeAt(x,z);if(y===null||field.protected(x,z)||(x>52&&x<371&&z>-175&&z<145)||field.waterAt(x,z)||y>86||Math.hypot(x-665,z+565)<242||(route&&route.distance<route.route.width/2+3)||Math.max(Math.abs(x)/38,Math.abs(z)/44)<1.1)continue;
   const density=.4+.6*hash2(Math.floor(x/100),Math.floor(z/100),987);if(hash2(i,cx+cz,736)>density)continue;
@@ -58,7 +58,7 @@ export function createForestCell(field,cx,cz,state,{quest=true}={}){
 /** Distant canopy stands: three unshadowed draws, replaced by resident tree geometry. */
 export function createFarForest(field){const trees=[];for(let iz=0;iz<88;iz++)for(let ix=0;ix<88;ix++){
  const x=-field.half+(ix+.18+.64*hash2(ix,iz,921))*24,z=-field.half+(iz+.18+.64*hash2(ix,iz,217))*24,h=field.heightAt(x,z),r=field.routeAt(x,z);
- if(h===null||h>85||field.protected(x,z)||(x>52&&x<371&&z>-175&&z<145)||field.waterAt(x,z)||(r&&r.distance<r.route.width/2+7)||Math.hypot(x-665,z+565)<240||Math.max(Math.abs(x)/40,Math.abs(z)/48)<1.1||hash2(ix,iz,211)>.74)continue;
+ if(h===null||h>85||field.protected(x,z)||(x>52&&x<371&&z>-175&&z<145)||field.waterAt(x,z)||(r&&r.distance<r.route.width/2+7)||Math.hypot(x-665,z+565)<240||Math.max(Math.abs(x)/40,Math.abs(z)/48)<1.1||hash2(ix,iz,211)>.58)continue;
  trees.push({x,z,y:h,height:7+hash2(ix,iz,573)*5,key:cellKey(x,z),color:hash2(ix,iz,651)});
  }
  const mesh=new T.Group(),dummy=new T.Object3D(),broad=new T.InstancedMesh(crownGeometry(false,true),canopyMaterial(false,true),trees.length),pine=new T.InstancedMesh(crownGeometry(true,true),canopyMaterial(true,true),trees.length),trunks=new T.InstancedMesh(new T.CylinderGeometry(.11,.18,1,4),new T.MeshStandardMaterial({color:0x675542,roughness:1}),trees.length);mesh.name='Distant forest silhouettes';mesh.add(broad,pine,trunks);for(const m of [broad,pine,trunks])m.raycast=()=>{};let resident=new Set();

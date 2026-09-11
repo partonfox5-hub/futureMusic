@@ -1,9 +1,9 @@
 import * as T from 'three';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
-import {WEAPONS} from '../mira-v2-props.js?v=18.0.0';
-import {tagMovable} from '../mira-v2-furniture.js?v=18.0.0';
-import {stickAxes} from '../mira-v2-locomotion.js?v=18.0.0';
-import {V,rng,wrapMethod,clamp,disposeTree,detachMovable} from './human5-common.js?v=18.0.0';
+import {WEAPONS} from '../mira-v2-props.js?v=19.1.0';
+import {tagMovable} from '../mira-v2-furniture.js?v=19.1.0';
+import {stickAxes} from '../mira-v2-locomotion.js?v=19.1.0';
+import {V,rng,wrapMethod,clamp,disposeTree,detachMovable} from './human5-common.js?v=19.1.0';
 
 export class FishingLine {
  constructor(){this.state='ready';this.p=V();this.v=V();this.length=1;this.tension=0;this.wait=0;this.age=0;this.bait=true;}

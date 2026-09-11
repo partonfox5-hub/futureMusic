@@ -1,6 +1,6 @@
 import * as T from 'three';
 import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
-import {V,clamp,finiteDt,disposeTree} from './human5-common.js?v=18.0.0';
+import {V,clamp,finiteDt,disposeTree} from './human5-common.js?v=19.1.0';
 
 export const LIGHT_BUDGETS=Object.freeze({quest:{point:2,spot:1,shadowSize:1024},desktop:{point:4,spot:2,shadowSize:2048}});
 export const FIXTURES=['Torch','Standing lamp','Table lamp','Chandelier','Hanging shaded lamp'];
@@ -106,10 +106,18 @@ export function createQuestLighting(scene,{renderer,quest=true,shadows=true,envi
   else if(renderer){const pm=new T.PMREMGenerator(renderer),room=new RoomEnvironment();try{target=pm.fromScene(room,.04);
       const skyScene=new T.Scene(),skyMat=new T.ShaderMaterial({side:T.BackSide,vertexShader:'varying vec3 dir;void main(){dir=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',fragmentShader:'varying vec3 dir;void main(){vec3 d=normalize(dir);vec3 sky=mix(vec3(.70,.75,.77),vec3(.19,.39,.69),smoothstep(0.0,.85,d.y));vec3 ground=vec3(.16,.14,.10);vec3 col=mix(ground,sky,smoothstep(-.04,.04,d.y));float sun=pow(max(0.0,dot(d,normalize(vec3(7.0,11.0,5.0)))),240.0);gl_FragColor=vec4(col+vec3(3.3,2.8,2.1)*sun,1.0);}'}),skyMesh=new T.Mesh(new T.SphereGeometry(10,24,12),skyMat);skyScene.add(skyMesh);outdoorTarget=pm.fromScene(skyScene,.05);skyMesh.geometry.dispose();skyMat.dispose();scene.environment=outdoorTarget.texture;}finally{room.dispose();pm.dispose();}}
   scene.environmentIntensity=.35;
-  const lightRight=new T.Vector3(5,0,-7).normalize(),lightUp=new T.Vector3().crossVectors(new T.Vector3(7,11,5).normalize(),lightRight).normalize(),focus=new T.Vector3();
+  const lightOffset=new T.Vector3(7,11,5),lightRight=new T.Vector3(5,0,-7).normalize(),lightUp=new T.Vector3().crossVectors(new T.Vector3(7,11,5).normalize(),lightRight).normalize(),focus=new T.Vector3();
   return {key,fill,rim,hemi,ambient,env:scene.environment,exposure:1.05,
+    setTimeOfDay(cycle,weatherDim=1){
+      const solar=T.MathUtils.smoothstep(cycle.sun.y,-.03,.12),lunar=cycle.night*.065;
+      lightOffset.copy(solar>.025?cycle.sun:cycle.moon).multiplyScalar(14);
+      lightRight.crossVectors(new T.Vector3(0,1,0),lightOffset).normalize();lightUp.crossVectors(lightOffset,lightRight).normalize();
+      key.color.copy(solar>.025?cycle.sunColor:new T.Color(0x96b8ee));key.intensity=(2.4*solar+lunar)*weatherDim;
+      hemi.intensity=(.055+.325*cycle.day)*weatherDim;hemi.color.copy(cycle.zenith).lerp(new T.Color(0xd5e5ff),.48);
+      ambient.intensity=.012+.013*cycle.day;scene.environmentIntensity=(.035+.315*cycle.day)*weatherDim;
+    },
     setInterior(inside){if(target&&outdoorTarget)scene.environment=inside?target.texture:outdoorTarget.texture;},
-    follow(p){const snap=14/size;focus.copy(p);const x=focus.dot(lightRight),y=focus.dot(lightUp);focus.addScaledVector(lightRight,Math.round(x/snap)*snap-x).addScaledVector(lightUp,Math.round(y/snap)*snap-y);key.target.position.copy(focus);key.position.copy(focus).add(new T.Vector3(7,11,5));key.target.updateMatrixWorld();},
+    follow(p){const snap=14/size;focus.copy(p);const x=focus.dot(lightRight),y=focus.dot(lightUp);focus.addScaledVector(lightRight,Math.round(x/snap)*snap-x).addScaledVector(lightUp,Math.round(y/snap)*snap-y);key.target.position.copy(focus);key.position.copy(focus).add(lightOffset);key.target.updateMatrixWorld();},
     dispose(){group.removeFromParent();key.dispose();if(scene.environment===(environment||target?.texture)||scene.environment===outdoorTarget?.texture){scene.environment=previous.environment;scene.environmentIntensity=previous.intensity;}target?.dispose();outdoorTarget?.dispose();}
   };
 }

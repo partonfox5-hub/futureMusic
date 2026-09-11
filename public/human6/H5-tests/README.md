@@ -1,4 +1,4 @@
-# Checkpoint 14 validation harnesses
+# Checkpoint 16 validation harnesses
 
 In this directory run `npm install`, then `npx playwright install chromium`. Optional: set `H5_CHROMIUM` to an existing Chromium executable. `H5_PROJECT` defaults to the parent game folder; `H5_RESULTS` chooses the evidence output directory.
 
@@ -9,3 +9,5 @@ The profile uses the actual animation loop in a fixed Sustain tier, at 960×600,
 `cash-regression.cjs` uses deterministic temporary floor/water hooks only for the explicit support-sleep, float and zero-gravity cases, restoring them afterwards. Its ordinary picking and release checks run through the application's actual Props integration. `final-stress.cjs` similarly isolates a lamp pool for bounded-light tests, then tests the actual environment selection, packed trees, pet rigs, audio pool and car-wall collision in the loaded game.
 
 Run `node capture-pets.cjs` for the six-breed asset sheet. The sheet normalizes view scale for each pet; in-game breed sizes use their individual scale presets.
+
+`node checkpoint15-regression.cjs` checks the XR head placement, hand-pushed hair/scalp envelope, shared anatomy relief, day/night cycle and audio graph lifetime. `node eyes-regression.cjs` checks animated eyelid details, batch damage visibility and removal/disposal of both intact and cut restraint links.

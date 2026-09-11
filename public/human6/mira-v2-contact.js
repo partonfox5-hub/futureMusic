@@ -1,4 +1,4 @@
-import {paletteSkinnedVertex,prepareMorphPalette} from './modules/human5-skinning.js?v=18.0.0';
+import {paletteSkinnedVertex,prepareMorphPalette} from './modules/human5-skinning.js?v=19.1.0';
 import * as T from 'three';
 const V=()=>new T.Vector3(),clamp=T.MathUtils.clamp;
 const limb=n=>/^([LR])_(Upperarm|Forearm|Elbow|Hand|Thumb|Index|Mid|Ring|Pinky)/.test(n)?n[0]+'Arm':/^([LR])_(Thigh|Calf|Knee|Foot|Toe)/.test(n)?n[0]+'Leg':/Head|Eye|Jaw|Neck/.test(n)?'head':'torso';

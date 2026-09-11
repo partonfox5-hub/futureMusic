@@ -1,5 +1,5 @@
 import * as T from 'three';
-import {V,wrapMethod} from './human5-common.js?v=18.0.0';
+import {V,wrapMethod} from './human5-common.js?v=19.1.0';
 const corners=[[-1,-1,-1],[1,-1,-1],[1,1,-1],[-1,1,-1],[-1,-1,1],[1,-1,1],[1,1,1],[-1,1,1]];
 function basis(array){const cols=[V(),V(),V()];for(let i=0;i<8;i++)for(let j=0;j<3;j++)cols[j].addScaledVector(V().fromArray(array,i*3),corners[i][j]/8);return new T.Matrix3().set(cols[0].x,cols[1].x,cols[2].x,cols[0].y,cols[1].y,cols[2].y,cols[0].z,cols[1].z,cols[2].z);}
 /** Affine shape change about the centroid; the original soft bone owns translation. */
@@ -22,7 +22,7 @@ export function installTissueSurface(actor){
       for(int i=0;i<4;i++){
         vec3 h5D=h5World-h5Center[i];float h5R=length(h5D);
         h5Shape+=h5TissueWeight[i]*h5Strain[i]*h5D;
-        h5Shape+=h5TissueWeight[i]*h5Ripple[i]*sin(h5R*105.-h5TissueTime*23.)*h5D/max(.015,h5R);
+        h5Shape+=h5TissueWeight[i]*h5Ripple[i]*(sin(h5R*92.-h5TissueTime*21.)*.72+sin(h5R*151.-h5TissueTime*29.)*.28)*exp(-h5R*3.)*h5D/max(.015,h5R);
       }
       float h5Length=length(h5Shape);h5Shape*=min(1.,.006/max(h5Length,.000001));
       transformed+=(inverse(mat3(modelMatrix))*h5Shape);`);
@@ -38,7 +38,7 @@ export function installTissueSurface(actor){
       delta.copy(center[j]).sub(target.fromArray(c.cluster.centroid([],c.cluster.target)));
       if(dt>0){
         const speed=delta.distanceTo(lastDelta[j])/dt,amount=actor.h5Dynamics?.options.surfaceRipple||0;
-        const excitation=c.soft.kind==='glute'?Math.min(amount,speed*.010)*(actor.shape.bodySoftness??.5):0;
+        const excitation=Math.min(amount,speed*.012)*(actor.shape.bodySoftness??.5)*(c.soft.kind==='breast'?.8:1);
         ripple[j]=T.MathUtils.damp(ripple[j],excitation,excitation>ripple[j]?18:8,dt);
       }
       lastDelta[j].copy(delta);

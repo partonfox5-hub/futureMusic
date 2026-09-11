@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import { clamp } from './Dog.js?v=18.0.0';
-import { floorAt } from './DogPaws.js?v=18.0.0';
+import { clamp } from './Dog.js?v=19.1.0';
+import { floorAt } from './DogPaws.js?v=19.1.0';
 const V=()=>new THREE.Vector3(),Y=new THREE.Vector3(0,1,0),angle=a=>Math.atan2(Math.sin(a),Math.cos(a));
 export class DogAI {
  constructor(model,ctx){

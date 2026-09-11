@@ -12,6 +12,7 @@ export function identityWarp(x,y,z,s={}){
 export function validateField(f){
  if(!f||f.format!=='human5.face-field/1')throw Error('Unknown face field format');
  for(const [key,min,max] of [['radius',.03,.10],['maxDisplacement',0,.012],['strength',0,1]])if(typeof f[key]!=='number'||!Number.isFinite(f[key])||f[key]<min||f[key]>max)throw Error('Invalid '+key);
+ if(f.protectEyesNose!==undefined&&typeof f.protectEyesNose!=='boolean')throw Error('Invalid eye protection');
  if(!Array.isArray(f.centers)||!f.centers.length||f.centers.length>64||f.centers.length!==f.coefficients?.length)throw Error('Invalid face field anchors');
  for(let i=0;i<f.centers.length;i++){
   const c=f.centers[i],w=f.coefficients[i];
@@ -25,6 +26,14 @@ export function fieldDelta(x,y,z,f){
  for(let i=0;i<f.centers.length;i++){
   const c=f.centers[i],r=Math.hypot(x-c[0],y-c[1],z-c[2])/f.radius;if(r>=1)continue;
   const k=(1-r)**4*(4*r+1),w=f.coefficients[i];dx+=k*w[0];dy+=k*w[1];dz+=k*w[2];
+ }
+ if(f.protectEyesNose){
+  // Residual cheek/jaw interpolation must not displace the cornea or tilt the tip.
+  // Primary eye proportions remain in identityWarp; this only damps the extra field.
+  const ocular=bell(Math.abs(x),.031,.016)*bell(y,1.513,.011)*smooth((z-.045)/.025);
+  dy*=1-.80*ocular;dz*=1-.95*ocular;
+  const nasal=(1-smooth((Math.abs(x)-.013)/.010))*(1-smooth((Math.abs(y-1.480)-.014)/.014))*smooth((z-.073)/.020);
+  dy*=1-nasal;dz*=1-nasal;
  }
  const gate=smooth((y-1.39)/.025)*smooth((z+.02)/.04)*f.strength;
  const scale=gate*Math.min(1,f.maxDisplacement/Math.max(1e-12,Math.hypot(dx,dy,dz)));

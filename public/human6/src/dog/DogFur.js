@@ -71,19 +71,41 @@ export class DogFur {
     // One opaque skin draw. Microscopic directional fibers are derivative-filtered;
     // no stacked shells, alpha overdraw, or dozens of coarse fur cards.
     softOwners++;this.softOwner=true;if(!softTexture&&typeof document!=='undefined'){softTexture=new THREE.TextureLoader().load(new URL('fur_albedo_v2.jpg',ASSET_ROOT).href);softTexture.wrapS=softTexture.wrapT=THREE.RepeatWrapping;softTexture.colorSpace=THREE.NoColorSpace;softNormal=new THREE.TextureLoader().load(new URL('fur_normal.jpg',ASSET_ROOT).href);softNormal.wrapS=softNormal.wrapT=THREE.RepeatWrapping;softNormal.repeat.set(5,3);}
-    const mat=model.coat;mat.roughness=.86;mat.normalMap=softNormal;mat.normalScale.set(.20,.20);mat.onBeforeCompile=s=>{
+    const mat=model.coat;mat.roughness=.91;mat.normalMap=softNormal;mat.normalScale.set(.27,.27);mat.onBeforeCompile=s=>{
       Object.assign(s.uniforms,{h5CoatMap:{value:softTexture},h5CoatTime:{value:0},h5CoatWet:{value:0},h5CoatTouch:{value:this.touch},h5CoatRipple:{value:0}});this.uniforms.push(s.uniforms);
       s.vertexShader=s.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 h5CoatP;uniform vec3 h5CoatTouch;uniform float h5CoatTime,h5CoatRipple,h5CoatWet;');
       s.vertexShader=s.vertexShader.replace('#include <begin_vertex>',`#include <begin_vertex>
         h5CoatP=position;float r=length(position-h5CoatTouch);transformed+=normal*sin(r*65.0-h5CoatTime*13.0)*exp(-r*12.0)*h5CoatRipple*.0014;`);
       s.fragmentShader=s.fragmentShader.replace('#include <common>','#include <common>\nvarying vec3 h5CoatP;uniform sampler2D h5CoatMap;uniform float h5CoatWet;');
       s.fragmentShader=s.fragmentShader.replace('#include <color_fragment>',`#include <color_fragment>
-        vec2 strand=vec2(h5CoatP.x*1900.0+h5CoatP.z*500.0,h5CoatP.y*850.0);float fiberLod=1.0-smoothstep(.6,2.4,max(fwidth(strand.x),fwidth(strand.y)));
+        vec2 strand=vec2(h5CoatP.x*1050.0+h5CoatP.z*210.0,h5CoatP.y*520.0);float fiberLod=1.0-smoothstep(.6,2.4,max(fwidth(strand.x),fwidth(strand.y)));
         float fiber=sin(strand.x+sin(strand.y)*.45)*sin(strand.y*.13);
-        vec3 coatSample=texture2D(h5CoatMap,h5CoatP.zy*8.0).rgb;float softFiber=dot(coatSample,vec3(.333));diffuseColor.rgb*=.82+softFiber*.34;diffuseColor.rgb*=mix(1.0,.73,h5CoatWet)*(1.0+fiber*fiberLod*.055);`);
+        vec3 coatSample=texture2D(h5CoatMap,vec2(h5CoatP.z*2.2+h5CoatP.x*.8,h5CoatP.y*2.8)).rgb;float softFiber=dot(coatSample,vec3(.333));diffuseColor.rgb*=.67+softFiber*.60;diffuseColor.rgb*=mix(1.0,.73,h5CoatWet)*(1.0+fiber*fiberLod*.055);`);
       s.fragmentShader=s.fragmentShader.replace('#include <roughnessmap_fragment>','#include <roughnessmap_fragment>\nroughnessFactor=mix(roughnessFactor,.51,h5CoatWet);');
-    };mat.customProgramCacheKey=()=> 'h5-short-coat-17.9';
+      s.fragmentShader=s.fragmentShader.replace('#include <opaque_fragment>',`float grazing=pow(1.-max(dot(normal,normalize(vViewPosition)),0.),3.);outgoingLight+=diffuseColor.rgb*grazing*.055*(1.-h5CoatWet);
+#include <opaque_fragment>`);
+    };mat.customProgramCacheKey=()=> 'h5-soft-coat-19';
+    // A sparse groom shell changes the silhouette; body interior remains opaque.
+    // Three draws maximum across both shell depths; distance LOD turns them off.
+    this.installGuardCoat(model);
     this.shellCount=0;
+  }
+  installGuardCoat(model){
+    const source=model.body;if(!source)return;const long=model.breed.fur>1.1,levels=long?2:1;
+    for(let layer=1;layer<=levels;layer++){
+      const material=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:.95,side:THREE.FrontSide,alphaTest:.55,alphaToCoverage:true,depthWrite:true});
+      material.name='H5_GuardCoat_'+layer;const length=(long?.0032:.0018)*layer*(model.species==='cat'?1.15:1),uniforms={time:{value:0},wet:{value:0}};
+      material.userData.h5GuardUniforms=uniforms;material.onBeforeCompile=s=>{
+        s.uniforms.h5GuardWet=uniforms.wet;
+        s.vertexShader=s.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 h5GuardRest;varying vec3 h5GuardN;uniform float h5GuardWet;');
+        s.vertexShader=s.vertexShader.replace('#include <begin_vertex>',`#include <begin_vertex>
+          h5GuardRest=position;h5GuardN=normal;float face=1.-smoothstep(.58,.68,position.y);float shellLength=${length.toFixed(5)}*mix(.22,1.,face)*(1.-h5GuardWet*.82);
+          transformed+=normal*shellLength;transformed.z-=shellLength*.35;`);
+        s.fragmentShader=s.fragmentShader.replace('#include <common>','#include <common>\nvarying vec3 h5GuardRest;varying vec3 h5GuardN;');
+        s.fragmentShader=s.fragmentShader.replace('#include <alphatest_fragment>',`vec3 flow=vec3(h5GuardRest.x*1400.,h5GuardRest.y*790.,h5GuardRest.z*610.);vec3 w=pow(abs(normalize(h5GuardN)),vec3(6.));w/=max(dot(w,vec3(1.)),.001);float strand=sin(flow.x+sin(flow.z)*.65)*w.z+sin(flow.z+sin(flow.y)*.5)*w.x+sin(flow.x+sin(flow.z)*.65)*w.y;float fade=1.-smoothstep(.6,2.,max(fwidth(flow.x),fwidth(flow.z)));if(strand<${layer===1?'.74':'.91'}||fade<.2)discard;diffuseColor.rgb*=.94;`);
+      };material.customProgramCacheKey=()=> 'h5-guard-coat-19-'+length;model.materials.add(material);
+      const mesh=new THREE.SkinnedMesh(source.geometry,material);mesh.name='Soft guard coat '+layer;mesh.bind(model.skeleton,new THREE.Matrix4());mesh.castShadow=false;mesh.receiveShadow=true;mesh.frustumCulled=false;model.root.add(mesh);this.layers.push({mesh,layer,uniforms});
+    }
   }
   tuft(name,p,width,height,bone){
     const g=new THREE.PlaneGeometry(width,height,3,4);g.rotateY(Math.PI);g.translate(...p);this.model.skin(g,bone);
@@ -91,10 +113,10 @@ export class DogFur {
     m.onBeforeCompile=s=>{s.vertexShader=s.vertexShader.replace('#include <common>','#include <common>\nvarying vec2 dogTuftUV;').replace('#include <begin_vertex>','#include <begin_vertex>\ndogTuftUV=uv;');s.fragmentShader=s.fragmentShader.replace('#include <common>','#include <common>\nvarying vec2 dogTuftUV;');s.fragmentShader=s.fragmentShader.replace('#include <alphahash_fragment>',`float fringe=0.12+0.80*abs(sin(dogTuftUV.x*49.0)); if(dogTuftUV.y<fringe*.55 || abs(dogTuftUV.x-.5)>.50*dogTuftUV.y)discard; diffuseColor.a=.58;\n#include <alphahash_fragment>`);};
     m.customProgramCacheKey=()=>`dog-tuft-r170`;this.model.materials.add(m);const mesh=this.model.mesh(name,g,m);mesh.castShadow=false;
   }
-  rebindLayers(){this.layers=[];this.model.root.traverse(mesh=>{if(mesh.isMesh&&mesh.material.name.startsWith('Dog_FurShell_'))this.layers.push({mesh,layer:Number(mesh.material.name.split('_').at(-1))});});}
-  setLayers(n){this.shellCount=n<=0?0:1;for(const {mesh,layer} of this.layers)mesh.visible=layer<=this.shellCount;}
+  rebindLayers(){this.layers=[];this.model.root.traverse(mesh=>{if(mesh.isMesh&&/^(Dog_FurShell_|H5_GuardCoat_)/.test(mesh.material.name))this.layers.push({mesh,layer:Number(mesh.material.name.split('_').at(-1)),uniforms:mesh.material.userData.h5GuardUniforms});});}
+  setLayers(n){this.shellCount=Math.max(0,Math.min(2,n));for(const {mesh,layer} of this.layers)mesh.visible=layer<=this.shellCount;}
   setWetness(v){this.wet=THREE.MathUtils.clamp(v,0,1);this.model.coat.roughness=.88-this.wet*.28;}
   ripple(worldPoint){this.model.root.updateWorldMatrix(true,false);this.touch.copy(this.model.root.worldToLocal(worldPoint.clone()));this.rippleStrength=.65;}
-  tick(dt,renderer){this.time+=Math.min(.05,dt);this.rippleStrength*=Math.exp(-dt*3);for(const u of this.uniforms){if(u.h5CoatTime){u.h5CoatTime.value=this.time;u.h5CoatWet.value=this.wet;u.h5CoatRipple.value=this.rippleStrength;}else{u.h5FurTime.value=this.time;u.h5FurWet.value=this.wet;u.h5FurRipple.value=this.rippleStrength;}}}
+  tick(dt,renderer){for(const row of this.layers)if(row.uniforms){row.uniforms.wet.value=this.wet;row.mesh.visible=this.model.root.userData.h5CoatNear!==false;}this.time+=Math.min(.05,dt);this.rippleStrength*=Math.exp(-dt*3);for(const u of this.uniforms){if(u.h5CoatTime){u.h5CoatTime.value=this.time;u.h5CoatWet.value=this.wet;u.h5CoatRipple.value=this.rippleStrength;}else{u.h5FurTime.value=this.time;u.h5FurWet.value=this.wet;u.h5FurRipple.value=this.rippleStrength;}}}
   dispose(){this.disposed=true;if(this.softOwner&&--softOwners===0){softTexture?.dispose();softNormal?.dispose();softTexture=softNormal=null;}for(const {mesh} of this.layers)mesh.removeFromParent();for(const t of this.textures)t.dispose();}
 }

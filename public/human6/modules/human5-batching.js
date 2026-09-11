@@ -9,10 +9,10 @@ export class RigidBatches {
       if(m.onBeforeCompile!==T.Material.prototype.onBeforeCompile||m.normalMap||m.roughnessMap||m.alphaMap||m.emissiveMap)return;
       const key=[m.map?.uuid||'',m.roughness,m.metalness,m.side,m.envMapIntensity,m.emissive.getHex(),mesh.castShadow,mesh.receiveShadow].join('/');if(!groups.has(key))groups.set(key,[]);groups.get(key).push(mesh);
     });
-    const entry={root,groups:[],stamp:''};for(const sources of groups.values())if(sources.length>=2)entry.groups.push({sources,mesh:null,material:null,layers:sources.map(m=>m.layers.mask)});
+    const entry={root,groups:[]};for(const sources of groups.values())if(sources.length>=2)entry.groups.push({sources,mesh:null,material:null,layers:sources.map(m=>m.layers.mask),visibility:new Uint8Array(sources.length)});
     if(!entry.groups.length)return;this.entries.set(root,entry);this.rebuild(entry);
   }
-  stamp(entry){return entry.groups.flatMap(g=>g.sources.map(m=>m.visible?'1':'0')).join('');}
+  changed(entry){for(const g of entry.groups)for(let i=0;i<g.sources.length;i++)if(g.visibility[i]!==+g.sources[i].visible)return true;return false;}
   rebuild(entry){const root=entry.root;root.updateWorldMatrix(true,true);const inv=root.matrixWorld.clone().invert();
     for(const group of entry.groups){const old=group.mesh;if(old){old.removeFromParent();old.geometry.dispose();this.world.pickables=this.world.pickables.filter(m=>m!==old);}group.mesh=null;
       const geometries=[],ranges=[];let start=0;
@@ -28,9 +28,9 @@ export class RigidBatches {
       mesh.raycast=function(raycaster,out){const hits=[];raycast.call(this,raycaster,hits);for(const hit of hits){const range=ranges.find(r=>hit.faceIndex>=r.start&&hit.faceIndex<r.end);if(!range||!range.source.visible)continue;const original=range.source;hit.object=original;hit.faceIndex-=range.start;
           if(hit.face){hit.face={...hit.face,normal:hit.face.normal.clone().applyMatrix3(new T.Matrix3().getNormalMatrix(mesh.matrixWorld)).applyMatrix3(new T.Matrix3().getNormalMatrix(original.matrixWorld.clone().invert())).normalize()};}out.push(hit);}};
       root.add(mesh);this.world.pickables.push(mesh);group.mesh=mesh;
-    }entry.stamp=this.stamp(entry);
+    }for(const g of entry.groups)for(let i=0;i<g.sources.length;i++)g.visibility[i]=+g.sources[i].visible;
   }
-  tick(){for(const [root,e] of this.entries){if(!root.parent){this.release(e);this.entries.delete(root);continue;}if(this.stamp(e)!==e.stamp)this.rebuild(e);}}
+  tick(){for(const [root,e] of this.entries){if(!root.parent){this.release(e);this.entries.delete(root);continue;}if(this.changed(e))this.rebuild(e);}}
   release(e){for(const g of e.groups){g.sources.forEach((m,i)=>m.layers.mask=g.layers[i]);if(g.mesh){g.mesh.removeFromParent();g.mesh.geometry.dispose();this.world.pickables=this.world.pickables.filter(m=>m!==g.mesh);}g.material?.dispose();}}
   clear(){for(const e of this.entries.values())this.release(e);this.entries.clear();}
 }

@@ -1,0 +1,10 @@
+Human5 19.1 / checkpoint 16
+
+This is the complete integrated game folder.
+Serve under /human5/ with your existing server; open /human5/index.html.
+Read H5-docs/FINAL-RELEASE.md for the current changes and limits.
+Read H5-docs/FINAL-PERFORMANCE.md for measured comparisons.
+Read H5-docs/NATURAL-EYES-RESEARCH.md for the dedicated eye/Studio research.
+
+Photo NPC Studio runs separately. Its extended import is already included in the desktop settings.
+No Quest hardware FPS claim is made. Earlier checkpoint patches in this tree are history; do not reapply them.

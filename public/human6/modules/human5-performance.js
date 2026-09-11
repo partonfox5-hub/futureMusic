@@ -1,6 +1,6 @@
 import * as T from 'three';
-import {V,clamp,wrapMethod} from './human5-common.js?v=18.0.0';
-import {RigidBatches} from './human5-batching.js?v=18.0.0';
+import {V,clamp,wrapMethod} from './human5-common.js?v=19.1.0';
+import {RigidBatches} from './human5-batching.js?v=19.1.0';
 export const QUEST_PROFILES=Object.freeze([
   {name:'detail',foveation:.35,interiorRange:20,pile:1200,mirrorHz:24,portalHz:24,shadowHz:36},
   {name:'balanced',foveation:.55,interiorRange:15,pile:800,mirrorHz:18,portalHz:18,shadowHz:24},

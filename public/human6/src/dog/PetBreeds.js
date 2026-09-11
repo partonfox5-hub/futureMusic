@@ -16,14 +16,14 @@ export const PET_BREEDS={
       0.398
     ],
     "muzzle": [
-      0.066,
-      0.04,
-      0.106
+      0.071,
+      0.037,
+      0.078
     ],
     "muzzleCenter": [
       0,
-      0.699,
-      0.511
+      0.701,
+      0.493
     ],
     "ear": "drop",
     "earLength": 0.15,
@@ -53,14 +53,14 @@ export const PET_BREEDS={
       0.4
     ],
     "muzzle": [
-      0.057,
-      0.038,
-      0.1
+      0.058,
+      0.035,
+      0.078
     ],
     "muzzleCenter": [
       0,
       0.705,
-      0.51
+      0.496
     ],
     "ear": "drop",
     "earLength": 0.215,
@@ -90,9 +90,9 @@ export const PET_BREEDS={
       0.408
     ],
     "muzzle": [
-      0.048,
-      0.036,
-      0.113
+      0.047,
+      0.034,
+      0.1
     ],
     "muzzleCenter": [
       0,

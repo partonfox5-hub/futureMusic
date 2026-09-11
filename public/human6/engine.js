@@ -1,48 +1,48 @@
-import {installCash} from './modules/human5-cash.js?v=18.0.0';
-import {Builder,FURNITURE,SURFACES} from './mira-v2-builder.js?v=18.0.0';
-import {SmoothLocomotion} from './mira-v2-locomotion.js?v=18.0.0';
-import {Car} from './mira-v2-car.js?v=18.0.0';
-import {Restraints} from './mira-v2-restraints.js?v=18.0.0';
-import { createDogSystem } from './mira-v2-dog.js?v=18.0.0';
-import { installGadgets } from './mira-v2-gadgets.js?v=18.0.0';
-import {Injuries} from './mira-v2-injuries.js?v=18.0.0';
-import {Props,WEAPONS,GUNS} from './mira-v2-props.js?v=18.0.0';
-import {installFire} from './mira-v2-fire.js?v=18.0.0';
-import {installWeather} from './mira-v2-weather.js?v=18.0.0';
-import {installTerrainFeatures} from './mira-v2-terrain-features.js?v=18.0.0';
-import {syncFurniture} from './mira-v2-furniture.js?v=18.0.0';
-import {installWater} from './mira-v2-water.js?v=18.0.0';
-import {createFloraSystem} from './mira-v2-flora.js?v=18.0.0';
-import {EstimatedRoomLight as RoomLight,createQuestLighting} from './modules/human5-lighting.js?v=18.0.0';
-import {installHuman5Upgrade} from './modules/human5-upgrade.js?v=18.0.0';
-import {installPhotoNPCImport,applyPhotoNPC} from './modules/human5-photo-import.js?v=18.0.1';
-import {installPerformance} from './modules/human5-performance.js?v=18.0.0';
-import {installOpenWorld} from './modules/human5-openworld.js?v=18.0.0';
-import {installGameplay} from './modules/human5-gameplay.js?v=18.0.0';
-import {installVehicleSpawns} from './modules/human5-vehicle-spawns.js?v=18.0.0';
-import {createStartupWarmup} from './modules/human5-startup-warmup.js?v=18.0.0';
-import {installHome} from './modules/human5-home.js?v=18.0.0';
-import {installEquipment} from './modules/human5-equipment.js?v=18.0.0';
-import {installEcology} from './modules/human5-ecology.js?v=18.0.0';
-import {createVoiceBridge} from './modules/human5-voice.js?v=18.0.0';
-import {localTranscribe,warmLocalSpeech,stopLocalSpeech} from './mira-local-speech.js?v=18.0.0';
+import {installPhotoNPCImport} from './modules/human5-photo-import.js?v=19.1.1';
+import {installCash} from './modules/human5-cash.js?v=19.1.0';
+import {Builder,FURNITURE,SURFACES} from './mira-v2-builder.js?v=19.1.0';
+import {SmoothLocomotion} from './mira-v2-locomotion.js?v=19.1.0';
+import {Car} from './mira-v2-car.js?v=19.1.0';
+import {Restraints} from './mira-v2-restraints.js?v=19.1.0';
+import { createDogSystem } from './mira-v2-dog.js?v=19.1.0';
+import { installGadgets } from './mira-v2-gadgets.js?v=19.1.0';
+import {Injuries} from './mira-v2-injuries.js?v=19.1.0';
+import {Props,WEAPONS,GUNS} from './mira-v2-props.js?v=19.1.0';
+import {installFire} from './mira-v2-fire.js?v=19.1.0';
+import {installWeather} from './mira-v2-weather.js?v=19.1.0';
+import {installTerrainFeatures} from './mira-v2-terrain-features.js?v=19.1.0';
+import {syncFurniture} from './mira-v2-furniture.js?v=19.1.0';
+import {installWater} from './mira-v2-water.js?v=19.1.0';
+import {createFloraSystem} from './mira-v2-flora.js?v=19.1.0';
+import {EstimatedRoomLight as RoomLight,createQuestLighting} from './modules/human5-lighting.js?v=19.1.0';
+import {installHuman5Upgrade} from './modules/human5-upgrade.js?v=19.1.0';
+import {installPerformance} from './modules/human5-performance.js?v=19.1.0';
+import {installOpenWorld} from './modules/human5-openworld.js?v=19.1.0';
+import {installGameplay} from './modules/human5-gameplay.js?v=19.1.0';
+import {installVehicleSpawns} from './modules/human5-vehicle-spawns.js?v=19.1.0';
+import {createStartupWarmup} from './modules/human5-startup-warmup.js?v=19.1.0';
+import {installHome} from './modules/human5-home.js?v=19.1.0';
+import {installEquipment} from './modules/human5-equipment.js?v=19.1.0';
+import {installEcology} from './modules/human5-ecology.js?v=19.1.0';
+import {createVoiceBridge} from './modules/human5-voice.js?v=19.1.0';
+import {localTranscribe,warmLocalSpeech,stopLocalSpeech} from './mira-local-speech.js?v=19.1.0';
 const voiceInput=createVoiceBridge({localTranscribe,warmLocalSpeech,stopLocalSpeech});
 const startMic=voiceInput.startMic;
 let xrMicAttempted=false;
-import {draft,saveDraft,spawnOptions,OUTFITS,clothingItems} from './mira-v2-catalog.js?v=18.0.0';
-import {MiraWorld,SCENES} from './mira-v2-world.js?v=18.0.0';
-import {Wardrobe,GARMENTS} from './mira-v2-wardrobe.js?v=18.0.0';
+import {draft,saveDraft,spawnOptions,OUTFITS,clothingItems} from './mira-v2-catalog.js?v=19.1.0';
+import {MiraWorld,SCENES} from './mira-v2-world.js?v=19.1.0';
+import {Wardrobe,GARMENTS} from './mira-v2-wardrobe.js?v=19.1.0';
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { createVRMenu } from "./mira-vr-menu.js?v=18.0.0";
-import { snapshot, savePreset, loadPreset, applyPreset, listPresets, lastPresetName, downloadPreset } from "./mira-v2-preset.js?v=18.0.0";
-import { unlockSfx } from "./mira-v2-sfx.js?v=18.0.0";
-import { EMOTION_NAMES, IDLE_NAMES, WALK_NAMES, ATTENTION_MODES } from "./mira-v2-features.js?v=18.0.0";
+import { createVRMenu } from "./mira-vr-menu.js?v=19.1.0";
+import { snapshot, savePreset, loadPreset, applyPreset, listPresets, lastPresetName, downloadPreset } from "./mira-v2-preset.js?v=19.1.0";
+import { unlockSfx } from "./mira-v2-sfx.js?v=19.1.0";
+import { EMOTION_NAMES, IDLE_NAMES, WALK_NAMES, ATTENTION_MODES } from "./mira-v2-features.js?v=19.1.0";
 import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
-import { createMiraSystem, SLIDERS, FACE_TYPES, HAIR_COLORS } from "./mira-v2.js?v=18.0.0";
-import { DEFAULT_PERSONA, miraChat, miraSpeak, unlockVoice } from "./mira-voice-v2.js?v=18.0.0";
+import { createMiraSystem, SLIDERS, FACE_TYPES, HAIR_COLORS } from "./mira-v2.js?v=19.1.0";
+import { DEFAULT_PERSONA, miraChat, miraSpeak, unlockVoice } from "./mira-voice-v2.js?v=19.1.0";
 
-import {V2_EXTRA_SLIDERS,FACE_PRESETS,HAIR_STYLES,ACTIVITY_MODES,ATTENTION_LABELS,shapeSliders} from './mira-v2-controls.js?v=18.0.0';
+import {V2_EXTRA_SLIDERS,FACE_PRESETS,HAIR_STYLES,ACTIVITY_MODES,ATTENTION_LABELS,shapeSliders} from './mira-v2-controls.js?v=19.1.0';
 
 const QUEST = /OculusBrowser|Quest/i.test(navigator.userAgent);
 const loadEl = document.getElementById("load");
@@ -121,7 +121,7 @@ world.waterSystem=water;props.water=water;
 const flora=createFloraSystem({scene,mira,system:mira,world,props,camera,renderer,THREE});
 props.flora=flora;
 const terrainFeatures=installTerrainFeatures({world,props,WEAPONS,GUNS});
-const weather=installWeather({scene,world,camera,renderer,lights:{key,fill,rim}});
+const weather=installWeather({scene,world,camera,renderer,lights:{key,fill,rim},daylight});
 props.gadgets?.rebuildRack?.();
 function stockPantry(){
  if(!world.pantry||world.pantry.stocked||!dogs)return;
@@ -163,7 +163,6 @@ mira.load(
     dogs.spawnDefault();
     dogs.spawnDefaultCat?.();
     stockPantry();
-    spawnBry(true).catch(err=>console.warn('Bry NPC',err));
     const dogNameEl=document.getElementById('dogName');
     if(dogNameEl)dogNameEl.value=dogs.list?.()[0]?.displayName||'Buddy';
     if (new URLSearchParams(location.search).has("debug")) window.human2 = { mira, scene, renderer, camera, rig, keys, orbit, world, wardrobe, props, dogs, water, flora, gadgets, terrainFeatures, fire, weather, upgrade, photoNPCImport, voiceInput, performanceController, openWorld, gameplay, ecology, equipment, vehicleSpawns, home, cash, startup };
@@ -226,13 +225,6 @@ function syncHud(){
 }
 function copyConfiguration(){const a=selected();if(!a)return;Object.assign(draft,{bodyType:a.bodyType||'female',faceType:a.faceType,hairStyle:a.hairStyle||0,hairColor:a.hairColor,eyeDetail:a.eyeDetail||'classic',hairDetail:a.hairDetail||'classic',shape:{...a.shape}});saveDraft();dispatchEvent(new Event('mira:draft'));}
 function spawnConfigured(){if(!mira.ready)return;const n=mira.actors.length,p=new THREE.Vector3((n%3)*.85-.85,0,-((n/3)|0)*.9),a=mira.spawn(spawnOptions(p));if(a&&selected()?.attentionMode)a.attentionMode=selected().attentionMode;for(const id of clothingItems())wardrobe.equip(a,GARMENTS.find(g=>g.id===id));syncHud();}
-async function spawnBry(select=true){
- if(!mira.ready)return null;
- const data=await fetch(new URL('./npcs/Bry.h5photo.json',import.meta.url)).then(r=>{if(!r.ok)throw new Error('Bry profile missing');return r.json();});
- const n=mira.actors.length,p=new THREE.Vector3((n%3)*.85-.85,0,-((n/3)|0)*.9);
- const a=mira.spawn({version:'v2',position:p,name:data.profile?.name||'Bry',faceType:data.profile?.faceType??1,hairStyle:data.profile?.hairStyle??1,hairColor:data.profile?.hairColor??1,eyeDetail:'advanced',hairDetail:'advanced',shape:{...(data.profile?.shape||{})}});
- applyPhotoNPC(a,data);if(select)mira.select(a);syncHud();return a;
-}
 function captureScene(){return snapshot({mira,world,wardrobe,props,camera,orbit});}
 function refreshPresetSelect(){const el=document.getElementById('presetSelect');if(!el)return;const names=listPresets(),cur=el.value||lastPresetName();el.replaceChildren(...(names.length?names:['Slot 1']).map(n=>new Option(n,n)));if([...el.options].some(o=>o.value===cur))el.value=cur;}
 function persistScene(name){unlockSfx();const n=savePreset(name||document.getElementById('presetName')?.value||lastPresetName(),captureScene());const nameEl=document.getElementById('presetName');if(nameEl)nameEl.value=n;refreshPresetSelect();const sel=document.getElementById('presetSelect');if(sel)sel.value=n;const st=document.getElementById('presetStatus');if(st)st.textContent='Saved '+n+' · '+mira.actors.length+' NPC'+(mira.actors.length===1?'':'s');return n;}
@@ -269,7 +261,7 @@ function bindHud() {
  document.getElementById('downloadPreset').onclick=()=>{const n=document.getElementById('presetName').value||lastPresetName();downloadPreset(n,captureScene());document.getElementById('presetStatus').textContent='Downloaded '+n+'.json';};
  document.getElementById('presetFile').onchange=e=>{const file=e.target.files?.[0];if(!file)return;file.text().then(text=>{try{const data=JSON.parse(text);const n=savePreset(file.name.replace(/\.json$/i,''),data);document.getElementById('presetName').value=n;refreshPresetSelect();document.getElementById('presetSelect').value=n;document.getElementById('presetStatus').textContent=applyPreset(data,{mira,world,wardrobe,props,camera,orbit,syncHud});}catch(err){document.getElementById('presetStatus').textContent=err.message||'Invalid preset file';}});e.target.value='';};
  addEventListener('pointerdown',unlockSfx,{once:true});
- document.getElementById("spawnNpc").onclick=spawnConfigured;document.getElementById("spawnBry")?.addEventListener("click",()=>spawnBry(true).catch(err=>{banner(err.message);console.warn(err);}));document.getElementById("copyNpc").onclick=copyConfiguration;document.getElementById("foveation")?.addEventListener("input",e=>{const v=Number(e.target.value);applyXrFoveation(v);if(XR_ON())setXrStatus({ffr:v});});mira.hands.haptics.gain=Number(document.getElementById('hapticGain')?.value)||2;document.getElementById("hapticGain").oninput=e=>mira.hands.haptics.gain=Number(e.target.value);document.getElementById("quality")?.addEventListener("change",()=>{if(!XR_ON())return;const ffr=sessionFoveation();applyXrFoveation(ffr);setXrStatus({ffr});});
+ document.getElementById("spawnNpc").onclick=spawnConfigured;document.getElementById("copyNpc").onclick=copyConfiguration;document.getElementById("foveation")?.addEventListener("input",e=>{const v=Number(e.target.value);applyXrFoveation(v);if(XR_ON())setXrStatus({ffr:v});});mira.hands.haptics.gain=Number(document.getElementById('hapticGain')?.value)||2;document.getElementById("hapticGain").oninput=e=>mira.hands.haptics.gain=Number(e.target.value);document.getElementById("quality")?.addEventListener("change",()=>{if(!XR_ON())return;const ffr=sessionFoveation();applyXrFoveation(ffr);setXrStatus({ffr});});
  const sceneSelect=document.getElementById('sceneSelect');sceneSelect.replaceChildren(...SCENES.map(x=>new Option(x,x)));sceneSelect.value=world.name;sceneSelect.onchange=()=>{world.setScene(sceneSelect.value);ensureYardPond();};
  document.getElementById('floraDensity')?.addEventListener('input',e=>flora?.setDensity(Number(e.target.value)));
  const wardrobeSelect=document.getElementById('wardrobeSelect');wardrobeSelect.replaceChildren(...GARMENTS.map(x=>new Option(x.name,x.id)));document.getElementById('wearBtn').onclick=()=>wardrobe.equip(selected(),GARMENTS.find(x=>x.id===wardrobeSelect.value));
@@ -504,7 +496,7 @@ function desktopMove(dt) {
   if(props.driving()||XR_ON()||!controls||!controls.isLocked){deskPace=0;return;}
   const obj=controls.getObject?.()||camera;
   if(water?.playerSwimIntent({rig:obj,camera,dt,keys,blocked:vrMenu.isOpen||props.vehicle?.driving}).active){deskJumping=false;deskJumpVel=0;deskPace=0;return;}
-  const max=(keys.ShiftLeft ? 2.8 : 1.4)*1.25*1.15*(world.h5Combat?.speedScale()||1);
+  const max=(keys.ShiftLeft ? 2.8 : 1.4)*1.25*1.15*1.30*(world.h5Combat?.speedScale()||1);
   const ix=(keys.KeyD?1:0)-(keys.KeyA?1:0),iz=(keys.KeyW?1:0)-(keys.KeyS?1:0),input=Math.hypot(ix,iz);
   if(input>.01)deskPace+=(max-deskPace)*(1-Math.exp(-dt/.12));
   else deskPace=0;

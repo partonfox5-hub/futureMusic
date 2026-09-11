@@ -1,6 +1,6 @@
 import * as T from 'three';
-import {PET_SURFACES} from './PetSurfaces.js?v=18.0.0';
-import {PET_BREEDS,breedIdFor} from './PetBreeds.js?v=18.0.0';
+import {PET_SURFACES} from './PetSurfaces.js?v=19.1.0';
+import {PET_BREEDS,breedIdFor} from './PetBreeds.js?v=19.1.0';
 const clamp=T.MathUtils.clamp,cache=new Map();
 function bytes(str){return Uint8Array.from(atob(str),c=>c.charCodeAt(0));}
 function geometry(id){
@@ -13,7 +13,7 @@ export function petCoatColor(m,x,y,z,kind='coat'){
  const coat=m.breed.coat,base=new T.Color(coat==='blue'?0x78808b:coat==='points'?0xd5c4a8:coat==='tricolor'?0xe1d2b3:coat==='saddle'?0x9c713e:coat==='tabby'?0x8c8376:0xcda76d);
  const dark=new T.Color(coat==='points'?0x42342f:coat==='tabby'?0x3c3935:0x292827),white=new T.Color(0xe8e0d0),tan=new T.Color(0xae6e3b);
  const smooth=(a,b,v)=>T.MathUtils.smoothstep(v,a,b);
- if(coat==='yellow')base.lerp(white,smooth(.61,.44,y)*.16);
+ if(coat==='yellow')base.lerp(white,(1-smooth(.44,.61,y))*.16);
  if(coat==='tricolor'){const saddle=smooth(.44,.49,y)*(1-smooth(.16,.29,z));base.lerp(dark,saddle);if(z>.28)base.lerp(tan,.88);const blaze=(1-smooth(.009,.026,Math.abs(x)))*smooth(.68,.81,y)*smooth(.36,.42,z);base.lerp(white,Math.max(blaze,kind==='muzzle'?.85:0));if(y<.18||z<-.58)base.copy(white);}
  if(coat==='saddle'){base.lerp(dark,smooth(.43,.56,y)*(1-smooth(.15,.32,z)));if(z>.49||kind==='ear')base.lerp(dark,.87);}
  if(coat==='points'){let point=Math.max(smooth(.70,.75,y)*smooth(.34,.46,z),1-smooth(.07,.23,y),smooth(.40,.60,-z));if(kind==='ear')point=1;base.lerp(dark,point*.93);}
@@ -33,7 +33,7 @@ export function buildPetAppearance(m){
  m.ellipsoid('nose',[0,mc[1]+.011,tip],[mr[0]*.67,cat?.012:.023,.013],'Head',m.noseMaterial,'coat',18,10);
  for(const side of [-1,1]){
   m.ellipsoid('nostril',[side*mr[0]*.4,mc[1]+.008,tip+.011],[cat?.003:.006,.004,.002],'Head',m.pupilMaterial,'coat',10,6);
-  const hx=b.head[0],hc=b.headCenter,center=new T.Vector3(side*hx*.70,hc[1]+.018,hc[2]+b.head[2]*.78),r=cat?.018:.014,angle=side*(cat?.27:.40);
+  const hx=b.head[0],hc=b.headCenter,center=new T.Vector3(side*hx*.70,hc[1]+.010,hc[2]+b.head[2]*.84),r=cat?.018:.014,angle=side*(cat?.27:.40);
   const front=new T.Vector3(Math.sin(angle),0,Math.cos(angle));
   m.ellipsoid('eye_globe',center.toArray(),[r,r*.84,r*.66],'Head',m.eye,'coat',18,12);
   for(const [name,rad,mat,d,sy] of [['iris',r*.82,m.irisMaterial,r*.60,1],['pupil',r*.48,m.pupilMaterial,r*.64,cat?1.4:1],['cornea',r*.94,m.corneaMaterial,r*.68,1]]){

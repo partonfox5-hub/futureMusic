@@ -1,5 +1,5 @@
 import * as T from 'three';
-import {tagMovable,syncFurniture} from './mira-v2-furniture.js?v=18.0.0';
+import {tagMovable,syncFurniture} from './mira-v2-furniture.js?v=19.1.0';
 const V=()=>new T.Vector3();
 export const PLATES=[
  {kg:25,color:0x2f7a3a,r:.225,t:.056,n:2},

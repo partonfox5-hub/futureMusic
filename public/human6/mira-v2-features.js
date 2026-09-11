@@ -1,13 +1,14 @@
-import {refineAnatomyDetail} from './modules/human5-anatomy-detail.js?v=18.0.0';
-import {LivingEyes} from './mira-v2-eyes.js?v=18.0.0';
-import {EnhanceEyes} from './mira-v2-tearline.js?v=18.0.0';
-import {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES,V2_EXTRA_SLIDERS,FACE_PRESETS,EXERCISE_MODES,ATTENTION_MODES} from './mira-v2-controls.js?v=18.0.0';
-export {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES,ATTENTION_MODES} from './mira-v2-controls.js?v=18.0.0';
+import {anatomicalRelief} from './modules/human5-anatomy-anchor.js?v=19.1.0';
+import {refineAnatomyDetail} from './modules/human5-anatomy-detail.js?v=19.1.0';
+import {LivingEyes} from './mira-v2-eyes.js?v=19.1.0';
+import {EnhanceEyes} from './mira-v2-tearline.js?v=19.1.0';
+import {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES,V2_EXTRA_SLIDERS,FACE_PRESETS,EXERCISE_MODES,ATTENTION_MODES} from './mira-v2-controls.js?v=19.1.0';
+export {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES,ATTENTION_MODES} from './mira-v2-controls.js?v=19.1.0';
 import * as THREE from 'three';
-import {restoreSurfaceUV} from './mira-v2-uv.js?v=18.0.0';
-import {HairGuides} from './mira-v2-hair.js?v=18.0.0';
-import {SurfaceFlesh} from './mira-v2-tissue.js?v=18.0.0';
-import {installV2Realism} from './mira-v2-realism.js?v=18.0.0';
+import {restoreSurfaceUV} from './mira-v2-uv.js?v=19.1.0';
+import {HairGuides} from './mira-v2-hair.js?v=19.1.0';
+import {SurfaceFlesh} from './mira-v2-tissue.js?v=19.1.0';
+import {installV2Realism} from './mira-v2-realism.js?v=19.1.0';
 
 // Mira v2: a bounded real-time approximation for this CC3 rig, Three r170.
 const clamp = THREE.MathUtils.clamp, damp = THREE.MathUtils.damp;
@@ -19,9 +20,9 @@ const up=new THREE.Vector3(0,1,0);
 const FACE_POSES={
  // Resting-beauty baseline: lowered lids, Duchenne hint, no Eye_Wide. CC3 rest
  // lids are fully open, so Eye_Blink at rest is what kills the stare.
- neutral:{Eye_Blink:.025,Eye_Squint:.025,Brow_Drop:.02,Mouth_Smile:.06,Cheek_Raise:.035},
+ neutral:{Eye_Blink:0,Eye_Squint:0,Brow_Drop:.02,Mouth_Smile:.06,Cheek_Raise:.035},
  happy:{Mouth_Smile:.92,Cheek_Raise:.72,Mouth_Dimple:.28,Eye_Squint:.32,Jaw_Open:.08,Eye_Blink:.06},
- content:{Mouth_Smile:.16,Eye_Squint:.045,Cheek_Raise:.12,Eye_Blink:.03,Brow_Drop:.025,Brow_Raise_Inner:.04},
+ content:{Mouth_Smile:.16,Eye_Squint:.012,Cheek_Raise:.10,Eye_Blink:.008,Brow_Drop:.025,Brow_Raise_Inner:.04},
  curious:{Brow_Raise_Inner:.20,Brow_Raise_Outer:.14,Mouth_Smile:.10,Eye_Squint:.08,Eye_Blink:.08},
  listening:{Brow_Raise_Inner:.10,Mouth_Smile:.14,Eye_Squint:.10,Eye_Blink:.12,Cheek_Raise:.08},
  thoughtful:{Brow_Compress:.14,Mouth_Press:.18,Eye_Squint:.16,Eye_Blink:.14,Brow_Drop:.06},
@@ -101,11 +102,7 @@ export function fingerRotation(rig,row,j,curl,time,out=new THREE.Quaternion()){
 // breast scale or negative scale: volume grows by moving the complete surface.
 export function shapePoint(x,y,z,size,likeness=0,butt=1,arms=1,options={}){
  let dx=0,dy=0,dz=0;
- if(y>1.145&&y<1.225&&z>.072){
-  const r2=((Math.abs(x)-.0762)/.0055)**2+((y-1.187)/.0052)**2;
-  const areola=((Math.abs(x)-.0762)/.018)**2+((y-1.187)/.017)**2;
-  dz+=.0034*Math.exp(-r2)+.00065*Math.exp(-areola*2.5);
- }
+
  if(y>1.04&&y<1.39&&z>-.01){
   // Compose small smooth warps instead of summing a large displacement. This
   // keeps spacing + inward angle + small size from folding the inner attachment.
@@ -125,7 +122,7 @@ export function shapePoint(x,y,z,size,likeness=0,butt=1,arms=1,options={}){
    }
    bx+=sx/5;by+=sy/5;bz+=sz/5;
   }
-  dx=bx-x;dy=by-y;dz=bz-z;
+  dx=bx-x;dy=by-y;dz=bz-z+anatomicalRelief(x,y,z);
  }
  // Broad lower-pole volume, with a soft attachment to the sacrum and thighs.
  // Preserve the authored centre fold: deepening it creates pinched triangles.

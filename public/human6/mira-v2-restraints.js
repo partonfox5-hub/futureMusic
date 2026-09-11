@@ -1,6 +1,6 @@
 import * as T from 'three';
-import {bodyVolumes,projectVolume} from './mira-v2-contact.js?v=18.0.0';
-import {furnitureRoot,syncFurniture} from './mira-v2-furniture.js?v=18.0.0';
+import {bodyVolumes,projectVolume} from './mira-v2-contact.js?v=19.1.0';
+import {furnitureRoot,syncFurniture} from './mira-v2-furniture.js?v=19.1.0';
 const V=()=>new T.Vector3(),Q=()=>new T.Quaternion(),up=new T.Vector3(0,1,0);
 export class Restraints {
  constructor(props){
@@ -38,6 +38,7 @@ export class Restraints {
  hidePopup(){this.popupUntil=0;if(this.html)this.html.hidden=true;if(this.panel)this.panel.group.visible=false;}
  cut(link=this.selected,index=6){if(!link||link.broken)return;link.broken=true;link.cut=T.MathUtils.clamp(index,1,link.n-2);link.rope.material.color.setHex(0x57483a);this.status='Link '+link.id+' cut; loose ends remain.';if(this.selected===link)this.hidePopup();}
  remove(link=this.selected){if(!link)return;for(const m of [link.rope,...link.cuffs]){m.removeFromParent();m.geometry.dispose();m.material.dispose();}this.links=this.links.filter(l=>l!==link);if(this.selected===link){this.selected=this.links.at(-1)||null;this.hidePopup();}this.status='Link removed.';}
+ clearAll(){const count=this.links.length;for(const link of [...this.links])this.remove(link);this.selected=null;this.cancel();this.hidePopup();this.status=count+' restraint links removed.';return count;}
  hit(ray,max=15){const rc=new T.Raycaster();rc.ray.copy(ray);rc.far=max;const objs=this.links.flatMap(l=>[l.rope,...l.cuffs]);if(this.panel?.group.visible)objs.push(this.panel.mesh);return rc.intersectObjects(objs,false)[0];}
  weight(a){if(!a||a.static||a.piece?.broken)return 0;if(a.actor&&!this.system.actors.includes(a.actor))return 0;return a.weight||0;}
  move(a,delta,hard=false){

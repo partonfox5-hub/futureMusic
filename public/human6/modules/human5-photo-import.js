@@ -1,6 +1,6 @@
-import {applyNPCProfile,validateNPCProfile,exportNPCProfile} from './human5-npc-profile.js?v=18.0.0';
-import {weldSkinNormals} from './human5-skin.js?v=18.0.0';
-import {deformGeometry,validateField} from './human5-photo-field.js?v=1.0.0';
+import {applyNPCProfile,validateNPCProfile,exportNPCProfile} from './human5-npc-profile.js?v=19.1.0';
+import {weldSkinNormals} from './human5-skin.js?v=19.1.0';
+import {deformGeometry,validateField} from './human5-photo-field.js?v=19.1.0';
 
 export function applyPhotoNPC(actor,input){
  if(actor?.version!=='v2')throw Error('Select a V2 NPC first');

@@ -1,6 +1,6 @@
 import * as T from 'three';
-import {withOffscreenView,mapPortalCamera,portalTransfer} from './modules/human5-view-surfaces.js?v=18.0.0';
-import {playSfx,unlockSfx} from './mira-v2-sfx.js?v=18.0.0';
+import {withOffscreenView,mapPortalCamera,portalTransfer} from './modules/human5-view-surfaces.js?v=19.1.0';
+import {playSfx,unlockSfx} from './mira-v2-sfx.js?v=19.1.0';
 const V=()=>new T.Vector3(),Q=()=>new T.Quaternion(),M=()=>new T.Matrix4();
 const QUEST=/Quest|OculusBrowser/i.test(globalThis.navigator?.userAgent||'');
 export const GUNS=['pistol','laser','rifle','sniper','shotgun','uzi','marker','marker2','portal','torch'];

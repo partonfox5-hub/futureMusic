@@ -1,8 +1,8 @@
 import * as THREE from "three";
 import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
-import { createMiraSystem, SLIDERS, FACE_TYPES, HAIR_COLORS } from "./mira-core.js?v=18.0.0";
-import { DEFAULT_PERSONA, miraChat, miraSpeak, startMic } from "./mira-voice.js?v=18.0.0";
+import { createMiraSystem, SLIDERS, FACE_TYPES, HAIR_COLORS } from "./mira-core.js?v=19.1.0";
+import { DEFAULT_PERSONA, miraChat, miraSpeak, startMic } from "./mira-voice.js?v=19.1.0";
 
 const QUEST = /OculusBrowser|Quest/i.test(navigator.userAgent);
 const loadEl = document.getElementById("load");

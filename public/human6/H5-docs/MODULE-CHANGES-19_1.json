@@ -1,0 +1,54 @@
+{
+  "version": "19.1.0",
+  "baseline": "18.0.0",
+  "groups": {
+    "hair": [
+      "modules/human5-groom.js"
+    ],
+    "eyes": [
+      "mira-v2-eyes.js",
+      "mira-v2-tearline.js",
+      "mira-v2-features.js"
+    ],
+    "photo_bridge": [
+      "modules/human5-photo-field.js",
+      "modules/human5-photo-import.js",
+      "engine.js"
+    ],
+    "tissue": [
+      "modules/human5-anatomy-anchor.js",
+      "modules/human5-skin.js",
+      "modules/human5-tissue-surface.js",
+      "mira-v2-features.js"
+    ],
+    "vehicle_and_controls": [
+      "modules/human5-xr-placement.js",
+      "mira-v2-car.js",
+      "mira-v2-locomotion.js",
+      "mira-v2-restraints.js",
+      "mira-vr-menu.js",
+      "engine.js"
+    ],
+    "sky_and_audio": [
+      "modules/human5-day-night.js",
+      "modules/human5-lighting.js",
+      "mira-v2-weather.js",
+      "mira-v2-sfx.js"
+    ],
+    "pets": [
+      "src/dog/PetSurfaces.js",
+      "src/dog/PetBreeds.js",
+      "src/dog/PetAppearance.js",
+      "src/dog/DogFur.js",
+      "src/dog/DogItems.js",
+      "mira-v2-dog.js",
+      "H5-tools/bake-pets.py"
+    ],
+    "population_and_batching": [
+      "modules/human5-birds.js",
+      "modules/human5-worldrender.js",
+      "modules/human5-batching.js"
+    ]
+  },
+  "note": "Other runtime files change cache-version tags for coherent loading."
+}

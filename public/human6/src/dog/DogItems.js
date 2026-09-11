@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { floorAt } from './DogPaws.js?v=18.0.0';
+import { floorAt } from './DogPaws.js?v=19.1.0';
 const V=()=>new THREE.Vector3(),R=.018,CAP=200;
 const pos=(p,out=V())=>Array.isArray(p)?out.fromArray(p):p?.isVector3?out.copy(p):out.set(p?.x||0,p?.y||0,p?.z||0);
 
@@ -68,7 +68,7 @@ export class DogItems {
   const beak=new THREE.Mesh(new THREE.ConeGeometry(.012,.028,6),org);beak.rotation.z=-Math.PI/2;beak.position.set(.078,.078,0);g.add(beak);
   const comb=new THREE.Mesh(new THREE.BoxGeometry(.018,.022,.008),red);comb.position.set(.048,.108,0);g.add(comb);
   const wattle=new THREE.Mesh(new THREE.SphereGeometry(.008,6,4),red);wattle.position.set(.062,.058,0);g.add(wattle);
-  return this.register('chicken',g,p,.12,.0005);
+  g.scale.setScalar(1.65);return this.register('chicken',g,p,.20,.0005*1.65**3);
  }
  spawnCatBag(p){
   const g=new THREE.Group(),paper=new THREE.MeshStandardMaterial({color:0x3d8b8a,roughness:.99}),cream=new THREE.MeshStandardMaterial({color:0xf0e6c8,roughness:1}),ink=new THREE.MeshStandardMaterial({color:0x1f4f52,roughness:1});

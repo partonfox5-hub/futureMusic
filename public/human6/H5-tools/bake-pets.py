@@ -11,9 +11,9 @@ for i,p in enumerate([[0,.49,-.35],[0,.46,-.425],[0,.40,-.49],[0,.325,-.54],[0,.
 for s,x in [('L',.115),('R',-.115)]:
  for n,y,z in [('Shoulder',.515,.22),('UpperArm',.425,.18),('ForeArm',.25,.205),('Paw',.060,.26),('Hip',.47,-.265),('Thigh',.35,-.22),('Calf',.19,-.365),('Foot',.055,-.295)]:B[s+'_'+n]=[x,y,z]
 BREEDS={
- 'labrador':dict(name='Labrador Retriever',species='dog',scale=1.,bulk=1.,head=[.102,.097,.112],headCenter=[0,.746,.398],muzzle=[.066,.040,.106],muzzleCenter=[0,.699,.511],ear='drop',earLength=.15,coat='yellow',eye=0x6b3918,fur=.65,speed=1.,sociability=.9,voice=1.,carry=9,gait=1.,note='Broad chest, otter tail, soft drop ears; sociable fetch companion.'),
- 'beagle':dict(name='Beagle',species='dog',scale=.72,bulk=.88,head=[.098,.092,.109],headCenter=[0,.752,.400],muzzle=[.057,.038,.100],muzzleCenter=[0,.705,.510],ear='drop',earLength=.215,coat='tricolor',eye=0x51341e,fur=.6,speed=.94,sociability=.8,voice=1.14,carry=4,gait=1.16,note='Compact hound, long rounded ears, tricolor saddle; curious scent explorer.'),
- 'shepherd':dict(name='German Shepherd',species='dog',scale=1.08,bulk=.90,head=[.084,.096,.112],headCenter=[0,.757,.408],muzzle=[.048,.036,.113],muzzleCenter=[0,.710,.524],ear='upright',earLength=.105,coat='saddle',eye=0x56331b,fur=1.15,speed=1.12,sociability=.65,voice=.88,carry=11,gait=.95,note='Longer wedge muzzle, erect ears, sable saddle; alert and athletic.'),
+ 'labrador':dict(name='Labrador Retriever',species='dog',scale=1.,bulk=1.,head=[.102,.097,.112],headCenter=[0,.746,.398],muzzle=[.071,.037,.078],muzzleCenter=[0,.701,.493],ear='drop',earLength=.15,coat='yellow',eye=0x6b3918,fur=.65,speed=1.,sociability=.9,voice=1.,carry=9,gait=1.,note='Broad chest, otter tail, soft drop ears; sociable fetch companion.'),
+ 'beagle':dict(name='Beagle',species='dog',scale=.72,bulk=.88,head=[.098,.092,.109],headCenter=[0,.752,.400],muzzle=[.058,.035,.078],muzzleCenter=[0,.705,.496],ear='drop',earLength=.215,coat='tricolor',eye=0x51341e,fur=.6,speed=.94,sociability=.8,voice=1.14,carry=4,gait=1.16,note='Compact hound, long rounded ears, tricolor saddle; curious scent explorer.'),
+ 'shepherd':dict(name='German Shepherd',species='dog',scale=1.08,bulk=.90,head=[.084,.096,.112],headCenter=[0,.757,.408],muzzle=[.047,.034,.100],muzzleCenter=[0,.710,.524],ear='upright',earLength=.105,coat='saddle',eye=0x56331b,fur=1.15,speed=1.12,sociability=.65,voice=.88,carry=11,gait=.95,note='Longer wedge muzzle, erect ears, sable saddle; alert and athletic.'),
  'british':dict(name='British Shorthair',species='cat',scale=.50,bulk=.87,head=[.121,.107,.087],headCenter=[0,.738,.371],muzzle=[.038,.024,.039],muzzleCenter=[0,.704,.440],ear='upright',earLength=.095,coat='blue',eye=0xcc8631,fur=.90,speed=.82,sociability=.45,voice=.90,carry=2,gait=.90,note='Round cheeks, stocky body, dense blue coat; calm and unhurried.'),
  'siamese':dict(name='Siamese',species='cat',scale=.47,bulk=.65,head=[.083,.090,.095],headCenter=[0,.746,.375],muzzle=[.032,.022,.047],muzzleCenter=[0,.712,.446],ear='upright',earLength=.115,coat='points',eye=0x639bcc,fur=.40,speed=1.15,sociability=.98,voice=1.12,carry=1.6,gait=1.1,note='Lean body, wedge head, large ears, blue eyes and seal points; social and vocal.'),
  'maine':dict(name='Maine Coon',species='cat',scale=.61,bulk=.92,head=[.105,.103,.100],headCenter=[0,.752,.382],muzzle=[.044,.028,.044],muzzleCenter=[0,.711,.453],ear='upright',earLength=.12,coat='tabby',eye=0x97a856,fur=1.8,speed=.96,sociability=.8,voice=1.04,carry=3,gait=.93,note='Large frame, square muzzle, neck ruff, ear tufts and full tail; gentle and inquisitive.')}
@@ -22,9 +22,11 @@ def primitives(cfg):
  cat=cfg['species']=='cat';bulk=cfg['bulk']; ps=[]
  def ell(c,r,b): ps.append((np.array(c),np.array(c),np.array(r),np.array(r),b,b))
  def cap(a,b,r0,r1,ba,bb):ps.append((np.array(a),np.array(b),np.array(r0),np.array(r1),ba,bb))
- ell([0,.452,-.175],[.137*bulk,.143*bulk,.213],'Spine')
- ell([0,.445,.102],[.141*bulk,.143*bulk,.217],'Chest')
- cap([0,.49,.20],[0,.61 if cat else .686,.348],[.095*bulk,.096*bulk,.095*bulk],[.063,.067,.064],'Chest','Neck')
+ # Elongated rib cage, tucked abdomen and pelvis: no four spherical limb bulges.
+ ell([0,.467,-.185],[.124*bulk,.119*bulk,.222],'Spine')
+ ell([0,.438,.092],[.139*bulk,.159*bulk,.247],'Chest')
+ ell([0,.512,-.060],[.104*bulk,.063*bulk,.28],'Spine')
+ cap([0,.49,.20],[0,.61 if cat else .686,.348],[.089*bulk,.078*bulk,.103*bulk],[.064,.066,.067],'Chest','Neck')
  ell(cfg['headCenter'],cfg['head'],'Head');ell(cfg['muzzleCenter'],cfg['muzzle'],'Head')
  # Cranial stop and cheeks form a continuous surface; no stacks of facial balls.
  if not cat:ell([0,.746,.475],[.052,.056,.055],'Head')
@@ -32,11 +34,11 @@ def primitives(cfg):
   for front in [True,False]:
    up=s+('_UpperArm' if front else '_Thigh');low=s+('_ForeArm' if front else '_Calf');foot=s+('_Paw' if front else '_Foot')
    a=np.array(B[up]);b=np.array(B[low]);c=np.array(B[foot]);a[0]*=1.07
-   ell(a+[0,.025,0],[.060*bulk,.095,.078*bulk],up)
-   cap(a,b,[.043*bulk,.055*bulk,.051*bulk],[.024*bulk,.026,.024*bulk],up,low)
+   ell(a+[0,.033,-.018 if front else -.006],[.047*bulk,.090 if front else .105,.051*bulk if front else .070*bulk],up)
+   cap(a,b,[.035*bulk,.050*bulk,.040*bulk],[.021*bulk,.024,.022*bulk],up,low)
    cap(b,c,[.026*bulk,.035,.029*bulk],[.022*bulk,.024,.027*bulk],low,foot)
-   ell(c+[0,-.014,.022],[.039*bulk,.033,.061],foot)
-   for k in [-1,0,1]:ell(c+[k*.019*bulk,-.025,.055],[.013*bulk,.019,.023],foot)
+   ell(c+[0,-.014,.022],[.035*bulk,.024,.047],foot)
+   for k in [-1,0,1]:ell(c+[k*.019*bulk,-.022,.049],[.011*bulk,.015,.020],foot)
  return ps
 
 def eval_prim(q,p):
@@ -47,7 +49,7 @@ def eval_prim(q,p):
 def field(q,ps):
  d=np.ones(q.shape[:-1])*9
  for p in ps:
-  e,t=eval_prim(q,p);k=.048;h=np.maximum(k-np.abs(d-e),0)/k;d=np.minimum(d,e)-h*h*k*.25
+  e,t=eval_prim(q,p);k=.032;h=np.maximum(k-np.abs(d-e),0)/k;d=np.minimum(d,e)-h*h*k*.25
  return d
 
 result={}

@@ -1,5 +1,5 @@
 import * as T from 'three';
-import {playSfx} from './mira-v2-sfx.js?v=18.0.0';
+import {playSfx} from './mira-v2-sfx.js?v=19.1.0';
 const V=()=>new T.Vector3(),Q=()=>new T.Quaternion(),CELL=.6,STORY=3.05;
 const QUEST=/Quest|OculusBrowser/i.test(globalThis.navigator?.userAgent||'');
 const PALETTE={Plaster:0xc9c1b1,Brick:0xa26148,Wood:0x947051,Tile:0xc3c7c1,Stone:0x85847c,Castle:0x8a8478,Metal:0x929b9d,Glass:0x9fc1c7,Shingle:0x5c4034};

@@ -1,6 +1,6 @@
 import * as T from 'three';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
-import {clamp,V} from './human5-common.js?v=18.0.0';
+import {clamp,V} from './human5-common.js?v=19.1.0';
 
 /** Bounded kinematic elevator; requests queue, doors interlock with travel. */
 export class ElevatorMotion {

@@ -56,40 +56,54 @@ export function playSfx(kind,vol=1){
 export function sfxForBreak(kind){if(kind==='glass')return 'glass';if(kind==='metal')return 'metal';if(kind==='plaster')return 'plaster';if(kind==='wood')return 'wood';return 'impact';}
 export function sfxForHit(kind){if(kind==='laser')return 'laser';if(kind==='bullet')return 'impact';if(kind==='cut')return 'whoosh';if(kind==='scuff')return 'thud';return 'thud';}
 
+// Shared, loop-safe combustion loops synthesized from uneven cylinder pulses.
+// No network fetch or per-parked-car graph. These are procedural sounds, not recordings.
+const engineBuffers=new WeakMap(),engineVoices=new Set();
+function combustionBuffers(c){
+ if(engineBuffers.has(c))return engineBuffers.get(c);
+ const result=[800,2400,4400].map((rpm,band)=>{
+  const cycles=Math.round(rpm/120*1.5),duration=cycles*120/rpm,n=Math.round(duration*c.sampleRate),b=c.createBuffer(1,n,c.sampleRate),a=b.getChannelData(0);
+  let low=0;for(let i=0;i<n;i++){
+   const phase=i/n*cycles;let pulse=0;
+   for(let cylinder=0;cylinder<4;cylinder++){const p=((phase-cylinder*.25+1e3)%1),strength=[1,.94,1.03,.97][cylinder];pulse+=strength*Math.exp(-p*(26+band*5))*Math.sin(p*Math.PI*(8+band*2));}
+   // Periodic valve/intake detail avoids broadband hiss and discontinuous seams.
+   const mechanical=Math.sin(phase*Math.PI*2*23)*.035+Math.sin(phase*Math.PI*2*41)*.016;
+   low=low*.82+pulse*.18;a[i]=Math.tanh((pulse-low*.25)*1.9+mechanical)*.68;
+  }
+  // Equal-power seam blend is baked once, shared by every audible vehicle.
+  const fade=Math.min(256,Math.floor(n/20));for(let i=0;i<fade;i++){const t=i/fade,v=a[n-fade+i]*(1-t)+a[i]*t;a[i]=v;}
+  return b;
+ });engineBuffers.set(c,result);return result;
+}
 export class CarAudio {
  constructor(){this.rpm=850;this.hornUntil=0;this.started=false;this.nodes=null;}
- dispose(){if(!this.nodes)return;for(const k of ['osc','osc2','n'])try{this.nodes[k].stop();}catch{}for(const n of Object.values(this.nodes))try{n.disconnect?.();}catch{}this.nodes=null;}
+ dispose(){if(!this.nodes)return;for(const b of this.nodes.bands){try{b.source.stop();}catch{}b.source.disconnect();b.gain.disconnect();}for(const n of Object.values(this.nodes))try{n.disconnect?.();}catch{}this.nodes=null;engineVoices.delete(this);this.started=false;}
  ensure(){
-  unlockSfx();const c=ac();if(!c||this.nodes)return c;
-  const master=c.createGain();master.gain.value=0;master.connect(c.destination);
-  const osc=c.createOscillator();osc.type='sawtooth';osc.frequency.value=70;
-  const osc2=c.createOscillator();osc2.type='square';osc2.frequency.value=35;
-  const og=c.createGain();og.gain.value=.18;const og2=c.createGain();og2.gain.value=.07;
-  const n=noise(c,1.6);n.loop=true;const ng=c.createGain();ng.gain.value=.12;
-  const lp=filt(c,'lowpass',420,0.8),bp=filt(c,'bandpass',180,1.1);
-  osc.connect(og);osc2.connect(og2);n.connect(ng);og.connect(bp);og2.connect(lp);ng.connect(lp);bp.connect(lp);lp.connect(master);
-  osc.start();osc2.start();n.start();
-  this.nodes={c,master,osc,osc2,og,og2,n,ng,lp,bp};
-  return c;
+  if(this.nodes)return this.nodes.c;
+  if(engineVoices.size>=4)return null;
+  unlockSfx();const c=ac();if(!c)return null;
+  const output=c.createGain();output.gain.value=0;output.connect(sfxMaster());
+  const pan=c.createStereoPanner(),lp=filt(c,'lowpass',1100,.65);lp.connect(pan);pan.connect(output);
+  const bands=combustionBuffers(c).map((buffer,i)=>{const source=c.createBufferSource(),gain=c.createGain();source.buffer=buffer;source.loop=true;gain.gain.value=0;source.connect(gain);gain.connect(lp);source.start();return {source,gain,rpm:[800,2400,4400][i]};});
+  this.nodes={c,master:output,pan,lp,bands};engineVoices.add(this);this.silent=0;return c;
  }
  tick(car,input,dt){
-  const c=this.ensure();if(!c||!this.nodes)return;
-  const drive=!!(car.driving||car.h5Traffic?.active)&&(car.gear==='D'||car.gear==='R');
-  const speed=car.velocity?.length?.()||0,throttle=drive?Math.max(0,input?.throttle||0):0;
-  const target=Number.isFinite(car.engineRPM)?car.engineRPM:drive?820+throttle*3400+speed*62+(car.gear==='R'?180:0):car.driving?780:0;
-  this.rpm+=(target-this.rpm)*Math.min(1,dt*3.2);
-  const load=throttle*(.55+.45*Math.min(1,speed/8));
-  const vol=drive?.07+throttle*.26+Math.min(.16,speed*.018):car.driving?.04:0;
-  const t=c.currentTime,n=this.nodes;
-  n.osc.frequency.setTargetAtTime(this.rpm/12.2,t,.05);
-  n.osc2.frequency.setTargetAtTime(this.rpm/24.4,t,.05);
-  n.lp.frequency.setTargetAtTime(280+this.rpm*.22+load*90,t,.08);
-  n.og.gain.setTargetAtTime(.12+.16*load,t,.08);
-  n.ng.gain.setTargetAtTime(.08+.14*throttle,t,.08);
-  n.master.gain.setTargetAtTime(vol/(1+Math.pow((car.camera?.getWorldPosition(car.group.position.clone()).distanceTo(car.group.position)||0)/9,2)),t,.12);
-  if(drive&&!this.started){this.started=true;this.crank();}
-  if(!car.driving)this.started=false;
+  const active=!!(car.driving||car.h5Traffic?.active),head=car.liveCamera||car.camera,eye=head?.getWorldPosition(car.group.position.clone()),distance=eye?eye.distanceTo(car.group.position):0;
+  if(!active||distance>48||!unlocked){if(this.nodes){this.nodes.master.gain.setTargetAtTime(0,this.nodes.c.currentTime,.12);this.silent=(this.silent||0)+dt;if(this.silent>2)this.dispose();}this.started=false;return;}
+  const c=this.ensure();if(!c||!this.nodes)return;this.silent=0;
+  const speed=car.velocity?.length?.()||0,throttle=Math.max(0,input?.throttle||0),target=Math.max(780,Number.isFinite(car.engineRPM)?car.engineRPM:850+throttle*3000+speed*48);
+  this.rpm+=(target-this.rpm)*(1-Math.exp(-dt*12));
+  const load=throttle,shift=car.h5Vehicle?.auto?.shift||0,t=c.currentTime,n=this.nodes,rpm=this.rpm;
+  const middle=rpm<2400?(rpm-800)/1600:(4400-rpm)/2000,weights=[Math.max(0,1-(rpm-800)/1600),Math.max(0,Math.min(1,middle)),Math.max(0,(rpm-2400)/2000)];
+  const sum=Math.hypot(...weights)||1;
+  n.bands.forEach((b,i)=>{b.source.playbackRate.setTargetAtTime(Math.max(.55,Math.min(1.65,rpm/b.rpm)),t,.035);b.gain.gain.setTargetAtTime(weights[i]/sum,t,.055);});
+  n.lp.frequency.setTargetAtTime((car.driving?1150:1900)+rpm*.27+load*1350,t,.08);
+  const damage=car.h5Vehicle?.damage?.engine||0,rough=1+damage*.12*Math.sin(car.time*31),volume=(.10+load*.16+Math.min(.035,speed*.002))*(shift?.7:1)*rough;
+  n.master.gain.setTargetAtTime(volume/(1+(distance/9)**2),t,.08);
+  if(!car.driving&&eye){const local=car.group.position.clone().sub(eye).applyQuaternion(head.getWorldQuaternion(car.group.quaternion.clone()).invert());n.pan.pan.setTargetAtTime(Math.max(-1,Math.min(1,local.x/Math.max(1,distance))),t,.08);}else n.pan.pan.setTargetAtTime(0,t,.08);
+  if(!this.started){this.started=true;this.crank();}
  }
+
  crank(){
   try{
    const c=ac(),t=c.currentTime,g=c.createGain();g.connect(master);

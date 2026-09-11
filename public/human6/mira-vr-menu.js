@@ -1,13 +1,13 @@
-import {FURNITURE,SURFACES} from './mira-v2-builder.js?v=18.0.0';
-import {WEAPONS} from './mira-v2-props.js?v=18.0.0';
-import {draft,saveDraft,OUTFITS,PERSONAS,clothingItems,setDraftGarment} from './mira-v2-catalog.js?v=18.0.0';
-import {SCENES} from './mira-v2-world.js?v=18.0.0';
-import {GARMENTS} from './mira-v2-wardrobe.js?v=18.0.0';
+import {FURNITURE,SURFACES} from './mira-v2-builder.js?v=19.1.0';
+import {WEAPONS} from './mira-v2-props.js?v=19.1.0';
+import {draft,saveDraft,OUTFITS,PERSONAS,clothingItems,setDraftGarment} from './mira-v2-catalog.js?v=19.1.0';
+import {SCENES} from './mira-v2-world.js?v=19.1.0';
+import {GARMENTS} from './mira-v2-wardrobe.js?v=19.1.0';
 import * as THREE from 'three';
-import {SLIDERS,FACE_TYPES} from './mira-v2.js?v=18.0.0';
-import {shapeSliders,FACE_PRESETS,HAIR_STYLES,ACTIVITY_MODES,ACTION_LABELS,POSE_LABELS,ATTENTION_MODES,ATTENTION_LABELS} from './mira-v2-controls.js?v=18.0.0';
-import {HAIR_COLORS} from './mira-v2.js?v=18.0.0';
-import {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES} from './mira-v2-features.js?v=18.0.0';
+import {SLIDERS,FACE_TYPES} from './mira-v2.js?v=19.1.0';
+import {shapeSliders,FACE_PRESETS,HAIR_STYLES,ACTIVITY_MODES,ACTION_LABELS,POSE_LABELS,ATTENTION_MODES,ATTENTION_LABELS} from './mira-v2-controls.js?v=19.1.0';
+import {HAIR_COLORS} from './mira-v2.js?v=19.1.0';
+import {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES} from './mira-v2-features.js?v=19.1.0';
 export function createVRMenu({scene,renderer,camera,system,spawn,onSync,world,wardrobe,spawnConfigured,copyConfiguration,props,saveScene,loadScene}){
  const canvas=document.createElement('canvas');canvas.width=1024;canvas.height=1320;
  const ctx=canvas.getContext('2d'),tex=new THREE.CanvasTexture(canvas);tex.colorSpace=THREE.SRGBColorSpace;
@@ -101,8 +101,7 @@ export function createVRMenu({scene,renderer,camera,system,spawn,onSync,world,wa
    if(city){cycle('Elevator destination',730,Array.from({length:city.spec.floors},(_,i)=>'Floor '+(i+1)),()=> 'Floor '+((city.motion.queue[0]??city.motion.target)+1),v=>city.motion.request(Number(v.split(' ')[1])-1));}
    cycle('Tree season',865,['spring','summer','autumn','winter'],()=>world.h5Seasons?.mode||'summer',v=>world.h5Seasons?.set(v));
    const stats=region?.snapshot();ctx.font='26px sans-serif';ctx.fillStyle='#c9d6e2';ctx.fillText(stats?`${stats.residentCells} terrain cells · ${stats.interiors} building interiors`:'Region unavailable',40,1010);
-   ctx.fillText('Roads connect the city. Trails reach the lake and mountains.',40,1100);
-   ctx.fillText('Elevator wall buttons work with point + trigger.',40,1160);
+   button('TIME '+(world.weather?.cycle?.hour||0).toFixed(1)+'h · +3 HOURS',40,1050,580,70,()=>{const c=world.weather?.cycle;if(c)c.setHour(c.hour+3);draw();});button(world.weather?.cycle?.running?'PAUSE CLOCK':'RESUME CLOCK',645,1050,337,70,()=>{const c=world.weather?.cycle;if(c)c.running=!c.running;draw();});ctx.fillText('Full day / night: 24 minutes. Weather remains selectable.',40,1170);
   }else if(page===9){
    const b=world.builder;
    cycle('Piece',320,['Wall','Floor','Ceiling','Furniture'],()=>b.kind,x=>b.setKind(x));
@@ -123,7 +122,7 @@ export function createVRMenu({scene,renderer,camera,system,spawn,onSync,world,wa
    const r=props.restraints,l=r.selected;cycle('Attachment',325,['Flexible tether','Short fixed link'],()=>r.mode==='rope'?'Flexible tether':'Short fixed link',x=>r.mode=x==='Flexible tether'?'rope':'fuse');button('PLACE TWO ANCHORS',40,445,600,70,()=>{r.start();notice='Close Y, point + trigger twice';draw();});button('CANCEL',660,445,322,70,()=>{r.cancel();draw();});
    cycle('Selected link',580,['None',...r.links.map(l=>'Link '+l.id+(l.broken?' · cut':''))],()=>l?'Link '+l.id+(l.broken?' · cut':''):'None',name=>r.selected=r.links.find(x=>name==='Link '+x.id+(x.broken?' · cut':''))||null);
    ctx.fillStyle='#dce8f2';ctx.font='28px sans-serif';ctx.fillText('Length: '+(l?.length||0).toFixed(2)+' m',40,735);ctx.fillStyle='#526c80';ctx.fillRect(365,719,600,24);if(l&&!l.broken){ctx.fillStyle='#9bd6ff';ctx.fillRect(365,719,600*l.length/5,24);items.push({x:345,y:692,w:640,h:65,slider:true,fn:px=>{r.setLength((px-365)/600*5);draw();}});}
-   button('CUT · LEAVE ENDS',40,810,455,70,()=>{r.cut();draw();});button('REMOVE',515,810,467,70,()=>{r.remove();draw();});button('INJURIES '+(props.injuries.enabled?'ON':'OFF'),40,920,455,70,()=>{props.injuries.enabled=!props.injuries.enabled;draw();});button('DETACHMENT '+(props.injuries.allowSever?'ON':'OFF'),515,920,467,70,()=>{props.injuries.allowSever=!props.injuries.allowSever;draw();});button('RESTORE SELECTED NPC',40,1030,455,70,()=>{props.injuries.heal(a);draw();});button('CLEAR BODIES',515,1030,467,70,()=>{notice=props.injuries.clearBodies();draw();});ctx.font='24px sans-serif';ctx.fillText('Left stick click: attach · Sword or laser: cut a link',40,1180);
+   button('CUT · LEAVE ENDS',40,810,455,70,()=>{r.cut();draw();});button('REMOVE',515,810,467,70,()=>{r.remove();draw();});button('INJURIES '+(props.injuries.enabled?'ON':'OFF'),40,920,455,70,()=>{props.injuries.enabled=!props.injuries.enabled;draw();});button('DETACHMENT '+(props.injuries.allowSever?'ON':'OFF'),515,920,467,70,()=>{props.injuries.allowSever=!props.injuries.allowSever;draw();});button('RESTORE SELECTED NPC',40,1030,455,70,()=>{props.injuries.heal(a);draw();});button('CLEAR BODIES',515,1030,467,70,()=>{notice=props.injuries.clearBodies();draw();});button('DELETE ALL RESTRAINT ROPES',40,1130,942,70,()=>{r.clearAll();notice=r.status;draw();});
   }else if(page===6){
    if(editVisual){
     const choices=['Classic','Advanced'];

@@ -1,3 +1,4 @@
+import {DayNightClock} from './modules/human5-day-night.js?v=19.1.0';
 import * as T from 'three';
 const QUEST=/Quest|OculusBrowser/i.test(globalThis.navigator?.userAgent||'');
 const V=()=>new T.Vector3();
@@ -10,50 +11,50 @@ void main(){
  gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);
 }`;
 const SKY_FRAG=`varying vec3 vDir;
-uniform float time;uniform float coverage;uniform float rain;uniform float snow;
-uniform vec3 sunDir;uniform vec2 wind;uniform vec3 zenith;uniform vec3 horizon;
+uniform float time,coverage,rain,snow,night,day,twilight;
+uniform vec3 sunDir,moonDir,zenith,horizon,sunColor,cloudColor;uniform vec2 wind;uniform sampler2D cloudNoise;
 float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
-float noise(vec2 p){
- vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);
- return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x),f.y);
-}
-float fbm(vec2 p){
- float a=0.0,w=0.5;
- for(int i=0;i<3;i++){a+=w*noise(p);p=p*2.03+vec2(17.1,-9.7);w*=0.5;}
- return a;
-}
-float clouds(vec2 p,float t){
- float n=fbm(p+wind*t*1.6);
- n+=0.42*fbm(p*2.2-vec2(t*0.05,t*0.02));
- return n;
-}
 void main(){
- vec3 dir=normalize(vDir);
- float h=max(dir.y,0.0);
- vec3 col=mix(horizon,zenith,pow(h,0.55));
- float sun=pow(max(0.0,dot(dir,normalize(sunDir))), 32.0);
- col+=vec3(1.0,0.92,0.75)*sun*0.55*(1.0-rain*0.7);
- if(h>0.02){
-  vec2 uv=dir.xz/max(h,0.08)*1.15;
-  float c=clouds(uv,time);
-  float thresh=mix(1.12,0.38,coverage);
-  float dens=smoothstep(thresh,thresh+0.34,c);
-  dens*=smoothstep(0.02,0.18,h);
-  vec3 cloudCol=mix(vec3(0.55,0.58,0.64),vec3(0.96,0.97,0.99),clamp(h*1.4+c*0.2,0.0,1.0));
-  cloudCol=mix(cloudCol,vec3(0.42,0.45,0.50),rain*0.55);
-  cloudCol=mix(cloudCol,vec3(0.86,0.90,0.94),snow*0.4);
-  col=mix(col,cloudCol,dens*mix(0.55,0.95,coverage));
+ vec3 dir=normalize(vDir);float h=max(dir.y,0.0);
+ vec3 col=mix(horizon,zenith,pow(h,.46));
+ float sunDot=dot(dir,sunDir),sunAngle=length(dir-sunDir);
+ float haze=pow(max(sunDot,0.),22.)*.22+pow(max(sunDot,0.),220.)*.34;
+ col+=sunColor*(haze+2.8*(1.-smoothstep(.006,.008+fwidth(sunAngle),sunAngle)))*smoothstep(-.06,.01,sunDir.y)*(1.-rain*.7);
+ float moonAngle=length(dir-moonDir),moonDisk=1.-smoothstep(.0065,.008+fwidth(moonAngle),moonAngle);
+ float lunarDetail=.83+.13*sin(dir.x*1650.)*sin(dir.z*1370.);
+ col+=vec3(.64,.73,.9)*(moonDisk*lunarDetail+pow(max(dot(dir,moonDir),0.),340.)*.055)*night;
+ if(h>.01){
+  // Stable celestial points; derivative anti-aliasing prevents tiny stars from crawling.
+  vec2 starUV=vec2(atan(dir.z,dir.x)/6.2831853+.5,asin(clamp(dir.y,-1.,1.))/3.14159265+.5)*vec2(320.,160.);
+  vec2 cell=floor(starUV),local=fract(starUV)-.5;float seed=hash(cell),dist=length(local),aa=max(length(fwidth(starUV)),.025);
+  float star=(1.-smoothstep(.055,.055+aa,dist))*.028/max(aa*aa,.028)*step(.982,seed);
+  col+=vec3(.7,.8,1.)*star*night*smoothstep(.02,.25,h)*(.85+.15*sin(time*.7+seed*80.));
+  vec2 uv=dir.xz/max(h,.13)*.095+wind*time*.0018;
+  vec4 sampleA=texture2D(cloudNoise,uv),sampleB=texture2D(cloudNoise,uv*2.03+vec2(.19,-.27)+wind*time*.0004);
+  float density=sampleA.r*.72+sampleB.r*.28,threshold=mix(.75,.17,coverage);
+  float cloud=smoothstep(threshold,threshold+.22,density)*smoothstep(.01,.18,h);
+  float relief=clamp(.72+(sampleA.g-sampleA.r)*3.0,.45,1.08);
+  vec3 lit=cloudColor*relief*mix(1.,.55,rain)*mix(1.,1.08,snow);
+  float silver=pow(max(sunDot,0.),10.)*(1.-smoothstep(.1,.8,cloud))*day;
+  col=mix(col,lit+sunColor*silver*.22,cloud*.96);
  }
- col=mix(col,vec3(0.45,0.50,0.55),rain*0.35);
- col=mix(col,vec3(0.78,0.84,0.90),snow*0.22);
- gl_FragColor=vec4(col,1.0);
+ col=mix(col,horizon,rain*.20);gl_FragColor=vec4(col,1.0);
+ #include <tonemapping_fragment>
+ #include <colorspace_fragment>
 }`;
+function makeCloudNoise(){
+ const size=128,data=new Uint8Array(size*size*4);let seed=9731;const random=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;};
+ const grids=[8,16,32,64].map(n=>({n,a:Float32Array.from({length:n*n},random)}));
+ const noise=(x,y)=>{let sum=0,weight=.54;for(const {n,a}of grids){const xx=x/size*n,yy=y/size*n,i=Math.floor(xx),j=Math.floor(yy),tx=xx-i,ty=yy-j,u=tx*tx*(3-2*tx),v=ty*ty*(3-2*ty),get=(i,j)=>a[((j%n+n)%n)*n+(i%n+n)%n];sum+=weight*((get(i,j)*(1-u)+get(i+1,j)*u)*(1-v)+(get(i,j+1)*(1-u)+get(i+1,j+1)*u)*v);weight*=.5;}return sum;};
+ for(let y=0;y<size;y++)for(let x=0;x<size;x++){const i=(y*size+x)*4;data[i]=noise(x,y)*255;data[i+1]=noise(x+2,y+1)*255;data[i+2]=0;data[i+3]=255;}
+ const texture=new T.DataTexture(data,size,size);texture.wrapS=texture.wrapT=T.RepeatWrapping;texture.magFilter=T.LinearFilter;texture.minFilter=T.LinearMipmapLinearFilter;texture.generateMipmaps=true;texture.needsUpdate=true;return texture;
+}
 
-export function installWeather({scene,world,camera,renderer,lights={}}={}){
+export function installWeather({scene,world,camera,renderer,lights={},daylight=null}={}){
  const quest=QUEST, rainN=quest?120:720, flakeN=quest?90:560, puddleN=quest?20:110, snowN=quest?36:220;
- const group=new T.Group();group.name='Weather';scene.add(group);
+ const group=new T.Group();group.name='Weather';scene.add(group);const cycle=new DayNightClock(10),cloudNoise=makeCloudNoise();let lastSkyTime=performance.now();
  const skyMat=new T.ShaderMaterial({uniforms:{
-  time:{value:0},coverage:{value:.38},rain:{value:0},snow:{value:0},
+  cloudNoise:{value:cloudNoise},night:{value:0},day:{value:1},twilight:{value:0},moonDir:{value:cycle.moon},sunColor:{value:cycle.sunColor},cloudColor:{value:cycle.cloudColor},time:{value:0},coverage:{value:.38},rain:{value:0},snow:{value:0},
   sunDir:{value:new T.Vector3(.45,.72,.38).normalize()},
   wind:{value:new T.Vector2(.045,.018)},
   zenith:{value:new T.Color(0x5ea7e6)},horizon:{value:new T.Color(0xd7e6f4)}
@@ -165,14 +166,15 @@ export function installWeather({scene,world,camera,renderer,lights={}}={}){
  setMode('clouds');
 
  const api={
-  group,state,
+  group,state,cycle,sky,
   get label(){return state.label;},
   setMode,
   get selection(){return automatic?'auto':mode;},
   choose(value){if(!['auto','clear','clouds','rain','snow'].includes(value))throw new TypeError('Unknown weather');automatic=value==='auto';if(!automatic)setMode(value);else modeT=120+rng()*180;},
   tick(dt,cam){
-   if(!cam||(renderer?.xr?.isPresenting&&!scene.background)){group.visible=false;return;}
+   if(!cam||(renderer?.xr?.isPresenting&&!scene.background)){group.visible=false;lastSkyTime=performance.now();return;}
    group.visible=true;
+   const skyNow=performance.now();cycle.advance(document.hidden?0:Math.max(0,(skyNow-lastSkyTime)/1000));lastSkyTime=skyNow;
    dt=Math.min(.05,dt);if(automatic)modeT-=dt;
    if(modeT<=0)setMode(MODES[(MODES.indexOf(mode)+1)%MODES.length]||'clouds');
    const want=targets();
@@ -184,10 +186,9 @@ export function installWeather({scene,world,camera,renderer,lights={}}={}){
 
    const u=skyMat.uniforms,t=performance.now()*.001;
    u.time.value=t;u.coverage.value=state.coverage;u.rain.value=state.rain;u.snow.value=state.snow;
-   const overcast=.35+state.coverage*.45+state.rain*.25;
-   u.zenith.value.setRGB(.22+.18*(1-overcast),.48+.22*(1-overcast),.72+.18*(1-overcast));
-   if(state.snow>.4)u.zenith.value.setRGB(.70,.78,.86);
-   u.horizon.value.setRGB(.72+.1*(1-state.rain),.80,.86);
+   u.sunDir.value.copy(cycle.sun);u.night.value=cycle.night;u.day.value=cycle.day;u.twilight.value=cycle.twilight;
+   u.zenith.value.copy(cycle.zenith).lerp(cycle.horizon,state.coverage*.16+state.rain*.30);
+   u.horizon.value.copy(cycle.horizon);
 
    const far=Number.isFinite(cam.far)&&cam.far>1?cam.far:450;
    const fogCol=u.horizon.value;
@@ -197,8 +198,7 @@ export function installWeather({scene,world,camera,renderer,lights={}}={}){
    else if(!renderer?.xr?.isPresenting)scene.background=bgColor.clone();
    renderer?.setClearColor?.(fogCol,1);
    const dim=1-state.rain*.45-state.coverage*.18-state.snow*.12;
-   for(const {l,i} of origLights.values())l.intensity=i*dim;
-   if(hemi)hemi.intensity=baseHemiIntensity*dim;
+   if(daylight)daylight.setTimeOfDay(cycle,dim);else{for(const {l,i} of origLights.values())l.intensity=i*dim*cycle.day;if(hemi)hemi.intensity=baseHemiIntensity*dim*(.10+.90*cycle.day);}
 
    const c=cam.getWorldPosition(V()),span=18,wind=state.rain?3.2:1.1;
    let rc=0;

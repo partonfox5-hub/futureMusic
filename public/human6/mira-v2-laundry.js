@@ -1,6 +1,6 @@
 import * as T from 'three';
-import {tagMovable,syncFurniture,furnitureRoot} from './mira-v2-furniture.js?v=18.0.0';
-import {unlockSfx,audioContext} from './mira-v2-sfx.js?v=18.0.0';
+import {tagMovable,syncFurniture,furnitureRoot} from './mira-v2-furniture.js?v=19.1.0';
+import {unlockSfx,audioContext} from './mira-v2-sfx.js?v=19.1.0';
 
 function metal(c,r=.45,m=.35){return new T.MeshStandardMaterial({color:c,roughness:r,metalness:m});}
 

@@ -1,5 +1,5 @@
 import * as T from 'three';
-import {rockGeometry} from './FloraDebris.js?v=18.0.0';
+import {rockGeometry} from './FloraDebris.js?v=19.1.0';
 export class FloraBoulders {
  constructor(env,debris){this.env=env;this.debris=debris;this.replaced=[];}
  replaceHost(){const e=this.env,spots=[[1.55,-.65],[-1.55,-1.7],[2.9,.55]],found=[];e.world.root?.traverse(o=>{if(!o.isMesh||o.userData.flora||o.userData.furnRoot||o.geometry?.type!=='IcosahedronGeometry')return;const p=o.getWorldPosition(new T.Vector3());if(spots.some(([x,z])=>Math.hypot(p.x-x,p.z-z)<.17))found.push(o);});

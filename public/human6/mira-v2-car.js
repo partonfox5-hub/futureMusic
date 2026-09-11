@@ -1,9 +1,10 @@
-import {refineOriginalSedan} from './modules/human5-sedan-detail.js?v=18.0.0';
+import {placeXRHead} from './modules/human5-xr-placement.js?v=19.1.0';
+import {refineOriginalSedan} from './modules/human5-sedan-detail.js?v=19.1.0';
 import * as T from 'three';
-import {withOffscreenView} from './modules/human5-view-surfaces.js?v=18.0.0';
-import {VEHICLE_SPECS,buildVehicleModel} from './modules/human5-vehicle-models.js?v=18.0.0';
+import {withOffscreenView} from './modules/human5-view-surfaces.js?v=19.1.0';
+import {VEHICLE_SPECS,buildVehicleModel} from './modules/human5-vehicle-models.js?v=19.1.0';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
-import {CarAudio,unlockSfx} from './mira-v2-sfx.js?v=18.0.0';
+import {CarAudio,unlockSfx} from './mira-v2-sfx.js?v=19.1.0';
 const V=()=>new T.Vector3(),Q=()=>new T.Quaternion(),clamp=T.MathUtils.clamp,Y=new T.Vector3(0,1,0);
 const QUEST=/Quest|OculusBrowser/i.test(globalThis.navigator?.userAgent||'');
 const GEARS=['P','R','N','D'];
@@ -80,7 +81,7 @@ export class Car {
   if(this.driving){this.exit();return true;}
   if(!['Living room','Cul-de-sac'].includes(this.world.name)||!this.world.root.visible)return false;for(const c of this.props.cars?.()||[])if(c!==this&&c.driving)c.exit();this.props.vehicle=this;this.driving=true;unlockSfx();this.controls?.unlock();if(this.orbit)this.orbit.enabled=false;
   this.group.updateMatrixWorld(true);const eye=this.group.localToWorld(new T.Vector3(...this.vehicleSpec.driverEye));
-  if(this.renderer.xr?.isPresenting){const cam=this.liveCamera,offset=cam.getWorldPosition(V()).sub(this.rig.getWorldPosition(V())),yaw=new T.Euler().setFromQuaternion(cam.getWorldQuaternion(Q()),'YXZ').y;this.rig.rotation.y+=this.group.rotation.y-yaw;this.rig.updateMatrixWorld(true);const head=cam.getWorldPosition(V());this.rig.position.add(eye.sub(head));}
+  if(this.renderer.xr?.isPresenting){placeXRHead(this.rig,this.liveCamera,eye,new T.Euler().setFromQuaternion(this.group.getWorldQuaternion(Q()),'YXZ').y);}
   else{this.rig.position.set(0,0,0);this.rig.quaternion.identity();this.camera.position.copy(eye);this.camera.quaternion.copy(this.group.getWorldQuaternion(Q()));}
   for(const h of this.hinges)if(h.kind==='door'&&!h.panel.broken){h.target=0;h.latched=false;h.grabbed=null;}
   this.props.stashHeldInCar?.(this);
@@ -93,7 +94,7 @@ export class Car {
   const side=opts.side??-1,z=Number.isFinite(opts.z)?opts.z:-.1;
   const p=this.group.localToWorld(new T.Vector3(side*(this.vehicleSpec.width/2+.60),0,z));
   this.world.project?.(p,.18,0,1.6);
-  if(this.renderer.xr?.isPresenting){this.rig.position.copy(p).setY(this.world.floorHeight?.(p)??0);this.rig.rotation.set(0,this.group.rotation.y,0);}
+  if(this.renderer.xr?.isPresenting){const height=this.liveCamera.getWorldPosition(V()).y-this.rig.getWorldPosition(V()).y;p.y=(this.world.floorHeight?.(p)??0)+Math.max(.5,height);placeXRHead(this.rig,this.liveCamera,p,new T.Euler().setFromQuaternion(this.group.getWorldQuaternion(Q()),'YXZ').y);}
   else{this.rig.position.set(0,0,0);this.rig.rotation.set(0,0,0);this.camera.position.copy(p).add(new T.Vector3(0,1.55,0));if(this.orbit){this.orbit.target.copy(this.group.position).add(new T.Vector3(0,.9,0));this.camera.lookAt(this.orbit.target);this.orbit.enabled=true;}}
   this.rideMatrix=null;this.message='Exited car.';this.updateOccupancy();
  }

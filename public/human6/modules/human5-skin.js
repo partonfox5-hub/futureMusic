@@ -1,5 +1,6 @@
+import {ANATOMY_ANCHOR as A} from './human5-anatomy-anchor.js?v=19.1.0';
 import * as T from 'three';
-import {V,clamp,wrapMethod} from './human5-common.js?v=18.0.0';
+import {V,clamp,wrapMethod} from './human5-common.js?v=19.1.0';
 
 /** Match normals only at coincident, similarly oriented, compatibly skinned vertices. */
 export function weldSkinNormals(actor){
@@ -35,13 +36,13 @@ function skinCompile(shader,old,material,{detail=true}={}){
     float h5BodyTone=1.-smoothstep(1.38,1.48,v2RestPos.y);
     vec3 h5SkinBase=vec3(.53,.325,.237);
     float h5Variation=clamp(dot(sampledDiffuseColor.rgb,vec3(.2126,.7152,.0722))-.36,-.022,.022);
-    vec2 h5Nac=(vec2(abs(v2RestPos.x),v2RestPos.y)-vec2(.0762,1.187))/vec2(.018,.017);
+    vec2 h5Nac=(vec2(abs(v2RestPos.x),v2RestPos.y)-vec2(${A.x},${A.y}))/vec2(${A.rx},${A.ry});
     float h5Radius=length(h5Nac);
     float h5Edge=h5Radius*(1.+.025*sin(atan(h5Nac.y,h5Nac.x)*11.)+.018*sin(v2RestPos.x*791.));
     float h5Areola=(1.-smoothstep(.52,1.08,h5Edge))*smoothstep(.070,.088,v2RestPos.z);
-    vec3 h5Anatomy=mix(h5SkinBase,vec3(.365,.173,.137),h5Areola*.88);
+    vec3 h5Anatomy=mix(h5SkinBase,vec3(.405,.216,.174),h5Areola*.84);
     h5Anatomy+=vec3(h5Variation)*(1.-h5Areola*.45);
-    sampledDiffuseColor.rgb=mix(sampledDiffuseColor.rgb,h5Anatomy,h5BodyTone*.97);
+    sampledDiffuseColor.rgb=mix(sampledDiffuseColor.rgb,h5Anatomy,h5BodyTone);
     diffuseColor *= sampledDiffuseColor;`);
   shader.fragmentShader=shader.fragmentShader.replace('diffuseColor.rgb *= tone;', 'diffuseColor.rgb *= mix(tone,vec3(1.),1.-smoothstep(1.38,1.48,v2RestPos.y));');
   // Millimetre geometry carries silhouette; this submillimetre normal detail
@@ -71,7 +72,7 @@ export function installSkinRefinement(actor,{detail=true,receiveShadow=true}={})
       const m=mesh.material;if(Array.isArray(m))continue;
       const state=materials.get(m);if(state&&m.onBeforeCompile===state.wrapper)continue;
       const old=m.onBeforeCompile,key=m.customProgramCacheKey;
-      const wrapper=s=>skinCompile(s,old,m,{detail});m.onBeforeCompile=wrapper;m.customProgramCacheKey=()=> (key?.call(m)||'')+'/h5-skin-anatomy-18/'+detail;m.needsUpdate=true;
+      const wrapper=s=>skinCompile(s,old,m,{detail});m.onBeforeCompile=wrapper;m.customProgramCacheKey=()=> (key?.call(m)||'')+'/h5-skin-anatomy-19/'+detail;m.needsUpdate=true;
       materials.set(m,{old,key,wrapper});
     }
   }

@@ -1,0 +1,17 @@
+{
+  "report": {
+    "lidMotionM": 0.005603269304013765,
+    "lidDraws": 2,
+    "vertices": 204,
+    "corneaIOR": 1.376,
+    "batchVertices": {
+      "before": 108,
+      "after": 72
+    },
+    "restraints": {
+      "removed": 2,
+      "disposed": 12
+    }
+  },
+  "errors": []
+}

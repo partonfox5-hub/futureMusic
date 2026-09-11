@@ -1,0 +1,17 @@
+{
+  "result": {
+    "importMs": 1253.300000000745,
+    "displacement": 0.004000036220149485,
+    "repeatDrift": 0,
+    "zeroError": 0,
+    "restoreError": 0,
+    "disposeError": 0,
+    "reimportError": 0,
+    "sculptRestoreError": 0,
+    "morphCount": 49,
+    "finite": true,
+    "fieldSaved": 36,
+    "oldHairHidden": true
+  },
+  "errors": []
+}
