@@ -14,7 +14,7 @@ import {installWater} from './mira-v2-water.js?v=17.8.0';
 import {createFloraSystem} from './mira-v2-flora.js?v=17.8.0';
 import {EstimatedRoomLight as RoomLight,createQuestLighting} from './modules/human5-lighting.js?v=17.8.0';
 import {installHuman5Upgrade} from './modules/human5-upgrade.js?v=17.8.0';
-import {installPhotoNPCImport} from './modules/human5-photo-import.js?v=1.0.0';
+import {installPhotoNPCImport,applyPhotoNPC} from './modules/human5-photo-import.js?v=1.0.1';
 import {installPerformance} from './modules/human5-performance.js?v=17.8.0';
 import {installOpenWorld} from './modules/human5-openworld.js?v=17.8.0';
 import {installGameplay} from './modules/human5-gameplay.js?v=17.8.0';
@@ -161,6 +161,7 @@ mira.load(
     dogs.spawnDefault();
     dogs.spawnDefaultCat?.();
     stockPantry();
+    spawnBry(true).catch(err=>console.warn('Bry NPC',err));
     const dogNameEl=document.getElementById('dogName');
     if(dogNameEl)dogNameEl.value=dogs.list?.()[0]?.displayName||'Buddy';
     if (new URLSearchParams(location.search).has("debug")) window.human2 = { mira, scene, renderer, camera, rig, keys, orbit, world, wardrobe, props, dogs, water, flora, gadgets, terrainFeatures, fire, weather, upgrade, voiceInput, performanceController, openWorld, gameplay, ecology, equipment, vehicleSpawns, home, startup };
@@ -223,6 +224,13 @@ function syncHud(){
 }
 function copyConfiguration(){const a=selected();if(!a)return;Object.assign(draft,{bodyType:a.bodyType||'female',faceType:a.faceType,hairStyle:a.hairStyle||0,hairColor:a.hairColor,eyeDetail:a.eyeDetail||'classic',hairDetail:a.hairDetail||'classic',shape:{...a.shape}});saveDraft();dispatchEvent(new Event('mira:draft'));}
 function spawnConfigured(){if(!mira.ready)return;const n=mira.actors.length,p=new THREE.Vector3((n%3)*.85-.85,0,-((n/3)|0)*.9),a=mira.spawn(spawnOptions(p));if(a&&selected()?.attentionMode)a.attentionMode=selected().attentionMode;for(const id of clothingItems())wardrobe.equip(a,GARMENTS.find(g=>g.id===id));syncHud();}
+async function spawnBry(select=true){
+ if(!mira.ready)return null;
+ const data=await fetch(new URL('./npcs/Bry.h5photo.json',import.meta.url)).then(r=>{if(!r.ok)throw new Error('Bry profile missing');return r.json();});
+ const n=mira.actors.length,p=new THREE.Vector3((n%3)*.85-.85,0,-((n/3)|0)*.9);
+ const a=mira.spawn({version:'v2',position:p,name:data.profile?.name||'Bry',faceType:data.profile?.faceType??1,hairStyle:data.profile?.hairStyle??1,hairColor:data.profile?.hairColor??1,eyeDetail:'advanced',hairDetail:'advanced',shape:{...(data.profile?.shape||{})}});
+ applyPhotoNPC(a,data);if(select)mira.select(a);syncHud();return a;
+}
 function captureScene(){return snapshot({mira,world,wardrobe,props,camera,orbit});}
 function refreshPresetSelect(){const el=document.getElementById('presetSelect');if(!el)return;const names=listPresets(),cur=el.value||lastPresetName();el.replaceChildren(...(names.length?names:['Slot 1']).map(n=>new Option(n,n)));if([...el.options].some(o=>o.value===cur))el.value=cur;}
 function persistScene(name){unlockSfx();const n=savePreset(name||document.getElementById('presetName')?.value||lastPresetName(),captureScene());const nameEl=document.getElementById('presetName');if(nameEl)nameEl.value=n;refreshPresetSelect();const sel=document.getElementById('presetSelect');if(sel)sel.value=n;const st=document.getElementById('presetStatus');if(st)st.textContent='Saved '+n+' · '+mira.actors.length+' NPC'+(mira.actors.length===1?'':'s');return n;}
@@ -259,7 +267,7 @@ function bindHud() {
  document.getElementById('downloadPreset').onclick=()=>{const n=document.getElementById('presetName').value||lastPresetName();downloadPreset(n,captureScene());document.getElementById('presetStatus').textContent='Downloaded '+n+'.json';};
  document.getElementById('presetFile').onchange=e=>{const file=e.target.files?.[0];if(!file)return;file.text().then(text=>{try{const data=JSON.parse(text);const n=savePreset(file.name.replace(/\.json$/i,''),data);document.getElementById('presetName').value=n;refreshPresetSelect();document.getElementById('presetSelect').value=n;document.getElementById('presetStatus').textContent=applyPreset(data,{mira,world,wardrobe,props,camera,orbit,syncHud});}catch(err){document.getElementById('presetStatus').textContent=err.message||'Invalid preset file';}});e.target.value='';};
  addEventListener('pointerdown',unlockSfx,{once:true});
- document.getElementById("spawnNpc").onclick=spawnConfigured;document.getElementById("copyNpc").onclick=copyConfiguration;document.getElementById("foveation")?.addEventListener("input",e=>{const v=Number(e.target.value);applyXrFoveation(v);if(XR_ON())setXrStatus({ffr:v});});mira.hands.haptics.gain=Number(document.getElementById('hapticGain')?.value)||2;document.getElementById("hapticGain").oninput=e=>mira.hands.haptics.gain=Number(e.target.value);document.getElementById("quality")?.addEventListener("change",()=>{if(!XR_ON())return;const ffr=sessionFoveation();applyXrFoveation(ffr);setXrStatus({ffr});});
+ document.getElementById("spawnNpc").onclick=spawnConfigured;document.getElementById("spawnBry")?.addEventListener("click",()=>spawnBry(true).catch(err=>{banner(err.message);console.warn(err);}));document.getElementById("copyNpc").onclick=copyConfiguration;document.getElementById("foveation")?.addEventListener("input",e=>{const v=Number(e.target.value);applyXrFoveation(v);if(XR_ON())setXrStatus({ffr:v});});mira.hands.haptics.gain=Number(document.getElementById('hapticGain')?.value)||2;document.getElementById("hapticGain").oninput=e=>mira.hands.haptics.gain=Number(e.target.value);document.getElementById("quality")?.addEventListener("change",()=>{if(!XR_ON())return;const ffr=sessionFoveation();applyXrFoveation(ffr);setXrStatus({ffr});});
  const sceneSelect=document.getElementById('sceneSelect');sceneSelect.replaceChildren(...SCENES.map(x=>new Option(x,x)));sceneSelect.value=world.name;sceneSelect.onchange=()=>{world.setScene(sceneSelect.value);ensureYardPond();};
  document.getElementById('floraDensity')?.addEventListener('input',e=>flora?.setDensity(Number(e.target.value)));
  const wardrobeSelect=document.getElementById('wardrobeSelect');wardrobeSelect.replaceChildren(...GARMENTS.map(x=>new Option(x.name,x.id)));document.getElementById('wearBtn').onclick=()=>wardrobe.equip(selected(),GARMENTS.find(x=>x.id===wardrobeSelect.value));
