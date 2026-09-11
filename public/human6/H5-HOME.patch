@@ -1,0 +1,805 @@
+--- a/H5-LATEST-CHECKPOINT.md
++++ b/H5-LATEST-CHECKPOINT.md
+@@ -0,0 +1,58 @@
++# Human5 17.6 — Checkpoint 10
++
++This integrated checkpoint restores the saved 17.5 project after the workspace restart and adds the house interactions and vehicle crash correction. Character fidelity, soft straight shoulder-length hair, the full final performance review, and the separate photo/video NPC creator remain unfinished. The requested anatomy slider defaults and skin/tissue changes are not part of this checkpoint.
++
++## Vehicle crash correction
++
++A browser reproduction of driving into Willow's exterior wall failed with `Cannot read properties of undefined (reading 'x')` in `WallSystem.stamp`. The car had supplied an object and instance index but no contact point. Car impacts now supply a world-space contact point, and the older wall API has a defensive fallback for callers without one.
++
++Collision samples cover two body heights. Contacts look up their wall cells directly. A car damages at most four nearby wall cells per simulation frame; absorbed energy and remaining wall resistance affect its speed. The existing dent and mechanical damage paths remain active. The regression broke four wall cells without an exception and left a finite vehicle velocity. This is a bounded game approximation of masonry, timber framing and bodywork; it is not a structural finite-element simulation or GTA-quality destruction.
++
++The initial car views are prepared behind a loading card. This includes an actual render because shader compilation alone did not remove the graphics driver's first-use stall. Two default cars are placed at their current scene parking locations before preparation. Loading may take longer. The workstation software-rendering diagnostic previously measured a 5.7-second first rear-view render; the latest prepared run measured about 191 ms, with later calls about 44 ms. These are diagnostic runs with variable workstation load, not a controlled speedup benchmark or Quest FPS result. A smaller entry hitch remains to be addressed during the final performance passes. New user-spawned vehicle types can still incur their own first-use resource work.
++
++## Starting house
++
++Willow cottage, the one-bedroom house on the west side of the cul-de-sac, now has a basement at −2.8 m. Stairs are on the left side of the front living area when viewed in the house's local plan. Furniture and the rug were moved away from the stair opening. The upper floor has an actual opening, and streamed-terrain collision and aiming respect the basement. Seventeen visible steps use a smooth traversal ramp. The basement has a floor, perimeter walls, railing, lighting, an arcade and a large-dog crate.
++
++Basement ceiling lights use the existing local-light pool. They do not add a permanently active point-light shader slot.
++
++## Arcade
++
++The cabinet includes a joystick, three buttons, and a 512×512 canvas display. The included **Orbit Catch** game is playable. Point and trigger/click the joystick to focus, or grip it and move your hand. Desktop arrows move; A/Space performs action A; B restarts the demo; Escape leaves. While a VR controller owns the arcade, its stick and secondary buttons are routed to the game rather than walking, jumping, deleting an NPC or spawning a ball.
++
++An adapter can be registered through `world.h5Home.arcade.game.register(id, adapter)`, then loaded with `.load(id)`. Required methods:
++
++```js
++const adapter = {
++  title: 'Your game',
++  reset() {},
++  update(dt, input) { /* input.x, input.y, input.buttons (Set) */ },
++  render(ctx, width, height) {},
++  onButton(id, pressed) {}, // optional; ids 0, 1, 2
++  onAxis(x, y) {},         // optional
++  suspend() {},           // optional when switching away
++  dispose() {}            // optional on cabinet shutdown
++};
++```
++
++The display updates at at most 30 Hz within four metres and sleeps farther away. DOM/CSS games require a canvas rendering adapter; arbitrary HTML pages are not automatically converted into a WebXR texture. No remote game code is evaluated.
++
++## Dog crate
++
++The crate is approximately 1.13×1.60×1.18 m and weighs 22 kg in the furniture system. It has a hollow interior, separate wall/roof collision pieces, a hinged front door, and an outside sliding bolt. Grip the bolt and slide it or point/click it, then pull the handle. The bolt engages only near the closed position; it cannot lock an open door. The hinge is damped and can be left open. Whole-crate furniture grabbing remains available.
++
++Thin cage bars use consolidated geometry; body collision approximates each cage face with a thin slab rather than testing every individual bar.
++
++## Bathrooms and wetness
++
++All five house bathrooms include a supported shower pipe/head, mixer controls, tray, drain, glass side panels and a wall mirror above the sink. Point and trigger/click the flow handle or temperature dial; these controls also accept nearby hand grips. The temperature click cycles between cool, warm/hot and maximum hot. Hot running water creates bounded steam and accumulating glass condensation. Condensation fades after the shower stops. Interactive wiping is not implemented in this checkpoint.
++
++Skin, hair and clothing acquire bounded wetness from showers, rain outside shelter, and water immersion. Skin becomes slightly darker and glossier; hair and fabric darken more and dry more slowly. Legacy hair receives added damping when wet and uses current world gravity. Wetness is a surface/guide approximation, not fluid simulation or a complete wet-hair groom.
++
++Only the nearest eligible mirror renders, within six metres, at 24/18/12 Hz on Quest quality tiers. It uses separate eye targets in XR, one reflection level, and restores renderer state after offscreen work. Targets are released after four seconds unused. Steam has a 24-instance cap; each nearby running shower has 32 simple water segments. Mirrors and shower glass use inexpensive material approximations rather than ray tracing or volumetric transport.
++
++## Verification and remaining work
++
++The browser checks covered stair ascent/descent, upper/basement floor separation, dropped-object and aiming collision, closed and open crate collision, latch engagement, arcade input/render/sleep, shower wetness/drying, hot condensation/steam limits, reflection pose/state, and scene rebuild cleanup. The in-game screenshots in `test-results/home` are actual renders. Regression evidence also includes the original car crash stack and the corrected run.
++
++No Quest headset was available. Microphone permissions, stereo comfort, frame delivery, thermal behavior, long sessions and GPU memory need on-device verification. The final whole-application review and the additional performance pass immediately before final export are still pending. See `PROJECT-REMAINING.md` for the continuing scope.
+--- a/engine.js
++++ b/engine.js
+@@ -1,44 +1,46 @@
+-import {Builder,FURNITURE,SURFACES} from './mira-v2-builder.js?v=17.5.0';
+-import {SmoothLocomotion} from './mira-v2-locomotion.js?v=17.5.0';
+-import {Car} from './mira-v2-car.js?v=17.5.0';
+-import {Restraints} from './mira-v2-restraints.js?v=17.5.0';
+-import { createDogSystem } from './mira-v2-dog.js?v=17.5.0';
+-import { installGadgets } from './mira-v2-gadgets.js?v=17.5.0';
+-import {Injuries} from './mira-v2-injuries.js?v=17.5.0';
+-import {Props,WEAPONS,GUNS} from './mira-v2-props.js?v=17.5.0';
+-import {installFire} from './mira-v2-fire.js?v=17.5.0';
+-import {installWeather} from './mira-v2-weather.js?v=17.5.0';
+-import {installTerrainFeatures} from './mira-v2-terrain-features.js?v=17.5.0';
+-import {syncFurniture} from './mira-v2-furniture.js?v=17.5.0';
+-import {installWater} from './mira-v2-water.js?v=17.5.0';
+-import {createFloraSystem} from './mira-v2-flora.js?v=17.5.0';
+-import {EstimatedRoomLight as RoomLight,createQuestLighting} from './modules/human5-lighting.js?v=17.5.0';
+-import {installHuman5Upgrade} from './modules/human5-upgrade.js?v=17.5.0';
+-import {installPerformance} from './modules/human5-performance.js?v=17.5.0';
+-import {installOpenWorld} from './modules/human5-openworld.js?v=17.5.0';
+-import {installGameplay} from './modules/human5-gameplay.js?v=17.5.0';
+-import {installVehicleSpawns} from './modules/human5-vehicle-spawns.js?v=17.5.0';
+-import {installEquipment} from './modules/human5-equipment.js?v=17.5.0';
+-import {installEcology} from './modules/human5-ecology.js?v=17.5.0';
+-import {createVoiceBridge} from './modules/human5-voice.js?v=17.5.0';
+-import {localTranscribe,warmLocalSpeech,stopLocalSpeech} from './mira-local-speech.js?v=17.5.0';
++import {Builder,FURNITURE,SURFACES} from './mira-v2-builder.js?v=17.6.0';
++import {SmoothLocomotion} from './mira-v2-locomotion.js?v=17.6.0';
++import {Car} from './mira-v2-car.js?v=17.6.0';
++import {Restraints} from './mira-v2-restraints.js?v=17.6.0';
++import { createDogSystem } from './mira-v2-dog.js?v=17.6.0';
++import { installGadgets } from './mira-v2-gadgets.js?v=17.6.0';
++import {Injuries} from './mira-v2-injuries.js?v=17.6.0';
++import {Props,WEAPONS,GUNS} from './mira-v2-props.js?v=17.6.0';
++import {installFire} from './mira-v2-fire.js?v=17.6.0';
++import {installWeather} from './mira-v2-weather.js?v=17.6.0';
++import {installTerrainFeatures} from './mira-v2-terrain-features.js?v=17.6.0';
++import {syncFurniture} from './mira-v2-furniture.js?v=17.6.0';
++import {installWater} from './mira-v2-water.js?v=17.6.0';
++import {createFloraSystem} from './mira-v2-flora.js?v=17.6.0';
++import {EstimatedRoomLight as RoomLight,createQuestLighting} from './modules/human5-lighting.js?v=17.6.0';
++import {installHuman5Upgrade} from './modules/human5-upgrade.js?v=17.6.0';
++import {installPerformance} from './modules/human5-performance.js?v=17.6.0';
++import {installOpenWorld} from './modules/human5-openworld.js?v=17.6.0';
++import {installGameplay} from './modules/human5-gameplay.js?v=17.6.0';
++import {installVehicleSpawns} from './modules/human5-vehicle-spawns.js?v=17.6.0';
++import {createStartupWarmup} from './modules/human5-startup-warmup.js?v=17.6.0';
++import {installHome} from './modules/human5-home.js?v=17.6.0';
++import {installEquipment} from './modules/human5-equipment.js?v=17.6.0';
++import {installEcology} from './modules/human5-ecology.js?v=17.6.0';
++import {createVoiceBridge} from './modules/human5-voice.js?v=17.6.0';
++import {localTranscribe,warmLocalSpeech,stopLocalSpeech} from './mira-local-speech.js?v=17.6.0';
+ const voiceInput=createVoiceBridge({localTranscribe,warmLocalSpeech,stopLocalSpeech});
+ const startMic=voiceInput.startMic;
+ let xrMicAttempted=false;
+-import {draft,saveDraft,spawnOptions,OUTFITS,clothingItems} from './mira-v2-catalog.js?v=17.5.0';
+-import {MiraWorld,SCENES} from './mira-v2-world.js?v=17.5.0';
+-import {Wardrobe,GARMENTS} from './mira-v2-wardrobe.js?v=17.5.0';
++import {draft,saveDraft,spawnOptions,OUTFITS,clothingItems} from './mira-v2-catalog.js?v=17.6.0';
++import {MiraWorld,SCENES} from './mira-v2-world.js?v=17.6.0';
++import {Wardrobe,GARMENTS} from './mira-v2-wardrobe.js?v=17.6.0';
+ import * as THREE from "three";
+ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+-import { createVRMenu } from "./mira-vr-menu.js?v=17.5.0";
+-import { snapshot, savePreset, loadPreset, applyPreset, listPresets, lastPresetName, downloadPreset } from "./mira-v2-preset.js?v=17.5.0";
+-import { unlockSfx } from "./mira-v2-sfx.js?v=17.5.0";
+-import { EMOTION_NAMES, IDLE_NAMES, WALK_NAMES, ATTENTION_MODES } from "./mira-v2-features.js?v=17.5.0";
++import { createVRMenu } from "./mira-vr-menu.js?v=17.6.0";
++import { snapshot, savePreset, loadPreset, applyPreset, listPresets, lastPresetName, downloadPreset } from "./mira-v2-preset.js?v=17.6.0";
++import { unlockSfx } from "./mira-v2-sfx.js?v=17.6.0";
++import { EMOTION_NAMES, IDLE_NAMES, WALK_NAMES, ATTENTION_MODES } from "./mira-v2-features.js?v=17.6.0";
+ import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
+-import { createMiraSystem, SLIDERS, FACE_TYPES, HAIR_COLORS } from "./mira-v2.js?v=17.5.0";
+-import { DEFAULT_PERSONA, miraChat, miraSpeak, unlockVoice } from "./mira-voice-v2.js?v=17.5.0";
+-
+-import {V2_EXTRA_SLIDERS,FACE_PRESETS,HAIR_STYLES,ACTIVITY_MODES,ATTENTION_LABELS,shapeSliders} from './mira-v2-controls.js?v=17.5.0';
++import { createMiraSystem, SLIDERS, FACE_TYPES, HAIR_COLORS } from "./mira-v2.js?v=17.6.0";
++import { DEFAULT_PERSONA, miraChat, miraSpeak, unlockVoice } from "./mira-voice-v2.js?v=17.6.0";
++
++import {V2_EXTRA_SLIDERS,FACE_PRESETS,HAIR_STYLES,ACTIVITY_MODES,ATTENTION_LABELS,shapeSliders} from './mira-v2-controls.js?v=17.6.0';
+ 
+ const QUEST = /OculusBrowser|Quest/i.test(navigator.userAgent);
+ const loadEl = document.getElementById("load");
+@@ -143,13 +145,15 @@
+ const ecology=installEcology({world,mira,props,wardrobe,dogs,camera,rig,renderer,scene,water,upgrade,quest:QUEST});
+ const vehicleSpawns=installVehicleSpawns({world,props,camera,renderer,quest:QUEST});
+ const equipment=installEquipment({world,mira,props,camera,rig,renderer,scene,quest:QUEST});
++const home=installHome({world,scene,camera,renderer,rig,props,mira,wardrobe,weather,upgrade,keys,quest:QUEST});
+ const performanceController=installPerformance({renderer,scene,camera,world,mira,props,upgrade,quest:QUEST});
++const startup=createStartupWarmup({renderer,scene,camera,props,prepare(){upgrade.beforeFrame(.2);for(const c of props.cars())if(c.revision!==world.revision){c.revision=world.revision;c.reset();}home.wetness.tick(0,home.showers);performanceController.beforeFrame(.2);},status(text){if(loadEl)loadEl.textContent=text;}});
+ let voiceSessionStart=()=>{},voiceSessionEnd=()=>{};
+ banner("LOADING HUMAN 5…");
+ mira.load(
+   (x) => { if (x.total && loadEl) loadEl.textContent = "LOADING  " + Math.round((x.loaded / x.total) * 100) + "%"; },
+   () => {
+-    if (loadEl) loadEl.remove();
++    if (loadEl) loadEl.textContent="Preparing scene materials";
+     banner("Drag to orbit · wheel to zoom · Grab body or Shift-drag · VR: Y menu, right B ball");
+     syncHud();document.dispatchEvent(new Event("mira:ready"));
+     dogs.spawnDefault();
+@@ -157,7 +161,8 @@
+     stockPantry();
+     const dogNameEl=document.getElementById('dogName');
+     if(dogNameEl)dogNameEl.value=dogs.list?.()[0]?.displayName||'Buddy';
+-    if (new URLSearchParams(location.search).has("debug")) window.human2 = { mira, scene, renderer, camera, rig, keys, orbit, world, wardrobe, props, dogs, water, flora, gadgets, terrainFeatures, fire, weather, upgrade, voiceInput, performanceController, openWorld, gameplay, ecology, equipment, vehicleSpawns };
++    if (new URLSearchParams(location.search).has("debug")) window.human2 = { mira, scene, renderer, camera, rig, keys, orbit, world, wardrobe, props, dogs, water, flora, gadgets, terrainFeatures, fire, weather, upgrade, voiceInput, performanceController, openWorld, gameplay, ecology, equipment, vehicleSpawns, home, startup };
++    startup.run().then(()=>{clock.getDelta();loadEl?.remove();banner(startup.error?"Scene loaded; preparation error: "+startup.error:"Ready · VR: Y menu · Grab or point to interact");});
+   },
+   (e) => { banner("LOAD FAILED — " + (e && e.message ? e.message : "glb")); console.error(e); }
+ );
+@@ -223,7 +228,7 @@
+ const vrMenu=createVRMenu({spawnConfigured,copyConfiguration,scene,renderer,camera,system:mira,spawn:spawnVersion,onSync:syncHud,world,wardrobe,props,saveScene:()=>persistScene(lastPresetName()),loadScene:()=>restoreScene(lastPresetName())});props.menu=vrMenu;
+ 
+ function selected() { return mira.selected; }
+-function deleteSelectedNPC(){const a=selected();if(!a||props.driving())return false;releaseDesktop();mira.remove(a);syncHud();props.status="Removed "+(a.displayName||"NPC");return true;}
++function deleteSelectedNPC(){const a=selected();if(!a||props.driving()||home.arcade?.focus)return false;releaseDesktop();mira.remove(a);syncHud();props.status="Removed "+(a.displayName||"NPC");return true;}
+ 
+ function bindHud() {
+  document.getElementById('enterCar').onclick=()=>{const c=activeCar().driving?activeCar():nearestCar();c.driving?c.exit():c.enter();};document.getElementById('exitCar').onclick=()=>activeCar().exit();document.getElementById('jumpBtn')?.addEventListener('click',()=>{keys.Space=true;locomotion.jump?.();setTimeout(()=>keys.Space=false,120);});document.getElementById('carGear')?.addEventListener('click',()=>activeCar().cycleGear());document.getElementById('repairCar').onclick=()=>{for(const c of props.cars())c.reset();};document.getElementById('mirrorOn').onchange=e=>{for(const c of props.cars())c.mirrorEnabled=e.target.checked;};
+@@ -483,6 +488,7 @@
+ 
+ let deskJumpVel=0,deskJumping=false,deskPace=0,deskHeading=new THREE.Vector3(0,0,-1);
+ function desktopMove(dt) {
++  if(world.h5Home?.arcade?.focus){deskPace=0;return;}
+   if(props.driving()||XR_ON()||!controls||!controls.isLocked){deskPace=0;return;}
+   const obj=controls.getObject?.()||camera;
+   if(water?.playerSwimIntent({rig:obj,camera,dt,keys,blocked:vrMenu.isOpen||props.vehicle?.driving}).active){deskJumping=false;deskJumpVel=0;deskPace=0;return;}
+@@ -521,6 +527,7 @@
+ const clock = new THREE.Clock();
+ let fpsFrames = 0, fpsLast = performance.now(),floraAccum=0;
+ function tick(time,frame) {
++ if(startup.active){clock.getDelta();startup.render();return;}
+  performanceController.budget.begin(time);
+  if (XR_ON() && frame) {
+    const pose=frame.getViewerPose(renderer.xr.getReferenceSpace());
+@@ -552,7 +559,7 @@
+     performanceController.budget.mark("actors");
+     water?.tick(dt);
+     props.tick(dt);
+-    equipment.tick(dt);vehicleSpawns.tick(dt);
++    equipment.tick(dt);vehicleSpawns.tick(dt);home.tick(dt);
+     performanceController.budget.mark("waterAndProps");
+     floraAccum+=dt;if(!QUEST||(fpsFrames&1)===0){flora?.tick(Math.min(.10,floraAccum));floraAccum=0;}
+     dogs.tick(dt);
+--- a/mira-v2-car.js
++++ b/mira-v2-car.js
+@@ -1,8 +1,8 @@
+ import * as T from 'three';
+-import {withOffscreenView} from './modules/human5-view-surfaces.js?v=17.5.0';
+-import {VEHICLE_SPECS,buildVehicleModel} from './modules/human5-vehicle-models.js?v=17.5.0';
++import {withOffscreenView} from './modules/human5-view-surfaces.js?v=17.6.0';
++import {VEHICLE_SPECS,buildVehicleModel} from './modules/human5-vehicle-models.js?v=17.6.0';
+ import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
+-import {CarAudio,unlockSfx} from './mira-v2-sfx.js?v=17.5.0';
++import {CarAudio,unlockSfx} from './mira-v2-sfx.js?v=17.6.0';
+ const V=()=>new T.Vector3(),Q=()=>new T.Quaternion(),clamp=T.MathUtils.clamp,Y=new T.Vector3(0,1,0);
+ const QUEST=/Quest|OculusBrowser/i.test(globalThis.navigator?.userAgent||'');
+ const GEARS=['P','R','N','D'];
+@@ -237,8 +237,19 @@
+   for(const p of this.parts){if(p.broken)continue;const d=p.mesh.getWorldPosition(V()).distanceToSquared(point);if(d<best){best=d;nearest=p;}}
+   if(nearest)this.damage({object:nearest.mesh,point},dmg,'blunt',n.clone(),impulse);
+  }
++ crushWall(part,point,normal,energy){
++  this._wallHits??=new Set();let absorbed=0;const system=this.world.fractures;
++  const chunks=part.mesh.userData.chunks||[part],candidates=[part,...chunks.filter(p=>p!==part&&!p.broken&&p.p.distanceToSquared(point)<.9*.9).sort((a,b)=>a.p.distanceToSquared(point)-b.p.distanceToSquared(point))];
++  for(const p of candidates){if(this._wallHits.size>=4)break;if(p.broken||this._wallHits.has(p))continue;this._wallHits.add(p);
++    const cost=p.kind==='metal'?240:p.kind==='stone'?220:p.kind==='wood'?110:80,weight=p===part?1:Math.max(.10,1-p.p.distanceTo(point)/.9),damage=energy*weight/cost,health=Math.max(0,p.health);
++    // The wall API needs a world-space contact point, including for car impacts.
++    const at=point.clone().clamp(p.p.clone().addScaledVector(p.size,-.5),p.p.clone().addScaledVector(p.size,.5));
++    system.impact({object:p.mesh,instanceId:p.index,point:at},damage,normal.clone().negate());absorbed+=Math.min(health,damage)*cost;
++  }
++  return {broken:part.broken,absorbed};
++ }
+  collide(dt){
+-  const points=[];for(const side of [-1,1])for(const t of [-1,0,1])points.push(this.group.localToWorld(new T.Vector3(side*Math.max(.10,this.vehicleSpec.width/2-.12),this.vehicleSpec.collisionY,t*(this.vehicleSpec.length/2-.12))));
++  const points=[];for(const y of [this.vehicleSpec.collisionY,Math.max(this.vehicleSpec.collisionY+.20,this.vehicleSpec.height*.80)])for(const side of [-1,1])for(const t of [-1,0,1])points.push(this.group.localToWorld(new T.Vector3(side*Math.max(.10,this.vehicleSpec.width/2-.12),y,t*(this.vehicleSpec.length/2-.12))));
+   for(const point of points){for(const o of this.world.nearby(point,.16)||[]){
+     if(o===this.obstacle||o.y>point.y+.16||o.y+o.h<point.y-.16)continue;
+     const closest=new T.Vector3(clamp(point.x,o.x-o.w/2,o.x+o.w/2),clamp(point.y,o.y,o.y+o.h),clamp(point.z,o.z-o.d/2,o.z+o.d/2)),delta=point.clone().sub(closest),distance=delta.length();if(distance>=.16)continue;
+@@ -263,11 +274,11 @@
+         this.group.position.addScaledVector(n,Math.min(tree.fallen?0.08:0.22,penetration+.001));
+         continue;
+       }
+-      const fracture=this.world.fractures?.parts?.find(p=>!p.broken&&(p.obstacle===o||p.mesh?.userData.seat?.obstacle===o));
+-      if(fracture)this.world.fractures.impact({object:fracture.mesh,instanceId:fracture.index},energy,n.clone().negate());
++      const fracture=o.h5Fracture||this.world.fractures?.parts?.find(p=>!p.broken&&(p.obstacle===o||p.mesh?.userData.seat?.obstacle===o));
++      const crush=fracture?this.crushWall(fracture,closest,n,energy):null;
+       this.dentAt(point,n,energy,impulse);
+-      this.velocity.addScaledVector(n,-1.08*Math.min(0,this.velocity.dot(n)));this.yawRate=clamp(this.yawRate+(r.z*impulse.x-r.x*impulse.z)/2400*.12,-1.5,1.5);
+-      if(fracture?.broken){this.velocity.multiplyScalar(.93);continue;}
++      if(crush?.broken){const kinetic=.5*this.mass*this.velocity.lengthSq();this.velocity.multiplyScalar(Math.sqrt(Math.max(.08,1-(crush.absorbed+kinetic*.08)/Math.max(1,kinetic))));continue;}
++      this.velocity.addScaledVector(n,-1.04*Math.min(0,this.velocity.dot(n)));this.yawRate=clamp(this.yawRate+(r.z*impulse.x-r.x*impulse.z)/2400*.12,-1.5,1.5);
+     }
+     this.group.position.addScaledVector(n,Math.min(.30,penetration+.001));
+   }}
+@@ -280,7 +291,7 @@
+   }
+   const extent=Math.max(40,(this.world.extent||144)-2);if(Math.abs(this.group.position.x)>extent||Math.abs(this.group.position.z)>extent)this.velocity.multiplyScalar(.55);this.group.position.x=clamp(this.group.position.x,-extent,extent);this.group.position.z=clamp(this.group.position.z,-extent,extent);
+  }
+- tick(dt){dt=clamp(dt,0,.1);this.time+=dt;if(this.revision!==this.world.revision){this.revision=this.world.revision;this.reset();}this.group.visible=['Living room','Cul-de-sac'].includes(this.world.name)&&this.world.root.visible;for(const d of this.debris)d.mesh.visible=this.group.visible;if(!this.group.visible){if(this.driving)this.exit();this.audio?.tick(this,{throttle:0},dt);return;}this.updateOccupancy();this.updateGrips(dt);if(this.driving)this.pollHorn();this._dents=0;this._rammed=new Set();const input=this.input(),moving=this.driving||this.h5Traffic?.active||this.velocity.length()>.08,steps=moving?Math.max(1,Math.min(8,Math.ceil(this.velocity.length()*dt/.18))):1;for(let i=0;i<steps;i++){this.step(dt/steps,input);this.group.updateMatrixWorld(true);if(moving)this.collide(dt/steps);}this.syncCollider();this.syncSeat();this.audio?.tick(this,input,dt);for(const d of this.debris){d.velocity.y-=9.81*dt;const before=d.mesh.position.clone();d.mesh.position.addScaledVector(d.velocity,dt);if(this.world.projectSphere(d.mesh.position,.10)){const n=d.mesh.position.clone().sub(before).normalize(),vn=d.velocity.dot(n);if(vn<0)d.velocity.addScaledVector(n,-1.15*vn);}if(d.mesh.position.y<.12){d.mesh.position.y=.12;d.velocity.y=Math.abs(d.velocity.y)*.15;d.velocity.x*=.9;d.velocity.z*=.9;d.spin.multiplyScalar(.94);}d.mesh.rotateX(d.spin.x*dt);d.mesh.rotateZ(d.spin.z*dt);}this.mirrorClock+=dt;this.updateStatus();}
++ tick(dt){dt=clamp(dt,0,.1);this.time+=dt;if(this.revision!==this.world.revision){this.revision=this.world.revision;this.reset();}this.group.visible=['Living room','Cul-de-sac'].includes(this.world.name)&&this.world.root.visible;for(const d of this.debris)d.mesh.visible=this.group.visible;if(!this.group.visible){if(this.driving)this.exit();this.audio?.tick(this,{throttle:0},dt);return;}this.updateOccupancy();this.updateGrips(dt);if(this.driving)this.pollHorn();this._dents=0;this._rammed=new Set();this._wallHits=new Set();const input=this.input(),moving=this.driving||this.h5Traffic?.active||this.velocity.length()>.08,steps=moving?Math.max(1,Math.min(8,Math.ceil(this.velocity.length()*dt/.18))):1;for(let i=0;i<steps;i++){this.step(dt/steps,input);this.group.updateMatrixWorld(true);if(moving)this.collide(dt/steps);}this.syncCollider();this.syncSeat();this.audio?.tick(this,input,dt);for(const d of this.debris){d.velocity.y-=9.81*dt;const before=d.mesh.position.clone();d.mesh.position.addScaledVector(d.velocity,dt);if(this.world.projectSphere(d.mesh.position,.10)){const n=d.mesh.position.clone().sub(before).normalize(),vn=d.velocity.dot(n);if(vn<0)d.velocity.addScaledVector(n,-1.15*vn);}if(d.mesh.position.y<.12){d.mesh.position.y=.12;d.velocity.y=Math.abs(d.velocity.y)*.15;d.velocity.x*=.9;d.velocity.z*=.9;d.spin.multiplyScalar(.94);}d.mesh.rotateX(d.spin.x*dt);d.mesh.rotateZ(d.spin.z*dt);}this.mirrorClock+=dt;this.updateStatus();}
+  pollHorn(){
+   if(!this.driving||!this.hornPad)return;
+   this.group.updateMatrixWorld(true);
+@@ -290,8 +301,10 @@
+  get telemetry(){return `${this.gear} · cabin ${this.inCabin?'IN':'OUT'} · ${Math.round(this.velocity.length()*3.6)} km/h · ${this.surfaceName} µ ${this.mu.toFixed(2)}`;}
+  updateStatus(){this.status=`${this.gear} · cabin ${this.inCabin?'IN':'OUT'} · ${Math.round(this.velocity.length()*3.6)} km/h · ${this.surfaceName} µ ${this.mu.toFixed(2)} · ${this.message}`;}
+  renderMirror(){
+-  const hz=QUEST?[30,24,18][this.world.h5Performance?.budget.tier||0]:45;if(!this.driving||!this.mirrorEnabled||this.mirrorClock<1/hz)return;this.mirrorClock=0;
++  const hz=QUEST?[30,24,18][this.world.h5Performance?.budget.tier||0]:45;if(!this.driving||!this.mirrorEnabled||this.mirrorClock<1/hz)return;this.mirrorClock=0;this.renderMirrorView();
++ }
++ renderMirrorView(warm=false){
+   this.rearCamera.position.copy(this.mirror.getWorldPosition(V()));const rear=new T.Vector3(0,0,1).applyQuaternion(this.group.getWorldQuaternion(Q()));this.rearCamera.position.addScaledVector(rear,.08);this.rearCamera.up.set(0,1,0).applyQuaternion(this.group.getWorldQuaternion(Q()));this.rearCamera.lookAt(this.rearCamera.position.clone().addScaledVector(rear,30));
+-  withOffscreenView(this.renderer,[this.mirror,this.props.menu?.panel,this.props.scopeOverlay,...(this.props.gadgets?.portals||[]).map(p=>p?.group)],()=>{this.renderer.setRenderTarget(this.target);this.renderer.setViewport(0,0,384,192);this.renderer.render(this.scene,this.rearCamera);});
++  withOffscreenView(this.renderer,[this.mirror,this.props.menu?.panel,this.props.scopeOverlay,...(this.props.gadgets?.portals||[]).map(p=>p?.group)],()=>{this.renderer.setRenderTarget(this.target);this.renderer.setViewport(0,0,warm?16:384,warm?8:192);this.renderer.render(this.scene,this.rearCamera);});
+  }
+ }
+--- a/mira-v2-destruction.js
++++ b/mira-v2-destruction.js
+@@ -1,6 +1,6 @@
+ import * as T from 'three';
+-import {playSfx,sfxForBreak} from './mira-v2-sfx.js?v=17.5.0';
+-import {WallSystem,wallMaterial} from './mira-v2-walls.js?v=17.5.0';
++import {playSfx,sfxForBreak} from './mira-v2-sfx.js?v=17.6.0';
++import {WallSystem,wallMaterial} from './mira-v2-walls.js?v=17.6.0';
+ const V=()=>new T.Vector3(),Q=()=>new T.Quaternion();
+ const MATERIALS={plaster:{health:48,density:650,color:0xc9c1b1},wood:{health:70,density:600,color:0x806047},glass:{health:11,density:2500,color:0x9fc1c7},stone:{health:210,density:2400,color:0x85847c},metal:{health:190,density:7800,color:0x929b9d}};
+ export class Destruction {
+@@ -10,14 +10,14 @@
+  if(options.cells){cells.length=0;for(const c of options.cells)cells.push({p:c.center,s:c.size});}
+  const mat=wallMaterial(kind,options.map),mesh=new T.InstancedMesh(new T.BoxGeometry(1,1,1),mat,Math.max(1,cells.length));mesh.name=kind+(axis==='y'?' slab':' wall');mesh.castShadow=mesh.receiveShadow=true;mesh.userData.chunks=[];this.world.root.add(mesh);this.world.pickables.push(mesh);
+  const maxH=MATERIALS[kind]?.health??48;
+- cells.forEach(({p,s},i)=>{mesh.setMatrixAt(i,new T.Matrix4().compose(p,Q(),s));let o=null;if(!options.skipObstacle){o=this.world.obstacle(p.x,p.z,s.x,s.z,p.y-s.y/2,s.y);if(options.walkable)o.walkable=true;}const part={mesh,index:i,p,size:s,kind,health:maxH,maxHealth:maxH,obstacle:o,broken:false};mesh.userData.chunks.push(part);this.parts.push(part);});
++ cells.forEach(({p,s},i)=>{mesh.setMatrixAt(i,new T.Matrix4().compose(p,Q(),s));let o=null;if(!options.skipObstacle){o=this.world.obstacle(p.x,p.z,s.x,s.z,p.y-s.y/2,s.y);if(options.walkable)o.walkable=true;}const part={mesh,index:i,p,size:s,kind,health:maxH,maxHealth:maxH,obstacle:o,broken:false};if(o)o.h5Fracture=part;mesh.userData.chunks.push(part);this.parts.push(part);});
+  this.walls?.prepMesh(mesh);
+  const half=size.clone().multiplyScalar(.5);
+  this.walls?.dress(mesh,cells,kind,{min:center.clone().sub(half),max:center.clone().add(half)});
+  return mesh;
+  }
+- register(mesh,kind='wood',obstacle=null){mesh.updateWorldMatrix(true,false);const box=new T.Box3().setFromObject(mesh),part={mesh,p:box.getCenter(V()),size:box.getSize(V()),kind,health:MATERIALS[kind].health,obstacle,broken:false};mesh.userData.piece=part;this.parts.push(part);if(!this.world.pickables.includes(mesh))this.world.pickables.push(mesh);return part;}
+- impact(hit,energy,dir,kind='blunt',sharpness=0){const part=hit.object.userData.chunks?.[hit.instanceId]||hit.object.userData.piece||hit.object.userData.wallPart;if(!part||part.broken)return false;if(part.kind==='glass'&&kind==='blunt'&&energy<8)energy=11;const multiplier=kind==='cut'?(part.kind==='wood'?1+sharpness:part.kind==='plaster'?.85:.28):kind==='laser'?1.4:1;part.health-=Math.max(0,energy)*multiplier;part.maxHealth??=MATERIALS[part.kind]?.health??48;if(part.index!=null){this.walls?.stamp(hit,part,energy,dir);if(!part.broken&&part.kind==='plaster'&&part.health<part.maxHealth*.35)this.walls?.openHole(part,hit);}if(part.health<=0)this.break(part,dir,energy);return part.broken;}
++ register(mesh,kind='wood',obstacle=null){mesh.updateWorldMatrix(true,false);const box=new T.Box3().setFromObject(mesh),part={mesh,p:box.getCenter(V()),size:box.getSize(V()),kind,health:MATERIALS[kind].health,obstacle,broken:false};mesh.userData.piece=part;if(obstacle)obstacle.h5Fracture=part;this.parts.push(part);if(!this.world.pickables.includes(mesh))this.world.pickables.push(mesh);return part;}
++ impact(hit,energy,dir,kind='blunt',sharpness=0){const part=hit.object.userData.chunks?.[hit.instanceId]||hit.object.userData.piece||hit.object.userData.wallPart;if(!part||part.broken)return false;if(part.kind==='glass'&&kind==='blunt'&&energy<8)energy=11;const multiplier=kind==='cut'?(part.kind==='wood'?1+sharpness:part.kind==='plaster'?.85:.28):kind==='laser'?1.4:1;part.health-=Math.max(0,energy)*multiplier;part.maxHealth??=MATERIALS[part.kind]?.health??48;if(part.index!=null){this.walls?.stamp(hit,part,energy,dir);if(!part.broken&&part.health>0&&part.kind==='plaster'&&part.health<part.maxHealth*.35)this.walls?.openHole(part,hit);}if(part.health<=0)this.break(part,dir,energy);return part.broken;}
+  break(part,dir,energy){if(part.broken)return;part.broken=true;playSfx(sfxForBreak(part.kind));if(part.index!==undefined&&part.mesh?.isInstancedMesh){this.matrix.compose(new T.Vector3(0,-2000,0),Q(),new T.Vector3(0,0,0));part.mesh.setMatrixAt(part.index,this.matrix);part.mesh.instanceMatrix.needsUpdate=true;}else if(part.mesh){part.mesh.visible=false;part.mesh.traverse(m=>{if(m.isMesh)m.visible=false;});}
+   if(part.obstacle)this.world.removeObstacle(part.obstacle);const seat=part.mesh.userData.seat;if(seat){if(seat.occupant){const a=seat.occupant;a.seat=null;a.group.position.y=a.baseY||0;a.knockDown?.(dir);seat.occupant=null;}this.world.removeObstacle(seat.obstacle);this.world.seats=this.world.seats.filter(s=>s!==seat);seat.group.traverse(m=>{delete m.userData.seat;});}
+   this.walls?.shatter(part,dir,energy);
+--- a/mira-v2-hair.js
++++ b/mira-v2-hair.js
+@@ -153,7 +153,7 @@
+  reset(){this.ready=false;this.acc=0;this.previousCaps=[];this.uniform.forEach(v=>v.set(0,0,0));}
+  tick(dt){
+   if(!this.mesh||!dt)return;if(this.mode==='classic'){this.mesh.visible=this.actor.hairStyle!==9;return;}if(this.actor.hairStyle!==this.style)this.setStyle(this.actor.hairStyle);if(this.style===9)return;
+-  const head=this.actor.bones.Head,h=this.actor.shape.height,headPos=head.getWorldPosition(V()),flex=Math.min(.52,(this.actor.shape.hairMotion??.48))*(this.compact?.55:1)*.82;
++  const wet=this.actor.h5Wetness?.hair||0;const head=this.actor.bones.Head,h=this.actor.shape.height,headPos=head.getWorldPosition(V()),flex=Math.min(.52,(this.actor.shape.hairMotion??.48))*(this.compact?.55:1)*.82;
+   for(const chain of this.chains)for(const n of chain){n.target.copy(n.rest).applyMatrix4(head.matrixWorld);if(!this.ready||n.p.distanceTo(n.target)>.55*h){n.p.copy(n.target);n.prev.copy(n.target);}}
+   const caps=[];
+   for(const spec of this.hits){
+@@ -179,8 +179,8 @@
+    for(const chain of this.chains){
+     chain[0].p.copy(chain[0].target);chain[0].prev.copy(chain[0].p);
+     for(let j=1;j<LEVELS;j++){
+-     const n=chain[j];vel.subVectors(n.p,n.prev).multiplyScalar(Math.exp(-step*(5.2+4.5*(1-flex))));if(vel.length()>.022*h)vel.setLength(.022*h);
+-     n.prev.copy(n.p);n.p.add(vel);n.p.y-=9.81*step*step*.55;
++     const n=chain[j];vel.subVectors(n.p,n.prev).multiplyScalar(Math.exp(-step*(5.2+4.5*(1-flex)+wet*5)));if(vel.length()>.022*h)vel.setLength(.022*h);
++     n.prev.copy(n.p);n.p.add(vel);n.p.y-=(this.actor.world?.gravity??9.81)*step*step*(.55+wet*.12);
+      n.p.lerp(n.target,1-Math.exp(-step*((j===1?8.4:j<4?3.1:1.7)*(1.2-flex*.5))));n.lambda=0;
+     }
+     for(let iter=0;iter<4;iter++){
+--- a/mira-v2-locomotion.js
++++ b/mira-v2-locomotion.js
+@@ -18,13 +18,13 @@
+  }
+  tick(dt,sources,blocked=false){
+   if(blocked||!(dt>0)){this.pace=0;return;}dt=Math.min(dt,.05);
+-  sources=[...sources].map(s=>{if(!s.gamepad||!this.world.h5Equipment?.consumesStick(s.handedness))return s;const axes=Array.from(s.gamepad.axes);axes[axes.length>=4?3:1]=0;return {...s,gamepad:{axes,buttons:s.gamepad.buttons},hand:s.hand,handedness:s.handedness};});
++  sources=[...sources].map(s=>{if(!s.gamepad)return s;const home=this.world.h5Home?.consumesStick(s.handedness),equipment=this.world.h5Equipment?.consumesStick(s.handedness);if(!home&&!equipment)return s;const axes=Array.from(s.gamepad.axes);axes[axes.length>=4?3:1]=0;if(home)axes[axes.length>=4?2:0]=0;return {...s,gamepad:{axes,buttons:s.gamepad.buttons},hand:s.hand,handedness:s.handedness};});
+   const water=this.world.waterSystem,camera=this.camera;
+   if(water?.playerSwimIntent({rig:this.rig,camera,dt,sources,blocked}).active){this.jumping=false;this.jumpVel=0;return;}
+   const left=[...sources].find(s=>s.handedness==='left'&&!s.hand),right=[...sources].find(s=>s.handedness==='right'&&!s.hand);
+   const l=stickAxes(left?.gamepad),r=stickAxes(right?.gamepad),move=deadzone(l.x,l.y),turn=deadzone(r.x,0,.16).x;
+   const trigger=left?.gamepad?.buttons?.[0],sprint=(trigger?.pressed||(trigger?.value||0)>.42)?2:1;
+-  if(right?.gamepad?.buttons?.[4]?.pressed&&!this.jumping)this.jump();
++  if(right?.gamepad?.buttons?.[4]?.pressed&&!this.jumping&&!this.world.h5Home?.consumesStick('right'))this.jump();
+   const eye=this.camera.getWorldPosition(new T.Vector3());
+   const forward=new T.Vector3(0,0,-1).applyQuaternion(this.camera.getWorldQuaternion(new T.Quaternion())).setY(0);
+   if(forward.lengthSq()>.01)this.forward.copy(forward).normalize();
+--- a/mira-v2-walls.js
++++ b/mira-v2-walls.js
+@@ -1,5 +1,5 @@
+ import * as T from 'three';
+-import {playSfx} from './mira-v2-sfx.js?v=17.5.0';
++import {playSfx} from './mira-v2-sfx.js?v=17.6.0';
+ const V=()=>new T.Vector3(),Q=()=>new T.Quaternion(),CELL=.6,STORY=3.05;
+ const QUEST=/Quest|OculusBrowser/i.test(globalThis.navigator?.userAgent||'');
+ const PALETTE={Plaster:0xc9c1b1,Brick:0xa26148,Wood:0x947051,Tile:0xc3c7c1,Stone:0x85847c,Castle:0x8a8478,Metal:0x929b9d,Glass:0x9fc1c7,Shingle:0x5c4034};
+@@ -224,7 +224,7 @@
+   const i=this.decalSlot++%this.maxDecal;
+   this.decalList=this.decalList.filter(d=>d.i!==i);
+   const size=.12+Math.min(.14,Math.sqrt(Math.max(0,energy))*.02);
+-  this.dummy.position.copy(hit.point).addScaledVector(n,.004);
++  this.dummy.position.copy(hit.point?.isVector3?hit.point:part.p).addScaledVector(n,.004);
+   this.dummy.quaternion.setFromUnitVectors(new T.Vector3(0,0,1),n);
+   this.dummy.scale.set(size,size*(.55+.5*Math.random()),1);this.dummy.updateMatrix();
+   this.decals.setMatrixAt(i,this.dummy.matrix);this.decals.instanceMatrix.needsUpdate=true;
+--- a/mira-v2-world.js
++++ b/mira-v2-world.js
+@@ -1,8 +1,8 @@
+-import {captureFurniture,tagMovable} from './mira-v2-furniture.js?v=17.5.0';
+-import {Destruction} from './mira-v2-destruction.js?v=17.5.0';
+-import {buildHouse} from './mira-v2-house.js?v=17.5.0';
+-import {buildCastle,inCastleClearing} from './mira-v2-castle.js?v=17.5.0';
+-import {plantTerrain,scatterTrees,tickNature,chopTree as chopNature,ramTree as ramNature,terrainHeight} from './mira-v2-nature.js?v=17.5.0';
++import {captureFurniture,tagMovable} from './mira-v2-furniture.js?v=17.6.0';
++import {Destruction} from './mira-v2-destruction.js?v=17.6.0';
++import {buildHouse} from './mira-v2-house.js?v=17.6.0';
++import {buildCastle,inCastleClearing} from './mira-v2-castle.js?v=17.6.0';
++import {plantTerrain,scatterTrees,tickNature,chopTree as chopNature,ramTree as ramNature,terrainHeight} from './mira-v2-nature.js?v=17.6.0';
+ import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
+ import * as T from 'three';
+ const V=()=>new T.Vector3(),clamp=T.MathUtils.clamp,QUEST=/Quest|OculusBrowser/i.test(globalThis.navigator?.userAgent||'');
+@@ -195,7 +195,7 @@
+   for(let pass=0;pass<4;pass++){
+    let moved=false;
+    for(const o of this.nearby(p,r)){
+-    if(o===ignore||o.walkable||y0>o.y+o.h||y0+height<o.y)continue;
++    if(o===ignore||o.h5Container||o.walkable||y0>o.y+o.h||y0+height<o.y)continue;
+     if(this.portalOpen?.(p,o,r,y,height))continue;
+     const dx=p.x-o.x,dz=p.z-o.z,ex=o.w/2+r-Math.abs(dx),ez=o.d/2+r-Math.abs(dz);
+     if(ex>0&&ez>0){if(ex<ez)p.x+=(dx>=0?1:-1)*ex;else p.z+=(dz>=0?1:-1)*ez;hit=true;moved=true;}
+@@ -204,6 +204,6 @@
+   }
+   return hit;
+  }
+- projectSphere(p,r){let hit=false;for(let pass=0;pass<3;pass++){let moved=false;for(const o of this.nearby(p,r)){if(this.portalOpen?.(p,o,r))continue;const q=new T.Vector3(T.MathUtils.clamp(p.x,o.x-o.w/2,o.x+o.w/2),T.MathUtils.clamp(p.y,o.y,o.y+o.h),T.MathUtils.clamp(p.z,o.z-o.d/2,o.z+o.d/2)),d=p.clone().sub(q),l=d.length();if(l>=r)continue;if(l>.000001)p.copy(q).addScaledVector(d,r/l);else{const choices=[[o.x+o.w/2+r-p.x,'x',1],[p.x-(o.x-o.w/2-r),'x',-1],[o.y+o.h+r-p.y,'y',1],[p.y-o.y+r,'y',-1],[o.z+o.d/2+r-p.z,'z',1],[p.z-(o.z-o.d/2-r),'z',-1]].sort((a,b)=>a[0]-b[0]);p[choices[0][1]]+=choices[0][0]*choices[0][2];}hit=true;moved=true;}if(!moved)break;}return hit;}
++ projectSphere(p,r){let hit=false;for(let pass=0;pass<3;pass++){let moved=false;for(const o of this.nearby(p,r)){if(o.h5Container)continue;if(this.portalOpen?.(p,o,r))continue;const q=new T.Vector3(T.MathUtils.clamp(p.x,o.x-o.w/2,o.x+o.w/2),T.MathUtils.clamp(p.y,o.y,o.y+o.h),T.MathUtils.clamp(p.z,o.z-o.d/2,o.z+o.d/2)),d=p.clone().sub(q),l=d.length();if(l>=r)continue;if(l>.000001)p.copy(q).addScaledVector(d,r/l);else{const choices=[[o.x+o.w/2+r-p.x,'x',1],[p.x-(o.x-o.w/2-r),'x',-1],[o.y+o.h+r-p.y,'y',1],[p.y-o.y+r,'y',-1],[o.z+o.d/2+r-p.z,'z',1],[p.z-(o.z-o.d/2-r),'z',-1]].sort((a,b)=>a[0]-b[0]);p[choices[0][1]]+=choices[0][0]*choices[0][2];}hit=true;moved=true;}if(!moved)break;}return hit;}
+  tick(dt){this.fractures.mesh.visible=this.root.visible;this.time+=dt;this.fractures.tick(dt);this.doors?.tick?.(dt);this.laundry?.tick?.(dt);tickNature(this,dt);for(const seat of this.seats)if(seat.occupant&&!this.system.actors.includes(seat.occupant))seat.occupant=null;for(const b of this.system.balls){if(b.held)continue;const before=b.mesh.position.clone();if(this.projectSphere(b.mesh.position,b.rad)){const n=b.mesh.position.clone().sub(before).normalize(),v=b.vel.dot(n);if(v<0)b.vel.addScaledVector(n,-1.4*v);}}}
+ }
+--- a/mira-v2.js
++++ b/mira-v2.js
+@@ -1,8 +1,8 @@
+-import {restoreSurfaceUV} from './mira-v2-uv.js?v=17.5.0';
+-import {BodyContacts} from './mira-v2-contact.js?v=17.5.0';
+-import {MiraSocial} from './mira-v2-social.js?v=17.5.0';
+-import {ContactHaptics} from './mira-v2-haptics.js?v=17.5.0';
+-import { createV2Class, repairArmRestData, makeFingerRig, fingerRotation } from "./mira-v2-features.js?v=17.5.0";
++import {restoreSurfaceUV} from './mira-v2-uv.js?v=17.6.0';
++import {BodyContacts} from './mira-v2-contact.js?v=17.6.0';
++import {MiraSocial} from './mira-v2-social.js?v=17.6.0';
++import {ContactHaptics} from './mira-v2-haptics.js?v=17.6.0';
++import { createV2Class, repairArmRestData, makeFingerRig, fingerRotation } from "./mira-v2-features.js?v=17.6.0";
+ import * as THREE from "three";
+ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+ import { clone as cloneSkinned } from "three/addons/utils/SkeletonUtils.js";
+@@ -1577,7 +1577,7 @@
+     const present=new Set();
+     for(const src of session.inputSources){
+       if(!src.gamepad||src.hand||!['left','right'].includes(src.handedness))continue;
+-      present.add(src);const xDown=src.handedness==='left'&&!!src.gamepad.buttons?.[4]?.pressed;if(xDown&&!secondaryState.get('deleteX'))uiHandlers.onDelete?.();if(src.handedness==='left')secondaryState.set('deleteX',xDown);const pressed=!!src.gamepad.buttons?.[5]?.pressed;
++      present.add(src);if(environment?.h5Home?.consumesStick(src.handedness)){secondaryState.set(src,!!src.gamepad.buttons?.[5]?.pressed);if(src.handedness==='left')secondaryState.set('deleteX',!!src.gamepad.buttons?.[4]?.pressed);continue;}const xDown=src.handedness==='left'&&!!src.gamepad.buttons?.[4]?.pressed;if(xDown&&!secondaryState.get('deleteX'))uiHandlers.onDelete?.();if(src.handedness==='left')secondaryState.set('deleteX',xDown);const pressed=!!src.gamepad.buttons?.[5]?.pressed;
+       if(pressed&&!secondaryState.get(src)){
+         if(src.handedness==='left')uiHandlers.onToggle?.();
+         else{
+--- a/modules/human5-arcade.js
++++ b/modules/human5-arcade.js
+@@ -0,0 +1,21 @@
++/** Canvas game adapter: no DOM scraping, eval or remote game-code execution. */
++export function createArcadeGame(canvas){
++  const ctx=canvas.getContext('2d'),input={x:0,y:0,buttons:new Set()},adapters=new Map();
++  let selected=null,acc=0,dirty=true,time=0,score=0,x=.5,orbs=[];
++  const demo={title:'ORBIT CATCH',reset(){score=0;x=.5;orbs=[];time=0;},
++    update(dt,state){time+=dt;x=Math.max(.06,Math.min(.94,x+state.x*dt*.7));if(state.buttons.has(0))x+=(.5-x)*Math.min(1,dt*3);
++      if(orbs.length<10&&Math.floor(time*1.8)>Math.floor((time-dt)*1.8))orbs.push({x:.08+((Math.sin(time*127.1)*43758.5453)%1+1)%1*.84,y:-.02});
++      for(const o of orbs){o.y+=dt*(.20+Math.min(score,25)*.002);if(o.y>.86&&Math.abs(o.x-x)<.09){o.y=2;score++;}}orbs=orbs.filter(o=>o.y<1.05);},
++    render(c,w,h){c.fillStyle='#071622';c.fillRect(0,0,w,h);c.fillStyle='#9bcebc';c.font='bold 28px monospace';c.textAlign='center';c.fillText('ORBIT CATCH',w/2,48);c.font='17px monospace';c.fillText('SCORE '+score,w/2,76);
++      for(const o of orbs){c.fillStyle='#f7cf67';c.beginPath();c.arc(o.x*w,100+o.y*(h-135),9,0,7);c.fill();}c.fillStyle='#74e6d5';c.fillRect(x*w-28,h-63,56,13);c.font='12px monospace';c.fillStyle='#91a6b2';c.fillText('JOYSTICK / ARROWS  •  A: CENTER  B: NEW GAME',w/2,h-18);},
++    onButton(id,pressed){if(id===1&&pressed)this.reset();}};
++  function draw(){selected.render(ctx,canvas.width,canvas.height);dirty=true;}
++  function load(id){const next=adapters.get(id);if(!next)return false;selected?.suspend?.();selected=next;input.buttons.clear();input.x=input.y=0;selected.reset?.();draw();return true;}
++  adapters.set('orbit-catch',demo);load('orbit-catch');
++  return {canvas,input,adapters,register(id,adapter){if(typeof id!=='string'||!id||typeof adapter?.render!=='function'||typeof adapter?.update!=='function')throw Error('Arcade adapter needs update(dt,input) and render(ctx,width,height)');adapters.set(id,adapter);return id;},load,
++    axis(x,y){input.x=Math.max(-1,Math.min(1,Number(x)||0));input.y=Math.max(-1,Math.min(1,Number(y)||0));selected?.onAxis?.(input.x,input.y);},
++    button(id,pressed){const before=input.buttons.has(id);if(pressed)input.buttons.add(id);else input.buttons.delete(id);if(before!==pressed)selected?.onButton?.(id,pressed);},
++    tick(dt,visible=true){if(visible){acc+=Math.min(dt,.05);if(acc>=1/30){const step=acc;acc=0;selected.update(step,input);draw();}}else acc=0;const changed=dirty;dirty=false;return changed;},
++    get title(){return selected?.title||'ARCADE';},release(){for(const id of [...input.buttons])this.button(id,false);this.axis(0,0);},dispose(){this.release();for(const a of adapters.values())a.dispose?.();adapters.clear();}
++  };
++}
+--- a/modules/human5-batching.js
++++ b/modules/human5-batching.js
+@@ -5,7 +5,7 @@
+ export class RigidBatches {
+   constructor(world){this.world=world;this.entries=new Map();}
+   add(root){if(this.entries.has(root))return;root.updateWorldMatrix(true,true);const groups=new Map();
+-    root.traverse(mesh=>{const m=mesh.material;if(!mesh.isMesh||mesh.isSkinnedMesh||mesh.isInstancedMesh||!m?.isMeshStandardMaterial||m.isMeshPhysicalMaterial||m.transparent||m.alphaTest||m.vertexColors||mesh.userData.h5Batch||mesh.userData.h5Cushion||mesh.customDepthMaterial)return;
++    root.traverse(mesh=>{for(let o=mesh;o&&o!==root;o=o.parent)if(o.userData.h5DynamicPart)return;const m=mesh.material;if(!mesh.isMesh||mesh.isSkinnedMesh||mesh.isInstancedMesh||!m?.isMeshStandardMaterial||m.isMeshPhysicalMaterial||m.transparent||m.alphaTest||m.vertexColors||mesh.userData.h5Batch||mesh.userData.h5Cushion||mesh.customDepthMaterial)return;
+       if(m.onBeforeCompile!==T.Material.prototype.onBeforeCompile||m.normalMap||m.roughnessMap||m.alphaMap||m.emissiveMap)return;
+       const key=[m.map?.uuid||'',m.roughness,m.metalness,m.side,m.envMapIntensity,m.emissive.getHex(),mesh.castShadow,mesh.receiveShadow].join('/');if(!groups.has(key))groups.set(key,[]);groups.get(key).push(mesh);
+     });
+--- a/modules/human5-home-mechanics.js
++++ b/modules/human5-home-mechanics.js
+@@ -0,0 +1,30 @@
++import * as T from 'three';
++
++export class LatchHinge {
++  constructor(){this.angle=0;this.velocity=0;this.bolt=1;this.target=null;this.maxAngle=1.85;}
++  get latched(){return this.bolt>.72&&this.angle<.045;}
++  slide(value){this.bolt=T.MathUtils.clamp(value,0,this.angle>.045?.70:1);return this.bolt;}
++  push(impulse){if(this.latched)return false;this.velocity+=T.MathUtils.clamp(impulse,-5,5);return true;}
++  tick(dt){dt=T.MathUtils.clamp(dt,0,.05);const locked=this.latched;
++    if(this.target!==null)this.velocity+=(T.MathUtils.clamp(this.target,0,this.maxAngle)-this.angle)*45*dt;
++    this.velocity*=Math.exp(-dt*(this.target===null?3.8:12));this.angle+=this.velocity*dt;
++    const limit=locked?.018:this.maxAngle;
++    if(this.angle<0||this.angle>limit){this.angle=T.MathUtils.clamp(this.angle,0,limit);this.velocity*= -.12;}
++    if(this.angle>.045)this.bolt=Math.min(this.bolt,.70);return this.angle;
++  }
++}
++export const BASEMENT=Object.freeze({x:-17,z:0,yaw:Math.PI/2,w:7.2,d:8.4,level:-2.8,top:.055,stairX:-2.86,stairWidth:1.14,stairBottom:-.28,stairTop:3.56,steps:17});
++export function basementLocal(p,out=new T.Vector3()){return out.set(-(p.z-BASEMENT.z),p.y,p.x-BASEMENT.x);}
++export function inBasementFootprint(p,pad=0){const v=basementLocal(p);return Math.abs(v.x)<BASEMENT.w/2+pad&&Math.abs(v.z)<BASEMENT.d/2+pad;}
++export function basementFloor(p,step=.42){if(!inBasementFootprint(p))return null;const b=BASEMENT,v=basementLocal(p);
++  if(Math.abs(v.x-b.stairX)<b.stairWidth/2&&v.z>=b.stairBottom&&v.z<=b.stairTop){const t=(v.z-b.stairBottom)/(b.stairTop-b.stairBottom),h=b.level+t*(b.top-b.level);return h<=p.y+step?h:b.level;}
++  return p.y+step<b.top?b.level:b.top;
++}
++/** Reflect position, view direction and up vector; retain a right-handed camera. */
++export function reflectCamera(out,source,matrix){
++  const n=new T.Vector3(0,0,1).transformDirection(matrix),p=new T.Vector3().setFromMatrixPosition(matrix),eye=new T.Vector3().setFromMatrixPosition(source.matrixWorld);
++  const reflect=v=>v.addScaledVector(n,-2*v.clone().sub(p).dot(n));
++  const forward=new T.Vector3(0,0,-1).transformDirection(source.matrixWorld),up=new T.Vector3(0,1,0).transformDirection(source.matrixWorld);
++  out.position.copy(reflect(eye.clone()));out.up.copy(up.reflect(n));out.lookAt(reflect(eye.clone().add(forward)));out.updateMatrixWorld(true);
++  out.projectionMatrix.copy(source.projectionMatrix);out.projectionMatrixInverse.copy(source.projectionMatrixInverse);out.layers.mask=source.layers.mask;out.near=source.near;out.far=source.far;return out;
++}
+--- a/modules/human5-home.js
++++ b/modules/human5-home.js
+@@ -0,0 +1,166 @@
++import * as T from 'three';
++import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
++import {wrapMethod} from './human5-common.js?v=17.6.0';
++import {tagMovable} from '../mira-v2-furniture.js?v=17.6.0';
++import {BASEMENT,basementFloor,inBasementFootprint,LatchHinge,reflectCamera} from './human5-home-mechanics.js?v=17.6.0';
++import {withOffscreenView,clipPortalCamera} from './human5-view-surfaces.js?v=17.6.0';
++import {createArcadeGame} from './human5-arcade.js?v=17.6.0';
++import {createWetnessSystem} from './human5-wetness.js?v=17.6.0';
++
++const V=()=>new T.Vector3(),clamp=T.MathUtils.clamp;
++export function installHome({world,scene,camera,renderer,rig,props,mira,wardrobe,weather,upgrade,keys={},quest=true}={}){
++  if(world.h5Home)return world.h5Home;
++  const restores=[],owned=new Set(),obstacles=[],pickables=[],controls=[],showers=[],mirrors=[],holds=new Map();
++  const wetness=createWetnessSystem({mira,props,world,weather,wardrobe}),materials=new Set(),geometries=new Set(),textures=new Set(),fixtures=[];
++  const raycaster=new T.Raycaster(),viewer=V(),dummy=new T.Object3D(),virtual=new T.PerspectiveCamera();
++  let root=null,crate=null,arcade=null,steam=null,clock=0,mirrorAcc=0,eyes=[],metal,wood,paint,stone,rubber;
++  function mat(color,roughness=.7,metalness=0){const m=new T.MeshStandardMaterial({color,roughness,metalness});materials.add(m);return m;}
++  function mesh(parent,geometry,material,pos=[0,0,0]){geometries.add(geometry);const m=new T.Mesh(geometry,material);m.position.set(...pos);m.castShadow=m.receiveShadow=true;parent.add(m);return m;}
++  const box=(parent,size,pos,material)=>mesh(parent,new T.BoxGeometry(...size),material,pos);
++  function line(parent,a,b,r,material){const A=new T.Vector3(...a),B=new T.Vector3(...b),m=mesh(parent,new T.CylinderGeometry(r,r,A.distanceTo(B),6),material);m.position.copy(A).add(B).multiplyScalar(.5);m.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),B.sub(A).normalize());return m;}
++  function group(parent,name,pos,yaw=0){const g=new T.Group();g.name=name;g.position.set(...pos);g.rotation.y=yaw;parent.add(g);return g;}
++  const toWorld=(h,x,y,z)=>new T.Vector3(x,y,z).applyAxisAngle(new T.Vector3(0,1,0),h.yaw).add(new T.Vector3(h.x,0,h.z));
++  function pick(m){if(!pickables.includes(m)){world.pickables.push(m);pickables.push(m);}return m;}
++  function collider(m,walkable=false){m.updateWorldMatrix(true,true);const b=new T.Box3().setFromObject(m),s=b.getSize(V()),c=b.getCenter(V()),o=world.obstacle(c.x,c.z,s.x,s.z,b.min.y,s.y);o.object=m;o.h5Home=true;o.walkable=walkable;obstacles.push(o);return o;}
++  function control(m,kind,click,data={}){m.userData.h5HomeControl=true;m.userData.h5DynamicPart=true;controls.push({mesh:m,kind,click,...data});return m;}
++  /** Merge only rigid siblings. Preserve collision and picking ownership. */
++  function merge(g){g.updateWorldMatrix(true,true);const inv=g.matrixWorld.clone().invert(),sets=new Map();
++    for(const m of [...g.children])if(m.isMesh&&m.visible&&!m.isInstancedMesh&&!m.userData.h5HomeControl){if(!sets.has(m.material))sets.set(m.material,[]);sets.get(m.material).push(m);}
++    for(const [material,list]of sets)if(list.length>1){const gs=list.map(m=>m.geometry.clone().applyMatrix4(inv.clone().multiply(m.matrixWorld))),geo=mergeGeometries(gs);gs.forEach(x=>x.dispose());const combined=mesh(g,geo,material);combined.name='Home rigid parts';let wasPick=false;
++      for(const old of list){if(pickables.includes(old)){wasPick=true;world.pickables=world.pickables.filter(x=>x!==old);pickables.splice(pickables.indexOf(old),1);}for(const o of obstacles)if(o.object===old)o.object=combined;old.removeFromParent();geometries.delete(old.geometry);old.geometry.dispose();}if(wasPick)pick(combined);
++    }
++  }
++  function installGroundHole(){if(!world.h5OpenWorld?.active)return;const found=new Set();world.terrain.traverse(m=>{if(m.name==='Persistent distant terrain'||m.userData.h5Terrain)found.add(m.material);});
++    for(const m of found){if(!m||m.userData.h5BasementHole)continue;const old=m.onBeforeCompile,key=m.customProgramCacheKey;
++      m.onBeforeCompile=s=>{old.call(m,s);s.fragmentShader=s.fragmentShader.replace('#include <clipping_planes_fragment>','#include <clipping_planes_fragment>\nif(terrainWorld.x>-21.20&&terrainWorld.x<-12.80&&terrainWorld.z>-3.60&&terrainWorld.z<3.60)discard;');};m.customProgramCacheKey=()=> (key?.call(m)||'')+'/willow-basement';m.userData.h5BasementHole=true;m.needsUpdate=true;
++    }
++  }
++  function buildBasement(h){const b=BASEMENT,g=group(root,'Willow basement',[h.x,0,h.z],h.yaw);h.bounds.min.y=-2.95;
++    if(h.slab){h.slab.removeFromParent();h.slab.geometry.dispose();h.slab=null;}world.floors=world.floors.filter(f=>f!==h.floorRecord);
++    const floors=[{x:-3.515,z:0,w:.17,d:8.4},{x:.655,z:0,w:5.89,d:8.4},{x:b.stairX,z:(-4.2+b.stairBottom)/2,w:b.stairWidth,d:b.stairBottom+4.2},{x:b.stairX,z:(4.2+b.stairTop)/2,w:b.stairWidth,d:4.2-b.stairTop}];
++    for(const f of floors){pick(box(g,[f.w,.12,f.d],[f.x,-.005,f.z],wood));const p=toWorld(h,f.x,-.065,f.z);world.floors.push({x:p.x,z:p.z,w:f.d,d:f.w,y:-.065,h:.12,h5Home:true});}
++    pick(box(g,[b.w,.16,b.d],[0,b.level-.08,0],stone));world.floors.push({x:h.x,z:h.z,w:b.d,d:b.w,y:b.level-.16,h:.16,h5Home:true});
++    for(const [size,pos]of [[[b.w,2.8,.17],[0,-1.4,-b.d/2]],[[b.w,2.8,.17],[0,-1.4,b.d/2]],[[.17,2.8,b.d],[-b.w/2,-1.4,0]],[[.17,2.8,b.d],[b.w/2,-1.4,0]]]){const m=box(g,size,pos,paint);pick(m);collider(m);}
++    const run=(b.stairTop-b.stairBottom)/b.steps,rise=(b.top-b.level)/b.steps;
++    for(let i=0;i<b.steps;i++)pick(box(g,[b.stairWidth,(i+1)*rise,run],[b.stairX,b.level+(i+1)*rise/2,b.stairBottom+(i+.5)*run],wood));
++    for(const x of [b.stairX-.55,b.stairX+.55]){line(g,[x,b.level+.9,b.stairBottom],[x,b.top+.9,b.stairTop-.22],.025,metal);for(let i=0;i<5;i++){const t=i/4,z=b.stairBottom+t*(b.stairTop-.22-b.stairBottom),y=b.level+t*(b.top-b.level);line(g,[x,y,z],[x,y+.9,z],.016,metal);}}
++    const edge=box(g,[.035,1,b.stairTop-b.stairBottom-.25],[b.stairX+.59,.55,(b.stairTop+b.stairBottom-.25)/2],metal);edge.visible=false;collider(edge);
++    merge(g);for(const m of g.children)if(m.isMesh&&m.visible)pick(m);owned.add(g);h.contents.push(g);
++    crate=createCrate(toWorld(h,1.65,b.level,.9),h.yaw);arcade=createArcade(toWorld(h,-.65,b.level,-2.8),h.yaw);h.contents.push(crate.root,arcade.root);
++    for(const x of [-1.2,1.6]){const lamp=box(g,[.55,.05,.28],[x,-.25,1.3],mat(0xf6e8c6,.35));lamp.material.emissive.setHex(0xffdc9c);lamp.material.emissiveIntensity=.65;}
++    const fixture={root:g,type:'Basement ceiling',kind:'point',center:new T.Vector3(0,-.6,0),direction:new T.Vector3(0,-1,0),bulbs:[],enabled:true,color:0xffdfad,intensity:16,distance:7};upgrade.lights.add(fixture);fixtures.push(fixture);
++  }
++  function createCrate(position,yaw){const g=group(root,'Large dog crate',position.toArray(),yaw),hinge=group(g,'Crate hinged door',[-.54,.035,.78]),state=new LatchHinge();hinge.userData.h5DynamicPart=true;
++    const frame=group(g,'Crate steel cage',[0,0,0]);box(frame,[1.13,.055,1.60],[0,.028,0],rubber);
++    for(const x of [-.55,.55])for(const z of [-.79,.79])line(frame,[x,.03,z],[x,1.18,z],.015,metal);
++    for(const y of [.08,1.17]){for(const x of [-.55,.55])line(frame,[x,y,-.79],[x,y,.79],.014,metal);for(const z of [-.79,.79])line(frame,[-.55,y,z],[.55,y,z],.014,metal);}
++    for(let z=-.70;z<=.70;z+=.10)for(const x of [-.55,.55])line(frame,[x,.06,z],[x,1.17,z],.0065,metal);
++    for(let x=-.45;x<=.45;x+=.10){line(frame,[x,.06,-.79],[x,1.17,-.79],.0065,metal);line(frame,[x,1.17,-.79],[x,1.17,.79],.0065,metal);}
++    for(const y of [.10,.58,1.08])line(hinge,[.015,y,0],[1.055,y,0],.012,metal);for(let x=.015;x<=1.06;x+=.104)line(hinge,[x,.10,0],[x,1.08,0],.007,metal);
++    const bolt=box(hinge,[.19,.025,.025],[.99,.64,.035],metal);control(bolt,'bolt',()=>state.slide(state.bolt>.5?0:1),{state,owner:g});
++    box(hinge,[.035,.07,.025],[.94,.62,.064],metal);const handle=box(hinge,[.025,.13,.035],[.90,.65,.055],rubber);control(handle,'crateDoor',()=>{if(!state.latched)state.target=state.angle>.5?0:1.65;},{state,hinge,owner:g});
++    box(frame,[.045,.06,.06],[.58,.68,.815],metal);for(const y of [.23,.98])line(frame,[-.55,y-.05,.79],[-.55,y+.05,.79],.027,metal);merge(frame);merge(hinge);
++    g.updateMatrixWorld(true);const f=tagMovable(world,g,'Dog crate');f.mass=22;f.mix={metal:1};f.health=240;f.obstacle.h5Container=true;const parts=[];
++    for(const [size,pos]of [[[.04,1.18,1.6],[-.55,.59,0]],[[.04,1.18,1.6],[.55,.59,0]],[[1.1,1.18,.04],[0,.59,-.79]],[[1.1,.04,1.6],[0,1.17,0]]]){const m=box(g,size,pos,metal);m.visible=false;parts.push({mesh:m,obstacle:collider(m)});}
++    const door=box(hinge,[1.07,1.13,.03],[.535,.6,0],metal);door.visible=false;parts.push({mesh:door,obstacle:collider(door)});g.traverse(m=>{if(m.isMesh&&m.visible)pick(m);});owned.add(g);
++    return {root:g,hinge,bolt,state,parts,lastStamp:'',tick(dt){if(!g.parent)return;state.tick(dt);hinge.rotation.y=-state.angle;bolt.position.x=.88+.11*state.bolt;
++      const stamp=[...g.position.toArray(),...g.quaternion.toArray(),state.angle].join('/');if(stamp===this.lastStamp)return;this.lastStamp=stamp;g.updateWorldMatrix(true,true);
++      for(const part of parts){const b=new T.Box3().setFromObject(part.mesh),s=b.getSize(V()),c=b.getCenter(V());Object.assign(part.obstacle,{x:c.x,z:c.z,w:s.x,d:s.z,y:b.min.y,h:s.y});}world.grid=null;}};
++  }
++  function createArcade(position,yaw){const g=group(root,'Basement arcade cabinet',position.toArray(),yaw),body=box(g,[.76,1.55,.61],[0,.775,0],wood);box(g,[.83,.12,.84],[0,.91,.12],paint);box(g,[.77,.22,.21],[0,1.66,-.13],paint);box(g,[.78,.10,.66],[0,.08,0],rubber);
++    const canvas=document.createElement('canvas');canvas.width=canvas.height=512;const texture=new T.CanvasTexture(canvas);texture.colorSpace=T.SRGBColorSpace;texture.generateMipmaps=false;texture.minFilter=T.LinearFilter;textures.add(texture);
++    const material=new T.MeshBasicMaterial({map:texture,toneMapped:false});materials.add(material);const screen=mesh(g,new T.PlaneGeometry(.63,.57),material,[0,1.28,.36]);screen.rotation.x=-.13;screen.castShadow=false;box(g,[.70,.66,.018],[0,1.29,.29],rubber);
++    const game=createArcadeGame(canvas),joystick=group(g,'Arcade joystick',[-.22,.99,.26]);joystick.userData.h5DynamicPart=true;line(joystick,[0,0,0],[0,.115,0],.009,metal);
++    const top=mesh(joystick,new T.SphereGeometry(.034,10,8),mat(0xa63732),[0,.135,0]);control(top,'arcadeStick',()=>{arcade.focus=!arcade.focus;if(!arcade.focus)arcade.release();},{joystick});
++    const buttons=[];for(let i=0;i<3;i++){const m=mesh(g,new T.CylinderGeometry(.034,.034,.025,12),mat([0x478773,0xb54e46,0xd2a348][i]),[.07+i*.09,.991,.28]);control(m,'arcadeButton',()=>{game.button(i,true);game.button(i,false);},{game,button:i});buttons.push(m);}
++    pick(body);owned.add(g);collider(body);return {root:g,screen,texture,game,joystick,buttons,focus:false,controller:null,keys:new Set(),
++      tick(dt,near){if(!near&&this.focus)this.release();if(game.tick(dt,near))texture.needsUpdate=true;joystick.rotation.z=-game.input.x*.25;joystick.rotation.x=game.input.y*.25;},
++      release(){this.focus=false;this.controller=null;this.keys.clear();game.release();}};
++  }
++  function createMirror(parent,pos,yaw){const frame=box(parent,[.70,.80,.035],pos,metal);frame.rotation.y=yaw;const g=group(parent,'Bathroom mirror',pos,yaw);
++    const material=new T.ShaderMaterial({uniforms:{image:{value:null},projection:{value:new T.Matrix4()},valid:{value:0}},
++      vertexShader:'varying vec4 reflected;uniform mat4 projection;void main(){vec4 world=modelMatrix*vec4(position,1.);reflected=projection*world;gl_Position=projectionMatrix*viewMatrix*world;}',
++      fragmentShader:'uniform sampler2D image;uniform float valid;varying vec4 reflected;void main(){vec2 uv=reflected.xy/reflected.w*.5+.5;gl_FragColor=vec4(mix(vec3(.14,.19,.20),texture2D(image,clamp(uv,0.,1.)).rgb,valid),1.);\n#include <tonemapping_fragment>\n#include <colorspace_fragment>\n}'});
++    materials.add(material);const m=mesh(g,new T.PlaneGeometry(.63,.73),material,[0,0,.021]);m.castShadow=false;const a={root:g,mesh:m,views:[],lastSeen:0};
++    m.onBeforeRender=(r,s,c)=>{const i=Math.max(0,eyes.indexOf(c)),view=a.views[i]||a.views[0];material.uniforms.valid.value=view?1:0;if(view){material.uniforms.image.value=view.target.texture;material.uniforms.projection.value.copy(view.projection);}material.uniformsNeedUpdate=true;};mirrors.push(a);pick(frame);return a;
++  }
++  function createShower(h,r){const p=toWorld(h,r.x+r.w/2-.65,.055,r.z-r.d/2+.69),g=group(root,h.name+' shower',p.toArray(),h.yaw),s={id:h.id,root:g,flow:0,temperature:.25,fog:0,glass:[]};
++    box(g,[1.16,.08,1.26],[0,.04,0],stone);mesh(g,new T.CylinderGeometry(.055,.055,.006,12),metal,[0,.083,0]);
++    line(g,[0,.7,-.57],[0,2.06,-.57],.012,metal);line(g,[0,2.06,-.57],[0,2.06,-.18],.016,metal);mesh(g,new T.CylinderGeometry(.11,.11,.026,16),metal,[0,2.04,-.18]);
++    box(g,[.35,.21,.025],[0,1.08,-.555],metal);for(const y of [.72,1.78])line(g,[0,y,-.57],[0,y,-.62],.026,metal);
++    for(const x of [-.57,.57])for(const z of [-.61,.61])if(z<0||x<0)line(g,[x,.08,z],[x,2.10,z],.018,metal);
++    s.fogUniform={value:0};for(const x of [-.57,.57]){const material=new T.MeshStandardMaterial({color:0xc4d9d6,roughness:.15,metalness:.15,transparent:true,opacity:.10,depthWrite:false,side:T.DoubleSide});materials.add(material);
++      material.onBeforeCompile=shader=>{shader.uniforms.h5GlassFog=s.fogUniform;shader.fragmentShader='uniform float h5GlassFog;\n'+shader.fragmentShader;shader.fragmentShader=shader.fragmentShader.replace('#include <color_fragment>','#include <color_fragment>\ndiffuseColor.rgb=mix(diffuseColor.rgb,vec3(.65,.71,.70),h5GlassFog);diffuseColor.a+=h5GlassFog*.55;');};material.customProgramCacheKey=()=> 'h5-shower-fog-1';
++      const m=box(g,[.012,1.97,1.22],[x,1.07,0],material);m.castShadow=false;s.glass.push(m);collider(m);pick(m);}
++    const dial=mesh(g,new T.CylinderGeometry(.05,.05,.026,16),metal,[.13,1.10,-.525]);dial.rotation.x=Math.PI/2;s.dial=dial;box(dial,[.008,.012,.032],[0,.02,.023],mat(0xca735d));control(dial,'temperature',()=>s.temperature=s.temperature<.5?.85:s.temperature<.95?1:.15,{shower:s});
++    const handle=box(g,[.035,.14,.038],[-.12,1.09,-.51],metal);s.handle=handle;control(handle,'water',()=>s.flow=s.flow>.1?0:1,{shower:s});
++    const streamMat=new T.MeshBasicMaterial({color:0xc0dfed,transparent:true,opacity:.38,depthWrite:false});materials.add(streamMat);const geometry=new T.CylinderGeometry(.0025,.0035,.15,3);geometries.add(geometry);
++    const stream=new T.InstancedMesh(geometry,streamMat,32);stream.instanceMatrix.setUsage(T.DynamicDrawUsage);stream.count=0;stream.frustumCulled=false;stream.raycast=()=>{};stream.userData.noHit=true;g.add(stream);s.stream=stream;
++    merge(g);g.traverse(m=>{if(m.isMesh&&!m.isInstancedMesh)pick(m);});showers.push(s);owned.add(g);h.contents.push(g);
++    const sinkP=toWorld(h,r.x-r.w/2+.10,1.57,r.z),mount=group(root,h.name+' mirror mounting',sinkP.toArray(),h.yaw+Math.PI/2);createMirror(mount,[0,0,0],0);owned.add(mount);h.contents.push(mount);return s;
++  }
++  function build(){if(world.name!=='Cul-de-sac')return;root=new T.Group();root.name='Home interactions';world.root.add(root);metal=mat(0x777f81,.32,.78);wood=mat(0x55463b,.85);paint=mat(0xb9b4a3,.85);stone=mat(0xc7c6bd,.92);rubber=mat(0x29302e,.96);
++    for(const h of world.neighborhood?.houses||[]){if(h.id==='willow')buildBasement(h);const r=h.plan.rooms.find(r=>r.id==='bath');if(r)createShower(h,r);}installGroundHole();
++    const material=new T.ShaderMaterial({transparent:true,depthWrite:false,vertexShader:'varying vec2 st;void main(){st=uv;gl_Position=projectionMatrix*modelViewMatrix*instanceMatrix*vec4(position,1.);}',fragmentShader:'varying vec2 st;void main(){float d=length(st-.5)*2.;float a=(1.-smoothstep(.15,1.,d))*.10;gl_FragColor=vec4(.79,.82,.82,a);\n#include <tonemapping_fragment>\n#include <colorspace_fragment>\n}'});materials.add(material);const geo=new T.PlaneGeometry(1,1);geometries.add(geo);steam=new T.InstancedMesh(geo,material,24);steam.count=0;steam.frustumCulled=false;steam.instanceMatrix.setUsage(T.DynamicDrawUsage);steam.raycast=()=>{};steam.userData.noHit=true;root.add(steam);world.grid=null;
++  }
++  function clear(){holds.clear();arcade?.game.dispose();for(const m of mirrors)for(const v of m.views)v?.target.dispose();mirrors.length=showers.length=controls.length=0;
++    const obs=new Set(obstacles),picks=new Set(pickables);world.obstacles=world.obstacles.filter(o=>!obs.has(o));world.pickables=world.pickables.filter(m=>!picks.has(m));obstacles.length=pickables.length=0;
++    if(crate?.root){const g=crate.root;world.movables=world.movables.filter(m=>m!==g);world.removeObstacle(g.userData.furniture?.obstacle);for(const [key,h]of props.furnHolds)if(h.group===g)props.releaseFurniture(key);}
++    for(const f of fixtures)upgrade.lights.remove(f);fixtures.length=0;world.floors=world.floors.filter(f=>!f.h5Home);root?.removeFromParent();root=null;crate=arcade=steam=null;
++    for(const g of geometries)g.dispose();for(const m of materials)m.dispose();for(const t of textures)t.dispose();geometries.clear();materials.clear();textures.clear();owned.clear();world.grid=null;
++  }
++  function visible(m){for(let o=m;o;o=o.parent)if(!o.visible)return false;return !!m.parent;}
++  function hit(ray,max=2.5){raycaster.ray.copy(ray);raycaster.near=0;raycaster.far=max;const h=raycaster.intersectObjects(controls.map(c=>c.mesh).filter(visible),false)[0];if(!h)return null;const block=props.hit(ray,h.distance-.025,false,{actors:false});if(block&&block.distance<h.distance-.025)return null;return {control:controls.find(c=>c.mesh===h.object),hit:h};}
++  const outside=(c,point)=>!c.owner||c.owner.worldToLocal(point.clone()).z>.75;
++  function click(ray,key=null){const found=hit(ray);if(!found||!outside(found.control,ray.origin))return false;const c=found.control;c.click();if(c.kind==='arcadeStick')arcade.controller=typeof key==='number'?key:null;
++    props.status=c.kind==='bolt'?(crate.state.latched?'Crate bolt engaged':'Crate bolt withdrawn'):c.kind==='crateDoor'&&crate.state.latched?'Slide the outside bolt to open the crate':c.kind==='arcadeStick'?'Arcade focused · arrows / A, B · Esc to leave':c.kind==='temperature'?'Shower temperature '+Math.round(c.shower.temperature*100)+'%':c.kind==='water'?'Shower '+(c.shower.flow?'on':'off'):'Arcade button';return true;
++  }
++  function grip(i){const palm=props.system.hands?.palmPos(i);if(!palm)return false;let nearest=null,distance=.10;for(const c of controls)if(visible(c.mesh)&&outside(c,palm)){const d=c.mesh.getWorldPosition(V()).distanceTo(palm);if(d<distance){nearest=c;distance=d;}}if(!nearest)return false;
++    const c=nearest;holds.set(i,{control:c,initial:palm.clone(),start:c.state?.bolt??c.shower?.temperature??0});if(c.kind==='arcadeButton')c.game.button(c.button,true);if(c.kind==='arcadeStick'){arcade.focus=true;arcade.controller=i;}return true;
++  }
++  function release(i){const h=holds.get(i);if(!h)return;const c=h.control;if(c.state)c.state.target=null;if(c.kind==='arcadeButton')c.game.button(c.button,false);if(c.kind==='arcadeStick')arcade.release();holds.delete(i);}
++  function tickControls(){for(const [i,h]of holds){const c=h.control,palm=props.system.hands?.palmPos(i);if(!palm){release(i);continue;}const local=c.mesh.parent.worldToLocal(palm.clone());
++    if(c.kind==='bolt'){const start=c.mesh.parent.worldToLocal(h.initial.clone());c.state.slide(h.start+(local.x-start.x)/.11);}
++    else if(c.kind==='crateDoor'){const v=c.hinge.parent.worldToLocal(palm.clone()).sub(c.hinge.position);if(!c.state.latched)c.state.target=clamp(Math.atan2(v.z,v.x),0,c.state.maxAngle);}
++    else if(c.kind==='temperature'){const start=c.mesh.parent.worldToLocal(h.initial.clone());c.shower.temperature=clamp(h.start+(local.x-start.x)*4,0,1);}
++    else if(c.kind==='water')c.shower.flow=clamp((local.y-.99)/.20,0,1);
++    else if(c.kind==='arcadeStick'){const v=c.joystick.parent.worldToLocal(palm.clone()).sub(c.joystick.position);arcade.game.axis(v.x/.085,-v.z/.085);}}
++  }
++  function tickArcade(dt){if(!arcade)return;const near=arcade.root.getWorldPosition(V()).distanceToSquared(viewer)<16;
++    if(arcade.focus&&renderer.xr.isPresenting){const hand=props.system.hands.handedness[arcade.controller],source=[...renderer.xr.getSession()?.inputSources||[]].find(s=>s.handedness===hand),axes=source?.gamepad?.axes;
++      if(axes){const x=axes[axes.length>=4?2:0]||0,y=axes[axes.length>=4?3:1]||0;if(Math.hypot(x,y)>.12||!holds.has(arcade.controller))arcade.game.axis(x,y);const b=source.gamepad.buttons;arcade.game.button(0,!!b[4]?.pressed);arcade.game.button(1,!!b[5]?.pressed);}}
++    arcade.tick(dt,near);
++  }
++  function tickShowers(dt){let n=0;const cq=camera.getWorldQuaternion(new T.Quaternion());
++    for(const s of showers){s.fog=clamp(s.fog+dt*(s.flow*Math.max(0,s.temperature-.5)*.38-.012),0,1);s.fogUniform.value=s.fog;s.dial.rotation.z=(s.temperature-.5)*2.5;s.handle.rotation.z=-s.flow*.9;
++      const near=s.root.getWorldPosition(V()).distanceToSquared(viewer)<81;let count=0;if(near&&s.flow>.01)for(let i=0;i<32;i++){const phase=(clock*1.7+i*.6180339)%1,r=.035+phase*.15,a=i*2.39996;dummy.position.set(Math.cos(a)*r,1.98-phase*1.88,-.18+Math.sin(a)*r);dummy.quaternion.identity();dummy.scale.set(1,.5+s.flow*.7,1);dummy.updateMatrix();s.stream.setMatrixAt(count++,dummy.matrix);}s.stream.count=count;if(count)s.stream.instanceMatrix.needsUpdate=true;
++      if(near&&s.flow>.01&&s.temperature>.55)for(let j=0;j<12&&n<24;j++){const t=(clock*.22+j*.618)%1;dummy.position.copy(s.root.localToWorld(new T.Vector3(Math.sin(j*12.4+t*2)*.28,1.25+t*.95,Math.cos(j*3.7+t)*.22)));dummy.quaternion.copy(cq);dummy.scale.setScalar(.22+t*.5);dummy.updateMatrix();steam.setMatrixAt(n++,dummy.matrix);}}
++    steam.count=n;if(n)steam.instanceMatrix.needsUpdate=true;
++  }
++  function renderMirrors(dt){mirrorAcc+=dt;const tier=world.h5Performance?.budget.tier||0,hz=quest?[24,18,12][tier]:30;if(mirrorAcc<1/hz)return;mirrorAcc=0;
++    let best=null,dist=36;const frustum=new T.Frustum().setFromProjectionMatrix(new T.Matrix4().multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse));
++    for(const m of mirrors){if(!visible(m.mesh))continue;m.root.updateWorldMatrix(true,false);const point=m.root.getWorldPosition(V()),normal=new T.Vector3(0,0,1).transformDirection(m.root.matrixWorld),d=point.distanceToSquared(viewer);if(d<dist&&viewer.clone().sub(point).dot(normal)>.03&&(renderer.xr.isPresenting||frustum.intersectsObject(m.mesh))){best=m;dist=d;}}
++    for(const m of mirrors)if(m!==best&&clock-m.lastSeen>4&&m.views.length){m.views.forEach(v=>v?.target.dispose());m.views=[];}
++    if(!best)return;best.lastSeen=clock;if(renderer.xr.isPresenting){renderer.xr.updateCamera(camera);eyes=renderer.xr.getCamera(camera).cameras||[camera];}else eyes=[camera];
++    withOffscreenView(renderer,[...mirrors.map(m=>m.mesh),props.system.vrPanel,...(props.gadgets?.portals||[]).map(p=>p?.group)],()=>{eyes.forEach((eye,i)=>{eye.updateWorldMatrix(true,false);reflectCamera(virtual,eye,best.root.matrixWorld);clipPortalCamera(virtual,best.root.matrixWorld);let v=best.views[i];
++      if(!v){const target=new T.WebGLRenderTarget(quest?320:512,quest?384:640,{minFilter:T.LinearFilter,magFilter:T.LinearFilter,depthBuffer:true});target.texture.generateMipmaps=false;v=best.views[i]={target,projection:new T.Matrix4()};}
++      v.projection.multiplyMatrices(virtual.projectionMatrix,virtual.matrixWorldInverse);renderer.setRenderTarget(v.target);renderer.clear();renderer.render(scene,virtual);});});
++  }
++  function key(e){if(!arcade?.focus||renderer.xr.isPresenting||/INPUT|TEXTAREA|SELECT/.test(e.target?.tagName))return;const down=e.type==='keydown';if(e.code==='Escape'){arcade.release();return;}
++    if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','KeyA','KeyB','Space'].includes(e.code))return;e.preventDefault();e.stopImmediatePropagation();keys[e.code]=false;
++    if(down)arcade.keys.add(e.code);else arcade.keys.delete(e.code);arcade.game.axis((arcade.keys.has('ArrowRight')?1:0)-(arcade.keys.has('ArrowLeft')?1:0),(arcade.keys.has('ArrowDown')?1:0)-(arcade.keys.has('ArrowUp')?1:0));if(['KeyA','KeyB','Space'].includes(e.code))arcade.game.button(e.code==='KeyB'?1:0,down);
++  }
++  const blur=()=>arcade?.release();document.addEventListener('keydown',key,true);document.addEventListener('keyup',key,true);globalThis.addEventListener('blur',blur);
++  const api={get root(){return root;},get crate(){return crate;},get arcade(){return arcade;},showers,mirrors,holds,wetness,click,grip,release,
++    consumesStick(hand){return !!arcade?.focus&&props.system.hands.handedness[arcade.controller]===hand;},
++    setShower(id,{flow,temperature}={}){const s=showers.find(s=>s.id===id);if(!s)return false;if(Number.isFinite(flow))s.flow=clamp(flow,0,1);if(Number.isFinite(temperature))s.temperature=clamp(temperature,0,1);return s;},
++    floorHeight(p,step){return root?basementFloor(p,step):null;},groundHeight(x,z,h){return root&&inBasementFootprint({x,y:0,z})?BASEMENT.level:h;},
++    tick(dt){if(!root)return;clock+=Math.min(dt,.05);camera.getWorldPosition(viewer);tickControls();crate?.tick(dt);tickArcade(dt);tickShowers(dt);wetness.tick(dt,showers);renderMirrors(dt);},
++    onTerrainRebuilt:installGroundHole,
++    snapshot(){return {showers:showers.length,flowing:showers.filter(s=>s.flow>0).length,steamInstances:steam?.count||0,mirrorTargets:mirrors.reduce((n,m)=>n+m.views.length,0),crate:crate?{angle:crate.state.angle,bolt:crate.state.bolt,latched:crate.state.latched}:null,arcade:arcade?.game.title||null};},
++    dispose(){clear();wetness.dispose();restores.reverse().forEach(f=>f());document.removeEventListener('keydown',key,true);document.removeEventListener('keyup',key,true);globalThis.removeEventListener('blur',blur);delete world.h5Home;}
++  };world.h5Home=api;
++  for(const name of ['trigger','desktop'])restores.push(wrapMethod(props,name,old=>function(arg){const key=name==='trigger'?arg:'desktop';if(!this.held.has(key)&&!this.builder?.active&&!this.restraints?.placing&&click(name==='trigger'?this.ray(arg):arg,key))return true;return old.apply(this,arguments);}));
++  restores.push(wrapMethod(props,'grip',old=>function(i){return !this.held.has(i)&&grip(i)||old.apply(this,arguments);}));restores.push(wrapMethod(props,'release',old=>function(i){release(i);return old.apply(this,arguments);}));
++  restores.push(wrapMethod(world,'setScene',old=>function(name){clear();const r=old.apply(this,arguments);build();return r;}));build();return api;
++}
+--- a/modules/human5-neighborhood.js
++++ b/modules/human5-neighborhood.js
+@@ -1,7 +1,7 @@
+ import * as T from 'three';
+ import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
+-import {createFixture} from './human5-lighting.js?v=17.5.0';
+-import {V,wrapMethod} from './human5-common.js?v=17.5.0';
++import {createFixture} from './human5-lighting.js?v=17.6.0';
++import {V,wrapMethod} from './human5-common.js?v=17.6.0';
+ export const NEIGHBORHOOD_NAME='Cul-de-sac';
+ export const HOUSE_SPECS=Object.freeze([
+   {id:'willow',name:'Willow cottage',bedrooms:1,w:7.2,d:8.4,x:-17,z:0,yaw:Math.PI/2,color:0xddd0ad,roof:0x535e60,fabric:0x637e70,pattern:'stripes'},
+@@ -57,7 +57,7 @@
+     const box=(size,p,material)=>{const g=new T.BoxGeometry(...size);g.applyMatrix4(new T.Matrix4().compose(toWorld(...p),q,new T.Vector3(1,1,1)));const mesh=new T.Mesh(g,material);mesh.castShadow=mesh.receiveShadow=true;w.root.add(mesh);return mesh;};
+     const addTrim=(size,p)=>{const g=new T.BoxGeometry(...size);g.applyMatrix4(new T.Matrix4().compose(toWorld(...p),q,new T.Vector3(1,1,1)));trim.push(g);};
+     const isQuarter=Math.abs(Math.sin(s.yaw))>.5,W=isQuarter?s.d:s.w,D=isQuarter?s.w:s.d;
+-    const slab=box([s.w,.055,s.d],[0,.0275,0],new T.MeshStandardMaterial({color:0xa58a6d,map:this.maps.wood,roughness:.82}));slab.castShadow=false;w.floors.push({x:s.x,z:s.z,w:W,d:D,y:0,h:floorY});
++    const slab=box([s.w,.055,s.d],[0,.0275,0],new T.MeshStandardMaterial({color:0xa58a6d,map:this.maps.wood,roughness:.82}));slab.castShadow=false;house.slab=slab;house.floorRecord={x:s.x,z:s.z,w:W,d:D,y:0,h:floorY};w.floors.push(house.floorRecord);
+     const ceiling=box([s.w,.08,s.d],[0,2.94,0],w.mat(0xd8d3c7));house.ceiling=ceiling;
+     for(const wall of plan.walls){
+       const alongX=wall.a[1]===wall.b[1],lo=Math.min(wall.a[alongX?0:1],wall.b[alongX?0:1]),hi=Math.max(wall.a[alongX?0:1],wall.b[alongX?0:1]),fixed=wall.a[alongX?1:0],openings=[...wall.doors,...(wall.windows||[])];
+@@ -87,8 +87,8 @@
+         const mattress=layered('Mattress',r.x,r.z,{y:floorY+.35,color:index%2?0xbcc1b4:0xcfc4b5,accent:0xe4dccb,pattern:index%2?'stripes':'solid'});mattress.root.userData.bedFrame=frame;bed.mattress=mattress.root;place('Nightstand',r.x+r.w/2-.5,r.z-.45);fixture('Table lamp',r.x+r.w/2-.5,r.z-.45,.66);
+         this.textiles.createCarpet({position:toWorld(r.x,floorY+.003,r.z).toArray(),size:[isQuarter?r.d-.15:r.w-.15,isQuarter?r.w-.15:r.d-.15],color:[0x8a7a66,0x78847c,0x9c9080][index%3],seed:index*17+house.rooms.length});
+       }else if(r.id==='living'){
+-        layered('Couch',r.x-.25,r.z-.65,{seaters:index%2?3:2});place('Coffee table',r.x,r.z+.40);layered('Chair',r.x-r.w/2+.55,r.z+.65,{yaw:-Math.PI/2,height:index===3?'high':'low'});fixture('Standing lamp',r.x+r.w/2-.45,r.z-.7);
+-        if(index!==3)this.textiles.createRug({position:toWorld(r.x,floorY+.009,r.z+.4).toArray(),yaw:s.yaw,size:[Math.min(2.5,r.w-.2),Math.min(2,r.d-1)],pattern:['diamonds','stripes','braid','checker'][index%4],color:index%2?0x627685:0x9c8360});
++        layered('Couch',index===0?-.95:r.x-.25,index===0?.55:r.z-.65,{seaters:index%2?3:2});place('Coffee table',index===0?-.9:r.x,index===0?1.75:r.z+.40);layered('Chair',index===0?-.55:r.x-r.w/2+.55,index===0?3.15:r.z+.65,{yaw:-Math.PI/2,height:index===3?'high':'low'});fixture('Standing lamp',r.x+r.w/2-.45,r.z-.7);
++        if(index!==3)this.textiles.createRug({position:toWorld(index===0?-.9:r.x,floorY+.009,index===0?1.75:r.z+.4).toArray(),yaw:s.yaw,size:[index===0?1.7:Math.min(2.5,r.w-.2),Math.min(2,r.d-1)],pattern:['diamonds','stripes','braid','checker'][index%4],color:index%2?0x627685:0x9c8360});
+       }else if(r.id==='kitchen'){
+         place('Kitchen counter',r.x+r.w/2-.65,r.z-.55,Math.PI/2);place('Sink',r.x+r.w/2-.6,r.z+.40,Math.PI/2);place('Refrigerator',r.x-r.w/2+.65,r.z-.5);fixture(index%2?'Chandelier':'Hanging shaded lamp',r.x,r.z,2.9);
+         w.pantry.dog.push(toWorld(r.x,.085,r.z+.55));if(index%2===0)w.pantry.cat.push(toWorld(r.x+.3,.085,r.z+.55));
+--- a/modules/human5-openworld.js
++++ b/modules/human5-openworld.js
+@@ -1,9 +1,9 @@
+ import * as T from 'three';
+-import {WorldField,CELL_SIZE,CITY_BLOCKS,cellKey,desiredCells,hash2} from './human5-worldfield.js?v=17.5.0';
+-import {terrainMaterial,terrainCell,farTerrain,buildRoutes,createLandscapeWater,createForestCell,createFarForest} from './human5-worldrender.js?v=17.5.0';
+-import {createCityBuilding} from './human5-city.js?v=17.5.0';
+-import {wrapMethod,V,clamp,detachMovable} from './human5-common.js?v=17.5.0';
+-import {tagMovable,placeFurniture} from '../mira-v2-furniture.js?v=17.5.0';
++import {WorldField,CELL_SIZE,CITY_BLOCKS,cellKey,desiredCells,hash2} from './human5-worldfield.js?v=17.6.0';
++import {terrainMaterial,terrainCell,farTerrain,buildRoutes,createLandscapeWater,createForestCell,createFarForest} from './human5-worldrender.js?v=17.6.0';
++import {createCityBuilding} from './human5-city.js?v=17.6.0';
++import {wrapMethod,V,clamp,detachMovable} from './human5-common.js?v=17.6.0';
++import {tagMovable,placeFurniture} from '../mira-v2-furniture.js?v=17.6.0';
+ export const LANDMARKS=Object.freeze({Home:[0,2],City:[160,72],Restaurant:[144,44],Penthouse:[305,95],Lake:[-239,241],Forest:[-140,-115],Mountains:[-541,-450],Volcano:[716,-555]});
+ export function installOpenWorld({world,scene,renderer,camera,rig,props,mira,upgrade,weather,quest=true}={}){
+  if(world.h5OpenWorld)return world.h5OpenWorld;
+@@ -19,7 +19,7 @@
+   world.terrain=root;world.extent=field.half-8;camera.far=1800;camera.updateProjectionMatrix();world.scene.fog=new T.Fog(0xb8ccd4,140,1250);
+   proxyMat=new T.MeshStandardMaterial({color:0xffffff,roughness:.8});proxyMat.onBeforeCompile=s=>{s.vertexShader=s.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 h5BuildingPoint;varying vec3 h5BuildingNormal;').replace('#include <begin_vertex>','#include <begin_vertex>\nh5BuildingPoint=(instanceMatrix*vec4(position,1.)).xyz;h5BuildingNormal=normal;');s.fragmentShader=s.fragmentShader.replace('#include <common>','#include <common>\nvarying vec3 h5BuildingPoint;varying vec3 h5BuildingNormal;').replace('#include <color_fragment>','#include <color_fragment>\nfloat band=step(.27,fract(h5BuildingPoint.y/3.15))*step(fract(h5BuildingPoint.y/3.15),.83);float windowX=step(.17,fract((h5BuildingPoint.x+h5BuildingPoint.z)/3.4))*step(fract((h5BuildingPoint.x+h5BuildingPoint.z)/3.4),.84);diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.18,.27,.31),band*windowX*.67*(1.-step(.5,abs(h5BuildingNormal.y))));');};proxyMat.customProgramCacheKey=()=> 'h5-city-proxy-1';
+   proxy=new T.InstancedMesh(new T.BoxGeometry(1,1,1),proxyMat,field.blocks.length);proxy.name='City silhouettes';proxy.castShadow=proxy.receiveShadow=true;root.add(proxy);refreshProxies();world.pickables.push(root);root.raycast=(rc,hits)=>{const h=raycast(rc.ray,rc.far);if(h&&h.distance>=rc.near)hits.push(h);};
+-  lastCenter='';scan=0;updateQueue(V());
++  lastCenter='';scan=0;updateQueue(V());world.h5Home?.onTerrainRebuilt();
+  }
+  function refreshProxies(){if(!proxy)return;const d=new T.Object3D(),c=new T.Color();field.blocks.forEach((b,i)=>{d.position.set(b.x,b.y+b.floors*b.story/2,b.z);d.scale.set(cities.get(b.id)?.root.visible?0:b.w,b.floors*b.story,cities.get(b.id)?.root.visible?0:b.d);d.updateMatrix();proxy.setMatrixAt(i,d.matrix);proxy.setColorAt(i,c.setHex([0xb8afa0,0xc4c8c3,0xa6b0b4][i%3]));});proxy.instanceMatrix.needsUpdate=true;if(proxy.instanceColor)proxy.instanceColor.needsUpdate=true;proxy.computeBoundingSphere();}
+  function removeCell(c){for(const t of c.forest.trees){if(t.obstacle){world.removeObstacle(t.obstacle);forestObstacles.delete(t.obstacle);}if(t.fuel)upgrade.fire.unregister(t.fuel);}const ids=new Set([c.forest.trunk,c.forest.broad,c.forest.pine]);world.pickables=world.pickables.filter(m=>!ids.has(m));c.mesh.removeFromParent();c.mesh.geometry.dispose();c.forest.dispose();cells.delete(c.key);}
+@@ -69,8 +69,9 @@
+   for(const g of world.movables){const f=g.userData.furniture;if(!f||f.held!=null||f.holds?.size)continue;const p=g.position.clone();if(f.localBox)p.y+=f.localBox.min.y;if(c.inLift(p,y,.16))g.position.y+=dy;}
+  }
+  function click(ray){if(!active())return false;raycaster.ray.copy(ray.ray||ray);raycaster.far=3;const hits=raycaster.intersectObjects([...cities.values()].flatMap(c=>c.buttons),false);if(!hits.length)return false;const h=hits[0],block=new T.Raycaster(raycaster.ray.origin,raycaster.ray.direction,0,h.distance-.015).intersectObjects(world.pickables.filter(m=>m!==h.object&&m!==root),false).find(h=>h.object.visible);if(block)return false;h.object.userData.h5CityButton();return true;}
+- function raycast(ray,farLimit=100){if(!active())return null;const max=Math.min(Number.isFinite(farLimit)?farLimit:2200,2200);let prev=0,previous=ray.origin.y-(field.heightAt(ray.origin.x,ray.origin.z)??-1e6),point=V();for(let d=.35;d<=max;d+=Math.min(3,.35+d*.025)){point.copy(ray.direction).multiplyScalar(d).add(ray.origin);const h=field.heightAt(point.x,point.z);if(h!==null&&point.y<=h&&previous>0){let lo=prev,hi=d;for(let j=0;j<12;j++){const mid=(lo+hi)/2;point.copy(ray.direction).multiplyScalar(mid).add(ray.origin);if(point.y>(field.heightAt(point.x,point.z)??-1e6))lo=mid;else hi=mid;}point.copy(ray.direction).multiplyScalar(hi).add(ray.origin);return {distance:hi,point:point.clone(),object:root,face:{normal:field.normalAt(point.x,point.z)}};}previous=point.y-(h??-1e6);prev=d;}return null;}
+- function floorHeight(p,zArg,maxStep){const obj=typeof p==='object',x=obj?p.x:p,z=obj?p.z:zArg,y=obj?p.y||0:0,step=Number.isFinite(maxStep)?maxStep:obj&&Number.isFinite(zArg)&&zArg>0&&zArg<=2?zArg:.42,h=field.heightAt(x,z)??0,values=[h];for(const f of world.floors)if(Math.abs(x-f.x)<f.w/2+.01&&Math.abs(z-f.z)<f.d/2+.01)values.push(f.y+f.h);for(const c of cities.values()){const stair=c.stairHeight({x,y,z},step);if(stair!==null)return stair;}const reachable=values.filter(v=>v<=y+step);return reachable.length?Math.max(...reachable):Math.min(...values);}
++ function groundHeight(x,z){const h=field.heightAt(x,z);return world.h5Home?.groundHeight(x,z,h)??h;}
++ function raycast(ray,farLimit=100){if(!active())return null;const max=Math.min(Number.isFinite(farLimit)?farLimit:2200,2200);let prev=0,previous=ray.origin.y-(groundHeight(ray.origin.x,ray.origin.z)??-1e6),point=V();for(let d=.35;d<=max;d+=Math.min(3,.35+d*.025)){point.copy(ray.direction).multiplyScalar(d).add(ray.origin);const h=groundHeight(point.x,point.z);if(h!==null&&point.y<=h&&previous>0){let lo=prev,hi=d;for(let j=0;j<12;j++){const mid=(lo+hi)/2;point.copy(ray.direction).multiplyScalar(mid).add(ray.origin);if(point.y>(groundHeight(point.x,point.z)??-1e6))lo=mid;else hi=mid;}point.copy(ray.direction).multiplyScalar(hi).add(ray.origin);return {distance:hi,point:point.clone(),object:root,face:{normal:field.normalAt(point.x,point.z)}};}previous=point.y-(h??-1e6);prev=d;}return null;}
++ function floorHeight(p,zArg,maxStep){const home=world.h5Home?.floorHeight(typeof p==='object'?p:{x:p,y:0,z:zArg},maxStep??(typeof p==='object'&&zArg>0&&zArg<=2?zArg:.42));if(home!==null&&home!==undefined)return home;const obj=typeof p==='object',x=obj?p.x:p,z=obj?p.z:zArg,y=obj?p.y||0:0,step=Number.isFinite(maxStep)?maxStep:obj&&Number.isFinite(zArg)&&zArg>0&&zArg<=2?zArg:.42,h=field.heightAt(x,z)??0,values=[h];for(const f of world.floors)if(Math.abs(x-f.x)<f.w/2+.01&&Math.abs(z-f.z)<f.d/2+.01)values.push(f.y+f.h);for(const c of cities.values()){const stair=c.stairHeight({x,y,z},step);if(stair!==null)return stair;}const reachable=values.filter(v=>v<=y+step);return reachable.length?Math.max(...reachable):Math.min(...values);}
+  function createUI(){if(ui||!globalThis.document?.getElementById('ui'))return;ui=document.createElement('details');const title=document.createElement('summary');title.textContent='World, weather & travel';ui.append(title);const weatherSelect=document.createElement('select');weatherSelect.setAttribute('aria-label','World weather');for(const name of ['auto','clear','clouds','rain','snow'])weatherSelect.add(new Option(name==='auto'?'Dynamic weather':name,name));weatherSelect.value=weather.selection||'auto';weatherSelect.onchange=()=>weather.choose(weatherSelect.value);ui.append(weatherSelect);const location=document.createElement('select');location.setAttribute('aria-label','World destination');for(const name of Object.keys(LANDMARKS))location.add(new Option(name,name));ui.append(location);const b=document.createElement('button');b.textContent='TRAVEL';b.onclick=()=>api.travel(location.value);ui.append(b);const status=document.createElement('p');status.textContent='Walk or drive the connected roads; trails continue to the lake and mountains.';ui.append(status);const save=document.createElement('button');save.textContent='SAVE WORLD CHANGES';save.onclick=()=>{const blob=new Blob([JSON.stringify(api.save())],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='human5-region.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),5000);};ui.append(save);const load=document.createElement('input');load.type='file';load.accept='.json';load.setAttribute('aria-label','Restore terrain and felled trees');load.onchange=async()=>{try{const f=load.files[0];if(f.size>4000000)throw Error('World state is too large');api.restore(JSON.parse(await f.text()));status.textContent='World changes restored';}catch(e){status.textContent=e.message;}};ui.append(load);document.getElementById('ui').append(ui);}
+  const api={get active(){return active();},get enabled(){return enabled;},field,cells,cities,landmarks:LANDMARKS,terrainAdapter:fieldAPI,click,raycast,sampleWater:(x,z)=>active()?field.waterAt(x,z):null,
+   pinView(id,p){if(!/^portal[01]$/.test(id)||!p?.toArray().every(Number.isFinite))return false;pinnedViews.set(id,p.clone());if(active())updateQueue(viewer);scan=0;return true;},
+@@ -90,7 +91,7 @@
+  };
+  world.h5OpenWorld=api;
+  restores.push(wrapMethod(world,'floorHeight',old=>function(p,z,s){return active()?floorHeight(p,z,s):old.apply(this,arguments);}));
+- restores.push(wrapMethod(world,'projectSphere',old=>function(p,r){let hit=old.apply(this,arguments);if(active()){const h=field.heightAt(p.x,p.z);if(h!==null&&p.y<h+r){p.y=h+r;hit=true;}}return hit;}));
++ restores.push(wrapMethod(world,'projectSphere',old=>function(p,r){let hit=old.apply(this,arguments);if(active()){const h=groundHeight(p.x,p.z);if(h!==null&&p.y<h+r){p.y=h+r;hit=true;}}return hit;}));
+  restores.push(wrapMethod(world,'nearby',old=>function(p,r=.25){if(!active())return old.apply(this,arguments);const size=4;if(!this.grid){this.grid=new Map();for(const o of this.obstacles)for(let x=Math.floor((o.x-o.w/2)/size);x<=Math.floor((o.x+o.w/2)/size);x++)for(let z=Math.floor((o.z-o.d/2)/size);z<=Math.floor((o.z+o.d/2)/size);z++){const key=x+'/'+z;if(!this.grid.has(key))this.grid.set(key,[]);this.grid.get(key).push(o);}}const out=new Set();for(let x=Math.floor((p.x-r)/size);x<=Math.floor((p.x+r)/size);x++)for(let z=Math.floor((p.z-r)/size);z<=Math.floor((p.z+r)/size);z++)for(const o of this.grid.get(x+'/'+z)||[])out.add(o);return [...out];}));
+  restores.push(wrapMethod(world,'setScene',old=>function(name){if(!['Living room','Jungle','Beach','Cul-de-sac'].includes(name))return old.apply(this,arguments);clear();const r=old.apply(this,arguments);if(this.name==='Cul-de-sac')enable();return r;}));
+  restores.push(wrapMethod(props,'impact',old=>function(hit,e,d,k,s){if(active()&&hit.object?.userData.h5Forest){const tree=hit.object.userData.h5Forest[Math.floor(hit.instanceId/(hit.object.userData.h5Leaf?2:1))];if(tree)fallingTree(tree,e,k);return true;}return old.apply(this,arguments);}));
+--- a/modules/human5-startup-warmup.js
++++ b/modules/human5-startup-warmup.js
+@@ -0,0 +1,34 @@
++import * as T from 'three';
++import {withOffscreenView} from './human5-view-surfaces.js?v=17.6.0';
++
++/** Pay first-use vehicle rendering costs while the initial loading card is up. */
++export function createStartupWarmup({renderer,scene,camera,props,prepare=()=>{},status=()=>{}}={}){
++  const loading=new T.Scene();loading.background=new T.Color(0x101d29);
++  const canvas=document.createElement('canvas');canvas.width=768;canvas.height=192;const ctx=canvas.getContext('2d'),texture=new T.CanvasTexture(canvas);texture.colorSpace=T.SRGBColorSpace;
++  const card=new T.Mesh(new T.PlaneGeometry(1.3,.325),new T.MeshBasicMaterial({map:texture,toneMapped:false,depthTest:false}));loading.add(card);
++  const nextFrame=()=>new Promise(resolve=>requestAnimationFrame(()=>resolve()));
++  const reviewCamera=new T.PerspectiveCamera(70,1,.08,55),samples=[];let disposed=false;
++  function label(text){ctx.fillStyle='#101d29';ctx.fillRect(0,0,768,192);ctx.fillStyle='#e1ecf2';ctx.textAlign='center';ctx.font='bold 32px sans-serif';ctx.fillText('PREPARING HUMAN 5',384,73);ctx.font='23px sans-serif';ctx.fillText(text,384,127);texture.needsUpdate=true;status(text);}
++  const api={active:false,complete:false,samples,error:null,
++    render(){if(disposed)return;camera.updateWorldMatrix(true,false);card.position.set(0,0,-1.4).applyMatrix4(camera.matrixWorld);card.quaternion.copy(camera.getWorldQuaternion(new T.Quaternion()));renderer.render(loading,camera);},
++    async run(){if(api.active||api.complete)return;api.active=true;label('Preparing scene materials');await nextFrame();await nextFrame();
++      const started=performance.now();try{
++        prepare();scene.updateMatrixWorld(true);const mainStart=performance.now();await renderer.compileAsync(scene,camera);samples.push({stage:'mainShaders',ms:performance.now()-mainStart});
++        const cars=props.cars().filter(c=>c.group.visible).slice(0,2);
++        if(cars.length){let compiling;label('Preparing mirror materials');await nextFrame();
++          withOffscreenView(renderer,[],()=>{renderer.setRenderTarget(cars[0].target);compiling=renderer.compileAsync(scene,cars[0].rearCamera);});await compiling;
++        }
++        for(let i=0;i<cars.length;i++){const car=cars[i];label('Preparing vehicle views '+(i+1)+' / '+cars.length);await nextFrame();await nextFrame();const start=performance.now();
++          // compileAsync alone does not upload geometry/textures or force driver JIT.
++          car.renderMirrorView(true);car.h5MirrorPrepared=true;
++          if(!renderer.xr.isPresenting){reviewCamera.position.copy(car.group.localToWorld(new T.Vector3(...car.vehicleSpec.driverEye)));reviewCamera.quaternion.copy(car.group.getWorldQuaternion(new T.Quaternion()));reviewCamera.updateMatrixWorld(true);
++            withOffscreenView(renderer,[props.system.vrPanel],()=>{renderer.setRenderTarget(null);renderer.setViewport(0,0,1,1);renderer.setScissor(0,0,1,1);renderer.setScissorTest(true);renderer.render(scene,reviewCamera);});}
++          samples.push({stage:'vehicleView',vehicle:car.vehicleKind,ms:performance.now()-start});
++        }
++        api.complete=true;
++      }catch(e){api.error=e.message;api.complete=true;console.error('Scene preparation failed',e);}
++      finally{api.active=false;samples.push({stage:'total',ms:performance.now()-started});}
++    },
++    dispose(){disposed=true;card.geometry.dispose();card.material.dispose();texture.dispose();}
++  };return api;
++}
+--- a/modules/human5-wetness.js
++++ b/modules/human5-wetness.js
+@@ -0,0 +1,25 @@
++import * as T from 'three';
++export function createWetnessSystem({mira,props,world,weather,wardrobe}={}){
++  const records=new Map();let scan=0;
++  function install(actor){let r=records.get(actor);if(!r){const wet=actor.h5Wetness??={skin:0,hair:0,clothes:0};r={wet,uniforms:{skin:{value:wet.skin},hair:{value:wet.hair},clothes:{value:wet.clothes}},materials:new Map()};records.set(actor,r);}
++    const add=(mesh,type)=>{if(!mesh)return;for(const m of Array.isArray(mesh.material)?mesh.material:[mesh.material]){if(!m?.isMeshStandardMaterial||r.materials.has(m))continue;
++      const old=m.onBeforeCompile,key=m.customProgramCacheKey,uniform=r.uniforms[type],dark=type==='skin'?.05:type==='hair'?.35:.25,rough=type==='skin'?.23:type==='hair'?.18:.62;
++      const wrapper=s=>{old?.call(m,s);s.uniforms.h5SurfaceWet=uniform;s.fragmentShader='uniform float h5SurfaceWet;\n'+s.fragmentShader;s.fragmentShader=s.fragmentShader.replace('#include <color_fragment>',`#include <color_fragment>\ndiffuseColor.rgb*=1.-h5SurfaceWet*${dark.toFixed(3)};`).replace('#include <roughnessmap_fragment>',`#include <roughnessmap_fragment>\nroughnessFactor=mix(roughnessFactor,min(roughnessFactor,${rough.toFixed(3)}),h5SurfaceWet);`);};
++      m.onBeforeCompile=wrapper;m.customProgramCacheKey=()=> (key?.call(m)||'')+'/h5-wet-1/'+type;m.needsUpdate=true;r.materials.set(m,{old,key,wrapper});}
++    };
++    for(const m of actor.skinMeshes||[])add(m,'skin');add(actor.hairPhysics?.mesh,'hair');add(actor.hairPhysics?.cap,'hair');actor.h5Groom?.root?.traverse(m=>{if(m.isMesh)add(m,'hair');});for(const c of wardrobe?.clothes||[])if(c.actor===actor){add(c.mesh,'clothes');add(c.skinLOD?.mesh,'clothes');}return r;
++  }
++  function release(actor,r){for(const [m,s]of r.materials)if(m.onBeforeCompile===s.wrapper){m.onBeforeCompile=s.old;m.customProgramCacheKey=s.key;m.needsUpdate=true;}records.delete(actor);}
++  return {records,soak(actor,dt,amount=1){const {wet}=install(actor);for(const k of ['skin','hair','clothes'])wet[k]=Math.min(1,wet[k]+Math.max(0,dt)*amount*(k==='skin'?1.6:1.1));},
++    tick(dt,showers=[]){scan-=dt;if(scan<=0){scan=.5;for(const a of mira.actors)install(a);for(const [a,r]of records)if(!mira.actors.includes(a))release(a,r);}
++      for(const [a,r]of records){const p=a.group.getWorldPosition(new T.Vector3()),head=p.clone().add(new T.Vector3(0,1.45*(a.shape?.height||1),0));let skin=0,hair=0;
++        const water=world.h5OpenWorld?.sampleWater(p.x,p.z),body=props.water?.contains?.(p.clone().add(new T.Vector3(0,.6,0)));
++        if(body?.submerged||water&&water.surface>p.y+.6)skin=1;if(body?.surfaceY>head.y||water&&water.surface>head.y)hair=1;
++        if((weather?.state.rain||0)>.02&&!world.h5OpenWorld?.isSheltered(head)){skin=Math.max(skin,weather.state.rain*.5);hair=Math.max(hair,weather.state.rain*.7);}
++        for(const s of showers)if(s.flow>.01){const local=s.root.worldToLocal(p.clone());if(Math.abs(local.x)<.48&&Math.abs(local.z)<.52&&local.y>-.2&&local.y<2){skin=Math.max(skin,s.flow);hair=Math.max(hair,s.flow);}}
++        r.wet.skin=T.MathUtils.clamp(r.wet.skin+dt*(skin*1.6-(skin?0:.016)),0,1);r.wet.hair=T.MathUtils.clamp(r.wet.hair+dt*(hair*1.1-(hair?0:.005)),0,1);r.wet.clothes=T.MathUtils.clamp(r.wet.clothes+dt*(skin*.7-(skin?0:.004)),0,1);
++        for(const k of ['skin','hair','clothes'])r.uniforms[k].value=r.wet[k];
++      }
++    },dispose(){for(const [a,r]of records)release(a,r);}
++  };
++}

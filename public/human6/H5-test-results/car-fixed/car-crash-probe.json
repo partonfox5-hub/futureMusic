@@ -1,0 +1,40 @@
+{
+  "result": {
+    "startup": [
+      {
+        "stage": "mainShaders",
+        "ms": 310.5
+      },
+      {
+        "stage": "vehicleView",
+        "vehicle": "sedan",
+        "ms": 15024.599999999627
+      },
+      {
+        "stage": "vehicleView",
+        "vehicle": "sedan",
+        "ms": 305.8999999994412
+      },
+      {
+        "stage": "total",
+        "ms": 21620
+      }
+    ],
+    "timings": {
+      "enterSyncMs": 0.7999999998137355,
+      "firstMirrorMs": 190.79999999981374,
+      "secondMirrorMs": 44.10000000055879,
+      "firstCabinRenderMs": 141.70000000018626,
+      "secondCabinRenderMs": 57.299999999813735
+    },
+    "crash": null,
+    "broken": 4,
+    "wall": [
+      -12.8,
+      0.77875,
+      3.3405000000000014
+    ],
+    "speed": 0.6371804224653081
+  },
+  "errors": []
+}

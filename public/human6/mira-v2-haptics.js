@@ -1,7 +1,7 @@
 // Optional XR controller output. Unsupported actuators are a quiet no-op.
 // A hand's contacts are coalesced, capped, and rate-limited; no sustained rumble.
 export class ContactHaptics {
- constructor(renderer){this.renderer=renderer;this.gain=2;this.time=0;this.last=[-1,-1];this.pending=[0,0];this.duration=[0,0];}
+ constructor(renderer){this.renderer=renderer;this.gain=3;this.time=0;this.last=[-1,-1];this.pending=[0,0];this.duration=[0,0];}
  advance(dt){this.time+=Math.min(.05,Math.max(0,dt));}
  contact(i,kind,speed=0,depth=0){
   const base=kind==='hair'?.010:kind==='head'?.018:kind==='prop'?.026:.020;

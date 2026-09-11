@@ -1,4 +1,4 @@
-import {paletteSkinnedVertex,prepareMorphPalette} from './modules/human5-skinning.js?v=17.5.0';
+import {paletteSkinnedVertex,prepareMorphPalette} from './modules/human5-skinning.js?v=17.8.0';
 import * as T from 'three';
 const V=()=>new T.Vector3(),clamp=T.MathUtils.clamp;
 const limb=n=>/^([LR])_(Upperarm|Forearm|Elbow|Hand|Thumb|Index|Mid|Ring|Pinky)/.test(n)?n[0]+'Arm':/^([LR])_(Thigh|Calf|Knee|Foot|Toe)/.test(n)?n[0]+'Leg':/Head|Eye|Jaw|Neck/.test(n)?'head':'torso';
@@ -11,7 +11,7 @@ export class BodySurface {
   actor.root.traverse(mesh=>{
    if(!mesh.isSkinnedMesh||!/^body/.test(mesh.name))return;
    const g=mesh.geometry,p=g.attributes.position,si=g.attributes.skinIndex,sw=g.attributes.skinWeight;
-   let cache=this.stores.get(p);if(!cache){cache={mesh,data:new Float32Array(p.count*3),stamp:new Int32Array(p.count)};this.stores.set(p,cache);}
+   let cache=this.stores.get(p);if(!cache){cache={mesh,data:new Float32Array(p.count*3),stamp:new Int32Array(p.count)};this.stores.set(p,cache);}else if(!cache.mesh.geometry.morphAttributes.position?.length&&g.morphAttributes.position?.length)cache.mesh=mesh;
    const byBone=new Map();for(let i=0;i<g.index.count;i+=3){const ids=[g.index.getX(i),g.index.getX(i+1),g.index.getX(i+2)],scores=new Map();for(const id of ids)for(let j=0;j<4;j++){const bi=si.array[id*4+j];scores.set(bi,(scores.get(bi)||0)+sw.array[id*4+j]);}const bi=[...scores].sort((a,b)=>b[1]-a[1])[0][0];if(!byBone.has(bi))byBone.set(bi,[]);byBone.get(bi).push(ids);}
    for(const [bi,tris] of byBone){
     const bone=mesh.skeleton.bones[bi],inverse=bone.matrixWorld.clone().invert(),points=new Map();
@@ -48,10 +48,18 @@ export class BodySurface {
 export class BodyContacts {
  constructor(actors){this.actors=actors;this.surfaces=new WeakMap();this.stats={contacts:0};}
  surface(a){let s=this.surfaces.get(a);if(!s){s=new BodySurface(a);this.surfaces.set(a,s);}return s;}
- project(a,p,r,exclude,react=true){let moved=false;for(const b of this.actors){if(b.version!=='v2'||b.group.position.distanceTo(a.group.position)>1.6)continue;const c=this.surface(b).project(p,r,b===a?exclude:'',react);if(c){this.stats.contacts++;moved=true;}}return moved;}
- tick(){
-  const list=this.actors.filter(a=>a.version==='v2'&&(a.h5SimulationDue!==false)&&( !a.world?.h5QuestBudget||!a.world?.h5Viewer||a.group.position.distanceToSquared(a.world.h5Viewer)<64||a.grabs.size||a.socialPair||this.actors.some(b=>b!==a&&b.group.position.distanceToSquared(a.group.position)<3)));list.forEach(a=>this.surface(a).begin());this.stats.contacts=0;
-  for(const a of list){const h=a.shape.height;
+ project(a,p,r,exclude,react=true){let moved=false;for(const b of this.actors){if(b.version!=='v2'||b.group.position.distanceTo(a.group.position)>1.6)continue;const surface=this.surface(b);if(surface.h5ContactFrame!==this.contactFrame){surface.begin();surface.h5ContactFrame=this.contactFrame;}const c=surface.project(p,r,b===a?exclude:'',react);if(c){this.stats.contacts++;moved=true;}}return moved;}
+ tick(dt=1/72){
+  const list=this.actors.filter(a=>a.version==='v2'&&(a.h5SimulationDue!==false)&&( !a.world?.h5QuestBudget||!a.world?.h5Viewer||a.group.position.distanceToSquared(a.world.h5Viewer)<64||a.grabs.size||a.socialPair||this.actors.some(b=>b!==a&&b.group.position.distanceToSquared(a.group.position)<3)));const due=list.filter(a=>{
+    const near=!a.world?.h5QuestBudget||!a.world.h5Viewer||a.group.position.distanceToSquared(a.world.h5Viewer)<2.25;
+    const interacting=a.grabs.size||a.socialPair||a.balance?.state!=='standing'||this.actors.some(b=>b!==a&&b.group.position.distanceToSquared(a.group.position)<1.44);
+    a.h5ContactAccumulator=(a.h5ContactAccumulator||0)+dt;
+    if(near||interacting||a.h5ContactAccumulator>=1/24){a.h5ContactAccumulator=0;return true;}return false;
+  });
+  // Cross-character projection may inspect a neighbor outside this cadence. Its
+  // lazy narrow phase is refreshed on demand instead of using a stale skeleton.
+  this.contactFrame=(this.contactFrame||0)+1;for(const a of due){const s=this.surface(a);s.begin();s.h5ContactFrame=this.contactFrame;}this.stats.contacts=0;
+  for(const a of due){const h=a.shape.height;
    for(let pass=0;pass<(a.socialPair?2:1);pass++)for(const side of ['L','R']){
     if(a.injuryDriver?.states.get(a)?.missing.has(side+'Arm'))continue;
     const hand=a.bones[side+'_Hand'],elbow=a.bones[side+'_Forearm'];if(!hand||!elbow)continue;

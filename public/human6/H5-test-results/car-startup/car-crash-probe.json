@@ -1,0 +1,21 @@
+{
+  "result": {
+    "timings": {
+      "prewarmMs": 45.89999999944121,
+      "enterSyncMs": 0.39999999944120646,
+      "firstMirrorMs": 171.69999999925494,
+      "secondMirrorMs": 14.100000000558794,
+      "firstCabinRenderMs": 170.79999999981374,
+      "secondCabinRenderMs": 11.799999999813735
+    },
+    "crash": null,
+    "broken": 4,
+    "wall": [
+      -12.8,
+      0.77875,
+      3.3405000000000014
+    ],
+    "speed": 0.6371804224653081
+  },
+  "errors": []
+}

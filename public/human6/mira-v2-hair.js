@@ -153,7 +153,7 @@ export class HairGuides {
  reset(){this.ready=false;this.acc=0;this.previousCaps=[];this.uniform.forEach(v=>v.set(0,0,0));}
  tick(dt){
   if(!this.mesh||!dt)return;if(this.mode==='classic'){this.mesh.visible=this.actor.hairStyle!==9;return;}if(this.actor.hairStyle!==this.style)this.setStyle(this.actor.hairStyle);if(this.style===9)return;
-  const head=this.actor.bones.Head,h=this.actor.shape.height,headPos=head.getWorldPosition(V()),flex=Math.min(.52,(this.actor.shape.hairMotion??.48))*(this.compact?.55:1)*.82;
+  const wet=this.actor.h5Wetness?.hair||0;const head=this.actor.bones.Head,h=this.actor.shape.height,headPos=head.getWorldPosition(V()),flex=Math.min(.52,(this.actor.shape.hairMotion??.48))*(this.compact?.55:1)*.82;
   for(const chain of this.chains)for(const n of chain){n.target.copy(n.rest).applyMatrix4(head.matrixWorld);if(!this.ready||n.p.distanceTo(n.target)>.55*h){n.p.copy(n.target);n.prev.copy(n.target);}}
   const caps=[];
   for(const spec of this.hits){
@@ -179,8 +179,8 @@ export class HairGuides {
    for(const chain of this.chains){
     chain[0].p.copy(chain[0].target);chain[0].prev.copy(chain[0].p);
     for(let j=1;j<LEVELS;j++){
-     const n=chain[j];vel.subVectors(n.p,n.prev).multiplyScalar(Math.exp(-step*(5.2+4.5*(1-flex))));if(vel.length()>.022*h)vel.setLength(.022*h);
-     n.prev.copy(n.p);n.p.add(vel);n.p.y-=9.81*step*step*.55;
+     const n=chain[j];vel.subVectors(n.p,n.prev).multiplyScalar(Math.exp(-step*(5.2+4.5*(1-flex)+wet*5)));if(vel.length()>.022*h)vel.setLength(.022*h);
+     n.prev.copy(n.p);n.p.add(vel);n.p.y-=(this.actor.world?.gravity??9.81)*step*step*(.55+wet*.12);
      n.p.lerp(n.target,1-Math.exp(-step*((j===1?8.4:j<4?3.1:1.7)*(1.2-flex*.5))));n.lambda=0;
     }
     for(let iter=0;iter<4;iter++){

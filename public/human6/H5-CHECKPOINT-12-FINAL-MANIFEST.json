@@ -1,0 +1,61 @@
+{
+  "version": "17.8.0",
+  "base_version": "17.7.0",
+  "files": [
+    {
+      "path": "H5-LATEST-CHECKPOINT.md",
+      "source_sha256": "351ce1a497dc9d12b4c9ea502390be076c3a3b6effe260846f0ebcaa05eba34e",
+      "override_sha256": "19a27474939ced18e5bbc8b9df013f4e4a67269e4fee8bb3dcd4d27e04f46410"
+    },
+    {
+      "path": "engine.js",
+      "source_sha256": "98259ed100e322dabd6b032c324d77b71e79de699a5039009526e5fb9421407e",
+      "override_sha256": "2e0d93e2c0030ef418fd2e71d673942b91c9881bfbeda88ec67d120bdb471909"
+    },
+    {
+      "path": "mira-v2-car.js",
+      "source_sha256": "cdd7de19df878677b5e9e2a5d22652dfd4bb8fcc0a5acc2316080fafd7c076c9",
+      "override_sha256": "a9c41377742011a53b9e0f3a4c3511d6f7bff595dac30d9fd92ef28bd05548d4"
+    },
+    {
+      "path": "mira-v2-contact.js",
+      "source_sha256": "69b15c95e1c9467f1a3687f166b272ded52c87d5a2b56989b0a972b3de36d37a",
+      "override_sha256": "a46136b5c1ccbf26f87684afc1a21c30b7646fe032e93684d7f42108a7053bc0"
+    },
+    {
+      "path": "mira-v2-features.js",
+      "source_sha256": "3240f5f7ef4f0a09ba08a34c2aa1fc52c6efa1103c44a5503ce3ef726cfe39d8",
+      "override_sha256": "bd2bf371951dfcc1987b6d96aa66dab6c65dfc340c64d39e704259ae531e1baa"
+    },
+    {
+      "path": "mira-v2.js",
+      "source_sha256": "771fe62e2740fac167181d121ae68d3073385799a306d49769ce99e44d492885",
+      "override_sha256": "17a1ee1eaa6b15a8aa14be9043e93dce3a920daf0633e8e67d9c6de312d52620"
+    },
+    {
+      "path": "modules/human5-fire.js",
+      "source_sha256": "948aa851183cc495c75e4d5f07e7131f0fa50bd4cb554a54882023aad7cf3176",
+      "override_sha256": "5320da9a10103f7884dea8a4ca858dabaf8fafa03a48491af45a897e2166a5d6"
+    },
+    {
+      "path": "modules/human5-groom.js",
+      "source_sha256": "c991081b7e051617cbcabe04c97e176682b7d68be3166b530566b298ad91a781",
+      "override_sha256": "56c34777a25ba0e522dd3a6d566086a970e06d8d6e72ac612161d7d72417a318"
+    },
+    {
+      "path": "modules/human5-identity.js",
+      "source_sha256": "e3cf7a76f97fd4b89361ee501ad7d88c3f2260eb913b64715935e8cfa0994b76",
+      "override_sha256": "d1c13374e554e1303ddb7f0ecc64becfaa022458a9c72d18b04651ec80d6817b"
+    },
+    {
+      "path": "modules/human5-performance.js",
+      "source_sha256": "ff9ba30a8edaf789208906919d862af98d71bf5a4bfe0ad8fc0c977665714032",
+      "override_sha256": "6ccbd648dd6a53a9b00b00e76339ecdbd932dadbd61b9e66fe0cb4090eb30c08"
+    },
+    {
+      "path": "modules/human5-skin.js",
+      "source_sha256": "e3a8057cbe80a10f2bd70fc8cea3e60bef0f8edfe083e66d555ea8dd9efa7f7e",
+      "override_sha256": "b0c747ed95742ff7e75f5ed5c0bd2c6ea6d58ad026dcef0dd54a79febe9ec167"
+    }
+  ]
+}

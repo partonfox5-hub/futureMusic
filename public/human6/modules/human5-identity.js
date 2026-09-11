@@ -1,27 +1,30 @@
 import * as T from 'three';
-import {V,clamp,smooth,wrapMethod} from './human5-common.js?v=17.5.0';
-import {installReferenceGroom} from './human5-groom.js?v=17.5.0';
-import {weldSkinNormals} from './human5-skin.js?v=17.5.0';
+import {V,clamp,smooth,wrapMethod} from './human5-common.js?v=17.8.0';
+import {installReferenceGroom} from './human5-groom.js?v=17.8.0';
+import {weldSkinNormals} from './human5-skin.js?v=17.8.0';
 
 export const REFERENCE_MIRA=Object.freeze({
-  id:'mira-reference-17',name:'Mira',faceType:1,likeness:1,hairStyle:1,hairColor:1,
-  shape:{height:1,waist:.91,hips:1.08,breast:1.12,butt:1.16,thigh:1.08,gap:-.08,arms:.94,jiggle:1.35,breastHeight:-.12,breastSpacing:.04,breastAngle:.02,buttHeight:-.04,buttSpacing:.02,buttAngle:0,softness:.63,damping:.48,bodySoftness:.55,faceSoftness:.32,hairMotion:.48,skinDetail:.35},
-  sculpt:{jawWidth:-.055,chinLength:-.008,cheekFullness:.0025,noseProjection:-.0015,browHeight:.001,lipFullness:.0012,craniumWidth:.018},
-  physics:{tissueDensity:980,waterDrag:5,thighGravity:.55,spineFlexibility:.48,gaitVariation:.40},
+  id:'mira-reference-17',name:'Mira',faceType:1,likeness:0,hairStyle:1,hairColor:1,
+  shape:{height:1,waist:.91,hips:1.08,breast:1.86,butt:1.74,thigh:1.57,gap:-.08,arms:.94,jiggle:4.5,handResponse:12,breastHeight:-.12,breastSpacing:.04,breastAngle:.02,buttHeight:-.04,buttSpacing:.02,buttAngle:0,softness:.75,damping:.48,bodySoftness:.75,faceSoftness:.32,hairMotion:1,skinDetail:.35},
+  sculpt:{jawWidth:.07,chinLength:.004,cheekFullness:.003,noseProjection:-.0015,browHeight:0,lipFullness:.0012,craniumWidth:-.02,eyeWidth:.045,eyeAperture:.10},
+  physics:{tissueDensity:980,waterDrag:5,thighGravity:.55,spineFlexibility:.48,gaitVariation:.40,fluidBias:.075,muscleTone:.6,surfaceRipple:.0018},
   note:'Artist-fit approximation from supplied references. Photos do not establish exact body measurements or hidden skull geometry.'
 });
 export const IDENTITY_CONTROLS=[
   {key:'jawWidth',min:-.12,max:.12,value:-.055},{key:'chinLength',min:-.012,max:.012,value:-.008},
   {key:'cheekFullness',min:-.004,max:.006,value:.0025},{key:'noseProjection',min:-.004,max:.004,value:-.0015},
   {key:'browHeight',min:-.003,max:.003,value:.001},{key:'lipFullness',min:0,max:.002,value:.0012},
-  {key:'craniumWidth',min:-.05,max:.05,value:.018}
+  {key:'craniumWidth',min:-.05,max:.05,value:-.02},
+  {key:'eyeWidth',min:-.08,max:.10,value:.045},{key:'eyeAperture',min:-.12,max:.18,value:.10}
 ];
 const bell=(x,center,width)=>Math.exp(-(((x-center)/width)**2));
 export function identityWarp(x,y,z,s=REFERENCE_MIRA.sculpt){
-  if(y<1.4)return [x,y,z];const front=smooth((z+.012)/.05),jaw=bell(y,1.447,.025),cheek=bell(y,1.50,.026),chin=bell(y,1.421,.018)*bell(x,0,.045);
-  const dx=x*(s.jawWidth*jaw*front+s.craniumWidth*bell(y,1.625,.07));
-  const dy=s.chinLength*chin+s.browHeight*bell(y,1.55,.017)*front;
-  const dz=s.cheekFullness*cheek*bell(Math.abs(x),.042,.03)*front+s.noseProjection*bell(x,0,.021)*bell(y,1.523,.026)*front+s.lipFullness*bell(x,0,.035)*bell(y,1.475,.012)*front;
+  if(y<1.395)return [x,y,z];
+  const front=smooth((z+.012)/.05),jaw=bell(y,1.431,.025),cheek=bell(y,1.483,.022),chin=bell(y,1.408,.014)*bell(x,0,.040);
+  const eye=bell(Math.abs(x),.031,.022)*bell(y,1.513,.017)*front;
+  const dx=x*((s.jawWidth||0)*jaw*front+(s.craniumWidth||0)*bell(y,1.615,.07))+(x-Math.sign(x)*.031)*(s.eyeWidth||0)*eye;
+  const dy=(s.chinLength||0)*chin+(s.browHeight||0)*bell(y,1.545,.013)*front+(y-1.513)*(s.eyeAperture||0)*eye;
+  const dz=(s.cheekFullness||0)*cheek*bell(Math.abs(x),.042,.028)*front+(s.noseProjection||0)*bell(x,0,.017)*bell(y,1.480,.021)*front+(s.lipFullness||0)*bell(x,0,.030)*bell(y,1.448,.010)*front;
   return [x+dx,y+dy,z+dz];
 }
 
@@ -54,7 +57,7 @@ export function installReferenceIdentity(actor,{preset=REFERENCE_MIRA,texture=nu
       }
       d.position.needsUpdate=true;d.geom.computeVertexNormals();d.normal.needsUpdate=true;d.geom.computeBoundingSphere();
     }
-    this.buildSoftLimits();weldSkinNormals(this);this.seamsReady=false;appliedStamp=this.geomState;return result;
+    this.buildSoftLimits();weldSkinNormals(this);this.seamsReady=!!this.h5Skin;appliedStamp=this.geomState;return result;
   }));
   // Drive the actual 49 channels just before the existing FaceDrive/morph pass.
   restores.push(wrapMethod(actor,'tickMorphs',old=>function(dt){

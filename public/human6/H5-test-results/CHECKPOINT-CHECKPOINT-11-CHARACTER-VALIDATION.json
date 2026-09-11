@@ -1,0 +1,8 @@
+{
+  "version": "17.7.0",
+  "baseVersion": "17.6.0",
+  "byteIdenticalReproduction": true,
+  "modules": 48,
+  "overrides": 17,
+  "questHardwareTested": false
+}

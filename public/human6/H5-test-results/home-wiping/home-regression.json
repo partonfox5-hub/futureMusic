@@ -1,0 +1,42 @@
+{
+  "checks": {
+    "stairs": {
+      "maxStep": 0.028550000000002296,
+      "down": -2.8
+    },
+    "basementCollisionAndRay": true,
+    "latch": true,
+    "hollowCrateAndDoor": true,
+    "arcadeAdapter": true,
+    "wetness": {
+      "skin": 0.9679999999999991,
+      "hair": 0.9900000000000011
+    },
+    "mirror": true,
+    "hotShower": {
+      "fog": 0.7120000000000009,
+      "steam": 12
+    },
+    "glassWipe": true,
+    "snapshot": {
+      "showers": 5,
+      "flowing": 0,
+      "steamInstances": 0,
+      "mirrorTargets": 0,
+      "crate": {
+        "angle": 1.7,
+        "bolt": 0,
+        "latched": false
+      },
+      "arcade": "ORBIT CATCH"
+    }
+  },
+  "rebuild": {
+    "cleared": true,
+    "showers": 5,
+    "mirrors": 5,
+    "crates": 1
+  },
+  "errors": [],
+  "testedAt": "2026-09-11T16:38:50.444Z"
+}

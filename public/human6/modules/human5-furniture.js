@@ -1,6 +1,6 @@
 import * as T from 'three';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
-import {V,clamp,rng,localBounds,wrapMethod,detachMovable,disposeTree} from './human5-common.js?v=17.5.0';
+import {V,clamp,rng,localBounds,wrapMethod,detachMovable,disposeTree} from './human5-common.js?v=17.8.0';
 
 const MAX_CUTS=8;
 function fabricMap(pattern,color,accent){

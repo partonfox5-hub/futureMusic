@@ -1,7 +1,7 @@
 import * as T from 'three';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
-import {V,clamp,gravityOf,wrapMethod} from './human5-common.js?v=17.5.0';
+import {V,clamp,gravityOf,wrapMethod} from './human5-common.js?v=17.8.0';
 const Y=new T.Vector3(0,1,0),RATIOS=[3.70,2.20,1.52,1.16,.91,.74];
 
 /** Six-speed automatic within the existing P/R/N/D selector. No network/ML dependency. */

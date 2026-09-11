@@ -1,5 +1,5 @@
 import * as T from 'three';
-import {V,clamp,finiteDt,gravityOf,localBounds,segmentBox,obstacleBox,disposeTree,attachedTo} from './human5-common.js?v=17.5.0';
+import {V,clamp,finiteDt,gravityOf,localBounds,segmentBox,obstacleBox,disposeTree,attachedTo} from './human5-common.js?v=17.8.0';
 
 // Artistic combustion parameters, NOT measured ignition temperatures.
 export const FUEL = Object.freeze({
@@ -33,7 +33,8 @@ export class FireSystem {
     const f={id:this.nextId++,root,material,spec,localBox:bounds?.clone()||localBounds(root),box:new T.Box3(),heat:0,fuel:1,wet:0,burning:false,exposed,onExpose,point:V(),ready:false};
     this.surfaces.set(f.id,f);this.updateSurface(f);return f;
   }
-  unregister(f){this.surfaces.delete(f.id);}
+  unregister(f){this.removeFromGrid(f);this.surfaces.delete(f.id);}
+  removeFromGrid(f){for(const key of f.gridKeys||[]){const cell=this.grid.get(key);if(!cell)continue;const i=cell.indexOf(f);if(i>=0)cell.splice(i,1);if(!cell.length)this.grid.delete(key);}f.gridKeys=null;f.gridRange=null;}
   updateSurface(f){f.root.updateWorldMatrix(true,false);f.box.copy(f.localBox).applyMatrix4(f.root.matrixWorld);if(!f.ready){f.localBox.getCenter(f.point);f.ready=true;}}
   expose(f){f.exposed=true;f.onExpose?.(f);}
   ignite(f,worldPoint=null){if(!f.exposed||f.fuel<=0||f.wet>.35||!Number.isFinite(f.spec.ignition))return false;f.heat=f.spec.ignition+1;if(worldPoint){f.point.copy(worldPoint);f.root.worldToLocal(f.point);f.localBox.clampPoint(f.point,f.point);}if(!f.burning){f.burning=true;this.onIgnite(f);}return true;}
@@ -54,13 +55,15 @@ export class FireSystem {
     }return false;
   }
   rebuildGrid(){
-    this.grid.clear();
     for(const f of this.surfaces.values()){
-      if(!attachedTo(f.root,this.scene)){this.surfaces.delete(f.id);continue;}this.updateSurface(f);
-      if(!f.exposed||f.fuel<=0||!Number.isFinite(f.spec.ignition))continue;
+      if(!attachedTo(f.root,this.scene)){this.unregister(f);continue;}this.updateSurface(f);
+      if(!f.exposed||f.fuel<=0||!Number.isFinite(f.spec.ignition)){if(f.gridKeys)this.removeFromGrid(f);continue;}
       const lo=f.box.min,hi=f.box.max;
+      const range=[Math.floor(lo.x),Math.floor(lo.y),Math.floor(lo.z),Math.floor(hi.x),Math.floor(hi.y),Math.floor(hi.z)];
+      if(f.gridRange&&range.every((v,i)=>v===f.gridRange[i]))continue;
+      this.removeFromGrid(f);f.gridRange=range;f.gridKeys=[];
       for(let x=Math.floor(lo.x);x<=Math.floor(hi.x);x++)for(let y=Math.floor(lo.y);y<=Math.floor(hi.y);y++)for(let z=Math.floor(lo.z);z<=Math.floor(hi.z);z++){
-        const key=x+'/'+y+'/'+z;if(!this.grid.has(key))this.grid.set(key,[]);this.grid.get(key).push(f);
+        const key=x+'/'+y+'/'+z;if(!this.grid.has(key))this.grid.set(key,[]);this.grid.get(key).push(f);f.gridKeys.push(key);
       }
     }
   }
@@ -104,7 +107,7 @@ export class FireSystem {
     dt=finiteDt(dt);if(!dt)return;this.time+=dt;
     for(const s of this.sources){
       s.root.updateWorldMatrix(true,false);s.p.copy(s.wick).applyMatrix4(s.root.matrixWorld);
-      if(s.ready){const d=s.p.distanceTo(s.previous);s.velocity.subVectors(s.p,s.previous).divideScalar(dt).clampLength(0,4);if(d<2&&s.lit)s.sweep.push([s.previous.clone(),s.p.clone(),dt]);else s.sweep.length=0;}
+      if(s.ready){const d=s.p.distanceTo(s.previous);s.velocity.subVectors(s.p,s.previous).divideScalar(dt).clampLength(0,4);if(d>.0005&&d<2&&s.lit)s.sweep.push([s.previous.clone(),s.p.clone(),dt]);else if(d>=2||!s.lit)s.sweep.length=0;}
       s.previous.copy(s.p);s.ready=true;
     }
     this.acc=Math.min(.15,this.acc+dt);while(this.acc>=.05){this.advance(.05);this.acc-=.05;}
@@ -129,5 +132,5 @@ export class FireSystem {
     this.flames.count=i;this.flames.instanceMatrix.needsUpdate=true;this.material.uniforms.time.value=this.time;
     Object.assign(this.stats,{burning:all.length,surfaces:this.surfaces.size,rendered:sources.length});
   }
-  dispose(){this.surfaces.clear();this.sources.clear();disposeTree(this.effects);}
+  dispose(){this.surfaces.clear();this.sources.clear();this.grid.clear();disposeTree(this.effects);}
 }

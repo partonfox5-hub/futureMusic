@@ -1,44 +1,46 @@
-import {Builder,FURNITURE,SURFACES} from './mira-v2-builder.js?v=17.5.0';
-import {SmoothLocomotion} from './mira-v2-locomotion.js?v=17.5.0';
-import {Car} from './mira-v2-car.js?v=17.5.0';
-import {Restraints} from './mira-v2-restraints.js?v=17.5.0';
-import { createDogSystem } from './mira-v2-dog.js?v=17.5.0';
-import { installGadgets } from './mira-v2-gadgets.js?v=17.5.0';
-import {Injuries} from './mira-v2-injuries.js?v=17.5.0';
-import {Props,WEAPONS,GUNS} from './mira-v2-props.js?v=17.5.0';
-import {installFire} from './mira-v2-fire.js?v=17.5.0';
-import {installWeather} from './mira-v2-weather.js?v=17.5.0';
-import {installTerrainFeatures} from './mira-v2-terrain-features.js?v=17.5.0';
-import {syncFurniture} from './mira-v2-furniture.js?v=17.5.0';
-import {installWater} from './mira-v2-water.js?v=17.5.0';
-import {createFloraSystem} from './mira-v2-flora.js?v=17.5.0';
-import {EstimatedRoomLight as RoomLight,createQuestLighting} from './modules/human5-lighting.js?v=17.5.0';
-import {installHuman5Upgrade} from './modules/human5-upgrade.js?v=17.5.0';
-import {installPerformance} from './modules/human5-performance.js?v=17.5.0';
-import {installOpenWorld} from './modules/human5-openworld.js?v=17.5.0';
-import {installGameplay} from './modules/human5-gameplay.js?v=17.5.0';
-import {installVehicleSpawns} from './modules/human5-vehicle-spawns.js?v=17.5.0';
-import {installEquipment} from './modules/human5-equipment.js?v=17.5.0';
-import {installEcology} from './modules/human5-ecology.js?v=17.5.0';
-import {createVoiceBridge} from './modules/human5-voice.js?v=17.5.0';
-import {localTranscribe,warmLocalSpeech,stopLocalSpeech} from './mira-local-speech.js?v=17.5.0';
+import {Builder,FURNITURE,SURFACES} from './mira-v2-builder.js?v=17.8.0';
+import {SmoothLocomotion} from './mira-v2-locomotion.js?v=17.8.0';
+import {Car} from './mira-v2-car.js?v=17.8.0';
+import {Restraints} from './mira-v2-restraints.js?v=17.8.0';
+import { createDogSystem } from './mira-v2-dog.js?v=17.8.0';
+import { installGadgets } from './mira-v2-gadgets.js?v=17.8.0';
+import {Injuries} from './mira-v2-injuries.js?v=17.8.0';
+import {Props,WEAPONS,GUNS} from './mira-v2-props.js?v=17.8.0';
+import {installFire} from './mira-v2-fire.js?v=17.8.0';
+import {installWeather} from './mira-v2-weather.js?v=17.8.0';
+import {installTerrainFeatures} from './mira-v2-terrain-features.js?v=17.8.0';
+import {syncFurniture} from './mira-v2-furniture.js?v=17.8.0';
+import {installWater} from './mira-v2-water.js?v=17.8.0';
+import {createFloraSystem} from './mira-v2-flora.js?v=17.8.0';
+import {EstimatedRoomLight as RoomLight,createQuestLighting} from './modules/human5-lighting.js?v=17.8.0';
+import {installHuman5Upgrade} from './modules/human5-upgrade.js?v=17.8.0';
+import {installPerformance} from './modules/human5-performance.js?v=17.8.0';
+import {installOpenWorld} from './modules/human5-openworld.js?v=17.8.0';
+import {installGameplay} from './modules/human5-gameplay.js?v=17.8.0';
+import {installVehicleSpawns} from './modules/human5-vehicle-spawns.js?v=17.8.0';
+import {createStartupWarmup} from './modules/human5-startup-warmup.js?v=17.8.0';
+import {installHome} from './modules/human5-home.js?v=17.8.0';
+import {installEquipment} from './modules/human5-equipment.js?v=17.8.0';
+import {installEcology} from './modules/human5-ecology.js?v=17.8.0';
+import {createVoiceBridge} from './modules/human5-voice.js?v=17.8.0';
+import {localTranscribe,warmLocalSpeech,stopLocalSpeech} from './mira-local-speech.js?v=17.8.0';
 const voiceInput=createVoiceBridge({localTranscribe,warmLocalSpeech,stopLocalSpeech});
 const startMic=voiceInput.startMic;
 let xrMicAttempted=false;
-import {draft,saveDraft,spawnOptions,OUTFITS,clothingItems} from './mira-v2-catalog.js?v=17.5.0';
-import {MiraWorld,SCENES} from './mira-v2-world.js?v=17.5.0';
-import {Wardrobe,GARMENTS} from './mira-v2-wardrobe.js?v=17.5.0';
+import {draft,saveDraft,spawnOptions,OUTFITS,clothingItems} from './mira-v2-catalog.js?v=17.8.0';
+import {MiraWorld,SCENES} from './mira-v2-world.js?v=17.8.0';
+import {Wardrobe,GARMENTS} from './mira-v2-wardrobe.js?v=17.8.0';
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { createVRMenu } from "./mira-vr-menu.js?v=17.5.0";
-import { snapshot, savePreset, loadPreset, applyPreset, listPresets, lastPresetName, downloadPreset } from "./mira-v2-preset.js?v=17.5.0";
-import { unlockSfx } from "./mira-v2-sfx.js?v=17.5.0";
-import { EMOTION_NAMES, IDLE_NAMES, WALK_NAMES, ATTENTION_MODES } from "./mira-v2-features.js?v=17.5.0";
+import { createVRMenu } from "./mira-vr-menu.js?v=17.8.0";
+import { snapshot, savePreset, loadPreset, applyPreset, listPresets, lastPresetName, downloadPreset } from "./mira-v2-preset.js?v=17.8.0";
+import { unlockSfx } from "./mira-v2-sfx.js?v=17.8.0";
+import { EMOTION_NAMES, IDLE_NAMES, WALK_NAMES, ATTENTION_MODES } from "./mira-v2-features.js?v=17.8.0";
 import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
-import { createMiraSystem, SLIDERS, FACE_TYPES, HAIR_COLORS } from "./mira-v2.js?v=17.5.0";
-import { DEFAULT_PERSONA, miraChat, miraSpeak, unlockVoice } from "./mira-voice-v2.js?v=17.5.0";
+import { createMiraSystem, SLIDERS, FACE_TYPES, HAIR_COLORS } from "./mira-v2.js?v=17.8.0";
+import { DEFAULT_PERSONA, miraChat, miraSpeak, unlockVoice } from "./mira-voice-v2.js?v=17.8.0";
 
-import {V2_EXTRA_SLIDERS,FACE_PRESETS,HAIR_STYLES,ACTIVITY_MODES,ATTENTION_LABELS,shapeSliders} from './mira-v2-controls.js?v=17.5.0';
+import {V2_EXTRA_SLIDERS,FACE_PRESETS,HAIR_STYLES,ACTIVITY_MODES,ATTENTION_LABELS,shapeSliders} from './mira-v2-controls.js?v=17.8.0';
 
 const QUEST = /OculusBrowser|Quest/i.test(navigator.userAgent);
 const loadEl = document.getElementById("load");
@@ -143,13 +145,15 @@ const gameplay=installGameplay({world,mira,props,wardrobe,dogs,camera,rig,render
 const ecology=installEcology({world,mira,props,wardrobe,dogs,camera,rig,renderer,scene,water,upgrade,quest:QUEST});
 const vehicleSpawns=installVehicleSpawns({world,props,camera,renderer,quest:QUEST});
 const equipment=installEquipment({world,mira,props,camera,rig,renderer,scene,quest:QUEST});
+const home=installHome({world,scene,camera,renderer,rig,props,mira,wardrobe,weather,upgrade,keys,quest:QUEST});
 const performanceController=installPerformance({renderer,scene,camera,world,mira,props,upgrade,quest:QUEST});
+const startup=createStartupWarmup({renderer,scene,camera,props,prepare(){upgrade.beforeFrame(.2);for(const c of props.cars())if(c.revision!==world.revision){c.revision=world.revision;c.reset();}home.wetness.tick(0,home.showers);performanceController.beforeFrame(.2);},status(text){if(loadEl)loadEl.textContent=text;}});
 let voiceSessionStart=()=>{},voiceSessionEnd=()=>{};
 banner("LOADING HUMAN 5…");
 mira.load(
   (x) => { if (x.total && loadEl) loadEl.textContent = "LOADING  " + Math.round((x.loaded / x.total) * 100) + "%"; },
   () => {
-    if (loadEl) loadEl.remove();
+    if (loadEl) loadEl.textContent="Preparing scene materials";
     banner("Drag to orbit · wheel to zoom · Grab body or Shift-drag · VR: Y menu, right B ball");
     syncHud();document.dispatchEvent(new Event("mira:ready"));
     dogs.spawnDefault();
@@ -157,7 +161,8 @@ mira.load(
     stockPantry();
     const dogNameEl=document.getElementById('dogName');
     if(dogNameEl)dogNameEl.value=dogs.list?.()[0]?.displayName||'Buddy';
-    if (new URLSearchParams(location.search).has("debug")) window.human2 = { mira, scene, renderer, camera, rig, keys, orbit, world, wardrobe, props, dogs, water, flora, gadgets, terrainFeatures, fire, weather, upgrade, voiceInput, performanceController, openWorld, gameplay, ecology, equipment, vehicleSpawns };
+    if (new URLSearchParams(location.search).has("debug")) window.human2 = { mira, scene, renderer, camera, rig, keys, orbit, world, wardrobe, props, dogs, water, flora, gadgets, terrainFeatures, fire, weather, upgrade, voiceInput, performanceController, openWorld, gameplay, ecology, equipment, vehicleSpawns, home, startup };
+    startup.run().then(()=>{clock.getDelta();loadEl?.remove();banner(startup.error?"Scene loaded; preparation error: "+startup.error:"Ready · VR: Y menu · Grab or point to interact");});
   },
   (e) => { banner("LOAD FAILED — " + (e && e.message ? e.message : "glb")); console.error(e); }
 );
@@ -223,7 +228,7 @@ function restoreScene(name){unlockSfx();const n=name||document.getElementById('p
 const vrMenu=createVRMenu({spawnConfigured,copyConfiguration,scene,renderer,camera,system:mira,spawn:spawnVersion,onSync:syncHud,world,wardrobe,props,saveScene:()=>persistScene(lastPresetName()),loadScene:()=>restoreScene(lastPresetName())});props.menu=vrMenu;
 
 function selected() { return mira.selected; }
-function deleteSelectedNPC(){const a=selected();if(!a||props.driving())return false;releaseDesktop();mira.remove(a);syncHud();props.status="Removed "+(a.displayName||"NPC");return true;}
+function deleteSelectedNPC(){const a=selected();if(!a||props.driving()||home.arcade?.focus)return false;releaseDesktop();mira.remove(a);syncHud();props.status="Removed "+(a.displayName||"NPC");return true;}
 
 function bindHud() {
  document.getElementById('enterCar').onclick=()=>{const c=activeCar().driving?activeCar():nearestCar();c.driving?c.exit():c.enter();};document.getElementById('exitCar').onclick=()=>activeCar().exit();document.getElementById('jumpBtn')?.addEventListener('click',()=>{keys.Space=true;locomotion.jump?.();setTimeout(()=>keys.Space=false,120);});document.getElementById('carGear')?.addEventListener('click',()=>activeCar().cycleGear());document.getElementById('repairCar').onclick=()=>{for(const c of props.cars())c.reset();};document.getElementById('mirrorOn').onchange=e=>{for(const c of props.cars())c.mirrorEnabled=e.target.checked;};
@@ -483,6 +488,7 @@ function tickLocomotion(dt) {
 
 let deskJumpVel=0,deskJumping=false,deskPace=0,deskHeading=new THREE.Vector3(0,0,-1);
 function desktopMove(dt) {
+  if(world.h5Home?.arcade?.focus){deskPace=0;return;}
   if(props.driving()||XR_ON()||!controls||!controls.isLocked){deskPace=0;return;}
   const obj=controls.getObject?.()||camera;
   if(water?.playerSwimIntent({rig:obj,camera,dt,keys,blocked:vrMenu.isOpen||props.vehicle?.driving}).active){deskJumping=false;deskJumpVel=0;deskPace=0;return;}
@@ -519,8 +525,10 @@ function desktopMove(dt) {
 }
 
 const clock = new THREE.Clock();
+document.addEventListener('visibilitychange',()=>{clock.getDelta();if(document.hidden)for(const key of Object.keys(keys))keys[key]=false;});
 let fpsFrames = 0, fpsLast = performance.now(),floraAccum=0;
 function tick(time,frame) {
+ if(startup.active){clock.getDelta();startup.render();return;}
  performanceController.budget.begin(time);
  if (XR_ON() && frame) {
    const pose=frame.getViewerPose(renderer.xr.getReferenceSpace());
@@ -528,7 +536,7 @@ function tick(time,frame) {
  }
  roomLight.tick(frame);
   const rawDt = clock.getDelta();
-  if (rawDt > 0.22 && mira.ready) { mira.resetPhysics(false); props.resetMotion(); }
+  if(rawDt>.22)world.h5LongFrames=(world.h5LongFrames||0)+1; // Record stalls; never reset live vehicles/NPCs because rendering was slow.
   const dt = Math.min(rawDt, 0.05);
   upgrade.beforeFrame(dt);
   openWorld.tick(dt);
@@ -552,7 +560,7 @@ function tick(time,frame) {
     performanceController.budget.mark("actors");
     water?.tick(dt);
     props.tick(dt);
-    equipment.tick(dt);vehicleSpawns.tick(dt);
+    equipment.tick(dt);vehicleSpawns.tick(dt);home.tick(dt);
     performanceController.budget.mark("waterAndProps");
     floraAccum+=dt;if(!QUEST||(fpsFrames&1)===0){flora?.tick(Math.min(.10,floraAccum));floraAccum=0;}
     dogs.tick(dt);

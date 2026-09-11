@@ -1,0 +1,9 @@
+{
+  "version": "17.6.0",
+  "source": "verified complete 17.5 checkpoint",
+  "byteIdenticalReproduction": true,
+  "javascriptFilesParsed": 148,
+  "relativeImportsResolve": true,
+  "modules": 47,
+  "questHardwareTested": false
+}

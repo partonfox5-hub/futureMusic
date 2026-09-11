@@ -1,6 +1,6 @@
 import * as T from 'three';
 import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
-import {V,clamp,finiteDt,disposeTree} from './human5-common.js?v=17.5.0';
+import {V,clamp,finiteDt,disposeTree} from './human5-common.js?v=17.8.0';
 
 export const LIGHT_BUDGETS=Object.freeze({quest:{point:2,spot:1,shadowSize:1024},desktop:{point:4,spot:2,shadowSize:2048}});
 export const FIXTURES=['Torch','Standing lamp','Table lamp','Chandelier','Hanging shaded lamp'];

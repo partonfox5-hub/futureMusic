@@ -1,5 +1,5 @@
 import * as T from 'three';
-import {random,SPECIES} from './TreeGeometry.js?v=17.5.0';
+import {random,SPECIES} from './TreeGeometry.js?v=17.8.0';
 export class FallingLeaves {
  constructor(field,root,{capacity=48,rate=2,seed=44}={}){
   this.field=field;this.capacity=Math.max(0,Math.min(128,capacity|0));this.rate=rate;this.random=random(seed);this.pool=Array.from({length:this.capacity},()=>({active:false,p:new T.Vector3(),v:new T.Vector3(),q:new T.Vector3(),age:0,grounded:0,size:1}));this.emit=0;this.time=0;this.dummy=new T.Object3D();

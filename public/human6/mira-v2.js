@@ -1,8 +1,8 @@
-import {restoreSurfaceUV} from './mira-v2-uv.js?v=17.5.0';
-import {BodyContacts} from './mira-v2-contact.js?v=17.5.0';
-import {MiraSocial} from './mira-v2-social.js?v=17.5.0';
-import {ContactHaptics} from './mira-v2-haptics.js?v=17.5.0';
-import { createV2Class, repairArmRestData, makeFingerRig, fingerRotation } from "./mira-v2-features.js?v=17.5.0";
+import {restoreSurfaceUV} from './mira-v2-uv.js?v=17.8.0';
+import {BodyContacts} from './mira-v2-contact.js?v=17.8.0';
+import {MiraSocial} from './mira-v2-social.js?v=17.8.0';
+import {ContactHaptics} from './mira-v2-haptics.js?v=17.8.0';
+import { createV2Class, repairArmRestData, makeFingerRig, fingerRotation } from "./mira-v2-features.js?v=17.8.0";
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { clone as cloneSkinned } from "three/addons/utils/SkeletonUtils.js";
@@ -210,7 +210,7 @@ function applySkin(root) {
       m.opacity = 1;
       m.depthWrite = true;
       m.alphaTest = hair ? 0.3 : lash ? 0.32 : 0;
-      m.alphaToCoverage = hair || lash;
+      m.alphaToCoverage = !QUEST && (hair || lash);
       // Small, inexpensive specular shell; no screen-space transmission pass.
       // The eye's four materials share a mesh, so never hide the mesh here.
       if (cornea) {
@@ -1577,7 +1577,7 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
     const present=new Set();
     for(const src of session.inputSources){
       if(!src.gamepad||src.hand||!['left','right'].includes(src.handedness))continue;
-      present.add(src);const xDown=src.handedness==='left'&&!!src.gamepad.buttons?.[4]?.pressed;if(xDown&&!secondaryState.get('deleteX'))uiHandlers.onDelete?.();if(src.handedness==='left')secondaryState.set('deleteX',xDown);const pressed=!!src.gamepad.buttons?.[5]?.pressed;
+      present.add(src);if(environment?.h5Home?.consumesStick(src.handedness)){secondaryState.set(src,!!src.gamepad.buttons?.[5]?.pressed);if(src.handedness==='left')secondaryState.set('deleteX',!!src.gamepad.buttons?.[4]?.pressed);continue;}const xDown=src.handedness==='left'&&!!src.gamepad.buttons?.[4]?.pressed;if(xDown&&!secondaryState.get('deleteX'))uiHandlers.onDelete?.();if(src.handedness==='left')secondaryState.set('deleteX',xDown);const pressed=!!src.gamepad.buttons?.[5]?.pressed;
       if(pressed&&!secondaryState.get(src)){
         if(src.handedness==='left')uiHandlers.onToggle?.();
         else{
@@ -1800,7 +1800,7 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
       }
     }
     environment?.interactions?.restraints?.solve(dt);
-    social.resolveContacts();contacts.tick();
+    social.resolveContacts();contacts.tick(dt);
     for(const a of actors)if(a.version==='v1'&&a.directedWalk&&!a.dest){a.directedWalk=null;a.autoWander=false;a.setMode('idle');}
     const goal=selectedActor?.directedWalk;targetMarker.visible=!!goal&&!uiHandlers.isOpen?.();if(goal)targetMarker.position.set(goal.x,.016,goal.z);
     for(let i=0;i<2;i++)if(wardrobe?.drags.has('xr'+i)){const c=hands.ctrl[i];wardrobe.move('xr'+i,new THREE.Ray(c.getWorldPosition(new THREE.Vector3()),new THREE.Vector3(0,0,-1).applyQuaternion(c.getWorldQuaternion(new THREE.Quaternion()))));}

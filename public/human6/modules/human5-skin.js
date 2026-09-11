@@ -1,5 +1,5 @@
 import * as T from 'three';
-import {V,clamp,wrapMethod} from './human5-common.js?v=17.5.0';
+import {V,clamp,wrapMethod} from './human5-common.js?v=17.8.0';
 
 /** Match normals only at coincident, similarly oriented, compatibly skinned vertices. */
 export function weldSkinNormals(actor){
@@ -35,9 +35,23 @@ function skinCompile(shader,old,material,{detail=true}={}){
     float h5BodyTone=1.-smoothstep(1.38,1.48,v2RestPos.y);
     vec3 h5SkinBase=vec3(.53,.325,.237);
     float h5Variation=clamp(dot(sampledDiffuseColor.rgb,vec3(.2126,.7152,.0722))-.36,-.022,.022);
-    sampledDiffuseColor.rgb=mix(sampledDiffuseColor.rgb,h5SkinBase+vec3(h5Variation),h5BodyTone*.97);
+    vec2 h5Nac=(vec2(abs(v2RestPos.x),v2RestPos.y)-vec2(.0762,1.187))/vec2(.018,.017);
+    float h5Radius=length(h5Nac);
+    float h5Edge=h5Radius*(1.+.025*sin(atan(h5Nac.y,h5Nac.x)*11.)+.018*sin(v2RestPos.x*791.));
+    float h5Areola=(1.-smoothstep(.52,1.08,h5Edge))*smoothstep(.070,.088,v2RestPos.z);
+    vec3 h5Anatomy=mix(h5SkinBase,vec3(.365,.173,.137),h5Areola*.88);
+    h5Anatomy+=vec3(h5Variation)*(1.-h5Areola*.45);
+    sampledDiffuseColor.rgb=mix(sampledDiffuseColor.rgb,h5Anatomy,h5BodyTone*.97);
     diffuseColor *= sampledDiffuseColor;`);
   shader.fragmentShader=shader.fragmentShader.replace('diffuseColor.rgb *= tone;', 'diffuseColor.rgb *= mix(tone,vec3(1.),1.-smoothstep(1.38,1.48,v2RestPos.y));');
+  // Millimetre geometry carries silhouette; this submillimetre normal detail
+  // supplies soft areolar relief without a separate decal/material seam.
+  shader.fragmentShader=shader.fragmentShader.replace('#include <normal_fragment_maps>',`#include <normal_fragment_maps>
+    float h5Gland=sin(v2RestPos.x*1170.)*sin(v2RestPos.y*1260.);
+    float h5Relief=.00010*h5Gland*h5Areola+.00034*exp(-h5Radius*h5Radius*9.);
+    vec3 h5A=dFdx(-vViewPosition),h5B=dFdy(-vViewPosition);
+    vec3 h5U=cross(h5B,normal),h5V=cross(normal,h5A);float h5Det=dot(h5A,h5U);
+    normal=normalize(abs(h5Det)*normal-sign(h5Det)*(dFdx(h5Relief)*h5U+dFdy(h5Relief)*h5V));`);
   if(!detail)return;
   // Stable rest-space pore relief through screen derivatives. No displaced
   // silhouette and no additional texture pass; fade below pixel footprint.
@@ -51,18 +65,19 @@ function skinCompile(shader,old,material,{detail=true}={}){
 export function installSkinRefinement(actor,{detail=true,receiveShadow=true}={}){
   if(actor.h5Skin)return actor.h5Skin;const materials=new Map(),meshState=new Map(),restores=[];let shapeStamp=null;
   function install(){
+    actor.seamsReady=true; // Rest-space color and welded normals own seam treatment.
     for(const mesh of actor.skinMeshes||[]){
       if(!meshState.has(mesh))meshState.set(mesh,mesh.receiveShadow);mesh.receiveShadow=receiveShadow;
       const m=mesh.material;if(Array.isArray(m))continue;
       const state=materials.get(m);if(state&&m.onBeforeCompile===state.wrapper)continue;
       const old=m.onBeforeCompile,key=m.customProgramCacheKey;
-      const wrapper=s=>skinCompile(s,old,m,{detail});m.onBeforeCompile=wrapper;m.customProgramCacheKey=()=> (key?.call(m)||'')+'/h5-skin-17/'+detail;m.needsUpdate=true;
+      const wrapper=s=>skinCompile(s,old,m,{detail});m.onBeforeCompile=wrapper;m.customProgramCacheKey=()=> (key?.call(m)||'')+'/h5-skin-anatomy-18/'+detail;m.needsUpdate=true;
       materials.set(m,{old,key,wrapper});
     }
   }
   install();restores.push(wrapMethod(actor,'applyLooks',old=>function(){const r=old.apply(this,arguments);install();return r;}));
-  restores.push(wrapMethod(actor,'updateShapeGeometry',old=>function(){const r=old.apply(this,arguments);if(this.geomState!==shapeStamp){shapeStamp=this.geomState;weldSkinNormals(this);}return r;}));
-  const api={install,dispose(){restores.reverse().forEach(f=>f());for(const [m,s] of materials)if(m.onBeforeCompile===s.wrapper){m.onBeforeCompile=s.old;m.customProgramCacheKey=s.key;m.needsUpdate=true;}for(const [m,value] of meshState)m.receiveShadow=value;delete actor.h5Skin;}};actor.h5Skin=api;return api;
+  restores.push(wrapMethod(actor,'updateShapeGeometry',old=>function(){const r=old.apply(this,arguments);if(this.geomState!==shapeStamp){shapeStamp=this.geomState;weldSkinNormals(this);this.seamsReady=true;}return r;}));
+  const api={install,dispose(){restores.reverse().forEach(f=>f());for(const [m,s] of materials)if(m.onBeforeCompile===s.wrapper){m.onBeforeCompile=s.old;m.customProgramCacheKey=s.key;m.needsUpdate=true;}for(const [m,value] of meshState)m.receiveShadow=value;actor.seamsReady=false;delete actor.h5Skin;}};actor.h5Skin=api;return api;
 }
 
 /** Load authored UV-compatible maps, with dimensions checked instead of relabeling. */

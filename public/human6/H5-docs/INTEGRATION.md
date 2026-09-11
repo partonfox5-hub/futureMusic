@@ -81,3 +81,10 @@ H5_PROJECT=/absolute/path/human5 node tests/browser-regression.cjs
 On Windows PowerShell set `$env:H5_PROJECT='C:\path\human5'` before the last command. The browser script uses the installed Three package to avoid CDN variation during tests. It checks gameplay, shader/JavaScript errors, lifecycle and CPU simulation cost, and writes screenshots/JSON.
 
 The integrated project includes the host patch and manifest. Roll back by serving your original folder; the integration script has not modified it. Do not replace a newer upstream project wholesale with this build without reviewing the patch.
+
+
+## Final release 17.8 additions
+
+`human5-startup-warmup.js` prepares vehicle views during loading. `human5-home.js` and `human5-home-mechanics.js` own the basement, arcade, crate, showers, mirrors and local condensation masks. `human5-anatomy-detail.js` performs conforming local mesh refinement at construction. `human5-groom.js`, skin, identity, haircuts and NPC profile modules contain the checkpoint 11 character changes. `human5-performance.js` and the patched engine/contact/fire hosts contain both final performance passes. Consult FINAL-RELEASE.md and FINAL-PERFORMANCE.md before using historical next-step statements in older checkpoint notes.
+
+The photo/video creator should export `human5.npc/1`, validated by `human5-npc-profile.js`; the current game accepts bounded shape/sculpt/physics fields, not arbitrary reconstructed meshes or a projected photograph. Import through the desktop profile file input with a V2 actor selected. Profile fitting retains the game's existing rig, tissue physics, clothing and expressions.

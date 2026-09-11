@@ -18,13 +18,13 @@ export class SmoothLocomotion {
  }
  tick(dt,sources,blocked=false){
   if(blocked||!(dt>0)){this.pace=0;return;}dt=Math.min(dt,.05);
-  sources=[...sources].map(s=>{if(!s.gamepad||!this.world.h5Equipment?.consumesStick(s.handedness))return s;const axes=Array.from(s.gamepad.axes);axes[axes.length>=4?3:1]=0;return {...s,gamepad:{axes,buttons:s.gamepad.buttons},hand:s.hand,handedness:s.handedness};});
+  sources=[...sources].map(s=>{if(!s.gamepad)return s;const home=this.world.h5Home?.consumesStick(s.handedness),equipment=this.world.h5Equipment?.consumesStick(s.handedness);if(!home&&!equipment)return s;const axes=Array.from(s.gamepad.axes);axes[axes.length>=4?3:1]=0;if(home)axes[axes.length>=4?2:0]=0;return {...s,gamepad:{axes,buttons:s.gamepad.buttons},hand:s.hand,handedness:s.handedness};});
   const water=this.world.waterSystem,camera=this.camera;
   if(water?.playerSwimIntent({rig:this.rig,camera,dt,sources,blocked}).active){this.jumping=false;this.jumpVel=0;return;}
   const left=[...sources].find(s=>s.handedness==='left'&&!s.hand),right=[...sources].find(s=>s.handedness==='right'&&!s.hand);
   const l=stickAxes(left?.gamepad),r=stickAxes(right?.gamepad),move=deadzone(l.x,l.y),turn=deadzone(r.x,0,.16).x;
   const trigger=left?.gamepad?.buttons?.[0],sprint=(trigger?.pressed||(trigger?.value||0)>.42)?2:1;
-  if(right?.gamepad?.buttons?.[4]?.pressed&&!this.jumping)this.jump();
+  if(right?.gamepad?.buttons?.[4]?.pressed&&!this.jumping&&!this.world.h5Home?.consumesStick('right'))this.jump();
   const eye=this.camera.getWorldPosition(new T.Vector3());
   const forward=new T.Vector3(0,0,-1).applyQuaternion(this.camera.getWorldQuaternion(new T.Quaternion())).setY(0);
   if(forward.lengthSq()>.01)this.forward.copy(forward).normalize();

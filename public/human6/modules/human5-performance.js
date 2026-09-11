@@ -1,10 +1,10 @@
 import * as T from 'three';
-import {V,clamp,wrapMethod} from './human5-common.js?v=17.5.0';
-import {RigidBatches} from './human5-batching.js?v=17.5.0';
+import {V,clamp,wrapMethod} from './human5-common.js?v=17.8.0';
+import {RigidBatches} from './human5-batching.js?v=17.8.0';
 export const QUEST_PROFILES=Object.freeze([
-  {name:'detail',foveation:.35,interiorRange:20,pile:1200,mirrorHz:30,portalHz:30,shadowHz:72},
-  {name:'balanced',foveation:.55,interiorRange:15,pile:800,mirrorHz:24,portalHz:24,shadowHz:36},
-  {name:'sustain',foveation:.72,interiorRange:11,pile:400,mirrorHz:18,portalHz:18,shadowHz:24}
+  {name:'detail',foveation:.35,interiorRange:20,pile:1200,mirrorHz:24,portalHz:24,shadowHz:36},
+  {name:'balanced',foveation:.55,interiorRange:15,pile:800,mirrorHz:18,portalHz:18,shadowHz:24},
+  {name:'sustain',foveation:.72,interiorRange:11,pile:400,mirrorHz:12,portalHz:12,shadowHz:18}
 ]);
 export function percentile(values,p){if(!values.length)return null;const a=values.slice().sort((a,b)=>a-b);return a[Math.min(a.length-1,Math.floor(p*(a.length-1)))];}
 export function chooseFrameRate(rates){const list=Array.from(rates||[]);return [72,80,90,60].find(r=>list.includes(r))||list.filter(r=>r>=60).sort((a,b)=>a-b)[0]||null;}
@@ -30,7 +30,7 @@ export class FrameBudget {
     if(this.query){this.gl.endQuery(this.ext.TIME_ELAPSED_EXT);this.pending.push({query:this.query,row});this.query=null;}
     // Keep startup/pause samples in raw evidence, exclude them from control decisions.
     if(this.interval>0){this.samples.push(row);if(this.samples.length>this.capacity)this.samples.shift();}
-    if(this.adaptive&&now>this.warmUntil&&now-this.lastDecision>2000&&this.samples.length>=90){this.lastDecision=now;const rows=this.samples.slice(-120).filter(r=>r.interval<250),budget=1000/this.targetHz;
+    if(this.adaptive&&now>this.warmUntil&&now-this.lastDecision>2000&&this.samples.length>=90){this.lastDecision=now;const rows=this.samples.slice(-120),budget=1000/this.targetHz;
       const work=percentile(rows.map(r=>Math.max(r.cpu,r.gpu||0)),.95)||0,miss=rows.filter(r=>r.interval>budget*1.38).length/Math.max(1,rows.length);
       if(work>budget*.88||miss>.08){this.slowWindows++;this.fastWindows=0;}else if(work<budget*.60&&miss<.02){this.fastWindows++;this.slowWindows=0;}else{this.slowWindows=0;this.fastWindows=0;}
       if(this.slowWindows>=2&&this.tier<2){this.setTier(this.tier+1);this.slowWindows=0;}else if(this.fastWindows>=8&&this.tier>0){this.setTier(this.tier-1);this.fastWindows=0;}
@@ -63,7 +63,7 @@ export function installFurnitureSleep(props){const records=new WeakMap();let tim
 export function installPerformance({renderer,scene,camera,world,mira,props,upgrade,quest=true}={}){
   const restores=[],visibility=new Map(),actors=new Map();let time=0,lodT=0,shadowT=0,lastRevision=-1;const p=V();
   const apply=tier=>{const q=QUEST_PROFILES[tier];if(quest&&renderer.xr.isPresenting)renderer.xr.setFoveation?.(q.foveation);upgrade.textiles.maxTufts=Math.min(upgrade.textiles.pile.instanceMatrix.count,q.pile);upgrade.textiles.lastCenter.setScalar(Infinity);};
-  const budget=new FrameBudget(renderer,{adaptive:quest,onTier:apply}),batches=new RigidBatches(world);restores.push(installFurnitureSleep(props));
+  const budget=new FrameBudget(renderer,{adaptive:quest,onTier:apply}),batches=new RigidBatches(world);if(quest)budget.setTier(1);restores.push(installFurnitureSleep(props));
   const throttle=(object,key,hzKey)=>{let last=-Infinity;restores.push(wrapMethod(object,key,old=>function(){const hz=quest?QUEST_PROFILES[budget.tier][hzKey]:60;if(time-last<1/hz)return;last=time;return old.apply(this,arguments);}));};
   for(const car of props.cars())throttle(car,'renderMirror','mirrorHz');if(props.gadgets?.renderViews)throttle(props.gadgets,'renderViews','portalHz');
   const onStart=()=>{const s=renderer.xr.getSession();if(s)budget.startSession(s);apply(budget.tier);};renderer.xr.addEventListener('sessionstart',onStart);
@@ -82,7 +82,7 @@ export function installPerformance({renderer,scene,camera,world,mira,props,upgra
           for(const m of h.meshes){if(m===h.ceiling)continue;m.castShadow=h.bounds.distanceToPoint(p)<16;}
         }
         // Two cards occupy the same silhouette. Distant hair uses the first layer.
-        for(const a of mira.actors){const hair=a.hairPhysics;if(hair?.mesh&&hair.cardLayers===2){const far=a.group.position.distanceToSquared(p)>25,geo=hair.mesh.geometry;geo.setDrawRange(0,far?hair.source.index.count:Infinity);}}
+        for(const a of mira.actors){const hair=a.hairPhysics;if(hair?.mesh&&hair.cardLayers===2){const far=a.group.position.distanceToSquared(p)>3.24,geo=hair.mesh.geometry;geo.setDrawRange(0,far?hair.source.index.count:Infinity);}}
       }
     },
     exportReport(){return budget.report();},downloadReport(){const blob=new Blob([JSON.stringify(budget.report(),null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='human5-performance.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),5000);},

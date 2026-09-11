@@ -1,0 +1,20 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> human5-realism-modules@17.6.0 test
+> node tests/acceptance.mjs && node tests/systems.mjs && node tests/world.mjs && node tests/gameplay.mjs && node tests/ecology.mjs && node tests/anatomy-detail.mjs && node tests/performance-regression.mjs
+
+PASS: fire contact, extinguishing, inert material, swept intersection, fixture/light budget, zero-gravity finite state
+PASS: density-aware buoyancy, layered tears, retained seating and food counts
+PASS: real rug triangle holes, two-hand stretch tears, finite zero-g and pickable cleanup
+PASS: batching preserves original hit identity; broken part disappears from collision ray
+PASS: cage translation invariance and bounded strain; five distinct 1–3 bedroom plans
+PASS: automatic upshift/neutral; parked suspension on incline and zero-g free flight
+PASS: supported refresh selection and long hitch retention
+PASS: one retained microphone request, late-grant cancellation, Quest local warmup, audio VAD/transcription delivery and shutdown
+PASS: handling damage, engine power loss and repair; palette skinning matches Three deformation
+PASS: twelve blocks, continuous terrain/cell seams, lake depth, terrain edit round trip, protected foundations, elevator travel/doors/sensor, stair heights and building cleanup
+PASS: armor break/penetration, all protection paths, player armor mass, heap, global route, bounded local navigation.
+PASS: persistent monotonic grass cuts, invalid-state rejection, flock separation and finite acceleration.
+PASS: localized conforming subdivision, source isolation, normalized skin weights and morph continuity; 67 vertices
+PASS: stable fire membership, moved fuel ignition, hidden/unregistered/detached surface cleanup
+PASS: 400ms hitches trigger sustain tier, evidence retained, XR session resets timing history

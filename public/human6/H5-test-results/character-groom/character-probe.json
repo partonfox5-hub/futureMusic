@@ -1,0 +1,92 @@
+{
+  "result": {
+    "cage": [
+      {
+        "name": "L_Breast",
+        "offset": [
+          -0.0003454835369519488,
+          -0.0016656512300787796,
+          0.0008113005750004371
+        ],
+        "volume": 0.0003656165961027308
+      },
+      {
+        "name": "R_Breast",
+        "offset": [
+          -0.00039314258170802807,
+          -0.0016805799731087756,
+          0.0008152773570276189
+        ],
+        "volume": 0.00036567245535851223
+      },
+      {
+        "name": "L_Glute",
+        "offset": [
+          -0.00025375337420568966,
+          -0.0016501602877585508,
+          -0.0005961631254746136
+        ],
+        "volume": 0.0009169989013631261
+      },
+      {
+        "name": "R_Glute",
+        "offset": [
+          -0.00024518310657893616,
+          -0.0016438597922635578,
+          -0.000600487580308659
+        ],
+        "volume": 0.0009169467872124751
+      }
+    ],
+    "shape": {
+      "height": 1,
+      "waist": 0.91,
+      "hips": 1.08,
+      "breast": 1.12,
+      "butt": 1.16,
+      "thigh": 1.08,
+      "gap": -0.08,
+      "arms": 0.94,
+      "jiggle": 1.35,
+      "breastHeight": -0.12,
+      "breastSpacing": 0.04,
+      "breastAngle": 0.02,
+      "buttHeight": -0.04,
+      "buttSpacing": 0.02,
+      "buttAngle": 0,
+      "handResponse": 2.7,
+      "softness": 0.63,
+      "damping": 0.48,
+      "bodySoftness": 0.55,
+      "faceSoftness": 0.32,
+      "hairMotion": 0.48,
+      "skinDetail": 0.35,
+      "tissueDensity": 980,
+      "waterDrag": 5,
+      "thighGravity": 0.55,
+      "spineFlexibility": 0.48,
+      "gaitVariation": 0.4
+    },
+    "headPosition": [
+      -0.001660396265661948,
+      1.449312526548364,
+      -0.03708501206645917
+    ],
+    "groom": {
+      "locks": 44,
+      "vertices": [
+        1105,
+        1188
+      ],
+      "finite": true
+    },
+    "render": {
+      "frame": 63,
+      "calls": 905,
+      "triangles": 1399736,
+      "points": 0,
+      "lines": 0
+    }
+  },
+  "errors": []
+}

@@ -1,13 +1,13 @@
-import {FURNITURE,SURFACES} from './mira-v2-builder.js?v=17.5.0';
-import {WEAPONS} from './mira-v2-props.js?v=17.5.0';
-import {draft,saveDraft,OUTFITS,PERSONAS,clothingItems,setDraftGarment} from './mira-v2-catalog.js?v=17.5.0';
-import {SCENES} from './mira-v2-world.js?v=17.5.0';
-import {GARMENTS} from './mira-v2-wardrobe.js?v=17.5.0';
+import {FURNITURE,SURFACES} from './mira-v2-builder.js?v=17.8.0';
+import {WEAPONS} from './mira-v2-props.js?v=17.8.0';
+import {draft,saveDraft,OUTFITS,PERSONAS,clothingItems,setDraftGarment} from './mira-v2-catalog.js?v=17.8.0';
+import {SCENES} from './mira-v2-world.js?v=17.8.0';
+import {GARMENTS} from './mira-v2-wardrobe.js?v=17.8.0';
 import * as THREE from 'three';
-import {SLIDERS,FACE_TYPES} from './mira-v2.js?v=17.5.0';
-import {shapeSliders,FACE_PRESETS,HAIR_STYLES,ACTIVITY_MODES,ACTION_LABELS,POSE_LABELS,ATTENTION_MODES,ATTENTION_LABELS} from './mira-v2-controls.js?v=17.5.0';
-import {HAIR_COLORS} from './mira-v2.js?v=17.5.0';
-import {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES} from './mira-v2-features.js?v=17.5.0';
+import {SLIDERS,FACE_TYPES} from './mira-v2.js?v=17.8.0';
+import {shapeSliders,FACE_PRESETS,HAIR_STYLES,ACTIVITY_MODES,ACTION_LABELS,POSE_LABELS,ATTENTION_MODES,ATTENTION_LABELS} from './mira-v2-controls.js?v=17.8.0';
+import {HAIR_COLORS} from './mira-v2.js?v=17.8.0';
+import {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES} from './mira-v2-features.js?v=17.8.0';
 export function createVRMenu({scene,renderer,camera,system,spawn,onSync,world,wardrobe,spawnConfigured,copyConfiguration,props,saveScene,loadScene}){
  const canvas=document.createElement('canvas');canvas.width=1024;canvas.height=1320;
  const ctx=canvas.getContext('2d'),tex=new THREE.CanvasTexture(canvas);tex.colorSpace=THREE.SRGBColorSpace;

@@ -10,7 +10,7 @@ export class TissueRig {
    const parentIndex=a.skeleton.bones.indexOf(bone.parent),inverseBind=a.skeleton.boneInverses[parentIndex];if(!inverseBind)throw new Error('Missing tissue parent inverse bind: '+soft.name);
    const restLocal=new Float64Array(24),restWorld=new Float64Array(24);
    for(let i=0;i<8;i++){const corner=BOX_CORNERS[i],p=center.map((n,j)=>n+corner[j]*r[j]),sculpt=this.shapePoint(...p,s.breast,0,s.butt,s.arms,{...s,male:a.bodyType==='male'}),v=V().fromArray(sculpt).applyMatrix4(inverseBind);v.toArray(restLocal,i*3);v.applyMatrix4(bone.parent.matrixWorld).toArray(restWorld,i*3);}
-   const cluster=new XPBDCluster(restWorld,{pins:breast?[0,1,3]:[4,5,7]});
+   const cluster=new XPBDCluster(restWorld,{pins:breast?[0,1,2,3]:[4,5,6,7]});
    this.clusters.push({soft,bone,cluster,restLocal,frame:bone.parent.matrixWorld.clone(),lastAnchor:V().setFromMatrixPosition(bone.parent.matrixWorld),contacts:[]});
   }
   this.shapeKey=this.key();this.ready=true;this.accumulator=0;this.stats.particles=this.clusters.length*8;

@@ -9,7 +9,7 @@ function ribbon(w, h, segs=8){
   const pos = g.attributes.position;
   for(let i=0;i<pos.count;i++){
     const x = pos.getX(i), y = pos.getY(i);
-    pos.setZ(i, -0.55*x*x/Math.max(w*w,1e-6) + y*y*0.15);
+    pos.setZ(i, -0.010*x*x/Math.max(w*w,1e-6) + y*y*0.15);
   }
   g.computeVertexNormals();
   return g;

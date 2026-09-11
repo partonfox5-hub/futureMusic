@@ -15,17 +15,21 @@ export function signedVolume(p,grad=null){
 export class XPBDCluster {
  constructor(rest,{pins=[0,1,3],iterations=6}={}){
   if(rest.length!==24)throw new Error('XPBDCluster requires exactly eight 3D particles');
-  this.p=new Float64Array(rest);this.previous=new Float64Array(rest);this.v=new Float64Array(24);this.target=new Float64Array(rest);this.gradient=new Float64Array(24);this.pins=pins;this.iterations=iterations;this.edges=PAIRS.map(([a,b])=>({a:a*3,b:b*3,rest:Math.hypot(rest[a*3]-rest[b*3],rest[a*3+1]-rest[b*3+1],rest[a*3+2]-rest[b*3+2]),lambda:0}));this.restVolume=signedVolume(rest);if(this.restVolume<=1e-10)throw new Error('Rest cage must have positive volume');this.volumeScale=Math.pow(this.restVolume,2/3);this.pinLambda=new Float64Array(9);this.volumeLambda=0;this.recoveries=0;
+  this.p=new Float64Array(rest);this.previous=new Float64Array(rest);this.v=new Float64Array(24);this.target=new Float64Array(rest);this.gradient=new Float64Array(24);this.pins=pins;this.iterations=iterations;this.edges=PAIRS.map(([a,b])=>({a:a*3,b:b*3,rest:Math.hypot(rest[a*3]-rest[b*3],rest[a*3+1]-rest[b*3+1],rest[a*3+2]-rest[b*3+2]),lambda:0}));this.restVolume=signedVolume(rest);if(this.restVolume<=1e-10)throw new Error('Rest cage must have positive volume');this.volumeScale=Math.pow(this.restVolume,2/3);this.pinLambda=new Float64Array(pins.length*3);this.volumeLambda=0;this.recoveries=0;
  }
  reset(target=this.target){this.target.set(target);this.p.set(target);this.previous.set(target);this.v.fill(0);}
  centroid(out=[0,0,0],array=this.p){out[0]=out[1]=out[2]=0;for(let i=0;i<24;i++)out[i%3]+=array[i]/8;return out;}
- step(h,{softness=.62,damping=.5,gravity=9.81,contacts=[],grab=null}={}){
-  const soft=Math.max(0,Math.min(1,softness)),edgeAlpha=(2e-7+soft*soft*2e-5)/(h*h),pinAlpha=(2e-6+soft*soft*8e-5)/(h*h),volumeAlpha=1e-10/(h*h),drag=Math.exp(-dampingRate(damping)*h);
+ step(h,{softness=.62,damping=.5,gravity=9.81,contacts=[],grab=null,attachmentCompliance=null,shearCompliance=null}={}){
+  if(!(h>0)||!Number.isFinite(h))return;
+  const soft=Math.max(0,Math.min(1,softness));
+  const shear=Number.isFinite(shearCompliance)?Math.max(0,Math.min(.001,shearCompliance)):2e-7+soft*soft*2e-5;
+  const attachment=Number.isFinite(attachmentCompliance)?Math.max(0,Math.min(.002,attachmentCompliance)):2e-6+soft*soft*8e-5;
+  const edgeAlpha=shear/(h*h),pinAlpha=attachment/(h*h),volumeAlpha=1e-10/(h*h),drag=Math.exp(-dampingRate(damping)*h);
   this.previous.set(this.p);this.pinLambda.fill(0);this.volumeLambda=0;for(const e of this.edges)e.lambda=0;
   for(let i=0;i<24;i++){this.v[i]*=drag;if(i%3===1)this.v[i]-=gravity*h;this.p[i]+=this.v[i]*h;}
   for(let iteration=0;iteration<this.iterations;iteration++){
    for(const e of this.edges){const dx=this.p[e.a]-this.p[e.b],dy=this.p[e.a+1]-this.p[e.b+1],dz=this.p[e.a+2]-this.p[e.b+2],length=Math.hypot(dx,dy,dz);if(length<1e-9)continue;const dl=(-(length-e.rest)-edgeAlpha*e.lambda)/(2+edgeAlpha);e.lambda+=dl;const k=dl/length;for(const [j,d] of [[0,dx],[1,dy],[2,dz]]){this.p[e.a+j]+=d*k;this.p[e.b+j]-=d*k;}}
-   for(let pin=0;pin<3;pin++)for(let axis=0;axis<3;axis++){const i=this.pins[pin]*3+axis,j=pin*3+axis,dl=(-(this.p[i]-this.target[i])-pinAlpha*this.pinLambda[j])/(1+pinAlpha);this.pinLambda[j]+=dl;this.p[i]+=dl;}
+   for(let pin=0;pin<this.pins.length;pin++)for(let axis=0;axis<3;axis++){const i=this.pins[pin]*3+axis,j=pin*3+axis,dl=(-(this.p[i]-this.target[i])-pinAlpha*this.pinLambda[j])/(1+pinAlpha);this.pinLambda[j]+=dl;this.p[i]+=dl;}
    if(grab){const center=this.centroid(),alpha=2e-5/(h*h);for(let a=0;a<3;a++){const move=(grab[a]-center[a])/(1+alpha);for(let i=a;i<24;i+=3)this.p[i]+=move;}}
    this.solveVolume(volumeAlpha);
    // Contact planes and capsules are inequalities; they never pull tissue.

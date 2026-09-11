@@ -1,9 +1,9 @@
 import * as T from 'three';
-import {WEAPONS} from '../mira-v2-props.js?v=17.5.0';
-import {furnitureRoot} from '../mira-v2-furniture.js?v=17.5.0';
-import {wrapMethod,disposeTree,clamp,V,rng} from './human5-common.js?v=17.5.0';
-import {createScope} from './human5-scope.js?v=17.5.0';
-import {playSfx,unlockSfx} from '../mira-v2-sfx.js?v=17.5.0';
+import {WEAPONS} from '../mira-v2-props.js?v=17.8.0';
+import {furnitureRoot} from '../mira-v2-furniture.js?v=17.8.0';
+import {wrapMethod,disposeTree,clamp,V,rng} from './human5-common.js?v=17.8.0';
+import {createScope} from './human5-scope.js?v=17.8.0';
+import {playSfx,unlockSfx} from '../mira-v2-sfx.js?v=17.8.0';
 
 export const PROJECTILES=Object.freeze({
  rocket:{speed:43,gravity:.10,radius:.06,blast:5,energy:85,life:6,color:0xff983c},

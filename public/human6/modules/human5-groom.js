@@ -1,45 +1,114 @@
 import * as T from 'three';
-import {V,clamp,smooth,gravityOf,wrapMethod,rng} from './human5-common.js?v=17.5.0';
+import {V,clamp,smooth,gravityOf,wrapMethod,rng} from './human5-common.js?v=17.8.0';
 
-/** Shoulder-length reference groom: 28 guided locks, one crown, two draw calls. */
+/** Fitted crown and overlapping straight cards. Two draws; bounded guide physics.
+ * Coordinates are metres in this project's CC3 rest mesh, before Head bind.
+ * These are hair cards, not cylindrical locks or individual follicles.
+ */
 export function installReferenceGroom(actor){
   if(actor.h5Groom)return actor.h5Groom;
-  const head=actor.bones.Head,inv=actor.skeleton.boneInverses[actor.skeleton.bones.indexOf(head)],group=new T.Group();group.name='Mira reference layered hair';head.add(group);
-  const random=rng(1751),w=128,h=128,data=new Uint8Array(w*h*4);
-  for(let y=0;y<h;y++)for(let x=0;x<w;x++){const u=x/(w-1),v=y/(h-1),strand=.70+.15*Math.sin(x*2.9)+.1*Math.sin(x*.93),tip=1-smooth((v-.86)/.14),edge=smooth(Math.min(u,1-u)/.08),i=(y*w+x)*4;data.set([210*strand,188*strand,164*strand,255*edge*(tip*.9+.1)],i);}
-  const texture=new T.DataTexture(data,w,h);texture.colorSpace=T.SRGBColorSpace;texture.wrapS=texture.wrapT=T.RepeatWrapping;texture.needsUpdate=true;
-  const material=new T.MeshStandardMaterial({color:0x765943,map:texture,roughness:.53,metalness:0,side:T.DoubleSide,alphaTest:.28,envMapIntensity:.65});
-  const crownMat=material.clone();crownMat.alphaTest=0;crownMat.side=T.FrontSide;
-  const cp=[],cu=[],ci=[],phiN=48,thetaN=12;
-  function crown(theta,phi){return new T.Vector3(.086*Math.sin(theta)*Math.sin(phi),1.555+.112*Math.cos(theta),-.016+.105*Math.sin(theta)*Math.cos(phi));}
-  for(let j=0;j<=thetaN;j++)for(let i=0;i<=phiN;i++){const phi=i/phiN*Math.PI*2,front=(Math.cos(phi)+1)/2,end=1.90-.55*front**3,theta=.015+(end-.015)*j/thetaN,p=crown(theta,phi).applyMatrix4(inv);cp.push(p.x,p.y,p.z);cu.push(i/phiN*12,j/thetaN*.8);if(i<phiN&&j<thetaN){const a=j*(phiN+1)+i,b=a+phiN+1;ci.push(a,b,a+1,a+1,b,b+1);}}
-  const cg=new T.BufferGeometry();cg.setAttribute('position',new T.Float32BufferAttribute(cp,3));cg.setAttribute('uv',new T.Float32BufferAttribute(cu,2));cg.setIndex(ci);cg.computeVertexNormals();const cap=new T.Mesh(cg,crownMat);cap.name='Contoured hair roots';group.add(cap);
-  const locks=[],positions=[],uv=[],indices=[],nodes=9,widthSteps=2;
-  // Leave the central forehead and eyes open. Locks arc around temples and ears.
-  for(let l=0;l<28;l++){
-    const phi=.56+l/27*(Math.PI*2-1.12),length=.23+random()*.052,phase=random()*Math.PI*2,rest=[],points=[],previous=[],width=.025+random()*.008;
-    for(let j=0;j<nodes;j++){const t=j/(nodes-1),theta=.28+t*1.3,p=crown(Math.min(theta,1.45),phi);
-      p.y-=Math.max(0,t-.48)*length*2;p.x+=Math.sin(phi)*(.008+smooth(t)*.017)+Math.sin(t*7+phase)*.007*smooth(t);p.z-=.006*smooth(t);
-      if(Math.cos(phi)>.3&&t>.35){p.x=Math.sign(Math.sin(phi))*Math.max(Math.abs(p.x),.079+smooth((t-.35)/.6)*.023);p.z=Math.min(p.z,.027);}
-      rest.push(p.applyMatrix4(inv));points.push(V());previous.push(V());
-      for(let k=0;k<=widthSteps;k++){positions.push(0,0,0);uv.push(k/widthSteps,t);if(j<nodes-1&&k<widthSteps){const a=l*nodes*3+j*3+k,b=a+3;indices.push(a,b,a+1,a+1,b,b+1);}}
-    }locks.push({rest,points,previous,width,phi,ready:false});
+  const head=actor.bones.Head,bind=actor.skeleton.boneInverses[actor.skeleton.bones.indexOf(head)];
+  const group=new T.Group();group.name='Mira straight shoulder hair';head.add(group);
+  const random=rng(1751),size=256,data=new Uint8Array(size*size*4),fibers=new Float32Array(size);
+  for(let x=0;x<size;x++)fibers[x]=.86+random()*.14;
+  for(let y=0;y<size;y++)for(let x=0;x<size;x++){
+    const u=x/(size-1),v=y/(size-1),fiber=fibers[x]*(.97+.025*Math.sin(y*.036+x*.13));
+    const edge=smooth(Math.min(u,1-u)/.085),tip=1-smooth((v-(.88+.055*Math.sin(x*.71)))/.11),i=(y*size+x)*4;
+    data.set([255*fiber,249*fiber,238*fiber,255*edge*tip],i);
   }
-  const geo=new T.BufferGeometry();geo.setAttribute('position',new T.Float32BufferAttribute(positions,3).setUsage(T.DynamicDrawUsage));geo.setAttribute('uv',new T.Float32BufferAttribute(uv,2));geo.setIndex(indices);const mesh=new T.Mesh(geo,material);mesh.name='Guided shoulder locks';mesh.frustumCulled=false;group.add(mesh);
-  let time=0;const oldVisible=actor.hairPhysics?.mesh?.visible;const restores=[];
-  const tick=dt=>{const tint=[0x30251f,0x765943,0x8b4f32,0x65462f][actor.hairColor]||0x765943;material.color.setHex(tint);crownMat.color.setHex(tint);head.updateWorldMatrix(true,false);const matrix=head.matrixWorld,invWorld=matrix.clone().invert(),g=gravityOf(actor.world),step=Math.min(1/30,Math.max(0,dt));time+=step;const attr=geo.attributes.position;
-    for(let l=0;l<locks.length;l++){const lock=locks[l],{rest,points,previous}=lock,targets=rest.map(p=>p.clone().applyMatrix4(matrix));
-      if(!lock.ready||points[0].distanceTo(targets[0])>.30){targets.forEach((p,i)=>{points[i].copy(p);previous[i].copy(p);});lock.ready=true;}
-      points[0].copy(targets[0]);previous[0].copy(targets[0]);
-      for(let j=1;j<nodes;j++){const before=points[j].clone(),v=before.clone().sub(previous[j]).multiplyScalar(Math.exp(-9*step));points[j].add(v).addScaledVector(g,step*step*.10);previous[j].copy(before);}
-      for(let it=0;it<4;it++)for(let j=1;j<nodes;j++){const a=points[j-1],b=points[j],d=b.clone().sub(a),len=d.length(),length=targets[j].distanceTo(targets[j-1]);if(len>1e-8){d.multiplyScalar((len-length)/len*(j===1?1:.5));b.sub(d);if(j>1)a.add(d);}const delta=b.clone().sub(targets[j]).clampLength(0,.022*j/(nodes-1));b.copy(targets[j]).add(delta);}
-      for(let j=2;j<nodes;j++)for(const c of actor.externalHands||[]){const ab=c.b.clone().sub(c.a),t=clamp(points[j].clone().sub(c.a).dot(ab)/Math.max(ab.lengthSq(),1e-8),0,1),nearest=c.a.clone().addScaledVector(ab,t),d=points[j].clone().sub(nearest),distance=d.length(),radius=c.r+.007;if(distance<radius&&distance>1e-6){points[j].copy(nearest).addScaledVector(d,radius/distance);c.onContact?.('hair',c.velocity?.length()||0,.002);}}
-      for(let j=0;j<nodes;j++){const center=points[j].clone().applyMatrix4(invWorld),t=j/(nodes-1),half=lock.width*(1-.84*t*t)/2,tangent=new T.Vector3(Math.cos(lock.phi),0,-Math.sin(lock.phi)).transformDirection(inv);
-        for(let k=0;k<=widthSteps;k++){const p=center.clone().addScaledVector(tangent,(k-1)*half);p.z+=k===1?.002:0;p.toArray(attr.array,(l*nodes*3+j*3+k)*3);}
+  const texture=new T.DataTexture(data,size,size);texture.colorSpace=T.SRGBColorSpace;
+  texture.wrapS=T.RepeatWrapping;texture.generateMipmaps=true;texture.minFilter=T.LinearMipmapLinearFilter;texture.magFilter=T.LinearFilter;texture.needsUpdate=true;
+  const material=new T.MeshStandardMaterial({color:0x4a352a,map:texture,roughness:.56,metalness:0,side:T.DoubleSide,alphaTest:.36,alphaToCoverage:false,envMapIntensity:.8});
+  const crownMat=material.clone();crownMat.alphaTest=0;crownMat.side=T.FrontSide;
+  // Crown UVs do not repeat twelve coarse dark stripes around the scalp.
+  const cp=[],cu=[],ci=[],capLinks=[],phiN=64,thetaN=20;
+  function crown(theta,phi,out=V()){
+    const part=.006*(1-smooth(theta/.7));
+    return out.set(part+.092*Math.sin(theta)*Math.sin(phi),1.525+.115*Math.cos(theta),.002+.108*Math.sin(theta)*Math.cos(phi));
+  }
+  for(let j=0;j<=thetaN;j++)for(let i=0;i<=phiN;i++){
+    const phi=i/phiN*Math.PI*2,v=j/thetaN,front=Math.max(0,Math.cos(phi)),angular=Math.min(phi,2*Math.PI-phi),skirt=smooth((angular-.43)/.16);
+    const theta=.005+(1.56-.30*front**3-.005)*Math.min(1,v/.55),p=crown(theta,phi),drop=smooth((v-.55)/.45)*skirt;
+    p.y=T.MathUtils.lerp(p.y,1.315,drop);p.x+=Math.sin(phi)*.009*drop;p.z-=.010*drop;
+    if(front>.25&&drop>.01){p.x=Math.sign(Math.sin(phi))*Math.max(Math.abs(p.x),.079+.020*drop);p.z=Math.min(p.z,.033-.014*drop);}
+    // Continuous underlayer connects the crown to the hanging sheets.
+    p.x-=Math.sin(phi)*.002;p.z-=Math.cos(phi)*.002;p.applyMatrix4(bind);cp.push(p.x,p.y,p.z);cu.push(i/phiN*6,v*.88);
+    const guide=clamp(Math.round((phi-.48)/(Math.PI*2-.96)*43),0,43),t=v<.55?clamp(((theta-.34)/1.19)*.46,0,.46):.46+(v-.55)/.45*.54;
+    capLinks.push({guide,node:clamp(Math.round(t*8),0,8),t,weight:skirt*smooth((v-.32)/.25)});
+    if(i<phiN&&j<thetaN){const a=j*(phiN+1)+i,b=a+phiN+1;ci.push(a,b,a+1,a+1,b,b+1);}
+  }
+  const cg=new T.BufferGeometry();cg.setAttribute('position',new T.Float32BufferAttribute(cp,3));cg.setAttribute('uv',new T.Float32BufferAttribute(cu,2));cg.setIndex(ci);cg.computeVertexNormals();
+  const cap=new T.Mesh(cg,crownMat);cap.name='Fitted softly parted crown';group.add(cap);
+  const locks=[],positions=[],uv=[],indices=[],nodes=9,widthSteps=2,lockCount=44;
+  for(let l=0;l<lockCount;l++){
+    const phi=.48+l/(lockCount-1)*(Math.PI*2-.96),endY=1.305+(random()-.5)*.038;
+    const rest=[],points=[],previous=[],targets=[],width=.032+random()*.008,phase=random()*6.283;
+    for(let j=0;j<nodes;j++){
+      const t=j/(nodes-1),arc=Math.min(1,t/.46),p=crown(.34+arc*1.19,phi);
+      if(t>.46){const drop=(t-.46)/.54;p.y=T.MathUtils.lerp(p.y,endY,drop);p.x+=Math.sin(phi)*(.013*drop);p.z-=.010*drop;}
+      // Face-framing layers stay to the sides of the cheeks and eyes.
+      if(Math.cos(phi)>.25&&t>.23){p.x=Math.sign(Math.sin(phi))*Math.max(Math.abs(p.x),.078+.023*smooth((t-.23)/.64));p.z=Math.min(p.z,.036-.015*smooth(t));}
+      const layer=-.0025+.0055*smooth((t-.35)/.25);p.x+=Math.sin(phi)*layer+Math.sin(t*4+phase)*.0012*smooth(t);p.z+=Math.cos(phi)*layer;
+      rest.push(p.applyMatrix4(bind));points.push(V());previous.push(V());targets.push(V());
+      for(let k=0;k<=widthSteps;k++){positions.push(0,0,0);uv.push(k/widthSteps,t);if(j<nodes-1&&k<widthSteps){const a=l*nodes*3+j*3+k,b=a+3;indices.push(a,b,a+1,a+1,b,b+1);}}
+    }
+    locks.push({rest,points,previous,targets,width,phi,ready:false,tangent:V().set(Math.cos(phi),0,-Math.sin(phi)).transformDirection(bind),lengths:rest.map((p,j)=>j?p.distanceTo(rest[j-1]):0)});
+  }
+  const geo=new T.BufferGeometry();geo.setAttribute('position',new T.Float32BufferAttribute(positions,3).setUsage(T.DynamicDrawUsage));geo.setAttribute('uv',new T.Float32BufferAttribute(uv,2));geo.setIndex(indices);geo.setAttribute('normal',new T.Float32BufferAttribute(new Float32Array(positions.length),3));
+  const mesh=new T.Mesh(geo,material);mesh.name='Guided shoulder locks';mesh.frustumCulled=false;group.add(mesh);
+  const capRest=Float32Array.from(cp);
+  const invWorld=new T.Matrix4(),worldToModel=new T.Matrix4(),modelToWorld=new T.Matrix4(),headBind=bind.clone().invert();
+  const d=V(),before=V(),local=V(),ab=V(),nearest=V(),g=V(),p=V(),normal=V();
+  let accumulator=0,normalTime=0,lastColor=-1;const restores=[],oldVisible=actor.hairPhysics?.mesh?.visible;
+  const tick=dt=>{
+    const tint=[0x211b18,0x4a352a,0x894e32,0x765038][actor.hairColor]||0x4a352a;
+    if(tint!==lastColor){lastColor=tint;material.color.setHex(tint);crownMat.color.setHex(tint);}
+    head.updateWorldMatrix(true,false);invWorld.copy(head.matrixWorld).invert();worldToModel.copy(headBind).multiply(invWorld);modelToWorld.copy(head.matrixWorld).multiply(bind);
+    const motion=clamp(actor.shape.hairMotion??1,0,1),wet=actor.h5Wetness?.hair??0,h=1/90;
+    g.copy(gravityOf(actor.world));accumulator=Math.min(.045,accumulator+clamp(dt,0,.05));normalTime+=Math.max(0,dt);
+    const scale=head.getWorldScale(d).x;
+    for(const lock of locks){for(let j=0;j<nodes;j++)lock.targets[j].copy(lock.rest[j]).applyMatrix4(head.matrixWorld);
+      if(!lock.ready||lock.points[0].distanceTo(lock.targets[0])>.25){for(let j=0;j<nodes;j++){lock.points[j].copy(lock.targets[j]);lock.previous[j].copy(lock.targets[j]);}lock.ready=true;}
+    }
+    while(accumulator+1e-9>=h){
+      const drag=Math.exp(-(5.5+wet*7)*h),shapeRate=1-Math.exp(-(10-motion*6)*h);
+      for(const lock of locks){const {points,previous,targets}=lock;
+        for(let j=0;j<2;j++){points[j].copy(targets[j]);previous[j].copy(targets[j]);}
+        for(let j=2;j<nodes;j++){before.copy(points[j]);d.subVectors(points[j],previous[j]).multiplyScalar(drag);points[j].add(d).addScaledVector(g,h*h*.35);points[j].lerp(targets[j],shapeRate);previous[j].copy(before);}
+        for(let it=0;it<4;it++)for(let j=2;j<nodes;j++){
+          d.subVectors(points[j],points[j-1]);const length=d.length(),rest=lock.lengths[j]*Math.abs(scale);
+          if(length>1e-8){d.multiplyScalar((length-rest)/length*(j===2?1:.5));points[j].sub(d);if(j>2)points[j-1].add(d);}
+          d.subVectors(points[j],targets[j]).clampLength(0,(.008+motion*.060)*j/(nodes-1));points[j].copy(targets[j]).add(d);
+        }
+        for(let j=2;j<nodes;j++){
+          local.copy(points[j]).applyMatrix4(worldToModel);
+          if(local.y>1.452){normal.set(local.x/.080,(local.y-1.525)/.110,local.z/.105);const r=normal.length();if(r<1&&r>.001){normal.divideScalar(r);local.set(normal.x*.080,1.525+normal.y*.110,normal.z*.105);points[j].copy(local).applyMatrix4(modelToWorld);}}
+          for(const c of actor.externalHands||[]){if(!c.a||!c.b)continue;ab.subVectors(c.b,c.a);d.subVectors(points[j],c.a);const t=clamp(d.dot(ab)/Math.max(ab.lengthSq(),1e-8),0,1);nearest.copy(c.a).addScaledVector(ab,t);d.subVectors(points[j],nearest);const distance=d.length(),radius=c.r+.005;if(distance<radius&&distance>1e-6){points[j].copy(nearest).addScaledVector(d,radius/distance);c.onContact?.('hair',c.velocity?.length()||0,.001);}}
+        }
       }
-    }attr.needsUpdate=true;geo.computeVertexNormals();geo.computeBoundingSphere();
+      accumulator-=h;
+    }
+    const attr=geo.attributes.position;
+    for(let l=0;l<locks.length;l++){const lock=locks[l];for(let j=0;j<nodes;j++){
+      local.copy(lock.points[j]).applyMatrix4(invWorld);const t=j/(nodes-1),half=lock.width*(.12+.88*smooth(t/.36))*(1-.30*smooth((t-.68)/.32))*.5;
+      for(let k=0;k<3;k++){p.copy(local).addScaledVector(lock.tangent,(k-1)*half);p.toArray(attr.array,(l*nodes*3+j*3+k)*3);
+        const theta=Math.min(1.53,.34+Math.min(1,t/.46)*1.19);normal.set(Math.sin(theta)*Math.sin(lock.phi),Math.max(0,Math.cos(theta)),Math.sin(theta)*Math.cos(lock.phi)).transformDirection(bind);normal.toArray(geo.attributes.normal.array,(l*nodes*3+j*3+k)*3);}
+    }}
+    attr.needsUpdate=true;
+    geo.attributes.normal.needsUpdate=true;
+    const capPosition=cg.attributes.position;
+    for(let i=0;i<capLinks.length;i++){const link=capLinks[i];p.fromArray(capRest,i*3);if(link.weight){const lock=locks[link.guide];d.copy(lock.points[link.node]).applyMatrix4(invWorld).sub(lock.rest[link.node]);p.addScaledVector(d,link.weight);}p.toArray(capPosition.array,i*3);}
+    capPosition.needsUpdate=true;
+    if(!geo.boundingSphere)geo.boundingSphere=new T.Sphere(V().set(0,1.46,-.025).applyMatrix4(bind),.32);
   };
   if(actor.hairPhysics)restores.push(wrapMethod(actor.hairPhysics,'tick',old=>function(dt){const enabled=actor.h5Identity?.enabled&&actor.hairStyle===1;group.visible=enabled;if(enabled){this.mesh.visible=false;tick(dt);return;}return old.apply(this,arguments);}));
-  const api={group,locks,tick,dispose(){restores.reverse().forEach(f=>f());if(actor.hairPhysics?.mesh)actor.hairPhysics.mesh.visible=oldVisible;group.removeFromParent();geo.dispose();cg.dispose();material.dispose();crownMat.dispose();texture.dispose();delete actor.h5Groom;}};
-  actor.h5Groom=api;tick(0);return api;
+  const api={group,root:group,locks,nodes,tick,rebuildCuts(cuts=new Map()){
+    const ids=[];for(let i=0;i<ci.length;i+=3){let keep=true;for(let j=0;j<3;j++){const link=capLinks[ci[i+j]],end=cuts.get(link.guide);if(link.weight>.1&&end!==undefined&&link.t>end/8+.001)keep=false;}if(keep)ids.push(ci[i],ci[i+1],ci[i+2]);}cg.setIndex(ids);
+  },reset(){for(const lock of locks)lock.ready=false;accumulator=0;},dispose(){restores.reverse().forEach(f=>f());if(actor.hairPhysics?.mesh)actor.hairPhysics.mesh.visible=oldVisible;group.removeFromParent();geo.dispose();cg.dispose();material.dispose();crownMat.dispose();texture.dispose();delete actor.h5Groom;}};
+  actor.h5Groom=api;
+  // Profile import can render before the next animation tick. Do not show the
+  // legacy cap and the replacement groom simultaneously for that first frame.
+  group.visible=!!actor.h5Identity?.enabled&&actor.hairStyle===1;
+  if(group.visible&&actor.hairPhysics?.mesh)actor.hairPhysics.mesh.visible=false;
+  tick(0);return api;
 }

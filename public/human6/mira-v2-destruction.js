@@ -1,6 +1,6 @@
 import * as T from 'three';
-import {playSfx,sfxForBreak} from './mira-v2-sfx.js?v=17.5.0';
-import {WallSystem,wallMaterial} from './mira-v2-walls.js?v=17.5.0';
+import {playSfx,sfxForBreak} from './mira-v2-sfx.js?v=17.8.0';
+import {WallSystem,wallMaterial} from './mira-v2-walls.js?v=17.8.0';
 const V=()=>new T.Vector3(),Q=()=>new T.Quaternion();
 const MATERIALS={plaster:{health:48,density:650,color:0xc9c1b1},wood:{health:70,density:600,color:0x806047},glass:{health:11,density:2500,color:0x9fc1c7},stone:{health:210,density:2400,color:0x85847c},metal:{health:190,density:7800,color:0x929b9d}};
 export class Destruction {
@@ -10,14 +10,14 @@ export class Destruction {
  if(options.cells){cells.length=0;for(const c of options.cells)cells.push({p:c.center,s:c.size});}
  const mat=wallMaterial(kind,options.map),mesh=new T.InstancedMesh(new T.BoxGeometry(1,1,1),mat,Math.max(1,cells.length));mesh.name=kind+(axis==='y'?' slab':' wall');mesh.castShadow=mesh.receiveShadow=true;mesh.userData.chunks=[];this.world.root.add(mesh);this.world.pickables.push(mesh);
  const maxH=MATERIALS[kind]?.health??48;
- cells.forEach(({p,s},i)=>{mesh.setMatrixAt(i,new T.Matrix4().compose(p,Q(),s));let o=null;if(!options.skipObstacle){o=this.world.obstacle(p.x,p.z,s.x,s.z,p.y-s.y/2,s.y);if(options.walkable)o.walkable=true;}const part={mesh,index:i,p,size:s,kind,health:maxH,maxHealth:maxH,obstacle:o,broken:false};mesh.userData.chunks.push(part);this.parts.push(part);});
+ cells.forEach(({p,s},i)=>{mesh.setMatrixAt(i,new T.Matrix4().compose(p,Q(),s));let o=null;if(!options.skipObstacle){o=this.world.obstacle(p.x,p.z,s.x,s.z,p.y-s.y/2,s.y);if(options.walkable)o.walkable=true;}const part={mesh,index:i,p,size:s,kind,health:maxH,maxHealth:maxH,obstacle:o,broken:false};if(o)o.h5Fracture=part;mesh.userData.chunks.push(part);this.parts.push(part);});
  this.walls?.prepMesh(mesh);
  const half=size.clone().multiplyScalar(.5);
  this.walls?.dress(mesh,cells,kind,{min:center.clone().sub(half),max:center.clone().add(half)});
  return mesh;
  }
- register(mesh,kind='wood',obstacle=null){mesh.updateWorldMatrix(true,false);const box=new T.Box3().setFromObject(mesh),part={mesh,p:box.getCenter(V()),size:box.getSize(V()),kind,health:MATERIALS[kind].health,obstacle,broken:false};mesh.userData.piece=part;this.parts.push(part);if(!this.world.pickables.includes(mesh))this.world.pickables.push(mesh);return part;}
- impact(hit,energy,dir,kind='blunt',sharpness=0){const part=hit.object.userData.chunks?.[hit.instanceId]||hit.object.userData.piece||hit.object.userData.wallPart;if(!part||part.broken)return false;if(part.kind==='glass'&&kind==='blunt'&&energy<8)energy=11;const multiplier=kind==='cut'?(part.kind==='wood'?1+sharpness:part.kind==='plaster'?.85:.28):kind==='laser'?1.4:1;part.health-=Math.max(0,energy)*multiplier;part.maxHealth??=MATERIALS[part.kind]?.health??48;if(part.index!=null){this.walls?.stamp(hit,part,energy,dir);if(!part.broken&&part.kind==='plaster'&&part.health<part.maxHealth*.35)this.walls?.openHole(part,hit);}if(part.health<=0)this.break(part,dir,energy);return part.broken;}
+ register(mesh,kind='wood',obstacle=null){mesh.updateWorldMatrix(true,false);const box=new T.Box3().setFromObject(mesh),part={mesh,p:box.getCenter(V()),size:box.getSize(V()),kind,health:MATERIALS[kind].health,obstacle,broken:false};mesh.userData.piece=part;if(obstacle)obstacle.h5Fracture=part;this.parts.push(part);if(!this.world.pickables.includes(mesh))this.world.pickables.push(mesh);return part;}
+ impact(hit,energy,dir,kind='blunt',sharpness=0){const part=hit.object.userData.chunks?.[hit.instanceId]||hit.object.userData.piece||hit.object.userData.wallPart;if(!part||part.broken)return false;if(part.kind==='glass'&&kind==='blunt'&&energy<8)energy=11;const multiplier=kind==='cut'?(part.kind==='wood'?1+sharpness:part.kind==='plaster'?.85:.28):kind==='laser'?1.4:1;part.health-=Math.max(0,energy)*multiplier;part.maxHealth??=MATERIALS[part.kind]?.health??48;if(part.index!=null){this.walls?.stamp(hit,part,energy,dir);if(!part.broken&&part.health>0&&part.kind==='plaster'&&part.health<part.maxHealth*.35)this.walls?.openHole(part,hit);}if(part.health<=0)this.break(part,dir,energy);return part.broken;}
  break(part,dir,energy){if(part.broken)return;part.broken=true;playSfx(sfxForBreak(part.kind));if(part.index!==undefined&&part.mesh?.isInstancedMesh){this.matrix.compose(new T.Vector3(0,-2000,0),Q(),new T.Vector3(0,0,0));part.mesh.setMatrixAt(part.index,this.matrix);part.mesh.instanceMatrix.needsUpdate=true;}else if(part.mesh){part.mesh.visible=false;part.mesh.traverse(m=>{if(m.isMesh)m.visible=false;});}
   if(part.obstacle)this.world.removeObstacle(part.obstacle);const seat=part.mesh.userData.seat;if(seat){if(seat.occupant){const a=seat.occupant;a.seat=null;a.group.position.y=a.baseY||0;a.knockDown?.(dir);seat.occupant=null;}this.world.removeObstacle(seat.obstacle);this.world.seats=this.world.seats.filter(s=>s!==seat);seat.group.traverse(m=>{delete m.userData.seat;});}
   this.walls?.shatter(part,dir,energy);

@@ -1,0 +1,91 @@
+{
+  "version": "17.7.0",
+  "base_version": "17.6.0",
+  "files": [
+    {
+      "path": "H5-LATEST-CHECKPOINT.md",
+      "source_sha256": "4471bae080acf201ade17521e5452371100b7b16702f30906d02a2324327924d",
+      "override_sha256": "351ce1a497dc9d12b4c9ea502390be076c3a3b6effe260846f0ebcaa05eba34e"
+    },
+    {
+      "path": "mira-v2-features.js",
+      "source_sha256": "00f895dd96dfad5ea99a0b5b314e06a2d3fcd102da034752a35e98aacb8fe698",
+      "override_sha256": "3240f5f7ef4f0a09ba08a34c2aa1fc52c6efa1103c44a5503ce3ef726cfe39d8"
+    },
+    {
+      "path": "mira-v2-haptics.js",
+      "source_sha256": "d913c5179cc1e2b5e2510b137ab7f639af9dd430e052edf6b9ed27dcda0d2dca",
+      "override_sha256": "68ad9e3c56c2200f3f3fc69a05da05b37febb4660158d26ce2e59bad82f40091"
+    },
+    {
+      "path": "mira-v2-tearline.js",
+      "source_sha256": "71d529e2f27f2df1d736b9c3830e6fba5c4d39feac8fb5e5835afdaf0dbe9f58",
+      "override_sha256": "331bd3f2d212867105aa06444fc52c8ba64c4c1e6497fb01a524260d23d9eabb"
+    },
+    {
+      "path": "mira-v2.js",
+      "source_sha256": "3a85e62d632fe62163fb212a4031883f1e92fba0211772f6698068e3dd621be3",
+      "override_sha256": "771fe62e2740fac167181d121ae68d3073385799a306d49769ce99e44d492885"
+    },
+    {
+      "path": "modules/human5-anatomy-detail.js",
+      "source_sha256": null,
+      "override_sha256": "b8298fe80d4e6a898a779ad9ebad51e69a300851ca5b8bfda679080babb8096c"
+    },
+    {
+      "path": "modules/human5-dynamics.js",
+      "source_sha256": "6d01c0782bb776e9a776c4ae44a37796dfe77eb0d7f9eda33e377fb28f505e3a",
+      "override_sha256": "47ae71e6647de68466f75f8edf7b8869dc42c60b343f480a985e5312028578c4"
+    },
+    {
+      "path": "modules/human5-groom.js",
+      "source_sha256": "558aaf9455c717a28bf91138ecd145df140fdb0067c2c30aace59742f47563cd",
+      "override_sha256": "c991081b7e051617cbcabe04c97e176682b7d68be3166b530566b298ad91a781"
+    },
+    {
+      "path": "modules/human5-haircuts.js",
+      "source_sha256": "2910c43fa857e6ddb9197f0b130f9b175145c1525a55d1724c2dc9d37ef28324",
+      "override_sha256": "70ec57d1972c126b7cdba5ccb3e1af97374e3cdd56d4e2231b3d71657593780a"
+    },
+    {
+      "path": "modules/human5-home-mechanics.js",
+      "source_sha256": "09b09b58a6d97d1beeabe3b5558f8fcc08fa41ab5dd352a7c959198ffd2eb607",
+      "override_sha256": "9a67d4bddb562f987146f297f55353ec76d355fa41d72b7603e432e5a697227c"
+    },
+    {
+      "path": "modules/human5-home.js",
+      "source_sha256": "1cb24b3d5dc7eebac9b3877c64ffa3d11a070a0f44406349914a64adbfe18dfa",
+      "override_sha256": "f09b6c800ee573c70964cab6a1436817a21b4b0c666cd51d9f5c56fb35bd39fc"
+    },
+    {
+      "path": "modules/human5-identity.js",
+      "source_sha256": "b3ab17bca2376e2d14d31c194600b6ae26fc17cf2b248b7ff90398c3ea3cba56",
+      "override_sha256": "e3cf7a76f97fd4b89361ee501ad7d88c3f2260eb913b64715935e8cfa0994b76"
+    },
+    {
+      "path": "modules/human5-npc-profile.js",
+      "source_sha256": "4208443da72861a1b1dcdb566718aa402f341aa1acab4a097ac024668a6276a3",
+      "override_sha256": "773aaa4e0af2a0edabf2748844d2176d652c45a2c895af0f101681408a42fe20"
+    },
+    {
+      "path": "modules/human5-skin.js",
+      "source_sha256": "9c4fc66826fa2bea115cf202bd48990122ccd570adf0ac38754a5dabafd2c6cc",
+      "override_sha256": "e3a8057cbe80a10f2bd70fc8cea3e60bef0f8edfe083e66d555ea8dd9efa7f7e"
+    },
+    {
+      "path": "modules/human5-tissue-surface.js",
+      "source_sha256": "249e6c3b4dcb6a58db9dd649b04b819be5adfc240cdf23b549f8333a1a10999d",
+      "override_sha256": "8c7773f722b6521d8af10a84f2afa094bc5e6067eb4d49b15373b90cfc53eeec"
+    },
+    {
+      "path": "src/body/TissueRig.js",
+      "source_sha256": "6e847d82b8af86846540cebf885189e97c1d50ea5c814157b151a0cb1c840a54",
+      "override_sha256": "bf84ac5f1ff4aba78bc81184c4b76e8578a2682159ecbefaddf1af7f33d67a85"
+    },
+    {
+      "path": "src/body/XPBDCluster.js",
+      "source_sha256": "44d77c03f9ee5ccc2a34339ab88294d7a65645d0ff00c57878d78b408c52c74d",
+      "override_sha256": "d15d6444e3ea81f9cf5c8576dc2798fb81f7fb8aebd28e9cd5fa46afe819cc70"
+    }
+  ]
+}

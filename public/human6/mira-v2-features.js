@@ -1,12 +1,13 @@
-import {LivingEyes} from './mira-v2-eyes.js?v=17.5.0';
-import {EnhanceEyes} from './mira-v2-tearline.js?v=17.5.0';
-import {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES,V2_EXTRA_SLIDERS,FACE_PRESETS,EXERCISE_MODES,ATTENTION_MODES} from './mira-v2-controls.js?v=17.5.0';
-export {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES,ATTENTION_MODES} from './mira-v2-controls.js?v=17.5.0';
+import {refineAnatomyDetail} from './modules/human5-anatomy-detail.js?v=17.8.0';
+import {LivingEyes} from './mira-v2-eyes.js?v=17.8.0';
+import {EnhanceEyes} from './mira-v2-tearline.js?v=17.8.0';
+import {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES,V2_EXTRA_SLIDERS,FACE_PRESETS,EXERCISE_MODES,ATTENTION_MODES} from './mira-v2-controls.js?v=17.8.0';
+export {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES,ATTENTION_MODES} from './mira-v2-controls.js?v=17.8.0';
 import * as THREE from 'three';
-import {restoreSurfaceUV} from './mira-v2-uv.js?v=17.5.0';
-import {HairGuides} from './mira-v2-hair.js?v=17.5.0';
-import {SurfaceFlesh} from './mira-v2-tissue.js?v=17.5.0';
-import {installV2Realism} from './mira-v2-realism.js?v=17.5.0';
+import {restoreSurfaceUV} from './mira-v2-uv.js?v=17.8.0';
+import {HairGuides} from './mira-v2-hair.js?v=17.8.0';
+import {SurfaceFlesh} from './mira-v2-tissue.js?v=17.8.0';
+import {installV2Realism} from './mira-v2-realism.js?v=17.8.0';
 
 // Mira v2: a bounded real-time approximation for this CC3 rig, Three r170.
 const clamp = THREE.MathUtils.clamp, damp = THREE.MathUtils.damp;
@@ -18,9 +19,9 @@ const up=new THREE.Vector3(0,1,0);
 const FACE_POSES={
  // Resting-beauty baseline: lowered lids, Duchenne hint, no Eye_Wide. CC3 rest
  // lids are fully open, so Eye_Blink at rest is what kills the stare.
- neutral:{Eye_Blink:.11,Eye_Squint:.14,Brow_Drop:.05,Mouth_Smile:.08,Cheek_Raise:.10},
+ neutral:{Eye_Blink:.025,Eye_Squint:.025,Brow_Drop:.02,Mouth_Smile:.06,Cheek_Raise:.035},
  happy:{Mouth_Smile:.92,Cheek_Raise:.72,Mouth_Dimple:.28,Eye_Squint:.32,Jaw_Open:.08,Eye_Blink:.06},
- content:{Mouth_Smile:.28,Eye_Squint:.18,Cheek_Raise:.26,Eye_Blink:.12,Brow_Drop:.06,Brow_Raise_Inner:.04},
+ content:{Mouth_Smile:.16,Eye_Squint:.045,Cheek_Raise:.12,Eye_Blink:.03,Brow_Drop:.025,Brow_Raise_Inner:.04},
  curious:{Brow_Raise_Inner:.20,Brow_Raise_Outer:.14,Mouth_Smile:.10,Eye_Squint:.08,Eye_Blink:.08},
  listening:{Brow_Raise_Inner:.10,Mouth_Smile:.14,Eye_Squint:.10,Eye_Blink:.12,Cheek_Raise:.08},
  thoughtful:{Brow_Compress:.14,Mouth_Press:.18,Eye_Squint:.16,Eye_Blink:.14,Brow_Drop:.06},
@@ -100,6 +101,11 @@ export function fingerRotation(rig,row,j,curl,time,out=new THREE.Quaternion()){
 // breast scale or negative scale: volume grows by moving the complete surface.
 export function shapePoint(x,y,z,size,likeness=0,butt=1,arms=1,options={}){
  let dx=0,dy=0,dz=0;
+ if(y>1.145&&y<1.225&&z>.072){
+  const r2=((Math.abs(x)-.0762)/.0055)**2+((y-1.187)/.0052)**2;
+  const areola=((Math.abs(x)-.0762)/.018)**2+((y-1.187)/.017)**2;
+  dz+=.0034*Math.exp(-r2)+.00065*Math.exp(-areola*2.5);
+ }
  if(y>1.04&&y<1.39&&z>-.01){
   // Compose small smooth warps instead of summing a large displacement. This
   // keeps spacing + inward angle + small size from folding the inner attachment.
@@ -168,22 +174,7 @@ export function shapePoint(x,y,z,size,likeness=0,butt=1,arms=1,options={}){
   dz-=.0035*nose*front*likeness;
   dy+=.0015*Math.exp(-((x/.035)**2+((y-1.475)/.019)**2))*likeness;
  }
- // Resting periocular sculpt on the supplied CC3 head. Millimetres only:
- // drop the upper-lid rim, add orbital fat, slightly narrow the fissure,
- // and tilt the outer canthus down so the default aperture is not a stare.
- if(y>1.48&&y<1.575&&z>-.02){
-  const front=smooth((z+.012)/.048);
-  const eyeX=Math.abs(x)-.032,eyeBand=Math.exp(-(eyeX*eyeX)/(.028*.028))*Math.exp(-(((y-1.528)/.018)**2));
-  const lid=eyeBand*front;
-  dy-=.0024*lid;
-  dz+=.0016*lid;
-  const under=Math.exp(-(eyeX*eyeX)/(.030*.030))*Math.exp(-(((y-1.512)/.014)**2))*front;
-  dz+=.0018*under;dy-=.0006*under;
-  const canthus=smooth((Math.abs(x)-.048)/.018)*smooth((.072-Math.abs(x))/.012)*Math.exp(-(((y-1.524)/.012)**2))*front;
-  dy-=.0012*canthus;
-  const cheekMass=Math.exp(-((Math.abs(x)-.038)**2)/(.034*.034))*Math.exp(-(((y-1.492)/.022)**2))*front;
-  dz+=.0022*cheekMass;
- }
+ // Eyelid proportions are fitted by the identity module at the actual socket height.
  const face=options.faceProfile;
  if(face&&y>1.40){
   const front=smooth((z+.018)/.05),jaw=Math.exp(-(((y-1.446)/.029)**2)),cheek=Math.exp(-(((y-1.502)/.033)**2));
@@ -214,6 +205,7 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    this.root.updateMatrixWorld(true);
    this.footRestQ={};this.ankleRestY={};for(const side of ['L','R']){const bone=this.bones[side+'_Foot'];this.footRestQ[side]=this.group.getWorldQuaternion(new THREE.Quaternion()).invert().multiply(bone.getWorldQuaternion(new THREE.Quaternion()));this.ankleRestY[side]=bone.getWorldPosition(V()).y/this.baseScale;}
    // Geometry must be actor-local: slider changes must never mutate v1/other clones.
+   this.anatomyDetailVertices=refineAnatomyDetail(this.root);
    const shared=new Map();
    this.root.traverse(o=>{
     if(!o.isSkinnedMesh||o.name==='hair')return;
@@ -258,8 +250,18 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
     // array. Eyes/teeth have no targets: adding position:[] generates an illegal
     // zero-length GLSL uniform and makes the render loop read missing influences.
     geom.morphAttributes={};
+    // Material partitions share a large source buffer, but most body partitions
+    // contain only submillimetre export residuals. Do not upload the full face morph atlas five
+    // times because unused head vertices remain in their shared attributes. The
+    // bound sums every channel, so simultaneous 0–1 expressions are covered.
+    const usedMorphVertices=new Set(old.index.array);
+    let morphResidual=0;const sourceTargets=old.morphAttributes.position||[];
+    for(const i of usedMorphVertices){let dx=0,dy=0,dz=0;for(const target of sourceTargets){const v=target.array;dx+=Math.abs(v[i*3]);dy+=Math.abs(v[i*3+1]);dz+=Math.abs(v[i*3+2]);}morphResidual=Math.max(morphResidual,Math.hypot(dx,dy,dz));}
+    const hasPartitionMorph=morphResidual>.001||(/Head|Eyelash|Eye|Teeth/.test(o.material?.name||'')&&sourceTargets.length>0);
+    o.userData.h5MorphResidualM=morphResidual;
+    o.userData.h5MorphPartition=hasPartitionMorph;
     for(const [name,targets] of Object.entries(old.morphAttributes)){
-     if(targets.length)geom.morphAttributes[name]=name==='position'?record.morphPosition:targets;
+     if(hasPartitionMorph&&targets.length)geom.morphAttributes[name]=name==='position'?record.morphPosition:targets;
     }
     geom.morphTargetsRelative=old.morphTargetsRelative;geom.groups=old.groups.slice();o.geometry=geom;
     record.geom=geom;
@@ -730,8 +732,8 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    this.smileLook=damp(this.smileLook||0,looking&&lookPlayer?.85:0,3.2,dt);
    if(this.smileLook>.2){
     const s=this.smileLook;
-    this.want.Mouth_Smile_L=Math.max(this.want.Mouth_Smile_L||0,.55+s*.55);
-    this.want.Mouth_Smile_R=Math.max(this.want.Mouth_Smile_R||0,.58+s*.58);
+    this.want.Mouth_Smile_L=Math.max(this.want.Mouth_Smile_L||0,.08+s*.24);
+    this.want.Mouth_Smile_R=Math.max(this.want.Mouth_Smile_R||0,.09+s*.26);
     this.want.Cheek_Raise_L=Math.max(this.want.Cheek_Raise_L||0,.28+s*.4);
     this.want.Cheek_Raise_R=Math.max(this.want.Cheek_Raise_R||0,.28+s*.4);
     if(looking&&this.emotion.name!=='happy'&&!this.expressionOverride)this.setEmotion('happy',.55,{hold:3,source:'glance'});

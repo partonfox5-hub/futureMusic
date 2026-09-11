@@ -1,0 +1,92 @@
+{
+  "version": "17.6.0",
+  "base_version": "17.5.0",
+  "description": "Home interactions and vehicle wall collision correction",
+  "files": [
+    {
+      "path": "H5-LATEST-CHECKPOINT.md",
+      "source_sha256": null,
+      "override_sha256": "4471bae080acf201ade17521e5452371100b7b16702f30906d02a2324327924d"
+    },
+    {
+      "path": "engine.js",
+      "source_sha256": "0ed4eee656be1da43b2ef42d36edf87f0653b1e9abbbe5d6d44445d9c3a7eb1a",
+      "override_sha256": "ba7496dc630d3bc5d1cd92bf1b2368bc20c6c429f893d5fb143946345782c89e"
+    },
+    {
+      "path": "mira-v2-car.js",
+      "source_sha256": "231afeb604ab2769edcae736fdb2331166adeaee5ae3708a884b9c2733a68489",
+      "override_sha256": "c653612f747547a11c4a586ef29e466bfc6c8260e98c6447635ada447bb60f47"
+    },
+    {
+      "path": "mira-v2-destruction.js",
+      "source_sha256": "b41851f23c37606ad0b1a29c0b947f593a187035a20ed924f8764147a14699d8",
+      "override_sha256": "df3617839d39f8028dd26cadd464ab2f97af0727518fed0cca55e9dd66951843"
+    },
+    {
+      "path": "mira-v2-hair.js",
+      "source_sha256": "6f5d06db04ae1bfcb66677b42e082392d2e63a70b85811ab45036e33f80467f9",
+      "override_sha256": "daa054f2047c0e984486222b51f643b302d93650a26921c70736bb7428657183"
+    },
+    {
+      "path": "mira-v2-locomotion.js",
+      "source_sha256": "c36276c9dc36ea068bf34e2b27e4e8ea28775bd096a2d0f4ef9b0f5258d6bc09",
+      "override_sha256": "2f46e87c1ec07fed582f628e934f1e32c2fe1970667b1cf80be3ade44bf3b2de"
+    },
+    {
+      "path": "mira-v2-walls.js",
+      "source_sha256": "0abd4cbb4e6431c359f93055c3abe77d47b3d330ca79189b13eb2ca2b76beb1b",
+      "override_sha256": "6e34753557bc4d427ddcb7113373e629f42d5667d68a152657736ad11ac23a28"
+    },
+    {
+      "path": "mira-v2-world.js",
+      "source_sha256": "41e57f7b693a8cf8eab6f04a9d8057b317aea79193fab647193ced32a67e01c9",
+      "override_sha256": "3e084a94ef420de164a5d87883f5cb48f9c7c0a2d0a18dd829ba3fddc018a940"
+    },
+    {
+      "path": "mira-v2.js",
+      "source_sha256": "dee4b568998868ae69fbdda2d6a1a259fa71a5f9d5866f1f9425a1aeb61e40dc",
+      "override_sha256": "3a85e62d632fe62163fb212a4031883f1e92fba0211772f6698068e3dd621be3"
+    },
+    {
+      "path": "modules/human5-arcade.js",
+      "source_sha256": null,
+      "override_sha256": "b3af574339d4e573dfd4c10bff55aacc3072378ad57e39bc0234c2aa6d7fa5bd"
+    },
+    {
+      "path": "modules/human5-batching.js",
+      "source_sha256": "5ac7bec1b7f1ec383d9766faf82cea8e95b5f83c93258a76f59ec77603d8c25e",
+      "override_sha256": "8fb535d2e9fd41dd8a888c10c57116ea382fbb9d5ee6aeb29717477c9e8a3bab"
+    },
+    {
+      "path": "modules/human5-home-mechanics.js",
+      "source_sha256": null,
+      "override_sha256": "09b09b58a6d97d1beeabe3b5558f8fcc08fa41ab5dd352a7c959198ffd2eb607"
+    },
+    {
+      "path": "modules/human5-home.js",
+      "source_sha256": null,
+      "override_sha256": "1cb24b3d5dc7eebac9b3877c64ffa3d11a070a0f44406349914a64adbfe18dfa"
+    },
+    {
+      "path": "modules/human5-neighborhood.js",
+      "source_sha256": "a3c5fe14f073c6bf6d940c9139661f53d4dc63e731cd1d375966d74335face08",
+      "override_sha256": "d04fecb68783999cea98cea283a5698aaf574d6b7439c64ddce5f8a6b6c6d87c"
+    },
+    {
+      "path": "modules/human5-openworld.js",
+      "source_sha256": "0eec7eee98512bf2a9e3f87b3ac11e047fbcae1510799c10a255376ff87168a3",
+      "override_sha256": "71226946ee27144edef1a2a8eca25293bfa805d93ca66d140791600d3b4f2895"
+    },
+    {
+      "path": "modules/human5-startup-warmup.js",
+      "source_sha256": null,
+      "override_sha256": "ef651641bbba30b233e8f8e8b4cd3a6445c19f30c25a28972daf658c56b85040"
+    },
+    {
+      "path": "modules/human5-wetness.js",
+      "source_sha256": null,
+      "override_sha256": "a74c048be8ed15370dea7f5fab148064ed84e2330823636631776bd31fb49e11"
+    }
+  ]
+}

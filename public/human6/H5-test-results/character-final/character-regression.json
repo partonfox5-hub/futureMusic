@@ -1,0 +1,237 @@
+{
+  "result": {
+    "down": [
+      {
+        "name": "L_Breast",
+        "offset": [
+          0.0002729265006752718,
+          -0.01645491227471929,
+          -0.0005497238825565298
+        ],
+        "volumeError": 4.655096286221294e-8,
+        "recoveries": 0
+      },
+      {
+        "name": "R_Breast",
+        "offset": [
+          -0.0000034678975718988037,
+          -0.01645292594644765,
+          -0.0005684340918755415
+        ],
+        "volumeError": 6.799985374783546e-8,
+        "recoveries": 0
+      },
+      {
+        "name": "L_Glute",
+        "offset": [
+          0.00007788459797537783,
+          -0.0031325570773880207,
+          0.0000901992213555719
+        ],
+        "volumeError": 6.547254891575705e-7,
+        "recoveries": 0
+      },
+      {
+        "name": "R_Glute",
+        "offset": [
+          0.00011012062478504836,
+          -0.003143443667770418,
+          0.00008558671483120672
+        ],
+        "volumeError": 4.889042832800783e-7,
+        "recoveries": 0
+      }
+    ],
+    "zero": [
+      {
+        "name": "L_Breast",
+        "offset": [
+          0,
+          0,
+          0
+        ],
+        "volumeError": 0,
+        "recoveries": 0
+      },
+      {
+        "name": "R_Breast",
+        "offset": [
+          0,
+          0,
+          0
+        ],
+        "volumeError": 0,
+        "recoveries": 0
+      },
+      {
+        "name": "L_Glute",
+        "offset": [
+          0,
+          0,
+          0
+        ],
+        "volumeError": 0,
+        "recoveries": 0
+      },
+      {
+        "name": "R_Glute",
+        "offset": [
+          0,
+          0,
+          0
+        ],
+        "volumeError": 0,
+        "recoveries": 0
+      }
+    ],
+    "up": [
+      {
+        "name": "L_Breast",
+        "offset": [
+          -0.0002785123863185135,
+          0.016511265755448923,
+          -0.0004596304531472445
+        ],
+        "volumeError": 1.133204852177272e-8,
+        "recoveries": 0
+      },
+      {
+        "name": "R_Breast",
+        "offset": [
+          0.0000875751606180808,
+          0.016507269303065675,
+          -0.00043625719312476163
+        ],
+        "volumeError": 3.7168681465971076e-9,
+        "recoveries": 0
+      },
+      {
+        "name": "L_Glute",
+        "offset": [
+          -0.00008122942187303861,
+          0.003155966553517131,
+          -0.00004488921143955271
+        ],
+        "volumeError": 7.940462878330834e-7,
+        "recoveries": 0
+      },
+      {
+        "name": "R_Glute",
+        "offset": [
+          -0.00011249568741250604,
+          0.003165149297907899,
+          -0.0000392993815281073
+        ],
+        "volumeError": 6.023443532843231e-7,
+        "recoveries": 0
+      }
+    ],
+    "water": [
+      {
+        "name": "L_Breast",
+        "offset": [
+          -0.000005744982238486962,
+          0.0003388388118499286,
+          8.216757780427075e-7
+        ],
+        "volumeError": 5.051212781381764e-10,
+        "recoveries": 0
+      },
+      {
+        "name": "R_Breast",
+        "offset": [
+          0.0000010126596587667347,
+          0.00033878395463005084,
+          0.0000012581696313684887
+        ],
+        "volumeError": 5.290227145238191e-10,
+        "recoveries": 0
+      },
+      {
+        "name": "L_Glute",
+        "offset": [
+          -0.0000016255898139388991,
+          0.00006419434308646554,
+          -0.000001376285858056825
+        ],
+        "volumeError": 8.768783477108855e-10,
+        "recoveries": 0
+      },
+      {
+        "name": "R_Glute",
+        "offset": [
+          -0.000002275057309805706,
+          0.00006440006588237512,
+          -0.0000012715102468419115
+        ],
+        "volumeError": 7.768121701445807e-10,
+        "recoveries": 0
+      }
+    ],
+    "cut": 1,
+    "afterCut": 4188,
+    "afterRegrow": 4224,
+    "full": 4224,
+    "fullFoundation": 7680,
+    "cutFoundation": 7557,
+    "regrownFoundation": 7680,
+    "teleportError": 2.919746298069015e-7,
+    "profile": {
+      "format": "human5.npc/1",
+      "name": "Mira",
+      "faceType": 1,
+      "likeness": 0,
+      "hairStyle": 1,
+      "hairColor": 1,
+      "shape": {
+        "height": 1,
+        "waist": 0.91,
+        "hips": 1.08,
+        "breast": 1.86,
+        "butt": 1.74,
+        "thigh": 1.57,
+        "gap": -0.08,
+        "arms": 0.94,
+        "jiggle": 4.5,
+        "breastHeight": -0.12,
+        "breastSpacing": 0.04,
+        "breastAngle": 0.02,
+        "buttHeight": -0.04,
+        "buttSpacing": 0.02,
+        "buttAngle": 0,
+        "handResponse": 12,
+        "softness": 0.75,
+        "damping": 0.48,
+        "bodySoftness": 0.75,
+        "faceSoftness": 0.32,
+        "hairMotion": 1,
+        "skinDetail": 0.35
+      },
+      "sculpt": {
+        "jawWidth": 0.07,
+        "chinLength": 0.004,
+        "cheekFullness": 0.003,
+        "noseProjection": -0.0015,
+        "browHeight": 0,
+        "lipFullness": 0.0012,
+        "craniumWidth": -0.02,
+        "eyeWidth": 0.045,
+        "eyeAperture": 0.1
+      },
+      "physics": {
+        "tissueDensity": 980,
+        "waterDrag": 5,
+        "thighGravity": 0.55,
+        "spineFlexibility": 0.48,
+        "gaitVariation": 0.4,
+        "fluidBias": 0.075,
+        "muscleTone": 0.6,
+        "surfaceRipple": 0.0018
+      },
+      "note": "Artist-fit approximation from supplied references. Photos do not establish exact body measurements or hidden skull geometry."
+    },
+    "anatomyVertices": 1558,
+    "hairFinite": true
+  },
+  "errors": []
+}

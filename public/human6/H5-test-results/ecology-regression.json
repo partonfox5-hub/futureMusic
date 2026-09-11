@@ -1,0 +1,69 @@
+{
+  "testedAt": "2026-09-11T04:17:46.475Z",
+  "checks": {
+    "grass": true,
+    "grassPersistence": true,
+    "understoryLifecycle": true,
+    "birds": true,
+    "hairCutAndRegrow": true,
+    "fishingCastHookReel": true,
+    "fishSpawning": true,
+    "equippedRod": true,
+    "trafficSignals": true,
+    "trafficBudget": true,
+    "pedestrianBudget": true,
+    "trafficPhysics": true
+  },
+  "snapshot": {
+    "vegetation": {
+      "cells": 9,
+      "grassInstances": 831,
+      "cutCells": 1
+    },
+    "hair": [
+      {
+        "name": "Mira",
+        "guides": [],
+        "classic": []
+      },
+      {
+        "name": "Pedestrian 1",
+        "guides": [],
+        "classic": []
+      }
+    ],
+    "birds": {
+      "birds": 36,
+      "feeding": 0,
+      "feeders": 5
+    },
+    "fishing": {
+      "fish": 0,
+      "caught": 0,
+      "rods": [
+        {
+          "state": "ready",
+          "length": 20,
+          "tension": 0
+        }
+      ]
+    },
+    "population": {
+      "enabled": true,
+      "virtualPeople": 24,
+      "interactivePeople": 1,
+      "virtualCars": 10,
+      "interactiveCars": 1,
+      "outings": 0
+    }
+  },
+  "render": {
+    "frame": 52,
+    "calls": 377,
+    "triangles": 621520,
+    "points": 0,
+    "lines": 0
+  },
+  "errors": [],
+  "note": "SwiftShader mono, Quest code path only; not hardware frame-rate evidence."
+}

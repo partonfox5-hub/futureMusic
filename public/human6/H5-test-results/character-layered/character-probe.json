@@ -1,0 +1,112 @@
+{
+  "result": {
+    "cage": [
+      {
+        "name": "L_Breast",
+        "offset": [
+          0.000028079323642932197,
+          -0.009359966495345207,
+          0.000040795013282843295
+        ],
+        "volume": 0.00044189532065203366
+      },
+      {
+        "name": "R_Breast",
+        "offset": [
+          0.000016584599299082625,
+          -0.009357383490300908,
+          0.000044683743160911504
+        ],
+        "volume": 0.0004429964016130453
+      },
+      {
+        "name": "L_Glute",
+        "offset": [
+          0.00014158926578217157,
+          -0.004441832196305895,
+          -0.00039835874627056067
+        ],
+        "volume": 0.0012904826753795495
+      },
+      {
+        "name": "R_Glute",
+        "offset": [
+          0.00016358150652082126,
+          -0.0044076870252264255,
+          -0.0004289673337309202
+        ],
+        "volume": 0.001287848557048462
+      }
+    ],
+    "nac": [
+      {
+        "count": 15642,
+        "near": 7,
+        "closest": 0.00005112963768322347
+      },
+      {
+        "count": 648,
+        "near": 0,
+        "closest": 0.314524733248438
+      },
+      {
+        "count": 2642,
+        "near": 0,
+        "closest": 0.2504722013866129
+      }
+    ],
+    "shape": {
+      "height": 1,
+      "waist": 0.91,
+      "hips": 1.08,
+      "breast": 1.86,
+      "butt": 1.74,
+      "thigh": 1.57,
+      "gap": -0.08,
+      "arms": 0.94,
+      "jiggle": 4.5,
+      "breastHeight": -0.12,
+      "breastSpacing": 0.04,
+      "breastAngle": 0.02,
+      "buttHeight": -0.04,
+      "buttSpacing": 0.02,
+      "buttAngle": 0,
+      "handResponse": 12,
+      "softness": 0.75,
+      "damping": 0.48,
+      "bodySoftness": 0.75,
+      "faceSoftness": 0.32,
+      "hairMotion": 1,
+      "skinDetail": 0.35,
+      "tissueDensity": 980,
+      "waterDrag": 5,
+      "thighGravity": 0.55,
+      "spineFlexibility": 0.48,
+      "gaitVariation": 0.4,
+      "fluidBias": 0.075,
+      "muscleTone": 0.6,
+      "surfaceRipple": 0.0018
+    },
+    "headPosition": [
+      -0.0016788906319447467,
+      1.449300915765916,
+      -0.03776254432296461
+    ],
+    "groom": {
+      "locks": 44,
+      "vertices": [
+        1105,
+        1188
+      ],
+      "finite": true
+    },
+    "render": {
+      "frame": 64,
+      "calls": 903,
+      "triangles": 1399520,
+      "points": 0,
+      "lines": 0
+    }
+  },
+  "errors": []
+}

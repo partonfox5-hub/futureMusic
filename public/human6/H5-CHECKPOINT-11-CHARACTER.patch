@@ -1,0 +1,793 @@
+--- a/H5-LATEST-CHECKPOINT.md
++++ b/H5-LATEST-CHECKPOINT.md
+@@ -1,58 +1,54 @@
+-# Human5 17.6 — Checkpoint 10
++# Human5 Checkpoint 11 — character and glass refinement
+ 
+-This integrated checkpoint restores the saved 17.5 project after the workspace restart and adds the house interactions and vehicle crash correction. Character fidelity, soft straight shoulder-length hair, the full final performance review, and the separate photo/video NPC creator remain unfinished. The requested anatomy slider defaults and skin/tissue changes are not part of this checkpoint.
++Version 17.7.0. Includes the complete Checkpoint 10 game, including the car/wall exception fix, startup vehicle-view preparation, basement, arcade, crate and showers.
+ 
+-## Vehicle crash correction
++## Changes
+ 
+-A browser reproduction of driving into Willow's exterior wall failed with `Cannot read properties of undefined (reading 'x')` in `WallSystem.stamp`. The car had supplied an object and instance index but no contact point. Car impacts now supply a world-space contact point, and the older wall API has a defensive fallback for callers without one.
++- Mira now uses dark brown, straight, shoulder-length hair. The old oversized radial crown and separated narrow locks are replaced by a fitted continuous underlayer and 44 overlapping flat guided cards. Fine fiber variation, a restrained highlight and softer tips replace coarse stripes. The guide solve uses bounded fixed steps and reused vectors. Wetness affects its material and damping. Both the outer cards and underlying hair sheet trim and regrow together.
++- Disabled inappropriate alpha-to-coverage on Quest-path eyelashes; the new groom uses alpha testing. This corrected the white edge artifacts found in browser renders without MSAA.
++- The identity sculpt now uses the actual mesh's eye, nose, cheek, lip and chin heights. Eyelid width/aperture have independent controls; expression endpoints are warped with neutral geometry. Removed the misplaced periocular bulge and excessive idle grin. The tearline's curvature was also corrected: the previous coefficient displaced its edges by over 13 cm instead of millimetres.
++- Anatomical pigmentation has a gradual edge and local normal relief. The body exposure/seam blend no longer paints a uniform skin color over this region. A continuous skinned surface carries the geometric relief; no separate attached decal mesh is used.
++- Two local conforming refinement passes add 1,558 vertices to the shared skin buffer in this asset. The small anatomical region now has 153 vertices within the sampled 12 mm radius, versus 7 before. All original expression targets, UVs, material partitions and normalized skin weights are retained. Source geometry remains unchanged for other asset instances.
++- Tissue attachment and shear compliance are separate from near-incompressible volume. Four rear attachment points eliminate the directional bias of the previous three-point cage. Glute support is firmer than breast tissue, with a bounded transient surface response over the muscular support. Fluid-response bias defaults to 7.5%, rather than replacing the solver with a liquid model.
++- Hot shower glass can be wiped with a nearby tracked palm/controller. A small retained local mask clears the touched area; condensation gradually returns. Water flow, temperature, fog and wetness remain separate state.
+ 
+-Collision samples cover two body heights. Contacts look up their wall cells directly. A car damages at most four nearby wall cells per simulation frame; absorbed energy and remaining wall resistance affect its speed. The existing dent and mechanical damage paths remain active. The regression broke four wall cells without an exception and left a finite vehicle velocity. This is a bounded game approximation of masonry, timber framing and bodywork; it is not a structural finite-element simulation or GTA-quality destruction.
++## Starting Mira defaults
+ 
+-The initial car views are prepared behind a loading card. This includes an actual render because shader compilation alone did not remove the graphics driver's first-use stall. Two default cars are placed at their current scene parking locations before preparation. Loading may take longer. The workstation software-rendering diagnostic previously measured a 5.7-second first rear-view render; the latest prepared run measured about 191 ms, with later calls about 44 ms. These are diagnostic runs with variable workstation load, not a controlled speedup benchmark or Quest FPS result. A smaller entry hitch remains to be addressed during the final performance passes. New user-spawned vehicle types can still incur their own first-use resource work.
++| Setting | Value | Slider position |
++|---|---:|---:|
++| Breast size | 1.86 | about 75% |
++| Buttock size | 1.74 | about 75% |
++| Thigh size | 1.57 | about 75% |
++| Jiggle | 4.5 / 6 | 75% |
++| Hand contact response | 12 / 16 | 75% |
++| Tissue softness | 0.75 | 75% |
++| Waist/thigh softness | 0.75 | 75% |
++| Hair flexibility | 1.0 | maximum |
++| Controller haptic gain | 3 / 4 | 75% |
+ 
+-## Starting house
++The shape profile import/export ranges now match the real controls, including these larger defaults. The newer physics variables are present in the exported `human5.npc/1` profile.
+ 
+-Willow cottage, the one-bedroom house on the west side of the cul-de-sac, now has a basement at −2.8 m. Stairs are on the left side of the front living area when viewed in the house's local plan. Furniture and the rug were moved away from the stair opening. The upper floor has an actual opening, and streamed-terrain collision and aiming respect the basement. Seventeen visible steps use a smooth traversal ramp. The basement has a floor, perimeter walls, railing, lighting, an arcade and a large-dog crate.
++## Evidence
+ 
+-Basement ceiling lights use the existing local-light pool. They do not add a permanently active point-light shader slot.
++`tests/character-regression.cjs` exercises the integrated actor, rather than only a stand-alone spring. After six seconds at the default preset, the four-point model settled approximately 16.5 mm downward at the breast cages and 3.1 mm at the glute cages. The early startup displacement is approximately 8.7 mm; it is not the final equilibrium. Zero gravity returns the cage to its rest target. Reversed gravity reverses the displacement. Full fresh-water submersion at the configured 980 kg/m³ tissue density gives approximately 0.34 mm of upward cage displacement. The attachment remains connected to the character; this is not a buoyant balloon lifting the body.
+ 
+-## Arcade
++The tested states remained finite and retained cage volume within the regression threshold, with zero divergence recoveries. These are numerical game-model results, not anatomical validation.
+ 
+-The cabinet includes a joystick, three buttons, and a 512×512 canvas display. The included **Orbit Catch** game is playable. Point and trigger/click the joystick to focus, or grip it and move your hand. Desktop arrows move; A/Space performs action A; B restarts the demo; Escape leaves. While a VR controller owns the arcade, its stick and secondary buttons are routed to the game rather than walking, jumping, deleting an NPC or spawning a ball.
++Other passing checks cover:
+ 
+-An adapter can be registered through `world.h5Home.arcade.game.register(id, adapter)`, then loaded with `.load(id)`. Required methods:
++- Shared topology refinement without hanging edges, area changes or unnormalized skin weights; morph continuity and source isolation.
++- Guide and underlayer cutting, complete regrowth, variable timesteps and teleport recovery.
++- Profile export/import at the new defaults and actual browser shader compilation.
++- Basement stair traversal and collisions, hollow crate/hinge/exterior bolt, arcade canvas adapter, shower wetness, hot steam, mirror state restoration, local glass wiping and returning condensation.
+ 
+-```js
+-const adapter = {
+-  title: 'Your game',
+-  reset() {},
+-  update(dt, input) { /* input.x, input.y, input.buttons (Set) */ },
+-  render(ctx, width, height) {},
+-  onButton(id, pressed) {}, // optional; ids 0, 1, 2
+-  onAxis(x, y) {},         // optional
+-  suspend() {},           // optional when switching away
+-  dispose() {}            // optional on cabinet shutdown
+-};
+-```
++Actual game portrait views are saved under `test-results/character-continuity`. These are game screenshots, not generated previews presented as game output.
+ 
+-The display updates at at most 30 Hz within four metres and sleeps farther away. DOM/CSS games require a canvas rendering adapter; arbitrary HTML pages are not automatically converted into a WebXR texture. No remote game code is evaluated.
++## Limits and next work
+ 
+-## Dog crate
++This checkpoint improves the supplied procedural character. It does not match the reference photographs exactly, and the hair still lacks the fidelity of a professionally authored groom. The skin detail is not a newly authored 4K scan. The cloth, furniture, world and vehicle assets remain procedural. Neither the tissue model nor the vehicle damage system is a calibrated finite-element simulation.
+ 
+-The crate is approximately 1.13×1.60×1.18 m and weighs 22 kg in the furniture system. It has a hollow interior, separate wall/roof collision pieces, a hinged front door, and an outside sliding bolt. Grip the bolt and slide it or point/click it, then pull the handle. The bolt engages only near the closed position; it cannot lock an open door. The hinge is damped and can be left open. Whole-crate furniture grabbing remains available.
++The first performance diagnostic still found substantial CPU costs and spikes, especially in the city. It also exposed repeated facial morph-atlas uploads on body material partitions. Those optimization changes belong to the next working stage and are not included here. Both requested final performance passes and the final integrated game export remain pending. The separate local photo/video NPC application follows the final game export.
+ 
+-Thin cage bars use consolidated geometry; body collision approximates each cage face with a thin slab rather than testing every individual bar.
++## Integration
+ 
+-## Bathrooms and wetness
+-
+-All five house bathrooms include a supported shower pipe/head, mixer controls, tray, drain, glass side panels and a wall mirror above the sink. Point and trigger/click the flow handle or temperature dial; these controls also accept nearby hand grips. The temperature click cycles between cool, warm/hot and maximum hot. Hot running water creates bounded steam and accumulating glass condensation. Condensation fades after the shower stops. Interactive wiping is not implemented in this checkpoint.
+-
+-Skin, hair and clothing acquire bounded wetness from showers, rain outside shelter, and water immersion. Skin becomes slightly darker and glossier; hair and fabric darken more and dry more slowly. Legacy hair receives added damping when wet and uses current world gravity. Wetness is a surface/guide approximation, not fluid simulation or a complete wet-hair groom.
+-
+-Only the nearest eligible mirror renders, within six metres, at 24/18/12 Hz on Quest quality tiers. It uses separate eye targets in XR, one reflection level, and restores renderer state after offscreen work. Targets are released after four seconds unused. Steam has a 24-instance cap; each nearby running shower has 32 simple water segments. Mirrors and shower glass use inexpensive material approximations rather than ray tracing or volumetric transport.
+-
+-## Verification and remaining work
+-
+-The browser checks covered stair ascent/descent, upper/basement floor separation, dropped-object and aiming collision, closed and open crate collision, latch engagement, arcade input/render/sleep, shower wetness/drying, hot condensation/steam limits, reflection pose/state, and scene rebuild cleanup. The in-game screenshots in `test-results/home` are actual renders. Regression evidence also includes the original car crash stack and the corrected run.
+-
+-No Quest headset was available. Microphone permissions, stereo comfort, frame delivery, thermal behavior, long sessions and GPU memory need on-device verification. The final whole-application review and the additional performance pass immediately before final export are still pending. See `PROJECT-REMAINING.md` for the continuing scope.
++Use the complete project ZIP for a ready-to-serve source folder. From the complete 17.6 game, run `python integration/apply-delta.py SOURCE NEW_OUTPUT` in the module bundle. From the original complete uploaded game, run `python integration/apply-all-upgrades.py SOURCE NEW_OUTPUT`. Both write a new directory and validate inputs; they do not overwrite your existing project.
+--- a/mira-v2-features.js
++++ b/mira-v2-features.js
+@@ -1,12 +1,13 @@
+-import {LivingEyes} from './mira-v2-eyes.js?v=17.6.0';
+-import {EnhanceEyes} from './mira-v2-tearline.js?v=17.6.0';
+-import {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES,V2_EXTRA_SLIDERS,FACE_PRESETS,EXERCISE_MODES,ATTENTION_MODES} from './mira-v2-controls.js?v=17.6.0';
+-export {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES,ATTENTION_MODES} from './mira-v2-controls.js?v=17.6.0';
++import {refineAnatomyDetail} from './modules/human5-anatomy-detail.js?v=17.7.0';
++import {LivingEyes} from './mira-v2-eyes.js?v=17.7.0';
++import {EnhanceEyes} from './mira-v2-tearline.js?v=17.7.0';
++import {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES,V2_EXTRA_SLIDERS,FACE_PRESETS,EXERCISE_MODES,ATTENTION_MODES} from './mira-v2-controls.js?v=17.7.0';
++export {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES,ATTENTION_MODES} from './mira-v2-controls.js?v=17.7.0';
+ import * as THREE from 'three';
+-import {restoreSurfaceUV} from './mira-v2-uv.js?v=17.6.0';
+-import {HairGuides} from './mira-v2-hair.js?v=17.6.0';
+-import {SurfaceFlesh} from './mira-v2-tissue.js?v=17.6.0';
+-import {installV2Realism} from './mira-v2-realism.js?v=17.6.0';
++import {restoreSurfaceUV} from './mira-v2-uv.js?v=17.7.0';
++import {HairGuides} from './mira-v2-hair.js?v=17.7.0';
++import {SurfaceFlesh} from './mira-v2-tissue.js?v=17.7.0';
++import {installV2Realism} from './mira-v2-realism.js?v=17.7.0';
+ 
+ // Mira v2: a bounded real-time approximation for this CC3 rig, Three r170.
+ const clamp = THREE.MathUtils.clamp, damp = THREE.MathUtils.damp;
+@@ -18,9 +19,9 @@
+ const FACE_POSES={
+  // Resting-beauty baseline: lowered lids, Duchenne hint, no Eye_Wide. CC3 rest
+  // lids are fully open, so Eye_Blink at rest is what kills the stare.
+- neutral:{Eye_Blink:.11,Eye_Squint:.14,Brow_Drop:.05,Mouth_Smile:.08,Cheek_Raise:.10},
++ neutral:{Eye_Blink:.025,Eye_Squint:.025,Brow_Drop:.02,Mouth_Smile:.06,Cheek_Raise:.035},
+  happy:{Mouth_Smile:.92,Cheek_Raise:.72,Mouth_Dimple:.28,Eye_Squint:.32,Jaw_Open:.08,Eye_Blink:.06},
+- content:{Mouth_Smile:.28,Eye_Squint:.18,Cheek_Raise:.26,Eye_Blink:.12,Brow_Drop:.06,Brow_Raise_Inner:.04},
++ content:{Mouth_Smile:.16,Eye_Squint:.045,Cheek_Raise:.12,Eye_Blink:.03,Brow_Drop:.025,Brow_Raise_Inner:.04},
+  curious:{Brow_Raise_Inner:.20,Brow_Raise_Outer:.14,Mouth_Smile:.10,Eye_Squint:.08,Eye_Blink:.08},
+  listening:{Brow_Raise_Inner:.10,Mouth_Smile:.14,Eye_Squint:.10,Eye_Blink:.12,Cheek_Raise:.08},
+  thoughtful:{Brow_Compress:.14,Mouth_Press:.18,Eye_Squint:.16,Eye_Blink:.14,Brow_Drop:.06},
+@@ -100,6 +101,11 @@
+ // breast scale or negative scale: volume grows by moving the complete surface.
+ export function shapePoint(x,y,z,size,likeness=0,butt=1,arms=1,options={}){
+  let dx=0,dy=0,dz=0;
++ if(y>1.145&&y<1.225&&z>.072){
++  const r2=((Math.abs(x)-.0762)/.0055)**2+((y-1.187)/.0052)**2;
++  const areola=((Math.abs(x)-.0762)/.018)**2+((y-1.187)/.017)**2;
++  dz+=.0034*Math.exp(-r2)+.00065*Math.exp(-areola*2.5);
++ }
+  if(y>1.04&&y<1.39&&z>-.01){
+   // Compose small smooth warps instead of summing a large displacement. This
+   // keeps spacing + inward angle + small size from folding the inner attachment.
+@@ -168,22 +174,7 @@
+   dz-=.0035*nose*front*likeness;
+   dy+=.0015*Math.exp(-((x/.035)**2+((y-1.475)/.019)**2))*likeness;
+  }
+- // Resting periocular sculpt on the supplied CC3 head. Millimetres only:
+- // drop the upper-lid rim, add orbital fat, slightly narrow the fissure,
+- // and tilt the outer canthus down so the default aperture is not a stare.
+- if(y>1.48&&y<1.575&&z>-.02){
+-  const front=smooth((z+.012)/.048);
+-  const eyeX=Math.abs(x)-.032,eyeBand=Math.exp(-(eyeX*eyeX)/(.028*.028))*Math.exp(-(((y-1.528)/.018)**2));
+-  const lid=eyeBand*front;
+-  dy-=.0024*lid;
+-  dz+=.0016*lid;
+-  const under=Math.exp(-(eyeX*eyeX)/(.030*.030))*Math.exp(-(((y-1.512)/.014)**2))*front;
+-  dz+=.0018*under;dy-=.0006*under;
+-  const canthus=smooth((Math.abs(x)-.048)/.018)*smooth((.072-Math.abs(x))/.012)*Math.exp(-(((y-1.524)/.012)**2))*front;
+-  dy-=.0012*canthus;
+-  const cheekMass=Math.exp(-((Math.abs(x)-.038)**2)/(.034*.034))*Math.exp(-(((y-1.492)/.022)**2))*front;
+-  dz+=.0022*cheekMass;
+- }
++ // Eyelid proportions are fitted by the identity module at the actual socket height.
+  const face=options.faceProfile;
+  if(face&&y>1.40){
+   const front=smooth((z+.018)/.05),jaw=Math.exp(-(((y-1.446)/.029)**2)),cheek=Math.exp(-(((y-1.502)/.033)**2));
+@@ -214,6 +205,7 @@
+    this.root.updateMatrixWorld(true);
+    this.footRestQ={};this.ankleRestY={};for(const side of ['L','R']){const bone=this.bones[side+'_Foot'];this.footRestQ[side]=this.group.getWorldQuaternion(new THREE.Quaternion()).invert().multiply(bone.getWorldQuaternion(new THREE.Quaternion()));this.ankleRestY[side]=bone.getWorldPosition(V()).y/this.baseScale;}
+    // Geometry must be actor-local: slider changes must never mutate v1/other clones.
++   this.anatomyDetailVertices=refineAnatomyDetail(this.root);
+    const shared=new Map();
+    this.root.traverse(o=>{
+     if(!o.isSkinnedMesh||o.name==='hair')return;
+@@ -730,8 +722,8 @@
+    this.smileLook=damp(this.smileLook||0,looking&&lookPlayer?.85:0,3.2,dt);
+    if(this.smileLook>.2){
+     const s=this.smileLook;
+-    this.want.Mouth_Smile_L=Math.max(this.want.Mouth_Smile_L||0,.55+s*.55);
+-    this.want.Mouth_Smile_R=Math.max(this.want.Mouth_Smile_R||0,.58+s*.58);
++    this.want.Mouth_Smile_L=Math.max(this.want.Mouth_Smile_L||0,.08+s*.24);
++    this.want.Mouth_Smile_R=Math.max(this.want.Mouth_Smile_R||0,.09+s*.26);
+     this.want.Cheek_Raise_L=Math.max(this.want.Cheek_Raise_L||0,.28+s*.4);
+     this.want.Cheek_Raise_R=Math.max(this.want.Cheek_Raise_R||0,.28+s*.4);
+     if(looking&&this.emotion.name!=='happy'&&!this.expressionOverride)this.setEmotion('happy',.55,{hold:3,source:'glance'});
+--- a/mira-v2-haptics.js
++++ b/mira-v2-haptics.js
+@@ -1,7 +1,7 @@
+ // Optional XR controller output. Unsupported actuators are a quiet no-op.
+ // A hand's contacts are coalesced, capped, and rate-limited; no sustained rumble.
+ export class ContactHaptics {
+- constructor(renderer){this.renderer=renderer;this.gain=2;this.time=0;this.last=[-1,-1];this.pending=[0,0];this.duration=[0,0];}
++ constructor(renderer){this.renderer=renderer;this.gain=3;this.time=0;this.last=[-1,-1];this.pending=[0,0];this.duration=[0,0];}
+  advance(dt){this.time+=Math.min(.05,Math.max(0,dt));}
+  contact(i,kind,speed=0,depth=0){
+   const base=kind==='hair'?.010:kind==='head'?.018:kind==='prop'?.026:.020;
+--- a/mira-v2-tearline.js
++++ b/mira-v2-tearline.js
+@@ -9,7 +9,7 @@
+   const pos = g.attributes.position;
+   for(let i=0;i<pos.count;i++){
+     const x = pos.getX(i), y = pos.getY(i);
+-    pos.setZ(i, -0.55*x*x/Math.max(w*w,1e-6) + y*y*0.15);
++    pos.setZ(i, -0.010*x*x/Math.max(w*w,1e-6) + y*y*0.15);
+   }
+   g.computeVertexNormals();
+   return g;
+--- a/mira-v2.js
++++ b/mira-v2.js
+@@ -1,8 +1,8 @@
+-import {restoreSurfaceUV} from './mira-v2-uv.js?v=17.6.0';
+-import {BodyContacts} from './mira-v2-contact.js?v=17.6.0';
+-import {MiraSocial} from './mira-v2-social.js?v=17.6.0';
+-import {ContactHaptics} from './mira-v2-haptics.js?v=17.6.0';
+-import { createV2Class, repairArmRestData, makeFingerRig, fingerRotation } from "./mira-v2-features.js?v=17.6.0";
++import {restoreSurfaceUV} from './mira-v2-uv.js?v=17.7.0';
++import {BodyContacts} from './mira-v2-contact.js?v=17.7.0';
++import {MiraSocial} from './mira-v2-social.js?v=17.7.0';
++import {ContactHaptics} from './mira-v2-haptics.js?v=17.7.0';
++import { createV2Class, repairArmRestData, makeFingerRig, fingerRotation } from "./mira-v2-features.js?v=17.7.0";
+ import * as THREE from "three";
+ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+ import { clone as cloneSkinned } from "three/addons/utils/SkeletonUtils.js";
+@@ -210,7 +210,7 @@
+       m.opacity = 1;
+       m.depthWrite = true;
+       m.alphaTest = hair ? 0.3 : lash ? 0.32 : 0;
+-      m.alphaToCoverage = hair || lash;
++      m.alphaToCoverage = !QUEST && (hair || lash);
+       // Small, inexpensive specular shell; no screen-space transmission pass.
+       // The eye's four materials share a mesh, so never hide the mesh here.
+       if (cornea) {
+--- a/modules/human5-anatomy-detail.js
++++ b/modules/human5-anatomy-detail.js
+@@ -0,0 +1,59 @@
++import * as T from 'three';
++
++/** Local, conforming edge refinement. All material partitions share the same
++ * expanded attributes; skin weights and every expression target are preserved.
++ * Runs once at construction, never during animation. No global subdivision.
++ */
++export function refineAnatomyDetail(root,passes=2){
++  const groups=new Map();root.traverse(mesh=>{
++    if(!mesh.isSkinnedMesh||mesh.name==='hair'||!mesh.geometry.index)return;
++    const key=mesh.geometry.attributes.position;
++    if(!groups.has(key))groups.set(key,[]);groups.get(key).push(mesh);
++  });let added=0;
++  const edgeKey=(a,b)=>a<b?a+'/'+b:b+'/'+a;
++  for(const meshes of groups.values())for(let pass=0;pass<passes;pass++){
++    const first=meshes[0].geometry,position=first.attributes.position,edges=new Map(),pairs=[];
++    const near=(x,y,z)=>z>.07&&Math.hypot(Math.abs(x)-.0762,y-1.187)<.028;
++    const mark=(a,b)=>{const key=edgeKey(a,b);if(!edges.has(key)){edges.set(key,position.count+pairs.length);pairs.push([a,b]);}};
++    for(const mesh of meshes){const ids=mesh.geometry.index.array;
++      for(let i=0;i<ids.length;i+=3){const [a,b,c]=[ids[i],ids[i+1],ids[i+2]];
++        const x=(position.getX(a)+position.getX(b)+position.getX(c))/3,y=(position.getY(a)+position.getY(b)+position.getY(c))/3,z=(position.getZ(a)+position.getZ(b)+position.getZ(c))/3;
++        if(near(x,y,z)||[a,b,c].some(v=>near(position.getX(v),position.getY(v),position.getZ(v)))){mark(a,b);mark(b,c);mark(c,a);}
++      }
++    }
++    if(!pairs.length)break;added+=pairs.length;
++    function expand(attr,name=''){
++      const size=attr.itemSize,array=new attr.array.constructor((position.count+pairs.length)*size);array.set(attr.array);
++      for(let n=0;n<pairs.length;n++){const [a,b]=pairs[n],offset=(position.count+n)*size;
++        for(let j=0;j<size;j++)array[offset+j]=(attr.array[a*size+j]+attr.array[b*size+j])*.5;
++        if(name==='normal'){const length=Math.hypot(array[offset],array[offset+1],array[offset+2]);if(length>1e-9)for(let j=0;j<3;j++)array[offset+j]/=length;}
++      }
++      return new T.BufferAttribute(array,size,attr.normalized);
++    }
++    const attrs=Object.fromEntries(Object.entries(first.attributes).map(([name,attr])=>[name,expand(attr,name)]));
++    if(attrs.skinIndex&&attrs.skinWeight){
++      const si=first.attributes.skinIndex.array,sw=first.attributes.skinWeight.array;
++      for(let n=0;n<pairs.length;n++){
++        const influences=new Map();for(const v of pairs[n])for(let j=0;j<4;j++)if(sw[v*4+j]>0)influences.set(si[v*4+j],(influences.get(si[v*4+j])||0)+sw[v*4+j]*.5);
++        const top=[...influences].sort((a,b)=>b[1]-a[1]).slice(0,4),sum=top.reduce((s,v)=>s+v[1],0),offset=(position.count+n)*4;
++        for(let j=0;j<4;j++){attrs.skinIndex.array[offset+j]=top[j]?.[0]||0;attrs.skinWeight.array[offset+j]=(top[j]?.[1]||0)/Math.max(1e-9,sum);}
++      }
++    }
++    const morph=Object.fromEntries(Object.entries(first.morphAttributes).map(([name,targets])=>[name,targets.map(a=>expand(a))]));
++    for(const mesh of meshes){
++      const old=mesh.geometry,ids=old.index.array,out=[],offsets=[];
++      for(let i=0;i<ids.length;i+=3){offsets.push(out.length);const v=[ids[i],ids[i+1],ids[i+2]],mid=v.map((a,j)=>edges.get(edgeKey(a,v[(j+1)%3]))),count=mid.filter(x=>x!==undefined).length;
++        const [a,b,c]=v,[ab,bc,ca]=mid;
++        if(count===0)out.push(a,b,c);
++        else if(count===3)out.push(a,ab,ca,ab,b,bc,ca,bc,c,ab,bc,ca);
++        else if(count===1){const j=mid.findIndex(x=>x!==undefined),x=v[j],y=v[(j+1)%3],z=v[(j+2)%3],m=mid[j];out.push(x,m,z,m,y,z);}
++        else{const j=mid.findIndex((x,k)=>x!==undefined&&mid[(k+1)%3]!==undefined),x=v[j],y=v[(j+1)%3],z=v[(j+2)%3],m=mid[j],n=mid[(j+1)%3];out.push(m,y,n,x,m,z,m,n,z);}
++      }
++      offsets.push(out.length);
++      const g=new T.BufferGeometry();g.attributes=attrs;g.morphAttributes=morph;g.morphTargetsRelative=old.morphTargetsRelative;g.setIndex(out);
++      g.groups=old.groups.map(a=>({...a,start:offsets[a.start/3],count:offsets[(a.start+a.count)/3]-offsets[a.start/3]}));
++      g.userData={...old.userData,h5AnatomyDetail:true};g.computeBoundingSphere();mesh.geometry=g;
++    }
++  }
++  return added;
++}
+--- a/modules/human5-dynamics.js
++++ b/modules/human5-dynamics.js
+@@ -1,12 +1,15 @@
+ import * as T from 'three';
+-import {V,clamp,finiteDt,gravityOf,wrapMethod,rng} from './human5-common.js?v=17.6.0';
++import {V,clamp,finiteDt,gravityOf,wrapMethod,rng} from './human5-common.js?v=17.7.0';
+ 
+ export const DYNAMICS_CONTROLS=Object.freeze([
+   {key:'tissueDensity',label:'Tissue density',min:900,max:1100,step:5,value:980},
+   {key:'waterDrag',label:'Tissue water drag',min:0,max:12,step:.1,value:5},
+   {key:'thighGravity',label:'Thigh gravity response',min:0,max:1,step:.02,value:.55},
+   {key:'spineFlexibility',label:'Spine flexibility',min:0,max:1,step:.02,value:.48},
+-  {key:'gaitVariation',label:'Step variation',min:0,max:1,step:.02,value:.40}
++  {key:'gaitVariation',label:'Step variation',min:0,max:1,step:.02,value:.40},
++  {key:'fluidBias',label:'Tissue fluid response',min:0,max:.1,step:.005,value:.075},
++  {key:'muscleTone',label:'Underlying muscle support',min:0,max:1,step:.02,value:.6},
++  {key:'surfaceRipple',label:'Surface tissue motion',min:0,max:.003,step:.0001,value:.0018}
+ ]);
+ 
+ export function submergedFraction(height,y,radius=.035){return clamp((height-y)/(2*radius)+.5,0,1);}
+@@ -47,7 +50,13 @@
+           const accel=environmentalAcceleration(g,water,rho,fraction),flow=water?.velocity||V(),drag=Math.exp(-self.options.waterDrag*fraction*h);
+           for(let j=0;j<3;j++){const axis=['x','y','z'][j];this.v[i+j]=flow[axis]+(this.v[i+j]-flow[axis])*drag+accel[axis]*h/Math.max(.01,baseDrag);}
+         }
+-        self.stats.submerged=sum;return old.call(this,h,{...params,gravity:0});
++        const soft=clamp(params.softness??.62,0,1),breast=c.soft.kind==='breast';
++        // Softer fascia permits gravity equilibrium; muscular glute support stays
++        // firmer. Near-incompressible volume remains an independent constraint.
++        const bias=1+self.options.fluidBias;
++        const attachmentCompliance=breast?(.000015+soft*soft*.00055)*bias:(.000008+soft*soft*.00016)/(1+self.options.muscleTone*1.5);
++        const shearCompliance=(.000001+soft*soft*(breast?.000055:.000035))*bias;
++        self.stats.submerged=sum;return old.call(this,h,{...params,gravity:0,attachmentCompliance,shearCompliance});
+       }));
+     }
+     this.stats.clusters=this.tissue.clusters.length;
+--- a/modules/human5-groom.js
++++ b/modules/human5-groom.js
+@@ -1,45 +1,109 @@
+ import * as T from 'three';
+-import {V,clamp,smooth,gravityOf,wrapMethod,rng} from './human5-common.js?v=17.6.0';
++import {V,clamp,smooth,gravityOf,wrapMethod,rng} from './human5-common.js?v=17.7.0';
+ 
+-/** Shoulder-length reference groom: 28 guided locks, one crown, two draw calls. */
++/** Fitted crown and overlapping straight cards. Two draws; bounded guide physics.
++ * Coordinates are metres in this project's CC3 rest mesh, before Head bind.
++ * These are hair cards, not cylindrical locks or individual follicles.
++ */
+ export function installReferenceGroom(actor){
+   if(actor.h5Groom)return actor.h5Groom;
+-  const head=actor.bones.Head,inv=actor.skeleton.boneInverses[actor.skeleton.bones.indexOf(head)],group=new T.Group();group.name='Mira reference layered hair';head.add(group);
+-  const random=rng(1751),w=128,h=128,data=new Uint8Array(w*h*4);
+-  for(let y=0;y<h;y++)for(let x=0;x<w;x++){const u=x/(w-1),v=y/(h-1),strand=.70+.15*Math.sin(x*2.9)+.1*Math.sin(x*.93),tip=1-smooth((v-.86)/.14),edge=smooth(Math.min(u,1-u)/.08),i=(y*w+x)*4;data.set([210*strand,188*strand,164*strand,255*edge*(tip*.9+.1)],i);}
+-  const texture=new T.DataTexture(data,w,h);texture.colorSpace=T.SRGBColorSpace;texture.wrapS=texture.wrapT=T.RepeatWrapping;texture.needsUpdate=true;
+-  const material=new T.MeshStandardMaterial({color:0x765943,map:texture,roughness:.53,metalness:0,side:T.DoubleSide,alphaTest:.28,envMapIntensity:.65});
++  const head=actor.bones.Head,bind=actor.skeleton.boneInverses[actor.skeleton.bones.indexOf(head)];
++  const group=new T.Group();group.name='Mira straight shoulder hair';head.add(group);
++  const random=rng(1751),size=256,data=new Uint8Array(size*size*4),fibers=new Float32Array(size);
++  for(let x=0;x<size;x++)fibers[x]=.86+random()*.14;
++  for(let y=0;y<size;y++)for(let x=0;x<size;x++){
++    const u=x/(size-1),v=y/(size-1),fiber=fibers[x]*(.97+.025*Math.sin(y*.036+x*.13));
++    const edge=smooth(Math.min(u,1-u)/.085),tip=1-smooth((v-(.88+.055*Math.sin(x*.71)))/.11),i=(y*size+x)*4;
++    data.set([255*fiber,249*fiber,238*fiber,255*edge*tip],i);
++  }
++  const texture=new T.DataTexture(data,size,size);texture.colorSpace=T.SRGBColorSpace;
++  texture.wrapS=T.RepeatWrapping;texture.generateMipmaps=true;texture.minFilter=T.LinearMipmapLinearFilter;texture.magFilter=T.LinearFilter;texture.needsUpdate=true;
++  const material=new T.MeshStandardMaterial({color:0x4a352a,map:texture,roughness:.56,metalness:0,side:T.DoubleSide,alphaTest:.36,alphaToCoverage:false,envMapIntensity:.8});
+   const crownMat=material.clone();crownMat.alphaTest=0;crownMat.side=T.FrontSide;
+-  const cp=[],cu=[],ci=[],phiN=48,thetaN=12;
+-  function crown(theta,phi){return new T.Vector3(.086*Math.sin(theta)*Math.sin(phi),1.555+.112*Math.cos(theta),-.016+.105*Math.sin(theta)*Math.cos(phi));}
+-  for(let j=0;j<=thetaN;j++)for(let i=0;i<=phiN;i++){const phi=i/phiN*Math.PI*2,front=(Math.cos(phi)+1)/2,end=1.90-.55*front**3,theta=.015+(end-.015)*j/thetaN,p=crown(theta,phi).applyMatrix4(inv);cp.push(p.x,p.y,p.z);cu.push(i/phiN*12,j/thetaN*.8);if(i<phiN&&j<thetaN){const a=j*(phiN+1)+i,b=a+phiN+1;ci.push(a,b,a+1,a+1,b,b+1);}}
+-  const cg=new T.BufferGeometry();cg.setAttribute('position',new T.Float32BufferAttribute(cp,3));cg.setAttribute('uv',new T.Float32BufferAttribute(cu,2));cg.setIndex(ci);cg.computeVertexNormals();const cap=new T.Mesh(cg,crownMat);cap.name='Contoured hair roots';group.add(cap);
+-  const locks=[],positions=[],uv=[],indices=[],nodes=9,widthSteps=2;
+-  // Leave the central forehead and eyes open. Locks arc around temples and ears.
+-  for(let l=0;l<28;l++){
+-    const phi=.56+l/27*(Math.PI*2-1.12),length=.23+random()*.052,phase=random()*Math.PI*2,rest=[],points=[],previous=[],width=.025+random()*.008;
+-    for(let j=0;j<nodes;j++){const t=j/(nodes-1),theta=.28+t*1.3,p=crown(Math.min(theta,1.45),phi);
+-      p.y-=Math.max(0,t-.48)*length*2;p.x+=Math.sin(phi)*(.008+smooth(t)*.017)+Math.sin(t*7+phase)*.007*smooth(t);p.z-=.006*smooth(t);
+-      if(Math.cos(phi)>.3&&t>.35){p.x=Math.sign(Math.sin(phi))*Math.max(Math.abs(p.x),.079+smooth((t-.35)/.6)*.023);p.z=Math.min(p.z,.027);}
+-      rest.push(p.applyMatrix4(inv));points.push(V());previous.push(V());
++  // Crown UVs do not repeat twelve coarse dark stripes around the scalp.
++  const cp=[],cu=[],ci=[],capLinks=[],phiN=64,thetaN=20;
++  function crown(theta,phi,out=V()){
++    const part=.006*(1-smooth(theta/.7));
++    return out.set(part+.092*Math.sin(theta)*Math.sin(phi),1.525+.115*Math.cos(theta),-.020+.115*Math.sin(theta)*Math.cos(phi));
++  }
++  for(let j=0;j<=thetaN;j++)for(let i=0;i<=phiN;i++){
++    const phi=i/phiN*Math.PI*2,v=j/thetaN,front=Math.max(0,Math.cos(phi)),angular=Math.min(phi,2*Math.PI-phi),skirt=smooth((angular-.43)/.16);
++    const theta=.005+(1.56-.30*front**3-.005)*Math.min(1,v/.55),p=crown(theta,phi),drop=smooth((v-.55)/.45)*skirt;
++    p.y=T.MathUtils.lerp(p.y,1.315,drop);p.x+=Math.sin(phi)*.009*drop;p.z-=.010*drop;
++    if(front>.25&&drop>.01){p.x=Math.sign(Math.sin(phi))*Math.max(Math.abs(p.x),.079+.020*drop);p.z=Math.min(p.z,.033-.014*drop);}
++    // Continuous underlayer connects the crown to the hanging sheets.
++    p.x-=Math.sin(phi)*.002;p.z-=Math.cos(phi)*.002;p.applyMatrix4(bind);cp.push(p.x,p.y,p.z);cu.push(i/phiN*6,v*.88);
++    const guide=clamp(Math.round((phi-.48)/(Math.PI*2-.96)*43),0,43),t=v<.55?clamp(((theta-.34)/1.19)*.46,0,.46):.46+(v-.55)/.45*.54;
++    capLinks.push({guide,node:clamp(Math.round(t*8),0,8),t,weight:skirt*smooth((v-.32)/.25)});
++    if(i<phiN&&j<thetaN){const a=j*(phiN+1)+i,b=a+phiN+1;ci.push(a,b,a+1,a+1,b,b+1);}
++  }
++  const cg=new T.BufferGeometry();cg.setAttribute('position',new T.Float32BufferAttribute(cp,3));cg.setAttribute('uv',new T.Float32BufferAttribute(cu,2));cg.setIndex(ci);cg.computeVertexNormals();
++  const cap=new T.Mesh(cg,crownMat);cap.name='Fitted softly parted crown';group.add(cap);
++  const locks=[],positions=[],uv=[],indices=[],nodes=9,widthSteps=2,lockCount=44;
++  for(let l=0;l<lockCount;l++){
++    const phi=.48+l/(lockCount-1)*(Math.PI*2-.96),endY=1.305+(random()-.5)*.038;
++    const rest=[],points=[],previous=[],targets=[],width=.032+random()*.008,phase=random()*6.283;
++    for(let j=0;j<nodes;j++){
++      const t=j/(nodes-1),arc=Math.min(1,t/.46),p=crown(.34+arc*1.19,phi);
++      if(t>.46){const drop=(t-.46)/.54;p.y=T.MathUtils.lerp(p.y,endY,drop);p.x+=Math.sin(phi)*(.013*drop);p.z-=.010*drop;}
++      // Face-framing layers stay to the sides of the cheeks and eyes.
++      if(Math.cos(phi)>.25&&t>.23){p.x=Math.sign(Math.sin(phi))*Math.max(Math.abs(p.x),.078+.023*smooth((t-.23)/.64));p.z=Math.min(p.z,.036-.015*smooth(t));}
++      const layer=-.0025+.0055*smooth((t-.35)/.25);p.x+=Math.sin(phi)*layer+Math.sin(t*4+phase)*.0012*smooth(t);p.z+=Math.cos(phi)*layer;
++      rest.push(p.applyMatrix4(bind));points.push(V());previous.push(V());targets.push(V());
+       for(let k=0;k<=widthSteps;k++){positions.push(0,0,0);uv.push(k/widthSteps,t);if(j<nodes-1&&k<widthSteps){const a=l*nodes*3+j*3+k,b=a+3;indices.push(a,b,a+1,a+1,b,b+1);}}
+-    }locks.push({rest,points,previous,width,phi,ready:false});
++    }
++    locks.push({rest,points,previous,targets,width,phi,ready:false,tangent:V().set(Math.cos(phi),0,-Math.sin(phi)).transformDirection(bind),lengths:rest.map((p,j)=>j?p.distanceTo(rest[j-1]):0)});
+   }
+-  const geo=new T.BufferGeometry();geo.setAttribute('position',new T.Float32BufferAttribute(positions,3).setUsage(T.DynamicDrawUsage));geo.setAttribute('uv',new T.Float32BufferAttribute(uv,2));geo.setIndex(indices);const mesh=new T.Mesh(geo,material);mesh.name='Guided shoulder locks';mesh.frustumCulled=false;group.add(mesh);
+-  let time=0;const oldVisible=actor.hairPhysics?.mesh?.visible;const restores=[];
+-  const tick=dt=>{const tint=[0x30251f,0x765943,0x8b4f32,0x65462f][actor.hairColor]||0x765943;material.color.setHex(tint);crownMat.color.setHex(tint);head.updateWorldMatrix(true,false);const matrix=head.matrixWorld,invWorld=matrix.clone().invert(),g=gravityOf(actor.world),step=Math.min(1/30,Math.max(0,dt));time+=step;const attr=geo.attributes.position;
+-    for(let l=0;l<locks.length;l++){const lock=locks[l],{rest,points,previous}=lock,targets=rest.map(p=>p.clone().applyMatrix4(matrix));
+-      if(!lock.ready||points[0].distanceTo(targets[0])>.30){targets.forEach((p,i)=>{points[i].copy(p);previous[i].copy(p);});lock.ready=true;}
+-      points[0].copy(targets[0]);previous[0].copy(targets[0]);
+-      for(let j=1;j<nodes;j++){const before=points[j].clone(),v=before.clone().sub(previous[j]).multiplyScalar(Math.exp(-9*step));points[j].add(v).addScaledVector(g,step*step*.10);previous[j].copy(before);}
+-      for(let it=0;it<4;it++)for(let j=1;j<nodes;j++){const a=points[j-1],b=points[j],d=b.clone().sub(a),len=d.length(),length=targets[j].distanceTo(targets[j-1]);if(len>1e-8){d.multiplyScalar((len-length)/len*(j===1?1:.5));b.sub(d);if(j>1)a.add(d);}const delta=b.clone().sub(targets[j]).clampLength(0,.022*j/(nodes-1));b.copy(targets[j]).add(delta);}
+-      for(let j=2;j<nodes;j++)for(const c of actor.externalHands||[]){const ab=c.b.clone().sub(c.a),t=clamp(points[j].clone().sub(c.a).dot(ab)/Math.max(ab.lengthSq(),1e-8),0,1),nearest=c.a.clone().addScaledVector(ab,t),d=points[j].clone().sub(nearest),distance=d.length(),radius=c.r+.007;if(distance<radius&&distance>1e-6){points[j].copy(nearest).addScaledVector(d,radius/distance);c.onContact?.('hair',c.velocity?.length()||0,.002);}}
+-      for(let j=0;j<nodes;j++){const center=points[j].clone().applyMatrix4(invWorld),t=j/(nodes-1),half=lock.width*(1-.84*t*t)/2,tangent=new T.Vector3(Math.cos(lock.phi),0,-Math.sin(lock.phi)).transformDirection(inv);
+-        for(let k=0;k<=widthSteps;k++){const p=center.clone().addScaledVector(tangent,(k-1)*half);p.z+=k===1?.002:0;p.toArray(attr.array,(l*nodes*3+j*3+k)*3);}
++  const geo=new T.BufferGeometry();geo.setAttribute('position',new T.Float32BufferAttribute(positions,3).setUsage(T.DynamicDrawUsage));geo.setAttribute('uv',new T.Float32BufferAttribute(uv,2));geo.setIndex(indices);geo.setAttribute('normal',new T.Float32BufferAttribute(new Float32Array(positions.length),3));
++  const mesh=new T.Mesh(geo,material);mesh.name='Guided shoulder locks';mesh.frustumCulled=false;group.add(mesh);
++  const capRest=Float32Array.from(cp);
++  const invWorld=new T.Matrix4(),worldToModel=new T.Matrix4(),modelToWorld=new T.Matrix4(),headBind=bind.clone().invert();
++  const d=V(),before=V(),local=V(),ab=V(),nearest=V(),g=V(),p=V(),normal=V();
++  let accumulator=0,normalTime=0,lastColor=-1;const restores=[],oldVisible=actor.hairPhysics?.mesh?.visible;
++  const tick=dt=>{
++    const tint=[0x211b18,0x4a352a,0x894e32,0x765038][actor.hairColor]||0x4a352a;
++    if(tint!==lastColor){lastColor=tint;material.color.setHex(tint);crownMat.color.setHex(tint);}
++    head.updateWorldMatrix(true,false);invWorld.copy(head.matrixWorld).invert();worldToModel.copy(headBind).multiply(invWorld);modelToWorld.copy(head.matrixWorld).multiply(bind);
++    const motion=clamp(actor.shape.hairMotion??1,0,1),wet=actor.h5Wetness?.hair??0,h=1/90;
++    g.copy(gravityOf(actor.world));accumulator=Math.min(.045,accumulator+clamp(dt,0,.05));normalTime+=Math.max(0,dt);
++    const scale=head.getWorldScale(d).x;
++    for(const lock of locks){for(let j=0;j<nodes;j++)lock.targets[j].copy(lock.rest[j]).applyMatrix4(head.matrixWorld);
++      if(!lock.ready||lock.points[0].distanceTo(lock.targets[0])>.25){for(let j=0;j<nodes;j++){lock.points[j].copy(lock.targets[j]);lock.previous[j].copy(lock.targets[j]);}lock.ready=true;}
++    }
++    while(accumulator+1e-9>=h){
++      const drag=Math.exp(-(5.5+wet*7)*h),shapeRate=1-Math.exp(-(10-motion*6)*h);
++      for(const lock of locks){const {points,previous,targets}=lock;
++        for(let j=0;j<2;j++){points[j].copy(targets[j]);previous[j].copy(targets[j]);}
++        for(let j=2;j<nodes;j++){before.copy(points[j]);d.subVectors(points[j],previous[j]).multiplyScalar(drag);points[j].add(d).addScaledVector(g,h*h*.35);points[j].lerp(targets[j],shapeRate);previous[j].copy(before);}
++        for(let it=0;it<4;it++)for(let j=2;j<nodes;j++){
++          d.subVectors(points[j],points[j-1]);const length=d.length(),rest=lock.lengths[j]*Math.abs(scale);
++          if(length>1e-8){d.multiplyScalar((length-rest)/length*(j===2?1:.5));points[j].sub(d);if(j>2)points[j-1].add(d);}
++          d.subVectors(points[j],targets[j]).clampLength(0,(.008+motion*.060)*j/(nodes-1));points[j].copy(targets[j]).add(d);
++        }
++        for(let j=2;j<nodes;j++){
++          local.copy(points[j]).applyMatrix4(worldToModel);
++          if(local.y>1.452){normal.set(local.x/.080,(local.y-1.525)/.110,(local.z+.020)/.097);const r=normal.length();if(r<1&&r>.001){normal.divideScalar(r);local.set(normal.x*.080,1.525+normal.y*.110,-.020+normal.z*.097);points[j].copy(local).applyMatrix4(modelToWorld);}}
++          for(const c of actor.externalHands||[]){if(!c.a||!c.b)continue;ab.subVectors(c.b,c.a);d.subVectors(points[j],c.a);const t=clamp(d.dot(ab)/Math.max(ab.lengthSq(),1e-8),0,1);nearest.copy(c.a).addScaledVector(ab,t);d.subVectors(points[j],nearest);const distance=d.length(),radius=c.r+.005;if(distance<radius&&distance>1e-6){points[j].copy(nearest).addScaledVector(d,radius/distance);c.onContact?.('hair',c.velocity?.length()||0,.001);}}
++        }
+       }
+-    }attr.needsUpdate=true;geo.computeVertexNormals();geo.computeBoundingSphere();
++      accumulator-=h;
++    }
++    const attr=geo.attributes.position;
++    for(let l=0;l<locks.length;l++){const lock=locks[l];for(let j=0;j<nodes;j++){
++      local.copy(lock.points[j]).applyMatrix4(invWorld);const t=j/(nodes-1),half=lock.width*(.12+.88*smooth(t/.36))*(1-.30*smooth((t-.68)/.32))*.5;
++      for(let k=0;k<3;k++){p.copy(local).addScaledVector(lock.tangent,(k-1)*half);p.toArray(attr.array,(l*nodes*3+j*3+k)*3);
++        const theta=Math.min(1.53,.34+Math.min(1,t/.46)*1.19);normal.set(Math.sin(theta)*Math.sin(lock.phi),Math.max(0,Math.cos(theta)),Math.sin(theta)*Math.cos(lock.phi)).transformDirection(bind);normal.toArray(geo.attributes.normal.array,(l*nodes*3+j*3+k)*3);}
++    }}
++    attr.needsUpdate=true;
++    geo.attributes.normal.needsUpdate=true;
++    const capPosition=cg.attributes.position;
++    for(let i=0;i<capLinks.length;i++){const link=capLinks[i];p.fromArray(capRest,i*3);if(link.weight){const lock=locks[link.guide];d.copy(lock.points[link.node]).applyMatrix4(invWorld).sub(lock.rest[link.node]);p.addScaledVector(d,link.weight);}p.toArray(capPosition.array,i*3);}
++    capPosition.needsUpdate=true;
++    if(!geo.boundingSphere)geo.boundingSphere=new T.Sphere(V().set(0,1.46,-.025).applyMatrix4(bind),.32);
+   };
+   if(actor.hairPhysics)restores.push(wrapMethod(actor.hairPhysics,'tick',old=>function(dt){const enabled=actor.h5Identity?.enabled&&actor.hairStyle===1;group.visible=enabled;if(enabled){this.mesh.visible=false;tick(dt);return;}return old.apply(this,arguments);}));
+-  const api={group,locks,tick,dispose(){restores.reverse().forEach(f=>f());if(actor.hairPhysics?.mesh)actor.hairPhysics.mesh.visible=oldVisible;group.removeFromParent();geo.dispose();cg.dispose();material.dispose();crownMat.dispose();texture.dispose();delete actor.h5Groom;}};
++  const api={group,root:group,locks,nodes,tick,rebuildCuts(cuts=new Map()){
++    const ids=[];for(let i=0;i<ci.length;i+=3){let keep=true;for(let j=0;j<3;j++){const link=capLinks[ci[i+j]],end=cuts.get(link.guide);if(link.weight>.1&&end!==undefined&&link.t>end/8+.001)keep=false;}if(keep)ids.push(ci[i],ci[i+1],ci[i+2]);}cg.setIndex(ids);
++  },reset(){for(const lock of locks)lock.ready=false;accumulator=0;},dispose(){restores.reverse().forEach(f=>f());if(actor.hairPhysics?.mesh)actor.hairPhysics.mesh.visible=oldVisible;group.removeFromParent();geo.dispose();cg.dispose();material.dispose();crownMat.dispose();texture.dispose();delete actor.h5Groom;}};
+   actor.h5Groom=api;tick(0);return api;
+ }
+--- a/modules/human5-haircuts.js
++++ b/modules/human5-haircuts.js
+@@ -1,5 +1,5 @@
+ import * as T from 'three';
+-import {wrapMethod,V,clamp} from './human5-common.js?v=17.6.0';
++import {wrapMethod,V,clamp} from './human5-common.js?v=17.7.0';
+ 
+ /** Persistent mesh-index trimming: no detached strand bodies or per-frame remeshing. */
+ export function installHairCutting({mira,props,world}={}){
+@@ -7,14 +7,14 @@
+  function attach(a){if(states.has(a))return states.get(a);const s={actor:a,geometries:new Map(),guideCuts:new Map(),restore:[]};states.set(a,s);a.h5Haircuts=s;return s;}
+  function trimGuides(a,point,radius){const groom=a.h5Groom;if(!groom?.group.visible)return 0;const s=attach(a),mesh=groom.group.children.find(m=>m.name==='Guided shoulder locks');if(!mesh)return 0;let changed=0;
+   groom.locks.forEach((lock,i)=>{const end=s.guideCuts.get(i)??lock.points.length-1;for(let j=1;j<=end;j++){const segment=new T.Line3(lock.points[j-1],lock.points[j]),near=segment.closestPointToPoint(point,true,V());if(near.distanceTo(point)<=radius){const cut=Math.max(1,j-1);if(cut<end){s.guideCuts.set(i,cut);changed++;}break;}}});
+-  if(changed){const ids=[],nodes=9;for(let l=0;l<groom.locks.length;l++)for(let j=0;j<(s.guideCuts.get(l)??nodes-1);j++)for(let k=0;k<2;k++){const a=l*nodes*3+j*3+k,b=a+3;ids.push(a,b,a+1,a+1,b,b+1);}mesh.geometry.setIndex(ids);}return changed;
++  if(changed){const ids=[],nodes=groom.nodes||9;for(let l=0;l<groom.locks.length;l++)for(let j=0;j<(s.guideCuts.get(l)??nodes-1);j++)for(let k=0;k<2;k++){const a=l*nodes*3+j*3+k,b=a+3;ids.push(a,b,a+1,a+1,b,b+1);}mesh.geometry.setIndex(ids);groom.rebuildCuts?.(s.guideCuts);}return changed;
+  }
+  function trimClassic(a,point,radius){const hair=a.hairPhysics,mesh=hair?.mesh;if(!mesh?.visible||a.h5Groom?.group.visible)return 0;const s=attach(a),g=mesh.geometry,coords=g.attributes.v2HairCoord;if(!g.index||!coords)return 0;let r=s.geometries.get(g);if(!r){r={original:Array.from(g.index.array),cuts:new Map()};s.geometries.set(g,r);}mesh.updateWorldMatrix(true,false);let changed=0;
+   const pos=g.attributes.position;for(let i=0;i<pos.count;i++){const p=mesh.getVertexPosition(i,V()).applyMatrix4(mesh.matrixWorld);if(p.distanceTo(point)>radius)continue;const chain=Math.floor(coords.getX(i)),level=coords.getY(i);if(level>.7&&level<(r.cuts.get(chain)??Infinity)){r.cuts.set(chain,level);changed++;}}
+   if(changed){const keep=[];for(let j=0;j<r.original.length;j+=3){const ids=r.original.slice(j,j+3);if(ids.every(i=>coords.getY(i)<=(r.cuts.get(Math.floor(coords.getX(i)))??Infinity)+.03))keep.push(...ids);}g.setIndex(keep);g.computeBoundingSphere();}return changed;
+  }
+  function cut(a,point,radius=.06){if(!a||!point?.isVector3)return 0;return trimGuides(a,point,radius)+trimClassic(a,point,radius);}
+- function regrow(a){const s=states.get(a);if(!s)return;for(const [g,r]of s.geometries)g.setIndex(r.original);s.geometries.clear();s.guideCuts.clear();const groom=a.h5Groom,mesh=groom?.group.children.find(m=>m.name==='Guided shoulder locks');if(mesh){const ids=[];for(let l=0;l<28;l++)for(let j=0;j<8;j++)for(let k=0;k<2;k++){const a=l*27+j*3+k,b=a+3;ids.push(a,b,a+1,a+1,b,b+1);}mesh.geometry.setIndex(ids);}}
++ function regrow(a){const s=states.get(a);if(!s)return;for(const [g,r]of s.geometries)g.setIndex(r.original);s.geometries.clear();s.guideCuts.clear();const groom=a.h5Groom,mesh=groom?.group.children.find(m=>m.name==='Guided shoulder locks');if(mesh){const ids=[];for(let l=0;l<groom.locks.length;l++)for(let j=0;j<(groom.nodes||9)-1;j++)for(let k=0;k<2;k++){const a=l*(groom.nodes||9)*3+j*3+k,b=a+3;ids.push(a,b,a+1,a+1,b,b+1);}mesh.geometry.setIndex(ids);groom.rebuildCuts?.();}}
+  restores.push(wrapMethod(props,'hit',old=>function(ray,max,ropes,opts={}){const body=old.apply(this,arguments);if(!['cut','sharp','laser'].includes(opts.kind))return body;const rc=new T.Raycaster(ray.origin,ray.direction,0,Math.min(max||50,body?.distance??Infinity)),meshes=[];
+   for(const a of mira.actors){if(a.group.position.distanceTo(ray.origin)>4)continue;const groom=a.h5Groom;if(groom?.group.visible)groom.group.traverse(m=>{if(m.isMesh&&m.name==='Guided shoulder locks'){m.userData.h5CutHair=a;meshes.push(m);}});else if(a.hairPhysics?.mesh?.visible){const m=a.hairPhysics.mesh;m.userData.h5CutHair=a;meshes.push(m);}}
+   const h=rc.intersectObjects(meshes,false)[0];return h&&(!body||h.distance<body.distance)?h:body;
+--- a/modules/human5-home-mechanics.js
++++ b/modules/human5-home-mechanics.js
+@@ -1,4 +1,17 @@
+ import * as T from 'three';
++
++/** Small retained wipe mask. Only marked pixels change during condensation. */
++export class CondensationGrid {
++  constructor(width=64,height=96){this.width=width;this.height=height;this.data=new Uint8Array(width*height);this.active=new Set();this.decayRemainder=0;}
++  wipe(u,v,radius=.065){
++    let changed=false;const rx=radius/1.22,ry=radius/1.97;
++    for(let y=Math.max(0,Math.floor((v-ry)*this.height));y<Math.min(this.height,Math.ceil((v+ry)*this.height));y++)for(let x=Math.max(0,Math.floor((u-rx)*this.width));x<Math.min(this.width,Math.ceil((u+rx)*this.width));x++){
++      const d=Math.hypot((x/this.width-u)/rx,(y/this.height-v)/ry);if(d>=1)continue;
++      const i=y*this.width+x,value=Math.round(255*Math.min(1,(1-d)*4));if(value>this.data[i]){this.data[i]=value;this.active.add(i);changed=true;}
++    }return changed;
++  }
++  decay(dt,rate=12){this.decayRemainder+=Math.max(0,dt)*rate;const amount=Math.floor(this.decayRemainder);this.decayRemainder-=amount;if(!amount||!this.active.size)return false;for(const i of this.active){this.data[i]=Math.max(0,this.data[i]-amount);if(!this.data[i])this.active.delete(i);}return true;}
++}
+ 
+ export class LatchHinge {
+   constructor(){this.angle=0;this.velocity=0;this.bolt=1;this.target=null;this.maxAngle=1.85;}
+--- a/modules/human5-home.js
++++ b/modules/human5-home.js
+@@ -1,11 +1,11 @@
+ import * as T from 'three';
+ import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
+-import {wrapMethod} from './human5-common.js?v=17.6.0';
+-import {tagMovable} from '../mira-v2-furniture.js?v=17.6.0';
+-import {BASEMENT,basementFloor,inBasementFootprint,LatchHinge,reflectCamera} from './human5-home-mechanics.js?v=17.6.0';
+-import {withOffscreenView,clipPortalCamera} from './human5-view-surfaces.js?v=17.6.0';
+-import {createArcadeGame} from './human5-arcade.js?v=17.6.0';
+-import {createWetnessSystem} from './human5-wetness.js?v=17.6.0';
++import {wrapMethod} from './human5-common.js?v=17.7.0';
++import {tagMovable} from '../mira-v2-furniture.js?v=17.7.0';
++import {BASEMENT,basementFloor,inBasementFootprint,LatchHinge,reflectCamera,CondensationGrid} from './human5-home-mechanics.js?v=17.7.0';
++import {withOffscreenView,clipPortalCamera} from './human5-view-surfaces.js?v=17.7.0';
++import {createArcadeGame} from './human5-arcade.js?v=17.7.0';
++import {createWetnessSystem} from './human5-wetness.js?v=17.7.0';
+ 
+ const V=()=>new T.Vector3(),clamp=T.MathUtils.clamp;
+ export function installHome({world,scene,camera,renderer,rig,props,mira,wardrobe,weather,upgrade,keys={},quest=true}={}){
+@@ -84,14 +84,18 @@
+     materials.add(material);const m=mesh(g,new T.PlaneGeometry(.63,.73),material,[0,0,.021]);m.castShadow=false;const a={root:g,mesh:m,views:[],lastSeen:0};
+     m.onBeforeRender=(r,s,c)=>{const i=Math.max(0,eyes.indexOf(c)),view=a.views[i]||a.views[0];material.uniforms.valid.value=view?1:0;if(view){material.uniforms.image.value=view.target.texture;material.uniforms.projection.value.copy(view.projection);}material.uniformsNeedUpdate=true;};mirrors.push(a);pick(frame);return a;
+   }
+-  function createShower(h,r){const p=toWorld(h,r.x+r.w/2-.65,.055,r.z-r.d/2+.69),g=group(root,h.name+' shower',p.toArray(),h.yaw),s={id:h.id,root:g,flow:0,temperature:.25,fog:0,glass:[]};
++  function createShower(h,r){const p=toWorld(h,r.x+r.w/2-.65,.055,r.z-r.d/2+.69),g=group(root,h.name+' shower',p.toArray(),h.yaw),s={id:h.id,root:g,flow:0,temperature:.25,fog:0,glass:[],wipes:[]};
+     box(g,[1.16,.08,1.26],[0,.04,0],stone);mesh(g,new T.CylinderGeometry(.055,.055,.006,12),metal,[0,.083,0]);
+     line(g,[0,.7,-.57],[0,2.06,-.57],.012,metal);line(g,[0,2.06,-.57],[0,2.06,-.18],.016,metal);mesh(g,new T.CylinderGeometry(.11,.11,.026,16),metal,[0,2.04,-.18]);
+     box(g,[.35,.21,.025],[0,1.08,-.555],metal);for(const y of [.72,1.78])line(g,[0,y,-.57],[0,y,-.62],.026,metal);
+     for(const x of [-.57,.57])for(const z of [-.61,.61])if(z<0||x<0)line(g,[x,.08,z],[x,2.10,z],.018,metal);
+     s.fogUniform={value:0};for(const x of [-.57,.57]){const material=new T.MeshStandardMaterial({color:0xc4d9d6,roughness:.15,metalness:.15,transparent:true,opacity:.10,depthWrite:false,side:T.DoubleSide});materials.add(material);
+-      material.onBeforeCompile=shader=>{shader.uniforms.h5GlassFog=s.fogUniform;shader.fragmentShader='uniform float h5GlassFog;\n'+shader.fragmentShader;shader.fragmentShader=shader.fragmentShader.replace('#include <color_fragment>','#include <color_fragment>\ndiffuseColor.rgb=mix(diffuseColor.rgb,vec3(.65,.71,.70),h5GlassFog);diffuseColor.a+=h5GlassFog*.55;');};material.customProgramCacheKey=()=> 'h5-shower-fog-1';
+-      const m=box(g,[.012,1.97,1.22],[x,1.07,0],material);m.castShadow=false;s.glass.push(m);collider(m);pick(m);}
++      const grid=new CondensationGrid(),texture=new T.DataTexture(grid.data,grid.width,grid.height,T.RedFormat);texture.minFilter=texture.magFilter=T.LinearFilter;texture.unpackAlignment=1;texture.needsUpdate=true;textures.add(texture);
++      material.onBeforeCompile=shader=>{shader.uniforms.h5GlassFog=s.fogUniform;shader.uniforms.h5GlassWipe={value:texture};
++        shader.vertexShader='varying vec2 h5PanelUV;\n'+shader.vertexShader;shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nh5PanelUV=vec2(position.z/1.22+.5,position.y/1.97+.5);');
++        shader.fragmentShader='uniform float h5GlassFog;uniform sampler2D h5GlassWipe;varying vec2 h5PanelUV;\n'+shader.fragmentShader;shader.fragmentShader=shader.fragmentShader.replace('#include <color_fragment>','#include <color_fragment>\nfloat h5Fog=h5GlassFog*(1.-texture2D(h5GlassWipe,h5PanelUV).r);diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.65,.71,.70),h5Fog);diffuseColor.a+=h5Fog*.55;');};material.customProgramCacheKey=()=> 'h5-shower-fog-wipe-2';
++      const m=box(g,[.012,1.97,1.22],[x,1.07,0],material);m.castShadow=false;s.glass.push(m);s.wipes.push({mesh:m,grid,texture});collider(m);pick(m);}
++
+     const dial=mesh(g,new T.CylinderGeometry(.05,.05,.026,16),metal,[.13,1.10,-.525]);dial.rotation.x=Math.PI/2;s.dial=dial;box(dial,[.008,.012,.032],[0,.02,.023],mat(0xca735d));control(dial,'temperature',()=>s.temperature=s.temperature<.5?.85:s.temperature<.95?1:.15,{shower:s});
+     const handle=box(g,[.035,.14,.038],[-.12,1.09,-.51],metal);s.handle=handle;control(handle,'water',()=>s.flow=s.flow>.1?0:1,{shower:s});
+     const streamMat=new T.MeshBasicMaterial({color:0xc0dfed,transparent:true,opacity:.38,depthWrite:false});materials.add(streamMat);const geometry=new T.CylinderGeometry(.0025,.0035,.15,3);geometries.add(geometry);
+@@ -131,8 +135,9 @@
+       if(axes){const x=axes[axes.length>=4?2:0]||0,y=axes[axes.length>=4?3:1]||0;if(Math.hypot(x,y)>.12||!holds.has(arcade.controller))arcade.game.axis(x,y);const b=source.gamepad.buttons;arcade.game.button(0,!!b[4]?.pressed);arcade.game.button(1,!!b[5]?.pressed);}}
+     arcade.tick(dt,near);
+   }
++  function wipeAt(point,radius=.065){let changed=0;for(const s of showers){if(s.fog<.01||!visible(s.root))continue;for(const w of s.wipes){const p=w.mesh.worldToLocal(point.clone());if(Math.abs(p.x)>.065||Math.abs(p.y)>1.02||Math.abs(p.z)>.67)continue;if(w.grid.wipe(p.z/1.22+.5,p.y/1.97+.5,radius)){w.texture.needsUpdate=true;changed++;}}}return changed;}
+   function tickShowers(dt){let n=0;const cq=camera.getWorldQuaternion(new T.Quaternion());
+-    for(const s of showers){s.fog=clamp(s.fog+dt*(s.flow*Math.max(0,s.temperature-.5)*.38-.012),0,1);s.fogUniform.value=s.fog;s.dial.rotation.z=(s.temperature-.5)*2.5;s.handle.rotation.z=-s.flow*.9;
++    for(const s of showers){s.fog=clamp(s.fog+dt*(s.flow*Math.max(0,s.temperature-.5)*.38-.012),0,1);s.fogUniform.value=s.fog;for(const w of s.wipes)if(w.grid.decay(dt,s.flow&&s.temperature>.5?12:4))w.texture.needsUpdate=true;s.dial.rotation.z=(s.temperature-.5)*2.5;s.handle.rotation.z=-s.flow*.9;
+       const near=s.root.getWorldPosition(V()).distanceToSquared(viewer)<81;let count=0;if(near&&s.flow>.01)for(let i=0;i<32;i++){const phase=(clock*1.7+i*.6180339)%1,r=.035+phase*.15,a=i*2.39996;dummy.position.set(Math.cos(a)*r,1.98-phase*1.88,-.18+Math.sin(a)*r);dummy.quaternion.identity();dummy.scale.set(1,.5+s.flow*.7,1);dummy.updateMatrix();s.stream.setMatrixAt(count++,dummy.matrix);}s.stream.count=count;if(count)s.stream.instanceMatrix.needsUpdate=true;
+       if(near&&s.flow>.01&&s.temperature>.55)for(let j=0;j<12&&n<24;j++){const t=(clock*.22+j*.618)%1;dummy.position.copy(s.root.localToWorld(new T.Vector3(Math.sin(j*12.4+t*2)*.28,1.25+t*.95,Math.cos(j*3.7+t)*.22)));dummy.quaternion.copy(cq);dummy.scale.setScalar(.22+t*.5);dummy.updateMatrix();steam.setMatrixAt(n++,dummy.matrix);}}
+     steam.count=n;if(n)steam.instanceMatrix.needsUpdate=true;
+@@ -151,11 +156,11 @@
+     if(down)arcade.keys.add(e.code);else arcade.keys.delete(e.code);arcade.game.axis((arcade.keys.has('ArrowRight')?1:0)-(arcade.keys.has('ArrowLeft')?1:0),(arcade.keys.has('ArrowDown')?1:0)-(arcade.keys.has('ArrowUp')?1:0));if(['KeyA','KeyB','Space'].includes(e.code))arcade.game.button(e.code==='KeyB'?1:0,down);
+   }
+   const blur=()=>arcade?.release();document.addEventListener('keydown',key,true);document.addEventListener('keyup',key,true);globalThis.addEventListener('blur',blur);
+-  const api={get root(){return root;},get crate(){return crate;},get arcade(){return arcade;},showers,mirrors,holds,wetness,click,grip,release,
++  const api={get root(){return root;},get crate(){return crate;},get arcade(){return arcade;},showers,mirrors,holds,wetness,click,grip,release,wipeAt,
+     consumesStick(hand){return !!arcade?.focus&&props.system.hands.handedness[arcade.controller]===hand;},
+     setShower(id,{flow,temperature}={}){const s=showers.find(s=>s.id===id);if(!s)return false;if(Number.isFinite(flow))s.flow=clamp(flow,0,1);if(Number.isFinite(temperature))s.temperature=clamp(temperature,0,1);return s;},
+     floorHeight(p,step){return root?basementFloor(p,step):null;},groundHeight(x,z,h){return root&&inBasementFootprint({x,y:0,z})?BASEMENT.level:h;},
+-    tick(dt){if(!root)return;clock+=Math.min(dt,.05);camera.getWorldPosition(viewer);tickControls();crate?.tick(dt);tickArcade(dt);tickShowers(dt);wetness.tick(dt,showers);renderMirrors(dt);},
++    tick(dt){if(!root)return;clock+=Math.min(dt,.05);camera.getWorldPosition(viewer);tickControls();if(renderer.xr.isPresenting)for(let i=0;i<2;i++){const palm=props.system.hands?.palmPos(i);if(palm)wipeAt(palm);}crate?.tick(dt);tickArcade(dt);tickShowers(dt);wetness.tick(dt,showers);renderMirrors(dt);},
+     onTerrainRebuilt:installGroundHole,
+     snapshot(){return {showers:showers.length,flowing:showers.filter(s=>s.flow>0).length,steamInstances:steam?.count||0,mirrorTargets:mirrors.reduce((n,m)=>n+m.views.length,0),crate:crate?{angle:crate.state.angle,bolt:crate.state.bolt,latched:crate.state.latched}:null,arcade:arcade?.game.title||null};},
+     dispose(){clear();wetness.dispose();restores.reverse().forEach(f=>f());document.removeEventListener('keydown',key,true);document.removeEventListener('keyup',key,true);globalThis.removeEventListener('blur',blur);delete world.h5Home;}
+--- a/modules/human5-identity.js
++++ b/modules/human5-identity.js
+@@ -1,27 +1,30 @@
+ import * as T from 'three';
+-import {V,clamp,smooth,wrapMethod} from './human5-common.js?v=17.6.0';
+-import {installReferenceGroom} from './human5-groom.js?v=17.6.0';
+-import {weldSkinNormals} from './human5-skin.js?v=17.6.0';
++import {V,clamp,smooth,wrapMethod} from './human5-common.js?v=17.7.0';
++import {installReferenceGroom} from './human5-groom.js?v=17.7.0';
++import {weldSkinNormals} from './human5-skin.js?v=17.7.0';
+ 
+ export const REFERENCE_MIRA=Object.freeze({
+-  id:'mira-reference-17',name:'Mira',faceType:1,likeness:1,hairStyle:1,hairColor:1,
+-  shape:{height:1,waist:.91,hips:1.08,breast:1.12,butt:1.16,thigh:1.08,gap:-.08,arms:.94,jiggle:1.35,breastHeight:-.12,breastSpacing:.04,breastAngle:.02,buttHeight:-.04,buttSpacing:.02,buttAngle:0,softness:.63,damping:.48,bodySoftness:.55,faceSoftness:.32,hairMotion:.48,skinDetail:.35},
+-  sculpt:{jawWidth:-.055,chinLength:-.008,cheekFullness:.0025,noseProjection:-.0015,browHeight:.001,lipFullness:.0012,craniumWidth:.018},
+-  physics:{tissueDensity:980,waterDrag:5,thighGravity:.55,spineFlexibility:.48,gaitVariation:.40},
++  id:'mira-reference-17',name:'Mira',faceType:1,likeness:0,hairStyle:1,hairColor:1,
++  shape:{height:1,waist:.91,hips:1.08,breast:1.86,butt:1.74,thigh:1.57,gap:-.08,arms:.94,jiggle:4.5,handResponse:12,breastHeight:-.12,breastSpacing:.04,breastAngle:.02,buttHeight:-.04,buttSpacing:.02,buttAngle:0,softness:.75,damping:.48,bodySoftness:.75,faceSoftness:.32,hairMotion:1,skinDetail:.35},
++  sculpt:{jawWidth:.07,chinLength:.004,cheekFullness:.003,noseProjection:-.0015,browHeight:0,lipFullness:.0012,craniumWidth:-.02,eyeWidth:.045,eyeAperture:.10},
++  physics:{tissueDensity:980,waterDrag:5,thighGravity:.55,spineFlexibility:.48,gaitVariation:.40,fluidBias:.075,muscleTone:.6,surfaceRipple:.0018},
+   note:'Artist-fit approximation from supplied references. Photos do not establish exact body measurements or hidden skull geometry.'
+ });
+ export const IDENTITY_CONTROLS=[
+   {key:'jawWidth',min:-.12,max:.12,value:-.055},{key:'chinLength',min:-.012,max:.012,value:-.008},
+   {key:'cheekFullness',min:-.004,max:.006,value:.0025},{key:'noseProjection',min:-.004,max:.004,value:-.0015},
+   {key:'browHeight',min:-.003,max:.003,value:.001},{key:'lipFullness',min:0,max:.002,value:.0012},
+-  {key:'craniumWidth',min:-.05,max:.05,value:.018}
++  {key:'craniumWidth',min:-.05,max:.05,value:-.02},
++  {key:'eyeWidth',min:-.08,max:.10,value:.045},{key:'eyeAperture',min:-.12,max:.18,value:.10}
+ ];
+ const bell=(x,center,width)=>Math.exp(-(((x-center)/width)**2));
+ export function identityWarp(x,y,z,s=REFERENCE_MIRA.sculpt){
+-  if(y<1.4)return [x,y,z];const front=smooth((z+.012)/.05),jaw=bell(y,1.447,.025),cheek=bell(y,1.50,.026),chin=bell(y,1.421,.018)*bell(x,0,.045);
+-  const dx=x*(s.jawWidth*jaw*front+s.craniumWidth*bell(y,1.625,.07));
+-  const dy=s.chinLength*chin+s.browHeight*bell(y,1.55,.017)*front;
+-  const dz=s.cheekFullness*cheek*bell(Math.abs(x),.042,.03)*front+s.noseProjection*bell(x,0,.021)*bell(y,1.523,.026)*front+s.lipFullness*bell(x,0,.035)*bell(y,1.475,.012)*front;
++  if(y<1.395)return [x,y,z];
++  const front=smooth((z+.012)/.05),jaw=bell(y,1.431,.025),cheek=bell(y,1.483,.022),chin=bell(y,1.408,.014)*bell(x,0,.040);
++  const eye=bell(Math.abs(x),.031,.022)*bell(y,1.513,.017)*front;
++  const dx=x*((s.jawWidth||0)*jaw*front+(s.craniumWidth||0)*bell(y,1.615,.07))+(x-Math.sign(x)*.031)*(s.eyeWidth||0)*eye;
++  const dy=(s.chinLength||0)*chin+(s.browHeight||0)*bell(y,1.545,.013)*front+(y-1.513)*(s.eyeAperture||0)*eye;
++  const dz=(s.cheekFullness||0)*cheek*bell(Math.abs(x),.042,.028)*front+(s.noseProjection||0)*bell(x,0,.017)*bell(y,1.480,.021)*front+(s.lipFullness||0)*bell(x,0,.030)*bell(y,1.448,.010)*front;
+   return [x+dx,y+dy,z+dz];
+ }
+ 
+--- a/modules/human5-npc-profile.js
++++ b/modules/human5-npc-profile.js
+@@ -1,11 +1,11 @@
+-import {installReferenceIdentity,REFERENCE_MIRA,IDENTITY_CONTROLS} from './human5-identity.js?v=17.6.0';
+-import {DYNAMICS_CONTROLS} from './human5-dynamics.js?v=17.6.0';
+-const bounds={height:[.75,1.25],waist:[.65,1.4],hips:[.65,1.5],breast:[.3,2],butt:[.4,1.8],thigh:[.65,1.5],gap:[-.6,.6],arms:[.65,1.5],jiggle:[0,2.5],breastHeight:[-.4,.4],breastSpacing:[-.4,.4],breastAngle:[-.4,.4],buttHeight:[-.4,.4],buttSpacing:[-.4,.4],buttAngle:[-.4,.4],softness:[0,1],damping:[0,1],bodySoftness:[0,1],faceSoftness:[0,1],hairMotion:[0,1],skinDetail:[0,1]};
++import {installReferenceIdentity,REFERENCE_MIRA,IDENTITY_CONTROLS} from './human5-identity.js?v=17.7.0';
++import {DYNAMICS_CONTROLS} from './human5-dynamics.js?v=17.7.0';
++const bounds={height:[.72,1.32],waist:[.62,1.48],hips:[.68,1.78],breast:[.38,2.35],butt:[.52,2.15],thigh:[.62,1.88],gap:[-.85,.85],arms:[.62,1.58],jiggle:[0,6],handResponse:[0,16],breastHeight:[-1,1],breastSpacing:[-1,1],breastAngle:[-1,1],buttHeight:[-1,1],buttSpacing:[-1,1],buttAngle:[-1,1],softness:[0,1],damping:[0,1],bodySoftness:[0,1],faceSoftness:[0,1],hairMotion:[0,1],skinDetail:[0,1]};
+ const check=(x,min,max,name)=>{if(typeof x!=='number'||!Number.isFinite(x)||x<min||x>max)throw new TypeError(name+' must be between '+min+' and '+max);return x;};
+ export function validateNPCProfile(input){
+   if(!input||input.format!=='human5.npc/1')throw new TypeError('Expected human5.npc/1 profile');
+   const name=String(input.name||'NPC').trim().slice(0,60);if(!name)throw new TypeError('NPC name is empty');
+-  const result={format:'human5.npc/1',name,faceType:Math.round(check(input.faceType??1,0,5,'faceType')),likeness:check(input.likeness??1,0,1.5,'likeness'),hairStyle:Math.round(check(input.hairStyle??1,0,10,'hairStyle')),hairColor:Math.round(check(input.hairColor??1,0,3,'hairColor')),shape:{},sculpt:{},physics:{},note:String(input.note||'').slice(0,2000)};
++  const result={format:'human5.npc/1',name,faceType:Math.round(check(input.faceType??1,0,7,'faceType')),likeness:check(input.likeness??1,0,1.5,'likeness'),hairStyle:Math.round(check(input.hairStyle??1,0,10,'hairStyle')),hairColor:Math.round(check(input.hairColor??1,0,3,'hairColor')),shape:{},sculpt:{},physics:{},note:String(input.note||'').slice(0,2000)};
+   for(const [key,value] of Object.entries(input.shape||{})){if(!bounds[key])throw new TypeError('Unknown shape variable: '+key);result.shape[key]=check(value,...bounds[key],key);}
+   for(const [key,value] of Object.entries(input.sculpt||{})){const c=IDENTITY_CONTROLS.find(c=>c.key===key);if(!c)throw new TypeError('Unknown sculpt variable: '+key);result.sculpt[key]=check(value,c.min,c.max,key);}
+   for(const [key,value] of Object.entries(input.physics||{})){const c=DYNAMICS_CONTROLS.find(c=>c.key===key);if(!c)throw new TypeError('Unknown physics variable: '+key);result.physics[key]=check(value,c.min,c.max,key);}
+--- a/modules/human5-skin.js
++++ b/modules/human5-skin.js
+@@ -1,5 +1,5 @@
+ import * as T from 'three';
+-import {V,clamp,wrapMethod} from './human5-common.js?v=17.6.0';
++import {V,clamp,wrapMethod} from './human5-common.js?v=17.7.0';
+ 
+ /** Match normals only at coincident, similarly oriented, compatibly skinned vertices. */
+ export function weldSkinNormals(actor){
+@@ -35,9 +35,23 @@
+     float h5BodyTone=1.-smoothstep(1.38,1.48,v2RestPos.y);
+     vec3 h5SkinBase=vec3(.53,.325,.237);
+     float h5Variation=clamp(dot(sampledDiffuseColor.rgb,vec3(.2126,.7152,.0722))-.36,-.022,.022);
+-    sampledDiffuseColor.rgb=mix(sampledDiffuseColor.rgb,h5SkinBase+vec3(h5Variation),h5BodyTone*.97);
++    vec2 h5Nac=(vec2(abs(v2RestPos.x),v2RestPos.y)-vec2(.0762,1.187))/vec2(.018,.017);
++    float h5Radius=length(h5Nac);
++    float h5Edge=h5Radius*(1.+.025*sin(atan(h5Nac.y,h5Nac.x)*11.)+.018*sin(v2RestPos.x*791.));
++    float h5Areola=(1.-smoothstep(.52,1.08,h5Edge))*smoothstep(.070,.088,v2RestPos.z);
++    vec3 h5Anatomy=mix(h5SkinBase,vec3(.365,.173,.137),h5Areola*.88);
++    h5Anatomy+=vec3(h5Variation)*(1.-h5Areola*.45);
++    sampledDiffuseColor.rgb=mix(sampledDiffuseColor.rgb,h5Anatomy,h5BodyTone*.97);
+     diffuseColor *= sampledDiffuseColor;`);
+   shader.fragmentShader=shader.fragmentShader.replace('diffuseColor.rgb *= tone;', 'diffuseColor.rgb *= mix(tone,vec3(1.),1.-smoothstep(1.38,1.48,v2RestPos.y));');
++  // Millimetre geometry carries silhouette; this submillimetre normal detail
++  // supplies soft areolar relief without a separate decal/material seam.
++  shader.fragmentShader=shader.fragmentShader.replace('#include <normal_fragment_maps>',`#include <normal_fragment_maps>
++    float h5Gland=sin(v2RestPos.x*1170.)*sin(v2RestPos.y*1260.);
++    float h5Relief=.00010*h5Gland*h5Areola+.00034*exp(-h5Radius*h5Radius*9.);
++    vec3 h5A=dFdx(-vViewPosition),h5B=dFdy(-vViewPosition);
++    vec3 h5U=cross(h5B,normal),h5V=cross(normal,h5A);float h5Det=dot(h5A,h5U);
++    normal=normalize(abs(h5Det)*normal-sign(h5Det)*(dFdx(h5Relief)*h5U+dFdy(h5Relief)*h5V));`);
+   if(!detail)return;
+   // Stable rest-space pore relief through screen derivatives. No displaced
+   // silhouette and no additional texture pass; fade below pixel footprint.
+@@ -56,7 +70,7 @@
+       const m=mesh.material;if(Array.isArray(m))continue;
+       const state=materials.get(m);if(state&&m.onBeforeCompile===state.wrapper)continue;
+       const old=m.onBeforeCompile,key=m.customProgramCacheKey;
+-      const wrapper=s=>skinCompile(s,old,m,{detail});m.onBeforeCompile=wrapper;m.customProgramCacheKey=()=> (key?.call(m)||'')+'/h5-skin-17/'+detail;m.needsUpdate=true;
++      const wrapper=s=>skinCompile(s,old,m,{detail});m.onBeforeCompile=wrapper;m.customProgramCacheKey=()=> (key?.call(m)||'')+'/h5-skin-anatomy-18/'+detail;m.needsUpdate=true;
+       materials.set(m,{old,key,wrapper});
+     }
+   }
+--- a/modules/human5-tissue-surface.js
++++ b/modules/human5-tissue-surface.js
+@@ -1,5 +1,5 @@
+ import * as T from 'three';
+-import {V,wrapMethod} from './human5-common.js?v=17.6.0';
++import {V,wrapMethod} from './human5-common.js?v=17.7.0';
+ const corners=[[-1,-1,-1],[1,-1,-1],[1,1,-1],[-1,1,-1],[-1,-1,1],[1,-1,1],[1,1,1],[-1,1,1]];
+ function basis(array){const cols=[V(),V(),V()];for(let i=0;i<8;i++)for(let j=0;j<3;j++)cols[j].addScaledVector(V().fromArray(array,i*3),corners[i][j]/8);return new T.Matrix3().set(cols[0].x,cols[1].x,cols[2].x,cols[0].y,cols[1].y,cols[2].y,cols[0].z,cols[1].z,cols[2].z);}
+ /** Affine shape change about the centroid; the original soft bone owns translation. */
+@@ -9,23 +9,41 @@
+ export function installTissueSurface(actor){
+   const tissue=actor.realism?.tissue,surface=actor.surfaceFlesh;if(!tissue||!surface||actor.h5TissueSurface)return actor.h5TissueSurface;
+   const strain=Array.from({length:4},()=>new T.Matrix3().set(0,0,0,0,0,0,0,0,0)),center=Array.from({length:4},V),restores=[],materialStates=new Map();
++  const ripple=new Float32Array(4),phase={value:0},lastDelta=Array.from({length:4},V),delta=V(),target=V();let lastTime=null;
+   const names=['L_Breast','R_Breast','L_Glute','R_Glute'];
+   // Use actual soft-bone names rather than assuming numeric skin indices.
+   const order=actor.soft.map(s=>s.name).slice(0,4);
+   for(const m of actor.skinMeshes){const g=m.geometry,si=g.attributes.skinIndex,sw=g.attributes.skinWeight;if(!si||!sw)continue;const w=new Float32Array(si.count*4);for(let i=0;i<si.count;i++)for(let j=0;j<4;j++){const index=order.indexOf(m.skeleton.bones[si.array[i*4+j]]?.name);if(index>=0)w[i*4+index]+=sw.array[i*4+j];}g.setAttribute('h5TissueWeight',new T.BufferAttribute(w,4));}
+   const compile=shader=>{
+-    shader.uniforms.h5Strain={value:strain};shader.uniforms.h5Center={value:center};
+-    shader.vertexShader='attribute vec4 h5TissueWeight;uniform mat3 h5Strain[4];uniform vec3 h5Center[4];\n'+shader.vertexShader;
++    shader.uniforms.h5Strain={value:strain};shader.uniforms.h5Center={value:center};shader.uniforms.h5Ripple={value:ripple};shader.uniforms.h5TissueTime=phase;
++    shader.vertexShader='attribute vec4 h5TissueWeight;uniform mat3 h5Strain[4];uniform vec3 h5Center[4];uniform float h5Ripple[4];uniform float h5TissueTime;\n'+shader.vertexShader;
+     shader.vertexShader=shader.vertexShader.replace('#include <skinning_vertex>',`#include <skinning_vertex>
+       vec3 h5World=(modelMatrix*vec4(transformed,1.)).xyz;vec3 h5Shape=vec3(0.);
+-      for(int i=0;i<4;i++)h5Shape+=h5TissueWeight[i]*h5Strain[i]*(h5World-h5Center[i]);
++      for(int i=0;i<4;i++){
++        vec3 h5D=h5World-h5Center[i];float h5R=length(h5D);
++        h5Shape+=h5TissueWeight[i]*h5Strain[i]*h5D;
++        h5Shape+=h5TissueWeight[i]*h5Ripple[i]*sin(h5R*105.-h5TissueTime*23.)*h5D/max(.015,h5R);
++      }
+       float h5Length=length(h5Shape);h5Shape*=min(1.,.006/max(h5Length,.000001));
+       transformed+=(inverse(mat3(modelMatrix))*h5Shape);`);
+   };
+   // Skin and matching shadow materials already call this host hook.
+   restores.push(wrapMethod(surface,'installShader',old=>function(shader){const r=old.apply(this,arguments);compile(shader);return r;}));
+-  for(const mesh of actor.skinMeshes)for(const m of [mesh.material,mesh.customDepthMaterial,mesh.customDistanceMaterial].filter(Boolean)){const key=m.customProgramCacheKey;materialStates.set(m,key);m.customProgramCacheKey=()=> (key?.call(m)||'')+'/h5-tissue-strain-17';m.needsUpdate=true;}
+-  const update=()=>{for(let j=0;j<order.length;j++){const c=tissue.clusters.find(c=>c.soft.name===order[j]);if(!c){strain[j].set(0,0,0,0,0,0,0,0,0);continue;}strain[j].copy(cageStrain(c.cluster.target,c.cluster.p));center[j].fromArray(c.cluster.centroid());}};
++  for(const mesh of actor.skinMeshes)for(const m of [mesh.material,mesh.customDepthMaterial,mesh.customDistanceMaterial].filter(Boolean)){const key=m.customProgramCacheKey;materialStates.set(m,key);m.customProgramCacheKey=()=> (key?.call(m)||'')+'/h5-tissue-strain-18';m.needsUpdate=true;}
++  const update=()=>{
++    const time=actor.time||0,dt=lastTime===null?0:Math.min(.05,Math.max(0,time-lastTime));lastTime=time;phase.value=time;
++    for(let j=0;j<order.length;j++){
++      const c=tissue.clusters.find(c=>c.soft.name===order[j]);if(!c){strain[j].set(0,0,0,0,0,0,0,0,0);ripple[j]=0;continue;}
++      strain[j].copy(cageStrain(c.cluster.target,c.cluster.p));center[j].fromArray(c.cluster.centroid());
++      delta.copy(center[j]).sub(target.fromArray(c.cluster.centroid([],c.cluster.target)));
++      if(dt>0){
++        const speed=delta.distanceTo(lastDelta[j])/dt,amount=actor.h5Dynamics?.options.surfaceRipple||0;
++        const excitation=c.soft.kind==='glute'?Math.min(amount,speed*.010)*(actor.shape.bodySoftness??.5):0;
++        ripple[j]=T.MathUtils.damp(ripple[j],excitation,excitation>ripple[j]?18:8,dt);
++      }
++      lastDelta[j].copy(delta);
++    }
++  };
+   restores.push(wrapMethod(tissue,'writeBones',old=>function(){const r=old.apply(this,arguments);update();return r;}));
+-  const api={strain,center,dispose(){restores.reverse().forEach(f=>f());for(const [m,key] of materialStates){m.customProgramCacheKey=key;m.needsUpdate=true;}delete actor.h5TissueSurface;}};actor.h5TissueSurface=api;return api;
++  const api={strain,center,ripple,dispose(){restores.reverse().forEach(f=>f());for(const [m,key] of materialStates){m.customProgramCacheKey=key;m.needsUpdate=true;}delete actor.h5TissueSurface;}};actor.h5TissueSurface=api;return api;
+ }
+--- a/src/body/TissueRig.js
++++ b/src/body/TissueRig.js
+@@ -10,7 +10,7 @@
+    const parentIndex=a.skeleton.bones.indexOf(bone.parent),inverseBind=a.skeleton.boneInverses[parentIndex];if(!inverseBind)throw new Error('Missing tissue parent inverse bind: '+soft.name);
+    const restLocal=new Float64Array(24),restWorld=new Float64Array(24);
+    for(let i=0;i<8;i++){const corner=BOX_CORNERS[i],p=center.map((n,j)=>n+corner[j]*r[j]),sculpt=this.shapePoint(...p,s.breast,0,s.butt,s.arms,{...s,male:a.bodyType==='male'}),v=V().fromArray(sculpt).applyMatrix4(inverseBind);v.toArray(restLocal,i*3);v.applyMatrix4(bone.parent.matrixWorld).toArray(restWorld,i*3);}
+-   const cluster=new XPBDCluster(restWorld,{pins:breast?[0,1,3]:[4,5,7]});
++   const cluster=new XPBDCluster(restWorld,{pins:breast?[0,1,2,3]:[4,5,6,7]});
+    this.clusters.push({soft,bone,cluster,restLocal,frame:bone.parent.matrixWorld.clone(),lastAnchor:V().setFromMatrixPosition(bone.parent.matrixWorld),contacts:[]});
+   }
+   this.shapeKey=this.key();this.ready=true;this.accumulator=0;this.stats.particles=this.clusters.length*8;
+--- a/src/body/XPBDCluster.js
++++ b/src/body/XPBDCluster.js
+@@ -15,17 +15,21 @@
+ export class XPBDCluster {
+  constructor(rest,{pins=[0,1,3],iterations=6}={}){
+   if(rest.length!==24)throw new Error('XPBDCluster requires exactly eight 3D particles');
+-  this.p=new Float64Array(rest);this.previous=new Float64Array(rest);this.v=new Float64Array(24);this.target=new Float64Array(rest);this.gradient=new Float64Array(24);this.pins=pins;this.iterations=iterations;this.edges=PAIRS.map(([a,b])=>({a:a*3,b:b*3,rest:Math.hypot(rest[a*3]-rest[b*3],rest[a*3+1]-rest[b*3+1],rest[a*3+2]-rest[b*3+2]),lambda:0}));this.restVolume=signedVolume(rest);if(this.restVolume<=1e-10)throw new Error('Rest cage must have positive volume');this.volumeScale=Math.pow(this.restVolume,2/3);this.pinLambda=new Float64Array(9);this.volumeLambda=0;this.recoveries=0;
++  this.p=new Float64Array(rest);this.previous=new Float64Array(rest);this.v=new Float64Array(24);this.target=new Float64Array(rest);this.gradient=new Float64Array(24);this.pins=pins;this.iterations=iterations;this.edges=PAIRS.map(([a,b])=>({a:a*3,b:b*3,rest:Math.hypot(rest[a*3]-rest[b*3],rest[a*3+1]-rest[b*3+1],rest[a*3+2]-rest[b*3+2]),lambda:0}));this.restVolume=signedVolume(rest);if(this.restVolume<=1e-10)throw new Error('Rest cage must have positive volume');this.volumeScale=Math.pow(this.restVolume,2/3);this.pinLambda=new Float64Array(pins.length*3);this.volumeLambda=0;this.recoveries=0;
+  }
+  reset(target=this.target){this.target.set(target);this.p.set(target);this.previous.set(target);this.v.fill(0);}
+  centroid(out=[0,0,0],array=this.p){out[0]=out[1]=out[2]=0;for(let i=0;i<24;i++)out[i%3]+=array[i]/8;return out;}
+- step(h,{softness=.62,damping=.5,gravity=9.81,contacts=[],grab=null}={}){
+-  const soft=Math.max(0,Math.min(1,softness)),edgeAlpha=(2e-7+soft*soft*2e-5)/(h*h),pinAlpha=(2e-6+soft*soft*8e-5)/(h*h),volumeAlpha=1e-10/(h*h),drag=Math.exp(-dampingRate(damping)*h);
++ step(h,{softness=.62,damping=.5,gravity=9.81,contacts=[],grab=null,attachmentCompliance=null,shearCompliance=null}={}){
++  if(!(h>0)||!Number.isFinite(h))return;
++  const soft=Math.max(0,Math.min(1,softness));
++  const shear=Number.isFinite(shearCompliance)?Math.max(0,Math.min(.001,shearCompliance)):2e-7+soft*soft*2e-5;
++  const attachment=Number.isFinite(attachmentCompliance)?Math.max(0,Math.min(.002,attachmentCompliance)):2e-6+soft*soft*8e-5;
++  const edgeAlpha=shear/(h*h),pinAlpha=attachment/(h*h),volumeAlpha=1e-10/(h*h),drag=Math.exp(-dampingRate(damping)*h);
+   this.previous.set(this.p);this.pinLambda.fill(0);this.volumeLambda=0;for(const e of this.edges)e.lambda=0;
+   for(let i=0;i<24;i++){this.v[i]*=drag;if(i%3===1)this.v[i]-=gravity*h;this.p[i]+=this.v[i]*h;}
+   for(let iteration=0;iteration<this.iterations;iteration++){
+    for(const e of this.edges){const dx=this.p[e.a]-this.p[e.b],dy=this.p[e.a+1]-this.p[e.b+1],dz=this.p[e.a+2]-this.p[e.b+2],length=Math.hypot(dx,dy,dz);if(length<1e-9)continue;const dl=(-(length-e.rest)-edgeAlpha*e.lambda)/(2+edgeAlpha);e.lambda+=dl;const k=dl/length;for(const [j,d] of [[0,dx],[1,dy],[2,dz]]){this.p[e.a+j]+=d*k;this.p[e.b+j]-=d*k;}}
+-   for(let pin=0;pin<3;pin++)for(let axis=0;axis<3;axis++){const i=this.pins[pin]*3+axis,j=pin*3+axis,dl=(-(this.p[i]-this.target[i])-pinAlpha*this.pinLambda[j])/(1+pinAlpha);this.pinLambda[j]+=dl;this.p[i]+=dl;}
++   for(let pin=0;pin<this.pins.length;pin++)for(let axis=0;axis<3;axis++){const i=this.pins[pin]*3+axis,j=pin*3+axis,dl=(-(this.p[i]-this.target[i])-pinAlpha*this.pinLambda[j])/(1+pinAlpha);this.pinLambda[j]+=dl;this.p[i]+=dl;}
+    if(grab){const center=this.centroid(),alpha=2e-5/(h*h);for(let a=0;a<3;a++){const move=(grab[a]-center[a])/(1+alpha);for(let i=a;i<24;i+=3)this.p[i]+=move;}}
+    this.solveVolume(volumeAlpha);
+    // Contact planes and capsules are inequalities; they never pull tissue.

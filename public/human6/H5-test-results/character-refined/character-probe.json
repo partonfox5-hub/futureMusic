@@ -1,0 +1,95 @@
+{
+  "result": {
+    "cage": [
+      {
+        "name": "L_Breast",
+        "offset": [
+          0.00002773751222505394,
+          -0.009360440715070917,
+          0.00004033888226923077
+        ],
+        "volume": 0.0004418953206165852
+      },
+      {
+        "name": "R_Breast",
+        "offset": [
+          0.000016301677212463006,
+          -0.009357894798690092,
+          0.00004417917076603162
+        ],
+        "volume": 0.00044299640157750847
+      },
+      {
+        "name": "L_Glute",
+        "offset": [
+          0.00014158926578217157,
+          -0.004441832196305895,
+          -0.00039835874627056067
+        ],
+        "volume": 0.0012904826753795495
+      },
+      {
+        "name": "R_Glute",
+        "offset": [
+          0.00016358150652082126,
+          -0.0044076870252264255,
+          -0.0004289673337309202
+        ],
+        "volume": 0.001287848557048462
+      }
+    ],
+    "shape": {
+      "height": 1,
+      "waist": 0.91,
+      "hips": 1.08,
+      "breast": 1.86,
+      "butt": 1.74,
+      "thigh": 1.57,
+      "gap": -0.08,
+      "arms": 0.94,
+      "jiggle": 4.5,
+      "breastHeight": -0.12,
+      "breastSpacing": 0.04,
+      "breastAngle": 0.02,
+      "buttHeight": -0.04,
+      "buttSpacing": 0.02,
+      "buttAngle": 0,
+      "handResponse": 12,
+      "softness": 0.75,
+      "damping": 0.48,
+      "bodySoftness": 0.75,
+      "faceSoftness": 0.32,
+      "hairMotion": 1,
+      "skinDetail": 0.35,
+      "tissueDensity": 980,
+      "waterDrag": 5,
+      "thighGravity": 0.55,
+      "spineFlexibility": 0.48,
+      "gaitVariation": 0.4,
+      "fluidBias": 0.075,
+      "muscleTone": 0.6,
+      "surfaceRipple": 0.0018
+    },
+    "headPosition": [
+      0.004323213311019739,
+      1.449319587029253,
+      -0.03627672666765318
+    ],
+    "groom": {
+      "locks": 44,
+      "vertices": [
+        1105,
+        1188
+      ],
+      "finite": true
+    },
+    "render": {
+      "frame": 64,
+      "calls": 902,
+      "triangles": 1397548,
+      "points": 0,
+      "lines": 0
+    }
+  },
+  "errors": []
+}

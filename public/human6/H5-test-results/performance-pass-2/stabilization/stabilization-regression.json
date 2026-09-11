@@ -1,0 +1,19 @@
+{
+  "checks": {
+    "releaseDirections": 4,
+    "streamedGroundTarget": true,
+    "analogRatio": 0.30232558139534865,
+    "clothFitMaxErrorM": 0.014419217665262954,
+    "clothVertices": 1313,
+    "clothGripCutDetach": true,
+    "contactQueries": 48,
+    "contactDeltaM": 0,
+    "sinkAttached": true,
+    "sinkDeliveredLitres": 0.11999999999999987,
+    "idleDropletCount": 0,
+    "furnitureRestY": 5.9604643443123e-10,
+    "xDeletesActorAndClothes": true
+  },
+  "errors": [],
+  "testedAt": "2026-09-11T17:06:25.021Z"
+}

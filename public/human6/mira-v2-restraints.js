@@ -1,6 +1,6 @@
 import * as T from 'three';
-import {bodyVolumes,projectVolume} from './mira-v2-contact.js?v=17.5.0';
-import {furnitureRoot,syncFurniture} from './mira-v2-furniture.js?v=17.5.0';
+import {bodyVolumes,projectVolume} from './mira-v2-contact.js?v=17.8.0';
+import {furnitureRoot,syncFurniture} from './mira-v2-furniture.js?v=17.8.0';
 const V=()=>new T.Vector3(),Q=()=>new T.Quaternion(),up=new T.Vector3(0,1,0);
 export class Restraints {
  constructor(props){

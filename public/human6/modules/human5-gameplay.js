@@ -1,9 +1,9 @@
 import * as T from 'three';
-import {installCombat,ARMOR_PRESETS} from './human5-combat.js?v=17.5.0';
-import {installPetRefinement} from './human5-pets.js?v=17.5.0';
-import {installNPCBehavior,NPC_ROLES,NPC_MODES,FOLLOWER_ORDERS} from './human5-npc-behavior.js?v=17.5.0';
-import {installNavigation} from './human5-navigation.js?v=17.5.0';
-import {wrapMethod} from './human5-common.js?v=17.5.0';
+import {installCombat,ARMOR_PRESETS} from './human5-combat.js?v=17.8.0';
+import {installPetRefinement} from './human5-pets.js?v=17.8.0';
+import {installNPCBehavior,NPC_ROLES,NPC_MODES,FOLLOWER_ORDERS} from './human5-npc-behavior.js?v=17.8.0';
+import {installNavigation} from './human5-navigation.js?v=17.8.0';
+import {wrapMethod} from './human5-common.js?v=17.8.0';
 
 export function installGameplay(ctx){const {world,mira,props,dogs,camera,scene,wardrobe}=ctx;if(world.h5Gameplay)return world.h5Gameplay;
  const combat=installCombat(ctx),pets=installPetRefinement(ctx),npcs=installNPCBehavior({...ctx,combat}),navigation=installNavigation(world),restores=[];let ui=null,fetchPet=null;

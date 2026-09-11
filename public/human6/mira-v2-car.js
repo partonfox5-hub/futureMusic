@@ -1,8 +1,8 @@
 import * as T from 'three';
-import {withOffscreenView} from './modules/human5-view-surfaces.js?v=17.5.0';
-import {VEHICLE_SPECS,buildVehicleModel} from './modules/human5-vehicle-models.js?v=17.5.0';
+import {withOffscreenView} from './modules/human5-view-surfaces.js?v=17.8.0';
+import {VEHICLE_SPECS,buildVehicleModel} from './modules/human5-vehicle-models.js?v=17.8.0';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
-import {CarAudio,unlockSfx} from './mira-v2-sfx.js?v=17.5.0';
+import {CarAudio,unlockSfx} from './mira-v2-sfx.js?v=17.8.0';
 const V=()=>new T.Vector3(),Q=()=>new T.Quaternion(),clamp=T.MathUtils.clamp,Y=new T.Vector3(0,1,0);
 const QUEST=/Quest|OculusBrowser/i.test(globalThis.navigator?.userAgent||'');
 const GEARS=['P','R','N','D'];
@@ -237,8 +237,19 @@ export class Car {
   for(const p of this.parts){if(p.broken)continue;const d=p.mesh.getWorldPosition(V()).distanceToSquared(point);if(d<best){best=d;nearest=p;}}
   if(nearest)this.damage({object:nearest.mesh,point},dmg,'blunt',n.clone(),impulse);
  }
+ crushWall(part,point,normal,energy){
+  this._wallHits??=new Set();let absorbed=0;const system=this.world.fractures;
+  const chunks=part.mesh.userData.chunks||[part],candidates=[part,...chunks.filter(p=>p!==part&&!p.broken&&p.p.distanceToSquared(point)<.9*.9).sort((a,b)=>a.p.distanceToSquared(point)-b.p.distanceToSquared(point))];
+  for(const p of candidates){if(this._wallHits.size>=4)break;if(p.broken||this._wallHits.has(p))continue;this._wallHits.add(p);
+    const cost=p.kind==='metal'?240:p.kind==='stone'?220:p.kind==='wood'?110:80,weight=p===part?1:Math.max(.10,1-p.p.distanceTo(point)/.9),damage=energy*weight/cost,health=Math.max(0,p.health);
+    // The wall API needs a world-space contact point, including for car impacts.
+    const at=point.clone().clamp(p.p.clone().addScaledVector(p.size,-.5),p.p.clone().addScaledVector(p.size,.5));
+    system.impact({object:p.mesh,instanceId:p.index,point:at},damage,normal.clone().negate());absorbed+=Math.min(health,damage)*cost;
+  }
+  return {broken:part.broken,absorbed};
+ }
  collide(dt){
-  const points=[];for(const side of [-1,1])for(const t of [-1,0,1])points.push(this.group.localToWorld(new T.Vector3(side*Math.max(.10,this.vehicleSpec.width/2-.12),this.vehicleSpec.collisionY,t*(this.vehicleSpec.length/2-.12))));
+  const points=[];for(const y of [this.vehicleSpec.collisionY,Math.max(this.vehicleSpec.collisionY+.20,this.vehicleSpec.height*.80)])for(const side of [-1,1])for(const t of [-1,0,1])points.push(this.group.localToWorld(new T.Vector3(side*Math.max(.10,this.vehicleSpec.width/2-.12),y,t*(this.vehicleSpec.length/2-.12))));
   for(const point of points){for(const o of this.world.nearby(point,.16)||[]){
     if(o===this.obstacle||o.y>point.y+.16||o.y+o.h<point.y-.16)continue;
     const closest=new T.Vector3(clamp(point.x,o.x-o.w/2,o.x+o.w/2),clamp(point.y,o.y,o.y+o.h),clamp(point.z,o.z-o.d/2,o.z+o.d/2)),delta=point.clone().sub(closest),distance=delta.length();if(distance>=.16)continue;
@@ -263,11 +274,11 @@ export class Car {
         this.group.position.addScaledVector(n,Math.min(tree.fallen?0.08:0.22,penetration+.001));
         continue;
       }
-      const fracture=this.world.fractures?.parts?.find(p=>!p.broken&&(p.obstacle===o||p.mesh?.userData.seat?.obstacle===o));
-      if(fracture)this.world.fractures.impact({object:fracture.mesh,instanceId:fracture.index},energy,n.clone().negate());
+      const fracture=o.h5Fracture||this.world.fractures?.parts?.find(p=>!p.broken&&(p.obstacle===o||p.mesh?.userData.seat?.obstacle===o));
+      const crush=fracture?this.crushWall(fracture,closest,n,energy):null;
       this.dentAt(point,n,energy,impulse);
-      this.velocity.addScaledVector(n,-1.08*Math.min(0,this.velocity.dot(n)));this.yawRate=clamp(this.yawRate+(r.z*impulse.x-r.x*impulse.z)/2400*.12,-1.5,1.5);
-      if(fracture?.broken){this.velocity.multiplyScalar(.93);continue;}
+      if(crush?.broken){const kinetic=.5*this.mass*this.velocity.lengthSq();this.velocity.multiplyScalar(Math.sqrt(Math.max(.08,1-(crush.absorbed+kinetic*.08)/Math.max(1,kinetic))));continue;}
+      this.velocity.addScaledVector(n,-1.04*Math.min(0,this.velocity.dot(n)));this.yawRate=clamp(this.yawRate+(r.z*impulse.x-r.x*impulse.z)/2400*.12,-1.5,1.5);
     }
     this.group.position.addScaledVector(n,Math.min(.30,penetration+.001));
   }}
@@ -280,7 +291,7 @@ export class Car {
   }
   const extent=Math.max(40,(this.world.extent||144)-2);if(Math.abs(this.group.position.x)>extent||Math.abs(this.group.position.z)>extent)this.velocity.multiplyScalar(.55);this.group.position.x=clamp(this.group.position.x,-extent,extent);this.group.position.z=clamp(this.group.position.z,-extent,extent);
  }
- tick(dt){dt=clamp(dt,0,.1);this.time+=dt;if(this.revision!==this.world.revision){this.revision=this.world.revision;this.reset();}this.group.visible=['Living room','Cul-de-sac'].includes(this.world.name)&&this.world.root.visible;for(const d of this.debris)d.mesh.visible=this.group.visible;if(!this.group.visible){if(this.driving)this.exit();this.audio?.tick(this,{throttle:0},dt);return;}this.updateOccupancy();this.updateGrips(dt);if(this.driving)this.pollHorn();this._dents=0;this._rammed=new Set();const input=this.input(),moving=this.driving||this.h5Traffic?.active||this.velocity.length()>.08,steps=moving?Math.max(1,Math.min(8,Math.ceil(this.velocity.length()*dt/.18))):1;for(let i=0;i<steps;i++){this.step(dt/steps,input);this.group.updateMatrixWorld(true);if(moving)this.collide(dt/steps);}this.syncCollider();this.syncSeat();this.audio?.tick(this,input,dt);for(const d of this.debris){d.velocity.y-=9.81*dt;const before=d.mesh.position.clone();d.mesh.position.addScaledVector(d.velocity,dt);if(this.world.projectSphere(d.mesh.position,.10)){const n=d.mesh.position.clone().sub(before).normalize(),vn=d.velocity.dot(n);if(vn<0)d.velocity.addScaledVector(n,-1.15*vn);}if(d.mesh.position.y<.12){d.mesh.position.y=.12;d.velocity.y=Math.abs(d.velocity.y)*.15;d.velocity.x*=.9;d.velocity.z*=.9;d.spin.multiplyScalar(.94);}d.mesh.rotateX(d.spin.x*dt);d.mesh.rotateZ(d.spin.z*dt);}this.mirrorClock+=dt;this.updateStatus();}
+ tick(dt){dt=clamp(dt,0,.1);this.time+=dt;if(this.revision!==this.world.revision){this.revision=this.world.revision;this.reset();}this.group.visible=['Living room','Cul-de-sac'].includes(this.world.name)&&this.world.root.visible;for(const d of this.debris)d.mesh.visible=this.group.visible;if(!this.group.visible){if(this.driving)this.exit();this.audio?.tick(this,{throttle:0},dt);return;}this.updateOccupancy();this.updateGrips(dt);if(this.driving)this.pollHorn();this._dents=0;this._rammed=new Set();this._wallHits=new Set();const input=this.input(),moving=this.driving||this.h5Traffic?.active||this.velocity.length()>.08,steps=moving?Math.max(1,Math.min(8,Math.ceil(this.velocity.length()*dt/.18))):1;for(let i=0;i<steps;i++){this.step(dt/steps,input);this.group.updateMatrixWorld(true);if(moving)this.collide(dt/steps);}this.syncCollider();this.syncSeat();this.audio?.tick(this,input,dt);for(const d of this.debris){d.velocity.y-=9.81*dt;const before=d.mesh.position.clone();d.mesh.position.addScaledVector(d.velocity,dt);if(this.world.projectSphere(d.mesh.position,.10)){const n=d.mesh.position.clone().sub(before).normalize(),vn=d.velocity.dot(n);if(vn<0)d.velocity.addScaledVector(n,-1.15*vn);}if(d.mesh.position.y<.12){d.mesh.position.y=.12;d.velocity.y=Math.abs(d.velocity.y)*.15;d.velocity.x*=.9;d.velocity.z*=.9;d.spin.multiplyScalar(.94);}d.mesh.rotateX(d.spin.x*dt);d.mesh.rotateZ(d.spin.z*dt);}this.mirrorClock+=dt;this.updateStatus();}
  pollHorn(){
   if(!this.driving||!this.hornPad)return;
   this.group.updateMatrixWorld(true);
@@ -290,8 +301,18 @@ export class Car {
  get telemetry(){return `${this.gear} · cabin ${this.inCabin?'IN':'OUT'} · ${Math.round(this.velocity.length()*3.6)} km/h · ${this.surfaceName} µ ${this.mu.toFixed(2)}`;}
  updateStatus(){this.status=`${this.gear} · cabin ${this.inCabin?'IN':'OUT'} · ${Math.round(this.velocity.length()*3.6)} km/h · ${this.surfaceName} µ ${this.mu.toFixed(2)} · ${this.message}`;}
  renderMirror(){
-  const hz=QUEST?[30,24,18][this.world.h5Performance?.budget.tier||0]:45;if(!this.driving||!this.mirrorEnabled||this.mirrorClock<1/hz)return;this.mirrorClock=0;
+  const hz=QUEST?[30,24,18][this.world.h5Performance?.budget.tier||0]:45;if(!this.driving||!this.mirrorEnabled||this.mirrorClock<1/hz)return;this.mirrorClock=0;this.renderMirrorView();
+ }
+ renderMirrorView(warm=false){
+  // A dashboard mirror covers a small visual angle. Keep its allocation stable
+  // across quality changes, and omit subpixel grass/birds from this pass only.
+  const tier=this.world.h5Performance?.budget.tier??1;
+  if(QUEST&&this.target.width!==256)this.target.setSize(256,128);
+  const far=QUEST?[55,45,32][tier]:120;
+  if(this.rearCamera.far!==far){this.rearCamera.far=far;this.rearCamera.updateProjectionMatrix();}
   this.rearCamera.position.copy(this.mirror.getWorldPosition(V()));const rear=new T.Vector3(0,0,1).applyQuaternion(this.group.getWorldQuaternion(Q()));this.rearCamera.position.addScaledVector(rear,.08);this.rearCamera.up.set(0,1,0).applyQuaternion(this.group.getWorldQuaternion(Q()));this.rearCamera.lookAt(this.rearCamera.position.clone().addScaledVector(rear,30));
-  withOffscreenView(this.renderer,[this.mirror,this.props.menu?.panel,this.props.scopeOverlay,...(this.props.gadgets?.portals||[]).map(p=>p?.group)],()=>{this.renderer.setRenderTarget(this.target);this.renderer.setViewport(0,0,384,192);this.renderer.render(this.scene,this.rearCamera);});
+  const hidden=[this.mirror,this.props.menu?.panel,this.props.system?.vrPanel,this.props.scopeOverlay,...(this.props.gadgets?.portals||[]).map(p=>p?.group)];
+  if(QUEST)hidden.push(this.world.h5Vegetation?.root,this.world.h5Birds?.root);
+  withOffscreenView(this.renderer,hidden,()=>{this.renderer.setRenderTarget(this.target);this.renderer.setViewport(0,0,warm?16:this.target.width,warm?8:this.target.height);this.renderer.render(this.scene,this.rearCamera);});
  }
 }

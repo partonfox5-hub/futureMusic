@@ -1,12 +1,15 @@
 import * as T from 'three';
-import {V,clamp,finiteDt,gravityOf,wrapMethod,rng} from './human5-common.js?v=17.5.0';
+import {V,clamp,finiteDt,gravityOf,wrapMethod,rng} from './human5-common.js?v=17.8.0';
 
 export const DYNAMICS_CONTROLS=Object.freeze([
   {key:'tissueDensity',label:'Tissue density',min:900,max:1100,step:5,value:980},
   {key:'waterDrag',label:'Tissue water drag',min:0,max:12,step:.1,value:5},
   {key:'thighGravity',label:'Thigh gravity response',min:0,max:1,step:.02,value:.55},
   {key:'spineFlexibility',label:'Spine flexibility',min:0,max:1,step:.02,value:.48},
-  {key:'gaitVariation',label:'Step variation',min:0,max:1,step:.02,value:.40}
+  {key:'gaitVariation',label:'Step variation',min:0,max:1,step:.02,value:.40},
+  {key:'fluidBias',label:'Tissue fluid response',min:0,max:.1,step:.005,value:.075},
+  {key:'muscleTone',label:'Underlying muscle support',min:0,max:1,step:.02,value:.6},
+  {key:'surfaceRipple',label:'Surface tissue motion',min:0,max:.003,step:.0001,value:.0018}
 ]);
 
 export function submergedFraction(height,y,radius=.035){return clamp((height-y)/(2*radius)+.5,0,1);}
@@ -47,7 +50,13 @@ class EnvironmentalTissue {
           const accel=environmentalAcceleration(g,water,rho,fraction),flow=water?.velocity||V(),drag=Math.exp(-self.options.waterDrag*fraction*h);
           for(let j=0;j<3;j++){const axis=['x','y','z'][j];this.v[i+j]=flow[axis]+(this.v[i+j]-flow[axis])*drag+accel[axis]*h/Math.max(.01,baseDrag);}
         }
-        self.stats.submerged=sum;return old.call(this,h,{...params,gravity:0});
+        const soft=clamp(params.softness??.62,0,1),breast=c.soft.kind==='breast';
+        // Softer fascia permits gravity equilibrium; muscular glute support stays
+        // firmer. Near-incompressible volume remains an independent constraint.
+        const bias=1+self.options.fluidBias;
+        const attachmentCompliance=breast?(.000015+soft*soft*.00055)*bias:(.000008+soft*soft*.00016)/(1+self.options.muscleTone*1.5);
+        const shearCompliance=(.000001+soft*soft*(breast?.000055:.000035))*bias;
+        self.stats.submerged=sum;return old.call(this,h,{...params,gravity:0,attachmentCompliance,shearCompliance});
       }));
     }
     this.stats.clusters=this.tissue.clusters.length;

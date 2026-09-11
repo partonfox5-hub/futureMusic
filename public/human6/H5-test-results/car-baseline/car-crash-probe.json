@@ -1,0 +1,23 @@
+{
+  "result": {
+    "timings": {
+      "enterSyncMs": 0.19999999972060323,
+      "firstMirrorMs": 0.10000000009313226,
+      "secondMirrorMs": 0,
+      "firstCabinRenderMs": 413.10000000009313,
+      "secondCabinRenderMs": 16.5
+    },
+    "crash": {
+      "message": "Cannot read properties of undefined (reading 'x')",
+      "stack": "TypeError: Cannot read properties of undefined (reading 'x')\n    at Vector3.copy (https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js:4068:14)\n    at WallSystem.stamp (http://127.0.0.1:34467/human5/mira-v2-walls.js?v=17.5.0:227:23)\n    at Destruction.impact (http://127.0.0.1:34467/human5/mira-v2-destruction.js?v=17.5.0:20:497)\n    at Car.collide (http://127.0.0.1:34467/human5/mira-v2-car.js?v=17.5.0:267:40)\n    at eval (eval at evaluate (:311:30), <anonymous>:8:97)\n    at async <anonymous>:337:30"
+    },
+    "broken": 0,
+    "wall": [
+      -12.8,
+      0.77875,
+      3.3405000000000014
+    ],
+    "speed": 12
+  },
+  "errors": []
+}

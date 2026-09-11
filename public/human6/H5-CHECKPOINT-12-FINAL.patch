@@ -1,0 +1,520 @@
+--- a/H5-LATEST-CHECKPOINT.md
++++ b/H5-LATEST-CHECKPOINT.md
+@@ -1,54 +1,44 @@
+-# Human5 Checkpoint 11 — character and glass refinement
++# Human5 17.8 — integrated game release
+ 
+-Version 17.7.0. Includes the complete Checkpoint 10 game, including the car/wall exception fix, startup vehicle-view preparation, basement, arcade, crate and showers.
++This complete export includes all saved module groups through character checkpoint 11 and two additional application performance passes. It is ready to serve from its `human5/` folder. The separate photo/video NPC creator is a subsequent, separate deliverable.
+ 
+-## Changes
++## Latest play-feedback corrections
+ 
+-- Mira now uses dark brown, straight, shoulder-length hair. The old oversized radial crown and separated narrow locks are replaced by a fitted continuous underlayer and 44 overlapping flat guided cards. Fine fiber variation, a restrained highlight and softer tips replace coarse stripes. The guide solve uses bounded fixed steps and reused vectors. Wetness affects its material and damping. Both the outer cards and underlying hair sheet trim and regrow together.
+-- Disabled inappropriate alpha-to-coverage on Quest-path eyelashes; the new groom uses alpha testing. This corrected the white edge artifacts found in browser renders without MSAA.
+-- The identity sculpt now uses the actual mesh's eye, nose, cheek, lip and chin heights. Eyelid width/aperture have independent controls; expression endpoints are warped with neutral geometry. Removed the misplaced periocular bulge and excessive idle grin. The tearline's curvature was also corrected: the previous coefficient displaced its edges by over 13 cm instead of millimetres.
+-- Anatomical pigmentation has a gradual edge and local normal relief. The body exposure/seam blend no longer paints a uniform skin color over this region. A continuous skinned surface carries the geometric relief; no separate attached decal mesh is used.
+-- Two local conforming refinement passes add 1,558 vertices to the shared skin buffer in this asset. The small anatomical region now has 153 vertices within the sampled 12 mm radius, versus 7 before. All original expression targets, UVs, material partitions and normalized skin weights are retained. Source geometry remains unchanged for other asset instances.
+-- Tissue attachment and shear compliance are separate from near-incompressible volume. Four rear attachment points eliminate the directional bias of the previous three-point cage. Glute support is firmer than breast tissue, with a bounded transient surface response over the muscular support. Fluid-response bias defaults to 7.5%, rather than replacing the solver with a liquid model.
+-- Hot shower glass can be wiped with a nearby tracked palm/controller. A small retained local mask clears the touched area; condensation gradually returns. Water flow, temperature, fog and wetness remain separate state.
++- Car/house impacts no longer pass a missing point into the wall decal code. Collision samples cover two heights, fracture work is capped per frame, and absorbed impact energy slows the vehicle. The repeated actual Willow-house collision test broke four wall cells without an exception. Vehicle damage and handling degradation remain integrated.
++- Default car cabin and mirror views are prepared during initial loading. Quest rear-view mirrors use a stable 256×128 target, a quality-dependent 32–55 m range and reduced update frequency; tiny grass/understory and bird meshes are omitted from this small mirror only. Main-view ecology, collision and simulation are retained. First-view stalls still occur in the workstation software renderer; this is not a claim that entry latency is eliminated.
++- Mira's replacement groom uses straight guided shoulder-length cards over a continuous fitted crown/underlayer, with a small natural part, flexible tips, cutting/regrowth and wetness. It replaces the rejected separated, corrugated locks. It remains a procedural game groom, below the quality of an authored strand groom.
++- Character defaults set the requested shape/material/contact sliders near 75% and maximum hair flexibility. Local conforming mesh refinement supplies anatomical silhouette detail; blended pigment and subtle relief avoid a separate pasted-on surface. Supported tissue settles under gravity, reverses with gravity and responds to water density. Tests measure about 16.5 mm breast-cage and 3.1 mm glute-cage downward displacement in the default pose; these are game parameters, not clinical calibration.
++- Corrected face landmark locations, eye/tearline geometry and expression balance improve the old result. **The current face still does not reproduce the reference identity photographically.** No scanned or authored 4K identity texture set is included.
+ 
+-## Starting Mira defaults
++## Integrated feature groups
+ 
+-| Setting | Value | Slider position |
+-|---|---:|---:|
+-| Breast size | 1.86 | about 75% |
+-| Buttock size | 1.74 | about 75% |
+-| Thigh size | 1.57 | about 75% |
+-| Jiggle | 4.5 / 6 | 75% |
+-| Hand contact response | 12 / 16 | 75% |
+-| Tissue softness | 0.75 | 75% |
+-| Waist/thigh softness | 0.75 | 75% |
+-| Hair flexibility | 1.0 | maximum |
+-| Controller haptic gain | 3 / 4 | 75% |
++The earlier checkpoint notes describe controls and detailed limits. This full folder includes them all:
+ 
+-The shape profile import/export ranges now match the real controls, including these larger defaults. The newer physics variables are present in the exported `human5.npc/1` profile.
++- Five distinct furnished 1–3 bedroom houses beside the city; fabrics, patterned couches, tearing shells/exposed flammable stuffing, mattresses, opened pet-food bags, knitted/cuttable rugs and shallow carpet pile.
++- Glass-bulb fixtures, bounded dynamic lighting, held/tipped torch contact and flame spread, extinguishing and environmental tissue/wetness response.
++- Streamed 2.1 km region with trails/rural roads, forest/understory/cuttable grass, rivers/lake, mountains/volcano, twelve irregular city blocks and 3–7-floor apartment/office buildings, elevator/stairs, restaurant and furnished penthouse.
++- Weather menu, enemy/pedestrian roles, shared NPC armor/protection/follower controls, pets with jaw grips, traffic/pedestrian budgets, fishing and flock/feeders.
++- Dedicated weapon/tool and vehicle-spawn tabs; sedan, truck, sports car, motorcycle and monster truck; suspension/automatic shifting/damage; scopes, launchers, bounded mushroom-cloud effects, spells and single-level visible portals.
++- Working shower dial, steam, pane condensation and local hand wiping, bathroom mirrors, wet skin/hair/clothes; starting-house basement stairs, playable canvas arcade adapter/demo and exterior-latched dog crate.
++- Selected-NPC X deletion, locomotion release/drift fixes, furniture sleep, attached sink hardware and retained microphone permission/capture diagnostics on XR entry.
+ 
+-## Evidence
++These are integrated procedural gameplay implementations. Vehicle/weapon architecture is not an asset-quality equivalent of GTA or CS:GO. A city traffic record does not include a fully animated visible driver, and distant population uses proxies. World persistence is not yet a complete save of every NPC, clothing, haircut and furniture state. The imported project contains no full conversation server: speech recognition and TTS can operate locally, but unrestricted conversational replies still depend on the host's configured dialogue backend.
+ 
+-`tests/character-regression.cjs` exercises the integrated actor, rather than only a stand-alone spring. After six seconds at the default preset, the four-point model settled approximately 16.5 mm downward at the breast cages and 3.1 mm at the glute cages. The early startup displacement is approximately 8.7 mm; it is not the final equilibrium. Zero gravity returns the cage to its rest target. Reversed gravity reverses the displacement. Full fresh-water submersion at the configured 980 kg/m³ tissue density gives approximately 0.34 mm of upward cage displacement. The attachment remains connected to the character; this is not a buoyant balloon lifting the body.
++## Performance and testing
+ 
+-The tested states remained finite and retained cage volume within the regression threshold, with zero divergence recoveries. These are numerical game-model results, not anatomical validation.
++Read `FINAL-PERFORMANCE.md` and the saved JSON reports. The first pass reduces simulation work; the second tests the real animation/render loop, vehicle entry and streaming. Changes include adaptive detail, contact cadence, cached fire membership, distant hair/cloth LOD, sleeping furniture, reduced redundant facial morph atlases and removal of legacy CPU seam diffusion where the new skin shader already owns seam treatment. A slow rendered frame no longer resets all NPC and furniture physics.
+ 
+-Other passing checks cover:
++The available browser uses Chromium/SwiftShader, a simulated Quest user agent and a 960×600 monoscopic viewport. **It is not Quest hardware or immersive stereo. Sustained Quest 60/72 FPS is not verified or guaranteed.** The app requests a supported refresh rate, uses foveation and records long frames rather than hiding them. Use `QUEST-TEST-PROTOCOL.md` and export an on-headset report for the next hardware-specific optimization cycle.
+ 
+-- Shared topology refinement without hanging edges, area changes or unnormalized skin weights; morph continuity and source isolation.
+-- Guide and underlayer cutting, complete regrowth, variable timesteps and teleport recovery.
+-- Profile export/import at the new defaults and actual browser shader compilation.
+-- Basement stair traversal and collisions, hollow crate/hinge/exterior bolt, arcade canvas adapter, shower wetness, hot steam, mirror state restoration, local glass wiping and returning condensation.
++## Run and integrate
+ 
+-Actual game portrait views are saved under `test-results/character-continuity`. These are game screenshots, not generated previews presented as game output.
++1. Extract the complete ZIP, preserving the `human5/` directory and relative assets.
++2. Desktop: serve its parent directory with `python -m http.server 8000`; open `http://localhost:8000/human5/`. Quest: use an HTTPS origin. A plain laptop LAN HTTP address will not provide secure-context microphone/WebXR access.
++3. Keep the pinned Three.js 0.170.0 import map. Initial scene preparation and first speech-model download can take time.
++4. `?debug` exposes the actual systems as `window.human2`. Desktop settings provide NPC profile import/export and performance report export. The menu's Weapons/Tools and Vehicles tabs contain equipment and drivable spawns.
++5. Module ZIP: `python integration/apply-delta.py PATH_TO_17_7 NEW_OUTPUT` applies the checked final delta. `apply-all-upgrades.py ORIGINAL_COMPLETE_PROJECT NEW_OUTPUT` replays the entire chain. Inputs are checksum-checked and never overwritten. The full project ZIP is already integrated; it does not require Grok to merge modules.
+ 
+-## Limits and next work
++Tests are source and browser regressions, not a substitute for a headset playtest. Original input assets and their licensing remain the project owner's responsibility; this release does not grant new rights to third-party assets.
+ 
+-This checkpoint improves the supplied procedural character. It does not match the reference photographs exactly, and the hair still lacks the fidelity of a professionally authored groom. The skin detail is not a newly authored 4K scan. The cloth, furniture, world and vehicle assets remain procedural. Neither the tissue model nor the vehicle damage system is a calibrated finite-element simulation.
+-
+-The first performance diagnostic still found substantial CPU costs and spikes, especially in the city. It also exposed repeated facial morph-atlas uploads on body material partitions. Those optimization changes belong to the next working stage and are not included here. Both requested final performance passes and the final integrated game export remain pending. The separate local photo/video NPC application follows the final game export.
+-
+-## Integration
+-
+-Use the complete project ZIP for a ready-to-serve source folder. From the complete 17.6 game, run `python integration/apply-delta.py SOURCE NEW_OUTPUT` in the module bundle. From the original complete uploaded game, run `python integration/apply-all-upgrades.py SOURCE NEW_OUTPUT`. Both write a new directory and validate inputs; they do not overwrite your existing project.
++The final character visual check also caught simultaneous legacy/new hair immediately after NPC-profile import. The replacement now hides the old mesh at installation, before the next animation frame.
++The final crown was also fitted against the source head surface to prevent the forehead from protruding through it. This last geometry-coordinate correction does not add draws or vertices.
+--- a/engine.js
++++ b/engine.js
+@@ -1,46 +1,46 @@
+-import {Builder,FURNITURE,SURFACES} from './mira-v2-builder.js?v=17.7.0';
+-import {SmoothLocomotion} from './mira-v2-locomotion.js?v=17.7.0';
+-import {Car} from './mira-v2-car.js?v=17.7.0';
+-import {Restraints} from './mira-v2-restraints.js?v=17.7.0';
+-import { createDogSystem } from './mira-v2-dog.js?v=17.7.0';
+-import { installGadgets } from './mira-v2-gadgets.js?v=17.7.0';
+-import {Injuries} from './mira-v2-injuries.js?v=17.7.0';
+-import {Props,WEAPONS,GUNS} from './mira-v2-props.js?v=17.7.0';
+-import {installFire} from './mira-v2-fire.js?v=17.7.0';
+-import {installWeather} from './mira-v2-weather.js?v=17.7.0';
+-import {installTerrainFeatures} from './mira-v2-terrain-features.js?v=17.7.0';
+-import {syncFurniture} from './mira-v2-furniture.js?v=17.7.0';
+-import {installWater} from './mira-v2-water.js?v=17.7.0';
+-import {createFloraSystem} from './mira-v2-flora.js?v=17.7.0';
+-import {EstimatedRoomLight as RoomLight,createQuestLighting} from './modules/human5-lighting.js?v=17.7.0';
+-import {installHuman5Upgrade} from './modules/human5-upgrade.js?v=17.7.0';
+-import {installPerformance} from './modules/human5-performance.js?v=17.7.0';
+-import {installOpenWorld} from './modules/human5-openworld.js?v=17.7.0';
+-import {installGameplay} from './modules/human5-gameplay.js?v=17.7.0';
+-import {installVehicleSpawns} from './modules/human5-vehicle-spawns.js?v=17.7.0';
+-import {createStartupWarmup} from './modules/human5-startup-warmup.js?v=17.7.0';
+-import {installHome} from './modules/human5-home.js?v=17.7.0';
+-import {installEquipment} from './modules/human5-equipment.js?v=17.7.0';
+-import {installEcology} from './modules/human5-ecology.js?v=17.7.0';
+-import {createVoiceBridge} from './modules/human5-voice.js?v=17.7.0';
+-import {localTranscribe,warmLocalSpeech,stopLocalSpeech} from './mira-local-speech.js?v=17.7.0';
++import {Builder,FURNITURE,SURFACES} from './mira-v2-builder.js?v=17.8.0';
++import {SmoothLocomotion} from './mira-v2-locomotion.js?v=17.8.0';
++import {Car} from './mira-v2-car.js?v=17.8.0';
++import {Restraints} from './mira-v2-restraints.js?v=17.8.0';
++import { createDogSystem } from './mira-v2-dog.js?v=17.8.0';
++import { installGadgets } from './mira-v2-gadgets.js?v=17.8.0';
++import {Injuries} from './mira-v2-injuries.js?v=17.8.0';
++import {Props,WEAPONS,GUNS} from './mira-v2-props.js?v=17.8.0';
++import {installFire} from './mira-v2-fire.js?v=17.8.0';
++import {installWeather} from './mira-v2-weather.js?v=17.8.0';
++import {installTerrainFeatures} from './mira-v2-terrain-features.js?v=17.8.0';
++import {syncFurniture} from './mira-v2-furniture.js?v=17.8.0';
++import {installWater} from './mira-v2-water.js?v=17.8.0';
++import {createFloraSystem} from './mira-v2-flora.js?v=17.8.0';
++import {EstimatedRoomLight as RoomLight,createQuestLighting} from './modules/human5-lighting.js?v=17.8.0';
++import {installHuman5Upgrade} from './modules/human5-upgrade.js?v=17.8.0';
++import {installPerformance} from './modules/human5-performance.js?v=17.8.0';
++import {installOpenWorld} from './modules/human5-openworld.js?v=17.8.0';
++import {installGameplay} from './modules/human5-gameplay.js?v=17.8.0';
++import {installVehicleSpawns} from './modules/human5-vehicle-spawns.js?v=17.8.0';
++import {createStartupWarmup} from './modules/human5-startup-warmup.js?v=17.8.0';
++import {installHome} from './modules/human5-home.js?v=17.8.0';
++import {installEquipment} from './modules/human5-equipment.js?v=17.8.0';
++import {installEcology} from './modules/human5-ecology.js?v=17.8.0';
++import {createVoiceBridge} from './modules/human5-voice.js?v=17.8.0';
++import {localTranscribe,warmLocalSpeech,stopLocalSpeech} from './mira-local-speech.js?v=17.8.0';
+ const voiceInput=createVoiceBridge({localTranscribe,warmLocalSpeech,stopLocalSpeech});
+ const startMic=voiceInput.startMic;
+ let xrMicAttempted=false;
+-import {draft,saveDraft,spawnOptions,OUTFITS,clothingItems} from './mira-v2-catalog.js?v=17.7.0';
+-import {MiraWorld,SCENES} from './mira-v2-world.js?v=17.7.0';
+-import {Wardrobe,GARMENTS} from './mira-v2-wardrobe.js?v=17.7.0';
++import {draft,saveDraft,spawnOptions,OUTFITS,clothingItems} from './mira-v2-catalog.js?v=17.8.0';
++import {MiraWorld,SCENES} from './mira-v2-world.js?v=17.8.0';
++import {Wardrobe,GARMENTS} from './mira-v2-wardrobe.js?v=17.8.0';
+ import * as THREE from "three";
+ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+-import { createVRMenu } from "./mira-vr-menu.js?v=17.7.0";
+-import { snapshot, savePreset, loadPreset, applyPreset, listPresets, lastPresetName, downloadPreset } from "./mira-v2-preset.js?v=17.7.0";
+-import { unlockSfx } from "./mira-v2-sfx.js?v=17.7.0";
+-import { EMOTION_NAMES, IDLE_NAMES, WALK_NAMES, ATTENTION_MODES } from "./mira-v2-features.js?v=17.7.0";
++import { createVRMenu } from "./mira-vr-menu.js?v=17.8.0";
++import { snapshot, savePreset, loadPreset, applyPreset, listPresets, lastPresetName, downloadPreset } from "./mira-v2-preset.js?v=17.8.0";
++import { unlockSfx } from "./mira-v2-sfx.js?v=17.8.0";
++import { EMOTION_NAMES, IDLE_NAMES, WALK_NAMES, ATTENTION_MODES } from "./mira-v2-features.js?v=17.8.0";
+ import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
+-import { createMiraSystem, SLIDERS, FACE_TYPES, HAIR_COLORS } from "./mira-v2.js?v=17.7.0";
+-import { DEFAULT_PERSONA, miraChat, miraSpeak, unlockVoice } from "./mira-voice-v2.js?v=17.7.0";
+-
+-import {V2_EXTRA_SLIDERS,FACE_PRESETS,HAIR_STYLES,ACTIVITY_MODES,ATTENTION_LABELS,shapeSliders} from './mira-v2-controls.js?v=17.7.0';
++import { createMiraSystem, SLIDERS, FACE_TYPES, HAIR_COLORS } from "./mira-v2.js?v=17.8.0";
++import { DEFAULT_PERSONA, miraChat, miraSpeak, unlockVoice } from "./mira-voice-v2.js?v=17.8.0";
++
++import {V2_EXTRA_SLIDERS,FACE_PRESETS,HAIR_STYLES,ACTIVITY_MODES,ATTENTION_LABELS,shapeSliders} from './mira-v2-controls.js?v=17.8.0';
+ 
+ const QUEST = /OculusBrowser|Quest/i.test(navigator.userAgent);
+ const loadEl = document.getElementById("load");
+@@ -525,6 +525,7 @@
+ }
+ 
+ const clock = new THREE.Clock();
++document.addEventListener('visibilitychange',()=>{clock.getDelta();if(document.hidden)for(const key of Object.keys(keys))keys[key]=false;});
+ let fpsFrames = 0, fpsLast = performance.now(),floraAccum=0;
+ function tick(time,frame) {
+  if(startup.active){clock.getDelta();startup.render();return;}
+@@ -535,7 +536,7 @@
+  }
+  roomLight.tick(frame);
+   const rawDt = clock.getDelta();
+-  if (rawDt > 0.22 && mira.ready) { mira.resetPhysics(false); props.resetMotion(); }
++  if(rawDt>.22)world.h5LongFrames=(world.h5LongFrames||0)+1; // Record stalls; never reset live vehicles/NPCs because rendering was slow.
+   const dt = Math.min(rawDt, 0.05);
+   upgrade.beforeFrame(dt);
+   openWorld.tick(dt);
+--- a/mira-v2-car.js
++++ b/mira-v2-car.js
+@@ -1,8 +1,8 @@
+ import * as T from 'three';
+-import {withOffscreenView} from './modules/human5-view-surfaces.js?v=17.7.0';
+-import {VEHICLE_SPECS,buildVehicleModel} from './modules/human5-vehicle-models.js?v=17.7.0';
++import {withOffscreenView} from './modules/human5-view-surfaces.js?v=17.8.0';
++import {VEHICLE_SPECS,buildVehicleModel} from './modules/human5-vehicle-models.js?v=17.8.0';
+ import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
+-import {CarAudio,unlockSfx} from './mira-v2-sfx.js?v=17.7.0';
++import {CarAudio,unlockSfx} from './mira-v2-sfx.js?v=17.8.0';
+ const V=()=>new T.Vector3(),Q=()=>new T.Quaternion(),clamp=T.MathUtils.clamp,Y=new T.Vector3(0,1,0);
+ const QUEST=/Quest|OculusBrowser/i.test(globalThis.navigator?.userAgent||'');
+ const GEARS=['P','R','N','D'];
+@@ -304,7 +304,15 @@
+   const hz=QUEST?[30,24,18][this.world.h5Performance?.budget.tier||0]:45;if(!this.driving||!this.mirrorEnabled||this.mirrorClock<1/hz)return;this.mirrorClock=0;this.renderMirrorView();
+  }
+  renderMirrorView(warm=false){
++  // A dashboard mirror covers a small visual angle. Keep its allocation stable
++  // across quality changes, and omit subpixel grass/birds from this pass only.
++  const tier=this.world.h5Performance?.budget.tier??1;
++  if(QUEST&&this.target.width!==256)this.target.setSize(256,128);
++  const far=QUEST?[55,45,32][tier]:120;
++  if(this.rearCamera.far!==far){this.rearCamera.far=far;this.rearCamera.updateProjectionMatrix();}
+   this.rearCamera.position.copy(this.mirror.getWorldPosition(V()));const rear=new T.Vector3(0,0,1).applyQuaternion(this.group.getWorldQuaternion(Q()));this.rearCamera.position.addScaledVector(rear,.08);this.rearCamera.up.set(0,1,0).applyQuaternion(this.group.getWorldQuaternion(Q()));this.rearCamera.lookAt(this.rearCamera.position.clone().addScaledVector(rear,30));
+-  withOffscreenView(this.renderer,[this.mirror,this.props.menu?.panel,this.props.scopeOverlay,...(this.props.gadgets?.portals||[]).map(p=>p?.group)],()=>{this.renderer.setRenderTarget(this.target);this.renderer.setViewport(0,0,warm?16:384,warm?8:192);this.renderer.render(this.scene,this.rearCamera);});
++  const hidden=[this.mirror,this.props.menu?.panel,this.props.system?.vrPanel,this.props.scopeOverlay,...(this.props.gadgets?.portals||[]).map(p=>p?.group)];
++  if(QUEST)hidden.push(this.world.h5Vegetation?.root,this.world.h5Birds?.root);
++  withOffscreenView(this.renderer,hidden,()=>{this.renderer.setRenderTarget(this.target);this.renderer.setViewport(0,0,warm?16:this.target.width,warm?8:this.target.height);this.renderer.render(this.scene,this.rearCamera);});
+  }
+ }
+--- a/mira-v2-contact.js
++++ b/mira-v2-contact.js
+@@ -1,4 +1,4 @@
+-import {paletteSkinnedVertex,prepareMorphPalette} from './modules/human5-skinning.js?v=17.7.0';
++import {paletteSkinnedVertex,prepareMorphPalette} from './modules/human5-skinning.js?v=17.8.0';
+ import * as T from 'three';
+ const V=()=>new T.Vector3(),clamp=T.MathUtils.clamp;
+ const limb=n=>/^([LR])_(Upperarm|Forearm|Elbow|Hand|Thumb|Index|Mid|Ring|Pinky)/.test(n)?n[0]+'Arm':/^([LR])_(Thigh|Calf|Knee|Foot|Toe)/.test(n)?n[0]+'Leg':/Head|Eye|Jaw|Neck/.test(n)?'head':'torso';
+@@ -11,7 +11,7 @@
+   actor.root.traverse(mesh=>{
+    if(!mesh.isSkinnedMesh||!/^body/.test(mesh.name))return;
+    const g=mesh.geometry,p=g.attributes.position,si=g.attributes.skinIndex,sw=g.attributes.skinWeight;
+-   let cache=this.stores.get(p);if(!cache){cache={mesh,data:new Float32Array(p.count*3),stamp:new Int32Array(p.count)};this.stores.set(p,cache);}
++   let cache=this.stores.get(p);if(!cache){cache={mesh,data:new Float32Array(p.count*3),stamp:new Int32Array(p.count)};this.stores.set(p,cache);}else if(!cache.mesh.geometry.morphAttributes.position?.length&&g.morphAttributes.position?.length)cache.mesh=mesh;
+    const byBone=new Map();for(let i=0;i<g.index.count;i+=3){const ids=[g.index.getX(i),g.index.getX(i+1),g.index.getX(i+2)],scores=new Map();for(const id of ids)for(let j=0;j<4;j++){const bi=si.array[id*4+j];scores.set(bi,(scores.get(bi)||0)+sw.array[id*4+j]);}const bi=[...scores].sort((a,b)=>b[1]-a[1])[0][0];if(!byBone.has(bi))byBone.set(bi,[]);byBone.get(bi).push(ids);}
+    for(const [bi,tris] of byBone){
+     const bone=mesh.skeleton.bones[bi],inverse=bone.matrixWorld.clone().invert(),points=new Map();
+@@ -48,10 +48,18 @@
+ export class BodyContacts {
+  constructor(actors){this.actors=actors;this.surfaces=new WeakMap();this.stats={contacts:0};}
+  surface(a){let s=this.surfaces.get(a);if(!s){s=new BodySurface(a);this.surfaces.set(a,s);}return s;}
+- project(a,p,r,exclude,react=true){let moved=false;for(const b of this.actors){if(b.version!=='v2'||b.group.position.distanceTo(a.group.position)>1.6)continue;const c=this.surface(b).project(p,r,b===a?exclude:'',react);if(c){this.stats.contacts++;moved=true;}}return moved;}
+- tick(){
+-  const list=this.actors.filter(a=>a.version==='v2'&&(a.h5SimulationDue!==false)&&( !a.world?.h5QuestBudget||!a.world?.h5Viewer||a.group.position.distanceToSquared(a.world.h5Viewer)<64||a.grabs.size||a.socialPair||this.actors.some(b=>b!==a&&b.group.position.distanceToSquared(a.group.position)<3)));list.forEach(a=>this.surface(a).begin());this.stats.contacts=0;
+-  for(const a of list){const h=a.shape.height;
++ project(a,p,r,exclude,react=true){let moved=false;for(const b of this.actors){if(b.version!=='v2'||b.group.position.distanceTo(a.group.position)>1.6)continue;const surface=this.surface(b);if(surface.h5ContactFrame!==this.contactFrame){surface.begin();surface.h5ContactFrame=this.contactFrame;}const c=surface.project(p,r,b===a?exclude:'',react);if(c){this.stats.contacts++;moved=true;}}return moved;}
++ tick(dt=1/72){
++  const list=this.actors.filter(a=>a.version==='v2'&&(a.h5SimulationDue!==false)&&( !a.world?.h5QuestBudget||!a.world?.h5Viewer||a.group.position.distanceToSquared(a.world.h5Viewer)<64||a.grabs.size||a.socialPair||this.actors.some(b=>b!==a&&b.group.position.distanceToSquared(a.group.position)<3)));const due=list.filter(a=>{
++    const near=!a.world?.h5QuestBudget||!a.world.h5Viewer||a.group.position.distanceToSquared(a.world.h5Viewer)<2.25;
++    const interacting=a.grabs.size||a.socialPair||a.balance?.state!=='standing'||this.actors.some(b=>b!==a&&b.group.position.distanceToSquared(a.group.position)<1.44);
++    a.h5ContactAccumulator=(a.h5ContactAccumulator||0)+dt;
++    if(near||interacting||a.h5ContactAccumulator>=1/24){a.h5ContactAccumulator=0;return true;}return false;
++  });
++  // Cross-character projection may inspect a neighbor outside this cadence. Its
++  // lazy narrow phase is refreshed on demand instead of using a stale skeleton.
++  this.contactFrame=(this.contactFrame||0)+1;for(const a of due){const s=this.surface(a);s.begin();s.h5ContactFrame=this.contactFrame;}this.stats.contacts=0;
++  for(const a of due){const h=a.shape.height;
+    for(let pass=0;pass<(a.socialPair?2:1);pass++)for(const side of ['L','R']){
+     if(a.injuryDriver?.states.get(a)?.missing.has(side+'Arm'))continue;
+     const hand=a.bones[side+'_Hand'],elbow=a.bones[side+'_Forearm'];if(!hand||!elbow)continue;
+--- a/mira-v2-features.js
++++ b/mira-v2-features.js
+@@ -1,13 +1,13 @@
+-import {refineAnatomyDetail} from './modules/human5-anatomy-detail.js?v=17.7.0';
+-import {LivingEyes} from './mira-v2-eyes.js?v=17.7.0';
+-import {EnhanceEyes} from './mira-v2-tearline.js?v=17.7.0';
+-import {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES,V2_EXTRA_SLIDERS,FACE_PRESETS,EXERCISE_MODES,ATTENTION_MODES} from './mira-v2-controls.js?v=17.7.0';
+-export {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES,ATTENTION_MODES} from './mira-v2-controls.js?v=17.7.0';
++import {refineAnatomyDetail} from './modules/human5-anatomy-detail.js?v=17.8.0';
++import {LivingEyes} from './mira-v2-eyes.js?v=17.8.0';
++import {EnhanceEyes} from './mira-v2-tearline.js?v=17.8.0';
++import {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES,V2_EXTRA_SLIDERS,FACE_PRESETS,EXERCISE_MODES,ATTENTION_MODES} from './mira-v2-controls.js?v=17.8.0';
++export {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES,ATTENTION_MODES} from './mira-v2-controls.js?v=17.8.0';
+ import * as THREE from 'three';
+-import {restoreSurfaceUV} from './mira-v2-uv.js?v=17.7.0';
+-import {HairGuides} from './mira-v2-hair.js?v=17.7.0';
+-import {SurfaceFlesh} from './mira-v2-tissue.js?v=17.7.0';
+-import {installV2Realism} from './mira-v2-realism.js?v=17.7.0';
++import {restoreSurfaceUV} from './mira-v2-uv.js?v=17.8.0';
++import {HairGuides} from './mira-v2-hair.js?v=17.8.0';
++import {SurfaceFlesh} from './mira-v2-tissue.js?v=17.8.0';
++import {installV2Realism} from './mira-v2-realism.js?v=17.8.0';
+ 
+ // Mira v2: a bounded real-time approximation for this CC3 rig, Three r170.
+ const clamp = THREE.MathUtils.clamp, damp = THREE.MathUtils.damp;
+@@ -250,8 +250,18 @@
+     // array. Eyes/teeth have no targets: adding position:[] generates an illegal
+     // zero-length GLSL uniform and makes the render loop read missing influences.
+     geom.morphAttributes={};
++    // Material partitions share a large source buffer, but most body partitions
++    // contain only submillimetre export residuals. Do not upload the full face morph atlas five
++    // times because unused head vertices remain in their shared attributes. The
++    // bound sums every channel, so simultaneous 0–1 expressions are covered.
++    const usedMorphVertices=new Set(old.index.array);
++    let morphResidual=0;const sourceTargets=old.morphAttributes.position||[];
++    for(const i of usedMorphVertices){let dx=0,dy=0,dz=0;for(const target of sourceTargets){const v=target.array;dx+=Math.abs(v[i*3]);dy+=Math.abs(v[i*3+1]);dz+=Math.abs(v[i*3+2]);}morphResidual=Math.max(morphResidual,Math.hypot(dx,dy,dz));}
++    const hasPartitionMorph=morphResidual>.001||(/Head|Eyelash|Eye|Teeth/.test(o.material?.name||'')&&sourceTargets.length>0);
++    o.userData.h5MorphResidualM=morphResidual;
++    o.userData.h5MorphPartition=hasPartitionMorph;
+     for(const [name,targets] of Object.entries(old.morphAttributes)){
+-     if(targets.length)geom.morphAttributes[name]=name==='position'?record.morphPosition:targets;
++     if(hasPartitionMorph&&targets.length)geom.morphAttributes[name]=name==='position'?record.morphPosition:targets;
+     }
+     geom.morphTargetsRelative=old.morphTargetsRelative;geom.groups=old.groups.slice();o.geometry=geom;
+     record.geom=geom;
+--- a/mira-v2.js
++++ b/mira-v2.js
+@@ -1,8 +1,8 @@
+-import {restoreSurfaceUV} from './mira-v2-uv.js?v=17.7.0';
+-import {BodyContacts} from './mira-v2-contact.js?v=17.7.0';
+-import {MiraSocial} from './mira-v2-social.js?v=17.7.0';
+-import {ContactHaptics} from './mira-v2-haptics.js?v=17.7.0';
+-import { createV2Class, repairArmRestData, makeFingerRig, fingerRotation } from "./mira-v2-features.js?v=17.7.0";
++import {restoreSurfaceUV} from './mira-v2-uv.js?v=17.8.0';
++import {BodyContacts} from './mira-v2-contact.js?v=17.8.0';
++import {MiraSocial} from './mira-v2-social.js?v=17.8.0';
++import {ContactHaptics} from './mira-v2-haptics.js?v=17.8.0';
++import { createV2Class, repairArmRestData, makeFingerRig, fingerRotation } from "./mira-v2-features.js?v=17.8.0";
+ import * as THREE from "three";
+ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+ import { clone as cloneSkinned } from "three/addons/utils/SkeletonUtils.js";
+@@ -1800,7 +1800,7 @@
+       }
+     }
+     environment?.interactions?.restraints?.solve(dt);
+-    social.resolveContacts();contacts.tick();
++    social.resolveContacts();contacts.tick(dt);
+     for(const a of actors)if(a.version==='v1'&&a.directedWalk&&!a.dest){a.directedWalk=null;a.autoWander=false;a.setMode('idle');}
+     const goal=selectedActor?.directedWalk;targetMarker.visible=!!goal&&!uiHandlers.isOpen?.();if(goal)targetMarker.position.set(goal.x,.016,goal.z);
+     for(let i=0;i<2;i++)if(wardrobe?.drags.has('xr'+i)){const c=hands.ctrl[i];wardrobe.move('xr'+i,new THREE.Ray(c.getWorldPosition(new THREE.Vector3()),new THREE.Vector3(0,0,-1).applyQuaternion(c.getWorldQuaternion(new THREE.Quaternion()))));}
+--- a/modules/human5-fire.js
++++ b/modules/human5-fire.js
+@@ -1,5 +1,5 @@
+ import * as T from 'three';
+-import {V,clamp,finiteDt,gravityOf,localBounds,segmentBox,obstacleBox,disposeTree,attachedTo} from './human5-common.js?v=17.7.0';
++import {V,clamp,finiteDt,gravityOf,localBounds,segmentBox,obstacleBox,disposeTree,attachedTo} from './human5-common.js?v=17.8.0';
+ 
+ // Artistic combustion parameters, NOT measured ignition temperatures.
+ export const FUEL = Object.freeze({
+@@ -33,7 +33,8 @@
+     const f={id:this.nextId++,root,material,spec,localBox:bounds?.clone()||localBounds(root),box:new T.Box3(),heat:0,fuel:1,wet:0,burning:false,exposed,onExpose,point:V(),ready:false};
+     this.surfaces.set(f.id,f);this.updateSurface(f);return f;
+   }
+-  unregister(f){this.surfaces.delete(f.id);}
++  unregister(f){this.removeFromGrid(f);this.surfaces.delete(f.id);}
++  removeFromGrid(f){for(const key of f.gridKeys||[]){const cell=this.grid.get(key);if(!cell)continue;const i=cell.indexOf(f);if(i>=0)cell.splice(i,1);if(!cell.length)this.grid.delete(key);}f.gridKeys=null;f.gridRange=null;}
+   updateSurface(f){f.root.updateWorldMatrix(true,false);f.box.copy(f.localBox).applyMatrix4(f.root.matrixWorld);if(!f.ready){f.localBox.getCenter(f.point);f.ready=true;}}
+   expose(f){f.exposed=true;f.onExpose?.(f);}
+   ignite(f,worldPoint=null){if(!f.exposed||f.fuel<=0||f.wet>.35||!Number.isFinite(f.spec.ignition))return false;f.heat=f.spec.ignition+1;if(worldPoint){f.point.copy(worldPoint);f.root.worldToLocal(f.point);f.localBox.clampPoint(f.point,f.point);}if(!f.burning){f.burning=true;this.onIgnite(f);}return true;}
+@@ -54,13 +55,15 @@
+     }return false;
+   }
+   rebuildGrid(){
+-    this.grid.clear();
+     for(const f of this.surfaces.values()){
+-      if(!attachedTo(f.root,this.scene)){this.surfaces.delete(f.id);continue;}this.updateSurface(f);
+-      if(!f.exposed||f.fuel<=0||!Number.isFinite(f.spec.ignition))continue;
++      if(!attachedTo(f.root,this.scene)){this.unregister(f);continue;}this.updateSurface(f);
++      if(!f.exposed||f.fuel<=0||!Number.isFinite(f.spec.ignition)){if(f.gridKeys)this.removeFromGrid(f);continue;}
+       const lo=f.box.min,hi=f.box.max;
++      const range=[Math.floor(lo.x),Math.floor(lo.y),Math.floor(lo.z),Math.floor(hi.x),Math.floor(hi.y),Math.floor(hi.z)];
++      if(f.gridRange&&range.every((v,i)=>v===f.gridRange[i]))continue;
++      this.removeFromGrid(f);f.gridRange=range;f.gridKeys=[];
+       for(let x=Math.floor(lo.x);x<=Math.floor(hi.x);x++)for(let y=Math.floor(lo.y);y<=Math.floor(hi.y);y++)for(let z=Math.floor(lo.z);z<=Math.floor(hi.z);z++){
+-        const key=x+'/'+y+'/'+z;if(!this.grid.has(key))this.grid.set(key,[]);this.grid.get(key).push(f);
++        const key=x+'/'+y+'/'+z;if(!this.grid.has(key))this.grid.set(key,[]);this.grid.get(key).push(f);f.gridKeys.push(key);
+       }
+     }
+   }
+@@ -104,7 +107,7 @@
+     dt=finiteDt(dt);if(!dt)return;this.time+=dt;
+     for(const s of this.sources){
+       s.root.updateWorldMatrix(true,false);s.p.copy(s.wick).applyMatrix4(s.root.matrixWorld);
+-      if(s.ready){const d=s.p.distanceTo(s.previous);s.velocity.subVectors(s.p,s.previous).divideScalar(dt).clampLength(0,4);if(d<2&&s.lit)s.sweep.push([s.previous.clone(),s.p.clone(),dt]);else s.sweep.length=0;}
++      if(s.ready){const d=s.p.distanceTo(s.previous);s.velocity.subVectors(s.p,s.previous).divideScalar(dt).clampLength(0,4);if(d>.0005&&d<2&&s.lit)s.sweep.push([s.previous.clone(),s.p.clone(),dt]);else if(d>=2||!s.lit)s.sweep.length=0;}
+       s.previous.copy(s.p);s.ready=true;
+     }
+     this.acc=Math.min(.15,this.acc+dt);while(this.acc>=.05){this.advance(.05);this.acc-=.05;}
+@@ -129,5 +132,5 @@
+     this.flames.count=i;this.flames.instanceMatrix.needsUpdate=true;this.material.uniforms.time.value=this.time;
+     Object.assign(this.stats,{burning:all.length,surfaces:this.surfaces.size,rendered:sources.length});
+   }
+-  dispose(){this.surfaces.clear();this.sources.clear();disposeTree(this.effects);}
++  dispose(){this.surfaces.clear();this.sources.clear();this.grid.clear();disposeTree(this.effects);}
+ }
+--- a/modules/human5-groom.js
++++ b/modules/human5-groom.js
+@@ -1,5 +1,5 @@
+ import * as T from 'three';
+-import {V,clamp,smooth,gravityOf,wrapMethod,rng} from './human5-common.js?v=17.7.0';
++import {V,clamp,smooth,gravityOf,wrapMethod,rng} from './human5-common.js?v=17.8.0';
+ 
+ /** Fitted crown and overlapping straight cards. Two draws; bounded guide physics.
+  * Coordinates are metres in this project's CC3 rest mesh, before Head bind.
+@@ -24,7 +24,7 @@
+   const cp=[],cu=[],ci=[],capLinks=[],phiN=64,thetaN=20;
+   function crown(theta,phi,out=V()){
+     const part=.006*(1-smooth(theta/.7));
+-    return out.set(part+.092*Math.sin(theta)*Math.sin(phi),1.525+.115*Math.cos(theta),-.020+.115*Math.sin(theta)*Math.cos(phi));
++    return out.set(part+.092*Math.sin(theta)*Math.sin(phi),1.525+.115*Math.cos(theta),.002+.108*Math.sin(theta)*Math.cos(phi));
+   }
+   for(let j=0;j<=thetaN;j++)for(let i=0;i<=phiN;i++){
+     const phi=i/phiN*Math.PI*2,v=j/thetaN,front=Math.max(0,Math.cos(phi)),angular=Math.min(phi,2*Math.PI-phi),skirt=smooth((angular-.43)/.16);
+@@ -82,7 +82,7 @@
+         }
+         for(let j=2;j<nodes;j++){
+           local.copy(points[j]).applyMatrix4(worldToModel);
+-          if(local.y>1.452){normal.set(local.x/.080,(local.y-1.525)/.110,(local.z+.020)/.097);const r=normal.length();if(r<1&&r>.001){normal.divideScalar(r);local.set(normal.x*.080,1.525+normal.y*.110,-.020+normal.z*.097);points[j].copy(local).applyMatrix4(modelToWorld);}}
++          if(local.y>1.452){normal.set(local.x/.080,(local.y-1.525)/.110,local.z/.105);const r=normal.length();if(r<1&&r>.001){normal.divideScalar(r);local.set(normal.x*.080,1.525+normal.y*.110,normal.z*.105);points[j].copy(local).applyMatrix4(modelToWorld);}}
+           for(const c of actor.externalHands||[]){if(!c.a||!c.b)continue;ab.subVectors(c.b,c.a);d.subVectors(points[j],c.a);const t=clamp(d.dot(ab)/Math.max(ab.lengthSq(),1e-8),0,1);nearest.copy(c.a).addScaledVector(ab,t);d.subVectors(points[j],nearest);const distance=d.length(),radius=c.r+.005;if(distance<radius&&distance>1e-6){points[j].copy(nearest).addScaledVector(d,radius/distance);c.onContact?.('hair',c.velocity?.length()||0,.001);}}
+         }
+       }
+@@ -105,5 +105,10 @@
+   const api={group,root:group,locks,nodes,tick,rebuildCuts(cuts=new Map()){
+     const ids=[];for(let i=0;i<ci.length;i+=3){let keep=true;for(let j=0;j<3;j++){const link=capLinks[ci[i+j]],end=cuts.get(link.guide);if(link.weight>.1&&end!==undefined&&link.t>end/8+.001)keep=false;}if(keep)ids.push(ci[i],ci[i+1],ci[i+2]);}cg.setIndex(ids);
+   },reset(){for(const lock of locks)lock.ready=false;accumulator=0;},dispose(){restores.reverse().forEach(f=>f());if(actor.hairPhysics?.mesh)actor.hairPhysics.mesh.visible=oldVisible;group.removeFromParent();geo.dispose();cg.dispose();material.dispose();crownMat.dispose();texture.dispose();delete actor.h5Groom;}};
+-  actor.h5Groom=api;tick(0);return api;
++  actor.h5Groom=api;
++  // Profile import can render before the next animation tick. Do not show the
++  // legacy cap and the replacement groom simultaneously for that first frame.
++  group.visible=!!actor.h5Identity?.enabled&&actor.hairStyle===1;
++  if(group.visible&&actor.hairPhysics?.mesh)actor.hairPhysics.mesh.visible=false;
++  tick(0);return api;
+ }
+--- a/modules/human5-identity.js
++++ b/modules/human5-identity.js
+@@ -1,7 +1,7 @@
+ import * as T from 'three';
+-import {V,clamp,smooth,wrapMethod} from './human5-common.js?v=17.7.0';
+-import {installReferenceGroom} from './human5-groom.js?v=17.7.0';
+-import {weldSkinNormals} from './human5-skin.js?v=17.7.0';
++import {V,clamp,smooth,wrapMethod} from './human5-common.js?v=17.8.0';
++import {installReferenceGroom} from './human5-groom.js?v=17.8.0';
++import {weldSkinNormals} from './human5-skin.js?v=17.8.0';
+ 
+ export const REFERENCE_MIRA=Object.freeze({
+   id:'mira-reference-17',name:'Mira',faceType:1,likeness:0,hairStyle:1,hairColor:1,
+@@ -57,7 +57,7 @@
+       }
+       d.position.needsUpdate=true;d.geom.computeVertexNormals();d.normal.needsUpdate=true;d.geom.computeBoundingSphere();
+     }
+-    this.buildSoftLimits();weldSkinNormals(this);this.seamsReady=false;appliedStamp=this.geomState;return result;
++    this.buildSoftLimits();weldSkinNormals(this);this.seamsReady=!!this.h5Skin;appliedStamp=this.geomState;return result;
+   }));
+   // Drive the actual 49 channels just before the existing FaceDrive/morph pass.
+   restores.push(wrapMethod(actor,'tickMorphs',old=>function(dt){
+--- a/modules/human5-performance.js
++++ b/modules/human5-performance.js
+@@ -1,10 +1,10 @@
+ import * as T from 'three';
+-import {V,clamp,wrapMethod} from './human5-common.js?v=17.7.0';
+-import {RigidBatches} from './human5-batching.js?v=17.7.0';
++import {V,clamp,wrapMethod} from './human5-common.js?v=17.8.0';
++import {RigidBatches} from './human5-batching.js?v=17.8.0';
+ export const QUEST_PROFILES=Object.freeze([
+-  {name:'detail',foveation:.35,interiorRange:20,pile:1200,mirrorHz:30,portalHz:30,shadowHz:72},
+-  {name:'balanced',foveation:.55,interiorRange:15,pile:800,mirrorHz:24,portalHz:24,shadowHz:36},
+-  {name:'sustain',foveation:.72,interiorRange:11,pile:400,mirrorHz:18,portalHz:18,shadowHz:24}
++  {name:'detail',foveation:.35,interiorRange:20,pile:1200,mirrorHz:24,portalHz:24,shadowHz:36},
++  {name:'balanced',foveation:.55,interiorRange:15,pile:800,mirrorHz:18,portalHz:18,shadowHz:24},
++  {name:'sustain',foveation:.72,interiorRange:11,pile:400,mirrorHz:12,portalHz:12,shadowHz:18}
+ ]);
+ export function percentile(values,p){if(!values.length)return null;const a=values.slice().sort((a,b)=>a-b);return a[Math.min(a.length-1,Math.floor(p*(a.length-1)))];}
+ export function chooseFrameRate(rates){const list=Array.from(rates||[]);return [72,80,90,60].find(r=>list.includes(r))||list.filter(r=>r>=60).sort((a,b)=>a-b)[0]||null;}
+@@ -30,7 +30,7 @@
+     if(this.query){this.gl.endQuery(this.ext.TIME_ELAPSED_EXT);this.pending.push({query:this.query,row});this.query=null;}
+     // Keep startup/pause samples in raw evidence, exclude them from control decisions.
+     if(this.interval>0){this.samples.push(row);if(this.samples.length>this.capacity)this.samples.shift();}
+-    if(this.adaptive&&now>this.warmUntil&&now-this.lastDecision>2000&&this.samples.length>=90){this.lastDecision=now;const rows=this.samples.slice(-120).filter(r=>r.interval<250),budget=1000/this.targetHz;
++    if(this.adaptive&&now>this.warmUntil&&now-this.lastDecision>2000&&this.samples.length>=90){this.lastDecision=now;const rows=this.samples.slice(-120),budget=1000/this.targetHz;
+       const work=percentile(rows.map(r=>Math.max(r.cpu,r.gpu||0)),.95)||0,miss=rows.filter(r=>r.interval>budget*1.38).length/Math.max(1,rows.length);
+       if(work>budget*.88||miss>.08){this.slowWindows++;this.fastWindows=0;}else if(work<budget*.60&&miss<.02){this.fastWindows++;this.slowWindows=0;}else{this.slowWindows=0;this.fastWindows=0;}
+       if(this.slowWindows>=2&&this.tier<2){this.setTier(this.tier+1);this.slowWindows=0;}else if(this.fastWindows>=8&&this.tier>0){this.setTier(this.tier-1);this.fastWindows=0;}
+@@ -63,7 +63,7 @@
+ export function installPerformance({renderer,scene,camera,world,mira,props,upgrade,quest=true}={}){
+   const restores=[],visibility=new Map(),actors=new Map();let time=0,lodT=0,shadowT=0,lastRevision=-1;const p=V();
+   const apply=tier=>{const q=QUEST_PROFILES[tier];if(quest&&renderer.xr.isPresenting)renderer.xr.setFoveation?.(q.foveation);upgrade.textiles.maxTufts=Math.min(upgrade.textiles.pile.instanceMatrix.count,q.pile);upgrade.textiles.lastCenter.setScalar(Infinity);};
+-  const budget=new FrameBudget(renderer,{adaptive:quest,onTier:apply}),batches=new RigidBatches(world);restores.push(installFurnitureSleep(props));
++  const budget=new FrameBudget(renderer,{adaptive:quest,onTier:apply}),batches=new RigidBatches(world);if(quest)budget.setTier(1);restores.push(installFurnitureSleep(props));
+   const throttle=(object,key,hzKey)=>{let last=-Infinity;restores.push(wrapMethod(object,key,old=>function(){const hz=quest?QUEST_PROFILES[budget.tier][hzKey]:60;if(time-last<1/hz)return;last=time;return old.apply(this,arguments);}));};
+   for(const car of props.cars())throttle(car,'renderMirror','mirrorHz');if(props.gadgets?.renderViews)throttle(props.gadgets,'renderViews','portalHz');
+   const onStart=()=>{const s=renderer.xr.getSession();if(s)budget.startSession(s);apply(budget.tier);};renderer.xr.addEventListener('sessionstart',onStart);
+@@ -82,7 +82,7 @@
+           for(const m of h.meshes){if(m===h.ceiling)continue;m.castShadow=h.bounds.distanceToPoint(p)<16;}
+         }
+         // Two cards occupy the same silhouette. Distant hair uses the first layer.
+-        for(const a of mira.actors){const hair=a.hairPhysics;if(hair?.mesh&&hair.cardLayers===2){const far=a.group.position.distanceToSquared(p)>25,geo=hair.mesh.geometry;geo.setDrawRange(0,far?hair.source.index.count:Infinity);}}
++        for(const a of mira.actors){const hair=a.hairPhysics;if(hair?.mesh&&hair.cardLayers===2){const far=a.group.position.distanceToSquared(p)>3.24,geo=hair.mesh.geometry;geo.setDrawRange(0,far?hair.source.index.count:Infinity);}}
+       }
+     },
+     exportReport(){return budget.report();},downloadReport(){const blob=new Blob([JSON.stringify(budget.report(),null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='human5-performance.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),5000);},
+--- a/modules/human5-skin.js
++++ b/modules/human5-skin.js
+@@ -1,5 +1,5 @@
+ import * as T from 'three';
+-import {V,clamp,wrapMethod} from './human5-common.js?v=17.7.0';
++import {V,clamp,wrapMethod} from './human5-common.js?v=17.8.0';
+ 
+ /** Match normals only at coincident, similarly oriented, compatibly skinned vertices. */
+ export function weldSkinNormals(actor){
+@@ -65,6 +65,7 @@
+ export function installSkinRefinement(actor,{detail=true,receiveShadow=true}={}){
+   if(actor.h5Skin)return actor.h5Skin;const materials=new Map(),meshState=new Map(),restores=[];let shapeStamp=null;
+   function install(){
++    actor.seamsReady=true; // Rest-space color and welded normals own seam treatment.
+     for(const mesh of actor.skinMeshes||[]){
+       if(!meshState.has(mesh))meshState.set(mesh,mesh.receiveShadow);mesh.receiveShadow=receiveShadow;
+       const m=mesh.material;if(Array.isArray(m))continue;
+@@ -75,8 +76,8 @@
+     }
+   }
+   install();restores.push(wrapMethod(actor,'applyLooks',old=>function(){const r=old.apply(this,arguments);install();return r;}));
+-  restores.push(wrapMethod(actor,'updateShapeGeometry',old=>function(){const r=old.apply(this,arguments);if(this.geomState!==shapeStamp){shapeStamp=this.geomState;weldSkinNormals(this);}return r;}));
+-  const api={install,dispose(){restores.reverse().forEach(f=>f());for(const [m,s] of materials)if(m.onBeforeCompile===s.wrapper){m.onBeforeCompile=s.old;m.customProgramCacheKey=s.key;m.needsUpdate=true;}for(const [m,value] of meshState)m.receiveShadow=value;delete actor.h5Skin;}};actor.h5Skin=api;return api;
++  restores.push(wrapMethod(actor,'updateShapeGeometry',old=>function(){const r=old.apply(this,arguments);if(this.geomState!==shapeStamp){shapeStamp=this.geomState;weldSkinNormals(this);this.seamsReady=true;}return r;}));
++  const api={install,dispose(){restores.reverse().forEach(f=>f());for(const [m,s] of materials)if(m.onBeforeCompile===s.wrapper){m.onBeforeCompile=s.old;m.customProgramCacheKey=s.key;m.needsUpdate=true;}for(const [m,value] of meshState)m.receiveShadow=value;actor.seamsReady=false;delete actor.h5Skin;}};actor.h5Skin=api;return api;
+ }
+ 
+ /** Load authored UV-compatible maps, with dimensions checked instead of relabeling. */

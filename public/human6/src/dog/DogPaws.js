@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { clamp } from './Dog.js?v=17.5.0';
+import { clamp } from './Dog.js?v=17.8.0';
 const vec=a=>new THREE.Vector3(...a);
 
 export function floorAt(world,x,z,fallback=0) {

@@ -1,5 +1,5 @@
 import * as T from 'three';
-import {playSfx} from './mira-v2-sfx.js?v=17.5.0';
+import {playSfx} from './mira-v2-sfx.js?v=17.8.0';
 const V=()=>new T.Vector3(),Q=()=>new T.Quaternion(),CELL=.6,STORY=3.05;
 const QUEST=/Quest|OculusBrowser/i.test(globalThis.navigator?.userAgent||'');
 const PALETTE={Plaster:0xc9c1b1,Brick:0xa26148,Wood:0x947051,Tile:0xc3c7c1,Stone:0x85847c,Castle:0x8a8478,Metal:0x929b9d,Glass:0x9fc1c7,Shingle:0x5c4034};
@@ -224,7 +224,7 @@ export class WallSystem {
   const i=this.decalSlot++%this.maxDecal;
   this.decalList=this.decalList.filter(d=>d.i!==i);
   const size=.12+Math.min(.14,Math.sqrt(Math.max(0,energy))*.02);
-  this.dummy.position.copy(hit.point).addScaledVector(n,.004);
+  this.dummy.position.copy(hit.point?.isVector3?hit.point:part.p).addScaledVector(n,.004);
   this.dummy.quaternion.setFromUnitVectors(new T.Vector3(0,0,1),n);
   this.dummy.scale.set(size,size*(.55+.5*Math.random()),1);this.dummy.updateMatrix();
   this.decals.setMatrixAt(i,this.dummy.matrix);this.decals.instanceMatrix.needsUpdate=true;

@@ -1,7 +1,7 @@
 import * as T from 'three';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
-import {createFixture} from './human5-lighting.js?v=17.5.0';
-import {V,wrapMethod} from './human5-common.js?v=17.5.0';
+import {createFixture} from './human5-lighting.js?v=17.8.0';
+import {V,wrapMethod} from './human5-common.js?v=17.8.0';
 export const NEIGHBORHOOD_NAME='Cul-de-sac';
 export const HOUSE_SPECS=Object.freeze([
   {id:'willow',name:'Willow cottage',bedrooms:1,w:7.2,d:8.4,x:-17,z:0,yaw:Math.PI/2,color:0xddd0ad,roof:0x535e60,fabric:0x637e70,pattern:'stripes'},
@@ -57,7 +57,7 @@ export class Neighborhood {
     const box=(size,p,material)=>{const g=new T.BoxGeometry(...size);g.applyMatrix4(new T.Matrix4().compose(toWorld(...p),q,new T.Vector3(1,1,1)));const mesh=new T.Mesh(g,material);mesh.castShadow=mesh.receiveShadow=true;w.root.add(mesh);return mesh;};
     const addTrim=(size,p)=>{const g=new T.BoxGeometry(...size);g.applyMatrix4(new T.Matrix4().compose(toWorld(...p),q,new T.Vector3(1,1,1)));trim.push(g);};
     const isQuarter=Math.abs(Math.sin(s.yaw))>.5,W=isQuarter?s.d:s.w,D=isQuarter?s.w:s.d;
-    const slab=box([s.w,.055,s.d],[0,.0275,0],new T.MeshStandardMaterial({color:0xa58a6d,map:this.maps.wood,roughness:.82}));slab.castShadow=false;w.floors.push({x:s.x,z:s.z,w:W,d:D,y:0,h:floorY});
+    const slab=box([s.w,.055,s.d],[0,.0275,0],new T.MeshStandardMaterial({color:0xa58a6d,map:this.maps.wood,roughness:.82}));slab.castShadow=false;house.slab=slab;house.floorRecord={x:s.x,z:s.z,w:W,d:D,y:0,h:floorY};w.floors.push(house.floorRecord);
     const ceiling=box([s.w,.08,s.d],[0,2.94,0],w.mat(0xd8d3c7));house.ceiling=ceiling;
     for(const wall of plan.walls){
       const alongX=wall.a[1]===wall.b[1],lo=Math.min(wall.a[alongX?0:1],wall.b[alongX?0:1]),hi=Math.max(wall.a[alongX?0:1],wall.b[alongX?0:1]),fixed=wall.a[alongX?1:0],openings=[...wall.doors,...(wall.windows||[])];
@@ -87,8 +87,8 @@ export class Neighborhood {
         const mattress=layered('Mattress',r.x,r.z,{y:floorY+.35,color:index%2?0xbcc1b4:0xcfc4b5,accent:0xe4dccb,pattern:index%2?'stripes':'solid'});mattress.root.userData.bedFrame=frame;bed.mattress=mattress.root;place('Nightstand',r.x+r.w/2-.5,r.z-.45);fixture('Table lamp',r.x+r.w/2-.5,r.z-.45,.66);
         this.textiles.createCarpet({position:toWorld(r.x,floorY+.003,r.z).toArray(),size:[isQuarter?r.d-.15:r.w-.15,isQuarter?r.w-.15:r.d-.15],color:[0x8a7a66,0x78847c,0x9c9080][index%3],seed:index*17+house.rooms.length});
       }else if(r.id==='living'){
-        layered('Couch',r.x-.25,r.z-.65,{seaters:index%2?3:2});place('Coffee table',r.x,r.z+.40);layered('Chair',r.x-r.w/2+.55,r.z+.65,{yaw:-Math.PI/2,height:index===3?'high':'low'});fixture('Standing lamp',r.x+r.w/2-.45,r.z-.7);
-        if(index!==3)this.textiles.createRug({position:toWorld(r.x,floorY+.009,r.z+.4).toArray(),yaw:s.yaw,size:[Math.min(2.5,r.w-.2),Math.min(2,r.d-1)],pattern:['diamonds','stripes','braid','checker'][index%4],color:index%2?0x627685:0x9c8360});
+        layered('Couch',index===0?-.95:r.x-.25,index===0?.55:r.z-.65,{seaters:index%2?3:2});place('Coffee table',index===0?-.9:r.x,index===0?1.75:r.z+.40);layered('Chair',index===0?-.55:r.x-r.w/2+.55,index===0?3.15:r.z+.65,{yaw:-Math.PI/2,height:index===3?'high':'low'});fixture('Standing lamp',r.x+r.w/2-.45,r.z-.7);
+        if(index!==3)this.textiles.createRug({position:toWorld(index===0?-.9:r.x,floorY+.009,index===0?1.75:r.z+.4).toArray(),yaw:s.yaw,size:[index===0?1.7:Math.min(2.5,r.w-.2),Math.min(2,r.d-1)],pattern:['diamonds','stripes','braid','checker'][index%4],color:index%2?0x627685:0x9c8360});
       }else if(r.id==='kitchen'){
         place('Kitchen counter',r.x+r.w/2-.65,r.z-.55,Math.PI/2);place('Sink',r.x+r.w/2-.6,r.z+.40,Math.PI/2);place('Refrigerator',r.x-r.w/2+.65,r.z-.5);fixture(index%2?'Chandelier':'Hanging shaded lamp',r.x,r.z,2.9);
         w.pantry.dog.push(toWorld(r.x,.085,r.z+.55));if(index%2===0)w.pantry.cat.push(toWorld(r.x+.3,.085,r.z+.55));

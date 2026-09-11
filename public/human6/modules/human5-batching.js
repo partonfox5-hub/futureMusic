@@ -5,7 +5,7 @@ import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 export class RigidBatches {
   constructor(world){this.world=world;this.entries=new Map();}
   add(root){if(this.entries.has(root))return;root.updateWorldMatrix(true,true);const groups=new Map();
-    root.traverse(mesh=>{const m=mesh.material;if(!mesh.isMesh||mesh.isSkinnedMesh||mesh.isInstancedMesh||!m?.isMeshStandardMaterial||m.isMeshPhysicalMaterial||m.transparent||m.alphaTest||m.vertexColors||mesh.userData.h5Batch||mesh.userData.h5Cushion||mesh.customDepthMaterial)return;
+    root.traverse(mesh=>{for(let o=mesh;o&&o!==root;o=o.parent)if(o.userData.h5DynamicPart)return;const m=mesh.material;if(!mesh.isMesh||mesh.isSkinnedMesh||mesh.isInstancedMesh||!m?.isMeshStandardMaterial||m.isMeshPhysicalMaterial||m.transparent||m.alphaTest||m.vertexColors||mesh.userData.h5Batch||mesh.userData.h5Cushion||mesh.customDepthMaterial)return;
       if(m.onBeforeCompile!==T.Material.prototype.onBeforeCompile||m.normalMap||m.roughnessMap||m.alphaMap||m.emissiveMap)return;
       const key=[m.map?.uuid||'',m.roughness,m.metalness,m.side,m.envMapIntensity,m.emissive.getHex(),mesh.castShadow,mesh.receiveShadow].join('/');if(!groups.has(key))groups.set(key,[]);groups.get(key).push(mesh);
     });
