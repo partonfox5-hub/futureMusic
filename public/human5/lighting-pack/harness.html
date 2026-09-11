@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Lighting pack harness</title>
+  <style>
+    html, body { margin: 0; height: 100%; background: #1c1814; color: #f4efe8; font: 13px/1.4 sans-serif; overflow: hidden; }
+    canvas { display: block; width: 100%; height: 100%; }
+    #ui { position: absolute; right: 12px; top: 12px; width: 220px; background: #211a16cc; padding: 12px; border-radius: 8px; }
+    label { display: block; margin: 8px 0 2px; }
+    input { width: 100%; }
+  </style>
+  <script type="importmap">
+    { "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+    } }
+  </script>
+</head>
+<body>
+  <div id="ui">
+    <b>LIGHTING PACK</b>
+    <label>Key <input id="key" type="range" min="0" max="4" step=".05" value="1.65" /></label>
+    <label>Fill <input id="fill" type="range" min="0" max="2" step=".05" value=".72" /></label>
+    <label>Rim <input id="rim" type="range" min="0" max="2" step=".05" value=".55" /></label>
+    <label>Hemi <input id="hemi" type="range" min="0" max="2" step=".05" value=".72" /></label>
+    <label>Exposure <input id="exp" type="range" min=".4" max="2" step=".02" value="1.05" /></label>
+    <label>Env <input id="env" type="range" min="0" max="2" step=".02" value=".65" /></label>
+  </div>
+  <script type="module">
+    import * as THREE from 'three';
+    import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+    import {createStudioLights} from '../mira-lighting.js';
+
+    const renderer = new THREE.WebGLRenderer({antialias: true});
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.05;
+    renderer.shadowMap.enabled = true;
+    document.body.prepend(renderer.domElement);
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x6b5e52);
+    const camera = new THREE.PerspectiveCamera(70, innerWidth / innerHeight, 0.05, 80);
+    camera.position.set(2.2, 1.5, 3.0);
+    const lights = createStudioLights(scene, {renderer, shadows: true});
+    const floor = new THREE.Mesh(new THREE.CircleGeometry(6, 40), new THREE.MeshStandardMaterial({color: 0xc4b49a, roughness: 0.9}));
+    floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
+    const ball = new THREE.Mesh(new THREE.SphereGeometry(.35, 32, 24), new THREE.MeshStandardMaterial({color: 0xe8c4a4, roughness: .78}));
+    ball.position.set(0, .35, 0); ball.castShadow = true; scene.add(ball);
+    const cube = new THREE.Mesh(new THREE.BoxGeometry(.5, .5, .5), new THREE.MeshStandardMaterial({color: 0x6a4a32, roughness: .7}));
+    cube.position.set(.8, .25, -.2); cube.castShadow = true; scene.add(cube);
+
+    const bind = (id, fn) => document.getElementById(id).addEventListener('input', e => fn(Number(e.target.value)));
+    bind('key', v => lights.key.intensity = v);
+    bind('fill', v => lights.fill.intensity = v);
+    bind('rim', v => lights.rim.intensity = v);
+    bind('hemi', v => lights.hemi.intensity = v);
+    bind('exp', v => renderer.toneMappingExposure = v);
+    bind('env', v => { scene.environmentIntensity = v; });
+
+    const orbit = new OrbitControls(camera, renderer.domElement);
+    orbit.target.set(0, .4, 0); orbit.enableDamping = true;
+    addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
+    renderer.setAnimationLoop(() => { orbit.update(); renderer.render(scene, camera); });
+    window.lightingPack = {lights, scene, renderer};
+  </script>
+</body>
+</html>

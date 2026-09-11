@@ -1,11 +1,11 @@
 import * as T from 'three';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
 import {makeSurfaceMap,wallMaterial} from './mira-v2-walls.js?v=15.2';
-import {placeStairs,placeFurniture,tagMovable} from './mira-v2-furniture.js?v=16.0';
-import {detailToilet,detailFridge,detailMicrowave,detailSink,detailBathtub,detailLamp,detailTvStand,detailBed,detailNightstand,detailDresser,detailBookshelf,detailDesk,detailBarStool,detailCabinet,detailMirror,detailCounter,detailCoffee,detailTable} from './mira-v2-furnish.js?v=16.0';
+import {placeStairs,placeFurniture,tagMovable} from './mira-v2-furniture.js?v=16.2';
+import {detailToilet,detailFridge,detailMicrowave,detailSink,detailBathtub,detailLamp,detailTvStand,detailBed,detailNightstand,detailDresser,detailBookshelf,detailDesk,detailBarStool,detailCabinet,detailMirror,detailCounter,detailCoffee,detailTable} from './mira-v2-furnish.js?v=16.1';
 import {installWeights} from './mira-v2-weights.js?v=15.6';
 import {installLaundry,installPantry} from './mira-v2-laundry.js?v=15.5';
-import {installPiano} from './mira-v2-piano.js?v=15.7';
+import {installPiano} from './mira-v2-piano.js?v=16.1';
 import {HouseDoors} from './mira-v2-doors.js?v=14.6';
 const STORY=3.05,CELL=.6;
 const doorHole=(axis,c,w=1.14,head=2.14)=>{
@@ -52,7 +52,7 @@ export function buildHouse(w){
  panel(.4,hy,10.6,6.8,H,.16,p=>Math.abs(p.x-3.8)<2.45&&p.y<2.45);
  panel(.4,hy,7.5,.14,H,6.2,doorHole('z',7.5));
  panel(-3.6,hy,-4.2,.14,H,5.2,doorHole('z',-4.2));
- panel(-3.4,hy,-1.6,7.6,H,.14,p=>doorHole('x',-5.4)(p)||doorHole('x',-1.6)(p));
+ panel(-3.4,hy,-1.6,7.6,H,.14,p=>doorHole('x',-5.4)(p)||doorHole('x',-1.6)(p)||(Math.abs(p.x+.16)<.72));
  panel(3.8,hy,-1.6,6.8,H,.14,doorHole('x',3.8));
  pane(-7.18,1.58,-4.2,.035,1.22,1.42);
  pane(-2.2,1.58,-6.78,1.48,1.22,.035);
@@ -75,7 +75,7 @@ export function buildHouse(w){
  panel(-3.4,STORY+H,-.4,7.6,.12,12.8,null,'wood',maps.wood);
  panel(3.8,STORY+H,-.4,6.8,.12,12.8,null,'wood',maps.wood);
  const rise=STORY/16;
- placeStairs(w,new T.Vector3(-.16,.02,-1.35),0,{steps:16,rise,run:.2625,width:1.10});
+ placeStairs(w,new T.Vector3(-.16,.02,2.40),Math.PI,{steps:16,rise,run:.2625,width:1.10});
  addStairRail(w,round);
  w.doors.place(-2.0,0,4.4,0,{hinge:-1,swing:1});
  w.doors.place(3.8,0,4.4,0,{hinge:1,swing:1});

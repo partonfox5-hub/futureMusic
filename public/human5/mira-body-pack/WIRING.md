@@ -25,7 +25,7 @@ Host demo: `harness.html` (Quest Browser → Enter passthrough AR).
 | Triangle contact | `../mira-v2-contact.js` |
 | Controller haptics | `../mira-v2-haptics.js` |
 | Hug pair (tissue capsules) | `../mira-v2-social.js` |
-| XR `light-estimation` for passthrough | `../mira-v2-light.js` |
+| XR `light-estimation` for passthrough (full lighting pack is separate) | `../mira-v2-light.js` |
 | Blink / lids / Duchenne | `../src/body/FaceDrive.js` |
 | Breast / glute XPBD host | `../src/body/TissueRig.js` |
 | Expression crease maps | `../src/body/SkinCrease.js` |
@@ -47,6 +47,8 @@ Host demo: `harness.html` (Quest Browser → Enter passthrough AR).
 ## Not in this pack
 
 House, castle, gym, piano, laundry, weather, guns, cars, dogs, flora, wardrobe, voice, Needboard.
+
+Project context (how this pack sits in Human5): `../mira-context.js` and `../context-pack/ASTRA.md`.
 
 ## Passthrough host already does
 

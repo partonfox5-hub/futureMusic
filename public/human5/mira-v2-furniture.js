@@ -143,7 +143,7 @@ export function placeFurniture(world,wardrobe,id,p,yaw=0){
  const group=cloneFurniture(source);group.position.copy(p);group.rotation.set(0,yaw,0);world.root.add(group);group.updateWorldMatrix(true,true);
  group.traverse(m=>{if(m.isMesh){
   if(m.userData.article)wardrobe.tokens.push(m);
-  else world.fractures.register(m,['Sink','Bathtub','Toilet'].includes(id)?'stone':['Refrigerator','Microwave','TV stand'].includes(id)?'metal':id==='Mirror'?'glass':'wood');
+  else world.fractures.register(m,m.material?.transparent||m.material?.transmission?'glass':['Sink','Bathtub','Toilet'].includes(id)?'stone':['Refrigerator','Microwave'].includes(id)?'metal':id==='Mirror'||id==='TV stand'&&m.material?.roughness<.2?'glass':'wood');
  }});
  tagMovable(world,group,id);
  const furn=group.userData.furniture;

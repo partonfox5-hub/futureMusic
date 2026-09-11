@@ -1,6 +1,6 @@
-import {captureFurniture,tagMovable} from './mira-v2-furniture.js?v=16.0';
+import {captureFurniture,tagMovable} from './mira-v2-furniture.js?v=16.2';
 import {Destruction} from './mira-v2-destruction.js?v=15.6';
-import {buildHouse} from './mira-v2-house.js?v=16.0';
+import {buildHouse} from './mira-v2-house.js?v=16.2';
 import {buildCastle,inCastleClearing} from './mira-v2-castle.js?v=15.6';
 import {plantTerrain,scatterTrees,tickNature,chopTree as chopNature,ramTree as ramNature,terrainHeight} from './mira-v2-nature.js?v=14.2';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
@@ -163,16 +163,26 @@ export class MiraWorld {
  after(a,dt){
   if(a.seat){const seat=a.seat;a.seatBlend=Math.min(1,(a.seatBlend||0)+dt/.9);const k=a.seatBlend*a.seatBlend*(3-2*a.seatBlend);a.group.rotation.y+=Math.atan2(Math.sin(seat.yaw-a.group.rotation.y),Math.cos(seat.yaw-a.group.rotation.y))*(1-Math.exp(-dt*5));const pos=seat.position.clone();pos.y=a.group.position.y+(seat.position.y+.08*a.shape.height-a.bones.Hip.getWorldPosition(V()).y)*k;a.group.position.lerp(pos,1-Math.exp(-dt*7));a.group.position.y=pos.y;a.group.updateMatrixWorld(true);
    for(const side of ['L','R']){
-    const sign=side==='L'?1:-1,foot=new T.Vector3(sign*.11*a.shape.height,0,.42*a.shape.height);seat.group.localToWorld(foot);foot.y=.065*a.shape.height;const pole=seat.group.localToWorld(new T.Vector3(sign*.16,.48,.8));a.solveChain(side,'leg',foot,pole);
+    const sign=side==='L'?1:-1,h=a.shape.height;
+    if(seat.piano){
+     const foot=new T.Vector3(sign*.13*h,0,-.22*h);seat.group.localToWorld(foot);foot.y=.02*h;
+     const pole=seat.group.localToWorld(new T.Vector3(sign*.18*h,.30*h,-.38*h));
+     a.solveChain(side,'leg',foot,pole);
+    }else{
+     const foot=new T.Vector3(sign*.11*h,0,.22*h);seat.group.localToWorld(foot);foot.y=.065*h;
+     const pole=seat.group.localToWorld(new T.Vector3(sign*.16,.42,.12));a.solveChain(side,'leg',foot,pole);
+    }
     if(seat.piano&&seat.keyboard){
      seat.keyboard.updateWorldMatrix(true,true);
-     const hand=seat.keyboard.localToWorld(new T.Vector3(.61+sign*.24,.03,.02+Math.sin((this.time||0)*10+sign)*.04));
-     a.solveChain(side,'arm',hand,seat.keyboard.localToWorld(new T.Vector3(sign*.25,.28,-.12)));
+     const hx=side==='L'?-.22:.22,t=this.time||0;
+     const hand=seat.keyboard.localToWorld(new T.Vector3(.61+hx,.015,.04+Math.sin(t*8+(side==='L'?0:1.3))*.035));
+     const elbow=seat.keyboard.localToWorld(new T.Vector3(.61+hx*1.55,.22,.18));
+     a.solveChain(side,'arm',hand,elbow);
     }else{
      const hand=seat.group.localToWorld(new T.Vector3(sign*.13,.59,.21));a.solveChain(side,'arm',hand,seat.group.localToWorld(new T.Vector3(sign*.4,.8,.02)));
     }
    }
-   if(seat.piano&&a.seatBlend>.45)this.piano?.ensurePlaying(a);
+   if(seat.piano&&a.seatBlend>.25)this.piano?.ensurePlaying(a);
    a.group.updateMatrixWorld(true);a.root.traverse(o=>{if(o.isSkinnedMesh)o.skeleton.update();});return;
   }
   if(a.balance.state==='standing'&&!a.waterSwimming&&!a.grabs.size)a.group.position.y=(a.baseY||0)+this.floorHeight(a.group.position);

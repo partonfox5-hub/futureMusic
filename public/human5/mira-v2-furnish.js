@@ -81,13 +81,15 @@ export function detailLamp(w,x,z){
 }
 
 export function detailTvStand(w,x,z){
- const wood=w.mat(0x3e3a36,.72),dark=w.mat(0x1a1c1e,.4),screen=w.mat(0x121416,.22);screen.metalness=.15;
+ const wood=w.mat(0x3e3a36,.72),dark=w.mat(0x1a1c1e,.4);dark.metalness=.25;
  part(w,rb(1.55,.10,.42,.015),wood,x,.12,z,'wood');
  part(w,rb(1.50,.08,.38,.01),wood,x,.42,z,'wood');
  for(const sx of [-.72,.72])part(w,rb(.06,.36,.40,.01),wood,x+sx,.28,z,'wood');
- part(w,rb(1.22,.04,.06,.006),dark,x,.78,z,'wood');
- part(w,rb(1.18,.62,.05,.008),dark,x,1.12,z+.01,'wood');
- part(w,new T.BoxGeometry(1.10,.54,.01),screen,x,1.12,z-.02,'wood');
+ part(w,rb(1.22,.04,.08,.006),dark,x,.78,z,'wood');
+ part(w,rb(1.22,.06,.06,.006),dark,x,1.44,z+.01,'metal');
+ part(w,rb(.06,.62,.06,.006),dark,x-.58,1.14,z+.01,'metal');
+ part(w,rb(.06,.62,.06,.006),dark,x+.58,1.14,z+.01,'metal');
+ w.fractures.panel(new T.Vector3(x,1.14,z-.02),new T.Vector3(1.08,.58,.016),'glass',()=>false,{cell:.2,skipObstacle:true});
 }
 
 export function detailBed(w,x,z){

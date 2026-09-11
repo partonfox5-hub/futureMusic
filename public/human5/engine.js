@@ -1,30 +1,29 @@
 import {Builder,FURNITURE,SURFACES} from './mira-v2-builder.js?v=15.2';
 import {SmoothLocomotion} from './mira-v2-locomotion.js?v=15.7';
-import {Car} from './mira-v2-car.js?v=16.0';
+import {Car} from './mira-v2-car.js?v=16.1';
 import {Restraints} from './mira-v2-restraints.js?v=13.4';
 import { createDogSystem } from './mira-v2-dog.js?v=15.1';
-import { installGadgets } from './mira-v2-gadgets.js?v=14.6';
+import { installGadgets } from './mira-v2-gadgets.js?v=16.1';
 import {Injuries} from './mira-v2-injuries.js?v=14.3';
-import {Props,WEAPONS,GUNS} from './mira-v2-props.js?v=16.0';
-import {installFire} from './mira-v2-fire.js?v=15.5';
+import {Props,WEAPONS,GUNS} from './mira-v2-props.js?v=16.2';
+import {installFire} from './mira-v2-fire.js?v=16.1';
 import {installWeather} from './mira-v2-weather.js?v=15.5';
 import {installTerrainFeatures} from './mira-v2-terrain-features.js?v=15.2';
 import {syncFurniture} from './mira-v2-furniture.js?v=14.0';
 import {installWater} from './mira-v2-water.js?v=13.3';
 import {createFloraSystem} from './mira-v2-flora.js?v=13.3';
-import {RoomLight} from './mira-v2-light.js?v=11.0';
+import {RoomLight,createStudioLights} from './mira-v2-light.js?v=16.1';
 import {draft,saveDraft,spawnOptions,OUTFITS,clothingItems} from './mira-v2-catalog.js?v=11.0';
-import {MiraWorld,SCENES} from './mira-v2-world.js?v=16.0';
+import {MiraWorld,SCENES} from './mira-v2-world.js?v=16.2';
 import {Wardrobe,GARMENTS} from './mira-v2-wardrobe.js?v=11.2';
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { createVRMenu } from "./mira-vr-menu.js?v=16.0";
 import { snapshot, savePreset, loadPreset, applyPreset, listPresets, lastPresetName, downloadPreset } from "./mira-v2-preset.js?v=11.5";
 import { unlockSfx } from "./mira-v2-sfx.js?v=11.0";
-import { EMOTION_NAMES, IDLE_NAMES, WALK_NAMES, ATTENTION_MODES } from "./mira-v2-features.js?v=16.0";
+import { EMOTION_NAMES, IDLE_NAMES, WALK_NAMES, ATTENTION_MODES } from "./mira-v2-features.js?v=16.1";
 import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
-import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
-import { createMiraSystem, SLIDERS, FACE_TYPES, HAIR_COLORS } from "./mira-v2.js?v=16.0";
+import { createMiraSystem, SLIDERS, FACE_TYPES, HAIR_COLORS } from "./mira-v2.js?v=16.1";
 import { DEFAULT_PERSONA, miraChat, miraSpeak, startMic, unlockVoice } from "./mira-voice-v2.js?v=12.3";
 
 import {V2_EXTRA_SLIDERS,FACE_PRESETS,HAIR_STYLES,ACTIVITY_MODES,ATTENTION_LABELS,shapeSliders} from './mira-v2-controls.js?v=16.0';
@@ -64,25 +63,7 @@ const camera = new THREE.PerspectiveCamera(70, innerWidth / innerHeight, 0.05, 4
 camera.position.set(0, 1.45, 2.6);
 camera.lookAt(0, 0.95, 0);
 rig.add(camera);
-scene.add(new THREE.HemisphereLight(0xf5f8ff, 0x82766d, 0.72));
-const key = new THREE.DirectionalLight(0xfff4ee, 1.65);
-key.position.set(1.4, 3.2, 2.8);
-key.castShadow=true;key.shadow.mapSize.set(QUEST?1024:2048,QUEST?1024:2048);
-key.shadow.camera.left=-8;key.shadow.camera.right=8;key.shadow.camera.top=8;key.shadow.camera.bottom=-4;
-key.shadow.camera.near=.1;key.shadow.camera.far=28;key.shadow.bias=-.0001;key.shadow.normalBias=.010;
-scene.add(key);
-// Broad photographic key/fill balance. V2 skin avoids
-// low-resolution self-shadow acne; the floor retains contact shadows.
-const fill=new THREE.DirectionalLight(0xe7efff,.72);fill.position.set(-2.5,2.2,2.0);scene.add(fill);
-const rim=new THREE.DirectionalLight(0xffeee3,.55);rim.position.set(.8,2.5,-2);scene.add(rim);
-scene.add(new THREE.AmbientLight(0xffffff, 0.08));
-try {
-  const pmrem = new THREE.PMREMGenerator(renderer);
-  const room = new RoomEnvironment();
-  scene.environment = pmrem.fromScene(room, 0.04).texture;
-  scene.environmentIntensity = 0.65;
-  room.dispose(); pmrem.dispose();
-} catch (e) { console.warn("env", e); }
+const {key,fill,rim}=createStudioLights(scene,{renderer,quest:QUEST,shadows:true});
 
 const floor = new THREE.Mesh(
   new THREE.CircleGeometry(8, 48),

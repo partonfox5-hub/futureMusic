@@ -1,6 +1,8 @@
 # Astra — Mira body, Quest passthrough
 
-You are GPT-6 Astra. This pack is **only** the Mira NPC body: skinned CC3 mesh, wrapped-diffuse skin, XPBD tissue, contact, eyes, hair, and AR light estimation.
+You are GPT-6 Astra. **First** read the unifying Human5 spec: `../mira-context.js` and `../context-pack/ASTRA.md` (or `sessionPrompt('body')`) so this body work still fits the house, furniture grab, piano sit IK, and lighting.
+
+This pack is **only** the Mira NPC body: skinned CC3 mesh, wrapped-diffuse skin, XPBD tissue, contact, eyes, hair, and AR light estimation.
 
 Do **not** open the house, weapons, piano, weather, cars, dogs, or voice. Do **not** rewrite `createMiraSystem`. Do **not** retopo Mira. Do **not** switch the runtime to Unreal / 3DGS / NeRF.
 

@@ -11,7 +11,7 @@ function compile(bpm,src){
   const parts=tok.split('+');
   let step=0;
   for(const p of parts){
-   const m=p.match(/^([a-g])([s#b]?)(\d)-(\d\.?)$/i);if(!m)continue;
+   const m=p.match(/^([a-g])([s#b]?)(\d)-(\d+\.?)$/i);if(!m)continue;
    let n=acc[m[1].toLowerCase()]+(Number(m[3])+1)*12;
    if(m[2]==='s'||m[2]==='#')n++;else if(m[2]==='b')n--;
    const d=durToken(m[4]);notes.push({t:beat*spb,d:d*spb*.92,n,v:.7});step=Math.max(step,d);
@@ -194,8 +194,8 @@ export function installPiano(world,origin=new T.Vector3(-5.85,0,.35),yaw=Math.PI
  const blackX=new Float32Array(blackIdx.length),blackDown=new Float32Array(blackIdx.length);
  blackIdx.forEach((i,n)=>{blackX[n]=i*ww+ww*.52;dummy.position.set(blackX[n],.012,-.026);dummy.updateMatrix();blacks.setMatrixAt(n,dummy.matrix);});
  keys.add(blacks);
- const keyPad=new T.Mesh(new T.BoxGeometry(1.24,.03,.16),new T.MeshBasicMaterial({visible:false}));
- keyPad.position.set(0,.73,.26);keyPad.userData.pianoBody=true;root.add(keyPad);clickables.push(keyPad);
+ const keyPad=new T.Mesh(new T.BoxGeometry(1.28,.12,.42),new T.MeshBasicMaterial({visible:false}));
+ keyPad.position.set(0,.76,.40);keyPad.userData.pianoBody=true;keyPad.userData.pianoKey=true;root.add(keyPad);clickables.push(keyPad);
 
  const rack=part(add(new T.Mesh(new T.BoxGeometry(.56,.02,.16),dark),0,1.12,.12),'wood',22);
  rack.rotation.x=-.42;
@@ -217,7 +217,7 @@ export function installPiano(world,origin=new T.Vector3(-5.85,0,.35),yaw=Math.PI
  bench.traverse(m=>{if(m.isMesh){m.castShadow=m.receiveShadow=true;world.fractures.register(m,'wood');}});
 
  world.obstacle(origin.x,origin.z,1.22,.62,0,1.28,body);
- const seat={group:bench,position:bench.localToWorld(new T.Vector3(0,.50,0)),yaw:yaw+Math.PI,approach:root.localToWorld(new T.Vector3(0,0,1.35)),occupant:null,piano:true,sitDuration:48,keyboard:keys};
+ const seat={group:bench,position:bench.localToWorld(new T.Vector3(0,.50,0)),yaw:yaw+Math.PI,approach:root.localToWorld(new T.Vector3(0,0,1.35)),occupant:null,piano:true,sitDuration:120,keyboard:keys};
  bench.traverse(m=>{if(m.isMesh)m.userData.seat=seat;});
  world.seats.push(seat);tagMovable(world,bench,'Chair');
  const rc=new T.Raycaster();
@@ -245,11 +245,27 @@ export function installPiano(world,origin=new T.Vector3(-5.85,0,.35),yaw=Math.PI
    return c;
   },
   play(id){
-   unlockSfx();const c=this.ensureAudio();if(!c)return;
+   unlockSfx();
    this.stop();
    if(id!=null){const i=SONGS.findIndex(s=>s.id===id);if(i>=0)this.setSong(i);}
+   const song=SONGS[this.index];
+   const file=song.file||('assets/piano/'+song.id+'.mp3');
+   if(!this.media){this.media=new Audio();this.media.loop=true;this.media.preload='auto';this.media.crossOrigin='anonymous';}
+   this.media.onerror=()=>{
+    if(file.endsWith('.mp3')){song.file='assets/piano/'+song.id+'.wav';this.mediaSrc='';this.play();return;}
+    this.playOsc();
+   };
+   if(this.mediaSrc!==file){this.mediaSrc=file;this.media.src=file;}
+   this.media.currentTime=0;this.media.volume=.72;
+   const go=()=>{this.media.play()?.catch?.(()=>{this.playOsc();});};
+   go();
+   this.playing={song,end:Infinity,actor:null,media:true};
+   this.started=performance.now()/1000;
+  },
+  playOsc(){
+   const c=this.ensureAudio();if(!c)return;
    const song=SONGS[this.index],now=c.currentTime,last=song.notes[song.notes.length-1];
-   this.playing={song,end:now+(last?last.t+last.d:1)+0.4,actor:null};
+   this.playing={song,end:now+(last?last.t+last.d:1)+0.4,actor:this.playing?.actor||null,media:false};
    this.started=now;
    for(const n of song.notes)this.note(c,now+n.t,n);
   },
@@ -261,13 +277,20 @@ export function installPiano(world,origin=new T.Vector3(-5.85,0,.35),yaw=Math.PI
    o.connect(g);o2.connect(g);g.connect(f);f.connect(this.panner);
    o.start(t);o2.start(t);o.stop(t+n.d+.22);o2.stop(t+n.d+.22);
   },
-  stop(){this.playing=null;},
+  stop(){try{this.media?.pause();}catch{}this.playing=null;this.clearPlayedKeys();},
   ensurePlaying(actor){
-   if(this.playing?.actor===actor)return;
+   if(this.playing?.actor===actor&&this.media&&!this.media.paused)return;
    this.play();if(this.playing)this.playing.actor=actor;
   },
   stopIf(actor){if(this.playing?.actor===actor)this.stop();},
-  keepPlaying(actor){if(!this.playing||audioContext()?.currentTime>this.playing.end){this.setSong(this.index+1);this.ensurePlaying(actor);}},
+  keepPlaying(actor){
+   if(this.media&&this.playing?.media){
+    if(this.media.paused)this.media.play()?.catch?.(()=>{});
+    if(this.playing)this.playing.actor=actor;
+    return;
+   }
+   if(!this.playing||audioContext()?.currentTime>this.playing.end){this.setSong(this.index+1);this.ensurePlaying(actor);}
+  },
   sitNow(actor){
    if(actor.seat&&actor.seat!==this.seat){actor.seat.occupant=null;actor.group.position.copy(actor.seat.approach);}
    actor.navigation=null;actor.dest=null;actor.directedWalk=null;actor.autoWander=false;actor.mode='idle';actor.sitHold=0;
@@ -322,15 +345,38 @@ export function installPiano(world,origin=new T.Vector3(-5.85,0,.35),yaw=Math.PI
   writeKey(mesh,i,x,y,z){
    dummy.position.set(x,y,z);dummy.rotation.set(0,0,0);dummy.scale.set(1,1,1);dummy.updateMatrix();mesh.setMatrixAt(i,dummy.matrix);
   },
-  pressKey(kind,i,midiN){
+  pressKey(kind,i,midiN,silent=false){
    const down=kind==='w'?whiteDown:blackDown;if(down[i]>.5)return;
    down[i]=1;
    if(kind==='w')this.writeKey(whites,i,whiteX[i],-.008,0);else this.writeKey(blacks,i,blackX[i],.004,-.026);
-   unlockSfx();const c=this.ensureAudio();if(c)this.note(c,c.currentTime,{n:midiN,d:.22,v:.85});
+   if(!silent){unlockSfx();const c=this.ensureAudio();if(c)this.note(c,c.currentTime,{n:midiN,d:.22,v:.85});}
   },
   releaseKey(kind,i){
    const down=kind==='w'?whiteDown:blackDown;if(down[i]<.5)return;down[i]=0;
    if(kind==='w')this.writeKey(whites,i,whiteX[i],0,0);else this.writeKey(blacks,i,blackX[i],.012,-.026);
+  },
+  midiKey(n){
+   const wi=whiteMidi.indexOf(n);if(wi>=0)return ['w',wi];
+   const bi=blackMidi.indexOf(n);if(bi>=0)return ['b',bi];
+   return null;
+  },
+  clearPlayedKeys(){
+   for(let i=0;i<nWhite;i++)if(whiteDown[i]>.5)this.releaseKey('w',i);
+   for(let i=0;i<blackIdx.length;i++)if(blackDown[i]>.5)this.releaseKey('b',i);
+  },
+  tickPlayedKeys(){
+   if(!this.playing)return;
+   const t=this.playing.media&&this.media&&!this.media.paused?this.media.currentTime:(audioContext()?audioContext().currentTime-(this.started||0):0);
+   const active=new Set();
+   for(const n of this.playing.song.notes){
+    if(t>=n.t&&t<=n.t+n.d+.04){const k=this.midiKey(n.n);if(k)active.add(k[0]+k[1]);}
+   }
+   for(let i=0;i<nWhite;i++){
+    if(active.has('w'+i))this.pressKey('w',i,whiteMidi[i],true);else if(whiteDown[i]>.5)this.releaseKey('w',i);
+   }
+   for(let i=0;i<blackIdx.length;i++){
+    if(active.has('b'+i))this.pressKey('b',i,blackMidi[i],true);else if(blackDown[i]>.5)this.releaseKey('b',i);
+   }
   },
   tickPlayerKeys(props){
    const hands=props?.system?.hands;if(!hands?.palmPos)return;
@@ -340,19 +386,25 @@ export function installPiano(world,origin=new T.Vector3(-5.85,0,.35),yaw=Math.PI
    if(!tips.length)return;
    const hit=(x,y,z,rx,rz)=>{
     const wp=keys.localToWorld(_k.set(x,y,z));
-    for(const t of tips){if(Math.abs(t.x-wp.x)<rx&&Math.abs(t.z-wp.z)<rz&&t.y<wp.y+.045&&t.y>wp.y-.09)return true;}
+    for(const t of tips){if(Math.abs(t.x-wp.x)<rx&&Math.abs(t.z-wp.z)<rz&&t.y<wp.y+.10&&t.y>wp.y-.16)return true;}
     return false;
    };
    for(let i=0;i<nWhite;i++){
-    if(hit(whiteX[i],.01,0,ww*.48,.08))this.pressKey('w',i,whiteMidi[i]);else this.releaseKey('w',i);
+    if(hit(whiteX[i],.01,.10,ww*.72,.18))this.pressKey('w',i,whiteMidi[i]);else if(!this.playing)this.releaseKey('w',i);
    }
    for(let i=0;i<blackIdx.length;i++){
-    if(hit(blackX[i],.02,-.026,ww*.32,.055))this.pressKey('b',i,blackMidi[i]);else this.releaseKey('b',i);
+    if(hit(blackX[i],.02,.06,ww*.5,.14))this.pressKey('b',i,blackMidi[i]);else if(!this.playing)this.releaseKey('b',i);
    }
    whites.instanceMatrix.needsUpdate=true;blacks.instanceMatrix.needsUpdate=true;
   },
   tick(camera,props){
    this.tickPlayerKeys(props);
+   if(this.playing)this.tickPlayedKeys();
+   whites.instanceMatrix.needsUpdate=true;blacks.instanceMatrix.needsUpdate=true;
+   if(this.media&&camera){
+    const d=camera.getWorldPosition(_p).distanceTo(root.getWorldPosition(_d));
+    this.media.volume=Math.max(.08,Math.min(.8,2.4/(d+1.1)));
+   }
    const c=audioContext();if(!c||!this.panner){seat.position.copy(bench.localToWorld(new T.Vector3(0,.50,0)));seat.approach.copy(root.localToWorld(new T.Vector3(0,0,1.35)));return;}
    root.updateWorldMatrix(true,true);
    const p=root.getWorldPosition(_p),t=c.currentTime;

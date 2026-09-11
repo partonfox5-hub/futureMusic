@@ -66,8 +66,27 @@ export class FireSystem {
    this.tryLoadLog(log);
   }
   for(let i=0;i<3;i++)this.spawnLog(world,x-0.78,0.08,z-0.08-i*.12,true);
-  this.spawnExtinguisher(world,x-0.95,.08,z-0.35);
-  this.spawnExtinguisher(world,4.9,.08,2.55);
+  this.mountExtinguisherCase(world,-3.78,1.18,4.28,0);
+ }
+ mountExtinguisherCase(world,x,y,z,yaw=0){
+  const g=new T.Group();g.position.set(x,y,z);g.rotation.y=yaw;world.root.add(g);
+  const red=new T.MeshStandardMaterial({color:0xb01c1c,roughness:.42,metalness:.28});
+  const dark=new T.MeshStandardMaterial({color:0x3a1212,roughness:.55,metalness:.2});
+  const chrome=new T.MeshStandardMaterial({color:0xc5ced4,roughness:.22,metalness:.82});
+  const add=(mesh,px,py,pz)=>{mesh.position.set(px,py,pz);mesh.castShadow=true;g.add(mesh);return mesh;};
+  add(new T.Mesh(new T.BoxGeometry(.34,.78,.04),red),0,0,.06);
+  add(new T.Mesh(new T.BoxGeometry(.34,.04,.16),red),0,.37,.0);
+  add(new T.Mesh(new T.BoxGeometry(.34,.04,.16),red),0,-.37,.0);
+  add(new T.Mesh(new T.BoxGeometry(.04,.70,.16),red),-.15,0,.0);
+  add(new T.Mesh(new T.BoxGeometry(.04,.70,.16),red),.15,0,.0);
+  const glass=add(new T.Mesh(new T.BoxGeometry(.26,.66,.012),new T.MeshPhysicalMaterial({color:0xa8c4cc,roughness:.08,metalness:.12,transparent:true,opacity:.32,transmission:.55,thickness:.01})),0,0,-.08);
+  world.fractures.register(glass,'glass');
+  if(glass.userData.piece){glass.userData.piece.health=8;glass.userData.piece.maxHealth=8;}
+  add(new T.Mesh(new T.BoxGeometry(.04,.08,.02),chrome),.12,.02,-.09);
+  add(new T.Mesh(new T.BoxGeometry(.30,.03,.14),dark),0,-.34,.0);
+  g.traverse(m=>{if(m.isMesh)world.pickables.push(m);});
+  world.obstacle(x,z,.36,.18,y-.42,.84,g);
+  this.spawnExtinguisher(world,x,y-.02,z-.02,true,g);
  }
  spawnLog(world,x,y,z,pile=false){
   const wood=new T.MeshStandardMaterial({color:0x6b4e32,roughness:.92});
@@ -81,10 +100,22 @@ export class FireSystem {
   g.userData.firewood=true;
   return g;
  }
- spawnExtinguisher(world,x,y,z){
+ spawnExtinguisher(world,x,y,z,upright=false,caseGroup=null){
   const props=this.props;if(!props?.make)return null;
-  const item=props.make('extinguisher');item.group.position.set(x,y+.28,z);item.group.rotation.y=.4;
-  props.items.push(item);props.scene.add(item.group);
+  let item=props.items.find(i=>i.id==='extinguisher'&&i.holder==null);
+  if(!item){item=props.make('extinguisher');props.items.push(item);}
+  if(caseGroup){
+   caseGroup.attach(item.group);
+   item.group.position.set(0,-.04,-.02);
+   item.group.rotation.set(-Math.PI/2,0,0);
+   item.cased=true;
+  }else{
+   props.scene.attach(item.group);
+   item.group.position.set(x,y+(upright?0:.28),z);
+   item.group.rotation.set(upright?-Math.PI/2:0,upright?0:.4,0);
+   item.cased=false;
+  }
+  item.velocity.set(0,0,0);
   return item;
  }
  tryLoadLog(group){

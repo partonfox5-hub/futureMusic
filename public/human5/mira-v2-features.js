@@ -468,15 +468,20 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
   tickFingers(curl){
    const t=this.time||0;this.fingerRigs??={};
    const rotation=new THREE.Quaternion(),e=new THREE.Euler();
+   const piano=!!this.seat?.piano;
    for(const side of ['L','R']){
     const holding=this.heldBall&&side==='R';
     const open=['wave','explain'].includes(this.idleKind)||this.speech?.active;
     const tense=this.emotion?.name==='angry'||this.emotion?.name==='afraid';
     const target=holding?.88:tense?.6:open?.08:.21;
-    const cur=this['finger'+side]=damp(this['finger'+side]??.21,target,7,this.dt||.016);
+    const cur=this['finger'+side]=damp(this['finger'+side]??.21,piano?.35:target,7,this.dt||.016);
     const rig=this.fingerRigs[side]||(this.fingerRigs[side]=makeFingerRig(this.bones,this.bindQ,side));
-    for(const row of ['Thumb','Index','Mid','Ring','Pinky'])for(let j=1;j<=3;j++){
-     fingerRotation(rig,row,j,cur,t,rotation);e.setFromQuaternion(rotation,'XYZ');this.addE(side+'_'+row+j,e.x,e.y,e.z);
+    for(const row of ['Thumb','Index','Mid','Ring','Pinky']){
+     const ph=['Thumb','Index','Mid','Ring','Pinky'].indexOf(row);
+     const play=piano?clamp(.12+.62*(.5+.5*Math.sin(t*10+ph*1.15+(side==='L'?0:1.6))),0,1):cur;
+     for(let j=1;j<=3;j++){
+      fingerRotation(rig,row,j,play,t,rotation);e.setFromQuaternion(rotation,'XYZ');this.addE(side+'_'+row+j,e.x,e.y,e.z);
+     }
     }
    }
   }
@@ -560,7 +565,7 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    this.aimBone(a,b,joint);this.aimBone(b,c,pa.clone().addScaledVector(dir,dist));
   }
   poseArms(){
-   if(this.dead)return;
+   if(this.dead||this.seat)return;
    const h=this.shape.height,t=this.time,w=this.gestureWeight||0,step=clamp(this.speed/.65,0,1);
    for(const side of ['L','R']){
     if([...this.grabs.values()].some(g=>g.side===side&&g.limb==='arm'))continue;
@@ -625,6 +630,7 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    if(this.mode==='heelRaises')dst.set(sign*.24,.96,.065);
   }
   poseActivity(){
+   if(this.seat)return;
    if(!EXERCISE_MODES.includes(this.mode)||this.grabs.size||this.balance.state!=='standing')return;
    const t=this.modeT,h=this.shape.height,mode=this.mode;
    let rootY=-.004,rootZ=0,lean=0,roll=0;

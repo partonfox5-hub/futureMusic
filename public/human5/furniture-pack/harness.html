@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Furniture pack harness</title>
+  <style>
+    html, body { margin: 0; height: 100%; background: #2a2420; color: #f4efe8; font: 15px/1.4 sans-serif; overflow: hidden; }
+    canvas { display: block; width: 100%; height: 100%; }
+    #hint { position: absolute; left: 16px; top: 16px; z-index: 4; font-size: 12px; text-shadow: 0 1px 4px #000; }
+  </style>
+  <script type="importmap">
+    { "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+    } }
+  </script>
+</head>
+<body>
+  <div id="hint">FURNITURE PACK · orbit · toilet / fridge / lamp / bed</div>
+  <script type="module">
+    import * as THREE from 'three';
+    import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+    import {createFurnitureWorld, tagMovable, captureFurniture, detailToilet, detailFridge, detailLamp, detailBed} from '../mira-furniture.js';
+    import {createStudioLights} from '../mira-lighting.js';
+
+    const renderer = new THREE.WebGLRenderer({antialias: true});
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.shadowMap.enabled = true;
+    document.body.prepend(renderer.domElement);
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x6b5e52);
+    const camera = new THREE.PerspectiveCamera(70, innerWidth / innerHeight, 0.05, 80);
+    camera.position.set(2.4, 1.6, 3.2);
+    createStudioLights(scene, {renderer, shadows: true});
+    const floor = new THREE.Mesh(new THREE.CircleGeometry(8, 40), new THREE.MeshStandardMaterial({color: 0xc4b49a, roughness: 0.9}));
+    floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
+
+    const world = createFurnitureWorld(scene);
+    let n = world.root.children.length;
+    detailToilet(world, -1.2, 0); captureFurniture(world, 'Toilet', world.root.children.slice(n), -1.2, 0);
+    n = world.root.children.length;
+    detailFridge(world, 0.6, -0.2); captureFurniture(world, 'Refrigerator', world.root.children.slice(n), 0.6, -0.2);
+    n = world.root.children.length;
+    detailLamp(world, 1.6, 0.8); captureFurniture(world, 'Floor lamp', world.root.children.slice(n), 1.6, 0.8);
+    n = world.root.children.length;
+    detailBed(world, -0.4, 1.6); captureFurniture(world, 'Bed', world.root.children.slice(n), -0.4, 1.6);
+
+    const orbit = new OrbitControls(camera, renderer.domElement);
+    orbit.target.set(0, 0.7, 0); orbit.enableDamping = true;
+    addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
+    renderer.setAnimationLoop(() => { orbit.update(); renderer.render(scene, camera); });
+    window.furniturePack = {world, scene};
+  </script>
+</body>
+</html>

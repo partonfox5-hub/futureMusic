@@ -15,8 +15,8 @@ import * as THREE from 'three';
 import {
   createMiraSystem, MiraActor, MiraActorV2,
   ASSET, TEXROOT, TEXVER, FACE_TYPES, HAIR_COLORS, SLIDERS
-} from './mira-v2.js?v=15.5';
-import {EMOTION_NAMES, IDLE_NAMES, WALK_NAMES, ATTENTION_MODES} from './mira-v2-features.js?v=15.3';
+} from './mira-v2.js?v=16.1';
+import {EMOTION_NAMES, IDLE_NAMES, WALK_NAMES, ATTENTION_MODES} from './mira-v2-features.js?v=16.1';
 import {
   V2_EXTRA_SLIDERS, FACE_PRESETS, HAIR_STYLES, ACTIVITY_MODES, shapeSliders
 } from './mira-v2-controls.js?v=11.5';
@@ -78,6 +78,7 @@ export {
   SurfaceFlesh, LivingEyes, EnhanceEyes, HairGuides, projectHairPoint,
   BodyContacts, BodySurface, bodyVolumes, projectVolume, ContactHaptics, RoomLight
 };
+export {HUMAN5, ASTRA_RULES, briefFor, sessionPrompt} from './mira-context.js';
 
 function faintFloor(){
   const mesh = new THREE.Mesh(

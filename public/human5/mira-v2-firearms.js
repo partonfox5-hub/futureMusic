@@ -54,8 +54,8 @@ function buildSniper(add){
  const turret=add(pipe(.012,.012,.028,12),steel(),0,.138,-.16);
  const wind=add(pipe(.012,.012,.028,12),steel(),.028,.112,-.16);wind.rotation.z=Math.PI/2;
  const glassMat=new T.MeshPhysicalMaterial({color:0x6a90a8,roughness:.06,metalness:.12,transparent:true,opacity:.42,transmission:.55,thickness:.02,ior:1.52});
- const obj=add(new T.CircleGeometry(.026,24),glassMat,0,.112,-.348);obj.rotation.x=Math.PI;obj.userData.scopeLens=true;obj.userData.scopeZoom=4.5;
- const oc=add(new T.CircleGeometry(.014,20),glassMat,0,.112,.06);oc.rotation.x=0;
+ const obj=add(new T.CircleGeometry(.026,24),glassMat,0,.112,-.348);obj.rotation.x=Math.PI;obj.userData.scopeLens=true;obj.userData.scopeZoom=6;
+ const oc=add(new T.CircleGeometry(.014,20),glassMat,0,.112,.06);oc.rotation.x=0;oc.userData.scopeEye=true;
  add(rb(.01,.036,.05,.004),black(),0,.148,-.16);
 }
 

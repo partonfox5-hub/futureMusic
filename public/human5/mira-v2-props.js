@@ -3,9 +3,9 @@ import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js'
 import {playSfx,sfxForHit,unlockSfx} from './mira-v2-sfx.js?v=15.6';
 import {furnitureRoot,syncFurniture} from './mira-v2-furniture.js?v=14.6';
 import {ensureGrabbableWood} from './mira-v2-nature.js?v=14.2';
-import {GUNS,MELEE,buildMarker,buildPortalGun} from './mira-v2-gadgets.js?v=14.6';
-import {FIREARMS,buildFirearm,firearmSpread} from './mira-v2-firearms.js?v=16.0';
-import {buildTorch,buildExtinguisher} from './mira-v2-fire.js?v=14.7';
+import {GUNS,MELEE,buildMarker,buildPortalGun} from './mira-v2-gadgets.js?v=16.1';
+import {FIREARMS,buildFirearm,firearmSpread} from './mira-v2-firearms.js?v=16.1';
+import {buildTorch,buildExtinguisher} from './mira-v2-fire.js?v=16.1';
 import {installWeightPhysics,throwSpeed} from './mira-v2-weights.js?v=15.6';
 const V=()=>new T.Vector3(),Q=()=>new T.Quaternion();
 const visible=o=>{while(o){if(!o.visible)return false;o=o.parent;}return true;};
@@ -52,9 +52,9 @@ export class Props {
    item.group.quaternion.setFromEuler(new T.Euler((gun?-.18:0)-k*1.25,item.kickYaw||0,gun?0:Math.PI/2));
    item.group.position.copy(new T.Vector3(0,-.012+k*.03,-.05+k*.08)).sub(item.handle.clone().applyQuaternion(item.group.quaternion));
   }else{
-   const k=item.kick||0;
-   item.group.position.set(gun?.16:.20,gun?-.11+k*.04:-.14,gun?-.40+k*.10:-.44);
-   item.group.rotation.set((gun?.16:-.12)-k*1.25,(item.swing>0?Math.sin(item.swing/.28*Math.PI)*1.05:0)+(item.kickYaw||0),gun?0:Math.PI/2);
+   const k=item.kick||0,sniper=item.id==='sniper';
+   item.group.position.set(gun?(sniper?.07:.16):.20,gun?(sniper?.02:-.11)+k*.04:-.14,gun?(sniper?-.26:-.40)+k*.10:-.44);
+   item.group.rotation.set((gun?(sniper?.04:.16):-.12)-k*1.25,(item.swing>0?Math.sin(item.swing/.28*Math.PI)*1.05:0)+(item.kickYaw||0),gun?0:Math.PI/2);
   }
   item.group.updateMatrixWorld(true);
   if(!npc&&item.support!=null&&typeof item.support==='number'){
@@ -93,7 +93,7 @@ export class Props {
   }
  }
  nearestFreeWeapon(p,r=.22){let best=null,bd=r*r;for(const item of this.items){if(item.holder!==null)continue;const d=item.group.localToWorld(item.handle.clone()).distanceToSquared(p);if(d<bd){bd=d;best=item;}}return best;}
- hold(item,key){if(!item||item.holder!==null)return false;unlockSfx();this.drop(key);item.holder=key;item.carSeat=null;item.lastTip=null;item.lastSamples=null;item.lastPoint=null;item.kick=0;item.kickYaw=0;item.swing=0;item.armedAt=this.time+.22;item.velocity.set(0,0,0);this.held.set(key,item);if(item.data.auto)this.autoBlock.add(key);this.applyHoldPose(item);this.status=item.data.name+' held · '+(key==='desktop'?(item.data.auto?'hold click to fire, Q to drop':'click to use, Q to drop'):(item.data.auto?'release grip to drop · hold trigger to fire':'release grip to drop · trigger fires · swing your hand for melee'));if(typeof key==='number')this.system.hands.haptics?.contact(key,'prop',1,.008);return true;}
+ hold(item,key){if(!item||item.holder!==null)return false;unlockSfx();this.drop(key);item.holder=key;item.cased=false;item.carSeat=null;item.lastTip=null;item.lastSamples=null;item.lastPoint=null;item.kick=0;item.kickYaw=0;item.swing=0;item.armedAt=this.time+.22;item.velocity.set(0,0,0);this.held.set(key,item);if(item.data.auto)this.autoBlock.add(key);this.applyHoldPose(item);this.status=item.data.name+' held · '+(key==='desktop'?(item.data.auto?'hold click to fire, Q to drop':'click to use, Q to drop'):(item.data.auto?'release grip to drop · hold trigger to fire':'release grip to drop · trigger fires · swing your hand for melee'));if(typeof key==='number')this.system.hands.haptics?.contact(key,'prop',1,.008);return true;}
  equip(id){let item=this.items.find(i=>i.id===id&&i.holder==null);if(!item&&WEAPONS[id]){item=this.make(id);this.items.push(item);}return this.hold(item,'desktop');}
  drop(key){const item=this.held.get(key);if(!item)return;item.group.updateMatrixWorld(true);item.holder=null;item.support=null;item.lastTip=null;item.lastSamples=null;item.lastPoint=null;item.kick=0;item.kickYaw=0;this.autoBlock.delete(key);this.held.delete(key);
   const car=this.cars().find(c=>c.driving||c.inCabin);
@@ -517,17 +517,40 @@ void main(){
   this.tickSniperScope();
  }
  tickSniperScope(){
-  const item=[...this.held.values()].find(i=>i.id==='sniper');if(!item||!this.renderer)return;
-  let lens=null;item.group.traverse(m=>{if(m.userData?.scopeLens)lens=m;});if(!lens)return;
-  if(/Quest|OculusBrowser/i.test(globalThis.navigator?.userAgent||'')){this._scopeSkip=(this._scopeSkip||0)+1;if(this._scopeSkip%3)return;}
-  if(!this.scopeRT){this.scopeRT=new T.WebGLRenderTarget(192,192);this.scopeCam=new T.PerspectiveCamera(11,1,.08,240);}
+  const item=[...this.held.values()].find(i=>i.id==='sniper');
+  if(!item||!this.renderer||!this.camera){if(this.scopeOverlay)this.scopeOverlay.visible=false;return;}
+  let lens=null,ocular=null;item.group.traverse(m=>{if(m.userData?.scopeLens)lens=m;if(m.userData?.scopeEye)ocular=m;});if(!lens)return;
+  const quest=/Quest|OculusBrowser/i.test(globalThis.navigator?.userAgent||'');
+  if(quest){this._scopeSkip=(this._scopeSkip||0)+1;if(this._scopeSkip%2)return;}
+  if(!this.scopeRT){this.scopeRT=new T.WebGLRenderTarget(quest?384:512,quest?384:512);this.scopeCam=new T.PerspectiveCamera(8,1,.12,280);}
   if(lens.material.map!==this.scopeRT.texture)lens.material=new T.MeshBasicMaterial({map:this.scopeRT.texture});
+  if(!this.scopeOverlay){
+   const g=new T.Group();g.renderOrder=30;
+   const view=new T.Mesh(new T.CircleGeometry(.12,48),new T.MeshBasicMaterial({map:this.scopeRT.texture,depthTest:false,depthWrite:false}));
+   const ring=new T.Mesh(new T.RingGeometry(.12,.175,48),new T.MeshBasicMaterial({color:0x050505,depthTest:false,depthWrite:false,side:T.DoubleSide}));
+   const cross=new T.Mesh(new T.RingGeometry(.002,.004,24),new T.MeshBasicMaterial({color:0x1a1208,depthTest:false,depthWrite:false}));
+   view.renderOrder=ring.renderOrder=cross.renderOrder=30;
+   g.add(view,ring,cross);this.scopeOverlay=g;this.scopeView=view;
+  }
   item.group.updateMatrixWorld(true);
-  const p=lens.getWorldPosition(V()),fwd=new T.Vector3(0,0,-1).applyQuaternion(item.group.getWorldQuaternion(Q()));
-  this.scopeCam.position.copy(p).addScaledVector(fwd,.05);this.scopeCam.up.set(0,1,0);this.scopeCam.lookAt(p.clone().addScaledVector(fwd,12));
+  const eye=this.camera.getWorldPosition(V()),fwd=new T.Vector3(0,0,-1).applyQuaternion(item.group.getWorldQuaternion(Q()));
+  const obj=lens.getWorldPosition(V()),oc=ocular?ocular.getWorldPosition(V()):obj.clone().addScaledVector(fwd,-.4);
+  const look=new T.Vector3(0,0,-1).applyQuaternion(this.camera.getWorldQuaternion(Q()));
+  const toEye=oc.clone().sub(eye),dist=toEye.length();
+  const aligned=dist>1e-4&&fwd.dot(toEye.normalize())>.35&&look.dot(fwd)>.62;
+  const vr=!!this.renderer.xr?.isPresenting,ads=vr?dist<.22&&aligned:item.holder==='desktop'&&aligned;
+  this.scopeCam.fov=ads?7:11;this.scopeCam.updateProjectionMatrix();
+  this.scopeCam.position.copy(obj).addScaledVector(fwd,.04);this.scopeCam.up.set(0,1,0);this.scopeCam.lookAt(obj.clone().addScaledVector(fwd,18));
   const vis=item.group.visible;item.group.visible=false;
   const prev=this.renderer.getRenderTarget();this.renderer.setRenderTarget(this.scopeRT);this.renderer.render(this.scene,this.scopeCam);this.renderer.setRenderTarget(prev);
   item.group.visible=vis;
+  if(this.scopeView.material.map!==this.scopeRT.texture)this.scopeView.material.map=this.scopeRT.texture;
+  if(ads){
+   if(this.scopeOverlay.parent!==this.camera)this.camera.add(this.scopeOverlay);
+   this.scopeOverlay.position.set(0,0,-.22);this.scopeOverlay.rotation.set(0,0,0);this.scopeOverlay.visible=true;
+  }else{
+   this.scopeOverlay.visible=false;if(this.scopeOverlay.parent)this.scopeOverlay.removeFromParent();
+  }
  }
  tick(dt){this.time+=dt;this.syncWorld();for(const item of this.items)item.group.visible=this.world.root.visible;if(!this.world.root.visible){for(const c of this.cars())c.tick(dt);return;}for(const c of this.cars())c.tick(dt);this.restraints?.tick(dt);this.injuries?.tick(dt);this.tickFurniture(dt);this.tickFists(dt);for(const item of this.items){if(item.holder!==null){item.kick*=Math.exp(-dt*12);item.kickYaw=(item.kickYaw||0)*Math.exp(-dt*12);if(item.swing>0)item.swing=Math.max(0,item.swing-dt);this.applyHoldPose(item);
  const samples=[.45,1].map(f=>item.group.localToWorld(new T.Vector3(0,0,-item.data.reach*f)));
@@ -545,6 +568,7 @@ void main(){
   }
  }
  item.lastSamples=samples;const p=item.group.getWorldPosition(V());if(item.lastPoint)item.velocity.copy(p).sub(item.lastPoint).divideScalar(Math.max(.001,dt)).clampLength(0,8);item.lastPoint=p.clone();
+ }else if(item.cased&&item.group.parent&&item.group.parent!==this.scene){item.velocity.set(0,0,0);item.lastPoint=null;
  }else{item.velocity.y-=G(this.world)*dt;item.group.position.addScaledVector(item.velocity,dt);const p=item.group.position,old=p.clone();if(this.world.projectSphere(p,.08)){const n=p.clone().sub(old).normalize(),vn=item.velocity.dot(n);if(vn<0)item.velocity.addScaledVector(n,-1.1*vn);item.velocity.multiplyScalar(.8);}item.group.updateWorldMatrix(true,true);const box=new T.Box3().setFromObject(item.group),floor=(this.world.floorHeight?.(p,.12)??0)+.02;if(box.min.y<floor){item.group.position.y+=floor-box.min.y;if(G(this.world)>0.5){if(item.velocity.y<0)item.velocity.y=Math.abs(item.velocity.y)*.1;item.velocity.x*=.82;item.velocity.z*=.82;}else if(item.velocity.y<0)item.velocity.y=Math.abs(item.velocity.y)*.4;}}}
  this.gadgets?.tick?.(dt);this.flames?.tick?.(dt);this.weights?.tick?.(dt);this.world.piano?.tick?.(this.camera,this);this.tickHeldGuns(dt);
  for(const shot of this.shots){shot.age+=dt;const next=shot.position.clone().addScaledVector(shot.velocity,dt),dist=next.distanceTo(shot.position),ray=new T.Ray(shot.position.clone(),shot.velocity.clone().normalize()),hit=this.hit(ray,dist);this.beam(shot.position,hit?.point||next,0xffe5ac,.035);if(hit){hit.weaponId=shot.weaponId;hit.stagger=shot.stagger;this.impact(hit,shot.energy||32,ray.direction,'bullet');shot.age=2;}shot.position.copy(next);shot.velocity.y-=G(this.world)*dt;}this.shots=this.shots.filter(x=>x.age<.8).slice(-12);
