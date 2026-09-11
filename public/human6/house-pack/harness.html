@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>House architecture pack</title>
+  <style>
+    html, body { margin: 0; height: 100%; background: #2a2420; color: #f4efe8; font: 15px/1.4 sans-serif; overflow: hidden; }
+    canvas { display: block; width: 100%; height: 100%; }
+    #hint { position: absolute; left: 16px; top: 16px; z-index: 4; font-size: 12px; text-shadow: 0 1px 4px #000; max-width: 46vw; }
+    #bar { position: absolute; right: 12px; top: 12px; z-index: 4; background: #211a16cc; padding: 10px 12px; border-radius: 8px; }
+    button { background: #7eb6ff; color: #111; border: 0; padding: 8px 12px; margin: 4px 4px 0 0; font-weight: 700; cursor: pointer; border-radius: 6px; }
+  </style>
+  <script type="importmap">
+    { "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+    } }
+  </script>
+</head>
+<body>
+  <div id="hint">HOUSE ARCHITECTURE · 1 as-built · 2 CELL grid · orbit</div>
+  <div id="bar">
+    <div id="planName">precise</div>
+    <button id="asBuilt" type="button">1 As-built</button>
+    <button id="precise" type="button">2 Grid</button>
+  </div>
+  <script type="module">
+    import * as THREE from 'three';
+    import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+    import {
+      createHouseWorld, clearHouse, realizeFloorplan, addRoomLabels, addCellGrid,
+      AS_BUILT_PLAN, PRECISE_PLAN
+    } from '../mira-house.js';
+
+    const renderer = new THREE.WebGLRenderer({antialias: true});
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.05;
+    renderer.shadowMap.enabled = true;
+    document.body.prepend(renderer.domElement);
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x8a7d70);
+    scene.fog = new THREE.Fog(0x8a7d70, 40, 90);
+    const camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.08, 120);
+    camera.position.set(10, 16, 18);
+    scene.add(new THREE.HemisphereLight(0xdde7ff, 0x6a5a48, 0.85));
+    const sun = new THREE.DirectionalLight(0xfff3e0, 1.35);
+    sun.position.set(10, 16, 8); sun.castShadow = true;
+    sun.shadow.mapSize.set(1024, 1024);
+    scene.add(sun);
+
+    const world = createHouseWorld(scene);
+    addCellGrid(scene, 16);
+    let current = PRECISE_PLAN;
+    const nameEl = document.getElementById('planName');
+    const hint = document.getElementById('hint');
+
+    function load(plan){
+      current = plan;
+      clearHouse(world);
+      realizeFloorplan(world, plan);
+      addRoomLabels(world, plan);
+      nameEl.textContent = plan.id;
+      hint.textContent = 'HOUSE ARCHITECTURE · ' + plan.name + ' · 1 as-built · 2 CELL grid · orbit';
+      window.housePack = {world, scene, plan};
+    }
+    load(PRECISE_PLAN);
+
+    document.getElementById('asBuilt').onclick = () => load(AS_BUILT_PLAN);
+    document.getElementById('precise').onclick = () => load(PRECISE_PLAN);
+    addEventListener('keydown', e => {
+      if (e.key === '1') load(AS_BUILT_PLAN);
+      if (e.key === '2') load(PRECISE_PLAN);
+    });
+
+    const orbit = new OrbitControls(camera, renderer.domElement);
+    orbit.target.set(2, 1.2, 1); orbit.enableDamping = true;
+    addEventListener('resize', () => {
+      camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
+      renderer.setSize(innerWidth, innerHeight);
+    });
+    renderer.setAnimationLoop(() => { orbit.update(); renderer.render(scene, camera); });
+  </script>
+</body>
+</html>

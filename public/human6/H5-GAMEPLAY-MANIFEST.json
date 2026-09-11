@@ -1,0 +1,370 @@
+{
+  "version": "17.2.0",
+  "files": [
+    {
+      "path": "mira-v2-builder.js",
+      "source_sha256": "a2febef38a24a10bb667eb8e50e2a5e8c93c1803fc0910753f5275e889898478",
+      "result_sha256": "f3c89cbac3768c3ab413a937dd8ac831b68bee06fb9c44ce523bb15c535cfa71"
+    },
+    {
+      "path": "mira-v2-laundry.js",
+      "source_sha256": "a69d4ee877dd11156c52c2d2511cb4ab53673f5e997b2435e4cfb1c7dea87c73",
+      "result_sha256": "583cc04817ba06892a0ca1942e059c1945962cf7896e7375f4999e220054a09e"
+    },
+    {
+      "path": "mira-voice-v2.js",
+      "source_sha256": "2be92ee806b27c88c071991e6215b2461ade8c9acfcba141137d96d3f51fd9bd",
+      "result_sha256": "40f26124e21158fbaf282ecefeee3fbc5dab2d9f30491276824e200fb4c54620"
+    },
+    {
+      "path": "mira-v2-dog.js",
+      "source_sha256": "6c3df45d2544ddf38d0b2e7255c87a0433b3e97fe41c93884e7c0b16b0c72069",
+      "result_sha256": "ae65dea40dd8c269acc5e977c2d30f8832767aedc16ee4155d38dc1d65e3e927"
+    },
+    {
+      "path": "mira-v2-fire.js",
+      "source_sha256": "715de4f139dd8ec719ef897862e4da3cc37fc2ebb21a66b94d3c3d2c11e352b7",
+      "result_sha256": "ea1bd89d7e3de774116ea01e703d31186cc4649b2099ea4326486ed908f103c1"
+    },
+    {
+      "path": "mira-lighting.js",
+      "source_sha256": "97b1b56fafd1018edef0a456f20de095ae742dcbd454768babf2edb87c14bfdf",
+      "result_sha256": "865d72771d6c7dc7440a89aef75098dedd467be3ede982992a130aaddecb40da"
+    },
+    {
+      "path": "mira-local-speech.js",
+      "source_sha256": "91aef5456861f59d8a3fe3c37f1ea9bf8e2627a1810494835132014c204359e8",
+      "result_sha256": "7b631744579fbb3854b486594a9e477545140b2bea732a85d01261b5ca1c2ebd"
+    },
+    {
+      "path": "mira-v1.html",
+      "source_sha256": "c40d33fa3e6cf659b4d5088ead0389a7d85d2cf68042427f6d89d8c2aaee0251",
+      "result_sha256": "7f30abbe6da9dba24d7fdede3af3ed79bd0bef86072ab786037f5c2d4a812799"
+    },
+    {
+      "path": "mira-v2-restraints.js",
+      "source_sha256": "62a0b17524219d98df44e3940a086a5b434d1a954d9b46bf5592114a12a3eb8e",
+      "result_sha256": "6dc9a8d533033221e73e3ba996c44482898b1a9c1f810ff541deaa52c1bb59a1"
+    },
+    {
+      "path": "mira-v2-catalog.js",
+      "source_sha256": "6a7a45db241483a8f756832195a52e00defe1199cc65db341ac49edf02a7db5c",
+      "result_sha256": "5b93c2f82fb70e2884a8de87a99c5c91f951aa7c600164d4a50624189bce0230"
+    },
+    {
+      "path": "mira-v2-piano.js",
+      "source_sha256": "8dd4ea83ce97f3d83a8c07e389c77ed0f9f192dc153e0c25227bf4aa334687a2",
+      "result_sha256": "a043e8ec5b0689f177b7e6abf875126b6d1cb2ad06717a9811009436c13e6aae"
+    },
+    {
+      "path": "mira-body.js",
+      "source_sha256": "226122dbb8670c27c62664749f80ec8f91878622974dddbaca4e214017104eae",
+      "result_sha256": "50c9dbf41357861ee3682f46fbfb675d499bb4489ad7ee146c3e6cb0c8841355"
+    },
+    {
+      "path": "mira-basic-voice.js",
+      "source_sha256": "106d6d62ba580e6c19b092750369830803a8e34f13f66eb20cb45990c28245cd",
+      "result_sha256": "8ed68860b12d0b6de87da7614f05802e729b98aad01e7916beb9cfa24d7be9ea"
+    },
+    {
+      "path": "mira-v2-nature.js",
+      "source_sha256": "41ee9869f613296f2359b6a55e0c2478e5ab84a8930bbeaa66ea11ed71ac88ac",
+      "result_sha256": "2be3dc2ba806922a3f5eade432905b930e56dee97ea71c27fbffb9cd0b82619d"
+    },
+    {
+      "path": "mira-v2-preset.js",
+      "source_sha256": "e4549cbac302996f1878750742d7c9135d8fc90ad6469c4f035ede85d8849a7e",
+      "result_sha256": "850b994976c550ce10c48908ed34241288bf662c053303e2d02626d3c38be4c1"
+    },
+    {
+      "path": "mira-v2-locomotion.js",
+      "source_sha256": "060b784260a2cba886c52f075430ac0960b48cdf99eae19ba9aa57d12e6eadee",
+      "result_sha256": "cc38f780ea2e2b5616b54d9f6a297cc0878d08c504381170377ac484e2edc6fb"
+    },
+    {
+      "path": "mira-v2-injuries.js",
+      "source_sha256": "0a0b052570b7f62aafee51477c4334f9de9c08bdb20d5d46099f2a0a46ecd358",
+      "result_sha256": "cac84c1bc085a745c7f9ea155788e284a10a44a074564ab223b329de3446db9e"
+    },
+    {
+      "path": "mira-v2-flora.js",
+      "source_sha256": "dc4678b45865c0224679d41058dfddcf84a90191197835ca4425537698792128",
+      "result_sha256": "bfd1aad268442cb688874f7214cb99234c05a0dc5b308575f1db99e9277be453"
+    },
+    {
+      "path": "mira-boot.js",
+      "source_sha256": "fc99ee168ac5df1139219eb5ecb0a8aa5eb9bf6a15fdefd17f6dd4a2ba02451f",
+      "result_sha256": "d3dd4afabb81df55ec5c3061072c59888871b604950b1442ac7c13fb4a208dd5"
+    },
+    {
+      "path": "mira-v2-garment-patterns.js",
+      "source_sha256": "cfa513a98daff13ef7cd649468d433f27a39198681cacb21e1e2449ea0686b8c",
+      "result_sha256": "d66f45428a41dc528817bf051107559246dbe539b7718511964293268784fd17"
+    },
+    {
+      "path": "engine-v1.js",
+      "source_sha256": "2112d850f7c3e07cfcd4e544a30f357529042f42c72b844e8ae35f9b3f088068",
+      "result_sha256": "622b596484f83fda04d2225689325284a6a938d6abb32ca3d087da1362a4c846"
+    },
+    {
+      "path": "mira-v2.js",
+      "source_sha256": "80dd2779105733fd895c15db9c263dc250c48d233729d87dc74135acebdea94c",
+      "result_sha256": "1f17a8bcae0c1280de8ab777a1a46de6ca56f5d3f21548ae8ad56a122bf808bb"
+    },
+    {
+      "path": "mira-v2-contact.js",
+      "source_sha256": "bde6832af9ef8cc12d42d2e75aeeda0055d6a6e7fe60273c01678e34f20c631b",
+      "result_sha256": "51b5d55fcd197f1742ade75064478f5668c09d79db7c00fab6ffe22d64fa33aa"
+    },
+    {
+      "path": "mira-v2-world.js",
+      "source_sha256": "6ac941b3ea200fe000f2ced9b65e6e1e43a079b8463cb4f892d3634fbae9731b",
+      "result_sha256": "fd4417bcd523c50a1168f668749d094754954cc70eef4c75c4733b9644525891"
+    },
+    {
+      "path": "mira-v2-terrain-features.js",
+      "source_sha256": "762efacf4728bef4b552767c2b0729193ba0342561da572c7ee6bbf6d15d9e37",
+      "result_sha256": "ffc8514da3152770f5a32c631b3cbab45d1223463c1806086437b9a6357712fa"
+    },
+    {
+      "path": "mira-vr-menu.js",
+      "source_sha256": "b0f91251d912788fbc9bbed2235aac2430b70e9443484adb9f4ee37804f89b67",
+      "result_sha256": "378d319d646036a9afcd035efe1d40a9b2c8fc095767304038be5d0dde4ed944"
+    },
+    {
+      "path": "mira-v2-wardrobe.js",
+      "source_sha256": "7a594bdaf2babe48fcac1b37879a4d48913bdd34a8ce738241e67346f50066d2",
+      "result_sha256": "2c314a003f0770eda3517191ba567619dee8a5fb1475a224f76624c441d91d40"
+    },
+    {
+      "path": "mira-v2-car.js",
+      "source_sha256": "b0186e3632b1cb6c755d0afce4fa8f620adb33e5caac38cca04374745bf2367a",
+      "result_sha256": "fb51b83436d58dbd22479847f3f495e1ccea4f6b49494076e8675dc5fad63513"
+    },
+    {
+      "path": "engine.js",
+      "source_sha256": "7a565ef7a824abee74a09a93978dc0ae4abd276c90afdae6c95c636e82e710af",
+      "result_sha256": "dd60c9e26547dbe9df29b2e29c748e8fcbdb7534f057f910071a6b3eaa43a9f0"
+    },
+    {
+      "path": "mira-v2-features.js",
+      "source_sha256": "0704d423aaa268b1b70f9ed6b214afa1779195b8d146c500145e8d984403b30d",
+      "result_sha256": "a87f17f05d8aa2d006059e34cf787af6b3d6fec73963b3ee0f7a65f3cee6fe7d"
+    },
+    {
+      "path": "mira-v2-castle.js",
+      "source_sha256": "09fc8589fa53e968817ce10e7a7758af01baa33bde459c21f0a6dc0878c6f5ff",
+      "result_sha256": "64015eb2d13a37c535f5df799193d73a5529e4a778661e9713581d3a8d8c36d7"
+    },
+    {
+      "path": "mira-neural-voice.js",
+      "source_sha256": "0e82298cd220f771d854ef7319475eebf3f5a70077316c988862904a45f2f815",
+      "result_sha256": "d35a1ca5b735adfce1b909fc6c1028b0e7ef97d8a5f3e22ac464c1694e06f595"
+    },
+    {
+      "path": "mira-v2-house.js",
+      "source_sha256": "f6f7f9e3bf91a59b9bbc63b286722f66ed420784475ed793cf431e7c4fdb159d",
+      "result_sha256": "24057fbda5afc079e2f8d94e4d693fe61d193fdaa2e2ceff7b59c7633265d957"
+    },
+    {
+      "path": "mira-v2-destruction.js",
+      "source_sha256": "ae0b07a090aed19c8d7a14e70c162fd69aa9ac8a2d4c5315f6da67674a8824d1",
+      "result_sha256": "2247083799d335b543a348fb02dcab087e2d168f24371d22179c89206141984b"
+    },
+    {
+      "path": "mira-v2-floorplan.js",
+      "source_sha256": "a745ba6003ac8807d68f4c8808875b802af7761e719d75982e03d64ec53cec77",
+      "result_sha256": "d272812de44d7c82a2eee7fa40029a2c61df58c556779cf3aaf2de5ad8a4eb05"
+    },
+    {
+      "path": "mira-furniture.js",
+      "source_sha256": "553150eaa44ffab146cb43f7feb6e2004b556d969735e39d77c92979abc53133",
+      "result_sha256": "242070b66e08c45e3da1b6420f0c4c0f1abf2b6d79f0fa795e072d2a56534077"
+    },
+    {
+      "path": "index.html",
+      "source_sha256": "3f9eac22c1f4e2accddcb7a64bb314d854ba206cc2816bc1f001c629766f82b0",
+      "result_sha256": "95abcfab231e0e7404c4be7ff9d0a7ad826b4bcb1f83a5bb7270279c9831ed36"
+    },
+    {
+      "path": "mira-v2-gadgets.js",
+      "source_sha256": "fb990c2129bbd3bef6c9138b73cfa15318c9704ccaf103f0269c9d80e057f3db",
+      "result_sha256": "1b907e9016511ef5ba29b60dd265007521cd8d15fa8cb1de20ae41210d30addd"
+    },
+    {
+      "path": "mira-v2-props.js",
+      "source_sha256": "b7bdd12c45a06e67269a2857a126e5a19e2718828051106beee7f671c9263d8e",
+      "result_sha256": "b2a869500923d5837992e524115895ee0f8a4146ae843598876c5c494527d2c4"
+    },
+    {
+      "path": "mira-house.js",
+      "source_sha256": "57a68501f7b9be68fffddf165a9428096690b0eea5800e9138d0c21c251c951a",
+      "result_sha256": "44b31ca4a422c1dc237ba01981b11a5d7b5c3bb951197a9e737677b19318400b"
+    },
+    {
+      "path": "mira-v2-walls.js",
+      "source_sha256": "3cc6b208ccc2ce5c1b38dbf9334ca0bb4df5e73f65efcc9e55900d902704fcba",
+      "result_sha256": "3355c52b513a1be2f3ce0217ab102852ec7f9027c2cb0891f49389c8174555e7"
+    },
+    {
+      "path": "mira-v2-weights.js",
+      "source_sha256": "48627e0c55ec2b33539c11245414df97d5bd6a267fc74e31588a825a8405016d",
+      "result_sha256": "5d622696799e4b70e0f611fe13376dc799692cc09108d1a31b4d830db124d876"
+    },
+    {
+      "path": "mira-v2-garments.js",
+      "source_sha256": "96ec3f23b1be122e9a22e1b71ad9c00635f7a186d39e4801aa913d0c8d7a9907",
+      "result_sha256": "31ebeccf0ea25e7ab08a19c06527e2a670449dbf35757a96c5f08be07cd483f3"
+    },
+    {
+      "path": "modules/human5-identity.js",
+      "source_sha256": "82157469c8d5bb279af820cb869df3c12630134d772b7db1fc287755a547876a",
+      "result_sha256": "6f240196f539aee5a7375820e214e76ca3d4a9c3a9820d4eeaffe0aa4801a046"
+    },
+    {
+      "path": "modules/human5-upgrade.js",
+      "source_sha256": "5b9efe3d6c988ce6832da52438291036435888dce572d3396200d37e8045f230",
+      "result_sha256": "ebc2b9510a4e2608827e4e2961730909231b0742198ccf2c746ed364387a6e7e"
+    },
+    {
+      "path": "modules/human5-worldrender.js",
+      "source_sha256": "f4b45552a2548f0932f4db56812609b6d4047de9f4ce27ec1d1ccd904274374e",
+      "result_sha256": "4e6773f9a96c0e261aba5a83de941699c063f01661eca935c9eb557d3702fd3b"
+    },
+    {
+      "path": "modules/human5-vehicles.js",
+      "source_sha256": "f9b838fa5298cbeba8cdb6d8a7376d7e51de9c65c18debcacbdf010bf8a47bbd",
+      "result_sha256": "eefc15750c4a94b3fec2852d37b3b55406a69eabd0573fc2497bf2010046ab69"
+    },
+    {
+      "path": "modules/human5-npc-profile.js",
+      "source_sha256": "d2237b33e669e233cacc6ef7b030aa3446dd43dee31fe239d282816256384ef9",
+      "result_sha256": "867db46eef592cdd24adb09dbd977d4e90ea58daef606d0f7d11d703569a065d"
+    },
+    {
+      "path": "modules/human5-dynamics.js",
+      "source_sha256": "813cff60c590e57ca057dd8dfe8dbd0c2bfc22fc5934256c7c39621dd4f4727c",
+      "result_sha256": "5915249ab76b6cbad3faebf34a35b567ec7801979164429a2589e468f2e98681"
+    },
+    {
+      "path": "modules/human5-neighborhood.js",
+      "source_sha256": "e66d6eb31335fc581f369d357c0c9e06728f416bb03cc7705f0b4cfc2a871594",
+      "result_sha256": "3e67bb5142f5126207402fecdc3f31c171a8da0541656d8fb9b3b6cb743cc1cc"
+    },
+    {
+      "path": "modules/human5-lighting.js",
+      "source_sha256": "97de5f857e5ba7c2d33d959a312e91dfd348e708445fa5125c48c16f07ff9ae1",
+      "result_sha256": "284acc3fa91e90de792a4ffcca140d02228462f53eb52031ad9127541beb9da4"
+    },
+    {
+      "path": "modules/human5-performance.js",
+      "source_sha256": "3253f48598fcb7a156559cf7626ae1a85ff90b8216ee4ae6e23fe810cd2024f5",
+      "result_sha256": "26cb0200352628fa2923886db2d8833d8c2425493de8d860002846edfd9d3a7d"
+    },
+    {
+      "path": "modules/human5-groom.js",
+      "source_sha256": "d75db3e299e707d243182c7510f47604417eb41ca264df31928ca9c14e67398b",
+      "result_sha256": "113c6d06ca9af4a1c3f7f9f4659bd588dc71911baca524fb4827f920cb7b6153"
+    },
+    {
+      "path": "modules/human5-furniture.js",
+      "source_sha256": "0b80d8a466e88b27b809054b03a2a35cd4f01c9f1f3308af8e7eac2afef3d5e3",
+      "result_sha256": "22c57bea84c831cb586eb068c6b5ce2a03c7860ed98534f6cf7cfa517b7ff5e8"
+    },
+    {
+      "path": "modules/human5-city.js",
+      "source_sha256": "6e7ad21d29d5175fbb5739a4395f74e9e753f8d9715b902dcdd37b88af7b2088",
+      "result_sha256": "3d4b89e5b909af92369607bcb7da6b4143c51ff4851d80dc36600aae45c2d085"
+    },
+    {
+      "path": "modules/human5-skin.js",
+      "source_sha256": "2bc796b85ce1df83139e75c210544d75099a8ecc381f605ba86a45ae54aa3c89",
+      "result_sha256": "507a92591c1a26be911a8b127992d9c55740b57af64840299f6d321fac787f1b"
+    },
+    {
+      "path": "modules/human5-fire.js",
+      "source_sha256": "3a270953e27801e2aa5ad4ed6b2059f0aa6f12928a0b41d711d846a353f82d82",
+      "result_sha256": "585466751d3bc1610e8e406046d3380c448cff472fb5caff96d6bc1f7fa21e27"
+    },
+    {
+      "path": "modules/human5-tissue-surface.js",
+      "source_sha256": "1043af5a418b2263cf25250df05450898e7509538d303dac1cb29bc5168953ed",
+      "result_sha256": "aa87217df465354e5f508787200976e6688b8b3503da9cc5e7ea8875d90d5252"
+    },
+    {
+      "path": "modules/human5-openworld.js",
+      "source_sha256": "a4b334cfc3f0af71808d364903b718cc409705b55f7f113f184238ec443766ce",
+      "result_sha256": "f118991ab40ae1c958b6e0d4029f67b7972e3c3905f8add17b2b8313b0f0eeab"
+    },
+    {
+      "path": "modules/human5-fire-host.js",
+      "source_sha256": "a05882a8fc1785837d7662bc67aba17c4833d61b2c3924e99f27a33b5ff35115",
+      "result_sha256": "e7f57b748ed462eafd105d069c1650b5bcc60fe1622151bc9c72e8e8a8a3952c"
+    },
+    {
+      "path": "modules/human5-textiles.js",
+      "source_sha256": "c4d72c82955533cac510415a661b9eb1fc54f37765c2fded2588e5caa43bb95d",
+      "result_sha256": "c196759d330e8d7089dc02026e207a967c13bcc0b15eda2d009975503fa38fe6"
+    },
+    {
+      "path": "src/trees/RealisticTrees.js",
+      "source_sha256": "74f031e64e59bd72609f8b2e26008f91b4384b61ccd84ef8daf6e6a94e4ecf63",
+      "result_sha256": "57ee1091b3a47c3a3cc0e3f039ab833d435ebd797deb7cc5df5e3642f39949ea"
+    },
+    {
+      "path": "src/trees/FallingLeaves.js",
+      "source_sha256": "b98cf9e2928b86290e4408485b0b23019202fc02242329283361c81d3d9cc2af",
+      "result_sha256": "9f7a2311b0cbc4b120dec1e37463c7f55ab58ec6f80e3558766e402e2918d9a6"
+    },
+    {
+      "path": "src/flora/FloraBoulders.js",
+      "source_sha256": "24a4abc7935a3a5e4cd04085a62175627774c5560d708f15c43866a2fb64049b",
+      "result_sha256": "fa52594e5f9d47cf815e874a48b7ca421cb3c37b22b3e4ab56721b316b6eecff"
+    },
+    {
+      "path": "src/dog/DogItems.js",
+      "source_sha256": "232acad44da992a5a0b461c116f53958ab2de28842509e654781dd9396185eac",
+      "result_sha256": "e3b007c15cecfb2b71132faee3389cd115e8e89e8bbd79151e1bda4acf9e2b32"
+    },
+    {
+      "path": "src/dog/DogAI.js",
+      "source_sha256": "6833e66e6f2058adfa037d77b4289a4a3ab16927ca3950d3d4a3cfe0f429d21a",
+      "result_sha256": "4ba1a43a58bf1cfd35c2e94695b1fc7fef3897ec605c3ce4a66df3bcf57cdc47"
+    },
+    {
+      "path": "src/dog/DogBite.js",
+      "source_sha256": "8eca413bf16e6a6cdc12ea607175cb79e5199b818192e637f28b921b27900f94",
+      "result_sha256": "bcf31d63423b642a373b0b984df9612b7f2f7876626d6aa645c025894d1e5260"
+    },
+    {
+      "path": "src/dog/DogNeeds.js",
+      "source_sha256": "566098f61b057fdf0f7494af9dd52ce051d52854525e4d1bb89c6c06297485ab",
+      "result_sha256": "7c3204e8d1e3601892565ea47c422a59e8e593900caa73695b01246ff3ef825f"
+    },
+    {
+      "path": "src/dog/DogAnim.js",
+      "source_sha256": "2c91a55612fa0d76bc6af1ab4d0ed61453d8d4291583dbb7d6a17d2d707bdc3b",
+      "result_sha256": "3e350d784d75860db81ba02608b8425eafeb5e2ce7d95b5e22205eb42276f6a5"
+    },
+    {
+      "path": "src/dog/DogPaws.js",
+      "source_sha256": "fc2aec5054ae761094069f660fdbf7d4ce4d5422489ebc17541ea6c565b349db",
+      "result_sha256": "f9613a55ea11dab5cc15d6141cefecebdf5ac30d7119141d36e1b1a298ebc33a"
+    },
+    {
+      "path": "src/dog/DogFur.js",
+      "source_sha256": "d5a357129c24eb72a9aa73f41500a023639b9409df952b7f2c0e9d7c5d11c8b9",
+      "result_sha256": "63ea9dba625acb1ca69e06deea339cd338f77141c1e58683d7314d57e9d1dd00"
+    },
+    {
+      "path": "src/dog/DogTail.js",
+      "source_sha256": "7d72dab3de959aa5c00e6dc2f27c5ec6928481d59c6bc9357b3d5f4c3b8a9611",
+      "result_sha256": "8d1f55b066b00b83cf4eb00d6beab80fd4cb7f56b478de0f32635df52ff19611"
+    },
+    {
+      "path": "src/dog/DogJaw.js",
+      "source_sha256": "866dd22eae88214da9559fbd8561349c247539067389ed02e1fb020e6ed95491",
+      "result_sha256": "78cd804b4c934efded189393886e94e698cc5493b3930ad9486cbef5dbfacdfd"
+    }
+  ]
+}

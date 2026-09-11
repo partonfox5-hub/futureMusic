@@ -1,0 +1,260 @@
+{
+  "version": "17.0.0",
+  "files": [
+    {
+      "path": "mira-v2-builder.js",
+      "source_sha256": "aa746818b78f3c4597a4b2339b41aaccb2aae02f7d6e1fcd60e8d229039640f1",
+      "result_sha256": "a0b3155b456e7314b75f8393dff4d8adefb197f0e6548f64f3c17be01dfa85e3"
+    },
+    {
+      "path": "mira-v2-laundry.js",
+      "source_sha256": "af96d036b238fffe8dea293e7069253c04b2fe37cd299829aa24b48c14a3c3cf",
+      "result_sha256": "0af32e2d5f9812aece89ddc142dd1d8b4dc3078becee84400e59978694c82fbc"
+    },
+    {
+      "path": "mira-voice-v2.js",
+      "source_sha256": "9ff4724bbad6c4bde89b13a40b0dfe7aad4d5edd8e710fd8fdbf6e57170232c5",
+      "result_sha256": "be9d90fbf864f02c79dd9dbeb3ce73d31f6ae3b9d7e29eadfbe14338b02a60c7"
+    },
+    {
+      "path": "mira-v2-dog.js",
+      "source_sha256": "e02fda2407021590e367918567731f8c745becb5feeed38d31446fb01d2faeae",
+      "result_sha256": "c977e376884709eefa3636cd80c3d4d039f5390039aceadea737e0be42a89dba"
+    },
+    {
+      "path": "mira-v2-fire.js",
+      "source_sha256": "39c3dd440d22fca71d89051692f1290a20998f6afe998ba8d260fa04541027f4",
+      "result_sha256": "d61915323b44ba400d5f4ea329a29fcc99fa04c383262076f35e2075b8016d57"
+    },
+    {
+      "path": "mira-lighting.js",
+      "source_sha256": "d8b52719000e226c63d95bacbe7db3a777ebcfb7112705e44ace79116a0c6374",
+      "result_sha256": "df394839ef7d7259f039b8b4e5b377a630416314359427d371218352ac9d788d"
+    },
+    {
+      "path": "mira-local-speech.js",
+      "source_sha256": "b6be3bb35402ad5edf77ce732a54d835d832b690d4fd53ca001588caab46ed64",
+      "result_sha256": "39b514eb81571ac1a251dbcc235757a4d51eef8ad96020f681a431d3d993dc1b"
+    },
+    {
+      "path": "mira-v1.html",
+      "source_sha256": "573583f3dd8eb40a4becb99c9003440dda805289c408884141796aa0d900d519",
+      "result_sha256": "3b1f27c1f0aff0bec7b17a796365917c4f40478a54962a37910c06d3b0925daf"
+    },
+    {
+      "path": "mira-v2-restraints.js",
+      "source_sha256": "c855e493c55440f26910f8e714b0d6a39e0e039da30c5b04003a684589903ac6",
+      "result_sha256": "16ac5b90b3f4720b56f4d0cfe7af04fc6d42764c1b6f613e8d255621a936e4f3"
+    },
+    {
+      "path": "mira-v2-catalog.js",
+      "source_sha256": "a260ee154d1446a4df406e31841cfa532b2ee80fc80cee2bda06f6313307da90",
+      "result_sha256": "b94e8f58c12490cb73ff6d4357c1b7135c547698cf0bf9d1a172ab6cddb84bcf"
+    },
+    {
+      "path": "mira-v2-piano.js",
+      "source_sha256": "88bbd638692d6db27f8096c046d1357c8d6c5c08ff02457984b981d9d89bc8a1",
+      "result_sha256": "f1a62e1167ea47688570448792db5d9e2ac73cfabbea128defdd1503b0ac80f5"
+    },
+    {
+      "path": "mira-body.js",
+      "source_sha256": "f8dcbc7b4bd1eacec6271f88f09955ad87edfd3fbab718696dc282f2bbf8c71a",
+      "result_sha256": "6efe7afcc154c0207038524ba22dbeecf0d1c0d43034a5403a8a76b6d797a8f2"
+    },
+    {
+      "path": "mira-basic-voice.js",
+      "source_sha256": "8ebaeb9c7893a58bfbc41e0cbf6242b2e38f25873d5731bb56493e62c34e391b",
+      "result_sha256": "c16368b29b80529580753e03d2f8f058d7e87af21e601a20c88268153b6e42d6"
+    },
+    {
+      "path": "mira-v2-nature.js",
+      "source_sha256": "294f18adbce70de498cca62dff11829d7e7e4baae4838b8ce7f66d8ae553f354",
+      "result_sha256": "e57efb85e4d9cb6fb29605b25cee3c3680f58a82c4710c3a193ab97776f62bab"
+    },
+    {
+      "path": "mira-v2-preset.js",
+      "source_sha256": "3d954da1f65acc067a1e567d2681995c9671ada27db9bb4ce54d0d54adbb5cd2",
+      "result_sha256": "bc702615694358c33363de3a638b052f81529b5830404c3a9833f62067e4b873"
+    },
+    {
+      "path": "mira-v2-flora.js",
+      "source_sha256": "a89fdda382732327965e7bf042ff2eca5789f5109245b304ee42ead7df98e4b1",
+      "result_sha256": "8a6b322527abd8aac5036fd9799462a471ec5d7d074f9d1154a564f3ce4a9812"
+    },
+    {
+      "path": "mira-boot.js",
+      "source_sha256": "a977451a78d35a890e62f6e90b5e2b68242932ec519986f88f9cfb5dd70c71c5",
+      "result_sha256": "9c7123bdb9f48ad6613140807ada0392a9fb5b9104496aa5f91859dab2983be6"
+    },
+    {
+      "path": "engine-v1.js",
+      "source_sha256": "a49be0db6ea641581de5455acff9303c47822c4f75c9f976b6f9f144439cfa05",
+      "result_sha256": "c52343bea15b580f9f86525b214382da9b66d58fc60b50b0ae01216acb374389"
+    },
+    {
+      "path": "mira-v2.js",
+      "source_sha256": "807f9803f384202668ddf6e531819d1f25eebf7aad8995721f836a0067b070c8",
+      "result_sha256": "6027d0ce7e5ad35f9a58a191617e2c8d72d5917f02b65739eeccecd4c6319503"
+    },
+    {
+      "path": "mira-v2-contact.js",
+      "source_sha256": "f1d9a9dae3ff3b3ba8395ebced69ad3ff90087701b4670244b63f4197c916e11",
+      "result_sha256": "6ffd859ce9271a0d1af08d043b72c2ac471dab5ff2cb264d65bfc8971abe0e76"
+    },
+    {
+      "path": "mira-v2-world.js",
+      "source_sha256": "8c0bb7c9561e9a34a587b36cdfb7d4647a43c13326e75b8e160b23c88e571a59",
+      "result_sha256": "386cf00785a3e3833b484a133c1f13ebcbfa13a72876f3749d4796fde73130ab"
+    },
+    {
+      "path": "mira-v2-hair.js",
+      "source_sha256": "95192ec85d5d58614c18bdae3e8fe3af74ed5e904c5f915695fd7dd538be0d16",
+      "result_sha256": "6f5d06db04ae1bfcb66677b42e082392d2e63a70b85811ab45036e33f80467f9"
+    },
+    {
+      "path": "mira-v2-terrain-features.js",
+      "source_sha256": "2217a51f3010d217cecaf8a9939a8cf5c5a1d71f39fbedaf03db083c0be0dc63",
+      "result_sha256": "cbe605d95424c26242983e246c05ab65a303624b97788c299e9bca0492d4ab96"
+    },
+    {
+      "path": "mira-vr-menu.js",
+      "source_sha256": "faf16141c69e294cd2c55afa97a646f5d774858d25ba743c884be76c7e547e4a",
+      "result_sha256": "1863446a7e02b1fda43d064db7754c894f996e0670f07b135cd6f059bb29a858"
+    },
+    {
+      "path": "mira-v2-wardrobe.js",
+      "source_sha256": "ae0b8b7e6998839f9dd747322d4d121a867b4240cd6e06be27e4acaf37e1ae3b",
+      "result_sha256": "d830d9331767b15c9ed6eac6410796ccfe27732eebe7b963667ff1a18b98d9fe"
+    },
+    {
+      "path": "mira-v2-car.js",
+      "source_sha256": "1368316d29f3cd3830cf7e21291b7abf60f372e8b659cc8dacc19119fd6e3392",
+      "result_sha256": "2a7fba29f661717a1a3d5dd8800c5e055b9dc64d6358129b158dec508fb9bdf3"
+    },
+    {
+      "path": "engine.js",
+      "source_sha256": "84a2d6a8c0b5f2aac90412b433f059cff3138eb3f337b5e252f5e116bc92aa88",
+      "result_sha256": "ec1798d967e60c9aa2d2b5cb7bae006a13213732c6836a5a5f9f599bcb131a92"
+    },
+    {
+      "path": "mira-v2-features.js",
+      "source_sha256": "4731e68dae8a7992a43a5d7b2fa074e0badf2626ace51ae573748765e7853560",
+      "result_sha256": "ea392ab96427eec2c63cdca492d83def0715d2ce9353f3d8a3a8f0a7023acac0"
+    },
+    {
+      "path": "mira-v2-castle.js",
+      "source_sha256": "2dd6859bff3998ca86e341c833a9e57ba3478cc3685f487121897be080f1500f",
+      "result_sha256": "884b98f54efab1a2b8867d0ff8192b82c3783bb4915039a474739ffccdbc94f3"
+    },
+    {
+      "path": "mira-neural-voice.js",
+      "source_sha256": "99d10e15c9dd1b0188e3f19863cf1f17e79c7074b95553964d7b1c336a426de6",
+      "result_sha256": "5b7e3a2759f7bd504a66bfcdc1f365c7fd782412c79af3572a18344b0a9580d8"
+    },
+    {
+      "path": "mira-v2-house.js",
+      "source_sha256": "4f43a88af876bfb1605e10dded47b103bd1300eb6ce6b2b4e415d9ba7fa958f2",
+      "result_sha256": "5b7dd1b1c02cc53582410a4d098848014caa0306a8bfb44dc1119b23ba975856"
+    },
+    {
+      "path": "mira-v2-destruction.js",
+      "source_sha256": "0060278b1e1f8e77e808a04c8c3291783243da4da2a10ad5b035290cd1b2e590",
+      "result_sha256": "803b6b5324b58629d65c3644151c34899781ca496bba1fed6ecf2271222e1e44"
+    },
+    {
+      "path": "mira-v2-floorplan.js",
+      "source_sha256": "ab0726da55f938657f3c201c85230db077e72b43631eb1fa2981e5078e0467aa",
+      "result_sha256": "b73c5429a26c3c935e932af508b5fa5889ee7c00d2f514f12f7819085649b04c"
+    },
+    {
+      "path": "mira-v2-sfx.js",
+      "source_sha256": "0ef3cf8611391d8303a5059cd31394e16748c04aec31383fa07b4dc1563a2e97",
+      "result_sha256": "5e5a5c9822f8daf1ab75276aa2ebc47c349bb03cf885ebff7516a5df01642fe1"
+    },
+    {
+      "path": "mira-furniture.js",
+      "source_sha256": "a5e6d3d060788e6d87246ba9a704ceb13f48a32f6e256e64e91e4a3652ff6811",
+      "result_sha256": "7869dcb1098ff73733891f231fa8eaf731ad69c736c4c3603105f502d616993d"
+    },
+    {
+      "path": "index.html",
+      "source_sha256": "12ce0a2e1c555814c703ac74831200803028dea6af7522c51264373b963f06a8",
+      "result_sha256": "f96c8d133677e33010abe98a0b09eae37d571d588ad5bfb8f67892ce2bee8204"
+    },
+    {
+      "path": "mira-v2-gadgets.js",
+      "source_sha256": "8c24005c204f93479975abb6d3a132b4c002bfde3113e9f207ec81de5407a056",
+      "result_sha256": "a44cf3f51963b269994c38562df05b571a6613131cc09a4d3c93e20f363849a9"
+    },
+    {
+      "path": "mira-v2-props.js",
+      "source_sha256": "897ef2482923035acac0607c28b930482427d0b47220a43e8f13102a87e861b1",
+      "result_sha256": "9cd60c7a74dfb49b05214f05cc82043076f795548425db7a2a2db60c8d8f6834"
+    },
+    {
+      "path": "mira-house.js",
+      "source_sha256": "21f32f13bee80d88e18cbcbc98bc206c06edb4744f40d62a264e94c8b764c43c",
+      "result_sha256": "86bbf043dbf1d80b7dca4c1b9f0761632f4b1381e7fee5c43ce11e479be41f2b"
+    },
+    {
+      "path": "mira-v2-walls.js",
+      "source_sha256": "10a7a2affbf752987480e8cc76a5f6e0d8d9605dc794a8ba18751ea620a900f0",
+      "result_sha256": "734ad67b1c69b7a2a197de5fcea1d915aa319b839d3589c4c011744bbca187d6"
+    },
+    {
+      "path": "mira-v2-weights.js",
+      "source_sha256": "e0833f810cce854092135c1e001dbbaf7ae321c63ee4747754ccd5543b3ccb52",
+      "result_sha256": "8050498c04f7c6fdaf315f1c547cba6fc71446c16cc1f94c38d6e4ee3dae03c4"
+    },
+    {
+      "path": "src/trees/RealisticTrees.js",
+      "source_sha256": "26b9336f062daacd5cb9c5ab56c46bdd29752293cac82a9ca93a42d2e72f8cd2",
+      "result_sha256": "9fc98a6123080693387120111c90411e50c1e3d39900e5016eae8171a7e0add0"
+    },
+    {
+      "path": "src/trees/FallingLeaves.js",
+      "source_sha256": "26862332e27c6860c4055226a98e2d9e8ff7db9aa2b35923a3526d65fe5ecd31",
+      "result_sha256": "da016a34d3f35a45665a00d65e8f6598972b348172d83da94193b55f72052072"
+    },
+    {
+      "path": "src/flora/FloraBoulders.js",
+      "source_sha256": "fd91dc29572ac4ecfb7dae1b9c63bc7ac221e0842b18b2c6ddaeb4cba02495ee",
+      "result_sha256": "8ae48bc9e74b1735c0999b7decd3aeebfb15dfeca474730b91ac349f4191a5e7"
+    },
+    {
+      "path": "src/dog/DogItems.js",
+      "source_sha256": "52a9c0e7d3001c4022a7941020868289bda09ee4ca8cbc6ed69ccb03ac73c148",
+      "result_sha256": "603d2ce868fdfbe013e15db77e41db7a4193996be2e3ba0cd43dce5b3437f45e"
+    },
+    {
+      "path": "src/dog/DogAI.js",
+      "source_sha256": "c5b741bcce747a4c654d4962a10768a3678a9639858c614f79d674d591c036a2",
+      "result_sha256": "ab585834da813fb0b266bb50cd90ac888b90a934c50af9124c365098f678e114"
+    },
+    {
+      "path": "src/dog/DogNeeds.js",
+      "source_sha256": "d5bc415d8217ed0cf6d2d535088ddb2238d1f86594db0e1cd3950062bec50e29",
+      "result_sha256": "34e8863022b28057ac5e5ebe01487d9199b9c7b06758c6b3410e09af97ff672d"
+    },
+    {
+      "path": "src/dog/DogAnim.js",
+      "source_sha256": "14d7321d2c4e0efc573aeeabf9a9ef2e1d3e270a4dc1ffb27547d0933909278e",
+      "result_sha256": "b67c9a6af301fc715352a1958816e259cabefad2811244db684432053cc48314"
+    },
+    {
+      "path": "src/dog/DogPaws.js",
+      "source_sha256": "6691897470d8c73c28ff1d2612177c69d94f3dbcfbcb307451a10ee37571d539",
+      "result_sha256": "0cc50f248f246f8b7f48fcac9334e3811f21ec5b36f4dd2200e22df97d03dd51"
+    },
+    {
+      "path": "src/dog/DogTail.js",
+      "source_sha256": "da0dbfbf90800c2f95632ae7391a8b5876efc233f425921a586e3795af55b4d8",
+      "result_sha256": "9ae4f47f3771e7d32fe851edb381cc44fa037568d8f3e7ac820f2ff91dfaef9e"
+    },
+    {
+      "path": "src/dog/DogJaw.js",
+      "source_sha256": "1aa8901a345c0de9b05a8ed0480122ae78c1f3ddad9655a923940cc8f7d4061b",
+      "result_sha256": "ee0d8dca953d5534f4a7f390ec902703852483ddcf215e4ae7d0398fea820b40"
+    }
+  ]
+}

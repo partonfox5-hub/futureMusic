@@ -1,0 +1,892 @@
+--- a/mira-v2-builder.js
++++ b/mira-v2-builder.js
+@@ -1,9 +1,9 @@
+ import * as T from 'three';
+-import {FURNITURE,placeFurniture} from './mira-v2-furniture.js?v=17.0.0';
++import {FURNITURE,placeFurniture} from './mira-v2-furniture.js?v=17.1.0';
+ export {FURNITURE};
+ export const CELL=.6;
+ export const SURFACES={Plaster:{kind:'plaster',color:0xc9c1b1},Brick:{kind:'stone',color:0xa26148},Wood:{kind:'wood',color:0x947051},Tile:{kind:'stone',color:0xc3c7c1},Stone:{kind:'stone',color:0x85847c},Castle:{kind:'stone',color:0x8a8478},Metal:{kind:'metal',color:0x929b9d},Glass:{kind:'glass',color:0x9fc1c7}};
+-export {makeSurfaceMap} from './mira-v2-walls.js?v=17.0.0';
++export {makeSurfaceMap} from './mira-v2-walls.js?v=17.1.0';
+ export function layout(kind,n,p,yaw=0,height=0){
+  const cells=[],vertical=kind==='Wall',side=Math.round(yaw/(Math.PI/2))%2!==0;
+  for(let a=0;a<n;a++)for(let b=0;b<n;b++){
+--- a/mira-v2-laundry.js
++++ b/mira-v2-laundry.js
+@@ -1,6 +1,6 @@
+ import * as T from 'three';
+-import {tagMovable,syncFurniture,furnitureRoot} from './mira-v2-furniture.js?v=17.0.0';
+-import {unlockSfx,audioContext} from './mira-v2-sfx.js?v=17.0.0';
++import {tagMovable,syncFurniture,furnitureRoot} from './mira-v2-furniture.js?v=17.1.0';
++import {unlockSfx,audioContext} from './mira-v2-sfx.js?v=17.1.0';
+ 
+ function metal(c,r=.45,m=.35){return new T.MeshStandardMaterial({color:c,roughness:r,metalness:m});}
+ 
+--- a/mira-voice-v2.js
++++ b/mira-voice-v2.js
+@@ -1,7 +1,7 @@
+-import {speakNeural} from './mira-neural-voice.js?v=17.0.0';
+-import {speakBasic} from './mira-basic-voice.js?v=17.0.0';
+-import {localTranscribe,warmLocalSpeech,stopLocalSpeech} from './mira-local-speech.js?v=17.0.0';
+-import {EMOTION_NAMES} from './mira-v2-features.js?v=17.0.0';
++import {speakNeural} from './mira-neural-voice.js?v=17.1.0';
++import {speakBasic} from './mira-basic-voice.js?v=17.1.0';
++import {localTranscribe,warmLocalSpeech,stopLocalSpeech} from './mira-local-speech.js?v=17.1.0';
++import {EMOTION_NAMES} from './mira-v2-features.js?v=17.1.0';
+ export const DEFAULT_PERSONA='You are Mira, a friendly adult woman in an XR room. Reply in 1–2 short spoken sentences. Keep a consistent emotional state based on the conversation. End with [[EMOTION:neutral|happy|content|curious|listening|thoughtful|concerned|sad|surprise|afraid|angry|disgust|tease|flirty|laugh|tired]] choosing exactly one label. Respond warmly when appropriate; let emotion match the conversation. Only when requested, add [[ACTION:idle|wander|airSquats|stretch|jumpingJacks|march|sideSteps|dance|reach|heelRaises]]. Do not read tags aloud.';
+ const ACTIONS=['idle','wander','airSquats','stretch','jumpingJacks','march','sideSteps','dance','reach','heelRaises'];
+ const history=new Map();let voiceAudio=null;let serverAvailable=null;
+--- a/mira-v2-dog.js
++++ b/mira-v2-dog.js
+@@ -1,17 +1,17 @@
+-import {paletteSkinnedVertex} from './modules/human5-skinning.js?v=17.0.0';
++import {paletteSkinnedVertex} from './modules/human5-skinning.js?v=17.1.0';
+ import * as THREE from 'three';
+-import { DogModel, clamp } from './src/dog/Dog.js?v=17.0.0';
+-import { DogPaws, floorAt } from './src/dog/DogPaws.js?v=17.0.0';
+-import { DogJaw } from './src/dog/DogJaw.js?v=17.0.0';
+-import { DogTail } from './src/dog/DogTail.js?v=17.0.0';
+-import { DogFur } from './src/dog/DogFur.js?v=17.0.0';
+-import { DogAudio } from './src/dog/DogAudio.js?v=17.0.0';
+-import { DogAI } from './src/dog/DogAI.js?v=17.0.0';
+-import { DogAnim } from './src/dog/DogAnim.js?v=17.0.0';
+-import { DogNeeds } from './src/dog/DogNeeds.js?v=17.0.0';
+-import { DogItems } from './src/dog/DogItems.js?v=17.0.0';
+-import { DogBite } from './src/dog/DogBite.js?v=17.0.0';
+-import { BONE_NAMES } from './src/dog/Dog.js?v=17.0.0';
++import { DogModel, clamp } from './src/dog/Dog.js?v=17.1.0';
++import { DogPaws, floorAt } from './src/dog/DogPaws.js?v=17.1.0';
++import { DogJaw } from './src/dog/DogJaw.js?v=17.1.0';
++import { DogTail } from './src/dog/DogTail.js?v=17.1.0';
++import { DogFur } from './src/dog/DogFur.js?v=17.1.0';
++import { DogAudio } from './src/dog/DogAudio.js?v=17.1.0';
++import { DogAI } from './src/dog/DogAI.js?v=17.1.0';
++import { DogAnim } from './src/dog/DogAnim.js?v=17.1.0';
++import { DogNeeds } from './src/dog/DogNeeds.js?v=17.1.0';
++import { DogItems } from './src/dog/DogItems.js?v=17.1.0';
++import { DogBite } from './src/dog/DogBite.js?v=17.1.0';
++import { BONE_NAMES } from './src/dog/Dog.js?v=17.1.0';
+ const _p=new THREE.Vector3(),_q=new THREE.Vector3();
+ function dogNearestHit(handle,pos,maxDist){
+  if(!handle.grabs?.size){const scale=handle.root.getWorldScale(_q),radius=1.4*Math.max(scale.x,scale.y,scale.z)+maxDist;if(handle.root.getWorldPosition(_p).distanceToSquared(pos)>radius*radius)return null;}
+--- a/mira-v2-fire.js
++++ b/mira-v2-fire.js
+@@ -1,6 +1,6 @@
+ import * as T from 'three';
+-import {tagMovable} from './mira-v2-furniture.js?v=17.0.0';
+-import {playSfx,unlockSfx} from './mira-v2-sfx.js?v=17.0.0';
++import {tagMovable} from './mira-v2-furniture.js?v=17.1.0';
++import {playSfx,unlockSfx} from './mira-v2-sfx.js?v=17.1.0';
+ const V=()=>new T.Vector3(),Q=()=>new T.Quaternion();
+ const QUEST=/Quest|OculusBrowser/i.test(globalThis.navigator?.userAgent||'');
+ const MAX=QUEST?10:18,MAX_LIGHTS=QUEST?2:3;
+--- a/mira-lighting.js
++++ b/mira-lighting.js
+@@ -3,7 +3,7 @@
+  *
+  *   import {createStudioLights, RoomLight} from './mira-lighting.js';
+  */
+-export {createStudioLights, RoomLight} from './mira-v2-light.js?v=17.0.0';
++export {createStudioLights, RoomLight} from './mira-v2-light.js?v=17.1.0';
+ export {HUMAN5, ASTRA_RULES, briefFor, sessionPrompt} from './mira-context.js';
+ 
+ export const LIGHTING = {
+--- a/mira-local-speech.js
++++ b/mira-local-speech.js
+@@ -1,5 +1,5 @@
+ let worker=null,nextId=0;const jobs=new Map();
+-function ensure(){if(worker)return;worker=new Worker(new URL('./mira-voice-worker.js?v=17.0.0',import.meta.url),{type:'module'});worker.onmessage=({data})=>{const j=jobs.get(data.id);if(!j)return;if(data.status){j.status?.(data.status);return;}clearTimeout(j.timer);jobs.delete(data.id);if(data.error)j.reject(new Error(data.error));else j.resolve(data.text||'');};worker.onerror=e=>{for(const j of jobs.values()){clearTimeout(j.timer);j.reject(new Error(e.message||'Speech worker could not load'));}jobs.clear();worker.terminate();worker=null;};}
++function ensure(){if(worker)return;worker=new Worker(new URL('./mira-voice-worker.js?v=17.1.0',import.meta.url),{type:'module'});worker.onmessage=({data})=>{const j=jobs.get(data.id);if(!j)return;if(data.status){j.status?.(data.status);return;}clearTimeout(j.timer);jobs.delete(data.id);if(data.error)j.reject(new Error(data.error));else j.resolve(data.text||'');};worker.onerror=e=>{for(const j of jobs.values()){clearTimeout(j.timer);j.reject(new Error(e.message||'Speech worker could not load'));}jobs.clear();worker.terminate();worker=null;};}
+ export function warmLocalSpeech(status){return request(null,status);}
+ function request(audio,status,signal){ensure();return new Promise((resolve,reject)=>{const id=++nextId,abort=()=>{const j=jobs.get(id);if(j){clearTimeout(j.timer);jobs.delete(id);reject(new DOMException('Cancelled','AbortError'));}};if(signal?.aborted){abort();reject(new DOMException('Cancelled','AbortError'));return;}signal?.addEventListener('abort',abort,{once:true});const finish=fn=>value=>{signal?.removeEventListener('abort',abort);fn(value);};const timer=setTimeout(()=>{jobs.delete(id);reject(new Error('Local speech model timed out. Check internet access for its first download.'));},180000);jobs.set(id,{resolve:finish(resolve),reject:finish(reject),timer,status});worker.postMessage({id,audio},audio?[audio.buffer]:[]);});}
+ export async function localTranscribe(blob,signal,status){
+--- a/mira-v1.html
++++ b/mira-v1.html
+@@ -97,6 +97,6 @@
+         <button type="button" class="ghost" id="desk">Desktop look</button>
+       </div>
+     </div>
+-    <script type="module" src="/human2/engine-v1.js?v=17.0.0"></script>
++    <script type="module" src="/human2/engine-v1.js?v=17.1.0"></script>
+   </body>
+ </html>
+--- a/mira-v2-restraints.js
++++ b/mira-v2-restraints.js
+@@ -1,6 +1,6 @@
+ import * as T from 'three';
+-import {bodyVolumes,projectVolume} from './mira-v2-contact.js?v=17.0.0';
+-import {furnitureRoot,syncFurniture} from './mira-v2-furniture.js?v=17.0.0';
++import {bodyVolumes,projectVolume} from './mira-v2-contact.js?v=17.1.0';
++import {furnitureRoot,syncFurniture} from './mira-v2-furniture.js?v=17.1.0';
+ const V=()=>new T.Vector3(),Q=()=>new T.Quaternion(),up=new T.Vector3(0,1,0);
+ export class Restraints {
+  constructor(props){
+--- a/mira-v2-catalog.js
++++ b/mira-v2-catalog.js
+@@ -1,4 +1,4 @@
+-import {GARMENTS} from './mira-v2-garments.js?v=17.0.0';
++import {GARMENTS} from './mira-v2-garments.js?v=17.1.0';
+ export const OUTFITS=[{name:'Sundress',items:['briefs','dress']},{name:'Satin dress',items:['briefs','slipDress']},{name:'Jeans and tube top',items:['briefs','jeans','tube']},{name:'Linen and jeans',items:['briefs','jeans','top']},{name:'Triangle bikini',items:['bikiniTop','bikiniBottom']},{name:'Bandeau bikini',items:['bandeau','bikiniBottom']},{name:'Underwear',items:['briefs']},{name:'None',items:[]}];
+ export const PERSONAS=[{name:'Warm companion',prompt:'You are a warm, curious adult companion. Be concise, kind and playful. Respond naturally to the conversation.'},{name:'Explorer',prompt:'You are an adventurous adult explorer. Be curious about places, nature and discoveries. Keep replies concise.'},{name:'Fitness coach',prompt:'You are a supportive adult fitness companion. Encourage comfortable movement and realistic goals. Keep replies concise.'},{name:'Storyteller',prompt:'You are an imaginative adult storyteller. Be warm and conversational, with brief vivid stories.'}];
+ export const DEFAULT_DRAFT={name:'Mira',bodyType:'female',faceType:1,hairStyle:0,hairColor:0,eyeDetail:'advanced',hairDetail:'advanced',outfit:0,persona:0,prompt:PERSONAS[0].prompt,shape:{}};
+--- a/mira-v2-piano.js
++++ b/mira-v2-piano.js
+@@ -1,6 +1,6 @@
+ import * as T from 'three';
+-import {tagMovable} from './mira-v2-furniture.js?v=17.0.0';
+-import {unlockSfx,audioContext,sfxMaster} from './mira-v2-sfx.js?v=17.0.0';
++import {tagMovable} from './mira-v2-furniture.js?v=17.1.0';
++import {unlockSfx,audioContext,sfxMaster} from './mira-v2-sfx.js?v=17.1.0';
+ 
+ function midi(n){return 440*Math.pow(2,(n-69)/12);}
+ function durToken(s){let d=4/Number(s.replace('.',''));if(s.endsWith('.'))d*=1.5;return d;}
+--- a/mira-body.js
++++ b/mira-body.js
+@@ -15,24 +15,24 @@
+ import {
+   createMiraSystem, MiraActor, MiraActorV2,
+   ASSET, TEXROOT, TEXVER, FACE_TYPES, HAIR_COLORS, SLIDERS
+-} from './mira-v2.js?v=17.0.0';
+-import {EMOTION_NAMES, IDLE_NAMES, WALK_NAMES, ATTENTION_MODES} from './mira-v2-features.js?v=17.0.0';
++} from './mira-v2.js?v=17.1.0';
++import {EMOTION_NAMES, IDLE_NAMES, WALK_NAMES, ATTENTION_MODES} from './mira-v2-features.js?v=17.1.0';
+ import {
+   V2_EXTRA_SLIDERS, FACE_PRESETS, HAIR_STYLES, ACTIVITY_MODES, shapeSliders
+-} from './mira-v2-controls.js?v=17.0.0';
++} from './mira-v2-controls.js?v=17.1.0';
+ import {
+   FaceDrive, TissueRig, SkinCrease, ContactMotion, XPBDCluster, signedVolume
+-} from './mira-v2-realism.js?v=17.0.0';
++} from './mira-v2-realism.js?v=17.1.0';
+ import {installSurfaceDamping} from './src/body/TissueRig.js';
+ import {blinkEnvelope} from './src/body/FaceDrive.js';
+ import {BOX_FACES, BOX_CORNERS, dampingRate} from './src/body/XPBDCluster.js';
+-import {SurfaceFlesh} from './mira-v2-tissue.js?v=17.0.0';
+-import {LivingEyes} from './mira-v2-eyes.js?v=17.0.0';
+-import {EnhanceEyes} from './mira-v2-tearline.js?v=17.0.0';
+-import {HairGuides, projectHairPoint} from './mira-v2-hair.js?v=17.0.0';
+-import {BodyContacts, BodySurface, bodyVolumes, projectVolume} from './mira-v2-contact.js?v=17.0.0';
+-import {ContactHaptics} from './mira-v2-haptics.js?v=17.0.0';
+-import {RoomLight} from './mira-v2-light.js?v=17.0.0';
++import {SurfaceFlesh} from './mira-v2-tissue.js?v=17.1.0';
++import {LivingEyes} from './mira-v2-eyes.js?v=17.1.0';
++import {EnhanceEyes} from './mira-v2-tearline.js?v=17.1.0';
++import {HairGuides, projectHairPoint} from './mira-v2-hair.js?v=17.1.0';
++import {BodyContacts, BodySurface, bodyVolumes, projectVolume} from './mira-v2-contact.js?v=17.1.0';
++import {ContactHaptics} from './mira-v2-haptics.js?v=17.1.0';
++import {RoomLight} from './mira-v2-light.js?v=17.1.0';
+ 
+ export const MIRA_BODY = {
+   glb: ASSET,
+--- a/mira-basic-voice.js
++++ b/mira-basic-voice.js
+@@ -1,5 +1,5 @@
+ let worker=null,nextId=0;
+ export async function speakBasic(text,ctx,hooks={}){
+- const wav=await new Promise((resolve,reject)=>{if(!worker)worker=new Worker(new URL('./mira-basic-voice-worker.js?v=17.0.0',import.meta.url));const id=++nextId,timer=setTimeout(()=>{worker?.terminate();worker=null;reject(new Error('Basic voice could not load. Check the internet connection.'));},20000);worker.onmessage=({data})=>{if(data.id!==id)return;clearTimeout(timer);data.error?reject(new Error(data.error)):resolve(data.wav);};worker.onerror=()=>{clearTimeout(timer);worker?.terminate();worker=null;reject(new Error('Basic voice could not load.'));};worker.postMessage({id,text});});
++ const wav=await new Promise((resolve,reject)=>{if(!worker)worker=new Worker(new URL('./mira-basic-voice-worker.js?v=17.1.0',import.meta.url));const id=++nextId,timer=setTimeout(()=>{worker?.terminate();worker=null;reject(new Error('Basic voice could not load. Check the internet connection.'));},20000);worker.onmessage=({data})=>{if(data.id!==id)return;clearTimeout(timer);data.error?reject(new Error(data.error)):resolve(data.wav);};worker.onerror=()=>{clearTimeout(timer);worker?.terminate();worker=null;reject(new Error('Basic voice could not load.'));};worker.postMessage({id,text});});
+  const buffer=await ctx.decodeAudioData(wav.buffer.slice(wav.byteOffset,wav.byteOffset+wav.byteLength));await ctx.resume();return new Promise((resolve,reject)=>{try{const source=ctx.createBufferSource();source.buffer=buffer;source.connect(ctx.destination);let raf=0,start=ctx.currentTime;hooks.onStart?.(buffer.duration);const tick=()=>{const t=ctx.currentTime-start;hooks.onAmp?.(.25+.4*Math.abs(Math.sin(t*10)),t,buffer.duration);raf=requestAnimationFrame(tick);};source.onended=()=>{cancelAnimationFrame(raf);source.disconnect();resolve();};source.start();tick();}catch(e){reject(e);}});
+ }
+--- a/mira-v2-nature.js
++++ b/mira-v2-nature.js
+@@ -1,5 +1,5 @@
+ import * as T from 'three';
+-import {tagMovable,furnitureRoot} from './mira-v2-furniture.js?v=17.0.0';
++import {tagMovable,furnitureRoot} from './mira-v2-furniture.js?v=17.1.0';
+ const V=()=>new T.Vector3(),QUEST=/Quest|OculusBrowser/i.test(globalThis.navigator?.userAgent||'');
+ const hash=(x,z)=>{const n=Math.sin(x*127.1+z*311.7)*43758.5453;return n-Math.floor(n);};
+ const smooth=t=>t*t*(3-2*t);
+--- a/mira-v2-preset.js
++++ b/mira-v2-preset.js
+@@ -1,5 +1,5 @@
+-import {GARMENTS} from './mira-v2-garments.js?v=17.0.0';
+-import {draft,saveDraft} from './mira-v2-catalog.js?v=17.0.0';
++import {GARMENTS} from './mira-v2-garments.js?v=17.1.0';
++import {draft,saveDraft} from './mira-v2-catalog.js?v=17.1.0';
+ import * as THREE from 'three';
+ const STORE='mira.human2.presets.v1';
+ const LAST=STORE+'.last';
+--- a/mira-v2-flora.js
++++ b/mira-v2-flora.js
+@@ -1,10 +1,10 @@
+ import * as T from 'three';
+-import {tagMovable,syncFurniture} from './mira-v2-furniture.js?v=17.0.0';
+-import {FloraGrass} from './src/flora/FloraGrass.js?v=17.0.0';
+-import {FloraPlants} from './src/flora/FloraPlants.js?v=17.0.0';
+-import {FloraHarvest} from './src/flora/FloraHarvest.js?v=17.0.0';
+-import {FloraBoulders} from './src/flora/FloraBoulders.js?v=17.0.0';
+-import {FloraDebris} from './src/flora/FloraDebris.js?v=17.0.0';
++import {tagMovable,syncFurniture} from './mira-v2-furniture.js?v=17.1.0';
++import {FloraGrass} from './src/flora/FloraGrass.js?v=17.1.0';
++import {FloraPlants} from './src/flora/FloraPlants.js?v=17.1.0';
++import {FloraHarvest} from './src/flora/FloraHarvest.js?v=17.1.0';
++import {FloraBoulders} from './src/flora/FloraBoulders.js?v=17.1.0';
++import {FloraDebris} from './src/flora/FloraDebris.js?v=17.1.0';
+ // Copy src/* to src/flora/* per module.json. Host imports are dependencies, not bundled copies.
+ export function createFloraSystem(ctx={}){
+  ctx??={};
+--- a/mira-boot.js
++++ b/mira-boot.js
+@@ -1,8 +1,8 @@
+-import {GARMENTS} from './mira-v2-garments.js?v=17.0.0';
+-import {miraSpeak,unlockVoice} from './mira-voice-v2.js?v=17.0.0';
+-import {retryNeuralVoice} from './mira-neural-voice.js?v=17.0.0';
+-import {FACE_PRESETS,HAIR_STYLES,EMOTION_NAMES,IDLE_NAMES,WALK_NAMES,ACTIVITY_MODES,ACTION_LABELS} from './mira-v2-controls.js?v=17.0.0';
+-import {draft,saveDraft,OUTFITS,PERSONAS,clothingItems,setDraftGarment} from './mira-v2-catalog.js?v=17.0.0';
++import {GARMENTS} from './mira-v2-garments.js?v=17.1.0';
++import {miraSpeak,unlockVoice} from './mira-voice-v2.js?v=17.1.0';
++import {retryNeuralVoice} from './mira-neural-voice.js?v=17.1.0';
++import {FACE_PRESETS,HAIR_STYLES,EMOTION_NAMES,IDLE_NAMES,WALK_NAMES,ACTIVITY_MODES,ACTION_LABELS} from './mira-v2-controls.js?v=17.1.0';
++import {draft,saveDraft,OUTFITS,PERSONAS,clothingItems,setDraftGarment} from './mira-v2-catalog.js?v=17.1.0';
+ const $=id=>document.getElementById(id);
+ const hud=$('hud');
+ if(hud){
+@@ -25,4 +25,4 @@
+ sync();for(const [id,key] of Object.entries(fields))$(id).addEventListener('input',()=>{draft[key]=['faceType','hairStyle','hairColor','outfit','persona'].includes(key)?Number($(id).value):$(id).value;if(key==='outfit')delete draft.clothes;if(key==='persona')draft.prompt=PERSONAS[draft.persona].prompt;if(key==='bodyType'){draft.name=draft.bodyType==='male'?'Alex':'Mira';draft.faceType=draft.bodyType==='male'?5:1;draft.hairStyle=draft.bodyType==='male'?8:0;draft.shape={};}saveDraft();sync();});addEventListener('mira:draft',sync);
+ $('retryVoice').onclick=()=>{retryNeuralVoice();$('ttsStatus').textContent='Ready to retry. Press Preview voice.';};
+ $('previewVoice').onclick=async()=>{unlockVoice();delete $('ttsStatus').dataset.engine;$('previewVoice').disabled=true;try{await miraSpeak('Hi, I am Mira. It is lovely to see you.',{voice:$('ttsVoice').value,onStatus:text=>{$('ttsStatus').textContent=text;if(text==='Natural voice ready')$('ttsStatus').dataset.engine='Kokoro';},onStart:()=>{$('ttsStatus').textContent='Playing voice preview';},onEnd:()=>{$('ttsStatus').textContent='Voice preview finished'+($('ttsStatus').dataset.engine?' · '+$('ttsStatus').dataset.engine:'');},onError:text=>$('ttsStatus').textContent=text});}finally{$('previewVoice').disabled=false;}};
+-try{await import('./engine.js?v=17.0.0');}catch(error){console.error(error);$('load').textContent=/WebGL|context/i.test(error?.message||'')?'3D graphics are unavailable in this browser. Open the live demo in a WebGL-enabled desktop browser or Quest Browser. NPC configuration can still be saved.':'Scene startup failed: '+error.message;$('load').style.cssText='left:20px;top:80px;transform:none;max-width:calc(100vw - 365px);letter-spacing:0;padding:15px;background:#211a16';document.querySelectorAll('[data-runtime]').forEach(el=>el.disabled=true);}
++try{await import('./engine.js?v=17.1.0');}catch(error){console.error(error);$('load').textContent=/WebGL|context/i.test(error?.message||'')?'3D graphics are unavailable in this browser. Open the live demo in a WebGL-enabled desktop browser or Quest Browser. NPC configuration can still be saved.':'Scene startup failed: '+error.message;$('load').style.cssText='left:20px;top:80px;transform:none;max-width:calc(100vw - 365px);letter-spacing:0;padding:15px;background:#211a16';document.querySelectorAll('[data-runtime]').forEach(el=>el.disabled=true);}
+--- a/engine-v1.js
++++ b/engine-v1.js
+@@ -1,8 +1,8 @@
+ import * as THREE from "three";
+ import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
+ import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
+-import { createMiraSystem, SLIDERS, FACE_TYPES, HAIR_COLORS } from "./mira-core.js?v=17.0.0";
+-import { DEFAULT_PERSONA, miraChat, miraSpeak, startMic } from "./mira-voice.js?v=17.0.0";
++import { createMiraSystem, SLIDERS, FACE_TYPES, HAIR_COLORS } from "./mira-core.js?v=17.1.0";
++import { DEFAULT_PERSONA, miraChat, miraSpeak, startMic } from "./mira-voice.js?v=17.1.0";
+ 
+ const QUEST = /OculusBrowser|Quest/i.test(navigator.userAgent);
+ const loadEl = document.getElementById("load");
+--- a/mira-v2.js
++++ b/mira-v2.js
+@@ -1,8 +1,8 @@
+-import {restoreSurfaceUV} from './mira-v2-uv.js?v=17.0.0';
+-import {BodyContacts} from './mira-v2-contact.js?v=17.0.0';
+-import {MiraSocial} from './mira-v2-social.js?v=17.0.0';
+-import {ContactHaptics} from './mira-v2-haptics.js?v=17.0.0';
+-import { createV2Class, repairArmRestData, makeFingerRig, fingerRotation } from "./mira-v2-features.js?v=17.0.0";
++import {restoreSurfaceUV} from './mira-v2-uv.js?v=17.1.0';
++import {BodyContacts} from './mira-v2-contact.js?v=17.1.0';
++import {MiraSocial} from './mira-v2-social.js?v=17.1.0';
++import {ContactHaptics} from './mira-v2-haptics.js?v=17.1.0';
++import { createV2Class, repairArmRestData, makeFingerRig, fingerRotation } from "./mira-v2-features.js?v=17.1.0";
+ import * as THREE from "three";
+ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+ import { clone as cloneSkinned } from "three/addons/utils/SkeletonUtils.js";
+--- a/mira-v2-contact.js
++++ b/mira-v2-contact.js
+@@ -1,4 +1,4 @@
+-import {paletteSkinnedVertex} from './modules/human5-skinning.js?v=17.0.0';
++import {paletteSkinnedVertex} from './modules/human5-skinning.js?v=17.1.0';
+ import * as T from 'three';
+ const V=()=>new T.Vector3(),clamp=T.MathUtils.clamp;
+ const limb=n=>/^([LR])_(Upperarm|Forearm|Elbow|Hand|Thumb|Index|Mid|Ring|Pinky)/.test(n)?n[0]+'Arm':/^([LR])_(Thigh|Calf|Knee|Foot|Toe)/.test(n)?n[0]+'Leg':/Head|Eye|Jaw|Neck/.test(n)?'head':'torso';
+--- a/mira-v2-world.js
++++ b/mira-v2-world.js
+@@ -1,8 +1,8 @@
+-import {captureFurniture,tagMovable} from './mira-v2-furniture.js?v=17.0.0';
+-import {Destruction} from './mira-v2-destruction.js?v=17.0.0';
+-import {buildHouse} from './mira-v2-house.js?v=17.0.0';
+-import {buildCastle,inCastleClearing} from './mira-v2-castle.js?v=17.0.0';
+-import {plantTerrain,scatterTrees,tickNature,chopTree as chopNature,ramTree as ramNature,terrainHeight} from './mira-v2-nature.js?v=17.0.0';
++import {captureFurniture,tagMovable} from './mira-v2-furniture.js?v=17.1.0';
++import {Destruction} from './mira-v2-destruction.js?v=17.1.0';
++import {buildHouse} from './mira-v2-house.js?v=17.1.0';
++import {buildCastle,inCastleClearing} from './mira-v2-castle.js?v=17.1.0';
++import {plantTerrain,scatterTrees,tickNature,chopTree as chopNature,ramTree as ramNature,terrainHeight} from './mira-v2-nature.js?v=17.1.0';
+ import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
+ import * as T from 'three';
+ const V=()=>new T.Vector3(),clamp=T.MathUtils.clamp,QUEST=/Quest|OculusBrowser/i.test(globalThis.navigator?.userAgent||'');
+--- a/mira-v2-terrain-features.js
++++ b/mira-v2-terrain-features.js
+@@ -2,8 +2,8 @@
+ import {TerrainHeightfield} from './src/terrain/TerrainHeightfield.js';
+ import {TerrainMesh} from './src/terrain/TerrainMesh.js';
+ import {QuestGrass} from './src/terrain/QuestGrass.js';
+-import {ProceduralTrees} from './src/trees/RealisticTrees.js?v=17.0.0';
+-import {inCastleClearing} from './mira-v2-castle.js?v=17.0.0';
++import {ProceduralTrees} from './src/trees/RealisticTrees.js?v=17.1.0';
++import {inCastleClearing} from './mira-v2-castle.js?v=17.1.0';
+ import {TerrainGun,TERRAIN_WEAPONS,isTerrainGun,makeTerrainGun} from './src/terrain/TerrainGun.js';
+ import {DEFAULT_MAP,defaultMapOptions} from './src/terrain/DefaultMap.js';
+ export {TerrainHeightfield,TerrainMesh,QuestGrass,ProceduralTrees,TerrainGun,TERRAIN_WEAPONS,DEFAULT_MAP};
+@@ -39,6 +39,7 @@
+   }
+   function populate(){
+     if(disposed)return;lastRevision=world.revision;
++    if(world.h5OpenWorld?.enabled&&world.name==='Cul-de-sac')return;
+     const legacy=world.terrain;
+     const biome=world.name==='Beach'?'beach':world.name==='Jungle'?'jungle':config.biome;
+     const fieldKeys=['seed','size','segments','pad','padBlend','mountainHeight','minHeight','maxHeight','biome','thermalPasses','protectPad'];
+@@ -97,7 +98,7 @@
+     if(stair!==null)return stair;
+     const reachable=candidates.filter(h=>h<=y+step);return reachable.length?Math.max(...reachable):Math.min(...candidates);
+   }
+-  const gun=new TerrainGun({props,getTerrain:()=>current,...config.brush});
++  const gun=new TerrainGun({props,getTerrain:()=>world.h5OpenWorld?.active?world.h5OpenWorld.terrainAdapter:current,...config.brush});
+   wrap(world,'floorHeight',()=>floorHeight);
+   wrap(world,'setScene',original=>function(name){
+     if(!['Living room','Jungle','Beach'].includes(name))return original.call(this,name);
+@@ -137,6 +138,7 @@
+   if(autoTick)wrap(props,'tick',original=>function(dt){const result=original.call(this,dt);api.tick(dt);return result;});
+   if(props.flora?.tick)wrap(props.flora,'tick',original=>function(dt){const result=original.call(this,dt);suppressOldGrass();return result;});
+   const api={
++    suspend(){const old=detach();old?.removeFromParent();lastRevision=world.revision;world.terrain=null;},
+     disposed:false,config,gun,get field(){return current?.field;},get mesh(){return current?.mesh;},get grass(){return current?.grass;},get trees(){return current?.trees;},
+     heightAt:(x,z)=>current?.field.heightAt(x,z),normalAt:(x,z,out)=>current?.field.normalAt(x,z,out),
+     sculpt:args=>current?.field.brush(args),raycast:(ray,max)=>current?.mesh.raycast(ray,max),
+@@ -144,7 +146,7 @@
+     restore:data=>{if(data?.format!=='mira-terrain-scene-1'||data.scene!==world.name)throw new Error('Load the matching host scene first');current.field.restore(data.terrain);},
+     loadDefaultMap:()=>world.setScene('Living room'),
+     tick(dt){
+-      if(disposed)return;if(world.revision!==lastRevision){const legacy=detach();legacy?.geometry?.dispose();legacy?.material?.dispose();populate();}
++      if(disposed)return;if(world.h5OpenWorld?.active){gun.tick(dt);return;}if(world.revision!==lastRevision){const legacy=detach();legacy?.geometry?.dispose();legacy?.material?.dispose();populate();}
+       if(!current)return;dt=T.MathUtils.clamp(Number.isFinite(dt)?dt:0,0,.05);
+       props.camera.getWorldPosition(viewer);gun.tick(dt);current.mesh.tick(dt,viewer);
+       if(world.root.visible){if(!props.driving?.())current.grass.tick(dt,viewer);current.trees.tick(dt,viewer);}suppressOldGrass();
+--- a/mira-vr-menu.js
++++ b/mira-vr-menu.js
+@@ -1,13 +1,13 @@
+-import {FURNITURE,SURFACES} from './mira-v2-builder.js?v=17.0.0';
+-import {WEAPONS} from './mira-v2-props.js?v=17.0.0';
+-import {draft,saveDraft,OUTFITS,PERSONAS,clothingItems,setDraftGarment} from './mira-v2-catalog.js?v=17.0.0';
+-import {SCENES} from './mira-v2-world.js?v=17.0.0';
+-import {GARMENTS} from './mira-v2-wardrobe.js?v=17.0.0';
++import {FURNITURE,SURFACES} from './mira-v2-builder.js?v=17.1.0';
++import {WEAPONS} from './mira-v2-props.js?v=17.1.0';
++import {draft,saveDraft,OUTFITS,PERSONAS,clothingItems,setDraftGarment} from './mira-v2-catalog.js?v=17.1.0';
++import {SCENES} from './mira-v2-world.js?v=17.1.0';
++import {GARMENTS} from './mira-v2-wardrobe.js?v=17.1.0';
+ import * as THREE from 'three';
+-import {SLIDERS,FACE_TYPES} from './mira-v2.js?v=17.0.0';
+-import {shapeSliders,FACE_PRESETS,HAIR_STYLES,ACTIVITY_MODES,ACTION_LABELS,POSE_LABELS,ATTENTION_MODES,ATTENTION_LABELS} from './mira-v2-controls.js?v=17.0.0';
+-import {HAIR_COLORS} from './mira-v2.js?v=17.0.0';
+-import {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES} from './mira-v2-features.js?v=17.0.0';
++import {SLIDERS,FACE_TYPES} from './mira-v2.js?v=17.1.0';
++import {shapeSliders,FACE_PRESETS,HAIR_STYLES,ACTIVITY_MODES,ACTION_LABELS,POSE_LABELS,ATTENTION_MODES,ATTENTION_LABELS} from './mira-v2-controls.js?v=17.1.0';
++import {HAIR_COLORS} from './mira-v2.js?v=17.1.0';
++import {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES} from './mira-v2-features.js?v=17.1.0';
+ export function createVRMenu({scene,renderer,camera,system,spawn,onSync,world,wardrobe,spawnConfigured,copyConfiguration,props,saveScene,loadScene}){
+  const canvas=document.createElement('canvas');canvas.width=1024;canvas.height=1320;
+  const ctx=canvas.getContext('2d'),tex=new THREE.CanvasTexture(canvas);tex.colorSpace=THREE.SRGBColorSpace;
+@@ -23,10 +23,21 @@
+   ctx.fillStyle='#eef7ff';ctx.font='bold 42px sans-serif';ctx.fillText('MIRA · BUILD & PLAY',40,62);
+   ctx.font='26px sans-serif';ctx.fillStyle='#b7c8d8';ctx.fillText('Y: close  ·  point + trigger to adjust',40,105);
+   function button(label,x,y,w,h,fn){ctx.fillStyle='#26384b';ctx.fillRect(x,y,w,h);ctx.fillStyle='#edf6ff';ctx.font='25px sans-serif';ctx.textAlign='center';ctx.fillText(label,x+w/2,y+h/2+10);ctx.textAlign='left';items.push({x,y,w,h,fn});}
+-  ['ACTOR','BODY','STYLE','MOOD','POSES','SCENE','SPAWN','LINKS','DRIVE','BUILD'].forEach((n,i)=>button((i===page?'• ':'')+n,12+i*100,140,96,66,()=>{page=i;draw();}));
++  ['ACTOR','BODY','STYLE','MOOD','POSES','SCENE','SPAWN','LINKS','DRIVE','BUILD','WORLD'].forEach((n,i)=>button((i===page?'• ':'')+n,12+i*91,140,87,66,()=>{page=i;draw();}));
+   const a=active();ctx.font='30px sans-serif';ctx.fillStyle='#aed8fb';ctx.fillText(a?`Mira ${system.actors.indexOf(a)+1} · ${a.version.toUpperCase()}`:'No actor selected',40,264);
+   function cycle(label,y,values,get,set){const val=get();ctx.fillStyle='#c9d6e2';ctx.font='28px sans-serif';ctx.fillText(label,40,y);button('‹',40,y+18,90,70,()=>{set(values[(values.indexOf(val)+values.length-1)%values.length]);onSync?.();draw();});button(String(val),144,y+18,734,70,()=>{set(values[(values.indexOf(val)+1)%values.length]);onSync?.();draw();});button('›',892,y+18,90,70,()=>{set(values[(values.indexOf(val)+1)%values.length]);onSync?.();draw();});}
+-  if(page===9){
++  if(page===10){
++   cycle('Weather',325,['auto','clear','clouds','rain','snow'],()=>world.weather?.selection||'auto',v=>world.weather?.choose(v));
++   const region=world.h5OpenWorld,places=Object.keys(region?.landmarks||{});
++   let destination=region?.menuDestination||'Home';
++   cycle('Destination',475,places,()=>destination,v=>{if(region)region.menuDestination=v;});
++   button('TRAVEL TO '+destination.toUpperCase(),40,600,942,72,()=>{notice=region?.travel(destination)?'Arrived':'Exit vehicle before travelling';draw();});
++   const city=region&&[...region.cities.values()].find(c=>c.contains(camera.getWorldPosition(new THREE.Vector3()),5));
++   if(city){cycle('Elevator destination',730,Array.from({length:city.spec.floors},(_,i)=>'Floor '+(i+1)),()=> 'Floor '+((city.motion.queue[0]??city.motion.target)+1),v=>city.motion.request(Number(v.split(' ')[1])-1));}
++   const stats=region?.snapshot();ctx.font='26px sans-serif';ctx.fillStyle='#c9d6e2';ctx.fillText(stats?`${stats.residentCells} terrain cells · ${stats.interiors} building interiors`:'Region unavailable',40,1010);
++   ctx.fillText('Roads connect the city. Trails reach the lake and mountains.',40,1100);
++   ctx.fillText('Elevator wall buttons work with point + trigger.',40,1160);
++  }else if(page===9){
+    const b=world.builder;
+    cycle('Piece',320,['Wall','Floor','Ceiling','Furniture'],()=>b.kind,x=>b.setKind(x));
+    if(b.kind==='Furniture')cycle('Furniture',460,FURNITURE,()=>b.furniture,x=>b.furniture=x);
+@@ -79,7 +90,7 @@
+    button('CLEAR PORTALS',40,958,455,62,()=>{props.gadgets?.clearPortals();draw();});
+    button('DROP',515,958,467,62,()=>props.drop(lastController));
+    button('SAVE SCENE',40,1036,455,62,()=>{notice=saveScene?('Saved '+saveScene()):'Save unavailable';draw();});button('LOAD LAST',515,1036,467,62,()=>{notice=loadScene?loadScene():'Load unavailable';draw();});
+-   button('REBUILD HOUSE',40,1114,942,62,()=>{world.setScene('Living room');notice='House rebuilt';draw();});
++   button('REBUILD HOUSE',40,1114,942,62,()=>{world.setScene(world.name);notice='Map rebuilt';draw();});
+    ctx.font='22px sans-serif';ctx.fillStyle='#c9d6e2';ctx.fillText('Guns hang on the kitchen-wall rack. Trigger fires. Portal gun: blue then orange.',40,1248);
+   }else if(page===0){
+    button('SPAWN V1',40,300,455,80,()=>{spawn('v1');draw();});button('SPAWN V2',515,300,467,80,()=>{spawn('v2');draw();});
+--- a/mira-v2-wardrobe.js
++++ b/mira-v2-wardrobe.js
+@@ -1,9 +1,9 @@
+ import * as T from 'three';
+-import {bodyVolumes,projectVolume} from './mira-v2-contact.js?v=17.0.0';
++import {bodyVolumes,projectVolume} from './mira-v2-contact.js?v=17.1.0';
+ const V=()=>new T.Vector3();
+-import {GARMENTS} from './mira-v2-garments.js?v=17.0.0';
+-export {GARMENTS} from './mira-v2-garments.js?v=17.0.0';
+-import {garmentPattern,fabricMaterial} from './mira-v2-garment-patterns.js?v=17.0.0';
++import {GARMENTS} from './mira-v2-garments.js?v=17.1.0';
++export {GARMENTS} from './mira-v2-garments.js?v=17.1.0';
++import {garmentPattern,fabricMaterial} from './mira-v2-garment-patterns.js?v=17.1.0';
+ export class Cloth {
+  constructor(scene,actor,style,surface){
+   this.actor=actor;this.style=style;this.n=28;this.rows=9;this.p=[];this.prev=[];this.rest=[];this.anchor=[];this.edges=[];this.faces=[];this.torn=new Set();this.acc=0;this.hold=null;this.detached=false;this.age=0;this.anchorBone=actor.bones[style.top<1.05?'Hip':'Spine02'];this.shapeStamp='';this.surface=surface;this.skinAnchors=[];
+--- a/mira-v2-car.js
++++ b/mira-v2-car.js
+@@ -1,6 +1,6 @@
+ import * as T from 'three';
+ import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
+-import {CarAudio,unlockSfx} from './mira-v2-sfx.js?v=17.0.0';
++import {CarAudio,unlockSfx} from './mira-v2-sfx.js?v=17.1.0';
+ const V=()=>new T.Vector3(),Q=()=>new T.Quaternion(),clamp=T.MathUtils.clamp,Y=new T.Vector3(0,1,0);
+ const QUEST=/Quest|OculusBrowser/i.test(globalThis.navigator?.userAgent||'');
+ const GEARS=['P','R','N','D'];
+--- a/engine.js
++++ b/engine.js
+@@ -1,39 +1,40 @@
+-import {Builder,FURNITURE,SURFACES} from './mira-v2-builder.js?v=17.0.0';
+-import {SmoothLocomotion} from './mira-v2-locomotion.js?v=17.0.0';
+-import {Car} from './mira-v2-car.js?v=17.0.0';
+-import {Restraints} from './mira-v2-restraints.js?v=17.0.0';
+-import { createDogSystem } from './mira-v2-dog.js?v=17.0.0';
+-import { installGadgets } from './mira-v2-gadgets.js?v=17.0.0';
+-import {Injuries} from './mira-v2-injuries.js?v=17.0.0';
+-import {Props,WEAPONS,GUNS} from './mira-v2-props.js?v=17.0.0';
+-import {installFire} from './mira-v2-fire.js?v=17.0.0';
+-import {installWeather} from './mira-v2-weather.js?v=17.0.0';
+-import {installTerrainFeatures} from './mira-v2-terrain-features.js?v=17.0.0';
+-import {syncFurniture} from './mira-v2-furniture.js?v=17.0.0';
+-import {installWater} from './mira-v2-water.js?v=17.0.0';
+-import {createFloraSystem} from './mira-v2-flora.js?v=17.0.0';
+-import {EstimatedRoomLight as RoomLight,createQuestLighting} from './modules/human5-lighting.js?v=17.0.0';
+-import {installHuman5Upgrade} from './modules/human5-upgrade.js?v=17.0.0';
+-import {installPerformance} from './modules/human5-performance.js?v=17.0.0';
+-import {createVoiceBridge} from './modules/human5-voice.js?v=17.0.0';
+-import {localTranscribe,warmLocalSpeech,stopLocalSpeech} from './mira-local-speech.js?v=17.0.0';
++import {Builder,FURNITURE,SURFACES} from './mira-v2-builder.js?v=17.1.0';
++import {SmoothLocomotion} from './mira-v2-locomotion.js?v=17.1.0';
++import {Car} from './mira-v2-car.js?v=17.1.0';
++import {Restraints} from './mira-v2-restraints.js?v=17.1.0';
++import { createDogSystem } from './mira-v2-dog.js?v=17.1.0';
++import { installGadgets } from './mira-v2-gadgets.js?v=17.1.0';
++import {Injuries} from './mira-v2-injuries.js?v=17.1.0';
++import {Props,WEAPONS,GUNS} from './mira-v2-props.js?v=17.1.0';
++import {installFire} from './mira-v2-fire.js?v=17.1.0';
++import {installWeather} from './mira-v2-weather.js?v=17.1.0';
++import {installTerrainFeatures} from './mira-v2-terrain-features.js?v=17.1.0';
++import {syncFurniture} from './mira-v2-furniture.js?v=17.1.0';
++import {installWater} from './mira-v2-water.js?v=17.1.0';
++import {createFloraSystem} from './mira-v2-flora.js?v=17.1.0';
++import {EstimatedRoomLight as RoomLight,createQuestLighting} from './modules/human5-lighting.js?v=17.1.0';
++import {installHuman5Upgrade} from './modules/human5-upgrade.js?v=17.1.0';
++import {installPerformance} from './modules/human5-performance.js?v=17.1.0';
++import {installOpenWorld} from './modules/human5-openworld.js?v=17.1.0';
++import {createVoiceBridge} from './modules/human5-voice.js?v=17.1.0';
++import {localTranscribe,warmLocalSpeech,stopLocalSpeech} from './mira-local-speech.js?v=17.1.0';
+ const voiceInput=createVoiceBridge({localTranscribe,warmLocalSpeech,stopLocalSpeech});
+ const startMic=voiceInput.startMic;
+ let xrMicAttempted=false;
+-import {draft,saveDraft,spawnOptions,OUTFITS,clothingItems} from './mira-v2-catalog.js?v=17.0.0';
+-import {MiraWorld,SCENES} from './mira-v2-world.js?v=17.0.0';
+-import {Wardrobe,GARMENTS} from './mira-v2-wardrobe.js?v=17.0.0';
++import {draft,saveDraft,spawnOptions,OUTFITS,clothingItems} from './mira-v2-catalog.js?v=17.1.0';
++import {MiraWorld,SCENES} from './mira-v2-world.js?v=17.1.0';
++import {Wardrobe,GARMENTS} from './mira-v2-wardrobe.js?v=17.1.0';
+ import * as THREE from "three";
+ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+-import { createVRMenu } from "./mira-vr-menu.js?v=17.0.0";
+-import { snapshot, savePreset, loadPreset, applyPreset, listPresets, lastPresetName, downloadPreset } from "./mira-v2-preset.js?v=17.0.0";
+-import { unlockSfx } from "./mira-v2-sfx.js?v=17.0.0";
+-import { EMOTION_NAMES, IDLE_NAMES, WALK_NAMES, ATTENTION_MODES } from "./mira-v2-features.js?v=17.0.0";
++import { createVRMenu } from "./mira-vr-menu.js?v=17.1.0";
++import { snapshot, savePreset, loadPreset, applyPreset, listPresets, lastPresetName, downloadPreset } from "./mira-v2-preset.js?v=17.1.0";
++import { unlockSfx } from "./mira-v2-sfx.js?v=17.1.0";
++import { EMOTION_NAMES, IDLE_NAMES, WALK_NAMES, ATTENTION_MODES } from "./mira-v2-features.js?v=17.1.0";
+ import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
+-import { createMiraSystem, SLIDERS, FACE_TYPES, HAIR_COLORS } from "./mira-v2.js?v=17.0.0";
+-import { DEFAULT_PERSONA, miraChat, miraSpeak, unlockVoice } from "./mira-voice-v2.js?v=17.0.0";
+-
+-import {V2_EXTRA_SLIDERS,FACE_PRESETS,HAIR_STYLES,ACTIVITY_MODES,ATTENTION_LABELS,shapeSliders} from './mira-v2-controls.js?v=17.0.0';
++import { createMiraSystem, SLIDERS, FACE_TYPES, HAIR_COLORS } from "./mira-v2.js?v=17.1.0";
++import { DEFAULT_PERSONA, miraChat, miraSpeak, unlockVoice } from "./mira-voice-v2.js?v=17.1.0";
++
++import {V2_EXTRA_SLIDERS,FACE_PRESETS,HAIR_STYLES,ACTIVITY_MODES,ATTENTION_LABELS,shapeSliders} from './mira-v2-controls.js?v=17.1.0';
+ 
+ const QUEST = /OculusBrowser|Quest/i.test(navigator.userAgent);
+ const loadEl = document.getElementById("load");
+@@ -132,6 +133,7 @@
+ const builder=new Builder(world,wardrobe,props);props.builder=builder;
+ const roomLight=new RoomLight(scene,renderer,rig);
+ const upgrade=installHuman5Upgrade({scene,renderer,camera,world,mira,props,wardrobe,water,quest:QUEST,daylight});
++const openWorld=installOpenWorld({world,scene,renderer,camera,rig,props,mira,upgrade,weather,quest:QUEST});
+ const performanceController=installPerformance({renderer,scene,camera,world,mira,props,upgrade,quest:QUEST});
+ let voiceSessionStart=()=>{},voiceSessionEnd=()=>{};
+ banner("LOADING HUMAN 5…");
+@@ -146,7 +148,7 @@
+     stockPantry();
+     const dogNameEl=document.getElementById('dogName');
+     if(dogNameEl)dogNameEl.value=dogs.list?.()[0]?.displayName||'Buddy';
+-    if (new URLSearchParams(location.search).has("debug")) window.human2 = { mira, scene, renderer, camera, rig, keys, orbit, world, wardrobe, props, dogs, water, flora, gadgets, terrainFeatures, fire, weather, upgrade, voiceInput, performanceController };
++    if (new URLSearchParams(location.search).has("debug")) window.human2 = { mira, scene, renderer, camera, rig, keys, orbit, world, wardrobe, props, dogs, water, flora, gadgets, terrainFeatures, fire, weather, upgrade, voiceInput, performanceController, openWorld };
+   },
+   (e) => { banner("LOAD FAILED — " + (e && e.message ? e.message : "glb")); console.error(e); }
+ );
+@@ -523,6 +525,7 @@
+   if (rawDt > 0.22 && mira.ready) { mira.resetPhysics(false); props.resetMotion(); }
+   const dt = Math.min(rawDt, 0.05);
+   upgrade.beforeFrame(dt);
++  openWorld.tick(dt);
+   performanceController.beforeFrame(dt);
+   performanceController.budget.mark("upgrades");
+   desktopMove(dt);
+--- a/mira-v2-features.js
++++ b/mira-v2-features.js
+@@ -1,12 +1,12 @@
+-import {LivingEyes} from './mira-v2-eyes.js?v=17.0.0';
+-import {EnhanceEyes} from './mira-v2-tearline.js?v=17.0.0';
+-import {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES,V2_EXTRA_SLIDERS,FACE_PRESETS,EXERCISE_MODES,ATTENTION_MODES} from './mira-v2-controls.js?v=17.0.0';
+-export {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES,ATTENTION_MODES} from './mira-v2-controls.js?v=17.0.0';
++import {LivingEyes} from './mira-v2-eyes.js?v=17.1.0';
++import {EnhanceEyes} from './mira-v2-tearline.js?v=17.1.0';
++import {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES,V2_EXTRA_SLIDERS,FACE_PRESETS,EXERCISE_MODES,ATTENTION_MODES} from './mira-v2-controls.js?v=17.1.0';
++export {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES,ATTENTION_MODES} from './mira-v2-controls.js?v=17.1.0';
+ import * as THREE from 'three';
+-import {restoreSurfaceUV} from './mira-v2-uv.js?v=17.0.0';
+-import {HairGuides} from './mira-v2-hair.js?v=17.0.0';
+-import {SurfaceFlesh} from './mira-v2-tissue.js?v=17.0.0';
+-import {installV2Realism} from './mira-v2-realism.js?v=17.0.0';
++import {restoreSurfaceUV} from './mira-v2-uv.js?v=17.1.0';
++import {HairGuides} from './mira-v2-hair.js?v=17.1.0';
++import {SurfaceFlesh} from './mira-v2-tissue.js?v=17.1.0';
++import {installV2Realism} from './mira-v2-realism.js?v=17.1.0';
+ 
+ // Mira v2: a bounded real-time approximation for this CC3 rig, Three r170.
+ const clamp = THREE.MathUtils.clamp, damp = THREE.MathUtils.damp;
+--- a/mira-v2-castle.js
++++ b/mira-v2-castle.js
+@@ -1,6 +1,6 @@
+ import * as T from 'three';
+-import {makeSurfaceMap,wallMaterial} from './mira-v2-walls.js?v=17.0.0';
+-import {placeStairs,placeFurniture} from './mira-v2-furniture.js?v=17.0.0';
++import {makeSurfaceMap,wallMaterial} from './mira-v2-walls.js?v=17.1.0';
++import {placeStairs,placeFurniture} from './mira-v2-furniture.js?v=17.1.0';
+ const STORY=3.05,CELL=.6;
+ export const CASTLE={x:0,z:-42,w:16.8,d:16.8,gateZ:-33.6};
+ export const PATH={x:0,z0:-8.15,z1:-33.35,w:3.4};
+--- a/mira-neural-voice.js
++++ b/mira-neural-voice.js
+@@ -1,6 +1,6 @@
+ let worker,serial=0,failed=false;const jobs=new Map();
+ export function retryNeuralVoice(){failed=false;worker?.terminate();worker=null;for(const job of jobs.values()){clearTimeout(job.timer);job.reject(new Error('Voice restarted'));}jobs.clear();}
+-function render(text,voice,status){if(failed)return Promise.reject(new Error('Natural voice unavailable; use Retry'));if(!worker){worker=new Worker(new URL('./mira-neural-voice-worker.js?v=17.0.0',import.meta.url),{type:'module'});worker.onmessage=({data})=>{const job=jobs.get(data.id);if(!job)return;if(data.status){job.status?.(data.status);return;}jobs.delete(data.id);clearTimeout(job.timer);data.error?job.reject(new Error(data.error)):job.resolve(data);};worker.onerror=e=>{failed=true;for(const job of jobs.values()){clearTimeout(job.timer);job.reject(new Error(e.message||'Voice worker failed'));}jobs.clear();worker.terminate();worker=null;};}
++function render(text,voice,status){if(failed)return Promise.reject(new Error('Natural voice unavailable; use Retry'));if(!worker){worker=new Worker(new URL('./mira-neural-voice-worker.js?v=17.1.0',import.meta.url),{type:'module'});worker.onmessage=({data})=>{const job=jobs.get(data.id);if(!job)return;if(data.status){job.status?.(data.status);return;}jobs.delete(data.id);clearTimeout(job.timer);data.error?job.reject(new Error(data.error)):job.resolve(data);};worker.onerror=e=>{failed=true;for(const job of jobs.values()){clearTimeout(job.timer);job.reject(new Error(e.message||'Voice worker failed'));}jobs.clear();worker.terminate();worker=null;};}
+  return new Promise((resolve,reject)=>{const id=++serial,timer=setTimeout(()=>{jobs.delete(id);failed=true;reject(new Error('Natural voice download or generation timed out'));},180000);jobs.set(id,{resolve,reject,timer,status});worker.postMessage({id,text,voice});});}
+ export async function speakNeural(text,context,hooks={}){if(!context)throw new Error('Click a voice control first to enable audio');hooks.onStatus?.('Loading natural voice…');const {pcm,rate}=await render(text,hooks.voice||'af_heart',hooks.onStatus);hooks.onStatus?.('Natural voice ready');await context.resume();if(context.state!=='running')throw new Error('Audio is suspended; click Preview voice to enable it');
+  const buffer=context.createBuffer(1,pcm.length,rate);buffer.copyToChannel(pcm,0);const source=context.createBufferSource();source.buffer=buffer;source.connect(context.destination);const duration=buffer.duration;await new Promise(resolve=>{const start=context.currentTime;let raf;source.onended=()=>{cancelAnimationFrame(raf);source.disconnect();hooks.onEnd?.();resolve();};const animate=()=>{const t=context.currentTime-start,i=Math.floor(t*rate);let sum=0,count=0;for(let k=i;k<Math.min(pcm.length,i+512);k++){sum+=pcm[k]*pcm[k];count++;}hooks.onAmp?.(Math.min(1,Math.sqrt(sum/Math.max(1,count))*5),t,duration);raf=requestAnimationFrame(animate);};source.start();hooks.onStart?.(duration);animate();});}
+--- a/mira-v2-house.js
++++ b/mira-v2-house.js
+@@ -1,12 +1,12 @@
+ import * as T from 'three';
+ import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
+-import {makeSurfaceMap,wallMaterial} from './mira-v2-walls.js?v=17.0.0';
+-import {placeStairs,placeFurniture,tagMovable} from './mira-v2-furniture.js?v=17.0.0';
+-import {detailToilet,detailFridge,detailMicrowave,detailSink,detailBathtub,detailLamp,detailTvStand,detailBed,detailNightstand,detailDresser,detailBookshelf,detailDesk,detailBarStool,detailCabinet,detailMirror,detailCounter,detailCoffee,detailTable} from './mira-v2-furnish.js?v=17.0.0';
+-import {installWeights} from './mira-v2-weights.js?v=17.0.0';
+-import {installLaundry,installPantry} from './mira-v2-laundry.js?v=17.0.0';
+-import {installPiano} from './mira-v2-piano.js?v=17.0.0';
+-import {HouseDoors} from './mira-v2-doors.js?v=17.0.0';
++import {makeSurfaceMap,wallMaterial} from './mira-v2-walls.js?v=17.1.0';
++import {placeStairs,placeFurniture,tagMovable} from './mira-v2-furniture.js?v=17.1.0';
++import {detailToilet,detailFridge,detailMicrowave,detailSink,detailBathtub,detailLamp,detailTvStand,detailBed,detailNightstand,detailDresser,detailBookshelf,detailDesk,detailBarStool,detailCabinet,detailMirror,detailCounter,detailCoffee,detailTable} from './mira-v2-furnish.js?v=17.1.0';
++import {installWeights} from './mira-v2-weights.js?v=17.1.0';
++import {installLaundry,installPantry} from './mira-v2-laundry.js?v=17.1.0';
++import {installPiano} from './mira-v2-piano.js?v=17.1.0';
++import {HouseDoors} from './mira-v2-doors.js?v=17.1.0';
+ const STORY=3.05,CELL=.6;
+ const doorHole=(axis,c,w=1.14,head=2.14)=>{
+  const r=w/2+CELL*.55;
+--- a/mira-v2-destruction.js
++++ b/mira-v2-destruction.js
+@@ -1,6 +1,6 @@
+ import * as T from 'three';
+-import {playSfx,sfxForBreak} from './mira-v2-sfx.js?v=17.0.0';
+-import {WallSystem,wallMaterial} from './mira-v2-walls.js?v=17.0.0';
++import {playSfx,sfxForBreak} from './mira-v2-sfx.js?v=17.1.0';
++import {WallSystem,wallMaterial} from './mira-v2-walls.js?v=17.1.0';
+ const V=()=>new T.Vector3(),Q=()=>new T.Quaternion();
+ const MATERIALS={plaster:{health:48,density:650,color:0xc9c1b1},wood:{health:70,density:600,color:0x806047},glass:{health:11,density:2500,color:0x9fc1c7},stone:{health:210,density:2400,color:0x85847c},metal:{health:190,density:7800,color:0x929b9d}};
+ export class Destruction {
+--- a/mira-v2-floorplan.js
++++ b/mira-v2-floorplan.js
+@@ -5,10 +5,10 @@
+  */
+ import * as T from 'three';
+ import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
+-import {makeSurfaceMap,wallMaterial} from './mira-v2-walls.js?v=17.0.0';
+-import {placeStairs} from './mira-v2-furniture.js?v=17.0.0';
+-import {HouseDoors} from './mira-v2-doors.js?v=17.0.0';
+-import {Destruction} from './mira-v2-destruction.js?v=17.0.0';
++import {makeSurfaceMap,wallMaterial} from './mira-v2-walls.js?v=17.1.0';
++import {placeStairs} from './mira-v2-furniture.js?v=17.1.0';
++import {HouseDoors} from './mira-v2-doors.js?v=17.1.0';
++import {Destruction} from './mira-v2-destruction.js?v=17.1.0';
+ 
+ export const CELL=.6;
+ export const STORY=3.05;
+--- a/mira-v2-water.js
++++ b/mira-v2-water.js
+@@ -118,7 +118,7 @@
+   let lo=-Infinity,hi=Infinity;for(const k of ['x','y','z']){if(Math.abs(d[k])<1e-8){if(o[k]<b.box.min[k]||o[k]>b.box.max[k])return null;}else{const a=(b.box.min[k]-o[k])/d[k],c=(b.box.max[k]-o[k])/d[k];lo=Math.max(lo,Math.min(a,c));hi=Math.min(hi,Math.max(a,c));}}return hi>=lo?{floor:lo,rim:hi}:null;
+  }
+  function basinSample(b,x,z,empty=false){if(!visible(b.group)||(!empty&&b.volume<=1e-8))return null;const c=column(b,x,z);if(!c)return null;let surface=Math.min(b.level,c.rim);if(b.ripple){const p=new T.Vector3(x,surface,z).applyMatrix4(b.inverse);surface=Math.min(c.rim,surface+b.ripple.sample((p.x-b.box.min.x)/(b.box.max.x-b.box.min.x),(p.z-b.box.min.z)/(b.box.max.z-b.box.min.z)));}return {surface,floor:c.floor,current:new T.Vector3()};}
+- function sample(x,z,empty=false){let found=null;for(const b of basins){const s=basinSample(b,x,z,empty);if(s&&(empty||s.surface>s.floor)&&(!found||s.surface>found.surface))found={...s,body:b};}for(const b of bodies){const s=bodySample(b,x,z);if(s&&(!found||s.surface>found.surface))found={...s,body:b};}return found;}
++ function sample(x,z,empty=false){let found=world.h5OpenWorld?.sampleWater(x,z)||null;for(const b of basins){const s=basinSample(b,x,z,empty);if(s&&(empty||s.surface>s.floor)&&(!found||s.surface>found.surface))found={...s,body:b};}for(const b of bodies){const s=bodySample(b,x,z);if(s&&(!found||s.surface>found.surface))found={...s,body:b};}return found;}
+  function updateBasin(b){
+   b.group.updateWorldMatrix(true,true);b.inverse.copy(b.group.matrixWorld).invert();b.uniforms.basinInverse.value.copy(b.inverse);
+   const bounds=new T.Box3(),rim=[];for(const x of [b.box.min.x,b.box.max.x])for(const z of [b.box.min.z,b.box.max.z]){const top=b.group.localToWorld(new T.Vector3(x,b.box.max.y,z)),bot=b.group.localToWorld(new T.Vector3(x,b.box.min.y,z));bounds.expandByPoint(top);bounds.expandByPoint(bot);rim.push(top);}
+--- a/mira-v2-weather.js
++++ b/mira-v2-weather.js
+@@ -88,7 +88,7 @@
+ 
+  const dummy=new T.Object3D(),ray=new T.Raycaster(),down=new T.Vector3(0,-1,0),up=new T.Vector3(0,1,0),upAxis=new T.Vector3(0,1,0);
+  const wetMats=new Map();
+- let mode='clouds',modeT=12+Math.random()*18,next=0,seed=1,wetApplied=-1;
++ let mode='clouds',automatic=true,modeT=120+Math.random()*180,next=0,seed=1,wetApplied=-1;
+  const state={coverage:.4,rain:0,snow:0,wet:0,snowCover:0,label:'Cloudy'};
+  const origLights=new Map();
+  for(const [k,l] of Object.entries(lights))if(l)origLights.set(k,{l,i:l.intensity,c:l.color.clone()});
+@@ -125,7 +125,7 @@
+   }
+  }
+  function setMode(nextMode){
+-  mode=nextMode;modeT=24+rng()*36;
++  mode=nextMode;modeT=120+rng()*180;
+   state.label=mode==='rain'?'Rain':mode==='snow'?'Snow':mode==='clouds'?'Cloudy':'Clear';
+  }
+  function targets(){
+@@ -168,10 +168,12 @@
+   group,state,
+   get label(){return state.label;},
+   setMode,
++  get selection(){return automatic?'auto':mode;},
++  choose(value){if(!['auto','clear','clouds','rain','snow'].includes(value))throw new TypeError('Unknown weather');automatic=value==='auto';if(!automatic)setMode(value);else modeT=120+rng()*180;},
+   tick(dt,cam){
+    if(!cam||(renderer?.xr?.isPresenting&&!scene.background)){group.visible=false;return;}
+    group.visible=true;
+-   dt=Math.min(.05,dt);modeT-=dt;
++   dt=Math.min(.05,dt);if(automatic)modeT-=dt;
+    if(modeT<=0)setMode(MODES[(MODES.indexOf(mode)+1)%MODES.length]||'clouds');
+    const want=targets();
+    state.coverage+=(want.coverage-state.coverage)*Math.min(1,dt*.35);
+@@ -190,7 +192,7 @@
+    const far=Number.isFinite(cam.far)&&cam.far>1?cam.far:450;
+    const fogCol=u.horizon.value;
+    bgColor.copy(fogCol);
+-   if(world.scene?.fog){world.scene.fog.color.copy(fogCol);world.scene.fog.near=state.rain>.2?32:Math.min(90,far*.22);world.scene.fog.far=Math.min(far*.9,state.rain>.2?140:280);}
++   if(world.scene?.fog){world.scene.fog.color.copy(fogCol);world.scene.fog.near=state.rain>.2?32:Math.min(90,far*.22);world.scene.fog.far=Math.min(far*.9,state.rain>.2?180:world.h5OpenWorld?.active?1250:280);}
+    if(scene.background?.isColor)scene.background.copy(fogCol);
+    else if(!renderer?.xr?.isPresenting)scene.background=bgColor.clone();
+    renderer?.setClearColor?.(fogCol,1);
+@@ -205,7 +207,7 @@
+     for(const d of rainDrop){
+      d.y-=d.v*dt;d.x+=wind*dt;d.z+=.4*dt;
+      if(d.y<c.y-6){d.y=c.y+8+rng()*10;d.x=c.x+(rng()-.5)*span*2;d.z=c.z+(rng()-.5)*span*2;}
+-     dummy.position.set(d.x,d.y,d.z);dummy.rotation.set(0,0,.12);dummy.scale.set(1,1+state.rain,1);dummy.updateMatrix();
++     dummy.position.set(d.x,d.y,d.z);dummy.rotation.set(0,0,.12);dummy.scale.set(1,1+state.rain,1);if(world.h5OpenWorld?.isSheltered(dummy.position))dummy.scale.setScalar(0);dummy.updateMatrix();
+      if(rc<rain.count)rain.setMatrixAt(rc++,dummy.matrix);
+     }
+     rain.instanceMatrix.needsUpdate=true;rain.visible=true;rainMat.opacity=.28+.3*state.rain;
+@@ -217,7 +219,7 @@
+     for(const d of flake){
+      d.y-=(.7+d.s*4)*dt;d.x+=Math.sin(t*1.4+d.w)*.35*dt;d.z+=Math.cos(t*1.1+d.w)*.28*dt;
+      if(d.y<c.y-5){d.y=c.y+6+rng()*9;d.x=c.x+(rng()-.5)*span*2;d.z=c.z+(rng()-.5)*span*2;}
+-     dummy.position.set(d.x,d.y,d.z);dummy.rotation.set(0,t+d.w,0);dummy.scale.setScalar(d.s*12);dummy.updateMatrix();
++     dummy.position.set(d.x,d.y,d.z);dummy.rotation.set(0,t+d.w,0);dummy.scale.setScalar(d.s*12);if(world.h5OpenWorld?.isSheltered(dummy.position))dummy.scale.setScalar(0);dummy.updateMatrix();
+      if(fc<flakes.count)flakes.setMatrixAt(fc++,dummy.matrix);
+     }
+     flakes.instanceMatrix.needsUpdate=true;flakes.visible=true;
+--- a/mira-furniture.js
++++ b/mira-furniture.js
+@@ -9,15 +9,15 @@
+   FURNITURE, DENSITY, FURNITURE_MIX, blendedDensity,
+   furnitureRoot, syncFurniture, tagMovable, cloneFurniture,
+   captureFurniture, placeFurniture, placeStairs
+-} from './mira-v2-furniture.js?v=17.0.0';
++} from './mira-v2-furniture.js?v=17.1.0';
+ export {
+   detailToilet, detailFridge, detailMicrowave, detailSink, detailBathtub,
+   detailLamp, detailTvStand, detailBed, detailNightstand, detailDresser,
+   detailBookshelf, detailDesk, detailBarStool, detailCabinet, detailMirror,
+   detailCounter, detailCoffee, detailTable
+-} from './mira-v2-furnish.js?v=17.0.0';
+-export {installPiano, SONGS} from './mira-v2-piano.js?v=17.0.0';
+-export {Destruction} from './mira-v2-destruction.js?v=17.0.0';
++} from './mira-v2-furnish.js?v=17.1.0';
++export {installPiano, SONGS} from './mira-v2-piano.js?v=17.1.0';
++export {Destruction} from './mira-v2-destruction.js?v=17.1.0';
+ export {HUMAN5, ASTRA_RULES, briefFor, sessionPrompt} from './mira-context.js';
+ 
+ /** Minimal world so furniture can spawn and occupy obstacles without the house. */
+--- a/index.html
++++ b/index.html
+@@ -210,6 +210,6 @@
+         <button type="button" class="ghost" id="firstPerson" data-runtime>First person</button>
+       </div>
+     </div>
+-    <script type="module" src="/human5/mira-boot.js?v=17.0.0"></script>
++    <script type="module" src="/human5/mira-boot.js?v=17.1.0"></script>
+   </body>
+ </html>
+--- a/mira-v2-gadgets.js
++++ b/mira-v2-gadgets.js
+@@ -1,5 +1,5 @@
+ import * as T from 'three';
+-import {playSfx,unlockSfx} from './mira-v2-sfx.js?v=17.0.0';
++import {playSfx,unlockSfx} from './mira-v2-sfx.js?v=17.1.0';
+ const V=()=>new T.Vector3(),Q=()=>new T.Quaternion(),M=()=>new T.Matrix4();
+ const QUEST=/Quest|OculusBrowser/i.test(globalThis.navigator?.userAgent||'');
+ export const GUNS=['pistol','laser','rifle','sniper','shotgun','uzi','marker','marker2','portal','torch'];
+--- a/mira-v2-props.js
++++ b/mira-v2-props.js
+@@ -1,12 +1,12 @@
+ import * as T from 'three';
+ import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
+-import {playSfx,sfxForHit,unlockSfx} from './mira-v2-sfx.js?v=17.0.0';
+-import {furnitureRoot,syncFurniture} from './mira-v2-furniture.js?v=17.0.0';
+-import {ensureGrabbableWood} from './mira-v2-nature.js?v=17.0.0';
+-import {GUNS,MELEE,buildMarker,buildPortalGun} from './mira-v2-gadgets.js?v=17.0.0';
+-import {FIREARMS,buildFirearm,firearmSpread} from './mira-v2-firearms.js?v=17.0.0';
+-import {buildTorch,buildExtinguisher} from './mira-v2-fire.js?v=17.0.0';
+-import {installWeightPhysics,throwSpeed} from './mira-v2-weights.js?v=17.0.0';
++import {playSfx,sfxForHit,unlockSfx} from './mira-v2-sfx.js?v=17.1.0';
++import {furnitureRoot,syncFurniture} from './mira-v2-furniture.js?v=17.1.0';
++import {ensureGrabbableWood} from './mira-v2-nature.js?v=17.1.0';
++import {GUNS,MELEE,buildMarker,buildPortalGun} from './mira-v2-gadgets.js?v=17.1.0';
++import {FIREARMS,buildFirearm,firearmSpread} from './mira-v2-firearms.js?v=17.1.0';
++import {buildTorch,buildExtinguisher} from './mira-v2-fire.js?v=17.1.0';
++import {installWeightPhysics,throwSpeed} from './mira-v2-weights.js?v=17.1.0';
+ const V=()=>new T.Vector3(),Q=()=>new T.Quaternion();
+ const visible=o=>{while(o){if(!o.visible)return false;o=o.parent;}return true;};
+ const G=w=>Number.isFinite(w?.gravity)?w.gravity:9.81;
+--- a/mira-house.js
++++ b/mira-house.js
+@@ -13,12 +13,12 @@
+   createHouseKit, createHouseWorld, clearHouse,
+   realizeFloorplan, addRoomLabels, addCellGrid,
+   AS_BUILT_PLAN, PRECISE_PLAN, PLANS
+-} from './mira-v2-floorplan.js?v=17.0.0';
+-export {HouseDoors} from './mira-v2-doors.js?v=17.0.0';
+-export {Builder, layout, SURFACES} from './mira-v2-builder.js?v=17.0.0';
+-export {makeSurfaceMap, wallMaterial} from './mira-v2-walls.js?v=17.0.0';
+-export {placeStairs} from './mira-v2-furniture.js?v=17.0.0';
+-export {Destruction} from './mira-v2-destruction.js?v=17.0.0';
++} from './mira-v2-floorplan.js?v=17.1.0';
++export {HouseDoors} from './mira-v2-doors.js?v=17.1.0';
++export {Builder, layout, SURFACES} from './mira-v2-builder.js?v=17.1.0';
++export {makeSurfaceMap, wallMaterial} from './mira-v2-walls.js?v=17.1.0';
++export {placeStairs} from './mira-v2-furniture.js?v=17.1.0';
++export {Destruction} from './mira-v2-destruction.js?v=17.1.0';
+ export {HUMAN5, ASTRA_RULES, briefFor, sessionPrompt} from './mira-context.js';
+ 
+ export const HOUSE = {
+--- a/mira-v2-walls.js
++++ b/mira-v2-walls.js
+@@ -1,5 +1,5 @@
+ import * as T from 'three';
+-import {playSfx} from './mira-v2-sfx.js?v=17.0.0';
++import {playSfx} from './mira-v2-sfx.js?v=17.1.0';
+ const V=()=>new T.Vector3(),Q=()=>new T.Quaternion(),CELL=.6,STORY=3.05;
+ const QUEST=/Quest|OculusBrowser/i.test(globalThis.navigator?.userAgent||'');
+ const PALETTE={Plaster:0xc9c1b1,Brick:0xa26148,Wood:0x947051,Tile:0xc3c7c1,Stone:0x85847c,Castle:0x8a8478,Metal:0x929b9d,Glass:0x9fc1c7,Shingle:0x5c4034};
+--- a/mira-v2-weights.js
++++ b/mira-v2-weights.js
+@@ -1,5 +1,5 @@
+ import * as T from 'three';
+-import {tagMovable,syncFurniture} from './mira-v2-furniture.js?v=17.0.0';
++import {tagMovable,syncFurniture} from './mira-v2-furniture.js?v=17.1.0';
+ const V=()=>new T.Vector3();
+ export const PLATES=[
+  {kg:25,color:0x2f7a3a,r:.225,t:.056,n:2},
+--- a/src/trees/RealisticTrees.js
++++ b/src/trees/RealisticTrees.js
+@@ -1,6 +1,6 @@
+ import * as T from 'three';
+-import {makeTreeGeometry,makeTreeMaterial,random,SPECIES} from './TreeGeometry.js?v=17.0.0';
+-import {FallingLeaves} from './FallingLeaves.js?v=17.0.0';
++import {makeTreeGeometry,makeTreeMaterial,random,SPECIES} from './TreeGeometry.js?v=17.1.0';
++import {FallingLeaves} from './FallingLeaves.js?v=17.1.0';
+ export const FOREST_PRESETS=Object.freeze({quest:{near:28,mid:65,far:180,nearCount:6,midCount:24,leaves:48},quality:{near:40,mid:90,far:240,nearCount:12,midCount:40,leaves:80}});
+ // API-compatible replacement for the first terrain module's ProceduralTrees.
+ export class ProceduralTrees {
+--- a/src/trees/FallingLeaves.js
++++ b/src/trees/FallingLeaves.js
+@@ -1,5 +1,5 @@
+ import * as T from 'three';
+-import {random,SPECIES} from './TreeGeometry.js?v=17.0.0';
++import {random,SPECIES} from './TreeGeometry.js?v=17.1.0';
+ export class FallingLeaves {
+  constructor(field,root,{capacity=48,rate=2,seed=44}={}){
+   this.field=field;this.capacity=Math.max(0,Math.min(128,capacity|0));this.rate=rate;this.random=random(seed);this.pool=Array.from({length:this.capacity},()=>({active:false,p:new T.Vector3(),v:new T.Vector3(),q:new T.Vector3(),age:0,grounded:0,size:1}));this.emit=0;this.time=0;this.dummy=new T.Object3D();
+--- a/src/flora/FloraBoulders.js
++++ b/src/flora/FloraBoulders.js
+@@ -1,5 +1,5 @@
+ import * as T from 'three';
+-import {rockGeometry} from './FloraDebris.js?v=17.0.0';
++import {rockGeometry} from './FloraDebris.js?v=17.1.0';
+ export class FloraBoulders {
+  constructor(env,debris){this.env=env;this.debris=debris;this.replaced=[];}
+  replaceHost(){const e=this.env,spots=[[1.55,-.65],[-1.55,-1.7],[2.9,.55]],found=[];e.world.root?.traverse(o=>{if(!o.isMesh||o.userData.flora||o.userData.furnRoot||o.geometry?.type!=='IcosahedronGeometry')return;const p=o.getWorldPosition(new T.Vector3());if(spots.some(([x,z])=>Math.hypot(p.x-x,p.z-z)<.17))found.push(o);});
+--- a/src/dog/DogItems.js
++++ b/src/dog/DogItems.js
+@@ -1,5 +1,5 @@
+ import * as THREE from 'three';
+-import { floorAt } from './DogPaws.js?v=17.0.0';
++import { floorAt } from './DogPaws.js?v=17.1.0';
+ const V=()=>new THREE.Vector3(),R=.018,CAP=200;
+ const pos=(p,out=V())=>Array.isArray(p)?out.fromArray(p):p?.isVector3?out.copy(p):out.set(p?.x||0,p?.y||0,p?.z||0);
+ 
+--- a/src/dog/DogAI.js
++++ b/src/dog/DogAI.js
+@@ -1,6 +1,6 @@
+ import * as THREE from 'three';
+-import { clamp } from './Dog.js?v=17.0.0';
+-import { floorAt } from './DogPaws.js?v=17.0.0';
++import { clamp } from './Dog.js?v=17.1.0';
++import { floorAt } from './DogPaws.js?v=17.1.0';
+ const V=()=>new THREE.Vector3(),Y=new THREE.Vector3(0,1,0),angle=a=>Math.atan2(Math.sin(a),Math.cos(a));
+ export class DogAI {
+  constructor(model,ctx){
+--- a/src/dog/DogNeeds.js
++++ b/src/dog/DogNeeds.js
+@@ -1,4 +1,4 @@
+-import { clamp } from './Dog.js?v=17.0.0';
++import { clamp } from './Dog.js?v=17.1.0';
+ 
+ // All four meters measure reserves: zero hunger means starving.
+ export class DogNeeds {
+--- a/src/dog/DogAnim.js
++++ b/src/dog/DogAnim.js
+@@ -1,4 +1,4 @@
+-import { clamp } from './Dog.js?v=17.0.0';
++import { clamp } from './Dog.js?v=17.1.0';
+ export class DogAnim {
+  constructor(model,paws,jaw,tail,ai,bark){Object.assign(this,{model,paws,jaw,tail,ai,bark});this.time=0;this.wag=0;this.nextBurst=8+Math.random()*10;this.sit=0;this.down=0;this.forage=0;this.bow=0;}
+  tick(dt){
+--- a/src/dog/DogPaws.js
++++ b/src/dog/DogPaws.js
+@@ -1,5 +1,5 @@
+ import * as THREE from 'three';
+-import { clamp } from './Dog.js?v=17.0.0';
++import { clamp } from './Dog.js?v=17.1.0';
+ const vec=a=>new THREE.Vector3(...a);
+ 
+ export function floorAt(world,x,z,fallback=0) {
+--- a/src/dog/DogTail.js
++++ b/src/dog/DogTail.js
+@@ -1,5 +1,5 @@
+ import * as THREE from 'three';
+-import { clamp } from './Dog.js?v=17.0.0';
++import { clamp } from './Dog.js?v=17.1.0';
+ export class DogTail {
+   constructor(model){
+     this.model=model;this.amount=0;this.points=[];this.previous=[];this.lengths=[];this.accumulator=0;this.time=0;
+--- a/src/dog/DogJaw.js
++++ b/src/dog/DogJaw.js
+@@ -1,5 +1,5 @@
+ import * as THREE from 'three';
+-import { clamp } from './Dog.js?v=17.0.0';
++import { clamp } from './Dog.js?v=17.1.0';
+ 
+ export class DogJaw {
+   constructor(model){

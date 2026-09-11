@@ -1,0 +1,36 @@
+import * as T from 'three';
+import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
+
+/** Consolidate rigid, opaque pieces; ray hits still resolve to their original parts. */
+export class RigidBatches {
+  constructor(world){this.world=world;this.entries=new Map();}
+  add(root){if(this.entries.has(root))return;root.updateWorldMatrix(true,true);const groups=new Map();
+    root.traverse(mesh=>{const m=mesh.material;if(!mesh.isMesh||mesh.isSkinnedMesh||mesh.isInstancedMesh||!m?.isMeshStandardMaterial||m.isMeshPhysicalMaterial||m.transparent||m.alphaTest||m.vertexColors||mesh.userData.h5Batch||mesh.userData.h5Cushion||mesh.customDepthMaterial)return;
+      if(m.onBeforeCompile!==T.Material.prototype.onBeforeCompile||m.normalMap||m.roughnessMap||m.alphaMap||m.emissiveMap)return;
+      const key=[m.map?.uuid||'',m.roughness,m.metalness,m.side,m.envMapIntensity,m.emissive.getHex(),mesh.castShadow,mesh.receiveShadow].join('/');if(!groups.has(key))groups.set(key,[]);groups.get(key).push(mesh);
+    });
+    const entry={root,groups:[],stamp:''};for(const sources of groups.values())if(sources.length>=2)entry.groups.push({sources,mesh:null,material:null,layers:sources.map(m=>m.layers.mask)});
+    if(!entry.groups.length)return;this.entries.set(root,entry);this.rebuild(entry);
+  }
+  stamp(entry){return entry.groups.flatMap(g=>g.sources.map(m=>m.visible?'1':'0')).join('');}
+  rebuild(entry){const root=entry.root;root.updateWorldMatrix(true,true);const inv=root.matrixWorld.clone().invert();
+    for(const group of entry.groups){const old=group.mesh;if(old){old.removeFromParent();old.geometry.dispose();this.world.pickables=this.world.pickables.filter(m=>m!==old);}group.mesh=null;
+      const geometries=[],ranges=[];let start=0;
+      for(const source of group.sources){source.layers.set(31);if(!source.visible)continue;let g=source.geometry.clone();if(g.index){const indexed=g;g=indexed.toNonIndexed();indexed.dispose();}
+        for(const name of Object.keys(g.attributes))if(!['position','normal','uv'].includes(name))g.deleteAttribute(name);
+        if(!g.attributes.uv)g.setAttribute('uv',new T.BufferAttribute(new Float32Array(g.attributes.position.count*2),2));g.applyMatrix4(inv.clone().multiply(source.matrixWorld));
+        const colors=new Float32Array(g.attributes.position.count*3);for(let i=0;i<colors.length;i+=3)source.material.color.toArray(colors,i);g.setAttribute('color',new T.BufferAttribute(colors,3));g.clearGroups();
+        const end=start+g.attributes.position.count/3;ranges.push({source,start,end});start=end;geometries.push(g);
+      }
+      if(!geometries.length)continue;const geometry=mergeGeometries(geometries);geometries.forEach(g=>g.dispose());if(!group.material){group.material=group.sources[0].material.clone();group.material.color.setHex(0xffffff);group.material.vertexColors=true;}
+      const mesh=new T.Mesh(geometry,group.material);mesh.name='Rigid parts batch';mesh.userData.h5Batch=true;mesh.userData.furnRoot=root.userData.furniture?root:undefined;mesh.castShadow=group.sources[0].castShadow;mesh.receiveShadow=group.sources[0].receiveShadow;
+      const raycast=T.Mesh.prototype.raycast;
+      mesh.raycast=function(raycaster,out){const hits=[];raycast.call(this,raycaster,hits);for(const hit of hits){const range=ranges.find(r=>hit.faceIndex>=r.start&&hit.faceIndex<r.end);if(!range||!range.source.visible)continue;const original=range.source;hit.object=original;hit.faceIndex-=range.start;
+          if(hit.face){hit.face={...hit.face,normal:hit.face.normal.clone().applyMatrix3(new T.Matrix3().getNormalMatrix(mesh.matrixWorld)).applyMatrix3(new T.Matrix3().getNormalMatrix(original.matrixWorld.clone().invert())).normalize()};}out.push(hit);}};
+      root.add(mesh);this.world.pickables.push(mesh);group.mesh=mesh;
+    }entry.stamp=this.stamp(entry);
+  }
+  tick(){for(const [root,e] of this.entries){if(!root.parent){this.release(e);this.entries.delete(root);continue;}if(this.stamp(e)!==e.stamp)this.rebuild(e);}}
+  release(e){for(const g of e.groups){g.sources.forEach((m,i)=>m.layers.mask=g.layers[i]);if(g.mesh){g.mesh.removeFromParent();g.mesh.geometry.dispose();this.world.pickables=this.world.pickables.filter(m=>m!==g.mesh);}g.material?.dispose();}}
+  clear(){for(const e of this.entries.values())this.release(e);this.entries.clear();}
+}

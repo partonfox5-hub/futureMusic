@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Human5 context pack</title>
+  <style>
+    html, body { margin: 0; background: #1c1814; color: #f4efe8; font: 15px/1.5 "Segoe UI", sans-serif; }
+    main { max-width: 52rem; margin: 0 auto; padding: 28px 22px 64px; }
+    h1 { font-size: 1.55rem; letter-spacing: .06em; margin: 0 0 8px; }
+    h2 { font-size: .95rem; letter-spacing: .12em; color: #c9a27a; margin: 28px 0 8px; text-transform: uppercase; }
+    .tag { display: inline-block; font-size: 11px; letter-spacing: .14em; color: #7eb6ff; border: 1px solid #7eb6ff; padding: 2px 8px; margin-bottom: 10px; }
+    p, li { color: #d8d0c6; }
+    pre { background: #14110f; border: 1px solid #3d4e66; border-radius: 10px; padding: 12px 14px; overflow: auto; white-space: pre-wrap; font: 12px/1.45 ui-monospace, Consolas, monospace; color: #edf5ff; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { text-align: left; vertical-align: top; padding: 6px 8px; border-bottom: 1px solid #3a332c; }
+    th { color: #7eb6ff; font-weight: 600; }
+    a { color: #7eb6ff; }
+    select { background: #192536; color: white; border: 1px solid #7eb6ff; border-radius: 5px; padding: 6px 8px; font: 14px sans-serif; }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="tag" id="ver">CONTEXT</div>
+    <h1>Human5 project memory</h1>
+    <p id="what"></p>
+    <p>
+      Pack
+      <select id="pack">
+        <option value="furniture">furniture</option>
+        <option value="body">body</option>
+        <option value="lighting">lighting</option>
+        <option value="house">house</option>
+        <option value="context">context</option>
+      </select>
+    </p>
+    <h2>Session prompt for the selected pack</h2>
+    <pre id="prompt"></pre>
+    <h2>Packs</h2>
+    <table id="packs"></table>
+    <h2>Cross-cuts</h2>
+    <table id="cuts"></table>
+    <h2>Do not</h2>
+    <ul id="dont"></ul>
+    <p><a href="ASTRA.md">ASTRA.md</a> · <a href="WIRING.md">WIRING.md</a></p>
+  </main>
+  <script type="module">
+    import {HUMAN5, sessionPrompt} from '../mira-context.js';
+    document.getElementById('ver').textContent =
+      'LOCAL ' + HUMAN5.version.local + ' · PROD ' + HUMAN5.version.production;
+    document.getElementById('what').textContent = HUMAN5.what + ' ' + HUMAN5.version.push;
+    const packTable = document.getElementById('packs');
+    packTable.innerHTML = '<tr><th>Pack</th><th>API</th><th>Owns</th><th>Must not</th></tr>' +
+      Object.entries(HUMAN5.packs).map(([, p]) =>
+        '<tr><td>' + p.id + '</td><td><code>' + p.api + '</code></td><td>' + p.owns +
+        '</td><td>' + (p.mustNot || '—') + '</td></tr>'
+      ).join('');
+    const cutTable = document.getElementById('cuts');
+    cutTable.innerHTML = '<tr><th>Id</th><th>Packs</th><th>Note</th></tr>' +
+      HUMAN5.crossCuts.map(c =>
+        '<tr><td>' + c.id + '</td><td>' + c.packs.join(', ') + '</td><td>' + c.note + '</td></tr>'
+      ).join('');
+    document.getElementById('dont').innerHTML = HUMAN5.doNot.map(x => '<li>' + x + '</li>').join('');
+    const sel = document.getElementById('pack');
+    const promptEl = document.getElementById('prompt');
+    const render = () => { promptEl.textContent = sessionPrompt(sel.value); };
+    sel.onchange = render;
+    render();
+  </script>
+</body>
+</html>
