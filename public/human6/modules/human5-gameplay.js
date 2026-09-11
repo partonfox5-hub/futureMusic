@@ -1,9 +1,9 @@
 import * as T from 'three';
-import {installCombat,ARMOR_PRESETS} from './human5-combat.js?v=17.8.0';
-import {installPetRefinement} from './human5-pets.js?v=17.8.0';
-import {installNPCBehavior,NPC_ROLES,NPC_MODES,FOLLOWER_ORDERS} from './human5-npc-behavior.js?v=17.8.0';
-import {installNavigation} from './human5-navigation.js?v=17.8.0';
-import {wrapMethod} from './human5-common.js?v=17.8.0';
+import {installCombat,ARMOR_PRESETS} from './human5-combat.js?v=18.0.0';
+import {installPetRefinement} from './human5-pets.js?v=18.0.0';
+import {installNPCBehavior,NPC_ROLES,NPC_MODES,FOLLOWER_ORDERS} from './human5-npc-behavior.js?v=18.0.0';
+import {installNavigation} from './human5-navigation.js?v=18.0.0';
+import {wrapMethod} from './human5-common.js?v=18.0.0';
 
 export function installGameplay(ctx){const {world,mira,props,dogs,camera,scene,wardrobe}=ctx;if(world.h5Gameplay)return world.h5Gameplay;
  const combat=installCombat(ctx),pets=installPetRefinement(ctx),npcs=installNPCBehavior({...ctx,combat}),navigation=installNavigation(world),restores=[];let ui=null,fetchPet=null;
@@ -26,6 +26,7 @@ export function installGameplay(ctx){const {world,mira,props,dogs,camera,scene,w
   select('NPC armor',Object.entries(ARMOR_PRESETS).map(([k,v])=>[k,v.name]),v=>api.armor=v);button('EQUIP SELECTED NPC ARMOR',()=>combat.equip(mira.selected,api.armor));
   button('TOGGLE SELECTED NPC INVINCIBILITY',()=>combat.setInvincible(mira.selected,!mira.selected?.h5Invincible));button('TOGGLE ALL NPC INVINCIBILITY',()=>combat.allInvincible=!combat.allInvincible);
   select('Player armor',Object.entries(ARMOR_PRESETS).map(([k,v])=>[k,v.name]),v=>api.playerArmor=v);button('EQUIP PLAYER ARMOR',()=>combat.equip('player',api.playerArmor));button('RESTORE PLAYER HEALTH',()=>combat.heal('player'));
+  const petBreeds=dogs.breeds||{};select('Pet breed',Object.entries(petBreeds).map(([id,b])=>[id,b.name]),v=>api.petBreed=v);button('SPAWN BREED',()=>{const id=api.petBreed||'labrador';dogs.spawn({species:petBreeds[id].species,breed:id});});button('REMOVE SELECTED PET',()=>dogs.despawn(api.pet()));
   button('PET FETCH: THEN POINT AT OBJECT',()=>api.fetch());button('PET DROP',()=>pets.release(api.pet()));button('PET FOLLOW',()=>api.pet()?.setFollow(true));root.append(ui);
  }
  return api;

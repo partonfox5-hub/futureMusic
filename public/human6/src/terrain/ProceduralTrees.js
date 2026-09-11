@@ -1,12 +1,13 @@
+import {seasons} from '../../modules/human5-seasons.js?v=18.0.0';
 import * as T from 'three';
 import {hash,noise} from './TerrainHeightfield.js';
 function treeGeometry(pine=false,detail=true){
-  const positions=[],normals=[],colors=[],index=[];
+  const positions=[],normals=[],colors=[],index=[],foliage=[];
   const append=(g,position,scale,color,rotation=new T.Quaternion())=>{
     const mat=new T.Matrix4().compose(position,rotation,scale),nm=new T.Matrix3().getNormalMatrix(mat),v=new T.Vector3(),n=new T.Vector3(),c=new T.Color(color),offset=positions.length/3;
     for(let i=0;i<g.attributes.position.count;i++){
       v.fromBufferAttribute(g.attributes.position,i).applyMatrix4(mat);n.fromBufferAttribute(g.attributes.normal,i).applyMatrix3(nm).normalize();positions.push(v.x,v.y,v.z);normals.push(n.x,n.y,n.z);
-      const shade=.78+hash(i,offset,33)*.30;colors.push(c.r*shade,c.g*shade,c.b*shade);
+      const shade=.78+hash(i,offset,33)*.30;colors.push(c.r*shade,c.g*shade,c.b*shade);foliage.push(c.g>c.r?(pine?2:1):0);
     }
     if(g.index)for(const i of g.index.array)index.push(i+offset);else for(let i=0;i<g.attributes.position.count;i++)index.push(i+offset);g.dispose();
   };
@@ -24,13 +25,14 @@ function treeGeometry(pine=false,detail=true){
       append(g,v(Math.cos(a)*r,h,Math.sin(a)*r),v(1.12,1.01,.95),i%2?0x506d35:0x648044);
     }
   }
-  const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(positions,3));g.setAttribute('normal',new T.Float32BufferAttribute(normals,3));g.setAttribute('color',new T.Float32BufferAttribute(colors,3));g.setIndex(index);g.computeBoundingSphere();return g;
+  const g=new T.BufferGeometry();g.setAttribute('h5TreeLeaf',new T.Float32BufferAttribute(foliage,1));g.setAttribute('position',new T.Float32BufferAttribute(positions,3));g.setAttribute('normal',new T.Float32BufferAttribute(normals,3));g.setAttribute('color',new T.Float32BufferAttribute(colors,3));g.setIndex(index);g.computeBoundingSphere();return g;
 }
 export class ProceduralTrees {
   constructor(field,{root,world,count=280,clearance=26,exclude=()=>false}={}){
     this.field=field;this.world=world;this.clearance=clearance;this.exclude=exclude;this.trees=[];this.obstacles=[];this.batches=[];this.last=new T.Vector3(Infinity,0,Infinity);this.clock=1;
     this.root=new T.Group();this.root.name='Default map trees';root?.add(this.root);
-    this.material=new T.MeshStandardMaterial({vertexColors:true,roughness:.94});
+    this.material=new T.MeshStandardMaterial({vertexColors:true,roughness:.94});this.seasonUniform={value:1};this.offSeason=seasons.subscribe(mode=>{this.seasonUniform.value=['spring','summer','autumn','winter'].indexOf(mode);});this.material.onBeforeCompile=s=>{s.uniforms.h5TreeSeason=this.seasonUniform;s.vertexShader=s.vertexShader.replace('#include <common>','#include <common>\nattribute float h5TreeLeaf;varying float h5TreeLeafV;').replace('#include <begin_vertex>','#include <begin_vertex>\nh5TreeLeafV=h5TreeLeaf;');s.fragmentShader=s.fragmentShader.replace('#include <common>','#include <common>\nvarying float h5TreeLeafV;uniform float h5TreeSeason;').replace('#include <color_fragment>',`#include <color_fragment>
+if(h5TreeLeafV>.5&&h5TreeLeafV<1.5){if(h5TreeSeason>2.5)discard;if(h5TreeSeason>1.5)diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.60,.22,.04),.84);if(h5TreeSeason<.5)diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.32,.50,.17),.45);}`);};this.material.customProgramCacheKey=()=> 'h5-legacy-tree-seasons-1';
     const extent=field.half-18,seed=field.options.seed,grid=new Map(),spacing=9;
     for(let attempt=0;attempt<count*30&&this.trees.length<count;attempt++){
       const x=(hash(attempt,31,seed)*2-1)*extent,z=(hash(attempt,32,seed)*2-1)*extent;
@@ -58,5 +60,5 @@ export class ProceduralTrees {
       dummy.position.set(t.x,t.y-.035,t.z);dummy.rotation.set(0,t.yaw,0);dummy.scale.set(t.scale,t.scale*(.88+hash(Math.round(t.x),Math.round(t.z),5)*.2),t.scale);dummy.updateMatrix();b.mesh.setMatrixAt(n++,dummy.matrix);
     }b.mesh.count=n;b.mesh.visible=n>0;b.mesh.instanceMatrix.needsUpdate=true;b.mesh.computeBoundingSphere();}
   }
-  dispose(){this.off();this.root.removeFromParent();for(const b of this.batches)b.mesh.geometry.dispose();this.material.dispose();for(const o of this.obstacles)this.world?.removeObstacle?.(o);}
+  dispose(){this.offSeason();this.off();this.root.removeFromParent();for(const b of this.batches)b.mesh.geometry.dispose();this.material.dispose();for(const o of this.obstacles)this.world?.removeObstacle?.(o);}
 }

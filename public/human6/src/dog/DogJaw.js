@@ -1,9 +1,10 @@
 import * as THREE from 'three';
-import { clamp } from './Dog.js?v=17.8.0';
+import { clamp } from './Dog.js?v=18.0.0';
 
 export class DogJaw {
   constructor(model){
     this.model=model;this.manual=0;this.value=0;this.barkAge=Infinity;this.peak=.7;
+    if(model.breed){this.mesh={morphTargetInfluences:[0]};return;}
     const gum=model.material({color:0x35201e,roughness:.65}),tooth=model.material({color:0xdbd1b4,roughness:.40}),cat=model.species==='cat';
     if(cat){
       model.ellipsoid('mouth',[0,.708,.432],[.024,.009,.016],'Head',gum,'coat',12,6);

@@ -3,7 +3,7 @@ import * as THREE from 'three';
 export class DogBite {
  constructor(handle,ctx,items){this.handle=handle;this.ctx=ctx;this.items=items;this.cooldown=0;this.ray=new THREE.Raycaster();this.ray.near=0;this.ray.far=.22;}
  tick(dt){this.cooldown=Math.max(0,this.cooldown-dt);}
- muzzle(out=new THREE.Vector3()){const h=this.handle,cat=h.kind==='cat'||h._model?.species==='cat';h.root.updateMatrixWorld(true);return h.bones.Head.localToWorld(out.set(0,cat?-.012:-.015,cat?.085:.246));}
+ muzzle(out=new THREE.Vector3()){const h=this.handle,cat=h.kind==='cat'||h._model?.species==='cat';h._model.updatePoseWorld();return h.bones.Head.localToWorld(h._model.muzzleOffset?out.copy(h._model.muzzleOffset):out.set(0,cat?-.012:-.015,cat?.085:.246));}
  direction(out=new THREE.Vector3()){return out.set(0,0,1).applyQuaternion(this.handle.bones.Head.getWorldQuaternion(new THREE.Quaternion())).normalize();}
  snap(target=null){
   const h=this.handle;if(this.cooldown>0||h.dead||h.h5Mouth?.held||h._ai.held||h.root.userData.waterSwimming)return false;

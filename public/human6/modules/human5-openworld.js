@@ -1,9 +1,9 @@
 import * as T from 'three';
-import {WorldField,CELL_SIZE,CITY_BLOCKS,cellKey,desiredCells,hash2} from './human5-worldfield.js?v=17.8.0';
-import {terrainMaterial,terrainCell,farTerrain,buildRoutes,createLandscapeWater,createForestCell,createFarForest} from './human5-worldrender.js?v=17.8.0';
-import {createCityBuilding} from './human5-city.js?v=17.8.0';
-import {wrapMethod,V,clamp,detachMovable} from './human5-common.js?v=17.8.0';
-import {tagMovable,placeFurniture} from '../mira-v2-furniture.js?v=17.8.0';
+import {WorldField,CELL_SIZE,CITY_BLOCKS,cellKey,desiredCells,hash2} from './human5-worldfield.js?v=18.0.0';
+import {terrainMaterial,terrainCell,farTerrain,buildRoutes,createLandscapeWater,createForestCell,createFarForest} from './human5-worldrender.js?v=18.0.0';
+import {createCityBuilding} from './human5-city.js?v=18.0.0';
+import {wrapMethod,V,clamp,detachMovable} from './human5-common.js?v=18.0.0';
+import {tagMovable,placeFurniture} from '../mira-v2-furniture.js?v=18.0.0';
 export const LANDMARKS=Object.freeze({Home:[0,2],City:[160,72],Restaurant:[144,44],Penthouse:[305,95],Lake:[-239,241],Forest:[-140,-115],Mountains:[-541,-450],Volcano:[716,-555]});
 export function installOpenWorld({world,scene,renderer,camera,rig,props,mira,upgrade,weather,quest=true}={}){
  if(world.h5OpenWorld)return world.h5OpenWorld;
@@ -83,7 +83,7 @@ export function installOpenWorld({world,scene,renderer,camera,rig,props,mira,upg
   snapshot(){return {format:'human5.world.stats/1',sizeMetres:CELL_SIZE*22,residentCells:cells.size,pinnedViews:pinnedViews.size,pendingCells:pending.length+(job?1:0),interiors:cities.size,blocks:field.blocks.length,trees:[...cells.values()].reduce((n,c)=>n+c.forest.trees.filter(t=>!t.dead).length,0),terrainEdits:field.edits.size,felledTrees:state.felled.size,lastBuildMs:buildMs,totalBuildMs};},
   tick(dt){time.value+=dt;createUI();if(!active())return;const cam=renderer.xr.isPresenting?renderer.xr.getCamera(camera):camera;cam.getWorldPosition(viewer);feet.copy(viewer);feet.y-=renderer.xr.isPresenting?Math.max(1.2,Math.min(1.9,camera.position.y||1.6)):1.6;water.tick(dt,viewer);
    for(const c of cities.values()){c.tick(dt,feet,carry);const near=c.contains(viewer,82)||[...pinnedViews.values()].some(q=>c.contains(q,4));c.root.visible=near;for(const g of c.furniture){const f=g.userData.furniture;g.visible=near||f?.held!=null||f?.holds?.size||(f?.velocity?.lengthSq()||0)>.01;}}
-   scan-=dt;let builtCity=false;if(scan<=0){scan=.35;const center=cellKey(viewer.x,viewer.z);if(center!==lastCenter){lastCenter=center;updateQueue(viewer);}updateForest(viewer);builtCity=updateCity(viewer);for(const c of cells.values()){c.forest.trunk.castShadow=c.forest.broad.castShadow=c.forest.pine.castShadow=Math.hypot((c.x+.5)*CELL_SIZE-viewer.x,(c.z+.5)*CELL_SIZE-viewer.z)<95;}}
+   scan-=dt;let builtCity=false;if(scan<=0){scan=.35;const center=cellKey(viewer.x,viewer.z);if(center!==lastCenter){lastCenter=center;updateQueue(viewer);}updateForest(viewer);builtCity=updateCity(viewer);for(const c of cells.values()){const dx=Math.max(0,Math.abs((c.x+.5)*CELL_SIZE-viewer.x)-CELL_SIZE*.5),dz=Math.max(0,Math.abs((c.z+.5)*CELL_SIZE-viewer.z)-CELL_SIZE*.5);c.forest.setDetail(Math.hypot(dx,dz)<(quest?22:65));c.forest.trunk.castShadow=c.forest.broad.castShadow=c.forest.pine.castShadow=Math.hypot((c.x+.5)*CELL_SIZE-viewer.x,(c.z+.5)*CELL_SIZE-viewer.z)<95;}}
    if(!builtCity)buildSlice();
    if(dirty.size&&!job){const key=dirty.values().next().value;dirty.delete(key);const old=cells.get(key);if(old){removeCell(old);far.mask(new Set(cells.keys()));canopy?.mask(new Set(cells.keys()));pending.unshift({key,x:old.x,z:old.z,d:0});}if(time.value-lastFarUpdate>.5){far.refresh();lastFarUpdate=time.value;}}
    for(const car of props.cars())if(car.h5Vehicle)car.h5Vehicle.wetness=()=>weather.state.wet;

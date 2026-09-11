@@ -12,21 +12,20 @@ export const HUMAN5 = {
   name: 'Human5',
   title: 'Mira · Human simulator',
   what: 'A first-person / Quest WebXR house you share with Mira (and optionally a dog, cat, cars, guns). Desktop orbit or pointer-lock WASD. Not Unreal, not photogrammetry, not a full cloth/ragdoll solver — approximations stay Quest-bounded.',
-  url: 'https://futuremusic.online/human5/',
-  local: 'http://localhost:8765/human5/',
+  url: 'https://futuremusic.online/human6/',
+  local: 'http://localhost:8765/human6/',
   repo: 'https://github.com/partonfox5-hub/futureMusic.git',
-  path: 'public/human5/',
+  path: 'public/human6/',
   three: '0.170.0',
   units: 'meters',
   up: 'Y',
   gravity: 9.81,
   cacheQuery: 'v',
   version: {
-    local: '16.2',
-    production: '16.0',
-    productionCommit: '7694c21',
-    productionUrl: 'https://futuremusic.online/human5/?v=16.0',
-    localUrl: 'http://localhost:8765/human5/?v=16.2',
+    local: '18.0.1',
+    production: '18.0.1',
+    productionUrl: 'https://futuremusic.online/human6/?v=18.0.1',
+    localUrl: 'http://localhost:8765/human6/?v=18.0.1',
     push: 'Do not git push unless the owner asked. Never force-push origin master.'
   },
   hosts: {
@@ -42,7 +41,7 @@ export const HUMAN5 = {
   ],
 
   mira: {
-    glb: 'assets/mira.glb?v=13',
+    glb: 'assets/mira.glb?v=18.0.0',
     tex: 'assets/tex/?v=r12',
     verts: 14164,
     morphs: 49,

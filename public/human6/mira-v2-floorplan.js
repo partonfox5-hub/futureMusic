@@ -5,10 +5,10 @@
  */
 import * as T from 'three';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
-import {makeSurfaceMap,wallMaterial} from './mira-v2-walls.js?v=17.8.0';
-import {placeStairs} from './mira-v2-furniture.js?v=17.8.0';
-import {HouseDoors} from './mira-v2-doors.js?v=17.8.0';
-import {Destruction} from './mira-v2-destruction.js?v=17.8.0';
+import {makeSurfaceMap,wallMaterial} from './mira-v2-walls.js?v=18.0.0';
+import {placeStairs} from './mira-v2-furniture.js?v=18.0.0';
+import {HouseDoors} from './mira-v2-doors.js?v=18.0.0';
+import {Destruction} from './mira-v2-destruction.js?v=18.0.0';
 
 export const CELL=.6;
 export const STORY=3.05;

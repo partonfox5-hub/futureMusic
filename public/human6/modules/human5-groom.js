@@ -1,5 +1,5 @@
 import * as T from 'three';
-import {V,clamp,smooth,gravityOf,wrapMethod,rng} from './human5-common.js?v=17.8.0';
+import {V,clamp,smooth,gravityOf,wrapMethod,rng} from './human5-common.js?v=18.0.0';
 
 /** Fitted crown and overlapping straight cards. Two draws; bounded guide physics.
  * Coordinates are metres in this project's CC3 rest mesh, before Head bind.

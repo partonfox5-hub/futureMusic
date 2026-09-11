@@ -9,15 +9,15 @@ export {
   FURNITURE, DENSITY, FURNITURE_MIX, blendedDensity,
   furnitureRoot, syncFurniture, tagMovable, cloneFurniture,
   captureFurniture, placeFurniture, placeStairs
-} from './mira-v2-furniture.js?v=17.8.0';
+} from './mira-v2-furniture.js?v=18.0.0';
 export {
   detailToilet, detailFridge, detailMicrowave, detailSink, detailBathtub,
   detailLamp, detailTvStand, detailBed, detailNightstand, detailDresser,
   detailBookshelf, detailDesk, detailBarStool, detailCabinet, detailMirror,
   detailCounter, detailCoffee, detailTable
-} from './mira-v2-furnish.js?v=17.8.0';
-export {installPiano, SONGS} from './mira-v2-piano.js?v=17.8.0';
-export {Destruction} from './mira-v2-destruction.js?v=17.8.0';
+} from './mira-v2-furnish.js?v=18.0.0';
+export {installPiano, SONGS} from './mira-v2-piano.js?v=18.0.0';
+export {Destruction} from './mira-v2-destruction.js?v=18.0.0';
 export {HUMAN5, ASTRA_RULES, briefFor, sessionPrompt} from './mira-context.js';
 
 /** Minimal world so furniture can spawn and occupy obstacles without the house. */

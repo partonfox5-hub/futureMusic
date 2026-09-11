@@ -1,6 +1,6 @@
 import * as T from 'three';
-import {V,clamp,wrapMethod} from './human5-common.js?v=17.8.0';
-import {RigidBatches} from './human5-batching.js?v=17.8.0';
+import {V,clamp,wrapMethod} from './human5-common.js?v=18.0.0';
+import {RigidBatches} from './human5-batching.js?v=18.0.0';
 export const QUEST_PROFILES=Object.freeze([
   {name:'detail',foveation:.35,interiorRange:20,pile:1200,mirrorHz:24,portalHz:24,shadowHz:36},
   {name:'balanced',foveation:.55,interiorRange:15,pile:800,mirrorHz:18,portalHz:18,shadowHz:24},
@@ -50,10 +50,12 @@ export class FrameBudget {
 /** Retain physics for held/moving objects; skip unchanged sleeping furniture work. */
 export function installFurnitureSleep(props){const records=new WeakMap();let time=0;
   return wrapMethod(props,'tickFurniture',old=>function(dt){time+=dt;const world=this.world,full=world.movables||[],sleeping=new Set(),active=[];
-    for(const g of full){const f=g.userData.furniture,p=g.position,q=g.quaternion,s=g.scale;if(!f){active.push(g);continue;}const stamp=[p.x,p.y,p.z,q.x,q.y,q.z,q.w,s.x,s.y,s.z].join('/'),r=records.get(g);
-      const moving=(f.velocity?.lengthSq()||0)+(f.omega?.lengthSq()||0)>4e-5,held=f.held!=null||f.holds?.size||[...this.furnHolds.values()].some(h=>h.group===g);
-      if(r&&!moving&&!held&&r.stamp===stamp&&r.revision===world.revision&&time<r.checkAt){sleeping.add(g);continue;}
-      active.push(g);records.set(g,{stamp,revision:world.revision,checkAt:time+(!moving&&!held&&r?.stamp===stamp? .40:0)});
+    const heldGroups=new Set([...this.furnHolds.values()].map(h=>h.group));
+    for(const g of full){const f=g.userData.furniture;if(!f){active.push(g);continue;}let r=records.get(g);
+      const moving=(f.velocity?.lengthSq()||0)+(f.omega?.lengthSq()||0)>4e-5,held=f.held!=null||f.holds?.size||heldGroups.has(g);
+      const same=r&&r.p.equals(g.position)&&r.q.equals(g.quaternion)&&r.s.equals(g.scale);
+      if(same&&!moving&&!held&&r.revision===world.revision&&time<r.checkAt){sleeping.add(g);continue;}
+      active.push(g);if(!r){r={p:V(),q:new T.Quaternion(),s:V()};records.set(g,r);}r.p.copy(g.position);r.q.copy(g.quaternion);r.s.copy(g.scale);r.revision=world.revision;r.checkAt=time+(!moving&&!held&&same?.40:0);
     }
     world.movables=active;
     try{return old.apply(this,arguments);}finally{const kept=new Set(world.movables);world.movables=full.filter(g=>g.parent&&(sleeping.has(g)||kept.has(g)));for(const g of kept)if(!full.includes(g))world.movables.push(g);}

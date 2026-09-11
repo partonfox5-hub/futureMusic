@@ -1,6 +1,6 @@
 import * as T from 'three';
 import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
-import {V,clamp,finiteDt,disposeTree} from './human5-common.js?v=17.8.0';
+import {V,clamp,finiteDt,disposeTree} from './human5-common.js?v=18.0.0';
 
 export const LIGHT_BUDGETS=Object.freeze({quest:{point:2,spot:1,shadowSize:1024},desktop:{point:4,spot:2,shadowSize:2048}});
 export const FIXTURES=['Torch','Standing lamp','Table lamp','Chandelier','Hanging shaded lamp'];
@@ -52,7 +52,7 @@ export function createFixture(world,type,{position=[0,0,0],yaw=0,tagMovable=null
 /** Fixed light count avoids material recompile when nearby lamps change. */
 export class FixtureLights {
   constructor(scene,{quest=true,fire=null,occluded=null}={}){
-    this.scene=scene;this.fire=fire;this.occluded=occluded;this.fixtures=new Set();this.time=0;this.visibility=new WeakMap();
+    this.scene=scene;this.fire=fire;this.occluded=occluded;this.fixtures=new Set();this.time=0;this.visibility=new WeakMap();this.selectionDue=0;this.cachedSources=[];this.stats={selections:0,occlusionQueries:0};
     const b=LIGHT_BUDGETS[quest?'quest':'desktop'];this.slots=[];
     for(const kind of ['point','spot'])for(let i=0;i<b[kind];i++){
       const light=kind==='point'?new T.PointLight(0xffffff,0,7,2):new T.SpotLight(0xffffff,0,7,.95,.65,2);
@@ -62,20 +62,22 @@ export class FixtureLights {
   add(f){this.fixtures.add(f);return f;}
   remove(f){this.fixtures.delete(f);}
   tick(dt,viewer){
-    dt=finiteDt(dt);this.time+=dt;const sources=[];
+    dt=finiteDt(dt);this.time+=dt;this.selectionDue-=dt;const refresh=this.selectionDue<=0;if(refresh){this.selectionDue=1/12;this.stats.selections++;}const sources=refresh?[]:this.cachedSources;
+    if(refresh){
     for(const f of this.fixtures){
-      if(!f.enabled||!f.root.parent||f.type==='Torch')continue;
+      if(!f.enabled||!f.root.parent||f.type==='Torch')continue;let visible=true;for(let o=f.root;o;o=o.parent)if(!o.visible){visible=false;break;}if(!visible)continue;
       const position=f.root.localToWorld(f.center.clone());
       if(position.distanceToSquared(viewer)>f.distance*f.distance*4)continue;
       sources.push({...f,position,direction:f.direction.clone().transformDirection(f.root.matrixWorld),identity:f});
     }
     for(const s of this.fire?.emitters()||[])sources.push({...s,identity:s.root,kind:'point',color:0xff982e,intensity:2.7*s.heat*(.9+.1*Math.sin(this.time*11+s.position.x)),distance:5});
+    this.cachedSources=sources;}
     const used=new Set();
     for(const slot of this.slots){
       let best=null,score=0;
       for(const s of sources){
         if(s.kind!==slot.kind||used.has(s.identity))continue;
-        let visibility=this.visibility.get(s.identity);if(!visibility||this.time-visibility.time>.10||visibility.a.distanceToSquared(s.position)>.04||visibility.b.distanceToSquared(viewer)>.09){visibility={time:this.time,a:s.position.clone(),b:viewer.clone(),blocked:!!this.occluded?.(s.position,viewer,s.root,null)};this.visibility.set(s.identity,visibility);}if(visibility.blocked)continue;
+        let visibility=this.visibility.get(s.identity);if(!visibility||this.time-visibility.time>.10||visibility.a.distanceToSquared(s.position)>.04||visibility.b.distanceToSquared(viewer)>.09){visibility={time:this.time,a:s.position.clone(),b:viewer.clone(),blocked:!!(this.stats.occlusionQueries++,this.occluded?.(s.position,viewer,s.root,null))};this.visibility.set(s.identity,visibility);}if(visibility.blocked)continue;
         const value=s.intensity/(.4+s.position.distanceToSquared(viewer))*(slot.source===s.identity?1.25:1);
         if(value>score){best=s;score=value;}
       }
@@ -84,6 +86,7 @@ export class FixtureLights {
       used.add(best.identity);
       // When ownership changes, darken before relocation; no light drifting through walls.
       if(slot.source!==best.identity){L.intensity=0;slot.source=best.identity;}
+      if(best.center&&best.root?.parent)best.position.copy(best.root.localToWorld(best.center.clone()));
       L.position.copy(best.position);L.color.setHex(best.color);L.distance=best.distance;
       L.intensity=T.MathUtils.damp(L.intensity,best.intensity,14,dt);
       if(L.target){L.angle=best.angle??.95;L.penumbra=best.penumbra??.65;L.target.position.copy(best.position).add(best.direction);L.target.updateMatrixWorld();}
@@ -96,30 +99,33 @@ export class FixtureLights {
 export function createQuestLighting(scene,{renderer,quest=true,shadows=true,environment=null}={}){
   const group=new T.Group();group.name='H5 daylight';scene.add(group);
   const hemi=new T.HemisphereLight(0xd5e5ff,0x746553,.38),key=new T.DirectionalLight(0xfff1db,2.4),fill=new T.DirectionalLight(0xd8e8ff,.12),rim=new T.DirectionalLight(0xffffff,0),ambient=new T.AmbientLight(0xffffff,.025);
-  key.position.set(7,11,5);fill.position.set(-4,3,-2);group.add(hemi,key,fill,rim,ambient,key.target);
+  key.position.set(7,11,5);fill.position.set(-4,3,-2);group.add(hemi,key,ambient,key.target);
   key.castShadow=shadows;const size=quest?1024:2048;key.shadow.mapSize.set(size,size);Object.assign(key.shadow.camera,{left:-7,right:7,top:7,bottom:-7,near:.1,far:34});key.shadow.bias=-.00015;key.shadow.normalBias=.015;
-  let target=null;const previous={environment:scene.environment,intensity:scene.environmentIntensity};
+  let target=null,outdoorTarget=null;const previous={environment:scene.environment,intensity:scene.environmentIntensity};
   if(environment)scene.environment=environment;
-  else if(renderer){const pm=new T.PMREMGenerator(renderer),room=new RoomEnvironment();try{target=pm.fromScene(room,.04);scene.environment=target.texture;}finally{room.dispose();pm.dispose();}}
+  else if(renderer){const pm=new T.PMREMGenerator(renderer),room=new RoomEnvironment();try{target=pm.fromScene(room,.04);
+      const skyScene=new T.Scene(),skyMat=new T.ShaderMaterial({side:T.BackSide,vertexShader:'varying vec3 dir;void main(){dir=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',fragmentShader:'varying vec3 dir;void main(){vec3 d=normalize(dir);vec3 sky=mix(vec3(.70,.75,.77),vec3(.19,.39,.69),smoothstep(0.0,.85,d.y));vec3 ground=vec3(.16,.14,.10);vec3 col=mix(ground,sky,smoothstep(-.04,.04,d.y));float sun=pow(max(0.0,dot(d,normalize(vec3(7.0,11.0,5.0)))),240.0);gl_FragColor=vec4(col+vec3(3.3,2.8,2.1)*sun,1.0);}'}),skyMesh=new T.Mesh(new T.SphereGeometry(10,24,12),skyMat);skyScene.add(skyMesh);outdoorTarget=pm.fromScene(skyScene,.05);skyMesh.geometry.dispose();skyMat.dispose();scene.environment=outdoorTarget.texture;}finally{room.dispose();pm.dispose();}}
   scene.environmentIntensity=.35;
+  const lightRight=new T.Vector3(5,0,-7).normalize(),lightUp=new T.Vector3().crossVectors(new T.Vector3(7,11,5).normalize(),lightRight).normalize(),focus=new T.Vector3();
   return {key,fill,rim,hemi,ambient,env:scene.environment,exposure:1.05,
-    follow(p){const snap=14/size,x=Math.round(p.x/snap)*snap,z=Math.round(p.z/snap)*snap;key.target.position.set(x,1,z);key.position.set(x+7,12,z+5);key.target.updateMatrixWorld();},
-    dispose(){group.removeFromParent();key.dispose();if(scene.environment===(environment||target?.texture)){scene.environment=previous.environment;scene.environmentIntensity=previous.intensity;}target?.dispose();}
+    setInterior(inside){if(target&&outdoorTarget)scene.environment=inside?target.texture:outdoorTarget.texture;},
+    follow(p){const snap=14/size;focus.copy(p);const x=focus.dot(lightRight),y=focus.dot(lightUp);focus.addScaledVector(lightRight,Math.round(x/snap)*snap-x).addScaledVector(lightUp,Math.round(y/snap)*snap-y);key.target.position.copy(focus);key.position.copy(focus).add(new T.Vector3(7,11,5));key.target.updateMatrixWorld();},
+    dispose(){group.removeFromParent();key.dispose();if(scene.environment===(environment||target?.texture)||scene.environment===outdoorTarget?.texture){scene.environment=previous.environment;scene.environmentIntensity=previous.intensity;}target?.dispose();outdoorTarget?.dispose();}
   };
 }
 
 /** AR-only: snapshots authored lights at session start; no change without an estimate. */
 export class EstimatedRoomLight {
-  constructor(scene,renderer,rig){this.scene=scene;this.renderer=renderer;this.rig=rig;this.probe=new T.LightProbe();this.primary=new T.DirectionalLight(0xffffff,0);this.probe.intensity=0;scene.add(this.probe,this.primary,this.primary.target);this.session=null;this.saved=[];this.age=0;this.generation=0;}
+  constructor(scene,renderer,rig){this.scene=scene;this.renderer=renderer;this.rig=rig;this.probe=new T.LightProbe();this.primary=new T.DirectionalLight(0xffffff,0);this.probe.intensity=0;this.session=null;this.saved=[];this.age=0;this.generation=0;}
   async start(session,{mode='immersive-ar'}={}){
     this.stop();if(mode!=='immersive-ar'||!session?.requestLightProbe)return false;
-    this.session=session;const generation=++this.generation;
+    this.session=session;this.scene.add(this.probe,this.primary,this.primary.target);const generation=++this.generation;
     this.saved=[];this.scene.traverse(o=>{if(o.isLight&&o!==this.probe&&o!==this.primary&&!o.userData.h5Pooled)this.saved.push([o,o.intensity]);});this.env=this.scene.environmentIntensity;
     this.end=()=>this.stop();session.addEventListener('end',this.end,{once:true});
     try{const p=await session.requestLightProbe();if(generation===this.generation&&this.session===session){this.xrProbe=p;return true;}}catch{}return false;
   }
   restore(){for(const [l,intensity] of this.saved)l.intensity=intensity;if(this.env!==undefined)this.scene.environmentIntensity=this.env;this.probe.intensity=0;this.primary.intensity=0;}
-  stop(){this.generation++;this.session?.removeEventListener('end',this.end);this.restore();this.saved=[];this.session=null;this.xrProbe=null;this.age=0;}
+  stop(){this.generation++;this.session?.removeEventListener('end',this.end);this.restore();this.saved=[];this.session=null;this.xrProbe=null;this.age=0;this.probe.removeFromParent();this.primary.removeFromParent();this.primary.target.removeFromParent();}
   tick(frame,dt=1/72){
     if(!frame||!this.xrProbe)return;dt=finiteDt(dt);this.age+=dt;let e,pose;
     try{e=frame.getLightEstimate(this.xrProbe);const ref=this.renderer.xr.getReferenceSpace();pose=ref&&frame.getPose(this.xrProbe.probeSpace,ref);}catch{e=null;}

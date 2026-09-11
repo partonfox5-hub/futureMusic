@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import { clamp } from './Dog.js?v=17.8.0';
-import { floorAt } from './DogPaws.js?v=17.8.0';
+import { clamp } from './Dog.js?v=18.0.0';
+import { floorAt } from './DogPaws.js?v=18.0.0';
 const V=()=>new THREE.Vector3(),Y=new THREE.Vector3(0,1,0),angle=a=>Math.atan2(Math.sin(a),Math.cos(a));
 export class DogAI {
  constructor(model,ctx){
@@ -86,7 +86,7 @@ export class DogAI {
    this.roamT=4+Math.random()*7;this.pendingSeat=null;
    const seats=(this.ctx.world?.seats||[]).filter(s=>!s.occupant);
    if(seats.length&&Math.random()<.2&&!this.peelT){const s=seats[Math.floor(Math.random()*seats.length)];this.pendingSeat=s;this.goal.copy(s.approach||s.position);}
-   else{const a=Math.random()*Math.PI*2,r=1+Math.random()*(this.attentionMode==='ignoring'?4:2.5);this.goal.copy(wp).add(new THREE.Vector3(Math.sin(a)*r,0,Math.cos(a)*r));
+   else{const a=Math.random()*Math.PI*2,r=1+Math.random()*(this.model.breed?.coat==='tricolor'?1.35:1)*(this.attentionMode==='ignoring'?4:2.5);this.goal.copy(wp).add(new THREE.Vector3(Math.sin(a)*r,0,Math.cos(a)*r));
    }
    if(this.peelT){this.goal.copy(wp).add(wp.clone().sub(this.player).setY(0).normalize().multiplyScalar(1.6));}
    const ext=this.ctx.world?.extent;if(Number.isFinite(ext)){this.goal.x=clamp(this.goal.x,-ext,ext);this.goal.z=clamp(this.goal.z,-ext,ext);}
@@ -204,6 +204,7 @@ export class DogAI {
  startBurst(){if(this.needs.energy<=40||this.fetch||this.held||this.dead||this.state!=='idle'||this.needs.sleep<18)return false;this.bowT=.55;this.zoomT=2+Math.random()*2;this.zoomCenter=this.player.clone();this.zoomCenter.y=this.model.root.getWorldPosition(V()).y;this.needs.spend(5);this.say('play-zoomie',8);return true;}
  approach(point,standOff,dt,speed){const wp=this.model.root.getWorldPosition(V()),d=point.clone().sub(wp);d.y=0;const len=d.length();if(len<=standOff)return;this.move(point.clone().addScaledVector(d.normalize(),-standOff),dt,speed,.035);}
  move(goal,dt,speed=.6,stop=.15){
+  speed*=this.model.breed?.speed||1;
   const root=this.model.root,w=this.ctx.world,wp=root.getWorldPosition(V()),d=goal.clone().sub(wp);d.y=0;const len=d.length();if(len<=stop)return;
   d.normalize();let heading=Math.atan2(d.x,d.z),delta=angle(heading-this.worldYaw());
   this.turn=clamp(delta,-.9,.9);
@@ -220,7 +221,7 @@ export class DogAI {
   }
   w?.project?.(next,.30,.04,.7);if((w?.gravity??9.81)>0.5)next.y=floorAt(w,next.x,next.z,wp.y);
   root.position.copy(root.parent?.worldToLocal(next.clone())||next);root.rotation.y+=angle(heading-this.worldYaw())*Math.min(1,dt*4);
-  this.speed=wp.distanceTo(next)/Math.max(dt,.001);this.separate();root.updateMatrixWorld(true);
+  this.speed=wp.distanceTo(next)/Math.max(dt,.001);this.separate();this.model.updatePoseWorld();
  }
  worldYaw(){return new THREE.Euler().setFromQuaternion(this.model.root.getWorldQuaternion(new THREE.Quaternion()),'YXZ').y;}
  separate(){
@@ -242,7 +243,7 @@ export class DogAI {
   // Solve the desired Head world frame, then use Neck for the rotation Head cannot take.
   const b=this.model.bones,rootQ=this.model.root.getWorldQuaternion(new THREE.Quaternion());
   const want=rootQ.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(this.lookPitch,this.lookYaw,this.lookRoll,'YXZ')));
-  b.Neck.quaternion.identity();this.model.root.updateMatrixWorld(true);
+  b.Neck.quaternion.identity();this.model.updatePoseWorld();
   const local=b.Neck.parent.getWorldQuaternion(new THREE.Quaternion()).invert().multiply(want),e=new THREE.Euler().setFromQuaternion(local,'YXZ');
   b.Neck.rotation.set(clamp(e.x-clamp(e.x*.7,-.7,.9),-.65,.65),clamp(e.y-clamp(e.y*.7,-.9,.9),-.55,.55),clamp(e.z*.4,-.18,.18),'YXZ');
   b.Neck.updateWorldMatrix(false,true);const head=b.Head.parent.getWorldQuaternion(new THREE.Quaternion()).invert().multiply(want),he=new THREE.Euler().setFromQuaternion(head,'YXZ');

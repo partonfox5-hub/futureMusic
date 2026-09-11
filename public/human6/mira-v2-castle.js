@@ -1,6 +1,6 @@
 import * as T from 'three';
-import {makeSurfaceMap,wallMaterial} from './mira-v2-walls.js?v=17.8.0';
-import {placeStairs,placeFurniture} from './mira-v2-furniture.js?v=17.8.0';
+import {makeSurfaceMap,wallMaterial} from './mira-v2-walls.js?v=18.0.0';
+import {placeStairs,placeFurniture} from './mira-v2-furniture.js?v=18.0.0';
 const STORY=3.05,CELL=.6;
 export const CASTLE={x:0,z:-42,w:16.8,d:16.8,gateZ:-33.6};
 export const PATH={x:0,z0:-8.15,z1:-33.35,w:3.4};

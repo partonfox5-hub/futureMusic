@@ -1,0 +1,5153 @@
+{
+  "note": "Actual engine animation loop in Chromium SwiftShader; simulated Quest UA, monoscopic 960x600. These are software-renderer diagnostics, not headset FPS measurements.",
+  "reports": [
+    {
+      "location": "Home",
+      "transition": {
+        "syncMs": 0.09999999776482582
+      },
+      "performance": {
+        "format": "human5-performance-1",
+        "recordedAt": "2026-09-11T20:35:48.258Z",
+        "userAgent": "Human5 simulated Quest code path; OculusBrowser regression test",
+        "xr": false,
+        "targetHz": 72,
+        "budgetMs": 13.88888888888889,
+        "tier": "sustain",
+        "samples": 64,
+        "frameIntervalMs": {
+          "p50": 666.5999999999985,
+          "p95": 1433.2999999999956,
+          "max": 3149.9000000000015
+        },
+        "cpuMs": {
+          "p50": 44.69999999925494,
+          "p95": 88.59999999776483,
+          "max": 3155.199999999255
+        },
+        "gpuMs": {
+          "p50": 677.41358,
+          "p95": 742.896592,
+          "max": 910.223391
+        },
+        "gpuTimerAvailable": true,
+        "deliveredFPS": 1.4249168984011988,
+        "overBudgetFraction": 0.96875,
+        "drawCalls": {
+          "p50": 319,
+          "p95": 417,
+          "max": 417
+        },
+        "triangles": {
+          "p50": 534300,
+          "p95": 679220,
+          "max": 679508
+        },
+        "sectionsMs": {
+          "upgrades": {
+            "p50": 2.699999999254942,
+            "p95": 25,
+            "max": 33.5
+          },
+          "player": {
+            "p50": 0.19999999925494194,
+            "p95": 0.30000000074505806,
+            "max": 0.5
+          },
+          "actors": {
+            "p50": 16.099999997764826,
+            "p95": 27.699999999254942,
+            "max": 43.5
+          },
+          "waterAndProps": {
+            "p50": 5.199999999254942,
+            "p95": 22.5,
+            "max": 42.79999999701977
+          },
+          "natureAndPets": {
+            "p50": 3.7999999970197678,
+            "p95": 12.699999999254942,
+            "max": 17
+          },
+          "uiAndViews": {
+            "p50": 0.10000000149011612,
+            "p95": 0.30000000074505806,
+            "max": 2.899999998509884
+          },
+          "mainRender": {
+            "p50": 12.899999998509884,
+            "p95": 28.099999997764826,
+            "max": 3107.699999999255
+          }
+        },
+        "resources": {
+          "geometries": 693,
+          "textures": 72,
+          "programs": 188
+        },
+        "raw": [
+          {
+            "interval": 466.7000000000007,
+            "cpu": 82.30000000074506,
+            "gpu": 910.223391,
+            "calls": 381,
+            "triangles": 623627,
+            "sections": {
+              "upgrades": 14.5,
+              "player": 0.20000000298023224,
+              "actors": 26.099999997764826,
+              "waterAndProps": 22.5,
+              "natureAndPets": 3.600000001490116,
+              "uiAndViews": 0.09999999776482582,
+              "mainRender": 15.300000000745058
+            },
+            "tier": 2
+          },
+          {
+            "interval": 133.29999999999927,
+            "cpu": 85.09999999776483,
+            "gpu": 607.835175,
+            "calls": 306,
+            "triangles": 497123,
+            "sections": {
+              "upgrades": 5.099999997764826,
+              "player": 0.5,
+              "actors": 20.5,
+              "waterAndProps": 31.5,
+              "natureAndPets": 15.900000002235174,
+              "uiAndViews": 0.09999999776482582,
+              "mainRender": 11.5
+            },
+            "tier": 2
+          },
+          {
+            "interval": 100,
+            "cpu": 84.79999999701977,
+            "gpu": 649.908793,
+            "calls": 402,
+            "triangles": 626087,
+            "sections": {
+              "upgrades": 3.699999999254942,
+              "player": 0,
+              "actors": 27.399999998509884,
+              "waterAndProps": 29.300000000745058,
+              "natureAndPets": 8.399999998509884,
+              "uiAndViews": 0,
+              "mainRender": 16
+            },
+            "tier": 2
+          },
+          {
+            "interval": 83.29999999999927,
+            "cpu": 104.60000000149012,
+            "gpu": 713.744935,
+            "calls": 316,
+            "triangles": 510898,
+            "sections": {
+              "upgrades": 33.5,
+              "player": 0.10000000149011612,
+              "actors": 19.099999997764826,
+              "waterAndProps": 25.199999999254942,
+              "natureAndPets": 10,
+              "uiAndViews": 0.10000000149011612,
+              "mainRender": 16.600000001490116
+            },
+            "tier": 2
+          },
+          {
+            "interval": 116.70000000000073,
+            "cpu": 99,
+            "gpu": null,
+            "calls": 416,
+            "triangles": 656106,
+            "sections": {
+              "upgrades": 7.199999999254942,
+              "player": 0.10000000149011612,
+              "actors": 21,
+              "waterAndProps": 42.79999999701977,
+              "natureAndPets": 10.5,
+              "uiAndViews": 0,
+              "mainRender": 17.400000002235174
+            },
+            "tier": 2
+          },
+          {
+            "interval": 100,
+            "cpu": 44,
+            "gpu": null,
+            "calls": 316,
+            "triangles": 510898,
+            "sections": {
+              "upgrades": 4.199999999254942,
+              "player": 0,
+              "actors": 18.800000000745058,
+              "waterAndProps": 12.600000001490116,
+              "natureAndPets": 3.399999998509884,
+              "uiAndViews": 0,
+              "mainRender": 5
+            },
+            "tier": 2
+          },
+          {
+            "interval": 50.10000000000218,
+            "cpu": 25.599999997764826,
+            "gpu": null,
+            "calls": 416,
+            "triangles": 656106,
+            "sections": {
+              "upgrades": 5.199999999254942,
+              "player": 0.09999999776482582,
+              "actors": 6,
+              "waterAndProps": 3.2000000029802322,
+              "natureAndPets": 4.299999997019768,
+              "uiAndViews": 0.10000000149011612,
+              "mainRender": 6.699999999254942
+            },
+            "tier": 2
+          },
+          {
+            "interval": 16.599999999998545,
+            "cpu": 75.19999999925494,
+            "gpu": null,
+            "calls": 319,
+            "triangles": 522580,
+            "sections": {
+              "upgrades": 33.399999998509884,
+              "player": 0.10000000149011612,
+              "actors": 16.099999997764826,
+              "waterAndProps": 8.400000002235174,
+              "natureAndPets": 0.5,
+              "uiAndViews": 0,
+              "mainRender": 16.699999999254942
+            },
+            "tier": 2
+          },
+          {
+            "interval": 2699.9000000000015,
+            "cpu": 3155.199999999255,
+            "gpu": null,
+            "calls": 396,
+            "triangles": 670140,
+            "sections": {
+              "upgrades": 16.699999999254942,
+              "player": 0.10000000149011612,
+              "actors": 12.599999997764826,
+              "waterAndProps": 13.600000001490116,
+              "natureAndPets": 4.100000001490116,
+              "uiAndViews": 0.3999999985098839,
+              "mainRender": 3107.699999999255
+            },
+            "tier": 2
+          },
+          {
+            "interval": 3149.9000000000015,
+            "cpu": 36.19999999925494,
+            "gpu": null,
+            "calls": 296,
+            "triangles": 524932,
+            "sections": {
+              "upgrades": 3.900000002235174,
+              "player": 0.09999999776482582,
+              "actors": 15.300000000745058,
+              "waterAndProps": 7.199999999254942,
+              "natureAndPets": 3.100000001490116,
+              "uiAndViews": 0.19999999925494194,
+              "mainRender": 6.399999998509884
+            },
+            "tier": 2
+          },
+          {
+            "interval": 1399.8999999999942,
+            "cpu": 43.30000000074506,
+            "gpu": null,
+            "calls": 396,
+            "triangles": 670140,
+            "sections": {
+              "upgrades": 3.300000000745058,
+              "player": 0.19999999925494194,
+              "actors": 14.700000002980232,
+              "waterAndProps": 5.599999997764826,
+              "natureAndPets": 9.199999999254942,
+              "uiAndViews": 0.10000000149011612,
+              "mainRender": 10.199999999254942
+            },
+            "tier": 2
+          },
+          {
+            "interval": 200,
+            "cpu": 50.5,
+            "gpu": 627.907698,
+            "calls": 296,
+            "triangles": 524932,
+            "sections": {
+              "upgrades": 4,
+              "player": 0.30000000074505806,
+              "actors": 14.900000002235174,
+              "waterAndProps": 8.599999997764826,
+              "natureAndPets": 5.400000002235174,
+              "uiAndViews": 0.19999999925494194,
+              "mainRender": 17.099999997764826
+            },
+            "tier": 2
+          },
+          {
+            "interval": 866.7000000000044,
+            "cpu": 67.90000000223517,
+            "gpu": 684.619458,
+            "calls": 396,
+            "triangles": 670068,
+            "sections": {
+              "upgrades": 17.200000002980232,
+              "player": 0.09999999776482582,
+              "actors": 14.600000001490116,
+              "waterAndProps": 11.399999998509884,
+              "natureAndPets": 4.800000000745058,
+              "uiAndViews": 0,
+              "mainRender": 19.800000000745058
+            },
+            "tier": 2
+          },
+          {
+            "interval": 66.59999999999854,
+            "cpu": 34.5,
+            "gpu": null,
+            "calls": 314,
+            "triangles": 525292,
+            "sections": {
+              "upgrades": 5.200000002980232,
+              "player": 0.09999999776482582,
+              "actors": 9.900000002235174,
+              "waterAndProps": 5.5,
+              "natureAndPets": 3.899999998509884,
+              "uiAndViews": 0.10000000149011612,
+              "mainRender": 9.799999997019768
+            },
+            "tier": 2
+          },
+          {
+            "interval": 1516.5999999999985,
+            "cpu": 51.5,
+            "gpu": 663.246427,
+            "calls": 414,
+            "triangles": 670500,
+            "sections": {
+              "upgrades": 3.7999999970197678,
+              "player": 0.20000000298023224,
+              "actors": 12.799999997019768,
+              "waterAndProps": 7,
+              "natureAndPets": 8.700000002980232,
+              "uiAndViews": 2.899999998509884,
+              "mainRender": 16.100000001490116
+            },
+            "tier": 2
+          },
+          {
+            "interval": 600,
+            "cpu": 120.79999999701977,
+            "gpu": 602.039567,
+            "calls": 314,
+            "triangles": 524758,
+            "sections": {
+              "upgrades": 27.899999998509884,
+              "player": 0.10000000149011612,
+              "actors": 41,
+              "waterAndProps": 15.099999997764826,
+              "natureAndPets": 8.5,
+              "uiAndViews": 0.10000000149011612,
+              "mainRender": 28.099999997764826
+            },
+            "tier": 2
+          },
+          {
+            "interval": 766.5999999999985,
+            "cpu": 44.69999999925494,
+            "gpu": 804.820306,
+            "calls": 414,
+            "triangles": 669966,
+            "sections": {
+              "upgrades": 8.199999999254942,
+              "player": 0.20000000298023224,
+              "actors": 11.799999997019768,
+              "waterAndProps": 8.5,
+              "natureAndPets": 2.900000002235174,
+              "uiAndViews": 0.19999999925494194,
+              "mainRender": 12.899999998509884
+            },
+            "tier": 2
+          },
+          {
+            "interval": 1283.300000000003,
+            "cpu": 56.5,
+            "gpu": 651.974442,
+            "calls": 314,
+            "triangles": 524758,
+            "sections": {
+              "upgrades": 5,
+              "player": 0.09999999776482582,
+              "actors": 21.700000002980232,
+              "waterAndProps": 8,
+              "natureAndPets": 4.199999999254942,
+              "uiAndViews": 0.19999999925494194,
+              "mainRender": 17.300000000745058
+            },
+            "tier": 2
+          },
+          {
+            "interval": 1516.5999999999985,
+            "cpu": 74.80000000074506,
+            "gpu": null,
+            "calls": 414,
+            "triangles": 669549,
+            "sections": {
+              "upgrades": 27.100000001490116,
+              "player": 0.19999999925494194,
+              "actors": 24.100000001490116,
+              "waterAndProps": 9.599999997764826,
+              "natureAndPets": 2.699999999254942,
+              "uiAndViews": 0.10000000149011612,
+              "mainRender": 11
+            },
+            "tier": 2
+          },
+          {
+            "interval": 666.5999999999985,
+            "cpu": 86.60000000149012,
+            "gpu": null,
+            "calls": 314,
+            "triangles": 524341,
+            "sections": {
+              "upgrades": 8.400000002235174,
+              "player": 0.09999999776482582,
+              "actors": 19.100000001490116,
+              "waterAndProps": 10.699999999254942,
+              "natureAndPets": 11.699999999254942,
+              "uiAndViews": 0.10000000149011612,
+              "mainRender": 36.5
+            },
+            "tier": 2
+          },
+          {
+            "interval": 1233.300000000003,
+            "cpu": 56.900000002235174,
+            "gpu": null,
+            "calls": 414,
+            "triangles": 669549,
+            "sections": {
+              "upgrades": 5,
+              "player": 0.19999999925494194,
+              "actors": 26.200000002980232,
+              "waterAndProps": 8.299999997019768,
+              "natureAndPets": 4,
+              "uiAndViews": 0.10000000149011612,
+              "mainRender": 13.100000001490116
+            },
+            "tier": 2
+          },
+          {
+            "interval": 666.5999999999985,
+            "cpu": 61.099999997764826,
+            "gpu": null,
+            "calls": 314,
+            "triangles": 524341,
+            "sections": {
+              "upgrades": 4.800000000745058,
+              "player": 0.09999999776482582,
+              "actors": 27.699999999254942,
+              "waterAndProps": 8.200000002980232,
+              "natureAndPets": 4.899999998509884,
+              "uiAndViews": 0.19999999925494194,
+              "mainRender": 15.199999999254942
+            },
+            "tier": 2
+          },
+          {
+            "interval": 650,
+            "cpu": 64.10000000149012,
+            "gpu": 663.415954,
+            "calls": 414,
+            "triangles": 669549,
+            "sections": {
+              "upgrades": 3.7000000029802322,
+              "player": 0.19999999925494194,
+              "actors": 19.199999999254942,
+              "waterAndProps": 9.100000001490116,
+              "natureAndPets": 13.799999997019768,
+              "uiAndViews": 0.10000000149011612,
+              "mainRender": 18
+            },
+            "tier": 2
+          },
+          {
+            "interval": 1333.300000000003,
+            "cpu": 51.900000002235174,
+            "gpu": 664.093213,
+            "calls": 314,
+            "triangles": 524341,
+            "sections": {
+              "upgrades": 10.100000001490116,
+              "player": 0.09999999776482582,
+              "actors": 16.700000002980232,
+              "waterAndProps": 10.199999999254942,
+              "natureAndPets": 2.899999998509884,
+              "uiAndViews": 0.10000000149011612,
+              "mainRender": 11.800000000745058
+            },
+            "tier": 2
+          },
+          {
+            "interval": 683.4000000000015,
+            "cpu": 66.19999999925494,
+            "gpu": 696.652928,
+            "calls": 414,
+            "triangles": 669549,
+            "sections": {
+              "upgrades": 4,
+              "player": 0.30000000074505806,
+              "actors": 14.300000000745058,
+              "waterAndProps": 10.699999999254942,
+              "natureAndPets": 4.399999998509884,
+              "uiAndViews": 0.19999999925494194,
+              "mainRender": 32.30000000074506
+            },
+            "tier": 2
+          },
+          {
+            "interval": 599.8999999999942,
+            "cpu": 38.100000001490116,
+            "gpu": 626.45384,
+            "calls": 314,
+            "triangles": 524341,
+            "sections": {
+              "upgrades": 4.200000002980232,
+              "player": 0.09999999776482582,
+              "actors": 10.300000000745058,
+              "waterAndProps": 5.600000001490116,
+              "natureAndPets": 6.199999999254942,
+              "uiAndViews": 0.19999999925494194,
+              "mainRender": 11.5
+            },
+            "tier": 2
+          },
+          {
+            "interval": 816.6000000000058,
+            "cpu": 88.59999999776483,
+            "gpu": null,
+            "calls": 414,
+            "triangles": 669212,
+            "sections": {
+              "upgrades": 25,
+              "player": 0.09999999776482582,
+              "actors": 15.200000002980232,
+              "waterAndProps": 13.199999999254942,
+              "natureAndPets": 7.5,
+              "uiAndViews": 0.19999999925494194,
+              "mainRender": 27.399999998509884
+            },
+            "tier": 2
+          },
+          {
+            "interval": 666.6999999999971,
+            "cpu": 37.900000002235174,
+            "gpu": 739.020386,
+            "calls": 314,
+            "triangles": 524004,
+            "sections": {
+              "upgrades": 1.7000000029802322,
+              "player": 0.19999999925494194,
+              "actors": 14.199999999254942,
+              "waterAndProps": 7.100000001490116,
+              "natureAndPets": 2.699999999254942,
+              "uiAndViews": 0.6999999992549419,
+              "mainRender": 11.300000000745058
+            },
+            "tier": 2
+          },
+          {
+            "interval": 100,
+            "cpu": 24.199999999254942,
+            "gpu": 685.462134,
+            "calls": 414,
+            "triangles": 669212,
+            "sections": {
+              "upgrades": 0.6999999992549419,
+              "player": 0,
+              "actors": 7.5,
+              "waterAndProps": 3.199999999254942,
+              "natureAndPets": 3,
+              "uiAndViews": 0,
+              "mainRender": 9.800000000745058
+            },
+            "tier": 2
+          },
+          {
+            "interval": 16.599999999998545,
+            "cpu": 15,
+            "gpu": null,
+            "calls": 314,
+            "triangles": 524004,
+            "sections": {
+              "upgrades": 0.6000000014901161,
+              "player": 0.09999999776482582,
+              "actors": 3.900000002235174,
+              "waterAndProps": 1.800000000745058,
+              "natureAndPets": 2.2999999970197678,
+              "uiAndViews": 0.10000000149011612,
+              "mainRender": 6.199999999254942
+            },
+            "tier": 2
+          },
+          {
+            "interval": 1333.300000000003,
+            "cpu": 34.80000000074506,
+            "gpu": null,
+            "calls": 414,
+            "triangles": 669212,
+            "sections": {
+              "upgrades": 1.7000000029802322,
+              "player": 0.09999999776482582,
+              "actors": 18.800000000745058,
+              "waterAndProps": 3.899999998509884,
+              "natureAndPets": 2.2000000029802322,
+              "uiAndViews": 0,
+              "mainRender": 8.099999997764826
+            },
+            "tier": 2
+          },
+          {
+            "interval": 66.69999999999709,
+            "cpu": 43.70000000298023,
+            "gpu": null,
+            "calls": 317,
+            "triangles": 534012,
+            "sections": {
+              "upgrades": 6,
+              "player": 0.10000000149011612,
+              "actors": 19.399999998509884,
+              "waterAndProps": 4.100000001490116,
+              "natureAndPets": 4.699999999254942,
+              "uiAndViews": 0,
+              "mainRender": 9.400000002235174
+            },
+            "tier": 2
+          },
+          {
+            "interval": 949.9000000000015,
+            "cpu": 78.5,
+            "gpu": null,
+            "calls": 417,
+            "triangles": 679220,
+            "sections": {
+              "upgrades": 2,
+              "player": 0.19999999925494194,
+              "actors": 43.5,
+              "waterAndProps": 14.800000000745058,
+              "natureAndPets": 2.300000000745058,
+              "uiAndViews": 0,
+              "mainRender": 15.699999999254942
+            },
+            "tier": 2
+          },
+          {
+            "interval": 516.6999999999971,
+            "cpu": 37.80000000074506,
+            "gpu": null,
+            "calls": 317,
+            "triangles": 534012,
+            "sections": {
+              "upgrades": 2,
+              "player": 0.19999999925494194,
+              "actors": 17.600000001490116,
+              "waterAndProps": 5.299999997019768,
+              "natureAndPets": 2.900000002235174,
+              "uiAndViews": 0.09999999776482582,
+              "mainRender": 9.700000002980232
+            },
+            "tier": 2
+          },
+          {
+            "interval": 50,
+            "cpu": 34.5,
+            "gpu": null,
+            "calls": 417,
+            "triangles": 679220,
+            "sections": {
+              "upgrades": 1.699999999254942,
+              "player": 0.19999999925494194,
+              "actors": 7.700000002980232,
+              "waterAndProps": 1.5999999977648258,
+              "natureAndPets": 12.699999999254942,
+              "uiAndViews": 0,
+              "mainRender": 10.600000001490116
+            },
+            "tier": 2
+          },
+          {
+            "interval": 633.3000000000029,
+            "cpu": 40.599999997764826,
+            "gpu": 742.896592,
+            "calls": 317,
+            "triangles": 534012,
+            "sections": {
+              "upgrades": 2.199999999254942,
+              "player": 0.09999999776482582,
+              "actors": 20,
+              "waterAndProps": 4.100000001490116,
+              "natureAndPets": 3,
+              "uiAndViews": 0.10000000149011612,
+              "mainRender": 11.099999997764826
+            },
+            "tier": 2
+          },
+          {
+            "interval": 633.3000000000029,
+            "cpu": 47.80000000074506,
+            "gpu": null,
+            "calls": 417,
+            "triangles": 679220,
+            "sections": {
+              "upgrades": 1.199999999254942,
+              "player": 0.19999999925494194,
+              "actors": 16.5,
+              "waterAndProps": 9.400000002235174,
+              "natureAndPets": 3.300000000745058,
+              "uiAndViews": 0.09999999776482582,
+              "mainRender": 17.100000001490116
+            },
+            "tier": 2
+          },
+          {
+            "interval": 49.89999999999418,
+            "cpu": 31.900000002235174,
+            "gpu": 677.977143,
+            "calls": 317,
+            "triangles": 534012,
+            "sections": {
+              "upgrades": 1.4000000022351742,
+              "player": 0.19999999925494194,
+              "actors": 13.399999998509884,
+              "waterAndProps": 3.5,
+              "natureAndPets": 4.700000002980232,
+              "uiAndViews": 0,
+              "mainRender": 8.599999997764826
+            },
+            "tier": 2
+          },
+          {
+            "interval": 700.1000000000058,
+            "cpu": 80.90000000223517,
+            "gpu": 717.960664,
+            "calls": 417,
+            "triangles": 679220,
+            "sections": {
+              "upgrades": 2.5,
+              "player": 0.30000000074505806,
+              "actors": 24.899999998509884,
+              "waterAndProps": 3.800000000745058,
+              "natureAndPets": 17,
+              "uiAndViews": 0.19999999925494194,
+              "mainRender": 32.20000000298023
+            },
+            "tier": 2
+          },
+          {
+            "interval": 633.2999999999956,
+            "cpu": 36.30000000074506,
+            "gpu": 624.175055,
+            "calls": 317,
+            "triangles": 534012,
+            "sections": {
+              "upgrades": 5,
+              "player": 0.19999999925494194,
+              "actors": 12.300000000745058,
+              "waterAndProps": 2.399999998509884,
+              "natureAndPets": 2.900000002235174,
+              "uiAndViews": 0.09999999776482582,
+              "mainRender": 13.400000002235174
+            },
+            "tier": 2
+          },
+          {
+            "interval": 783.3000000000029,
+            "cpu": 51.600000001490116,
+            "gpu": null,
+            "calls": 417,
+            "triangles": 679220,
+            "sections": {
+              "upgrades": 2,
+              "player": 0.19999999925494194,
+              "actors": 19.300000000745058,
+              "waterAndProps": 4.699999999254942,
+              "natureAndPets": 2.699999999254942,
+              "uiAndViews": 0.10000000149011612,
+              "mainRender": 22.600000001490116
+            },
+            "tier": 2
+          },
+          {
+            "interval": 749.9000000000015,
+            "cpu": 43.79999999701977,
+            "gpu": 677.41358,
+            "calls": 317,
+            "triangles": 534012,
+            "sections": {
+              "upgrades": 2.699999999254942,
+              "player": 0.19999999925494194,
+              "actors": 13.800000000745058,
+              "waterAndProps": 4.800000000745058,
+              "natureAndPets": 3.7999999970197678,
+              "uiAndViews": 0.10000000149011612,
+              "mainRender": 18.399999998509884
+            },
+            "tier": 2
+          },
+          {
+            "interval": 1316.5999999999985,
+            "cpu": 41.5,
+            "gpu": 682.218571,
+            "calls": 417,
+            "triangles": 679220,
+            "sections": {
+              "upgrades": 1.2000000029802322,
+              "player": 0.19999999925494194,
+              "actors": 18.899999998509884,
+              "waterAndProps": 4.5,
+              "natureAndPets": 3.699999999254942,
+              "uiAndViews": 0.10000000149011612,
+              "mainRender": 12.899999998509884
+            },
+            "tier": 2
+          },
+          {
+            "interval": 50,
+            "cpu": 50.30000000074506,
+            "gpu": null,
+            "calls": 317,
+            "triangles": 534012,
+            "sections": {
+              "upgrades": 1.6000000014901161,
+              "player": 0,
+              "actors": 29.599999997764826,
+              "waterAndProps": 4.100000001490116,
+              "natureAndPets": 4.199999999254942,
+              "uiAndViews": 0.10000000149011612,
+              "mainRender": 10.699999999254942
+            },
+            "tier": 2
+          },
+          {
+            "interval": 1433.2999999999956,
+            "cpu": 51.30000000074506,
+            "gpu": null,
+            "calls": 417,
+            "triangles": 679220,
+            "sections": {
+              "upgrades": 1.6000000014901161,
+              "player": 0.19999999925494194,
+              "actors": 21.800000000745058,
+              "waterAndProps": 11,
+              "natureAndPets": 2.699999999254942,
+              "uiAndViews": 0.19999999925494194,
+              "mainRender": 13.800000000745058
+            },
+            "tier": 2
+          },
+          {
+            "interval": 50,
+            "cpu": 28.399999998509884,
+            "gpu": null,
+            "calls": 317,
+            "triangles": 534012,
+            "sections": {
+              "upgrades": 0.7999999970197678,
+              "player": 0.10000000149011612,
+              "actors": 13.699999999254942,
+              "waterAndProps": 3.900000002235174,
+              "natureAndPets": 1.7999999970197678,
+              "uiAndViews": 0.20000000298023224,
+              "mainRender": 7.899999998509884
+            },
+            "tier": 2
+          },
+          {
+            "interval": 1266.6000000000058,
+            "cpu": 38.099999997764826,
+            "gpu": null,
+            "calls": 417,
+            "triangles": 679220,
+            "sections": {
+              "upgrades": 1.8999999985098839,
+              "player": 0.19999999925494194,
+              "actors": 12.300000000745058,
+              "waterAndProps": 4.900000002235174,
+              "natureAndPets": 6.299999997019768,
+              "uiAndViews": 0.30000000074505806,
+              "mainRender": 12.199999999254942
+            },
+            "tier": 2
+          },
+          {
+            "interval": 66.69999999999709,
+            "cpu": 40.30000000074506,
+            "gpu": null,
+            "calls": 317,
+            "triangles": 534012,
+            "sections": {
+              "upgrades": 12.100000001490116,
+              "player": 0.19999999925494194,
+              "actors": 13.300000000745058,
+              "waterAndProps": 2.5,
+              "natureAndPets": 3.5,
+              "uiAndViews": 0,
+              "mainRender": 8.699999999254942
+            },
+            "tier": 2
+          },
+          {
+            "interval": 1200,
+            "cpu": 48.5,
+            "gpu": null,
+            "calls": 417,
+            "triangles": 679220,
+            "sections": {
+              "upgrades": 1.300000000745058,
+              "player": 0.30000000074505806,
+              "actors": 22.699999999254942,
+              "waterAndProps": 3.300000000745058,
+              "natureAndPets": 3.5,
+              "uiAndViews": 0.19999999925494194,
+              "mainRender": 17.199999999254942
+            },
+            "tier": 2
+          },
+          {
+            "interval": 250,
+            "cpu": 35.5,
+            "gpu": 634.731531,
+            "calls": 317,
+            "triangles": 534012,
+            "sections": {
+              "upgrades": 2.099999997764826,
+              "player": 0.19999999925494194,
+              "actors": 16.5,
+              "waterAndProps": 2.900000002235174,
+              "natureAndPets": 3,
+              "uiAndViews": 0.09999999776482582,
+              "mainRender": 10.700000002980232
+            },
+            "tier": 2
+          },
+          {
+            "interval": 766.5999999999985,
+            "cpu": 54.19999999925494,
+            "gpu": null,
+            "calls": 417,
+            "triangles": 679220,
+            "sections": {
+              "upgrades": 1.800000000745058,
+              "player": 0.30000000074505806,
+              "actors": 27.699999999254942,
+              "waterAndProps": 3.300000000745058,
+              "natureAndPets": 4.799999997019768,
+              "uiAndViews": 0.20000000298023224,
+              "mainRender": 16.099999997764826
+            },
+            "tier": 2
+          },
+          {
+            "interval": 683.3000000000029,
+            "cpu": 32.69999999925494,
+            "gpu": null,
+            "calls": 317,
+            "triangles": 534012,
+            "sections": {
+              "upgrades": 1.3999999985098839,
+              "player": 0.19999999925494194,
+              "actors": 14.100000001490116,
+              "waterAndProps": 3.899999998509884,
+              "natureAndPets": 2.800000000745058,
+              "uiAndViews": 0.10000000149011612,
+              "mainRender": 10.199999999254942
+            },
+            "tier": 2
+          },
+          {
+            "interval": 83.29999999999563,
+            "cpu": 53.80000000074506,
+            "gpu": null,
+            "calls": 417,
+            "triangles": 679220,
+            "sections": {
+              "upgrades": 1.199999999254942,
+              "player": 0.10000000149011612,
+              "actors": 14.799999997019768,
+              "waterAndProps": 3.400000002235174,
+              "natureAndPets": 9.800000000745058,
+              "uiAndViews": 0.09999999776482582,
+              "mainRender": 24.400000002235174
+            },
+            "tier": 2
+          },
+          {
+            "interval": 683.3000000000029,
+            "cpu": 45.69999999925494,
+            "gpu": null,
+            "calls": 317,
+            "triangles": 534012,
+            "sections": {
+              "upgrades": 1.7999999970197678,
+              "player": 0,
+              "actors": 14.5,
+              "waterAndProps": 3,
+              "natureAndPets": 2.400000002235174,
+              "uiAndViews": 0.19999999925494194,
+              "mainRender": 23.800000000745058
+            },
+            "tier": 2
+          },
+          {
+            "interval": 600,
+            "cpu": 37.80000000074506,
+            "gpu": null,
+            "calls": 417,
+            "triangles": 679220,
+            "sections": {
+              "upgrades": 1.8999999985098839,
+              "player": 0.10000000149011612,
+              "actors": 14,
+              "waterAndProps": 3.099999997764826,
+              "natureAndPets": 2.800000000745058,
+              "uiAndViews": 0.10000000149011612,
+              "mainRender": 15.800000000745058
+            },
+            "tier": 2
+          },
+          {
+            "interval": 700,
+            "cpu": 50.30000000074506,
+            "gpu": null,
+            "calls": 317,
+            "triangles": 534012,
+            "sections": {
+              "upgrades": 7,
+              "player": 0.09999999776482582,
+              "actors": 22.200000002980232,
+              "waterAndProps": 3.099999997764826,
+              "natureAndPets": 5.199999999254942,
+              "uiAndViews": 0.30000000074505806,
+              "mainRender": 12.400000002235174
+            },
+            "tier": 2
+          },
+          {
+            "interval": 699.8999999999942,
+            "cpu": 40.5,
+            "gpu": null,
+            "calls": 417,
+            "triangles": 679220,
+            "sections": {
+              "upgrades": 2.100000001490116,
+              "player": 0.19999999925494194,
+              "actors": 16.599999997764826,
+              "waterAndProps": 3.5,
+              "natureAndPets": 3.5,
+              "uiAndViews": 0.10000000149011612,
+              "mainRender": 14.5
+            },
+            "tier": 2
+          },
+          {
+            "interval": 1300,
+            "cpu": 33.30000000074506,
+            "gpu": null,
+            "calls": 317,
+            "triangles": 534012,
+            "sections": {
+              "upgrades": 1.6000000014901161,
+              "player": 0.19999999925494194,
+              "actors": 15.300000000745058,
+              "waterAndProps": 2.699999999254942,
+              "natureAndPets": 2.699999999254942,
+              "uiAndViews": 0.10000000149011612,
+              "mainRender": 10.699999999254942
+            },
+            "tier": 2
+          },
+          {
+            "interval": 116.70000000001164,
+            "cpu": 68.19999999925494,
+            "gpu": null,
+            "calls": 417,
+            "triangles": 679220,
+            "sections": {
+              "upgrades": 1.3999999985098839,
+              "player": 0.19999999925494194,
+              "actors": 32.900000002235174,
+              "waterAndProps": 4.299999997019768,
+              "natureAndPets": 15.100000001490116,
+              "uiAndViews": 0.19999999925494194,
+              "mainRender": 14.100000001490116
+            },
+            "tier": 2
+          },
+          {
+            "interval": 1266.5,
+            "cpu": 33.600000001490116,
+            "gpu": null,
+            "calls": 317,
+            "triangles": 534300,
+            "sections": {
+              "upgrades": 2.100000001490116,
+              "player": 0.19999999925494194,
+              "actors": 12.300000000745058,
+              "waterAndProps": 5.199999999254942,
+              "natureAndPets": 3.099999997764826,
+              "uiAndViews": 0.20000000298023224,
+              "mainRender": 10.5
+            },
+            "tier": 2
+          },
+          {
+            "interval": 700.0999999999913,
+            "cpu": 43.400000002235174,
+            "gpu": null,
+            "calls": 417,
+            "triangles": 679508,
+            "sections": {
+              "upgrades": 1.1000000014901161,
+              "player": 0.3999999985098839,
+              "actors": 18.200000002980232,
+              "waterAndProps": 5.299999997019768,
+              "natureAndPets": 3.900000002235174,
+              "uiAndViews": 0.19999999925494194,
+              "mainRender": 14.300000000745058
+            },
+            "tier": 2
+          },
+          {
+            "interval": 666.6000000000058,
+            "cpu": 27.799999997019768,
+            "gpu": null,
+            "calls": 317,
+            "triangles": 534300,
+            "sections": {
+              "upgrades": 1.5999999977648258,
+              "player": 0.10000000149011612,
+              "actors": 8.699999999254942,
+              "waterAndProps": 4.199999999254942,
+              "natureAndPets": 2.199999999254942,
+              "uiAndViews": 0.10000000149011612,
+              "mainRender": 10.899999998509884
+            },
+            "tier": 2
+          },
+          {
+            "interval": 33.30000000000291,
+            "cpu": 25.300000000745058,
+            "gpu": null,
+            "calls": 417,
+            "triangles": 679508,
+            "sections": {
+              "upgrades": 0.8999999985098839,
+              "player": 0,
+              "actors": 6.200000002980232,
+              "waterAndProps": 2.599999997764826,
+              "natureAndPets": 5.300000000745058,
+              "uiAndViews": 0.19999999925494194,
+              "mainRender": 10.100000001490116
+            },
+            "tier": 2
+          },
+          {
+            "interval": 1316.5999999999913,
+            "cpu": 30.5,
+            "gpu": null,
+            "calls": 317,
+            "triangles": 534300,
+            "sections": {
+              "upgrades": 5.400000002235174,
+              "player": 0.19999999925494194,
+              "actors": 10,
+              "waterAndProps": 2.399999998509884,
+              "natureAndPets": 3.400000002235174,
+              "uiAndViews": 0,
+              "mainRender": 9.099999997764826
+            },
+            "tier": 2
+          }
+        ]
+      },
+      "world": {
+        "format": "human5.world.stats/1",
+        "sizeMetres": 2112,
+        "residentCells": 9,
+        "pinnedViews": 0,
+        "pendingCells": 0,
+        "interiors": 0,
+        "blocks": 12,
+        "trees": 610,
+        "terrainEdits": 0,
+        "felledTrees": 0,
+        "lastBuildMs": 0,
+        "totalBuildMs": 252.00000000745058
+      },
+      "ecology": {
+        "vegetation": {
+          "cells": 9,
+          "grassInstances": 0,
+          "cutCells": 0
+        },
+        "hair": [
+          {
+            "name": "Mira",
+            "guides": [],
+            "classic": []
+          }
+        ],
+        "birds": {
+          "birds": 36,
+          "feeding": 0,
+          "feeders": 6
+        },
+        "fishing": {
+          "fish": 0,
+          "caught": 0,
+          "rods": []
+        },
+        "population": {
+          "enabled": true,
+          "virtualPeople": 24,
+          "interactivePeople": 0,
+          "virtualCars": 10,
+          "interactiveCars": 0,
+          "outings": 0
+        }
+      },
+      "startup": [
+        {
+          "stage": "mainShaders",
+          "ms": 395.3999999985099
+        },
+        {
+          "stage": "vehicleView",
+          "vehicle": "sedan",
+          "ms": 11822.5
+        },
+        {
+          "stage": "vehicleView",
+          "vehicle": "sedan",
+          "ms": 257.5999999977648
+        },
+        {
+          "stage": "total",
+          "ms": 15645.10000000149
+        }
+      ],
+      "longFrames": 46,
+      "morphs": [
+        [
+          {
+            "name": "Std_Skin_Head",
+            "vertices": 17200,
+            "targets": 49,
+            "residual": 0.10571590118527925
+          },
+          {
+            "name": "Std_Skin_Body",
+            "vertices": 17200,
+            "targets": 0,
+            "residual": 0.0003346750081967846
+          },
+          {
+            "name": "Std_Skin_Arm",
+            "vertices": 17200,
+            "targets": 0,
+            "residual": 0.0008429452007015731
+          },
+          {
+            "name": "Std_Skin_Leg",
+            "vertices": 17200,
+            "targets": 0,
+            "residual": 0.000016882575836152238
+          }
+        ]
+      ],
+      "seams": [
+        {
+          "ready": true,
+          "skin": true
+        }
+      ],
+      "driving": 0
+    },
+    {
+      "location": "Car",
+      "transition": {
+        "syncMs": 0.6000000014901161
+      },
+      "performance": {
+        "format": "human5-performance-1",
+        "recordedAt": "2026-09-11T20:36:48.658Z",
+        "userAgent": "Human5 simulated Quest code path; OculusBrowser regression test",
+        "xr": false,
+        "targetHz": 72,
+        "budgetMs": 13.88888888888889,
+        "tier": "sustain",
+        "samples": 64,
+        "frameIntervalMs": {
+          "p50": 950,
+          "p95": 1716.6000000000058,
+          "max": 1916.6000000000058
+        },
+        "cpuMs": {
+          "p50": 36.600000001490116,
+          "p95": 89.30000000074506,
+          "max": 1908.7999999970198
+        },
+        "gpuMs": {
+          "p50": 928.257931,
+          "p95": 1108.441945,
+          "max": 1326.714388
+        },
+        "gpuTimerAvailable": true,
+        "deliveredFPS": 1.059937828021775,
+        "overBudgetFraction": 1,
+        "drawCalls": {
+          "p50": 483,
+          "p95": 687,
+          "max": 687
+        },
+        "triangles": {
+          "p50": 684491,
+          "p95": 1090970,
+          "max": 1090970
+        },
+        "sectionsMs": {
+          "upgrades": {
+            "p50": 1.699999999254942,
+            "p95": 13.699999999254942,
+            "max": 57.399999998509884
+          },
+          "player": {
+            "p50": 0.10000000149011612,
+            "p95": 0.30000000074505806,
+            "max": 3.800000000745058
+          },
+          "actors": {
+            "p50": 6.399999998509884,
+            "p95": 12.100000001490116,
+            "max": 48.30000000074506
+          },
+          "waterAndProps": {
+            "p50": 6.5,
+            "p95": 15,
+            "max": 19.300000000745058
+          },
+          "natureAndPets": {
+            "p50": 1.0999999977648258,
+            "p95": 4.199999999254942,
+            "max": 18.400000002235174
+          },
+          "uiAndViews": {
+            "p50": 0.20000000298023224,
+            "p95": 16.300000000745058,
+            "max": 1287.1000000014901
+          },
+          "mainRender": {
+            "p50": 14.300000000745058,
+            "p95": 28,
+            "max": 1883
+          }
+        },
+        "resources": {
+          "geometries": 701,
+          "textures": 72,
+          "programs": 189
+        },
+        "raw": [
+          {
+            "interval": 1133.300000000003,
+            "cpu": 1908.7999999970198,
+            "gpu": null,
+            "calls": 479,
+            "triangles": 673522,
+            "sections": {
+              "upgrades": 3.399999998509884,
+              "player": 1,
+              "actors": 7.300000000745058,
+              "waterAndProps": 13.199999999254942,
+              "natureAndPets": 0.6999999992549419,
+              "uiAndViews": 0.19999999925494194,
+              "mainRender": 1883
+            },
+            "tier": 2
+          },
+          {
+            "interval": 1916.6000000000058,
+            "cpu": 1312.800000000745,
+            "gpu": 1326.714388,
+            "calls": 622,
+            "triangles": 955976,
+            "sections": {
+              "upgrades": 1.5999999977648258,
+              "player": 0.10000000149011612,
+              "actors": 4,
+              "waterAndProps": 5.100000001490116,
+              "natureAndPets": 1.0999999977648258,
+              "uiAndViews": 1287.1000000014901,
+              "mainRender": 13.800000000745058
+            },
+            "tier": 2
+          },
+          {
+            "interval": 1316.5999999999913,
+            "cpu": 34.5,
+            "gpu": 771.561083,
+            "calls": 483,
+            "triangles": 673666,
+            "sections": {
+              "upgrades": 1.199999999254942,
+              "player": 0.10000000149011612,
+              "actors": 8.199999999254942,
+              "waterAndProps": 4.699999999254942,
+              "natureAndPets": 0.9000000022351742,
+              "uiAndViews": 0.09999999776482582,
+              "mainRender": 19.300000000745058
+            },
+            "tier": 2
+          },
+          {
+            "interval": 133.3000000000029,
+            "cpu": 62,
+            "gpu": 1106.472742,
+            "calls": 622,
+            "triangles": 955976,
+            "sections": {
+              "upgrades": 1.7999999970197678,
+              "player": 0.20000000298023224,
+              "actors": 10.5,
+              "waterAndProps": 15.699999999254942,
+              "natureAndPets": 2.300000000745058,
+              "uiAndViews": 18.699999999254942,
+              "mainRender": 12.800000000745058
+            },
+            "tier": 2
+          },
+          {
+            "interval": 583.3999999999942,
+            "cpu": 33.69999999925494,
+            "gpu": 772.965425,
+            "calls": 483,
+            "triangles": 673666,
+            "sections": {
+              "upgrades": 1.8999999985098839,
+              "player": 0.19999999925494194,
+              "actors": 6.300000000745058,
+              "waterAndProps": 6.5,
+              "natureAndPets": 1.4000000022351742,
+              "uiAndViews": 0.09999999776482582,
+              "mainRender": 17.300000000745058
+            },
+            "tier": 2
+          },
+          {
+            "interval": 616.6000000000058,
+            "cpu": 35.5,
+            "gpu": 928.257931,
+            "calls": 622,
+            "triangles": 955976,
+            "sections": {
+              "upgrades": 1,
+              "player": 0.10000000149011612,
+              "actors": 4.699999999254942,
+              "waterAndProps": 4.699999999254942,
+              "natureAndPets": 0.9000000022351742,
+              "uiAndViews": 9.299999997019768,
+              "mainRender": 14.800000000745058
+            },
+            "tier": 2
+          },
+          {
+            "interval": 1299.8999999999942,
+            "cpu": 35.399999998509884,
+            "gpu": null,
+            "calls": 483,
+            "triangles": 673666,
+            "sections": {
+              "upgrades": 1.699999999254942,
+              "player": 0.19999999925494194,
+              "actors": 4.700000002980232,
+              "waterAndProps": 9.799999997019768,
+              "natureAndPets": 3.5,
+              "uiAndViews": 0,
+              "mainRender": 15.5
+            },
+            "tier": 2
+          },
+          {
+            "interval": 100,
+            "cpu": 93.5,
+            "gpu": null,
+            "calls": 617,
+            "triangles": 936946,
+            "sections": {
+              "upgrades": 57.399999998509884,
+              "player": 0.10000000149011612,
+              "actors": 6,
+              "waterAndProps": 5.699999999254942,
+              "natureAndPets": 1.1000000014901161,
+              "uiAndViews": 11.399999998509884,
+              "mainRender": 11.800000000745058
+            },
+            "tier": 2
+          },
+          {
+            "interval": 1183.300000000003,
+            "cpu": 31.900000002235174,
+            "gpu": null,
+            "calls": 479,
+            "triangles": 659435,
+            "sections": {
+              "upgrades": 3.800000000745058,
+              "player": 0.10000000149011612,
+              "actors": 6.599999997764826,
+              "waterAndProps": 6.400000002235174,
+              "natureAndPets": 1.0999999977648258,
+              "uiAndViews": 0.10000000149011612,
+              "mainRender": 13.800000000745058
+            },
+            "tier": 2
+          },
+          {
+            "interval": 1816.6000000000058,
+            "cpu": 33.899999998509884,
+            "gpu": null,
+            "calls": 617,
+            "triangles": 937522,
+            "sections": {
+              "upgrades": 3.899999998509884,
+              "player": 0,
+              "actors": 9.400000002235174,
+              "waterAndProps": 4.399999998509884,
+              "natureAndPets": 0.8000000007450581,
+              "uiAndViews": 7,
+              "mainRender": 8.399999998509884
+            },
+            "tier": 2
+          },
+          {
+            "interval": 100,
+            "cpu": 43.899999998509884,
+            "gpu": 923.404576,
+            "calls": 479,
+            "triangles": 659015,
+            "sections": {
+              "upgrades": 13.699999999254942,
+              "player": 0.10000000149011612,
+              "actors": 8.899999998509884,
+              "waterAndProps": 5.699999999254942,
+              "natureAndPets": 4.199999999254942,
+              "uiAndViews": 0,
+              "mainRender": 11.300000000745058
+            },
+            "tier": 2
+          },
+          {
+            "interval": 950,
+            "cpu": 47.599999997764826,
+            "gpu": null,
+            "calls": 615,
+            "triangles": 969730,
+            "sections": {
+              "upgrades": 3.7999999970197678,
+              "player": 0.10000000149011612,
+              "actors": 8.100000001490116,
+              "waterAndProps": 7.299999997019768,
+              "natureAndPets": 1.5,
+              "uiAndViews": 11.5,
+              "mainRender": 15.300000000745058
+            },
+            "tier": 2
+          },
+          {
+            "interval": 466.59999999999127,
+            "cpu": 29.300000000745058,
+            "gpu": null,
+            "calls": 473,
+            "triangles": 658871,
+            "sections": {
+              "upgrades": 3.900000002235174,
+              "player": 0.09999999776482582,
+              "actors": 6.199999999254942,
+              "waterAndProps": 6.5,
+              "natureAndPets": 0.9000000022351742,
+              "uiAndViews": 0.09999999776482582,
+              "mainRender": 11.600000001490116
+            },
+            "tier": 2
+          },
+          {
+            "interval": 1633.300000000003,
+            "cpu": 58.80000000074506,
+            "gpu": 1108.441945,
+            "calls": 615,
+            "triangles": 969730,
+            "sections": {
+              "upgrades": 8.899999998509884,
+              "player": 0.19999999925494194,
+              "actors": 12.100000001490116,
+              "waterAndProps": 7.300000000745058,
+              "natureAndPets": 1.0999999977648258,
+              "uiAndViews": 12.600000001490116,
+              "mainRender": 16.600000001490116
+            },
+            "tier": 2
+          },
+          {
+            "interval": 1116.6000000000058,
+            "cpu": 64.19999999925494,
+            "gpu": 883.839061,
+            "calls": 477,
+            "triangles": 691163,
+            "sections": {
+              "upgrades": 17.699999999254942,
+              "player": 0.10000000149011612,
+              "actors": 10.899999998509884,
+              "waterAndProps": 13.100000001490116,
+              "natureAndPets": 1.5,
+              "uiAndViews": 0.09999999776482582,
+              "mainRender": 20.800000000745058
+            },
+            "tier": 2
+          },
+          {
+            "interval": 800,
+            "cpu": 45.80000000074506,
+            "gpu": 1057.969607,
+            "calls": 619,
+            "triangles": 961406,
+            "sections": {
+              "upgrades": 10.900000002235174,
+              "player": 0.09999999776482582,
+              "actors": 4.300000000745058,
+              "waterAndProps": 4.800000000745058,
+              "natureAndPets": 1,
+              "uiAndViews": 10.699999999254942,
+              "mainRender": 14
+            },
+            "tier": 2
+          },
+          {
+            "interval": 916.5999999999913,
+            "cpu": 50.600000001490116,
+            "gpu": 809.348457,
+            "calls": 477,
+            "triangles": 671311,
+            "sections": {
+              "upgrades": 3.900000002235174,
+              "player": 0.19999999925494194,
+              "actors": 7.099999997764826,
+              "waterAndProps": 6.900000002235174,
+              "natureAndPets": 1.199999999254942,
+              "uiAndViews": 0.10000000149011612,
+              "mainRender": 31.199999999254942
+            },
+            "tier": 2
+          },
+          {
+            "interval": 1799.9000000000087,
+            "cpu": 74.40000000223517,
+            "gpu": 1006.639648,
+            "calls": 619,
+            "triangles": 960634,
+            "sections": {
+              "upgrades": 18.400000002235174,
+              "player": 0.09999999776482582,
+              "actors": 8.700000002980232,
+              "waterAndProps": 9.199999999254942,
+              "natureAndPets": 2,
+              "uiAndViews": 19.300000000745058,
+              "mainRender": 16.699999999254942
+            },
+            "tier": 2
+          },
+          {
+            "interval": 1133.3999999999942,
+            "cpu": 89.30000000074506,
+            "gpu": null,
+            "calls": 477,
+            "triangles": 670925,
+            "sections": {
+              "upgrades": 2.100000001490116,
+              "player": 0.19999999925494194,
+              "actors": 21.900000002235174,
+              "waterAndProps": 11.099999997764826,
+              "natureAndPets": 18.400000002235174,
+              "uiAndViews": 0.19999999925494194,
+              "mainRender": 35.399999998509884
+            },
+            "tier": 2
+          },
+          {
+            "interval": 1733.199999999997,
+            "cpu": 41.69999999925494,
+            "gpu": null,
+            "calls": 619,
+            "triangles": 960634,
+            "sections": {
+              "upgrades": 3.100000001490116,
+              "player": 0.09999999776482582,
+              "actors": 6.800000000745058,
+              "waterAndProps": 6.5,
+              "natureAndPets": 0.8000000007450581,
+              "uiAndViews": 12.100000001490116,
+              "mainRender": 12.299999997019768
+            },
+            "tier": 2
+          },
+          {
+            "interval": 283.3000000000029,
+            "cpu": 35.900000002235174,
+            "gpu": 773.687228,
+            "calls": 477,
+            "triangles": 670925,
+            "sections": {
+              "upgrades": 1.300000000745058,
+              "player": 0.10000000149011612,
+              "actors": 6.199999999254942,
+              "waterAndProps": 11.300000000745058,
+              "natureAndPets": 2.399999998509884,
+              "uiAndViews": 0.10000000149011612,
+              "mainRender": 14.5
+            },
+            "tier": 2
+          },
+          {
+            "interval": 1049.9000000000087,
+            "cpu": 172,
+            "gpu": null,
+            "calls": 619,
+            "triangles": 960634,
+            "sections": {
+              "upgrades": 51.399999998509884,
+              "player": 3.800000000745058,
+              "actors": 48.30000000074506,
+              "waterAndProps": 19.300000000745058,
+              "natureAndPets": 1.5999999977648258,
+              "uiAndViews": 19.600000001490116,
+              "mainRender": 28
+            },
+            "tier": 2
+          },
+          {
+            "interval": 816.6999999999971,
+            "cpu": 36.79999999701977,
+            "gpu": null,
+            "calls": 477,
+            "triangles": 670925,
+            "sections": {
+              "upgrades": 5.099999997764826,
+              "player": 0.5,
+              "actors": 10.5,
+              "waterAndProps": 6.199999999254942,
+              "natureAndPets": 3.100000001490116,
+              "uiAndViews": 0.10000000149011612,
+              "mainRender": 11.199999999254942
+            },
+            "tier": 2
+          },
+          {
+            "interval": 383.3000000000029,
+            "cpu": 47.19999999925494,
+            "gpu": null,
+            "calls": 622,
+            "triangles": 973912,
+            "sections": {
+              "upgrades": 5,
+              "player": 0.09999999776482582,
+              "actors": 12.100000001490116,
+              "waterAndProps": 7.699999999254942,
+              "natureAndPets": 1.300000000745058,
+              "uiAndViews": 8.5,
+              "mainRender": 12.5
+            },
+            "tier": 2
+          },
+          {
+            "interval": 800,
+            "cpu": 57.099999997764826,
+            "gpu": 804.821336,
+            "calls": 480,
+            "triangles": 684203,
+            "sections": {
+              "upgrades": 1.800000000745058,
+              "player": 0.09999999776482582,
+              "actors": 6.100000001490116,
+              "waterAndProps": 5.599999997764826,
+              "natureAndPets": 0.8000000007450581,
+              "uiAndViews": 0.10000000149011612,
+              "mainRender": 42.599999997764826
+            },
+            "tier": 2
+          },
+          {
+            "interval": 833.2999999999884,
+            "cpu": 43.099999997764826,
+            "gpu": 948.465014,
+            "calls": 622,
+            "triangles": 973912,
+            "sections": {
+              "upgrades": 3.699999999254942,
+              "player": 0.3999999985098839,
+              "actors": 7.300000000745058,
+              "waterAndProps": 8.5,
+              "natureAndPets": 1.3999999985098839,
+              "uiAndViews": 10.5,
+              "mainRender": 11.300000000745058
+            },
+            "tier": 2
+          },
+          {
+            "interval": 1049.9000000000087,
+            "cpu": 22.5,
+            "gpu": null,
+            "calls": 480,
+            "triangles": 684203,
+            "sections": {
+              "upgrades": 1.1000000014901161,
+              "player": 0.10000000149011612,
+              "actors": 5.799999997019768,
+              "waterAndProps": 4.400000002235174,
+              "natureAndPets": 0.8000000007450581,
+              "uiAndViews": 0.09999999776482582,
+              "mainRender": 10.199999999254942
+            },
+            "tier": 2
+          },
+          {
+            "interval": 33.30000000000291,
+            "cpu": 11,
+            "gpu": 745.026577,
+            "calls": 415,
+            "triangles": 567145,
+            "sections": {
+              "upgrades": 0.8999999985098839,
+              "player": 0.10000000149011612,
+              "actors": 0.5,
+              "waterAndProps": 2.300000000745058,
+              "natureAndPets": 0.5999999977648258,
+              "uiAndViews": 0.10000000149011612,
+              "mainRender": 6.5
+            },
+            "tier": 2
+          },
+          {
+            "interval": 66.69999999999709,
+            "cpu": 50.400000002235174,
+            "gpu": null,
+            "calls": 687,
+            "triangles": 1090970,
+            "sections": {
+              "upgrades": 0.8000000007450581,
+              "player": 0,
+              "actors": 9.100000001490116,
+              "waterAndProps": 8.199999999254942,
+              "natureAndPets": 4,
+              "uiAndViews": 11.699999999254942,
+              "mainRender": 16.600000001490116
+            },
+            "tier": 2
+          },
+          {
+            "interval": 1100,
+            "cpu": 54.20000000298023,
+            "gpu": 756.439857,
+            "calls": 415,
+            "triangles": 567145,
+            "sections": {
+              "upgrades": 2.100000001490116,
+              "player": 0.10000000149011612,
+              "actors": 13.299999997019768,
+              "waterAndProps": 18.700000002980232,
+              "natureAndPets": 1.699999999254942,
+              "uiAndViews": 0.19999999925494194,
+              "mainRender": 18.100000001490116
+            },
+            "tier": 2
+          },
+          {
+            "interval": 650,
+            "cpu": 43.19999999925494,
+            "gpu": 1003.480863,
+            "calls": 687,
+            "triangles": 1090970,
+            "sections": {
+              "upgrades": 1.3999999985098839,
+              "player": 0.20000000298023224,
+              "actors": 4.399999998509884,
+              "waterAndProps": 4.600000001490116,
+              "natureAndPets": 3.5,
+              "uiAndViews": 7,
+              "mainRender": 22.099999997764826
+            },
+            "tier": 2
+          },
+          {
+            "interval": 816.5999999999913,
+            "cpu": 38.5,
+            "gpu": null,
+            "calls": 415,
+            "triangles": 567145,
+            "sections": {
+              "upgrades": 3.899999998509884,
+              "player": 0.19999999925494194,
+              "actors": 10.5,
+              "waterAndProps": 7.699999999254942,
+              "natureAndPets": 0.8000000007450581,
+              "uiAndViews": 0.19999999925494194,
+              "mainRender": 15.200000002980232
+            },
+            "tier": 2
+          },
+          {
+            "interval": 1083.300000000003,
+            "cpu": 62.400000002235174,
+            "gpu": null,
+            "calls": 687,
+            "triangles": 1090970,
+            "sections": {
+              "upgrades": 2,
+              "player": 0.30000000074505806,
+              "actors": 16.600000001490116,
+              "waterAndProps": 7.199999999254942,
+              "natureAndPets": 1.199999999254942,
+              "uiAndViews": 16.300000000745058,
+              "mainRender": 18.800000000745058
+            },
+            "tier": 2
+          },
+          {
+            "interval": 1616.6000000000058,
+            "cpu": 24.899999998509884,
+            "gpu": 1316.730009,
+            "calls": 415,
+            "triangles": 567145,
+            "sections": {
+              "upgrades": 1.3999999985098839,
+              "player": 0.10000000149011612,
+              "actors": 4,
+              "waterAndProps": 6.300000000745058,
+              "natureAndPets": 0.8999999985098839,
+              "uiAndViews": 0.10000000149011612,
+              "mainRender": 12.099999997764826
+            },
+            "tier": 2
+          },
+          {
+            "interval": 1183.199999999997,
+            "cpu": 54.5,
+            "gpu": null,
+            "calls": 687,
+            "triangles": 1090970,
+            "sections": {
+              "upgrades": 0.9000000022351742,
+              "player": 0.19999999925494194,
+              "actors": 4.699999999254942,
+              "waterAndProps": 15,
+              "natureAndPets": 5.199999999254942,
+              "uiAndViews": 11,
+              "mainRender": 17.5
+            },
+            "tier": 2
+          },
+          {
+            "interval": 1516.699999999997,
+            "cpu": 33.20000000298023,
+            "gpu": 750.652878,
+            "calls": 415,
+            "triangles": 567145,
+            "sections": {
+              "upgrades": 1.5,
+              "player": 0.20000000298023224,
+              "actors": 7.399999998509884,
+              "waterAndProps": 6.399999998509884,
+              "natureAndPets": 1.4000000022351742,
+              "uiAndViews": 0.09999999776482582,
+              "mainRender": 16.200000002980232
+            },
+            "tier": 2
+          },
+          {
+            "interval": 950,
+            "cpu": 35,
+            "gpu": 1010.168806,
+            "calls": 687,
+            "triangles": 1090970,
+            "sections": {
+              "upgrades": 1.5,
+              "player": 0.19999999925494194,
+              "actors": 4.699999999254942,
+              "waterAndProps": 4.300000000745058,
+              "natureAndPets": 1,
+              "uiAndViews": 7.599999997764826,
+              "mainRender": 15.700000002980232
+            },
+            "tier": 2
+          },
+          {
+            "interval": 99.90000000000873,
+            "cpu": 40.69999999925494,
+            "gpu": null,
+            "calls": 415,
+            "triangles": 567145,
+            "sections": {
+              "upgrades": 0.8999999985098839,
+              "player": 0.10000000149011612,
+              "actors": 10,
+              "waterAndProps": 13.5,
+              "natureAndPets": 1.199999999254942,
+              "uiAndViews": 0.10000000149011612,
+              "mainRender": 14.899999998509884
+            },
+            "tier": 2
+          },
+          {
+            "interval": 1700,
+            "cpu": 44.399999998509884,
+            "gpu": 1009.934481,
+            "calls": 687,
+            "triangles": 1090970,
+            "sections": {
+              "upgrades": 1.6000000014901161,
+              "player": 0.09999999776482582,
+              "actors": 9.199999999254942,
+              "waterAndProps": 6.300000000745058,
+              "natureAndPets": 1,
+              "uiAndViews": 9.800000000745058,
+              "mainRender": 16.399999998509884
+            },
+            "tier": 2
+          },
+          {
+            "interval": 950,
+            "cpu": 54.400000002235174,
+            "gpu": null,
+            "calls": 415,
+            "triangles": 567145,
+            "sections": {
+              "upgrades": 2.100000001490116,
+              "player": 0.10000000149011612,
+              "actors": 11.899999998509884,
+              "waterAndProps": 18,
+              "natureAndPets": 0.8999999985098839,
+              "uiAndViews": 0,
+              "mainRender": 21.400000002235174
+            },
+            "tier": 2
+          },
+          {
+            "interval": 633.1999999999971,
+            "cpu": 35.30000000074506,
+            "gpu": null,
+            "calls": 687,
+            "triangles": 1090970,
+            "sections": {
+              "upgrades": 1.0999999977648258,
+              "player": 0.10000000149011612,
+              "actors": 9.699999999254942,
+              "waterAndProps": 4.900000002235174,
+              "natureAndPets": 0.7999999970197678,
+              "uiAndViews": 7.900000002235174,
+              "mainRender": 10.800000000745058
+            },
+            "tier": 2
+          },
+          {
+            "interval": 266.6999999999971,
+            "cpu": 26.100000001490116,
+            "gpu": 783.367075,
+            "calls": 415,
+            "triangles": 567145,
+            "sections": {
+              "upgrades": 1.3999999985098839,
+              "player": 0.10000000149011612,
+              "actors": 6.100000001490116,
+              "waterAndProps": 7,
+              "natureAndPets": 0.8999999985098839,
+              "uiAndViews": 0,
+              "mainRender": 10.600000001490116
+            },
+            "tier": 2
+          },
+          {
+            "interval": 816.6000000000058,
+            "cpu": 56.80000000074506,
+            "gpu": 1021.913603,
+            "calls": 687,
+            "triangles": 1090970,
+            "sections": {
+              "upgrades": 1.7000000029802322,
+              "player": 0.09999999776482582,
+              "actors": 8.800000000745058,
+              "waterAndProps": 4.399999998509884,
+              "natureAndPets": 9.5,
+              "uiAndViews": 15.700000002980232,
+              "mainRender": 16.599999997764826
+            },
+            "tier": 2
+          },
+          {
+            "interval": 1200,
+            "cpu": 36.600000001490116,
+            "gpu": null,
+            "calls": 415,
+            "triangles": 567145,
+            "sections": {
+              "upgrades": 1.2000000029802322,
+              "player": 0.09999999776482582,
+              "actors": 6.100000001490116,
+              "waterAndProps": 5.899999998509884,
+              "natureAndPets": 0.9000000022351742,
+              "uiAndViews": 0,
+              "mainRender": 22.399999998509884
+            },
+            "tier": 2
+          },
+          {
+            "interval": 733.2999999999884,
+            "cpu": 33.399999998509884,
+            "gpu": null,
+            "calls": 687,
+            "triangles": 1090970,
+            "sections": {
+              "upgrades": 1.699999999254942,
+              "player": 0.09999999776482582,
+              "actors": 7.600000001490116,
+              "waterAndProps": 6.5,
+              "natureAndPets": 0.8000000007450581,
+              "uiAndViews": 6.899999998509884,
+              "mainRender": 9.800000000745058
+            },
+            "tier": 2
+          },
+          {
+            "interval": 1516.6000000000058,
+            "cpu": 34.400000002235174,
+            "gpu": 774.896012,
+            "calls": 415,
+            "triangles": 567145,
+            "sections": {
+              "upgrades": 1.6000000014901161,
+              "player": 0.19999999925494194,
+              "actors": 4.199999999254942,
+              "waterAndProps": 4,
+              "natureAndPets": 0.7000000029802322,
+              "uiAndViews": 0.19999999925494194,
+              "mainRender": 23.5
+            },
+            "tier": 2
+          },
+          {
+            "interval": 816.6000000000058,
+            "cpu": 48.30000000074506,
+            "gpu": null,
+            "calls": 687,
+            "triangles": 1090970,
+            "sections": {
+              "upgrades": 1,
+              "player": 0.10000000149011612,
+              "actors": 5,
+              "waterAndProps": 5.199999999254942,
+              "natureAndPets": 3.300000000745058,
+              "uiAndViews": 8.399999998509884,
+              "mainRender": 25.300000000745058
+            },
+            "tier": 2
+          },
+          {
+            "interval": 983.3999999999942,
+            "cpu": 24.699999999254942,
+            "gpu": 802.207676,
+            "calls": 415,
+            "triangles": 567145,
+            "sections": {
+              "upgrades": 1.800000000745058,
+              "player": 0.10000000149011612,
+              "actors": 4.099999997764826,
+              "waterAndProps": 4.5,
+              "natureAndPets": 3,
+              "uiAndViews": 0.10000000149011612,
+              "mainRender": 11.099999997764826
+            },
+            "tier": 2
+          },
+          {
+            "interval": 783.1999999999971,
+            "cpu": 36.600000001490116,
+            "gpu": 1067.01057,
+            "calls": 687,
+            "triangles": 1090970,
+            "sections": {
+              "upgrades": 1.6000000014901161,
+              "player": 0.19999999925494194,
+              "actors": 8.599999997764826,
+              "waterAndProps": 6.300000000745058,
+              "natureAndPets": 1.699999999254942,
+              "uiAndViews": 7.800000000745058,
+              "mainRender": 10.400000002235174
+            },
+            "tier": 2
+          },
+          {
+            "interval": 1133.300000000003,
+            "cpu": 36.30000000074506,
+            "gpu": null,
+            "calls": 415,
+            "triangles": 567145,
+            "sections": {
+              "upgrades": 1.199999999254942,
+              "player": 0.19999999925494194,
+              "actors": 6.600000001490116,
+              "waterAndProps": 8.100000001490116,
+              "natureAndPets": 2.2999999970197678,
+              "uiAndViews": 0.20000000298023224,
+              "mainRender": 17.699999999254942
+            },
+            "tier": 2
+          },
+          {
+            "interval": 1416.6000000000058,
+            "cpu": 32.80000000074506,
+            "gpu": 1052.5534,
+            "calls": 687,
+            "triangles": 1090970,
+            "sections": {
+              "upgrades": 1.5,
+              "player": 0.30000000074505806,
+              "actors": 4.300000000745058,
+              "waterAndProps": 5,
+              "natureAndPets": 1.0999999977648258,
+              "uiAndViews": 7.200000002980232,
+              "mainRender": 13.399999998509884
+            },
+            "tier": 2
+          },
+          {
+            "interval": 366.6999999999971,
+            "cpu": 29.399999998509884,
+            "gpu": null,
+            "calls": 415,
+            "triangles": 567145,
+            "sections": {
+              "upgrades": 1.5,
+              "player": 0,
+              "actors": 4.699999999254942,
+              "waterAndProps": 6.900000002235174,
+              "natureAndPets": 0.7999999970197678,
+              "uiAndViews": 0.10000000149011612,
+              "mainRender": 15.399999998509884
+            },
+            "tier": 2
+          },
+          {
+            "interval": 766.5999999999913,
+            "cpu": 53.80000000074506,
+            "gpu": null,
+            "calls": 687,
+            "triangles": 1090970,
+            "sections": {
+              "upgrades": 1.1000000014901161,
+              "player": 0.30000000074505806,
+              "actors": 11.899999998509884,
+              "waterAndProps": 7.900000002235174,
+              "natureAndPets": 0.7999999970197678,
+              "uiAndViews": 14.300000000745058,
+              "mainRender": 17.5
+            },
+            "tier": 2
+          },
+          {
+            "interval": 1716.6000000000058,
+            "cpu": 31,
+            "gpu": null,
+            "calls": 415,
+            "triangles": 567145,
+            "sections": {
+              "upgrades": 1.800000000745058,
+              "player": 0.10000000149011612,
+              "actors": 5.299999997019768,
+              "waterAndProps": 8.5,
+              "natureAndPets": 0.9000000022351742,
+              "uiAndViews": 0.09999999776482582,
+              "mainRender": 14.300000000745058
+            },
+            "tier": 2
+          },
+          {
+            "interval": 33.39999999999418,
+            "cpu": 24.699999999254942,
+            "gpu": null,
+            "calls": 480,
+            "triangles": 684203,
+            "sections": {
+              "upgrades": 1,
+              "player": 0.09999999776482582,
+              "actors": 0.30000000074505806,
+              "waterAndProps": 5.399999998509884,
+              "natureAndPets": 4.300000000745058,
+              "uiAndViews": 0.10000000149011612,
+              "mainRender": 13.5
+            },
+            "tier": 2
+          },
+          {
+            "interval": 1133.300000000003,
+            "cpu": 28.199999999254942,
+            "gpu": null,
+            "calls": 622,
+            "triangles": 973912,
+            "sections": {
+              "upgrades": 1.0999999977648258,
+              "player": 0.20000000298023224,
+              "actors": 4.099999997764826,
+              "waterAndProps": 5.400000002235174,
+              "natureAndPets": 0.7999999970197678,
+              "uiAndViews": 7.5,
+              "mainRender": 9.100000001490116
+            },
+            "tier": 2
+          },
+          {
+            "interval": 849.9000000000087,
+            "cpu": 27.300000000745058,
+            "gpu": null,
+            "calls": 480,
+            "triangles": 684203,
+            "sections": {
+              "upgrades": 0.8999999985098839,
+              "player": 0.10000000149011612,
+              "actors": 6.399999998509884,
+              "waterAndProps": 4.900000002235174,
+              "natureAndPets": 1,
+              "uiAndViews": 0.19999999925494194,
+              "mainRender": 13.800000000745058
+            },
+            "tier": 2
+          },
+          {
+            "interval": 783.2999999999884,
+            "cpu": 29.899999998509884,
+            "gpu": null,
+            "calls": 622,
+            "triangles": 973912,
+            "sections": {
+              "upgrades": 1.800000000745058,
+              "player": 0.19999999925494194,
+              "actors": 3.600000001490116,
+              "waterAndProps": 6.199999999254942,
+              "natureAndPets": 0.6999999992549419,
+              "uiAndViews": 7.800000000745058,
+              "mainRender": 9.599999997764826
+            },
+            "tier": 2
+          },
+          {
+            "interval": 1116.6000000000058,
+            "cpu": 27,
+            "gpu": null,
+            "calls": 480,
+            "triangles": 684491,
+            "sections": {
+              "upgrades": 1,
+              "player": 0.19999999925494194,
+              "actors": 3.800000000745058,
+              "waterAndProps": 8.5,
+              "natureAndPets": 0.8000000007450581,
+              "uiAndViews": 0.5,
+              "mainRender": 12.199999999254942
+            },
+            "tier": 2
+          },
+          {
+            "interval": 1016.6999999999971,
+            "cpu": 37.80000000074506,
+            "gpu": null,
+            "calls": 622,
+            "triangles": 974488,
+            "sections": {
+              "upgrades": 1,
+              "player": 0.10000000149011612,
+              "actors": 7.5,
+              "waterAndProps": 8,
+              "natureAndPets": 0.8999999985098839,
+              "uiAndViews": 10.5,
+              "mainRender": 9.800000000745058
+            },
+            "tier": 2
+          },
+          {
+            "interval": 866.6000000000058,
+            "cpu": 22.800000000745058,
+            "gpu": null,
+            "calls": 480,
+            "triangles": 684491,
+            "sections": {
+              "upgrades": 2.5,
+              "player": 0,
+              "actors": 3.699999999254942,
+              "waterAndProps": 4.400000002235174,
+              "natureAndPets": 1.2999999970197678,
+              "uiAndViews": 0.20000000298023224,
+              "mainRender": 10.699999999254942
+            },
+            "tier": 2
+          },
+          {
+            "interval": 1000,
+            "cpu": 27.100000001490116,
+            "gpu": null,
+            "calls": 622,
+            "triangles": 974488,
+            "sections": {
+              "upgrades": 1,
+              "player": 0.19999999925494194,
+              "actors": 4,
+              "waterAndProps": 3.800000000745058,
+              "natureAndPets": 1.800000000745058,
+              "uiAndViews": 7.099999997764826,
+              "mainRender": 9.200000002980232
+            },
+            "tier": 2
+          },
+          {
+            "interval": 1649.8999999999942,
+            "cpu": 25,
+            "gpu": null,
+            "calls": 480,
+            "triangles": 684491,
+            "sections": {
+              "upgrades": 0.8000000007450581,
+              "player": 0.19999999925494194,
+              "actors": 4,
+              "waterAndProps": 6.900000002235174,
+              "natureAndPets": 1,
+              "uiAndViews": 0.09999999776482582,
+              "mainRender": 12
+            },
+            "tier": 2
+          },
+          {
+            "interval": 1049.9000000000087,
+            "cpu": 34.29999999701977,
+            "gpu": null,
+            "calls": 622,
+            "triangles": 974488,
+            "sections": {
+              "upgrades": 2.099999997764826,
+              "player": 0.19999999925494194,
+              "actors": 4.300000000745058,
+              "waterAndProps": 8,
+              "natureAndPets": 0.6000000014901161,
+              "uiAndViews": 7.699999999254942,
+              "mainRender": 11.399999998509884
+            },
+            "tier": 2
+          }
+        ]
+      },
+      "world": {
+        "format": "human5.world.stats/1",
+        "sizeMetres": 2112,
+        "residentCells": 9,
+        "pinnedViews": 0,
+        "pendingCells": 0,
+        "interiors": 0,
+        "blocks": 12,
+        "trees": 810,
+        "terrainEdits": 0,
+        "felledTrees": 0,
+        "lastBuildMs": 0,
+        "totalBuildMs": 316.90000001341105
+      },
+      "ecology": {
+        "vegetation": {
+          "cells": 9,
+          "grassInstances": 0,
+          "cutCells": 0
+        },
+        "hair": [
+          {
+            "name": "Mira",
+            "guides": [],
+            "classic": []
+          }
+        ],
+        "birds": {
+          "birds": 36,
+          "feeding": 0,
+          "feeders": 6
+        },
+        "fishing": {
+          "fish": 0,
+          "caught": 0,
+          "rods": []
+        },
+        "population": {
+          "enabled": true,
+          "virtualPeople": 24,
+          "interactivePeople": 0,
+          "virtualCars": 10,
+          "interactiveCars": 0,
+          "outings": 0
+        }
+      },
+      "startup": [
+        {
+          "stage": "mainShaders",
+          "ms": 395.3999999985099
+        },
+        {
+          "stage": "vehicleView",
+          "vehicle": "sedan",
+          "ms": 11822.5
+        },
+        {
+          "stage": "vehicleView",
+          "vehicle": "sedan",
+          "ms": 257.5999999977648
+        },
+        {
+          "stage": "total",
+          "ms": 15645.10000000149
+        }
+      ],
+      "longFrames": 103,
+      "morphs": [
+        [
+          {
+            "name": "Std_Skin_Head",
+            "vertices": 17200,
+            "targets": 49,
+            "residual": 0.10571590118527925
+          },
+          {
+            "name": "Std_Skin_Body",
+            "vertices": 17200,
+            "targets": 0,
+            "residual": 0.0003346750081967846
+          },
+          {
+            "name": "Std_Skin_Arm",
+            "vertices": 17200,
+            "targets": 0,
+            "residual": 0.0008429452007015731
+          },
+          {
+            "name": "Std_Skin_Leg",
+            "vertices": 17200,
+            "targets": 0,
+            "residual": 0.000016882575836152238
+          }
+        ]
+      ],
+      "seams": [
+        {
+          "ready": true,
+          "skin": true
+        }
+      ],
+      "driving": 1
+    },
+    {
+      "location": "City",
+      "transition": {
+        "syncMs": 71.29999999701977
+      },
+      "performance": {
+        "format": "human5-performance-1",
+        "recordedAt": "2026-09-11T20:37:34.057Z",
+        "userAgent": "Human5 simulated Quest code path; OculusBrowser regression test",
+        "xr": false,
+        "targetHz": 72,
+        "budgetMs": 13.88888888888889,
+        "tier": "sustain",
+        "samples": 64,
+        "frameIntervalMs": {
+          "p50": 600,
+          "p95": 1483.2999999999884,
+          "max": 4066.5
+        },
+        "cpuMs": {
+          "p50": 53.5,
+          "p95": 296.30000000074506,
+          "max": 4059.699999999255
+        },
+        "gpuMs": {
+          "p50": 601.583883,
+          "p95": 846.639011,
+          "max": 1215.083517
+        },
+        "gpuTimerAvailable": true,
+        "deliveredFPS": 1.4118186871850982,
+        "overBudgetFraction": 1,
+        "drawCalls": {
+          "p50": 237,
+          "p95": 271,
+          "max": 477
+        },
+        "triangles": {
+          "p50": 628698,
+          "p95": 716298,
+          "max": 718250
+        },
+        "sectionsMs": {
+          "upgrades": {
+            "p50": 5.699999999254942,
+            "p95": 36,
+            "max": 2288.599999997765
+          },
+          "player": {
+            "p50": 0.19999999925494194,
+            "p95": 0.4000000022351742,
+            "max": 3.300000000745058
+          },
+          "actors": {
+            "p50": 17.399999998509884,
+            "p95": 38.70000000298023,
+            "max": 92.29999999701977
+          },
+          "waterAndProps": {
+            "p50": 9.799999997019768,
+            "p95": 21.199999999254942,
+            "max": 50.900000002235174
+          },
+          "natureAndPets": {
+            "p50": 4.5,
+            "p95": 11.800000000745058,
+            "max": 13.900000002235174
+          },
+          "uiAndViews": {
+            "p50": 0.10000000149011612,
+            "p95": 0.30000000074505806,
+            "max": 4.300000000745058
+          },
+          "mainRender": {
+            "p50": 13.599999997764826,
+            "p95": 27.699999999254942,
+            "max": 2205.7000000029802
+          }
+        },
+        "resources": {
+          "geometries": 1110,
+          "textures": 117,
+          "programs": 200
+        },
+        "raw": [
+          {
+            "interval": 166.69999999998254,
+            "cpu": 81.90000000223517,
+            "gpu": null,
+            "calls": 117,
+            "triangles": 430321,
+            "sections": {
+              "upgrades": 38.20000000298023,
+              "player": 0.29999999701976776,
+              "actors": 19.900000002235174,
+              "waterAndProps": 7,
+              "natureAndPets": 1,
+              "uiAndViews": 0.09999999776482582,
+              "mainRender": 15.400000002235174
+            },
+            "tier": 2
+          },
+          {
+            "interval": 1566.6000000000058,
+            "cpu": 30.5,
+            "gpu": 445.194226,
+            "calls": 98,
+            "triangles": 383463,
+            "sections": {
+              "upgrades": 3.699999999254942,
+              "player": 0.10000000149011612,
+              "actors": 3.5,
+              "waterAndProps": 12.5,
+              "natureAndPets": 1.0999999977648258,
+              "uiAndViews": 0.10000000149011612,
+              "mainRender": 9.5
+            },
+            "tier": 2
+          },
+          {
+            "interval": 300,
+            "cpu": 33.399999998509884,
+            "gpu": 407.110799,
+            "calls": 117,
+            "triangles": 430321,
+            "sections": {
+              "upgrades": 4.199999999254942,
+              "player": 0.19999999925494194,
+              "actors": 12.400000002235174,
+              "waterAndProps": 7.199999999254942,
+              "natureAndPets": 2.399999998509884,
+              "uiAndViews": 0.10000000149011612,
+              "mainRender": 6.899999998509884
+            },
+            "tier": 2
+          },
+          {
+            "interval": 866.6000000000058,
+            "cpu": 26,
+            "gpu": null,
+            "calls": 98,
+            "triangles": 383463,
+            "sections": {
+              "upgrades": 10.599999997764826,
+              "player": 0.30000000074505806,
+              "actors": 5.900000002235174,
+              "waterAndProps": 4.099999997764826,
+              "natureAndPets": 0.8000000007450581,
+              "uiAndViews": 0.10000000149011612,
+              "mainRender": 4.199999999254942
+            },
+            "tier": 2
+          },
+          {
+            "interval": 1083.2999999999884,
+            "cpu": 4059.699999999255,
+            "gpu": null,
+            "calls": 152,
+            "triangles": 584629,
+            "sections": {
+              "upgrades": 2288.599999997765,
+              "player": 0.4000000022351742,
+              "actors": 92.29999999701977,
+              "waterAndProps": 34.5,
+              "natureAndPets": 1.7000000029802322,
+              "uiAndViews": 0.09999999776482582,
+              "mainRender": 1642.1000000014901
+            },
+            "tier": 2
+          },
+          {
+            "interval": 4066.5,
+            "cpu": 81.10000000149012,
+            "gpu": 707.309389,
+            "calls": 119,
+            "triangles": 462917,
+            "sections": {
+              "upgrades": 5.400000002235174,
+              "player": 0.30000000074505806,
+              "actors": 47.599999997764826,
+              "waterAndProps": 19.699999999254942,
+              "natureAndPets": 1.300000000745058,
+              "uiAndViews": 0.10000000149011612,
+              "mainRender": 6.699999999254942
+            },
+            "tier": 2
+          },
+          {
+            "interval": 100,
+            "cpu": 46.30000000074506,
+            "gpu": 537.050034,
+            "calls": 152,
+            "triangles": 550517,
+            "sections": {
+              "upgrades": 6,
+              "player": 0.19999999925494194,
+              "actors": 23.199999999254942,
+              "waterAndProps": 7.700000002980232,
+              "natureAndPets": 1.199999999254942,
+              "uiAndViews": 0,
+              "mainRender": 8
+            },
+            "tier": 2
+          },
+          {
+            "interval": 50.10000000000582,
+            "cpu": 1031.5,
+            "gpu": 605.093479,
+            "calls": 120,
+            "triangles": 504960,
+            "sections": {
+              "upgrades": 36,
+              "player": 0.9000000022351742,
+              "actors": 14,
+              "waterAndProps": 5.5,
+              "natureAndPets": 0.6999999992549419,
+              "uiAndViews": 0,
+              "mainRender": 974.3999999985099
+            },
+            "tier": 2
+          },
+          {
+            "interval": 1033.2000000000116,
+            "cpu": 296.30000000074506,
+            "gpu": null,
+            "calls": 477,
+            "triangles": 671284,
+            "sections": {
+              "upgrades": 199,
+              "player": 0.4000000022351742,
+              "actors": 28,
+              "waterAndProps": 20.300000000745058,
+              "natureAndPets": 3.399999998509884,
+              "uiAndViews": 0.19999999925494194,
+              "mainRender": 45
+            },
+            "tier": 2
+          },
+          {
+            "interval": 300,
+            "cpu": 321.5999999977648,
+            "gpu": null,
+            "calls": 225,
+            "triangles": 583828,
+            "sections": {
+              "upgrades": 239,
+              "player": 0.29999999701976776,
+              "actors": 38.70000000298023,
+              "waterAndProps": 14.199999999254942,
+              "natureAndPets": 10.300000000745058,
+              "uiAndViews": 0,
+              "mainRender": 19.099999997764826
+            },
+            "tier": 2
+          },
+          {
+            "interval": 2133.1999999999825,
+            "cpu": 68.5,
+            "gpu": 573.915977,
+            "calls": 258,
+            "triangles": 671428,
+            "sections": {
+              "upgrades": 3.400000002235174,
+              "player": 0.29999999701976776,
+              "actors": 14.900000002235174,
+              "waterAndProps": 17.300000000745058,
+              "natureAndPets": 9.099999997764826,
+              "uiAndViews": 0.19999999925494194,
+              "mainRender": 23.300000000745058
+            },
+            "tier": 2
+          },
+          {
+            "interval": 66.80000000001746,
+            "cpu": 55.099999997764826,
+            "gpu": null,
+            "calls": 225,
+            "triangles": 583828,
+            "sections": {
+              "upgrades": 5.699999999254942,
+              "player": 0.19999999925494194,
+              "actors": 21.5,
+              "waterAndProps": 11.5,
+              "natureAndPets": 7.400000002235174,
+              "uiAndViews": 0,
+              "mainRender": 8.799999997019768
+            },
+            "tier": 2
+          },
+          {
+            "interval": 766.6000000000058,
+            "cpu": 127.20000000298023,
+            "gpu": 583.918148,
+            "calls": 259,
+            "triangles": 676348,
+            "sections": {
+              "upgrades": 32.80000000074506,
+              "player": 0.19999999925494194,
+              "actors": 42.5,
+              "waterAndProps": 18.800000000745058,
+              "natureAndPets": 9.699999999254942,
+              "uiAndViews": 0.20000000298023224,
+              "mainRender": 23
+            },
+            "tier": 2
+          },
+          {
+            "interval": 499.8999999999942,
+            "cpu": 2262.60000000149,
+            "gpu": 1215.083517,
+            "calls": 226,
+            "triangles": 588748,
+            "sections": {
+              "upgrades": 6.800000000745058,
+              "player": 0.19999999925494194,
+              "actors": 22.300000000745058,
+              "waterAndProps": 19.300000000745058,
+              "natureAndPets": 8.199999999254942,
+              "uiAndViews": 0.09999999776482582,
+              "mainRender": 2205.7000000029802
+            },
+            "tier": 2
+          },
+          {
+            "interval": 2266.600000000006,
+            "cpu": 75.90000000223517,
+            "gpu": null,
+            "calls": 259,
+            "triangles": 676348,
+            "sections": {
+              "upgrades": 7.300000000745058,
+              "player": 0.19999999925494194,
+              "actors": 26.600000001490116,
+              "waterAndProps": 24.199999999254942,
+              "natureAndPets": 9.600000001490116,
+              "uiAndViews": 0.09999999776482582,
+              "mainRender": 7.900000002235174
+            },
+            "tier": 2
+          },
+          {
+            "interval": 116.59999999997672,
+            "cpu": 53,
+            "gpu": null,
+            "calls": 226,
+            "triangles": 588442,
+            "sections": {
+              "upgrades": 18.5,
+              "player": 0.10000000149011612,
+              "actors": 13.599999997764826,
+              "waterAndProps": 9.900000002235174,
+              "natureAndPets": 4,
+              "uiAndViews": 0.09999999776482582,
+              "mainRender": 6.800000000745058
+            },
+            "tier": 2
+          },
+          {
+            "interval": 666.7000000000116,
+            "cpu": 88.09999999776483,
+            "gpu": 559.61535,
+            "calls": 259,
+            "triangles": 676042,
+            "sections": {
+              "upgrades": 7.099999997764826,
+              "player": 0.19999999925494194,
+              "actors": 44.30000000074506,
+              "waterAndProps": 17,
+              "natureAndPets": 3.600000001490116,
+              "uiAndViews": 0.19999999925494194,
+              "mainRender": 15.699999999254942
+            },
+            "tier": 2
+          },
+          {
+            "interval": 599.8999999999942,
+            "cpu": 61.599999997764826,
+            "gpu": 601.583883,
+            "calls": 226,
+            "triangles": 588442,
+            "sections": {
+              "upgrades": 3.399999998509884,
+              "player": 0.19999999925494194,
+              "actors": 24.200000002980232,
+              "waterAndProps": 17.699999999254942,
+              "natureAndPets": 8.300000000745058,
+              "uiAndViews": 0.09999999776482582,
+              "mainRender": 7.699999999254942
+            },
+            "tier": 2
+          },
+          {
+            "interval": 566.7000000000116,
+            "cpu": 52.399999998509884,
+            "gpu": 557.636126,
+            "calls": 259,
+            "triangles": 676042,
+            "sections": {
+              "upgrades": 11.599999997764826,
+              "player": 0.19999999925494194,
+              "actors": 14.900000002235174,
+              "waterAndProps": 10.599999997764826,
+              "natureAndPets": 5.300000000745058,
+              "uiAndViews": 0.19999999925494194,
+              "mainRender": 9.600000001490116
+            },
+            "tier": 2
+          },
+          {
+            "interval": 66.69999999998254,
+            "cpu": 43,
+            "gpu": null,
+            "calls": 227,
+            "triangles": 593362,
+            "sections": {
+              "upgrades": 12.100000001490116,
+              "player": 0.09999999776482582,
+              "actors": 13.700000002980232,
+              "waterAndProps": 5.899999998509884,
+              "natureAndPets": 3.399999998509884,
+              "uiAndViews": 0,
+              "mainRender": 7.800000000745058
+            },
+            "tier": 2
+          },
+          {
+            "interval": 183.30000000001746,
+            "cpu": 52.400000002235174,
+            "gpu": null,
+            "calls": 260,
+            "triangles": 680962,
+            "sections": {
+              "upgrades": 8.700000002980232,
+              "player": 0.19999999925494194,
+              "actors": 10.899999998509884,
+              "waterAndProps": 7.699999999254942,
+              "natureAndPets": 7.800000000745058,
+              "uiAndViews": 0.10000000149011612,
+              "mainRender": 17
+            },
+            "tier": 2
+          },
+          {
+            "interval": 683.2999999999884,
+            "cpu": 49.899999998509884,
+            "gpu": null,
+            "calls": 227,
+            "triangles": 593362,
+            "sections": {
+              "upgrades": 10.5,
+              "player": 0.09999999776482582,
+              "actors": 15.900000002235174,
+              "waterAndProps": 7.099999997764826,
+              "natureAndPets": 2.600000001490116,
+              "uiAndViews": 0.10000000149011612,
+              "mainRender": 13.599999997764826
+            },
+            "tier": 2
+          },
+          {
+            "interval": 66.70000000001164,
+            "cpu": 32.69999999925494,
+            "gpu": null,
+            "calls": 260,
+            "triangles": 680962,
+            "sections": {
+              "upgrades": 3.100000001490116,
+              "player": 0,
+              "actors": 12.699999999254942,
+              "waterAndProps": 5.599999997764826,
+              "natureAndPets": 4.5,
+              "uiAndViews": 0.10000000149011612,
+              "mainRender": 6.699999999254942
+            },
+            "tier": 2
+          },
+          {
+            "interval": 1099.8999999999942,
+            "cpu": 67.30000000074506,
+            "gpu": 1000.386557,
+            "calls": 230,
+            "triangles": 604342,
+            "sections": {
+              "upgrades": 9.099999997764826,
+              "player": 3.300000000745058,
+              "actors": 17.5,
+              "waterAndProps": 12,
+              "natureAndPets": 6.400000002235174,
+              "uiAndViews": 0.19999999925494194,
+              "mainRender": 18.800000000745058
+            },
+            "tier": 2
+          },
+          {
+            "interval": 83.39999999999418,
+            "cpu": 71.19999999925494,
+            "gpu": null,
+            "calls": 263,
+            "triangles": 691942,
+            "sections": {
+              "upgrades": 14.5,
+              "player": 0.10000000149011612,
+              "actors": 34.099999997764826,
+              "waterAndProps": 6.199999999254942,
+              "natureAndPets": 3.600000001490116,
+              "uiAndViews": 0.19999999925494194,
+              "mainRender": 12.5
+            },
+            "tier": 2
+          },
+          {
+            "interval": 499.8999999999942,
+            "cpu": 55.100000001490116,
+            "gpu": null,
+            "calls": 230,
+            "triangles": 604342,
+            "sections": {
+              "upgrades": 3.600000001490116,
+              "player": 0.19999999925494194,
+              "actors": 24.100000001490116,
+              "waterAndProps": 6.899999998509884,
+              "natureAndPets": 4.699999999254942,
+              "uiAndViews": 0.10000000149011612,
+              "mainRender": 15.399999998509884
+            },
+            "tier": 2
+          },
+          {
+            "interval": 1133.3000000000175,
+            "cpu": 78.5,
+            "gpu": 628.245379,
+            "calls": 264,
+            "triangles": 696862,
+            "sections": {
+              "upgrades": 24.599999997764826,
+              "player": 0.4000000022351742,
+              "actors": 17.399999998509884,
+              "waterAndProps": 8.900000002235174,
+              "natureAndPets": 11.899999998509884,
+              "uiAndViews": 0.30000000074505806,
+              "mainRender": 15
+            },
+            "tier": 2
+          },
+          {
+            "interval": 100,
+            "cpu": 36.69999999925494,
+            "gpu": 551.369108,
+            "calls": 231,
+            "triangles": 609262,
+            "sections": {
+              "upgrades": 1.1000000014901161,
+              "player": 0.09999999776482582,
+              "actors": 14,
+              "waterAndProps": 9.800000000745058,
+              "natureAndPets": 2.899999998509884,
+              "uiAndViews": 0.20000000298023224,
+              "mainRender": 8.599999997764826
+            },
+            "tier": 2
+          },
+          {
+            "interval": 1116.6000000000058,
+            "cpu": 59.5,
+            "gpu": null,
+            "calls": 264,
+            "triangles": 696862,
+            "sections": {
+              "upgrades": 7.400000002235174,
+              "player": 0.19999999925494194,
+              "actors": 21.099999997764826,
+              "waterAndProps": 10.100000001490116,
+              "natureAndPets": 4.300000000745058,
+              "uiAndViews": 0.19999999925494194,
+              "mainRender": 16.199999999254942
+            },
+            "tier": 2
+          },
+          {
+            "interval": 66.69999999998254,
+            "cpu": 50.899999998509884,
+            "gpu": null,
+            "calls": 231,
+            "triangles": 609262,
+            "sections": {
+              "upgrades": 0.8000000007450581,
+              "player": 0.09999999776482582,
+              "actors": 10.800000000745058,
+              "waterAndProps": 13.699999999254942,
+              "natureAndPets": 9.5,
+              "uiAndViews": 0,
+              "mainRender": 15.900000002235174
+            },
+            "tier": 2
+          },
+          {
+            "interval": 983.3000000000175,
+            "cpu": 75.59999999776483,
+            "gpu": 846.639011,
+            "calls": 264,
+            "triangles": 696862,
+            "sections": {
+              "upgrades": 11.199999999254942,
+              "player": 0.5,
+              "actors": 23,
+              "waterAndProps": 12.699999999254942,
+              "natureAndPets": 6.900000002235174,
+              "uiAndViews": 0.3999999985098839,
+              "mainRender": 20.899999998509884
+            },
+            "tier": 2
+          },
+          {
+            "interval": 133.39999999999418,
+            "cpu": 52.600000001490116,
+            "gpu": 554.914478,
+            "calls": 231,
+            "triangles": 609262,
+            "sections": {
+              "upgrades": 4.100000001490116,
+              "player": 0.19999999925494194,
+              "actors": 18.900000002235174,
+              "waterAndProps": 17.399999998509884,
+              "natureAndPets": 2.300000000745058,
+              "uiAndViews": 0.09999999776482582,
+              "mainRender": 9.600000001490116
+            },
+            "tier": 2
+          },
+          {
+            "interval": 566.6000000000058,
+            "cpu": 87.80000000074506,
+            "gpu": 610.040028,
+            "calls": 264,
+            "triangles": 696862,
+            "sections": {
+              "upgrades": 8.600000001490116,
+              "player": 0.19999999925494194,
+              "actors": 22.899999998509884,
+              "waterAndProps": 24.800000000745058,
+              "natureAndPets": 13.900000002235174,
+              "uiAndViews": 0.09999999776482582,
+              "mainRender": 17.199999999254942
+            },
+            "tier": 2
+          },
+          {
+            "interval": 550,
+            "cpu": 50.70000000298023,
+            "gpu": null,
+            "calls": 231,
+            "triangles": 609262,
+            "sections": {
+              "upgrades": 1.6000000014901161,
+              "player": 0.10000000149011612,
+              "actors": 20.099999997764826,
+              "waterAndProps": 10.400000002235174,
+              "natureAndPets": 9.799999997019768,
+              "uiAndViews": 0.30000000074505806,
+              "mainRender": 8.400000002235174
+            },
+            "tier": 2
+          },
+          {
+            "interval": 599.8999999999942,
+            "cpu": 69.59999999776483,
+            "gpu": null,
+            "calls": 264,
+            "triangles": 696862,
+            "sections": {
+              "upgrades": 6.699999999254942,
+              "player": 0.19999999925494194,
+              "actors": 15.699999999254942,
+              "waterAndProps": 7.600000001490116,
+              "natureAndPets": 13.399999998509884,
+              "uiAndViews": 0.30000000074505806,
+              "mainRender": 25.699999999254942
+            },
+            "tier": 2
+          },
+          {
+            "interval": 1183.3999999999942,
+            "cpu": 47.399999998509884,
+            "gpu": null,
+            "calls": 231,
+            "triangles": 609262,
+            "sections": {
+              "upgrades": 9.100000001490116,
+              "player": 0.19999999925494194,
+              "actors": 15.300000000745058,
+              "waterAndProps": 6.599999997764826,
+              "natureAndPets": 1.699999999254942,
+              "uiAndViews": 0.10000000149011612,
+              "mainRender": 14.399999998509884
+            },
+            "tier": 2
+          },
+          {
+            "interval": 1099.8999999999942,
+            "cpu": 37.899999998509884,
+            "gpu": 602.964922,
+            "calls": 264,
+            "triangles": 696862,
+            "sections": {
+              "upgrades": 8,
+              "player": 0.19999999925494194,
+              "actors": 11.699999999254942,
+              "waterAndProps": 6,
+              "natureAndPets": 2,
+              "uiAndViews": 0.10000000149011612,
+              "mainRender": 9.899999998509884
+            },
+            "tier": 2
+          },
+          {
+            "interval": 633.3000000000175,
+            "cpu": 53.5,
+            "gpu": null,
+            "calls": 231,
+            "triangles": 609262,
+            "sections": {
+              "upgrades": 8.900000002235174,
+              "player": 0.30000000074505806,
+              "actors": 15.799999997019768,
+              "waterAndProps": 8.100000001490116,
+              "natureAndPets": 5.899999998509884,
+              "uiAndViews": 0.30000000074505806,
+              "mainRender": 14.199999999254942
+            },
+            "tier": 2
+          },
+          {
+            "interval": 733.2999999999884,
+            "cpu": 76.89999999850988,
+            "gpu": null,
+            "calls": 264,
+            "triangles": 696862,
+            "sections": {
+              "upgrades": 11.699999999254942,
+              "player": 0.19999999925494194,
+              "actors": 10.900000002235174,
+              "waterAndProps": 13.5,
+              "natureAndPets": 12.699999999254942,
+              "uiAndViews": 0.19999999925494194,
+              "mainRender": 27.699999999254942
+            },
+            "tier": 2
+          },
+          {
+            "interval": 1166.6000000000058,
+            "cpu": 54.29999999701977,
+            "gpu": 590.368004,
+            "calls": 234,
+            "triangles": 619270,
+            "sections": {
+              "upgrades": 3.899999998509884,
+              "player": 0.10000000149011612,
+              "actors": 20.699999999254942,
+              "waterAndProps": 15.399999998509884,
+              "natureAndPets": 5.800000000745058,
+              "uiAndViews": 0.10000000149011612,
+              "mainRender": 8.299999997019768
+            },
+            "tier": 2
+          },
+          {
+            "interval": 566.6000000000058,
+            "cpu": 48,
+            "gpu": 635.728163,
+            "calls": 267,
+            "triangles": 706870,
+            "sections": {
+              "upgrades": 5,
+              "player": 0.19999999925494194,
+              "actors": 20,
+              "waterAndProps": 6.399999998509884,
+              "natureAndPets": 3.800000000745058,
+              "uiAndViews": 0.10000000149011612,
+              "mainRender": 12.5
+            },
+            "tier": 2
+          },
+          {
+            "interval": 600.0999999999767,
+            "cpu": 58.099999997764826,
+            "gpu": null,
+            "calls": 234,
+            "triangles": 619270,
+            "sections": {
+              "upgrades": 3.300000000745058,
+              "player": 2.5,
+              "actors": 20.799999997019768,
+              "waterAndProps": 18.300000000745058,
+              "natureAndPets": 4.5,
+              "uiAndViews": 0.19999999925494194,
+              "mainRender": 8.5
+            },
+            "tier": 2
+          },
+          {
+            "interval": 1399.8000000000175,
+            "cpu": 40,
+            "gpu": 629.778278,
+            "calls": 267,
+            "triangles": 706870,
+            "sections": {
+              "upgrades": 5.099999997764826,
+              "player": 0.20000000298023224,
+              "actors": 9.199999999254942,
+              "waterAndProps": 7,
+              "natureAndPets": 5,
+              "uiAndViews": 0.09999999776482582,
+              "mainRender": 13.400000002235174
+            },
+            "tier": 2
+          },
+          {
+            "interval": 50.10000000000582,
+            "cpu": 30.800000000745058,
+            "gpu": 579.110747,
+            "calls": 234,
+            "triangles": 619270,
+            "sections": {
+              "upgrades": 0.8999999985098839,
+              "player": 0.10000000149011612,
+              "actors": 12.800000000745058,
+              "waterAndProps": 5.299999997019768,
+              "natureAndPets": 1.9000000022351742,
+              "uiAndViews": 0,
+              "mainRender": 9.800000000745058
+            },
+            "tier": 2
+          },
+          {
+            "interval": 1483.2999999999884,
+            "cpu": 52.79999999701977,
+            "gpu": 639.946417,
+            "calls": 267,
+            "triangles": 706870,
+            "sections": {
+              "upgrades": 1.2999999970197678,
+              "player": 0.30000000074505806,
+              "actors": 18.100000001490116,
+              "waterAndProps": 12.899999998509884,
+              "natureAndPets": 2.5,
+              "uiAndViews": 0.19999999925494194,
+              "mainRender": 17.5
+            },
+            "tier": 2
+          },
+          {
+            "interval": 66.60000000000582,
+            "cpu": 44.599999997764826,
+            "gpu": null,
+            "calls": 234,
+            "triangles": 619270,
+            "sections": {
+              "upgrades": 5.5,
+              "player": 0.09999999776482582,
+              "actors": 17.400000002235174,
+              "waterAndProps": 7.899999998509884,
+              "natureAndPets": 5.199999999254942,
+              "uiAndViews": 0.10000000149011612,
+              "mainRender": 8.399999998509884
+            },
+            "tier": 2
+          },
+          {
+            "interval": 633.2999999999884,
+            "cpu": 48.5,
+            "gpu": null,
+            "calls": 267,
+            "triangles": 706870,
+            "sections": {
+              "upgrades": 2,
+              "player": 0.19999999925494194,
+              "actors": 20,
+              "waterAndProps": 5.199999999254942,
+              "natureAndPets": 3.699999999254942,
+              "uiAndViews": 0.10000000149011612,
+              "mainRender": 17.300000000745058
+            },
+            "tier": 2
+          },
+          {
+            "interval": 583.3999999999942,
+            "cpu": 52.5,
+            "gpu": null,
+            "calls": 237,
+            "triangles": 628698,
+            "sections": {
+              "upgrades": 8.099999997764826,
+              "player": 0.10000000149011612,
+              "actors": 13.600000001490116,
+              "waterAndProps": 11.299999997019768,
+              "natureAndPets": 3.600000001490116,
+              "uiAndViews": 0.19999999925494194,
+              "mainRender": 15.600000001490116
+            },
+            "tier": 2
+          },
+          {
+            "interval": 66.60000000000582,
+            "cpu": 44.599999997764826,
+            "gpu": null,
+            "calls": 270,
+            "triangles": 716298,
+            "sections": {
+              "upgrades": 0.8999999985098839,
+              "player": 0.19999999925494194,
+              "actors": 11.900000002235174,
+              "waterAndProps": 5.199999999254942,
+              "natureAndPets": 8.800000000745058,
+              "uiAndViews": 0.09999999776482582,
+              "mainRender": 17.5
+            },
+            "tier": 2
+          },
+          {
+            "interval": 566.6000000000058,
+            "cpu": 53.79999999701977,
+            "gpu": 603.849724,
+            "calls": 237,
+            "triangles": 628698,
+            "sections": {
+              "upgrades": 4.799999997019768,
+              "player": 0.20000000298023224,
+              "actors": 10.5,
+              "waterAndProps": 6.599999997764826,
+              "natureAndPets": 8.699999999254942,
+              "uiAndViews": 4.300000000745058,
+              "mainRender": 18.699999999254942
+            },
+            "tier": 2
+          },
+          {
+            "interval": 600,
+            "cpu": 52,
+            "gpu": null,
+            "calls": 270,
+            "triangles": 716298,
+            "sections": {
+              "upgrades": 1.5,
+              "player": 0.09999999776482582,
+              "actors": 16.800000000745058,
+              "waterAndProps": 8,
+              "natureAndPets": 10,
+              "uiAndViews": 0.10000000149011612,
+              "mainRender": 15.5
+            },
+            "tier": 2
+          },
+          {
+            "interval": 50,
+            "cpu": 46.30000000074506,
+            "gpu": null,
+            "calls": 237,
+            "triangles": 628698,
+            "sections": {
+              "upgrades": 5.300000000745058,
+              "player": 0.09999999776482582,
+              "actors": 23.600000001490116,
+              "waterAndProps": 4.599999997764826,
+              "natureAndPets": 3.2000000029802322,
+              "uiAndViews": 0.09999999776482582,
+              "mainRender": 9.400000002235174
+            },
+            "tier": 2
+          },
+          {
+            "interval": 600,
+            "cpu": 41.69999999925494,
+            "gpu": null,
+            "calls": 270,
+            "triangles": 716298,
+            "sections": {
+              "upgrades": 1.3999999985098839,
+              "player": 0.10000000149011612,
+              "actors": 13.099999997764826,
+              "waterAndProps": 9.300000000745058,
+              "natureAndPets": 4.100000001490116,
+              "uiAndViews": 0.30000000074505806,
+              "mainRender": 13.399999998509884
+            },
+            "tier": 2
+          },
+          {
+            "interval": 599.8999999999942,
+            "cpu": 55.19999999925494,
+            "gpu": null,
+            "calls": 237,
+            "triangles": 628698,
+            "sections": {
+              "upgrades": 4.800000000745058,
+              "player": 0,
+              "actors": 18.599999997764826,
+              "waterAndProps": 14.800000000745058,
+              "natureAndPets": 8.699999999254942,
+              "uiAndViews": 0.10000000149011612,
+              "mainRender": 8.199999999254942
+            },
+            "tier": 2
+          },
+          {
+            "interval": 633.3999999999942,
+            "cpu": 46.5,
+            "gpu": null,
+            "calls": 270,
+            "triangles": 716298,
+            "sections": {
+              "upgrades": 1.300000000745058,
+              "player": 0.10000000149011612,
+              "actors": 25.599999997764826,
+              "waterAndProps": 5.600000001490116,
+              "natureAndPets": 3.399999998509884,
+              "uiAndViews": 0.20000000298023224,
+              "mainRender": 10.299999997019768
+            },
+            "tier": 2
+          },
+          {
+            "interval": 583.3000000000175,
+            "cpu": 41.30000000074506,
+            "gpu": null,
+            "calls": 237,
+            "triangles": 628698,
+            "sections": {
+              "upgrades": 7.399999998509884,
+              "player": 0.10000000149011612,
+              "actors": 10.199999999254942,
+              "waterAndProps": 9.800000000745058,
+              "natureAndPets": 2.899999998509884,
+              "uiAndViews": 0,
+              "mainRender": 10.800000000745058
+            },
+            "tier": 2
+          },
+          {
+            "interval": 50,
+            "cpu": 75.39999999850988,
+            "gpu": null,
+            "calls": 271,
+            "triangles": 716646,
+            "sections": {
+              "upgrades": 1,
+              "player": 0.09999999776482582,
+              "actors": 21.400000002235174,
+              "waterAndProps": 21.199999999254942,
+              "natureAndPets": 9.199999999254942,
+              "uiAndViews": 0,
+              "mainRender": 22.5
+            },
+            "tier": 2
+          },
+          {
+            "interval": 1183.1999999999825,
+            "cpu": 41.69999999925494,
+            "gpu": null,
+            "calls": 237,
+            "triangles": 628698,
+            "sections": {
+              "upgrades": 1.0999999977648258,
+              "player": 0.20000000298023224,
+              "actors": 13.599999997764826,
+              "waterAndProps": 11.800000000745058,
+              "natureAndPets": 1.300000000745058,
+              "uiAndViews": 0.19999999925494194,
+              "mainRender": 13.5
+            },
+            "tier": 2
+          },
+          {
+            "interval": 650,
+            "cpu": 63.29999999701977,
+            "gpu": null,
+            "calls": 274,
+            "triangles": 717406,
+            "sections": {
+              "upgrades": 11.299999997019768,
+              "player": 0.10000000149011612,
+              "actors": 15.199999999254942,
+              "waterAndProps": 5.100000001490116,
+              "natureAndPets": 4.800000000745058,
+              "uiAndViews": 0.09999999776482582,
+              "mainRender": 26.699999999254942
+            },
+            "tier": 2
+          },
+          {
+            "interval": 633.3000000000175,
+            "cpu": 43.80000000074506,
+            "gpu": null,
+            "calls": 237,
+            "triangles": 628698,
+            "sections": {
+              "upgrades": 1.8999999985098839,
+              "player": 0.20000000298023224,
+              "actors": 14.199999999254942,
+              "waterAndProps": 8.599999997764826,
+              "natureAndPets": 3.2000000029802322,
+              "uiAndViews": 0.19999999925494194,
+              "mainRender": 15.5
+            },
+            "tier": 2
+          },
+          {
+            "interval": 1250,
+            "cpu": 54.899999998509884,
+            "gpu": null,
+            "calls": 277,
+            "triangles": 717730,
+            "sections": {
+              "upgrades": 5.800000000745058,
+              "player": 0.19999999925494194,
+              "actors": 17.100000001490116,
+              "waterAndProps": 9.799999997019768,
+              "natureAndPets": 11.800000000745058,
+              "uiAndViews": 0.19999999925494194,
+              "mainRender": 10
+            },
+            "tier": 2
+          },
+          {
+            "interval": 633.2999999999884,
+            "cpu": 54.19999999925494,
+            "gpu": null,
+            "calls": 237,
+            "triangles": 628698,
+            "sections": {
+              "upgrades": 1.699999999254942,
+              "player": 0.30000000074505806,
+              "actors": 20.699999999254942,
+              "waterAndProps": 7.699999999254942,
+              "natureAndPets": 5.699999999254942,
+              "uiAndViews": 0.19999999925494194,
+              "mainRender": 17.900000002235174
+            },
+            "tier": 2
+          },
+          {
+            "interval": 633.3000000000175,
+            "cpu": 57.29999999701977,
+            "gpu": null,
+            "calls": 284,
+            "triangles": 718250,
+            "sections": {
+              "upgrades": 7.299999997019768,
+              "player": 0.4000000022351742,
+              "actors": 13.899999998509884,
+              "waterAndProps": 6.5,
+              "natureAndPets": 5.300000000745058,
+              "uiAndViews": 0,
+              "mainRender": 23.899999998509884
+            },
+            "tier": 2
+          },
+          {
+            "interval": 1250,
+            "cpu": 104.89999999850988,
+            "gpu": null,
+            "calls": 237,
+            "triangles": 628698,
+            "sections": {
+              "upgrades": 2.5,
+              "player": 0.30000000074505806,
+              "actors": 37.29999999701977,
+              "waterAndProps": 50.900000002235174,
+              "natureAndPets": 4.5,
+              "uiAndViews": 0.19999999925494194,
+              "mainRender": 9.199999999254942
+            },
+            "tier": 2
+          }
+        ]
+      },
+      "world": {
+        "format": "human5.world.stats/1",
+        "sizeMetres": 2112,
+        "residentCells": 9,
+        "pinnedViews": 0,
+        "pendingCells": 0,
+        "interiors": 2,
+        "blocks": 12,
+        "trees": 410,
+        "terrainEdits": 0,
+        "felledTrees": 0,
+        "lastBuildMs": 0,
+        "totalBuildMs": 465.6000000163913
+      },
+      "ecology": {
+        "vegetation": {
+          "cells": 9,
+          "grassInstances": 831,
+          "cutCells": 0
+        },
+        "hair": [
+          {
+            "name": "Mira",
+            "guides": [],
+            "classic": []
+          },
+          {
+            "name": "Pedestrian 1",
+            "guides": [],
+            "classic": []
+          }
+        ],
+        "birds": {
+          "birds": 36,
+          "feeding": 0,
+          "feeders": 5
+        },
+        "fishing": {
+          "fish": 0,
+          "caught": 0,
+          "rods": []
+        },
+        "population": {
+          "enabled": true,
+          "virtualPeople": 24,
+          "interactivePeople": 1,
+          "virtualCars": 10,
+          "interactiveCars": 1,
+          "outings": 0
+        }
+      },
+      "startup": [
+        {
+          "stage": "mainShaders",
+          "ms": 395.3999999985099
+        },
+        {
+          "stage": "vehicleView",
+          "vehicle": "sedan",
+          "ms": 11822.5
+        },
+        {
+          "stage": "vehicleView",
+          "vehicle": "sedan",
+          "ms": 257.5999999977648
+        },
+        {
+          "stage": "total",
+          "ms": 15645.10000000149
+        }
+      ],
+      "longFrames": 150,
+      "morphs": [
+        [
+          {
+            "name": "Std_Skin_Head",
+            "vertices": 17200,
+            "targets": 49,
+            "residual": 0.10571590118527925
+          },
+          {
+            "name": "Std_Skin_Body",
+            "vertices": 17200,
+            "targets": 0,
+            "residual": 0.0003346750081967846
+          },
+          {
+            "name": "Std_Skin_Arm",
+            "vertices": 17200,
+            "targets": 0,
+            "residual": 0.0008429452007015731
+          },
+          {
+            "name": "Std_Skin_Leg",
+            "vertices": 17200,
+            "targets": 0,
+            "residual": 0.000016882575836152238
+          }
+        ],
+        [
+          {
+            "name": "Std_Skin_Head",
+            "vertices": 17200,
+            "targets": 49,
+            "residual": 0.10571590118527925
+          },
+          {
+            "name": "Std_Skin_Body",
+            "vertices": 17200,
+            "targets": 0,
+            "residual": 0.0003346750081967846
+          },
+          {
+            "name": "Std_Skin_Arm",
+            "vertices": 17200,
+            "targets": 0,
+            "residual": 0.0008429452007015731
+          },
+          {
+            "name": "Std_Skin_Leg",
+            "vertices": 17200,
+            "targets": 0,
+            "residual": 0.000016882575836152238
+          }
+        ]
+      ],
+      "seams": [
+        {
+          "ready": true,
+          "skin": true
+        },
+        {
+          "ready": true,
+          "skin": true
+        }
+      ],
+      "driving": 0
+    },
+    {
+      "location": "Forest",
+      "transition": {
+        "syncMs": 31.099999997764826
+      },
+      "performance": {
+        "format": "human5-performance-1",
+        "recordedAt": "2026-09-11T20:38:11.753Z",
+        "userAgent": "Human5 simulated Quest code path; OculusBrowser regression test",
+        "xr": false,
+        "targetHz": 72,
+        "budgetMs": 13.88888888888889,
+        "tier": "sustain",
+        "samples": 64,
+        "frameIntervalMs": {
+          "p50": 583.3000000000175,
+          "p95": 1166.7000000000116,
+          "max": 1533.2999999999884
+        },
+        "cpuMs": {
+          "p50": 34.79999999701977,
+          "p95": 62,
+          "max": 963
+        },
+        "gpuMs": {
+          "p50": 587.372032,
+          "p95": 723.558509,
+          "max": 773.949409
+        },
+        "gpuTimerAvailable": true,
+        "deliveredFPS": 1.6939372925588516,
+        "overBudgetFraction": 0.96875,
+        "drawCalls": {
+          "p50": 100,
+          "p95": 124,
+          "max": 127
+        },
+        "triangles": {
+          "p50": 561752,
+          "p95": 665866,
+          "max": 672550
+        },
+        "sectionsMs": {
+          "upgrades": {
+            "p50": 6.599999997764826,
+            "p95": 24.799999997019768,
+            "max": 37.5
+          },
+          "player": {
+            "p50": 0.19999999925494194,
+            "p95": 0.3999999985098839,
+            "max": 4.899999998509884
+          },
+          "actors": {
+            "p50": 6.699999999254942,
+            "p95": 16.100000001490116,
+            "max": 31.400000002235174
+          },
+          "waterAndProps": {
+            "p50": 5,
+            "p95": 10,
+            "max": 13.399999998509884
+          },
+          "natureAndPets": {
+            "p50": 4.399999998509884,
+            "p95": 9.300000000745058,
+            "max": 22.200000002980232
+          },
+          "uiAndViews": {
+            "p50": 0.19999999925494194,
+            "p95": 0.30000000074505806,
+            "max": 1
+          },
+          "mainRender": {
+            "p50": 7.699999999254942,
+            "p95": 13.199999999254942,
+            "max": 907.4000000022352
+          }
+        },
+        "resources": {
+          "geometries": 1101,
+          "textures": 115,
+          "programs": 189
+        },
+        "raw": [
+          {
+            "interval": 650,
+            "cpu": 60,
+            "gpu": null,
+            "calls": 97,
+            "triangles": 520758,
+            "sections": {
+              "upgrades": 23.399999998509884,
+              "player": 0.19999999925494194,
+              "actors": 16,
+              "waterAndProps": 10,
+              "natureAndPets": 2.5,
+              "uiAndViews": 0.20000000298023224,
+              "mainRender": 7.699999999254942
+            },
+            "tier": 2
+          },
+          {
+            "interval": 599.8999999999942,
+            "cpu": 44.399999998509884,
+            "gpu": 336.684404,
+            "calls": 65,
+            "triangles": 433302,
+            "sections": {
+              "upgrades": 4.799999997019768,
+              "player": 0.10000000149011612,
+              "actors": 19.899999998509884,
+              "waterAndProps": 7.300000000745058,
+              "natureAndPets": 2.900000002235174,
+              "uiAndViews": 0.09999999776482582,
+              "mainRender": 9.300000000745058
+            },
+            "tier": 2
+          },
+          {
+            "interval": 633.2999999999884,
+            "cpu": 67.89999999850988,
+            "gpu": null,
+            "calls": 97,
+            "triangles": 520758,
+            "sections": {
+              "upgrades": 12.399999998509884,
+              "player": 0.19999999925494194,
+              "actors": 31.400000002235174,
+              "waterAndProps": 10.299999997019768,
+              "natureAndPets": 2.100000001490116,
+              "uiAndViews": 0.30000000074505806,
+              "mainRender": 11.199999999254942
+            },
+            "tier": 2
+          },
+          {
+            "interval": 600,
+            "cpu": 31.199999999254942,
+            "gpu": null,
+            "calls": 46,
+            "triangles": 358064,
+            "sections": {
+              "upgrades": 9.199999999254942,
+              "player": 0.19999999925494194,
+              "actors": 10.699999999254942,
+              "waterAndProps": 3.7000000029802322,
+              "natureAndPets": 2.699999999254942,
+              "uiAndViews": 0.09999999776482582,
+              "mainRender": 4.600000001490116
+            },
+            "tier": 2
+          },
+          {
+            "interval": 616.6000000000058,
+            "cpu": 625.6999999992549,
+            "gpu": 648.94238,
+            "calls": 71,
+            "triangles": 468553,
+            "sections": {
+              "upgrades": 18.699999999254942,
+              "player": 0.10000000149011612,
+              "actors": 7.5,
+              "waterAndProps": 10.199999999254942,
+              "natureAndPets": 8.699999999254942,
+              "uiAndViews": 0.20000000298023224,
+              "mainRender": 580.2999999970198
+            },
+            "tier": 2
+          },
+          {
+            "interval": 633.3999999999942,
+            "cpu": 20,
+            "gpu": 723.558509,
+            "calls": 50,
+            "triangles": 392239,
+            "sections": {
+              "upgrades": 3,
+              "player": 0.3999999985098839,
+              "actors": 5.800000000745058,
+              "waterAndProps": 3.300000000745058,
+              "natureAndPets": 3.600000001490116,
+              "uiAndViews": 0.19999999925494194,
+              "mainRender": 3.699999999254942
+            },
+            "tier": 2
+          },
+          {
+            "interval": 16.60000000000582,
+            "cpu": 16.699999999254942,
+            "gpu": null,
+            "calls": 71,
+            "triangles": 468553,
+            "sections": {
+              "upgrades": 2.600000001490116,
+              "player": 0.09999999776482582,
+              "actors": 0.4000000022351742,
+              "waterAndProps": 6.399999998509884,
+              "natureAndPets": 2.5,
+              "uiAndViews": 0,
+              "mainRender": 4.699999999254942
+            },
+            "tier": 2
+          },
+          {
+            "interval": 583.2999999999884,
+            "cpu": 963,
+            "gpu": null,
+            "calls": 71,
+            "triangles": 431599,
+            "sections": {
+              "upgrades": 37.5,
+              "player": 0.09999999776482582,
+              "actors": 6.400000002235174,
+              "waterAndProps": 9,
+              "natureAndPets": 2.399999998509884,
+              "uiAndViews": 0.19999999925494194,
+              "mainRender": 907.4000000022352
+            },
+            "tier": 2
+          },
+          {
+            "interval": 966.7000000000116,
+            "cpu": 38.30000000074506,
+            "gpu": 527.801201,
+            "calls": 92,
+            "triangles": 507913,
+            "sections": {
+              "upgrades": 7.700000002980232,
+              "player": 0.19999999925494194,
+              "actors": 8.899999998509884,
+              "waterAndProps": 6.5,
+              "natureAndPets": 2.800000000745058,
+              "uiAndViews": 0.19999999925494194,
+              "mainRender": 12
+            },
+            "tier": 2
+          },
+          {
+            "interval": 633.2999999999884,
+            "cpu": 49.099999997764826,
+            "gpu": 462.076442,
+            "calls": 74,
+            "triangles": 458787,
+            "sections": {
+              "upgrades": 26.799999997019768,
+              "player": 0.20000000298023224,
+              "actors": 5.5,
+              "waterAndProps": 3.7999999970197678,
+              "natureAndPets": 3.800000000745058,
+              "uiAndViews": 0.19999999925494194,
+              "mainRender": 8.800000000745058
+            },
+            "tier": 2
+          },
+          {
+            "interval": 1149.9000000000233,
+            "cpu": 39.899999998509884,
+            "gpu": null,
+            "calls": 98,
+            "triangles": 562901,
+            "sections": {
+              "upgrades": 3.600000001490116,
+              "player": 0.09999999776482582,
+              "actors": 10.199999999254942,
+              "waterAndProps": 6.900000002235174,
+              "natureAndPets": 9.300000000745058,
+              "uiAndViews": 0.19999999925494194,
+              "mainRender": 9.5
+            },
+            "tier": 2
+          },
+          {
+            "interval": 50,
+            "cpu": 34.600000001490116,
+            "gpu": 454.201825,
+            "calls": 74,
+            "triangles": 458787,
+            "sections": {
+              "upgrades": 11.5,
+              "player": 0.10000000149011612,
+              "actors": 8,
+              "waterAndProps": 2.899999998509884,
+              "natureAndPets": 8,
+              "uiAndViews": 0.10000000149011612,
+              "mainRender": 4
+            },
+            "tier": 2
+          },
+          {
+            "interval": 566.6999999999825,
+            "cpu": 54.19999999925494,
+            "gpu": null,
+            "calls": 104,
+            "triangles": 622726,
+            "sections": {
+              "upgrades": 24.799999997019768,
+              "player": 0.10000000149011612,
+              "actors": 8.100000001490116,
+              "waterAndProps": 7.399999998509884,
+              "natureAndPets": 1.800000000745058,
+              "uiAndViews": 0.09999999776482582,
+              "mainRender": 11.800000000745058
+            },
+            "tier": 2
+          },
+          {
+            "interval": 400,
+            "cpu": 29.399999998509884,
+            "gpu": null,
+            "calls": 78,
+            "triangles": 493036,
+            "sections": {
+              "upgrades": 3.300000000745058,
+              "player": 0.19999999925494194,
+              "actors": 13.800000000745058,
+              "waterAndProps": 4.300000000745058,
+              "natureAndPets": 3.2999999970197678,
+              "uiAndViews": 0,
+              "mainRender": 4.5
+            },
+            "tier": 2
+          },
+          {
+            "interval": 349.8999999999942,
+            "cpu": 36.30000000074506,
+            "gpu": 544.847812,
+            "calls": 104,
+            "triangles": 622726,
+            "sections": {
+              "upgrades": 8.800000000745058,
+              "player": 0.10000000149011612,
+              "actors": 5.899999998509884,
+              "waterAndProps": 6,
+              "natureAndPets": 7.800000000745058,
+              "uiAndViews": 0.09999999776482582,
+              "mainRender": 7.600000001490116
+            },
+            "tier": 2
+          },
+          {
+            "interval": 50,
+            "cpu": 23.899999998509884,
+            "gpu": null,
+            "calls": 78,
+            "triangles": 493036,
+            "sections": {
+              "upgrades": 6.399999998509884,
+              "player": 0.20000000298023224,
+              "actors": 4.299999997019768,
+              "waterAndProps": 3.600000001490116,
+              "natureAndPets": 5.300000000745058,
+              "uiAndViews": 0.19999999925494194,
+              "mainRender": 3.899999998509884
+            },
+            "tier": 2
+          },
+          {
+            "interval": 16.70000000001164,
+            "cpu": 39.100000001490116,
+            "gpu": null,
+            "calls": 107,
+            "triangles": 619862,
+            "sections": {
+              "upgrades": 21.5,
+              "player": 0.10000000149011612,
+              "actors": 2.5,
+              "waterAndProps": 5,
+              "natureAndPets": 3.300000000745058,
+              "uiAndViews": 0.09999999776482582,
+              "mainRender": 6.600000001490116
+            },
+            "tier": 2
+          },
+          {
+            "interval": 833.2999999999884,
+            "cpu": 34,
+            "gpu": null,
+            "calls": 82,
+            "triangles": 505148,
+            "sections": {
+              "upgrades": 14.300000000745058,
+              "player": 0.29999999701976776,
+              "actors": 7.200000002980232,
+              "waterAndProps": 3.099999997764826,
+              "natureAndPets": 3.199999999254942,
+              "uiAndViews": 0.30000000074505806,
+              "mainRender": 5.600000001490116
+            },
+            "tier": 2
+          },
+          {
+            "interval": 49.90000000002328,
+            "cpu": 26.800000000745058,
+            "gpu": null,
+            "calls": 107,
+            "triangles": 619862,
+            "sections": {
+              "upgrades": 5.800000000745058,
+              "player": 0.09999999776482582,
+              "actors": 6.300000000745058,
+              "waterAndProps": 6.699999999254942,
+              "natureAndPets": 2.7000000029802322,
+              "uiAndViews": 0.09999999776482582,
+              "mainRender": 5.100000001490116
+            },
+            "tier": 2
+          },
+          {
+            "interval": 583.3999999999942,
+            "cpu": 29.199999999254942,
+            "gpu": 507.017476,
+            "calls": 82,
+            "triangles": 505148,
+            "sections": {
+              "upgrades": 13.5,
+              "player": 0.19999999925494194,
+              "actors": 4.599999997764826,
+              "waterAndProps": 3.2000000029802322,
+              "natureAndPets": 2.7999999970197678,
+              "uiAndViews": 0.10000000149011612,
+              "mainRender": 4.800000000745058
+            },
+            "tier": 2
+          },
+          {
+            "interval": 50,
+            "cpu": 19.5,
+            "gpu": null,
+            "calls": 107,
+            "triangles": 619862,
+            "sections": {
+              "upgrades": 2.800000000745058,
+              "player": 0.10000000149011612,
+              "actors": 0.5,
+              "waterAndProps": 5.899999998509884,
+              "natureAndPets": 5.100000001490116,
+              "uiAndViews": 0.09999999776482582,
+              "mainRender": 5
+            },
+            "tier": 2
+          },
+          {
+            "interval": 1466.6000000000058,
+            "cpu": 44.400000002235174,
+            "gpu": 498.850075,
+            "calls": 82,
+            "triangles": 504737,
+            "sections": {
+              "upgrades": 18.300000000745058,
+              "player": 0.10000000149011612,
+              "actors": 5.199999999254942,
+              "waterAndProps": 4.5,
+              "natureAndPets": 2.899999998509884,
+              "uiAndViews": 0.20000000298023224,
+              "mainRender": 13.199999999254942
+            },
+            "tier": 2
+          },
+          {
+            "interval": 549.8999999999942,
+            "cpu": 24,
+            "gpu": null,
+            "calls": 107,
+            "triangles": 619451,
+            "sections": {
+              "upgrades": 6.600000001490116,
+              "player": 0.10000000149011612,
+              "actors": 4.699999999254942,
+              "waterAndProps": 3.599999997764826,
+              "natureAndPets": 3.300000000745058,
+              "uiAndViews": 0.10000000149011612,
+              "mainRender": 5.599999997764826
+            },
+            "tier": 2
+          },
+          {
+            "interval": 50.10000000000582,
+            "cpu": 64.80000000074506,
+            "gpu": null,
+            "calls": 82,
+            "triangles": 504274,
+            "sections": {
+              "upgrades": 24.300000000745058,
+              "player": 0.10000000149011612,
+              "actors": 12.699999999254942,
+              "waterAndProps": 9.5,
+              "natureAndPets": 11.800000000745058,
+              "uiAndViews": 0.09999999776482582,
+              "mainRender": 6.300000000745058
+            },
+            "tier": 2
+          },
+          {
+            "interval": 516.5999999999767,
+            "cpu": 35.20000000298023,
+            "gpu": null,
+            "calls": 109,
+            "triangles": 600674,
+            "sections": {
+              "upgrades": 5.400000002235174,
+              "player": 4.899999998509884,
+              "actors": 7.900000002235174,
+              "waterAndProps": 4.299999997019768,
+              "natureAndPets": 3.400000002235174,
+              "uiAndViews": 0.09999999776482582,
+              "mainRender": 9.200000002980232
+            },
+            "tier": 2
+          },
+          {
+            "interval": 483.4000000000233,
+            "cpu": 30.5,
+            "gpu": 487.932411,
+            "calls": 85,
+            "triangles": 496560,
+            "sections": {
+              "upgrades": 8,
+              "player": 0.30000000074505806,
+              "actors": 6.900000002235174,
+              "waterAndProps": 6.299999997019768,
+              "natureAndPets": 3.5,
+              "uiAndViews": 0.20000000298023224,
+              "mainRender": 5.299999997019768
+            },
+            "tier": 2
+          },
+          {
+            "interval": 516.5999999999767,
+            "cpu": 41.600000001490116,
+            "gpu": 610.380902,
+            "calls": 109,
+            "triangles": 600674,
+            "sections": {
+              "upgrades": 5.5,
+              "player": 0.19999999925494194,
+              "actors": 21,
+              "waterAndProps": 3.300000000745058,
+              "natureAndPets": 4.400000002235174,
+              "uiAndViews": 0,
+              "mainRender": 7.199999999254942
+            },
+            "tier": 2
+          },
+          {
+            "interval": 483.30000000001746,
+            "cpu": 56.399999998509884,
+            "gpu": 631.794573,
+            "calls": 89,
+            "triangles": 529926,
+            "sections": {
+              "upgrades": 27,
+              "player": 0.09999999776482582,
+              "actors": 13.800000000745058,
+              "waterAndProps": 5.900000002235174,
+              "natureAndPets": 2.099999997764826,
+              "uiAndViews": 0.10000000149011612,
+              "mainRender": 7.399999998509884
+            },
+            "tier": 2
+          },
+          {
+            "interval": 983.2999999999884,
+            "cpu": 33.900000002235174,
+            "gpu": null,
+            "calls": 113,
+            "triangles": 634040,
+            "sections": {
+              "upgrades": 3.400000002235174,
+              "player": 0.09999999776482582,
+              "actors": 3.900000002235174,
+              "waterAndProps": 8.599999997764826,
+              "natureAndPets": 6.199999999254942,
+              "uiAndViews": 0.20000000298023224,
+              "mainRender": 11.5
+            },
+            "tier": 2
+          },
+          {
+            "interval": 999.8999999999942,
+            "cpu": 42.69999999925494,
+            "gpu": 550.632572,
+            "calls": 89,
+            "triangles": 529926,
+            "sections": {
+              "upgrades": 15.699999999254942,
+              "player": 0.3999999985098839,
+              "actors": 10.600000001490116,
+              "waterAndProps": 3.099999997764826,
+              "natureAndPets": 3.600000001490116,
+              "uiAndViews": 0.30000000074505806,
+              "mainRender": 9
+            },
+            "tier": 2
+          },
+          {
+            "interval": 550,
+            "cpu": 56.69999999925494,
+            "gpu": null,
+            "calls": 117,
+            "triangles": 666858,
+            "sections": {
+              "upgrades": 31,
+              "player": 0.19999999925494194,
+              "actors": 5.800000000745058,
+              "waterAndProps": 4.099999997764826,
+              "natureAndPets": 5,
+              "uiAndViews": 0.19999999925494194,
+              "mainRender": 10.400000002235174
+            },
+            "tier": 2
+          },
+          {
+            "interval": 616.7000000000116,
+            "cpu": 28.300000000745058,
+            "gpu": null,
+            "calls": 93,
+            "triangles": 562744,
+            "sections": {
+              "upgrades": 6.800000000745058,
+              "player": 0.19999999925494194,
+              "actors": 5.199999999254942,
+              "waterAndProps": 4.399999998509884,
+              "natureAndPets": 6,
+              "uiAndViews": 0.20000000298023224,
+              "mainRender": 5.5
+            },
+            "tier": 2
+          },
+          {
+            "interval": 533.2999999999884,
+            "cpu": 29.800000000745058,
+            "gpu": null,
+            "calls": 120,
+            "triangles": 639498,
+            "sections": {
+              "upgrades": 8.600000001490116,
+              "player": 0.19999999925494194,
+              "actors": 5.899999998509884,
+              "waterAndProps": 3.100000001490116,
+              "natureAndPets": 4.5,
+              "uiAndViews": 0.19999999925494194,
+              "mainRender": 7.300000000745058
+            },
+            "tier": 2
+          },
+          {
+            "interval": 1033.3000000000175,
+            "cpu": 39.5,
+            "gpu": 546.249979,
+            "calls": 96,
+            "triangles": 535384,
+            "sections": {
+              "upgrades": 11.700000002980232,
+              "player": 0.09999999776482582,
+              "actors": 7.100000001490116,
+              "waterAndProps": 10.5,
+              "natureAndPets": 4.599999997764826,
+              "uiAndViews": 0.10000000149011612,
+              "mainRender": 5.399999998509884
+            },
+            "tier": 2
+          },
+          {
+            "interval": 499.8999999999942,
+            "cpu": 50.100000001490116,
+            "gpu": 700.274856,
+            "calls": 124,
+            "triangles": 672550,
+            "sections": {
+              "upgrades": 22.600000001490116,
+              "player": 0.19999999925494194,
+              "actors": 8.5,
+              "waterAndProps": 5.899999998509884,
+              "natureAndPets": 5.400000002235174,
+              "uiAndViews": 0.09999999776482582,
+              "mainRender": 7.400000002235174
+            },
+            "tier": 2
+          },
+          {
+            "interval": 1083.2999999999884,
+            "cpu": 36.600000001490116,
+            "gpu": null,
+            "calls": 100,
+            "triangles": 568436,
+            "sections": {
+              "upgrades": 5.800000000745058,
+              "player": 0.10000000149011612,
+              "actors": 4.800000000745058,
+              "waterAndProps": 7.5,
+              "natureAndPets": 9.199999999254942,
+              "uiAndViews": 0.19999999925494194,
+              "mainRender": 9
+            },
+            "tier": 2
+          },
+          {
+            "interval": 600,
+            "cpu": 40.20000000298023,
+            "gpu": null,
+            "calls": 124,
+            "triangles": 672550,
+            "sections": {
+              "upgrades": 1,
+              "player": 0.4000000022351742,
+              "actors": 8.199999999254942,
+              "waterAndProps": 7.699999999254942,
+              "natureAndPets": 6.100000001490116,
+              "uiAndViews": 0.19999999925494194,
+              "mainRender": 16.600000001490116
+            },
+            "tier": 2
+          },
+          {
+            "interval": 466.70000000001164,
+            "cpu": 31,
+            "gpu": 594.129219,
+            "calls": 100,
+            "triangles": 568436,
+            "sections": {
+              "upgrades": 5.200000002980232,
+              "player": 0.09999999776482582,
+              "actors": 4.400000002235174,
+              "waterAndProps": 2.899999998509884,
+              "natureAndPets": 7,
+              "uiAndViews": 0.10000000149011612,
+              "mainRender": 11.299999997019768
+            },
+            "tier": 2
+          },
+          {
+            "interval": 33.29999999998836,
+            "cpu": 33.19999999925494,
+            "gpu": null,
+            "calls": 124,
+            "triangles": 672550,
+            "sections": {
+              "upgrades": 5.899999998509884,
+              "player": 0.19999999925494194,
+              "actors": 6.300000000745058,
+              "waterAndProps": 7.400000002235174,
+              "natureAndPets": 6.699999999254942,
+              "uiAndViews": 0.30000000074505806,
+              "mainRender": 6.399999998509884
+            },
+            "tier": 2
+          },
+          {
+            "interval": 583.3000000000175,
+            "cpu": 45.5,
+            "gpu": null,
+            "calls": 100,
+            "triangles": 568436,
+            "sections": {
+              "upgrades": 7.100000001490116,
+              "player": 0.3999999985098839,
+              "actors": 18.800000000745058,
+              "waterAndProps": 5.800000000745058,
+              "natureAndPets": 3.199999999254942,
+              "uiAndViews": 0.30000000074505806,
+              "mainRender": 9.899999998509884
+            },
+            "tier": 2
+          },
+          {
+            "interval": 650,
+            "cpu": 62,
+            "gpu": 615.803838,
+            "calls": 124,
+            "triangles": 651874,
+            "sections": {
+              "upgrades": 14.800000000745058,
+              "player": 0.29999999701976776,
+              "actors": 11,
+              "waterAndProps": 6.600000001490116,
+              "natureAndPets": 13.800000000745058,
+              "uiAndViews": 0.3999999985098839,
+              "mainRender": 15.100000001490116
+            },
+            "tier": 2
+          },
+          {
+            "interval": 600,
+            "cpu": 34.79999999701977,
+            "gpu": 603.746821,
+            "calls": 100,
+            "triangles": 547760,
+            "sections": {
+              "upgrades": 1.2999999970197678,
+              "player": 0.30000000074505806,
+              "actors": 16,
+              "waterAndProps": 3.300000000745058,
+              "natureAndPets": 4.399999998509884,
+              "uiAndViews": 0.10000000149011612,
+              "mainRender": 9.399999998509884
+            },
+            "tier": 2
+          },
+          {
+            "interval": 683.2999999999884,
+            "cpu": 34.79999999701977,
+            "gpu": 624.233144,
+            "calls": 124,
+            "triangles": 651874,
+            "sections": {
+              "upgrades": 8,
+              "player": 0.09999999776482582,
+              "actors": 6.800000000745058,
+              "waterAndProps": 4.199999999254942,
+              "natureAndPets": 6.900000002235174,
+              "uiAndViews": 0.19999999925494194,
+              "mainRender": 8.599999997764826
+            },
+            "tier": 2
+          },
+          {
+            "interval": 449.8999999999942,
+            "cpu": 27.600000001490116,
+            "gpu": null,
+            "calls": 100,
+            "triangles": 547760,
+            "sections": {
+              "upgrades": 1.2000000029802322,
+              "player": 0.09999999776482582,
+              "actors": 10.5,
+              "waterAndProps": 4.5,
+              "natureAndPets": 4.300000000745058,
+              "uiAndViews": 0.19999999925494194,
+              "mainRender": 6.800000000745058
+            },
+            "tier": 2
+          },
+          {
+            "interval": 983.4000000000233,
+            "cpu": 46.099999997764826,
+            "gpu": null,
+            "calls": 124,
+            "triangles": 651874,
+            "sections": {
+              "upgrades": 6.599999997764826,
+              "player": 0.19999999925494194,
+              "actors": 11.400000002235174,
+              "waterAndProps": 13.399999998509884,
+              "natureAndPets": 3.199999999254942,
+              "uiAndViews": 1,
+              "mainRender": 10.300000000745058
+            },
+            "tier": 2
+          },
+          {
+            "interval": 233.29999999998836,
+            "cpu": 29.300000000745058,
+            "gpu": null,
+            "calls": 100,
+            "triangles": 547760,
+            "sections": {
+              "upgrades": 1.6000000014901161,
+              "player": 0.10000000149011612,
+              "actors": 4.799999997019768,
+              "waterAndProps": 5.100000001490116,
+              "natureAndPets": 9.199999999254942,
+              "uiAndViews": 0.19999999925494194,
+              "mainRender": 8.200000002980232
+            },
+            "tier": 2
+          },
+          {
+            "interval": 566.6000000000058,
+            "cpu": 36.19999999925494,
+            "gpu": 773.949409,
+            "calls": 124,
+            "triangles": 651874,
+            "sections": {
+              "upgrades": 11.900000002235174,
+              "player": 0.09999999776482582,
+              "actors": 5.5,
+              "waterAndProps": 5.800000000745058,
+              "natureAndPets": 4.199999999254942,
+              "uiAndViews": 0.10000000149011612,
+              "mainRender": 8.599999997764826
+            },
+            "tier": 2
+          },
+          {
+            "interval": 50,
+            "cpu": 46.599999997764826,
+            "gpu": null,
+            "calls": 100,
+            "triangles": 547760,
+            "sections": {
+              "upgrades": 0.8000000007450581,
+              "player": 0.09999999776482582,
+              "actors": 7.100000001490116,
+              "waterAndProps": 6.599999997764826,
+              "natureAndPets": 22.200000002980232,
+              "uiAndViews": 0.19999999925494194,
+              "mainRender": 9.599999997764826
+            },
+            "tier": 2
+          },
+          {
+            "interval": 1533.2999999999884,
+            "cpu": 44.5,
+            "gpu": 587.372032,
+            "calls": 124,
+            "triangles": 651874,
+            "sections": {
+              "upgrades": 16.399999998509884,
+              "player": 0.6000000014901161,
+              "actors": 13.199999999254942,
+              "waterAndProps": 3.800000000745058,
+              "natureAndPets": 2.699999999254942,
+              "uiAndViews": 0.09999999776482582,
+              "mainRender": 7.700000002980232
+            },
+            "tier": 2
+          },
+          {
+            "interval": 66.70000000001164,
+            "cpu": 30.800000000745058,
+            "gpu": null,
+            "calls": 100,
+            "triangles": 547760,
+            "sections": {
+              "upgrades": 9.800000000745058,
+              "player": 0.09999999776482582,
+              "actors": 6.699999999254942,
+              "waterAndProps": 3.600000001490116,
+              "natureAndPets": 5.399999998509884,
+              "uiAndViews": 0.10000000149011612,
+              "mainRender": 5.100000001490116
+            },
+            "tier": 2
+          },
+          {
+            "interval": 33.29999999998836,
+            "cpu": 14.300000000745058,
+            "gpu": null,
+            "calls": 124,
+            "triangles": 651874,
+            "sections": {
+              "upgrades": 0.5999999977648258,
+              "player": 0.10000000149011612,
+              "actors": 0.6999999992549419,
+              "waterAndProps": 1.300000000745058,
+              "natureAndPets": 3.199999999254942,
+              "uiAndViews": 0.10000000149011612,
+              "mainRender": 8.300000000745058
+            },
+            "tier": 2
+          },
+          {
+            "interval": 616.7000000000116,
+            "cpu": 25.300000000745058,
+            "gpu": null,
+            "calls": 100,
+            "triangles": 547760,
+            "sections": {
+              "upgrades": 1.300000000745058,
+              "player": 0.09999999776482582,
+              "actors": 7.699999999254942,
+              "waterAndProps": 3.900000002235174,
+              "natureAndPets": 4.800000000745058,
+              "uiAndViews": 0.19999999925494194,
+              "mainRender": 7.300000000745058
+            },
+            "tier": 2
+          },
+          {
+            "interval": 583.1999999999825,
+            "cpu": 36,
+            "gpu": null,
+            "calls": 124,
+            "triangles": 651874,
+            "sections": {
+              "upgrades": 5.600000001490116,
+              "player": 0.19999999925494194,
+              "actors": 6.699999999254942,
+              "waterAndProps": 5.399999998509884,
+              "natureAndPets": 7.900000002235174,
+              "uiAndViews": 0.09999999776482582,
+              "mainRender": 10.100000001490116
+            },
+            "tier": 2
+          },
+          {
+            "interval": 600,
+            "cpu": 32.100000001490116,
+            "gpu": null,
+            "calls": 100,
+            "triangles": 547760,
+            "sections": {
+              "upgrades": 2.100000001490116,
+              "player": 0.09999999776482582,
+              "actors": 16.100000001490116,
+              "waterAndProps": 6.699999999254942,
+              "natureAndPets": 2,
+              "uiAndViews": 0.19999999925494194,
+              "mainRender": 4.900000002235174
+            },
+            "tier": 2
+          },
+          {
+            "interval": 616.7000000000116,
+            "cpu": 34.399999998509884,
+            "gpu": null,
+            "calls": 124,
+            "triangles": 651874,
+            "sections": {
+              "upgrades": 4.5,
+              "player": 0.30000000074505806,
+              "actors": 4.899999998509884,
+              "waterAndProps": 8.100000001490116,
+              "natureAndPets": 4.099999997764826,
+              "uiAndViews": 0.20000000298023224,
+              "mainRender": 12.299999997019768
+            },
+            "tier": 2
+          },
+          {
+            "interval": 1233.2999999999884,
+            "cpu": 23.300000000745058,
+            "gpu": null,
+            "calls": 100,
+            "triangles": 547760,
+            "sections": {
+              "upgrades": 1.0999999977648258,
+              "player": 0.10000000149011612,
+              "actors": 4.300000000745058,
+              "waterAndProps": 5.099999997764826,
+              "natureAndPets": 4.700000002980232,
+              "uiAndViews": 0.19999999925494194,
+              "mainRender": 7.800000000745058
+            },
+            "tier": 2
+          },
+          {
+            "interval": 633.3000000000175,
+            "cpu": 37.69999999925494,
+            "gpu": null,
+            "calls": 127,
+            "triangles": 665866,
+            "sections": {
+              "upgrades": 9.399999998509884,
+              "player": 4.200000002980232,
+              "actors": 7.099999997764826,
+              "waterAndProps": 3.100000001490116,
+              "natureAndPets": 3.899999998509884,
+              "uiAndViews": 0.19999999925494194,
+              "mainRender": 9.800000000745058
+            },
+            "tier": 2
+          },
+          {
+            "interval": 566.5,
+            "cpu": 19.800000000745058,
+            "gpu": null,
+            "calls": 103,
+            "triangles": 561752,
+            "sections": {
+              "upgrades": 1.300000000745058,
+              "player": 0.19999999925494194,
+              "actors": 4.5,
+              "waterAndProps": 3.199999999254942,
+              "natureAndPets": 4.699999999254942,
+              "uiAndViews": 0.19999999925494194,
+              "mainRender": 5.700000002980232
+            },
+            "tier": 2
+          },
+          {
+            "interval": 416.69999999998254,
+            "cpu": 30.300000000745058,
+            "gpu": null,
+            "calls": 127,
+            "triangles": 665866,
+            "sections": {
+              "upgrades": 4.700000002980232,
+              "player": 0.09999999776482582,
+              "actors": 4.5,
+              "waterAndProps": 4.400000002235174,
+              "natureAndPets": 5.199999999254942,
+              "uiAndViews": 0.09999999776482582,
+              "mainRender": 11.300000000745058
+            },
+            "tier": 2
+          },
+          {
+            "interval": 883.3000000000175,
+            "cpu": 30.699999999254942,
+            "gpu": null,
+            "calls": 103,
+            "triangles": 561752,
+            "sections": {
+              "upgrades": 1.6000000014901161,
+              "player": 0.19999999925494194,
+              "actors": 4.199999999254942,
+              "waterAndProps": 3.300000000745058,
+              "natureAndPets": 13.600000001490116,
+              "uiAndViews": 0.19999999925494194,
+              "mainRender": 7.599999997764826
+            },
+            "tier": 2
+          },
+          {
+            "interval": 1299.8999999999942,
+            "cpu": 31.399999998509884,
+            "gpu": null,
+            "calls": 127,
+            "triangles": 665866,
+            "sections": {
+              "upgrades": 5.299999997019768,
+              "player": 0.10000000149011612,
+              "actors": 5.100000001490116,
+              "waterAndProps": 3.899999998509884,
+              "natureAndPets": 6.199999999254942,
+              "uiAndViews": 0.10000000149011612,
+              "mainRender": 10.699999999254942
+            },
+            "tier": 2
+          },
+          {
+            "interval": 1166.7000000000116,
+            "cpu": 30.5,
+            "gpu": null,
+            "calls": 103,
+            "triangles": 561752,
+            "sections": {
+              "upgrades": 1.2000000029802322,
+              "player": 0.29999999701976776,
+              "actors": 9.800000000745058,
+              "waterAndProps": 8.900000002235174,
+              "natureAndPets": 3.599999997764826,
+              "uiAndViews": 0.10000000149011612,
+              "mainRender": 6.599999997764826
+            },
+            "tier": 2
+          },
+          {
+            "interval": 666.5999999999767,
+            "cpu": 35.20000000298023,
+            "gpu": null,
+            "calls": 127,
+            "triangles": 665866,
+            "sections": {
+              "upgrades": 11.100000001490116,
+              "player": 0.19999999925494194,
+              "actors": 6.699999999254942,
+              "waterAndProps": 4.600000001490116,
+              "natureAndPets": 5.199999999254942,
+              "uiAndViews": 0.19999999925494194,
+              "mainRender": 7.200000002980232
+            },
+            "tier": 2
+          },
+          {
+            "interval": 566.7000000000116,
+            "cpu": 22.800000000745058,
+            "gpu": null,
+            "calls": 103,
+            "triangles": 561752,
+            "sections": {
+              "upgrades": 1.199999999254942,
+              "player": 0.19999999925494194,
+              "actors": 4.699999999254942,
+              "waterAndProps": 4.300000000745058,
+              "natureAndPets": 4.600000001490116,
+              "uiAndViews": 0.19999999925494194,
+              "mainRender": 7.600000001490116
+            },
+            "tier": 2
+          }
+        ]
+      },
+      "world": {
+        "format": "human5.world.stats/1",
+        "sizeMetres": 2112,
+        "residentCells": 9,
+        "pinnedViews": 0,
+        "pendingCells": 0,
+        "interiors": 1,
+        "blocks": 12,
+        "trees": 900,
+        "terrainEdits": 0,
+        "felledTrees": 0,
+        "lastBuildMs": 0,
+        "totalBuildMs": 725.8000000081956
+      },
+      "ecology": {
+        "vegetation": {
+          "cells": 7,
+          "grassInstances": 1309,
+          "cutCells": 0
+        },
+        "hair": [
+          {
+            "name": "Mira",
+            "guides": [],
+            "classic": []
+          }
+        ],
+        "birds": {
+          "birds": 36,
+          "feeding": 0,
+          "feeders": 6
+        },
+        "fishing": {
+          "fish": 0,
+          "caught": 0,
+          "rods": []
+        },
+        "population": {
+          "enabled": true,
+          "virtualPeople": 24,
+          "interactivePeople": 0,
+          "virtualCars": 10,
+          "interactiveCars": 0,
+          "outings": 0
+        }
+      },
+      "startup": [
+        {
+          "stage": "mainShaders",
+          "ms": 395.3999999985099
+        },
+        {
+          "stage": "vehicleView",
+          "vehicle": "sedan",
+          "ms": 11822.5
+        },
+        {
+          "stage": "vehicleView",
+          "vehicle": "sedan",
+          "ms": 257.5999999977648
+        },
+        {
+          "stage": "total",
+          "ms": 15645.10000000149
+        }
+      ],
+      "longFrames": 203,
+      "morphs": [
+        [
+          {
+            "name": "Std_Skin_Head",
+            "vertices": 17200,
+            "targets": 49,
+            "residual": 0.10571590118527925
+          },
+          {
+            "name": "Std_Skin_Body",
+            "vertices": 17200,
+            "targets": 0,
+            "residual": 0.0003346750081967846
+          },
+          {
+            "name": "Std_Skin_Arm",
+            "vertices": 17200,
+            "targets": 0,
+            "residual": 0.0008429452007015731
+          },
+          {
+            "name": "Std_Skin_Leg",
+            "vertices": 17200,
+            "targets": 0,
+            "residual": 0.000016882575836152238
+          }
+        ]
+      ],
+      "seams": [
+        {
+          "ready": true,
+          "skin": true
+        }
+      ],
+      "driving": 0
+    }
+  ],
+  "errors": []
+}

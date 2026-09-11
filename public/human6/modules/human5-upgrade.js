@@ -1,20 +1,20 @@
 import * as T from 'three';
-import {tagMovable,placeFurniture} from '../mira-v2-furniture.js?v=17.8.0';
-import {HouseDoors} from '../mira-v2-doors.js?v=17.8.0';
-import {makeSurfaceMap} from '../mira-v2-walls.js?v=17.8.0';
-import {SCENES} from '../mira-v2-world.js?v=17.8.0';
-import {FixtureLights} from './human5-lighting.js?v=17.8.0';
-import {upgradeHostFire} from './human5-fire-host.js?v=17.8.0';
-import {FurnitureMaterials} from './human5-furniture.js?v=17.8.0';
-import {TextileSystem} from './human5-textiles.js?v=17.8.0';
-import {Neighborhood,NEIGHBORHOOD_NAME} from './human5-neighborhood.js?v=17.8.0';
-import {installHumanDynamics,DYNAMICS_CONTROLS} from './human5-dynamics.js?v=17.8.0';
-import {installSkinRefinement} from './human5-skin.js?v=17.8.0';
-import {applyNPCProfile,exportNPCProfile} from './human5-npc-profile.js?v=17.8.0';
-import {installVehicleRefinement} from './human5-vehicles.js?v=17.8.0';
-import {installTissueSurface} from './human5-tissue-surface.js?v=17.8.0';
-import {installReferenceIdentity,REFERENCE_EXPRESSIONS,REFERENCE_MIRA} from './human5-identity.js?v=17.8.0';
-import {V,VERSION,wrapMethod,attachedTo} from './human5-common.js?v=17.8.0';
+import {tagMovable,placeFurniture} from '../mira-v2-furniture.js?v=18.0.0';
+import {HouseDoors} from '../mira-v2-doors.js?v=18.0.0';
+import {makeSurfaceMap} from '../mira-v2-walls.js?v=18.0.0';
+import {SCENES} from '../mira-v2-world.js?v=18.0.0';
+import {FixtureLights} from './human5-lighting.js?v=18.0.0';
+import {upgradeHostFire} from './human5-fire-host.js?v=18.0.0';
+import {FurnitureMaterials} from './human5-furniture.js?v=18.0.0';
+import {TextileSystem} from './human5-textiles.js?v=18.0.0';
+import {Neighborhood,NEIGHBORHOOD_NAME} from './human5-neighborhood.js?v=18.0.0';
+import {installHumanDynamics,DYNAMICS_CONTROLS} from './human5-dynamics.js?v=18.0.0';
+import {installSkinRefinement} from './human5-skin.js?v=18.0.0';
+import {applyNPCProfile,exportNPCProfile} from './human5-npc-profile.js?v=18.0.0';
+import {installVehicleRefinement} from './human5-vehicles.js?v=18.0.0';
+import {installTissueSurface} from './human5-tissue-surface.js?v=18.0.0';
+import {installReferenceIdentity,REFERENCE_EXPRESSIONS,REFERENCE_MIRA} from './human5-identity.js?v=18.0.0';
+import {V,VERSION,wrapMethod,attachedTo} from './human5-common.js?v=18.0.0';
 
 /** Single installation point, after legacy fire/water/props, before the render loop. */
 export function installHuman5Upgrade({scene,renderer,camera,world,mira,props,wardrobe,water,quest=true,daylight=null,newMap=true}={}){
@@ -58,7 +58,7 @@ export function installHuman5Upgrade({scene,renderer,camera,world,mira,props,war
   }));
   const api={version:VERSION,lights,fire,furniture,textiles,neighborhood,actors,daylight,
     beforeFrame(dt){if(disposed)return;for(const car of vehicles)if(!props.cars().includes(car))vehicles.delete(car);for(const car of props.cars()){if(!vehicles.has(car)){vehicles.add(car);installVehicleRefinement(car);}}for(const a of mira.actors)attachActor(a);for(const a of actors){if(!mira.actors.includes(a)){a.h5TissueSurface?.dispose();a.h5Dynamics?.dispose();a.h5Skin?.dispose();actors.delete(a);}else a.h5Dynamics?.set(a.shape);}updateUI();
-      const viewer=camera.getWorldPosition(V());daylight?.follow(viewer);textiles.pile.visible=world.root.visible;
+      const viewer=camera.getWorldPosition(V());daylight?.follow(viewer);daylight?.setInterior(world.neighborhood?.houses?.some(h=>h.bounds.containsPoint(viewer))||false);textiles.pile.visible=world.root.visible;
       if(world.root.visible)textiles.tick(dt,viewer);lights.tick(dt,viewer);
       scanT-=dt;if(scanT<=0){scanT=.75;for(const root of world.movables||[])if(root.userData.dogItem)furniture.upgradePetBag(root);for(const f of lights.fixtures)if(!attachedTo(f.root,world.root))lights.remove(f);}
     },

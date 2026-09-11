@@ -1,0 +1,15 @@
+{
+  "private": true,
+  "name": "human5-checkpoint14-tests",
+  "version": "18.0.0",
+  "dependencies": {
+    "three": "0.170.0",
+    "playwright": "1.62.1"
+  },
+  "scripts": {
+    "integrity": "node --experimental-vm-modules source-integrity.cjs",
+    "cash": "node cash-regression.cjs",
+    "stress": "node final-stress.cjs",
+    "profile": "node whole-project-profile.cjs"
+  }
+}

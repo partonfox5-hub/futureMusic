@@ -92,7 +92,7 @@ export function installWeather({scene,world,camera,renderer,lights={}}={}){
  const state={coverage:.4,rain:0,snow:0,wet:0,snowCover:0,label:'Cloudy'};
  const origLights=new Map();
  for(const [k,l] of Object.entries(lights))if(l)origLights.set(k,{l,i:l.intensity,c:l.color.clone()});
- const hemi=scene.children.find(o=>o.isHemisphereLight);
+ let hemi=null;scene.traverse(o=>{if(!hemi&&o.isHemisphereLight)hemi=o;});const baseHemiIntensity=hemi?.intensity??.38;
  const bgColor=new T.Color();
  const hitList=[];
 
@@ -198,7 +198,7 @@ export function installWeather({scene,world,camera,renderer,lights={}}={}){
    renderer?.setClearColor?.(fogCol,1);
    const dim=1-state.rain*.45-state.coverage*.18-state.snow*.12;
    for(const {l,i} of origLights.values())l.intensity=i*dim;
-   if(hemi)hemi.intensity=.72*dim;
+   if(hemi)hemi.intensity=baseHemiIntensity*dim;
 
    const c=cam.getWorldPosition(V()),span=18,wind=state.rain?3.2:1.1;
    let rc=0;

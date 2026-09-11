@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { clamp } from './Dog.js?v=17.8.0';
+import { clamp } from './Dog.js?v=18.0.0';
 const vec=a=>new THREE.Vector3(...a);
 
 export function floorAt(world,x,z,fallback=0) {
@@ -29,7 +29,7 @@ export class DogPaws {
       const cat=model.species==='cat',thin=cat?.72:1,x=s==='L'?.115:-.115,upper=`${s}_${front?'UpperArm':'Thigh'}`,lower=`${s}_${front?'ForeArm':'Calf'}`,foot=`${s}_${front?'Paw':'Foot'}`;
       const shoulder=model.bind[front?`${s}_Shoulder`:`${s}_Hip`];
       const a=model.bind[upper],b=model.bind[lower],c=model.bind[foot];
-      model.tube(`${s}_${front?'foreleg':'hindleg'}`,[a.toArray(),a.clone().lerp(b,.45).toArray(),b.toArray(),b.clone().lerp(c,.55).toArray(),c.toArray()],(front?[.052,.044,.028,.023,.025]:[.071,.060,.036,.025,.026]).map(r=>r*thin),(xx,y,z)=>{
+      if(!model.breed){model.tube(`${s}_${front?'foreleg':'hindleg'}`,[a.toArray(),a.clone().lerp(b,.45).toArray(),b.toArray(),b.clone().lerp(c,.55).toArray(),c.toArray()],(front?[.052,.044,.028,.023,.025]:[.071,.060,.036,.025,.026]).map(r=>r*thin),(xx,y,z)=>{
         const d=vec([xx,y,z]),t=clamp(d.clone().sub(b).dot(c.clone().sub(b))/b.distanceToSquared(c));
         return [[upper,1-t],[lower,t]];
       },model.coat,10,true);
@@ -45,11 +45,12 @@ export class DogPaws {
       model.ellipsoid('paw_pad',[x,.010,z-.016],[.030*ps,.009*ps,.036*ps],foot,pad,'coat',10,6);
       // A small carpal pad is visible on the back of each front ankle.
       if(front)model.ellipsoid('carpal_pad',[x,.090,c.z-.022],[.016,.016,.009],foot,pad,'coat',8,5);
+      }
       this.legs.push({root:model.bones[front?`${s}_Shoulder`:`${s}_Hip`],upper:model.bones[upper],lower:model.bones[lower],foot:model.bones[foot],home:c.clone(),front,length1:a.distanceTo(b),length2:b.distanceTo(c),reach:shoulder.distanceTo(c)});
     }
   }
   tick(time,state,moving=0,bend=0){
-    this.crouching=['sleep','eat','pickup','eat-bag'].includes(state);const m=this.model;m.root.updateMatrixWorld(true);
+    this.crouching=['sleep','eat','pickup','eat-bag'].includes(state);const m=this.model;m.updatePoseWorld();
     if(m.root.userData.waterSwimming)return;
     const held=m.root.userData.dog?._heldLimbs;
     this.legs.forEach((leg,i)=>{
@@ -57,7 +58,7 @@ export class DogPaws {
       if(held&&held.has(key))return;
       const target=leg.home.clone();
       // Compact alternating step only when follow movement is active.
-      const s=m.root.scale.y||1,phase=time*8.2+(i===0||i===3?0:Math.PI),lift=Math.max(0,Math.sin(phase))*.09*moving;
+      const s=m.root.scale.y||1,phase=time*8.2*(m.breed?.gait||1)+(i===0||i===3?0:Math.PI),lift=Math.max(0,Math.sin(phase))*.09*moving;
       target.z+=Math.cos(phase)*.11*moving;
       // Feet straddle the curved centerline sampled at each fore/hind contact.
       target.x+=Math.sin(bend)*target.z*.34;

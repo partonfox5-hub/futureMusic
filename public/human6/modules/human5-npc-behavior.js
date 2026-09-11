@@ -1,8 +1,8 @@
 import * as T from 'three';
-import {GARMENTS} from '../mira-v2-wardrobe.js?v=17.8.0';
-import {WEAPONS} from '../mira-v2-props.js?v=17.8.0';
-import {CITY_BLOCKS,ROUTES} from './human5-worldfield.js?v=17.8.0';
-import {V,rng,wrapMethod,clamp} from './human5-common.js?v=17.8.0';
+import {GARMENTS} from '../mira-v2-wardrobe.js?v=18.0.0';
+import {WEAPONS} from '../mira-v2-props.js?v=18.0.0';
+import {CITY_BLOCKS,ROUTES} from './human5-worldfield.js?v=18.0.0';
+import {V,rng,wrapMethod,clamp} from './human5-common.js?v=18.0.0';
 
 export const NPC_ROLES={
  bandit:{name:'Bandit',weapon:'sword',armor:'leather',top:'fieldShirt',bottom:'workPants',color:0x594934,range:1.8,damage:9,cooldown:1.4},

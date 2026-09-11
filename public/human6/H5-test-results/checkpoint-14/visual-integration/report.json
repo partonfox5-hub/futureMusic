@@ -1,0 +1,858 @@
+{
+  "report": {
+    "pets": [
+      {
+        "id": "labrador",
+        "bones": 28,
+        "meshes": [
+          {
+            "name": "ear_-1",
+            "vertices": 135,
+            "max": 0.8683411064523278
+          },
+          {
+            "name": "ear_1",
+            "vertices": 135,
+            "max": 0.9384993986011473
+          },
+          {
+            "name": "body",
+            "vertices": 7712,
+            "max": 0.9980579295417809
+          },
+          {
+            "name": "nose",
+            "vertices": 209,
+            "max": 1.0131271438371547
+          },
+          {
+            "name": "nostril",
+            "vertices": 154,
+            "max": 1.012060898438617
+          },
+          {
+            "name": "eye_globe",
+            "vertices": 494,
+            "max": 0.9585539905353887
+          },
+          {
+            "name": "iris",
+            "vertices": 52,
+            "max": 0.9610365260287651
+          },
+          {
+            "name": "pupil",
+            "vertices": 52,
+            "max": 0.9589636413353162
+          },
+          {
+            "name": "cornea",
+            "vertices": 52,
+            "max": 0.9628813303987686
+          },
+          {
+            "name": "eyelid",
+            "vertices": 400,
+            "max": 0.9599252447101323
+          },
+          {
+            "name": "mouth",
+            "vertices": 136,
+            "max": 0.9789874295834995
+          },
+          {
+            "name": "tongue",
+            "vertices": 91,
+            "max": 0.958919277389218
+          }
+        ],
+        "voice": 1,
+        "mouth": [
+          0.680378286734005,
+          0.883021183169614,
+          2.7227529246484505
+        ]
+      },
+      {
+        "id": "beagle",
+        "bones": 28,
+        "meshes": [
+          {
+            "name": "ear_-1",
+            "vertices": 135,
+            "max": 0.9327193366550103
+          },
+          {
+            "name": "ear_1",
+            "vertices": 135,
+            "max": 0.8727112999949396
+          },
+          {
+            "name": "body",
+            "vertices": 7242,
+            "max": 1.0041503780933105
+          },
+          {
+            "name": "nose",
+            "vertices": 209,
+            "max": 1.0174477823863557
+          },
+          {
+            "name": "nostril",
+            "vertices": 154,
+            "max": 1.0169254111563155
+          },
+          {
+            "name": "eye_globe",
+            "vertices": 494,
+            "max": 0.9613550190024849
+          },
+          {
+            "name": "iris",
+            "vertices": 52,
+            "max": 0.9637307679600076
+          },
+          {
+            "name": "pupil",
+            "vertices": 52,
+            "max": 0.961839957609713
+          },
+          {
+            "name": "cornea",
+            "vertices": 52,
+            "max": 0.9655411697297489
+          },
+          {
+            "name": "eyelid",
+            "vertices": 400,
+            "max": 0.9624811015580191
+          },
+          {
+            "name": "mouth",
+            "vertices": 136,
+            "max": 0.985969258196539
+          },
+          {
+            "name": "tongue",
+            "vertices": 91,
+            "max": 0.9681076979422637
+          }
+        ],
+        "voice": 1.14,
+        "mouth": [
+          0.1010766263865489,
+          0.6355194027408899,
+          2.8562354311411577
+        ]
+      },
+      {
+        "id": "shepherd",
+        "bones": 28,
+        "meshes": [
+          {
+            "name": "ear_-1",
+            "vertices": 135,
+            "max": 0.9692314457685345
+          },
+          {
+            "name": "ear_1",
+            "vertices": 135,
+            "max": 1.0248956033095042
+          },
+          {
+            "name": "body",
+            "vertices": 7274,
+            "max": 0.968923013024142
+          },
+          {
+            "name": "nose",
+            "vertices": 209,
+            "max": 0.9852913898008486
+          },
+          {
+            "name": "nostril",
+            "vertices": 154,
+            "max": 0.9806901229042492
+          },
+          {
+            "name": "eye_globe",
+            "vertices": 494,
+            "max": 0.9526195418792567
+          },
+          {
+            "name": "iris",
+            "vertices": 52,
+            "max": 0.9553069212820913
+          },
+          {
+            "name": "pupil",
+            "vertices": 52,
+            "max": 0.952195873734051
+          },
+          {
+            "name": "cornea",
+            "vertices": 52,
+            "max": 0.9573000681901926
+          },
+          {
+            "name": "eyelid",
+            "vertices": 400,
+            "max": 0.9542063774395402
+          },
+          {
+            "name": "mouth",
+            "vertices": 136,
+            "max": 0.944491133101506
+          },
+          {
+            "name": "tongue",
+            "vertices": 91,
+            "max": 0.9266700081143526
+          }
+        ],
+        "voice": 0.88,
+        "mouth": [
+          0.6346223764122845,
+          0.8850529066037872,
+          1.064659288104347
+        ]
+      },
+      {
+        "id": "british",
+        "bones": 28,
+        "meshes": [
+          {
+            "name": "ear_-1",
+            "vertices": 135,
+            "max": 0.9055714030928677
+          },
+          {
+            "name": "ear_1",
+            "vertices": 135,
+            "max": 0.8225570449473183
+          },
+          {
+            "name": "body",
+            "vertices": 6928,
+            "max": 0.85363312518919
+          },
+          {
+            "name": "nose",
+            "vertices": 209,
+            "max": 0.8352036230036413
+          },
+          {
+            "name": "nostril",
+            "vertices": 154,
+            "max": 0.8356520755338095
+          },
+          {
+            "name": "eye_globe",
+            "vertices": 494,
+            "max": 0.863449025218513
+          },
+          {
+            "name": "iris",
+            "vertices": 52,
+            "max": 0.8665420215927219
+          },
+          {
+            "name": "pupil",
+            "vertices": 52,
+            "max": 0.8648465650245927
+          },
+          {
+            "name": "cornea",
+            "vertices": 52,
+            "max": 0.8689722630108415
+          },
+          {
+            "name": "eyelid",
+            "vertices": 400,
+            "max": 0.8650600327000403
+          },
+          {
+            "name": "ear_inner",
+            "vertices": 135,
+            "max": 0.8918102849536796
+          },
+          {
+            "name": "whiskers",
+            "vertices": 208,
+            "max": 0.8721919581670734
+          },
+          {
+            "name": "ear_inner",
+            "vertices": 135,
+            "max": 0.8124925018459408
+          },
+          {
+            "name": "mouth",
+            "vertices": 136,
+            "max": 0.8176916723250476
+          },
+          {
+            "name": "tongue",
+            "vertices": 91,
+            "max": 0.8119309574214763
+          }
+        ],
+        "voice": 0.9,
+        "mouth": [
+          -0.6461211512481296,
+          0.3609139947024968,
+          1.8423548513393162
+        ]
+      },
+      {
+        "id": "siamese",
+        "bones": 28,
+        "meshes": [
+          {
+            "name": "ear_-1",
+            "vertices": 135,
+            "max": 0.844415699109577
+          },
+          {
+            "name": "ear_1",
+            "vertices": 135,
+            "max": 0.9050688441722075
+          },
+          {
+            "name": "body",
+            "vertices": 6222,
+            "max": 0.8520712135375526
+          },
+          {
+            "name": "nose",
+            "vertices": 209,
+            "max": 0.8486822806847337
+          },
+          {
+            "name": "nostril",
+            "vertices": 154,
+            "max": 0.8492797242379382
+          },
+          {
+            "name": "eye_globe",
+            "vertices": 494,
+            "max": 0.8629234631197825
+          },
+          {
+            "name": "iris",
+            "vertices": 52,
+            "max": 0.8661479983410975
+          },
+          {
+            "name": "pupil",
+            "vertices": 52,
+            "max": 0.8646972164168736
+          },
+          {
+            "name": "cornea",
+            "vertices": 52,
+            "max": 0.8685651285088701
+          },
+          {
+            "name": "eyelid",
+            "vertices": 400,
+            "max": 0.8643497700727135
+          },
+          {
+            "name": "ear_inner",
+            "vertices": 135,
+            "max": 0.8311395317764464
+          },
+          {
+            "name": "whiskers",
+            "vertices": 208,
+            "max": 0.8829906672535087
+          },
+          {
+            "name": "ear_inner",
+            "vertices": 135,
+            "max": 0.8880541180774946
+          },
+          {
+            "name": "mouth",
+            "vertices": 136,
+            "max": 0.8298055706975686
+          },
+          {
+            "name": "tongue",
+            "vertices": 91,
+            "max": 0.8226896373982475
+          }
+        ],
+        "voice": 1.12,
+        "mouth": [
+          0.8346438246672351,
+          0.34637854214712605,
+          2.1602284724776104
+        ]
+      },
+      {
+        "id": "maine",
+        "bones": 28,
+        "meshes": [
+          {
+            "name": "ear_-1",
+            "vertices": 135,
+            "max": 0.8645093380690126
+          },
+          {
+            "name": "ear_1",
+            "vertices": 135,
+            "max": 0.9358411309606358
+          },
+          {
+            "name": "body",
+            "vertices": 7104,
+            "max": 0.8714554501055325
+          },
+          {
+            "name": "nose",
+            "vertices": 209,
+            "max": 0.8508950961950018
+          },
+          {
+            "name": "nostril",
+            "vertices": 154,
+            "max": 0.8510004228823896
+          },
+          {
+            "name": "eye_globe",
+            "vertices": 494,
+            "max": 0.88035766438739
+          },
+          {
+            "name": "iris",
+            "vertices": 52,
+            "max": 0.8836342901951953
+          },
+          {
+            "name": "pupil",
+            "vertices": 52,
+            "max": 0.8820275549219411
+          },
+          {
+            "name": "cornea",
+            "vertices": 52,
+            "max": 0.8860825361121215
+          },
+          {
+            "name": "eyelid",
+            "vertices": 400,
+            "max": 0.8818949058455041
+          },
+          {
+            "name": "ear_inner",
+            "vertices": 135,
+            "max": 0.8493764717630163
+          },
+          {
+            "name": "whiskers",
+            "vertices": 208,
+            "max": 0.8892771527167418
+          },
+          {
+            "name": "ear_inner",
+            "vertices": 135,
+            "max": 0.9173575034267011
+          },
+          {
+            "name": "mouth",
+            "vertices": 136,
+            "max": 0.8311372753700357
+          },
+          {
+            "name": "tongue",
+            "vertices": 91,
+            "max": 0.8241503391076793
+          }
+        ],
+        "voice": 1.04,
+        "mouth": [
+          0.5645747645385588,
+          0.44733038084098675,
+          1.4468187505539054
+        ]
+      }
+    ],
+    "garments": [
+      {
+        "id": "top",
+        "kind": "BufferGeometry",
+        "vertices": 170,
+        "extent": [
+          0.112286823628851,
+          0.3350000027567148,
+          0.45823806763321917
+        ]
+      },
+      {
+        "id": "tube",
+        "kind": "BufferGeometry",
+        "vertices": 50,
+        "extent": [
+          0.11272375726685802,
+          0.25,
+          0.45831681745477404
+        ]
+      },
+      {
+        "id": "bikiniTop",
+        "kind": "BufferGeometry",
+        "vertices": 210,
+        "extent": [
+          0.10978595527234392,
+          0.2639999948441982,
+          0.46730906495485236
+        ]
+      },
+      {
+        "id": "bandeau",
+        "kind": "BufferGeometry",
+        "vertices": 50,
+        "extent": [
+          0.10864745357173522,
+          0.18000000715255737,
+          0.4575821333730907
+        ]
+      },
+      {
+        "id": "briefs",
+        "kind": "BufferGeometry",
+        "vertices": 90,
+        "extent": [
+          0.10528329097614542,
+          0.18000000715255737,
+          0.4474540360719934
+        ]
+      },
+      {
+        "id": "bikiniBottom",
+        "kind": "BufferGeometry",
+        "vertices": 90,
+        "extent": [
+          0.10528329097614542,
+          0.18000000715255737,
+          0.4474540360719934
+        ]
+      },
+      {
+        "id": "jeans",
+        "kind": "BufferGeometry",
+        "vertices": 170,
+        "extent": [
+          0.11836586089933254,
+          0.8500000238418579,
+          0.4878989469121997
+        ]
+      },
+      {
+        "id": "shorts",
+        "kind": "BufferGeometry",
+        "vertices": 170,
+        "extent": [
+          0.1183727460597721,
+          0.3400000035762787,
+          0.48790018784470934
+        ]
+      },
+      {
+        "id": "skirt",
+        "kind": "BufferGeometry",
+        "vertices": 50,
+        "extent": [
+          0.13656634137815837,
+          0.550000011920929,
+          0.6054402192721895
+        ]
+      },
+      {
+        "id": "dress",
+        "kind": "BufferGeometry",
+        "vertices": 170,
+        "extent": [
+          0.13435204881297302,
+          0.9550000075250864,
+          0.5764758658052642
+        ]
+      },
+      {
+        "id": "slipDress",
+        "kind": "BufferGeometry",
+        "vertices": 170,
+        "extent": [
+          0.13432834853626208,
+          0.8150000218302011,
+          0.5764715942353975
+        ]
+      },
+      {
+        "id": "fieldShirt",
+        "kind": "BufferGeometry",
+        "vertices": 244,
+        "extent": [
+          0.17244264518680774,
+          0.4749999884516001,
+          0.7928194662232408
+        ]
+      },
+      {
+        "id": "tacticalShirt",
+        "kind": "BufferGeometry",
+        "vertices": 250,
+        "extent": [
+          0.1733219549658429,
+          0.5100000146776438,
+          0.7929779467845148
+        ]
+      },
+      {
+        "id": "redcoat",
+        "kind": "BufferGeometry",
+        "vertices": 250,
+        "extent": [
+          0.17337850273720745,
+          0.5650000218302011,
+          0.7929881385539663
+        ]
+      },
+      {
+        "id": "tornShirt",
+        "kind": "BufferGeometry",
+        "vertices": 250,
+        "extent": [
+          0.1733219549658429,
+          0.5100000146776438,
+          0.7929779467845148
+        ]
+      },
+      {
+        "id": "streetShirt",
+        "kind": "BufferGeometry",
+        "vertices": 244,
+        "extent": [
+          0.17254547531461073,
+          0.4850000087171793,
+          0.7928379995965282
+        ]
+      },
+      {
+        "id": "suitJacket",
+        "kind": "BufferGeometry",
+        "vertices": 250,
+        "extent": [
+          0.17337850273720745,
+          0.5650000218302011,
+          0.7929881385539665
+        ]
+      },
+      {
+        "id": "suitPants",
+        "kind": "BufferGeometry",
+        "vertices": 170,
+        "extent": [
+          0.11836603137854462,
+          0.8899999856948853,
+          0.4878989776381646
+        ]
+      },
+      {
+        "id": "workPants",
+        "kind": "BufferGeometry",
+        "vertices": 170,
+        "extent": [
+          0.11837479547653817,
+          0.8700000047683716,
+          0.4879005572170594
+        ]
+      },
+      {
+        "id": "tacticalPants",
+        "kind": "BufferGeometry",
+        "vertices": 170,
+        "extent": [
+          0.11836603137854462,
+          0.8899999856948853,
+          0.4878989776381646
+        ]
+      },
+      {
+        "id": "laceBralette",
+        "kind": "BufferGeometry",
+        "vertices": 210,
+        "extent": [
+          0.10978595527234392,
+          0.2639999948441982,
+          0.46730906495485236
+        ]
+      },
+      {
+        "id": "laceBriefs",
+        "kind": "BufferGeometry",
+        "vertices": 90,
+        "extent": [
+          0.10528329097614542,
+          0.18000000715255737,
+          0.4474540360719934
+        ]
+      },
+      {
+        "id": "satinCami",
+        "kind": "BufferGeometry",
+        "vertices": 170,
+        "extent": [
+          0.112286823628851,
+          0.3350000027567148,
+          0.45823806763321917
+        ]
+      },
+      {
+        "id": "sleepShorts",
+        "kind": "BufferGeometry",
+        "vertices": 170,
+        "extent": [
+          0.1183727460597721,
+          0.3400000035762787,
+          0.48790018784470957
+        ]
+      },
+      {
+        "id": "knitDress",
+        "kind": "BufferGeometry",
+        "vertices": 170,
+        "extent": [
+          0.13430201408075693,
+          1.0050000194460154,
+          0.5764668478998183
+        ]
+      },
+      {
+        "id": "sportTop",
+        "kind": "BufferGeometry",
+        "vertices": 170,
+        "extent": [
+          0.11012143792088702,
+          0.24499999918043613,
+          0.45784779386332053
+        ]
+      },
+      {
+        "id": "leggings",
+        "kind": "BufferGeometry",
+        "vertices": 170,
+        "extent": [
+          0.11835501255548708,
+          0.8999999761581421,
+          0.4878969916836078
+        ]
+      }
+    ],
+    "pages": [
+      6,
+      6,
+      6,
+      6,
+      3
+    ],
+    "season": [
+      {
+        "s": "spring",
+        "cells": [
+          {
+            "broad": true,
+            "pine": true
+          },
+          {
+            "broad": true,
+            "pine": true
+          },
+          {
+            "broad": true,
+            "pine": true
+          }
+        ]
+      },
+      {
+        "s": "summer",
+        "cells": [
+          {
+            "broad": true,
+            "pine": true
+          },
+          {
+            "broad": true,
+            "pine": true
+          },
+          {
+            "broad": true,
+            "pine": true
+          }
+        ]
+      },
+      {
+        "s": "autumn",
+        "cells": [
+          {
+            "broad": true,
+            "pine": true
+          },
+          {
+            "broad": true,
+            "pine": true
+          },
+          {
+            "broad": true,
+            "pine": true
+          }
+        ]
+      },
+      {
+        "s": "winter",
+        "cells": [
+          {
+            "broad": false,
+            "pine": true
+          },
+          {
+            "broad": false,
+            "pine": true
+          },
+          {
+            "broad": false,
+            "pine": true
+          }
+        ]
+      }
+    ],
+    "lod": {
+      "car": {
+        "triangles": 288,
+        "size": [
+          1.9500000476837158,
+          1.4688591957092285,
+          4.210000038146973
+        ]
+      },
+      "human": {
+        "triangles": 728,
+        "size": [
+          0.6399999856948853,
+          1.7945000529289246,
+          0.2725294679403305
+        ]
+      }
+    },
+    "sound": {
+      "active": 0,
+      "queued": 0,
+      "decoded": 13,
+      "failed": [],
+      "context": "running"
+    }
+  },
+  "errors": []
+}

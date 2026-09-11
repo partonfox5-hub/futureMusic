@@ -1,42 +1,39 @@
-// Retains the isolate's CC0 bark: Denis Chardonnet / BigSoundBank #2955.
-const BARK_URL=new URL('../../assets/dog/bark.mp3',import.meta.url);
-const PATTERNS={greeting:[1.04,.65,1],'demand-bone':[1.12,.7,2],'left-behind-bone':[.96,.9,2],'play-zoomie':[1.2,.55,2],'warning-destroy':[.86,.9,1],'sleepy-grumble':[.72,.45,1],ambient:[1,.6,1]};
+import * as T from 'three';
+const ROOT=new URL('../../assets/pets/',import.meta.url);
+export const PET_VOICES=Object.freeze({
+ 'dog:bark':['dog-bark-1','dog-bark-2','dog-bark-3'],
+ 'dog:whine':['dog-whine-1','dog-whine-2'],
+ 'dog:growl':['dog-growl-1','dog-growl-2'],
+ 'cat:meow':['cat-meow-1','cat-meow-2'],
+ 'cat:purr':['cat-purr-1','cat-purr-2'],
+ 'cat:growl':['cat-growl-1','cat-growl-2']
+});
+export function voiceCategory(species,pattern){
+ if(/growl|warning|destroy|grumble/.test(pattern))return 'growl';
+ if(species==='cat')return /purr|content|sleep/.test(pattern)?'purr':'meow';
+ return /whine|left-behind|demand|content/.test(pattern)?'whine':'bark';
+}
+/** Gesture-unlocked, bounded positional recording player shared by all pets. */
 export class DogAudio {
- constructor(){this.ctx=null;this.queue=[];this.active=new Set();this.busyUntil=0;this.disposed=false;this.buffer=null;this.loading=null;this.unlock=this.unlock.bind(this);if(typeof document!=='undefined')for(const t of ['pointerdown','touchstart','keydown'])document.addEventListener(t,this.unlock,{passive:true});this.preload();}
- context(){if(this.disposed)return null;if(this.ctx)return this.ctx;try{const C=globalThis.AudioContext||globalThis.webkitAudioContext;if(C)this.ctx=new C();}catch(_){}return this.ctx;}
- preload(){if(this.disposed||this.loading||typeof fetch!=='function')return;this.loading=fetch(BARK_URL).then(r=>{if(!r.ok)throw Error('bark');return r.arrayBuffer();}).then(async b=>{const c=this.context();if(c){const data=await c.decodeAudioData(b);if(!this.disposed)this.buffer=data;}}).catch(()=>{});}
- unlock(){const c=this.context();if(c?.state==='suspended')c.resume().then(()=>this.tick()).catch(()=>{});else this.tick();}
- bark(start=()=>{},owner=null,pattern='ambient'){
-  if(this.disposed)return false;const c=this.context(),p=PATTERNS[pattern]||PATTERNS.ambient;
-  if(!c){start();return false;}if(this.queue.some(q=>q.owner===owner))return false;
-  const cat=owner?.kind==='cat';
-  for(let i=0;i<(cat?1:p[2]);i++)this.queue.push({start,owner,pitch:p[0]*(.94+Math.random()*.12),gain:p[1],ready:c.currentTime+i*.35,quiet:pattern==='sleepy-grumble',fired:false,voice:cat?'cat':'dog'});
-  if(c.state!=='running'){this.queue[0].start();this.queue[0].fired=true;return false;}return this.tick();
+ constructor(host={}){this.host=host;this.ctx=null;this.queue=[];this.active=new Set();this.buffers=new Map();this.loading=new Map();this.previous=new Map();this.cooldowns=new Map();this.disposed=false;this.errors=new Set();this.clock=0;this._p=new T.Vector3();this._forward=new T.Vector3();this._up=new T.Vector3();this._q=new T.Quaternion();this.unlock=()=>{this.context()?.resume().then(()=>this.tick()).catch(()=>{});};if(typeof window!=='undefined')for(const e of ['pointerdown','touchstart','keydown'])window.addEventListener(e,this.unlock,{passive:true});}
+ context(){if(this.disposed)return null;if(!this.ctx){const A=globalThis.AudioContext||globalThis.webkitAudioContext;if(A)this.ctx=new A({latencyHint:'interactive'});}return this.ctx;}
+ async load(id){if(this.buffers.has(id))return this.buffers.get(id);if(this.loading.has(id))return this.loading.get(id);const ctx=this.context();if(!ctx)return null;const p=fetch(new URL(id+'.mp3',ROOT)).then(r=>{if(!r.ok)throw Error(id+' '+r.status);return r.arrayBuffer();}).then(b=>ctx.decodeAudioData(b)).then(b=>{if(!this.disposed)this.buffers.set(id,b);return b;}).catch(()=>{this.errors.add(id);return null;}).finally(()=>this.loading.delete(id));this.loading.set(id,p);return p;}
+ bark(start,owner,pattern='ambient'){
+  if(this.disposed||owner?.dead)return false;const species=owner?.kind==='cat'?'cat':'dog',category=voiceCategory(species,pattern),key=species+':'+category,bank=PET_VOICES[key],now=performance.now()/1000,coolKey=(owner?.id||'pet')+':'+category;
+  if(now<(this.cooldowns.get(coolKey)||0)||this.queue.some(q=>q.owner===owner)||[...this.active].some(v=>v.owner===owner))return false;
+  let choices=bank.filter(id=>id!==this.previous.get(coolKey));const id=choices[Math.floor(Math.random()*choices.length)];this.previous.set(coolKey,id);this.cooldowns.set(coolKey,now+(category==='purr'?5:1.3));
+  if(this.queue.length>=6)return false;this.queue.push({start,owner,id,category,rate:(owner?.breed?.voice||1)*(.975+Math.random()*.05),at:now});this.load(id);return true;
  }
- tick(){
-  const c=this.ctx;if(this.disposed||!c||c.state!=='running'||c.currentTime<this.busyUntil||!this.queue.length||this.queue[0].ready>c.currentTime)return false;
-  const a=this.queue.shift(),now=c.currentTime+.006,gain=c.createGain(),nodes=[gain],sources=[];
-  let duration;
-  if(a.voice==='cat'){
-   duration=a.quiet?.22:.38;const o=c.createOscillator(),o2=c.createOscillator(),f=c.createBiquadFilter(),tone=c.createGain();
-   o.type='triangle';o2.type='sine';f.type='bandpass';f.frequency.value=1400*a.pitch;f.Q.value=2.4;
-   o.frequency.setValueAtTime(920*a.pitch,now);o.frequency.exponentialRampToValueAtTime(420*a.pitch,now+duration);
-   o2.frequency.setValueAtTime(1380*a.pitch,now);o2.frequency.exponentialRampToValueAtTime(640*a.pitch,now+duration);
-   tone.gain.value=.22;o.connect(f);o2.connect(tone);tone.connect(f);f.connect(gain);
-   o.start(now);o2.start(now);o.stop(now+duration);o2.stop(now+duration);sources.push(o,o2);nodes.push(o,o2,f,tone);
-  }else if(this.buffer){const s=c.createBufferSource();s.buffer=this.buffer;s.playbackRate.value=a.pitch;duration=Math.min(this.buffer.duration/a.pitch,a.quiet?.4:.72);s.connect(gain);sources.push(s);nodes.push(s);s.start(now);s.stop(now+duration);}
-  else{
-   duration=a.quiet?.38:.48;const data=c.createBuffer(1,Math.ceil(c.sampleRate*duration*a.pitch)+1,c.sampleRate),samples=data.getChannelData(0);let last=0;
-   for(let i=0;i<samples.length;i++){last=last*.35+(Math.random()*2-1)*.65;samples[i]=last*(.6+.4*Math.sin(i/c.sampleRate*704));}
-   const s=c.createBufferSource(),f=c.createBiquadFilter(),o=c.createOscillator(),tone=c.createGain();s.buffer=data;s.playbackRate.value=a.pitch;
-   f.type='bandpass';f.frequency.setValueAtTime(540*a.pitch,now);f.frequency.exponentialRampToValueAtTime(240*a.pitch,now+duration);f.Q.value=.85;
-   o.type='triangle';o.frequency.setValueAtTime(140*a.pitch,now);o.frequency.exponentialRampToValueAtTime(80*a.pitch,now+duration);tone.gain.value=.15;
-   s.connect(f);f.connect(gain);o.connect(tone);tone.connect(gain);s.start(now);o.start(now);s.stop(now+duration);o.stop(now+duration);sources.push(s,o);nodes.push(s,f,o,tone);
-  }
-  gain.gain.setValueAtTime(.0001,now);gain.gain.exponentialRampToValueAtTime((this.buffer?.42:.2)*a.gain,now+.025);gain.gain.exponentialRampToValueAtTime(.0001,now+duration);gain.connect(c.destination);
-  const active={owner:a.owner,sources,nodes};this.active.add(active);sources[0].onended=()=>{for(const n of nodes)try{n.disconnect();}catch(_){}this.active.delete(active);};
-  this.busyUntil=now+duration+.035;if(!a.fired)a.start();return true;
+ position(node,p,now){if(node.positionX){node.positionX.setValueAtTime(p.x,now);node.positionY.setValueAtTime(p.y,now);node.positionZ.setValueAtTime(p.z,now);}else node.setPosition(p.x,p.y,p.z);}
+ tick(){const c=this.ctx;if(!c||c.state!=='running'||this.disposed)return;const now=c.currentTime,cam=this.host.renderer?.xr?.isPresenting?this.host.renderer.xr.getCamera(this.host.camera):this.host.camera;
+  if(cam){cam.getWorldPosition(this._p);this.position(c.listener,this._p,now);cam.getWorldQuaternion(this._q);this._forward.set(0,0,-1).applyQuaternion(this._q);this._up.set(0,1,0).applyQuaternion(this._q);const l=c.listener;if(l.forwardX){for(const [n,v]of [['forward',this._forward],['up',this._up]])for(const axis of ['X','Y','Z'])l[n+axis].setValueAtTime(v[axis.toLowerCase()],now);}else l.setOrientation(...this._forward.toArray(),...this._up.toArray());}
+  for(const v of this.active){if(v.owner?.dead||!v.owner?.root?.parent){this.stop(v);continue;}v.owner.root.getWorldPosition(this._p);this._p.y+=(v.owner.breed?.scale||1)*.7;this.position(v.pan,this._p,now);}
+  this.queue=this.queue.filter(q=>performance.now()/1000-q.at<6&&!q.owner?.dead&&!!q.owner?.root?.parent);
+  while(this.active.size<3){const i=this.queue.findIndex(q=>this.buffers.has(q.id));if(i<0)break;const q=this.queue.splice(i,1)[0],buffer=this.buffers.get(q.id),source=c.createBufferSource(),gain=c.createGain(),pan=c.createPanner();source.buffer=buffer;source.playbackRate.value=q.rate;pan.panningModel='equalpower';pan.distanceModel='inverse';pan.refDistance=q.category==='purr'?.7:1.7;pan.maxDistance=28;pan.rolloffFactor=1.35;gain.gain.value=q.category==='purr'?.28:.8;source.connect(gain).connect(pan).connect(c.destination);q.owner.root.getWorldPosition(this._p);this._p.y+=(q.owner.breed?.scale||1)*.7;this.position(pan,this._p,now);const v={source,gain,pan,owner:q.owner};this.active.add(v);source.onended=()=>this.clean(v);q.start?.();source.start();}
  }
- cancel(owner){this.queue=this.queue.filter(a=>a.owner!==owner);for(const a of this.active)if(a.owner===owner){for(const s of a.sources)try{s.stop();}catch(_){}for(const n of a.nodes)try{n.disconnect();}catch(_){}this.active.delete(a);}}
- dispose(){this.disposed=true;this.queue=[];for(const a of [...this.active])this.cancel(a.owner);if(typeof document!=='undefined')for(const t of ['pointerdown','touchstart','keydown'])document.removeEventListener(t,this.unlock);this.ctx?.close?.().catch(()=>{});this.buffer=null;}
+ clean(v){v.source.disconnect();v.gain.disconnect();v.pan.disconnect();this.active.delete(v);}
+ stop(v){try{v.source.stop();}catch{}this.clean(v);}
+ cancel(owner){this.queue=this.queue.filter(q=>q.owner!==owner);for(const v of [...this.active])if(v.owner===owner)this.stop(v);for(const key of this.cooldowns.keys())if(key.startsWith((owner?.id||'pet')+':')){this.cooldowns.delete(key);this.previous.delete(key);}}
+ snapshot(){return {active:this.active.size,queued:this.queue.length,decoded:this.buffers.size,failed:[...this.errors],context:this.ctx?.state||'locked'};}
+ dispose(){this.disposed=true;for(const e of ['pointerdown','touchstart','keydown'])globalThis.window?.removeEventListener(e,this.unlock);for(const v of [...this.active])this.stop(v);this.queue=[];this.buffers.clear();this.loading.clear();this.ctx?.close().catch(()=>{});}
 }

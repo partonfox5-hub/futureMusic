@@ -1,5 +1,5 @@
 import * as T from 'three';
-import {tagMovable,furnitureRoot} from './mira-v2-furniture.js?v=17.8.0';
+import {tagMovable,furnitureRoot} from './mira-v2-furniture.js?v=18.0.0';
 const V=()=>new T.Vector3(),QUEST=/Quest|OculusBrowser/i.test(globalThis.navigator?.userAgent||'');
 const hash=(x,z)=>{const n=Math.sin(x*127.1+z*311.7)*43758.5453;return n-Math.floor(n);};
 const smooth=t=>t*t*(3-2*t);

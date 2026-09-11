@@ -1,4 +1,4 @@
-import { clamp } from './Dog.js?v=17.8.0';
+import { clamp } from './Dog.js?v=18.0.0';
 
 // All four meters measure reserves: zero hunger means starving.
 export class DogNeeds {

@@ -1,6 +1,6 @@
 import * as T from 'three';
-import {tagMovable} from './mira-v2-furniture.js?v=17.8.0';
-import {unlockSfx,audioContext,sfxMaster} from './mira-v2-sfx.js?v=17.8.0';
+import {tagMovable} from './mira-v2-furniture.js?v=18.0.0';
+import {unlockSfx,audioContext,sfxMaster} from './mira-v2-sfx.js?v=18.0.0';
 
 function midi(n){return 440*Math.pow(2,(n-69)/12);}
 function durToken(s){let d=4/Number(s.replace('.',''));if(s.endsWith('.'))d*=1.5;return d;}

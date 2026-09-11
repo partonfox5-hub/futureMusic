@@ -1,0 +1,11 @@
+# Checkpoint 14 validation harnesses
+
+In this directory run `npm install`, then `npx playwright install chromium`. Optional: set `H5_CHROMIUM` to an existing Chromium executable. `H5_PROJECT` defaults to the parent game folder; `H5_RESULTS` chooses the evidence output directory.
+
+Run `npm run integrity`, `npm run cash`, `npm run stress`, and `npm run profile`. `node integration.cjs` additionally captures the isolated sedan/rack/season scenes and tests all 27 garments and decoding all 13 voices. Run browser checks sequentially so competing renderers do not distort the timings.
+
+The profile uses the actual animation loop in a fixed Sustain tier, at 960×600, with a simulated Quest user agent. Four scenes each record 64 rendered frames. Chromium SwiftShader is a software renderer: these reports are diagnostic comparisons, not Quest GPU/FPS evidence. No hardware speed assertions are encoded. Gameplay checks assert caps, cleanup, finite deformation/physics, forest damage routing and a real house-wall collision. The pinned Three package supplies the CDN code during tests; other model assets remain in the game folder.
+
+`cash-regression.cjs` uses deterministic temporary floor/water hooks only for the explicit support-sleep, float and zero-gravity cases, restoring them afterwards. Its ordinary picking and release checks run through the application's actual Props integration. `final-stress.cjs` similarly isolates a lamp pool for bounded-light tests, then tests the actual environment selection, packed trees, pet rigs, audio pool and car-wall collision in the loaded game.
+
+Run `node capture-pets.cjs` for the six-breed asset sheet. The sheet normalizes view scale for each pet; in-game breed sizes use their individual scale presets.

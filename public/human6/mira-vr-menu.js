@@ -1,13 +1,13 @@
-import {FURNITURE,SURFACES} from './mira-v2-builder.js?v=17.8.0';
-import {WEAPONS} from './mira-v2-props.js?v=17.8.0';
-import {draft,saveDraft,OUTFITS,PERSONAS,clothingItems,setDraftGarment} from './mira-v2-catalog.js?v=17.8.0';
-import {SCENES} from './mira-v2-world.js?v=17.8.0';
-import {GARMENTS} from './mira-v2-wardrobe.js?v=17.8.0';
+import {FURNITURE,SURFACES} from './mira-v2-builder.js?v=18.0.0';
+import {WEAPONS} from './mira-v2-props.js?v=18.0.0';
+import {draft,saveDraft,OUTFITS,PERSONAS,clothingItems,setDraftGarment} from './mira-v2-catalog.js?v=18.0.0';
+import {SCENES} from './mira-v2-world.js?v=18.0.0';
+import {GARMENTS} from './mira-v2-wardrobe.js?v=18.0.0';
 import * as THREE from 'three';
-import {SLIDERS,FACE_TYPES} from './mira-v2.js?v=17.8.0';
-import {shapeSliders,FACE_PRESETS,HAIR_STYLES,ACTIVITY_MODES,ACTION_LABELS,POSE_LABELS,ATTENTION_MODES,ATTENTION_LABELS} from './mira-v2-controls.js?v=17.8.0';
-import {HAIR_COLORS} from './mira-v2.js?v=17.8.0';
-import {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES} from './mira-v2-features.js?v=17.8.0';
+import {SLIDERS,FACE_TYPES} from './mira-v2.js?v=18.0.0';
+import {shapeSliders,FACE_PRESETS,HAIR_STYLES,ACTIVITY_MODES,ACTION_LABELS,POSE_LABELS,ATTENTION_MODES,ATTENTION_LABELS} from './mira-v2-controls.js?v=18.0.0';
+import {HAIR_COLORS} from './mira-v2.js?v=18.0.0';
+import {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES} from './mira-v2-features.js?v=18.0.0';
 export function createVRMenu({scene,renderer,camera,system,spawn,onSync,world,wardrobe,spawnConfigured,copyConfiguration,props,saveScene,loadScene}){
  const canvas=document.createElement('canvas');canvas.width=1024;canvas.height=1320;
  const ctx=canvas.getContext('2d'),tex=new THREE.CanvasTexture(canvas);tex.colorSpace=THREE.SRGBColorSpace;
@@ -41,8 +41,9 @@ export function createVRMenu({scene,renderer,camera,system,spawn,onSync,world,wa
    const all=Object.entries(WEAPONS).filter(([id,w])=>w.category===weaponCategory||weaponCategory==='tool'&&!w.category),pages=Math.max(1,Math.ceil(all.length/8));equipmentPage=Math.min(equipmentPage,pages-1);
    all.slice(equipmentPage*8,equipmentPage*8+8).forEach(([id,w],i)=>button(w.name,40+(i%2)*475,505+Math.floor(i/2)*100,457,78,()=>{world.h5Equipment?.spawn(id,{equip:equipmentMode==='equip',hand:system.hands.handedness[lastController]||'right'});notice=props.status;draw();}));
    button('‹ PREVIOUS',40,925,290,66,()=>{equipmentPage=(equipmentPage+pages-1)%pages;draw();});ctx.font='27px sans-serif';ctx.fillText((equipmentPage+1)+' / '+pages,477,968);button('NEXT ›',690,925,292,66,()=>{equipmentPage=(equipmentPage+1)%pages;draw();});
-   button('CLEAR UNHELD SPAWNS',40,1040,455,67,()=>{world.h5Equipment?.clearLoose();notice=props.status;draw();});button('CLEAR PORTALS',515,1040,467,67,()=>props.gadgets?.clearPortals());
-   ctx.font='25px sans-serif';ctx.fillStyle='#d9e6f2';ctx.fillText('Scope: holding-hand stick forward / back = 2–12× zoom.',40,1180);ctx.fillText('Portals alternate blue and orange. Aim at a broad wall.',40,1220);
+   button('CLEAR UNHELD SPAWNS',40,1040,455,67,()=>{world.h5Equipment?.clearLoose();if(weaponCategory==='tool')world.h5Cash?.clearLoose();notice=props.status;draw();});button('CLEAR PORTALS',515,1040,467,67,()=>props.gadgets?.clearPortals());
+   ctx.font='25px sans-serif';ctx.fillStyle='#d9e6f2';if(weaponCategory!=='tool'){ctx.fillText('Scope: holding-hand stick forward / back = 2–12× zoom.',40,1180);ctx.fillText('Portals alternate blue and orange. Aim at a broad wall.',40,1220);}else ctx.fillText('Cut a bundle. Grip, then release your grip to throw bills.',40,1238);
+   if(weaponCategory==='tool'){const money=world.h5Cash;button('SPAWN CASH PILE',40,1140,455,63,()=>{money?.spawnPile(3);notice=props.status;draw();});button('CASH GRIP: '+(money?.gripMode==='handful'?'HANDFUL':'ONE BILL'),515,1140,467,63,()=>{if(money)money.gripMode=money.gripMode==='single'?'handful':'single';draw();});}
   }else if(page===14){
    const budget=world.h5Performance?.budget,row=budget?.samples.at(-1);ctx.font='29px sans-serif';ctx.fillStyle='#d9e6f2';
    ctx.fillText('Target: '+(budget?.targetHz||72)+' Hz',40,365);ctx.fillText('CPU work: '+(row?row.cpu.toFixed(1)+' ms':'collecting'),40,425);ctx.fillText('GPU work: '+(Number.isFinite(budget?.lastGPU)?budget.lastGPU.toFixed(1)+' ms':'timer unavailable'),40,485);ctx.fillText('Draw calls: '+(row?.calls??'—')+' · triangles: '+(row?.triangles??'—'),40,545);
@@ -85,7 +86,11 @@ export function createVRMenu({scene,renderer,camera,system,spawn,onSync,world,wa
    button('FETCH · THEN POINT AND TRIGGER',40,620,942,75,()=>{g?.fetch(p);notice=props.status;draw();});
    button('DROP MOUTH GRIP',40,745,942,75,()=>g?.pets.release(p));
    button('PET INVINCIBLE: '+(g?.combat.isProtected(p)?'ON':'OFF'),40,870,942,75,()=>{g?.combat.setInvincible(p,!p?.h5Invincible);draw();});
-   ctx.font='25px sans-serif';ctx.fillStyle='#c9d6e2';ctx.fillText('Grip near the jaw to take a carried object.',40,1060);ctx.fillText('Heavy furniture drags slowly; a carried weapon cannot fire.',40,1110);
+   const breeds=props.dogs?.breeds||{},names=Object.values(breeds).map(b=>b.name);
+   cycle('Breed to spawn',975,names,()=>breeds[g?.petBreed||'labrador']?.name||names[0],name=>{if(g)g.petBreed=Object.keys(breeds).find(k=>breeds[k].name===name);});
+   button('SPAWN PET',40,1085,455,65,()=>{const id=g?.petBreed||'labrador',h=props.dogs?.spawn({species:breeds[id].species,breed:id});notice=h?'Spawned '+breeds[id].name:'Pet limit reached (4)';draw();});
+   button('REMOVE SELECTED PET',515,1085,467,65,()=>{if(p)props.dogs.despawn(p);draw();});
+   ctx.font='23px sans-serif';ctx.fillStyle='#c9d6e2';ctx.fillText(p?.breed?.name||'Select a pet',40,1190);
   }else if(page===10){
    cycle('Weather',325,['auto','clear','clouds','rain','snow'],()=>world.weather?.selection||'auto',v=>world.weather?.choose(v));
    const region=world.h5OpenWorld,places=Object.keys(region?.landmarks||{});
@@ -94,6 +99,7 @@ export function createVRMenu({scene,renderer,camera,system,spawn,onSync,world,wa
    button('TRAVEL TO '+destination.toUpperCase(),40,600,942,72,()=>{notice=region?.travel(destination)?'Arrived':'Exit vehicle before travelling';draw();});
    const city=region&&[...region.cities.values()].find(c=>c.contains(camera.getWorldPosition(new THREE.Vector3()),5));
    if(city){cycle('Elevator destination',730,Array.from({length:city.spec.floors},(_,i)=>'Floor '+(i+1)),()=> 'Floor '+((city.motion.queue[0]??city.motion.target)+1),v=>city.motion.request(Number(v.split(' ')[1])-1));}
+   cycle('Tree season',865,['spring','summer','autumn','winter'],()=>world.h5Seasons?.mode||'summer',v=>world.h5Seasons?.set(v));
    const stats=region?.snapshot();ctx.font='26px sans-serif';ctx.fillStyle='#c9d6e2';ctx.fillText(stats?`${stats.residentCells} terrain cells · ${stats.interiors} building interiors`:'Region unavailable',40,1010);
    ctx.fillText('Roads connect the city. Trails reach the lake and mountains.',40,1100);
    ctx.fillText('Elevator wall buttons work with point + trigger.',40,1160);

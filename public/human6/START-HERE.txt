@@ -1,0 +1,5 @@
+Human5 18.0 — complete checkpoint 14
+
+Read H5-LATEST-CHECKPOINT.md for starting instructions and controls.
+Read H5-docs/FINAL-PERFORMANCE.md for measurements and remaining limits.
+This folder is a complete web project. Serve the parent directory and open /human5/index.html. Use your existing HTTPS host for Quest.

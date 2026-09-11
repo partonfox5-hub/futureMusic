@@ -1,7 +1,7 @@
 import * as T from 'three';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
-import {createFixture} from './human5-lighting.js?v=17.8.0';
-import {V,wrapMethod} from './human5-common.js?v=17.8.0';
+import {createFixture} from './human5-lighting.js?v=18.0.0';
+import {V,wrapMethod} from './human5-common.js?v=18.0.0';
 export const NEIGHBORHOOD_NAME='Cul-de-sac';
 export const HOUSE_SPECS=Object.freeze([
   {id:'willow',name:'Willow cottage',bedrooms:1,w:7.2,d:8.4,x:-17,z:0,yaw:Math.PI/2,color:0xddd0ad,roof:0x535e60,fabric:0x637e70,pattern:'stripes'},

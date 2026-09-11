@@ -1,8 +1,8 @@
 import * as T from 'three';
-import {Car} from '../mira-v2-car.js?v=17.8.0';
-import {VEHICLE_SPECS} from './human5-vehicle-models.js?v=17.8.0';
-import {installVehicleRefinement} from './human5-vehicles.js?v=17.8.0';
-import {disposeTree,V} from './human5-common.js?v=17.8.0';
+import {Car} from '../mira-v2-car.js?v=18.0.0';
+import {VEHICLE_SPECS} from './human5-vehicle-models.js?v=18.0.0';
+import {installVehicleRefinement} from './human5-vehicles.js?v=18.0.0';
+import {disposeTree,V} from './human5-common.js?v=18.0.0';
 
 export function installVehicleSpawns({world,props,camera,renderer,quest=true}={}){
  if(world.h5VehicleSpawns)return world.h5VehicleSpawns;const spawned=new Set(),cap=quest?4:8;let ui=null,selected=null;

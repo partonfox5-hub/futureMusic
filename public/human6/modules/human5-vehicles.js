@@ -1,7 +1,7 @@
 import * as T from 'three';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
-import {V,clamp,gravityOf,wrapMethod} from './human5-common.js?v=17.8.0';
+import {V,clamp,gravityOf,wrapMethod} from './human5-common.js?v=18.0.0';
 const Y=new T.Vector3(0,1,0),RATIOS=[3.70,2.20,1.52,1.16,.91,.74];
 
 /** Six-speed automatic within the existing P/R/N/D selector. No network/ML dependency. */
@@ -115,7 +115,7 @@ function detailModel(car){
   const trim=new T.MeshStandardMaterial({color:0x242629,roughness:.76}),alloy=new T.MeshStandardMaterial({color:0xa3a9ac,roughness:.29,metalness:.82});
   const addPart=(name,geometry,material,parent=car.group)=>{const mesh=new T.Mesh(geometry,material);mesh.name=name;parent.add(mesh);mesh.castShadow=mesh.receiveShadow=true;const part={name,mesh,kind:'panel',broken:false,health:60,max:60,stiffness:16000,baseRoughness:material.roughness,original:geometry.attributes.position.array.slice(),originalPosition:mesh.position.clone(),originalQuaternion:mesh.quaternion.clone(),originalParent:parent};mesh.userData.carPart=part;car.parts.push(part);car.pickables.push(mesh);return mesh;};
   const boxes=(specs)=>{const gs=specs.map(([p,s])=>{const g=new RoundedBoxGeometry(...s,1,.012);g.translate(...p);return g;});const g=mergeGeometries(gs);gs.forEach(g=>g.dispose());return g;};
-  if(!car.vehicleSpec?.custom){
+  if(!car.vehicleSpec?.custom&&!car.h5SedanDetail){
   addPart('Radiator grille',boxes(Array.from({length:7},(_,i)=>[[0,.60+i*.021,-2.175],[.77,.009,.021]])),trim.clone());
   addPart('Engine cover',boxes([[[0,.62,-1.33],[.70,.20,.53]],[[0,.58,-1.82],[1.16,.27,.07]]]),trim.clone());
   for(const side of [-1,1]){

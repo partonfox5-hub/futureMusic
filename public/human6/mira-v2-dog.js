@@ -1,17 +1,18 @@
-import {paletteSkinnedVertex} from './modules/human5-skinning.js?v=17.8.0';
+import {buildPetAppearance,PET_BREEDS,breedIdFor} from './src/dog/PetAppearance.js?v=18.0.0';
+import {paletteSkinnedVertex} from './modules/human5-skinning.js?v=18.0.0';
 import * as THREE from 'three';
-import { DogModel, clamp } from './src/dog/Dog.js?v=17.8.0';
-import { DogPaws, floorAt } from './src/dog/DogPaws.js?v=17.8.0';
-import { DogJaw } from './src/dog/DogJaw.js?v=17.8.0';
-import { DogTail } from './src/dog/DogTail.js?v=17.8.0';
-import { DogFur } from './src/dog/DogFur.js?v=17.8.0';
-import { DogAudio } from './src/dog/DogAudio.js?v=17.8.0';
-import { DogAI } from './src/dog/DogAI.js?v=17.8.0';
-import { DogAnim } from './src/dog/DogAnim.js?v=17.8.0';
-import { DogNeeds } from './src/dog/DogNeeds.js?v=17.8.0';
-import { DogItems } from './src/dog/DogItems.js?v=17.8.0';
-import { DogBite } from './src/dog/DogBite.js?v=17.8.0';
-import { BONE_NAMES } from './src/dog/Dog.js?v=17.8.0';
+import { DogModel, clamp } from './src/dog/Dog.js?v=18.0.0';
+import { DogPaws, floorAt } from './src/dog/DogPaws.js?v=18.0.0';
+import { DogJaw } from './src/dog/DogJaw.js?v=18.0.0';
+import { DogTail } from './src/dog/DogTail.js?v=18.0.0';
+import { DogFur } from './src/dog/DogFur.js?v=18.0.0';
+import { DogAudio } from './src/dog/DogAudio.js?v=18.0.0';
+import { DogAI } from './src/dog/DogAI.js?v=18.0.0';
+import { DogAnim } from './src/dog/DogAnim.js?v=18.0.0';
+import { DogNeeds } from './src/dog/DogNeeds.js?v=18.0.0';
+import { DogItems } from './src/dog/DogItems.js?v=18.0.0';
+import { DogBite } from './src/dog/DogBite.js?v=18.0.0';
+import { BONE_NAMES } from './src/dog/Dog.js?v=18.0.0';
 const _p=new THREE.Vector3(),_q=new THREE.Vector3();
 function dogNearestHit(handle,pos,maxDist){
  if(!handle.grabs?.size){const scale=handle.root.getWorldScale(_q),radius=1.4*Math.max(scale.x,scale.y,scale.z)+maxDist;if(handle.root.getWorldPosition(_p).distanceToSquared(pos)>radius*radius)return null;}
@@ -106,7 +107,7 @@ export function createDogSystem(input={}) {
   const existing=byContext.get(context)||(context.scene&&byScene.get(context.scene));
   if(existing&&!existing.disposed){existing._install(context);return existing;}
   if(!Object.keys(context).length&&emptySystem){byContext.set(context,emptySystem);return emptySystem;}
-  const ctx={...context},handles=[],audio=new DogAudio(),items=new DogItems(ctx),itemGrabs=new Map();let coat='#b68952',slowFrames=0,serial=0,raf=0,lastFrame=0,hostOwned=!!ctx.props||ctx.hostTick===true,readySeen=false,disposed=false;
+  const ctx={...context},handles=[],audio=new DogAudio(ctx),items=new DogItems(ctx),itemGrabs=new Map();let coat='#b68952',slowFrames=0,serial=0,raf=0,lastFrame=0,hostOwned=!!ctx.props||ctx.hostTick===true,readySeen=false,disposed=false;
   const rafAvailable=()=>typeof requestAnimationFrame==='function';
   const cancelLoop=()=>{if(raf&&typeof cancelAnimationFrame==='function')cancelAnimationFrame(raf);raf=0;lastFrame=0;};
   const step=dt=>{
@@ -114,7 +115,7 @@ export function createDogSystem(input={}) {
     dt=clamp(dt,0,.1);if(!dt)return;
     slowFrames=dt>1/50?slowFrames+1:0;if(slowFrames>=30)items.slow=true;
     for(const [ctrl,a] of itemGrabs)if(!ctrl.parent){items.setHeld(a.group,null);items.drop(a);itemGrabs.delete(ctrl);}
-    items.tick(dt);audio.tick();for(const h of [...handles]){h.tickGrab(dt);h.tickPet?.(dt);h._anim.tick(dt);h._fur.tick(dt,ctx.renderer);if(items.slow)h._fur.setLayers(2);}
+    items.tick(dt);audio.tick();for(const h of [...handles]){h.tickGrab(dt);h.tickPet?.(dt);h._anim.tick(dt);h._fur.tick(dt,ctx.renderer);if(items.slow)h._fur.setLayers(0);}
   };
   const ownFrame=t=>{raf=0;if(disposed||hostOwned||!handles.length&&!items.items.length)return;const dt=lastFrame?(t-lastFrame)/1000:1/60;lastFrame=t;step(dt);raf=requestAnimationFrame(ownFrame);};
   const ensureLoop=()=>{if(!hostOwned&&ctx.scene&&(handles.length||items.items.length)&&rafAvailable()&&!raf)raf=requestAnimationFrame(ownFrame);};
@@ -132,18 +133,20 @@ export function createDogSystem(input={}) {
     return {position,yaw};
   };
   const system={
-    handles,
+    handles,breeds:PET_BREEDS,audio,
     get disposed(){return disposed;},
     spawn(opts={}){
       if(disposed)return null;opts=opts&&typeof opts==='object'?opts:{};
       const species=opts.species==='cat'?'cat':'dog';
       const id=opts.id==null?`${species}-${++serial}`:String(opts.id),found=handles.find(h=>h.id===id);if(found)return found;if(handles.length>=4)return null;
-      const model=new DogModel(species),paws=new DogPaws(model,ctx.world),jaw=new DogJaw(model),tail=new DogTail(model);
+      const breedId=breedIdFor(species,opts.breed),breed=PET_BREEDS[breedId];
+      const model=new DogModel(species,breed),paws=new DogPaws(model,ctx.world),jaw=new DogJaw(model),tail=new DogTail(model);
+      model.breedId=breedId;model.bodyScale=breed.scale;buildPetAppearance(model);
       const fur=new DogFur(model,ctx.renderer,paws.padMaterial),ai=new DogAI(model,ctx);
       const mira0=(ctx.mira||ctx.system)?.actors?.[0];
       ai.setAttention(opts.attentionMode||mira0?.attentionMode||'attentive');
-      model.compactMeshes();fur.rebindLayers();model.setCoat(opts.coat||(species==='cat'?'#c47a32':coat));
-      if(species==='cat')model.root.scale.setScalar(model.bodyScale||.46);
+      model.compactMeshes();for(const mesh of model.meshes){mesh.boundingSphere=new THREE.Sphere(new THREE.Vector3(0,.38,0),1.75);mesh.frustumCulled=true;}fur.rebindLayers();if(opts.coat)model.setCoat(opts.coat);
+      model.root.scale.setScalar(model.bodyScale);
       const tf=defaultTransform(),last=handles.at(-1);let position=tf.position,yaw=tf.yaw;
       if(last&&!opts.default){position=last.root.position.clone().add(new THREE.Vector3(.6,0,0).applyAxisAngle(Y,last.root.rotation.y));yaw=last.root.rotation.y;}
       if(opts.position){if(Array.isArray(opts.position))position.fromArray(opts.position);else position.copy(opts.position);}
@@ -153,7 +156,7 @@ export function createDogSystem(input={}) {
       if(ctx.scene?.add)ctx.scene.add(model.root);
       model.root.updateMatrixWorld(true);
       const handle={
-        id,root:model.root,group:model.root,version:species,kind:species,bones:model.bones,grabs:new Map(),needs:new DogNeeds(),
+        id,root:model.root,group:model.root,version:species,kind:species,breedId,breed,bones:model.bones,grabs:new Map(),needs:new DogNeeds(),
         displayName:opts.name||(species==='cat'?loadCatName():loadDogName()),
         setName(n){const name=cleanName(n,species==='cat'?'Miso':'Buddy');handle.displayName=name;species==='cat'?saveCatName(name):saveDogName(name);return handle;},
         recall(){
@@ -234,7 +237,7 @@ export function createDogSystem(input={}) {
             const hit=handle.nearestHit(palm,.12);if(!hit)continue;
             if((handle._anim?.time||0)-handle._petAt<.55)continue;
             handle._petAt=handle._anim?.time||0;
-            handle.bark('greeting');handle.setWag(1);ai.state='alert';
+            handle.bark(species==='cat'?'purr':'content');handle.setWag(1);ai.state='alert';
             hands.haptics?.contact?.(i,'skin',.45,.01);
           }
         },
@@ -256,7 +259,7 @@ export function createDogSystem(input={}) {
       const existing=handles.find(h=>h.id==='cat-default');if(existing)return existing;
       const dog=handles.find(h=>h.kind==='dog');
       const pos=dog?dog.root.position.clone().add(new THREE.Vector3(-.85,0,.35)):undefined;
-      const cat=system.spawn({id:'cat-default',species:'cat',name:loadCatName(),coat:'#c47a32',position:pos,yaw:dog?dog.root.rotation.y+.4:undefined});
+      const cat=system.spawn({id:'cat-default',species:'cat',name:loadCatName(),position:pos,yaw:dog?dog.root.rotation.y+.4:undefined});
       if(cat){
         const p=cat.root.getWorldPosition(new THREE.Vector3());
         system.spawnChicken(p.clone().add(new THREE.Vector3(.45,.08,.2)));

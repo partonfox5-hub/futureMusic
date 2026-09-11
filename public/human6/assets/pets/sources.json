@@ -1,0 +1,135 @@
+{
+  "license": "CC0",
+  "sources": [
+    {
+      "id": "1890",
+      "page": "https://bigsoundbank.com/meow-cat-2-s1890.html",
+      "media": "https://bigsoundbank.com/UPLOAD/mp3/1890.mp3?v=d",
+      "license": "CC0",
+      "bytes": 98148
+    },
+    {
+      "id": "1895",
+      "page": "https://bigsoundbank.com/meow-cat-7-s1895.html",
+      "media": "https://bigsoundbank.com/UPLOAD/mp3/1895.mp3?v=d",
+      "license": "CC0",
+      "bytes": 53988
+    },
+    {
+      "id": "0436",
+      "page": "https://bigsoundbank.com/cat-purr-s0436.html",
+      "media": "https://bigsoundbank.com/UPLOAD/mp3/0436.mp3?v=d",
+      "license": "CC0",
+      "bytes": 405547
+    },
+    {
+      "id": "1887",
+      "page": "https://bigsoundbank.com/growling-cat-3-s1887.html",
+      "media": "https://bigsoundbank.com/UPLOAD/mp3/1887.mp3?v=d",
+      "license": "CC0",
+      "bytes": 195108
+    },
+    {
+      "id": "1544",
+      "page": "https://bigsoundbank.com/dogs-barking-and-crying-1-s1544.html",
+      "media": "https://bigsoundbank.com/UPLOAD/mp3/1544.mp3?v=d",
+      "license": "CC0",
+      "bytes": 543588
+    },
+    {
+      "id": "0112",
+      "page": "https://bigsoundbank.com/barking-dog-inside-s0112.html",
+      "media": "https://bigsoundbank.com/UPLOAD/mp3/0112.mp3?v=d",
+      "license": "CC0",
+      "bytes": 192823
+    },
+    {
+      "id": "1060",
+      "page": "https://bigsoundbank.com/small-dogs-bark-growl-s1060.html",
+      "media": "https://bigsoundbank.com/UPLOAD/mp3/1060.mp3?v=d",
+      "license": "CC0",
+      "bytes": 1203108
+    }
+  ],
+  "edits": [
+    {
+      "file": "cat-meow-1.mp3",
+      "source": "1890",
+      "start": 0,
+      "duration": 3
+    },
+    {
+      "file": "cat-meow-2.mp3",
+      "source": "1895",
+      "start": 0,
+      "duration": 1.6
+    },
+    {
+      "file": "cat-purr-1.mp3",
+      "source": "0436",
+      "start": 1,
+      "duration": 3.2
+    },
+    {
+      "file": "cat-purr-2.mp3",
+      "source": "0436",
+      "start": 5,
+      "duration": 3.2
+    },
+    {
+      "file": "cat-growl-1.mp3",
+      "source": "1887",
+      "start": 0.2,
+      "duration": 1.8
+    },
+    {
+      "file": "cat-growl-2.mp3",
+      "source": "1887",
+      "start": 2.4,
+      "duration": 1.8
+    },
+    {
+      "file": "dog-bark-1.mp3",
+      "source": "0112",
+      "start": 0.1,
+      "duration": 1.1
+    },
+    {
+      "file": "dog-bark-2.mp3",
+      "source": "0112",
+      "start": 3.0,
+      "duration": 1.2
+    },
+    {
+      "file": "dog-bark-3.mp3",
+      "source": "0112",
+      "start": 6.5,
+      "duration": 1.4
+    },
+    {
+      "file": "dog-whine-1.mp3",
+      "source": "1544",
+      "start": 2.0,
+      "duration": 2.1
+    },
+    {
+      "file": "dog-whine-2.mp3",
+      "source": "1544",
+      "start": 9,
+      "duration": 2.1
+    },
+    {
+      "file": "dog-growl-1.mp3",
+      "source": "1060",
+      "start": 2,
+      "duration": 2
+    },
+    {
+      "file": "dog-growl-2.mp3",
+      "source": "1060",
+      "start": 17,
+      "duration": 2
+    }
+  ],
+  "note": "Trimmed, mono downmix, 24 kHz, normalized and faded. Shared source animals with restrained breed pitch variation. Dog distress/growl excerpts contain mixed calls and outdoor ambience; not breed-specific recording sessions."
+}

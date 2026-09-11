@@ -1,7 +1,8 @@
+import {seasons} from './human5-seasons.js?v=18.0.0';
 import * as T from 'three';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
-import {hash2,CELL_SIZE} from './human5-worldfield.js?v=17.8.0';
-import {V,wrapMethod,clamp,disposeTree} from './human5-common.js?v=17.8.0';
+import {hash2,CELL_SIZE} from './human5-worldfield.js?v=18.0.0';
+import {V,wrapMethod,clamp,disposeTree} from './human5-common.js?v=18.0.0';
 
 function grassGeometry(){const p=[],uv=[],idx=[];for(let blade=0;blade<9;blade++){const angle=blade*2.399,rad=.035*Math.sqrt(blade),x=Math.cos(angle)*rad,z=Math.sin(angle)*rad,start=p.length/3;for(let j=0;j<4;j++){const t=j/3,w=(1-t)*.019+.001,bend=t*t*.16;for(const side of [-1,1]){p.push(x+Math.cos(angle)*w*side+Math.sin(angle)*bend,t,z+Math.sin(angle)*w*side+Math.cos(angle)*bend);uv.push(side/2+.5,t);}}for(let j=0;j<3;j++){const a=start+j*2;idx.push(a,a+1,a+2,a+1,a+3,a+2);}}
  const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(p,3));g.setAttribute('uv',new T.Float32BufferAttribute(uv,2));g.setIndex(idx);g.computeVertexNormals();return g;}
@@ -20,6 +21,7 @@ export class GrassCuts {
  restore(data){if(!Array.isArray(data)||data.length>16000)throw Error('Invalid grass state');const next=new Map();for(const [k,v]of data){if(!/^-?\d+\/-?\d+$/.test(k)||!Number.isFinite(v)||v<.015||v>.65)throw Error('Invalid grass cut');next.set(k,v);}this.heights=next;}
 }
 export function installVegetation({world,props,camera,upgrade,quest=true}={}){
+ world.h5Seasons=seasons;
  const region=world.h5OpenWorld,root=new T.Group(),cuts=new GrassCuts(),clusters=new Map(),dummy=new T.Object3D(),restores=[];root.name='Living understory';world.scene.add(root);let time=0,scan=0,lastGrass='',fuel=null,grassRecords=[],grassByCell=new Map();const maxGrass=quest?1700:3200;
  const gm=plantMaterial(0xffffff),grass=new T.InstancedMesh(grassGeometry(),gm,maxGrass);grass.name='Cuttable mixed meadow';grass.frustumCulled=false;grass.count=0;grass.receiveShadow=true;grass.instanceMatrix.setUsage(T.DynamicDrawUsage);grass.userData.h5Grass=true;root.add(grass);
  function grassAt(p){return grassByCell.get(cuts.key(p.x,p.z));}

@@ -1,5 +1,5 @@
 import * as T from 'three';
-import {withOffscreenView} from './human5-view-surfaces.js?v=17.8.0';
+import {withOffscreenView} from './human5-view-surfaces.js?v=18.0.0';
 
 /** Pay first-use vehicle rendering costs while the initial loading card is up. */
 export function createStartupWarmup({renderer,scene,camera,props,prepare=()=>{},status=()=>{}}={}){

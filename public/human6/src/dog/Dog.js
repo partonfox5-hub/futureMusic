@@ -6,13 +6,13 @@ export const clamp = (v,lo=0,hi=1) => Math.max(lo,Math.min(hi,Number.isFinite(+v
 
 // Geometry is generated in dog bind space, metres, forward +Z. No human assets.
 export class DogModel {
-  constructor(species='dog') {
-    this.species=species==='cat'?'cat':'dog';
+  constructor(species='dog',breed=null) {
+    this.species=species==='cat'?'cat':'dog';this.breed=breed;
     this.root=new THREE.Group(); this.root.name=this.species==='cat'?'Human2_Cat':'Human2_Dog';
     this.bodyScale=this.species==='cat'?.46:1;
     this.ears=[];this.bones={}; this.bind={}; this.meshes=[]; this.furMeshes=[]; this.materials=new Set();
     const add=(name,parent,point)=>{
-      const b=new THREE.Bone();b.name=name;this.bind[name]=V(point);
+      const b=new THREE.Bone();b.name=name;this.bind[name]=V(point);if(breed&&this.species==='cat'&&['Head','Jaw','Neck'].includes(name))this.bind[name].y-=.075;
       b.position.copy(this.bind[name]); if(parent)b.position.sub(this.bind[parent]);
       (parent?this.bones[parent]:this.root).add(b);this.bones[name]=b;return b;
     };
@@ -35,8 +35,9 @@ export class DogModel {
     this.pupilMaterial=this.material({color:0x080604,roughness:.22});
     this.rimMaterial=this.material({color:0x292019,roughness:.55});
     this.corneaMaterial=this.material({color:0xffffff,roughness:.08,metalness:0,transparent:true,opacity:.40,depthWrite:false,envMapIntensity:1.2});
-    this.buildBody();
+    if(!breed)this.buildBody();
   }
+  updatePoseWorld(){this.root.updateWorldMatrix(true,false);this.bones.Root.updateWorldMatrix(false,true);}
   material(opts){const m=new THREE.MeshStandardMaterial(opts);this.materials.add(m);return m;}
   coatColor(x,y,z,kind='coat'){
     if(this.species==='cat'){

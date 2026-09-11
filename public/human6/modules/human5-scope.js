@@ -1,6 +1,6 @@
 import * as T from 'three';
-import {withOffscreenView,scopeFov} from './human5-view-surfaces.js?v=17.8.0';
-import {stickAxes,deadzone} from '../mira-v2-locomotion.js?v=17.8.0';
+import {withOffscreenView,scopeFov} from './human5-view-surfaces.js?v=18.0.0';
+import {stickAxes,deadzone} from '../mira-v2-locomotion.js?v=18.0.0';
 
 const vertexShader=`varying vec2 vScopeUV;void main(){vScopeUV=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`;
 const fragmentShader=`varying vec2 vScopeUV;uniform sampler2D map;

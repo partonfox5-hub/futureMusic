@@ -1,8 +1,9 @@
+import {refineOriginalSedan} from './modules/human5-sedan-detail.js?v=18.0.0';
 import * as T from 'three';
-import {withOffscreenView} from './modules/human5-view-surfaces.js?v=17.8.0';
-import {VEHICLE_SPECS,buildVehicleModel} from './modules/human5-vehicle-models.js?v=17.8.0';
+import {withOffscreenView} from './modules/human5-view-surfaces.js?v=18.0.0';
+import {VEHICLE_SPECS,buildVehicleModel} from './modules/human5-vehicle-models.js?v=18.0.0';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
-import {CarAudio,unlockSfx} from './mira-v2-sfx.js?v=17.8.0';
+import {CarAudio,unlockSfx} from './mira-v2-sfx.js?v=18.0.0';
 const V=()=>new T.Vector3(),Q=()=>new T.Quaternion(),clamp=T.MathUtils.clamp,Y=new T.Vector3(0,1,0);
 const QUEST=/Quest|OculusBrowser/i.test(globalThis.navigator?.userAgent||'');
 const GEARS=['P','R','N','D'];
@@ -61,6 +62,7 @@ export class Car {
   this.wheelRoot=new T.Group();this.wheelRoot.position.set(-.39,1.035,-.53);this.wheelRoot.rotation.x=-.22;this.group.add(this.wheelRoot);this.steeringWheel=new T.Group();this.wheelRoot.add(this.steeringWheel);this.steeringWheel.add(new T.Mesh(new T.TorusGeometry(.172,.018,8,24),trim));for(let i=0;i<3;i++){const s=new T.Mesh(new T.BoxGeometry(.029,.17,.025),alloy);s.position.y=-.07;s.rotation.z=i*Math.PI*2/3;this.steeringWheel.add(s);}const hub=new T.Mesh(new T.CylinderGeometry(.024,.024,.028,12),trim);hub.rotation.x=Math.PI/2;this.steeringWheel.add(hub);const horn=new T.Mesh(new T.CylinderGeometry(.016,.016,.012,10),new T.MeshStandardMaterial({color:0x1a1c1e,roughness:.55}));horn.rotation.x=Math.PI/2;horn.position.z=.016;horn.name='Horn';horn.userData.carControl='horn';this.steeringWheel.add(horn);this.hornPad=horn;this.pickables.push(horn);
   this.dashboard=box([-.38,1.075,-.755],[.31,.13,.015],new T.MeshBasicMaterial({color:0x162931}));
   this.target=new T.WebGLRenderTarget(384,192,{depthBuffer:true});this.target.texture.colorSpace=T.SRGBColorSpace;const mirrorMat=new T.MeshBasicMaterial({map:this.target.texture,toneMapped:false});mirrorMat.onBeforeCompile=s=>{s.vertexShader=s.vertexShader.replace('#include <uv_vertex>','#include <uv_vertex>\n#ifdef USE_MAP\nvMapUv.x=1.0-vMapUv.x;\n#endif');};this.mirror=new T.Mesh(new T.PlaneGeometry(.28,.12),mirrorMat);this.mirror.position.set(-.10,1.37,-.83);this.group.add(this.mirror);box([-.10,1.37,-.844],[.30,.14,.025]);this.rearCamera=new T.PerspectiveCamera(75,2,.08,55);
+  refineOriginalSedan(this);
   for(const p of this.parts){p.original=p.mesh.geometry.attributes.position.array.slice();p.originalPosition=p.mesh.position.clone();p.originalQuaternion=p.mesh.quaternion.clone();p.originalParent=p.mesh.parent;}
  }
  makeHinge(mesh,children,pivot,kind,sign,axis,max,handle=null){const root=new T.Group();root.position.fromArray(pivot);this.group.add(root);this.group.updateMatrixWorld(true);const panel=mesh.userData.carPart,h={root,panel,kind,sign,axis,max,angle:0,target:0,velocity:0,latched:true,pivot:root.position.clone(),handle:handle||mesh,grabbed:null,members:[mesh,...children]};for(const m of h.members){root.attach(m);m.userData.carHinge=h;m.userData.carPart.hinge=h;}this.hinges.push(h);return h;}

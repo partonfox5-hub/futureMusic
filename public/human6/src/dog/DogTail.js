@@ -1,20 +1,20 @@
 import * as THREE from 'three';
-import { clamp } from './Dog.js?v=17.8.0';
+import { clamp } from './Dog.js?v=18.0.0';
 export class DogTail {
   constructor(model){
     this.model=model;this.amount=0;this.points=[];this.previous=[];this.lengths=[];this.accumulator=0;this.time=0;
     const names=Array.from({length:6},(_,i)=>`Tail${i}`),cat=model.species==='cat',p=names.map(n=>model.bind[n].toArray());p.push(cat?[0,.14,-.78]:[0,.155,-.65]);
-    model.tube('tail',p,cat?[.028,.026,.022,.018,.014,.010,.004]:[.046,.043,.036,.030,.024,.016,.005],(x,y,z)=>{
+    if(!model.breed)model.tube('tail',p,cat?[.028,.026,.022,.018,.014,.010,.004]:[.046,.043,.036,.030,.024,.016,.005],(x,y,z)=>{
       const u=clamp((-.35-z)/.30)*5,a=Math.floor(u),b=Math.min(5,a+1);return [[`Tail${a}`,1-(u-a)],[`Tail${b}`,u-a]];
     },model.coat,10,true);
-    model.root.updateMatrixWorld(true);
+    model.updatePoseWorld();
     this.bones=names.map(n=>model.bones[n]);this.rest=p.slice(0,6).map(a=>new THREE.Vector3(...a));
     for(let i=0;i<6;i++){const q=this.bones[i].getWorldPosition(new THREE.Vector3());this.points.push(q);this.previous.push(q.clone());if(i)this.lengths.push(this.rest[i].distanceTo(this.rest[i-1]));}
     this.anchor=this.points[0].clone();
   }
   tick(dt,time,amount=0,state='idle',mood={}){
     this.mood=mood;this.state=state;this.time=time;this.amount=clamp(amount);this.accumulator+=Math.min(dt,.1);
-    const m=this.model;m.root.updateMatrixWorld(true);
+    const m=this.model;m.updatePoseWorld();
     const anchor=this.bones[0].getWorldPosition(new THREE.Vector3()),shift=anchor.clone().sub(this.anchor);
     // Teleports and host rig relocation must not fling a tail through the room.
     if(shift.length()>.20){for(let i=0;i<6;i++){this.points[i].add(shift);this.previous[i].copy(this.points[i]);}}

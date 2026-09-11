@@ -1,9 +1,9 @@
 import * as T from 'three';
-import {WEAPONS} from '../mira-v2-props.js?v=17.8.0';
-import {furnitureRoot} from '../mira-v2-furniture.js?v=17.8.0';
-import {wrapMethod,disposeTree,clamp,V,rng} from './human5-common.js?v=17.8.0';
-import {createScope} from './human5-scope.js?v=17.8.0';
-import {playSfx,unlockSfx} from '../mira-v2-sfx.js?v=17.8.0';
+import {WEAPONS} from '../mira-v2-props.js?v=18.0.0';
+import {furnitureRoot} from '../mira-v2-furniture.js?v=18.0.0';
+import {wrapMethod,disposeTree,clamp,V,rng} from './human5-common.js?v=18.0.0';
+import {createScope} from './human5-scope.js?v=18.0.0';
+import {playSfx,unlockSfx} from '../mira-v2-sfx.js?v=18.0.0';
 
 export const PROJECTILES=Object.freeze({
  rocket:{speed:43,gravity:.10,radius:.06,blast:5,energy:85,life:6,color:0xff983c},
@@ -73,7 +73,7 @@ export function installEquipment({scene,renderer,camera,world,mira,props,quest=t
  restores.push(wrapMethod(props,'fire',old=>function(item,aim){if(cast(item,aim))return true;return old.apply(this,arguments);}));
  function spawn(id,{equip=true,hand='right'}={}){
   if(!WEAPONS[id])return null;let item=equip?props.items.find(i=>i.id===id&&i.holder==null):null;
-  if(!item){if(props.items.filter(i=>i.h5UserSpawn).length>=24){props.status='24 spawned items: clear unheld equipment to add more';return null;}item=props.make(id);item.h5UserSpawn=true;props.items.push(item);}
+  if(!item){if(props.items.filter(i=>i.h5UserSpawn).length>=24){props.status='24 spawned items: clear unheld equipment to add more';return null;}item=props.make(id);if(!item){props.status='Spawn limit reached for this item';return null;}item.h5UserSpawn=true;props.items.push(item);}
   if(equip){const index=mira.hands.handedness.indexOf(hand);props.hold(item,renderer.xr.isPresenting?(index>=0?index:1):'desktop');}
   else{const p=camera.getWorldPosition(V()),d=camera.getWorldDirection(V()).setY(0).normalize();p.addScaledVector(d,1.0);const before=p.clone();world.project(p,.2,-.4,.5);if(p.distanceTo(before)>.7)p.copy(camera.getWorldPosition(V()));item.group.position.copy(p).add(new T.Vector3(0,-.25,0));item.velocity.setScalar(0);props.status='Spawned '+item.data.name;}
   return item;
