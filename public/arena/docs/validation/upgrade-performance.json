@@ -1,0 +1,20 @@
+{
+  "environment": "Node v24.19.0; build-host CPU only, not GPU or headset timings",
+  "rays": {
+    "count": 1800,
+    "repeats": 3,
+    "oldBoundingBoxMs": 76.91,
+    "cellTraversalMs": 28.43,
+    "speedup": 2.71,
+    "oldCandidates": 65014,
+    "newCandidates": 29537,
+    "candidateReductionPercent": 54.6,
+    "allNearestHitsMatched": true
+  },
+  "screenPrediction": {
+    "projectiles": 128,
+    "checks": 240,
+    "medianMs": 0.464,
+    "p95Ms": 1.011
+  }
+}

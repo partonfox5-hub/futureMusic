@@ -1,0 +1,10 @@
+{
+  "version": "4.0.0",
+  "unitTests": 42,
+  "appLifecycleAdapters": "passed",
+  "longRayNearestHitParity": "1800 queries, all matched",
+  "runtimeImports": "resolved",
+  "runtimeRequestsVersioned": true,
+  "gpuRendering": "unverified",
+  "questHardware": "unverified"
+}

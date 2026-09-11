@@ -1,4 +1,4 @@
-import {T,V,clamp,axes} from './math.js';
+import {T,V,clamp,axes} from './math.js?v=4.0.0';
 export class Input {
  constructor(renderer,rig,camera,canvas,onAction){this.r=renderer;this.rig=rig;this.camera=camera;this.canvas=canvas;this.onAction=onAction;this.keys=new Set();this.mouse={left:false,right:false};this.sources=new Map();this.previous={};this.snapReady=true;this.pitch=0;this.yaw=Math.PI;this.turnMode='snap';this.blocked=true;this.desktop=true;this.controllerViews=[];
   for(let i=0;i<2;i++){const c=renderer.xr.getController(i);rig.add(c);this.controllerViews.push(c);c.addEventListener('connected',ev=>this.sources.set(c,ev.data));c.addEventListener('disconnected',()=>this.sources.delete(c));}

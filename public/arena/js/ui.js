@@ -1,7 +1,7 @@
-import {T,V,clamp} from './math.js';
-import {SPHERES,LINKS,SHOP,STORY} from './data.js';
-import {canvas,texture} from './textures.js';
-import {read} from './save.js';
+import {T,V,clamp} from './math.js?v=4.0.0';
+import {SPHERES,LINKS,SHOP,STORY} from './data.js?v=4.0.0';
+import {canvas,texture} from './textures.js?v=4.0.0';
+import {read} from './save.js?v=4.0.0';
 export const CONTROL_ROWS=[['Fly / strafe','Left stick','W A S D'],['Rise / descend','Right stick up / down','Space / Shift'],['Turn','Right stick left / right','Mouse'],['Boost / wall kick','A','E'],['Plasma cannon','Left trigger: hold, release','Left mouse: hold, release'],['Sword / sword laser','Swing / hold right trigger','Right mouse'],['Draw solid plasma','Hold left grip, release','C'],['Lasso / pull','Hold right grip','R'],['Force pulse','B','Q'],['Seeking missiles','Click either stick','F / H'],['HUD','Y','Y'],['Store (legacy mode)','X near a booth','X'],['Pause / menu','Left grip + X','P / Esc'],['World map','Map in pause menu','M']];
 const el=id=>document.getElementById(id),escape=s=>String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;');
 export class UI {

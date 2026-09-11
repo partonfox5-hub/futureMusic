@@ -2,13 +2,13 @@
   "files": [
     {
       "path": "BUILD.json",
-      "bytes": 619,
-      "sha256": "243255e28d4e6774dd7987e72a5a1d6c8f422dfbdec1660e9fa37be3ef03c729"
+      "bytes": 948,
+      "sha256": "b2e28a8435ace4aa31f234a377278a21d34247029712f3cc6b09c12f6fa75c58"
     },
     {
       "path": "README.md",
-      "bytes": 6527,
-      "sha256": "b331afd0ee2cd92d0dd316b621d98f27c7493b55107b943b10b1369e6e52360a"
+      "bytes": 8335,
+      "sha256": "983fcf35cbefd63e0b482b87d202ab130df85a3dfb9936ac7092b089558383d1"
     },
     {
       "path": "assets/manifest.json",
@@ -322,23 +322,43 @@
     },
     {
       "path": "docs/FOUR-PASSES.md",
-      "bytes": 5011,
-      "sha256": "0196890ca2b7d93a4faffca688d77e2db0ea2edb8013efda70c1efa9c6a523e0"
+      "bytes": 5304,
+      "sha256": "b9b289a05f5254cbf16548240aca7ad51f635a0454e44e4c8e8078b3ed3937dc"
     },
     {
       "path": "docs/HOSTING.md",
-      "bytes": 4003,
-      "sha256": "05793717eee53f35ea03e5339eb5a61463c35e3422e495f257e06540519d833e"
+      "bytes": 4489,
+      "sha256": "15d9ac9e2c3a530e3dda67bda7d2eb321d9bb3090fd677d3f9baeb231ba6a536"
     },
     {
       "path": "docs/SOURCE-PARITY.md",
-      "bytes": 8402,
-      "sha256": "d5c2cd58448cf0d789b1cd3cf0239615c44e36e05eac683fbac785699e6b4598"
+      "bytes": 10594,
+      "sha256": "4ad80908773df8eb36249885fdac71744777f1a039012b3d2bd1b67cc9926f22"
+    },
+    {
+      "path": "docs/UPDATE-4.md",
+      "bytes": 7434,
+      "sha256": "7711409461df16f40df31c9355b3c5764937a774160662d1b6a4ca81094dce0d"
+    },
+    {
+      "path": "docs/previews/explosion-atlas-review.png",
+      "bytes": 237893,
+      "sha256": "550e78fe5fe2359ebb0d7e29ca1e0f18cf0c0657eb47c66d2e6d1456589c3a29"
     },
     {
       "path": "docs/previews/hydra-geometry-review.png",
       "bytes": 130811,
       "sha256": "03be4db000c36a46c642c6ff1b338d4e55bd59c825d4395c91e78a4af6b22ade"
+    },
+    {
+      "path": "docs/previews/upgrade-model-review.png",
+      "bytes": 187264,
+      "sha256": "d7caba7287e4665d7d4f448bca144f4b0c20c5d93154439c5009275a28a2bbb3"
+    },
+    {
+      "path": "docs/previews/upgrade-texture-review.png",
+      "bytes": 792329,
+      "sha256": "7174293931b583cd536116fb237a08ce6d27dbd432a442141455fbbf4cda6848"
     },
     {
       "path": "docs/validation/asset-integrity.json",
@@ -347,18 +367,28 @@
     },
     {
       "path": "docs/validation/cpu-benchmark.json",
-      "bytes": 1776,
-      "sha256": "5d807e9ed7784b4787e57c0755ec1cadfed68c6fe4b546618c2e841a8ba4e884"
+      "bytes": 1774,
+      "sha256": "0d3fb58e70a73a185877ba6091b7f99a87ee6e6411e0b8fd16287c0d094ae8bc"
     },
     {
       "path": "docs/validation/lifecycle.json",
-      "bytes": 668,
-      "sha256": "b12368310f4bb3610d2ab4ce568765c8dbc8005898f645ba0e3cd659230fdd6a"
+      "bytes": 797,
+      "sha256": "e81b20bdbf63c15d67961f6e1617d6d2afdb9cd45d896f4a810759669b1a0b0d"
+    },
+    {
+      "path": "docs/validation/release-checks.json",
+      "bytes": 271,
+      "sha256": "a070b8b12a2d98869d02109e8d3bc6226f5b85f0f768e5afb606d0ada7c8e788"
     },
     {
       "path": "docs/validation/unit-tests.txt",
-      "bytes": 2038,
-      "sha256": "b7e8e9c1071abde5cf5a1f36b681f264ac12b418f4dc260187eea15b2586ebfa"
+      "bytes": 3729,
+      "sha256": "52c5ca946e0270f582a7dc3f6024021bf2e722f9f3d6a504ef4a6876a118dfbd"
+    },
+    {
+      "path": "docs/validation/upgrade-performance.json",
+      "bytes": 465,
+      "sha256": "599594f6ebd519c53a818c094b9340b87c32a7b8b69c3f976038c1b19979ec4b"
     },
     {
       "path": "icon.svg",
@@ -367,28 +397,33 @@
     },
     {
       "path": "index.html",
-      "bytes": 2153,
-      "sha256": "4d2b35911a066c22a664ca5f90fee5ba738466c1f8b1197f0ff0610fbb3603a4"
+      "bytes": 2171,
+      "sha256": "0cccffe252be4a4354cfde433c1efa8e384d0fff5074e5ac99e5352fd84a3886"
     },
     {
       "path": "js/ai.js",
-      "bytes": 12748,
-      "sha256": "44ee78b57ceda6473f842ed1add1bcd684cb956d6b603c99e2c424fdb8059564"
+      "bytes": 14366,
+      "sha256": "1908fcbc993ea4a94ed214b1ca65ca6b5b22105eaf109389b8f089eb826e3d1b"
     },
     {
       "path": "js/app.js",
-      "bytes": 16161,
-      "sha256": "2e963fe84db73a34391058c087d6b803c025ace9c58453ee1dad31f1fcf0fa4d"
+      "bytes": 15724,
+      "sha256": "6f683f0ebaf2aa112b621b7455da03b337cf2090a3f00232796c64d7ebf9c6cf"
+    },
+    {
+      "path": "js/atmosphere.js",
+      "bytes": 8809,
+      "sha256": "c47cb2c2a00fa0cbb0b881b9411b9dcd9423aa9bb8601ea0d5b79aa320e14b25"
     },
     {
       "path": "js/audio.js",
-      "bytes": 4423,
-      "sha256": "11b40f1992111f1c14eaf2f653d8c203ec0ecc54f1d60d7a30b1818cd8507dcd"
+      "bytes": 7344,
+      "sha256": "7a35329c9ba81cc6f8f53f8431c2be6d2e362f3d502798609f1fd965c6400338"
     },
     {
       "path": "js/collision.js",
-      "bytes": 1875,
-      "sha256": "438424659fee87bd2f49efd9c267dd80c2e56f7050015384a45dba648be969bc"
+      "bytes": 3629,
+      "sha256": "31842ed5f94099317f1475198079192222d4454405e0687e6a86dfb0b7d7e1a8"
     },
     {
       "path": "js/data.js",
@@ -397,78 +432,108 @@
     },
     {
       "path": "js/effects.js",
-      "bytes": 8288,
-      "sha256": "351e39382a9a576931893efffa0a0a5d228e30efbca34741273e41c2db696e75"
+      "bytes": 9315,
+      "sha256": "877069b2943c7cce3c1c74ae1b4899f478a32c5d3445c4042ad42a41257429f3"
     },
     {
       "path": "js/entity-view.js",
-      "bytes": 6881,
-      "sha256": "7fc9f1259f1bcc51743ec19a4a861966b9155dfdbfc32dced746dc184fa32fd4"
+      "bytes": 7810,
+      "sha256": "3249acefb93fac23a43b4d842481c63632b651ed2d9072a68cbc6ea151eaa438"
+    },
+    {
+      "path": "js/fracture.js",
+      "bytes": 1888,
+      "sha256": "1a9064d10361f771c45420ba7e33a06f5ae1b4aca8f703c3143f322f92c5b5e9"
+    },
+    {
+      "path": "js/hull-view.js",
+      "bytes": 5553,
+      "sha256": "8305507d9ccfa5ed17bdf0ac1d094d5526183f244b401faed9938cfa806d3599"
     },
     {
       "path": "js/input.js",
-      "bytes": 5334,
-      "sha256": "d5ce130f59f003cf5940ff90b2e20a75fd737a6847d35e08eea8467042cb6103"
+      "bytes": 5342,
+      "sha256": "66fdac59831a1028f54b3cb3ff72c704ca37d8869e7b5087da15ece14cdee0a3"
+    },
+    {
+      "path": "js/knight-pose.js",
+      "bytes": 901,
+      "sha256": "4fee6f128b968078f8b4a213de4fcdca1076537c8ce030a6840d9cdd1e80cdb4"
     },
     {
       "path": "js/map.js",
-      "bytes": 8581,
-      "sha256": "f62d83e0009b8b7625a6f8d12c09ad5ffb6c8824f8fd39808a95539b4b0ea71d"
+      "bytes": 9287,
+      "sha256": "a0dd13a1b0ba1d129a97f28873fe3dc11e66c8bd813d85b249834a0a4cfd1989"
     },
     {
       "path": "js/math.js",
-      "bytes": 1951,
-      "sha256": "db2b599d17a1929396e6503e7437cdcdf2837887752c2cf18fa2029e42865dc1"
+      "bytes": 1959,
+      "sha256": "d598a5085971e063e7aace1f693c52fc07af3a7b079faf60281f97ac7473af8e"
     },
     {
       "path": "js/models.js",
-      "bytes": 16145,
-      "sha256": "dac3f27e1788a2ce748b1eacbd378175f1407f372f273e2ae95de30cbe9e0ec0"
+      "bytes": 18821,
+      "sha256": "dde28966dfabcf451a7abe0819a9d569b960edb893ed96f15ce7c7b94e2f3df1"
     },
     {
       "path": "js/save.js",
-      "bytes": 1389,
-      "sha256": "ef8404fb31aa1a4d8c9b181e048220cf9719d203435b03e4f9bcda7586decf74"
+      "bytes": 1397,
+      "sha256": "9de3dadcdafce8275e9a392346373d19b9d8c5526c3ce0e80de91cb8c23e314e"
+    },
+    {
+      "path": "js/screen-view.js",
+      "bytes": 7280,
+      "sha256": "77b1c9d1110068983a192f79e3a4716505aa93a066c0a6be0b401351c6a1797c"
+    },
+    {
+      "path": "js/screens.js",
+      "bytes": 2372,
+      "sha256": "d57c4b81a02bbf2f925152c1aa1d582c9f75041b3121e635a9bdfa0274223843"
     },
     {
       "path": "js/sim.js",
-      "bytes": 22698,
-      "sha256": "5c2484a4524a279a1c340e66ca3f52c72b59c46bffa35e4a624e8f7c891bceef"
+      "bytes": 25875,
+      "sha256": "0d3ea48a2a0ca12cb2d28c479dfc4f38073d30fed696dc6b60b3d02651a493cd"
     },
     {
       "path": "js/spatial.js",
-      "bytes": 2185,
-      "sha256": "e376d6892a7c32e1e5a2605430d5bcb367efe8e568d67065ef21a689ee6fddc7"
+      "bytes": 3684,
+      "sha256": "fc5e989a7adc2422a9b461c05ae32c939444d464ef870f9e27288394000ee6c4"
     },
     {
       "path": "js/synthesis.js",
-      "bytes": 796,
-      "sha256": "f9ba2acaa7d4071b45ff70a67f53d6df927806a0b1e8b9dcaacd2c6183c06b37"
+      "bytes": 2451,
+      "sha256": "784fdda19f3275e954c735e9640948f90b4126098c5b59262494fd8aa4bbec90"
     },
     {
       "path": "js/textures.js",
-      "bytes": 6335,
-      "sha256": "bdd860395a3f4be5ca65ceff6acca5691de5290c3b49aee1361df1607a069e4a"
+      "bytes": 3362,
+      "sha256": "2c3c610881ca56f4a7d5f4e538f56b2a6f110927e4dbcb1239576cc804ae9e78"
     },
     {
       "path": "js/ui.js",
-      "bytes": 11726,
-      "sha256": "5202857733b5014b542303b64d681d95ac11d738b90293fff576d88cb48688d4"
+      "bytes": 11758,
+      "sha256": "af81c481286900100593c74e6928e5c56d981c0c59ae6af230b4af4983efdf51"
+    },
+    {
+      "path": "js/wall-style.js",
+      "bytes": 4390,
+      "sha256": "4db9322b3cc836cf125826b60f388e4b6f44b7249166916969c956e4523416b4"
     },
     {
       "path": "js/weapons.js",
-      "bytes": 7850,
-      "sha256": "c6e4558228159e7d529016261942a989a8d2e0aa2c41e5639a0c177768d572e1"
+      "bytes": 8245,
+      "sha256": "60e2ff91841e34ee54fadf845db096cb920c7d97940da43e628284f86196d97f"
     },
     {
       "path": "js/world-view.js",
-      "bytes": 5917,
-      "sha256": "db6b7c530ebea75a362ef2acc936953281916dd0f8d97941f12fcd81acb2e99c"
+      "bytes": 6159,
+      "sha256": "f95561643b8ab29cc256c2451ccc58337df4f4c0c37ff0b17501474ede2e7209"
     },
     {
       "path": "package.json",
-      "bytes": 425,
-      "sha256": "980f79ccbc08893b297fdc7e445b1ae94f1320a7bbda57731a8a6eda4f89fc08"
+      "bytes": 540,
+      "sha256": "b490165d641cb5253f557af0f3b823ce6bb13e0567f3403758fdc45c8fb5df23"
     },
     {
       "path": "style.css",
@@ -488,17 +553,17 @@
     {
       "path": "tests/game.test.mjs",
       "bytes": 8075,
-      "sha256": "4ccbe841746d5a31ccc4ff952f8c469058f8e5b923255493641de8ef7a758d02"
+      "sha256": "368b7c7d24f98b8531dec43e74ef8df54c59fea8dcff4def8ea444c17f5ebab8"
     },
     {
       "path": "tests/graphics.test.mjs",
-      "bytes": 2804,
-      "sha256": "6a6b8d7d65f67731a8db8a6953f63721fec149a33618b5d250e44522c8219d1d"
+      "bytes": 7276,
+      "sha256": "1942e87670eff840b3e33ad153491ef01ffecda07babbdf071eed27de3baeba6"
     },
     {
       "path": "tests/lifecycle.mjs",
-      "bytes": 7096,
-      "sha256": "2d142b19527cd8571d9f3d1a4bfb330e31e222ccbdc8b344fa0c26e30d48cb74"
+      "bytes": 7120,
+      "sha256": "35881184355d09f70b9cee3999a70932c9212f00424ad592a72ad03501651a3a"
     },
     {
       "path": "tests/qa-canvas.mjs",
@@ -506,9 +571,24 @@
       "sha256": "f65e6783d69714c59ff662462e22378a3417faf7222fa824ec84b4a768efdb83"
     },
     {
+      "path": "tests/upgrade-benchmark.mjs",
+      "bytes": 2753,
+      "sha256": "47664b92753d3434a0c9156e1f7734d52eca298c6342879490b10fffb9320387"
+    },
+    {
+      "path": "tests/upgrade.test.mjs",
+      "bytes": 7367,
+      "sha256": "d0b5b0d1a2b1a4994474849d606adfd2ed7d7f911bb5b226f192a864477843ee"
+    },
+    {
       "path": "tools/render-model.mjs",
       "bytes": 3011,
       "sha256": "6b8c52b7dc255fd06879285b4f3931f98884742da8e0c76aade88c7b7b261275"
+    },
+    {
+      "path": "tools/review-upgrade.mjs",
+      "bytes": 4117,
+      "sha256": "889011c3bc943a3e19fd532d7f3917be2212de7740822df4668eca844e6850de"
     },
     {
       "path": "tools/serve.mjs",

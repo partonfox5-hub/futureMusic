@@ -64,3 +64,7 @@ These local commands are for desktop testing. A Quest connecting to another comp
 The build requests 72 Hz when the session advertises it. It also adjusts foveation/detail when the observed cadence degrades. This is a target and an adaptive policy, not a measured Quest performance result. Eye-buffer scaling is configured before session creation, following [Three.js WebXRManager requirements](https://threejs.org/docs/pages/WebXRManager.html).
 
 If Enter VR stays unavailable, confirm HTTPS, Meta Quest Browser, iframe permissions and that another immersive session is not already active. If the page reports a WebGL startup failure, confirm hardware graphics is enabled in that browser/device. A missing-file error usually means the archive's subfolders were not uploaded together or the host is rewriting asset URLs.
+
+## Replacing an older hosted build
+
+Upload all files from the new `netknight-webvr` folder, including the new JavaScript modules. The packaged runtime uses `?v=4.0.0` on module URLs and the page stylesheet so the browser requests the new code. Close an existing VR session and reload the game page after uploading. If a CDN caches the HTML itself, purge its cached game page. Do not remove the `assets` or `vendor` folders. Existing saves can be loaded and are upgraded automatically.

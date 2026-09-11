@@ -1,6 +1,6 @@
 {
   "name": "netknight-webvr",
-  "version": "3.0.0",
+  "version": "4.0.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -8,7 +8,9 @@
     "test": "node --test tests/*.test.mjs",
     "benchmark": "node tests/benchmark.mjs",
     "test:lifecycle": "node --experimental-vm-modules tests/lifecycle.mjs",
-    "preview:hydra": "node tools/render-model.mjs"
+    "preview:hydra": "node tools/render-model.mjs",
+    "preview:update": "node tools/review-upgrade.mjs",
+    "benchmark:update": "node tests/upgrade-benchmark.mjs"
   },
   "devDependencies": {
     "@napi-rs/canvas": "0.1.100"

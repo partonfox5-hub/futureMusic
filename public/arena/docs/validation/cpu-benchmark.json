@@ -3,26 +3,26 @@
   "rayQueries": {
     "queries": 1600,
     "entities": 904,
-    "allEntityScanMs": 178.71,
-    "spatialGridMs": 21.34,
+    "allEntityScanMs": 199.62,
+    "spatialGridMs": 27.65,
     "averageCandidates": 15.4,
     "candidateReductionPercent": 98.3,
     "allNearestHitsMatched": true
   },
   "gridUpdatePass": {
     "updates": 600,
-    "rebuildAllMs": 1141.23,
-    "cacheStaticMs": 109.01
+    "rebuildAllMs": 1206.05,
+    "cacheStaticMs": 123.06
   },
   "simulation": {
     "simulatedSeconds": 720,
     "steps": 43200,
-    "medianMs": 1.222,
-    "p95Ms": 5.003,
-    "p99Ms": 7.352,
-    "maxMs": 155.773,
-    "maxEntities": 1144,
-    "maxProjectiles": 116,
+    "medianMs": 1.437,
+    "p95Ms": 7.821,
+    "p99Ms": 13.33,
+    "maxMs": 241.38,
+    "maxEntities": 1157,
+    "maxProjectiles": 119,
     "finiteState": true,
     "checkpoints": [
       {
@@ -37,53 +37,53 @@
       },
       {
         "seconds": 120,
-        "entities": 766,
+        "entities": 767,
         "projectiles": 0
       },
       {
         "seconds": 180,
-        "entities": 781,
-        "projectiles": 2
+        "entities": 787,
+        "projectiles": 4
       },
       {
         "seconds": 240,
-        "entities": 816,
-        "projectiles": 11
+        "entities": 825,
+        "projectiles": 7
       },
       {
         "seconds": 300,
-        "entities": 851,
-        "projectiles": 22
+        "entities": 864,
+        "projectiles": 26
       },
       {
         "seconds": 360,
-        "entities": 889,
-        "projectiles": 24
+        "entities": 901,
+        "projectiles": 37
       },
       {
         "seconds": 420,
-        "entities": 932,
-        "projectiles": 48
+        "entities": 939,
+        "projectiles": 55
       },
       {
         "seconds": 480,
-        "entities": 985,
-        "projectiles": 47
+        "entities": 982,
+        "projectiles": 42
       },
       {
         "seconds": 540,
-        "entities": 1026,
+        "entities": 1019,
         "projectiles": 61
       },
       {
         "seconds": 600,
-        "entities": 1072,
+        "entities": 1062,
         "projectiles": 80
       },
       {
         "seconds": 660,
-        "entities": 1106,
-        "projectiles": 83
+        "entities": 1114,
+        "projectiles": 89
       }
     ]
   }

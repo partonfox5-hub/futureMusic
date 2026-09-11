@@ -1,5 +1,6 @@
-import {T,V,clamp,unit,segmentDistance} from './math.js';
-import {PETS,RULES} from './data.js';
+import {T,V,clamp,unit,segmentDistance} from './math.js?v=4.0.0';
+import {PETS,RULES} from './data.js?v=4.0.0';
+import {knightSwordPose,KNIGHT_SCALE} from './knight-pose.js?v=4.0.0';
 export function tickSpawns(g,dt){
  for(const type of ['knight','camel','trilo']){const at=RULES[type+'At'];if(!g.flags[type]&&g.time>=at){g.flags[type]=true;const sector=type==='knight'?1:type==='trilo'?2:Math.floor(g.random()*8);g.spawn(type,g.map.interior(sector,.12));g.say(type==='knight'?'The Dark Knight has entered Knight Sector.':type==='camel'?'A robotic hover-camel slides in.':'Power-armor trilobite on approach.');}}
  for(const key of Object.keys(g.timers))g.timers[key]-=dt;
@@ -9,9 +10,15 @@ export function tickSpawns(g,dt){
  if(g.timers.rift<=0){g.timers.rift=Math.max(4.35,20-(g.time-60)*.12)*1.05;const s=g.map.spheres[Math.floor(g.random()*8)],dir=unit(g.random),p=s.c.clone().addScaledVector(dir,s.r*.97);g.rifts.push({p,dir,age:0,life:3.5,released:false,sphere:s.id});g.emit('rift',p);}
  for(const r of g.rifts){r.age+=dt;r.life-=dt;if(r.age>.75&&!r.released){r.released=true;const n=2+Math.floor(g.random()*2),pack=++g.id;for(let i=0;i<n;i++)g.spawn('drone',r.p.clone().addScaledVector(r.dir,-1-i*.35),{kind:Math.floor(g.random()*7),pack,sphere:r.sphere});if(g.random()<.34){const n=g.random()<.18?2+Math.floor(g.random()*4):1;for(let i=0;i<n;i++)g.spawn('lemur',r.p.clone().addScaledVector(r.dir,-1),{sphere:r.sphere,pack});}g.say('A steel hatch opens. Mixed drones spill in.');}}
  if(g.timers.hornet<=0){const n=g.time>720?5:3;g.timers.hornet=(n===5?130+g.random()*60:95+g.random()*55)*1.3;const s=g.map.nearest(g.player.p),at=s.c.clone().addScaledVector(unit(g.random),s.r+15);for(let i=0;i<n;i++)g.spawn('hornet',at.clone().addScaledVector(unit(g.random),i*2),{exterior:true});g.say('Hornet gunships patrol the outer hulls.');}
- for(const n of g.map.nests){if(n.disabled)continue;const alive=g.entities.filter(e=>e.alive&&e.type==='hydra'&&e.nest===n.id);if(n.open){n.openT-=dt;if(g.map.sector(g.player.p)===n.sphere)n.openT=Math.max(10,n.openT);if(n.openT<=0){n.open=false;n.timer=90+g.random()*70;for(const e of alive)e.retreat=true;g.map.revision++;}}
-  else {n.timer-=dt;if(n.timer<=0&&!alive.length){n.open=true;n.openT=55;g.map.revision++;for(let i=0;i<n.headsNext;i++)g.spawn('hydra',n.pos.clone().addScaledVector(n.dir,-2.9),{nest:n.id,headIndex:i,phase:i*2.6,cd:.35+i*.22});g.say(n.headsNext===1?'A hydra door opens.':n.headsNext+' hydra heads spill from the door.');}}}
+ for(const n of g.map.nests){
+  if(n.disabled)continue;
+  if(!n.open){n.timer-=dt;if(n.timer>0)continue;n.open=true;g.map.revision++;spawnHydraPair(g,n,1);g.say('A hydra awakens. Sever its heads to expose the nest.');}
+  n.regrowth??=[];
+  for(let i=n.regrowth.length-1;i>=0;i--)if(g.time>=n.regrowth[i].at){const count=n.regrowth[i].count;spawnHydraPair(g,n,count);n.regrowth.splice(i,1);g.say('Two heads regrow. This hydra is stronger.');}
+ }
 }
+function spawnHydraPair(g,n,count){for(let i=0;i<count;i++){const index=n.headSerial++;g.spawn('hydra',n.pos.clone().addScaledVector(n.dir,-3),{nest:n.id,headIndex:index,phase:index*2.39996,cd:.6+i*.3,hp:n.headHealth,maxHp:n.headHealth});}}
+
 function aim(g,e){const d=g.player.p.clone().sub(e.p),dist=d.length();return {dir:d.multiplyScalar(1/Math.max(.001,dist)),dist};}
 function shoot(g,e,dir,speed=14,dmg=1,extra={}){g.shot(e.p.clone().addScaledVector(dir,e.r+.15),dir,speed,dmg,{owner:'enemy',kind:'bolt',r:.09,life:4,...extra});g.emit('enemyshot',e.p,{quiet:true});}
 function travel(g,e,wish,dt,force=4){e.v.lerp(wish,1-Math.exp(-force*dt));g.map.move(e.p,e.v,dt,Math.min(e.r,.6));}
@@ -38,7 +45,7 @@ export function tickAI(g,dt,input){
   else if(e.type==='knight'){
    if(!e.white&&!e.mercy&&e.hp>30&&p.hearts<=5.6){e.mercy=true;p.hearts=Math.max(1,10);e.flee=9;g.say('The Dark Knight grants you mercy. For now.');}
    e.flee=Math.max(0,(e.flee||0)-tick);e.mode=dist<6.8?1:0;e.morph=(e.morph||0)+(e.mode-(e.morph||0))*(1-Math.exp(-tick*5));const speed=(e.mode===1?22:14)*(e.white?1.55:1)*g.learning.agro;wish.copy(same?dir:route).multiplyScalar(e.flee>0?-9:same?(dist>6?speed*.45:dist<3?-3:0):speed*.6);wish.addScaledVector(side,Math.sin(g.time*1.8+e.phase)*(e.white?5:3));wish.y+=Math.sin(g.time*2)*g.learning.vertical*3;
-   if(e.cd<=0&&dist<42&&dist>5&&visible(g,e,dir,dist)){shoot(g,e,dir,e.white?21:18,e.white?2:1,{r:.14});if(e.white)shoot(g,e,dir.clone().addScaledVector(side,.08).normalize(),21,1);e.cd=clamp((e.white?1.15:.95)/g.learning.agro,.5,1.25);e.attack=.28;}
+   if(e.cd<=0&&dist<46&&dist>5&&visible(g,e,dir,dist)&&!e.laserCast){e.laserCast='charge';e.laserT=0;g.emit('knightcharge',e.p);}
    if(dist<(e.white?4.6:3.6)&&e.stateT<=0){e.attack=.5;e.stateT=g.learning.gap*.65;g.hurt(e.white?5:4,dir);g.emit('slash',e.p);}
    // Respect frequently used force pulses, and kick away from nearby hulls.
    if(g.learning.pulse>.35&&g.weapons.pulseCooldown===0&&dist<9)wish.addScaledVector(dir,-3*g.learning.pulse);
@@ -60,12 +67,30 @@ export function tickAI(g,dt,input){
    const outside=g.map.sector(p.p)<0,s=g.map.nearest(e.p),dest=outside?p.p:s.c.clone().addScaledVector(p.p.clone().sub(s.c).normalize(),s.r+12),fly=dest.clone().sub(e.p).normalize();wish.copy(fly).multiplyScalar(e.p.distanceTo(dest)>12?6:-1).addScaledVector(side,Math.sin(g.time*.6+e.phase)*4);wish.y+=Math.sin(g.time*2+e.phase);
    if(e.cd<=0&&outside&&dist<65&&visible(g,e,dir,dist)){shoot(g,e,dir,22,1);shoot(g,e,dir.clone().addScaledVector(side,.05).normalize(),22,1);e.cd=.8;e.attack=.2;}if((e.rocketCd||0)<=0&&outside&&dist<45){shoot(g,e,dir,10,3,{kind:'rocket',target:-1,seek:1.8,life:4});e.rocketCd=6;}e.rocketCd=(e.rocketCd||0)-tick;
   }
-  travel(g,e,wish,tick,e.type==='knight'?3:2.3);
+  if(e.type==='knight'&&e.laserCast)wish.multiplyScalar(.35);travel(g,e,wish,tick,e.type==='knight'?3:2.3);if(e.type==='knight')tickKnightLaser(g,e,tick);
  }
 }
+function tickKnightLaser(g,e,dt){
+ e.beam=null;e.laserCharge=0;if(!e.laserCast)return;
+ const face=new T.Quaternion().setFromUnitVectors(V(0,0,1),e.dir),scale=(e.scale||1)*(e.white?1.85:1)*KNIGHT_SCALE;
+ const localTarget=g.player.p.clone().sub(e.p).applyQuaternion(face.clone().invert()).multiplyScalar(1/scale).sub(V(.66,-.19,.36));
+ const desired=new T.Quaternion().setFromUnitVectors(V(0,0,1),localTarget.normalize());e.swordAim??=desired.clone();e.swordAim.slerp(desired,1-Math.exp(-dt*(e.laserCast==='charge'?6:1.6)));
+ const pose=knightSwordPose(e,g.time);e.laserTip=pose.tip;e.laserT+=dt;
+ if(e.laserCast==='charge'){e.laserCharge=clamp(e.laserT/1.35,0,1);if(e.laserT<1.35)return;e.laserCast='fire';e.laserT=0;e.burnCd=0;g.emit('knightlaser',pose.tip);}
+ if(e.laserCast==='fire'){
+  const hit=g.trace(pose.tip,pose.dir,52,0,x=>x!==e&&!x.enemy&&x.type!=='kennel'),end=hit?.pos||pose.tip.clone().addScaledVector(pose.dir,52);
+  e.beam={a:pose.tip,b:end,color:0xac47ff,width:e.white?.15:.10};e.laserCharge=1;
+  e.burnCd=(e.burnCd||0)-dt;if(e.burnCd<=0){e.burnCd=.12;
+   if(segmentDistance(g.player.p,pose.tip,end)<.48)g.hurt(e.white?2:1,pose.dir);
+   if(hit){if(hit.entity)g.damage(hit.entity,1.6,pose.dir,'enemy');else if(hit.stroke)g.hitStroke(hit.stroke,1.6,pose.dir);g.ignite(hit,pose.dir,0xa855ff);}
+  }
+  if(e.laserT>1.65){e.laserCast=null;e.laserCharge=0;e.beam=null;e.cd=(e.white?3.6:4.8)/g.learning.agro;}
+ }
+}
+
 function tickHydra(g,e,dt,dir,dist){const n=g.map.nests[e.nest],s=g.map.spheres[n.sphere],inward=n.dir.clone().negate(),side=inward.clone().cross(V(0,1,0)).normalize(),reach=clamp(s.r*.82,14,40),target=g.player.p.clone().sub(n.pos).clampLength(0,reach).add(n.pos);
  e.coil=.5+.45*Math.sin(g.time*.75+e.phase);if(e.retreat){e.p.lerp(n.pos,clamp(dt*2,0,1));if(e.p.distanceToSquared(n.pos)<4)e.alive=false;return;}
- const desired=g.map.sector(g.player.p)===n.sphere?target:n.pos.clone().addScaledVector(inward,reach*(.28+e.coil*.55)).addScaledVector(side,Math.sin(g.time+e.phase)*4);e.p.lerp(desired,1-Math.exp(-1.4*dt));const delta=e.p.clone().sub(s.c);if(delta.length()>s.r-1)e.p.copy(s.c).add(delta.setLength(s.r-1));
+ target.addScaledVector(side,Math.sin(e.phase)*2.8).add(V(0,Math.cos(e.phase)*2.0,0));const desired=g.map.sector(g.player.p)===n.sphere?target:n.pos.clone().addScaledVector(inward,reach*(.28+e.coil*.55)).addScaledVector(side,Math.sin(g.time+e.phase)*4);e.p.lerp(desired,1-Math.exp(-1.4*dt));const delta=e.p.clone().sub(s.c);if(delta.length()>s.r-1)e.p.copy(s.c).add(delta.setLength(s.r-1));
  if(dist<1.5&&e.stateT<=0){g.hurt(2,dir);e.stateT=1.2;e.attack=.6;}
  // Charge is an explicit gameplay phase. Its mouth-space position drives both
  // the animated jaw/charge model and the projectile spawn (no body-origin shots).

@@ -1,10 +1,12 @@
-import {T,V,clamp,rng,unit,raySphere,segmentDistance,rayCapsule,nearestOnSegment} from './math.js';
-import {RULES,PETS,DRONES,SHOP} from './data.js';
-import {ArenaMap} from './map.js';
-import {SpatialGrid} from './spatial.js';
-import {entityRay,resolveBody,halfSize} from './collision.js';
-import {Weapons} from './weapons.js';
-import {tickAI,tickSpawns} from './ai.js';
+import {T,V,clamp,rng,unit,raySphere,segmentDistance,rayCapsule,nearestOnSegment} from './math.js?v=4.0.0';
+import {RULES,PETS,DRONES,SHOP} from './data.js?v=4.0.0';
+import {ArenaMap} from './map.js?v=4.0.0';
+import {SpatialGrid} from './spatial.js?v=4.0.0';
+import {entityRay,resolveBody,halfSize} from './collision.js?v=4.0.0';
+import {Weapons} from './weapons.js?v=4.0.0';
+import {tickAI,tickSpawns} from './ai.js?v=4.0.0';
+import {tickScreens} from './screens.js?v=4.0.0';
+import {tangentFrame} from './fracture.js?v=4.0.0';
 const enemyTypes=new Set(['drone','knight','camel','trilo','lemur','hornet','hydra']);
 const itemTypes=new Set(['shard','coin','missilePickup','gold','blimp']);
 export class Simulation {
@@ -18,7 +20,7 @@ export class Simulation {
  emit(type,p,data={}){if(this.events.length<256)this.events.push({type,p:p?.clone(),...data});}
  say(text){this.hint=text;this.hintUntil=this.time+6;this.emit('hint',null,{text});}
  add(type,p,props={}){const e={id:++this.id,type,p:p.clone(),v:V(),q:new T.Quaternion(),alive:true,age:0,hp:4.2,maxHp:4.2,r:.7,scale:1,phase:this.random()*6.28,cd:1+this.random()*2,hit:0,stun:0,enemy:enemyTypes.has(type),item:itemTypes.has(type),...props};e.bound=halfSize(e)?.length()||e.r;this.entities.push(e);return e;}
- spawn(type,p,props={}){let hp=4.2,r=.7;if(type==='drone'){hp=DRONES[props.kind||0][1];r=.6;}else if(type==='knight'){hp=props.white?200:100;r=props.white?2:1.2;}else if(type==='camel'){hp=28;r=1.15;}else if(type==='trilo'){hp=55;r=1.4;}else if(type==='lemur'){hp=2.85;r=.8;}else if(type==='hornet'){hp=110;r=2.5;}else if(type==='hydra'){hp=20;r=.5;}
+ spawn(type,p,props={}){let hp=4.2,r=.7;if(type==='drone'){hp=DRONES[props.kind||0][1];r=.6;}else if(type==='knight'){hp=props.white?200:100;r=props.white?3.1:1.6;}else if(type==='camel'){hp=100;r=1.35;}else if(type==='trilo'){hp=55;r=1.4;}else if(type==='lemur'){hp=2.85;r=.8;}else if(type==='hornet'){hp=110;r=2.5;}else if(type==='hydra'){hp=this.map.nests[props.nest]?.headHealth||60;r=.56;}
   return this.add(type,p,{hp,maxHp:hp,r,kind:0,mode:0,stateT:1,warpCd:0,burst:0,shield:((type==='drone'&&props.kind===4)||type==='lemur')?2:0,...props});}
  populate(){
   for(let i=0;i<16;i++)this.cluster(this.map.interior(i%8,.65),2+Math.floor(this.random()*7));
@@ -50,18 +52,23 @@ export class Simulation {
  trace(o,d,len,pad=0,predicate=e=>e.enemy||!e.item){let result=this.map.ray(o,d,len),dist=result?.distance??len;for(const stroke of this.strokes)if(stroke.alive&&stroke.solid)for(let i=1;i<stroke.points.length;i++){const t=rayCapsule(o,d,stroke.points[i-1],stroke.points[i],.07+pad,dist);if(t<dist){dist=t;const p=o.clone().addScaledVector(d,t);result={type:'stroke',stroke,distance:t,pos:p,normal:p.clone().sub(nearestOnSegment(p,stroke.points[i-1],stroke.points[i])).normalize()};}}for(const e of this.grid.ray(o,d,len,pad,this.rayQuery)){if(e.item||e.type==='well'||!predicate(e))continue;const hit=entityRay(o,d,e,dist,pad);if(hit<dist){dist=hit;result={type:'entity',entity:e,distance:hit,pos:o.clone().addScaledVector(d,hit),normal:o.clone().addScaledVector(d,hit).sub(e.p).normalize()};}}return result;}
  damage(e,dmg,dir=V(),source='player'){
   if(!e?.alive||e.invulnerable||e.item||e.type==='well'||(e.type==='pet'&&source!=='enemy'))return false;
-  if(e.type==='kennel'){const n=this.map.nests[e.nest];if(!n.fallen||this.entities.some(x=>x.alive&&x.type==='hydra'&&x.nest===e.nest)){if(e.hit<=0)this.say('Slay every hydra head, then destroy its kennel.');e.hit=.8;return false;}}
+  if(e.type==='kennel'){const n=this.map.nests[e.nest];if(!n.fallen||this.entities.some(x=>x.alive&&x.type==='hydra'&&x.nest===e.nest)){if(e.hit<=0)this.say('Slay every head, then destroy the nest before they regrow.');e.hit=.8;return false;}}
   if(e.shield>0){e.shield--;e.hit=.35;this.emit('shield',e.p);return false;}
-  if(e.type==='window'&&e.hp<30)e.cracked=true;e.hp-=dmg*(e.enemy&&source==='player'?RULES.attack:1);e.hit=.16;e.v.addScaledVector(dir,Math.min(7,dmg*.22));this.emit('hit',e.p,{color:e.enemy?0xff675b:0x79eaff});
-  if(e.type==='knight'){this.player.score=Math.min(Number.MAX_SAFE_INTEGER,this.player.score+Math.round(32*Math.pow(1.18,Math.min(200,e.hitCount||0))));e.hitCount=(e.hitCount||0)+1;e.burst+=dmg;if(e.hp>0&&e.burst>=4&&e.warpCd<=0){e.p.copy(this.map.interior(Math.floor(this.random()*8),.38));e.warpCd=1.4;e.burst=0;e.stun=1;this.emit('warp',e.p);this.say((e.white?'White':'Dark')+' Knight warps to another sphere.');}}
+  e.hp-=dmg*(e.enemy&&source==='player'?RULES.attack:1);if(e.type==='window'&&e.hp<30)e.cracked=true;e.hit=.16;e.v.addScaledVector(dir,Math.min(7,dmg*.22));this.emit('hit',e.p,{color:e.enemy?0xff675b:0x79eaff});
+  if(e.type==='knight'){this.player.score=Math.min(Number.MAX_SAFE_INTEGER,this.player.score+Math.round(32*Math.pow(1.18,Math.min(200,e.hitCount||0))));e.hitCount=(e.hitCount||0)+1;e.burst+=dmg;if(e.hp>0&&e.burst>=4&&e.warpCd<=0){e.p.copy(this.map.interior(Math.floor(this.random()*8),.38));e.warpCd=1.4;e.burst=0;e.laserCast=null;e.beam=null;e.laserCharge=0;e.stun=1;this.emit('warp',e.p);this.say((e.white?'White':'Dark')+' Knight warps to another sphere.');}}
   if(e.type==='trilo'){e.mode=4;e.stateT=.85;}
   if(e.type==='kennel')this.map.nests[e.nest].hp=e.hp;
   if(e.hp>0)return true;
-  if(e.type==='knight'){if(!e.white){e.white=true;e.hp=e.maxHp=200;e.r=e.bound=2;this.say('The Dark Knight falls. A WHITE KNIGHT rises.');this.emit('boom',e.p);}else{e.hp=110;e.p.copy(this.map.interior(Math.floor(this.random()*8),.4));this.say('The White Knight vanishes. The hunt continues.');this.emit('warp',e.p);}return true;}
+  if(e.type==='knight'){if(!e.white){e.white=true;e.hp=e.maxHp=200;e.r=e.bound=3.1;e.laserCast=null;e.beam=null;e.swordAim=null;this.say('The Dark Knight falls. A WHITE KNIGHT rises.');this.emit('boom',e.p);}else{e.hp=110;e.p.copy(this.map.interior(Math.floor(this.random()*8),.4));this.say('The White Knight vanishes. The hunt continues.');this.emit('warp',e.p);}return true;}
   e.alive=false;this.emit('break',e.p,{kind:e.type,color:e.enemy?0xff6654:0x7ae5ff});
   if(e.enemy){this.player.kills++;this.player.score+=e.type==='camel'?40:e.type==='trilo'?55:e.type==='hornet'?110:20;this.loot(e.p,e.type==='hydra'?25+Math.floor(this.random()*51):2+Math.floor(this.random()*6),3);}
-  if(e.type==='hydra'){const n=this.map.nests[e.nest];n.fallen=true;n.headsNext=Math.min(8,n.headsNext+1);this.say('Hydra head severed. Destroy the exposed kennel.');}
-  else if(e.type==='kennel'){const n=this.map.nests[e.nest];n.disabled=true;n.open=false;this.map.revision++;this.say('Hydra kennel destroyed. No more heads from this nest.');}
+  if(e.type==='hydra'){
+   const n=this.map.nests[e.nest];if(!n.disabled){n.fallen=true;n.severed=(n.severed||0)+1;n.headHealth=(n.headHealth||60)*1.2;n.headsNext=(n.headsNext||1)+1;n.regrowth??=[];n.regrowth.push({at:this.time+10,count:2});
+    for(const h of this.entities)if(h.alive&&h.type==='hydra'&&h.nest===e.nest){h.hp*=1.2;h.maxHp=n.headHealth;}
+    this.say('Head severed. Two regrow in 10 seconds. Hydra health +20%.');
+   }
+  }
+  else if(e.type==='kennel'){const n=this.map.nests[e.nest];n.disabled=true;n.open=false;n.regrowth=[];const hole=this.map.addHole(n.sphere,n.dir,3.35);this.breach({type:'sphere',id:n.sphere,pos:n.pos.clone(),normal:n.dir.clone(),breach:hole},false);this.say('Hydra nest destroyed for good. Its opening leads outside.');}
   else if(e.type==='hatch'){this.map.hatches[e.hatch].open=true;this.map.hatches[e.hatch].hp=0;this.map.revision++;this.loot(e.p,5,0);}
   else if(e.type==='cage')this.pet(e.kind,e.p);
   else if(e.type==='blimp'){this.add('gold',e.p,{r:.6,lock:.2});this.timers.blimp=120;}
@@ -69,10 +76,24 @@ export class Simulation {
   return true;
  }
  hitStroke(stroke,dmg,dir){stroke.v??=V();stroke.hp??=42;stroke.v.addScaledVector(dir,dmg<12?(dmg*1.6+2.5)/14:dmg*.35/14);if(dmg>=12){stroke.hp-=dmg;if(stroke.hp<=0){stroke.alive=false;this.emit('break',stroke.points[0],{kind:'plasma'});}}}
- breach(hit){this.loot(hit.pos,7);this.say('Hull breached. Exterior route opened.');const n=4+Math.floor(this.random()*4);for(let i=0;i<n;i++){const p=hit.pos.clone().addScaledVector(unit(this.random),1.6).addScaledVector(hit.normal,-.8),e=this.add('hullChunk',p,{hp:42,maxHp:42,r:1.5,scale:.65+this.random()*.55,q:new T.Quaternion().setFromEuler(new T.Euler(this.random()*2,this.random()*3,this.random()*2))});e.v.copy(unit(this.random)).addScaledVector(hit.normal,-1.4);}this.emit('break',hit.pos,{kind:'hullChunk'});}
- blast(p,dmg,r,source='player'){this.emit('boom',p,{radius:r});const nearby=this.grid.near(p,r,[]);for(const e of nearby){const delta=e.p.clone().sub(p),dist=delta.length();if(dist<r+e.r)this.damage(e,dmg*Math.max(.2,1-dist/(r+e.r)),delta.normalize(),source);} }
+ ignite(hit,dir,color=0xff391b){if(!hit?.pos)return;const normal=hit.normal?.clone()||dir.clone().negate();if(normal.dot(dir)>0)normal.negate();this.emit('ignite',hit.pos,{normal,color,target:hit.entity?.id||0});}
+ breach(hit,announce=true){
+  this.loot(hit.pos,7);if(announce)this.say('Hull breached. Curved fragments drift free.');
+  const source=hit.type==='sphere'?this.map.spheres[hit.id]:this.map.tubes[hit.id],R=hit.type==='sphere'?source.r:source.r;
+  const radius=hit.breach?.r||2.45,{side,up}=tangentFrame(hit.normal),count=6;
+  for(let i=0;i<count;i++){
+   const a=i/count*Math.PI*2,origin=hit.pos.clone().addScaledVector(side,Math.cos(a)*radius*.53).addScaledVector(up,Math.sin(a)*radius*.53);
+   let normal,q;
+   if(hit.type==='sphere'){normal=origin.clone().sub(source.c).normalize();origin.copy(source.c).addScaledVector(normal,R);const x=side.clone().addScaledVector(normal,-side.dot(normal)).normalize(),z=x.clone().cross(normal);q=new T.Quaternion().setFromRotationMatrix(new T.Matrix4().makeBasis(x,normal,z));}
+   else{const local=origin.clone().sub(source.mid).applyQuaternion(source.inv),rad=V(local.x,0,local.z).normalize();local.x=rad.x*R;local.z=rad.z*R;origin.copy(local).applyQuaternion(source.q).add(source.mid);normal=rad.applyQuaternion(source.q);const z=source.d.clone(),x=normal.clone().cross(z).normalize();q=new T.Quaternion().setFromRotationMatrix(new T.Matrix4().makeBasis(x,normal,z));}
+   const size=Math.min(R*.46,radius*(.39+this.random()*.14)),e=this.add('hullChunk',origin.clone().addScaledVector(normal,i%3===0?-.22:.22),{hp:42,maxHp:42,r:size,scale:size,half:[1.12,.24/size+size/R,1.12],q:q.clone(),spin:unit(this.random).multiplyScalar(.04+this.random()*.1),source:{type:hit.type,id:hit.id,origin:origin.clone(),q:q.clone(),radius:R,thickness:.24}});
+   e.v.copy(normal).multiplyScalar(i%3===0?-.35:.5).addScaledVector(side,(this.random()-.5)*.25).addScaledVector(up,(this.random()-.5)*.25);
+  }
+  this.emit('boom',hit.pos,{radius:radius*1.3,power:.65});
+ }
+ blast(p,dmg,r,source='player',charge=0){this.emit('boom',p,{radius:r,power:charge});const nearby=this.grid.near(p,r,[]);for(const e of nearby){const delta=e.p.clone().sub(p),dist=delta.length();if(dist<r+e.r)this.damage(e,dmg*Math.max(.2,1-dist/(r+e.r)),delta.normalize(),source);} }
  hurt(amount,dir=V(),powerMul=1){const p=this.player;if(this.over||p.inv>0)return;const remaining=Math.max(0,amount-p.hearts);p.hearts=Math.max(0,p.hearts-amount);if(remaining)p.energy=Math.max(0,p.energy-remaining*25*powerMul);p.hurtAt=this.time;p.inv=.38;p.v.addScaledVector(dir,1.2);this.metrics.hits++;this.emit('hurt',p.p);if(p.energy<=0){this.over=true;this.say('Broadcast ended. Start a new run or load your save.');this.emit('gameover',p.p);}}
- shot(p,d,speed,dmg,props={}){if(this.projectiles.length>=256)return null;const b=this.projectileFree.pop()||{p:V(),v:V(),prev:V()};Object.assign(b,{alive:true,age:0,life:3.68*this.power,r:.08,dmg,blast:0,owner:'player',kind:'plasma',target:0,traveled:0,speed,seek:0,...props});b.p.copy(p);b.prev.copy(p);b.v.copy(d).multiplyScalar(speed);this.projectiles.push(b);return b;}
+ shot(p,d,speed,dmg,props={}){if(this.projectiles.length>=256)return null;const b=this.projectileFree.pop()||{p:V(),v:V(),prev:V()};Object.assign(b,{alive:true,age:0,life:3.68*this.power,r:.08,dmg,blast:0,owner:'player',kind:'plasma',target:0,traveled:0,speed,seek:0,charge:0,color:0,range:0,...props});b.p.copy(p);b.prev.copy(p);b.v.copy(d).multiplyScalar(speed);this.projectiles.push(b);return b;}
  step(dt,input={}){if(this.over)return;dt=clamp(dt,0,.04);this.time+=dt;const p=this.player;p.inv=Math.max(0,p.inv-dt);p.gold=Math.max(0,p.gold-dt);if(this.time-p.hurtAt>4.5)p.energy=Math.min(p.maxEnergy,p.energy+4*dt);
   const before=p.p.clone(),move=input.move||V(),n=move.length(),max=RULES.baseSpeed*(1+p.boosts*.05)*this.speedPower;
   p.cruise=clamp(p.cruise+dt*(n>.01?max/RULES.accelerationTime:-max/RULES.brakingTime),0,max);const want=move.clone().normalize().multiplyScalar(p.cruise*Math.min(1,n));p.v.lerp(want,1-Math.exp(-4.2*dt));if(input.boost)p.v.addScaledVector(input.forward||V(0,0,-1),14*dt);
@@ -84,15 +105,16 @@ export class Simulation {
    else if(e.type==='cage'){e.cryCd-=dt;e.shake=Math.max(0,(e.shake||0)-dt);if(e.cryCd<=0){e.cryCd=3.5+this.random()*1.3;e.shake=.38;if(e.p.distanceToSquared(p.p)<144)this.emit('petcry',e.p,{kind:e.kind});e.v.addScaledVector(unit(this.random),.2);}this.map.move(e.p,e.v,dt,.7);e.v.multiplyScalar(Math.exp(-.4*dt));}
    else if(e.type==='well'&&e.p.distanceToSquared(p.p)<e.r*e.r){p.energy=Math.min(p.maxEnergy,p.energy+30*dt);p.hearts=Math.min(20,p.hearts+.8*dt);}
 
+   else if(e.type==='hullChunk'){this.map.move(e.p,e.v,dt,Math.min(e.r,.7));if(e.spin)e.q.multiply(new T.Quaternion().setFromEuler(new T.Euler(e.spin.x*dt,e.spin.y*dt,e.spin.z*dt)));}
    else if(!e.enemy&&!['pet','marquee','window','kennel','hatch','island'].includes(e.type)&&e.v.lengthSq()>.005){this.map.move(e.p,e.v,dt,Math.min(e.r,.8));e.v.multiplyScalar(Math.exp(-.55*dt));}
   }
   for(const e of this.entities)if(e.alive&&e.grabbedUntil>this.time&&e.v.length()>8.5&&this.time>=(e.slingAt||0)){for(const other of this.grid.near(e.p,e.r+2,[])){if(other===e||other.item||other.type==='pet'||!other.alive||other.type==='well')continue;if(e.p.distanceToSquared(other.p)>(e.r+other.r)**2)continue;const d=other.p.clone().sub(e.p).normalize(),dmg=5+21*clamp((e.v.length()-8.5)/25.5,0,1);this.damage(other,dmg,d);this.damage(e,dmg*.5,d.clone().negate());e.slingAt=this.time+.1;this.emit('boom',e.p);break;}}
-  this.tickProjectiles(dt,input);for(const s of this.strokes){s.life-=dt;if(s.solid&&s.v){const drift=s.v.clone().multiplyScalar(dt);for(const p of s.points)p.add(drift);s.v.multiplyScalar(Math.exp(-.55*dt));}if(s.life<=0)s.alive=false;}this.strokes=this.strokes.filter(s=>s.alive);if((this._clean+=dt)>1){this._clean=0;this.entities=this.entities.filter(e=>e.alive);this.rifts=this.rifts.filter(r=>r.life>0);}
+  this.tickProjectiles(dt,input);tickScreens(this,dt);for(const s of this.strokes){s.life-=dt;if(s.solid&&s.v){const drift=s.v.clone().multiplyScalar(dt);for(const p of s.points)p.add(drift);s.v.multiplyScalar(Math.exp(-.55*dt));}if(s.life<=0)s.alive=false;}this.strokes=this.strokes.filter(s=>s.alive);if((this._clean+=dt)>1){this._clean=0;this.entities=this.entities.filter(e=>e.alive);this.rifts=this.rifts.filter(r=>r.life>0);}
  }
  tickProjectiles(dt,input){for(let i=this.projectiles.length-1;i>=0;i--){const b=this.projectiles[i];if(!b.alive){this.projectiles[i]=this.projectiles[this.projectiles.length-1];this.projectiles.pop();this.projectileFree.push(b);continue;}b.age+=dt;b.life-=dt;b.prev.copy(b.p);
   if(b.target){const target=b.owner==='enemy'?this.player:this.entities.find(e=>e.id===b.target&&e.alive);if(target){const aim=target.p.clone().sub(b.p).normalize();b.v.lerp(aim.multiplyScalar(b.speed),clamp(dt*b.seek,0,1)).setLength(b.speed);}}
   if(b.kind==='plasma')b.v.setLength(Math.min(b.speed*1.3,b.v.length()+dt*2));const length=b.v.length()*dt,d=b.v.clone().normalize();b.traveled+=length;
-  const hit=this.trace(b.p,d,length+b.r,b.r,e=>b.owner==='enemy'?e.type==='pet'||['crate','barrel','window','pad','cage'].includes(e.type):e.type!=='pet');
+  const hit=this.trace(b.p,d,length+b.r,b.r,e=>b.owner==='enemy'?e.type==='pet'||['crate','barrel','window','pad','cage','hullChunk'].includes(e.type):e.type!=='pet');
   if(b.owner!=='enemy'){for(const rocket of this.projectiles)if(rocket.alive&&rocket.owner==='enemy'&&rocket.kind==='rocket'){const t=raySphere(b.p,d,rocket.p,rocket.r+b.r+.08,length);if(Number.isFinite(t)&&(!hit||t<hit.distance)){rocket.alive=false;b.alive=false;this.emit('boom',rocket.p,{radius:1});break;}}}
   if(b.owner==='enemy'){
    const next=b.p.clone().addScaledVector(d,length);let blocked=false;const w=this.weapons;
@@ -100,10 +122,10 @@ export class Simulation {
    for(const s of this.strokes)if(s.solid)for(let j=1;j<s.points.length;j++)if(segmentDistance(next,s.points[j-1],s.points[j])<.24)blocked=true;
    const t=raySphere(b.p,d,this.player.p,.38+b.r,length);if(!blocked&&Number.isFinite(t)&&(!hit||t<hit.distance)){this.hurt(b.dmg,d);b.alive=false;}if(blocked)b.alive=false;
   }
-  if(hit&&b.alive){if(hit.entity)this.damage(hit.entity,b.dmg,d,b.owner==='enemy'?'enemy':'player');else if(hit.stroke)this.hitStroke(hit.stroke,b.dmg,d);else if(b.owner!=='enemy'&&b.kind==='plasma'){if(this.map.scorch(hit))this.breach(hit);}if(b.blast)this.blast(hit.pos,b.dmg*.65,b.blast,b.owner);b.alive=false;this.emit('impact',hit.pos);}
+  if(hit&&b.alive){if(hit.entity)this.damage(hit.entity,b.dmg,d,b.owner==='enemy'?'enemy':'player');else if(hit.stroke)this.hitStroke(hit.stroke,b.dmg,d);else if(b.owner!=='enemy'&&b.kind==='plasma'){if(this.map.scorch(hit,b.blast||3))this.breach(hit);}if(b.blast)this.blast(hit.pos,b.dmg*.65,b.blast,b.owner,b.charge||0);b.alive=false;this.emit('impact',hit.pos,{radius:Math.max(.35,b.blast||b.r*5),power:b.charge||0,exploded:!!b.blast,normal:hit.normal});}
   if(b.life<=0||b.traveled>(b.range||Infinity)){if(b.kind==='missile')this.blast(b.p,6,1.4,b.owner);b.alive=false;}
   if(b.alive)b.p.addScaledVector(b.v,dt);else{this.projectiles[i]=this.projectiles[this.projectiles.length-1];this.projectiles.pop();this.projectileFree.push(b);}
  }}
- snapshot(){const encode=v=>v?.isVector3?{v3:v.toArray()}:v?.isQuaternion?{q4:v.toArray()}:Array.isArray(v)?v.map(encode):v&&typeof v==='object'?Object.fromEntries(Object.entries(v).filter(([k])=>k!=='_tag').map(([k,x])=>[k,encode(x)])):v;return encode({version:3,seed:this.seed,random:this.random.state(),time:this.time,id:this.id,options:this.options,learning:this.learning,player:this.player,flags:this.flags,timers:this.timers,metrics:this.metrics,map:this.map.serialize(),entities:this.entities.filter(e=>e.alive),projectiles:this.projectiles,strokes:this.strokes.filter(s=>s.solid),rifts:this.rifts,weapons:this.weapons.serialize()});}
- static restore(data){if(data?.version!==3||!Array.isArray(data.entities)||data.entities.length>20000)throw Error('This is not a NetKnight WebVR save.');const decode=v=>v?.v3?V(...v.v3):v?.q4?new T.Quaternion().fromArray(v.q4):Array.isArray(v)?v.map(decode):v&&typeof v==='object'?Object.fromEntries(Object.entries(v).map(([k,x])=>[k,decode(x)])):v;const d=decode(data);if(!d.player?.p?.isVector3||!d.player.v?.isVector3||!Number.isFinite(d.player.energy)||!d.entities.every(e=>e.p?.isVector3&&e.v?.isVector3&&e.q?.isQuaternion))throw Error('The save contains invalid game data.');const g=new Simulation(d.seed,d.options);g.time=d.time;g.id=d.id;g.player=d.player;g.flags=d.flags;g.timers=d.timers;g.metrics=d.metrics;g.learning=d.learning;g.map.restore(d.map);g.entities=d.entities;g.projectiles=d.projectiles||[];g.strokes=d.strokes||[];g.rifts=d.rifts||[];g.random.restore(d.random);g.weapons.restore(d.weapons);g.grid.rebuild(g.entities);g.say('Run restored.');return g;}
+ snapshot(){const encode=v=>v?.isVector3?{v3:v.toArray()}:v?.isQuaternion?{q4:v.toArray()}:Array.isArray(v)?v.map(encode):v&&typeof v==='object'?Object.fromEntries(Object.entries(v).filter(([k])=>k!=='_tag').map(([k,x])=>[k,encode(x)])):v;return encode({version:4,seed:this.seed,random:this.random.state(),time:this.time,id:this.id,options:this.options,learning:this.learning,player:this.player,flags:this.flags,timers:this.timers,metrics:this.metrics,map:this.map.serialize(),entities:this.entities.filter(e=>e.alive),projectiles:this.projectiles,strokes:this.strokes.filter(s=>s.solid),rifts:this.rifts,weapons:this.weapons.serialize()});}
+ static restore(data){if(![3,4].includes(data?.version)||!Array.isArray(data.entities)||data.entities.length>20000)throw Error('This is not a NetKnight WebVR save.');const decode=v=>v?.v3?V(...v.v3):v?.q4?new T.Quaternion().fromArray(v.q4):Array.isArray(v)?v.map(decode):v&&typeof v==='object'?Object.fromEntries(Object.entries(v).map(([k,x])=>[k,decode(x)])):v;const d=decode(data);if(!d.player?.p?.isVector3||!d.player.v?.isVector3||!Number.isFinite(d.player.energy)||!d.entities.every(e=>e.p?.isVector3&&e.v?.isVector3&&e.q?.isQuaternion))throw Error('The save contains invalid game data.');const g=new Simulation(d.seed,d.options);g.time=d.time;g.id=d.id;g.player=d.player;g.flags=d.flags;g.timers=d.timers;g.metrics=d.metrics;g.learning=d.learning;g.map.restore(d.map);g.entities=d.entities;g.projectiles=d.projectiles||[];g.strokes=d.strokes||[];g.rifts=d.rifts||[];if(data.version===3){for(const n of g.map.nests){n.headHealth=60;n.severed=0;n.regrowth=[];n.headSerial=0;}for(const e of g.entities){if(e.type==='hydra'){e.hp=e.hp/e.maxHp*60;e.maxHp=60;const n=g.map.nests[e.nest];n.headSerial=Math.max(n.headSerial,(e.headIndex||0)+1);n.open=!n.disabled;}if(e.type==='camel'){e.hp=e.hp/e.maxHp*100;e.maxHp=100;}if(e.type==='knight'){e.r=e.bound=e.white?3.1:1.6;}if(e.type==='hullChunk'&&!e.source){const wall=g.map.nearest(e.p);e.source={type:'sphere',id:wall.id,origin:e.p.clone(),q:e.q.clone(),radius:wall.r,thickness:.24};e.half=[1,.24,1];}}}g.random.restore(d.random);g.weapons.restore(d.weapons);g.grid.rebuild(g.entities);g.say('Run restored.');return g;}
 }

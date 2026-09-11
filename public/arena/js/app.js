@@ -1,23 +1,25 @@
-import {T,V,clamp} from './math.js';
-import {Simulation} from './sim.js';
-import {WorldView} from './world-view.js';
-import {EntityView} from './entity-view.js';
-import {Effects} from './effects.js';
-import {M,weaponModel,mergeParts} from './models.js';
-import {canvas,texture,screenAtlas,labelTexture} from './textures.js';
-import {Sound} from './audio.js';
-import {Input} from './input.js';
-import {UI} from './ui.js';
-import {read,write,record,learning,download} from './save.js';
+import {T,V,clamp} from './math.js?v=4.0.0';
+import {Simulation} from './sim.js?v=4.0.0';
+import {WorldView} from './world-view.js?v=4.0.0';
+import {EntityView} from './entity-view.js?v=4.0.0';
+import {Effects} from './effects.js?v=4.0.0';
+import {HullView} from './hull-view.js?v=4.0.0';
+import {ScreenView} from './screen-view.js?v=4.0.0';
+import {M,weaponModel,mergeParts} from './models.js?v=4.0.0';
+import {canvas,texture,labelTexture} from './textures.js?v=4.0.0';
+import {Sound} from './audio.js?v=4.0.0';
+import {Input} from './input.js?v=4.0.0';
+import {UI} from './ui.js?v=4.0.0';
+import {read,write,record,learning,download} from './save.js?v=4.0.0';
 const $=id=>document.getElementById(id),surface=$('game'),status=$('status'),prefs={turn:'snap',quality:'balanced',comfort:true,music:.22,volume:.7,legacyEconomy:false,stats:false,...read('settings',{})};
 let renderer;try{renderer=new T.WebGLRenderer({canvas:surface,antialias:true,alpha:false,powerPreference:'high-performance'});}catch(error){status.textContent='WebGL could not start. Open this page in a browser with hardware graphics enabled. '+error.message;$('enter-vr').disabled=$('play-desktop').disabled=true;throw error;}
 renderer.outputColorSpace=T.SRGBColorSpace;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.12;renderer.xr.enabled=true;renderer.xr.setReferenceSpaceType('local-floor');renderer.xr.setFoveation(.5);renderer.shadowMap.enabled=false;
 const scene=new T.Scene();scene.background=new T.Color(0x081629);scene.fog=new T.FogExp2(0x0c1b31,.0019);const camera=new T.PerspectiveCamera(74,innerWidth/innerHeight,.06,950),rig=new T.Group();rig.rotation.y=Math.PI;rig.add(camera);scene.add(rig);
 scene.add(new T.HemisphereLight(0xcae8ff,0x6d4658,2.0));const key=new T.DirectionalLight(0xffe4c4,2.1);key.position.set(50,80,20);scene.add(key);const fill=new T.DirectionalLight(0x7da7ff,.9);fill.position.set(-50,-20,-70);scene.add(fill);
 const envC=canvas(512,256),envX=envC.getContext('2d'),gradient=envX.createLinearGradient(0,0,0,256);gradient.addColorStop(0,'#627d9f');gradient.addColorStop(.42,'#293648');gradient.addColorStop(.51,'#111a29');gradient.addColorStop(1,'#283546');envX.fillStyle=gradient;envX.fillRect(0,0,512,256);for(const [x,w]of [[55,24],[265,40],[442,14]]){envX.fillStyle='#e2edf4';envX.fillRect(x,32,w,65);envX.fillStyle='#586a81';envX.fillRect(x,181,w,15);}const environment=texture(envC);environment.mapping=T.EquirectangularReflectionMapping;scene.environment=environment;
-let game=new Simulation(Date.now(),{legacyEconomy:prefs.legacyEconomy,learning:learning()}),world=new WorldView(scene,game.map),entities=new EntityView(scene),effects=new Effects(scene),paused=true,started=false,showHud=true,mode='menu',last=0,acc=0,saveAt=0,menuSource='landing',lastFrame=0,frameAverage=13.8,sampleCount=0,recorded=false,awaitXRPose=false,qualityTier=0,nav=null;
+let game=new Simulation(Date.now(),{legacyEconomy:prefs.legacyEconomy,learning:learning()}),world=new WorldView(scene,game.map),entities=new EntityView(scene),effects=new Effects(scene),hull=new HullView(scene,world),paused=true,started=false,showHud=true,mode='menu',last=0,acc=0,saveAt=0,menuSource='landing',lastFrame=0,frameAverage=13.8,sampleCount=0,recorded=false,awaitXRPose=false,qualityTier=0,nav=null;
 const sound=new Sound(),ui=new UI(scene,camera,action),input=new Input(renderer,rig,camera,surface,action);input.turnMode=prefs.turn;rig.position.copy(game.player.p);const weapons=[];for(const kind of ['cannon','sword']){const root=new T.Group();for(const p of mergeParts(weaponModel(kind)))root.add(new T.Mesh(p.geometry,p.material));scene.add(root);weapons.push(root);}
-const screens=screenAtlas(),windowMeshes=[];for(let kind=0;kind<6;kind++){const geo=new T.PlaneGeometry(2.4,1.4),uv=geo.attributes.uv;for(let i=0;i<uv.count;i++)uv.setXY(i,(kind%3*336+8+uv.getX(i)*320)/1024,1-(Math.floor(kind/3)*256+8+(1-uv.getY(i))*224)/512);const m=new T.InstancedMesh(geo,new T.MeshBasicMaterial({map:screens.t,toneMapped:false}),64);m.frustumCulled=false;m.count=0;scene.add(m);windowMeshes.push(m);}
+const screens=new ScreenView(scene);
 const storeViews=[];function storeSigns(){for(const s of storeViews){scene.remove(s);s.geometry.dispose();s.material.map.dispose();s.material.dispose();}storeViews.length=0;if(!game.options.legacyEconomy)return;for(const store of game.map.stores){const m=new T.Mesh(new T.PlaneGeometry(2.4,1.0),new T.MeshBasicMaterial({map:labelTexture('EXCHANGE','X · PETS / ROCKETS / BOOSTS'),side:T.DoubleSide}));m.position.copy(store.pos);m.quaternion.setFromUnitVectors(V(0,0,1),store.side.clone().negate());scene.add(m);storeViews.push(m);}}storeSigns();
 function resize(){if(renderer.xr.isPresenting)return;renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,prefs.quality==='high'?1.8:prefs.quality==='performance'?1:1.35));camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();}
 function configure(){input.turnMode=prefs.turn;entities.quality=prefs.quality;sound.setVolume(prefs.volume);sound.setMusic(prefs.music);$('stats').hidden=!prefs.stats;write('settings',prefs);resize();if(!renderer.xr.isPresenting)renderer.xr.setFramebufferScaleFactor(prefs.quality==='high'?1.15:prefs.quality==='performance'?.8:1);}
@@ -26,7 +28,7 @@ function stopAttacks(){Object.assign(game.weapons,{charge:0,laserCharge:0,beam:n
 function openMenu(page='main'){stopAttacks();menuSource=started?'game':'landing';paused=true;input.blocked=true;input.clear();sound.setPlaying(false);if(document.pointerLockElement)document.exitPointerLock();ui.show(page,game,prefs,renderer.xr.isPresenting);$('landing').hidden=true;}
 function resume(){if(game.over){openMenu();return;}started=true;paused=false;input.blocked=false;input.clear();ui.hide();$('landing').hidden=true;mode=renderer.xr.isPresenting?'xr':'desktop';sound.setPlaying(true);if(!renderer.xr.isPresenting)surface.requestPointerLock?.()?.catch?.(()=>{});}
 function save(){if(game.over){ui.notice='This run has ended. Your high score is saved.';return false;}const ok=write('run',game.snapshot());ui.notice=ok?'Run saved on this browser.':'Save unavailable. Use Export save to download a copy.';game.say(ui.notice);$('continue').disabled=!ok;return ok;}
-function replace(next){world.dispose();entities.dispose();effects.dispose();game=next;world=new WorldView(scene,game.map);entities=new EntityView(scene);effects=new Effects(scene);entities.quality=prefs.quality;rig.position.copy(game.player.p);camera.position.set(0,0,0);if(renderer.xr.isPresenting){awaitXRPose=true;rig.position.y-=1.6;}recorded=false;saveAt=game.time+60;acc=0;nav=null;storeSigns();}
+function replace(next){hull.dispose();world.dispose();entities.dispose();effects.dispose();game=next;world=new WorldView(scene,game.map);entities=new EntityView(scene);effects=new Effects(scene);hull=new HullView(scene,world);entities.quality=prefs.quality;rig.position.copy(game.player.p);camera.position.set(0,0,0);if(renderer.xr.isPresenting){awaitXRPose=true;rig.position.y-=1.6;}recorded=false;saveAt=game.time+60;acc=0;nav=null;storeSigns();}
 function action(id){
  if(id==='turned'){game.weapons.prevTip=null;return;}if(id==='pauseOnly'){if(started&&!paused)openMenu();return;}
  if(id==='pause'){if(paused&&started)resume();else openMenu();return;}
@@ -48,7 +50,7 @@ $('enter-vr').addEventListener('click',async()=>{if(xrPending||renderer.xr.isPre
  }catch(error){status.textContent='Could not enter VR: '+error.message;paused=true;input.blocked=true;sound.setPlaying(false);$('enter-vr').disabled=false;}finally{xrPending=false;}});
 async function ready(){const supported=!!(globalThis.isSecureContext&&navigator.xr&&await navigator.xr.isSessionSupported('immersive-vr').catch(()=>false));$('enter-vr').disabled=!supported;$('play-desktop').disabled=false;$('continue').disabled=!read('run');status.textContent=supported?'Ready. Put on your headset and choose Enter VR.':!globalThis.isSecureContext?'Desktop ready. VR needs this page hosted over HTTPS.':'Desktop ready. Open this page in Meta Quest Browser to enter VR.';}
 ready();document.addEventListener('visibilitychange',()=>{if(document.hidden&&started){save();if(!paused)openMenu();}});globalThis.addEventListener('pagehide',()=>{if(started&&!game.over)save();});
-let screenAt=0;const stats={frames:0,steps:0,dropped:0,cpu:0},matrix=new T.Matrix4();
+const stats={frames:0,steps:0,dropped:0,cpu:0};
 function frame(now){const cpuStart=performance.now(),dt=last?clamp((now-last)/1000,0,.08):1/72;last=now;frameAverage=frameAverage*.97+dt*1000*.03;rig.updateMatrixWorld(true);if(renderer.xr.isPresenting)renderer.xr.updateCamera(camera);camera.updateMatrixWorld(true);let head=camera.getWorldPosition(V());
  if(awaitXRPose&&renderer.xr.isPresenting&&camera.position.y>.1){rig.position.add(game.player.p.clone().sub(head));rig.updateMatrixWorld(true);renderer.xr.updateCamera(camera);head=camera.getWorldPosition(V());awaitXRPose=false;}
  if(renderer.xr.isPresenting&&++sampleCount%120===0){const overloaded=frameAverage>18.5;if(overloaded&&qualityTier<1){qualityTier=1;entities.quality='performance';renderer.xr.setFoveation(.8);}else if(!overloaded&&frameAverage<15.3&&qualityTier>0){qualityTier=0;entities.quality=prefs.quality;renderer.xr.setFoveation(prefs.quality==='high'?.25:.5);}}
@@ -57,11 +59,11 @@ function frame(now){const cpuStart=performance.now(),dt=last?clamp((now-last)/10
  rig.updateMatrixWorld(true);if(renderer.xr.isPresenting)renderer.xr.updateCamera(camera);camera.updateMatrixWorld(true);
  for(let i=0;i<2;i++){const pose=i===0?controls.left:controls.right;weapons[i].position.copy(game.player.p).add(pose.offset);weapons[i].quaternion.setFromUnitVectors(V(0,0,1),pose.dir);weapons[i].visible=started&&!ui.open;if(i===1&&game.weapons.swingAnim>0)weapons[i].quaternion.setFromUnitVectors(V(0,0,1),game.weapons.tip.clone().sub(game.weapons.base).normalize());}
  for(const e of game.events){effects.event(e);sound.event(e);if(['plasma','pulse','hurt','slash','hydrafire'].includes(e.type))input.haptic(e.type==='plasma'?'left':e.type==='slash'?'right':'both',e.type==='hurt'?.5:.2,35);}game.events.length=0;
- world.update(game.time);entities.update(game);effects.update(game,paused?0:dt,camera);ui.hud(game,renderer.xr.isPresenting,showHud&&started,prefs,dt);
- const counts=[0,0,0,0,0,0];for(const e of entities.visible)if(e.type==='window'){const kind=e.cracked?5:e.kind,n=counts[kind]++;if(n>=64)continue;const pos=e.p.clone().add(V(0,0,.09).applyQuaternion(e.q));matrix.compose(pos,e.q,V(e.scale,e.scale,e.scale));windowMeshes[kind].setMatrixAt(n,matrix);}for(let i=0;i<6;i++){windowMeshes[i].count=Math.min(64,counts[i]);windowMeshes[i].visible=counts[i]>0;windowMeshes[i].instanceMatrix.needsUpdate=true;}if(now>screenAt&&counts.some(n=>n)){screenAt=now+(prefs.quality==='performance'||qualityTier?180:95);screens.tick(game.time);}
+ world.update(game.time);entities.update(game);hull.update(game);effects.quality=entities.quality;effects.update(game,paused?0:dt,camera);ui.hud(game,renderer.xr.isPresenting,showHud&&started,prefs,dt);
+ screens.update(game,entities.visible,entities.quality);
  const forward=V(0,0,-1).applyQuaternion(camera.getWorldQuaternion(new T.Quaternion()));sound.update(game.player.p,forward,V(0,1,0),game);
  if(nav!==null&&!paused&&game.time>=game.hintUntil){const waypoint=game.map.route(game.player.p,game.map.spheres[nav].c),d=waypoint.distanceTo(game.player.p);game.hint='→ '+game.map.spheres[nav].name+' · '+Math.round(d)+'m to next portal';game.hintUntil=game.time+.5;if(game.map.sector(game.player.p)===nav){game.say('Arrived: '+game.map.spheres[nav].name);nav=null;}}
- renderer.render(scene,camera);stats.frames++;stats.cpu=stats.cpu*.97+(performance.now()-cpuStart)*.03;if(now-lastFrame>500){lastFrame=now;const info={mode,paused,elapsed:Number(game.time.toFixed(2)),hearts:game.player.hearts,power:game.player.energy,shots:game.metrics.shots,entities:game.entities.length,visible:entities.instances,projectiles:game.projectiles.length,fps:Math.round(1000/frameAverage),cpuMs:Number(stats.cpu.toFixed(2)),drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,geometries:renderer.info.memory.geometries,textures:renderer.info.memory.textures,droppedSteps:stats.dropped,adaptiveTier:qualityTier,wallTextureUpdates:world.textureChanges};$('stats').dataset.diagnostics=JSON.stringify(info);$('stats').textContent=`${info.fps} fps · ${info.cpuMs} ms CPU · ${info.drawCalls} draws · ${Math.round(info.triangles/1000)}k tris`;}
+ renderer.render(scene,camera);stats.frames++;stats.cpu=stats.cpu*.97+(performance.now()-cpuStart)*.03;if(now-lastFrame>500){lastFrame=now;const info={mode,paused,elapsed:Number(game.time.toFixed(2)),hearts:game.player.hearts,power:game.player.energy,shots:game.metrics.shots,entities:game.entities.length,visible:entities.instances,projectiles:game.projectiles.length,fps:Math.round(1000/frameAverage),cpuMs:Number(stats.cpu.toFixed(2)),drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,geometries:renderer.info.memory.geometries,textures:renderer.info.memory.textures,droppedSteps:stats.dropped,adaptiveTier:qualityTier,wallTextureUpdates:world.textureChanges,screenTextureUpdates:screens.uploads,screenThreatChecks:game.screenChecks||0,hullFragments:hull.visible,fireSprites:effects.atmosphere.fire.mesh.count,smokeSprites:effects.atmosphere.smoke.mesh.count};$('stats').dataset.diagnostics=JSON.stringify(info);$('stats').textContent=`${info.fps} fps · ${info.cpuMs} ms CPU · ${info.drawCalls} draws · ${Math.round(info.triangles/1000)}k tris`;}
 }
 renderer.setAnimationLoop(frame);
 // Read-only diagnostics and explicit local development scenarios; no gameplay cheats in normal play.

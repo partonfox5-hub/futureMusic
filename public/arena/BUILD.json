@@ -1,7 +1,7 @@
 {
   "game": "NetKnight / Battle Sphere Arena",
   "format": "WebXR static website",
-  "version": "3.0.0",
+  "version": "4.0.0",
   "date": "2026-09-11",
   "sourceArchive": "net knight.zip",
   "sourceSha256": "c9e63635ff2914f5e15ee576a110782465a275dfde3bcbee6a86b75d902b49c6",
@@ -10,10 +10,13 @@
   "resourceFiles": 61,
   "renderer": "Three.js r160 (bundled)",
   "testing": {
-    "automatedGameplayAudioGeometry": 25,
+    "automatedGameplayAudioGeometry": 42,
     "appLifecycle": "passed with renderer/XR adapters",
     "cpuSimulationSeconds": 720,
     "gpuRendering": "unverified in this environment",
-    "questHardware": "not tested"
-  }
+    "questHardware": "not tested",
+    "longRayParityQueries": 1800,
+    "longSimulationStage": "version 4 feature pass, before final spatial-ray traversal optimization"
+  },
+  "changes": "User-requested obsidian arsenal, mech Knight, stronger enemies, hydra regrowth, reactive screens, irregular damage and curved debris; additional realism and performance passes."
 }

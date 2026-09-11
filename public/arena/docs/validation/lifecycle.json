@@ -19,16 +19,21 @@
     "hearts": 20,
     "power": 1000,
     "shots": 1,
-    "entities": 786,
-    "visible": 160,
-    "projectiles": 0,
-    "drawCalls": 123,
-    "triangles": 140072,
-    "geometries": 103,
+    "entities": 790,
+    "visible": 143,
+    "projectiles": 1,
+    "drawCalls": 119,
+    "triangles": 133058,
+    "geometries": 99,
     "textures": 39,
     "droppedSteps": 0,
     "adaptiveTier": 0,
-    "wallTextureUpdates": 0
+    "wallTextureUpdates": 0,
+    "screenTextureUpdates": 31,
+    "screenThreatChecks": 2,
+    "hullFragments": 0,
+    "fireSprites": 0,
+    "smokeSprites": 0
   },
   "rendering": "NOT TESTED: renderer/XR adapters used"
 }

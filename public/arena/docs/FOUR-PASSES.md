@@ -1,4 +1,4 @@
-# Four implementation passes
+# Original four implementation passes (version 3 history)
 
 ## Pass 1 — graphics and sound foundation
 
@@ -28,7 +28,7 @@ CPU measurements on the build host, using the performance-pass test scenario:
 
 All 1,600 nearest-hit results matched the reference scan. Candidate work fell **98.3%**. These compare implementations in this web port; they do not compare a Unity APK with a Quest browser.
 
-A 720-second, 43,200-step CPU simulation completed with finite positions. Median simulation step was 1.222 ms, 95th percentile 5.003 ms and 99th percentile 7.352 ms on this host. The largest outlier was 155.773 ms. At most 1,144 entities and 116 projectiles were live in that scenario. Raw results are in `validation/cpu-benchmark.json`. These are CPU-only development measurements, not headset frame times.
+A 720-second, 43,200-step CPU simulation completed with finite positions. Median simulation step was 1.222 ms, 95th percentile 5.003 ms and 99th percentile 7.352 ms on this host. The largest outlier was 155.773 ms. At most 1,144 entities and 116 projectiles were live in that scenario. These numbers are retained here as historical version 3 measurements; current update measurements and validation are described in `UPDATE-4.md`. These are CPU-only development measurements, not headset frame times.
 
 ## Pass 4 — rendering and runtime safeguards
 
@@ -40,6 +40,8 @@ Balanced, High and Performance presets configure desktop pixel ratio and pre-ses
 
 ## Validation boundary
 
-The final code passes 25 automated gameplay/audio/geometry checks and the app lifecycle suite. The latter runs real game and Three.js scene modules with DOM, XR and renderer adapters. It verifies application transitions and valid scene data, not shader execution, visual quality, tracking or GPU performance. Its structural draw/triangle counts are scene inspection data, not measured headset submissions.
+The original version 3 code passed 25 automated gameplay/audio/geometry checks and the app lifecycle suite. The latter runs real game and Three.js scene modules with DOM, XR and renderer adapters. It verifies application transitions and valid scene data, not shader execution, visual quality, tracking or GPU performance. Its structural draw/triangle counts are scene inspection data, not measured headset submissions.
 
 The environment could not render WebGL and no Quest was attached. An actual Quest 3 check is still required for visual appearance, controller alignment, frame timing, audio spatialization and comfort. The package is ready to host and test, with that limit stated explicitly.
+
+Version 4 adds another graphics realism pass and another performance pass, documented in [UPDATE-4.md](UPDATE-4.md). The current code passes 42 unit checks.
