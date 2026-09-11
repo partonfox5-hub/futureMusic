@@ -1,0 +1,34 @@
+{
+  "passed": true,
+  "coverage": [
+    "startup",
+    "desktop fire",
+    "pause freeze",
+    "save/load",
+    "controls/settings/map",
+    "XR denial",
+    "XR entry",
+    "left trigger plasma",
+    "grip + X pause",
+    "XR exit"
+  ],
+  "structuralSceneStats": {
+    "mode": "xr",
+    "paused": false,
+    "elapsed": 3.63,
+    "hearts": 20,
+    "power": 1000,
+    "shots": 1,
+    "entities": 786,
+    "visible": 160,
+    "projectiles": 0,
+    "drawCalls": 123,
+    "triangles": 140072,
+    "geometries": 103,
+    "textures": 39,
+    "droppedSteps": 0,
+    "adaptiveTier": 0,
+    "wallTextureUpdates": 0
+  },
+  "rendering": "NOT TESTED: renderer/XR adapters used"
+}

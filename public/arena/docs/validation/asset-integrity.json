@@ -1,0 +1,314 @@
+{
+  "resources": 61,
+  "music": 5,
+  "sounds": 43,
+  "storyArt": 13,
+  "allByteIdentical": true,
+  "files": [
+    {
+      "original": "NkBgm/Brass Circuit Jig.mp3",
+      "runtime": "assets/music/brass-circuit-jig.mp3",
+      "sha256": "c1ed5d79646a8e695496a444d2d8167b5227a07ffaf6347d278e30a3648892d4"
+    },
+    {
+      "original": "NkBgm/Brass Engine.mp3",
+      "runtime": "assets/music/brass-engine.mp3",
+      "sha256": "2c0b12938a534933811cf7794f035e9db0684092c3bca6008631e7a572fbc87d"
+    },
+    {
+      "original": "NkBgm/Iron Parade (1).mp3",
+      "runtime": "assets/music/iron-parade-1-.mp3",
+      "sha256": "81b7e7d85100a9d56bf90491434fa6f143e8924774bb5dba3b7346e638a74a6f"
+    },
+    {
+      "original": "NkBgm/Iron Parade.mp3",
+      "runtime": "assets/music/iron-parade.mp3",
+      "sha256": "06e8ac96f002f1e71581e9ae070f46af7c64e3a8a9dd79d1ec31e1b27a88ce23"
+    },
+    {
+      "original": "NkBgm/Past the Breaking Line.mp3",
+      "runtime": "assets/music/past-the-breaking-line.mp3",
+      "sha256": "dd711f08d9475bb289ff354468af3a57ef9839c98b93487c496e18d978cba809"
+    },
+    {
+      "original": "NkSfx/boom.wav",
+      "runtime": "assets/sfx/boom.wav",
+      "sha256": "cb56d18e250ec561f635b3efa1526b50273643455cbde417680d0c7cc9e2ed8b"
+    },
+    {
+      "original": "NkSfx/contact.wav",
+      "runtime": "assets/sfx/contact.wav",
+      "sha256": "152a85cae09baf009d0dd32a4f7a3f85793604bd70dcc500318df61f932a88be"
+    },
+    {
+      "original": "NkSfx/death.wav",
+      "runtime": "assets/sfx/death.wav",
+      "sha256": "21381263e95943c1dd7097c8a29daf52ee6a562645195ae411cd6223e1bb2cff"
+    },
+    {
+      "original": "NkSfx/hurt.wav",
+      "runtime": "assets/sfx/hurt.wav",
+      "sha256": "5655e10fb1e7f489194b54909e5648d58751f922d8558aa716099bdc14cce39b"
+    },
+    {
+      "original": "NkSfx/laser.wav",
+      "runtime": "assets/sfx/laser.wav",
+      "sha256": "b7a9102180225fc5951eb40129508e2faa09a141e5170a70572d972b036945df"
+    },
+    {
+      "original": "NkSfx/plasma.wav",
+      "runtime": "assets/sfx/plasma.wav",
+      "sha256": "4f1774ed77c6dc6b57b46bd81f03441c8618dd685db563d135beee66487cc684"
+    },
+    {
+      "original": "NkSfx/plasma_impact.wav",
+      "runtime": "assets/sfx/plasma_impact.wav",
+      "sha256": "8ae246db80cd89100570362c0dc822858fd460536bdd256d180fc0902f5c1dca"
+    },
+    {
+      "original": "NkSfx/plasma_impact_big.wav",
+      "runtime": "assets/sfx/plasma_impact_big.wav",
+      "sha256": "94bbf0f1c7fd4ca9cd0fa87f14bbdc967338c362cc1155d7b156477cf9586f2f"
+    },
+    {
+      "original": "NkSfx/plasma_impact_huge.wav",
+      "runtime": "assets/sfx/plasma_impact_huge.wav",
+      "sha256": "ba74ad184b2ceaedfb9f3e2d189aca57f6734e4d88e26e58331058b6366f4bb4"
+    },
+    {
+      "original": "NkSfx/power/p11.wav",
+      "runtime": "assets/sfx/power-p11.wav",
+      "sha256": "af3de4f62bda8fdf160e652430e8ffd6d9525a9f9fad47f18806c64696faf157"
+    },
+    {
+      "original": "NkSfx/power/p12.wav",
+      "runtime": "assets/sfx/power-p12.wav",
+      "sha256": "6e61ea576c663bb6f06132cb8d413f883d38078b91d415c13b36ea74e963a9bb"
+    },
+    {
+      "original": "NkSfx/power/p13.wav",
+      "runtime": "assets/sfx/power-p13.wav",
+      "sha256": "8409af219e2e1db727f2d6e66c3413b35323ca3f0229141900a12c31793bad02"
+    },
+    {
+      "original": "NkSfx/power/p14.wav",
+      "runtime": "assets/sfx/power-p14.wav",
+      "sha256": "fcdfaaa7f60f1ceec0abe8dd7fe878d4265677dd68d6d8a90b5e4ef51802c240"
+    },
+    {
+      "original": "NkSfx/power/p15.wav",
+      "runtime": "assets/sfx/power-p15.wav",
+      "sha256": "951aad6d8145b9b1cf9721b51de7d152421b82e2e8000f7356e97fdb23db53de"
+    },
+    {
+      "original": "NkSfx/power/p16.wav",
+      "runtime": "assets/sfx/power-p16.wav",
+      "sha256": "36415a0b6a0c4719b633e8e6b075039ac6249c1e1554ef6c323547512ef318d4"
+    },
+    {
+      "original": "NkSfx/power/p17.wav",
+      "runtime": "assets/sfx/power-p17.wav",
+      "sha256": "e311243d8769237e40ed72e8d60f1cb64e03f8353b0cd9f232052c726ddea4ff"
+    },
+    {
+      "original": "NkSfx/power/p18.wav",
+      "runtime": "assets/sfx/power-p18.wav",
+      "sha256": "d21b6aff9028e77a8151f6834c034e4d80b42552928f2da5b90ca5b9e860be3d"
+    },
+    {
+      "original": "NkSfx/power/p19.wav",
+      "runtime": "assets/sfx/power-p19.wav",
+      "sha256": "0961dee33a08907c194f175a0d8d34a302947f39f67a508fd4b37043d7aaf079"
+    },
+    {
+      "original": "NkSfx/power/p20.wav",
+      "runtime": "assets/sfx/power-p20.wav",
+      "sha256": "7cbf32129c3ae2d68c19ce8b99541d09978104ade61c1a6bd103dacc4bacd584"
+    },
+    {
+      "original": "NkSfx/power/p21.wav",
+      "runtime": "assets/sfx/power-p21.wav",
+      "sha256": "59ecd180fab7f8d0e938a78eaf6a535fab0497815c279ed6f412f5361ae05bed"
+    },
+    {
+      "original": "NkSfx/power/p22.wav",
+      "runtime": "assets/sfx/power-p22.wav",
+      "sha256": "742651b24eebde8b1250b6d224a3b9204cb493da1687c6206b3eccf896e1c651"
+    },
+    {
+      "original": "NkSfx/power/p23.wav",
+      "runtime": "assets/sfx/power-p23.wav",
+      "sha256": "2e0e435a0d962b8b47461c6ecfbbd07c2d4a3d30027ca38395d1dfff6bd2defe"
+    },
+    {
+      "original": "NkSfx/power/p24.wav",
+      "runtime": "assets/sfx/power-p24.wav",
+      "sha256": "97af05ac6a8229f5e94e3df256ec67b0a606a1f76354bb73310c292c636c30eb"
+    },
+    {
+      "original": "NkSfx/power/p25.wav",
+      "runtime": "assets/sfx/power-p25.wav",
+      "sha256": "a005a76878d12f18e1555a978cbeab21398297a5ed9ba179b04ba7af2ee3d222"
+    },
+    {
+      "original": "NkSfx/power/p26.wav",
+      "runtime": "assets/sfx/power-p26.wav",
+      "sha256": "04001ca3ce31a1edf2ef0f9f875d6046f21aef51815dd371aafb7342fa83cf11"
+    },
+    {
+      "original": "NkSfx/power/p27.wav",
+      "runtime": "assets/sfx/power-p27.wav",
+      "sha256": "ed25f5f64c5fa9cfd4f4d8533b9548ce8f4ba2fdfe3a3a140f605fc853615c30"
+    },
+    {
+      "original": "NkSfx/power/p28.wav",
+      "runtime": "assets/sfx/power-p28.wav",
+      "sha256": "7f1cf079e006b8dd2c83792018e9a17abe4bb754185de77968a5e9bb5f308289"
+    },
+    {
+      "original": "NkSfx/power/p29.wav",
+      "runtime": "assets/sfx/power-p29.wav",
+      "sha256": "4136b7a2501dd5b7261a78e93a78ff11dc21eb7631182704471bf32ba76165f2"
+    },
+    {
+      "original": "NkSfx/power/p30.wav",
+      "runtime": "assets/sfx/power-p30.wav",
+      "sha256": "7075a35a39105087cd7f6167dc360f696903b8c40d7f561d8c0669e2c328594e"
+    },
+    {
+      "original": "NkSfx/power/p31.wav",
+      "runtime": "assets/sfx/power-p31.wav",
+      "sha256": "f786acee9e2c5393a8bf3aa40fb07031d594166111ccffaf788d0553bffaf25e"
+    },
+    {
+      "original": "NkSfx/power/p32.wav",
+      "runtime": "assets/sfx/power-p32.wav",
+      "sha256": "2dfd7656f18d5a953160e483a9659658f0a5f3d8ed0037ae36e758b5085dd658"
+    },
+    {
+      "original": "NkSfx/power/p33.wav",
+      "runtime": "assets/sfx/power-p33.wav",
+      "sha256": "afac23135f190154647de73ecb29739fc5001a83020e3938b315eb454100fbd1"
+    },
+    {
+      "original": "NkSfx/power/p34.wav",
+      "runtime": "assets/sfx/power-p34.wav",
+      "sha256": "d00edc1ab8a21bc98a8075d754b29db3f475aae21b0a13eed5cef40783981a82"
+    },
+    {
+      "original": "NkSfx/power/p35.wav",
+      "runtime": "assets/sfx/power-p35.wav",
+      "sha256": "7e4e89e638519f63440c44eda8a053d8d56bf99c3c0a225e16bc462e08aa1ae1"
+    },
+    {
+      "original": "NkSfx/power/p36.wav",
+      "runtime": "assets/sfx/power-p36.wav",
+      "sha256": "4b6ab7356187e0139e6d44fcc3d1ffb839354a27136c9f62b67fb3cae36e5e2d"
+    },
+    {
+      "original": "NkSfx/power/p37.wav",
+      "runtime": "assets/sfx/power-p37.wav",
+      "sha256": "9346e7ee6480db65af607b992a1dd582e08d06f97cc3b3ce0016e28ad3c5543e"
+    },
+    {
+      "original": "NkSfx/power/p38.wav",
+      "runtime": "assets/sfx/power-p38.wav",
+      "sha256": "18a90b0dd8f6935e022db0a48a5bc5a06ccf7eff9ac85b605327bb7c4610b50e"
+    },
+    {
+      "original": "NkSfx/power/p39.wav",
+      "runtime": "assets/sfx/power-p39.wav",
+      "sha256": "614e185944097de6a380011e5e20fd1ae4f48692aa05dccfabff5ecd21c00b1d"
+    },
+    {
+      "original": "NkSfx/power/p40.wav",
+      "runtime": "assets/sfx/power-p40.wav",
+      "sha256": "514d4fdfa32bcecd7ec2c4f19601dc986cb28ef11cd1f17ce8409210e5978528"
+    },
+    {
+      "original": "NkSfx/pulse.wav",
+      "runtime": "assets/sfx/pulse.wav",
+      "sha256": "aa3843a229946b1797414a7168ce1992ec5b102bd8e14a663043f50763bbc964"
+    },
+    {
+      "original": "NkSfx/robot.wav",
+      "runtime": "assets/sfx/robot.wav",
+      "sha256": "1ad8e1d21c3e1a93450925a98c36a92432d4b3b732dca8821229ff22ea778d5d"
+    },
+    {
+      "original": "NkSfx/shield.wav",
+      "runtime": "assets/sfx/shield.wav",
+      "sha256": "5996de8bf87e5326fd513941242e470be4a07ee6ac126734b9ea9ba08fb66f15"
+    },
+    {
+      "original": "NkSfx/slash.wav",
+      "runtime": "assets/sfx/slash.wav",
+      "sha256": "8c6e025d74ffcd65124623c56c79025fa187b9edf612d62a141a1686d116da2a"
+    },
+    {
+      "original": "NkStory/comic_abundance.jpg",
+      "runtime": "assets/story/comic_abundance.jpg",
+      "sha256": "781d5945d3676af419d1fe7b76f29d1af58e06fadf3344c1301563dfdcca6fe6"
+    },
+    {
+      "original": "NkStory/comic_contestant.jpg",
+      "runtime": "assets/story/comic_contestant.jpg",
+      "sha256": "74f01736029f0603fa471127e63c4474db603df121ecfd1a5aafb77b8c5f4ea6"
+    },
+    {
+      "original": "NkStory/comic_orbs.jpg",
+      "runtime": "assets/story/comic_orbs.jpg",
+      "sha256": "65e7ef0f6e16a3306c9b0bba3e89f025e67b4d85660600a77940c4002cddb4db"
+    },
+    {
+      "original": "NkStory/comic_studio.jpg",
+      "runtime": "assets/story/comic_studio.jpg",
+      "sha256": "b5132d4c8e3e92f6c7678dd0a0b1ead04d59c0ff52a732546f3b1dd184f4fc48"
+    },
+    {
+      "original": "NkStory/credit.jpg",
+      "runtime": "assets/story/credit.jpg",
+      "sha256": "d8480cba7b73994122ce03ae663adaec08cf52b4e6789666cff8e5c94bac692b"
+    },
+    {
+      "original": "NkStory/fm_logo.png",
+      "runtime": "assets/story/fm_logo.png",
+      "sha256": "8c18c4f38fc6d41e61826f3eb45742733db155a1a504c70d38d6c1f391e1fb9c"
+    },
+    {
+      "original": "NkStory/host_gold.jpg",
+      "runtime": "assets/story/host_gold.jpg",
+      "sha256": "4273ae3908d45905b18ff15953b029c810e3c6e3eed3d699710082d0cdf4ee4b"
+    },
+    {
+      "original": "NkStory/host_magenta.jpg",
+      "runtime": "assets/story/host_magenta.jpg",
+      "sha256": "754f7b9e3e4bc52d486e3154279e70cb20a5739590e1485b44af1238552001e0"
+    },
+    {
+      "original": "NkStory/tut_fight.jpg",
+      "runtime": "assets/story/tut_fight.jpg",
+      "sha256": "69c158d91e80f65a2d009789e95647f28aee1931e2041727276f467fbf3e29d2"
+    },
+    {
+      "original": "NkStory/tut_fly.jpg",
+      "runtime": "assets/story/tut_fly.jpg",
+      "sha256": "66fc9ce2a93a14414482af20638daab0210cc2f553ac22ae62df62b8e96d8b7f"
+    },
+    {
+      "original": "NkStory/tut_foes.jpg",
+      "runtime": "assets/story/tut_foes.jpg",
+      "sha256": "a0b44ac8a4ea28e1c419995793d8ce3428eff05a96e2f5b367dc5a7052d63be5"
+    },
+    {
+      "original": "NkStory/tut_tools.jpg",
+      "runtime": "assets/story/tut_tools.jpg",
+      "sha256": "72a45575d661a8b279b805ac0156e116c69aab64524a251d77bde6992e2d69ec"
+    },
+    {
+      "original": "NkStory/tut_world.jpg",
+      "runtime": "assets/story/tut_world.jpg",
+      "sha256": "142cfc68acab5a8886cf5895f0316442126805101fe821814a3a64e2569a3131"
+    }
+  ]
+}

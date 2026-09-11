@@ -1,43 +1,71 @@
-import * as T from '../vendor/three.module.js';
-const shell=new T.MeshStandardMaterial({color:0x293c56,roughness:.32,metalness:.8});
-const dark=new T.MeshStandardMaterial({color:0x09131c,roughness:.62,metalness:.5});
-const red=new T.MeshStandardMaterial({color:0xb52235,emissive:0xf91d37,emissiveIntensity:1.6,metalness:.35,roughness:.25});
-const teal=new T.MeshStandardMaterial({color:0x1cd9b6,emissive:0x28eec1,emissiveIntensity:1.5,roughness:.3,metalness:.4});
-const brass=new T.MeshStandardMaterial({color:0xc6964b,roughness:.38,metalness:.75});
-function part(group,geo,mat,x=0,y=0,z=0,sx=1,sy=1,sz=1){const m=new T.Mesh(geo,mat);m.position.set(x,y,z);m.scale.set(sx,sy,sz);group.add(m);return m;}
-const sphere=new T.SphereGeometry(1,12,8), box=new T.BoxGeometry(1,1,1), octa=new T.OctahedronGeometry(1,1), ring=new T.TorusGeometry(.36,.038,6,24);
-export function makeDrone(){
-  const g=new T.Group();
-  part(g,octa,shell,0,0,0,.49,.38,.57);
-  part(g,sphere,dark,0,0,.35,.36,.24,.27);
-  part(g,sphere,red,0,0,.54,.25,.10,.075);
-  part(g,ring,brass,0,0,-.3);
-  for(let i=0;i<4;i++){
-    const a=i*Math.PI/2+Math.PI/4,x=Math.cos(a),y=Math.sin(a);
-    const fin=part(g,box,shell,x*.43,y*.43,-.05,.14,.48,.42);fin.rotation.z=a-Math.PI/2;
-    part(g,sphere,red,x*.54,y*.54,-.30,.07,.07,.14);
-    part(g,box,brass,x*.44,y*.44,.14,.13,.07,.15).rotation.z=a;
-  }
-  return g;
-}
-export function makeBlaster(){
-  const g=new T.Group();
-  part(g,box,shell,0,0,-.15,.095,.12,.32);
-  part(g,box,dark,0,-.105,-.025,.075,.18,.1).rotation.x=-.22;
-  part(g,box,brass,0,.07,-.20,.07,.04,.22);
-  part(g,box,teal,0,.10,-.12,.015,.018,.09);
-  const barrel=part(g,new T.CylinderGeometry(.035,.044,.18,12),dark,0,.014,-.39);barrel.rotation.x=Math.PI/2;
-  const rim=part(g,new T.TorusGeometry(.034,.008,5,16),teal,0,.014,-.48);
-  const flash=part(g,new T.ConeGeometry(.055,.19,8),new T.MeshBasicMaterial({color:0xffd5ab}),0,.014,-.58);flash.rotation.x=-Math.PI/2;flash.visible=false;g.userData.flash=flash;
-  return g;
-}
-// Combine authored pieces that share a material. Used by the batching pass.
-export function mergeParts(root){
-  const buckets=new Map();root.updateMatrixWorld(true);
-  root.traverse(o=>{if(!o.isMesh)return;let b=buckets.get(o.material);if(!b){b=[];buckets.set(o.material,b);}const geom=(o.geometry.index?o.geometry.toNonIndexed():o.geometry.clone()).applyMatrix4(o.matrixWorld);b.push(geom);});
-  return [...buckets].map(([material,geos])=>{
-    const geom=new T.BufferGeometry();
-    for(const key of ['position','normal','uv']){let length=0;for(const g of geos)length+=g.getAttribute(key).array.length;const a=new Float32Array(length);let at=0;for(const g of geos){const data=g.getAttribute(key).array;a.set(data,at);at+=data.length;}geom.setAttribute(key,new T.BufferAttribute(a,key==='uv'?2:3));}
-    for(const g of geos)g.dispose();geom.computeBoundingSphere();return {geometry:geom,material};
-  });
-}
+import {T,V} from './math.js';
+import {PETS,DRONES} from './data.js';
+import {canvas,texture} from './textures.js';
+const matCache=new Map();
+export function material(color,metalness=.5,roughness=.36,glow=0){const key=[color,metalness,roughness,glow].join();if(!matCache.has(key))matCache.set(key,new T.MeshStandardMaterial({color,metalness,roughness,emissive:glow?color:0,emissiveIntensity:glow}));return matCache.get(key);}
+export const M={steel:material(0x8b9cad,.82,.28),dark:material(0x17202c,.68,.36),black:material(0x080e18,.3,.55),brass:material(0xd6a65c,.78,.25),teal:material(0x60f3df,.35,.24,1.5),red:material(0xff454f,.25,.3,1.3),white:material(0xecf7ff,.5,.26),bone:material(0xe8deb7,.12,.36),plasma:material(0xbf7aff,.3,.18,2.2)};
+export const G={box:new T.BoxGeometry(1,1,1),sphere:new T.SphereGeometry(1,16,10),ico:new T.IcosahedronGeometry(1,1),cyl:new T.CylinderGeometry(1,1,1,16),cone:new T.ConeGeometry(1,1,12),torus:new T.TorusGeometry(1,.065,6,32),oct:new T.OctahedronGeometry(1,0)};
+export function part(root,geo,mat,p=[0,0,0],scale=[1,1,1],rot=null){const m=new T.Mesh(typeof geo==='string'?G[geo]:geo,mat);m.position.fromArray(p);m.scale.fromArray(scale);if(rot)m.rotation.set(...rot);root.add(m);return m;}
+function group(root,name,p=[0,0,0]){const g=new T.Group();g.name=name;g.position.fromArray(p);root.add(g);return g;}
+export function mergeParts(root){const buckets=new Map();root.updateMatrixWorld(true);root.traverse(o=>{if(!o.isMesh)return;const b=buckets.get(o.material)||[];if(!b.length)buckets.set(o.material,b);b.push((o.geometry.index?o.geometry.toNonIndexed():o.geometry.clone()).applyMatrix4(o.matrixWorld));});return [...buckets].map(([material,geos])=>{const geometry=new T.BufferGeometry();for(const name of ['position','normal','uv']){const arrays=geos.map(g=>g.getAttribute(name)?.array||new Float32Array(g.attributes.position.count*(name==='uv'?2:3))),data=new Float32Array(arrays.reduce((a,b)=>a+b.length,0));let at=0;for(const a of arrays){data.set(a,at);at+=a.length;}geometry.setAttribute(name,new T.BufferAttribute(data,name==='uv'?2:3));}for(const g of geos)g.dispose();geometry.computeBoundingSphere();return {geometry,material};});}
+function muzzle(root,p,color=M.teal,size=1){const g=group(root,'muzzle',p);part(g,'cyl',M.dark,[0,0,0],[.1*size,.24*size,.1*size],[Math.PI/2,0,0]);part(g,'torus',color,[0,0,.13*size],[.1*size,.1*size,.1*size]);return g;}
+export function weaponModel(kind){const g=new T.Group();if(kind==='cannon'){
+ part(g,'box',M.dark,[0,-.065,.10],[.15,.17,.32]);part(g,'box',M.steel,[0,.018,.10],[.19,.12,.34]);part(g,'cyl',M.steel,[0,.018,.28],[.074,.3,.074],[Math.PI/2,0,0]);part(g,'torus',M.brass,[0,.018,.43],[.082,.082,.082]);
+ for(const x of [-1,1]){part(g,'box',M.brass,[x*.106,.018,.21],[.03,.065,.27]);part(g,'box',M.teal,[x*.109,.018,.22],[.016,.028,.17]);}
+ for(let i=0;i<5;i++)part(g,'torus',M.dark,[0,.018,.17+i*.044],[.081,.081,.081]);part(g,'cyl',M.teal,[0,.018,.431],[.06,.009,.06],[Math.PI/2,0,0]);part(g,'box',M.dark,[0,-.17,.02],[.105,.21,.12],[.22,0,0]);part(g,'box',M.brass,[0,.098,.065],[.055,.036,.15]);
+ }else{
+ part(g,'cyl',M.dark,[0,0,.01],[.042,.27,.042],[Math.PI/2,0,0]);for(let i=0;i<6;i++)part(g,'torus',M.brass,[0,0,-.09+i*.035],[.043,.043,.043]);part(g,'box',M.steel,[0,0,.17],[.32,.045,.085]);part(g,'box',M.brass,[0,0,.17],[.35,.027,.042]);part(g,'box',M.dark,[0,0,.25],[.11,.065,.17]);
+ const blade=new T.Shape();blade.moveTo(-.065,0);blade.lineTo(-.06,.7);blade.lineTo(0,.91);blade.lineTo(.06,.7);blade.lineTo(.065,0);blade.closePath();const geo=new T.ExtrudeGeometry(blade,{depth:.025,bevelEnabled:true,bevelSegments:1,steps:1,bevelSize:.008,bevelThickness:.005});geo.rotateX(Math.PI/2);part(g,geo,M.white,[0,.012,.25]);part(g,'box',M.teal,[0,-.018,.65],[.018,.022,.75]);part(g,'oct',M.teal,[0,0,.23],[.055,.055,.1]);
+ }return g;}
+function drone(kind){const g=new T.Group(),tint=material(DRONES[kind][2],.56,.29),glow=material(DRONES[kind][2],.15,.23,1.8);
+ const profile=[[.02,-.2],[.25,-.22],[.58,-.08],[.66,.02],[.55,.1],[.25,.17],[.02,.18]].map(([x,y])=>new T.Vector2(x,y));part(g,new T.LatheGeometry(profile,20),tint);part(g,'sphere',M.dark,[0,.11,0],[.29,.24,.29]);part(g,'torus',M.steel,[0,-.015,0],[.57,.57,.57],[Math.PI/2,0,0]);part(g,'sphere',glow,[0,.1,.25],[.22,.075,.05]);
+ for(let i=0;i<4;i++){const a=i*Math.PI/2;part(g,'box',M.steel,[Math.sin(a)*.51,-.03,Math.cos(a)*.51],[.17,.11,.38],[0,a,0]);part(g,'sphere',glow,[Math.sin(a)*.59,-.10,Math.cos(a)*.59],[.055,.045,.055]);}if(kind===6)for(const x of [-.4,.4])muzzle(g,[x,-.18,.25],M.red,.9);if(kind===4)part(g,'torus',material(0xffd53a,.3,.3,1),[0,.12,0],[.73,.73,.73],[Math.PI/2,0,0]);return g;}
+function knight(white){const g=new T.Group(),armor=white?M.white:material(0x292232,.8,.32),trim=white?M.brass:M.red,glow=white?M.teal:M.red;
+ part(g,'ico',armor,[0,.2,0],[.52,.7,.31]);part(g,'ico',M.dark,[0,-.42,0],[.38,.28,.29]);part(g,'box',trim,[0,.24,.3],[.14,.38,.045]);part(g,'ico',M.steel,[0,.05,.3],[.25,.2,.09]);
+ const head=group(g,'head',[0,.98,0]);part(head,'ico',armor,[0,0,0],[.28,.35,.24]);part(head,'box',M.black,[0,.05,.219],[.42,.11,.06]);part(head,'box',glow,[0,.06,.252],[.35,.045,.025]);part(head,'cone',trim,[0,.36,-.04],[.13,.34,.13]);
+ for(const side of [-1,1]){const leg=group(g,'leg'+side,[side*.25,-.58,0]);part(leg,'ico',armor,[0,-.2,0],[.2,.36,.23]);part(leg,'sphere',M.steel,[0,-.47,.03],[.15,.15,.15]);part(leg,'box',armor,[0,-.69,0],[.26,.4,.29]);part(leg,'box',M.dark,[0,-.9,.1],[.3,.16,.5]);
+  const arm=group(g,'arm'+side,[side*.66,.56,0]);part(arm,'ico',armor,[0,0,0],[.31,.27,.31]);part(arm,'cyl',M.steel,[0,-.31,0],[.12,.42,.12]);part(arm,'sphere',M.brass,[0,-.55,0],[.15,.15,.15]);const fore=group(arm,'fore',[0,-.62,.06]);part(fore,'box',armor,[0,0,.14],[.3,.28,.5]);const gun=group(fore,'gun',[0,.015,.43]);muzzle(gun,[0,0,0],glow,1.6);const blade=group(fore,'blade',[0,-.16,.36]);part(blade,'box',glow,[0,0,.4],[.06,.025,.8]);}
+ if(white)for(const side of [-1,1]){const arm=group(g,'extra'+side,[side*.6,.04,-.15]);part(arm,'box',armor,[side*.28,0,0],[.55,.16,.22]);muzzle(arm,[side*.5,0,.16],glow,1.4);}
+ const cape=group(g,'cape',[0,.58,-.3]);part(cape,'box',white?M.white:material(0x391e3b,.2,.65),[0,-.75,-.17],[.95,1.6,.07],[-.16,0,0]);part(g,'torus',trim,[0,.12,-.36],[.38,.38,.38]);return g;}
+// Broad reptilian skull, swept horns and a separately hinged, tooth-lined jaw.
+export function hydraModel(){const g=new T.Group(),skin=material(0x4c8f88,.18,.43),ridge=material(0x284950,.34,.4),mouth=material(0x150d24,.05,.75),gum=material(0x8c365b,.05,.55);
+ part(g,'sphere',skin,[0,.12,.08],[.42,.3,.53]);part(g,'ico',ridge,[0,.22,-.16],[.34,.28,.35]);
+ part(g,'sphere',skin,[0,.07,.55],[.33,.18,.45]);part(g,'sphere',ridge,[0,.14,.78],[.26,.065,.14]);part(g,'sphere',mouth,[0,-.06,.53],[.30,.09,.43]);
+ for(const side of [-1,1]){part(g,'ico',ridge,[side*.35,.04,.16],[.15,.2,.33],[0,side*.2,side*-.12]);part(g,'sphere',material(0xe4b949,.25,.32,.35),[side*.32,.23,.37],[.10,.078,.13]);part(g,'sphere',M.black,[side*.39,.24,.405],[.018,.068,.024]);part(g,'sphere',ridge,[side*.31,.31,.33],[.15,.060,.20],[0,side*-.23,side*.16]);
+  part(g,'cone',M.bone,[side*.31,.5,-.25],[.10,.57,.1],[-.52,0,side*-.34]);part(g,'cone',ridge,[side*.4,.18,-.46],[.07,.28,.07],[-.9,0,side*-.7]);part(g,'sphere',M.black,[side*.17,.19,.85],[.055,.025,.045]);
+  for(let i=0;i<5;i++)part(g,'cone',M.bone,[side*(.22-.016*i),-.13,.23+i*.136],[.035,i===1?.20:.12,.038],[Math.PI,0,0]);}
+ for(let i=0;i<4;i++)part(g,'cone',ridge,[0,.35-i*.02,-.46+i*.18],[.08,.22-i*.025,.085],[-.25,0,0]);
+ const jaw=group(g,'jaw',[0,-.16,-.06]);part(jaw,'sphere',skin,[0,-.07,.52],[.30,.105,.48]);part(jaw,'sphere',mouth,[0,.017,.56],[.26,.035,.36]);part(jaw,'sphere',gum,[0,.045,.55],[.105,.04,.28]);
+ for(const side of [-1,1])for(let i=0;i<5;i++)part(jaw,'cone',M.bone,[side*(.225-i*.015),.105,.26+i*.13],[.031,i===0?.17:.11,.032]);part(jaw,'ico',ridge,[0,-.14,.37],[.2,.10,.29]);
+ return g;}
+function camel(){const g=new T.Group();part(g,'sphere',M.brass,[0,0,0],[.85,.53,1.1]);part(g,'ico',M.steel,[0,.5,-.15],[.52,.58,.55]);for(const x of [-.72,.72]){muzzle(g,[x,-.15,-.4],M.teal,2);part(g,'box',M.dark,[x,0,0],[.2,.5,.85]);}
+ const head=group(g,'head',[0,.7,.8]);for(let i=0;i<7;i++)part(head,'sphere',M.dark,[Math.sin(i*.25)*.16,i*.14,i*.13],[.2,.18,.2]);part(head,'box',M.brass,[.1,.93,.86],[.72,.42,.6]);part(head,'box',M.black,[.1,.98,1.17],[.62,.2,.035]);part(head,'box',M.red,[.1,.98,1.20],[.54,.09,.03]);return g;}
+function trilo(){const g=new T.Group();for(let i=0;i<7;i++){const rib=group(g,'rib'+i,[0,.1-i*.07,-.6+i*.22]);part(rib,'sphere',i%2?M.steel:M.dark,[0,0,0],[.58-Math.abs(i-3)*.045,.26,.20]);for(const x of [-1,1]){const leg=group(rib,'leg'+x,[x*.5,-.08,0]);part(leg,'box',M.brass,[x*.2,-.08,0],[.48,.11,.13],[0,0,-x*.5]);part(leg,'box',M.dark,[x*.43,-.3,.1],[.1,.4,.13],[.3,0,x*.1]);}}
+ const head=group(g,'head',[0,.18,.89]);part(head,'ico',M.steel,[0,0,0],[.4,.3,.4]);for(const x of [-.22,.22])part(head,'sphere',M.red,[x,.1,.32],[.07,.065,.05]);for(const s of [-1,1]){const arm=group(g,'arm'+s,[s*.65,.18,.5]);part(arm,'box',M.steel,[s*.15,0,.3],[.15,.15,.7],[0,s*.2,0]);part(arm,'cone',M.teal,[s*.2,-.1,.86],[.10,.6,.08],[Math.PI/2,0,s*.5]);}return g;}
+function lemur(){const g=new T.Group();part(g,'sphere',M.dark,[0,0,0],[.35,.25,.5]);for(const s of [-1,1])for(const z of [-.3,.3]){const leg=group(g,'leg'+s+z,[s*.28,-.04,z]);part(leg,'box',M.steel,[s*.22,-.1,.08],[.5,.1,.13],[0,0,-s*.4]);part(leg,'box',M.brass,[s*.44,-.24,.12],[.11,.26,.17]);}const head=group(g,'head',[0,.32,.26]);part(head,'sphere',M.brass,[0,0,0],[.4,.34,.3]);for(const x of [-.18,.18]){part(head,'torus',M.dark,[x,.04,.27],[.14,.14,.14]);part(head,'sphere',M.teal,[x,.04,.285],[.08,.09,.032]);part(head,'cone',M.dark,[x*1.7,.3,-.04],[.09,.3,.07]);}part(head,'cone',M.steel,[0,-.12,.3],[.06,.15,.07],[Math.PI/2,0,0]);return g;}
+function hornet(){const g=new T.Group();part(g,'sphere',M.dark,[0,0,0],[.48,.48,1.1]);part(g,'ico',M.brass,[0,.1,.8],[.51,.4,.53]);for(let i=0;i<3;i++)part(g,'torus',M.brass,[0,0,-.3-i*.27],[.44-i*.04,.44-i*.04,.44-i*.04]);for(const side of [-1,1]){for(let i=0;i<3;i++){const leg=group(g,'leg'+side+i,[side*.4,-.2,.5-i*.5]);part(leg,'box',M.steel,[side*.25,-.17,0],[.62,.08,.10],[0,0,-side*.6]);part(leg,'box',M.brass,[side*.51,-.51,.09],[.07,.58,.08],[.3,0,side*.25]);}
+ const rotor=group(g,'rotor'+side,[side*1.2,.48,-.15]);part(g,'box',M.steel,[side*.8,.25,-.15],[1.4,.12,.18]);part(rotor,'cyl',M.dark,[0,0,0],[.15,.25,.15]);part(rotor,'box',M.steel,[0,.13,0],[1.9,.025,.16]);part(rotor,'box',M.steel,[0,.13,0],[.16,.025,1.9]);muzzle(g,[side*.42,-.1,.89],M.red,1.3);}part(g,'sphere',M.red,[0,.16,1.2],[.27,.08,.055]);return g;}
+function pet(kind){const g=new T.Group(),skin=material(PETS[kind][3],.22,.4),dark=M.dark;part(g,'sphere',skin,[0,0,0],[.25,.22,.34]);const head=group(g,'head',[0,.2,.27]);part(head,'sphere',skin,[0,0,.03],[.25,.23,.27]);for(const x of [-.11,.11]){part(head,'sphere',M.white,[x,.05,.245],[.075,.09,.04]);part(head,'sphere',dark,[x,.05,.28],[.031,.047,.023]);}
+ if([0,1,3,5].includes(kind))for(const side of [-1,1])part(head,'cone',skin,[side*.16,kind===3?.36:.26,0],[.09,kind===3?.5:.25,.08],[0,0,side*-.2]);
+ if([2,5].includes(kind))for(const side of [-1,1]){const wing=group(g,'wing'+side,[side*.22,.07,0]);part(wing,'cone',skin,[side*.24,0,-.04],[.26,.57,.07],[0,0,side*-Math.PI/2]);}
+ if(kind===4)part(g,'ico',material(0x37633b,.3,.4),[0,.13,-.04],[.35,.27,.41]);if(kind===6){part(g,'cone',skin,[0,.33,-.05],[.14,.32,.09]);part(head,'cone',M.white,[0,-.09,.31],[.10,.17,.1],[Math.PI/2,0,0]);}if(kind===7)part(head,'sphere',skin,[0,-.045,.30],[.22,.11,.25]);
+ for(const s of [-1,1])for(const z of [-.18,.18])part(g,'sphere',skin,[s*.18,-.19,z],[.09,.11,.12]);part(g,'cone',skin,[0,-.015,-.47],[.10,.45,.10],[-Math.PI/2,0,0]);return g;}
+function prop(type,kind,meta={}){const g=new T.Group();if(type==='crate'||type==='cage'||type==='kennel'){
+ const size=type==='kennel'?[2.8,2.6,3]:type==='cage'?[1.45,1.45,1.45]:[1.1,1.1,1.1];if(type!=='cage')part(g,'box',type==='kennel'?M.dark:material(0x856646,.15,.67),[0,0,0],size);else {const captive=pet(kind);captive.position.y=-.12;captive.scale.setScalar(.85);g.add(captive);}
+ for(const x of [-1,1])for(const z of [-1,1])part(g,'box',M.steel,[x*size[0]/2,0,z*size[2]/2],[.085,size[1]+.05,.085]);for(const y of [-1,1])for(const z of [-1,1])part(g,'box',M.brass,[0,y*size[1]/2,z*size[2]/2],[size[0]+.12,.10,.10]);for(const y of [-1,1])for(const x of [-1,1])part(g,'box',M.steel,[x*size[0]/2,y*size[1]/2,0],[.10,.10,size[2]+.1]);
+ if(type!=='crate')for(let i=-2;i<=2;i++)part(g,'box',M.steel,[i*size[0]/5,0,size[2]/2+.02],[.035,size[1],.035]);else for(const z of [-.56,.56])part(g,'box',M.brass,[0,0,z],[1.45,.07,.025],[0,0,.77]);
+ }else if(type==='barrel'){part(g,'cyl',material(0x364955,.65,.36),[0,0,0],[.49,1.3,.49]);for(const y of [-.57,0,.57])part(g,'torus',M.brass,[0,y,0],[.51,.51,.51],[Math.PI/2,0,0]);part(g,'box',M.red,[0,.1,.49],[.28,.3,.02]);}
+ else if(type==='pad'||type==='island'){part(g,'cyl',type==='pad'?M.steel:material(0x282231,.2,.8),[0,0,0],[type==='pad'?1.7:1,.14,type==='pad'?1.7:1]);part(g,'torus',type==='pad'?M.teal:M.brass,[0,.08,0],[type==='pad'?1.67:1,type==='pad'?1.67:1,type==='pad'?1.67:1],[Math.PI/2,0,0]);}
+ else if(type==='window'){part(g,'box',M.dark,[0,0,0],[2.6,1.6,.16]);for(const x of [-1,1])part(g,'box',M.brass,[x*1.3,0,.05],[.08,1.65,.16]);}
+ else if(type==='blimp'){part(g,'sphere',M.brass,[0,0,0],[1.3,.85,2.4]);part(g,'box',M.dark,[0,-.8,.15],[.8,.4,1.4]);for(const a of [0,Math.PI/2,Math.PI,-Math.PI/2])part(g,'box',M.teal,[Math.sin(a)*.75,Math.cos(a)*.65,-1.85],[.06,.8,.8],[0,0,-a]);for(const z of [-1.4,0,1.4])part(g,'torus',M.dark,[0,0,z],[1.08,.78,1]);}
+ else if(type==='marquee'){const radius=meta.radius||25,pieces=meta.pieces||6,half=Math.PI/pieces,height=meta.height||3,n=12,positions=[],uv=[],indices=[];for(let i=0;i<=n;i++){const angle=-half+i/n*half*2;for(const y of [-height/2,height/2]){positions.push(Math.sin(angle)*radius,y,radius*(1-Math.cos(angle)));uv.push(i/n*2,y<0?0:1);}}for(let i=0;i<n;i++){const a=i*2;indices.push(a,a+1,a+2,a+1,a+3,a+2);}const geo=new T.BufferGeometry();geo.setAttribute('position',new T.Float32BufferAttribute(positions,3));geo.setAttribute('uv',new T.Float32BufferAttribute(uv,2));geo.setIndex(indices);geo.computeVertexNormals();part(g,geo,tickerMaterial(kind));}
+ else if(type==='hullChunk'){part(g,'box',M.steel,[0,0,0],[2.4,.2,1.8]);part(g,'box',M.dark,[0,.14,0],[1.8,.08,.16]);part(g,'box',M.teal,[.9,.11,0],[.05,.018,1.6]);}
+
+ else if(type==='missilePickup'){part(g,'cyl',M.steel,[0,0,0],[.09,.7,.09],[Math.PI/2,0,0]);part(g,'cone',M.red,[0,0,.46],[.09,.25,.09],[Math.PI/2,0,0]);part(g,'box',M.brass,[0,0,-.25],[.45,.03,.18]);}
+ else if(type==='hatch'){part(g,'cyl',M.dark,[0,0,0],[1,.06,1],[Math.PI/2,0,0]);for(let i=0;i<6;i++)part(g,'box',M.steel,[Math.cos(i*1.047)*.48,Math.sin(i*1.047)*.48,.04],[.7,.42,.045],[0,0,i*1.047]);}
+ return g;}
+export function buildModel(type,kind=0,meta={}){if(type==='drone')return drone(kind);if(type==='knight')return knight(!!kind);if(type==='hydra')return hydraModel();if(type==='camel')return camel();if(type==='trilo')return trilo();if(type==='lemur')return lemur();if(type==='hornet')return hornet();if(type==='pet')return pet(kind);return prop(type,kind,meta);}
+
+const tickerMats=[];
+function tickerMaterial(kind){if(!tickerMats.length){const c=canvas(1024,128),x=c.getContext('2d');x.fillStyle='#0a1424';x.fillRect(0,0,1024,128);x.fillStyle='#638fa6';x.fillRect(0,0,1024,4);x.fillRect(0,124,1024,4);x.font='bold 48px sans-serif';x.fillStyle='#c6f6e9';x.fillText('NET KNIGHT  ◆  LIVE  ✦  ARENA  ◇',18,75);x.font='16px monospace';x.fillStyle='#f9bb76';x.fillText('THE NETWORK IS WATCHING   /   ZERO GRAVITY   /   STAY IN THE GAME',22,106);for(let i=0;i<2;i++){const t=texture(c);t.wrapS=T.RepeatWrapping;tickerMats.push(new T.MeshBasicMaterial({map:t,side:T.DoubleSide,toneMapped:false}));}}return tickerMats[kind%2];}
+export function tickTicker(time){tickerMats.forEach((m,i)=>m.map.offset.x=time*(i?-.12:.12));}

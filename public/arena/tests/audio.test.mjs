@@ -1,11 +1,3 @@
-import test from 'node:test';
-import assert from 'node:assert/strict';
-import {Sound} from '../js/audio.js';
-class Param {constructor(){this.value=0;}setTargetAtTime(v){this.value=v;}}
-class Node {constructor(){for(const k of ['gain','threshold','knee','ratio','attack','release','positionX','positionY','positionZ'])this[k]=new Param();}connect(){}disconnect(){}start(){}}
-class Context {constructor(){this.sampleRate=48000;this.currentTime=0;this.state='running';this.destination=new Node();}createGain(){return new Node();}createDynamicsCompressor(){return new Node();}createPanner(){return new Node();}createBufferSource(){return new Node();}createBuffer(ch,n,rate){const data=new Float32Array(n);return {duration:n/rate,getChannelData:()=>data};}}
-test('synthesized sound buffers contain finite, audible, unclipped samples; voice count stays bounded',()=>{
-  globalThis.window={AudioContext:Context};const s=new Sound();s.init();assert.ok(s.ctx);assert.equal(s.voices.length,20);assert.equal(s.droneLoops.length,4);
-  for(const [name,buffer]of Object.entries(s.buffers)){let sum=0,peak=0;const a=buffer.getChannelData(0);for(const x of a){assert.ok(Number.isFinite(x),name);sum+=x*x;peak=Math.max(peak,Math.abs(x));}assert.ok(peak<=1,name+' clipped');assert.ok(Math.sqrt(sum/a.length)>.001,name+' silent');}
-  for(let i=0;i<100;i++)s.play('shot');assert.equal(s.voices.filter(v=>v.source).length,20);assert.equal(s.voices.length,20);delete globalThis.window;
-});
+import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import {hydraCharge,petChirp} from '../js/synthesis.js';
+test('charge and species cues contain finite, unclipped audio with faded ends',()=>{for(const a of [hydraCharge(),...Array.from({length:8},(_,i)=>petChirp(i))]){let power=0,peak=0;for(const s of a){assert.ok(Number.isFinite(s));peak=Math.max(peak,Math.abs(s));power+=s*s;}assert.ok(peak<.95);assert.ok(Math.sqrt(power/a.length)>.02);assert.ok(Math.abs(a[0])<.001);assert.ok(Math.abs(a.at(-1))<.003);}});
+test('all original local sound and music files remain in the package',()=>{const root=new URL('../assets/',import.meta.url),sfx=fs.readdirSync(new URL('sfx/',root));assert.equal(sfx.filter(s=>s.endsWith('.wav')).length,43);for(const f of sfx){const b=fs.readFileSync(new URL('sfx/'+f,root));assert.equal(b.toString('ascii',0,4),'RIFF');assert.equal(b.toString('ascii',8,12),'WAVE');assert.ok(b.length>100);}assert.equal(fs.readdirSync(new URL('music/',root)).filter(s=>s.endsWith('.mp3')).length,5);});
