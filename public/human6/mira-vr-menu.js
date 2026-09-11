@@ -1,21 +1,21 @@
-import {FURNITURE,SURFACES} from './mira-v2-builder.js?v=17.2.0';
-import {WEAPONS} from './mira-v2-props.js?v=17.2.0';
-import {draft,saveDraft,OUTFITS,PERSONAS,clothingItems,setDraftGarment} from './mira-v2-catalog.js?v=17.2.0';
-import {SCENES} from './mira-v2-world.js?v=17.2.0';
-import {GARMENTS} from './mira-v2-wardrobe.js?v=17.2.0';
+import {FURNITURE,SURFACES} from './mira-v2-builder.js?v=17.5.0';
+import {WEAPONS} from './mira-v2-props.js?v=17.5.0';
+import {draft,saveDraft,OUTFITS,PERSONAS,clothingItems,setDraftGarment} from './mira-v2-catalog.js?v=17.5.0';
+import {SCENES} from './mira-v2-world.js?v=17.5.0';
+import {GARMENTS} from './mira-v2-wardrobe.js?v=17.5.0';
 import * as THREE from 'three';
-import {SLIDERS,FACE_TYPES} from './mira-v2.js?v=17.2.0';
-import {shapeSliders,FACE_PRESETS,HAIR_STYLES,ACTIVITY_MODES,ACTION_LABELS,POSE_LABELS,ATTENTION_MODES,ATTENTION_LABELS} from './mira-v2-controls.js?v=17.2.0';
-import {HAIR_COLORS} from './mira-v2.js?v=17.2.0';
-import {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES} from './mira-v2-features.js?v=17.2.0';
+import {SLIDERS,FACE_TYPES} from './mira-v2.js?v=17.5.0';
+import {shapeSliders,FACE_PRESETS,HAIR_STYLES,ACTIVITY_MODES,ACTION_LABELS,POSE_LABELS,ATTENTION_MODES,ATTENTION_LABELS} from './mira-v2-controls.js?v=17.5.0';
+import {HAIR_COLORS} from './mira-v2.js?v=17.5.0';
+import {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES} from './mira-v2-features.js?v=17.5.0';
 export function createVRMenu({scene,renderer,camera,system,spawn,onSync,world,wardrobe,spawnConfigured,copyConfiguration,props,saveScene,loadScene}){
  const canvas=document.createElement('canvas');canvas.width=1024;canvas.height=1320;
  const ctx=canvas.getContext('2d'),tex=new THREE.CanvasTexture(canvas);tex.colorSpace=THREE.SRGBColorSpace;
  const panel=new THREE.Mesh(new THREE.PlaneGeometry(.74,.954),new THREE.MeshBasicMaterial({map:tex,side:THREE.DoubleSide,toneMapped:false,depthTest:false,depthWrite:false}));
- panel.visible=false;panel.renderOrder=20;scene.add(panel);
+ panel.visible=false;panel.renderOrder=20;scene.add(panel);system.vrPanel=panel;
  const rays=system.hands.ctrl.map(ctrl=>{const line=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(),new THREE.Vector3(0,0,-2)]),new THREE.LineBasicMaterial({color:0x9bd6ff}));line.visible=false;ctrl.add(line);return line;});
  const raycaster=new THREE.Raycaster(),q=new THREE.Quaternion(),v=new THREE.Vector3();
- let page=4,shapePage=0,items=[],open=false,drag=[null,null],stamp='',lastDraw=0,notice='',hover=[-1,-1],cursor=[null,null],editField=null,bodyDraft=false,editClothes=false,editVisual=false,garmentIndex=0,weaponIndex=0,lastController=1,npcView='spawn';
+ let page=4,shapePage=0,items=[],open=false,drag=[null,null],stamp='',lastDraw=0,notice='',hover=[-1,-1],cursor=[null,null],editField=null,bodyDraft=false,editClothes=false,editVisual=false,garmentIndex=0,weaponIndex=0,lastController=1,npcView='spawn',weaponCategory='firearm',equipmentPage=0,equipmentMode='equip';
  const modes=ACTIVITY_MODES;
  function active(){return system.selected;}
  function draw(){
@@ -23,12 +23,41 @@ export function createVRMenu({scene,renderer,camera,system,spawn,onSync,world,wa
   ctx.fillStyle='#eef7ff';ctx.font='bold 42px sans-serif';ctx.fillText('MIRA · BUILD & PLAY',40,62);
   ctx.font='26px sans-serif';ctx.fillStyle='#b7c8d8';ctx.fillText('Y: close  ·  point + trigger to adjust',40,105);
   function button(label,x,y,w,h,fn){ctx.fillStyle='#26384b';ctx.fillRect(x,y,w,h);ctx.fillStyle='#edf6ff';ctx.font='25px sans-serif';ctx.textAlign='center';ctx.fillText(label,x+w/2,y+h/2+10);ctx.textAlign='left';items.push({x,y,w,h,fn});}
-  const sections=[{name:'CHARACTER',tabs:[[0,'ACTOR'],[1,'BODY'],[2,'STYLE'],[3,'MOOD'],[4,'POSES'],[6,'CREATE']]},{name:'WORLD',tabs:[[5,'SCENE'],[9,'BUILD'],[10,'TRAVEL']]},{name:'GEAR',tabs:[[7,'LINKS'],[8,'DRIVE']]},{name:'PLAY',tabs:[[11,'NPCs'],[12,'PETS']]}];
+  const sections=[{name:'CHARACTER',tabs:[[0,'ACTOR'],[1,'BODY'],[2,'STYLE'],[3,'MOOD'],[4,'POSES'],[6,'CREATE']]},{name:'WORLD',tabs:[[5,'SCENE'],[9,'BUILD'],[10,'TRAVEL'],[14,'PERFORMANCE']]},{name:'GEAR',tabs:[[15,'WEAPONS / TOOLS'],[16,'VEHICLES'],[8,'DRIVE'],[7,'LINKS']]},{name:'PLAY',tabs:[[11,'NPCs'],[12,'PETS'],[13,'NATURE']]}];
   const section=sections.findIndex(s=>s.tabs.some(t=>t[0]===page));sections.forEach((s,i)=>button((i===section?'• ':'')+s.name,16+i*251,136,242,54,()=>{page=s.tabs[0][0];draw();}));
   const tabs=sections[Math.max(0,section)].tabs,w=992/tabs.length;tabs.forEach(([id,n],i)=>button((id===page?'• ':'')+n,16+i*w,202,w-8,50,()=>{page=id;draw();}));
   const a=active();ctx.font='30px sans-serif';ctx.fillStyle='#aed8fb';ctx.fillText(a?`${a.displayName||'NPC'} · ${a.version.toUpperCase()}`:'No actor selected',40,292);button('NEXT NPC',760,263,220,40,()=>{const list=system.actors;system.select(list[(list.indexOf(a)+1)%list.length]);draw();});
   function cycle(label,y,values,get,set){const val=get();ctx.fillStyle='#c9d6e2';ctx.font='28px sans-serif';ctx.fillText(label,40,y);button('‹',40,y+18,90,70,()=>{set(values[(values.indexOf(val)+values.length-1)%values.length]);onSync?.();draw();});button(String(val),144,y+18,734,70,()=>{set(values[(values.indexOf(val)+1)%values.length]);onSync?.();draw();});button('›',892,y+18,90,70,()=>{set(values[(values.indexOf(val)+1)%values.length]);onSync?.();draw();});}
-  if(page===11){
+  if(page===16){
+   const v=world.h5VehicleSpawns;
+   Object.entries(v?.VEHICLE_SPECS||{}).forEach(([id,s],i)=>button('SPAWN '+s.name.toUpperCase(),40,335+i*88,942,68,()=>{v.spawn(id);notice=props.status;draw();}));
+   const all=props.cars();cycle('Selected vehicle',850,all.map((c,i)=>(i+1)+': '+c.carName),()=>v?.selected?(all.indexOf(v.selected)+1)+': '+v.selected.carName:'None',label=>v.selected=all[parseInt(label)-1]);
+   button('ENTER / EXIT',40,1000,455,68,()=>{v?.selected?.enter();draw();});button('REMOVE SPAWN',515,1000,467,68,()=>{v?.remove();notice=props.status;draw();});
+   ctx.font='25px sans-serif';ctx.fillStyle='#d9e6f2';ctx.fillText('Vehicle spawns: '+(v?.spawned.size||0)+' / '+(v?.cap||4),40,1160);ctx.fillText('Spawn on a clear road. Damage affects power and steering.',40,1220);
+  }else if(page===15){
+   const categories=[['firearm','FIREARMS'],['melee','MELEE'],['tool','TOOLS'],['launcher','LAUNCHERS'],['spell','SPELLS']];
+   categories.forEach(([id,label],i)=>button((weaponCategory===id?'• ':'')+label,24+i*198,325,188,60,()=>{weaponCategory=id;equipmentPage=0;draw();}));
+   button(equipmentMode==='equip'?'EQUIP IN HAND':'SPAWN IN FRONT',40,410,942,65,()=>{equipmentMode=equipmentMode==='equip'?'spawn':'equip';draw();});
+   const all=Object.entries(WEAPONS).filter(([id,w])=>w.category===weaponCategory||weaponCategory==='tool'&&!w.category),pages=Math.max(1,Math.ceil(all.length/8));equipmentPage=Math.min(equipmentPage,pages-1);
+   all.slice(equipmentPage*8,equipmentPage*8+8).forEach(([id,w],i)=>button(w.name,40+(i%2)*475,505+Math.floor(i/2)*100,457,78,()=>{world.h5Equipment?.spawn(id,{equip:equipmentMode==='equip',hand:system.hands.handedness[lastController]||'right'});notice=props.status;draw();}));
+   button('‹ PREVIOUS',40,925,290,66,()=>{equipmentPage=(equipmentPage+pages-1)%pages;draw();});ctx.font='27px sans-serif';ctx.fillText((equipmentPage+1)+' / '+pages,477,968);button('NEXT ›',690,925,292,66,()=>{equipmentPage=(equipmentPage+1)%pages;draw();});
+   button('CLEAR UNHELD SPAWNS',40,1040,455,67,()=>{world.h5Equipment?.clearLoose();notice=props.status;draw();});button('CLEAR PORTALS',515,1040,467,67,()=>props.gadgets?.clearPortals());
+   ctx.font='25px sans-serif';ctx.fillStyle='#d9e6f2';ctx.fillText('Scope: holding-hand stick forward / back = 2–12× zoom.',40,1180);ctx.fillText('Portals alternate blue and orange. Aim at a broad wall.',40,1220);
+  }else if(page===14){
+   const budget=world.h5Performance?.budget,row=budget?.samples.at(-1);ctx.font='29px sans-serif';ctx.fillStyle='#d9e6f2';
+   ctx.fillText('Target: '+(budget?.targetHz||72)+' Hz',40,365);ctx.fillText('CPU work: '+(row?row.cpu.toFixed(1)+' ms':'collecting'),40,425);ctx.fillText('GPU work: '+(Number.isFinite(budget?.lastGPU)?budget.lastGPU.toFixed(1)+' ms':'timer unavailable'),40,485);ctx.fillText('Draw calls: '+(row?.calls??'—')+' · triangles: '+(row?.triangles??'—'),40,545);
+   cycle('Performance profile',650,['auto','detail','balanced','sustain'],()=>budget?.adaptive?'auto':['detail','balanced','sustain'][budget?.tier||0],v=>{if(!budget)return;budget.adaptive=v==='auto';if(v!=='auto')budget.setTier(['detail','balanced','sustain'].indexOf(v));});
+   button('EXPORT PERFORMANCE REPORT',40,850,942,76,()=>world.h5Performance?.downloadReport());
+   const pop=world.h5Ecology?.population;button('CITY ACTIVITY: '+(pop?.enabled?'ON':'OFF'),40,955,942,76,()=>{if(pop)pop.enabled=!pop.enabled;draw();});
+   ctx.font='25px sans-serif';ctx.fillText('Use Sustain if the session is slowing down.',40,1110);ctx.fillText('Run a warm session before exporting the report.',40,1160);
+  }else if(page===13){
+   const e=world.h5Ecology;
+   button('EQUIP FISHING ROD',40,345,942,75,()=>{const id=props.system.hands.handedness.indexOf('right');let item=props.items.find(i=>i.id==='fishingRod'&&i.holder==null);if(!item){item=props.make('fishingRod');props.items.push(item);}props.hold(item,renderer.xr.isPresenting?(id>=0?id:lastController):'desktop');});
+   button('REGROW SELECTED NPC HAIR',40,465,942,75,()=>e?.hair.regrow(a));
+   button('AMBIENT CITY ACTIVITY: '+(e?.population.enabled?'ON':'OFF'),40,585,942,75,()=>{if(e)e.population.enabled=!e.population.enabled;draw();});
+   ctx.font='26px sans-serif';ctx.fillStyle='#c9d6e2';ctx.fillText('Fishing: hold trigger, swing, then release to cast.',40,770);ctx.fillText('Push the holding-hand stick forward to reel.',40,820);ctx.fillText('Bait is added automatically. Desktop: hold R to reel.',40,870);ctx.fillText('A moving blade trims nearby hair or grass.',40,970);
+   const stats=e?.snapshot();if(stats){ctx.fillText(stats.birds.birds+' birds · '+stats.fishing.fish+' nearby fish',40,1080);ctx.fillText(stats.population.interactivePeople+' interactive pedestrians · '+stats.population.interactiveCars+' traffic cars',40,1130);}
+  }else if(page===11){
    const g=world.h5Gameplay,n=g?.npcs,c=g?.combat;
    button(npcView==='spawn'?'SPAWNING NPCs':'SELECTED NPC ORDERS',40,320,942,58,()=>{npcView=npcView==='spawn'?'orders':'spawn';draw();});
    if(g&&npcView==='spawn'){
@@ -192,7 +221,7 @@ export function createVRMenu({scene,renderer,camera,system,spawn,onSync,world,wa
  function placeInFront(){const c=camera;c.updateWorldMatrix(true,false);const eye=c.getWorldPosition(new THREE.Vector3()),forward=new THREE.Vector3(0,0,-1).applyQuaternion(c.getWorldQuaternion(new THREE.Quaternion()));forward.y=0;if(forward.lengthSq()<.001)forward.set(0,0,-1).applyQuaternion(camera.getWorldQuaternion(new THREE.Quaternion())).setY(0);forward.normalize();panel.position.copy(eye).addScaledVector(forward,1.1);panel.position.y-=.10;panel.lookAt(eye);panel.updateMatrixWorld(true);}
  function toggle(){
   const closing=open,fromBuild=page===9;
-  open=!open;panel.visible=open&&renderer.xr.isPresenting;drag=[null,null];
+  open=!open;system.h5MenuOpen=open;panel.visible=open&&renderer.xr.isPresenting;drag=[null,null];
   if(open){world.builder?.stop();placeInFront();draw();}
   else if(fromBuild&&world.builder){const right=system.hands.handedness.indexOf('right');world.builder.start(right>=0?right:lastController);}
  }
@@ -207,16 +236,17 @@ export function createVRMenu({scene,renderer,camera,system,spawn,onSync,world,wa
  function tick(){
   const eye=camera.getWorldPosition(new THREE.Vector3());
   wristButtons.forEach((b,i)=>{b.visible=renderer.xr.isPresenting&&system.hands.grip[i].visible&&(system.hands.handedness[i]==='left'||(system.hands.handedness[i]==='none'&&i===0));if(b.visible){b.lookAt(eye);b.updateWorldMatrix(true,false);}});
-  if(!renderer.xr.isPresenting){open=false;panel.visible=false;}
+  if(!renderer.xr.isPresenting){open=false;system.h5MenuOpen=false;panel.visible=false;}
   rays.forEach((r,i)=>{const floor=renderer.xr.isPresenting&&!open?system.controllerFloorTarget(i):null;r.visible=open||!!floor||renderer.xr.isPresenting&&system.hands.active?.[i]||(renderer.xr.isPresenting&&hitWrist(i));r.scale.z=open?1:floor?system.hands.ctrl[i].getWorldPosition(new THREE.Vector3()).distanceTo(floor)/2:1;});if(!open)return;
   const view=camera,forward=new THREE.Vector3(0,0,-1).applyQuaternion(view.getWorldQuaternion(q)),to=panel.position.clone().sub(eye);if(to.dot(forward)<.2||to.length()>2)placeInFront();
   let changed=false;for(let i=0;i<2;i++){const p=hit(i),index=p?items.findIndex(item=>p.x>=item.x&&p.x<=item.x+item.w&&p.y>=item.y&&p.y<=item.y+item.h):-1;if(index!==hover[i]||p&&(!cursor[i]||Math.hypot(p.x-cursor[i].x,p.y-cursor[i].y)>3))changed=true;hover[i]=index;cursor[i]=p;rays[i].material.color.setHex(index>=0?0xffdfa1:0x9bd6ff);}if(changed&&performance.now()-lastDraw>32){draw();lastDraw=performance.now();}
   const a=active(),state=a?`${system.actors.indexOf(a)}/${a.version}/${a.mode}/${a.emotion?.name}/${system.voiceStatus||''}`:'empty';if(state!==stamp&&performance.now()-lastDraw>150){stamp=state;lastDraw=performance.now();draw();}
+  if(page===14&&performance.now()-lastDraw>500){lastDraw=performance.now();draw();}
   const session=renderer.xr.getSession();for(let i=0;i<2;i++)if(drag[i]){
    const src=[...session.inputSources].find(s=>s.handedness===system.hands.handedness[i]);if(!src?.gamepad?.buttons?.[0]?.pressed){drag[i]=null;continue;}
    const p=hit(i);if(p)drag[i].fn(p.x);
   }
  }
- system.setUIHandlers({onToggle:toggle,onSelect:select,isOpen:()=>open});
+ system.setUIHandlers({onToggle:toggle,onSelect:select,onDelete:()=>{if(props.driving())return;const a=active();if(a){system.remove(a);onSync?.();draw();}},isOpen:()=>open});
  return {tick,toggle,panel,get hovered(){return [...hover];},get isOpen(){return open;}};
 }

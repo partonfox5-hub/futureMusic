@@ -21,6 +21,7 @@ export const ROUTES=Object.freeze([
  {id:'civic-cross',name:'Civic Street',kind:'road',width:6,points:[[168,-75],[159,-10],[164,33],[155,69]]},
  {id:'garden-cross',name:'Garden Street',kind:'road',width:6,points:[[277,-87],[268,-9],[266,35],[246,89]]},
  {id:'ridge-loop',name:'Ridge Crescent',kind:'road',width:6,points:[[168,-75],[172,-145],[225,-158],[282,-158],[307,-117],[277,-87]]},
+ {id:'river-road',name:'River picnic road',kind:'road',width:5,points:[[-65,68],[-128,0],[-233,-35],[-357,-60],[-427,-82]]},
  {id:'lake-road',name:'Lake road',kind:'road',width:6,points:[[0,52],[-65,68],[-145,99],[-220,164],[-245,245],[-224,325],[-146,354]]},
  {id:'lake-loop',name:'Lakeside footpath',kind:'trail',width:2.8,points:[[-220,164],[-292,127],[-384,111],[-468,149],[-517,233],[-481,318],[-389,361],[-292,348],[-224,325]]},
  {id:'forest',name:'Pine trail',kind:'trail',width:3,points:[[-65,68],[-96,-25],[-147,-124],[-206,-213],[-300,-271],[-377,-326],[-450,-415],[-541,-450]]},

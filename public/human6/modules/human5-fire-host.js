@@ -1,6 +1,6 @@
 import * as T from 'three';
-import {FireSystem} from './human5-fire.js?v=17.2.0';
-import {V,localBounds,wrapMethod,finiteDt} from './human5-common.js?v=17.2.0';
+import {FireSystem} from './human5-fire.js?v=17.5.0';
+import {V,localBounds,wrapMethod,finiteDt} from './human5-common.js?v=17.5.0';
 
 /** Adapter verified against human5 (3).zip, 16.2. Keeps its hearth and NPC duty API. */
 export function upgradeHostFire(props,{lights=null,maxSurfaces=768}={}){
@@ -43,13 +43,16 @@ export function upgradeHostFire(props,{lights=null,maxSurfaces=768}={}){
       if(/Mattress|Clothes|Couch/.test(id))registerRoot(root,'fabric');
       else if(/Chair|Table|Bed|Nightstand|Firewood|Bookshelf|Dresser|Desk|Cabinet|Ottoman/.test(id))registerRoot(root,'wood');
     }
-    for(const garment of props.wardrobe?.clothes||[])if(garment.mesh?.parent)registerRoot(garment.mesh,'fabric');
+    for(const garment of props.wardrobe?.clothes||[])if(garment.mesh?.parent){const f=registerRoot(garment.mesh,'fabric');if(!f)continue;garment.h5Fuel=f;const mesh=garment.skinLOD?.active?garment.skinLOD.mesh:garment.mesh;f.root=mesh;
+      if(mesh.isSkinnedMesh){mesh.computeBoundingBox();f.localBox.copy(mesh.boundingBox);}else{mesh.geometry.computeBoundingBox();f.localBox.copy(mesh.geometry.boundingBox);}f.localBox.getCenter(f.point);fire.updateSurface(f);
+    }
     // Register wall cells near a real source, not every cell in five houses.
     const emitters=fire.emitters();
     for(const part of world.fractures?.parts||[]){if(part.broken||part.kind!=='wood'||byPart.has(part))continue;const p=part.index===undefined?part.mesh.getWorldPosition(V()):part.p;if(emitters.some(s=>s.position.distanceToSquared(p)<9))registerPart(part);}
     for(const [part,f] of byPart)if(!f.burning&&f.heat<.01&&!emitters.some(s=>s.position.distanceToSquared(f.box.getCenter(V()))<36)){fire.unregister(f);byPart.delete(part);}
   }
   function resolve(hit){
+    const garment=hit.object?.userData.cloth;if(garment)return garment.h5Fuel||registerRoot(garment.mesh,'fabric');
     const cushion=hit.object?.userData.h5Cushion;if(cushion)return cushion.foam.visible?cushion.innerFuel:cushion.outerFuel;
     for(let o=hit.object;o;o=o.parent){if(o.userData.h5Bag?.fuel)return o.userData.h5Bag.fuel;if(byRoot.has(o))return byRoot.get(o);}
     const part=hit.object?.userData.chunks?.[hit.instanceId]||hit.object?.userData.piece;return part?registerPart(part):null;

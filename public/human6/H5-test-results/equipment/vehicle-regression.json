@@ -1,0 +1,64 @@
+{
+  "checks": {
+    "sports": {
+      "wheels": 4,
+      "mass": 1460,
+      "parkedY": 1.3604318720079775e-7,
+      "sleep": true,
+      "speedAfter6s": 21.74123628665607,
+      "automaticGear": 4,
+      "steeringYaw": 0.3349401083758689,
+      "lean": -0.014369341553071388,
+      "terrainHeaveRange": 0.06718086977477732,
+      "dentM": 0.004044294357299805,
+      "steeringDamage": 0.0932,
+      "power": 0.90816
+    },
+    "pickup": {
+      "wheels": 4,
+      "mass": 2190,
+      "parkedY": 0.0000016907894718307714,
+      "sleep": true,
+      "speedAfter6s": 15.58983685232512,
+      "automaticGear": 2,
+      "steeringYaw": 0.3627173719964549,
+      "lean": -0.016126216618565385,
+      "terrainHeaveRange": 0.03476949980943261,
+      "dentM": 0.004061222076416016,
+      "steeringDamage": 0.0932,
+      "power": 0.90816
+    },
+    "motorcycle": {
+      "wheels": 2,
+      "mass": 290,
+      "parkedY": 0.0028827903694417004,
+      "sleep": true,
+      "speedAfter6s": 19.64847221738694,
+      "automaticGear": 3,
+      "steeringYaw": 0.5006666163976994,
+      "lean": 0.3244354777955273,
+      "terrainHeaveRange": 0.0971014727787996,
+      "dentM": 0.0045175254344940186,
+      "steeringDamage": 0.0932,
+      "power": 0.90816
+    },
+    "monster": {
+      "wheels": 4,
+      "mass": 3900,
+      "parkedY": 9.00406489138057e-7,
+      "sleep": true,
+      "speedAfter6s": 7.8841835710231285,
+      "automaticGear": 1,
+      "steeringYaw": 0.3985785780167454,
+      "lean": -0.007853643956150968,
+      "terrainHeaveRange": 0.040728755438195874,
+      "dentM": 0.004065275192260742,
+      "steeringDamage": 0.0932,
+      "power": 0.90816
+    },
+    "mirrorStateRestore": true,
+    "removedVehicles": 4
+  },
+  "errors": [],
+  "testedAt": "2026-09-11T06:12:31.874Z"
+}

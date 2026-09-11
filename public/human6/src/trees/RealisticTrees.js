@@ -1,6 +1,6 @@
 import * as T from 'three';
-import {makeTreeGeometry,makeTreeMaterial,random,SPECIES} from './TreeGeometry.js?v=17.2.0';
-import {FallingLeaves} from './FallingLeaves.js?v=17.2.0';
+import {makeTreeGeometry,makeTreeMaterial,random,SPECIES} from './TreeGeometry.js?v=17.5.0';
+import {FallingLeaves} from './FallingLeaves.js?v=17.5.0';
 export const FOREST_PRESETS=Object.freeze({quest:{near:28,mid:65,far:180,nearCount:6,midCount:24,leaves:48},quality:{near:40,mid:90,far:240,nearCount:12,midCount:40,leaves:80}});
 // API-compatible replacement for the first terrain module's ProceduralTrees.
 export class ProceduralTrees {

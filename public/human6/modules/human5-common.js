@@ -1,5 +1,5 @@
 import * as T from 'three';
-export const VERSION = '17.2.0';
+export const VERSION = '17.5.0';
 export const clamp = T.MathUtils.clamp;
 export const V = () => new T.Vector3();
 export function finiteDt(dt, max=.05) { return Number.isFinite(dt) ? clamp(dt,0,max) : 0; }

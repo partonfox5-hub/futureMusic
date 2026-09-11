@@ -1,5 +1,5 @@
 import * as T from 'three';
-import {V,clamp,rng,finiteDt,wrapMethod,attachedTo,disposeTree} from './human5-common.js?v=17.2.0';
+import {V,clamp,rng,finiteDt,wrapMethod,attachedTo,disposeTree} from './human5-common.js?v=17.5.0';
 
 export const RUG_PATTERNS=['braid','diamonds','stripes','checker'];
 function threadMaterial({color=0x91826a,accent=0xe3dac9,pattern='braid',pitch=.024,size=[2.4,1.6]}={},depth=false){

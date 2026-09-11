@@ -1,8 +1,8 @@
-import {captureFurniture,tagMovable} from './mira-v2-furniture.js?v=17.2.0';
-import {Destruction} from './mira-v2-destruction.js?v=17.2.0';
-import {buildHouse} from './mira-v2-house.js?v=17.2.0';
-import {buildCastle,inCastleClearing} from './mira-v2-castle.js?v=17.2.0';
-import {plantTerrain,scatterTrees,tickNature,chopTree as chopNature,ramTree as ramNature,terrainHeight} from './mira-v2-nature.js?v=17.2.0';
+import {captureFurniture,tagMovable} from './mira-v2-furniture.js?v=17.5.0';
+import {Destruction} from './mira-v2-destruction.js?v=17.5.0';
+import {buildHouse} from './mira-v2-house.js?v=17.5.0';
+import {buildCastle,inCastleClearing} from './mira-v2-castle.js?v=17.5.0';
+import {plantTerrain,scatterTrees,tickNature,chopTree as chopNature,ramTree as ramNature,terrainHeight} from './mira-v2-nature.js?v=17.5.0';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
 import * as T from 'three';
 const V=()=>new T.Vector3(),clamp=T.MathUtils.clamp,QUEST=/Quest|OculusBrowser/i.test(globalThis.navigator?.userAgent||'');
@@ -196,7 +196,7 @@ export class MiraWorld {
    let moved=false;
    for(const o of this.nearby(p,r)){
     if(o===ignore||o.walkable||y0>o.y+o.h||y0+height<o.y)continue;
-    if(this.portalOpen?.(p,o))continue;
+    if(this.portalOpen?.(p,o,r,y,height))continue;
     const dx=p.x-o.x,dz=p.z-o.z,ex=o.w/2+r-Math.abs(dx),ez=o.d/2+r-Math.abs(dz);
     if(ex>0&&ez>0){if(ex<ez)p.x+=(dx>=0?1:-1)*ex;else p.z+=(dz>=0?1:-1)*ez;hit=true;moved=true;}
    }
@@ -204,6 +204,6 @@ export class MiraWorld {
   }
   return hit;
  }
- projectSphere(p,r){let hit=false;for(let pass=0;pass<3;pass++){let moved=false;for(const o of this.nearby(p,r)){if(this.portalOpen?.(p,o))continue;const q=new T.Vector3(T.MathUtils.clamp(p.x,o.x-o.w/2,o.x+o.w/2),T.MathUtils.clamp(p.y,o.y,o.y+o.h),T.MathUtils.clamp(p.z,o.z-o.d/2,o.z+o.d/2)),d=p.clone().sub(q),l=d.length();if(l>=r)continue;if(l>.000001)p.copy(q).addScaledVector(d,r/l);else{const choices=[[o.x+o.w/2+r-p.x,'x',1],[p.x-(o.x-o.w/2-r),'x',-1],[o.y+o.h+r-p.y,'y',1],[p.y-o.y+r,'y',-1],[o.z+o.d/2+r-p.z,'z',1],[p.z-(o.z-o.d/2-r),'z',-1]].sort((a,b)=>a[0]-b[0]);p[choices[0][1]]+=choices[0][0]*choices[0][2];}hit=true;moved=true;}if(!moved)break;}return hit;}
+ projectSphere(p,r){let hit=false;for(let pass=0;pass<3;pass++){let moved=false;for(const o of this.nearby(p,r)){if(this.portalOpen?.(p,o,r))continue;const q=new T.Vector3(T.MathUtils.clamp(p.x,o.x-o.w/2,o.x+o.w/2),T.MathUtils.clamp(p.y,o.y,o.y+o.h),T.MathUtils.clamp(p.z,o.z-o.d/2,o.z+o.d/2)),d=p.clone().sub(q),l=d.length();if(l>=r)continue;if(l>.000001)p.copy(q).addScaledVector(d,r/l);else{const choices=[[o.x+o.w/2+r-p.x,'x',1],[p.x-(o.x-o.w/2-r),'x',-1],[o.y+o.h+r-p.y,'y',1],[p.y-o.y+r,'y',-1],[o.z+o.d/2+r-p.z,'z',1],[p.z-(o.z-o.d/2-r),'z',-1]].sort((a,b)=>a[0]-b[0]);p[choices[0][1]]+=choices[0][0]*choices[0][2];}hit=true;moved=true;}if(!moved)break;}return hit;}
  tick(dt){this.fractures.mesh.visible=this.root.visible;this.time+=dt;this.fractures.tick(dt);this.doors?.tick?.(dt);this.laundry?.tick?.(dt);tickNature(this,dt);for(const seat of this.seats)if(seat.occupant&&!this.system.actors.includes(seat.occupant))seat.occupant=null;for(const b of this.system.balls){if(b.held)continue;const before=b.mesh.position.clone();if(this.projectSphere(b.mesh.position,b.rad)){const n=b.mesh.position.clone().sub(before).normalize(),v=b.vel.dot(n);if(v<0)b.vel.addScaledVector(n,-1.4*v);}}}
 }

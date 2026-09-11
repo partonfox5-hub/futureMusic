@@ -1,5 +1,5 @@
 import * as T from 'three';
-import {V,clamp,finiteDt,gravityOf,localBounds,segmentBox,obstacleBox,disposeTree,attachedTo} from './human5-common.js?v=17.2.0';
+import {V,clamp,finiteDt,gravityOf,localBounds,segmentBox,obstacleBox,disposeTree,attachedTo} from './human5-common.js?v=17.5.0';
 
 // Artistic combustion parameters, NOT measured ignition temperatures.
 export const FUEL = Object.freeze({
@@ -46,7 +46,8 @@ export class FireSystem {
   setTorchLit(s,lit){s.lit=!!lit&&s.fuelSeconds>0;}
   blocked(a,b,ignoreA=null,ignoreB=null){
     if(this.occluded)return !!this.occluded(a,b,ignoreA,ignoreB);
-    for(const o of this.world.obstacles||[]){
+    const midpoint=this._p.copy(a).add(b).multiplyScalar(.5),radius=Math.hypot(a.x-b.x,a.z-b.z)*.5+.02;
+    for(const o of this.world.nearby?.(midpoint,radius)||this.world.obstacles||[]){
       if(o.object===ignoreA||o.object===ignoreB||o.object?.userData?.furnRoot===ignoreA||o.object?.userData?.furnRoot===ignoreB)continue;
       const box=obstacleBox(o,this._box);if(box.containsPoint(a)||box.containsPoint(b))continue;
       if(segmentBox(a,b,box)!==null)return true;

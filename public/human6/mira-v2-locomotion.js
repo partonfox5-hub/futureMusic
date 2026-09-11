@@ -17,7 +17,8 @@ export class SmoothLocomotion {
   this.jumpVel=4.5;this.jumping=true;return true;
  }
  tick(dt,sources,blocked=false){
-  if(blocked||!(dt>0))return;dt=Math.min(dt,.05);
+  if(blocked||!(dt>0)){this.pace=0;return;}dt=Math.min(dt,.05);
+  sources=[...sources].map(s=>{if(!s.gamepad||!this.world.h5Equipment?.consumesStick(s.handedness))return s;const axes=Array.from(s.gamepad.axes);axes[axes.length>=4?3:1]=0;return {...s,gamepad:{axes,buttons:s.gamepad.buttons},hand:s.hand,handedness:s.handedness};});
   const water=this.world.waterSystem,camera=this.camera;
   if(water?.playerSwimIntent({rig:this.rig,camera,dt,sources,blocked}).active){this.jumping=false;this.jumpVel=0;return;}
   const left=[...sources].find(s=>s.handedness==='left'&&!s.hand),right=[...sources].find(s=>s.handedness==='right'&&!s.hand);
@@ -29,11 +30,12 @@ export class SmoothLocomotion {
   if(forward.lengthSq()>.01)this.forward.copy(forward).normalize();
   const strafe=new T.Vector3(-this.forward.z,0,this.forward.x);
   const input=Math.hypot(move.x,move.y),max=1.45*1.25*1.15*sprint*(this.world.h5Combat?.speedScale()||1);
-  if(input>.02)this.pace+=(max-this.pace)*Math.min(1,dt/.55);
-  else this.pace=Math.max(0,this.pace-max*dt);
+  // Releasing the stick stops translation. Never invent a forward direction.
+  if(input>.02)this.pace+=(max*input-this.pace)*(1-Math.exp(-dt/ .12));
+  else this.pace=0;
   const delta=this.forward.clone().multiplyScalar(-move.y).addScaledVector(strafe,move.x);
   if(delta.lengthSq()>1e-8)delta.normalize().multiplyScalar(this.pace*dt);
-  else if(this.pace>0.02)delta.copy(this.forward).multiplyScalar(this.pace*dt);
+  else delta.set(0,0,0);
   const angle=-turn*2.15*dt,offset=eye.clone().sub(this.rig.position);
   this.rig.position.add(offset).sub(offset.clone().applyAxisAngle(new T.Vector3(0,1,0),angle));
   this.rig.rotation.y+=angle;
@@ -42,7 +44,7 @@ export class SmoothLocomotion {
   target.x=T.MathUtils.clamp(target.x,-this.world.extent,this.world.extent);
   target.z=T.MathUtils.clamp(target.z,-this.world.extent,this.world.extent);
   this.rig.position.add(delta).add(target.sub(before));
-  const feet=eye.clone();feet.y=this.rig.position.y;
+  const feet=this.camera.getWorldPosition(new T.Vector3());feet.y=this.rig.position.y;
   const want=this.world.floorHeight?.(feet,undefined,.42)||0;
   const grav=Number.isFinite(this.world.gravity)?this.world.gravity:9.81;
   if(grav<0.5){

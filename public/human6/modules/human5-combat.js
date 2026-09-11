@@ -1,5 +1,5 @@
 import * as T from 'three';
-import {wrapMethod,clamp,V} from './human5-common.js?v=17.2.0';
+import {wrapMethod,clamp,V} from './human5-common.js?v=17.5.0';
 
 export const ARMOR_PRESETS={
  none:{name:'None',mass:0,plates:{}},
@@ -72,7 +72,7 @@ export function installCombat({world,mira,props,camera,rig,renderer}={}){
   setInvincible(a,v){if(a==='all')allInvincible=!!v;else if(a==='player')player.invincible=!!v;else if(a){attach(a);a.h5Invincible=!!v;}},
   speedScale(a='player'){return 1/Math.sqrt(1+(a==='player'?player.armor.mass:attach(a)?.armor.mass||0)/40);},
   heal(a){if(a==='player'){player.health=100;player.velocity.setScalar(0);return true;}const s=attach(a);if(!s)return false;props.injuries?.heal(a);a.dead=false;if(a._ai){a._ai.dead=false;a._ai.hurt=false;}if(a.balance){a.balance.state='recovering';a.balance.time=0;}s.health=100;return true;},
-  tick(dt){for(const a of [...mira.actors,...(props.dogs?.list?.()||[])])attach(a);for(const [a,s]of states){if(!a.group?.parent&&!a.root?.parent){clearMeshes(s);s.restores.reverse().forEach(f=>f());states.delete(a);continue;}for(const m of s.meshes){const r=m.userData.h5Armor.region,d=r==='shield'?s.armor.shield:s.armor.plates[r];m.visible=d>0;}}
+  tick(dt){for(const a of [...mira.actors,...(props.dogs?.list?.()||[])])attach(a);for(const [a,s]of states){if(!mira.actors.includes(a)&&!(props.dogs?.list?.()||[]).includes(a)){clearMeshes(s);s.restores.reverse().forEach(f=>f());states.delete(a);continue;}for(const m of s.meshes){const r=m.userData.h5Armor.region,d=r==='shield'?s.armor.shield:s.armor.plates[r];m.visible=d>0;}}
    player.hurt=Math.max(0,player.hurt-dt);if(player.invincible)player.velocity.setScalar(0);if(player.velocity.lengthSq()>.0001){const obj=renderer.xr.isPresenting?rig:camera,delta=player.velocity.clone().multiplyScalar(Math.min(.05,dt));obj.position.add(delta);player.velocity.multiplyScalar(Math.exp(-8*dt));}
   },
   snapshot(){return {allInvincible,player:{health:player.health,armor:player.armor.snapshot()},actors:[...states].map(([a,s])=>({name:a.displayName,health:s.health,invincible:isProtected(a),armor:s.armor.snapshot()}))};},

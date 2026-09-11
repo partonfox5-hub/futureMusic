@@ -1,5 +1,6 @@
 import * as T from 'three';
-import {playSfx,unlockSfx} from './mira-v2-sfx.js?v=17.2.0';
+import {withOffscreenView,mapPortalCamera,portalTransfer} from './modules/human5-view-surfaces.js?v=17.5.0';
+import {playSfx,unlockSfx} from './mira-v2-sfx.js?v=17.5.0';
 const V=()=>new T.Vector3(),Q=()=>new T.Quaternion(),M=()=>new T.Matrix4();
 const QUEST=/Quest|OculusBrowser/i.test(globalThis.navigator?.userAgent||'');
 export const GUNS=['pistol','laser','rifle','sniper','shotgun','uzi','marker','marker2','portal','torch'];
@@ -15,6 +16,8 @@ void main(){
  vec2 uv=vProj.xy/max(vProj.w,1e-4)*.5+.5;
  if(uv.x<0.0||uv.x>1.0||uv.y<0.0||uv.y>1.0){gl_FragColor=vec4(col*.07,1.0);return;}
  gl_FragColor=texture2D(map,uv);
+ #include <tonemapping_fragment>
+ #include <colorspace_fragment>
 }`;
 
 function gVal(world){const g=world?.gravity;return Number.isFinite(g)?g:9.81;}
@@ -44,7 +47,7 @@ void main(){
 export function installGadgets(props){
  const g=new Gadgets(props);
  props.gadgets=g;
- props.world.portalOpen=p=>g.coversPortal(p);
+ props.world.portalOpen=(p,o,r,y,h)=>g.coversPortal(p,o,r,y,h);
  g.rebuildRack();
  return g;
 }
@@ -63,7 +66,7 @@ class Gadgets {
    vertexShader:splatVert,fragmentShader:splatFrag});
   this.splatMesh=new T.InstancedMesh(geom,this.splatMat,this.CAP);
   this.splatMesh.frustumCulled=false;this.splatMesh.renderOrder=6;this.splatMesh.instanceMatrix.setUsage(T.DynamicDrawUsage);
-  this.scene.add(this.splatMesh);
+  this.splatMesh.count=0;this.scene.add(this.splatMesh);
   this.splatMesh.setColorAt(0,new T.Color(1,1,1));
   dummy.scale.setScalar(0);dummy.updateMatrix();
   for(let i=0;i<this.CAP;i++){this.splatMesh.setMatrixAt(i,dummy.matrix);this.splats.push({live:false,parent:null,local:V(),localN:V(),color:new T.Color(),r:0,wet:0,age:0,seed:0,streak:0,body:false});}
@@ -74,11 +77,9 @@ class Gadgets {
    m.castShadow=true;m.visible=false;this.scene.add(m);
    this.ballPool.push({mesh:m,live:false,vel:V(),age:0,color:0x2aa0e8});
   }
-  const rtW=QUEST?384:768,rtH=QUEST?704:1408;
-  this.portalRT=[0,1].map(()=>new T.WebGLRenderTarget(rtW,rtH,{minFilter:T.LinearFilter,magFilter:T.LinearFilter,generateMipmaps:false,depthBuffer:true}));
-  this.vcam=new T.PerspectiveCamera();this.vcam.matrixAutoUpdate=false;
-  this.portalFlip=new T.Matrix4().makeRotationY(Math.PI);
-  this._m1=new T.Matrix4();this._plane=new T.Vector4();this._q4=new T.Vector4();
+  this.portalRT=[[],[]]; // allocate only when a paired portal is visible
+  this.vcam=new T.PerspectiveCamera();this.vcam.matrixAutoUpdate=this.vcam.matrixWorldAutoUpdate=false;
+  this.crossCooldown=new WeakMap();this.portalEyes=[];
   this._rendering=false;
  }
 
@@ -245,7 +246,9 @@ Gadgets.prototype.shootPortal=function(item,aim){
  const n=(hit.face?.normal.clone().transformDirection(hit.object.matrixWorld)||new T.Vector3(0,1,0));
  if(n.lengthSq()<1e-8)n.set(0,1,0);n.normalize();
  if(hit.object.userData?.portal) {this.props.status='Cannot place on a portal';return;}
- this.placePortal(idx,hit.point,n,hit.object);
+ if(Math.abs(n.y)>.35){this.props.status='Place portals on a broad, upright wall';return;}
+ const fit=this.fitPortal(hit,n);if(!fit){this.props.status='A full doorway of solid wall is needed';return;}
+ this.placePortal(idx,fit.position,n,hit.object,fit.owners);
  if(typeof item.holder==='number')this.props.system.hands.haptics?.contact(item.holder,'prop',1,.006);
 };
 
@@ -259,94 +262,99 @@ Gadgets.prototype.orientPortal=function(normal){
  return new T.Quaternion().setFromRotationMatrix(new T.Matrix4().makeBasis(x,y,z));
 };
 
-Gadgets.prototype.placePortal=function(idx,point,normal,object){
- this.clearPortal(idx);
- const n=normal.clone();if(n.lengthSq()<1e-8)n.set(0,1,0);n.normalize();
- const pos=point.clone().addScaledVector(n,.04);
- if(Math.abs(n.y)<.35){
-  const floor=Number(this.world.floorHeight?.(pos,.85))||0;
-  pos.y=floor+PORTAL_H*.5+.02;
+Gadgets.prototype.fitPortal=function(hit,normal){
+ const position=hit.point.clone();position.y=(this.world.floorHeight?.(position,.85)||0)+PORTAL_H*.5+.02;
+ const q=this.orientPortal(normal),owners=new Set([hit.object]);
+ // A doorway may span wall tiles. Test its center and edges, not the entire mesh AABB.
+ for(const x of [-.54,0,.54])for(const y of [-1.03,0,1.03]){
+  const p=new T.Vector3(x,y,0).applyQuaternion(q).add(position).addScaledVector(normal,.18);
+  const h=this.props.hit(new T.Ray(p,normal.clone().negate()),.30,false,{world:true});
+  if(!h||this.props.actorFor(h.object)||this.props.dogFor(h.object)||h.object.userData?.cloth||h.object.userData?.carPart)return null;
+  for(let o=h.object;o;o=o.parent)if(o.userData?.furniture)return null;
+  const n=h.face?.normal?.clone().transformDirection(h.object.matrixWorld);
+  if(!n||n.dot(normal)<.98||Math.abs(h.point.clone().sub(position).dot(normal))>.06)return null;
+  owners.add(h.object);
  }
- const color=PORTAL_COLORS[idx],group=new T.Group();
- const W=PORTAL_W,H=PORTAL_H,T=PORTAL_T,D=.042,innerW=W-2*T,innerH=H-2*T;
- const frame=new T.MeshStandardMaterial({color,roughness:.32,metalness:.18,emissive:color,emissiveIntensity:.7});
- const bar=(w,h,x,y)=>{const m=new T.Mesh(new T.BoxGeometry(w,h,D),frame);m.position.set(x,y,-D*.28);m.castShadow=true;group.add(m);return m;};
- bar(W,T,0,H/2-T/2);bar(W,T,0,-H/2+T/2);bar(T,H-2*T,-W/2+T/2,0);bar(T,H-2*T,W/2-T/2,0);
- const inner=new T.Mesh(new T.PlaneGeometry(innerW,innerH),new T.ShaderMaterial({
-  toneMapped:false,side:T.FrontSide,depthWrite:true,
-  uniforms:{map:{value:this.portalRT[idx].texture},col:{value:new T.Color(color)},hasPair:{value:0},portalMatrix:{value:new T.Matrix4()}},
-  vertexShader:portalVert,fragmentShader:portalFrag
- }));
- inner.position.z=.002;group.add(inner);
- const q=this.orientPortal(n);
- group.quaternion.copy(q);group.position.copy(pos);
- const parent=object.isInstancedMesh?this.world.root:object;
- parent.updateWorldMatrix(true,false);
- const local=parent.worldToLocal(group.position.clone());
- parent.add(group);group.position.copy(local);
- group.quaternion.copy(parent.getWorldQuaternion(Q()).invert().premultiply(q));
- group.userData.portal=true;group.traverse(m=>{m.userData.portal=true;});
- this.portals[idx]={group,inner,idx,parent,hw:innerW/2,hh:innerH/2};
- this.props.status=(idx?'Orange':'Blue')+' portal placed';
+ return {position,owners};
 };
-
+Gadgets.prototype.placePortal=function(idx,point,normal,object,owners=new Set([object])){
+ if(![0,1].includes(idx)||!object?.parent)return false;
+ this.clearPortal(idx);
+ const n=normal.clone().normalize(),pos=point.clone().addScaledVector(n,.035);
+ const color=PORTAL_COLORS[idx],group=new T.Group();group.name=(idx?'Orange':'Blue')+' portal';
+ const W=PORTAL_W,H=PORTAL_H,thickness=PORTAL_T,D=.042,innerW=W-2*thickness,innerH=H-2*thickness;
+ const frame=new T.MeshStandardMaterial({color,roughness:.32,metalness:.18,emissive:color,emissiveIntensity:1.4});
+ const bar=(w,h,x,y)=>{const m=new T.Mesh(new T.BoxGeometry(w,h,D),frame);m.position.set(x,y,-D*.28);group.add(m);};
+ bar(W,thickness,0,H/2-thickness/2);bar(W,thickness,0,-H/2+thickness/2);
+ bar(thickness,H-2*thickness,-W/2+thickness/2,0);bar(thickness,H-2*thickness,W/2-thickness/2,0);
+ const inner=new T.Mesh(new T.PlaneGeometry(innerW,innerH),new T.ShaderMaterial({
+  toneMapped:true,side:T.FrontSide,depthWrite:true,
+  uniforms:{map:{value:null},col:{value:new T.Color(color)},hasPair:{value:0},portalMatrix:{value:new T.Matrix4()}},
+  vertexShader:portalVert,fragmentShader:portalFrag
+ }));inner.position.z=.002;group.add(inner);
+ group.quaternion.copy(this.orientPortal(n));group.position.copy(pos);group.updateMatrixWorld(true);
+ // Keep the doorway on a world-space root; the wall anchor follows its transform without shear.
+ const parent=this.world.root;parent.attach(group);object.updateWorldMatrix(true,false);
+ group.userData.portal=true;group.traverse(m=>{m.userData.portal=true;});
+ const portal=this.portals[idx]={group,inner,idx,parent,owners,hw:innerW/2,hh:innerH/2,views:[],anchor:object,anchorPoint:object.worldToLocal(pos.clone()),anchorNormal:n.clone().applyMatrix3(new T.Matrix3().getNormalMatrix(object.matrixWorld).invert()).normalize()};
+ inner.onBeforeRender=(_r,_s,cam)=>{const eye=Math.max(0,this.portalEyes.indexOf(cam)),view=portal.views[eye]||portal.views[0],u=inner.material.uniforms;
+  u.hasPair.value=view?.valid?1:0;if(view?.valid){u.map.value=view.texture;u.portalMatrix.value.copy(view.matrix);}inner.material.uniformsNeedUpdate=true;};
+ this.world.h5OpenWorld?.pinView('portal'+idx,pos);
+ this.camReady=false;this.props.status=(idx?'Orange':'Blue')+' portal placed';return portal;
+};
 Gadgets.prototype.clearPortal=function(idx){
- const p=this.portals[idx];if(!p)return;
- p.group.removeFromParent();p.group.traverse(o=>{o.geometry?.dispose?.();o.material?.dispose?.();});
- this.portals[idx]=null;
+ const p=this.portals[idx];if(p){p.group.removeFromParent();const mats=new Set();p.group.traverse(o=>{o.geometry?.dispose?.();if(o.material)mats.add(o.material);});mats.forEach(m=>m.dispose());}
+ this.portals[idx]=null;for(const rt of this.portalRT[idx])rt.dispose();this.portalRT[idx]=[];
+ for(const other of this.portals)if(other)other.views=[];
+ this.world.h5OpenWorld?.unpinView('portal'+idx);
 };
 Gadgets.prototype.clearPortals=function(){this.clearPortal(0);this.clearPortal(1);this.props.status='Portals cleared';};
-
 Gadgets.prototype.portalWorld=function(p){
- if(!p?.group)return null;
- p.group.updateWorldMatrix(true,false);
- const point=p.group.getWorldPosition(V());
- const normal=new T.Vector3(0,0,1).applyQuaternion(p.group.getWorldQuaternion(Q())).normalize();
- return {point,normal,hw:p.hw,hh:p.hh,group:p.group,idx:p.idx};
+ if(!p?.group?.parent||!p.anchor?.parent)return null;p.anchor.updateWorldMatrix(true,false);
+ const position=p.anchorPoint.clone().applyMatrix4(p.anchor.matrixWorld),normal=p.anchorNormal.clone().applyMatrix3(new T.Matrix3().getNormalMatrix(p.anchor.matrixWorld)).normalize(),q=this.orientPortal(normal);
+ p.group.position.copy(p.group.parent.worldToLocal(position));p.group.quaternion.copy(p.group.parent.getWorldQuaternion(Q()).invert().multiply(q));p.group.updateWorldMatrix(true,false);
+ return {point:p.group.getWorldPosition(V()),normal:new T.Vector3(0,0,1).transformDirection(p.group.matrixWorld),hw:p.hw,hh:p.hh,group:p.group,idx:p.idx};
 };
-
-Gadgets.prototype.coversPortal=function(point){
- if(!point)return false;
+Gadgets.prototype.coversPortal=function(point,obstacle=null,radius=0,yOffset=0,height=0){
+ if(!point||!this.portals.every(p=>p?.group?.parent))return false;
  for(const p of this.portals){
-  if(!p?.group)continue;
-  p.group.updateWorldMatrix(true,false);
-  const local=p.group.worldToLocal(point.clone());
-  if(Math.abs(local.x)<p.hw&&Math.abs(local.y)<p.hh&&Math.abs(local.z)<.38)return true;
+  if(obstacle){const object=obstacle.object||obstacle.mesh;let related=false;
+   for(const owner of p.owners){for(let o=owner;o;o=o.parent)if(o===object)related=true;for(let o=object;o;o=o.parent)if(o===owner)related=true;}
+   if(!related)continue;
+  }
+  const center=point.clone();center.y+=yOffset+height*.5;p.group.updateWorldMatrix(true,false);const local=p.group.worldToLocal(center);
+  if(Math.abs(local.x)<p.hw-Math.min(radius*.75,.25)&&Math.abs(local.y)+height*.5<p.hh+.045&&Math.abs(local.z)<.52)return true;
  }
  return false;
 };
-
-Gadgets.prototype.tryCross=function(pos,prev,vel){
- const A=this.portals[0],B=this.portals[1];
- if(!A||!B||this.cool>0)return null;
- for(const [fromP,toP] of [[A,B],[B,A]]){
+Gadgets.prototype.tryCross=function(pos,prev,vel,key=pos){
+ const [A,B]=this.portals;if(!A||!B||(this.crossCooldown.get(key)||0)>this.props.time)return null;
+ for(const [fromP,toP]of [[A,B],[B,A]]){
   const from=this.portalWorld(fromP),to=this.portalWorld(toP);if(!from||!to)continue;
   const d0=prev.clone().sub(from.point).dot(from.normal),d1=pos.clone().sub(from.point).dot(from.normal);
-  if(d0*d1>0)continue;
-  const t=d0===d1?0:d0/(d0-d1),mid=prev.clone().lerp(pos,t);
-  const local=from.group.worldToLocal(mid.clone());
+  if(d0<=0||d1>0)continue;
+  const mid=prev.clone().lerp(pos,d0/(d0-d1)),local=from.group.worldToLocal(mid);
   if(Math.abs(local.x)>from.hw||Math.abs(local.y)>from.hh)continue;
-  const q=new T.Quaternion().setFromUnitVectors(from.normal.clone().negate(),to.normal);
-  const rel=pos.clone().sub(from.point).applyQuaternion(q);
-  const out=to.point.clone().add(rel).addScaledVector(to.normal,.12);
-  if(vel)vel.applyQuaternion(q);
-  this.cool=.18;
+  const transfer=portalTransfer(from.group.matrixWorld,to.group.matrixWorld),q=new T.Quaternion().setFromRotationMatrix(transfer);
+  const out=pos.clone().applyMatrix4(transfer).addScaledVector(to.normal,.12);
+  if(vel)vel.applyQuaternion(q);this.crossCooldown.set(key,this.props.time+.18);
   return {pos:out,q,from,to};
  }
  return null;
 };
-
+Gadgets.prototype.relocate=function(object,mapped){
+ const worldQ=object.getWorldQuaternion(Q()).premultiply(mapped.q);object.position.copy(object.parent?object.parent.worldToLocal(mapped.pos.clone()):mapped.pos);
+ object.quaternion.copy(object.parent?object.parent.getWorldQuaternion(Q()).invert().multiply(worldQ):worldQ);object.updateWorldMatrix(true,true);
+};
 Gadgets.prototype.teleportPlayer=function(mapped){
- const rig=this.props.rig,cam=this.props.camera;
- if(!rig||!cam)return;
- const eye=cam.getWorldPosition(V());
- const delta=mapped.pos.clone().sub(eye);
- rig.position.add(delta);
- const e=new T.Euler().setFromQuaternion(mapped.q,'YXZ');
- rig.rotation.y+=e.y;
- rig.updateWorldMatrix(true,true);
- this.prevCam.copy(mapped.pos);
- this.camReady=true;
+ const rig=this.props.rig,cam=this.props.camera;if(!rig||!cam)return;
+ const transfer=portalTransfer(mapped.from.group.matrixWorld,mapped.to.group.matrixWorld),move=object=>{const p=object.getWorldPosition(V()).applyMatrix4(transfer).addScaledVector(mapped.to.normal,.12);this.relocate(object,{pos:p,q:mapped.q});};
+ for(const actor of this.props.system.actors||[])if(actor.grabs?.size||actor.held){move(actor.group);for(const s of actor.soft||[])s.ready=false;actor.navigation=null;actor.h5PortalPrev=null;}
+ const furniture=new Set();for(const [key,h]of this.props.furnHolds||[])if(typeof key==='number'||key==='desktop'){if(!furniture.has(h.group)){move(h.group);furniture.add(h.group);}if(h.last)h.last.applyMatrix4(transfer);}
+ // Turn about the tracked head, then place it. Room-scale offset must not swing the player.
+ rig.rotation.y+=new T.Euler().setFromQuaternion(mapped.q,'YXZ').y;rig.updateWorldMatrix(true,true);
+ rig.position.add(mapped.pos.clone().sub(cam.getWorldPosition(V())));rig.updateWorldMatrix(true,true);
+ this.prevCam.copy(cam.getWorldPosition(V()));this.camReady=true;
 };
 
 Gadgets.prototype.allocSplat=function(){
@@ -465,10 +473,10 @@ Gadgets.prototype.impactPaint=function(hit,color){
 };
 
 Gadgets.prototype.writeSplats=function(){
- const up=new T.Vector3(0,1,0),g=this.gravity();
+ const up=new T.Vector3(0,1,0),g=this.gravity();let written=0;
  for(let i=0;i<this.CAP;i++){
   const s=this.splats[i];
-  if(!s.live||!s.parent?.parent){dummy.scale.setScalar(0);dummy.updateMatrix();this.splatMesh.setMatrixAt(i,dummy.matrix);this.wet.setX(i,0);this.streakAttr.setX(i,0);continue;}
+  if(!s.live||!s.parent?.parent)continue;
   s.parent.updateWorldMatrix(true,false);
   const p=s.local.clone().applyMatrix4(s.parent.matrixWorld);
   const n=s.localN.clone().transformDirection(s.parent.matrixWorld).normalize();
@@ -483,9 +491,9 @@ Gadgets.prototype.writeSplats=function(){
   }else dummy.quaternion.setFromUnitVectors(new T.Vector3(0,0,1),n);
   dummy.scale.set(s.r*(s.body?1.35:1.7),s.r*(s.body?1.25:1.5)+s.streak,1);
   dummy.updateMatrix();
-  this.splatMesh.setMatrixAt(i,dummy.matrix);
-  this.splatMesh.setColorAt(i,s.color);
-  this.wet.setX(i,s.wet);this.streakAttr.setX(i,s.body?s.streak*.25:s.streak);
+  this.splatMesh.setMatrixAt(written,dummy.matrix);
+  this.splatMesh.setColorAt(written,s.color);
+  this.wet.setX(written,s.wet);this.streakAttr.setX(written++,s.body?s.streak*.25:s.streak);
   if(s.wet>.08&&g>0.5&&vertical&&!s.body){
    const down=up.clone().multiplyScalar(-1).addScaledVector(n,n.dot(up));
    if(down.lengthSq()>1e-6){
@@ -495,7 +503,7 @@ Gadgets.prototype.writeSplats=function(){
    }
   }
  }
- this.splatMesh.instanceMatrix.needsUpdate=true;
+ this.splatMesh.count=written;this.splatMesh.instanceMatrix.needsUpdate=true;
  if(this.splatMesh.instanceColor)this.splatMesh.instanceColor.needsUpdate=true;
  this.wet.needsUpdate=true;this.streakAttr.needsUpdate=true;
 };
@@ -519,7 +527,7 @@ Gadgets.prototype.tickBalls=function(dt){
   b.age+=dt;b.vel.y-=g*dt;
   const prev=b.mesh.position.clone();
   const next=prev.clone().addScaledVector(b.vel,dt);
-  const mapped=this.tryCross(next,prev,b.vel);
+  const mapped=this.tryCross(next,prev,b.vel,b.mesh);
   if(mapped){b.mesh.position.copy(mapped.pos);continue;}
   const dist=next.distanceTo(prev),ray=new T.Ray(prev,b.vel.clone().normalize());
   const hit=dist>1e-5?this.props.hit(ray,dist+.01,false):null;
@@ -530,68 +538,43 @@ Gadgets.prototype.tickBalls=function(dt){
  }
 };
 
-Gadgets.prototype.applyOblique=function(cam,to){
- const n=new T.Vector3(0,0,1).applyQuaternion(to.group.getWorldQuaternion(Q())).normalize();
- const p=to.group.getWorldPosition(V());
- const nCam=n.clone().transformDirection(cam.matrixWorldInverse),pCam=p.clone().applyMatrix4(cam.matrixWorldInverse);
- const clip=this._plane.set(nCam.x,nCam.y,nCam.z,-nCam.dot(pCam));
- if(clip.w>0)clip.multiplyScalar(-1);
- const m=cam.projectionMatrix.elements;if(Math.abs(m[14])<1e-8)return;
- const q=this._q4;
- q.x=(Math.sign(clip.x)+m[8])/m[0];q.y=(Math.sign(clip.y)+m[9])/m[5];q.z=-1;q.w=(1+m[10])/m[14];
- const s=2/clip.dot(q);m[2]=clip.x*s;m[6]=clip.y*s;m[10]=clip.z*s+1;m[14]=clip.w*s;
+Gadgets.prototype.renderOne=function(renderer,source,from,to,eyeIndex){
+ this.portalWorld(from);this.portalWorld(to);
+ const pos=source.getWorldPosition(V()),normal=new T.Vector3(0,0,1).transformDirection(from.group.matrixWorld);
+ const view=from.views[eyeIndex]||(from.views[eyeIndex]={valid:false});view.valid=false;
+ if(pos.sub(from.group.getWorldPosition(V())).dot(normal)<.025)return;
+ const clip=new T.Frustum().setFromProjectionMatrix(new T.Matrix4().multiplyMatrices(source.projectionMatrix,source.matrixWorldInverse));if(!clip.intersectsObject(from.inner))return;
+ let rt=this.portalRT[from.idx][eyeIndex];if(!rt){rt=new T.WebGLRenderTarget(QUEST?320:640,QUEST?576:1152,{minFilter:T.LinearFilter,magFilter:T.LinearFilter,generateMipmaps:false,depthBuffer:true});this.portalRT[from.idx][eyeIndex]=rt;}
+ view.matrix=mapPortalCamera(this.vcam,source,from.group.matrixWorld,to.group.matrixWorld);
+ renderer.setRenderTarget(rt);renderer.setViewport(0,0,rt.width,rt.height);renderer.clear();renderer.render(this.scene,this.vcam);
+ view.texture=rt.texture;view.valid=true;
 };
-
-Gadgets.prototype.renderOne=function(renderer,mainCam,from,to,camPos){
- from.group.updateWorldMatrix(true,false);to.group.updateWorldMatrix(true,false);
- const fromN=new T.Vector3(0,0,1).applyQuaternion(from.group.getWorldQuaternion(Q()));
- const fromP=from.group.getWorldPosition(V());
- const u=from.inner.material.uniforms;
- if(camPos.clone().sub(fromP).dot(fromN)<.02){u.hasPair.value=0;return;}
- const cam=this.vcam;
- cam.projectionMatrix.copy(mainCam.projectionMatrix);
- this._m1.copy(from.group.matrixWorld).invert();
- cam.matrixWorld.copy(to.group.matrixWorld).multiply(this.portalFlip).multiply(this._m1).multiply(mainCam.matrixWorld);
- cam.matrixWorldInverse.copy(cam.matrixWorld).invert();
- this.applyOblique(cam,to);
- renderer.setRenderTarget(this.portalRT[from.idx]);renderer.clear();renderer.render(this.scene,cam);
- u.map.value=this.portalRT[from.idx].texture;u.hasPair.value=1;
- u.portalMatrix.value.multiplyMatrices(cam.projectionMatrix,cam.matrixWorldInverse);
-};
-
 Gadgets.prototype.renderViews=function(renderer,mainCam){
- if(this._rendering||!this.world.root.visible)return;
- const a=this.portals[0],b=this.portals[1];
- if(!a||!b){for(const p of this.portals)if(p?.inner?.material?.uniforms)p.inner.material.uniforms.hasPair.value=0;return;}
- const camPos=mainCam.getWorldPosition(V());
- const near=a.group.getWorldPosition(V()).distanceTo(camPos)<22||b.group.getWorldPosition(V()).distanceTo(camPos)<22;
- if(!near){for(const p of this.portals)if(p?.inner?.material?.uniforms)p.inner.material.uniforms.hasPair.value=0;return;}
- this._portalFrame=(this._portalFrame||0)+1;
- if(QUEST&&(this._portalFrame&1))return;
- this._rendering=true;
- const xr=renderer.xr.enabled,shadows=renderer.shadowMap.enabled,prev=renderer.getRenderTarget();
- renderer.xr.enabled=false;renderer.shadowMap.enabled=false;
- a.group.visible=false;b.group.visible=false;
- this.renderOne(renderer,mainCam,a,b,camPos);
- this.renderOne(renderer,mainCam,b,a,camPos);
- a.group.visible=true;b.group.visible=true;
- renderer.shadowMap.enabled=shadows;renderer.xr.enabled=xr;renderer.setRenderTarget(prev);
- this._rendering=false;
+ if(this._rendering||!this.world.root.visible)return;const [a,b]=this.portals;if(!a||!b)return;
+ const pos=mainCam.getWorldPosition(V());if(Math.min(a.group.getWorldPosition(V()).distanceTo(pos),b.group.getWorldPosition(V()).distanceTo(pos))>45){a.views=[];b.views=[];return;}
+ if(renderer.xr.enabled&&renderer.xr.isPresenting)renderer.xr.updateCamera(mainCam);
+ const xr=renderer.xr.isPresenting?renderer.xr.getCamera():null;
+ this.portalEyes=xr?.cameras?.length?xr.cameras.slice(0,2):[mainCam];
+ const hidden=[a.group,b.group,this.props.scopeOverlay,this.props.system.vrPanel];
+ for(const item of this.props.held.values())if(item.holder==='desktop'||typeof item.holder==='number')hidden.push(item.group);
+ this._rendering=true;try{withOffscreenView(renderer,hidden,()=>{for(let eye=0;eye<this.portalEyes.length;eye++){const cam=this.portalEyes[eye];this.renderOne(renderer,cam,a,b,eye);this.renderOne(renderer,cam,b,a,eye);}});}finally{this._rendering=false;}
 };
 
 Gadgets.prototype.tickPortals=function(dt){
+ for(let i=0;i<2;i++)if(this.portals[i]&&!this.portals[i].anchor?.parent)this.clearPortal(i);
+ if(!this.portals[0]||!this.portals[1]){this.camReady=false;return;}
  this.cool=Math.max(0,this.cool-dt);
  const cam=this.props.camera.getWorldPosition(V());
  if(this.camReady){
-  const mapped=this.tryCross(cam,this.prevCam,null);
+  const mapped=this.tryCross(cam,this.prevCam,null,this.props.rig);
   if(mapped)this.teleportPlayer(mapped);
  }
- this.prevCam.copy(cam);this.camReady=true;
+ this.prevCam.copy(this.props.camera.getWorldPosition(V()));this.camReady=true;
  for(const group of this.world.movables||[]){
   const f=group.userData?.furniture;if(!f||f.held!=null)continue;
   const p=group.getWorldPosition(V());
   f.prevWorld??=p.clone();
-  const mapped=this.tryCross(p,f.prevWorld,f.velocity);
+  const mapped=this.tryCross(p,f.prevWorld,f.velocity,group);
   if(mapped){
    const parent=group.parent;
    group.position.copy(parent?.worldToLocal(mapped.pos.clone())||mapped.pos);
@@ -603,7 +586,7 @@ Gadgets.prototype.tickPortals=function(dt){
   if(item.holder!=null)continue;
   const p=item.group.getWorldPosition(V());
   item.prevWorld??=p.clone();
-  const mapped=this.tryCross(p,item.prevWorld,item.velocity);
+  const mapped=this.tryCross(p,item.prevWorld,item.velocity,item.group);
   if(mapped){item.group.position.copy(mapped.pos);item.group.quaternion.premultiply(mapped.q);}
   item.prevWorld.copy(item.group.getWorldPosition(V()));
  }
@@ -611,14 +594,18 @@ Gadgets.prototype.tickPortals=function(dt){
  for(const b of balls){
   if(!b?.mesh||b.held)continue;
   const p=b.mesh.position,prev=b.prevWorld||p.clone();
-  const mapped=this.tryCross(p,prev,b.vel);
+  const mapped=this.tryCross(p,prev,b.vel,b.mesh);
   if(mapped)b.mesh.position.copy(mapped.pos);
   b.prevWorld=p.clone();
+ }
+ for(const a of this.props.system.actors||[]){const p=a.group.getWorldPosition(V()).add(new T.Vector3(0,.95,0));
+  if(a.h5PortalPrev&&!a.grabs?.size&&!a.held){const mapped=this.tryCross(p,a.h5PortalPrev,null,a);if(mapped){const offset=mapped.pos.clone().sub(p);this.relocate(a.group,{pos:a.group.getWorldPosition(V()).add(offset),q:mapped.q});a.navigation=null;a.directedWalk=null;for(const s of a.soft||[])s.ready=false;}}
+  a.h5PortalPrev=a.group.getWorldPosition(V()).add(new T.Vector3(0,.95,0));
  }
  for(const d of this.props.dogs?.list?.()||[]){
   const p=d.root.getWorldPosition(V());
   d.prevWorld??=p.clone();
-  const mapped=this.tryCross(p,d.prevWorld,null);
+  const mapped=this.tryCross(p,d.prevWorld,null,d.root);
   if(mapped){
    const parent=d.root.parent;
    d.root.position.copy(parent?.worldToLocal(mapped.pos.clone())||mapped.pos);

@@ -1,0 +1,51 @@
+import * as T from 'three';
+import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
+import {WEAPONS} from '../mira-v2-props.js?v=17.5.0';
+import {tagMovable} from '../mira-v2-furniture.js?v=17.5.0';
+import {stickAxes} from '../mira-v2-locomotion.js?v=17.5.0';
+import {V,rng,wrapMethod,clamp,disposeTree,detachMovable} from './human5-common.js?v=17.5.0';
+
+export class FishingLine {
+ constructor(){this.state='ready';this.p=V();this.v=V();this.length=1;this.tension=0;this.wait=0;this.age=0;this.bait=true;}
+ cast(tip,velocity){this.state='cast';this.p.copy(tip);this.v.copy(velocity).clampLength(0,15);this.length=20;this.age=0;this.wait=4;this.bait=true;}
+ step(dt,{tip,water=null,reel=0,gravity=9.81,bite=false}={}){dt=clamp(dt,0,.05);this.age+=dt;if(this.state==='ready')return null;
+  if(reel>0)this.length=Math.max(.35,this.length-reel*2.8*dt);
+  if(this.state==='cast'){this.v.y-=gravity*dt;this.p.addScaledVector(this.v,dt);if(water&&this.p.y<=water.surface){this.state='waiting';this.p.y=water.surface+.015;this.v.setScalar(0);this.wait=3;}}
+  else if(water){this.p.y=water.surface+(this.state==='hooked'?-.035:.015);this.wait-=dt;if(this.state==='waiting'&&bite&&this.wait<=0){this.state='hooked';this.age=0;}}
+  const d=this.p.clone().sub(tip),distance=d.length();if(distance>this.length&&distance>0)this.p.copy(tip).addScaledVector(d,this.length/distance);
+  this.tension=clamp((distance-this.length)*.65+(this.state==='hooked'?.23+.16*Math.sin(this.age*8):0),0,1);
+  if(this.tension>.98&&this.state==='hooked'){this.state='waiting';this.wait=8;return 'escaped';}
+  if(tip.distanceTo(this.p)<.7&&reel>0){const caught=this.state==='hooked';this.state='ready';return caught?'caught':'retrieved';}
+  if(this.age>90){this.state='ready';return 'retrieved';}return null;
+ }
+}
+function fishGeometry(){const body=new T.SphereGeometry(1,12,7);body.scale(.035,.071,.16);const tail=new T.ConeGeometry(.065,.12,4);tail.rotateX(-Math.PI/2);tail.scale(.15,1,1);tail.translate(0,0,-.19);const dorsal=new T.ConeGeometry(.05,.05,3);dorsal.scale(.10,1,1);dorsal.translate(0,.07,0);const g=mergeGeometries([body,tail,dorsal]);[body,tail,dorsal].forEach(g=>g.dispose());return g;}
+export function installFishing({world,props,camera,renderer,quest=true,water,scene}={}){
+ WEAPONS.fishingRod={name:'Fishing rod · trigger cast · stick/reel',kind:'fishing',category:'tool',mass:.72,reach:1.58,sharpness:0};const rods=new Map(),restores=[],random=rng(41536),fish=[],caught=[],root=new T.Group();scene.add(root);root.name='River fish';let time=0,scan=0,reelKey=false,fishCenter=new T.Vector3(Infinity,Infinity,Infinity);const max=quest?32:56,geometry=fishGeometry(),mat=new T.MeshStandardMaterial({color:0x758d84,roughness:.28,metalness:.12}),swarm=new T.InstancedMesh(geometry,mat,max),dummy=new T.Object3D();swarm.count=0;swarm.frustumCulled=false;root.add(swarm);
+ function sample(p){return world.h5OpenWorld?.active?world.h5OpenWorld.field.waterAt(p.x,p.z):null;}
+ function decorate(item){for(const m of [...item.group.children])disposeTree(m);const carbon=new T.MeshStandardMaterial({color:0x303a38,roughness:.44,metalness:.15}),rubber=new T.MeshStandardMaterial({color:0x443a30,roughness:.94}),steel=new T.MeshStandardMaterial({color:0x9da4a5,roughness:.28,metalness:.8});
+  const add=(g,m,x,y,z)=>{const o=new T.Mesh(g,m);o.position.set(x,y,z);o.userData.weapon=item.id;item.group.add(o);return o;};const rod=add(new T.CylinderGeometry(.002,.009,1.55,7,12),carbon,0,0,-.65);rod.rotation.x=Math.PI/2;const handle=add(new T.CylinderGeometry(.019,.019,.27,9),rubber,0,0,.04);handle.rotation.x=Math.PI/2;const spool=add(new T.CylinderGeometry(.043,.043,.055,12),steel,0,-.065,-.10);spool.rotation.z=Math.PI/2;const crank=add(new T.TorusGeometry(.048,.004,5,12),steel,.04,-.065,-.10);crank.rotation.y=Math.PI/2;for(let i=0;i<6;i++){const eye=add(new T.TorusGeometry(.009-i*.001,.0014,4,7),steel,0,-.009,-.2-i*.22);}
+  const line=new T.Line(new T.BufferGeometry().setAttribute('position',new T.Float32BufferAttribute(new Float32Array(51),3)),new T.LineBasicMaterial({color:0xcbd5cc,transparent:true,opacity:.65}));scene.add(line);const bob=new T.Mesh(new T.SphereGeometry(.015,8,6),new T.MeshStandardMaterial({color:0xe15d40,roughness:.5}));scene.add(bob);const leader=new T.Line(new T.BufferGeometry().setFromPoints([new T.Vector3(0,0,0),new T.Vector3(0,-.20,0)]),new T.LineBasicMaterial({color:0x9faba5}));const hook=new T.Mesh(new T.TorusGeometry(.011,.0014,4,10,Math.PI*1.65),steel.clone());hook.position.y=-.20;const bait=new T.Mesh(new T.CapsuleGeometry(.003,.018,2,5),new T.MeshStandardMaterial({color:0xc38b79,roughness:.9}));bait.position.set(.009,-.20,0);bob.add(leader,hook,bait);const state={item,model:new FishingLine(),line,bob,tip:V(),last:V(),velocity:V(),charging:false,charge:0,crank};rods.set(item,state);item.handle.set(0,0,.045);return state;
+ }
+ restores.push(wrapMethod(props,'make',old=>function(id){const item=old.call(this,id);if(id==='fishingRod')decorate(item);return item;}));
+ function press(item){const r=rods.get(item);if(!r)return false;if(r.model.state==='ready'){r.charging=true;r.charge=0;}return true;}
+ restores.push(wrapMethod(props,'trigger',old=>function(i){const item=props.held.get(i);if(item?.id==='fishingRod')return press(item);return old.call(this,i);}));
+ restores.push(wrapMethod(props,'desktop',old=>function(ray){const item=props.held.get('desktop');if(item?.id==='fishingRod')return press(item);return old.call(this,ray);}));
+ const down=e=>{if(e.code==='KeyR'&&!/INPUT|TEXTAREA|SELECT/.test(e.target?.tagName||''))reelKey=true;},up=e=>{if(e.code==='KeyR')reelKey=false;};document.addEventListener('keydown',down);document.addEventListener('keyup',up);
+ function reel(item){if(item.holder==='desktop')return reelKey?1:0;const hand=props.system.hands.handedness[item.holder],src=[...(renderer.xr.getSession()?.inputSources||[])].find(s=>s.handedness===hand);return clamp(-stickAxes(src?.gamepad).y,0,1);}
+ function cast(item){const r=rods.get(item);if(!r)return false;const forward=new T.Vector3(0,0,-1).applyQuaternion(item.group.getWorldQuaternion(new T.Quaternion()));const vel=r.velocity.clone().multiplyScalar(.65).addScaledVector(forward,3+r.charge*5);vel.y+=2;r.model.cast(r.tip,vel);r.charging=false;props.status='Line cast · bait added automatically';return true;}
+ function catchFish(r){const g=new T.Group(),mesh=new T.Mesh(geometry.clone(),mat.clone());g.add(mesh);g.position.copy(r.model.p);world.root.add(g);const f=tagMovable(world,g,'Fish');if(f){f.mass=.4;f.volume=.0004;f.density=1000;f.mix={food:1};f.health=3;}caught.push(g);while(caught.length>6){const a=caught.find(g=>g.userData.furniture?.held==null);if(!a)break;caught.splice(caught.indexOf(a),1);detachMovable(world,a);}props.status='Fish caught · grip to pick it up';}
+ function populate(p){fishCenter.copy(p);fish.length=0;for(let i=0;i<max*6&&fish.length<max;i++){const x=p.x+(random()-.5)*90,z=p.z+(random()-.5)*90,w=sample(new T.Vector3(x,0,z));if(!w)continue;fish.push({home:new T.Vector3(x,Math.max(w.floor+.25,w.surface-.7-random()*.5),z),phase:random()*6.28,size:.65+random()*.8});}swarm.count=fish.length;}
+ const api={rods,fish,caught,press,cast,
+  tick(dt){time+=dt;root.visible=world.root.visible&&!!world.h5OpenWorld?.active;scan-=dt;const center=camera.getWorldPosition(V());if(scan<=0||center.distanceToSquared(fishCenter)>400){scan=4;if(!fish.length||center.distanceToSquared(fishCenter)>400)populate(center);}
+   fish.forEach((f,i)=>{const x=f.home.x+Math.sin(time*.7+f.phase)*1.1,z=f.home.z+Math.cos(time*.55+f.phase)*.7,w=sample(new T.Vector3(x,0,z));dummy.position.set(w?x:f.home.x,f.home.y,w?z:f.home.z);dummy.rotation.set(0,Math.atan2(Math.cos(time*.7+f.phase),-Math.sin(time*.55+f.phase)),Math.sin(time*9+f.phase)*.04);dummy.scale.setScalar(f.size);dummy.updateMatrix();swarm.setMatrixAt(i,dummy.matrix);});swarm.instanceMatrix.needsUpdate=true;
+   for(const [item,r]of rods){if(!props.items.includes(item)){disposeTree(r.line);disposeTree(r.bob);rods.delete(item);continue;}const held=item.holder!==null;r.line.visible=r.bob.visible=held&&r.model.state!=='ready';if(!held){r.model.state='ready';r.charging=false;continue;}item.group.updateWorldMatrix(true,true);r.tip.copy(item.group.localToWorld(new T.Vector3(0,0,-1.425)));r.velocity.copy(r.tip).sub(r.last).divideScalar(Math.max(.001,dt)).clampLength(0,12);r.last.copy(r.tip);
+    if(r.charging){r.charge=Math.min(1,r.charge+dt);if(!props.triggerHeld(item.holder))cast(item);}
+    if(item.holder?.h5Angler&&r.model.state==='ready'&&time-(r.lastAuto||0)>5){r.lastAuto=time;let target=null;for(let i=0;i<16&&!target;i++){const p=r.tip.clone().add(new T.Vector3(Math.sin(i*.3927)*6,0,Math.cos(i*.3927)*6)),w=sample(p);if(w)target=p.setY(w.surface);}if(target)r.model.cast(r.tip,target.sub(r.tip).add(new T.Vector3(0,(world.gravity??9.81)*.5,0)));}
+    const w=sample(r.model.p),reeling=item.holder?.h5Angler?(r.model.state==='hooked'?1:0):reel(item),nearFish=fish.some(f=>f.home.distanceTo(r.model.p)<5);const outcome=r.model.step(dt,{tip:r.tip,water:w,reel:reeling,gravity:world.gravity??9.81,bite:nearFish&&random()<dt*.5});if(outcome==='caught')catchFish(r);else if(outcome)props.status=outcome==='escaped'?'Fish escaped · bait reset':'Line retrieved';if(r.model.state==='hooked')props.status='Fish on · reel in · tension '+Math.round(r.model.tension*100)+'%';
+    r.crank.rotation.x+=reeling*dt*12;r.bob.position.copy(r.model.p);const a=r.line.geometry.attributes.position,distance=r.tip.distanceTo(r.model.p),sag=Math.min(.6,Math.max(0,r.model.length-distance)*.06);for(let i=0;i<17;i++){const t=i/16,p=r.tip.clone().lerp(r.model.p,t);p.y-=Math.sin(t*Math.PI)*sag;p.toArray(a.array,i*3);}a.needsUpdate=true;r.line.geometry.computeBoundingSphere();
+   }
+  },snapshot(){return {fish:fish.length,caught:caught.length,rods:[...rods.values()].map(r=>({state:r.model.state,length:r.model.length,tension:r.model.tension}))};},
+  dispose(){restores.reverse().forEach(f=>f());document.removeEventListener('keydown',down);document.removeEventListener('keyup',up);for(const r of rods.values()){disposeTree(r.line);disposeTree(r.bob);}rods.clear();disposeTree(root);}
+ };world.h5Fishing=api;return api;
+}

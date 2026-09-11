@@ -1,7 +1,7 @@
 import * as T from 'three';
-import {V,clamp,smooth,wrapMethod} from './human5-common.js?v=17.2.0';
-import {installReferenceGroom} from './human5-groom.js?v=17.2.0';
-import {weldSkinNormals} from './human5-skin.js?v=17.2.0';
+import {V,clamp,smooth,wrapMethod} from './human5-common.js?v=17.5.0';
+import {installReferenceGroom} from './human5-groom.js?v=17.5.0';
+import {weldSkinNormals} from './human5-skin.js?v=17.5.0';
 
 export const REFERENCE_MIRA=Object.freeze({
   id:'mira-reference-17',name:'Mira',faceType:1,likeness:1,hairStyle:1,hairColor:1,
@@ -68,6 +68,6 @@ export function installReferenceIdentity(actor,{preset=REFERENCE_MIRA,texture=nu
     if(active){Object.assign(actor.shape,preset.shape);actor.faceType=preset.faceType;actor.likeness=preset.likeness;actor.hairStyle=preset.hairStyle;actor.hairColor=preset.hairColor;actor.displayName=preset.name;}
     else{Object.assign(actor.shape,before.shape);Object.assign(actor,{faceType:before.faceType,likeness:before.likeness,hairStyle:before.hairStyle,hairColor:before.hairColor,displayName:before.name});}
     actor.applyLooks();actor.applyShape();actor.hairPhysics?.setStyle(actor.hairStyle);actor.realism?.tissue.reset();
-  },setSculpt(values){for(const c of IDENTITY_CONTROLS)if(Number.isFinite(values[c.key]))sculpt[c.key]=clamp(values[c.key],c.min,c.max);appliedStamp=null;actor.geomState='';actor.lastLikeness=NaN;actor.applyShape();},express(name,duration=3){if(!(name in REFERENCE_EXPRESSIONS))throw new TypeError('Unknown expression '+name);expression={name,duration:clamp(duration,.5,60)};exprTime=0;},dispose(){actor.h5Groom?.dispose();api.setEnabled(false);restores.reverse().forEach(f=>f());delete actor.h5Identity;}};
+  },setSculpt(values){for(const c of IDENTITY_CONTROLS)if(Number.isFinite(values[c.key]))sculpt[c.key]=clamp(values[c.key],c.min,c.max);appliedStamp=null;actor.geomState='';actor.lastLikeness=NaN;actor.applyShape();},express(name,duration=3){if(!(name in REFERENCE_EXPRESSIONS))throw new TypeError('Unknown expression '+name);expression={name,duration:clamp(duration,.5,60)};exprTime=0;},dispose({restore=true}={}){actor.h5Groom?.dispose();if(restore)api.setEnabled(false);restores.reverse().forEach(f=>f());delete actor.h5Identity;}};
   actor.h5Identity=api;api.setEnabled(enabled);installReferenceGroom(actor);return api;
 }

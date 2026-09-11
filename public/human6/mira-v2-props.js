@@ -1,17 +1,19 @@
 import * as T from 'three';
+import {rayMayHitActor} from './modules/human5-ray-budget.js?v=17.5.0';
+import {EXTRA_WEAPONS,buildSpecialEquipment,refineEquipmentModel} from './modules/human5-equipment-models.js?v=17.5.0';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
-import {playSfx,sfxForHit,unlockSfx} from './mira-v2-sfx.js?v=17.2.0';
-import {furnitureRoot,syncFurniture} from './mira-v2-furniture.js?v=17.2.0';
-import {ensureGrabbableWood} from './mira-v2-nature.js?v=17.2.0';
-import {GUNS,MELEE,buildMarker,buildPortalGun} from './mira-v2-gadgets.js?v=17.2.0';
-import {FIREARMS,buildFirearm,firearmSpread} from './mira-v2-firearms.js?v=17.2.0';
-import {buildTorch,buildExtinguisher} from './mira-v2-fire.js?v=17.2.0';
-import {installWeightPhysics,throwSpeed} from './mira-v2-weights.js?v=17.2.0';
+import {playSfx,sfxForHit,unlockSfx} from './mira-v2-sfx.js?v=17.5.0';
+import {furnitureRoot,syncFurniture} from './mira-v2-furniture.js?v=17.5.0';
+import {ensureGrabbableWood} from './mira-v2-nature.js?v=17.5.0';
+import {GUNS,MELEE,buildMarker,buildPortalGun} from './mira-v2-gadgets.js?v=17.5.0';
+import {FIREARMS,buildFirearm,firearmSpread} from './mira-v2-firearms.js?v=17.5.0';
+import {buildTorch,buildExtinguisher} from './mira-v2-fire.js?v=17.5.0';
+import {installWeightPhysics,throwSpeed} from './mira-v2-weights.js?v=17.5.0';
 const V=()=>new T.Vector3(),Q=()=>new T.Quaternion();
 const visible=o=>{while(o){if(!o.visible)return false;o=o.parent;}return true;};
 const G=w=>Number.isFinite(w?.gravity)?w.gravity:9.81;
-const isGun=k=>k==='bullet'||k==='laser'||k==='paint'||k==='portal'||k==='flame'||k==='foam';
-export const WEAPONS={sword:{name:'Sword',mass:1.4,reach:.95,sharpness:.85,kind:'cut',category:'melee'},axe:{name:'Axe',mass:2.1,reach:.78,sharpness:.7,kind:'cut',category:'melee'},mace:{name:'Mace',mass:2.8,reach:.66,sharpness:0,kind:'blunt',category:'melee'},pistol:{name:'Pistol',mass:.9,reach:.24,kind:'bullet',category:'firearm',fireRate:.22,energy:32,spread:.018,pellets:1,magSize:12,reload:1.55},laser:{name:'Laser pistol',mass:1.2,reach:.28,kind:'laser',category:'firearm'},...FIREARMS,marker:{name:'Paintball marker · blue',mass:1.05,reach:.42,kind:'paint',color:0x2aa0e8,category:'tool'},marker2:{name:'Paintball marker · red',mass:1.05,reach:.42,kind:'paint',color:0xc43b3b,category:'tool'},portal:{name:'Portal gun',mass:1.35,reach:.32,kind:'portal',category:'tool'},torch:{name:'Flame torch',mass:.7,reach:.48,kind:'flame',category:'tool',fireRate:.18,energy:12},extinguisher:{name:'Fire extinguisher',mass:2.4,reach:.32,kind:'foam',category:'tool',fireRate:.12,energy:0}};
+const isGun=k=>k==='launcher'||k==='spell'||k==='bullet'||k==='laser'||k==='paint'||k==='portal'||k==='flame'||k==='foam';
+export const WEAPONS={...EXTRA_WEAPONS,sword:{name:'Sword',mass:1.4,reach:.95,sharpness:.85,kind:'cut',category:'melee'},axe:{name:'Axe',mass:2.1,reach:.78,sharpness:.7,kind:'cut',category:'melee'},mace:{name:'Mace',mass:2.8,reach:.66,sharpness:0,kind:'blunt',category:'melee'},pistol:{name:'Pistol',mass:.9,reach:.24,kind:'bullet',category:'firearm',fireRate:.22,energy:32,spread:.018,pellets:1,magSize:12,reload:1.55},laser:{name:'Laser pistol',mass:1.2,reach:.28,kind:'laser',category:'firearm'},...FIREARMS,marker:{name:'Paintball marker · blue',mass:1.05,reach:.42,kind:'paint',color:0x2aa0e8,category:'tool'},marker2:{name:'Paintball marker · red',mass:1.05,reach:.42,kind:'paint',color:0xc43b3b,category:'tool'},portal:{name:'Portal gun',mass:1.35,reach:.32,kind:'portal',category:'tool'},torch:{name:'Flame torch',mass:.7,reach:.48,kind:'flame',category:'tool',fireRate:.18,energy:12},extinguisher:{name:'Fire extinguisher',mass:2.4,reach:.32,kind:'foam',category:'tool',fireRate:.12,energy:0}};
 export {GUNS,MELEE};
 export class Props {
  constructor({scene,system,world,wardrobe,camera,renderer,rig}){Object.assign(this,{scene,system,world,wardrobe,camera,renderer,rig});this.items=[];this.held=new Map();this.furnHolds=new Map();this.shots=[];this.effects=[];this.marks=[];this.time=0;this.revision=-1;this.rc=new T.Raycaster();this.status='Guns hang on the living-room wall rack.';this.desktopTrigger=false;this.autoBlock=new Set();installWeightPhysics(this);this.syncWorld();this.bindDesktopTrigger();}
@@ -21,7 +23,8 @@ export class Props {
   addEventListener('pointerup',up,{passive:true});addEventListener('pointercancel',up,{passive:true});addEventListener('blur',up);
  }
  make(id){const data=WEAPONS[id],group=new T.Group(),metal=new T.MeshStandardMaterial({color:id==='laser'?0x467e8a:0x8b9298,roughness:.32,metalness:.75}),grip=new T.MeshStandardMaterial({color:0x362e2b,roughness:.95}),add=(geom,mat,x,y,z)=>{const m=new T.Mesh(geom,mat);m.position.set(x,y,z);m.castShadow=true;group.add(m);return m;};
- if(id==='marker'||id==='marker2')buildMarker(id,add);
+ if(buildSpecialEquipment(id,add)){}
+ else if(id==='marker'||id==='marker2')buildMarker(id,add);
  else if(id==='portal')buildPortalGun(add);
  else if(id==='torch')buildTorch(add);
  else if(id==='extinguisher')buildExtinguisher(add);
@@ -35,7 +38,7 @@ export class Props {
   else{add(rb(.055,.075,.24,.012),metal,0,.03,-.08);const handle=add(rb(.044,.11,.055,.01),grip,0,-.057,.016);handle.rotation.x=-.2;add(new T.TorusGeometry(.029,.005,8,16),metal,0,-.045,-.057).rotation.y=Math.PI/2;add(rb(.018,.012,.014,.004),grip,0,.075,-.15);const slide=add(new T.CylinderGeometry(.011,.012,.16,12),metal,0,.035,-.18);slide.rotation.x=Math.PI/2;if(id==='laser')for(const sx of [-.033,.033]){const rail=add(new T.CylinderGeometry(.004,.004,.13,8),new T.MeshBasicMaterial({color:0x9df5ff}),sx,.035,-.09);rail.rotation.x=Math.PI/2;}}
  }
  group.traverse(m=>m.userData.weapon=id);const gunGrip=isGun(data.kind)||['pistol','laser','marker','marker2','portal','rifle','sniper','shotgun','uzi','torch','extinguisher'].includes(id);
- const item={id,data,group,holder:null,lastTip:null,lastPoint:null,handle:new T.Vector3(0,gunGrip?-.057:-.025,gunGrip?.016:0),velocity:V(),lastHit:new Map(),kick:0,swing:0,portalNext:0,mag:data.magSize||0,support:null};this.scene.add(group);this.gadgets?.decorate?.(item);return item;}
+ const item={id,data,group,holder:null,lastTip:null,lastPoint:null,handle:new T.Vector3(0,gunGrip?-.057:-.025,gunGrip?.016:0),velocity:V(),lastHit:new Map(),kick:0,swing:0,portalNext:0,mag:data.magSize||0,support:null};this.scene.add(group);this.gadgets?.decorate?.(item);refineEquipmentModel(item);return item;}
  syncWorld(){if(this.revision===this.world.revision)return;this.revision=this.world.revision;this.furnHolds.clear();if(this.restraints){for(const l of [...this.restraints.links])this.restraints.remove(l);this.restraints.cancel();}for(const m of this.marks.filter(m=>!m.actor))this.dispose(m.mesh);this.marks=this.marks.filter(m=>m.actor);this.shots=[];for(const e of this.effects)this.dispose(e.mesh);this.effects=[];this.gadgets?.clearPaint?.();this.gadgets?.clearPortals?.();const kept=[];for(const item of this.items){if(item.holder!==null){kept.push(item);continue;}item.group.removeFromParent();item.group.traverse(m=>{m.geometry?.dispose();m.material?.dispose();});}this.items=kept;const heldIds=new Set(kept.map(i=>i.id));if(this.world.name!=='Living room'){this.gadgets?.rebuildRack?.();return;}const p=this.world.tableAnchor;if(p)MELEE.forEach((id,i)=>{if(heldIds.has(id))return;const item=this.make(id);item.group.position.set(p.x-.45+i*.45,p.y+.055,p.z+(i%2?.18:-.16));item.group.rotation.y=-Math.PI/2;this.items.push(item);});this.gadgets?this.gadgets.rebuildRack():GUNS.forEach((id,i)=>{if(heldIds.has(id))return;const item=this.make(id);item.group.position.set(.255,1.22,-1.05+i*.38);item.group.rotation.y=Math.PI/2;this.items.push(item);});}
  ray(i){const c=this.system.hands.ctrl[i];return new T.Ray(c.getWorldPosition(V()),new T.Vector3(0,0,-1).applyQuaternion(c.getWorldQuaternion(Q())));}
  weaponHit(ray){this.rc.ray.copy(ray);this.rc.far=8;const h=this.rc.intersectObjects(this.items.filter(x=>x.holder===null).map(x=>x.group),true).find(h=>visible(h.object));if(!h)return null;const blocker=this.hit(ray,h.distance,false);if(blocker&&blocker.distance<h.distance-.005)return null;return this.items.find(x=>{for(let o=h.object;o;o=o.parent)if(o===x.group)return true;return false;});}
@@ -77,7 +80,7 @@ export class Props {
   const handle=item.group.localToWorld(item.handle.clone());
   const tip=item.group.localToWorld(new T.Vector3(0,0,-reach));
   const span=tip.clone().sub(handle),len=span.length();if(len<1e-4)return;
-  const dir=span.clone().normalize(),ray=new T.Ray(handle,dir),hit=this.hit(ray,len+.02,false,{world:true});
+  const dir=span.clone().normalize(),ray=new T.Ray(handle,dir),hit=this.hit(ray,len+.02,false,{world:true,actors:false});
   if(!hit)return;
   if(this.driving())return;
   if(this.actorFor(hit.object)||this.dogFor(hit.object)||hit.object.userData?.cloth)return;
@@ -190,8 +193,9 @@ export class Props {
     const r=c.clone().sub(com2),pen=Math.max(0,floor-c.y);
     maxPen=Math.max(maxPen,pen);
     furn.omega.add(r.clone().cross(new T.Vector3(0,Fn+pen*4,0)).multiplyScalar(dt/I));
-    furn.velocity.x*=.55;furn.velocity.z*=.55;
+
    }
+   const tangent=Math.hypot(furn.velocity.x,furn.velocity.z),mu=/Mattress|Couch|Ottoman/.test(furn.id)?.75:.55,friction=Math.max(0,1-mu*grav*dt/Math.max(tangent,1e-9));furn.velocity.x*=friction;furn.velocity.z*=friction;
    furn.omega.multiplyScalar(Math.exp(-dt*8));
    if(furn.velocity.y<0)furn.velocity.y*=.01;
    if(maxPen>0){
@@ -232,7 +236,7 @@ export class Props {
     group.position.add(delta);furn.velocity.copy(delta).divideScalar(Math.max(.001,dt));
    }
    this.applyFurnitureGravity(group,furn,dt,list);
-   if(list.length===1){group.updateWorldMatrix(true,true);const G=group.localToWorld(list[0].hold.local.clone());group.position.add(list[0].target.clone().sub(G));}
+   // The compliant grip above owns translation. A final exact snap would erase mass and lag.
    this.restraints?.constrainObject(group);
    const p=group.position.clone(),rad=Math.max(.2,Math.hypot(furn.obstacle?.w||.4,furn.obstacle?.d||.4)/2);this.world.project(p,rad,.02,Math.max(.4,furn.obstacle?.h||1.2),furn.obstacle);group.position.x=p.x;group.position.z=p.z;syncFurniture(this.world,group);
   }
@@ -277,16 +281,16 @@ export class Props {
  release(i){for(const item of this.held.values())if(item.support===i)item.support=null;this.water?.release(i);this.drop(i);this.releaseFurniture(i);this.world.doors?.release?.(i);for(const c of this.cars())c.release(i);}
  resetMotion(){for(const item of this.items){item.lastTip=null;item.lastSamples=null;item.lastPoint=null;item.velocity.set(0,0,0);}}
  trigger(i){if(this.builder?.active){this.builder.controller=i;return this.builder.place(this.ray(i));}if(this.restraints?.placing)return this.restraints.place(this.ray(i));const ray=this.ray(i);if(this.world.piano?.click(ray,this)){this.autoBlock.add(i);return true;}this.autoBlock.delete(i);const held=this.held.get(i);if(held){if(isGun(held.data.kind))this.fire(held);return true;}if(this.driving())return true;if(this.world.laundry?.click(ray,this))return true;const rope=this.restraints?.hit(ray);if(rope){const link=rope.object.userData.restraint||this.restraints.selected;if(rope.object.userData.restraintPanel)this.restraints.panelAction(rope.uv);else this.restraints.select(link,rope.point);return true;}return false;}
- desktop(ray){this.desktopAim=ray;if(this.builder?.active)return this.builder.place(ray);if(this.restraints?.placing)return this.restraints.place(ray);const item=this.held.get('desktop');if(item){if(isGun(item.data.kind)){this.desktopTrigger=true;this.fire(item,ray);}else{item.swing=.30;const hit=this.hit(ray,1.45);if(hit)this.impact(hit,item.data.mass*18,ray.direction,item.data.kind,item.data.sharpness);}return true;}if(this.driving()){for(const c of this.cars())if(c.driving&&c.click(ray))return true;const picked=this.weaponHit(ray);return picked?this.hold(picked,'desktop'):true;}const rope=this.restraints?.hit(ray);if(rope){if(rope.object.userData.restraintPanel)this.restraints.panelAction(rope.uv);else this.restraints.select(rope.object.userData.restraint,rope.point);return true;}if(this.water?.click(ray))return true;if(this.world.laundry?.click(ray,this))return true;if(this.world.piano?.click(ray,this))return true;if(this.world.doors?.click?.(ray,this))return true;for(const c of this.cars())if(c.click(ray))return true;const picked=this.weaponHit(ray);return picked?this.hold(picked,'desktop'):false;}
+ desktop(ray){this.desktopAim=ray;if(this.builder?.active)return this.builder.place(ray);if(this.restraints?.placing)return this.restraints.place(ray);const item=this.held.get('desktop');if(item){if(isGun(item.data.kind)){this.desktopTrigger=true;this.fire(item,ray);}else{item.swing=.30;const hit=this.hit(ray,1.45,false,{kind:item.data.kind});if(hit)this.impact(hit,item.data.mass*18,ray.direction,item.data.kind,item.data.sharpness);}return true;}if(this.driving()){for(const c of this.cars())if(c.driving&&c.click(ray))return true;const picked=this.weaponHit(ray);return picked?this.hold(picked,'desktop'):true;}const rope=this.restraints?.hit(ray);if(rope){if(rope.object.userData.restraintPanel)this.restraints.panelAction(rope.uv);else this.restraints.select(rope.object.userData.restraint,rope.point);return true;}if(this.water?.click(ray))return true;if(this.world.laundry?.click(ray,this))return true;if(this.world.piano?.click(ray,this))return true;if(this.world.doors?.click?.(ray,this))return true;for(const c of this.cars())if(c.click(ray))return true;const picked=this.weaponHit(ray);return picked?this.hold(picked,'desktop'):false;}
  hit(ray,max=50,ropes=true,opts={}){
   this.rc.ray.copy(ray);this.rc.near=0;this.rc.far=max;
-  const clothes=(this.wardrobe?.clothes||[]).filter(c=>c.actor!==opts.ignoreActor||!opts.ignoreActor).map(c=>c.mesh).filter(m=>m&&visible(m));
+  const clothes=(opts.actors===false?[]:this.wardrobe?.clothes||[]).filter(c=>(c.actor!==opts.ignoreActor||!opts.ignoreActor)&&(opts.unbudgeted||!c.actor||!c.skinLOD?.active||rayMayHitActor(this,c.actor,ray,max))).map(c=>c.skinLOD?.active?c.skinLOD.mesh:c.mesh).filter(m=>m&&visible(m));
   const clothHit=clothes.length?this.rc.intersectObjects(clothes,false).find(h=>visible(h.object)):null;
   const meshes=[];
   if(opts.world!==false){meshes.push(...this.world.pickables);for(const c of this.cars())meshes.push(...(c.pickables||[]));for(const p of this.world.fractures?.parts||[])if(p.frame&&p.mesh&&!p.broken)p.mesh.traverse(m=>{if(m.isMesh&&m.visible)meshes.push(m);});}
-  for(const a of this.system.actors){if(a===opts.ignoreActor)continue;a.root.traverse(m=>{if(m.isSkinnedMesh&&/^body/.test(m.name)||m.isMesh&&m.userData.h5Armor&&m.visible)meshes.push(m);});}
-  for(const d of this.dogs?.list?.()||[])d.root.traverse(m=>{if(m.isSkinnedMesh&&m.visible)meshes.push(m);});
-  const hits=meshes.length?this.rc.intersectObjects(meshes,false):[];
+  for(const a of opts.actors===false?[]:this.system.actors){if(a===opts.ignoreActor||!opts.unbudgeted&&!rayMayHitActor(this,a,ray,max))continue;a.root.traverse(m=>{if(m.isSkinnedMesh&&/^body/.test(m.name)||m.isMesh&&m.userData.h5Armor&&m.visible)meshes.push(m);});}
+  for(const d of opts.actors===false?[]:this.dogs?.list?.()||[])if(opts.unbudgeted||rayMayHitActor(this,d,ray,max))d.root.traverse(m=>{if(m.isSkinnedMesh&&m.visible)meshes.push(m);});
+  const hits=meshes.length?this.rc.intersectObjects([...new Set(meshes)],false):[];
   const hit=hits.find(h=>{
    if(!visible(h.object))return false;
    if(h.object.userData.noHit||h.object.userData.weatherSkip||h.object.userData.pianoKey)return false;
@@ -349,8 +353,8 @@ export class Props {
   unlockSfx();playSfx(item.id==='laser'?'laser':'gun');
   if(item.data.magSize)item.mag=Math.max(0,(item.mag??item.data.magSize)-1);
   const muzzle=item.group.localToWorld(new T.Vector3(0,.032,-item.data.reach));
-  const aimDir=aim?(this.hit(aim,48)?.point||aim.at(18,V())).clone().sub(muzzle).normalize():new T.Vector3(0,0,-1).applyQuaternion(item.group.getWorldQuaternion(Q()));
-  const pellets=Math.max(1,item.data.pellets||1),spread0=item.data.spread||0,spread=item.support!=null?spread0*.22:spread0,energy=item.data.energy||32,speed=item.id==='sniper'?120:item.id==='shotgun'?68:85;
+  const scope=item.id==='sniper'&&this.h5Equipment?.scope.item===item&&this.h5Equipment.scope.camera;const aimDir=scope?scope.getWorldPosition(V()).addScaledVector(scope.getWorldDirection(V()),100).sub(muzzle).normalize():aim?(this.hit(aim,160)?.point||aim.at(80,V())).clone().sub(muzzle).normalize():new T.Vector3(0,0,-1).applyQuaternion(item.group.getWorldQuaternion(Q()));
+  const pellets=Math.max(1,item.data.pellets||1),spread0=item.data.spread||0,spread=item.support!=null?spread0*.22:spread0,energy=item.data.energy||32,speed=item.id==='sniper'?720:item.id==='rifle'?670:item.id==='musket'?330:item.id==='shotgun'?360:310;
   for(let i=0;i<pellets;i++){
    const dir=spread?firearmSpread(aimDir,spread):aimDir.clone(),ray=new T.Ray(muzzle,dir);
    if(item.id==='laser'){const hit=this.hit(ray,35),end=hit?.point||ray.at(35,V());this.beam(muzzle,end,0x99f7ff,.10);if(hit)this.impact(hit,24,dir,'laser',0);}
@@ -515,49 +519,15 @@ void main(){
     if(k>=1){item.reloading=false;item.mag=item.data.magSize;item.reloadBar.visible=false;this.status=item.data.name+' loaded';}
    }else if(item.reloadBar)item.reloadBar.visible=false;
   }
-  this.tickSniperScope();
+  this.tickSniperScope(dt);
  }
- tickSniperScope(){
-  const item=[...this.held.values()].find(i=>i.id==='sniper');
-  if(!item||!this.renderer||!this.camera){if(this.scopeOverlay)this.scopeOverlay.visible=false;return;}
-  let lens=null,ocular=null;item.group.traverse(m=>{if(m.userData?.scopeLens)lens=m;if(m.userData?.scopeEye)ocular=m;});if(!lens)return;
-  const quest=/Quest|OculusBrowser/i.test(globalThis.navigator?.userAgent||'');
-  if(quest){this._scopeSkip=(this._scopeSkip||0)+1;if(this._scopeSkip%2)return;}
-  if(!this.scopeRT){this.scopeRT=new T.WebGLRenderTarget(quest?384:512,quest?384:512);this.scopeCam=new T.PerspectiveCamera(8,1,.12,280);}
-  if(lens.material.map!==this.scopeRT.texture)lens.material=new T.MeshBasicMaterial({map:this.scopeRT.texture});
-  if(!this.scopeOverlay){
-   const g=new T.Group();g.renderOrder=30;
-   const view=new T.Mesh(new T.CircleGeometry(.12,48),new T.MeshBasicMaterial({map:this.scopeRT.texture,depthTest:false,depthWrite:false}));
-   const ring=new T.Mesh(new T.RingGeometry(.12,.175,48),new T.MeshBasicMaterial({color:0x050505,depthTest:false,depthWrite:false,side:T.DoubleSide}));
-   const cross=new T.Mesh(new T.RingGeometry(.002,.004,24),new T.MeshBasicMaterial({color:0x1a1208,depthTest:false,depthWrite:false}));
-   view.renderOrder=ring.renderOrder=cross.renderOrder=30;
-   g.add(view,ring,cross);this.scopeOverlay=g;this.scopeView=view;
-  }
-  item.group.updateMatrixWorld(true);
-  const eye=this.camera.getWorldPosition(V()),fwd=new T.Vector3(0,0,-1).applyQuaternion(item.group.getWorldQuaternion(Q()));
-  const obj=lens.getWorldPosition(V()),oc=ocular?ocular.getWorldPosition(V()):obj.clone().addScaledVector(fwd,-.4);
-  const look=new T.Vector3(0,0,-1).applyQuaternion(this.camera.getWorldQuaternion(Q()));
-  const toEye=oc.clone().sub(eye),dist=toEye.length();
-  const aligned=dist>1e-4&&fwd.dot(toEye.normalize())>.35&&look.dot(fwd)>.62;
-  const vr=!!this.renderer.xr?.isPresenting,ads=vr?dist<.22&&aligned:item.holder==='desktop'&&aligned;
-  this.scopeCam.fov=ads?7:11;this.scopeCam.updateProjectionMatrix();
-  this.scopeCam.position.copy(obj).addScaledVector(fwd,.04);this.scopeCam.up.set(0,1,0);this.scopeCam.lookAt(obj.clone().addScaledVector(fwd,18));
-  const vis=item.group.visible;item.group.visible=false;
-  const prev=this.renderer.getRenderTarget();this.renderer.setRenderTarget(this.scopeRT);this.renderer.render(this.scene,this.scopeCam);this.renderer.setRenderTarget(prev);
-  item.group.visible=vis;
-  if(this.scopeView.material.map!==this.scopeRT.texture)this.scopeView.material.map=this.scopeRT.texture;
-  if(ads){
-   if(this.scopeOverlay.parent!==this.camera)this.camera.add(this.scopeOverlay);
-   this.scopeOverlay.position.set(0,0,-.22);this.scopeOverlay.rotation.set(0,0,0);this.scopeOverlay.visible=true;
-  }else{
-   this.scopeOverlay.visible=false;if(this.scopeOverlay.parent)this.scopeOverlay.removeFromParent();
-  }
- }
+ tickSniperScope(dt){this.h5Equipment?.scope.tick(dt||1/72);}
+
  tick(dt){this.time+=dt;this.syncWorld();for(const item of this.items)item.group.visible=this.world.root.visible;if(!this.world.root.visible){for(const c of this.cars())c.tick(dt);return;}for(const c of this.cars())c.tick(dt);this.restraints?.tick(dt);this.injuries?.tick(dt);this.tickFurniture(dt);this.tickFists(dt);for(const item of this.items){if(item.holder!==null){item.kick*=Math.exp(-dt*12);item.kickYaw=(item.kickYaw||0)*Math.exp(-dt*12);if(item.swing>0)item.swing=Math.max(0,item.swing-dt);this.applyHoldPose(item);
  const samples=[.45,1].map(f=>item.group.localToWorld(new T.Vector3(0,0,-item.data.reach*f)));
  if(item.lastSamples&&item.holder!=='desktop'&&!item.holder?.h5Mouth&&['cut','blunt'].includes(item.data.kind)&&this.time>=(item.armedAt||0))for(let j=0;j<samples.length;j++){
   const point=samples[j],old=item.lastSamples[j],dist=point.distanceTo(old),speed=Math.min(12,dist/Math.max(.001,dt));
-  if(dist>.004&&dist<.75){const ray=new T.Ray(old.clone(),point.clone().sub(old).normalize()),hit=this.hit(ray,dist+.03,false,{world:true});if(!hit)continue;
+  if(dist>.004&&dist<.75){const ray=new T.Ray(old.clone(),point.clone().sub(old).normalize()),hit=this.hit(ray,dist+.03,false,{world:true,kind:item.data.kind});if(!hit)continue;
    const furn=furnitureRoot(hit.object)?.userData.furniture,dog=this.dogFor(hit.object),body=this.actorFor(hit.object)||hit.object.userData.cloth||dog;
    const key=hit.object.userData.cloth?'c'+hit.object.uuid:(furn?'f'+(furn.obstacle?.object?.uuid||hit.object.uuid):(dog?('d'+dog.id):(this.actorFor(hit.object)?.group.uuid||hit.object.uuid)));
    if(this.time-(item.lastHit.get(key)??-2)<.28)continue;
@@ -572,7 +542,7 @@ void main(){
  }else if(item.cased&&item.group.parent&&item.group.parent!==this.scene){item.velocity.set(0,0,0);item.lastPoint=null;
  }else{item.velocity.y-=G(this.world)*dt;item.group.position.addScaledVector(item.velocity,dt);const p=item.group.position,old=p.clone();if(this.world.projectSphere(p,.08)){const n=p.clone().sub(old).normalize(),vn=item.velocity.dot(n);if(vn<0)item.velocity.addScaledVector(n,-1.1*vn);item.velocity.multiplyScalar(.8);}item.group.updateWorldMatrix(true,true);const box=new T.Box3().setFromObject(item.group),floor=(this.world.floorHeight?.(p,.12)??0)+.02;if(box.min.y<floor){item.group.position.y+=floor-box.min.y;if(G(this.world)>0.5){if(item.velocity.y<0)item.velocity.y=Math.abs(item.velocity.y)*.1;item.velocity.x*=.82;item.velocity.z*=.82;}else if(item.velocity.y<0)item.velocity.y=Math.abs(item.velocity.y)*.4;}}}
  this.gadgets?.tick?.(dt);this.flames?.tick?.(dt);this.weights?.tick?.(dt);this.world.piano?.tick?.(this.camera,this);this.tickHeldGuns(dt);
- for(const shot of this.shots){shot.age+=dt;const next=shot.position.clone().addScaledVector(shot.velocity,dt),dist=next.distanceTo(shot.position),ray=new T.Ray(shot.position.clone(),shot.velocity.clone().normalize()),hit=this.hit(ray,dist);this.beam(shot.position,hit?.point||next,0xffe5ac,.035);if(hit){hit.weaponId=shot.weaponId;hit.stagger=shot.stagger;this.impact(hit,shot.energy||32,ray.direction,'bullet');shot.age=2;}shot.position.copy(next);shot.velocity.y-=G(this.world)*dt;}this.shots=this.shots.filter(x=>x.age<.8).slice(-12);
+ for(const shot of this.shots){shot.age+=dt;const next=shot.position.clone().addScaledVector(shot.velocity,dt),mapped=this.gadgets?.tryCross(next,shot.position,shot.velocity,shot);if(mapped){shot.position.copy(mapped.pos);continue;}const dist=next.distanceTo(shot.position),ray=new T.Ray(shot.position.clone(),shot.velocity.clone().normalize());let hit=this.hit(ray,dist);if(hit&&this.gadgets?.coversPortal(hit.point))hit=null;this.beam(shot.position,hit?.point||next,0xffe5ac,.035);if(hit){hit.weaponId=shot.weaponId;hit.stagger=shot.stagger;this.impact(hit,shot.energy||32,ray.direction,'bullet');shot.age=2;}shot.position.copy(next);shot.velocity.y-=G(this.world)*dt;}this.shots=this.shots.filter(x=>x.age<.8).slice(-12);
  for(const e of this.effects){e.ttl-=dt;e.mesh.position.addScaledVector(e.velocity,dt);e.mesh.material.opacity=Math.max(0,e.ttl/e.life);if(e.expand)e.mesh.scale.addScalar(dt*e.expand*10);if(e.ttl<=0)this.dispose(e.mesh);}this.effects=this.effects.filter(e=>e.ttl>0);while(this.effects.length>80)this.dispose(this.effects.shift().mesh);
  const updated=new Set();for(const m of this.marks){m.age+=dt;m.mesh.material.uniforms.age.value=m.age;if(m.anchor&&m.actor?.version==='v2'&&this.system.actors.includes(m.actor)){const {surface,ref}=m.anchor;if(!updated.has(surface)){surface.begin();updated.add(surface);}const tri=new T.Triangle();surface.vertex(ref.cache,ref.ids[0],tri.a);surface.vertex(ref.cache,ref.ids[1],tri.b);surface.vertex(ref.cache,ref.ids[2],tri.c);const normal=tri.getNormal(V());m.mesh.position.copy(tri.a).multiplyScalar(ref.bary.x).addScaledVector(tri.b,ref.bary.y).addScaledVector(tri.c,ref.bary.z).addScaledVector(normal,.002);if(m.along){const along=m.along.clone().addScaledVector(normal,-m.along.dot(normal));if(along.lengthSq()<1e-6)along.copy(m.along);along.normalize();const bin=new T.Vector3().crossVectors(normal,along).normalize();m.mesh.quaternion.setFromRotationMatrix(new T.Matrix4().makeBasis(along,bin,normal));}else m.mesh.quaternion.setFromUnitVectors(new T.Vector3(0,0,1),normal);}if(m.age>100||m.piece?.broken||m.actor&&!this.system.actors.includes(m.actor))this.dispose(m.mesh);}this.marks=this.marks.filter(m=>m.mesh.parent);
  }

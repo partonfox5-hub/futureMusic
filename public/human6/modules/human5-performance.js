@@ -1,6 +1,6 @@
 import * as T from 'three';
-import {V,clamp,wrapMethod} from './human5-common.js?v=17.2.0';
-import {RigidBatches} from './human5-batching.js?v=17.2.0';
+import {V,clamp,wrapMethod} from './human5-common.js?v=17.5.0';
+import {RigidBatches} from './human5-batching.js?v=17.5.0';
 export const QUEST_PROFILES=Object.freeze([
   {name:'detail',foveation:.35,interiorRange:20,pile:1200,mirrorHz:30,portalHz:30,shadowHz:72},
   {name:'balanced',foveation:.55,interiorRange:15,pile:800,mirrorHz:24,portalHz:24,shadowHz:36},
@@ -67,11 +67,11 @@ export function installPerformance({renderer,scene,camera,world,mira,props,upgra
   const throttle=(object,key,hzKey)=>{let last=-Infinity;restores.push(wrapMethod(object,key,old=>function(){const hz=quest?QUEST_PROFILES[budget.tier][hzKey]:60;if(time-last<1/hz)return;last=time;return old.apply(this,arguments);}));};
   for(const car of props.cars())throttle(car,'renderMirror','mirrorHz');if(props.gadgets?.renderViews)throttle(props.gadgets,'renderViews','portalHz');
   const onStart=()=>{const s=renderer.xr.getSession();if(s)budget.startSession(s);apply(budget.tier);};renderer.xr.addEventListener('sessionstart',onStart);
-  function actorLOD(a){if(actors.has(a)||a.version!=='v2')return;let acc=0;const restore=wrapMethod(a,'tick',old=>function(dt,cam,t){const far=quest&&this.group.position.distanceTo(cam)>9&&!this.grabs.size&&!this.socialPair&&!this.seat&&!this.dead&&this.balance.state==='standing';
-      if(far){acc+=dt;if(acc<1/30)return;dt=Math.min(.05,acc);acc=0;}else acc=0;return old.call(this,dt,cam,t);});actors.set(a,restore);
+  function actorLOD(a){if(actors.has(a)||a.version!=='v2')return;let acc=0;const restore=wrapMethod(a,'tick',old=>function(dt,cam,t){this.h5SimulationDue=true;const far=quest&&this.group.position.distanceTo(cam)>9&&!this.grabs.size&&!this.socialPair&&!this.seat&&!this.dead&&this.balance.state==='standing';
+      if(far){acc+=dt;if(acc<1/30){this.h5SimulationDue=false;return;}dt=Math.min(.05,acc);acc=0;}else acc=0;return old.call(this,dt,cam,t);});actors.set(a,restore);
   }
   const api={budget,
-    beforeFrame(dt){time+=dt;lodT-=dt;shadowT+=dt;camera.getWorldPosition(p);for(const a of mira.actors)actorLOD(a);
+    beforeFrame(dt){time+=dt;lodT-=dt;shadowT+=dt;camera.getWorldPosition(p);world.h5Viewer=p;world.h5QuestBudget=quest;for(const [a,restore]of actors)if(!mira.actors.includes(a)){restore();actors.delete(a);}for(const [g]of visibility)if(!g.parent)visibility.delete(g);for(const a of mira.actors)actorLOD(a);
       const profile=QUEST_PROFILES[budget.tier];if(quest){renderer.shadowMap.autoUpdate=false;if(shadowT>=1/profile.shadowHz){shadowT=0;renderer.shadowMap.needsUpdate=true;}}
       if(lodT<=0||world.revision!==lastRevision){lodT=.15;if(world.revision!==lastRevision)batches.clear();lastRevision=world.revision;
         for(const g of world.movables||[])if(!g.userData.dogItem)batches.add(g);for(const d of world.doors?.list||[])batches.add(d.root);for(const h of world.neighborhood?.houses||[])if(h.staticRoot)batches.add(h.staticRoot);batches.tick();
@@ -87,5 +87,5 @@ export function installPerformance({renderer,scene,camera,world,mira,props,upgra
     },
     exportReport(){return budget.report();},downloadReport(){const blob=new Blob([JSON.stringify(budget.report(),null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='human5-performance.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),5000);},
     dispose(){restores.reverse().forEach(f=>f());actors.forEach(f=>f());visibility.forEach((v,g)=>g.visible=v);batches.clear();renderer.xr.removeEventListener('sessionstart',onStart);renderer.shadowMap.autoUpdate=true;budget.dispose();}
-  };const button=document.createElement('button');button.textContent='EXPORT PERFORMANCE REPORT';button.onclick=()=>api.downloadReport();(document.getElementById('hud')||document.body).append(button);return api;
+  };world.h5Performance=api;const button=document.createElement('button');button.textContent='EXPORT PERFORMANCE REPORT';button.onclick=()=>api.downloadReport();(document.getElementById('hud')||document.body).append(button);return api;
 }

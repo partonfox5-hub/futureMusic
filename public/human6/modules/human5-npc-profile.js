@@ -1,5 +1,5 @@
-import {installReferenceIdentity,REFERENCE_MIRA,IDENTITY_CONTROLS} from './human5-identity.js?v=17.2.0';
-import {DYNAMICS_CONTROLS} from './human5-dynamics.js?v=17.2.0';
+import {installReferenceIdentity,REFERENCE_MIRA,IDENTITY_CONTROLS} from './human5-identity.js?v=17.5.0';
+import {DYNAMICS_CONTROLS} from './human5-dynamics.js?v=17.5.0';
 const bounds={height:[.75,1.25],waist:[.65,1.4],hips:[.65,1.5],breast:[.3,2],butt:[.4,1.8],thigh:[.65,1.5],gap:[-.6,.6],arms:[.65,1.5],jiggle:[0,2.5],breastHeight:[-.4,.4],breastSpacing:[-.4,.4],breastAngle:[-.4,.4],buttHeight:[-.4,.4],buttSpacing:[-.4,.4],buttAngle:[-.4,.4],softness:[0,1],damping:[0,1],bodySoftness:[0,1],faceSoftness:[0,1],hairMotion:[0,1],skinDetail:[0,1]};
 const check=(x,min,max,name)=>{if(typeof x!=='number'||!Number.isFinite(x)||x<min||x>max)throw new TypeError(name+' must be between '+min+' and '+max);return x;};
 export function validateNPCProfile(input){

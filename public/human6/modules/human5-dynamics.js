@@ -1,5 +1,5 @@
 import * as T from 'three';
-import {V,clamp,finiteDt,gravityOf,wrapMethod,rng} from './human5-common.js?v=17.2.0';
+import {V,clamp,finiteDt,gravityOf,wrapMethod,rng} from './human5-common.js?v=17.5.0';
 
 export const DYNAMICS_CONTROLS=Object.freeze([
   {key:'tissueDensity',label:'Tissue density',min:900,max:1100,step:5,value:980},

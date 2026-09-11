@@ -1,5 +1,5 @@
 import * as T from 'three';
-import {V,clamp,smooth,gravityOf,wrapMethod,rng} from './human5-common.js?v=17.2.0';
+import {V,clamp,smooth,gravityOf,wrapMethod,rng} from './human5-common.js?v=17.5.0';
 
 /** Shoulder-length reference groom: 28 guided locks, one crown, two draw calls. */
 export function installReferenceGroom(actor){

@@ -1,5 +1,5 @@
 import * as T from 'three';
-import {V,clamp,wrapMethod} from './human5-common.js?v=17.2.0';
+import {V,clamp,wrapMethod} from './human5-common.js?v=17.5.0';
 
 /** Match normals only at coincident, similarly oriented, compatibly skinned vertices. */
 export function weldSkinNormals(actor){

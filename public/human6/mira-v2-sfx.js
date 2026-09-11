@@ -58,6 +58,7 @@ export function sfxForHit(kind){if(kind==='laser')return 'laser';if(kind==='bull
 
 export class CarAudio {
  constructor(){this.rpm=850;this.hornUntil=0;this.started=false;this.nodes=null;}
+ dispose(){if(!this.nodes)return;for(const k of ['osc','osc2','n'])try{this.nodes[k].stop();}catch{}for(const n of Object.values(this.nodes))try{n.disconnect?.();}catch{}this.nodes=null;}
  ensure(){
   unlockSfx();const c=ac();if(!c||this.nodes)return c;
   const master=c.createGain();master.gain.value=0;master.connect(c.destination);
@@ -73,7 +74,7 @@ export class CarAudio {
  }
  tick(car,input,dt){
   const c=this.ensure();if(!c||!this.nodes)return;
-  const drive=!!car.driving&&(car.gear==='D'||car.gear==='R');
+  const drive=!!(car.driving||car.h5Traffic?.active)&&(car.gear==='D'||car.gear==='R');
   const speed=car.velocity?.length?.()||0,throttle=drive?Math.max(0,input?.throttle||0):0;
   const target=Number.isFinite(car.engineRPM)?car.engineRPM:drive?820+throttle*3400+speed*62+(car.gear==='R'?180:0):car.driving?780:0;
   this.rpm+=(target-this.rpm)*Math.min(1,dt*3.2);
@@ -85,7 +86,7 @@ export class CarAudio {
   n.lp.frequency.setTargetAtTime(280+this.rpm*.22+load*90,t,.08);
   n.og.gain.setTargetAtTime(.12+.16*load,t,.08);
   n.ng.gain.setTargetAtTime(.08+.14*throttle,t,.08);
-  n.master.gain.setTargetAtTime(vol,t,.12);
+  n.master.gain.setTargetAtTime(vol/(1+Math.pow((car.camera?.getWorldPosition(car.group.position.clone()).distanceTo(car.group.position)||0)/9,2)),t,.12);
   if(drive&&!this.started){this.started=true;this.crank();}
   if(!car.driving)this.started=false;
  }

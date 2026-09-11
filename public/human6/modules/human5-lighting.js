@@ -1,6 +1,6 @@
 import * as T from 'three';
 import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
-import {V,clamp,finiteDt,disposeTree} from './human5-common.js?v=17.2.0';
+import {V,clamp,finiteDt,disposeTree} from './human5-common.js?v=17.5.0';
 
 export const LIGHT_BUDGETS=Object.freeze({quest:{point:2,spot:1,shadowSize:1024},desktop:{point:4,spot:2,shadowSize:2048}});
 export const FIXTURES=['Torch','Standing lamp','Table lamp','Chandelier','Hanging shaded lamp'];
@@ -52,7 +52,7 @@ export function createFixture(world,type,{position=[0,0,0],yaw=0,tagMovable=null
 /** Fixed light count avoids material recompile when nearby lamps change. */
 export class FixtureLights {
   constructor(scene,{quest=true,fire=null,occluded=null}={}){
-    this.scene=scene;this.fire=fire;this.occluded=occluded;this.fixtures=new Set();this.time=0;
+    this.scene=scene;this.fire=fire;this.occluded=occluded;this.fixtures=new Set();this.time=0;this.visibility=new WeakMap();
     const b=LIGHT_BUDGETS[quest?'quest':'desktop'];this.slots=[];
     for(const kind of ['point','spot'])for(let i=0;i<b[kind];i++){
       const light=kind==='point'?new T.PointLight(0xffffff,0,7,2):new T.SpotLight(0xffffff,0,7,.95,.65,2);
@@ -75,7 +75,7 @@ export class FixtureLights {
       let best=null,score=0;
       for(const s of sources){
         if(s.kind!==slot.kind||used.has(s.identity))continue;
-        if(this.occluded?.(s.position,viewer,s.root,null))continue;
+        let visibility=this.visibility.get(s.identity);if(!visibility||this.time-visibility.time>.10||visibility.a.distanceToSquared(s.position)>.04||visibility.b.distanceToSquared(viewer)>.09){visibility={time:this.time,a:s.position.clone(),b:viewer.clone(),blocked:!!this.occluded?.(s.position,viewer,s.root,null)};this.visibility.set(s.identity,visibility);}if(visibility.blocked)continue;
         const value=s.intensity/(.4+s.position.distanceToSquared(viewer))*(slot.source===s.identity?1.25:1);
         if(value>score){best=s;score=value;}
       }

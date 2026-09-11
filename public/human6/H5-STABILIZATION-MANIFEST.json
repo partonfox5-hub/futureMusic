@@ -1,0 +1,100 @@
+{
+  "version": "17.4.0",
+  "files": [
+    {
+      "path": "mira-v2-furniture.js",
+      "source_sha256": "f13473f3d83bb39b51734bd7c6e26eb2c46cfcb594343a53f0048d4182667987",
+      "override_sha256": "d1e09cd0942aebacb9a631356e7ccda7cbb3dda05ff08d7ccd0edb8d336abc07"
+    },
+    {
+      "path": "mira-v2-locomotion.js",
+      "source_sha256": "cc38f780ea2e2b5616b54d9f6a297cc0878d08c504381170377ac484e2edc6fb",
+      "override_sha256": "4b0edf58d90a2e6f0f1349b5f7bb5da4e1e31ae32cc84c90bdf635a54bc9d636"
+    },
+    {
+      "path": "mira-v2.js",
+      "source_sha256": "351b7f58875b09ccdf4ad2c8f5a5a43c32570ee43fff4e45f3b0131f2b0aedf5",
+      "override_sha256": "ef0ab90d6e6221e4fadf3bcfe1edddea6672d28c2fe47fdba7960ad420a28463"
+    },
+    {
+      "path": "mira-v2-contact.js",
+      "source_sha256": "29d3212b4d4928df8c6bf7ce6a215f10dd48be27a07601a2c1294d07735d0ad1",
+      "override_sha256": "adc2689d9eed5bde6c76aedbda6eb5d105070fc726e09400103dc6a04c88696e"
+    },
+    {
+      "path": "mira-v2-furnish.js",
+      "source_sha256": "ddded4e4bbbb496ee55111b1fe9fa135aa48550608c487f568f2b8d0abd5d3db",
+      "override_sha256": "af3fc9de21debee50a9f22808f1ff2f44b550867dac68400ce598c3fdf4e4cb5"
+    },
+    {
+      "path": "mira-vr-menu.js",
+      "source_sha256": "2599b0083acc28ebce1ea3f122854269989addd94ea7ca13b2a52d1df0b486ed",
+      "override_sha256": "25102b8dfd32c84c4aa02ea497071a6f3c643f27a770aafb7a5d00fe97dbb191"
+    },
+    {
+      "path": "mira-v2-wardrobe.js",
+      "source_sha256": "df2617d6d3d427414f9e1a59b88ff2634ece9e83da25d336b11a5ec16ed8def4",
+      "override_sha256": "d39534c236b7869033d508f163123f144ecc6a794e8a64f27329a738f82d8b84"
+    },
+    {
+      "path": "engine.js",
+      "source_sha256": "20894bfdd3e9ad1c56089ad7875a8412cc491de0f09ee94177fe240ad06f0b2c",
+      "override_sha256": "bf0d62119a81bd2beb65fefbed37d0c641eba3572aea4dd57c945d15d582f14b"
+    },
+    {
+      "path": "mira-v2-water.js",
+      "source_sha256": "83e5502e1c119389cb8cf97ff2623623104fb9c29ae9479624a52b3004d65ab6",
+      "override_sha256": "62e301c7a2d438704af2e4d9d5dbf80b5df3dd93fcb0b626948298ed893d919b"
+    },
+    {
+      "path": "mira-v2-props.js",
+      "source_sha256": "8677bad261a836f6b55a201342dc88c87b2fd1ddd4e8f7aa9abf3dec95905b86",
+      "override_sha256": "01972f114fe27b89a477b1d8810134665ee783d3849efab5bdf4e07ece06af61"
+    },
+    {
+      "path": "modules/human5-identity.js",
+      "source_sha256": "21d60e95aa5b5a1c0a76751c1b17933e13103b99657fa8b6922d3dba38e8e3a2",
+      "override_sha256": "bcbee92a5a34872ab2e204624434f6217ca3e3ccffc061d2d217a73cd3543c70"
+    },
+    {
+      "path": "modules/human5-upgrade.js",
+      "source_sha256": "298b943bd69f962106b12a2c6e6b91fd3bc0a8e8d0515f9377523563ce937a7d",
+      "override_sha256": "bf47da03a6167572e6b01e642d7dd4465793d07ea9673a46baaa34b56092e09e"
+    },
+    {
+      "path": "modules/human5-cloth-budget.js",
+      "source_sha256": null,
+      "override_sha256": "b96264bccb772e13fe68af14d09eb2f218ac8ca3b0ccc6004bb194ff004ebd75"
+    },
+    {
+      "path": "modules/human5-lighting.js",
+      "source_sha256": "f12cd81fb3779d1272e47ea96bd3f3eae0614f6cf5819863051bd79d3cabfc3d",
+      "override_sha256": "e39cd50bdfb0dad050ffd86c62d533d97d68885520ce82e276e19d49dce205a0"
+    },
+    {
+      "path": "modules/human5-performance.js",
+      "source_sha256": "e9674b103684896a17f664204cc2484b2523a089a8f002039f6a17990ddfdb94",
+      "override_sha256": "17aff44e67de41cc8005d84fc054ad006d4dc99397750469ab39162898750c0d"
+    },
+    {
+      "path": "modules/human5-combat.js",
+      "source_sha256": "7bece16ac0b2c58701a53e6ce7e09451bbf9663a0479cc262505da0df53894a7",
+      "override_sha256": "1490ba81c36b77ab8ef307cd63efcba66bd9c0b08453cdc9c3b1c515f79dfc58"
+    },
+    {
+      "path": "modules/human5-skinning.js",
+      "source_sha256": "ba5d950a36e50c9b4876971716cdbb3060d23bac17d17800343f2450969b0879",
+      "override_sha256": "c929184470cd6009e6e904776ae8e1e206b7580f62fbba83674dc12e91e97c76"
+    },
+    {
+      "path": "modules/human5-fire.js",
+      "source_sha256": "fc597881bc9d3669950b8e315d9e6283ba88d8a67d6455a429e425fb26d85b83",
+      "override_sha256": "708ef4945fc11df35164bda7aeb218090ce30b1b7c95669e8331ad99b58b1843"
+    },
+    {
+      "path": "modules/human5-fire-host.js",
+      "source_sha256": "7227df55a096d1e0ffaf9d04819c2685fef7ae54978d41cc9d7958c40dbce8d5",
+      "override_sha256": "60cf97a338f64b3400bd516092d9fc4b9cb88d872eb73d4e6f8ee3ae654210df"
+    }
+  ]
+}

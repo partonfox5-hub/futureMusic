@@ -1,12 +1,12 @@
-import {LivingEyes} from './mira-v2-eyes.js?v=17.2.0';
-import {EnhanceEyes} from './mira-v2-tearline.js?v=17.2.0';
-import {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES,V2_EXTRA_SLIDERS,FACE_PRESETS,EXERCISE_MODES,ATTENTION_MODES} from './mira-v2-controls.js?v=17.2.0';
-export {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES,ATTENTION_MODES} from './mira-v2-controls.js?v=17.2.0';
+import {LivingEyes} from './mira-v2-eyes.js?v=17.5.0';
+import {EnhanceEyes} from './mira-v2-tearline.js?v=17.5.0';
+import {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES,V2_EXTRA_SLIDERS,FACE_PRESETS,EXERCISE_MODES,ATTENTION_MODES} from './mira-v2-controls.js?v=17.5.0';
+export {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES,ATTENTION_MODES} from './mira-v2-controls.js?v=17.5.0';
 import * as THREE from 'three';
-import {restoreSurfaceUV} from './mira-v2-uv.js?v=17.2.0';
-import {HairGuides} from './mira-v2-hair.js?v=17.2.0';
-import {SurfaceFlesh} from './mira-v2-tissue.js?v=17.2.0';
-import {installV2Realism} from './mira-v2-realism.js?v=17.2.0';
+import {restoreSurfaceUV} from './mira-v2-uv.js?v=17.5.0';
+import {HairGuides} from './mira-v2-hair.js?v=17.5.0';
+import {SurfaceFlesh} from './mira-v2-tissue.js?v=17.5.0';
+import {installV2Realism} from './mira-v2-realism.js?v=17.5.0';
 
 // Mira v2: a bounded real-time approximation for this CC3 rig, Three r170.
 const clamp = THREE.MathUtils.clamp, damp = THREE.MathUtils.damp;

@@ -1,7 +1,7 @@
 import * as T from 'three';
-import {furnitureRoot} from '../mira-v2-furniture.js?v=17.2.0';
-import {ensureGrabbableWood} from '../mira-v2-nature.js?v=17.2.0';
-import {wrapMethod,V,clamp} from './human5-common.js?v=17.2.0';
+import {furnitureRoot} from '../mira-v2-furniture.js?v=17.5.0';
+import {ensureGrabbableWood} from '../mira-v2-nature.js?v=17.5.0';
+import {wrapMethod,V,clamp} from './human5-common.js?v=17.5.0';
 
 export function installPetRefinement({scene,props,dogs,camera,world}={}){
  const pets=new Map(),restores=[];let time=0;

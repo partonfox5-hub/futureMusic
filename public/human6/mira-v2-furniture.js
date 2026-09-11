@@ -43,7 +43,8 @@ export function furnitureRoot(object){
 export function syncFurniture(world,group){
  const furn=group?.userData?.furniture;if(!furn||!group.parent)return;
  group.updateWorldMatrix(true,true);
- const box=new T.Box3().setFromObject(group),size=box.getSize(new T.Vector3()),center=box.getCenter(new T.Vector3());
+ const e=group.matrixWorld.elements;if(furn.syncMatrix&&e.every((v,i)=>Math.abs(v-furn.syncMatrix[i])<1e-7))return;furn.syncMatrix=e.slice();
+ const box=furn.localBox?furn.localBox.clone().applyMatrix4(group.matrixWorld):new T.Box3().setFromObject(group),size=box.getSize(new T.Vector3()),center=box.getCenter(new T.Vector3());
  const o=furn.obstacle;
  if(o){o.x=center.x;o.z=center.z;o.w=Math.max(.08,size.x);o.d=Math.max(.08,size.z);o.y=box.min.y;o.h=Math.max(.04,size.y);world.grid=null;}
  if(furn.seat){
@@ -93,6 +94,7 @@ function assembleMovable(world,id,objects,x,z){
 export function cloneFurniture(source){
  const copy=source.isMesh?new T.Mesh(source.geometry.clone(),Array.isArray(source.material)?source.material.map(m=>m.clone()):source.material.clone()):new T.Group();
  copy.position.copy(source.position);copy.quaternion.copy(source.quaternion);copy.scale.copy(source.scale);
+ copy.name=source.name;if(source.userData.h5BasinSpec)copy.userData.h5BasinSpec=JSON.parse(JSON.stringify(source.userData.h5BasinSpec));
  copy.castShadow=source.castShadow;copy.receiveShadow=source.receiveShadow;
  if(source.userData.article)copy.userData.article=source.userData.article;
  for(const child of source.children)if(child.isMesh||child.isGroup)copy.add(cloneFurniture(child));

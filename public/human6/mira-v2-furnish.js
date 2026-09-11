@@ -52,14 +52,20 @@ export function detailMicrowave(w,x,z){
 
 export function detailSink(w,x,z){
  const por=w.mat(0xe2e5de,.42),cab=w.mat(0x5e6a62,.7),ch=chrome(w),dark=w.mat(0x3a403c,.5);
- part(w,rb(.68,.62,.58,.02),cab,x,.33,z,'wood');
- part(w,rb(.72,.07,.64,.03),por,x,.67,z,'stone');
- part(w,rb(.52,.06,.42,.04),w.mat(0xc9d0cc,.35),x,.70,z,'stone');
- const spout=part(w,new T.CylinderGeometry(.012,.014,.16,8),ch,x,.86,z-.16,'metal');spout.rotation.x=.9;
- part(w,new T.CylinderGeometry(.018,.018,.10,8),ch,x,.78,z-.18,'metal');
- part(w,new T.CylinderGeometry(.016,.016,.03,8),ch,x-.12,.74,z-.16,'metal');
- part(w,new T.CylinderGeometry(.016,.016,.03,8),ch,x+.12,.74,z-.16,'metal');
- part(w,new T.CylinderGeometry(.03,.03,.01,10),dark,x,.68,z,'stone');
+ const cabinet=part(w,rb(.68,.55,.58,.02),cab,x,.285,z,'wood');
+ cabinet.userData.h5BasinSpec={innerBox:{min:[-.25,.545,-.215],max:[.25,.72,.215]},spout:[0,.88,0],control:[.14,.729,-.265]};
+ // Real opening: the bowl has a floor and four walls, not a solid filled block.
+ part(w,rb(.54,.025,.47,.009),por,x,.5325,z,'stone');
+ for(const sign of [-1,1]){
+  part(w,rb(.025,.175,.47,.008),por,x+sign*.2625,.6325,z,'stone');
+  part(w,rb(.50,.175,.025,.008),por,x,.6325,z+sign*.2275,'stone');
+  part(w,rb(.10,.035,.64,.008),por,x+sign*.31,.7025,z,'stone');
+  part(w,rb(.52,.035,.08,.008),por,x,.7025,z+sign*.28,'stone');
+ }
+ part(w,new T.CylinderGeometry(.032,.032,.007,12),dark,x,.551,z,'metal');
+ const pipe=new T.CatmullRomCurve3([new T.Vector3(0,.718,-.265),new T.Vector3(0,.95,-.265),new T.Vector3(0,.99,-.22),new T.Vector3(0,.99,-.045),new T.Vector3(0,.96,0)]);
+ part(w,new T.TubeGeometry(pipe,18,.014,8,false),ch,x,0,z,'metal');
+ part(w,new T.CylinderGeometry(.025,.025,.018,10),ch,x,.729,z-.265,'metal');
 }
 
 export function detailBathtub(w,x,z){

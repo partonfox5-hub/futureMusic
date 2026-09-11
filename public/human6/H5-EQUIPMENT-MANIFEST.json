@@ -1,0 +1,90 @@
+{
+  "version": "17.5.0",
+  "files": [
+    {
+      "path": "mira-v2-locomotion.js",
+      "source_sha256": "4b0edf58d90a2e6f0f1349b5f7bb5da4e1e31ae32cc84c90bdf635a54bc9d636",
+      "override_sha256": "c36276c9dc36ea068bf34e2b27e4e8ea28775bd096a2d0f4ef9b0f5258d6bc09"
+    },
+    {
+      "path": "mira-v2-world.js",
+      "source_sha256": "efc8ba2f03b0902f69c6e7389800228de712fbc44fbc534086a171ad282cdae2",
+      "override_sha256": "4ddc1c229930a7c4ed9ae0c1c1a6c2449135c057d4e893831d7f53a433cd4a58"
+    },
+    {
+      "path": "mira-vr-menu.js",
+      "source_sha256": "98e26f630ec7194c623f852bd023b32a96ac64a5eafceca12bbac1f20c18ccd8",
+      "override_sha256": "23f59a60549f78ba9ba1ae39f88a3dd211a83fe71831a2b3381671ea9ecc9025"
+    },
+    {
+      "path": "mira-v2-car.js",
+      "source_sha256": "d48dfc668a7adaf198aca3790d5ddada14130ba99a6c38190d4f13f97b4b8ee3",
+      "override_sha256": "055065257e534f9b35fb59c58271fcf90987e2f7c6edff6f52ffda570eafdff1"
+    },
+    {
+      "path": "engine.js",
+      "source_sha256": "5f83d6cb0422f1253f6dc964e8138a99cc9c67597f9c115ac521aaff241a4f51",
+      "override_sha256": "cb87f6b2a852efd63ba3c4ae1b30c47d18642a8054426f323c5790ed6e949406"
+    },
+    {
+      "path": "mira-v2-gadgets.js",
+      "source_sha256": "3266e120689c3be756f9271c9819285fa2928ec4a5542026c27289e14c889ede",
+      "override_sha256": "e8f4141aa2be9f06a481d696a73c34bc6743110a0b01ed3ec733f281da99d800"
+    },
+    {
+      "path": "mira-v2-props.js",
+      "source_sha256": "e3125358bd4a10d2495bdd3eb1a76579553694777fecde5e2134ef8404c6d320",
+      "override_sha256": "6bded3599dc1f867904930948cd255aeeee5414ca57ab51795be233552e314b3"
+    },
+    {
+      "path": "modules/human5-vehicles.js",
+      "source_sha256": "635c5fe374e83f97e8590ac39e4d46ee49ad388fc25082e5794a16845b4bbdf6",
+      "override_sha256": "d43c9a8aedb1e676941a833222a68b8b745b3af6fa7733d96c151848abd1b57d"
+    },
+    {
+      "path": "modules/human5-scope.js",
+      "source_sha256": null,
+      "override_sha256": "0bf1e975370c04198ccba346fa0adaa3e32305c4fd1547047b4696250178249c"
+    },
+    {
+      "path": "modules/human5-vehicle-spawns.js",
+      "source_sha256": null,
+      "override_sha256": "4acb9a66cb1264742d3fb78c5433eddc2e2daf2df69d53b2e1993e5931c43d0f"
+    },
+    {
+      "path": "modules/human5-equipment.js",
+      "source_sha256": null,
+      "override_sha256": "de3a59336d46a1bcae777e4337097b65c03456f7a5b20a14fe210f344bcfa423"
+    },
+    {
+      "path": "modules/human5-equipment-models.js",
+      "source_sha256": null,
+      "override_sha256": "7c10630421fb42703797f5005289bc63774657384597eeb706a1259e363d4edd"
+    },
+    {
+      "path": "modules/human5-view-surfaces.js",
+      "source_sha256": null,
+      "override_sha256": "ad7d9d4b54da9c71d218a92d4110f1faa9cdc6433c7e46ead6d1cf17af9a4787"
+    },
+    {
+      "path": "modules/human5-vehicle-models.js",
+      "source_sha256": null,
+      "override_sha256": "2aba5e6dd0fdc6daa0dba5f82c346fb6d858e73b647c4598c777c23739540c80"
+    },
+    {
+      "path": "modules/human5-openworld.js",
+      "source_sha256": "d04247f688794b07bc3e51eab3db1278c79681e81c539b6d8c3b1619003dc6e7",
+      "override_sha256": "882612c09ede697a98dab759a4ba90dec379ffabd5c66d50be2b619ab4c3b385"
+    },
+    {
+      "path": "modules/human5-npc-behavior.js",
+      "source_sha256": "a31cf02f209d9c3a0ba0df8c0471867b290c317338b258b92ca6a11bb6634d6a",
+      "override_sha256": "7b27306e245a2d7ff7b973ee371b68d9e567893a1b4b171f47efb06035b4a37e"
+    },
+    {
+      "path": "modules/human5-ray-budget.js",
+      "source_sha256": null,
+      "override_sha256": "55943cca4c77216bb4066cc1af2b00a02f904615e999a7e24b7f52771179871e"
+    }
+  ]
+}

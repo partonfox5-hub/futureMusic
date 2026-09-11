@@ -1,8 +1,8 @@
-import {restoreSurfaceUV} from './mira-v2-uv.js?v=17.2.0';
-import {BodyContacts} from './mira-v2-contact.js?v=17.2.0';
-import {MiraSocial} from './mira-v2-social.js?v=17.2.0';
-import {ContactHaptics} from './mira-v2-haptics.js?v=17.2.0';
-import { createV2Class, repairArmRestData, makeFingerRig, fingerRotation } from "./mira-v2-features.js?v=17.2.0";
+import {restoreSurfaceUV} from './mira-v2-uv.js?v=17.5.0';
+import {BodyContacts} from './mira-v2-contact.js?v=17.5.0';
+import {MiraSocial} from './mira-v2-social.js?v=17.5.0';
+import {ContactHaptics} from './mira-v2-haptics.js?v=17.5.0';
+import { createV2Class, repairArmRestData, makeFingerRig, fingerRotation } from "./mira-v2-features.js?v=17.5.0";
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { clone as cloneSkinned } from "three/addons/utils/SkeletonUtils.js";
@@ -1464,7 +1464,8 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
   let environment=null,wardrobe=null;const contacts=new BodyContacts(actors);
   const commandRay=new THREE.Raycaster(),groundPlane=new THREE.Plane(new THREE.Vector3(0,1,0),0);
   const targetMarker=new THREE.Mesh(new THREE.RingGeometry(.075,.10,32),new THREE.MeshBasicMaterial({color:0x98e4bc,side:THREE.DoubleSide,depthWrite:false,toneMapped:false}));targetMarker.rotation.x=-Math.PI/2;targetMarker.visible=false;scene.add(targetMarker);
-  function floorTarget(ray){
+  function floorTarget(ray,previewReach=null){
+    if(environment?.h5OpenWorld?.active)return environment.h5OpenWorld.raycast(ray,previewReach??Math.max(48,environment.extent*1.8))?.point||null;
     if(environment?.terrainFeatures)return environment.terrainFeatures.raycast(ray,Math.max(48,environment.extent*1.8))?.point||null;
     if(ray.direction.y>=-.025)return null;const p=ray.intersectPlane(groundPlane,new THREE.Vector3());
     const reach=Math.max(48,(environment?.extent||24)*1.8);
@@ -1485,7 +1486,8 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
     const sceneCommand=environment?.command(ray,selectedActor);if(sceneCommand)return sceneCommand;
     return floor&&walkTo(floor)?'walking':null;
   }
-  function controllerFloorTarget(i){const ctrl=hands.ctrl[i],ray=new THREE.Ray(ctrl.getWorldPosition(new THREE.Vector3()),new THREE.Vector3(0,0,-1).applyQuaternion(ctrl.getWorldQuaternion(new THREE.Quaternion())));return floorTarget(ray);}
+  const floorPreview=[{time:-Infinity,p:null},{time:-Infinity,p:null}];
+  function controllerFloorTarget(i){if(!hands.active[i])return null;const cache=floorPreview[i],now=performance.now();if(now-cache.time<1000/30)return cache.p;const ctrl=hands.ctrl[i],ray=new THREE.Ray(ctrl.getWorldPosition(new THREE.Vector3()),new THREE.Vector3(0,0,-1).applyQuaternion(ctrl.getWorldQuaternion(new THREE.Quaternion())));cache.time=now;cache.p=floorTarget(ray,96);return cache.p;}
   function trySelect(i, fromGrip = false) {
     if(!fromGrip){
       if(uiHandlers.onSelect?.(i))return;
@@ -1575,7 +1577,7 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
     const present=new Set();
     for(const src of session.inputSources){
       if(!src.gamepad||src.hand||!['left','right'].includes(src.handedness))continue;
-      present.add(src);const pressed=!!src.gamepad.buttons?.[5]?.pressed;
+      present.add(src);const xDown=src.handedness==='left'&&!!src.gamepad.buttons?.[4]?.pressed;if(xDown&&!secondaryState.get('deleteX'))uiHandlers.onDelete?.();if(src.handedness==='left')secondaryState.set('deleteX',xDown);const pressed=!!src.gamepad.buttons?.[5]?.pressed;
       if(pressed&&!secondaryState.get(src)){
         if(src.handedness==='left')uiHandlers.onToggle?.();
         else{
@@ -1586,7 +1588,8 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
       }
       secondaryState.set(src,pressed);
     }
-    for(const src of secondaryState.keys())if(!present.has(src))secondaryState.delete(src);
+    for(const src of secondaryState.keys())if(src!=='deleteX'&&!present.has(src))secondaryState.delete(src);
+    if(![...present].some(src=>src.handedness==='left'))secondaryState.delete('deleteX');
   }
 
   function tickSocial(dt) {

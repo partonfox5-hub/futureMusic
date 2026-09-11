@@ -1,0 +1,109 @@
+{
+  "checks": {
+    "offscreenExceptionRestore": true,
+    "portalTransit": true,
+    "rotatedScaledWall": true,
+    "portalCenterPixel": [
+      78,
+      2,
+      1,
+      255
+    ],
+    "separateEyeTargets": true,
+    "projectiveError": 3.1724103873298847e-16,
+    "models": {
+      "sword": {
+        "draws": 4,
+        "triangles": 1452
+      },
+      "axe": {
+        "draws": 3,
+        "triangles": 1668
+      },
+      "mace": {
+        "draws": 3,
+        "triangles": 2956
+      },
+      "pistol": {
+        "draws": 5,
+        "triangles": 2072
+      },
+      "laser": {
+        "draws": 7,
+        "triangles": 2136
+      },
+      "rifle": {
+        "draws": 6,
+        "triangles": 3452
+      },
+      "sniper": {
+        "draws": 9,
+        "triangles": 3452
+      },
+      "shotgun": {
+        "draws": 6,
+        "triangles": 3340
+      },
+      "uzi": {
+        "draws": 6,
+        "triangles": 2820
+      },
+      "musket": {
+        "draws": 3,
+        "triangles": 436
+      },
+      "rocketLauncher": {
+        "draws": 4,
+        "triangles": 684
+      },
+      "miniNuke": {
+        "draws": 5,
+        "triangles": 996
+      },
+      "lightning": {
+        "draws": 3,
+        "triangles": 668
+      },
+      "fireball": {
+        "draws": 3,
+        "triangles": 668
+      },
+      "necromancy": {
+        "draws": 3,
+        "triangles": 668
+      },
+      "resurrection": {
+        "draws": 3,
+        "triangles": 668
+      },
+      "freeze": {
+        "draws": 3,
+        "triangles": 668
+      },
+      "portal": {
+        "draws": 5,
+        "triangles": 684
+      },
+      "torch": {
+        "draws": 3,
+        "triangles": 144
+      },
+      "extinguisher": {
+        "draws": 2,
+        "triangles": 116
+      }
+    },
+    "scope": {
+      "fov2": 29.17886266903225,
+      "fov12": 4.96793437625372,
+      "ocular": true
+    },
+    "freezeExpiryAndProtection": true,
+    "projectileLifecycle": true,
+    "bodyRayAgreement": 48,
+    "spellProtectionRestoreFollower": true,
+    "mushroomInstances": 64
+  },
+  "errors": [],
+  "testedAt": "2026-09-11T06:11:18.576Z"
+}
