@@ -1319,6 +1319,14 @@ function sendBsaPlay(res) {
     bsaPlayHeaders(res);
     res.sendFile(path.join(__dirname, "public", "games", "battle-sphere-arena", "index.html"));
 }
+app.get(["/arena", "/arena/"], (req, res) => {
+    bsaPlayHeaders(res);
+    res.sendFile(path.join(__dirname, "public", "arena", "index.html"));
+});
+app.use("/arena", (req, res, next) => {
+    bsaPlayHeaders(res);
+    next();
+});
 app.get(["/battle-sphere-arena", "/battle-sphere-arena/"], async (req, res) => {
     await verifyBsaSession(req, res);
     if (hasBsa(req)) return res.redirect(302, "/battle-sphere-arena/play");

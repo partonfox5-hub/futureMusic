@@ -1,0 +1,40 @@
+{
+  "passed": true,
+  "coverage": [
+    "app startup",
+    "desktop start",
+    "shot",
+    "pause freeze",
+    "resume",
+    "reset",
+    "XR denial recovery",
+    "XR session entry",
+    "controller fire",
+    "Y/B pause edges",
+    "session exit"
+  ],
+  "rendering": "Not tested; renderer and browser adapters used",
+  "finalDiagnostics": {
+    "power": 994.4444444444416,
+    "score": 0,
+    "elapsed": 0.8888888888888877,
+    "shots": 1,
+    "hits": 0,
+    "activeBolts": 1,
+    "alive": 14,
+    "mode": "desktop",
+    "paused": true,
+    "ended": false,
+    "position": [
+      0,
+      1.6,
+      18
+    ],
+    "calls": 26,
+    "triangles": 44396,
+    "geometries": 23,
+    "textures": 0,
+    "frameMs": 11.111111111111304,
+    "audio": "not-started"
+  }
+}

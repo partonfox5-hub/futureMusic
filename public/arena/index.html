@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#06131f"><meta name="description" content="Battle Sphere Arena. Zero-gravity survival combat for desktop and Quest VR."><title>Battle Sphere Arena • Future Music Collective</title><link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23071320'/%3E%3Ccircle cx='16' cy='16' r='11' fill='none' stroke='%23b99151' stroke-width='2'/%3E%3Cellipse cx='16' cy='16' rx='5' ry='11' fill='none' stroke='%2359e6c1'/%3E%3Cpath d='M5 16h22' stroke='%2359e6c1'/%3E%3C/svg%3E"><link rel="stylesheet" href="style.css"></head>
+<body>
+  <canvas id="game" aria-label="Battle Sphere Arena 3D play area" tabindex="0"></canvas>
+  <div id="screen-fx" aria-hidden="true"></div>
+  <header id="hud" hidden><div><span class="eyebrow">REACTOR POWER</span><strong id="power">1000 <small>/ 1000</small></strong><div class="meter"><i id="power-bar"></i></div></div><div class="scorebox"><span class="eyebrow">ELIMINATION SCORE</span><strong id="score">00000</strong><span id="time">00:00</span></div></header>
+  <div id="reticle" aria-hidden="true" hidden><i></i></div>
+  <div id="flight-hint" hidden>WASD · FLY &nbsp; SPACE / C · UP / DOWN &nbsp; CLICK · FIRE &nbsp; ESC / P · MENU</div>
+  <main id="menu">
+    <div class="corner top-left">FMC / COMBAT SIMULATION</div><div class="corner top-right">SECTOR 01 <span>●</span> ONLINE</div>
+    <section class="panel" aria-labelledby="menu-title">
+      <div class="eyebrow brand">FUTURE MUSIC COLLECTIVE <span>02 / WEBXR</span></div>
+      <h1 id="menu-title">BATTLE<br><em>SPHERE</em><br>ARENA<span class="title-dot">.</span></h1>
+      <p id="menu-subtitle">Zero gravity. Fourteen hunters.<br>Keep your power above zero.</p>
+      <div class="actions"><button id="enter-vr" class="primary" disabled>CHECKING VR… <span>↗</span></button><button id="play-desktop">PLAY IN BROWSER <span>→</span></button><button id="restart" hidden>RESTART RUN <span>↻</span></button></div>
+      <p id="status" role="status">Loading the arena…</p>
+      <details id="settings"><summary>CONTROLS & SETTINGS <span>+</span></summary>
+        <div class="settings-grid">
+          <label>Graphics<select id="quality"><option value="auto">Auto / Quest balanced</option><option value="low">Performance</option><option value="balanced">Balanced</option><option value="high">High</option></select></label>
+          <label>VR turning<select id="turn"><option value="smooth">Smooth</option><option value="snap">Snap 30°</option></select></label>
+          <label>Sound <input id="volume" type="range" min="0" max="100" value="70"></label>
+          <label>Music <input id="music" type="range" min="0" max="100" value="22"></label>
+          <label class="check"><input id="comfort" type="checkbox" checked> Movement vignette</label><label class="check"><input id="stats-toggle" type="checkbox"> Performance display</label>
+        </div>
+        <p class="instructions"><b>Quest</b> Left stick: fly where you look · Right stick: turn / rise / descend · Either trigger: fire · Y / B: menu.<br><b>Desktop</b> WASD: fly · Mouse: look · Click or F: fire · Space / C: rise / descend · P / Esc: pause.</p>
+      </details>
+    </section>
+    <div class="arena-label" aria-hidden="true"><span class="diamond">◇</span><b>THE REACTOR</b><small>42 METRES / ZERO-G ARENA</small></div>
+    <footer>14 SEEKERS <i></i> 2 HITS TO DESTROY <i></i> +18 POWER PER ELIMINATION</footer>
+  </main>
+  <output id="stats" hidden></output>
+  <noscript>This game needs JavaScript enabled.</noscript>
+  <script>window.addEventListener('error',function(e){var s=document.getElementById('status');if(s)s.textContent='Unable to load the arena: '+e.message;});if(location.protocol==='file:')document.getElementById('status').textContent='Upload this folder to an HTTPS website, or use the included local server. Opening index.html directly cannot load the game.';</script>
+  <script type="module" src="game.js"></script>
+</body></html>
