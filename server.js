@@ -858,6 +858,16 @@ app.get("/.well-known/assetlinks.json", (req, res) => {
     res.sendFile(path.join(__dirname, "public", ".well-known", "assetlinks.json"));
 });
 
+app.use(async (req, res, next) => {
+    const p = String(req.path || "/").replace(/\/+$/, "") || "/";
+    if (p !== "/arena" && !p.startsWith("/arena/")) return next();
+    await verifyBsaSession(req, res);
+    if (hasBsa(req) || homeGate.isHomeLan(req)) {
+        bsaPlayHeaders(res);
+        return next();
+    }
+    return res.redirect(302, "/battle-sphere-arena");
+});
 app.use(express.static(path.join(__dirname, 'public')));
 
 // --- STRIPE ---
@@ -1317,9 +1327,11 @@ async function verifyBsaSession(req, res) {
 }
 function sendBsaPlay(res) {
     bsaPlayHeaders(res);
-    res.sendFile(path.join(__dirname, "public", "games", "battle-sphere-arena", "index.html"));
+    res.redirect(302, "/arena/");
 }
-app.get(["/arena", "/arena/"], (req, res) => {
+app.get(["/arena", "/arena/"], async (req, res) => {
+    await verifyBsaSession(req, res);
+    if (!hasBsa(req) && !homeGate.isHomeLan(req)) return res.redirect(302, "/battle-sphere-arena");
     bsaPlayHeaders(res);
     res.sendFile(path.join(__dirname, "public", "arena", "index.html"));
 });
@@ -1334,7 +1346,7 @@ app.get(["/battle-sphere-arena", "/battle-sphere-arena/"], async (req, res) => {
 });
 app.get(["/battle-sphere-arena/play", "/battle-sphere-arena/play/"], async (req, res) => {
     await verifyBsaSession(req, res);
-    if (!hasBsa(req)) return res.redirect(302, "/battle-sphere-arena");
+    if (!hasBsa(req) && !homeGate.isHomeLan(req)) return res.redirect(302, "/battle-sphere-arena");
     sendBsaPlay(res);
 });
 async function bsaCheckout(req, res) {

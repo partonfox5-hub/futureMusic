@@ -1,7 +1,7 @@
 {
   "game": "NetKnight / Battle Sphere Arena",
   "format": "WebXR static website",
-  "version": "5.0.0",
+  "version": "5.0.1",
   "date": "2026-09-12",
   "sourceArchive": "net knight.zip",
   "sourceSha256": "c9e63635ff2914f5e15ee576a110782465a275dfde3bcbee6a86b75d902b49c6",

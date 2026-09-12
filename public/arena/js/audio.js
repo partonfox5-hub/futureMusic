@@ -32,7 +32,7 @@ export class Sound {
    this.play('impact_'+bank,e.p,Math.min(.95,.23+Math.sqrt(r)*.14),Math.max(.78,Math.min(1.2,(bank/r)**.10)),2);
    const original=r>9?'plasma_impact_huge':r>3?'plasma_impact_big':'plasma_impact';this.load(original).then(()=>{if(this.playing)this.play(original,e.p,.17+Math.min(.2,r*.01),r>9?.82:1);});return;
   }
-  if(e.type==='impact')return;let name=e.type==='hydracharge'?'hydra_charge':e.type==='petcry'?'pet_'+(e.kind||0):FILE[e.type];if(!name)return;
+  if(e.type==='impact'||e.type==='slash')return;let name=e.type==='hydracharge'?'hydra_charge':e.type==='petcry'?'pet_'+(e.kind||0):FILE[e.type];if(!name)return;
   const min=e.type==='energyslash'?.07:e.type==='pickup'?.035:e.type==='hit'?.045:e.quiet?.13:0;if(now-(this.last.get(e.type)??-9)<min)return;this.last.set(e.type,now);
   this.play(name,e.p,['carhorn','boathorn','screenhello'].includes(e.type)?.36:e.quiet?.12:e.type==='pickup'?.25:.65,1);
  }

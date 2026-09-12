@@ -1,5 +1,5 @@
 import {T,V,clamp} from './math.js?v=5.0.0';
-import {Simulation} from './sim.js?v=5.0.0';
+import {Simulation} from './sim.js?v=5.0.1';
 import {WorldView} from './world-view.js?v=5.0.0';
 import {EntityView} from './entity-view.js?v=5.0.0';
 import {Effects} from './effects.js?v=5.0.0';
@@ -7,13 +7,13 @@ import {HullView} from './hull-view.js?v=5.0.0';
 import {ScreenView} from './screen-view.js?v=5.0.0';
 import {M,weaponModel,mergeParts} from './models.js?v=5.0.0';
 import {canvas,texture,labelTexture} from './textures.js?v=5.0.0';
-import {Sound} from './audio.js?v=5.0.0';
-import {Input} from './input.js?v=5.0.0';
-import {UI} from './ui.js?v=5.0.0';
+import {Sound} from './audio.js?v=5.0.1';
+import {Input} from './input.js?v=5.0.1';
+import {UI} from './ui.js?v=5.0.1';
 import {Visor} from './visor.js?v=5.0.0';
 import {Intro} from './intro.js?v=5.0.0';
 import {read,write,record,learning,download} from './save.js?v=5.0.0';
-const $=id=>document.getElementById(id),surface=$('game'),status=$('status'),prefs={turn:'snap',quality:'balanced',comfort:true,music:.22,volume:.7,legacyEconomy:false,stats:false,...read('settings',{})};
+const $=id=>document.getElementById(id),surface=$('game'),status=$('status'),prefs={turn:'smooth',quality:'balanced',comfort:true,music:.22,volume:.7,legacyEconomy:false,stats:false,...read('settings',{}),turn:'smooth'};
 let renderer;try{renderer=new T.WebGLRenderer({canvas:surface,antialias:true,alpha:false,powerPreference:'high-performance'});}catch(error){status.textContent='WebGL could not start. Open this page in a browser with hardware graphics enabled. '+error.message;$('enter-vr').disabled=$('play-desktop').disabled=true;throw error;}
 renderer.outputColorSpace=T.SRGBColorSpace;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.12;renderer.xr.enabled=true;renderer.xr.setReferenceSpaceType('local-floor');renderer.xr.setFoveation(.5);renderer.shadowMap.enabled=false;
 const scene=new T.Scene();scene.background=new T.Color(0x081629);scene.fog=new T.FogExp2(0x0c1b31,.0019);const camera=new T.PerspectiveCamera(74,innerWidth/innerHeight,.06,950),rig=new T.Group();rig.rotation.y=Math.PI;rig.add(camera);scene.add(rig);
