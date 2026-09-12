@@ -1,6 +1,6 @@
 import * as T from 'three';
-import {PET_SURFACES} from './PetSurfaces.js?v=19.1.0';
-import {PET_BREEDS,breedIdFor} from './PetBreeds.js?v=19.1.0';
+import {PET_SURFACES} from './PetSurfaces.js?v=19.3.0';
+import {PET_BREEDS,breedIdFor} from './PetBreeds.js?v=19.3.0';
 const clamp=T.MathUtils.clamp,cache=new Map();
 function bytes(str){return Uint8Array.from(atob(str),c=>c.charCodeAt(0));}
 function geometry(id){

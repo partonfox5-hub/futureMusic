@@ -1,7 +1,7 @@
 {
   "private": true,
-  "name": "human5-checkpoint16-tests",
-  "version": "19.1.0",
+  "name": "human5-checkpoint18-tests",
+  "version": "19.3.0",
   "dependencies": {
     "three": "0.170.0",
     "playwright": "1.62.1"
@@ -12,6 +12,8 @@
     "stress": "node final-stress.cjs",
     "profile": "node whole-project-profile.cjs",
     "eyes": "node eyes-regression.cjs",
-    "recent": "node checkpoint15-regression.cjs"
+    "recent": "node checkpoint15-regression.cjs",
+    "features": "node checkpoint18-regression.cjs",
+    "batching": "node --experimental-vm-modules batching-regression.cjs"
   }
 }

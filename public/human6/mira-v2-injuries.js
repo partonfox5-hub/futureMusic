@@ -68,13 +68,16 @@ export class Injuries {
   const baseName=r==='head'?'NeckTwist01':r[0]+(r.endsWith('Arm')?'_Upperarm':'_Thigh'),bone=a.bones[baseName],origin=bone.getWorldPosition(V()),group=new T.Group();
   group.position.copy(origin);this.props.scene.add(group);
   this.splitSkinned(a.root,s,r,false,origin,group);
+  if(r==='head'&&a.h5Groom?.group.visible){
+   a.h5Groom.group.updateWorldMatrix(true,true);a.h5Groom.group.traverse(m=>{if(!m.isMesh||!m.visible)return;const g=m.geometry.clone();g.applyMatrix4(m.matrixWorld);g.translate(-origin.x,-origin.y,-origin.z);const copy=new T.Mesh(g,m.material.clone());copy.name='Detached head hair';group.add(copy);});
+  }
   const capMat=new T.MeshStandardMaterial({color:0x111111,roughness:.96,metalness:0});
   const cap=new T.Mesh(new T.SphereGeometry(r==='head'?.048:.045,12,8),capMat);cap.scale.y=.28;bone.add(cap);s.caps.push(cap);
   const endCap=cap.clone();endCap.geometry=cap.geometry.clone();endCap.material=capMat.clone();group.add(endCap);
   this.detached.push({actor:a,group,velocity:dir.clone().multiplyScalar(1.5).add(new T.Vector3(0,.6,0)),spin:new T.Vector3(1,2,.8),age:0});
   this.props.system.contacts.surfaces.delete(a);
   for(const c of this.props.wardrobe.clothes)if(c.actor===a)c.shapeStamp='refit';
-  if(r==='head')a.headMissing=true;
+  if(r==='head'){a.headMissing=true;if(a.h5Groom)a.h5Groom.group.visible=false;if(a.hairPhysics?.mesh)a.hairPhysics.mesh.visible=false;}
   a.knockDown(dir);
   if(this.fatal(s))a.die?.();
  }
@@ -121,7 +124,7 @@ export class Injuries {
   this.detached=this.detached.filter(d=>d.actor!==actor);
   for(const m of this.props.marks.filter(m=>m.actor===actor))this.props.dispose(m.mesh);
   this.props.marks=this.props.marks.filter(m=>m.mesh.parent);
-  this.states.delete(actor);delete actor.injuryDriver;actor.headMissing=false;actor.dead=false;
+  this.states.delete(actor);delete actor.injuryDriver;actor.headMissing=false;actor.dead=false;actor.h5Ragdoll?.reset();
   if(isDog(actor)){
    const bones=actor.bones||actor._model?.bones;
    if(bones)for(const name of DOG_HEAD)if(bones[name])bones[name].scale.setScalar(1);

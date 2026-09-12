@@ -1,4 +1,4 @@
-import {paletteSkinnedVertex,prepareMorphPalette} from './modules/human5-skinning.js?v=19.1.0';
+import {paletteSkinnedVertex,prepareMorphPalette} from './modules/human5-skinning.js?v=19.3.0';
 import * as T from 'three';
 const V=()=>new T.Vector3(),clamp=T.MathUtils.clamp;
 const limb=n=>/^([LR])_(Upperarm|Forearm|Elbow|Hand|Thumb|Index|Mid|Ring|Pinky)/.test(n)?n[0]+'Arm':/^([LR])_(Thigh|Calf|Knee|Foot|Toe)/.test(n)?n[0]+'Leg':/Head|Eye|Jaw|Neck/.test(n)?'head':'torso';
@@ -50,7 +50,7 @@ export class BodyContacts {
  surface(a){let s=this.surfaces.get(a);if(!s){s=new BodySurface(a);this.surfaces.set(a,s);}return s;}
  project(a,p,r,exclude,react=true){let moved=false;for(const b of this.actors){if(b.version!=='v2'||b.group.position.distanceTo(a.group.position)>1.6)continue;const surface=this.surface(b);if(surface.h5ContactFrame!==this.contactFrame){surface.begin();surface.h5ContactFrame=this.contactFrame;}const c=surface.project(p,r,b===a?exclude:'',react);if(c){this.stats.contacts++;moved=true;}}return moved;}
  tick(dt=1/72){
-  const list=this.actors.filter(a=>a.version==='v2'&&(a.h5SimulationDue!==false)&&( !a.world?.h5QuestBudget||!a.world?.h5Viewer||a.group.position.distanceToSquared(a.world.h5Viewer)<64||a.grabs.size||a.socialPair||this.actors.some(b=>b!==a&&b.group.position.distanceToSquared(a.group.position)<3)));const due=list.filter(a=>{
+  const list=this.actors.filter(a=>!a.dead&&a.version==='v2'&&(a.h5SimulationDue!==false)&&( !a.world?.h5QuestBudget||!a.world?.h5Viewer||a.group.position.distanceToSquared(a.world.h5Viewer)<64||a.grabs.size||a.socialPair||this.actors.some(b=>b!==a&&b.group.position.distanceToSquared(a.group.position)<3)));const due=list.filter(a=>{
     const near=!a.world?.h5QuestBudget||!a.world.h5Viewer||a.group.position.distanceToSquared(a.world.h5Viewer)<2.25;
     const interacting=a.grabs.size||a.socialPair||a.balance?.state!=='standing'||this.actors.some(b=>b!==a&&b.group.position.distanceToSquared(a.group.position)<1.44);
     a.h5ContactAccumulator=(a.h5ContactAccumulator||0)+dt;

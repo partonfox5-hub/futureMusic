@@ -3,7 +3,7 @@
  *
  *   import {createStudioLights, RoomLight} from './mira-lighting.js';
  */
-export {createStudioLights, RoomLight} from './mira-v2-light.js?v=19.1.0';
+export {createStudioLights, RoomLight} from './mira-v2-light.js?v=19.3.0';
 export {HUMAN5, ASTRA_RULES, briefFor, sessionPrompt} from './mira-context.js';
 
 export const LIGHTING = {

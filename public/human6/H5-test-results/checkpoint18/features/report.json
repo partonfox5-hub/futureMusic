@@ -1,0 +1,26 @@
+{
+  "report": {
+    "sprint": {
+      "activeSeconds": 0,
+      "cooldownSeconds": 10,
+      "multiplier": 1
+    },
+    "walkSpeed": 3.1161404449572303,
+    "runSpeed": 2.5011359751483746,
+    "walkNPC": 1.127562095811606,
+    "lightRatio": 10,
+    "lightSlots": 3,
+    "bedActivities": 10,
+    "mattressTravel": 0.3028622694085979,
+    "drawers": 22,
+    "ragdoll": {
+      "nodes": 21,
+      "steps": 191,
+      "maxError": 0.0014622500074334271,
+      "headHeight": 0.085,
+      "sleeping": true
+    },
+    "hairHidden": true
+  },
+  "errors": []
+}

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { clamp } from './Dog.js?v=19.1.0';
+import { clamp } from './Dog.js?v=19.3.0';
 export class DogTail {
   constructor(model){
     this.model=model;this.amount=0;this.points=[];this.previous=[];this.lengths=[];this.accumulator=0;this.time=0;

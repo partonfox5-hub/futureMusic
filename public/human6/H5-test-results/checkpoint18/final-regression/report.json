@@ -1,0 +1,45 @@
+{
+  "report": {
+    "sprint": {
+      "activeSeconds": 0,
+      "cooldownSeconds": 10,
+      "multiplier": 1
+    },
+    "petGaits": [
+      {
+        "species": "dog",
+        "walkBlend": 0,
+        "runBlend": 0.9998994742275285
+      },
+      {
+        "species": "cat",
+        "walkBlend": 0,
+        "runBlend": 0.9998994742275285
+      }
+    ],
+    "batching": {
+      "rebuilds": 109,
+      "sources": 743,
+      "batches": 195
+    },
+    "walkSpeed": 3.1161404449572303,
+    "runSpeed": 2.500857916346233,
+    "walkNPC": 1.1275620307052932,
+    "lightRatio": 10,
+    "lightSlots": 3,
+    "bedActivities": 10,
+    "mattressTravel": 0.3028622694085979,
+    "drawers": 22,
+    "ragdoll": {
+      "nodesAfterRestore": 0,
+      "gripAttachment": true,
+      "severHealCycle": true,
+      "steps": 280,
+      "maxError": 0.0014863184816017033,
+      "headHeight": 0.085,
+      "sleeping": false
+    },
+    "hairHidden": true
+  },
+  "errors": []
+}

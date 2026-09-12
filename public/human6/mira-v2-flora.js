@@ -1,10 +1,10 @@
 import * as T from 'three';
-import {tagMovable,syncFurniture} from './mira-v2-furniture.js?v=19.1.0';
-import {FloraGrass} from './src/flora/FloraGrass.js?v=19.1.0';
-import {FloraPlants} from './src/flora/FloraPlants.js?v=19.1.0';
-import {FloraHarvest} from './src/flora/FloraHarvest.js?v=19.1.0';
-import {FloraBoulders} from './src/flora/FloraBoulders.js?v=19.1.0';
-import {FloraDebris} from './src/flora/FloraDebris.js?v=19.1.0';
+import {tagMovable,syncFurniture} from './mira-v2-furniture.js?v=19.3.0';
+import {FloraGrass} from './src/flora/FloraGrass.js?v=19.3.0';
+import {FloraPlants} from './src/flora/FloraPlants.js?v=19.3.0';
+import {FloraHarvest} from './src/flora/FloraHarvest.js?v=19.3.0';
+import {FloraBoulders} from './src/flora/FloraBoulders.js?v=19.3.0';
+import {FloraDebris} from './src/flora/FloraDebris.js?v=19.3.0';
 // Copy src/* to src/flora/* per module.json. Host imports are dependencies, not bundled copies.
 export function createFloraSystem(ctx={}){
  ctx??={};

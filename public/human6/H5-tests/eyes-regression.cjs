@@ -15,7 +15,7 @@ const report=await page.evaluate(async()=>{
  for(const m of [e.occ,e.tear])for(const v of m.geometry.attributes.position.array)if(!Number.isFinite(v))throw Error('Invalid lid mesh');
  for(let i=0;i<a.skinMeshes.length;i++)if(saved[i])a.skinMeshes[i].morphTargetInfluences.splice(0,saved[i].length,...saved[i]);
  e.tick();
- const {RigidBatches}=await import('./modules/human5-batching.js?v=19.1.0');
+ const {RigidBatches}=await import('./modules/human5-batching.js?v=19.3.0');
  const world={pickables:[]},batches=new RigidBatches(world),scene=new T.Scene(),r=new T.Group();scene.add(r);
  for(let i=0;i<3;i++){const m=new T.Mesh(new T.BoxGeometry(.1,.1,.1),new T.MeshStandardMaterial({color:0xaaaabb}));m.position.x=i*.2;r.add(m);}
  const source=r.children[0];batches.add(r);const entry=batches.entries.get(r),before=entry.groups[0].mesh.geometry.attributes.position.count;batches.tick();source.visible=false;batches.tick();const after=entry.groups[0].mesh.geometry.attributes.position.count;

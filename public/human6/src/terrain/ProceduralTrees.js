@@ -1,4 +1,4 @@
-import {seasons} from '../../modules/human5-seasons.js?v=19.1.0';
+import {seasons} from '../../modules/human5-seasons.js?v=19.3.0';
 import * as T from 'three';
 import {hash,noise} from './TerrainHeightfield.js';
 function treeGeometry(pine=false,detail=true){

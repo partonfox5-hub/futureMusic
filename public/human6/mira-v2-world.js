@@ -1,8 +1,8 @@
-import {captureFurniture,tagMovable} from './mira-v2-furniture.js?v=19.1.0';
-import {Destruction} from './mira-v2-destruction.js?v=19.1.0';
-import {buildHouse} from './mira-v2-house.js?v=19.1.0';
-import {buildCastle,inCastleClearing} from './mira-v2-castle.js?v=19.1.0';
-import {plantTerrain,scatterTrees,tickNature,chopTree as chopNature,ramTree as ramNature,terrainHeight} from './mira-v2-nature.js?v=19.1.0';
+import {captureFurniture,tagMovable} from './mira-v2-furniture.js?v=19.3.0';
+import {Destruction} from './mira-v2-destruction.js?v=19.3.0';
+import {buildHouse} from './mira-v2-house.js?v=19.3.0';
+import {buildCastle,inCastleClearing} from './mira-v2-castle.js?v=19.3.0';
+import {plantTerrain,scatterTrees,tickNature,chopTree as chopNature,ramTree as ramNature,terrainHeight} from './mira-v2-nature.js?v=19.3.0';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
 import * as T from 'three';
 const V=()=>new T.Vector3(),clamp=T.MathUtils.clamp,QUEST=/Quest|OculusBrowser/i.test(globalThis.navigator?.userAgent||'');
@@ -162,6 +162,7 @@ export class MiraWorld {
   }
  }
  after(a,dt){
+  if(a.dead){a.group.updateMatrixWorld(true);return;}
   if(a.seat){const seat=a.seat;a.seatBlend=Math.min(1,(a.seatBlend||0)+dt/.9);const k=a.seatBlend*a.seatBlend*(3-2*a.seatBlend);a.group.rotation.y+=Math.atan2(Math.sin(seat.yaw-a.group.rotation.y),Math.cos(seat.yaw-a.group.rotation.y))*(1-Math.exp(-dt*5));const pos=seat.position.clone();pos.y=a.group.position.y+(seat.position.y+.08*a.shape.height-a.bones.Hip.getWorldPosition(V()).y)*k;a.group.position.lerp(pos,1-Math.exp(-dt*7));a.group.position.y=pos.y;a.group.updateMatrixWorld(true);
    for(const side of ['L','R']){
     const sign=side==='L'?1:-1,h=a.shape.height;

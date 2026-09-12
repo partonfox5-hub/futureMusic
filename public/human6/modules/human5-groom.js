@@ -1,5 +1,5 @@
 import * as T from 'three';
-import {V,clamp,smooth,gravityOf,wrapMethod,rng} from './human5-common.js?v=19.1.0';
+import {V,clamp,smooth,gravityOf,wrapMethod,rng} from './human5-common.js?v=19.3.0';
 
 /** Fitted crown and overlapping straight cards. Two draws; bounded guide physics.
  * Coordinates are metres in this project's CC3 rest mesh, before Head bind.
@@ -126,14 +126,14 @@ export function installReferenceGroom(actor){
     capPosition.needsUpdate=true;if(normalTime>=1/15){cg.computeVertexNormals();normalTime=0;}group.userData.h5HairContacts=contacts;
     if(!geo.boundingSphere)geo.boundingSphere=new T.Sphere(V().set(0,1.46,-.025).applyMatrix4(bind),.32);
   };
-  if(actor.hairPhysics)restores.push(wrapMethod(actor.hairPhysics,'tick',old=>function(dt){const enabled=actor.h5Identity?.enabled&&actor.hairStyle===1;group.visible=enabled;if(enabled){this.mesh.visible=false;tick(dt);return;}return old.apply(this,arguments);}));
+  if(actor.hairPhysics)restores.push(wrapMethod(actor.hairPhysics,'tick',old=>function(dt){if(actor.headMissing){group.visible=false;this.mesh.visible=false;return;}const enabled=actor.h5Identity?.enabled&&actor.hairStyle===1;group.visible=enabled;if(enabled){this.mesh.visible=false;tick(dt);return;}return old.apply(this,arguments);}));
   const api={group,root:group,locks,nodes,tick,scalp:{center:scalpCenter,radii:scalpRadii,minY:1.438},rebuildCuts(cuts=new Map()){
     const ids=[];for(let i=0;i<ci.length;i+=3){let keep=true;for(let j=0;j<3;j++){const link=capLinks[ci[i+j]],end=cuts.get(link.guide);if(link.weight>.1&&end!==undefined&&link.t>end/8+.001)keep=false;}if(keep)ids.push(ci[i],ci[i+1],ci[i+2]);}cg.setIndex(ids);
   },reset(){for(const lock of locks)lock.ready=false;accumulator=0;},dispose(){restores.reverse().forEach(f=>f());if(actor.hairPhysics?.mesh)actor.hairPhysics.mesh.visible=oldVisible;group.removeFromParent();geo.dispose();cg.dispose();material.dispose();crownMat.dispose();texture.dispose();delete actor.h5Groom;}};
   actor.h5Groom=api;
   // Profile import can render before the next animation tick. Do not show the
   // legacy cap and the replacement groom simultaneously for that first frame.
-  group.visible=!!actor.h5Identity?.enabled&&actor.hairStyle===1;
+  group.visible=!actor.headMissing&&!!actor.h5Identity?.enabled&&actor.hairStyle===1;
   if(group.visible&&actor.hairPhysics?.mesh)actor.hairPhysics.mesh.visible=false;
   tick(0);return api;
 }

@@ -1,7 +1,7 @@
 import * as T from 'three';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
-import {V,rng,clamp,disposeTree} from './human5-common.js?v=19.1.0';
-import {hash2} from './human5-worldfield.js?v=19.1.0';
+import {V,rng,clamp,disposeTree} from './human5-common.js?v=19.3.0';
+import {hash2} from './human5-worldfield.js?v=19.3.0';
 
 function colored(g,color){const c=new T.Color(color),a=[];for(let i=0;i<g.attributes.position.count;i++)a.push(c.r,c.g,c.b);g.setAttribute('color',new T.Float32BufferAttribute(a,3));return g;}
 function birdBody(){const parts=[];const add=(g,c,x,y,z)=>{g.translate(x,y,z);parts.push(colored(g,c));};const body=new T.SphereGeometry(1,10,6);body.scale(.048,.048,.105);add(body,0x746958,0,0,0);const bib=new T.SphereGeometry(1,8,5);bib.scale(.039,.034,.056);add(bib,0xd2c8ae,0,-.02,.052);const head=new T.SphereGeometry(.034,10,6);add(head,0x545a51,0,.038,.091);const beak=new T.ConeGeometry(.014,.049,6);beak.rotateX(Math.PI/2);add(beak,0xc4a85a,0,.038,.137);for(const x of [-.030,.030])add(new T.SphereGeometry(.005,6,4),0x171614,x,.044,.11);const tail=new T.ConeGeometry(.04,.11,4);tail.rotateX(-Math.PI/2);tail.scale(1,.3,1);add(tail,0x4d5048,0,-.008,-.125);const g=mergeGeometries(parts);parts.forEach(g=>g.dispose());return g;}

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { clamp } from './Dog.js?v=19.1.0';
+import { clamp } from './Dog.js?v=19.3.0';
 const vec=a=>new THREE.Vector3(...a);
 
 export function floorAt(world,x,z,fallback=0) {
@@ -49,7 +49,7 @@ export class DogPaws {
       this.legs.push({root:model.bones[front?`${s}_Shoulder`:`${s}_Hip`],upper:model.bones[upper],lower:model.bones[lower],foot:model.bones[foot],home:c.clone(),front,length1:a.distanceTo(b),length2:b.distanceTo(c),reach:shoulder.distanceTo(c)});
     }
   }
-  tick(time,state,moving=0,bend=0){
+  tick(time,state,moving=0,bend=0,run=0){
     this.crouching=['sleep','eat','pickup','eat-bag'].includes(state);const m=this.model;m.updatePoseWorld();
     if(m.root.userData.waterSwimming)return;
     const held=m.root.userData.dog?._heldLimbs;
@@ -58,8 +58,8 @@ export class DogPaws {
       if(held&&held.has(key))return;
       const target=leg.home.clone();
       // Compact alternating step only when follow movement is active.
-      const s=m.root.scale.y||1,phase=time*8.2*(m.breed?.gait||1)+(i===0||i===3?0:Math.PI),lift=Math.max(0,Math.sin(phase))*.09*moving;
-      target.z+=Math.cos(phase)*.11*moving;
+      const s=m.root.scale.y||1,walkPhase=i===0||i===3?0:Math.PI,runPhase=leg.front?(i<2?0:.48):Math.PI+(i<2?0:.48),phase=time*8.2*(m.breed?.gait||1)+walkPhase*(1-run)+runPhase*run,lift=Math.max(0,Math.sin(phase))*(.065+.08*run)*moving;
+      target.z+=Math.cos(phase)*(.11+.08*run)*moving;
       // Feet straddle the curved centerline sampled at each fore/hind contact.
       target.x+=Math.sin(bend)*target.z*.34;
       if(state==='sleep'){target.z+=leg.front?.09:.15;target.x*=1.15;}

@@ -1,10 +1,10 @@
-import {placeXRHead} from './modules/human5-xr-placement.js?v=19.1.0';
-import {refineOriginalSedan} from './modules/human5-sedan-detail.js?v=19.1.0';
+import {placeXRHead} from './modules/human5-xr-placement.js?v=19.3.0';
+import {refineOriginalSedan} from './modules/human5-sedan-detail.js?v=19.3.0';
 import * as T from 'three';
-import {withOffscreenView} from './modules/human5-view-surfaces.js?v=19.1.0';
-import {VEHICLE_SPECS,buildVehicleModel} from './modules/human5-vehicle-models.js?v=19.1.0';
+import {withOffscreenView} from './modules/human5-view-surfaces.js?v=19.3.0';
+import {VEHICLE_SPECS,buildVehicleModel} from './modules/human5-vehicle-models.js?v=19.3.0';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
-import {CarAudio,unlockSfx} from './mira-v2-sfx.js?v=19.1.0';
+import {CarAudio,unlockSfx} from './mira-v2-sfx.js?v=19.3.0';
 const V=()=>new T.Vector3(),Q=()=>new T.Quaternion(),clamp=T.MathUtils.clamp,Y=new T.Vector3(0,1,0);
 const QUEST=/Quest|OculusBrowser/i.test(globalThis.navigator?.userAgent||'');
 const GEARS=['P','R','N','D'];

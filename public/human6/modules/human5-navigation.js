@@ -1,6 +1,6 @@
 import * as T from 'three';
-import {ROUTES} from './human5-worldfield.js?v=19.1.0';
-import {wrapMethod} from './human5-common.js?v=19.1.0';
+import {ROUTES} from './human5-worldfield.js?v=19.3.0';
+import {wrapMethod} from './human5-common.js?v=19.3.0';
 /** Finite route graph and bounded local A*: never sort an expanding 8,000-node list. */
 export class MinHeap {
  constructor(){this.a=[];}

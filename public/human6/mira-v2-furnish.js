@@ -108,12 +108,17 @@ export function detailBed(w,x,z){
 
 export function detailNightstand(w,x,z){
  const wood=w.mat(0x826144,.74),dark=w.mat(0x6a4e36,.7),ch=chrome(w);
- part(w,rb(.55,.66,.48,.02),wood,x,.34,z,'wood');
- part(w,rb(.50,.03,.46,.008),wood,x,.68,z,'wood');
- part(w,rb(.48,.16,.02,.006),dark,x,.50,z+.24,'wood');
- part(w,rb(.48,.16,.02,.006),dark,x,.30,z+.24,'wood');
- part(w,new T.CylinderGeometry(.012,.012,.02,8),ch,x,.50,z+.26,'metal');
- part(w,new T.CylinderGeometry(.012,.012,.02,8),ch,x,.30,z+.26,'metal');
+ // Hollow carcass leaves space for the drawer boxes.
+ for(const dx of [-.255,.255])part(w,rb(.04,.64,.48,.012),wood,x+dx,.34,z,'wood');
+ part(w,rb(.51,.64,.035,.008),wood,x,.34,z-.22,'wood');
+ for(const y of [.035,.68])part(w,rb(.55,.035,.49,.01),wood,x,y,z,'wood');
+ for(const y of [.30,.50]){
+  const g=new T.Group();g.name='Sliding nightstand drawer';g.position.set(x,y,z);g.userData.h5DynamicPart=true;g.userData.h5DrawerSpec={travel:.32};w.root.add(g);
+  const add=(size,p,m=wood)=>{const o=new T.Mesh(rb(...size,.004),m);o.position.fromArray(p);o.castShadow=o.receiveShadow=true;g.add(o);w.pickables.push(o);return o;};
+  add([.48,.16,.025],[0,0,.24],dark);add([.43,.012,.39],[0,-.068,.03]);
+  for(const dx of [-.212,.212])add([.015,.13,.39],[dx,0,.03]);add([.43,.13,.015],[0,0,-.162]);
+  const handle=add([.10,.018,.032],[0,0,.268],ch);handle.name='Drawer pull';
+ }
 }
 
 export function detailDresser(w,x,z){

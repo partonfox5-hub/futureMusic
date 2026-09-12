@@ -1,8 +1,8 @@
-import {restoreSurfaceUV} from './mira-v2-uv.js?v=19.1.0';
-import {BodyContacts} from './mira-v2-contact.js?v=19.1.0';
-import {MiraSocial} from './mira-v2-social.js?v=19.1.0';
-import {ContactHaptics} from './mira-v2-haptics.js?v=19.1.0';
-import { createV2Class, repairArmRestData, makeFingerRig, fingerRotation } from "./mira-v2-features.js?v=19.1.0";
+import {restoreSurfaceUV} from './mira-v2-uv.js?v=19.3.0';
+import {BodyContacts} from './mira-v2-contact.js?v=19.3.0';
+import {MiraSocial} from './mira-v2-social.js?v=19.3.0';
+import {ContactHaptics} from './mira-v2-haptics.js?v=19.3.0';
+import { createV2Class, repairArmRestData, makeFingerRig, fingerRotation } from "./mira-v2-features.js?v=19.3.0";
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { clone as cloneSkinned } from "three/addons/utils/SkeletonUtils.js";
@@ -16,7 +16,7 @@ import { clone as cloneSkinned } from "three/addons/utils/SkeletonUtils.js";
  * threejs.org/docs/pages/MeshStandardMaterial.html
  * ?skin=0 disables wrapped skin diffuse; ?debug=1 exposes window.human2 for profiling.
  */
-export const ASSET = new URL("./assets/mira.glb?v=19.1.0", import.meta.url).href;
+export const ASSET = new URL("./assets/mira.glb?v=19.3.0", import.meta.url).href;
 export const TEXROOT = new URL("./assets/tex/", import.meta.url).href;
 export const TEXVER = "r12";
 

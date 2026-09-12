@@ -1,21 +1,11 @@
-# Human5 17.5 — Checkpoint 09
+# Human5 19.3.0 — complete checkpoint 18
 
-Read `docs/CHECKPOINT-09-EQUIPMENT.md` for controls, implemented behavior, validation and limits. This intermediate checkpoint adds the Weapons / Tools and Vehicles pages, weapon details, launchers, spells, sniper zoom, portal views/transit and four drivable vehicle designs to the 17.4 stabilization build. The complete project ZIP is already integrated and includes the original assets.
+This folder is the complete integrated game, including checkpoints 16 and 17. Read `H5-docs/FINAL-RELEASE.md` for this release, controls and limitations, and `H5-docs/FINAL-PERFORMANCE.md` for measured results. Earlier checkpoint notes and patch files are historical: do not reapply them to this build.
 
-From Checkpoint 08:
+Serve the directory containing `human5/` and open `/human5/index.html`. For desktop development, run `python -m http.server 8000` from that parent directory, then visit `http://localhost:8000/human5/index.html`. Use your existing HTTPS host for Quest WebXR and microphone access. Opening the HTML directly as a local file does not work. Three.js remains pinned to 0.170.0; no new game runtime package is required. All runtime cache tags use 19.3.0.
 
-```sh
-python integration/apply-equipment.py /path/to/17.4/human5 /path/to/new/human5
-```
+VR controls: left stick click starts a 10-second sprint (+50%), followed by a 10-second cooldown; right stick click places restraint anchors; A jumps. Default travel is another 15% faster. Open Y → GEAR → WEAPONS / TOOLS → TOOLS for Flashlight or Godlight. Vehicle lights have dashboard, menu and desktop controls. WORLD → PERFORMANCE exports measurements.
 
-From the original complete uploaded game:
+The game remains source rather than a Windows executable. Photo NPC Studio remains a separate application; its existing `.h5photo.json` import bridge is preserved. No Studio inference changes are part of checkpoint 18.
 
-```sh
-python integration/apply-all-upgrades.py /path/to/original/human5 /path/to/new/human5
-```
-
-Both commands require a fresh destination. Checksums protect customized source from silent replacement. The patch, manifest and individual modules are included for manual integration.
-
-Serve the parent directory with the game at `/human5/index.html`. WebXR and microphone capture need a secure origin. Keep the Three.js 0.170 import map. VR: Y → GEAR → WEAPONS / TOOLS or VEHICLES. WORLD → PERFORMANCE exports workload reports. X removes the selected NPC unless driving, when it is the brake.
-
-This checkpoint does not certify Quest FPS or commercial-game model quality. The final additional performance gate, character fidelity work, remaining house features and separate laptop photo/video (up to 60 seconds) NPC creator are tracked in `docs/PROJECT-REMAINING.md`.
+Tests and raw results are included in `H5-tests/` and `H5-test-results/checkpoint18/`. Software-renderer checks passed, but sustained Quest 60/72 FPS has not been verified.

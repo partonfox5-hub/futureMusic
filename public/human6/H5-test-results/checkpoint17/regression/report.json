@@ -1,0 +1,21 @@
+{
+  "report": {
+    "sprint": {
+      "activeSeconds": 0,
+      "cooldownSeconds": 10,
+      "multiplier": 1
+    },
+    "walkSpeed": 3.1161404449572303,
+    "mattressTravel": 0.3028622694085979,
+    "drawers": 22,
+    "ragdoll": {
+      "nodes": 21,
+      "steps": 195,
+      "maxError": 0.0014567168319961216,
+      "headHeight": 0.085,
+      "sleeping": true
+    },
+    "hairHidden": true
+  },
+  "errors": []
+}

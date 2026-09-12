@@ -3,6 +3,8 @@ import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 
 // Original game designs and artistic damage values, not real weapon specifications.
 export const EXTRA_WEAPONS=Object.freeze({
+ flashlight:{name:'Flashlight',mass:.35,reach:.24,kind:'light',category:'tool'},
+ godlight:{name:'Godlight · 10× flashlight',mass:.55,reach:.24,kind:'light',category:'tool'},
  musket:{name:'Flintlock musket',mass:4.3,reach:1.10,kind:'bullet',category:'firearm',fireRate:1,energy:48,spread:.027,pellets:1,magSize:1,reload:7.5,recoil:.11},
  rocketLauncher:{name:'Rocket launcher',mass:7.2,reach:.88,kind:'launcher',category:'launcher',fireRate:2.2,magSize:1,reload:2.8,projectile:'rocket'},
  miniNuke:{name:'Mini-nuke launcher',mass:11,reach:.80,kind:'launcher',category:'launcher',fireRate:7,magSize:1,reload:5,projectile:'miniNuke'},
@@ -20,7 +22,14 @@ export function buildSpecialEquipment(id,add){
  const steel=material(0x586066,.32,.8),dark=material(0x252b2d,.76,.15),rubber=material(0x141719,.9,0);
  const box=(w,h,d,m,x,y,z)=>add(new T.BoxGeometry(w,h,d),m,x,y,z);
  const tube=(r,len,m,x,y,z,ro=r)=>{const a=add(new T.CylinderGeometry(r,ro,len,16,1,true),m,x,y,z);a.rotation.x=Math.PI/2;return a;};
- if(id==='musket'){
+ if(id==='flashlight'||id==='godlight'){
+  tube(.027,.18,dark,0,.025,-.055);tube(.041,.068,steel,0,.025,-.177);
+  for(const z of [-.10,-.075,-.05])add(new T.TorusGeometry(.028,.0025,5,16),rubber,0,.025,z);
+  const lens=new T.MeshPhysicalMaterial({color:0xddecf5,roughness:.10,metalness:0,transparent:true,opacity:.55,depthWrite:false,clearcoat:1});
+  add(new T.CircleGeometry(.034,16),lens,0,.025,-.213).rotation.y=Math.PI;
+  const led=new T.MeshStandardMaterial({color:0xe6efff,emissive:0xddeeff,emissiveIntensity:3,roughness:.16});add(new T.SphereGeometry(.013,10,6),led,0,.025,-.213);
+  box(.016,.009,.026,rubber,0,.055,-.038);
+ }else if(id==='musket'){
   const wood=material(0x72503a,.71,.0),brass=material(0x9b814a,.39,.7);
   add(stockGeometry([[-.36,-.018],[-.25,-.055],[-.01,-.017],[.04,-.060],[.26,-.052],[.29,.030],[.02,.045],[-.30,.026]],.041),wood,0,0,0);
   box(.04,.022,.76,wood,0,0,-.45);tube(.014,.92,steel,0,.028,-.60);

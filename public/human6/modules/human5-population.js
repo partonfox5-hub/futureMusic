@@ -1,10 +1,10 @@
-import {distantCarGeometry,distantPersonGeometry,distantPeopleMaterial} from './human5-distance-models.js?v=19.1.0';
+import {distantCarGeometry,distantPersonGeometry,distantPeopleMaterial} from './human5-distance-models.js?v=19.3.0';
 import * as T from 'three';
-import {Car} from '../mira-v2-car.js?v=19.1.0';
-import {RouteGraph} from './human5-navigation.js?v=19.1.0';
-import {ROUTES} from './human5-worldfield.js?v=19.1.0';
-import {installVehicleRefinement} from './human5-vehicles.js?v=19.1.0';
-import {V,rng,clamp,wrapMethod,disposeTree} from './human5-common.js?v=19.1.0';
+import {Car} from '../mira-v2-car.js?v=19.3.0';
+import {RouteGraph} from './human5-navigation.js?v=19.3.0';
+import {ROUTES} from './human5-worldfield.js?v=19.3.0';
+import {installVehicleRefinement} from './human5-vehicles.js?v=19.3.0';
+import {V,rng,clamp,wrapMethod,disposeTree} from './human5-common.js?v=19.3.0';
 
 export class IntersectionControl {
  constructor(){this.owners=new Map();}

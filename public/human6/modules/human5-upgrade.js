@@ -1,20 +1,23 @@
+import {installActivities} from './human5-activities.js?v=19.3.0';
+import {installPortableLights} from './human5-portable-lights.js?v=19.3.0';
+import {installDrawers} from './human5-drawers.js?v=19.3.0';
 import * as T from 'three';
-import {tagMovable,placeFurniture} from '../mira-v2-furniture.js?v=19.1.0';
-import {HouseDoors} from '../mira-v2-doors.js?v=19.1.0';
-import {makeSurfaceMap} from '../mira-v2-walls.js?v=19.1.0';
-import {SCENES} from '../mira-v2-world.js?v=19.1.0';
-import {FixtureLights} from './human5-lighting.js?v=19.1.0';
-import {upgradeHostFire} from './human5-fire-host.js?v=19.1.0';
-import {FurnitureMaterials} from './human5-furniture.js?v=19.1.0';
-import {TextileSystem} from './human5-textiles.js?v=19.1.0';
-import {Neighborhood,NEIGHBORHOOD_NAME} from './human5-neighborhood.js?v=19.1.0';
-import {installHumanDynamics,DYNAMICS_CONTROLS} from './human5-dynamics.js?v=19.1.0';
-import {installSkinRefinement} from './human5-skin.js?v=19.1.0';
-import {applyNPCProfile,exportNPCProfile} from './human5-npc-profile.js?v=19.1.0';
-import {installVehicleRefinement} from './human5-vehicles.js?v=19.1.0';
-import {installTissueSurface} from './human5-tissue-surface.js?v=19.1.0';
-import {installReferenceIdentity,REFERENCE_EXPRESSIONS,REFERENCE_MIRA} from './human5-identity.js?v=19.1.0';
-import {V,VERSION,wrapMethod,attachedTo} from './human5-common.js?v=19.1.0';
+import {tagMovable,placeFurniture} from '../mira-v2-furniture.js?v=19.3.0';
+import {HouseDoors} from '../mira-v2-doors.js?v=19.3.0';
+import {makeSurfaceMap} from '../mira-v2-walls.js?v=19.3.0';
+import {SCENES} from '../mira-v2-world.js?v=19.3.0';
+import {FixtureLights} from './human5-lighting.js?v=19.3.0';
+import {upgradeHostFire} from './human5-fire-host.js?v=19.3.0';
+import {FurnitureMaterials} from './human5-furniture.js?v=19.3.0';
+import {TextileSystem} from './human5-textiles.js?v=19.3.0';
+import {Neighborhood,NEIGHBORHOOD_NAME} from './human5-neighborhood.js?v=19.3.0';
+import {installHumanDynamics,DYNAMICS_CONTROLS} from './human5-dynamics.js?v=19.3.0';
+import {installSkinRefinement} from './human5-skin.js?v=19.3.0';
+import {applyNPCProfile,exportNPCProfile} from './human5-npc-profile.js?v=19.3.0';
+import {installVehicleRefinement} from './human5-vehicles.js?v=19.3.0';
+import {installTissueSurface} from './human5-tissue-surface.js?v=19.3.0';
+import {installReferenceIdentity,REFERENCE_EXPRESSIONS,REFERENCE_MIRA} from './human5-identity.js?v=19.3.0';
+import {V,VERSION,wrapMethod,attachedTo} from './human5-common.js?v=19.3.0';
 
 /** Single installation point, after legacy fire/water/props, before the render loop. */
 export function installHuman5Upgrade({scene,renderer,camera,world,mira,props,wardrobe,water,quest=true,daylight=null,newMap=true}={}){
@@ -24,6 +27,9 @@ export function installHuman5Upgrade({scene,renderer,camera,world,mira,props,war
   const furniture=new FurnitureMaterials({world,tagMovable,fire,maxDebris:quest?18:32}),textiles=new TextileSystem({world,fire,maxTufts:quest?1200:2400});
   const unbindFurniture=furniture.bindProps(props),unbindTextiles=textiles.bindProps(props);
   const neighborhood=new Neighborhood({world,furniture,textiles,lights,fire,tagMovable,HouseDoors,makeSurfaceMap,placeFurniture,wardrobe}).install(SCENES);
+  const activities=installActivities({world,mira,props,fire});world.h5Activities=activities;
+  const portableLights=installPortableLights({world,props,lights});
+  const drawers=installDrawers({world,props});world.h5Drawers=drawers;
   const actors=new Set(),vehicles=new Set(),restores=[];let identityAssigned=false,scanT=0,disposed=false,ui=null;
   const waterAt=(p,r=.035)=>{const s=water?.contains(p.clone().add(new T.Vector3(0,-r,0)));return s?{height:s.surfaceY,density:1000,velocity:V()}:null;};
   function attachActor(a){
@@ -56,17 +62,17 @@ export function installHuman5Upgrade({scene,renderer,camera,world,mira,props,war
     mira.contacts.surfaces.delete(a);actors.delete(a);
     return old.call(this,a);
   }));
-  const api={version:VERSION,lights,fire,furniture,textiles,neighborhood,actors,daylight,
-    beforeFrame(dt){if(disposed)return;for(const car of vehicles)if(!props.cars().includes(car))vehicles.delete(car);for(const car of props.cars()){if(!vehicles.has(car)){vehicles.add(car);installVehicleRefinement(car);}}for(const a of mira.actors)attachActor(a);for(const a of actors){if(!mira.actors.includes(a)){a.h5TissueSurface?.dispose();a.h5Dynamics?.dispose();a.h5Skin?.dispose();actors.delete(a);}else a.h5Dynamics?.set(a.shape);}updateUI();
+  const api={version:VERSION,activities,portableLights,drawers,lights,fire,furniture,textiles,neighborhood,actors,daylight,
+    beforeFrame(dt){if(disposed)return;drawers.tick(dt);portableLights.tick(dt);activities.tick(dt);for(const car of vehicles)if(!props.cars().includes(car))vehicles.delete(car);for(const car of props.cars()){if(!vehicles.has(car)){vehicles.add(car);installVehicleRefinement(car);}}for(const a of mira.actors)attachActor(a);for(const a of actors){if(!mira.actors.includes(a)){a.h5TissueSurface?.dispose();a.h5Dynamics?.dispose();a.h5Skin?.dispose();actors.delete(a);}else a.h5Dynamics?.set(a.shape);}updateUI();
       const viewer=camera.getWorldPosition(V());daylight?.follow(viewer);daylight?.setInterior(world.neighborhood?.houses?.some(h=>h.bounds.containsPoint(viewer))||false);textiles.pile.visible=world.root.visible;
       if(world.root.visible)textiles.tick(dt,viewer);lights.tick(dt,viewer);
-      scanT-=dt;if(scanT<=0){scanT=.75;for(const root of world.movables||[])if(root.userData.dogItem)furniture.upgradePetBag(root);for(const f of lights.fixtures)if(!attachedTo(f.root,world.root))lights.remove(f);}
+      scanT-=dt;if(scanT<=0){scanT=.75;for(const root of world.movables||[])if(root.userData.dogItem)furniture.upgradePetBag(root);for(const f of lights.fixtures)if(!f.h5Portable&&!attachedTo(f.root,world.root))lights.remove(f);}
     },
     snapshot(){return {version:VERSION,scene:world.name,actors:[...actors].map(a=>({name:a.displayName,reference:!!a.h5Identity?.enabled,shape:{...a.shape},sculpt:a.h5Identity?{...a.h5Identity.sculpt}:null})),fire:{surfaces:fire.surfaces.size,sources:fire.sources.size},rugs:[...textiles.rugs].map(r=>({holes:r.faces.filter(f=>f.dead).length,triangles:r.mesh.geometry.index.count/3}))};},
     async useGeneratedFace(a=mira.selected){if(a?.version!=='v2')return;const map=await new T.TextureLoader().loadAsync(new URL('../assets/identity/head-reference-generated.png',import.meta.url).href);map.colorSpace=T.SRGBColorSpace;map.flipY=false;
       // Optional generated texture is 1254px, not a claimed 4K scan.
       if(a.h5Identity)a.h5Identity.dispose();installReferenceIdentity(a,{texture:map});return map;
     },
-    dispose(){disposed=true;for(const car of vehicles)car.h5Vehicle?.dispose();unbindTextiles();unbindFurniture();neighborhood.dispose();restores.reverse().forEach(f=>f());for(const a of actors){a.h5Identity?.dispose();a.h5TissueSurface?.dispose();a.h5Dynamics?.dispose();a.h5Skin?.dispose();}textiles.dispose();furniture.dispose();lights.dispose();fireAdapter.dispose();ui?.remove();delete world.h5Upgrade;}
+    dispose(){disposed=true;drawers.dispose();portableLights.dispose();activities.dispose();for(const car of vehicles)car.h5Vehicle?.dispose();unbindTextiles();unbindFurniture();neighborhood.dispose();restores.reverse().forEach(f=>f());for(const a of actors){a.h5Identity?.dispose();a.h5TissueSurface?.dispose();a.h5Dynamics?.dispose();a.h5Skin?.dispose();}textiles.dispose();furniture.dispose();lights.dispose();fireAdapter.dispose();ui?.remove();delete world.h5Upgrade;}
   };world.h5Upgrade=api;if(newMap)world.setScene(NEIGHBORHOOD_NAME);return api;
 }

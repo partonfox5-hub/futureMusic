@@ -1,6 +1,6 @@
 import * as T from 'three';
-import {playSfx,sfxForBreak} from './mira-v2-sfx.js?v=19.1.0';
-import {WallSystem,wallMaterial} from './mira-v2-walls.js?v=19.1.0';
+import {playSfx,sfxForBreak} from './mira-v2-sfx.js?v=19.3.0';
+import {WallSystem,wallMaterial} from './mira-v2-walls.js?v=19.3.0';
 const V=()=>new T.Vector3(),Q=()=>new T.Quaternion();
 const MATERIALS={plaster:{health:48,density:650,color:0xc9c1b1},wood:{health:70,density:600,color:0x806047},glass:{health:11,density:2500,color:0x9fc1c7},stone:{health:210,density:2400,color:0x85847c},metal:{health:190,density:7800,color:0x929b9d}};
 export class Destruction {

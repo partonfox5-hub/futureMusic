@@ -1,18 +1,18 @@
 import * as T from 'three';
-import {rayMayHitActor} from './modules/human5-ray-budget.js?v=19.1.0';
-import {EXTRA_WEAPONS,buildSpecialEquipment,refineEquipmentModel} from './modules/human5-equipment-models.js?v=19.1.0';
+import {rayMayHitActor} from './modules/human5-ray-budget.js?v=19.3.0';
+import {EXTRA_WEAPONS,buildSpecialEquipment,refineEquipmentModel} from './modules/human5-equipment-models.js?v=19.3.0';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
-import {playSfx,sfxForHit,unlockSfx} from './mira-v2-sfx.js?v=19.1.0';
-import {furnitureRoot,syncFurniture} from './mira-v2-furniture.js?v=19.1.0';
-import {ensureGrabbableWood} from './mira-v2-nature.js?v=19.1.0';
-import {GUNS,MELEE,buildMarker,buildPortalGun} from './mira-v2-gadgets.js?v=19.1.0';
-import {FIREARMS,buildFirearm,firearmSpread} from './mira-v2-firearms.js?v=19.1.0';
-import {buildTorch,buildExtinguisher} from './mira-v2-fire.js?v=19.1.0';
-import {installWeightPhysics,throwSpeed} from './mira-v2-weights.js?v=19.1.0';
+import {playSfx,sfxForHit,unlockSfx} from './mira-v2-sfx.js?v=19.3.0';
+import {furnitureRoot,syncFurniture} from './mira-v2-furniture.js?v=19.3.0';
+import {ensureGrabbableWood} from './mira-v2-nature.js?v=19.3.0';
+import {GUNS,MELEE,buildMarker,buildPortalGun} from './mira-v2-gadgets.js?v=19.3.0';
+import {FIREARMS,buildFirearm,firearmSpread} from './mira-v2-firearms.js?v=19.3.0';
+import {buildTorch,buildExtinguisher} from './mira-v2-fire.js?v=19.3.0';
+import {installWeightPhysics,throwSpeed} from './mira-v2-weights.js?v=19.3.0';
 const V=()=>new T.Vector3(),Q=()=>new T.Quaternion();
 const visible=o=>{while(o){if(!o.visible)return false;o=o.parent;}return true;};
 const G=w=>Number.isFinite(w?.gravity)?w.gravity:9.81;
-const isGun=k=>k==='launcher'||k==='spell'||k==='bullet'||k==='laser'||k==='paint'||k==='portal'||k==='flame'||k==='foam';
+const isGun=k=>k==='light'||k==='launcher'||k==='spell'||k==='bullet'||k==='laser'||k==='paint'||k==='portal'||k==='flame'||k==='foam';
 export const WEAPONS={...EXTRA_WEAPONS,sword:{name:'Sword',mass:1.4,reach:.95,sharpness:.85,kind:'cut',category:'melee'},axe:{name:'Axe',mass:2.1,reach:.78,sharpness:.7,kind:'cut',category:'melee'},mace:{name:'Mace',mass:2.8,reach:.66,sharpness:0,kind:'blunt',category:'melee'},pistol:{name:'Pistol',mass:.9,reach:.24,kind:'bullet',category:'firearm',fireRate:.22,energy:32,spread:.018,pellets:1,magSize:12,reload:1.55},laser:{name:'Laser pistol',mass:1.2,reach:.28,kind:'laser',category:'firearm'},...FIREARMS,marker:{name:'Paintball marker · blue',mass:1.05,reach:.42,kind:'paint',color:0x2aa0e8,category:'tool'},marker2:{name:'Paintball marker · red',mass:1.05,reach:.42,kind:'paint',color:0xc43b3b,category:'tool'},portal:{name:'Portal gun',mass:1.35,reach:.32,kind:'portal',category:'tool'},torch:{name:'Flame torch',mass:.7,reach:.48,kind:'flame',category:'tool',fireRate:.18,energy:12},extinguisher:{name:'Fire extinguisher',mass:2.4,reach:.32,kind:'foam',category:'tool',fireRate:.12,energy:0}};
 export {GUNS,MELEE};
 export class Props {
@@ -124,7 +124,7 @@ export class Props {
   return true;
  }
  nearestFurniture(pos,r=.2){let best=null,bd=r;for(const group of this.world.movables||[]){if(!group.parent)continue;const box=new T.Box3().setFromObject(group),closest=box.clampPoint(pos,V()),d=closest.distanceTo(pos);if(d<bd){bd=d;best={group,point:closest,distance:d};}}return best;}
- holdFurniture(group,key,point,ctrl=null){const furn=group.userData.furniture;if(!furn)return false;furn.holds??=new Set();if(group.userData.bedFrame){const frame=group.userData.bedFrame;if(frame.userData.furniture?.mattress===group)frame.userData.furniture.mattress=null;group.userData.bedFrame=null;}
+ holdFurniture(group,key,point,ctrl=null){const furn=group.userData.furniture;if(!furn)return false;furn.holds??=new Set();group.updateWorldMatrix(true,true);if(group.parent!==this.world.root)this.world.root.attach(group);group.visible=true;furn.sleeping=false;if(group.userData.bedFrame){const frame=group.userData.bedFrame;if(frame.userData.furniture?.mattress===group)frame.userData.furniture.mattress=null;group.userData.bedFrame=null;}
   if(furn.held!=null&&furn.held!==key){const prev=this.furnHolds.get(furn.held);if(prev&&prev.group!==group)this.releaseFurniture(furn.held);}
   if(ctrl?.position)ctrl.position.copy(point);this.furnHolds.set(key,{group,local:group.worldToLocal(point.clone()),ctrl,last:point.clone()});furn.holds.add(key);furn.held=key;furn.racked=false;furn.velocity.set(0,0,0);furn.spin=0;furn.omega=furn.omega||new T.Vector3();this.status='Holding '+furn.id+' · '+Math.round(furn.mass)+' kg';if(typeof key==='number')this.system.hands.haptics?.contact(key,'prop',1,.01);return true;}
  holdFurnitureAt(i){const palm=this.system.hands.palmPos(i);
@@ -210,6 +210,16 @@ export class Props {
    if(maxPen>0)group.position.y+=Math.min(.08,maxPen);
   }
  }
+ projectFurniture(group,furn,dt){
+  // Furniture is an oriented box, not a standing-player capsule. Start at its
+  // actual underside, and limit a contact correction instead of teleporting it.
+  group.updateWorldMatrix(true,false);
+  const box=furn.localBox?.clone().applyMatrix4(group.matrixWorld)||new T.Box3().setFromObject(group),size=box.getSize(V()),p=box.getCenter(V()),before=p.clone();
+  p.y=box.min.y;const start=p.clone(),radius=Math.max(.10,Math.min(size.x,size.z)*.45);
+  this.world.project(p,radius,.02,Math.max(.04,size.y-.04),furn.obstacle);
+  const delta=p.sub(start).setY(0);if(!Number.isFinite(delta.lengthSq()))return;
+  delta.clampLength(0,Math.max(.015,dt*.6));group.position.add(delta);
+ }
  tickFurniture(dt){
   const byGroup=new Map();
   for(const [key,hold] of [...this.furnHolds]){
@@ -238,7 +248,7 @@ export class Props {
    this.applyFurnitureGravity(group,furn,dt,list);
    // The compliant grip above owns translation. A final exact snap would erase mass and lag.
    this.restraints?.constrainObject(group);
-   const p=group.position.clone(),rad=Math.max(.2,Math.hypot(furn.obstacle?.w||.4,furn.obstacle?.d||.4)/2);this.world.project(p,rad,.02,Math.max(.4,furn.obstacle?.h||1.2),furn.obstacle);group.position.x=p.x;group.position.z=p.z;syncFurniture(this.world,group);
+   this.projectFurniture(group,furn,dt);syncFurniture(this.world,group);
   }
   for(const group of this.world.movables||[]){
    const furn=group.userData.furniture;if(!furn||furn.holds?.size||!group.parent)continue;
@@ -263,7 +273,7 @@ export class Props {
    this.restraints?.constrainObject(group);
    const air=furn.throwable&&(furn.velocity?.length?.()||0)>1.4?0.28:1.2+furn.mass*.02;
    furn.velocity.x*=Math.exp(-dt*air);furn.velocity.z*=Math.exp(-dt*air);
-   const p=group.position.clone(),rad=Math.max(.2,Math.hypot(furn.obstacle?.w||.4,furn.obstacle?.d||.4)/2);this.world.project(p,rad,.02,Math.max(.4,furn.obstacle?.h||1.2),furn.obstacle);group.position.x=p.x;group.position.z=p.z;syncFurniture(this.world,group);
+   this.projectFurniture(group,furn,dt);syncFurniture(this.world,group);
   }
   if(this.world.movables)this.world.movables=this.world.movables.filter(g=>g.parent);
   this.restraints?.solve?.(dt);
@@ -287,7 +297,7 @@ export class Props {
   const clothes=(opts.actors===false?[]:this.wardrobe?.clothes||[]).filter(c=>(c.actor!==opts.ignoreActor||!opts.ignoreActor)&&(opts.unbudgeted||!c.actor||!c.skinLOD?.active||rayMayHitActor(this,c.actor,ray,max))).map(c=>c.skinLOD?.active?c.skinLOD.mesh:c.mesh).filter(m=>m&&visible(m));
   const clothHit=clothes.length?this.rc.intersectObjects(clothes,false).find(h=>visible(h.object)):null;
   const meshes=[];
-  if(opts.world!==false){meshes.push(...this.world.pickables);for(const c of this.cars())meshes.push(...(c.pickables||[]));for(const p of this.world.fractures?.parts||[])if(p.frame&&p.mesh&&!p.broken)p.mesh.traverse(m=>{if(m.isMesh&&m.visible)meshes.push(m);});}
+  if(opts.world!==false){meshes.push(...this.world.pickables);for(const c of this.cars()){const size=c.vehicleSpec;const radius=Math.hypot(size?.length||5,size?.width||2,size?.height||2)*.6,center=c.group.getWorldPosition(V()).add(new T.Vector3(0,(size?.height||1.6)*.5,0)),sphere=new T.Sphere(center,radius);if(ray.origin.distanceTo(center)<=radius||ray.intersectsSphere(sphere))meshes.push(...(c.pickables||[]));}for(const p of this.world.fractures?.parts||[])if(p.frame&&p.mesh&&!p.broken)p.mesh.traverse(m=>{if(m.isMesh&&m.visible)meshes.push(m);});}
   for(const a of opts.actors===false?[]:this.system.actors){if(a===opts.ignoreActor||!opts.unbudgeted&&!rayMayHitActor(this,a,ray,max))continue;a.root.traverse(m=>{if(m.isSkinnedMesh&&/^body/.test(m.name)||m.isMesh&&m.userData.h5Armor&&m.visible)meshes.push(m);});}
   for(const d of opts.actors===false?[]:this.dogs?.list?.()||[])if(opts.unbudgeted||rayMayHitActor(this,d,ray,max))d.root.traverse(m=>{if(m.isSkinnedMesh&&m.visible)meshes.push(m);});
   const hits=meshes.length?this.rc.intersectObjects([...new Set(meshes)],false):[];
@@ -378,6 +388,7 @@ export class Props {
   const n=dir.clone();n.y*=.18;if(n.lengthSq()<1e-8)n.set(0,0,1);n.normalize();
   const push=weaponId==='sniper'?1.05:weaponId==='shotgun'?.28:weaponId==='rifle'?.05:.08;
   const root=target.group||target.root;if(!root)return;
+  if(target.dead&&target.h5Ragdoll){target.h5Ragdoll.impulse(n.clone().multiplyScalar(push*3));return;}
   root.position.addScaledVector(n,push);
   this.world.project?.(root.position,target.version==='dog'?.3:.34,.06,1.7);
   if(weaponId==='sniper'){

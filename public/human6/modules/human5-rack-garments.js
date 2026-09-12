@@ -1,6 +1,6 @@
 import * as T from 'three';
 import {mergeVertices} from 'three/addons/utils/BufferGeometryUtils.js';
-import {fabricMaterial} from '../mira-v2-garment-patterns.js?v=19.1.0';
+import {fabricMaterial} from '../mira-v2-garment-patterns.js?v=19.3.0';
 const V=(x,y)=>new T.Vector2(x,y);
 function flatPanel(out,outline){
  const points=outline.map(p=>V(...p)),tri=T.ShapeUtils.triangulateShape(points,[]),pos=[],uv=[],indices=[];

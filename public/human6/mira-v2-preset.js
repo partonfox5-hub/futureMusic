@@ -1,5 +1,5 @@
-import {GARMENTS} from './mira-v2-garments.js?v=19.1.0';
-import {draft,saveDraft} from './mira-v2-catalog.js?v=19.1.0';
+import {GARMENTS} from './mira-v2-garments.js?v=19.3.0';
+import {draft,saveDraft} from './mira-v2-catalog.js?v=19.3.0';
 import * as THREE from 'three';
 const STORE='mira.human2.presets.v1';
 const LAST=STORE+'.last';

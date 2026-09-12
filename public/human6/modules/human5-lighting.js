@@ -1,6 +1,6 @@
 import * as T from 'three';
 import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
-import {V,clamp,finiteDt,disposeTree} from './human5-common.js?v=19.1.0';
+import {V,clamp,finiteDt,disposeTree} from './human5-common.js?v=19.3.0';
 
 export const LIGHT_BUDGETS=Object.freeze({quest:{point:2,spot:1,shadowSize:1024},desktop:{point:4,spot:2,shadowSize:2048}});
 export const FIXTURES=['Torch','Standing lamp','Table lamp','Chandelier','Hanging shaded lamp'];
@@ -76,9 +76,9 @@ export class FixtureLights {
     for(const slot of this.slots){
       let best=null,score=0;
       for(const s of sources){
-        if(s.kind!==slot.kind||used.has(s.identity))continue;
+        if(s.kind!==slot.kind||used.has(s.identity)||s.identity.enabled===false||!s.root?.parent)continue;
         let visibility=this.visibility.get(s.identity);if(!visibility||this.time-visibility.time>.10||visibility.a.distanceToSquared(s.position)>.04||visibility.b.distanceToSquared(viewer)>.09){visibility={time:this.time,a:s.position.clone(),b:viewer.clone(),blocked:!!(this.stats.occlusionQueries++,this.occluded?.(s.position,viewer,s.root,null))};this.visibility.set(s.identity,visibility);}if(visibility.blocked)continue;
-        const value=s.intensity/(.4+s.position.distanceToSquared(viewer))*(slot.source===s.identity?1.25:1);
+        const value=(s.intensity*(s.identity.priority||1))/(.4+s.position.distanceToSquared(viewer))*(slot.source===s.identity?1.25:1);
         if(value>score){best=s;score=value;}
       }
       const L=slot.light;
@@ -86,7 +86,7 @@ export class FixtureLights {
       used.add(best.identity);
       // When ownership changes, darken before relocation; no light drifting through walls.
       if(slot.source!==best.identity){L.intensity=0;slot.source=best.identity;}
-      if(best.center&&best.root?.parent)best.position.copy(best.root.localToWorld(best.center.clone()));
+      if(best.center&&best.root?.parent){best.position.copy(best.root.localToWorld(best.center.clone()));best.direction.copy(best.identity.direction).transformDirection(best.root.matrixWorld);}
       L.position.copy(best.position);L.color.setHex(best.color);L.distance=best.distance;
       L.intensity=T.MathUtils.damp(L.intensity,best.intensity,14,dt);
       if(L.target){L.angle=best.angle??.95;L.penumbra=best.penumbra??.65;L.target.position.copy(best.position).add(best.direction);L.target.updateMatrixWorld();}

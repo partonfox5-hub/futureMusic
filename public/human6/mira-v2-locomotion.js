@@ -1,4 +1,5 @@
 import * as T from 'three';
+import {SprintBurst,PLAYER_SPEED_GAIN} from './modules/human5-sprint.js?v=19.3.0';
 // xr-standard reserves 0/1 for the touchpad, even when no touchpad exists.
 export function stickAxes(gamepad){
  const a=gamepad?.axes;if(!a)return {x:0,y:0};
@@ -11,25 +12,28 @@ export function deadzone(x,y,threshold=.14){
  return {x:x*gain,y:y*gain};
 }
 export class SmoothLocomotion {
- constructor(rig,camera,world){Object.assign(this,{rig,camera,world});this.forward=new T.Vector3(0,0,-1);this.floorY=0;this.jumpVel=0;this.jumping=false;this.pace=0;}
+ constructor(rig,camera,world){Object.assign(this,{rig,camera,world});this.forward=new T.Vector3(0,0,-1);this.floorY=0;this.jumpVel=0;this.jumping=false;this.pace=0;this.sprint=new SprintBurst();this.jumpDown=false;world.h5Locomotion=this;}
  jump(){
   if(this.jumping||this.world.waterSystem?.playerSubmerged?.(this.camera))return false;
   this.jumpVel=4.5;this.jumping=true;return true;
  }
  tick(dt,sources,blocked=false){
+  const raw=[...sources],leftInput=raw.find(s=>s.handedness==='left'&&!s.hand),rightInput=raw.find(s=>s.handedness==='right'&&!s.hand);
+  const occupied=this.world.h5Home?.consumesStick('left')||this.world.builder?.active;
+  const sprint=this.sprint.tick(dt,!!leftInput?.gamepad?.buttons?.[3]?.pressed,blocked||occupied);
+  const jumpDown=!!rightInput?.gamepad?.buttons?.[4]?.pressed,jumpEdge=jumpDown&&!this.jumpDown;this.jumpDown=jumpDown;
   if(blocked||!(dt>0)){this.pace=0;return;}dt=Math.min(dt,.05);
   sources=[...sources].map(s=>{if(!s.gamepad)return s;const home=this.world.h5Home?.consumesStick(s.handedness),equipment=this.world.h5Equipment?.consumesStick(s.handedness);if(!home&&!equipment)return s;const axes=Array.from(s.gamepad.axes);axes[axes.length>=4?3:1]=0;if(home)axes[axes.length>=4?2:0]=0;return {...s,gamepad:{axes,buttons:s.gamepad.buttons},hand:s.hand,handedness:s.handedness};});
   const water=this.world.waterSystem,camera=this.camera;
   if(water?.playerSwimIntent({rig:this.rig,camera,dt,sources,blocked}).active){this.jumping=false;this.jumpVel=0;return;}
   const left=[...sources].find(s=>s.handedness==='left'&&!s.hand),right=[...sources].find(s=>s.handedness==='right'&&!s.hand);
   const l=stickAxes(left?.gamepad),r=stickAxes(right?.gamepad),move=deadzone(l.x,l.y),turn=deadzone(r.x,0,.16).x;
-  const trigger=left?.gamepad?.buttons?.[0],sprint=(trigger?.pressed||(trigger?.value||0)>.42)?2:1;
-  if(right?.gamepad?.buttons?.[4]?.pressed&&!this.jumping&&!this.world.h5Home?.consumesStick('right'))this.jump();
+  if(jumpEdge&&!this.jumping&&!this.world.h5Home?.consumesStick('right'))this.jump();
   const eye=this.camera.getWorldPosition(new T.Vector3());
   const forward=new T.Vector3(0,0,-1).applyQuaternion(this.camera.getWorldQuaternion(new T.Quaternion())).setY(0);
   if(forward.lengthSq()>.01)this.forward.copy(forward).normalize();
   const strafe=new T.Vector3(-this.forward.z,0,this.forward.x);
-  const input=Math.hypot(move.x,move.y),max=1.45*1.25*1.15*1.30*sprint*(this.world.h5Combat?.speedScale()||1);
+  const input=Math.hypot(move.x,move.y),max=1.45*1.25*1.15*1.30*PLAYER_SPEED_GAIN*sprint*(this.world.h5Combat?.speedScale()||1);
   // Releasing the stick stops translation. Never invent a forward direction.
   if(input>.02)this.pace+=(max*input-this.pace)*(1-Math.exp(-dt/ .12));
   else this.pace=0;

@@ -1,8 +1,8 @@
 import * as T from 'three';
-import {GARMENTS} from '../mira-v2-wardrobe.js?v=19.1.0';
-import {WEAPONS} from '../mira-v2-props.js?v=19.1.0';
-import {CITY_BLOCKS,ROUTES} from './human5-worldfield.js?v=19.1.0';
-import {V,rng,wrapMethod,clamp} from './human5-common.js?v=19.1.0';
+import {GARMENTS} from '../mira-v2-wardrobe.js?v=19.3.0';
+import {WEAPONS} from '../mira-v2-props.js?v=19.3.0';
+import {CITY_BLOCKS,ROUTES} from './human5-worldfield.js?v=19.3.0';
+import {V,rng,wrapMethod,clamp} from './human5-common.js?v=19.3.0';
 
 export const NPC_ROLES={
  bandit:{name:'Bandit',weapon:'sword',armor:'leather',top:'fieldShirt',bottom:'workPants',color:0x594934,range:1.8,damage:9,cooldown:1.4},
@@ -28,7 +28,7 @@ export function installNPCBehavior({mira,props,world,wardrobe,camera,combat,ques
   attach(a,{role,mode,hostile});a.baseY=0;combat.equip(a,spec.armor);
   for(const id of [spec.top,spec.bottom]){const style=GARMENTS.find(g=>g.id===id);if(style){const c=wardrobe.equip(a,style);if(c)c.h5Budget=true;}}
   const id=WEAPONS[spec.weapon]?spec.weapon:spec.weapon==='musket'?'rifle':spec.weapon;if(id){const item=props.make(id);item.h5NPCOwner=a;props.items.push(item);props.hold(item,a);}
-  stop(a);if(!select&&old)mira.select(old);props.status=`${spec.name} spawned · ${mode}`;return a;
+  stop(a);if(!hostile&&role==='pedestrian'&&mode!=='still')a.setMode('auto');if(!select&&old)mira.select(old);props.status=`${spec.name} spawned · ${mode}`;return a;
  }
  function command(a,order){if(!a||!FOLLOWER_ORDERS.includes(order))return false;const b=attach(a);if(order==='dismiss'){b.follower=false;b.hostile=false;b.mode='passive';stop(a);return true;}b.follower=true;b.hostile=false;b.order=order;b.home.copy(a.group.position);b.target=null;b.lastGoal=null;stop(a);if(['go here','fetch','attack target'].includes(order))pendingPoint={actor:a,order};props.status=order==='go here'?'Point at a destination and press trigger':'Order: '+order;return true;}
  function visible(a,target){const eye=a.bones.Head?.getWorldPosition(V())||a.group.position.clone().add(new T.Vector3(0,1.45,0));const d=target.clone().sub(eye),len=d.length();if(len<.03)return true;const ray=new T.Ray(eye,d.normalize()),hit=props.hit(ray,len,false,{world:true,ignoreActor:a});return !hit||hit.distance>len-.3;}
@@ -48,11 +48,11 @@ export function installNPCBehavior({mira,props,world,wardrobe,camera,combat,ques
  const undoPose=wrapMethod(props,'applyHoldPose',old=>function(item){const r=old.call(this,item),b=brains.get(item.holder);if(b?.lookPoint&&item.group.parent){const q=new T.Matrix4().lookAt(item.group.getWorldPosition(V()),b.lookPoint,new T.Vector3(0,1,0));item.group.quaternion.setFromRotationMatrix(q).premultiply(item.group.parent.getWorldQuaternion(new T.Quaternion()).invert());item.group.updateMatrixWorld(true);}return r;});
  const api={brains,spawn,attach,command,consumePoint,pointFor,maxActive,NPC_ROLES,NPC_MODES,FOLLOWER_ORDERS,
   get role(){return selectedRole;},set role(v){if(NPC_ROLES[v])selectedRole=v;},get mode(){return selectedMode;},set mode(v){if(NPC_MODES.includes(v))selectedMode=v;},get location(){return location;},set location(v){if(['here','house','woods','city'].includes(v))location=v;},
-  tick(dt){time+=dt;const player=camera.getWorldPosition(V());for(const [a,b]of brains){if(!mira.actors.includes(a)){props.drop(a);b.restore?.();brains.delete(a);continue;}b.attack-=dt;b.frozen=Math.max(0,b.frozen-dt);if(a.dead){props.drop(a);continue;}if(a.held||b.frozen>0||a.h5Frozen){stop(a);continue;}b.plan-=dt;if(b.plan>0)continue;b.plan=.20;if(a.group.position.distanceToSquared(player)>180*180){stop(a);continue;}
+  tick(dt){time+=dt;const player=camera.getWorldPosition(V());for(const [a,b]of brains){if(!mira.actors.includes(a)){props.drop(a);b.restore?.();brains.delete(a);continue;}b.attack-=dt;b.frozen=Math.max(0,b.frozen-dt);if(a.dead){props.drop(a);continue;}if(a.held||b.frozen>0||a.h5Frozen){stop(a);continue;}b.plan-=dt;if(b.plan>0)continue;b.plan=.20;if(!b.hostile&&!b.follower&&b.role==='pedestrian'&&!a.h5Ambient&&b.mode!=='still'){continue;}if(a.group.position.distanceToSquared(player)>180*180){stop(a);continue;}
     if(b.fetch){const item=b.fetch;if(item.holder!==null){b.fetch=null;continue;}if(item.group.getWorldPosition(V()).distanceTo(a.group.position)<1.3){props.drop(a);props.hold(item,a);b.fetch=null;b.order='follow';}else setGoal(a,item.group.getWorldPosition(V()));continue;}
     if(b.target?.dead||b.target?.h5Brain?.follower)b.target=null;if(b.follower&&['guard','follow'].includes(b.order)&&!b.target){const enemy=[...brains.values()].find(e=>e.hostile&&!e.actor.dead&&e.actor.group.position.distanceTo(a.group.position)<14);if(enemy)b.target=enemy.actor;}
     const target=b.target?.group.position.clone().add(new T.Vector3(0,1.05,0))||player,distance=a.group.position.distanceTo(target),aggressive=b.target||b.hostile&&b.mode!=='passive';
-    if(aggressive&&(distance<34&&visible(a,target)||b.mode==='hunt player')){b.lastSeen=target.clone();b.lookPoint=target.clone();b.lost=3;const spec=NPC_ROLES[b.role];if(distance<=spec.range&&visible(a,target)){if(b.attack<=0)attack(b,target,!b.target);else stop(a);}else setGoal(a,target);continue;}
+    a.h5Urgent=!!aggressive;if(aggressive&&(distance<34&&visible(a,target)||b.mode==='hunt player')){b.lastSeen=target.clone();b.lookPoint=target.clone();b.lost=3;const spec=NPC_ROLES[b.role];if(distance<=spec.range&&visible(a,target)){if(b.attack<=0)attack(b,target,!b.target);else stop(a);}else setGoal(a,target);continue;}
     b.lookPoint=null;if(b.follower&&b.order==='follow'){const desired=player.clone().add(new T.Vector3(Math.sin(b.id*2.4)*1.5,-1.55,Math.cos(b.id*2.4)*1.5));if(a.group.position.distanceTo(desired)>2)setGoal(a,desired);else stop(a);}
     else if(b.follower&&['stay','guard'].includes(b.order)){if(a.group.position.distanceTo(b.home)>1.5)setGoal(a,b.home);}
     else if(!a.navigation&&(!b.follower||b.order==='patrol')&&random()<.16)patrol(b);

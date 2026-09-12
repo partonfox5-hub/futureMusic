@@ -1,7 +1,7 @@
-import {speakNeural} from './mira-neural-voice.js?v=19.1.0';
-import {speakBasic} from './mira-basic-voice.js?v=19.1.0';
-import {localTranscribe,warmLocalSpeech,stopLocalSpeech} from './mira-local-speech.js?v=19.1.0';
-import {EMOTION_NAMES} from './mira-v2-features.js?v=19.1.0';
+import {speakNeural} from './mira-neural-voice.js?v=19.3.0';
+import {speakBasic} from './mira-basic-voice.js?v=19.3.0';
+import {localTranscribe,warmLocalSpeech,stopLocalSpeech} from './mira-local-speech.js?v=19.3.0';
+import {EMOTION_NAMES} from './mira-v2-features.js?v=19.3.0';
 export const DEFAULT_PERSONA='You are Mira, a friendly adult woman in an XR room. Reply in 1–2 short spoken sentences. Keep a consistent emotional state based on the conversation. End with [[EMOTION:neutral|happy|content|curious|listening|thoughtful|concerned|sad|surprise|afraid|angry|disgust|tease|flirty|laugh|tired]] choosing exactly one label. Respond warmly when appropriate; let emotion match the conversation. Only when requested, add [[ACTION:idle|wander|airSquats|stretch|jumpingJacks|march|sideSteps|dance|reach|heelRaises]]. Do not read tags aloud.';
 const ACTIONS=['idle','wander','airSquats','stretch','jumpingJacks','march','sideSteps','dance','reach','heelRaises'];
 const history=new Map();let voiceAudio=null;let serverAvailable=null;

@@ -1,5 +1,5 @@
 import * as T from 'three';
-import {V,clamp,finiteDt,gravityOf,wrapMethod,rng} from './human5-common.js?v=19.1.0';
+import {V,clamp,finiteDt,gravityOf,wrapMethod,rng} from './human5-common.js?v=19.3.0';
 
 export const DYNAMICS_CONTROLS=Object.freeze([
   {key:'tissueDensity',label:'Tissue density',min:900,max:1100,step:5,value:980},
@@ -54,7 +54,7 @@ class EnvironmentalTissue {
         // Softer fascia permits gravity equilibrium; muscular glute support stays
         // firmer. Near-incompressible volume remains an independent constraint.
         const bias=1+self.options.fluidBias;
-        const attachmentCompliance=breast?(.000015+soft*soft*.00055)*bias:(.000008+soft*soft*.00016)/(1+self.options.muscleTone*1.5);
+        const attachmentCompliance=breast?(.000015+soft*soft*.00058)*bias:(.000008+soft*soft*.00016)/(1+self.options.muscleTone*1.5);
         const shearCompliance=(.000001+soft*soft*(breast?.000055:.000035))*bias;
         self.stats.submerged=sum;return old.call(this,h,{...params,gravity:0,attachmentCompliance,shearCompliance});
       }));

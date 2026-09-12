@@ -15,24 +15,24 @@ import * as THREE from 'three';
 import {
   createMiraSystem, MiraActor, MiraActorV2,
   ASSET, TEXROOT, TEXVER, FACE_TYPES, HAIR_COLORS, SLIDERS
-} from './mira-v2.js?v=19.1.0';
-import {EMOTION_NAMES, IDLE_NAMES, WALK_NAMES, ATTENTION_MODES} from './mira-v2-features.js?v=19.1.0';
+} from './mira-v2.js?v=19.3.0';
+import {EMOTION_NAMES, IDLE_NAMES, WALK_NAMES, ATTENTION_MODES} from './mira-v2-features.js?v=19.3.0';
 import {
   V2_EXTRA_SLIDERS, FACE_PRESETS, HAIR_STYLES, ACTIVITY_MODES, shapeSliders
-} from './mira-v2-controls.js?v=19.1.0';
+} from './mira-v2-controls.js?v=19.3.0';
 import {
   FaceDrive, TissueRig, SkinCrease, ContactMotion, XPBDCluster, signedVolume
-} from './mira-v2-realism.js?v=19.1.0';
+} from './mira-v2-realism.js?v=19.3.0';
 import {installSurfaceDamping} from './src/body/TissueRig.js';
 import {blinkEnvelope} from './src/body/FaceDrive.js';
 import {BOX_FACES, BOX_CORNERS, dampingRate} from './src/body/XPBDCluster.js';
-import {SurfaceFlesh} from './mira-v2-tissue.js?v=19.1.0';
-import {LivingEyes} from './mira-v2-eyes.js?v=19.1.0';
-import {EnhanceEyes} from './mira-v2-tearline.js?v=19.1.0';
-import {HairGuides, projectHairPoint} from './mira-v2-hair.js?v=19.1.0';
-import {BodyContacts, BodySurface, bodyVolumes, projectVolume} from './mira-v2-contact.js?v=19.1.0';
-import {ContactHaptics} from './mira-v2-haptics.js?v=19.1.0';
-import {RoomLight} from './mira-v2-light.js?v=19.1.0';
+import {SurfaceFlesh} from './mira-v2-tissue.js?v=19.3.0';
+import {LivingEyes} from './mira-v2-eyes.js?v=19.3.0';
+import {EnhanceEyes} from './mira-v2-tearline.js?v=19.3.0';
+import {HairGuides, projectHairPoint} from './mira-v2-hair.js?v=19.3.0';
+import {BodyContacts, BodySurface, bodyVolumes, projectVolume} from './mira-v2-contact.js?v=19.3.0';
+import {ContactHaptics} from './mira-v2-haptics.js?v=19.3.0';
+import {RoomLight} from './mira-v2-light.js?v=19.3.0';
 
 export const MIRA_BODY = {
   glb: ASSET,

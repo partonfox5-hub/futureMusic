@@ -13,12 +13,12 @@ export {
   createHouseKit, createHouseWorld, clearHouse,
   realizeFloorplan, addRoomLabels, addCellGrid,
   AS_BUILT_PLAN, PRECISE_PLAN, PLANS
-} from './mira-v2-floorplan.js?v=19.1.0';
-export {HouseDoors} from './mira-v2-doors.js?v=19.1.0';
-export {Builder, layout, SURFACES} from './mira-v2-builder.js?v=19.1.0';
-export {makeSurfaceMap, wallMaterial} from './mira-v2-walls.js?v=19.1.0';
-export {placeStairs} from './mira-v2-furniture.js?v=19.1.0';
-export {Destruction} from './mira-v2-destruction.js?v=19.1.0';
+} from './mira-v2-floorplan.js?v=19.3.0';
+export {HouseDoors} from './mira-v2-doors.js?v=19.3.0';
+export {Builder, layout, SURFACES} from './mira-v2-builder.js?v=19.3.0';
+export {makeSurfaceMap, wallMaterial} from './mira-v2-walls.js?v=19.3.0';
+export {placeStairs} from './mira-v2-furniture.js?v=19.3.0';
+export {Destruction} from './mira-v2-destruction.js?v=19.3.0';
 export {HUMAN5, ASTRA_RULES, briefFor, sessionPrompt} from './mira-context.js';
 
 export const HOUSE = {

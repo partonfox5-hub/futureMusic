@@ -1,14 +1,15 @@
-import {anatomicalRelief} from './modules/human5-anatomy-anchor.js?v=19.1.0';
-import {refineAnatomyDetail} from './modules/human5-anatomy-detail.js?v=19.1.0';
-import {LivingEyes} from './mira-v2-eyes.js?v=19.1.0';
-import {EnhanceEyes} from './mira-v2-tearline.js?v=19.1.0';
-import {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES,V2_EXTRA_SLIDERS,FACE_PRESETS,EXERCISE_MODES,ATTENTION_MODES} from './mira-v2-controls.js?v=19.1.0';
-export {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES,ATTENTION_MODES} from './mira-v2-controls.js?v=19.1.0';
+import {LimpBody} from './modules/human5-ragdoll.js?v=19.3.0';
+import {anatomicalRelief} from './modules/human5-anatomy-anchor.js?v=19.3.0';
+import {refineAnatomyDetail} from './modules/human5-anatomy-detail.js?v=19.3.0';
+import {LivingEyes} from './mira-v2-eyes.js?v=19.3.0';
+import {EnhanceEyes} from './mira-v2-tearline.js?v=19.3.0';
+import {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES,V2_EXTRA_SLIDERS,FACE_PRESETS,EXERCISE_MODES,ATTENTION_MODES} from './mira-v2-controls.js?v=19.3.0';
+export {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES,ATTENTION_MODES} from './mira-v2-controls.js?v=19.3.0';
 import * as THREE from 'three';
-import {restoreSurfaceUV} from './mira-v2-uv.js?v=19.1.0';
-import {HairGuides} from './mira-v2-hair.js?v=19.1.0';
-import {SurfaceFlesh} from './mira-v2-tissue.js?v=19.1.0';
-import {installV2Realism} from './mira-v2-realism.js?v=19.1.0';
+import {restoreSurfaceUV} from './mira-v2-uv.js?v=19.3.0';
+import {HairGuides} from './mira-v2-hair.js?v=19.3.0';
+import {SurfaceFlesh} from './mira-v2-tissue.js?v=19.3.0';
+import {installV2Realism} from './mira-v2-realism.js?v=19.3.0';
 
 // Mira v2: a bounded real-time approximation for this CC3 rig, Three r170.
 const clamp = THREE.MathUtils.clamp, damp = THREE.MathUtils.damp;
@@ -187,7 +188,7 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
  return class MiraV2 extends Base {
   constructor(root,scale,opts={}){
    super(restoreSurfaceUV(root),scale,opts);
-   this.version='v2';this.autonomy=true;this.lifeT=8+Math.random()*5;this.greetingT=1;this.autoWander=false;this.mode='idle';this.shape.jiggle=opts.shape?.jiggle??2.8;
+   this.version='v2';this.autonomy=true;this.lifeT=8+Math.random()*5;this.greetingT=1;this.autoWander=true;this.mode='wander';this.shape.jiggle=opts.shape?.jiggle??2.8;
    for(const slider of V2_EXTRA_SLIDERS)this.shape[slider.key]=opts.shape?.[slider.key]??slider.value;
    this.hairStyle=clamp(opts.hairStyle||0,0,10);this.bodyType=opts.bodyType==='male'?'male':'female';this.displayName=opts.name||(this.bodyType==='male'?'Alex':'Mira');this.personality=opts.personality||this.personality;
    this.spineTouch=V();this.spineGoal=V();this.armSwing={};
@@ -378,8 +379,8 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
   endSpeech(){super.endSpeech();if(this.mode==='talk')super.setMode('idle');this.lifeT=7;}
   setMode(mode){
    if(this.dead){this.mode='idle';this.autoWander=false;this.autonomy=false;return;}
-   this.socialPair?.cancel();this.directedWalk=null;if(this.navigation?.seat)this.navigation.seat.occupant=null;this.navigation=null;if(this.seat){this.seat.occupant=null;this.group.position.y=this.baseY||0;}this.seat=null;
-   if(mode==='auto'){this.autonomy=true;this.lifeT=6;this.autoWander=false;this.dest=null;super.setMode('idle');return;}
+   this.h5Ragdoll?.reset();this.socialPair?.cancel();this.directedWalk=null;if(this.navigation?.seat)this.navigation.seat.occupant=null;this.navigation=null;if(this.seat){this.seat.occupant=null;this.group.position.y=this.baseY||0;}this.seat=null;
+   if(mode==='auto'){this.autonomy=true;this.lifeT=5;this.autoWander=true;this.dest=null;super.setMode('wander');return;}
    if(mode!=='talk')this.autonomy=false;
    this.autoWander=mode==='wander';if(!this.autoWander)this.dest=null;
    super.setMode(mode);
@@ -522,13 +523,13 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    super.tickWalk(moving);
    this.group.position.y-=.022*this.shape.height*clamp((this.speed-.5)/.18,0,1);
    const s=clamp(this.speed/.6,0,1),p=this.walkT;
-   this.addE('Spine02',this.gait===3?.035*s:0,-Math.sin(p)*.025*s,0);
+   this.addE('Spine02',(this.h5RunBlend||0)*.11+(this.gait===3?.035*s:0),-Math.sin(p)*(.025+.04*(this.h5RunBlend||0))*s,0);
    this.addE('L_Clavicle',.016*Math.sin(p)*s,0,0);this.addE('R_Clavicle',-.016*Math.sin(p)*s,0,0);
   }
   die(){
    if(this.dead)return;
    this.dead=true;this.autonomy=false;this.autoWander=false;this.dest=null;this.navigation=null;this.speed=0;this.pathSpeed=0;this.mode='idle';this.modeT=0;
-   this.socialPair?.cancel();this.endSpeech?.();this.directedWalk=null;
+   this.socialPair?.cancel();this.endSpeech?.();this.directedWalk=null;this.h5Ragdoll=new LimpBody(this);
    if(this.seat){this.seat.occupant=null;this.seat=null;}
    if(this.balance.state==='standing')this.knockDown(new THREE.Vector3(0,0,-1));
    else{this.balance.state='loose';this.balance.time=0;}
@@ -547,8 +548,11 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    const before=this.group.position.clone();const moving=super.wander(dt);
    if(this.directedWalk&&!this.dest&&!this.navigation){this.directedWalk=null;this.autoWander=false;this.mode='idle';this.modeT=0;this.speed=0;this.pathSpeed=0;}
    const moodSpeed=['sad','tired'].includes(this.emotion.name)?.8:1;
-   const factor=([1,1.12,.84,1.25,.68,.92][this.gait]||1)*moodSpeed*((this.directedWalk||this.navigation)?1.45:1);
-   this.group.position.sub(before).multiplyScalar(factor).add(before);this.pathSpeed=this.speed;this.speed*=factor;
+   const distance=this.dest?this.dest.clone().sub(this.group.position).setY(0).length():0;
+   const catchUp=this.h5Brain?.follower&&this.h5Brain.order==='follow'&&distance>4||this.attentionMode==='hyperattentive'&&distance>4;
+   this.h5RunBlend=damp(this.h5RunBlend||0,(this.h5Urgent||catchUp)&&distance>1.2?1:0,6,dt);
+   const factor=([1,1.12,.84,1.08,.68,.92][this.gait]||1)*moodSpeed*(2.05+2.5*this.h5RunBlend)*(this.waterSpeedScale??1);
+   this.group.position.sub(before).multiplyScalar(factor).add(before);this.pathSpeed=this.speed;this.speed*=factor;this.moveVel?.multiplyScalar(factor);
    return moving;
   }
   solveChain(side,kind,target,pole){
@@ -572,6 +576,7 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
     const hand=this.bones[side+'_Hand'];if(!hand)continue;
     const dst=this.restArm(side,step);
     this.group.worldToLocal(dst);dst.divideScalar(h);
+    if(this.h5RunBlend>.05){const ph=this.h5RunPhase||0,running=new THREE.Vector3(sign*.20,1.10+.10*Math.sin(ph+(side==='L'?Math.PI:0)),.13+.22*Math.sin(ph+(side==='L'?Math.PI:0)));dst.lerp(running,this.h5RunBlend);}
     const gesture=dst.clone();
     if(!step){
      if(this.idleKind==='handsTogether')gesture.set(sign*.046,1.02,.19);
@@ -662,7 +667,7 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    if(this.dead){this.autonomy=false;this.autoWander=false;this.dest=null;return;}
    this.tickAttention(dt,cam);
    this.greetingT-=dt;this.lifeT-=dt;
-   if(this.seat){this.sitHold=(this.sitHold||0)+dt;if(this.seat.piano)this.world.piano?.keepPlaying?.(this);const limit=this.seat.sitDuration||(7+Math.random()*8);if(this.sitHold>limit){this.world.piano?.stopIf?.(this);this.seat.occupant=null;this.group.position.copy(this.seat.approach);this.seat=null;this.sitHold=0;this.setMode('wander');this.lifeT=6+Math.random()*6;}return;}
+   if(this.seat){this.sitHold=(this.sitHold||0)+dt;if(this.seat.piano)this.world.piano?.keepPlaying?.(this);const limit=this.seat.sitDuration||(7+Math.random()*8);if(this.sitHold>limit){this.world.piano?.stopIf?.(this);this.seat.occupant=null;this.group.position.copy(this.seat.approach);this.seat=null;this.sitHold=0;const automatic=this.autonomy;this.setMode('wander');this.autonomy=automatic;this.lifeT=6+Math.random()*6;}return;}
    if(this.socialPair||this.directedWalk||this.navigation)return;
    if(this.balance.state!=='standing'||this.grabs.size||this.speech?.active||this.mode==='talk')return;
    if(this.autonomy&&this.greetingT<=0){
@@ -676,7 +681,7 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    const seats=this.world?.seats?.filter(s=>s&&!s.occupant&&s.approach)||[];
    if(this.mode!=='wander'&&seats.length&&Math.random()<.42&&this.world.walk){
     const seat=seats[Math.floor(Math.random()*seats.length)];
-    if(this.world.walk(this,seat.approach,seat)){this.sitHold=0;this.lifeT=14;return;}
+    if(this.world.walk(this,seat.approach,seat)){this.autonomy=true;this.sitHold=0;this.lifeT=14;return;}
    }
    if(this.mode==='wander'){
     super.setMode('idle');this.autoWander=false;this.dest=null;this.lifeT=3+Math.random()*5;
@@ -695,7 +700,7 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
     else this.lookPhase=Math.random()<.5;
     this.lookPhaseT=(this.lookPhase?3.5:5)+Math.random()*4;
    }
-   const follow=mode==='hyperattentive'||(mode==='attentive'&&this.lookPhase);
+   const follow=mode==='hyperattentive'||(mode==='attentive'&&this.lookPhase&&this.h5Brain?.follower);
    if(follow){
     const stand=1.28,away=player.clone().sub(me);if(away.lengthSq()<.0001)away.set(this.followSide,0,1);
     away.setY(0).normalize();
@@ -825,7 +830,7 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    this.lastSurfacePoint=point;this.lastHitDistance=chosen?bd:this.lastHitDistance;return chosen||best;
   }
   beginGrab(ctrl,hit,contact){
-   this.socialPair?.cancel();this.directedWalk=null;if(this.navigation?.seat)this.navigation.seat.occupant=null;this.navigation=null;if(this.seat){this.seat.occupant=null;this.group.position.y=this.baseY||0;}this.seat=null;
+   this.h5Ragdoll?.reset();this.socialPair?.cancel();this.directedWalk=null;if(this.navigation?.seat)this.navigation.seat.occupant=null;this.navigation=null;if(this.seat){this.seat.occupant=null;this.group.position.y=this.baseY||0;}this.seat=null;
    if(this.grabs.has(ctrl))return;
    const bone=this.bones[hit.name];if(!bone)return;
    const anchor=contact?.clone()||this.lastSurfacePoint?.clone()||ctrl.getWorldPosition(V());
@@ -933,7 +938,7 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    this.held=[...this.grabs.values()][0]||null;this.feet={};
   }
   knockDown(direction,velocity=V()){
-   const b=this.balance;if(this.dead&&b.state!=='standing'){b.state='loose';return;}
+   const b=this.balance;if(this.dead&&b.state!=='standing'){this.h5Ragdoll?.impulse(velocity.lengthSq()>0?velocity:direction.clone().multiplyScalar(.8));b.state='loose';return;}
    if(b.state==='standing')b.time=0;
    b.state='loose';b.dir.copy(direction).setY(0);if(b.dir.lengthSq()<.001)b.dir.set(0,0,-1);b.dir.normalize();
    b.q=b.q||new THREE.Quaternion();b.omega=b.omega||V();
@@ -941,15 +946,6 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    b.omega.addScaledVector(axis,1.6);b.velocity.copy(velocity);b.velocity.y+=.12;cap(b.velocity,.9);
    this.autoWander=false;this.dest=null;this.speed=0;
    if(!this.dead)this.setEmotion('surprise',.7,{hold:3,source:'balance'});
-  }
-  wander(dt){
-   const moving=super.wander(dt);
-   const scale=this.waterSpeedScale??1;
-   if(scale!==1&&this.moveVel){
-    this.group.position.addScaledVector(this.moveVel,dt*(scale-1));
-    this.speed*=scale;this.moveVel.multiplyScalar(scale);
-   }
-   return moving;
   }
   tickBalance(dt){
    if(this.waterSwimming){
@@ -1089,7 +1085,7 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    else if(c>.7&&!this.dead)this.setEmotion('surprise',clamp(c*.15,0,.6),{hold:2,source:'contact'});
   }
   resetPhysics(){
-   this.socialPair?.cancel();this.directedWalk=null;if(this.navigation?.seat)this.navigation.seat.occupant=null;this.navigation=null;if(this.seat){this.seat.occupant=null;this.group.position.y=this.baseY||0;}this.seat=null;
+   this.h5Ragdoll?.reset();this.socialPair?.cancel();this.directedWalk=null;if(this.navigation?.seat)this.navigation.seat.occupant=null;this.navigation=null;if(this.seat){this.seat.occupant=null;this.group.position.y=this.baseY||0;}this.seat=null;
    super.resetPhysics();this.grabs?.clear();this.handTargets={};this.armSwing={};this.spineTouch?.set(0,0,0);this.spineGoal?.set(0,0,0);this.hairPhysics?.reset();this.surfaceFlesh?.reset();
    if(this.balance){this.balance.velocity.set(0,0,0);this.balance.stress=0;}
   }
@@ -1103,7 +1099,7 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
     this.poseAlpha=1;this.restoreBind();this.applyShape();this.tickRest();this.applyExtras();
     this.group.position.y=savedY;
     this.poseSpineContact(dt);this.group.updateMatrixWorld(true);
-    this.tickBalance(dt);this.tickGrab(dt);this.group.updateMatrixWorld(true);
+    this.h5Ragdoll??=new LimpBody(this);this.h5Ragdoll.tick(dt);this.group.updateMatrixWorld(true);
     this.tickSoft(dt);if(!this.headMissing)this.poseHeadContact(dt);this.group.updateMatrixWorld(true);
     this.surfaceFlesh?.tick(dt);this.hairPhysics?.tick(dt);if(!this.headMissing)this.enhanceEyes?.tick();this.injuryDriver?.pose(this);
     if(!this.h5Skeletons){const set=new Set();this.root.traverse(o=>{if(o.isSkinnedMesh)set.add(o.skeleton);});this.h5Skeletons=[...set];}for(const skeleton of this.h5Skeletons)skeleton.update();
@@ -1123,7 +1119,17 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    if(!this.h5Skeletons){const set=new Set();this.root.traverse(o=>{if(o.isSkinnedMesh)set.add(o.skeleton);});this.h5Skeletons=[...set];}for(const skeleton of this.h5Skeletons)skeleton.update();
   }
   keepArmsClear(){} // final world-space IK chooses hand targets clear of the chest
+  solveRunFeet(dt){
+   const h=this.shape.height,b=this.h5RunBlend;this.h5RunPhase=(this.h5RunPhase||0)+dt*(10.5+Math.min(2,this.speed));const p=this.h5RunPhase;this.walkT=p;this.feet={};
+   const flight=Math.max(0,Math.sin(p*2))*.028*b;this.group.position.y=this.baseY+flight;this.group.updateMatrixWorld(true);
+   for(const side of ['L','R']){const sign=side==='L'?1:-1,phase=p+(side==='L'?0:Math.PI),swing=Math.max(0,Math.sin(phase));
+    const local=new THREE.Vector3(sign*.10*h,.045*h,Math.cos(phase)*(.19+.08*b)*h),dst=this.group.localToWorld(local);dst.y=(this.world.floorHeight?.(dst,undefined,.16)??this.baseY)+(.045+swing*(.08+.10*b)+flight)*h;
+    const pole=this.group.localToWorld(new THREE.Vector3(sign*.16*h,.5*h,.48*h));this.solveChain(side,'leg',dst,pole);
+    const foot=this.bones[side+'_Foot'];foot.quaternion.copy(foot.parent.getWorldQuaternion(new THREE.Quaternion()).invert().multiply(this.group.getWorldQuaternion(new THREE.Quaternion()))).multiply(this.footRestQ[side]);
+   }
+  }
   solveFeet(dt,moving){
+   if(moving&&this.h5RunBlend>.25&&this.balance.state==='standing'&&!this.seat&&!this.grabs.size&&!this.waterSwimming){this.solveRunFeet(dt);return;}
    if(EXERCISE_MODES.includes(this.mode)){this.feet={};return;}
    if(this.balance.state!=='standing'||this.seat){this.feet={};return;}
    if([...this.grabs.values()].some(g=>g.limb==='leg')){

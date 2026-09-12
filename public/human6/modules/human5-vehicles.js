@@ -1,7 +1,7 @@
 import * as T from 'three';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
-import {V,clamp,gravityOf,wrapMethod} from './human5-common.js?v=19.1.0';
+import {V,clamp,gravityOf,wrapMethod} from './human5-common.js?v=19.3.0';
 const Y=new T.Vector3(0,1,0),RATIOS=[3.70,2.20,1.52,1.16,.91,.74];
 
 /** Six-speed automatic within the existing P/R/N/D selector. No network/ML dependency. */
@@ -133,7 +133,7 @@ function detailModel(car){
   }
   const lights=car.parts.filter(p=>p.name==='Headlight'||p.name==='Tail light');
   let canvas,texture,lastPaint=-1;if(typeof document!=='undefined'){canvas=document.createElement('canvas');canvas.width=256;canvas.height=96;texture=new T.CanvasTexture(canvas);texture.colorSpace=T.SRGBColorSpace;car.dashboard.material.map=texture;car.dashboard.material.color.setHex(0xffffff);car.dashboard.material.needsUpdate=true;}
-  return {tick(input){for(const p of lights){p.mesh.material.emissiveIntensity=p.name==='Headlight'?(car.driving?1.2:.12):(input.brake>.1||car.gear==='P'?2:.35);}
+  return {tick(input){if(!car.props.world.h5PortableLights)for(const p of lights){p.mesh.material.emissiveIntensity=p.name==='Headlight'?(car.driving?1.2:.12):(input.brake>.1||car.gear==='P'?2:.35);}
     if(!canvas||car.time-lastPaint<.10)return;lastPaint=car.time;const ctx=canvas.getContext('2d');ctx.fillStyle='#081519';ctx.fillRect(0,0,256,96);ctx.fillStyle='#e9ffed';ctx.font='bold 35px sans-serif';ctx.fillText(Math.round(car.velocity.length()*3.6)+' km/h',12,39);ctx.font='22px sans-serif';ctx.fillText(car.gear+(car.gear==='D'?car.h5Vehicle.auto.gear:'')+'    '+Math.round(car.engineRPM||0)+' rpm',12,78);texture.needsUpdate=true;
   },dispose(){texture?.dispose();}};
 }

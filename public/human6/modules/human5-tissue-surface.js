@@ -1,5 +1,5 @@
 import * as T from 'three';
-import {V,wrapMethod} from './human5-common.js?v=19.1.0';
+import {V,wrapMethod} from './human5-common.js?v=19.3.0';
 const corners=[[-1,-1,-1],[1,-1,-1],[1,1,-1],[-1,1,-1],[-1,-1,1],[1,-1,1],[1,1,1],[-1,1,1]];
 function basis(array){const cols=[V(),V(),V()];for(let i=0;i<8;i++)for(let j=0;j<3;j++)cols[j].addScaledVector(V().fromArray(array,i*3),corners[i][j]/8);return new T.Matrix3().set(cols[0].x,cols[1].x,cols[2].x,cols[0].y,cols[1].y,cols[2].y,cols[0].z,cols[1].z,cols[2].z);}
 /** Affine shape change about the centroid; the original soft bone owns translation. */

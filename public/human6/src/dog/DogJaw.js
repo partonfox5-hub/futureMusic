@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { clamp } from './Dog.js?v=19.1.0';
+import { clamp } from './Dog.js?v=19.3.0';
 
 export class DogJaw {
   constructor(model){

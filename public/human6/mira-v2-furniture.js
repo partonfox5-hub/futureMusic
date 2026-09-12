@@ -94,7 +94,7 @@ function assembleMovable(world,id,objects,x,z){
 export function cloneFurniture(source){
  const copy=source.isMesh?new T.Mesh(source.geometry.clone(),Array.isArray(source.material)?source.material.map(m=>m.clone()):source.material.clone()):new T.Group();
  copy.position.copy(source.position);copy.quaternion.copy(source.quaternion);copy.scale.copy(source.scale);
- copy.name=source.name;if(source.userData.h5BasinSpec)copy.userData.h5BasinSpec=JSON.parse(JSON.stringify(source.userData.h5BasinSpec));
+ copy.name=source.name;if(source.userData.h5DrawerSpec){copy.userData.h5DrawerSpec={...source.userData.h5DrawerSpec};copy.userData.h5DynamicPart=true;}if(source.userData.h5BasinSpec)copy.userData.h5BasinSpec=JSON.parse(JSON.stringify(source.userData.h5BasinSpec));
  copy.castShadow=source.castShadow;copy.receiveShadow=source.receiveShadow;
  if(source.userData.article)copy.userData.article=source.userData.article;
  for(const child of source.children)if(child.isMesh||child.isGroup)copy.add(cloneFurniture(child));

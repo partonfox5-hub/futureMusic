@@ -1,12 +1,12 @@
 import * as T from 'three';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
-import {makeSurfaceMap,wallMaterial} from './mira-v2-walls.js?v=19.1.0';
-import {placeStairs,placeFurniture,tagMovable} from './mira-v2-furniture.js?v=19.1.0';
-import {detailToilet,detailFridge,detailMicrowave,detailSink,detailBathtub,detailLamp,detailTvStand,detailBed,detailNightstand,detailDresser,detailBookshelf,detailDesk,detailBarStool,detailCabinet,detailMirror,detailCounter,detailCoffee,detailTable} from './mira-v2-furnish.js?v=19.1.0';
-import {installWeights} from './mira-v2-weights.js?v=19.1.0';
-import {installLaundry,installPantry} from './mira-v2-laundry.js?v=19.1.0';
-import {installPiano} from './mira-v2-piano.js?v=19.1.0';
-import {HouseDoors} from './mira-v2-doors.js?v=19.1.0';
+import {makeSurfaceMap,wallMaterial} from './mira-v2-walls.js?v=19.3.0';
+import {placeStairs,placeFurniture,tagMovable} from './mira-v2-furniture.js?v=19.3.0';
+import {detailToilet,detailFridge,detailMicrowave,detailSink,detailBathtub,detailLamp,detailTvStand,detailBed,detailNightstand,detailDresser,detailBookshelf,detailDesk,detailBarStool,detailCabinet,detailMirror,detailCounter,detailCoffee,detailTable} from './mira-v2-furnish.js?v=19.3.0';
+import {installWeights} from './mira-v2-weights.js?v=19.3.0';
+import {installLaundry,installPantry} from './mira-v2-laundry.js?v=19.3.0';
+import {installPiano} from './mira-v2-piano.js?v=19.3.0';
+import {HouseDoors} from './mira-v2-doors.js?v=19.3.0';
 const STORY=3.05,CELL=.6;
 const doorHole=(axis,c,w=1.14,head=2.14)=>{
  const r=w/2+CELL*.55;

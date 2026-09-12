@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { floorAt } from './DogPaws.js?v=19.1.0';
+import { floorAt } from './DogPaws.js?v=19.3.0';
 const V=()=>new THREE.Vector3(),R=.018,CAP=200;
 const pos=(p,out=V())=>Array.isArray(p)?out.fromArray(p):p?.isVector3?out.copy(p):out.set(p?.x||0,p?.y||0,p?.z||0);
 

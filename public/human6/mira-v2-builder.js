@@ -1,9 +1,9 @@
 import * as T from 'three';
-import {FURNITURE,placeFurniture} from './mira-v2-furniture.js?v=19.1.0';
+import {FURNITURE,placeFurniture} from './mira-v2-furniture.js?v=19.3.0';
 export {FURNITURE};
 export const CELL=.6;
 export const SURFACES={Plaster:{kind:'plaster',color:0xc9c1b1},Brick:{kind:'stone',color:0xa26148},Wood:{kind:'wood',color:0x947051},Tile:{kind:'stone',color:0xc3c7c1},Stone:{kind:'stone',color:0x85847c},Castle:{kind:'stone',color:0x8a8478},Metal:{kind:'metal',color:0x929b9d},Glass:{kind:'glass',color:0x9fc1c7}};
-export {makeSurfaceMap} from './mira-v2-walls.js?v=19.1.0';
+export {makeSurfaceMap} from './mira-v2-walls.js?v=19.3.0';
 export function layout(kind,n,p,yaw=0,height=0){
  const cells=[],vertical=kind==='Wall',side=Math.round(yaw/(Math.PI/2))%2!==0;
  for(let a=0;a<n;a++)for(let b=0;b<n;b++){

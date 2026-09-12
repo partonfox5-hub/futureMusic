@@ -1,5 +1,5 @@
 import * as T from 'three';
-import {V,clamp,finiteDt,gravityOf,localBounds,segmentBox,obstacleBox,disposeTree,attachedTo} from './human5-common.js?v=19.1.0';
+import {V,clamp,finiteDt,gravityOf,localBounds,segmentBox,obstacleBox,disposeTree,attachedTo} from './human5-common.js?v=19.3.0';
 
 // Artistic combustion parameters, NOT measured ignition temperatures.
 export const FUEL = Object.freeze({

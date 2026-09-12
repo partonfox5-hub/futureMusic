@@ -1,8 +1,8 @@
-import {seasons} from './human5-seasons.js?v=19.1.0';
+import {seasons} from './human5-seasons.js?v=19.3.0';
 import * as T from 'three';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
-import {hash2,CELL_SIZE} from './human5-worldfield.js?v=19.1.0';
-import {V,wrapMethod,clamp,disposeTree} from './human5-common.js?v=19.1.0';
+import {hash2,CELL_SIZE} from './human5-worldfield.js?v=19.3.0';
+import {V,wrapMethod,clamp,disposeTree} from './human5-common.js?v=19.3.0';
 
 function grassGeometry(){const p=[],uv=[],idx=[];for(let blade=0;blade<9;blade++){const angle=blade*2.399,rad=.035*Math.sqrt(blade),x=Math.cos(angle)*rad,z=Math.sin(angle)*rad,start=p.length/3;for(let j=0;j<4;j++){const t=j/3,w=(1-t)*.019+.001,bend=t*t*.16;for(const side of [-1,1]){p.push(x+Math.cos(angle)*w*side+Math.sin(angle)*bend,t,z+Math.sin(angle)*w*side+Math.cos(angle)*bend);uv.push(side/2+.5,t);}}for(let j=0;j<3;j++){const a=start+j*2;idx.push(a,a+1,a+2,a+1,a+3,a+2);}}
  const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(p,3));g.setAttribute('uv',new T.Float32BufferAttribute(uv,2));g.setIndex(idx);g.computeVertexNormals();return g;}

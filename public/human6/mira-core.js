@@ -11,7 +11,7 @@ import { clone as cloneSkinned } from "three/addons/utils/SkeletonUtils.js";
  * threejs.org/docs/pages/MeshStandardMaterial.html
  * ?skin=0 disables wrapped skin diffuse; ?debug=1 exposes window.human2 for profiling.
  */
-export const ASSET = new URL("./assets/mira.glb?v=19.1.0", import.meta.url).href;
+export const ASSET = new URL("./assets/mira.glb?v=19.3.0", import.meta.url).href;
 export const TEXROOT = new URL("./assets/tex/", import.meta.url).href;
 export const TEXVER = "13";
 

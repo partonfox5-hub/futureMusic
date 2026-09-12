@@ -1,0 +1,28 @@
+{
+  "version": "19.2.0",
+  "base": "19.1.0",
+  "meaningfulChanges": [
+    "mira-v2-props.js",
+    "mira-v2-features.js",
+    "index.html",
+    "mira-v2-restraints.js",
+    "mira-v2-furniture.js",
+    "mira-v2-locomotion.js",
+    "mira-v2-injuries.js",
+    "engine.js",
+    "mira-v2-furnish.js",
+    "H5-docs/FINAL-RELEASE.md",
+    "H5-docs/CHECKPOINT-16.md",
+    "H5-docs/CHECKPOINT-17.md",
+    "H5-docs/FINAL-PERFORMANCE.md",
+    "H5-tests/checkpoint17-regression.cjs",
+    "modules/human5-groom.js",
+    "modules/human5-skin.js",
+    "modules/human5-ragdoll.js",
+    "modules/human5-drawers.js",
+    "modules/human5-dynamics.js",
+    "modules/human5-sprint.js",
+    "modules/human5-upgrade.js"
+  ],
+  "integration": "Full project ZIP is authoritative; all runtime URLs have versioned cache keys."
+}

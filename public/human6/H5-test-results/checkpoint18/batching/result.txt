@@ -1,0 +1,3 @@
+PASS: rigid batching preserves ray identity, original triangle indices, dents, hidden parts and cleanup; wheels excluded.
+Run: NODE_PATH=<pinned dependencies> node --experimental-vm-modules H5-tests/batching-regression.cjs
+Three.js 0.170.0, Node VM module loader. Executed 2026-09-12 after final runtime changes.
