@@ -1,9 +1,9 @@
 import * as T from 'three';
-import {WEAPONS} from '../mira-v2-props.js?v=19.3.0';
+import {WEAPONS} from '../mira-v2-props.js?v=19.3.2';
 import {furnitureRoot} from '../mira-v2-furniture.js?v=19.3.0';
-import {wrapMethod,disposeTree,clamp,V,rng} from './human5-common.js?v=19.3.0';
-import {createScope} from './human5-scope.js?v=19.3.0';
-import {playSfx,unlockSfx} from '../mira-v2-sfx.js?v=19.3.0';
+import {wrapMethod,disposeTree,clamp,V,rng,segmentBox,obstacleBox} from './human5-common.js?v=19.3.0';
+import {createScope} from './human5-scope.js?v=19.3.2';
+import {playSfx,unlockSfx} from '../mira-v2-sfx.js?v=19.3.2';
 
 export const PROJECTILES=Object.freeze({
  rocket:{speed:43,gravity:.10,radius:.06,blast:5,energy:85,life:6,color:0xff983c},
@@ -20,7 +20,7 @@ export function installEquipment({scene,renderer,camera,world,mira,props,quest=t
  const cloudTime={value:0};cloudMaterial.onBeforeCompile=s=>{s.uniforms.h5CloudTime=cloudTime;s.vertexShader=s.vertexShader.replace('#include <common>','#include <common>\nuniform float h5CloudTime;').replace('#include <begin_vertex>','#include <begin_vertex>\ntransformed*=1.+.075*sin(position.x*7.+instanceMatrix[3].y+h5CloudTime*1.4)*cos(position.z*6.-h5CloudTime);');};cloudMaterial.customProgramCacheKey=()=> 'h5-rolling-cloud-1';
  const cloudGeometry=new T.IcosahedronGeometry(1,1),cloudColor=new T.Color();
  for(let i=0;i<3;i++){const mesh=new T.InstancedMesh(cloudGeometry,cloudMaterial,64);mesh.count=0;mesh.frustumCulled=false;mesh.name='Bounded explosion cloud';mesh.userData.h5Effect=true;scene.add(mesh);clouds.push({mesh,age:0,life:0,point:V(),nuclear:false});}
- for(let i=0;i<pool;i++){const mesh=new T.Mesh(new T.IcosahedronGeometry(1,1),new T.MeshStandardMaterial({color:0xff9d49,emissive:0xff6725,emissiveIntensity:1.7,roughness:.4}));mesh.visible=false;mesh.name='Spell / launcher projectile';mesh.userData.h5Effect=true;scene.add(mesh);projectiles.push({mesh,live:false,vel:V(),age:0,type:null,owner:null});}
+ for(let i=0;i<pool;i++){const mesh=new T.Mesh(new T.IcosahedronGeometry(1,1),new T.MeshStandardMaterial({color:0xff9d49,emissive:0xff6725,emissiveIntensity:1.7,roughness:.4}));mesh.visible=false;mesh.name='Spell / launcher projectile';mesh.userData.h5Effect=true;mesh.userData.noHit=true;scene.add(mesh);projectiles.push({mesh,live:false,vel:V(),age:0,type:null,owner:null});}
  function hitActor(hit){return hit?.actor||hit?.object?.userData?.cloth?.actor||hit?.object?.userData?.h5Armor?.actor||props.actorFor(hit?.object)||props.dogFor(hit?.object);}
  function actorSurface(a){let mesh=null;a?.root?.traverse(m=>{if(!mesh&&m.isSkinnedMesh&&m.visible&&/^body/i.test(m.name))mesh=m;});return mesh;}
  function startCloud(point,nuclear=false){const c=clouds.find(c=>c.life<=c.age)||clouds.reduce((a,b)=>a.age/a.life>b.age/b.life?a:b);c.point.copy(point);c.age=0;c.life=nuclear?16:2.1;c.nuclear=nuclear;}
@@ -38,9 +38,54 @@ export function installEquipment({scene,renderer,camera,world,mira,props,quest=t
   const eye=camera.getWorldPosition(V()),distance=eye.distanceTo(origin);
   if(distance<spec.blast&&canReach(origin,eye))world.h5Combat?.playerHit(spec.energy*(1-distance/spec.blast)*.30,eye.sub(origin).normalize());
  }
- function explode(p,hit){const spec=PROJECTILES[p.type],point=(hit?.point||p.mesh.position).clone();let normal=hit?.face?.normal?.clone().transformDirection(hit.object.matrixWorld);if(normal)point.addScaledVector(normal,.045);
-  startCloud(point,p.type==='miniNuke');queueBlast(point,spec,p.type);if(hit&&p.type==='fireball')props.flames?.ignite(hit,true);
-  p.live=false;p.mesh.visible=false;unlockSfx();playSfx('gun',.8);
+ function explode(p,hit){
+  const spec=PROJECTILES[p.type],point=(hit?.point||p.mesh.position).clone();
+  let normal=hit?.face?.normal?.clone();
+  if(normal&&hit.object?.matrixWorld)normal.transformDirection(hit.object.matrixWorld);
+  if(!normal||!Number.isFinite(normal.lengthSq())||normal.lengthSq()<1e-8)normal=p.vel.clone().negate();
+  if(normal.lengthSq()<1e-8)normal.set(0,1,0);normal.normalize();
+  point.addScaledVector(normal,.04);
+  startCloud(point,p.type==='miniNuke');unlockSfx();playSfx(p.type==='fireball'?'gun':'explode',p.type==='miniNuke'?1.3:1);
+  if(hit?.object){
+   const energy=spec.energy*(p.type==='miniNuke'?2.2:p.type==='rocket'?1.7:1);
+   props.impact({object:hit.object,instanceId:hit.instanceId,point,face:hit.face,distance:hit.distance},energy,p.vel.clone().normalize(),'blunt',0);
+   props.flames?.ignite(hit,true);
+  }
+  blastStructure(point,spec,p.type,normal);
+  queueBlast(point,spec,p.type);
+  p.live=false;p.mesh.visible=false;
+ }
+ function blastStructure(point,spec,type,normal){
+  const radius=spec.blast,parts=world.fractures?.parts||[],hits=[];
+  for(const part of parts){
+   if(part.broken)continue;
+   const at=part.p?.clone?.()||part.mesh?.getWorldPosition?.(V());
+   if(!at)continue;const d=at.distanceTo(point);if(d>=radius)continue;hits.push({part,d,at});
+  }
+  hits.sort((a,b)=>a.d-b.d);
+  for(const h of hits.slice(0,type==='miniNuke'?48:28)){
+   const energy=spec.energy*Math.pow(1-h.d/radius,1.05)*(type==='miniNuke'?2.1:1.55);
+   const dir=h.at.clone().sub(point);if(dir.lengthSq()<1e-8)dir.copy(normal);dir.normalize();
+   world.fractures.impact({object:h.part.mesh,instanceId:h.part.index,point:h.at,face:{normal:dir.clone().negate()}},energy,dir,'blunt',0);
+  }
+ }
+ function collideWorld(old,next,radius,owner){
+  const hit=props.hit(new T.Ray(old,next.clone().sub(old).normalize()),old.distanceTo(next)+radius,false,{ignoreActor:owner?.version==='v2'?owner:null});
+  if(hit&&!props.gadgets?.coversPortal(hit.point))return hit;
+  const floor=world.floorHeight?.(next,undefined,2.4);
+  if(Number.isFinite(floor)&&next.y-radius<=floor+.03)return {object:{visible:true,userData:{}},point:next.clone().setY(floor),face:{normal:new T.Vector3(0,1,0)},distance:Math.max(0,old.y-floor)};
+  const box=new T.Box3();
+  for(const o of world.nearby?.(next,radius+.35)||[]){
+   if(o.walkable||o.h5Container)continue;
+   const t=segmentBox(old,next,obstacleBox(o,box),radius);
+   if(t==null)continue;
+   const point=old.clone().lerp(next,t);
+   const closest=new T.Vector3(clamp(point.x,o.x-o.w/2,o.x+o.w/2),clamp(point.y,o.y,o.y+(o.h||1)),clamp(point.z,o.z-o.d/2,o.z+o.d/2));
+   const n=point.clone().sub(closest);if(n.lengthSq()<1e-8)n.set(0,1,0);n.normalize();
+   const part=o.h5Fracture;
+   return {object:part?.mesh||{visible:true,userData:{}},instanceId:part?.index,point,face:{normal:n},distance:old.distanceTo(point)};
+  }
+  return null;
  }
  function cast(item,aim){
   if(item.data.kind!=='launcher'&&item.data.kind!=='spell')return false;
@@ -80,16 +125,17 @@ export function installEquipment({scene,renderer,camera,world,mira,props,quest=t
  }
  function clearLoose(){let n=0;for(const item of [...props.items])if(item.h5UserSpawn&&item.holder==null){disposeTree(item.group);props.items.splice(props.items.indexOf(item),1);n++;}props.status='Cleared '+n+' unheld spawned items';return n;}
  function makeUI(){const root=document.getElementById('ui');if(!root||ui)return;ui=document.createElement('details');const summary=document.createElement('summary');summary.textContent='Weapons, tools & spells';ui.append(summary);const choices=document.createElement('select');choices.setAttribute('aria-label','Equipment');for(const [id,w]of Object.entries(WEAPONS))choices.add(new Option(w.name,id));ui.append(choices);
-  for(const [label,fn]of [['EQUIP',()=>spawn(choices.value)],['SPAWN IN FRONT',()=>spawn(choices.value,{equip:false})],['CLEAR UNHELD SPAWNS',clearLoose],['CLEAR PORTALS',()=>props.gadgets?.clearPortals()]]){const b=document.createElement('button');b.textContent=label;b.onclick=fn;ui.append(b);}const note=document.createElement('p');note.textContent='Scope: holding-hand stick forward/back (2–12×); mouse wheel on desktop. Portals: alternate shots at broad walls.';ui.append(note);root.append(ui);
+  for(const [label,fn]of [['EQUIP',()=>spawn(choices.value)],['SPAWN IN FRONT',()=>spawn(choices.value,{equip:false})],['CLEAR UNHELD SPAWNS',clearLoose],['CLEAR PORTALS',()=>props.gadgets?.clearPortals()]]){const b=document.createElement('button');b.textContent=label;b.onclick=fn;ui.append(b);}const note=document.createElement('p');note.textContent='Scope: holding-hand stick forward/back (2–12×); mouse wheel on desktop. Right grip while looking through the sniper optic slows time by half. Rockets explode on walls, floors and ground. Portals: alternate shots at broad walls.';ui.append(note);root.append(ui);
  }
  const api={scope,spawn,clearLoose,cast,freeze,projectiles,clouds,jobs,
   consumesStick(hand){for(const [key,item]of props.held)if(typeof key==='number'&&mira.hands.handedness[key]===hand&&['sniper','fishingRod'].includes(item.id))return true;return false;},
   tick(dt){dt=Math.min(.05,Math.max(0,dt));makeUI();if(lastRevision!==world.revision){clear();lastRevision=world.revision;}cloudTime.value+=dt;
    for(const [a,s]of frozen){s.remaining-=dt;if(s.remaining<=0||!mira.actors.includes(a)&&!(props.dogs?.list?.()||[]).includes(a)){s.restore();delete a.h5Frozen;frozen.delete(a);}}
-   for(let i=0,n=Math.min(6,jobs.length);i<n;i++){const j=jobs.shift(),h=j.hit;if(!h.object.parent||!canReach(j.origin,h.point,h.root))continue;const dir=h.point.clone().sub(j.origin).normalize(),energy=j.spec.energy*Math.pow(1-h.d/j.spec.blast,1.4);props.impact(h,energy,dir,'blunt',0);if(j.type!=='rocket')props.flames?.ignite(h,true);const f=furnitureRoot(h.object)?.userData.furniture;if(f?.velocity)f.velocity.addScaledVector(dir,Math.min(4,energy/Math.max(5,f.mass)));}
+   for(let i=0,n=Math.min(8,jobs.length);i<n;i++){const j=jobs.shift(),h=j.hit;if(!h.object.parent||!canReach(j.origin,h.point,h.root))continue;const dir=h.point.clone().sub(j.origin).normalize(),energy=j.spec.energy*Math.pow(1-h.d/j.spec.blast,1.25);props.impact(h,energy,dir,'blunt',0);props.flames?.ignite(h,true);const f=furnitureRoot(h.object)?.userData.furniture;if(f?.velocity)f.velocity.addScaledVector(dir,Math.min(4,energy/Math.max(5,f.mass)));}
    for(const p of projectiles){if(!p.live)continue;const spec=PROJECTILES[p.type];p.age+=dt;let remaining=dt;
-    while(remaining>0&&p.live){const h=Math.min(remaining,1/90);remaining-=h;const old=p.mesh.position.clone();p.vel.y-=(world.gravity??9.81)*spec.gravity*h;const next=old.clone().addScaledVector(p.vel,h),mapped=props.gadgets?.tryCross(next,old,p.vel,p.mesh);if(mapped){p.mesh.position.copy(mapped.pos);continue;}const distance=old.distanceTo(next);const hit=props.hit(new T.Ray(old,p.vel.clone().normalize()),distance+spec.radius,false,{ignoreActor:p.owner?.version==='v2'?p.owner:null});
-     if(hit&&!props.gadgets?.coversPortal(hit.point)){explode(p,hit);break;}p.mesh.position.copy(next);
+    while(remaining>0&&p.live){const h=Math.min(remaining,1/90);remaining-=h;const old=p.mesh.position.clone();p.vel.y-=(world.gravity??9.81)*spec.gravity*h;const next=old.clone().addScaledVector(p.vel,h),mapped=props.gadgets?.tryCross(next,old,p.vel,p.mesh);if(mapped){p.mesh.position.copy(mapped.pos);continue;}
+     const hit=collideWorld(old,next,spec.radius,p.owner);
+     if(hit){explode(p,hit);break;}p.mesh.position.copy(next);
     }
     const wet=world.h5OpenWorld?.sampleWater(p.mesh.position.x,p.mesh.position.z);if(p.live&&wet&&p.mesh.position.y<wet.height&&p.type==='fireball'){p.live=false;p.mesh.visible=false;}
     if(p.live&&p.age>spec.life){p.live=false;p.mesh.visible=false;}

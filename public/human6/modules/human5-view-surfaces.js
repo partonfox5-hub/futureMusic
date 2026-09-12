@@ -67,7 +67,9 @@ export function mapPortalCamera(camera, source, fromMatrix, toMatrix) {
   camera.layers.mask = source.layers.mask;
   camera.near = source.near; camera.far = source.far;
   clipPortalCamera(camera, toMatrix);
-  return new T.Matrix4().multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse).multiply(transfer);
+  // Projective lookup on the portal plane is the virtual camera's clip space.
+  // Multiplying by `transfer` again double-warped the image off the surface.
+  return new T.Matrix4().multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
 }
 
 export function scopeFov(zoom, baseFov = 55) {

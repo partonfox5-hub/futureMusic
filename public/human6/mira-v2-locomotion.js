@@ -1,5 +1,5 @@
 import * as T from 'three';
-import {SprintBurst,PLAYER_SPEED_GAIN} from './modules/human5-sprint.js?v=19.3.0';
+import {SprintBurst,PLAYER_SPEED_GAIN} from './modules/human5-sprint.js?v=19.3.2';
 // xr-standard reserves 0/1 for the touchpad, even when no touchpad exists.
 export function stickAxes(gamepad){
  const a=gamepad?.axes;if(!a)return {x:0,y:0};
@@ -42,7 +42,10 @@ export class SmoothLocomotion {
   else delta.set(0,0,0);
   const angle=-turn*2.15*dt,offset=eye.clone().sub(this.rig.position);
   this.rig.position.add(offset).sub(offset.clone().applyAxisAngle(new T.Vector3(0,1,0),angle));
-  this.rig.rotation.y+=angle;
+  // Yaw-only: leftover car pitch/roll after exit inverted right-stick look.
+  const yaw=new T.Euler().setFromQuaternion(this.rig.quaternion,'YXZ').y+angle;
+  this.rig.quaternion.setFromAxisAngle(new T.Vector3(0,1,0),yaw);
+  this.rig.rotation.set(0,yaw,0);
   const target=eye.clone().add(delta),before=target.clone();
   this.world.project(target,.32,-1.5,1.7);
   target.x=T.MathUtils.clamp(target.x,-this.world.extent,this.world.extent);

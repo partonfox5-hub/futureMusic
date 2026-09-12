@@ -1,4 +1,4 @@
-import {ANATOMY_ANCHOR as A} from './human5-anatomy-anchor.js?v=19.3.0';
+import {ANATOMY_ANCHOR as A} from './human5-anatomy-anchor.js?v=19.3.2';
 import * as T from 'three';
 import {V,clamp,wrapMethod} from './human5-common.js?v=19.3.0';
 
@@ -46,16 +46,11 @@ function skinCompile(shader,old,material,{detail=true}={}){
     sampledDiffuseColor.rgb=mix(sampledDiffuseColor.rgb,h5Anatomy,h5BodyTone);
     diffuseColor *= sampledDiffuseColor;`);
   shader.fragmentShader=shader.fragmentShader.replace('diffuseColor.rgb *= tone;', 'diffuseColor.rgb *= mix(tone,vec3(1.),1.-smoothstep(1.38,1.48,v2RestPos.y));');
-  // Millimetre geometry carries silhouette; this submillimetre normal detail
-  // supplies soft areolar relief without a separate decal/material seam.
+  // Millimetre mesh already carries the chest feature. Suppress the atlas
+  // normal so photographed relief cannot sit beside the original apex.
   shader.fragmentShader=shader.fragmentShader.replace('#include <normal_fragment_maps>',`vec3 h5GeometryNormal=normal;
     #include <normal_fragment_maps>
-    normal=normalize(mix(normal,h5GeometryNormal,h5Chest));
-    float h5Gland=sin(v2RestPos.x*1170.)*sin(v2RestPos.y*1260.);
-    float h5Relief=.00010*h5Gland*h5Areola+.00034*exp(-h5Radius*h5Radius*9.);
-    vec3 h5A=dFdx(-vViewPosition),h5B=dFdy(-vViewPosition);
-    vec3 h5U=cross(h5B,normal),h5V=cross(normal,h5A);float h5Det=dot(h5A,h5U);
-    normal=normalize(abs(h5Det)*normal-sign(h5Det)*(dFdx(h5Relief)*h5U+dFdy(h5Relief)*h5V));`);
+    normal=normalize(mix(normal,h5GeometryNormal,h5Chest));`);
   if(!detail)return;
   // Stable rest-space pore relief through screen derivatives. No displaced
   // silhouette and no additional texture pass; fade below pixel footprint.
@@ -75,7 +70,7 @@ export function installSkinRefinement(actor,{detail=true,receiveShadow=true}={})
       const m=mesh.material;if(Array.isArray(m))continue;
       const state=materials.get(m);if(state&&m.onBeforeCompile===state.wrapper)continue;
       const old=m.onBeforeCompile,key=m.customProgramCacheKey;
-      const wrapper=s=>skinCompile(s,old,m,{detail});m.onBeforeCompile=wrapper;m.customProgramCacheKey=()=> (key?.call(m)||'')+'/h5-skin-anatomy-19-2/'+detail;m.needsUpdate=true;
+      const wrapper=s=>skinCompile(s,old,m,{detail});m.onBeforeCompile=wrapper;m.customProgramCacheKey=()=> (key?.call(m)||'')+'/h5-skin-anatomy-19-3-2/'+detail;m.needsUpdate=true;
       materials.set(m,{old,key,wrapper});
     }
   }

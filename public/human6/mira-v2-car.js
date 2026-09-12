@@ -1,10 +1,10 @@
 import {placeXRHead} from './modules/human5-xr-placement.js?v=19.3.0';
 import {refineOriginalSedan} from './modules/human5-sedan-detail.js?v=19.3.0';
 import * as T from 'three';
-import {withOffscreenView} from './modules/human5-view-surfaces.js?v=19.3.0';
+import {withOffscreenView} from './modules/human5-view-surfaces.js?v=19.3.2';
 import {VEHICLE_SPECS,buildVehicleModel} from './modules/human5-vehicle-models.js?v=19.3.0';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
-import {CarAudio,unlockSfx} from './mira-v2-sfx.js?v=19.3.0';
+import {CarAudio,unlockSfx} from './mira-v2-sfx.js?v=19.3.2';
 const V=()=>new T.Vector3(),Q=()=>new T.Quaternion(),clamp=T.MathUtils.clamp,Y=new T.Vector3(0,1,0);
 const QUEST=/Quest|OculusBrowser/i.test(globalThis.navigator?.userAgent||'');
 const GEARS=['P','R','N','D'];
@@ -19,7 +19,7 @@ export class Car {
   Object.assign(this,{props,scene:props.scene,world:props.world,renderer:props.renderer,camera:props.camera,rig:props.rig,orbit,keys,controls,paintColor:color,stall:stall||new T.Vector3(6,0,3.8),homeYaw:yaw,carName:name});
   this.vehicleKind=VEHICLE_SPECS[kind]?kind:'sedan';this.vehicleSpec=VEHICLE_SPECS[this.vehicleKind];
   this.group=new T.Group();this.group.name=name||'Driveway sedan';this.group.rotation.order='YXZ';this.scene.add(this.group);this.parts=[];this.wheels=[];this.hinges=[];this.pickables=[];this.velocity=V();this.mass=this.vehicleSpec.mass;this.yawRate=0;this.heaveVelocity=0;this.pitchRate=0;this.rollRate=0;this.steer=0;this.steerTarget=0;this.grips=new Map();this.gear='P';this.inCabin=false;this.canDrive=false;this.driving=false;this.mirrorEnabled=true;this.mirrorClock=0;this.time=0;this.revision=-1;this.debris=[];this.status='';this.message=(name||'Car')+' in garage.';this.surfaceName='driveway';this.mu=.90;
-  this.cabinBox=new T.Box3(new T.Vector3(-.95,.40,-.90),new T.Vector3(.95,1.95,1.15));this.audio=new CarAudio();this.build();this.reset();
+  this.cabinBox=new T.Box3(new T.Vector3(-.95,.40,-.90),new T.Vector3(.95,1.95,1.15));this.audio=new CarAudio();this.playerRole=null;this.npcDriver=null;this.driverSeat=null;this.passengerSeat=null;this.build();this.reset();
  }
  build(){
   if(this.vehicleSpec.custom){buildVehicleModel(this,this.vehicleSpec);return;}
@@ -69,79 +69,159 @@ export class Car {
  makeHinge(mesh,children,pivot,kind,sign,axis,max,handle=null){const root=new T.Group();root.position.fromArray(pivot);this.group.add(root);this.group.updateMatrixWorld(true);const panel=mesh.userData.carPart,h={root,panel,kind,sign,axis,max,angle:0,target:0,velocity:0,latched:true,pivot:root.position.clone(),handle:handle||mesh,grabbed:null,members:[mesh,...children]};for(const m of h.members){root.attach(m);m.userData.carHinge=h;m.userData.carPart.hinge=h;}this.hinges.push(h);return h;}
  reset(){
   this.props?.ejectSeatItems?.(this);
-  if(this.driving)this.exit();this.grips.clear();for(const h of this.hinges){this.group.add(h.root);h.root.position.copy(h.pivot);h.root.quaternion.identity();h.angle=h.target=h.velocity=0;h.latched=true;h.grabbed=null;}
+  if(this.playerRole||this.driving)this.exit();this.ejectNpc(this.driverSeat?.occupant);this.ejectNpc(this.passengerSeat?.occupant);this.grips.clear();for(const h of this.hinges){this.group.add(h.root);h.root.position.copy(h.pivot);h.root.quaternion.identity();h.angle=h.target=h.velocity=0;h.latched=true;h.grabbed=null;}
   for(const p of this.parts){p.originalParent.add(p.mesh);p.mesh.visible=true;p.mesh.position.copy(p.originalPosition);p.mesh.quaternion.copy(p.originalQuaternion);p.mesh.geometry.attributes.position.array.set(p.original);p.mesh.geometry.attributes.position.needsUpdate=true;p.mesh.geometry.computeVertexNormals();p.mesh.geometry.computeBoundingSphere();p.mesh.material.roughness=p.baseRoughness;p.health=p.max;p.broken=false;}
   for(const w of this.wheels){this.group.add(w.group);w.group.position.set(w.x??w.side*.89,w.radius??.34,w.z);w.group.rotation.set(0,0,0);w.group.scale.set(1,1,1);w.spin.rotation.set(0,0,0);w.popped=w.broken=false;w.health=w.max;w.roll=w.omega=0;w.compression=.035;w.load=this.mass*9.81/4;}
-  this.debris=[];const stall=(this.world.garageStalls||[]).find(s=>s.color===this.paintColor)||{position:this.stall,yaw:this.homeYaw};this.group.position.copy(stall.position||this.stall);this.group.rotation.set(0,stall.yaw??this.homeYaw,0);this.velocity.set(0,0,0);this.yawRate=this.heaveVelocity=this.pitchRate=this.rollRate=this.steer=this.steerTarget=0;this.setGear('P');this.inCabin=this.canDrive=false;this.message=(this.carName||'Car')+' parked.';this.group.updateMatrixWorld(true);this.syncCollider();this.updateStatus();
+  this.debris=[];const stall=(this.world.garageStalls||[]).find(s=>s.color===this.paintColor)||{position:this.stall,yaw:this.homeYaw};this.group.position.copy(stall.position||this.stall);this.group.rotation.set(0,stall.yaw??this.homeYaw,0);this.velocity.set(0,0,0);this.yawRate=this.heaveVelocity=this.pitchRate=this.rollRate=this.steer=this.steerTarget=0;this.setGear('P');this.inCabin=this.canDrive=false;this.playerRole=null;this.npcDriver=null;this.message=(this.carName||'Car')+' parked.';this.group.updateMatrixWorld(true);this.syncCollider();this.updateStatus();
  }
  get liveCamera(){return this.renderer.xr?.isPresenting?(this.renderer.xr.getCamera?.(this.camera)||this.camera):this.camera;}
+ flattenRigYaw(){
+  const e=new T.Euler().setFromQuaternion(this.rig.quaternion,'YXZ');
+  this.rig.quaternion.setFromAxisAngle(Y,e.y);this.rig.rotation.set(0,e.y,0);this.rig.updateWorldMatrix(true,true);
+ }
+ eyeLocal(role='driver'){
+  const e=this.vehicleSpec.driverEye,bike=this.vehicleSpec.bike;
+  if(bike)return role==='passenger'?[0,e[1],e[2]+.36]:[...e];
+  return [role==='passenger'?-(e[0]||.40):e[0],e[1],e[2]];
+ }
+ seatLocal(role='driver'){
+  const e=this.eyeLocal(role);
+  return new T.Vector3(e[0],e[1]-.55,e[2]+.06);
+ }
+ doorApproachLocal(role='driver'){
+  const side=role==='passenger'?1:-1,z=this.vehicleSpec.driverEye[2]||.2;
+  return new T.Vector3(side*(this.vehicleSpec.width/2+.72),0,z);
+ }
+ hitRole(hit){
+  if(hit?.object?.userData?.carHinge?.kind==='door')return hit.object.userData.carHinge.sign>0?'passenger':'driver';
+  const p=hit?.point;if(!p)return 'driver';
+  this.group.updateMatrixWorld(true);
+  return this.group.worldToLocal(p.clone()).x>.12?'passenger':'driver';
+ }
+ ensureSeats(){
+  const list=this.world.seats||=[];
+  const make=role=>{const s={group:this.group,position:V(),yaw:0,approach:V(),occupant:null,car:this,role,sitDuration:1e9};list.push(s);return s;};
+  if(!this.driverSeat||!list.includes(this.driverSeat))this.driverSeat=make('driver');
+  if(!this.passengerSeat||!list.includes(this.passengerSeat))this.passengerSeat=make('passenger');
+ }
+ syncCarSeats(){
+  this.ensureSeats();this.group.updateMatrixWorld(true);
+  for(const s of [this.driverSeat,this.passengerSeat]){
+   s.position.copy(this.group.localToWorld(this.seatLocal(s.role)));
+   s.yaw=this.group.rotation.y;s.approach.copy(this.group.localToWorld(this.doorApproachLocal(s.role)));
+   s.approach.y=this.world.floorHeight?.(s.approach)??s.approach.y;
+  }
+  this.npcDriver=this.playerRole==='driver'?null:(this.driverSeat.occupant||null);
+ }
+ ejectNpc(actor){
+  if(!actor)return;
+  const seat=actor.seat?.car===this?actor.seat:null;
+  if(seat){seat.occupant=null;actor.seat=null;}
+  if(this.npcDriver===actor)this.npcDriver=null;
+  const p=this.group.localToWorld(this.doorApproachLocal(seat?.role||'passenger'));
+  p.y=this.world.floorHeight?.(p)??0;actor.group.position.copy(p);actor.group.position.y=actor.baseY||p.y;
+  actor.setMode?.('auto');
+ }
+ inviteActor(actor,hit){
+  if(!actor||actor.version!=='v2'||actor.dead)return false;
+  if(actor.seat?.car===this){this.ejectNpc(actor);this.props.status=(actor.displayName||'Mira')+' left the car';return true;}
+  this.ensureSeats();
+  let role=this.hitRole(hit);
+  if(role==='driver'&&this.playerRole==='driver')role='passenger';
+  if(role==='passenger'&&this.playerRole==='passenger')role='driver';
+  let seat=role==='driver'?this.driverSeat:this.passengerSeat;
+  if(seat.occupant&&seat.occupant!==actor){
+   role=role==='driver'?'passenger':'driver';seat=role==='driver'?this.driverSeat:this.passengerSeat;
+   if(seat.occupant&&seat.occupant!==actor){this.props.status='Car seats are full';return false;}
+  }
+  this.syncCarSeats();
+  const ok=this.world.walk(actor,seat.approach,seat);
+  if(ok){actor.lifeT=1e9;this.props.status=(actor.displayName||'Mira')+(role==='driver'?' · driving':' · passenger');}
+  return ok;
+ }
  paintGears(){if(!this.gearCanvas)return;const c=this.gearCanvas,ctx=c.getContext('2d');ctx.fillStyle='#182126';ctx.fillRect(0,0,c.width,c.height);ctx.textAlign='center';ctx.font='bold 52px sans-serif';for(let i=0;i<GEARS.length;i++){ctx.fillStyle=GEARS[i]===this.gear?'#ffe27a':'#eeeecc';ctx.fillText(GEARS[i],64,58+i*72);}if(this.gearTexture)this.gearTexture.needsUpdate=true;}
- updateOccupancy(){this.group.updateWorldMatrix(true,false);const p=this.liveCamera.getWorldPosition(V());this.inCabin=this.driving||this.cabinBox.containsPoint(this.group.worldToLocal(p));this.canDrive=this.driving&&(this.gear==='D'||this.gear==='R');return this.canDrive;}
- enter(){
-  if(this.driving){this.exit();return true;}
-  if(!['Living room','Cul-de-sac'].includes(this.world.name)||!this.world.root.visible)return false;for(const c of this.props.cars?.()||[])if(c!==this&&c.driving)c.exit();this.props.vehicle=this;this.driving=true;unlockSfx();this.controls?.unlock();if(this.orbit)this.orbit.enabled=false;
-  this.group.updateMatrixWorld(true);const eye=this.group.localToWorld(new T.Vector3(...this.vehicleSpec.driverEye));
-  if(this.renderer.xr?.isPresenting){placeXRHead(this.rig,this.liveCamera,eye,new T.Euler().setFromQuaternion(this.group.getWorldQuaternion(Q()),'YXZ').y);}
+ updateOccupancy(){this.group.updateWorldMatrix(true,false);const p=this.liveCamera.getWorldPosition(V());this.inCabin=!!this.playerRole||this.cabinBox.containsPoint(this.group.worldToLocal(p));this.canDrive=this.playerRole==='driver'&&(this.gear==='D'||this.gear==='R');return this.canDrive;}
+ enter(opts={}){
+  const role=opts.role==='passenger'?'passenger':'driver';
+  if(this.playerRole){this.exit();return true;}
+  if(!['Living room','Cul-de-sac'].includes(this.world.name)||!this.world.root.visible)return false;for(const c of this.props.cars?.()||[])if(c!==this&&c.playerRole)c.exit();this.props.vehicle=this;this.playerRole=role;this.driving=true;unlockSfx();this.controls?.unlock();if(this.orbit)this.orbit.enabled=false;
+  this.ensureSeats();this.group.updateMatrixWorld(true);const eye=this.group.localToWorld(new T.Vector3(...this.eyeLocal(role)));
+  const yaw=new T.Euler().setFromQuaternion(this.group.getWorldQuaternion(Q()),'YXZ').y;
+  if(this.renderer.xr?.isPresenting){this.flattenRigYaw();placeXRHead(this.rig,this.liveCamera,eye,yaw);this.flattenRigYaw();}
   else{this.rig.position.set(0,0,0);this.rig.quaternion.identity();this.camera.position.copy(eye);this.camera.quaternion.copy(this.group.getWorldQuaternion(Q()));}
+  const taken=role==='driver'?this.driverSeat:this.passengerSeat,other=role==='driver'?this.passengerSeat:this.driverSeat;
+  if(taken.occupant){const a=taken.occupant;taken.occupant=null;if(a.seat===taken)a.seat=null;if(!other.occupant)this.world.walk(a,other.approach,other);else this.ejectNpc(a);}
   for(const h of this.hinges)if(h.kind==='door'&&!h.panel.broken){h.target=0;h.latched=false;h.grabbed=null;}
   this.props.stashHeldInCar?.(this);
-  this.rideMatrix=this.group.matrixWorld.clone();this.updateOccupancy();this.message='Weapons stay on the seat. Trigger still fires. Open a door handle to get out.';return true;
+  this.rideMatrix=this.group.matrixWorld.clone();this.updateOccupancy();this.message=role==='passenger'?'Passenger seat. Open a door to get out.':'Weapons stay on the seat. Trigger still fires. Open a door handle to get out.';return true;
  }
  exit(opts={}){
-  if(!this.driving)return;
+  if(!this.playerRole&&!this.driving)return;
   for(const i of [...this.grips.keys()])this.release(i);
-  this.driving=false;
-  const side=opts.side??-1,z=Number.isFinite(opts.z)?opts.z:-.1;
+  const role=this.playerRole||'driver';
+  this.playerRole=null;this.driving=false;
+  const side=opts.side??(role==='passenger'?1:-1),z=Number.isFinite(opts.z)?opts.z:-.1;
   const p=this.group.localToWorld(new T.Vector3(side*(this.vehicleSpec.width/2+.60),0,z));
   this.world.project?.(p,.18,0,1.6);
-  if(this.renderer.xr?.isPresenting){const height=this.liveCamera.getWorldPosition(V()).y-this.rig.getWorldPosition(V()).y;p.y=(this.world.floorHeight?.(p)??0)+Math.max(.5,height);placeXRHead(this.rig,this.liveCamera,p,new T.Euler().setFromQuaternion(this.group.getWorldQuaternion(Q()),'YXZ').y);}
+  if(this.renderer.xr?.isPresenting){const height=this.liveCamera.getWorldPosition(V()).y-this.rig.getWorldPosition(V()).y;p.y=(this.world.floorHeight?.(p)??0)+Math.max(.5,height);this.flattenRigYaw();placeXRHead(this.rig,this.liveCamera,p,new T.Euler().setFromQuaternion(this.group.getWorldQuaternion(Q()),'YXZ').y);this.flattenRigYaw();}
   else{this.rig.position.set(0,0,0);this.rig.rotation.set(0,0,0);this.camera.position.copy(p).add(new T.Vector3(0,1.55,0));if(this.orbit){this.orbit.target.copy(this.group.position).add(new T.Vector3(0,.9,0));this.camera.lookAt(this.orbit.target);this.orbit.enabled=true;}}
   this.rideMatrix=null;this.message='Exited car.';this.updateOccupancy();
  }
  doorReach(h,p){
   if(!h||h.kind!=='door'||h.panel.broken)return false;
   const handle=h.handle.getWorldPosition(V());
-  if(p.distanceTo(handle)<(this.driving?.18:.085))return true;
-  if(!this.driving)return false;
+  if(p.distanceTo(handle)<(this.playerRole?.18:.085))return true;
+  if(!this.playerRole)return false;
   const door=h.members.find(m=>m?.isMesh)||h.panel.mesh;
   if(!door)return false;
   return new T.Box3().setFromObject(door).expandByScalar(.06).containsPoint(p)||new T.Box3().setFromObject(door).distanceToPoint(p)<.12;
  }
  maybeExitFromDoor(h){
-  if(!this.driving||h.kind!=='door'||h.panel.broken||h.angle<.30)return false;
+  if(!this.playerRole||h.kind!=='door'||h.panel.broken||h.angle<.30)return false;
   this.exit({side:h.sign<0?-1:1,z:h.pivot?.z??-.1});
   return true;
  }
- syncSeat(){if(!this.driving||!this.rideMatrix)return;this.group.updateMatrixWorld(true);const delta=this.group.matrixWorld.clone().multiply(this.rideMatrix.clone().invert()),q=Q().setFromRotationMatrix(delta);const obj=this.renderer.xr?.isPresenting?this.rig:this.camera;obj.position.applyMatrix4(delta);obj.quaternion.premultiply(q);obj.updateMatrixWorld(true);this.rideMatrix.copy(this.group.matrixWorld);}
+ syncSeat(){if(!this.playerRole||!this.rideMatrix)return;this.group.updateMatrixWorld(true);const delta=this.group.matrixWorld.clone().multiply(this.rideMatrix.clone().invert()),q=Q().setFromRotationMatrix(delta);const obj=this.renderer.xr?.isPresenting?this.rig:this.camera;obj.position.applyMatrix4(delta);obj.quaternion.premultiply(q);obj.updateMatrixWorld(true);this.rideMatrix.copy(this.group.matrixWorld);}
  setGear(gear){if(!GEARS.includes(gear))return false;const prev=this.gear;this.gear=gear;this.shifterLever.position.z=gearZ(gear);this.paintGears();this.updateOccupancy();if(prev!==gear)this.audio?.shifter();return true;}
  cycleGear(){this.setGear(GEARS[(GEARS.indexOf(this.gear)+1)%GEARS.length]);return this.gear;}
  palm(i){return this.props.system.hands.palmPos?.(i)?.clone()||this.props.system.hands.grip[i]?.getWorldPosition(V());}
  pulse(i){this.props.system.hands.haptics?.contact?.(i,'prop',.55,.015);}
  grip(i){
   if(this.grips.has(i))return true;const p=this.palm(i);if(!p)return false;this.group.updateMatrixWorld(true);
-  if(this.driving&&this.hornPad&&p.distanceTo(this.hornPad.getWorldPosition(V()))<.034){this.audio?.horn();this.pulse(i);return true;}
+  if(this.playerRole&&this.hornPad&&p.distanceTo(this.hornPad.getWorldPosition(V()))<.034){this.audio?.horn();this.pulse(i);return true;}
   if(p.distanceTo(this.shifterKnob.getWorldPosition(V()))<.08){this.grips.set(i,{type:'shifter'});return true;}
-  const barPoint=this.wheelRoot.worldToLocal(p.clone());if(this.vehicleSpec.bike&&this.driving&&Math.abs(barPoint.x)>.17&&Math.abs(barPoint.x)<.40&&Math.abs(barPoint.y)<.12&&Math.abs(barPoint.z)<.16){this.grips.set(i,{type:'handlebar',angle:Math.atan2(barPoint.z,barPoint.x),steer:this.steerTarget});return true;}
-  const local=this.wheelRoot.worldToLocal(p.clone()),radius=Math.hypot(local.x,local.y);if(this.driving&&Math.abs(local.z)<.16&&Math.abs(radius-.172)<.11&&radius>.055){this.grips.set(i,{type:'wheel',angle:Math.atan2(local.y,local.x),steer:this.steerTarget});return true;}
+  const barPoint=this.wheelRoot.worldToLocal(p.clone());if(this.vehicleSpec.bike&&this.playerRole==='driver'&&Math.abs(barPoint.x)>.17&&Math.abs(barPoint.x)<.40&&Math.abs(barPoint.y)<.12&&Math.abs(barPoint.z)<.16){this.grips.set(i,{type:'handlebar',angle:Math.atan2(barPoint.z,barPoint.x),steer:this.steerTarget});return true;}
+  const local=this.wheelRoot.worldToLocal(p.clone()),radius=Math.hypot(local.x,local.y);if(this.playerRole==='driver'&&Math.abs(local.z)<.16&&Math.abs(radius-.172)<.11&&radius>.055){this.grips.set(i,{type:'wheel',angle:Math.atan2(local.y,local.x),steer:this.steerTarget});return true;}
   for(const h of this.hinges){if(h.panel.broken||h.grabbed!==null)continue;
    let grab=false;
    if(h.kind==='door')grab=this.doorReach(h,p);
    else{const pt=h.root.localToWorld(new T.Vector3(0,-.10,h.kind==='hood'?-.95:.90));grab=p.distanceTo(pt)<.085;}
    if(!grab)continue;
+   if(!this.playerRole&&h.kind==='door')return this.enter({role:h.sign>0?'passenger':'driver'});
    const local=this.group.worldToLocal(p.clone()).sub(h.pivot);
    this.grips.set(i,{type:'hinge',hinge:h,start:this.hingeHandAngle(h,local),angle:h.angle});
    h.grabbed=i;h.latched=false;h.velocity=0;
-   if(this.driving&&h.kind==='door')this.message='Pull the door open to get out.';
+   if(this.playerRole&&h.kind==='door')this.message='Pull the door open to get out.';
    return true;}
-  if(!this.driving){const near=this.group.worldToLocal(p.clone());if(Math.abs(near.x)<1.2&&near.y>.5&&near.y<1.7&&Math.abs(near.z)<.9)return this.enter();}return false;
+  if(!this.playerRole){const near=this.group.worldToLocal(p.clone());if(Math.abs(near.x)<1.2&&near.y>.5&&near.y<1.7&&Math.abs(near.z)<.9)return this.enter({role:near.x>.05?'passenger':'driver'});}return false;
  }
  hingeHandAngle(h,p){return h.kind==='door'?Math.atan2(p.x,p.z):Math.atan2(p.y,p.z);}
  release(i){const g=this.grips.get(i);if(!g)return;if(g.type==='shifter'){this.setGear(GEARS[gearIndex(this.shifterLever.position.z)]);this.pulse(i);}if(g.type==='hinge'){const h=g.hinge;h.grabbed=null;h.target=h.angle<8*Math.PI/180?0:h.max;h.latched=h.target===0;this.pulse(i);}this.grips.delete(i);}
- click(ray){const hit=this.props.hit(ray,15,false);if(hit?.object.userData.carControl==='horn'){if(this.driving)this.audio?.horn();return true;}if(hit?.object.userData.carControl==='shifter'){this.cycleGear();return true;}const h=hit?.object.userData.carHinge;if(h&&!h.panel.broken){const opening=h.target<=0;h.target=opening?h.max:0;h.latched=false;if(opening)this.audio?.door(true);if(this.driving&&h.kind==='door'&&opening){h.angle=Math.max(h.angle,.35);this.maybeExitFromDoor(h);}return true;}return hit?.object.userData.carPart?this.enter():false;}
+ click(ray){const hit=this.props.hit(ray,15,false);if(hit?.object.userData.carControl==='horn'){if(this.playerRole)this.audio?.horn();return true;}if(hit?.object.userData.carControl==='shifter'){this.cycleGear();return true;}const h=hit?.object.userData.carHinge;if(h&&!h.panel.broken){const opening=h.target<=0;h.target=opening?h.max:0;h.latched=false;if(opening)this.audio?.door(true);if(this.playerRole&&h.kind==='door'&&opening){h.angle=Math.max(h.angle,.35);this.maybeExitFromDoor(h);}else if(!this.playerRole&&h.kind==='door'&&opening)return this.enter({role:h.sign>0?'passenger':'driver'});return true;}return hit?.object.userData.carPart?this.enter({role:this.hitRole(hit)}):false;}
  updateGrips(dt){for(const [i,g] of this.grips){const p=this.palm(i);if(!p){this.release(i);continue;}if(g.type==='shifter')this.shifterLever.position.z=clamp(this.shifterBase.worldToLocal(p).z,-1.5*GEAR_SPAN,1.5*GEAR_SPAN);if(g.type==='hinge'){const h=g.hinge;if(h.panel.broken){this.release(i);continue;}const a=this.hingeHandAngle(h,this.group.worldToLocal(p).sub(h.pivot)),delta=Math.atan2(Math.sin(a-g.start),Math.cos(a-g.start));const physical=h.kind==='door'?delta:-delta;h.angle=h.target=clamp(g.angle+physical/h.sign,0,h.max);}}
-  for(const h of this.hinges){if(h.panel.broken)continue;const was=h.latched;if(h.grabbed===null){h.velocity+=(55*(h.target-h.angle)-14*h.velocity)*dt;h.angle=clamp(h.angle+h.velocity*dt,0,h.max);if(h.target===0&&h.angle<.002){h.angle=h.velocity=0;h.latched=true;}}h.root.quaternion.setFromAxisAngle(h.axis,h.sign*h.angle);if(h.kind==='door'&&h.latched&&!was)this.audio?.door(false);if(h.kind==='door'&&!h.latched&&was&&h.angle>.04)this.audio?.door(true);if(this.driving&&h.kind==='door')this.maybeExitFromDoor(h);}
+  for(const h of this.hinges){if(h.panel.broken)continue;const was=h.latched;if(h.grabbed===null){h.velocity+=(55*(h.target-h.angle)-14*h.velocity)*dt;h.angle=clamp(h.angle+h.velocity*dt,0,h.max);if(h.target===0&&h.angle<.002){h.angle=h.velocity=0;h.latched=true;}}h.root.quaternion.setFromAxisAngle(h.axis,h.sign*h.angle);if(h.kind==='door'&&h.latched&&!was)this.audio?.door(false);if(h.kind==='door'&&!h.latched&&was&&h.angle>.04)this.audio?.door(true);if(this.playerRole&&h.kind==='door')this.maybeExitFromDoor(h);}
  }
- input(){let throttle=0,brake=0,steer=this.steerTarget;if(!this.driving)return {throttle,brake:0,steer};if(this.props.menu?.isOpen)return {throttle:0,brake:.5,steer};if(this.renderer.xr?.isPresenting){for(const src of this.renderer.xr.getSession()?.inputSources||[]){const b=src.gamepad?.buttons||[],t=Math.max(b[0]?.value||0,b[0]?.pressed?1:0);if(src.handedness==='left'){throttle=Math.max(throttle,t);if(b[4]?.pressed)brake=1;}}const angles=[];for(const [i,g] of this.grips)if(g.type==='wheel'||g.type==='handlebar'){const p=this.wheelRoot.worldToLocal(this.palm(i)),a=g.type==='handlebar'?Math.atan2(p.z,p.x):Math.atan2(p.y,p.x);angles.push(g.steer+Math.atan2(Math.sin(a-g.angle),Math.cos(a-g.angle))/(g.type==='handlebar'?-1:5.2));}if(angles.length)this.steerTarget=clamp(angles.reduce((a,b)=>a+b,0)/angles.length,-.5585,.5585);else this.steerTarget*=.985;steer=this.steerTarget;}else{throttle=this.keys.KeyW?1:0;brake=(this.keys.Space||this.keys.KeyS)?1:0;steer=(this.keys.KeyA?.5585:0)-(this.keys.KeyD?.5585:0);}return {throttle,brake,steer};}
+ input(){let throttle=0,brake=0,steer=this.steerTarget;
+  if(this.npcDriver&&this.playerRole!=='driver'){
+   if(this.gear==='P'||this.gear==='N')this.setGear('D');
+   const forward=new T.Vector3(0,0,-1).applyAxisAngle(Y,this.group.rotation.y),origin=this.group.position.clone().add(new T.Vector3(0,.85,0));
+   const hit=this.props.hit(new T.Ray(origin,forward),7,false,{actors:false});
+   if(hit&&hit.distance<3.4)return {throttle:0,brake:1,steer:0};
+   return {throttle:.42,brake:0,steer:0};
+  }
+  if(this.playerRole!=='driver')return {throttle,brake:0,steer};
+  if(this.props.menu?.isOpen)return {throttle:0,brake:.5,steer};
+  if(this.renderer.xr?.isPresenting){for(const src of this.renderer.xr.getSession()?.inputSources||[]){const b=src.gamepad?.buttons||[],t=Math.max(b[0]?.value||0,b[0]?.pressed?1:0);if(src.handedness==='left'){throttle=Math.max(throttle,t);if(b[4]?.pressed)brake=1;}}const angles=[];for(const [i,g] of this.grips)if(g.type==='wheel'||g.type==='handlebar'){const p=this.wheelRoot.worldToLocal(this.palm(i)),a=g.type==='handlebar'?Math.atan2(p.z,p.x):Math.atan2(p.y,p.x);angles.push(g.steer+Math.atan2(Math.sin(a-g.angle),Math.cos(a-g.angle))/(g.type==='handlebar'?-1:5.2));}if(angles.length)this.steerTarget=clamp(angles.reduce((a,b)=>a+b,0)/angles.length,-.5585,.5585);else this.steerTarget*=.985;steer=this.steerTarget;}else{throttle=this.keys.KeyW?1:0;brake=(this.keys.Space||this.keys.KeyS)?1:0;steer=(this.keys.KeyA?.5585:0)-(this.keys.KeyD?.5585:0);}return {throttle,brake,steer};}
  syncCollider(){
   if(!['Living room','Cul-de-sac'].includes(this.world.name)){if(this.obstacle){this.world.removeObstacle(this.obstacle);this.obstacle=null;}return;}
   const yaw=this.group.rotation.y,w=Math.abs(Math.cos(yaw))*this.vehicleSpec.width+Math.abs(Math.sin(yaw))*this.vehicleSpec.length,d=Math.abs(Math.sin(yaw))*this.vehicleSpec.width+Math.abs(Math.cos(yaw))*this.vehicleSpec.length,x=this.group.position.x,z=this.group.position.z;
@@ -156,7 +236,7 @@ export class Car {
  step(dt,input){
   dt=clamp(dt,0,.04);if(!dt)return;this.updateOccupancy();this.steer+=(input.steer-this.steer)*(1-Math.exp(-dt*14));this.group.updateMatrixWorld(true);
   const forward=new T.Vector3(0,0,-1).applyAxisAngle(Y,this.group.rotation.y),right=new T.Vector3(1,0,0).applyAxisAngle(Y,this.group.rotation.y),speed=this.velocity.dot(forward);
-  const drive=this.driving&&(this.gear==='D'||this.gear==='R');
+  const drive=(this.playerRole==='driver'||this.npcDriver)&&(this.gear==='D'||this.gear==='R');
   const userThrot=Math.abs(input.throttle||0);
   const idleRev=drive&&this.gear==='R'&&!input.brake&&userThrot<.04;
   const throttle=drive?(this.gear==='R'?-(userThrot||(idleRev?.33:0)):(input.throttle||0)):0;
@@ -286,6 +366,7 @@ export class Car {
     this.group.position.addScaledVector(n,Math.min(.30,penetration+.001));
   }}
   for(const actor of this.props.system.actors||[]){
+    if(actor.seat?.car===this)continue;
     const bodyPoint=actor.group.getWorldPosition(V()),local=this.group.worldToLocal(bodyPoint.clone());let overlap=Math.abs(local.x)<this.vehicleSpec.width/2+.18&&Math.abs(local.z)<this.vehicleSpec.length/2+.18&&local.y<this.vehicleSpec.height&&local.y>-.2;
     // Open doors remain solid to actors using only six small panel AABBs.
     if(!overlap)for(const h of this.hinges)if(h.kind==='door'&&!h.panel.broken&&h.angle>.262){const b=new T.Box3().setFromObject(h.panel.mesh).expandByScalar(.18);if(b.containsPoint(bodyPoint.clone().setY(this.group.position.y+.70))){overlap=true;break;}}
@@ -294,9 +375,9 @@ export class Car {
   }
   const extent=Math.max(40,(this.world.extent||144)-2);if(Math.abs(this.group.position.x)>extent||Math.abs(this.group.position.z)>extent)this.velocity.multiplyScalar(.55);this.group.position.x=clamp(this.group.position.x,-extent,extent);this.group.position.z=clamp(this.group.position.z,-extent,extent);
  }
- tick(dt){dt=clamp(dt,0,.1);this.time+=dt;if(this.revision!==this.world.revision){this.revision=this.world.revision;this.reset();}this.group.visible=['Living room','Cul-de-sac'].includes(this.world.name)&&this.world.root.visible;for(const d of this.debris)d.mesh.visible=this.group.visible;if(!this.group.visible){if(this.driving)this.exit();this.audio?.tick(this,{throttle:0},dt);return;}this.updateOccupancy();this.updateGrips(dt);if(this.driving)this.pollHorn();this._dents=0;this._rammed=new Set();this._wallHits=new Set();const input=this.input(),moving=this.driving||this.h5Traffic?.active||this.velocity.length()>.08,steps=moving?Math.max(1,Math.min(8,Math.ceil(this.velocity.length()*dt/.18))):1;for(let i=0;i<steps;i++){this.step(dt/steps,input);this.group.updateMatrixWorld(true);if(moving)this.collide(dt/steps);}this.syncCollider();this.syncSeat();this.audio?.tick(this,input,dt);for(const d of this.debris){d.velocity.y-=9.81*dt;const before=d.mesh.position.clone();d.mesh.position.addScaledVector(d.velocity,dt);if(this.world.projectSphere(d.mesh.position,.10)){const n=d.mesh.position.clone().sub(before).normalize(),vn=d.velocity.dot(n);if(vn<0)d.velocity.addScaledVector(n,-1.15*vn);}if(d.mesh.position.y<.12){d.mesh.position.y=.12;d.velocity.y=Math.abs(d.velocity.y)*.15;d.velocity.x*=.9;d.velocity.z*=.9;d.spin.multiplyScalar(.94);}d.mesh.rotateX(d.spin.x*dt);d.mesh.rotateZ(d.spin.z*dt);}this.mirrorClock+=dt;this.updateStatus();}
+ tick(dt){dt=clamp(dt,0,.1);this.time+=dt;if(this.revision!==this.world.revision){this.revision=this.world.revision;this.reset();}this.group.visible=['Living room','Cul-de-sac'].includes(this.world.name)&&this.world.root.visible;for(const d of this.debris)d.mesh.visible=this.group.visible;if(!this.group.visible){if(this.playerRole)this.exit();this.ejectNpc(this.driverSeat?.occupant);this.ejectNpc(this.passengerSeat?.occupant);this.audio?.tick(this,{throttle:0},dt);return;}this.syncCarSeats();this.updateOccupancy();this.updateGrips(dt);if(this.playerRole)this.pollHorn();this._dents=0;this._rammed=new Set();this._wallHits=new Set();const input=this.input(),moving=this.playerRole==='driver'||this.npcDriver||this.h5Traffic?.active||this.velocity.length()>.08,steps=moving?Math.max(1,Math.min(8,Math.ceil(this.velocity.length()*dt/.18))):1;for(let i=0;i<steps;i++){this.step(dt/steps,input);this.group.updateMatrixWorld(true);if(moving)this.collide(dt/steps);}this.syncCollider();this.syncSeat();this.audio?.tick(this,input,dt);for(const d of this.debris){d.velocity.y-=9.81*dt;const before=d.mesh.position.clone();d.mesh.position.addScaledVector(d.velocity,dt);if(this.world.projectSphere(d.mesh.position,.10)){const n=d.mesh.position.clone().sub(before).normalize(),vn=d.velocity.dot(n);if(vn<0)d.velocity.addScaledVector(n,-1.15*vn);}if(d.mesh.position.y<.12){d.mesh.position.y=.12;d.velocity.y=Math.abs(d.velocity.y)*.15;d.velocity.x*=.9;d.velocity.z*=.9;d.spin.multiplyScalar(.94);}d.mesh.rotateX(d.spin.x*dt);d.mesh.rotateZ(d.spin.z*dt);}this.mirrorClock+=dt;this.updateStatus();}
  pollHorn(){
-  if(!this.driving||!this.hornPad)return;
+  if(this.playerRole!=='driver'||!this.hornPad)return;
   this.group.updateMatrixWorld(true);
   const hub=this.hornPad.getWorldPosition(V());
   for(let i=0;i<2;i++){const p=this.palm(i);if(p&&p.distanceTo(hub)<.032)this.audio?.horn();}
@@ -304,7 +385,7 @@ export class Car {
  get telemetry(){return `${this.gear} · cabin ${this.inCabin?'IN':'OUT'} · ${Math.round(this.velocity.length()*3.6)} km/h · ${this.surfaceName} µ ${this.mu.toFixed(2)}`;}
  updateStatus(){this.status=`${this.gear} · cabin ${this.inCabin?'IN':'OUT'} · ${Math.round(this.velocity.length()*3.6)} km/h · ${this.surfaceName} µ ${this.mu.toFixed(2)} · ${this.message}`;}
  renderMirror(){
-  const hz=QUEST?[30,24,18][this.world.h5Performance?.budget.tier||0]:45;if(!this.driving||!this.mirrorEnabled||this.mirrorClock<1/hz)return;this.mirrorClock=0;this.renderMirrorView();
+  const hz=QUEST?[30,24,18][this.world.h5Performance?.budget.tier||0]:45;if(!this.playerRole||!this.mirrorEnabled||this.mirrorClock<1/hz)return;this.mirrorClock=0;this.renderMirrorView();
  }
  renderMirrorView(warm=false){
   // A dashboard mirror covers a small visual angle. Keep its allocation stable

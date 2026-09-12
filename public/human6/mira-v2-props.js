@@ -2,7 +2,7 @@ import * as T from 'three';
 import {rayMayHitActor} from './modules/human5-ray-budget.js?v=19.3.0';
 import {EXTRA_WEAPONS,buildSpecialEquipment,refineEquipmentModel} from './modules/human5-equipment-models.js?v=19.3.0';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
-import {playSfx,sfxForHit,unlockSfx} from './mira-v2-sfx.js?v=19.3.0';
+import {playSfx,sfxForHit,unlockSfx} from './mira-v2-sfx.js?v=19.3.2';
 import {furnitureRoot,syncFurniture} from './mira-v2-furniture.js?v=19.3.0';
 import {ensureGrabbableWood} from './mira-v2-nature.js?v=19.3.0';
 import {GUNS,MELEE,buildMarker,buildPortalGun} from './mira-v2-gadgets.js?v=19.3.0';

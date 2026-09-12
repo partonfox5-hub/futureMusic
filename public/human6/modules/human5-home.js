@@ -3,7 +3,7 @@ import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {wrapMethod} from './human5-common.js?v=19.3.0';
 import {tagMovable} from '../mira-v2-furniture.js?v=19.3.0';
 import {BASEMENT,basementFloor,inBasementFootprint,LatchHinge,reflectCamera,CondensationGrid} from './human5-home-mechanics.js?v=19.3.0';
-import {withOffscreenView,clipPortalCamera} from './human5-view-surfaces.js?v=19.3.0';
+import {withOffscreenView,clipPortalCamera} from './human5-view-surfaces.js?v=19.3.2';
 import {createArcadeGame} from './human5-arcade.js?v=19.3.0';
 import {createWetnessSystem} from './human5-wetness.js?v=19.3.0';
 

@@ -1,5 +1,5 @@
 import * as T from 'three';
-import {Car} from '../mira-v2-car.js?v=19.3.0';
+import {Car} from '../mira-v2-car.js?v=19.3.2';
 import {VEHICLE_SPECS} from './human5-vehicle-models.js?v=19.3.0';
 import {installVehicleRefinement} from './human5-vehicles.js?v=19.3.0';
 import {disposeTree,V} from './human5-common.js?v=19.3.0';

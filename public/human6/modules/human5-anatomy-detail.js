@@ -1,4 +1,5 @@
 import * as T from 'three';
+import {ANATOMY_ANCHOR as A} from './human5-anatomy-anchor.js?v=19.3.2';
 
 /** Local, conforming edge refinement. All material partitions share the same
  * expanded attributes; skin weights and every expression target are preserved.
@@ -13,7 +14,7 @@ export function refineAnatomyDetail(root,passes=2){
   const edgeKey=(a,b)=>a<b?a+'/'+b:b+'/'+a;
   for(const meshes of groups.values())for(let pass=0;pass<passes;pass++){
     const first=meshes[0].geometry,position=first.attributes.position,edges=new Map(),pairs=[];
-    const near=(x,y,z)=>z>.07&&Math.hypot(Math.abs(x)-.0762,y-1.187)<.028;
+    const near=(x,y,z)=>z>.07&&Math.hypot(Math.abs(x)-A.x,y-A.y)<.028;
     const mark=(a,b)=>{const key=edgeKey(a,b);if(!edges.has(key)){edges.set(key,position.count+pairs.length);pairs.push([a,b]);}};
     for(const mesh of meshes){const ids=mesh.geometry.index.array;
       for(let i=0;i<ids.length;i+=3){const [a,b,c]=[ids[i],ids[i+1],ids[i+2]];

@@ -1,5 +1,5 @@
 import * as T from 'three';
-import {withOffscreenView,scopeFov} from './human5-view-surfaces.js?v=19.3.0';
+import {withOffscreenView,scopeFov} from './human5-view-surfaces.js?v=19.3.2';
 import {stickAxes,deadzone} from '../mira-v2-locomotion.js?v=19.3.0';
 
 const vertexShader=`varying vec2 vScopeUV;void main(){vScopeUV=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`;
@@ -18,12 +18,32 @@ export function createScope(props,{quest=true}={}){
  const {renderer,camera,scene,world,system}=props;
  let target=null,view=null,mat=null,overlay=null,lastRender=-Infinity,idle=0;
  const optics=new WeakMap(),installed=new Map();
- const api={zoom:6,active:false,renderCount:0,
+ const api={zoom:6,active:false,renderCount:0,slowMo:false,
   adjust(value){if(Number.isFinite(value))api.zoom=T.MathUtils.clamp(value,2,12);return api.zoom;},
+  aimingThrough(item){
+   if(!item||item.id!=='sniper')return false;
+   const vr=renderer.xr.isPresenting;
+   if(!vr)return item.holder==='desktop';
+   let lens=optics.get(item);if(!lens){item.group.traverse(m=>{if(m.userData.scopeEye)lens=m;});if(lens)optics.set(item,lens);}
+   if(!lens)return false;
+   item.group.updateWorldMatrix(true,true);
+   const eye=camera.getWorldPosition(new T.Vector3()),ocular=lens.getWorldPosition(new T.Vector3());
+   const direction=new T.Vector3(0,0,-1).applyQuaternion(item.group.getWorldQuaternion(new T.Quaternion()));
+   return eye.distanceTo(ocular)<=.65&&camera.getWorldDirection(new T.Vector3()).dot(direction)>=.35;
+  },
+  wantsSlowMo(keys){
+   if(system.h5MenuOpen)return false;
+   const item=[...props.held.values()].find(i=>i.id==='sniper'&&(i.holder==='desktop'||typeof i.holder==='number'));
+   if(!item||!api.aimingThrough(item))return false;
+   if(!renderer.xr.isPresenting)return !!(keys?.MouseRight);
+   const hand=system.hands.handedness[item.holder];
+   if(hand!=='right')return false;
+   return (system.hands.squeeze[item.holder]||0)>.5;
+  },
   tick(dt){const item=[...props.held.values()].find(i=>i.id==='sniper'&&(i.holder==='desktop'||typeof i.holder==='number'));
    if(api.item&&api.item!==item){const previous=optics.get(api.item);if(previous?.material===mat)previous.material=previous.userData.h5OriginalScopeMaterial;}
    for(const [lens,owner]of installed)if(!props.items.includes(owner)){lens.userData.h5OriginalScopeMaterial?.dispose();installed.delete(lens);}
-   api.item=item||null;api.active=!!item;if(!item){if(overlay)overlay.visible=false;idle+=dt;if(idle>5&&target){target.dispose();target=null;if(mat)mat.uniforms.map.value=null;}return;}
+   api.item=item||null;api.active=!!item;api.slowMo=false;if(!item){if(overlay)overlay.visible=false;idle+=dt;if(idle>5&&target){target.dispose();target=null;if(mat)mat.uniforms.map.value=null;}return;}
    idle=0;const vr=renderer.xr.isPresenting,hand=system.hands.handedness[item.holder];
    const source=vr?[...renderer.xr.getSession().inputSources].find(s=>s.handedness===hand&&!s.hand):null;
    if(!system.h5MenuOpen){const axis=stickAxes(source?.gamepad);api.adjust(api.zoom-deadzone(0,axis.y,.18).y*dt*5);}
@@ -40,7 +60,8 @@ export function createScope(props,{quest=true}={}){
    // Distant/unraised optic remains a dark glass lens and consumes no remote render.
    if(vr&&(eye.distanceTo(ocular)>.65||camera.getWorldDirection(new T.Vector3()).dot(direction)<.35))return;
    const hz=quest?[30,24,18][world.h5Performance?.budget.tier||0]:45;
-   if(props.time-lastRender<1/hz)return;lastRender=props.time;
+   const now=performance.now()/1000;
+   if(now-lastRender<1/hz)return;lastRender=now;
    view.fov=scopeFov(api.zoom);view.updateProjectionMatrix();
    view.position.copy(ocular).addScaledVector(direction,.44);view.quaternion.copy(item.group.getWorldQuaternion(new T.Quaternion()));view.updateMatrixWorld(true);
    const hidden=[item.group,overlay,system.vrPanel,...(props.gadgets?.portals||[]).map(p=>p?.group)];

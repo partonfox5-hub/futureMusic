@@ -20,9 +20,9 @@ const report=await page.evaluate(async()=>{
  check(maxDisplacement>.012,'Open palm has negligible hair response');a.externalHands=originalHands;
  const bind=a.skeleton.boneInverses[a.skeleton.bones.indexOf(a.bones.Head)].clone().invert(),c=g.scalp.center,r=g.scalp.radii;let checked=0,minRadius=Infinity;
  for(const mesh of g.group.children){const pos=mesh.geometry.attributes.position;for(let i=0;i<pos.count;i++){const p=new T.Vector3().fromBufferAttribute(pos,i).applyMatrix4(bind);check(p.toArray().every(Number.isFinite),'Hair non-finite');if(p.y>g.scalp.minY){const radius=Math.hypot((p.x-c.x)/r.x,(p.y-c.y)/r.y,(p.z-c.z)/r.z);minRadius=Math.min(minRadius,radius);check(radius>.9999,'Hair penetrated scalp after hand push');checked++;}}}
- const {shapePoint}=await import('./mira-v2-features.js?v=19.3.0'),{ANATOMY_ANCHOR:A}=await import('./modules/human5-anatomy-anchor.js?v=19.3.0');
+ const {shapePoint}=await import('./mira-v2-features.js?v=19.3.2'),{ANATOMY_ANCHOR:A}=await import('./modules/human5-anatomy-anchor.js?v=19.3.2');
  let anatomical=[];for(const scale of [.7,1,1.86,2.4]){const q=shapePoint(A.x,A.y,.111055,scale,0,1,1,{softness:.75});check(q.every(Number.isFinite),'Anatomy failed');anatomical.push(q);}
- check(shapePoint(A.x,A.y,.111055,1,0,1,1,{softness:.75})[2]>.114,'Anatomical relief lost during size warp');
+ check(Math.abs(shapePoint(A.x,A.y,.111055,1,0,1,1,{softness:.75})[2]-.111055)<1e-4,'Stacked anatomical relief must not add a second peak');
  const ropes=H.props.restraints;ropes.start();check(ropes.clearAll()>=0&&ropes.links.length===0&&ropes.selected===null,'Restraint clear failed');
  const cycle=H.weather.cycle;cycle.setHour(10);cycle.advance(1440);check(Math.abs(cycle.hour-10)<1e-6,'24-minute cycle drift');const phases=[];
  cycle.running=false;for(const hour of [0,6,12,18,22]){cycle.setHour(hour);H.weather.tick(0,H.camera);H.upgrade.daylight.follow(H.camera.position);H.renderer.render(H.scene,H.camera);phases.push({...cycle.snapshot(),key:H.upgrade.daylight.key.intensity,env:H.scene.environmentIntensity});}

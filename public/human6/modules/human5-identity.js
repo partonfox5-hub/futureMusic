@@ -1,7 +1,7 @@
 import * as T from 'three';
 import {V,clamp,smooth,wrapMethod} from './human5-common.js?v=19.3.0';
 import {installReferenceGroom} from './human5-groom.js?v=19.3.0';
-import {weldSkinNormals} from './human5-skin.js?v=19.3.0';
+import {weldSkinNormals} from './human5-skin.js?v=19.3.2';
 
 export const REFERENCE_MIRA=Object.freeze({
   id:'mira-reference-17',name:'Mira',faceType:1,likeness:0,hairStyle:1,hairColor:1,

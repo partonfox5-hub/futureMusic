@@ -1,6 +1,6 @@
 import {LimpBody} from './modules/human5-ragdoll.js?v=19.3.0';
-import {anatomicalRelief} from './modules/human5-anatomy-anchor.js?v=19.3.0';
-import {refineAnatomyDetail} from './modules/human5-anatomy-detail.js?v=19.3.0';
+import {anatomicalRelief} from './modules/human5-anatomy-anchor.js?v=19.3.2';
+import {refineAnatomyDetail} from './modules/human5-anatomy-detail.js?v=19.3.2';
 import {LivingEyes} from './mira-v2-eyes.js?v=19.3.0';
 import {EnhanceEyes} from './mira-v2-tearline.js?v=19.3.0';
 import {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES,V2_EXTRA_SLIDERS,FACE_PRESETS,EXERCISE_MODES,ATTENTION_MODES} from './mira-v2-controls.js?v=19.3.0';
@@ -667,7 +667,7 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    if(this.dead){this.autonomy=false;this.autoWander=false;this.dest=null;return;}
    this.tickAttention(dt,cam);
    this.greetingT-=dt;this.lifeT-=dt;
-   if(this.seat){this.sitHold=(this.sitHold||0)+dt;if(this.seat.piano)this.world.piano?.keepPlaying?.(this);const limit=this.seat.sitDuration||(7+Math.random()*8);if(this.sitHold>limit){this.world.piano?.stopIf?.(this);this.seat.occupant=null;this.group.position.copy(this.seat.approach);this.seat=null;this.sitHold=0;const automatic=this.autonomy;this.setMode('wander');this.autonomy=automatic;this.lifeT=6+Math.random()*6;}return;}
+   if(this.seat){if(this.seat.car){this.sitHold=0;this.lifeT=Math.max(this.lifeT,8);return;}this.sitHold=(this.sitHold||0)+dt;if(this.seat.piano)this.world.piano?.keepPlaying?.(this);const limit=this.seat.sitDuration||(7+Math.random()*8);if(this.sitHold>limit){this.world.piano?.stopIf?.(this);this.seat.occupant=null;this.group.position.copy(this.seat.approach);this.seat=null;this.sitHold=0;const automatic=this.autonomy;this.setMode('wander');this.autonomy=automatic;this.lifeT=6+Math.random()*6;}return;}
    if(this.socialPair||this.directedWalk||this.navigation)return;
    if(this.balance.state!=='standing'||this.grabs.size||this.speech?.active||this.mode==='talk')return;
    if(this.autonomy&&this.greetingT<=0){
@@ -678,7 +678,7 @@ export function createV2Class(Base,{loadMap,MORPH,BODY_HIT,installSkinShader,HAI
    }
    if(this.attentionMode==='hyperattentive')return;
    if(!this.autonomy||this.lifeT>0)return;
-   const seats=this.world?.seats?.filter(s=>s&&!s.occupant&&s.approach)||[];
+   const seats=this.world?.seats?.filter(s=>s&&!s.occupant&&s.approach&&!s.car)||[];
    if(this.mode!=='wander'&&seats.length&&Math.random()<.42&&this.world.walk){
     const seat=seats[Math.floor(Math.random()*seats.length)];
     if(this.world.walk(this,seat.approach,seat)){this.autonomy=true;this.sitHold=0;this.lifeT=14;return;}

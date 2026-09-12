@@ -1,5 +1,5 @@
 import {captureFurniture,tagMovable} from './mira-v2-furniture.js?v=19.3.0';
-import {Destruction} from './mira-v2-destruction.js?v=19.3.0';
+import {Destruction} from './mira-v2-destruction.js?v=19.3.2';
 import {buildHouse} from './mira-v2-house.js?v=19.3.0';
 import {buildCastle,inCastleClearing} from './mira-v2-castle.js?v=19.3.0';
 import {plantTerrain,scatterTrees,tickNature,chopTree as chopNature,ramTree as ramNature,terrainHeight} from './mira-v2-nature.js?v=19.3.0';
@@ -130,7 +130,15 @@ export class MiraWorld {
  }
  command(ray,actor){
   const rc=new T.Raycaster();rc.ray.copy(ray);const ground=ray.intersectPlane(new T.Plane(new T.Vector3(0,1,0),0),V());rc.far=ground?ray.origin.distanceTo(ground):30;
-  const hit=rc.intersectObjects(this.pickables,false).find(h=>h.object.visible&&!h.object.userData.chunks?.[h.instanceId]?.broken);if(!hit)return null;
+  const hit=rc.intersectObjects(this.pickables,false).find(h=>h.object.visible&&!h.object.userData.chunks?.[h.instanceId]?.broken);
+  let carHit=null;
+  for(const c of this.interactions?.cars?.()||[]){
+   if(!c.group.visible)continue;
+   const found=rc.intersectObjects(c.pickables||[],false).find(h=>h.object.visible);
+   if(found&&(!carHit||found.distance<carHit.distance))carHit={car:c,hit:found};
+  }
+  if(carHit&&(!hit||carHit.hit.distance<=hit.distance+.05))return carHit.car.inviteActor(actor,carHit.hit)?'car':null;
+  if(!hit)return null;
   const seat=hit.object.userData.seat;if(seat)return this.walk(actor,seat.approach,seat)?'seating':'blocked';
   let o=hit.object;while(o){if(o===this.piano?.root){this.piano.invite(actor,{status:''});return 'piano';}if(o.userData?.pianoSheet){this.piano?.cycleSong?.();return 'piano';}o=o.parent;}
   return null;

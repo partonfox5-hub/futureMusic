@@ -14,7 +14,10 @@ export function playSfx(kind,vol=1){
  unlocked=true;
  try{
   const c=ac(),t=c.currentTime,g=c.createGain();g.gain.value=vol;g.connect(master);
-  if(kind==='gun'){
+  if(kind==='explode'){
+   const n=noise(c,.55),f=filt(c,'lowpass',420,0.8),o=c.createOscillator();o.type='sine';o.frequency.setValueAtTime(78,t);o.frequency.exponentialRampToValueAtTime(28,t+.42);
+   const og=c.createGain();env(g,t,1,.0008,.5);env(og,t,.85,.0001,.38);n.connect(f);f.connect(g);o.connect(og);og.connect(g);n.start(t);n.stop(t+.55);o.start(t);o.stop(t+.45);
+  }else if(kind==='gun'){
    const n=noise(c,.18),f=filt(c,'lowpass',1800,0.7),click=c.createOscillator();click.type='square';click.frequency.setValueAtTime(180,t);click.frequency.exponentialRampToValueAtTime(40,t+.09);
    const cg=c.createGain();env(g,t,.9,.0008,.16);env(cg,t,.7,.0001,.08);n.connect(f);f.connect(g);click.connect(cg);cg.connect(g);n.start(t);n.stop(t+.18);click.start(t);click.stop(t+.1);
   }else if(kind==='laser'){

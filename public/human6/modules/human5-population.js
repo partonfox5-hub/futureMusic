@@ -1,6 +1,6 @@
 import {distantCarGeometry,distantPersonGeometry,distantPeopleMaterial} from './human5-distance-models.js?v=19.3.0';
 import * as T from 'three';
-import {Car} from '../mira-v2-car.js?v=19.3.0';
+import {Car} from '../mira-v2-car.js?v=19.3.2';
 import {RouteGraph} from './human5-navigation.js?v=19.3.0';
 import {ROUTES} from './human5-worldfield.js?v=19.3.0';
 import {installVehicleRefinement} from './human5-vehicles.js?v=19.3.0';

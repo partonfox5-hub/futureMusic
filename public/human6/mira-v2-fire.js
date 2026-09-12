@@ -1,6 +1,6 @@
 import * as T from 'three';
 import {tagMovable} from './mira-v2-furniture.js?v=19.3.0';
-import {playSfx,unlockSfx} from './mira-v2-sfx.js?v=19.3.0';
+import {playSfx,unlockSfx} from './mira-v2-sfx.js?v=19.3.2';
 const V=()=>new T.Vector3(),Q=()=>new T.Quaternion();
 const QUEST=/Quest|OculusBrowser/i.test(globalThis.navigator?.userAgent||'');
 const MAX=QUEST?10:18,MAX_LIGHTS=QUEST?2:3;

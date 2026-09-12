@@ -1,6 +1,6 @@
 import * as T from 'three';
-import {withOffscreenView,mapPortalCamera,portalTransfer} from './modules/human5-view-surfaces.js?v=19.3.0';
-import {playSfx,unlockSfx} from './mira-v2-sfx.js?v=19.3.0';
+import {withOffscreenView,mapPortalCamera,portalTransfer} from './modules/human5-view-surfaces.js?v=19.3.2';
+import {playSfx,unlockSfx} from './mira-v2-sfx.js?v=19.3.2';
 const V=()=>new T.Vector3(),Q=()=>new T.Quaternion(),M=()=>new T.Matrix4();
 const QUEST=/Quest|OculusBrowser/i.test(globalThis.navigator?.userAgent||'');
 export const GUNS=['pistol','laser','rifle','sniper','shotgun','uzi','marker','marker2','portal','torch'];
@@ -13,7 +13,8 @@ void main(){vec4 world=modelMatrix*vec4(position,1.0);vProj=portalMatrix*world;g
 const portalFrag=`varying vec4 vProj;uniform sampler2D map;uniform vec3 col;uniform float hasPair;
 void main(){
  if(hasPair<.5){gl_FragColor=vec4(col*.10,1.0);return;}
- vec2 uv=vProj.xy/max(vProj.w,1e-4)*.5+.5;
+ if(vProj.w<=0.0){gl_FragColor=vec4(col*.07,1.0);return;}
+ vec2 uv=vProj.xy/vProj.w*.5+.5;
  if(uv.x<0.0||uv.x>1.0||uv.y<0.0||uv.y>1.0){gl_FragColor=vec4(col*.07,1.0);return;}
  gl_FragColor=texture2D(map,uv);
  #include <tonemapping_fragment>
@@ -243,15 +244,25 @@ Gadgets.prototype.shootPortal=function(item,aim){
  const col=PORTAL_COLORS[idx];
  this.props.beam(muzzle,hit?.point||ray.at(12,V()),col,.12);
  if(!hit||this.props.actorFor(hit.object)||this.props.dogFor(hit.object)) {this.props.status='Portal needs a surface';return;}
- const n=(hit.face?.normal.clone().transformDirection(hit.object.matrixWorld)||new T.Vector3(0,1,0));
- if(n.lengthSq()<1e-8)n.set(0,1,0);n.normalize();
  if(hit.object.userData?.portal) {this.props.status='Cannot place on a portal';return;}
- if(Math.abs(n.y)>.35){this.props.status='Place portals on a broad, upright wall';return;}
+ const n=this.hitNormal(hit);
+ if(Math.abs(n.y)>.55){this.props.status='Place portals on a broad, upright wall';return;}
  const fit=this.fitPortal(hit,n);if(!fit){this.props.status='A full doorway of solid wall is needed';return;}
  this.placePortal(idx,fit.position,n,hit.object,fit.owners);
  if(typeof item.holder==='number')this.props.system.hands.haptics?.contact(item.holder,'prop',1,.006);
 };
 
+Gadgets.prototype.instanceWorld=function(object,instanceId){
+ const m=object.matrixWorld.clone();
+ if(object.isInstancedMesh&&instanceId!=null){const im=new T.Matrix4();object.getMatrixAt(instanceId,im);m.multiply(im);}
+ return m;
+};
+Gadgets.prototype.hitNormal=function(hit){
+ const n=hit?.face?.normal?.clone();
+ if(!n||!hit.object)return new T.Vector3(0,1,0);
+ n.transformDirection(this.instanceWorld(hit.object,hit.instanceId));
+ if(n.lengthSq()<1e-8)n.set(0,1,0);return n.normalize();
+};
 Gadgets.prototype.orientPortal=function(normal){
  const z=normal.clone().normalize();
  const y=new T.Vector3(0,1,0);
@@ -261,21 +272,27 @@ Gadgets.prototype.orientPortal=function(normal){
  y.crossVectors(z,x).normalize();
  return new T.Quaternion().setFromRotationMatrix(new T.Matrix4().makeBasis(x,y,z));
 };
-
 Gadgets.prototype.fitPortal=function(hit,normal){
- const position=hit.point.clone();position.y=(this.world.floorHeight?.(position,.85)||0)+PORTAL_H*.5+.02;
- const q=this.orientPortal(normal),owners=new Set([hit.object]);
- // A doorway may span wall tiles. Test its center and edges, not the entire mesh AABB.
- for(const x of [-.54,0,.54])for(const y of [-1.03,0,1.03]){
-  const p=new T.Vector3(x,y,0).applyQuaternion(q).add(position).addScaledVector(normal,.18);
-  const h=this.props.hit(new T.Ray(p,normal.clone().negate()),.30,false,{world:true});
-  if(!h||this.props.actorFor(h.object)||this.props.dogFor(h.object)||h.object.userData?.cloth||h.object.userData?.carPart)return null;
-  for(let o=h.object;o;o=o.parent)if(o.userData?.furniture)return null;
-  const n=h.face?.normal?.clone().transformDirection(h.object.matrixWorld);
-  if(!n||n.dot(normal)<.98||Math.abs(h.point.clone().sub(position).dot(normal))>.06)return null;
-  owners.add(h.object);
- }
- return {position,owners};
+ const q=this.orientPortal(normal);
+ const tryFit=center=>{
+  const owners=new Set([hit.object]);
+  for(const x of [-.54,0,.54])for(const y of [-1.03,0,1.03]){
+   const p=new T.Vector3(x,y,0).applyQuaternion(q).add(center).addScaledVector(normal,.22);
+   const h=this.props.hit(new T.Ray(p,normal.clone().negate()),.42,false,{world:true});
+   if(!h||this.props.actorFor(h.object)||this.props.dogFor(h.object)||h.object.userData?.cloth||h.object.userData?.carPart||h.object.userData?.portal)return null;
+   for(let o=h.object;o;o=o.parent)if(o.userData?.furniture)return null;
+   const n=this.hitNormal(h);
+   if(n.dot(normal)<.82||Math.abs(h.point.clone().sub(center).dot(normal))>.12)return null;
+   owners.add(h.object);
+  }
+  return {position:center.clone(),owners};
+ };
+ // Sit on the actual hit surface. A floor-height doorway is only a fallback.
+ const atHit=tryFit(hit.point.clone());
+ if(atHit)return atHit;
+ const floor=(this.world.floorHeight?.(hit.point,.85)||0)+.02;
+ const doorway=hit.point.clone();doorway.y=floor+PORTAL_H*.5;
+ return tryFit(doorway);
 };
 Gadgets.prototype.placePortal=function(idx,point,normal,object,owners=new Set([object])){
  if(![0,1].includes(idx)||!object?.parent)return false;
