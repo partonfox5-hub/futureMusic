@@ -1,6 +1,6 @@
-import {T,V} from './math.js?v=4.0.0';
-import {canvas,texture} from './textures.js?v=4.0.0';
-import {screenFrame} from './screens.js?v=4.0.0';
+import {T,V} from './math.js?v=5.0.0';
+import {canvas,texture} from './textures.js?v=5.0.0';
+import {screenFrame} from './screens.js?v=5.0.0';
 
 function person(x,px,py,time,index,wave,flee,scale=1){
  x.save();x.translate(px,py);x.scale(scale,scale);const bounce=flee?Math.sin(time*16+index)*1.8:0;x.translate(0,bounce);

@@ -1,5 +1,5 @@
-import {T,V,clamp,raySphere} from './math.js?v=4.0.0';
-import {chunkEdge} from './fracture.js?v=4.0.0';
+import {T,V,clamp,raySphere} from './math.js?v=5.0.0';
+import {chunkEdge} from './fracture.js?v=5.0.0';
 const shapes={hullChunk:[1.2,.13,.9],crate:[.57,.57,.57],cage:[.76,.76,.76],barrel:[.50,.67,.50],pad:[1.72,.13,1.72],window:[1.33,.83,.12],kennel:[1.43,1.33,1.53],island:[1,.14,1]};
 export function halfSize(e){const shape=e.half||shapes[e.type];if(!shape)return null;const k=e.scale||1;return V(...shape).multiplyScalar(k);}
 export function entityRay(o,d,e,max,pad=0){if(e.type==='hullChunk'&&e.source)return chunkRay(o,d,e,max,pad);const half=halfSize(e);if(!half)return raySphere(o,d,e.p,e.r+pad,max);half.addScalar(pad);const q=e.q.clone().invert(),p=o.clone().sub(e.p).applyQuaternion(q),dir=d.clone().applyQuaternion(q);let enter=-Infinity,exit=Infinity;for(let axis=0;axis<3;axis++){const a=p.getComponent(axis),b=dir.getComponent(axis),h=half.getComponent(axis);if(Math.abs(b)<1e-9){if(Math.abs(a)>h)return Infinity;continue;}let lo=(-h-a)/b,hi=(h-a)/b;if(lo>hi)[lo,hi]=[hi,lo];enter=Math.max(enter,lo);exit=Math.min(exit,hi);if(enter>exit)return Infinity;}const t=enter>.0001?enter:exit>.0001?exit:Infinity;return t<=max?t:Infinity;}

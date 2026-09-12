@@ -1,4 +1,4 @@
-import {V,clamp} from './math.js?v=4.0.0';
+import {V,clamp} from './math.js?v=5.0.0';
 
 // World-space threat prediction is independent of presentation and frame rate.
 // Each screen has its own response. Atlas frames are shared, not reactions.

@@ -1,4 +1,4 @@
-import {V,clamp,rng} from './math.js?v=4.0.0';
+import {V,clamp,rng} from './math.js?v=5.0.0';
 
 // The same radial contour is used for visible tears and physical openings.
 export function fractureProfile(seed){

@@ -1,5 +1,5 @@
-import {T,V,rng,unit,clamp} from './math.js?v=4.0.0';
-import {canvas,texture} from './textures.js?v=4.0.0';
+import {T,V,rng,unit,clamp} from './math.js?v=5.0.0';
+import {canvas,texture} from './textures.js?v=5.0.0';
 
 function noise2(x,y,seed){const ix=Math.floor(x),iy=Math.floor(y),u=x-ix,v=y-iy,s=u*u*(3-2*u),t=v*v*(3-2*v),hash=(a,b)=>{let n=Math.imul(a+seed,374761393)^Math.imul(b+91,668265263);n=Math.imul(n^(n>>>13),1274126177);return ((n^(n>>>16))>>>0)/4294967296;};const a=hash(ix,iy),b=hash(ix+1,iy),c=hash(ix,iy+1),d=hash(ix+1,iy+1);return (a+(b-a)*s)*(1-t)+(c+(d-c)*s)*t;}
 export function effectAtlas(){
@@ -39,6 +39,7 @@ class SpriteBatch{
 export class Atmosphere{
  constructor(scene){
   this.scene=scene;this.random=rng(42059);this.atlas=effectAtlas();this.fire=new SpriteBatch(scene,this.atlas,128,true);this.smoke=new SpriteBatch(scene,this.atlas,128);this.decals=new SpriteBatch(scene,this.atlas,48,false,false);
+  this.beamFire=new SpriteBatch(scene,this.atlas,64,true);this.beamSmoke=new SpriteBatch(scene,this.atlas,64);this.beamPoint=V();this.beamTint=new T.Color(0xff5739);this.beamSmokeTint=new T.Color(0x88828b);
   this.particles=Array.from({length:256},()=>({p:V(),v:V(),age:9,life:0,size:0,growth:0,tile:0,color:new T.Color(),angle:0}));this.at=0;this.burns=[];this.opaque=[];this.playerPosition=V();this.quality='balanced';this.emissions=0;
   this.lights=Array.from({length:2},()=>{const l=new T.PointLight(0xff893d,0,18,2);scene.add(l);return l;});this.flash=0;this.flashPeak=0;
  }
@@ -59,6 +60,17 @@ export class Atmosphere{
  }
  update(g,dt){
   this.playerPosition.copy(g.player.p);
+  // Continuous overlapping volumes cover the entire clipped beam, with fixed
+  // capacity and no transient particle allocation or extra lights per sample.
+  let beamCount=0;const beam=g.weapons.beam;
+  if(beam){const length=beam.a.distanceTo(beam.b);beamCount=Math.min(this.quality==='performance'?32:64,Math.max(2,Math.ceil(length/.65)));
+   const step=length/beamCount,size=Math.max(.34,step*1.55);this.beamTint.set(beam.color);
+   for(let i=0;i<beamCount;i++){const t=(i+.5)/beamCount,phase=g.time*9+i*2.4;this.beamPoint.lerpVectors(beam.a,beam.b,t);
+    this.beamFire.add(i,this.beamPoint,size,this.beamTint,.20+.06*Math.sin(phase),2,phase*.21);
+    this.beamSmoke.add(i,this.beamPoint,size*1.25,this.beamSmokeTint,.10+.035*Math.sin(phase+1),1,-phase*.12);
+   }
+  }
+  this.beamFire.end(beamCount);this.beamSmoke.end(beamCount);
   let decals=0;const smokeColor=new T.Color(0x7b818c),white=new T.Color(0xffffff);
   for(const b of this.burns){b.age+=dt;b.life-=dt;
    if(b.target){const e=b.entity||(b.entity=g.entities.find(e=>e.id===b.target));if(!e?.alive){b.life=0;continue;}if(!b.local){b.local=b.p.clone().sub(e.p).applyQuaternion(e.q.clone().invert());b.localNormal=b.normal.clone().applyQuaternion(e.q.clone().invert());}b.p.copy(b.local).applyQuaternion(e.q).add(e.p);b.normal.copy(b.localNormal).applyQuaternion(e.q);}
@@ -79,5 +91,5 @@ export class Atmosphere{
   this.flash=Math.max(0,this.flash-dt);this.lights[0].intensity=this.quality==='performance'?0:this.flashPeak*(this.flash/.3)**2;
   const t=clamp(g.weapons.charge/(7.170193/g.power),0,1);this.lights[1].position.copy(g.weapons.muzzle);this.lights[1].color.set(0x87dbef);this.lights[1].intensity=this.quality==='performance'?0:t*1.7;this.lights[1].distance=2.8;if(g.weapons.beam){this.lights[1].position.copy(g.weapons.beam.b);this.lights[1].color.set(g.weapons.beam.color);this.lights[1].intensity=this.quality==='performance'?0:2+Math.sin(g.time*37)*.3;this.lights[1].distance=4;}
  }
- dispose(){for(const b of [this.fire,this.smoke,this.decals])b.dispose();for(const l of this.lights)this.scene.remove(l);this.atlas.dispose();}
+ dispose(){for(const b of [this.fire,this.smoke,this.decals,this.beamFire,this.beamSmoke])b.dispose();for(const l of this.lights)this.scene.remove(l);this.atlas.dispose();}
 }

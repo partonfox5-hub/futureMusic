@@ -54,7 +54,7 @@ These local commands are for desktop testing. A Quest connecting to another comp
 
 ## First Quest check
 
-1. Confirm that both weapons appear and that the left trigger fires plasma on release.
+1. Use a trigger to advance the restored intro, or B to skip. Confirm the lower-left holographic map and top-center power gauge after it ends. Confirm that both weapons appear and that the left trigger fires plasma on release.
 2. Confirm that the right sword follows the controller, and holding its trigger starts the laser after the charge delay.
 3. Fly through a main tunnel, turn with the right stick, and use left grip + X to pause.
 4. Point at a menu button and press a trigger. Test resume, map and save/load.
@@ -67,4 +67,4 @@ If Enter VR stays unavailable, confirm HTTPS, Meta Quest Browser, iframe permiss
 
 ## Replacing an older hosted build
 
-Upload all files from the new `netknight-webvr` folder, including the new JavaScript modules. The packaged runtime uses `?v=4.0.0` on module URLs and the page stylesheet so the browser requests the new code. Close an existing VR session and reload the game page after uploading. If a CDN caches the HTML itself, purge its cached game page. Do not remove the `assets` or `vendor` folders. Existing saves can be loaded and are upgraded automatically.
+Upload all files from the new `netknight-webvr` folder, including the new JavaScript modules. The packaged runtime uses `?v=5.0.0` on module URLs and the page stylesheet so the browser requests the new code. Close an existing VR session and reload the game page after uploading. If a CDN caches the HTML itself, purge its cached game page. Do not remove the `assets` or `vendor` folders. Existing saves can be loaded and are upgraded automatically.

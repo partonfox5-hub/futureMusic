@@ -1,4 +1,4 @@
-import {T,V} from './math.js?v=4.0.0';
+import {T,V} from './math.js?v=5.0.0';
 export const SWORD_TIP=1.63;
 export const KNIGHT_SCALE=1.55;
 // Match the articulated right shoulder / forearm / sword in models.js.

@@ -1,6 +1,6 @@
-import {T,V,clamp} from './math.js?v=4.0.0';
-import {G,M,material,buildModel,part,mergeParts,tickTicker} from './models.js?v=4.0.0';
-import {KNIGHT_SCALE} from './knight-pose.js?v=4.0.0';
+import {T,V,clamp} from './math.js?v=5.0.0';
+import {G,M,material,buildModel,part,mergeParts,tickTicker} from './models.js?v=5.0.0';
+import {KNIGHT_SCALE} from './knight-pose.js?v=5.0.0';
 const animated=/^(head|jaw|leg|arm|fore|extra|cape|rotor|rib|wing|gun|blade)/;
 const q=new T.Quaternion(),q2=new T.Quaternion(),s=V(1,1,1),m=new T.Matrix4(),local=new T.Matrix4(),offset=V();
 function compile(root){const bones=[];function scan(node,parent=-1){const bone={name:node.name,parent,pos:node.position.clone(),q:node.quaternion.clone(),scale:node.scale.clone(),matrix:new T.Matrix4(),parts:[]};const id=bones.length;bones.push(bone);const staticRoot=new T.Group();function copy(src,dest){for(const child of src.children){if(child.isGroup&&animated.test(child.name)){scan(child,id);continue;}const clone=child.clone(false);dest.add(clone);copy(child,clone);}}copy(node,staticRoot);bone.parts=mergeParts(staticRoot);return id;}scan(root);return bones;}

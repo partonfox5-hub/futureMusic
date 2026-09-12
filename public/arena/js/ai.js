@@ -1,14 +1,14 @@
-import {T,V,clamp,unit,segmentDistance} from './math.js?v=4.0.0';
-import {PETS,RULES} from './data.js?v=4.0.0';
-import {knightSwordPose,KNIGHT_SCALE} from './knight-pose.js?v=4.0.0';
+import {T,V,clamp,unit,segmentDistance} from './math.js?v=5.0.0';
+import {PETS,RULES} from './data.js?v=5.0.0';
+import {knightSwordPose,KNIGHT_SCALE} from './knight-pose.js?v=5.0.0';
 export function tickSpawns(g,dt){
  for(const type of ['knight','camel','trilo']){const at=RULES[type+'At'];if(!g.flags[type]&&g.time>=at){g.flags[type]=true;const sector=type==='knight'?1:type==='trilo'?2:Math.floor(g.random()*8);g.spawn(type,g.map.interior(sector,.12));g.say(type==='knight'?'The Dark Knight has entered Knight Sector.':type==='camel'?'A robotic hover-camel slides in.':'Power-armor trilobite on approach.');}}
  for(const key of Object.keys(g.timers))g.timers[key]-=dt;
  if(g.timers.crate<=0){g.timers.crate=90;if(g.entities.filter(e=>e.alive&&['crate','barrel'].includes(e.type)).length<52)for(let i=0;i<8;i++)g.cluster(g.map.interior(i,.65),5);for(let i=g.entities.filter(e=>e.alive&&e.type==='missilePickup').length;i<3;i++)g.addMissile();}
  if(g.timers.cage<=0){g.timers.cage=48+g.random()*40;g.addCages();}
 
- if(g.timers.rift<=0){g.timers.rift=Math.max(4.35,20-(g.time-60)*.12)*1.05;const s=g.map.spheres[Math.floor(g.random()*8)],dir=unit(g.random),p=s.c.clone().addScaledVector(dir,s.r*.97);g.rifts.push({p,dir,age:0,life:3.5,released:false,sphere:s.id});g.emit('rift',p);}
- for(const r of g.rifts){r.age+=dt;r.life-=dt;if(r.age>.75&&!r.released){r.released=true;const n=2+Math.floor(g.random()*2),pack=++g.id;for(let i=0;i<n;i++)g.spawn('drone',r.p.clone().addScaledVector(r.dir,-1-i*.35),{kind:Math.floor(g.random()*7),pack,sphere:r.sphere});if(g.random()<.34){const n=g.random()<.18?2+Math.floor(g.random()*4):1;for(let i=0;i<n;i++)g.spawn('lemur',r.p.clone().addScaledVector(r.dir,-1),{sphere:r.sphere,pack});}g.say('A steel hatch opens. Mixed drones spill in.');}}
+ if(g.timers.rift<=0){g.timers.rift=Math.max(4.35,20-(g.time-60)*.12)*1.05*RULES.swarmIntervalScale;const s=g.map.spheres[Math.floor(g.random()*8)],dir=unit(g.random),p=s.c.clone().addScaledVector(dir,s.r*.97);g.rifts.push({p,dir,age:0,life:3.5,released:false,sphere:s.id});g.emit('rift',p);}
+ for(const r of g.rifts){r.age+=dt;r.life-=dt;if(r.age>.75&&!r.released){r.released=true;const base=2+Math.floor(g.random()*2),scaled=base*RULES.swarmBatchScale,n=Math.floor(scaled)+(g.random()<scaled%1?1:0),pack=++g.id;for(let i=0;i<n;i++)g.spawn('drone',r.p.clone().addScaledVector(r.dir,-1-i*.35),{kind:Math.floor(g.random()*7),pack,sphere:r.sphere});if(g.random()<.34){const n=g.random()<.18?2+Math.floor(g.random()*4):1;for(let i=0;i<n;i++)g.spawn('lemur',r.p.clone().addScaledVector(r.dir,-1),{sphere:r.sphere,pack});}g.emit('swarm',g.player.p,{count:n,pack});g.say('INCOMING UFO SWARM · '+n+' saucers deployed.');}}
  if(g.timers.hornet<=0){const n=g.time>720?5:3;g.timers.hornet=(n===5?130+g.random()*60:95+g.random()*55)*1.3;const s=g.map.nearest(g.player.p),at=s.c.clone().addScaledVector(unit(g.random),s.r+15);for(let i=0;i<n;i++)g.spawn('hornet',at.clone().addScaledVector(unit(g.random),i*2),{exterior:true});g.say('Hornet gunships patrol the outer hulls.');}
  for(const n of g.map.nests){
   if(n.disabled)continue;
@@ -20,7 +20,7 @@ export function tickSpawns(g,dt){
 function spawnHydraPair(g,n,count){for(let i=0;i<count;i++){const index=n.headSerial++;g.spawn('hydra',n.pos.clone().addScaledVector(n.dir,-3),{nest:n.id,headIndex:index,phase:index*2.39996,cd:.6+i*.3,hp:n.headHealth,maxHp:n.headHealth});}}
 
 function aim(g,e){const d=g.player.p.clone().sub(e.p),dist=d.length();return {dir:d.multiplyScalar(1/Math.max(.001,dist)),dist};}
-function shoot(g,e,dir,speed=14,dmg=1,extra={}){g.shot(e.p.clone().addScaledVector(dir,e.r+.15),dir,speed,dmg,{owner:'enemy',kind:'bolt',r:.09,life:4,...extra});g.emit('enemyshot',e.p,{quiet:true});}
+function shoot(g,e,dir,speed=14,dmg=1,extra={}){g.shot(e.p.clone().addScaledVector(dir,e.r+.15),dir,speed,dmg,{owner:'enemy',kind:'bolt',r:.09,life:4,...(extra.kind==='rocket'?{blast:2.2}:{}),...extra});g.emit('enemyshot',e.p,{quiet:true});}
 function travel(g,e,wish,dt,force=4){e.v.lerp(wish,1-Math.exp(-force*dt));g.map.move(e.p,e.v,dt,Math.min(e.r,.6));}
 function visible(g,e,dir,dist){return !g.map.ray(e.p,dir,Math.max(0,dist-.5));}
 export function tickAI(g,dt,input){
@@ -32,7 +32,7 @@ export function tickAI(g,dt,input){
   const {dir,dist}=aim(g,e);e.dir=dir;e.cd-=tick;e.stateT-=tick;e.beamT=Math.max(0,(e.beamT||0)-tick);e.attack=Math.max(0,(e.attack||0)-tick);
   if(e.stun>0){g.map.move(e.p,e.v,tick,Math.min(.6,e.r));e.v.multiplyScalar(.95);continue;}
   if(e.type==='hydra'){tickHydra(g,e,tick,dir,dist);continue;}
-  const waypoint=g.map.route(e.p,p.p),route=waypoint.clone().sub(e.p).normalize(),same=g.map.sector(e.p)===g.map.sector(p.p),side=dir.clone().cross(V(0,1,0)).normalize();let wish=V();
+  const waypoint=g.map.route(e.p,p.p,g.time,e),route=waypoint.clone().sub(e.p).normalize(),same=waypoint===p.p,side=dir.clone().cross(V(0,1,0)).normalize();let wish=V();
   if(e.type==='drone'){
    const fast=e.kind===1||e.kind===6,hold=fast?7.2:8.4,speed=fast?5.4:e.kind===0?3:4;wish.copy(same?dir:route).multiplyScalar(same?(dist>hold?speed:dist<hold-2?-2:0):speed);wish.addScaledVector(side,Math.sin(g.time+e.phase)*2.1);wish.y+=Math.sin(g.time*1.2+e.phase)*.8;
    for(const other of g.grid.near(e.p,2.4,[]))if(other!==e&&other.type==='drone'){const away=e.p.clone().sub(other.p),len=away.length();if(len>0&&len<2.4)wish.addScaledVector(away,(2.4-len)/len*2);}
@@ -67,6 +67,7 @@ export function tickAI(g,dt,input){
    const outside=g.map.sector(p.p)<0,s=g.map.nearest(e.p),dest=outside?p.p:s.c.clone().addScaledVector(p.p.clone().sub(s.c).normalize(),s.r+12),fly=dest.clone().sub(e.p).normalize();wish.copy(fly).multiplyScalar(e.p.distanceTo(dest)>12?6:-1).addScaledVector(side,Math.sin(g.time*.6+e.phase)*4);wish.y+=Math.sin(g.time*2+e.phase);
    if(e.cd<=0&&outside&&dist<65&&visible(g,e,dir,dist)){shoot(g,e,dir,22,1);shoot(g,e,dir.clone().addScaledVector(side,.05).normalize(),22,1);e.cd=.8;e.attack=.2;}if((e.rocketCd||0)<=0&&outside&&dist<45){shoot(g,e,dir,10,3,{kind:'rocket',target:-1,seek:1.8,life:4});e.rocketCd=6;}e.rocketCd=(e.rocketCd||0)-tick;
   }
+  if((e.type!=='hornet'||!g.map.navigator.enclosed(p.p))&&(!same||g.map.sector(e.p)!==g.map.sector(p.p)||(g.map.sector(e.p)<0&&g.map.navigator.enclosed(e.p)))){const speed={drone:e.kind===1||e.kind===6?5.4:4,knight:8.4*(e.white?1.55:1),camel:4.2,trilo:6,lemur:3.5,hornet:6}[e.type]||4;wish.copy(route).multiplyScalar(speed);}
   if(e.type==='knight'&&e.laserCast)wish.multiplyScalar(.35);travel(g,e,wish,tick,e.type==='knight'?3:2.3);if(e.type==='knight')tickKnightLaser(g,e,tick);
  }
 }

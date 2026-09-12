@@ -36,3 +36,12 @@ test('irregular tear texture and physical opening agree at equator and poles',()
   assert.ok(Math.max(...h.profile)-Math.min(...h.profile)>.3);world.dispose();
  }
 });
+
+test('sword fire and smoke cover the entire clipped beam with capped pools and stop on release',()=>{
+ const g=new Simulation(7);g.entities=[];g.player.p.set(0,0,0);g.weapons.beam={a:V(0,0,2),b:V(0,0,57.2),color:0xff271f,width:.065};const fx=new Effects(new T.Scene()),cam=new T.PerspectiveCamera();fx.update(g,1/60,cam);
+ const fire=fx.atmosphere.beamFire.mesh,smoke=fx.atmosphere.beamSmoke.mesh;assert.equal(fire.count,64);assert.equal(smoke.count,64);const m=new T.Matrix4(),p=V(),q=new T.Quaternion(),s=V();let previous=null;for(let i=0;i<fire.count;i++){fire.getMatrixAt(i,m);m.decompose(p,q,s);if(previous!==null)assert.ok(p.z-previous<s.x,'gaps in beam flame');previous=p.z;}assert.ok(p.z+s.x/2>=57.2);
+ fx.quality='performance';fx.update(g,1/60,cam);assert.equal(fire.count,32);g.weapons.beam=null;fx.update(g,1/60,cam);assert.equal(fire.count,0);assert.equal(smoke.count,0);fx.dispose();
+});
+test('power fragments render RGB cores and halos, and flying red slashes have finite bounded geometry',()=>{
+ const g=new Simulation(14);g.entities=[];g.player.p.set(0,0,0);g.add('shard',V(0,0,3));g.shot(V(0,0,8),V(0,0,1),30,8,{kind:'slash',r:.85,roll:.8});const fx=new Effects(new T.Scene());fx.update(g,1/60,new T.PerspectiveCamera());assert.equal(fx.fragmentGeometry.drawRange.count,3);assert.equal(fx.shards.count,0);const c=fx.fragmentColors;assert.ok(c[0]>c[1]&&c[0]>c[2]);assert.ok(c[4]>c[3]&&c[4]>c[5]);assert.ok(c[8]>c[6]&&c[8]>c[7]);assert.equal(fx.slashes.count,1);assert.equal(fx.slashGlow.count,1);for(const x of fx.slashGeometry.attributes.position.array)assert.ok(Number.isFinite(x));fx.dispose();
+});

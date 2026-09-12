@@ -1,4 +1,4 @@
-import {T,rng} from './math.js?v=4.0.0';
+import {T,rng} from './math.js?v=5.0.0';
 // Palette/pattern families follow NkTex.WallVariant, with brushed material detail.
 const palettes=[['#161322','#292033','#668589'],['#38251e','#65442d','#ad7252'],['#102c24','#17473a','#50c897'],['#111c38','#233661','#d0c398'],['#41464c','#27292d','#bd873c'],['#281335','#52215f','#804e86'],['#16313c','#28483b','#44b7c7'],['#14282a','#24483f','#54ce91'],['#b99832','#262930','#d3b352'],['#22272d','#44454d','#7b818d'],['#346078','#73a5b6','#c7e0e5'],['#35251f','#614334','#aa7754']];
 export function paintArenaPanel(color,seed=13,w=1024,h=512,variant=0){

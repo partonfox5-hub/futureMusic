@@ -1,6 +1,6 @@
-import {T,V} from './math.js?v=4.0.0';
-import {PETS,DRONES} from './data.js?v=4.0.0';
-import {canvas,texture} from './textures.js?v=4.0.0';
+import {T,V} from './math.js?v=5.0.0';
+import {PETS,DRONES} from './data.js?v=5.0.0';
+import {canvas,texture} from './textures.js?v=5.0.0';
 const matCache=new Map();
 export function material(color,metalness=.5,roughness=.36,glow=0){const key=[color,metalness,roughness,glow].join();if(!matCache.has(key))matCache.set(key,new T.MeshStandardMaterial({color,metalness,roughness,emissive:glow?color:0,emissiveIntensity:glow}));return matCache.get(key);}
 export const M={steel:material(0x8b9cad,.82,.28),dark:material(0x17202c,.68,.36),black:material(0x080e18,.3,.55),brass:material(0xd6a65c,.78,.25),teal:material(0x60f3df,.35,.24,1.5),red:material(0xff454f,.25,.3,1.3),white:material(0xecf7ff,.5,.26),bone:material(0xe8deb7,.12,.36),plasma:material(0xbf7aff,.3,.18,2.2)};

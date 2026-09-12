@@ -1,0 +1,31 @@
+{
+  "version": "5.0.0",
+  "environment": "Node CPU only; no GPU or Quest frame-rate claim",
+  "pursuit": {
+    "medianMs": 0.442,
+    "p95Ms": 0.905,
+    "p99Ms": 1.772,
+    "maxMs": 19.816,
+    "elapsedMs": 1788,
+    "steps": 3600,
+    "simulatedSeconds": 60,
+    "startingEnemies": 96,
+    "graphBuilds": 1,
+    "flowFields": 143,
+    "graphNodes": 59,
+    "finiteState": true
+  },
+  "effects": {
+    "medianMs": 0.205,
+    "p95Ms": 0.5,
+    "p99Ms": 1.399,
+    "maxMs": 4.849,
+    "frames": 720,
+    "visibleFragments": 600,
+    "renderedRGBPoints": 1800,
+    "slashInstances": 64,
+    "beamFireSprites": 64,
+    "beamSmokeSprites": 64,
+    "transientParticleCapacity": 256
+  }
+}

@@ -1,6 +1,6 @@
-import {T,V} from './math.js?v=4.0.0';
-import {texture} from './textures.js?v=4.0.0';
-import {chunkEdge} from './fracture.js?v=4.0.0';
+import {T,V} from './math.js?v=5.0.0';
+import {texture} from './textures.js?v=5.0.0';
+import {chunkEdge} from './fracture.js?v=5.0.0';
 
 // One curved shell mesh, instanced for all fragments from a given surface.
 // Original pose samples the source wall; current pose moves the fragment.

@@ -15,3 +15,8 @@ export function plasmaImpact(radius=3,sampleRate=24000){
  }return a;
 }
 export function screenCue(kind,sampleRate=24000){const duration=kind==='boat'?.7:.38,a=new Float32Array(Math.ceil(duration*sampleRate));for(let i=0;i<a.length;i++){const t=i/sampleRate,u=t/duration,base=kind==='boat'?147:kind==='car'?420:720,envelope=Math.sin(Math.PI*u)**2*(kind==='car'?(Math.sin(t*40)>-.2?1:.1):1);a[i]=(Math.sin(t*6.283*base)*.15+Math.sin(t*6.283*base*1.26)*.075)*envelope;}return a;}
+// Eight related notes vary each pickup while overlapping into a consonant chord.
+export function fragmentChime(kind=0,sampleRate=24000){const notes=[0,2,4,7,9,12,14,16],frequency=523.251*2**(notes[kind%8]/12),duration=.48,a=new Float32Array(Math.ceil(duration*sampleRate));
+ for(let i=0;i<a.length;i++){const t=i/sampleRate,envelope=(1-Math.exp(-t*600))*Math.exp(-t*9)*Math.min(1,(duration-t)*40);a[i]=(Math.sin(t*Math.PI*2*frequency)*.24+Math.sin(t*Math.PI*2*frequency*2.004)*.065*Math.exp(-t*12)+Math.sin(t*Math.PI*2*frequency*3)*.025)*envelope;}return a;}
+export function slashCrackle(sampleRate=24000){const a=new Float32Array(Math.floor(sampleRate*.32));let seed=97,phase=0;
+ for(let i=0;i<a.length;i++){const t=i/sampleRate,u=i/a.length;seed=(Math.imul(seed,1664525)+1013904223)>>>0;const noise=seed/4294967296*2-1;phase+=2*Math.PI*(160+1800*(1-u)**3)/sampleRate;const gate=Math.sin(t*2*Math.PI*73)>.73?1:.16;a[i]=(noise*gate*.42+Math.sin(phase)*.13)*(1-Math.exp(-t*500))*Math.exp(-t*12)*(1-u);}return a;}

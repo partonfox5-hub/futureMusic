@@ -1,6 +1,6 @@
-import {T,V,rng} from './math.js?v=4.0.0';
-import {sphereRim,rimRadius,inSphereHole} from './fracture.js?v=4.0.0';
-import {paintArenaPanel} from './wall-style.js?v=4.0.0';
+import {T,V,rng} from './math.js?v=5.0.0';
+import {sphereRim,rimRadius,inSphereHole} from './fracture.js?v=5.0.0';
+import {paintArenaPanel} from './wall-style.js?v=5.0.0';
 export function canvas(w,h=w){const c=document.createElement('canvas');c.width=w;c.height=h;return c;}
 export function texture(c){const t=new T.CanvasTexture(c);t.colorSpace=T.SRGBColorSpace;t.anisotropy=2;return t;}
 export const paintPanel=paintArenaPanel;

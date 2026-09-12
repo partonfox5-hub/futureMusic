@@ -1,8 +1,8 @@
-import {T,V} from './math.js?v=4.0.0';
-import {RULES} from './data.js?v=4.0.0';
-import {paintTunnelPanel} from './wall-style.js?v=4.0.0';
-import {G,M,part,mergeParts} from './models.js?v=4.0.0';
-import {canvas,texture,paintPanel,spherePaint,tubePaint,lavaTexture,labelTexture} from './textures.js?v=4.0.0';
+import {T,V} from './math.js?v=5.0.0';
+import {RULES} from './data.js?v=5.0.0';
+import {paintTunnelPanel} from './wall-style.js?v=5.0.0';
+import {G,M,part,mergeParts} from './models.js?v=5.0.0';
+import {canvas,texture,paintPanel,spherePaint,tubePaint,lavaTexture,labelTexture} from './textures.js?v=5.0.0';
 export class WorldView {
  constructor(scene,map){this.scene=scene;this.map=map;this.group=new T.Group();scene.add(this.group);this.shells=[];this.tubes=[];this.iris=[];this.rev=map.revision;this.textureChanges=0;this.lastTime=0;this.lava=lavaTexture();
   for(const s of map.spheres){const base=paintPanel(s.color,s.id+27,1024,512,s.hub?0:(s.id+5)%12),tex=texture(spherePaint(base,s,map)),mat=new T.MeshStandardMaterial({map:tex,alphaTest:.48,side:T.DoubleSide,metalness:.55,roughness:.5,bumpMap:tex,bumpScale:.055,emissive:0xffffff,emissiveMap:tex,emissiveIntensity:.22});mat.forceSinglePass=true;const m=new T.Mesh(new T.SphereGeometry(s.r,64,40),mat);m.position.copy(s.c);this.group.add(m);this.shells.push({m,base,tex,s,stamp:this.sphereStamp(s)});

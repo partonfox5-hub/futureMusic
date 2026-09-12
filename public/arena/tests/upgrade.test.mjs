@@ -53,7 +53,7 @@ test('mech sword visibly charges before its purple beam uses the sword-tip pose'
  for(let i=0;i<42;i++){g.time+=1/60;tickAI(g,1/60,{});}assert.equal(e.laserCast,'fire');assert.ok(e.beam);assert.equal(e.beam.color,0xac47ff);near(e.beam.a.distanceTo(knightSwordPose(e,g.time).tip),0);
 });
 test('wall fragments inherit their impact site and are curved collidable destructible zero-G platforms',()=>{
- const g=blank(),hit={type:'sphere',id:0,pos:V(45,0,0),normal:V(1,0,0)};for(let i=0;i<4;i++)g.map.scorch(hit,6);g.breach(hit);const fragments=g.entities.filter(e=>e.type==='hullChunk');assert.equal(fragments.length,6);
+ const g=blank(),hit={type:'sphere',id:0,pos:V(45,0,0),normal:V(1,0,0)};for(let i=0;i<5;i++)g.map.scorch(hit,6);g.breach(hit);const fragments=g.entities.filter(e=>e.type==='hullChunk');assert.equal(fragments.length,6);
  const e=fragments[0];near(e.source.origin.length(),45);assert.equal(e.source.id,0);assert.equal(e.hp,42);
  e.p.set(0,0,10);e.q.identity();e.v.set(.3,.1,0);g.grid.rebuild(g.entities);
  const ray=entityRay(e.p.clone().add(V(0,3,0)),V(0,-1,0),e,5);near(ray,3);const body=e.p.clone().add(V(0,.2,0)),velocity=V(0,-1,0);assert.ok(resolveBody(body,velocity,e));assert.ok(body.y>.35);

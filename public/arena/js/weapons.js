@@ -1,16 +1,18 @@
-import {T,V,clamp,lerp,segmentDistance,raySphere} from './math.js?v=4.0.0';
-import {RULES} from './data.js?v=4.0.0';
-import {SWORD_TIP} from './knight-pose.js?v=4.0.0';
-import {entityRay} from './collision.js?v=4.0.0';
+import {T,V,clamp,lerp,segmentDistance,raySphere} from './math.js?v=5.0.0';
+import {RULES} from './data.js?v=5.0.0';
+import {SWORD_TIP} from './knight-pose.js?v=5.0.0';
+import {entityRay} from './collision.js?v=5.0.0';
 export class Weapons {
- constructor(game){this.g=game;this.charge=0;this.laserCharge=0;this.fuel=10;this.cooldown=0;this.pulseCooldown=0;this.lassoT=0;this.lasso=[];this.base=V();this.tip=V();this.muzzle=V();this.prevTip=null;this.prevPlayer=V();this.swing=0;this.swingAnim=0;this.meleeCd=0;this.beam=null;this.goldBeam=null;this.draw=null;this.last={};this.burnCd=0;this.strokeCd=0;}
+ constructor(game){this.g=game;this.charge=0;this.laserCharge=0;this.fuel=10;this.cooldown=0;this.pulseCooldown=0;this.lassoT=0;this.lasso=[];this.base=V();this.tip=V();this.muzzle=V();this.prevTip=null;this.prevPlayer=V();this.swing=0;this.swingAnim=0;this.meleeCd=0;this.beam=null;this.goldBeam=null;this.draw=null;this.last={};this.burnCd=0;this.strokeCd=0;this.slashCooldown=0;this.slashReady=true;this.swingVelocity=V();}
  tick(dt,input){const g=this.g,p=g.player,forward=input.forward||V(0,0,1),left=input.left||{offset:V(.27,-.2,.2),dir:forward},right=input.right||{offset:V(-.27,-.2,.2),dir:forward},lDir=left.dir.clone().normalize(),rDir=right.dir.clone().normalize();
   this.muzzle.copy(p.p).add(left.offset).addScaledVector(lDir,.4);this.base.copy(p.p).add(right.offset);this.tip.copy(this.base).addScaledVector(rDir,SWORD_TIP);
   this.swingAnim=Math.max(0,this.swingAnim-dt);if(input.desktop&&input.laser&&!this.last.laser){this.swingAnim=.25;this.meleeCd=0;}
   if(this.swingAnim>0){const a=(.25-this.swingAnim)/.25*Math.PI-Math.PI/2,axis=V(0,1,0);this.tip.copy(this.base).add(rDir.clone().applyAxisAngle(axis,a).multiplyScalar(SWORD_TIP));}
-  this.swing=this.prevTip?this.tip.clone().sub(this.prevTip).sub(p.p.clone().sub(this.prevPlayer)).length()/Math.max(.008,dt):0;this.swing=clamp(this.swing,0,40);this.prevTip=this.tip.clone();this.prevPlayer.copy(p.p);
+  this.swingVelocity.set(0,0,0);if(this.prevTip)this.swingVelocity.copy(this.tip).sub(this.prevTip).sub(p.p.clone().sub(this.prevPlayer)).multiplyScalar(1/Math.max(.008,dt));this.swing=clamp(this.swingVelocity.length(),0,40);this.prevTip=this.tip.clone();this.prevPlayer.copy(p.p);
+  this.slashCooldown=Math.max(0,this.slashCooldown-dt);if(this.swing<1.6)this.slashReady=true;
   this.cooldown=Math.max(0,this.cooldown-dt);this.pulseCooldown=Math.max(0,this.pulseCooldown-dt);this.meleeCd=Math.max(0,this.meleeCd-dt);this.burnCd=Math.max(0,this.burnCd-dt);this.strokeCd=Math.max(0,this.strokeCd-dt);this.beam=null;this.goldBeam=null;
   if(g.time<1.1){this.last={...input};return;}
+  if(this.swing>4.2&&(!input.desktop||this.swingAnim>0)&&input.right?.tracked!==false&&this.slashReady&&this.slashCooldown===0&&!input.lasso&&!input.draw){this.fireSlash(rDir);this.slashReady=false;this.slashCooldown=.45;}
   if(input.plasma){this.charge=Math.min(RULES.ballCharge/g.power,this.charge+dt);if(p.gold>0)this.gold(lDir,dt);}else if(this.last.plasma&&this.charge>0){if(p.gold<=0)this.firePlasma(lDir);this.charge=0;}
   if(this.cooldown===0&&this.fuel<=0)this.fuel=10;
   if(input.laser&&this.cooldown<=0){this.laserCharge+=dt;if(this.laserCharge>=(p.gold>0?.04:RULES.laserWindup/g.power)){this.fireLaser(rDir,dt);this.fuel=Math.max(0,this.fuel-dt);if(this.fuel===0){this.cooldown=RULES.laserCooldown/g.power;this.laserCharge=0;g.emit('cooldown',this.tip);}}}else this.laserCharge=0;
@@ -24,6 +26,9 @@ export class Weapons {
  }
  firePlasma(dir){const g=this.g,t=clamp(this.charge/(RULES.ballCharge/g.power),0,1),charged=this.charge>=.22,size=(charged?lerp(.09,.55,t):.07)*1.15,dmg=(charged?lerp(6,48,t):2.2)*g.power,blast=(charged?lerp(2.4,13.5,t):1.15)*g.power;
   g.shot(this.muzzle,dir,charged?lerp(22,14,t):32,dmg,{r:size,blast,charge:t});g.metrics.shots++;g.emit('plasma',this.muzzle,{power:t});
+ }
+ fireSlash(dir){const g=this.g,q=new T.Quaternion().setFromUnitVectors(V(0,0,1),dir),local=this.swingVelocity.clone().applyQuaternion(q.invert()),roll=Math.atan2(local.y,local.x);
+  const b=g.shot(this.tip,dir,25+Math.min(8,this.swing*.3),(4+Math.min(24,this.swing)*.24)*g.power,{kind:'slash',r:.85,life:1.05,range:30,color:0xff193e,roll});if(b)g.emit('energyslash',this.tip,{color:0xff193e,momentum:this.swing});
  }
  fireLaser(dir,dt){const g=this.g,len=RULES.laserRange*g.power,hit=g.trace(this.tip,dir,len,0,()=>false);let end=hit?.distance??len,contact=hit;const items=g.grid.ray(this.tip,dir,end,3,[]).map(e=>({e,t:entityRay(this.tip,dir,e,end,.08)})).filter(h=>Number.isFinite(h.t)&&!h.e.item&&h.e.type!=='pet'&&h.e.type!=='well').sort((a,b)=>a.t-b.t);
   for(const {e,t}of items){if(t>end)break;const p=this.tip.clone().addScaledVector(dir,t);contact={entity:e,pos:p,normal:p.clone().sub(e.p).normalize()};if((this.contactAt||0)<=g.time)g.ignite(contact,dir);if(['crate','barrel','drone'].includes(e.type))g.damage(e,1000,dir);else{g.damage(e,8*dt*g.power,dir);end=t;break;}}

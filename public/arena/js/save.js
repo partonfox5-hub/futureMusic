@@ -1,4 +1,4 @@
-import {clamp} from './math.js?v=4.0.0';
+import {clamp} from './math.js?v=5.0.0';
 const PREFIX='netknight-webvr-v3-';
 export function read(key,fallback=null){try{const s=localStorage.getItem(PREFIX+key);return s?JSON.parse(s):fallback;}catch{return fallback;}}
 export function write(key,value){try{localStorage.setItem(PREFIX+key,JSON.stringify(value));return true;}catch{return false;}}

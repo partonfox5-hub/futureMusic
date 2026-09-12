@@ -11,7 +11,7 @@ export const SPHERES=[
 ];
 export const LINKS=[[0,1,1],[0,2,1],[0,3,1],[0,6,0],[0,7,0],[1,4,0],[1,5,1],[2,4,0],[3,5,0],[6,7,0],[2,6,0]];
 export const BRANCHES=[[0,1],[0,2],[1,4],[0,7]];
-export const RULES=Object.freeze({tubeRadius:3.4,hearts:20,energy:1000,attack:1.15,powerMin:.2,powerMax:4,ballCharge:7.170193,laserWindup:1.50574,laserFuel:10,laserCooldown:8,laserRange:55.2,pulseCooldown:3.2,pulseRadius:9.05,baseSpeed:12.37005,accelerationTime:2.5,brakingTime:1.5,knightAt:30,camelAt:84,triloAt:116,hornetAt:480,crateSweep:90,riftAt:120,groundY:-83.5});
+export const RULES=Object.freeze({tubeRadius:3.4,hydraBaseHealth:60,hydraNestHealth:180,wallStrength:4*1.15,swarmIntervalScale:1.3,swarmBatchScale:1.3,hearts:20,energy:1000,attack:1.15,powerMin:.2,powerMax:4,ballCharge:7.170193,laserWindup:1.50574,laserFuel:10,laserCooldown:8,laserRange:55.2,pulseCooldown:3.2,pulseRadius:9.05,baseSpeed:12.37005,accelerationTime:2.5,brakingTime:1.5,knightAt:30,camelAt:84,triloAt:116,hornetAt:480,crateSweep:90,riftAt:120,groundY:-83.5});
 export const PETS=[['Bitpup',50,14,0xeeb04f],['Sparkat',75,18,0xff7126],['Pterling',90,24,0x70d8ff],['Bunzard',110,30,0xff8ec1],['Shelldon',130,38,0x65be65],['Foxwyrm',155,48,0xff5832],['Sharquit',175,62,0x4e8cda],['Gatormon',200,88,0x44b64c]];
 export const DRONES=[['Blue',6.175,0x2879ff],['Green',2.85,0x21e94f],['Red',2.85,0xff392d],['Grey',2.85,0xc7ccd9],['Yellow',2.85,0xffdf30],['Purple',2.85,0xa92dff],['Missile',7.6,0xff8c27]];
 export const SHOP=[{name:'Rocket boost · +5% speed',cost:250,type:'boost'},{name:'Seeking missile ×1',cost:9,type:'missile',n:1},{name:'Seeking missile ×5',cost:40,type:'missile',n:5},...PETS.map(([name,power,cost],kind)=>({name:`${name} · ${power} power`,cost,type:'pet',kind}))];
