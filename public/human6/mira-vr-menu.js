@@ -1,13 +1,13 @@
-import {FURNITURE,SURFACES} from './mira-v2-builder.js?v=19.3.0';
-import {WEAPONS} from './mira-v2-props.js?v=19.3.0';
-import {draft,saveDraft,OUTFITS,PERSONAS,clothingItems,setDraftGarment} from './mira-v2-catalog.js?v=19.3.0';
-import {SCENES} from './mira-v2-world.js?v=19.3.0';
-import {GARMENTS} from './mira-v2-wardrobe.js?v=19.3.0';
+import {FURNITURE,SURFACES} from './mira-v2-builder.js?v=20.2.0';
+import {WEAPONS} from './mira-v2-props.js?v=20.2.0';
+import {draft,saveDraft,OUTFITS,PERSONAS,clothingItems,setDraftGarment} from './mira-v2-catalog.js?v=20.2.0';
+import {SCENES} from './mira-v2-world.js?v=20.2.0';
+import {GARMENTS} from './mira-v2-wardrobe.js?v=20.2.0';
 import * as THREE from 'three';
-import {SLIDERS,FACE_TYPES} from './mira-v2.js?v=19.3.0';
-import {shapeSliders,FACE_PRESETS,HAIR_STYLES,ACTIVITY_MODES,ACTION_LABELS,POSE_LABELS,ATTENTION_MODES,ATTENTION_LABELS} from './mira-v2-controls.js?v=19.3.0';
-import {HAIR_COLORS} from './mira-v2.js?v=19.3.0';
-import {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES} from './mira-v2-features.js?v=19.3.2';
+import {SLIDERS,FACE_TYPES} from './mira-v2.js?v=20.2.0';
+import {shapeSliders,FACE_PRESETS,HAIR_STYLES,ACTIVITY_MODES,ACTION_LABELS,POSE_LABELS,ATTENTION_MODES,ATTENTION_LABELS} from './mira-v2-controls.js?v=20.2.0';
+import {HAIR_COLORS} from './mira-v2.js?v=20.2.0';
+import {EMOTION_NAMES,IDLE_NAMES,WALK_NAMES} from './mira-v2-features.js?v=20.2.0';
 export function createVRMenu({scene,renderer,camera,system,spawn,onSync,world,wardrobe,spawnConfigured,copyConfiguration,props,saveScene,loadScene}){
  const canvas=document.createElement('canvas');canvas.width=1024;canvas.height=1320;
  const ctx=canvas.getContext('2d'),tex=new THREE.CanvasTexture(canvas);tex.colorSpace=THREE.SRGBColorSpace;
@@ -16,6 +16,7 @@ export function createVRMenu({scene,renderer,camera,system,spawn,onSync,world,wa
  const rays=system.hands.ctrl.map(ctrl=>{const line=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(),new THREE.Vector3(0,0,-2)]),new THREE.LineBasicMaterial({color:0x9bd6ff}));line.visible=false;ctrl.add(line);return line;});
  const raycaster=new THREE.Raycaster(),q=new THREE.Quaternion(),v=new THREE.Vector3();
  let page=4,shapePage=0,items=[],open=false,drag=[null,null],stamp='',lastDraw=0,notice='',hover=[-1,-1],cursor=[null,null],editField=null,bodyDraft=false,editClothes=false,editVisual=false,garmentIndex=0,weaponIndex=0,lastController=1,npcView='spawn',weaponCategory='firearm',equipmentPage=0,equipmentMode='equip';
+ raycaster.layers.enable(29);
  const modes=ACTIVITY_MODES;
  function active(){return system.selected;}
  function draw(){
@@ -23,12 +24,12 @@ export function createVRMenu({scene,renderer,camera,system,spawn,onSync,world,wa
   ctx.fillStyle='#eef7ff';ctx.font='bold 42px sans-serif';ctx.fillText('MIRA · BUILD & PLAY',40,62);
   ctx.font='26px sans-serif';ctx.fillStyle='#b7c8d8';ctx.fillText('Y: close  ·  point + trigger to adjust',40,105);
   function button(label,x,y,w,h,fn){ctx.fillStyle='#26384b';ctx.fillRect(x,y,w,h);ctx.fillStyle='#edf6ff';ctx.font='25px sans-serif';ctx.textAlign='center';ctx.fillText(label,x+w/2,y+h/2+10);ctx.textAlign='left';items.push({x,y,w,h,fn});}
-  const sections=[{name:'CHARACTER',tabs:[[0,'ACTOR'],[1,'BODY'],[2,'STYLE'],[3,'MOOD'],[4,'POSES'],[6,'CREATE']]},{name:'WORLD',tabs:[[5,'SCENE'],[9,'BUILD'],[10,'TRAVEL'],[14,'PERFORMANCE']]},{name:'GEAR',tabs:[[15,'WEAPONS / TOOLS'],[16,'VEHICLES'],[8,'DRIVE'],[7,'LINKS']]},{name:'PLAY',tabs:[[11,'NPCs'],[12,'PETS'],[13,'NATURE']]}];
-  const section=sections.findIndex(s=>s.tabs.some(t=>t[0]===page));sections.forEach((s,i)=>button((i===section?'• ':'')+s.name,16+i*251,136,242,54,()=>{page=s.tabs[0][0];draw();}));
+  const sections=[{name:'CHARACTER',tabs:[[0,'ACTOR'],[1,'BODY'],[2,'STYLE'],[3,'MOOD'],[4,'POSES'],[6,'CREATE']]},{name:'WORLD',tabs:[[5,'SCENE'],[9,'BUILD'],[10,'TRAVEL'],[14,'PERFORMANCE'],[21,'MAP']]},{name:'GEAR',tabs:[[15,'WEAPONS / TOOLS'],[16,'VEHICLES'],[8,'DRIVE'],[7,'LINKS'],[19,'MOUNTS']]},{name:'PLAY',tabs:[[11,'NPCs'],[12,'PETS'],[13,'NATURE'],[17,'COMBAT'],[18,'GROUPS']]},{name:'POWERS',tabs:[[20,'DRAGONS / POWERS']]}];
+  const section=sections.findIndex(s=>s.tabs.some(t=>t[0]===page));sections.forEach((s,i)=>button((i===section?'• ':'')+s.name,16+i*(992/sections.length),136,992/sections.length-8,54,()=>{page=s.tabs[0][0];draw();}));
   const tabs=sections[Math.max(0,section)].tabs,w=992/tabs.length;tabs.forEach(([id,n],i)=>button((id===page?'• ':'')+n,16+i*w,202,w-8,50,()=>{page=id;draw();}));
   const a=active();ctx.font='30px sans-serif';ctx.fillStyle='#aed8fb';ctx.fillText(a?`${a.displayName||'NPC'} · ${a.version.toUpperCase()}`:'No actor selected',40,292);button('NEXT NPC',760,263,220,40,()=>{const list=system.actors;system.select(list[(list.indexOf(a)+1)%list.length]);draw();});
   function cycle(label,y,values,get,set){const val=get();ctx.fillStyle='#c9d6e2';ctx.font='28px sans-serif';ctx.fillText(label,40,y);button('‹',40,y+18,90,70,()=>{set(values[(values.indexOf(val)+values.length-1)%values.length]);onSync?.();draw();});button(String(val),144,y+18,734,70,()=>{set(values[(values.indexOf(val)+1)%values.length]);onSync?.();draw();});button('›',892,y+18,90,70,()=>{set(values[(values.indexOf(val)+1)%values.length]);onSync?.();draw();});}
-  if(page===16){
+  if(page>=17&&world.h6UI?.vr(page,{ctx,button,cycle,draw})){}else if(page===16){
    const v=world.h5VehicleSpawns;
    Object.entries(v?.VEHICLE_SPECS||{}).forEach(([id,s],i)=>button('SPAWN '+s.name.toUpperCase(),40,335+i*88,942,68,()=>{v.spawn(id);notice=props.status;draw();}));
    const all=props.cars();cycle('Selected vehicle',850,all.map((c,i)=>(i+1)+': '+c.carName),()=>v?.selected?(all.indexOf(v.selected)+1)+': '+v.selected.carName:'None',label=>v.selected=all[parseInt(label)-1]);
@@ -253,5 +254,5 @@ export function createVRMenu({scene,renderer,camera,system,spawn,onSync,world,wa
   }
  }
  system.setUIHandlers({onToggle:toggle,onSelect:select,onDelete:()=>{if(props.driving())return;const a=active();if(a){system.remove(a);onSync?.();draw();}},isOpen:()=>open});
- return {tick,toggle,panel,get hovered(){return [...hover];},get isOpen(){return open;}};
+ return {tick,toggle,panel,canvas,texture:tex,showPage(id){page=id;draw();},get hovered(){return [...hover];},get isOpen(){return open;}};
 }

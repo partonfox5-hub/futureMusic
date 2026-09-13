@@ -1,6 +1,7 @@
+import {WORLD_PLACES,REGION_ROUTES} from './human6-world-data.js?v=20.2.0';
 import * as T from 'three';
 const clamp=T.MathUtils.clamp,lerp=T.MathUtils.lerp,smooth=x=>{x=clamp(x,0,1);return x*x*(3-2*x);};
-export const WORLD_SIZE=2112,CELL_SIZE=96;
+export const WORLD_SIZE=4224,CELL_SIZE=96;
 export const CITY_BLOCKS=Object.freeze([
  {id:'westgate',name:'Westgate apartments',x:94,z:29,w:20,d:18,floors:3,type:'apartments'},
  {id:'market',name:'Market House restaurant',x:144,z:31,w:24,d:20,floors:3,type:'restaurant'},
@@ -15,7 +16,7 @@ export const CITY_BLOCKS=Object.freeze([
  {id:'ridge',name:'Ridge apartments',x:204,z:-113,w:22,d:20,floors:6,type:'apartments'},
  {id:'summit',name:'Summit offices',x:273,z:-122,w:24,d:22,floors:7,type:'office'}
 ]);
-export const ROUTES=Object.freeze([
+export const ROUTES=Object.freeze([...REGION_ROUTES,
  {id:'city-link',name:'Cul-de-sac connector',kind:'road',width:7,points:[[0,38],[0,52],[30,61],[60,60],[106,64],[155,69],[196,90],[246,89],[302,119],[355,111]]},
  {id:'city-loop',name:'Hillside Avenue',kind:'road',width:7,points:[[60,60],[63,-12],[73,-79],[125,-77],[168,-75],[220,-76],[277,-87],[328,-76],[356,-13],[355,111]]},
  {id:'civic-cross',name:'Civic Street',kind:'road',width:6,points:[[168,-75],[159,-10],[164,33],[155,69]]},
@@ -43,14 +44,15 @@ export function rawHeight(x,z){
 }
 function channel(x,z,points,width){let best=null;for(let i=0;i<points.length-1;i++){const p=closestSegment(x,z,points[i],points[i+1]);if(!best||p.distance<best.distance)best={...p,level:lerp(points[i][2],points[i+1][2],p.t),width};}return best;}
 export class WorldField {
- constructor(){this.cell=2;this.half=WORLD_SIZE/2;this.edits=new Map();this.revision=0;this.listeners=new Set();this.options={minHeight:-32,maxHeight:220};this.blocks=CITY_BLOCKS.map(b=>({...b,y:Math.round(rawHeight(b.x,b.z)*2)/2,story:3.15}));this.routes=ROUTES.map(r=>({...r,points:r.points.map(([x,z])=>[x,z]),heights:r.points.map(([x,z])=>this.base(x,z))}));this.routeGrid=new Map();for(const route of this.routes)for(let i=0;i<route.points.length-1;i++){const a=route.points[i],b=route.points[i+1];for(let z=Math.floor((Math.min(a[1],b[1])-18)/64);z<=Math.floor((Math.max(a[1],b[1])+18)/64);z++)for(let x=Math.floor((Math.min(a[0],b[0])-18)/64);x<=Math.floor((Math.max(a[0],b[0])+18)/64);x++){const k=x+'/'+z;if(!this.routeGrid.has(k))this.routeGrid.set(k,[]);this.routeGrid.get(k).push({route,i,a,b});}}}
+ constructor(){this.cell=2;this.half=WORLD_SIZE/2;this.edits=new Map();this.revision=0;this.listeners=new Set();this.options={minHeight:-32,maxHeight:220};this.blocks=CITY_BLOCKS.map(b=>({...b,y:Math.round(rawHeight(b.x,b.z)*2)/2,story:3.15}));this.h6Sites=WORLD_PLACES.filter(p=>!p.existing).map(p=>({...p,y:rawHeight(p.x,p.z)}));this.routes=ROUTES.map(r=>({...r,points:r.points.map(([x,z])=>[x,z]),heights:r.points.map(([x,z])=>this.base(x,z))}));this.routeGrid=new Map();for(const route of this.routes)for(let i=0;i<route.points.length-1;i++){const a=route.points[i],b=route.points[i+1];for(let z=Math.floor((Math.min(a[1],b[1])-18)/64);z<=Math.floor((Math.max(a[1],b[1])+18)/64);z++)for(let x=Math.floor((Math.min(a[0],b[0])-18)/64);x<=Math.floor((Math.max(a[0],b[0])+18)/64);x++){const k=x+'/'+z;if(!this.routeGrid.has(k))this.routeGrid.set(k,[]);this.routeGrid.get(k).push({route,i,a,b});}}}
  base(x,z){let h=rawHeight(x,z);const origin=Math.max(Math.abs(x)/34,Math.abs(z+1)/44);h=lerp(0,h,smooth((origin-1)/.45));
   const lake=Math.hypot((x-LAKE.x)/LAKE.rx,(z-LAKE.z)/LAKE.rz);if(lake<1.23)h=lerp(LAKE.level-8*(1-smooth(lake*.84)),h,smooth((lake-.86)/.37));
   for(const points of [RIVER,OUTFLOW]){const q=channel(x,z,points,points===RIVER?12:15);if(q.distance<q.width*.5+12)h=lerp(q.level-2.5,h,smooth((q.distance-q.width*.32)/(q.width*.18+12)));}
   for(const b of this.blocks){const d=Math.max(Math.abs(x-b.x)-b.w/2-2.5,Math.abs(z-b.z)-b.d/2-2.5);if(d<7)h=lerp(b.y,h,smooth(d/7));}
+  for(const p of this.h6Sites||[]){const town=p.kind==='town'||p.kind==='city',d=Math.max(Math.abs(x-p.x)-(town?155:38),Math.abs(z-p.z)-(town?48:38));if(d<18)h=lerp(p.y,h,smooth(d/18));}
   return h;
  }
- protected(x,z){return (Math.abs(x)<31&&z>-35&&z<40)||this.blocks.some(b=>Math.abs(x-b.x)<b.w/2+3&&Math.abs(z-b.z)<b.d/2+3);}
+ protected(x,z){return (Math.abs(x)<31&&z>-35&&z<40)||this.blocks.some(b=>Math.abs(x-b.x)<b.w/2+3&&Math.abs(z-b.z)<b.d/2+3)||(this.h6Sites||[]).some(p=>Math.abs(x-p.x)<(p.kind==='town'||p.kind==='city'?155:35)&&Math.abs(z-p.z)<(p.kind==='town'||p.kind==='city'?48:35));}
  routeAt(x,z){let best=null;for(const s of this.routeGrid.get(Math.floor(x/64)+'/'+Math.floor(z/64))||[]){const p=closestSegment(x,z,s.a,s.b);if(!best||p.distance<best.distance)best={...p,route:s.route,index:s.i};}return best;}
  heightAt(x,z){if(Math.abs(x)>this.half||Math.abs(z)>this.half)return null;let h=this.base(x,z);const p=this.routeAt(x,z);if(p&&p.distance<p.route.width/2+3){const a=p.route.points[p.index],b=p.route.points[p.index+1],pathH=lerp(p.route.heights[p.index],p.route.heights[p.index+1],p.t);h=lerp(pathH,h,smooth((p.distance-p.route.width/2)/3));}
   const i=Math.floor(x/this.cell),j=Math.floor(z/this.cell),u=x/this.cell-i,v=z/this.cell-j,get=(a,b)=>this.edits.get(a+'/'+b)||0;return h+lerp(lerp(get(i,j),get(i+1,j),u),lerp(get(i,j+1),get(i+1,j+1),u),v);
@@ -70,4 +72,4 @@ export class WorldField {
  restore(input){if(input?.format!=='human5.worldfield/1'||!Array.isArray(input.edits)||input.edits.length>40000)throw Error('Invalid terrain state');const next=new Map();for(const [k,v] of input.edits){if(typeof k!=='string'||!/^[-]?\d+\/[-]?\d+$/.test(k)||!Number.isFinite(v)||Math.abs(v)>12)throw Error('Invalid terrain edit');const [x,z]=k.split('/').map(Number);if(Math.abs(x*this.cell)>this.half||Math.abs(z*this.cell)>this.half)throw Error('Terrain edit is out of bounds');next.set(k,v);}this.edits=next;this.revision++;for(const fn of this.listeners)fn({radius:Infinity,x:0,z:0});}
 }
 export function cellKey(x,z){return Math.floor(x/CELL_SIZE)+'/'+Math.floor(z/CELL_SIZE);}
-export function desiredCells(x,z,radius=1){const cx=Math.floor(x/CELL_SIZE),cz=Math.floor(z/CELL_SIZE),out=[];for(let j=-radius;j<=radius;j++)for(let i=-radius;i<=radius;i++){const a=cx+i,b=cz+j;if(a<-11||a>=11||b<-11||b>=11)continue;out.push({key:a+'/'+b,x:a,z:b,d:Math.hypot((a+.5)*CELL_SIZE-x,(b+.5)*CELL_SIZE-z)});}return out.sort((a,b)=>a.d-b.d);}
+export function desiredCells(x,z,radius=1){const cx=Math.floor(x/CELL_SIZE),cz=Math.floor(z/CELL_SIZE),out=[];for(let j=-radius;j<=radius;j++)for(let i=-radius;i<=radius;i++){const a=cx+i,b=cz+j;if(a<-WORLD_SIZE/CELL_SIZE/2||a>=WORLD_SIZE/CELL_SIZE/2||b<-WORLD_SIZE/CELL_SIZE/2||b>=WORLD_SIZE/CELL_SIZE/2)continue;out.push({key:a+'/'+b,x:a,z:b,d:Math.hypot((a+.5)*CELL_SIZE-x,(b+.5)*CELL_SIZE-z)});}return out.sort((a,b)=>a.d-b.d);}

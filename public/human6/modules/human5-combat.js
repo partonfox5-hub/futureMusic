@@ -1,5 +1,5 @@
 import * as T from 'three';
-import {wrapMethod,clamp,V} from './human5-common.js?v=19.3.0';
+import {wrapMethod,clamp,V} from './human5-common.js?v=20.2.0';
 
 export const ARMOR_PRESETS={
  none:{name:'None',mass:0,plates:{}},

@@ -1,18 +1,18 @@
-import {buildPetAppearance,PET_BREEDS,breedIdFor} from './src/dog/PetAppearance.js?v=19.3.0';
-import {paletteSkinnedVertex} from './modules/human5-skinning.js?v=19.3.0';
+import {buildPetAppearance,PET_BREEDS,breedIdFor} from './src/dog/PetAppearance.js?v=20.2.0';
+import {paletteSkinnedVertex} from './modules/human5-skinning.js?v=20.2.0';
 import * as THREE from 'three';
-import { DogModel, clamp } from './src/dog/Dog.js?v=19.3.0';
-import { DogPaws, floorAt } from './src/dog/DogPaws.js?v=19.3.0';
-import { DogJaw } from './src/dog/DogJaw.js?v=19.3.0';
-import { DogTail } from './src/dog/DogTail.js?v=19.3.0';
-import { DogFur } from './src/dog/DogFur.js?v=19.3.0';
-import { DogAudio } from './src/dog/DogAudio.js?v=19.3.0';
-import { DogAI } from './src/dog/DogAI.js?v=19.3.0';
-import { DogAnim } from './src/dog/DogAnim.js?v=19.3.0';
-import { DogNeeds } from './src/dog/DogNeeds.js?v=19.3.0';
-import { DogItems } from './src/dog/DogItems.js?v=19.3.0';
-import { DogBite } from './src/dog/DogBite.js?v=19.3.0';
-import { BONE_NAMES } from './src/dog/Dog.js?v=19.3.0';
+import { DogModel, clamp } from './src/dog/Dog.js?v=20.2.0';
+import { DogPaws, floorAt } from './src/dog/DogPaws.js?v=20.2.0';
+import { DogJaw } from './src/dog/DogJaw.js?v=20.2.0';
+import { DogTail } from './src/dog/DogTail.js?v=20.2.0';
+import { DogFur } from './src/dog/DogFur.js?v=20.2.0';
+import { DogAudio } from './src/dog/DogAudio.js?v=20.2.0';
+import { DogAI } from './src/dog/DogAI.js?v=20.2.0';
+import { DogAnim } from './src/dog/DogAnim.js?v=20.2.0';
+import { DogNeeds } from './src/dog/DogNeeds.js?v=20.2.0';
+import { DogItems } from './src/dog/DogItems.js?v=20.2.0';
+import { DogBite } from './src/dog/DogBite.js?v=20.2.0';
+import { BONE_NAMES } from './src/dog/Dog.js?v=20.2.0';
 const _p=new THREE.Vector3(),_q=new THREE.Vector3();
 function dogNearestHit(handle,pos,maxDist){
  if(!handle.grabs?.size){const scale=handle.root.getWorldScale(_q),radius=1.4*Math.max(scale.x,scale.y,scale.z)+maxDist;if(handle.root.getWorldPosition(_p).distanceToSquared(pos)>radius*radius)return null;}
@@ -140,8 +140,8 @@ export function createDogSystem(input={}) {
       const species=opts.species==='cat'?'cat':'dog';
       const id=opts.id==null?`${species}-${++serial}`:String(opts.id),found=handles.find(h=>h.id===id);if(found)return found;if(handles.length>=4)return null;
       const breedId=breedIdFor(species,opts.breed),breed=PET_BREEDS[breedId];
-      const model=new DogModel(species,breed),paws=new DogPaws(model,ctx.world),jaw=new DogJaw(model),tail=new DogTail(model);
-      model.breedId=breedId;model.bodyScale=breed.scale;buildPetAppearance(model);
+      const model=new DogModel(species,breed);model.breedId=breedId;model.bodyScale=breed.scale;buildPetAppearance(model);
+      const paws=new DogPaws(model,ctx.world),jaw=new DogJaw(model),tail=new DogTail(model);
       const fur=new DogFur(model,ctx.renderer,paws.padMaterial),ai=new DogAI(model,ctx);
       const mira0=(ctx.mira||ctx.system)?.actors?.[0];
       ai.setAttention(opts.attentionMode||mira0?.attentionMode||'attentive');

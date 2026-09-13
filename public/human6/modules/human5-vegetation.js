@@ -1,8 +1,10 @@
-import {seasons} from './human5-seasons.js?v=19.3.0';
+import {STREAMING,cellDistance} from './human6-streaming.js?v=20.2.0';
+import {CellBatches} from './human6-spatial-batches.js?v=20.2.0';
+import {seasons} from './human5-seasons.js?v=20.2.0';
 import * as T from 'three';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
-import {hash2,CELL_SIZE} from './human5-worldfield.js?v=19.3.0';
-import {V,wrapMethod,clamp,disposeTree} from './human5-common.js?v=19.3.0';
+import {hash2,CELL_SIZE} from './human5-worldfield.js?v=20.2.0';
+import {V,wrapMethod,clamp,disposeTree} from './human5-common.js?v=20.2.0';
 
 function grassGeometry(){const p=[],uv=[],idx=[];for(let blade=0;blade<9;blade++){const angle=blade*2.399,rad=.035*Math.sqrt(blade),x=Math.cos(angle)*rad,z=Math.sin(angle)*rad,start=p.length/3;for(let j=0;j<4;j++){const t=j/3,w=(1-t)*.019+.001,bend=t*t*.16;for(const side of [-1,1]){p.push(x+Math.cos(angle)*w*side+Math.sin(angle)*bend,t,z+Math.sin(angle)*w*side+Math.cos(angle)*bend);uv.push(side/2+.5,t);}}for(let j=0;j<3;j++){const a=start+j*2;idx.push(a,a+1,a+2,a+1,a+3,a+2);}}
  const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(p,3));g.setAttribute('uv',new T.Float32BufferAttribute(uv,2));g.setIndex(idx);g.computeVertexNormals();return g;}
@@ -22,7 +24,9 @@ export class GrassCuts {
 }
 export function installVegetation({world,props,camera,upgrade,quest=true}={}){
  world.h5Seasons=seasons;
- const region=world.h5OpenWorld,root=new T.Group(),cuts=new GrassCuts(),clusters=new Map(),dummy=new T.Object3D(),restores=[];root.name='Living understory';world.scene.add(root);let time=0,scan=0,lastGrass='',fuel=null,grassRecords=[],grassByCell=new Map();const maxGrass=quest?1700:3200;
+ const region=world.h5OpenWorld,root=new T.Group(),cuts=new GrassCuts(),clusters=new Map(),dummy=new T.Object3D(),restores=[];root.name='Living understory';world.scene.add(root);let time=0,scan=0,lastGrass='',fuel=null,grassRecords=[],grassByCell=new Map();const maxGrass=quest?1700:3200,viewer=V();
+ const sharedMats=[plantMaterial(0x36543b),new T.MeshStandardMaterial({color:0x7b7c6a,roughness:1}),plantMaterial(0xffffff)],sharedGeos=[fernGeometry(),new T.IcosahedronGeometry(1,1),flowerGeometry()];sharedMats[2].vertexColors=true;
+ const batches=new CellBatches(world.scene,world,'Batched understory',{pickable:false});
  const gm=plantMaterial(0xffffff),grass=new T.InstancedMesh(grassGeometry(),gm,maxGrass);grass.name='Cuttable mixed meadow';grass.frustumCulled=false;grass.count=0;grass.receiveShadow=true;grass.instanceMatrix.setUsage(T.DynamicDrawUsage);grass.userData.h5Grass=true;root.add(grass);
  function grassAt(p){return grassByCell.get(cuts.key(p.x,p.z));}
  grass.raycast=(rc,hits)=>{if(!grass.userData.h5RayCut)return;const ray=rc.ray,max=Math.min(rc.far,14);for(let d=Math.max(0,rc.near);d<max;d+=.12){const p=ray.at(d,V()),r=grassAt(p);if(!r)continue;const h=cuts.get(r.x,r.z,r.height);if(p.y>r.y&&p.y<r.y+h&&Math.hypot(p.x-r.x,p.z-r.z)<.16){hits.push({distance:d,point:p,object:grass,instanceId:r.i,face:{normal:new T.Vector3(0,1,0)}});return;}}};
@@ -33,18 +37,18 @@ export function installVegetation({world,props,camera,upgrade,quest=true}={}){
   grass.count=grassRecords.length;grass.instanceMatrix.needsUpdate=true;if(grass.instanceColor)grass.instanceColor.needsUpdate=true;grass.computeBoundingSphere();if(fuel){upgrade.fire.unregister(fuel);fuel=null;}if(grassRecords.length&&upgrade.fire.surfaces.size<upgrade.fire.maxSurfaces-4){const bounds=new T.Box3();for(const r of grassRecords){bounds.expandByPoint(new T.Vector3(r.x,r.y,r.z));bounds.expandByPoint(new T.Vector3(r.x,r.y+r.height,r.z));}fuel=upgrade.fire.register(grass,{material:'paper',bounds});}
  }
  function cutAt(point,radius=.22){let count=0;for(const r of grassRecords)if(Math.hypot(r.x-point.x,r.z-point.z)<radius&&point.y<r.y+cuts.get(r.x,r.z,r.height)){if(cuts.cut(r.x,r.z,point.y-r.y)){setGrass(r);count++;}}if(count)grass.instanceMatrix.needsUpdate=true;return count;}
- function cluster(cell){const r=new T.Group();r.name='Understory '+cell.key;root.add(r);const mats=[plantMaterial(0x36543b),new T.MeshStandardMaterial({color:0x7b7c6a,roughness:1}),plantMaterial(0xffffff)];const geos=[fernGeometry(),new T.IcosahedronGeometry(1,1),flowerGeometry()];mats[2].vertexColors=true;const meshes=geos.map((g,i)=>{const m=new T.InstancedMesh(g,mats[i],quest?44:72);m.count=0;m.castShadow=false;m.receiveShadow=true;r.add(m);return m;});
+ function cluster(cell){const r=new T.Group();r.name='Understory '+cell.key;root.add(r);const mats=sharedMats,geos=sharedGeos;const meshes=geos.map((g,i)=>{const m=new T.InstancedMesh(g,mats[i],quest?44:72);m.count=0;m.castShadow=false;m.receiveShadow=true;r.add(m);return m;});
   for(let j=0;j<(quest?132:216);j++){const x=cell.x*CELL_SIZE+hash2(j,cell.z,753+cell.x)*CELL_SIZE,z=cell.z*CELL_SIZE+hash2(j,cell.x,183+cell.z)*CELL_SIZE;if(!eligible(x,z))continue;const type=j%3,m=meshes[type];if(m.count>=m.instanceMatrix.count)continue;const s=.55+hash2(j,cell.x,65)*1.6;dummy.position.set(x,region.field.heightAt(x,z)+(type===1?.12:0),z);dummy.rotation.set(type===1?.2:0,hash2(j,cell.z,89)*6.28,0);dummy.scale.set(type===1?s*.46:s,type===1?s*.23:s,type===1?s*.37:s);dummy.updateMatrix();m.setMatrixAt(m.count++,dummy.matrix);}
-  for(const m of meshes){m.instanceMatrix.needsUpdate=true;m.computeBoundingSphere();}return {root:r,meshes,mats,dispose(){disposeTree(r);}};
+  for(const m of meshes){m.instanceMatrix.needsUpdate=true;m.computeBoundingBox();m.computeBoundingSphere();batches.add(m);}return {root:r,cell,meshes,mats,dispose(){for(const m of meshes){batches.remove(m);m.dispose();}r.removeFromParent();}};
  }
  restores.push(wrapMethod(props,'hit',old=>function(ray,max,ropes,opts={}){grass.userData.h5RayCut=['cut','sharp','laser'].includes(opts.kind);try{return old.apply(this,arguments);}finally{grass.userData.h5RayCut=false;}}));
  restores.push(wrapMethod(props,'impact',old=>function(hit,energy,dir,kind){if(hit.object?.userData.h5Grass){if(['cut','sharp','laser','bullet'].includes(kind))cutAt(hit.point,kind==='bullet'?.07:.24);return true;}if(['cut','sharp','laser'].includes(kind)&&energy>.8)cutAt(hit.point,.18);return old.apply(this,arguments);}));
  const api={root,grass,cuts,cutAt,clusters,
-  tick(dt){time+=dt;root.visible=region.active&&world.root.visible;if(!root.visible)return;gm.userData.time.value=time;if(fuel){fuel.wet=clamp((world.weather?.state?.rain||0)*.7,0,1);if(fuel.burning){for(const r of grassRecords){cuts.cut(r.x,r.z,.015+fuel.fuel*r.height);setGrass(r);}grass.instanceMatrix.needsUpdate=true;gm.color.setHex(0x494c32);}}scan-=dt;if(scan<=0){scan=.35;const p=camera.getWorldPosition(V());rebuildGrass(p);if(!world.pickables.includes(grass))world.pickables.push(grass);for(const [k,c]of clusters)if(!region.cells.has(k)){c.dispose();clusters.delete(k);}let built=0;for(const [k,c]of region.cells)if(!clusters.has(k)&&built++<1)clusters.set(k,cluster(c));}
-   for(const c of clusters.values())for(const m of c.mats)if(m.userData.time)m.userData.time.value=time;
+  tick(dt){time+=dt;root.visible=region.active&&world.root.visible;if(!root.visible)return;gm.userData.time.value=time;if(fuel){fuel.wet=clamp((world.weather?.state?.rain||0)*.7,0,1);if(fuel.burning){for(const r of grassRecords){cuts.cut(r.x,r.z,.015+fuel.fuel*r.height);setGrass(r);}grass.instanceMatrix.needsUpdate=true;gm.color.setHex(0x494c32);}}scan-=dt;if(scan<=0){scan=.35;const p=camera.getWorldPosition(viewer);const height=p.y-(region.field.heightAt(p.x,p.z)||0);grass.visible=height<40;if(grass.visible)rebuildGrass(p);if(!world.pickables.includes(grass))world.pickables.push(grass);for(const [k,c]of clusters)if(region.cells.get(k)!==c.cell||cellDistance(c.cell.x,c.cell.z,p)>STREAMING.understoryRetain||height>80){c.dispose();clusters.delete(k);}let built=0;if(height<65)for(const [k,c]of region.cells)if(!clusters.has(k)&&cellDistance(c.x,c.z,p)<STREAMING.understoryLoad&&built++<1)clusters.set(k,cluster(c));}
+   for(const m of sharedMats)if(m.userData.time)m.userData.time.value=time;
   },
   save(){return {format:'human5.vegetation/1',grass:cuts.serialize()};},restore(data){if(data?.format!=='human5.vegetation/1')throw Error('Invalid vegetation state');cuts.restore(data.grass);lastGrass='';},
-  snapshot(){return {cells:clusters.size,grassInstances:grass.count,cutCells:cuts.heights.size};},
-  dispose(){if(fuel)upgrade.fire.unregister(fuel);restores.reverse().forEach(f=>f());world.pickables=world.pickables.filter(m=>m!==grass);for(const c of clusters.values())c.dispose();disposeTree(root);}
+  snapshot(){return {cells:clusters.size,grassInstances:grass.count,cutCells:cuts.heights.size,batches:{...batches.stats}};},
+  dispose(){if(fuel)upgrade.fire.unregister(fuel);restores.reverse().forEach(f=>f());world.pickables=world.pickables.filter(m=>m!==grass);for(const c of clusters.values())c.dispose();batches.dispose();for(const m of sharedMats)m.dispose();for(const g of sharedGeos)g.dispose();grass.dispose();disposeTree(root);}
  };world.h5Vegetation=api;return api;
 }

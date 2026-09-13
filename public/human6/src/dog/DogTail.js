@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { clamp } from './Dog.js?v=19.3.0';
+import { clamp } from './Dog.js?v=20.2.0';
 export class DogTail {
   constructor(model){
     this.model=model;this.amount=0;this.points=[];this.previous=[];this.lengths=[];this.accumulator=0;this.time=0;
@@ -49,9 +49,9 @@ export class DogTail {
         const a=this.points[i-1],p=this.points[i];let direction=p.clone().sub(a).normalize();
         const angle=previousDir.angleTo(direction),max=Math.PI/6;
         if(angle>max){const q=new THREE.Quaternion().setFromUnitVectors(previousDir,direction);q.slerp(new THREE.Quaternion(),1-max/angle);direction=previousDir.clone().applyQuaternion(q);}
-        p.copy(a).addScaledVector(direction,this.lengths[i-1]);
+        p.copy(a).addScaledVector(direction,this.lengths[i-1]*(root.scale.y||1));
         // Soft collision against the rear torso capsule, in dog-local coordinates.
-        const local=root.worldToLocal(p.clone()),nearest=new THREE.Vector3(0,.45,clamp(local.z,-.28,.20));
+        const local=root.worldToLocal(p.clone()),nearest=new THREE.Vector3(0,this.model.bind.Spine.y,clamp(local.z,-.28,.20));
         const delta=local.clone().sub(nearest),radius=.135;
         if(delta.length()<radius&&i>1){delta.normalize();local.copy(nearest).addScaledVector(delta,radius);p.lerp(root.localToWorld(local),.65);}
         p.y=Math.max(root.position.y+.018,p.y);previousDir=p.clone().sub(a).normalize();

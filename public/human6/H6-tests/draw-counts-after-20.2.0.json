@@ -1,0 +1,5015 @@
+{
+  "report": {
+    "hardware": "Desktop SwiftShader; Oculus user agent selects Quest budgets. Counts only, not Quest frame times.",
+    "cases": {
+      "Home": {
+        "calls": 231,
+        "triangles": 544645,
+        "geometries": 334,
+        "textures": 62,
+        "streaming": {
+          "format": "human5.world.stats/1",
+          "sizeMetres": 4224,
+          "residentCells": 9,
+          "pinnedViews": 0,
+          "pendingCells": 0,
+          "interiors": 0,
+          "blocks": 12,
+          "trees": 441,
+          "terrainEdits": 0,
+          "felledTrees": 0,
+          "lastBuildMs": 0,
+          "totalBuildMs": 119.1000000052154,
+          "streaming": {
+            "builtCells": 9,
+            "cacheHits": 0,
+            "evictions": 0,
+            "cancelledJobs": 0,
+            "maxBuildMs": 14.399999998509884,
+            "cachedCells": 0,
+            "activeLimit": 16,
+            "cacheLimit": 4,
+            "lookAhead": [
+              0,
+              1.6,
+              12
+            ],
+            "forestBatches": {
+              "sources": 12,
+              "draws": 3,
+              "instances": 675,
+              "uploads": 6
+            },
+            "farForest": {
+              "totalTrees": 4325,
+              "visibleTrees": 535,
+              "testedBuckets": 482,
+              "uploads": 8
+            },
+            "farTerrain": {
+              "heightSamples": 0,
+              "pendingVertices": 0
+            },
+            "roads": [
+              {
+                "totalTriangles": 7496,
+                "visibleTriangles": 2037,
+                "testedBuckets": 37,
+                "uploads": 7
+              },
+              {
+                "totalTriangles": 7566,
+                "visibleTriangles": 1929,
+                "testedBuckets": 38,
+                "uploads": 7
+              },
+              {
+                "totalTriangles": 6882,
+                "visibleTriangles": 3312,
+                "testedBuckets": 39,
+                "uploads": 4
+              }
+            ]
+          }
+        },
+        "position": [
+          0,
+          1.6,
+          12
+        ],
+        "look": [
+          0,
+          1.3,
+          0
+        ],
+        "actualCamera": [
+          0,
+          1.6,
+          12
+        ]
+      },
+      "Car": {
+        "calls": 236,
+        "triangles": 537333,
+        "geometries": 339,
+        "textures": 62,
+        "streaming": {
+          "format": "human5.world.stats/1",
+          "sizeMetres": 4224,
+          "residentCells": 11,
+          "pinnedViews": 0,
+          "pendingCells": 0,
+          "interiors": 0,
+          "blocks": 12,
+          "trees": 585,
+          "terrainEdits": 0,
+          "felledTrees": 0,
+          "lastBuildMs": 0,
+          "totalBuildMs": 154.6000000052154,
+          "streaming": {
+            "builtCells": 12,
+            "cacheHits": 0,
+            "evictions": 0,
+            "cancelledJobs": 0,
+            "maxBuildMs": 14.399999998509884,
+            "cachedCells": 1,
+            "activeLimit": 16,
+            "cacheLimit": 4,
+            "lookAhead": [
+              -2.5,
+              1.65,
+              15
+            ],
+            "forestBatches": {
+              "sources": 18,
+              "draws": 6,
+              "instances": 1107,
+              "uploads": 9
+            },
+            "farForest": {
+              "totalTrees": 4325,
+              "visibleTrees": 597,
+              "testedBuckets": 482,
+              "uploads": 9
+            },
+            "farTerrain": {
+              "heightSamples": 0,
+              "pendingVertices": 0
+            },
+            "roads": [
+              {
+                "totalTriangles": 7496,
+                "visibleTriangles": 1661,
+                "testedBuckets": 37,
+                "uploads": 8
+              },
+              {
+                "totalTriangles": 7566,
+                "visibleTriangles": 1796,
+                "testedBuckets": 38,
+                "uploads": 8
+              },
+              {
+                "totalTriangles": 6882,
+                "visibleTriangles": 3336,
+                "testedBuckets": 39,
+                "uploads": 5
+              }
+            ]
+          }
+        },
+        "position": [
+          -2.5,
+          1.65,
+          15
+        ],
+        "look": [
+          -5.5,
+          1,
+          11
+        ],
+        "actualCamera": [
+          -2.5,
+          1.65,
+          15
+        ]
+      },
+      "Close Mira": {
+        "calls": 184,
+        "triangles": 516913,
+        "geometries": 339,
+        "textures": 62,
+        "streaming": {
+          "format": "human5.world.stats/1",
+          "sizeMetres": 4224,
+          "residentCells": 11,
+          "pinnedViews": 0,
+          "pendingCells": 0,
+          "interiors": 0,
+          "blocks": 12,
+          "trees": 585,
+          "terrainEdits": 0,
+          "felledTrees": 0,
+          "lastBuildMs": 0,
+          "totalBuildMs": 154.800000006333,
+          "streaming": {
+            "builtCells": 12,
+            "cacheHits": 0,
+            "evictions": 0,
+            "cancelledJobs": 0,
+            "maxBuildMs": 14.399999998509884,
+            "cachedCells": 1,
+            "activeLimit": 16,
+            "cacheLimit": 4,
+            "lookAhead": [
+              -0.0013545056604969891,
+              1.4,
+              1.0112209329225788
+            ],
+            "forestBatches": {
+              "sources": 15,
+              "draws": 6,
+              "instances": 891,
+              "uploads": 12
+            },
+            "farForest": {
+              "totalTrees": 4325,
+              "visibleTrees": 533,
+              "testedBuckets": 482,
+              "uploads": 10
+            },
+            "farTerrain": {
+              "heightSamples": 0,
+              "pendingVertices": 0
+            },
+            "roads": [
+              {
+                "totalTriangles": 7496,
+                "visibleTriangles": 1179,
+                "testedBuckets": 37,
+                "uploads": 9
+              },
+              {
+                "totalTriangles": 7566,
+                "visibleTriangles": 1220,
+                "testedBuckets": 38,
+                "uploads": 9
+              },
+              {
+                "totalTriangles": 6882,
+                "visibleTriangles": 3312,
+                "testedBuckets": 39,
+                "uploads": 6
+              }
+            ]
+          }
+        },
+        "position": [
+          -0.0013545056604969891,
+          1.4,
+          1.0112209329225788
+        ],
+        "look": [
+          -0.0013545056604969891,
+          1.3,
+          0.011220932922578811
+        ],
+        "actualCamera": [
+          -0.0013545056604969891,
+          1.4,
+          1.0112209329225788
+        ]
+      },
+      "Timberfall": {
+        "calls": 83,
+        "triangles": 316134,
+        "geometries": 345,
+        "textures": 62,
+        "streaming": {
+          "format": "human5.world.stats/1",
+          "sizeMetres": 4224,
+          "residentCells": 9,
+          "pinnedViews": 0,
+          "pendingCells": 0,
+          "interiors": 0,
+          "blocks": 12,
+          "trees": 551,
+          "terrainEdits": 0,
+          "felledTrees": 0,
+          "lastBuildMs": 0,
+          "totalBuildMs": 251.2000000104308,
+          "streaming": {
+            "builtCells": 21,
+            "cacheHits": 0,
+            "evictions": 8,
+            "cancelledJobs": 0,
+            "maxBuildMs": 14.399999998509884,
+            "cachedCells": 4,
+            "activeLimit": 16,
+            "cacheLimit": 4,
+            "lookAhead": [
+              -560,
+              11.9677367496479,
+              -80
+            ],
+            "forestBatches": {
+              "sources": 24,
+              "draws": 9,
+              "instances": 1437,
+              "uploads": 21
+            },
+            "farForest": {
+              "totalTrees": 4325,
+              "visibleTrees": 474,
+              "testedBuckets": 416,
+              "uploads": 11
+            },
+            "farTerrain": {
+              "heightSamples": 0,
+              "pendingVertices": 0
+            },
+            "roads": [
+              {
+                "totalTriangles": 7496,
+                "visibleTriangles": 4302,
+                "testedBuckets": 37,
+                "uploads": 10
+              },
+              {
+                "totalTriangles": 7566,
+                "visibleTriangles": 4372,
+                "testedBuckets": 38,
+                "uploads": 10
+              },
+              {
+                "totalTriangles": 6882,
+                "visibleTriangles": 4176,
+                "testedBuckets": 39,
+                "uploads": 7
+              }
+            ]
+          }
+        },
+        "position": [
+          -560,
+          11.9677367496479,
+          -80
+        ],
+        "look": [
+          -540,
+          11.9677367496479,
+          -80
+        ],
+        "actualCamera": [
+          -560,
+          11.9677367496479,
+          -80
+        ]
+      },
+      "Forest": {
+        "calls": 62,
+        "triangles": 385418,
+        "geometries": 350,
+        "textures": 62,
+        "streaming": {
+          "format": "human5.world.stats/1",
+          "sizeMetres": 4224,
+          "residentCells": 9,
+          "pinnedViews": 0,
+          "pendingCells": 0,
+          "interiors": 0,
+          "blocks": 12,
+          "trees": 648,
+          "terrainEdits": 0,
+          "felledTrees": 0,
+          "lastBuildMs": 0,
+          "totalBuildMs": 336.4000000115484,
+          "streaming": {
+            "builtCells": 29,
+            "cacheHits": 1,
+            "evictions": 16,
+            "cancelledJobs": 0,
+            "maxBuildMs": 14.399999998509884,
+            "cachedCells": 4,
+            "activeLimit": 16,
+            "cacheLimit": 4,
+            "lookAhead": [
+              -140,
+              5.79061116705657,
+              -115
+            ],
+            "forestBatches": {
+              "sources": 21,
+              "draws": 6,
+              "instances": 1512,
+              "uploads": 27
+            },
+            "farForest": {
+              "totalTrees": 4325,
+              "visibleTrees": 595,
+              "testedBuckets": 482,
+              "uploads": 12
+            },
+            "farTerrain": {
+              "heightSamples": 0,
+              "pendingVertices": 0
+            },
+            "roads": [
+              {
+                "totalTriangles": 7496,
+                "visibleTriangles": 0,
+                "testedBuckets": 37,
+                "uploads": 10
+              },
+              {
+                "totalTriangles": 7566,
+                "visibleTriangles": 0,
+                "testedBuckets": 38,
+                "uploads": 10
+              },
+              {
+                "totalTriangles": 6882,
+                "visibleTriangles": 3312,
+                "testedBuckets": 39,
+                "uploads": 8
+              }
+            ]
+          }
+        },
+        "position": [
+          -140,
+          5.79061116705657,
+          -115
+        ],
+        "look": [
+          -140,
+          5.79061116705657,
+          -160
+        ],
+        "actualCamera": [
+          -140,
+          5.79061116705657,
+          -115
+        ]
+      },
+      "Flight": {
+        "calls": 55,
+        "triangles": 218947,
+        "geometries": 350,
+        "textures": 62,
+        "streaming": {
+          "format": "human5.world.stats/1",
+          "sizeMetres": 4224,
+          "residentCells": 9,
+          "pinnedViews": 0,
+          "pendingCells": 0,
+          "interiors": 0,
+          "blocks": 12,
+          "trees": 648,
+          "terrainEdits": 0,
+          "felledTrees": 0,
+          "lastBuildMs": 0,
+          "totalBuildMs": 336.600000012666,
+          "streaming": {
+            "builtCells": 29,
+            "cacheHits": 1,
+            "evictions": 16,
+            "cancelledJobs": 0,
+            "maxBuildMs": 14.399999998509884,
+            "cachedCells": 4,
+            "activeLimit": 16,
+            "cacheLimit": 4,
+            "lookAhead": [
+              -140,
+              180,
+              -115
+            ],
+            "forestBatches": {
+              "sources": 15,
+              "draws": 6,
+              "instances": 1080,
+              "uploads": 33
+            },
+            "farForest": {
+              "totalTrees": 4325,
+              "visibleTrees": 624,
+              "testedBuckets": 482,
+              "uploads": 13
+            },
+            "farTerrain": {
+              "heightSamples": 0,
+              "pendingVertices": 0
+            },
+            "roads": [
+              {
+                "totalTriangles": 7496,
+                "visibleTriangles": 0,
+                "testedBuckets": 37,
+                "uploads": 10
+              },
+              {
+                "totalTriangles": 7566,
+                "visibleTriangles": 0,
+                "testedBuckets": 38,
+                "uploads": 10
+              },
+              {
+                "totalTriangles": 6882,
+                "visibleTriangles": 2935,
+                "testedBuckets": 39,
+                "uploads": 9
+              }
+            ]
+          }
+        },
+        "position": [
+          -140,
+          180,
+          -115
+        ],
+        "look": [
+          -140,
+          0,
+          -480
+        ],
+        "actualCamera": [
+          -140,
+          180,
+          -115
+        ]
+      }
+    },
+    "meshCosts": [
+      {
+        "name": "Home",
+        "costs": [
+          [
+            "Rigid parts batch | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 17,
+              "triangles": 10128
+            }
+          ],
+          [
+            " | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 16,
+              "triangles": 756
+            }
+          ],
+          [
+            "Batched resident forest / Batched resident forest | BufferGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 3,
+              "triangles": 60850
+            }
+          ],
+          [
+            "Carpet tiles / Maple family home static shell | PlaneGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 3,
+              "triangles": 2970
+            }
+          ],
+          [
+            "Batched resident forest / Batched resident forest | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 3,
+              "triangles": 60850
+            }
+          ],
+          [
+            "Visible road surface / Connected roads and hiking trails / Streamed region | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 3,
+              "triangles": 7278
+            }
+          ],
+          [
+            "Songbird flock | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 3,
+              "triangles": 3276
+            }
+          ],
+          [
+            "Rigid parts batch / Willow cottage static shell | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 3,
+              "triangles": 506
+            }
+          ],
+          [
+            "Rigid parts batch / Cedar bungalow static shell | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 3,
+              "triangles": 542
+            }
+          ],
+          [
+            "Rigid parts batch / Maple family home static shell | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 3,
+              "triangles": 578
+            }
+          ],
+          [
+            "Rigid parts batch / Birch courtyard home static shell | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 3,
+              "triangles": 542
+            }
+          ],
+          [
+            "Rigid parts batch / Aspen family home static shell | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 3,
+              "triangles": 578
+            }
+          ],
+          [
+            "Bounded explosion cloud | IcosahedronGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 3,
+              "triangles": 0
+            }
+          ],
+          [
+            "MiraEyeFinish / Head / NeckTwist02 / NeckTwist01 / Spine02 | BufferGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 2,
+              "triangles": 192
+            }
+          ],
+          [
+            "ear_inner / Human2_Cat | BufferGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 2,
+              "triangles": 448
+            }
+          ],
+          [
+            " | PlaneGeometry | MeshBasicMaterial | ",
+            {
+              "calls": 2,
+              "triangles": 4
+            }
+          ],
+          [
+            " | ShapeGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 2,
+              "triangles": 130
+            }
+          ],
+          [
+            " | PlaneGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 2,
+              "triangles": 4
+            }
+          ],
+          [
+            "Cedar bungalow static shell | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 2,
+              "triangles": 24
+            }
+          ],
+          [
+            "Carpet tiles / Cedar bungalow static shell | PlaneGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 2,
+              "triangles": 3024
+            }
+          ],
+          [
+            "Maple family home static shell | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 2,
+              "triangles": 24
+            }
+          ],
+          [
+            "Birch courtyard home static shell | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 2,
+              "triangles": 24
+            }
+          ],
+          [
+            "Carpet tiles / Birch courtyard home static shell | PlaneGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 2,
+              "triangles": 2000
+            }
+          ],
+          [
+            "Aspen family home static shell | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 2,
+              "triangles": 24
+            }
+          ],
+          [
+            "Distant forest silhouettes / Streamed region | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 2,
+              "triangles": 12159
+            }
+          ],
+          [
+            "Batched understory / Batched understory | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 2,
+              "triangles": 34034
+            }
+          ],
+          [
+            "Distant city activity | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 2,
+              "triangles": 4048
+            }
+          ],
+          [
+            "ear_inner / Human2_Cat | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 2,
+              "triangles": 448
+            }
+          ],
+          [
+            "Rigid parts batch / Dog_catbag_2 | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 2,
+              "triangles": 558
+            }
+          ],
+          [
+            "Rigid parts batch / Dog_bag_3 | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 2,
+              "triangles": 526
+            }
+          ],
+          [
+            "Rigid parts batch / Dog_bag_4 | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 2,
+              "triangles": 526
+            }
+          ],
+          [
+            "Rigid parts batch / Dog_bag_5 | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 2,
+              "triangles": 526
+            }
+          ],
+          [
+            "Rigid parts batch / Dog_bag_6 | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 2,
+              "triangles": 526
+            }
+          ],
+          [
+            "Rigid parts batch / Dog_bag_7 | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 2,
+              "triangles": 526
+            }
+          ],
+          [
+            "Rigid parts batch / Dog_catbag_8 | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 2,
+              "triangles": 558
+            }
+          ],
+          [
+            "Rigid parts batch / Dog_catbag_9 | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 2,
+              "triangles": 558
+            }
+          ],
+          [
+            "Rigid parts batch / Dog_catbag_10 | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 2,
+              "triangles": 558
+            }
+          ],
+          [
+            "Wall_Dust | PlaneGeometry | MeshBasicMaterial | ",
+            {
+              "calls": 2,
+              "triangles": 64
+            }
+          ],
+          [
+            "MiraEyeFinish / Head / NeckTwist02 / NeckTwist01 / Spine02 | BufferGeometry | MeshPhysicalMaterial | Fitted lower tear meniscus",
+            {
+              "calls": 2,
+              "triangles": 128
+            }
+          ],
+          [
+            "Wall_Baseboard | BoxGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 3360
+            }
+          ],
+          [
+            "Wall_Crown | BoxGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 3360
+            }
+          ],
+          [
+            "Wall_Casing | BoxGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 3360
+            }
+          ],
+          [
+            "Wall_Crack | PlaneGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 48
+            }
+          ],
+          [
+            "Wall_Stud | BoxGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 6144
+            }
+          ],
+          [
+            "Wall_Dust | PlaneGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 32
+            }
+          ],
+          [
+            "City silhouettes / Streamed region | BoxGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 144
+            }
+          ],
+          [
+            "Rigid parts batch | BufferGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 48
+            }
+          ],
+          [
+            "Vehicle depth batch / Blue car | BufferGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 4124
+            }
+          ],
+          [
+            "Vehicle depth batch / Red car | BufferGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 4124
+            }
+          ],
+          [
+            "body_1 / body / Mira | BufferGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 8316
+            }
+          ],
+          [
+            "body_2 / body / Mira | BufferGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 6728
+            }
+          ],
+          [
+            "body_3 / body / Mira | BufferGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 8368
+            }
+          ],
+          [
+            "body_4 / body / Mira | BufferGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 4528
+            }
+          ],
+          [
+            "body_5 / body / Mira | BufferGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 1788
+            }
+          ],
+          [
+            "body_6 / body / Mira | BufferGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 1200
+            }
+          ],
+          [
+            "teeth_1 / teeth / Mira | BufferGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 2362
+            }
+          ],
+          [
+            "teeth_2 / teeth / Mira | BufferGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 2480
+            }
+          ],
+          [
+            "nose / Human2_Cat | SphereGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 324
+            }
+          ],
+          [
+            "ear_-1 / Human2_Cat | BufferGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 224
+            }
+          ],
+          [
+            "ear_1 / Human2_Cat | BufferGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 224
+            }
+          ],
+          [
+            "mouth / Human2_Cat | SphereGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 192
+            }
+          ],
+          [
+            "tongue / Human2_Cat | SphereGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 120
+            }
+          ],
+          [
+            "body / Human2_Cat | BufferGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 13160
+            }
+          ],
+          [
+            "nostril / Human2_Cat | BufferGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 200
+            }
+          ],
+          [
+            "eyelid / Human2_Cat | BufferGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 820
+            }
+          ],
+          [
+            "Weather | SphereGeometry | ShaderMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 352
+            }
+          ],
+          [
+            " | RingGeometry | MeshBasicMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 64
+            }
+          ],
+          [
+            "Wall_Casing | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 3360
+            }
+          ],
+          [
+            "Wall_Baseboard | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 3360
+            }
+          ],
+          [
+            "Wall_Crown | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 3360
+            }
+          ],
+          [
+            "Wall_Stud | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 6144
+            }
+          ],
+          [
+            "Rack Linen camisole | BufferGeometry | MeshPhysicalMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 256
+            }
+          ],
+          [
+            "Rack Ribbed tube top | BufferGeometry | MeshPhysicalMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 64
+            }
+          ],
+          [
+            "Rack Triangle bikini top | BufferGeometry | MeshPhysicalMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 256
+            }
+          ],
+          [
+            "Rack Bandeau bikini top | BufferGeometry | MeshPhysicalMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 64
+            }
+          ],
+          [
+            "Rack Cotton panties | BufferGeometry | MeshPhysicalMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 128
+            }
+          ],
+          [
+            "Rack Bikini bottoms | BufferGeometry | MeshPhysicalMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 128
+            }
+          ],
+          [
+            "Dog_Kibble_200 | IcosahedronGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 4000
+            }
+          ],
+          [
+            "Cat_Kibble_200 | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 2400
+            }
+          ],
+          [
+            "Nearby carpet pile | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 0
+            }
+          ],
+          [
+            "Willow cottage static shell | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 12
+            }
+          ],
+          [
+            "Threaded rug · stripes | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 768
+            }
+          ],
+          [
+            "Threaded rug · braid | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 768
+            }
+          ],
+          [
+            "Terrain cell 0/0 / Streamed region | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 4992
+            }
+          ],
+          [
+            "Terrain cell -1/0 / Streamed region | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 4992
+            }
+          ],
+          [
+            "Persistent distant terrain / Streamed region | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 34848
+            }
+          ],
+          [
+            "Terrain cell 1/-1 / Streamed region | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 4992
+            }
+          ],
+          [
+            "Terrain cell 0/-1 / Streamed region | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 4992
+            }
+          ],
+          [
+            "Terrain cell -1/-1 / Streamed region | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 4992
+            }
+          ],
+          [
+            "Distant forest silhouettes / Streamed region | CylinderGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 8560
+            }
+          ],
+          [
+            "Lake, river and outflow / Streamed region | CircleGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 48
+            }
+          ],
+          [
+            "City silhouettes / Streamed region | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 144
+            }
+          ],
+          [
+            "Batched understory / Batched understory | IcosahedronGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 6320
+            }
+          ],
+          [
+            "Cuttable mixed meadow / Living understory | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 0
+            }
+          ],
+          [
+            "River fish | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 0
+            }
+          ],
+          [
+            "Distant city activity | BoxGeometry | MeshBasicMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 14376
+            }
+          ],
+          [
+            "Loose hundred dollar bills | PlaneGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 0
+            }
+          ],
+          [
+            "Settlement silhouettes | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 2208
+            }
+          ],
+          [
+            "Settlement roofs | ConeGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 1472
+            }
+          ],
+          [
+            "Human6 wildlife sphere | SphereGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 22680
+            }
+          ],
+          [
+            "Human6 wildlife box | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 72
+            }
+          ],
+          [
+            "Human6 wildlife cone | ConeGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 32
+            }
+          ],
+          [
+            "creeper fluid | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 0
+            }
+          ],
+          [
+            "lava fluid | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 0
+            }
+          ],
+          [
+            "Volcano vent | CylinderGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 144
+            }
+          ],
+          [
+            "Willow cottage destructible wall batch | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 5856
+            }
+          ],
+          [
+            "Cedar bungalow destructible wall batch | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 7788
+            }
+          ],
+          [
+            "Maple family home destructible wall batch | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 9420
+            }
+          ],
+          [
+            "Birch courtyard home destructible wall batch | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 7776
+            }
+          ],
+          [
+            "Aspen family home destructible wall batch | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 9408
+            }
+          ],
+          [
+            "body_1 / body / Mira | BufferGeometry | MeshStandardMaterial | Std_Skin_Head",
+            {
+              "calls": 1,
+              "triangles": 8316
+            }
+          ],
+          [
+            "body_2 / body / Mira | BufferGeometry | MeshStandardMaterial | Std_Skin_Body",
+            {
+              "calls": 1,
+              "triangles": 6728
+            }
+          ],
+          [
+            "body_3 / body / Mira | BufferGeometry | MeshStandardMaterial | Std_Skin_Arm",
+            {
+              "calls": 1,
+              "triangles": 8368
+            }
+          ],
+          [
+            "body_4 / body / Mira | BufferGeometry | MeshStandardMaterial | Std_Skin_Leg",
+            {
+              "calls": 1,
+              "triangles": 4528
+            }
+          ],
+          [
+            "body_5 / body / Mira | BufferGeometry | MeshStandardMaterial | Std_Nails",
+            {
+              "calls": 1,
+              "triangles": 1788
+            }
+          ],
+          [
+            "body_6 / body / Mira | BufferGeometry | MeshStandardMaterial | Std_Eyelash",
+            {
+              "calls": 1,
+              "triangles": 1200
+            }
+          ],
+          [
+            "teeth_1 / teeth / Mira | BufferGeometry | MeshStandardMaterial | Std_Upper_Teeth",
+            {
+              "calls": 1,
+              "triangles": 2362
+            }
+          ],
+          [
+            "teeth_2 / teeth / Mira | BufferGeometry | MeshStandardMaterial | Std_Lower_Teeth",
+            {
+              "calls": 1,
+              "triangles": 2480
+            }
+          ],
+          [
+            "eyes_2 / eyes / Mira | BufferGeometry | MeshPhysicalMaterial | Std_Cornea_R",
+            {
+              "calls": 1,
+              "triangles": 320
+            }
+          ],
+          [
+            "eyes_4 / eyes / Mira | BufferGeometry | MeshPhysicalMaterial | Std_Cornea_L",
+            {
+              "calls": 1,
+              "triangles": 320
+            }
+          ],
+          [
+            "body / Human2_Dog | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 13944
+            }
+          ],
+          [
+            "nose / Human2_Dog | SphereGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 324
+            }
+          ],
+          [
+            "nostril / Human2_Dog | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 200
+            }
+          ],
+          [
+            "mouth / Human2_Dog | SphereGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 192
+            }
+          ],
+          [
+            "eyelid / Human2_Dog | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 820
+            }
+          ],
+          [
+            "anatomical_eye / Human2_Dog | BufferGeometry | MeshPhysicalMaterial | Pet layered iris",
+            {
+              "calls": 1,
+              "triangles": 1536
+            }
+          ],
+          [
+            "ear_-1 / Human2_Dog | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 224
+            }
+          ],
+          [
+            "ear_1 / Human2_Dog | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 224
+            }
+          ],
+          [
+            "tongue / Human2_Dog | SphereGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 120
+            }
+          ],
+          [
+            "body / Human2_Cat | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 13160
+            }
+          ],
+          [
+            "nose / Human2_Cat | SphereGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 324
+            }
+          ],
+          [
+            "nostril / Human2_Cat | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 200
+            }
+          ],
+          [
+            "mouth / Human2_Cat | SphereGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 192
+            }
+          ],
+          [
+            "eyelid / Human2_Cat | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 820
+            }
+          ],
+          [
+            "anatomical_eye / Human2_Cat | BufferGeometry | MeshPhysicalMaterial | Pet layered iris",
+            {
+              "calls": 1,
+              "triangles": 1536
+            }
+          ],
+          [
+            "ear_-1 / Human2_Cat | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 224
+            }
+          ],
+          [
+            "whiskers / Human2_Cat | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 432
+            }
+          ],
+          [
+            "ear_1 / Human2_Cat | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 224
+            }
+          ],
+          [
+            "tongue / Human2_Cat | SphereGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 120
+            }
+          ],
+          [
+            "Guided shoulder locks / Mira straight shoulder hair / Head / NeckTwist02 / NeckTwist01 | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 1408
+            }
+          ],
+          [
+            "Fitted softly parted crown / Mira straight shoulder hair / Head / NeckTwist02 / NeckTwist01 | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 2560
+            }
+          ],
+          [
+            "Rigid parts batch / Dog_chicken_1 | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 280
+            }
+          ],
+          [
+            "Dog_catbag_2 | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 12
+            }
+          ],
+          [
+            "Dog_bag_3 | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 12
+            }
+          ],
+          [
+            "Dog_bag_4 | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 12
+            }
+          ],
+          [
+            "Dog_bag_5 | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 12
+            }
+          ],
+          [
+            "Dog_bag_6 | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 12
+            }
+          ],
+          [
+            "Dog_bag_7 | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 12
+            }
+          ],
+          [
+            "Dog_catbag_8 | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 12
+            }
+          ],
+          [
+            "Dog_catbag_9 | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 12
+            }
+          ],
+          [
+            "Dog_catbag_10 | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 12
+            }
+          ],
+          [
+            "Lake, river and outflow / Streamed region | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 618
+            }
+          ],
+          [
+            "Wall_Crack | PlaneGeometry | ShaderMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 48
+            }
+          ],
+          [
+            "Rigid parts batch / Maple family home static shell | BufferGeometry | MeshPhysicalMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 72
+            }
+          ],
+          [
+            "Rigid parts batch / Birch courtyard home static shell | BufferGeometry | MeshPhysicalMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 72
+            }
+          ],
+          [
+            "Rigid parts batch / Cedar bungalow static shell | BufferGeometry | MeshPhysicalMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 72
+            }
+          ],
+          [
+            "Mira_Water_Droplets / Mira_Water | SphereGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 0
+            }
+          ],
+          [
+            "H5 fire effects | PlaneGeometry | ShaderMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 20
+            }
+          ],
+          [
+            "Home interactions | PlaneGeometry | ShaderMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 0
+            }
+          ],
+          [
+            " | CircleGeometry | MeshBasicMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 20
+            }
+          ],
+          [
+            "Rigid parts batch / Willow cottage static shell | BufferGeometry | MeshPhysicalMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 72
+            }
+          ],
+          [
+            "Rigid parts batch / Aspen family home static shell | BufferGeometry | MeshPhysicalMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 72
+            }
+          ],
+          [
+            "MiraEyeFinish / Head / NeckTwist02 / NeckTwist01 / Spine02 | BufferGeometry | ShaderMaterial | Fitted eyelid contact shade",
+            {
+              "calls": 1,
+              "triangles": 128
+            }
+          ],
+          [
+            " | PlaneGeometry | ShaderMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 0
+            }
+          ]
+        ]
+      },
+      {
+        "name": "Car",
+        "costs": [
+          [
+            "Rigid parts batch | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 14,
+              "triangles": 8400
+            }
+          ],
+          [
+            "Rigid parts batch / Blue car | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 14,
+              "triangles": 16028
+            }
+          ],
+          [
+            " | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 13,
+              "triangles": 720
+            }
+          ],
+          [
+            "Side glass / Blue car | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 8,
+              "triangles": 336
+            }
+          ],
+          [
+            "Batched resident forest / Batched resident forest | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 6,
+              "triangles": 72286
+            }
+          ],
+          [
+            "Door handle / Blue car | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 4,
+              "triangles": 432
+            }
+          ],
+          [
+            "Blue car | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 4,
+              "triangles": 240
+            }
+          ],
+          [
+            "Batched resident forest / Batched resident forest | BufferGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 3,
+              "triangles": 60850
+            }
+          ],
+          [
+            "Carpet tiles / Maple family home static shell | PlaneGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 3,
+              "triangles": 2970
+            }
+          ],
+          [
+            "Visible road surface / Connected roads and hiking trails / Streamed region | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 3,
+              "triangles": 6793
+            }
+          ],
+          [
+            "Songbird flock | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 3,
+              "triangles": 3276
+            }
+          ],
+          [
+            "Rigid parts batch / Willow cottage static shell | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 3,
+              "triangles": 506
+            }
+          ],
+          [
+            "Rigid parts batch / Cedar bungalow static shell | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 3,
+              "triangles": 542
+            }
+          ],
+          [
+            "Rigid parts batch / Maple family home static shell | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 3,
+              "triangles": 578
+            }
+          ],
+          [
+            "Bounded explosion cloud | IcosahedronGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 3,
+              "triangles": 0
+            }
+          ],
+          [
+            "MiraEyeFinish / Head / NeckTwist02 / NeckTwist01 / Spine02 | BufferGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 2,
+              "triangles": 192
+            }
+          ],
+          [
+            " | PlaneGeometry | MeshBasicMaterial | ",
+            {
+              "calls": 2,
+              "triangles": 4
+            }
+          ],
+          [
+            "Blue car | PlaneGeometry | MeshBasicMaterial | ",
+            {
+              "calls": 2,
+              "triangles": 4
+            }
+          ],
+          [
+            " | ShapeGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 2,
+              "triangles": 130
+            }
+          ],
+          [
+            "Cedar bungalow static shell | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 2,
+              "triangles": 24
+            }
+          ],
+          [
+            "Carpet tiles / Cedar bungalow static shell | PlaneGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 2,
+              "triangles": 3024
+            }
+          ],
+          [
+            "Maple family home static shell | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 2,
+              "triangles": 24
+            }
+          ],
+          [
+            "Distant forest silhouettes / Streamed region | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 2,
+              "triangles": 13596
+            }
+          ],
+          [
+            "Batched understory / Batched understory | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 2,
+              "triangles": 25382
+            }
+          ],
+          [
+            "Distant city activity | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 2,
+              "triangles": 3472
+            }
+          ],
+          [
+            "ear_inner / Human2_Cat | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 2,
+              "triangles": 448
+            }
+          ],
+          [
+            "Rigid parts batch / Dog_bag_3 | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 2,
+              "triangles": 526
+            }
+          ],
+          [
+            "Rigid parts batch / Dog_bag_4 | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 2,
+              "triangles": 526
+            }
+          ],
+          [
+            "Rigid parts batch / Dog_bag_5 | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 2,
+              "triangles": 526
+            }
+          ],
+          [
+            "Rigid parts batch / Dog_catbag_8 | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 2,
+              "triangles": 558
+            }
+          ],
+          [
+            "Rigid parts batch / Dog_catbag_9 | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 2,
+              "triangles": 558
+            }
+          ],
+          [
+            "Wall_Dust | PlaneGeometry | MeshBasicMaterial | ",
+            {
+              "calls": 2,
+              "triangles": 64
+            }
+          ],
+          [
+            "MiraEyeFinish / Head / NeckTwist02 / NeckTwist01 / Spine02 | BufferGeometry | MeshPhysicalMaterial | Fitted lower tear meniscus",
+            {
+              "calls": 2,
+              "triangles": 128
+            }
+          ],
+          [
+            "Wall_Baseboard | BoxGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 3360
+            }
+          ],
+          [
+            "Wall_Crown | BoxGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 3360
+            }
+          ],
+          [
+            "Wall_Casing | BoxGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 3360
+            }
+          ],
+          [
+            "Wall_Crack | PlaneGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 48
+            }
+          ],
+          [
+            "Wall_Stud | BoxGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 6144
+            }
+          ],
+          [
+            "Wall_Dust | PlaneGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 32
+            }
+          ],
+          [
+            "City silhouettes / Streamed region | BoxGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 144
+            }
+          ],
+          [
+            "Vehicle depth batch / Blue car | BufferGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 4124
+            }
+          ],
+          [
+            "Vehicle depth batch / Red car | BufferGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 4124
+            }
+          ],
+          [
+            "body_1 / body / Mira | BufferGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 8316
+            }
+          ],
+          [
+            "body_2 / body / Mira | BufferGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 6728
+            }
+          ],
+          [
+            "body_3 / body / Mira | BufferGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 8368
+            }
+          ],
+          [
+            "body_4 / body / Mira | BufferGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 4528
+            }
+          ],
+          [
+            "body_5 / body / Mira | BufferGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 1788
+            }
+          ],
+          [
+            "body_6 / body / Mira | BufferGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 1200
+            }
+          ],
+          [
+            "teeth_1 / teeth / Mira | BufferGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 2362
+            }
+          ],
+          [
+            "teeth_2 / teeth / Mira | BufferGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 2480
+            }
+          ],
+          [
+            "Weather | SphereGeometry | ShaderMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 352
+            }
+          ],
+          [
+            " | RingGeometry | MeshBasicMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 64
+            }
+          ],
+          [
+            "Wall_Casing | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 3360
+            }
+          ],
+          [
+            "Wall_Baseboard | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 3360
+            }
+          ],
+          [
+            "Wall_Crown | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 3360
+            }
+          ],
+          [
+            "Wall_Stud | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 6144
+            }
+          ],
+          [
+            "Rack Linen camisole | BufferGeometry | MeshPhysicalMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 256
+            }
+          ],
+          [
+            "Rack Ribbed tube top | BufferGeometry | MeshPhysicalMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 64
+            }
+          ],
+          [
+            "Rack Triangle bikini top | BufferGeometry | MeshPhysicalMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 256
+            }
+          ],
+          [
+            "Rack Bandeau bikini top | BufferGeometry | MeshPhysicalMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 64
+            }
+          ],
+          [
+            "Rack Cotton panties | BufferGeometry | MeshPhysicalMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 128
+            }
+          ],
+          [
+            "Rack Bikini bottoms | BufferGeometry | MeshPhysicalMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 128
+            }
+          ],
+          [
+            "Blue car | SphereGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 120
+            }
+          ],
+          [
+            "Blue car | CylinderGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 32
+            }
+          ],
+          [
+            "Hood / Blue car | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 144
+            }
+          ],
+          [
+            "Trunk / Blue car | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 144
+            }
+          ],
+          [
+            "Sedan body finish / Right front door / Blue car | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 300
+            }
+          ],
+          [
+            "Sedan body finish / Chassis / Blue car | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 1200
+            }
+          ],
+          [
+            "Sedan body finish / Left front door / Blue car | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 300
+            }
+          ],
+          [
+            "Left front door / Blue car | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 100
+            }
+          ],
+          [
+            "Left rear door / Blue car | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 100
+            }
+          ],
+          [
+            "Right front door / Blue car | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 100
+            }
+          ],
+          [
+            "Right rear door / Blue car | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 100
+            }
+          ],
+          [
+            "Blue car | BoxGeometry | MeshBasicMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 108
+            }
+          ],
+          [
+            "Dog_Kibble_200 | IcosahedronGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 4000
+            }
+          ],
+          [
+            "Cat_Kibble_200 | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 2400
+            }
+          ],
+          [
+            "Nearby carpet pile | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 0
+            }
+          ],
+          [
+            " | PlaneGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 2
+            }
+          ],
+          [
+            "Carpet tiles / Willow cottage static shell | PlaneGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 966
+            }
+          ],
+          [
+            "Threaded rug · diamonds | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 768
+            }
+          ],
+          [
+            "Willow cottage static shell | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 12
+            }
+          ],
+          [
+            "Threaded rug · stripes | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 768
+            }
+          ],
+          [
+            "Threaded rug · braid | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 768
+            }
+          ],
+          [
+            "Terrain cell 0/0 / Streamed region | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 4992
+            }
+          ],
+          [
+            "Persistent distant terrain / Streamed region | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 34848
+            }
+          ],
+          [
+            "Terrain cell -1/0 / Streamed region | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 4992
+            }
+          ],
+          [
+            "Terrain cell 0/-1 / Streamed region | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 4992
+            }
+          ],
+          [
+            "Terrain cell -2/0 / Streamed region | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 4992
+            }
+          ],
+          [
+            "Terrain cell -1/-1 / Streamed region | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 4992
+            }
+          ],
+          [
+            "Terrain cell -2/-1 / Streamed region | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 4992
+            }
+          ],
+          [
+            "Distant forest silhouettes / Streamed region | CylinderGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 9552
+            }
+          ],
+          [
+            "Batched understory / Batched understory | IcosahedronGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 8400
+            }
+          ],
+          [
+            "Cuttable mixed meadow / Living understory | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 0
+            }
+          ],
+          [
+            "River fish | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 0
+            }
+          ],
+          [
+            "Distant city activity | BoxGeometry | MeshBasicMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 14376
+            }
+          ],
+          [
+            "Loose hundred dollar bills | PlaneGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 0
+            }
+          ],
+          [
+            "Settlement silhouettes | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 2208
+            }
+          ],
+          [
+            "Settlement roofs | ConeGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 1472
+            }
+          ],
+          [
+            "Human6 wildlife sphere | SphereGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 22680
+            }
+          ],
+          [
+            "Human6 wildlife box | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 72
+            }
+          ],
+          [
+            "Human6 wildlife cone | ConeGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 32
+            }
+          ],
+          [
+            "creeper fluid | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 0
+            }
+          ],
+          [
+            "lava fluid | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 0
+            }
+          ],
+          [
+            "Headlight button / Blue car | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 12
+            }
+          ],
+          [
+            "Interior light button / Blue car | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 12
+            }
+          ],
+          [
+            "Willow cottage destructible wall batch | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 5856
+            }
+          ],
+          [
+            "Cedar bungalow destructible wall batch | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 7788
+            }
+          ],
+          [
+            "Maple family home destructible wall batch | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 9420
+            }
+          ],
+          [
+            "body_1 / body / Mira | BufferGeometry | MeshStandardMaterial | Std_Skin_Head",
+            {
+              "calls": 1,
+              "triangles": 8316
+            }
+          ],
+          [
+            "body_2 / body / Mira | BufferGeometry | MeshStandardMaterial | Std_Skin_Body",
+            {
+              "calls": 1,
+              "triangles": 6728
+            }
+          ],
+          [
+            "body_3 / body / Mira | BufferGeometry | MeshStandardMaterial | Std_Skin_Arm",
+            {
+              "calls": 1,
+              "triangles": 8368
+            }
+          ],
+          [
+            "body_4 / body / Mira | BufferGeometry | MeshStandardMaterial | Std_Skin_Leg",
+            {
+              "calls": 1,
+              "triangles": 4528
+            }
+          ],
+          [
+            "body_5 / body / Mira | BufferGeometry | MeshStandardMaterial | Std_Nails",
+            {
+              "calls": 1,
+              "triangles": 1788
+            }
+          ],
+          [
+            "body_6 / body / Mira | BufferGeometry | MeshStandardMaterial | Std_Eyelash",
+            {
+              "calls": 1,
+              "triangles": 1200
+            }
+          ],
+          [
+            "teeth_1 / teeth / Mira | BufferGeometry | MeshStandardMaterial | Std_Upper_Teeth",
+            {
+              "calls": 1,
+              "triangles": 2362
+            }
+          ],
+          [
+            "teeth_2 / teeth / Mira | BufferGeometry | MeshStandardMaterial | Std_Lower_Teeth",
+            {
+              "calls": 1,
+              "triangles": 2480
+            }
+          ],
+          [
+            "eyes_2 / eyes / Mira | BufferGeometry | MeshPhysicalMaterial | Std_Cornea_R",
+            {
+              "calls": 1,
+              "triangles": 320
+            }
+          ],
+          [
+            "eyes_4 / eyes / Mira | BufferGeometry | MeshPhysicalMaterial | Std_Cornea_L",
+            {
+              "calls": 1,
+              "triangles": 320
+            }
+          ],
+          [
+            "body / Human2_Dog | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 13944
+            }
+          ],
+          [
+            "nose / Human2_Dog | SphereGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 324
+            }
+          ],
+          [
+            "nostril / Human2_Dog | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 200
+            }
+          ],
+          [
+            "mouth / Human2_Dog | SphereGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 192
+            }
+          ],
+          [
+            "eyelid / Human2_Dog | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 820
+            }
+          ],
+          [
+            "anatomical_eye / Human2_Dog | BufferGeometry | MeshPhysicalMaterial | Pet layered iris",
+            {
+              "calls": 1,
+              "triangles": 1536
+            }
+          ],
+          [
+            "ear_-1 / Human2_Dog | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 224
+            }
+          ],
+          [
+            "ear_1 / Human2_Dog | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 224
+            }
+          ],
+          [
+            "tongue / Human2_Dog | SphereGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 120
+            }
+          ],
+          [
+            "body / Human2_Cat | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 13160
+            }
+          ],
+          [
+            "nose / Human2_Cat | SphereGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 324
+            }
+          ],
+          [
+            "nostril / Human2_Cat | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 200
+            }
+          ],
+          [
+            "mouth / Human2_Cat | SphereGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 192
+            }
+          ],
+          [
+            "eyelid / Human2_Cat | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 820
+            }
+          ],
+          [
+            "anatomical_eye / Human2_Cat | BufferGeometry | MeshPhysicalMaterial | Pet layered iris",
+            {
+              "calls": 1,
+              "triangles": 1536
+            }
+          ],
+          [
+            "ear_-1 / Human2_Cat | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 224
+            }
+          ],
+          [
+            "whiskers / Human2_Cat | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 432
+            }
+          ],
+          [
+            "ear_1 / Human2_Cat | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 224
+            }
+          ],
+          [
+            "tongue / Human2_Cat | SphereGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 120
+            }
+          ],
+          [
+            "Guided shoulder locks / Mira straight shoulder hair / Head / NeckTwist02 / NeckTwist01 | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 1408
+            }
+          ],
+          [
+            "Fitted softly parted crown / Mira straight shoulder hair / Head / NeckTwist02 / NeckTwist01 | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 2560
+            }
+          ],
+          [
+            "Rigid parts batch / Dog_chicken_1 | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 280
+            }
+          ],
+          [
+            "Vehicle depth batch / Blue car | BufferGeometry | MeshBasicMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 0
+            }
+          ],
+          [
+            "Dog_bag_3 | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 12
+            }
+          ],
+          [
+            "Dog_bag_4 | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 12
+            }
+          ],
+          [
+            "Dog_bag_5 | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 12
+            }
+          ],
+          [
+            "Dog_catbag_8 | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 12
+            }
+          ],
+          [
+            "Dog_catbag_9 | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 12
+            }
+          ],
+          [
+            "Rigid parts batch / Dog_catbag_2 | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 492
+            }
+          ],
+          [
+            "Lake, river and outflow / Streamed region | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 618
+            }
+          ],
+          [
+            "Wall_Crack | PlaneGeometry | ShaderMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 48
+            }
+          ],
+          [
+            "Rigid parts batch / Cedar bungalow static shell | BufferGeometry | MeshPhysicalMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 72
+            }
+          ],
+          [
+            "Rigid parts batch / Maple family home static shell | BufferGeometry | MeshPhysicalMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 72
+            }
+          ],
+          [
+            "Rigid parts batch / Willow cottage static shell | BufferGeometry | MeshPhysicalMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 72
+            }
+          ],
+          [
+            "Mira_Water_Droplets / Mira_Water | SphereGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 0
+            }
+          ],
+          [
+            "H5 fire effects | PlaneGeometry | ShaderMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 20
+            }
+          ],
+          [
+            "Home interactions | PlaneGeometry | ShaderMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 0
+            }
+          ],
+          [
+            " | CircleGeometry | MeshBasicMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 20
+            }
+          ],
+          [
+            "MiraEyeFinish / Head / NeckTwist02 / NeckTwist01 / Spine02 | BufferGeometry | ShaderMaterial | Fitted eyelid contact shade",
+            {
+              "calls": 1,
+              "triangles": 128
+            }
+          ],
+          [
+            " | PlaneGeometry | ShaderMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 0
+            }
+          ]
+        ]
+      },
+      {
+        "name": "Close Mira",
+        "costs": [
+          [
+            " | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 10,
+              "triangles": 684
+            }
+          ],
+          [
+            "Rigid parts batch | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 9,
+              "triangles": 5184
+            }
+          ],
+          [
+            "Batched resident forest / Batched resident forest | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 6,
+              "triangles": 66580
+            }
+          ],
+          [
+            "Rigid parts batch / Aspen family home static shell | BufferGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 3,
+              "triangles": 578
+            }
+          ],
+          [
+            "Batched resident forest / Batched resident forest | BufferGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 3,
+              "triangles": 60850
+            }
+          ],
+          [
+            "Carpet tiles / Maple family home static shell | PlaneGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 3,
+              "triangles": 2970
+            }
+          ],
+          [
+            "Visible road surface / Connected roads and hiking trails / Streamed region | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 3,
+              "triangles": 5711
+            }
+          ],
+          [
+            "Songbird flock | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 3,
+              "triangles": 3276
+            }
+          ],
+          [
+            "Rigid parts batch / Cedar bungalow static shell | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 3,
+              "triangles": 542
+            }
+          ],
+          [
+            "Rigid parts batch / Maple family home static shell | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 3,
+              "triangles": 578
+            }
+          ],
+          [
+            "Rigid parts batch / Birch courtyard home static shell | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 3,
+              "triangles": 542
+            }
+          ],
+          [
+            "Bounded explosion cloud | IcosahedronGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 3,
+              "triangles": 0
+            }
+          ],
+          [
+            "MiraEyeFinish / Head / NeckTwist02 / NeckTwist01 / Spine02 | BufferGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 2,
+              "triangles": 192
+            }
+          ],
+          [
+            "ear_inner / Human2_Cat | BufferGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 2,
+              "triangles": 448
+            }
+          ],
+          [
+            "Rigid parts batch / Dog_catbag_2 | BufferGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 2,
+              "triangles": 558
+            }
+          ],
+          [
+            " | ShapeGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 2,
+              "triangles": 130
+            }
+          ],
+          [
+            "Cedar bungalow static shell | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 2,
+              "triangles": 24
+            }
+          ],
+          [
+            "Maple family home static shell | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 2,
+              "triangles": 24
+            }
+          ],
+          [
+            "Birch courtyard home static shell | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 2,
+              "triangles": 24
+            }
+          ],
+          [
+            "Distant forest silhouettes / Streamed region | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 2,
+              "triangles": 12114
+            }
+          ],
+          [
+            "Batched understory / Batched understory | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 2,
+              "triangles": 23282
+            }
+          ],
+          [
+            "Distant city activity | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 2,
+              "triangles": 4200
+            }
+          ],
+          [
+            "Rigid parts batch / Dog_bag_4 | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 2,
+              "triangles": 526
+            }
+          ],
+          [
+            "Rigid parts batch / Dog_bag_5 | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 2,
+              "triangles": 526
+            }
+          ],
+          [
+            "Rigid parts batch / Dog_bag_6 | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 2,
+              "triangles": 526
+            }
+          ],
+          [
+            "Rigid parts batch / Dog_catbag_9 | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 2,
+              "triangles": 558
+            }
+          ],
+          [
+            "Wall_Dust | PlaneGeometry | MeshBasicMaterial | ",
+            {
+              "calls": 2,
+              "triangles": 64
+            }
+          ],
+          [
+            "MiraEyeFinish / Head / NeckTwist02 / NeckTwist01 / Spine02 | BufferGeometry | MeshPhysicalMaterial | Fitted lower tear meniscus",
+            {
+              "calls": 2,
+              "triangles": 128
+            }
+          ],
+          [
+            "Wall_Baseboard | BoxGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 3360
+            }
+          ],
+          [
+            "Wall_Crown | BoxGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 3360
+            }
+          ],
+          [
+            "Wall_Casing | BoxGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 3360
+            }
+          ],
+          [
+            "Wall_Crack | PlaneGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 48
+            }
+          ],
+          [
+            "Wall_Stud | BoxGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 6144
+            }
+          ],
+          [
+            "Wall_Dust | PlaneGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 32
+            }
+          ],
+          [
+            "City silhouettes / Streamed region | BoxGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 144
+            }
+          ],
+          [
+            "Aspen family home destructible wall batch | BoxGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 9408
+            }
+          ],
+          [
+            "Rack Linen camisole | BufferGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 256
+            }
+          ],
+          [
+            "Rack Ribbed tube top | BufferGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 64
+            }
+          ],
+          [
+            "Rack Triangle bikini top | BufferGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 256
+            }
+          ],
+          [
+            "Rack Bandeau bikini top | BufferGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 64
+            }
+          ],
+          [
+            "Rack Cotton panties | BufferGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 128
+            }
+          ],
+          [
+            "Rack Bikini bottoms | BufferGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 128
+            }
+          ],
+          [
+            "Rigid parts batch | BufferGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 48
+            }
+          ],
+          [
+            "body_1 / body / Mira | BufferGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 8316
+            }
+          ],
+          [
+            "body_2 / body / Mira | BufferGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 6728
+            }
+          ],
+          [
+            "body_3 / body / Mira | BufferGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 8368
+            }
+          ],
+          [
+            "body_4 / body / Mira | BufferGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 4528
+            }
+          ],
+          [
+            "body_5 / body / Mira | BufferGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 1788
+            }
+          ],
+          [
+            "body_6 / body / Mira | BufferGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 1200
+            }
+          ],
+          [
+            "teeth_1 / teeth / Mira | BufferGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 2362
+            }
+          ],
+          [
+            "teeth_2 / teeth / Mira | BufferGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 2480
+            }
+          ],
+          [
+            "nose / Human2_Dog | SphereGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 324
+            }
+          ],
+          [
+            "ear_-1 / Human2_Dog | BufferGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 224
+            }
+          ],
+          [
+            "ear_1 / Human2_Dog | BufferGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 224
+            }
+          ],
+          [
+            "mouth / Human2_Dog | SphereGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 192
+            }
+          ],
+          [
+            "tongue / Human2_Dog | SphereGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 120
+            }
+          ],
+          [
+            "body / Human2_Dog | BufferGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 13944
+            }
+          ],
+          [
+            "nostril / Human2_Dog | BufferGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 200
+            }
+          ],
+          [
+            "eyelid / Human2_Dog | BufferGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 820
+            }
+          ],
+          [
+            "nose / Human2_Cat | SphereGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 324
+            }
+          ],
+          [
+            "ear_-1 / Human2_Cat | BufferGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 224
+            }
+          ],
+          [
+            "ear_1 / Human2_Cat | BufferGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 224
+            }
+          ],
+          [
+            "mouth / Human2_Cat | SphereGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 192
+            }
+          ],
+          [
+            "tongue / Human2_Cat | SphereGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 120
+            }
+          ],
+          [
+            "body / Human2_Cat | BufferGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 13160
+            }
+          ],
+          [
+            "nostril / Human2_Cat | BufferGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 200
+            }
+          ],
+          [
+            "eyelid / Human2_Cat | BufferGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 820
+            }
+          ],
+          [
+            "Rigid parts batch / Dog_chicken_1 | BufferGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 280
+            }
+          ],
+          [
+            "Dog_catbag_2 | BoxGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 12
+            }
+          ],
+          [
+            "Weather | SphereGeometry | ShaderMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 352
+            }
+          ],
+          [
+            "Wall_Casing | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 3360
+            }
+          ],
+          [
+            "Wall_Baseboard | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 3360
+            }
+          ],
+          [
+            "Wall_Crown | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 3360
+            }
+          ],
+          [
+            "Wall_Stud | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 6144
+            }
+          ],
+          [
+            "Dog_Kibble_200 | IcosahedronGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 4000
+            }
+          ],
+          [
+            "Cat_Kibble_200 | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 2400
+            }
+          ],
+          [
+            "Nearby carpet pile | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 0
+            }
+          ],
+          [
+            "Carpet tiles / Cedar bungalow static shell | PlaneGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 1512
+            }
+          ],
+          [
+            "Threaded rug · stripes | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 768
+            }
+          ],
+          [
+            "Threaded rug · braid | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 768
+            }
+          ],
+          [
+            "Carpet tiles / Birch courtyard home static shell | PlaneGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 1240
+            }
+          ],
+          [
+            "Terrain cell 0/0 / Streamed region | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 4992
+            }
+          ],
+          [
+            "Terrain cell -1/0 / Streamed region | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 4992
+            }
+          ],
+          [
+            "Persistent distant terrain / Streamed region | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 34848
+            }
+          ],
+          [
+            "Terrain cell 1/-1 / Streamed region | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 4992
+            }
+          ],
+          [
+            "Terrain cell 0/-1 / Streamed region | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 4992
+            }
+          ],
+          [
+            "Terrain cell -2/-1 / Streamed region | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 4992
+            }
+          ],
+          [
+            "Terrain cell -1/-1 / Streamed region | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 4992
+            }
+          ],
+          [
+            "Distant forest silhouettes / Streamed region | CylinderGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 8528
+            }
+          ],
+          [
+            "City silhouettes / Streamed region | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 144
+            }
+          ],
+          [
+            "Batched understory / Batched understory | IcosahedronGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 6320
+            }
+          ],
+          [
+            "Cuttable mixed meadow / Living understory | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 0
+            }
+          ],
+          [
+            "River fish | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 0
+            }
+          ],
+          [
+            "Distant city activity | BoxGeometry | MeshBasicMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 14376
+            }
+          ],
+          [
+            "Loose hundred dollar bills | PlaneGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 0
+            }
+          ],
+          [
+            "Settlement silhouettes | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 2208
+            }
+          ],
+          [
+            "Settlement roofs | ConeGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 1472
+            }
+          ],
+          [
+            "Human6 wildlife sphere | SphereGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 22680
+            }
+          ],
+          [
+            "Human6 wildlife box | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 72
+            }
+          ],
+          [
+            "Human6 wildlife cone | ConeGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 32
+            }
+          ],
+          [
+            "creeper fluid | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 0
+            }
+          ],
+          [
+            "lava fluid | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 0
+            }
+          ],
+          [
+            "Cedar bungalow destructible wall batch | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 7788
+            }
+          ],
+          [
+            "Maple family home destructible wall batch | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 9420
+            }
+          ],
+          [
+            "Birch courtyard home destructible wall batch | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 7776
+            }
+          ],
+          [
+            "body_1 / body / Mira | BufferGeometry | MeshStandardMaterial | Std_Skin_Head",
+            {
+              "calls": 1,
+              "triangles": 8316
+            }
+          ],
+          [
+            "body_2 / body / Mira | BufferGeometry | MeshStandardMaterial | Std_Skin_Body",
+            {
+              "calls": 1,
+              "triangles": 6728
+            }
+          ],
+          [
+            "body_3 / body / Mira | BufferGeometry | MeshStandardMaterial | Std_Skin_Arm",
+            {
+              "calls": 1,
+              "triangles": 8368
+            }
+          ],
+          [
+            "body_4 / body / Mira | BufferGeometry | MeshStandardMaterial | Std_Skin_Leg",
+            {
+              "calls": 1,
+              "triangles": 4528
+            }
+          ],
+          [
+            "body_5 / body / Mira | BufferGeometry | MeshStandardMaterial | Std_Nails",
+            {
+              "calls": 1,
+              "triangles": 1788
+            }
+          ],
+          [
+            "body_6 / body / Mira | BufferGeometry | MeshStandardMaterial | Std_Eyelash",
+            {
+              "calls": 1,
+              "triangles": 1200
+            }
+          ],
+          [
+            "teeth_1 / teeth / Mira | BufferGeometry | MeshStandardMaterial | Std_Upper_Teeth",
+            {
+              "calls": 1,
+              "triangles": 2362
+            }
+          ],
+          [
+            "teeth_2 / teeth / Mira | BufferGeometry | MeshStandardMaterial | Std_Lower_Teeth",
+            {
+              "calls": 1,
+              "triangles": 2480
+            }
+          ],
+          [
+            "eyes_2 / eyes / Mira | BufferGeometry | MeshPhysicalMaterial | Std_Cornea_R",
+            {
+              "calls": 1,
+              "triangles": 320
+            }
+          ],
+          [
+            "eyes_4 / eyes / Mira | BufferGeometry | MeshPhysicalMaterial | Std_Cornea_L",
+            {
+              "calls": 1,
+              "triangles": 320
+            }
+          ],
+          [
+            "body / Human2_Dog | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 13944
+            }
+          ],
+          [
+            "nose / Human2_Dog | SphereGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 324
+            }
+          ],
+          [
+            "nostril / Human2_Dog | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 200
+            }
+          ],
+          [
+            "mouth / Human2_Dog | SphereGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 192
+            }
+          ],
+          [
+            "eyelid / Human2_Dog | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 820
+            }
+          ],
+          [
+            "anatomical_eye / Human2_Dog | BufferGeometry | MeshPhysicalMaterial | Pet layered iris",
+            {
+              "calls": 1,
+              "triangles": 1536
+            }
+          ],
+          [
+            "ear_-1 / Human2_Dog | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 224
+            }
+          ],
+          [
+            "ear_1 / Human2_Dog | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 224
+            }
+          ],
+          [
+            "tongue / Human2_Dog | SphereGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 120
+            }
+          ],
+          [
+            "Guided shoulder locks / Mira straight shoulder hair / Head / NeckTwist02 / NeckTwist01 | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 1408
+            }
+          ],
+          [
+            "Fitted softly parted crown / Mira straight shoulder hair / Head / NeckTwist02 / NeckTwist01 | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 2560
+            }
+          ],
+          [
+            "Dog_bag_4 | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 12
+            }
+          ],
+          [
+            "Dog_bag_5 | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 12
+            }
+          ],
+          [
+            "Dog_bag_6 | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 12
+            }
+          ],
+          [
+            "Dog_catbag_9 | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 12
+            }
+          ],
+          [
+            "Lake, river and outflow / Streamed region | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 618
+            }
+          ],
+          [
+            "Wall_Crack | PlaneGeometry | ShaderMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 48
+            }
+          ],
+          [
+            "Rigid parts batch / Maple family home static shell | BufferGeometry | MeshPhysicalMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 72
+            }
+          ],
+          [
+            "Rigid parts batch / Birch courtyard home static shell | BufferGeometry | MeshPhysicalMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 72
+            }
+          ],
+          [
+            "Rigid parts batch / Cedar bungalow static shell | BufferGeometry | MeshPhysicalMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 72
+            }
+          ],
+          [
+            "Mira_Water_Droplets / Mira_Water | SphereGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 0
+            }
+          ],
+          [
+            "H5 fire effects | PlaneGeometry | ShaderMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 20
+            }
+          ],
+          [
+            "Home interactions | PlaneGeometry | ShaderMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 0
+            }
+          ],
+          [
+            "MiraEyeFinish / Head / NeckTwist02 / NeckTwist01 / Spine02 | BufferGeometry | ShaderMaterial | Fitted eyelid contact shade",
+            {
+              "calls": 1,
+              "triangles": 128
+            }
+          ],
+          [
+            " | PlaneGeometry | ShaderMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 0
+            }
+          ]
+        ]
+      },
+      {
+        "name": "Timberfall",
+        "costs": [
+          [
+            "Batched resident forest / Batched resident forest | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 9,
+              "triangles": 67518
+            }
+          ],
+          [
+            " | PlaneGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 8,
+              "triangles": 16
+            }
+          ],
+          [
+            "Batched resident forest / Batched resident forest | BufferGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 6,
+              "triangles": 46606
+            }
+          ],
+          [
+            "Visible road surface / Connected roads and hiking trails / Streamed region | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 3,
+              "triangles": 12850
+            }
+          ],
+          [
+            "Songbird flock | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 3,
+              "triangles": 3276
+            }
+          ],
+          [
+            "Bounded explosion cloud | IcosahedronGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 3,
+              "triangles": 0
+            }
+          ],
+          [
+            " | ShapeGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 2,
+              "triangles": 130
+            }
+          ],
+          [
+            "Threaded rug · diamonds | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 2,
+              "triangles": 1536
+            }
+          ],
+          [
+            "Distant forest silhouettes / Streamed region | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 2,
+              "triangles": 10776
+            }
+          ],
+          [
+            "Batched understory / Batched understory | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 2,
+              "triangles": 11396
+            }
+          ],
+          [
+            "Distant city activity | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 2,
+              "triangles": 0
+            }
+          ],
+          [
+            "Wall_Dust | PlaneGeometry | MeshBasicMaterial | ",
+            {
+              "calls": 2,
+              "triangles": 64
+            }
+          ],
+          [
+            "Mira_Water_water-11 / Mira_Water | PlaneGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 2,
+              "triangles": 3136
+            }
+          ],
+          [
+            "Lake, river and outflow / Streamed region | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 2,
+              "triangles": 746
+            }
+          ],
+          [
+            "Wall_Baseboard | BoxGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 3360
+            }
+          ],
+          [
+            "Wall_Crown | BoxGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 3360
+            }
+          ],
+          [
+            "Wall_Casing | BoxGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 3360
+            }
+          ],
+          [
+            "Wall_Crack | PlaneGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 48
+            }
+          ],
+          [
+            "Wall_Stud | BoxGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 6144
+            }
+          ],
+          [
+            "Wall_Dust | PlaneGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 32
+            }
+          ],
+          [
+            "Weather | SphereGeometry | ShaderMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 352
+            }
+          ],
+          [
+            " | RingGeometry | MeshBasicMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 64
+            }
+          ],
+          [
+            " | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 576
+            }
+          ],
+          [
+            "Wall_Casing | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 3360
+            }
+          ],
+          [
+            "Wall_Baseboard | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 3360
+            }
+          ],
+          [
+            "Wall_Crown | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 3360
+            }
+          ],
+          [
+            "Wall_Stud | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 6144
+            }
+          ],
+          [
+            "Dog_Kibble_200 | IcosahedronGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 4000
+            }
+          ],
+          [
+            "Cat_Kibble_200 | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 2400
+            }
+          ],
+          [
+            "Nearby carpet pile | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 0
+            }
+          ],
+          [
+            "Threaded rug · stripes | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 768
+            }
+          ],
+          [
+            "Threaded rug · braid | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 768
+            }
+          ],
+          [
+            "Terrain cell -6/-1 / Streamed region | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 4992
+            }
+          ],
+          [
+            "Terrain cell -6/-2 / Streamed region | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 4992
+            }
+          ],
+          [
+            "Terrain cell -6/0 / Streamed region | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 4992
+            }
+          ],
+          [
+            "Terrain cell -5/-1 / Streamed region | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 4992
+            }
+          ],
+          [
+            "Terrain cell -5/0 / Streamed region | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 4992
+            }
+          ],
+          [
+            "Terrain cell -5/-2 / Streamed region | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 4992
+            }
+          ],
+          [
+            "Persistent distant terrain / Streamed region | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 34848
+            }
+          ],
+          [
+            "Distant forest silhouettes / Streamed region | CylinderGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 7584
+            }
+          ],
+          [
+            "Lake, river and outflow / Streamed region | CircleGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 48
+            }
+          ],
+          [
+            "City silhouettes / Streamed region | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 144
+            }
+          ],
+          [
+            "Batched understory / Batched understory | IcosahedronGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 2880
+            }
+          ],
+          [
+            "Cuttable mixed meadow / Living understory | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 0
+            }
+          ],
+          [
+            "River fish | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 0
+            }
+          ],
+          [
+            "Distant city activity | CylinderGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 0
+            }
+          ],
+          [
+            "Distant city activity | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 0
+            }
+          ],
+          [
+            "Distant city activity | SphereGeometry | MeshBasicMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 0
+            }
+          ],
+          [
+            "Distant city activity | BoxGeometry | MeshBasicMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 14376
+            }
+          ],
+          [
+            "Loose hundred dollar bills | PlaneGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 0
+            }
+          ],
+          [
+            "Settlement silhouettes | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 2208
+            }
+          ],
+          [
+            "Settlement roofs | ConeGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 1472
+            }
+          ],
+          [
+            "Human6 wildlife sphere | SphereGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 22680
+            }
+          ],
+          [
+            "Human6 wildlife box | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 72
+            }
+          ],
+          [
+            "Human6 wildlife cone | ConeGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 32
+            }
+          ],
+          [
+            "creeper fluid | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 0
+            }
+          ],
+          [
+            "lava fluid | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 0
+            }
+          ],
+          [
+            "Volcano vent | CylinderGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 144
+            }
+          ],
+          [
+            "Distant home shells | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 60
+            }
+          ],
+          [
+            "Distant home roofs | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 40
+            }
+          ],
+          [
+            "Mira_Water_Droplets / Mira_Water | SphereGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 0
+            }
+          ],
+          [
+            "H5 fire effects | PlaneGeometry | ShaderMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 20
+            }
+          ],
+          [
+            "Home interactions | PlaneGeometry | ShaderMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 0
+            }
+          ],
+          [
+            " | CircleGeometry | MeshBasicMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 20
+            }
+          ],
+          [
+            "Wall_Crack | PlaneGeometry | ShaderMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 48
+            }
+          ],
+          [
+            " | PlaneGeometry | ShaderMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 0
+            }
+          ]
+        ]
+      },
+      {
+        "name": "Forest",
+        "costs": [
+          [
+            "Batched resident forest / Batched resident forest | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 6,
+              "triangles": 69528
+            }
+          ],
+          [
+            "Batched resident forest / Batched resident forest | BufferGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 3,
+              "triangles": 41136
+            }
+          ],
+          [
+            "Visible road surface / Connected roads and hiking trails / Streamed region | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 3,
+              "triangles": 3312
+            }
+          ],
+          [
+            "Songbird flock | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 3,
+              "triangles": 3276
+            }
+          ],
+          [
+            "Bounded explosion cloud | IcosahedronGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 3,
+              "triangles": 0
+            }
+          ],
+          [
+            "Distant forest silhouettes / Streamed region | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 2,
+              "triangles": 13512
+            }
+          ],
+          [
+            "Batched understory / Batched understory | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 2,
+              "triangles": 19754
+            }
+          ],
+          [
+            "Distant city activity | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 2,
+              "triangles": 288
+            }
+          ],
+          [
+            "Wall_Dust | PlaneGeometry | MeshBasicMaterial | ",
+            {
+              "calls": 2,
+              "triangles": 64
+            }
+          ],
+          [
+            "Wall_Baseboard | BoxGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 3360
+            }
+          ],
+          [
+            "Wall_Crown | BoxGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 3360
+            }
+          ],
+          [
+            "Wall_Casing | BoxGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 3360
+            }
+          ],
+          [
+            "Wall_Crack | PlaneGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 48
+            }
+          ],
+          [
+            "Wall_Stud | BoxGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 6144
+            }
+          ],
+          [
+            "Wall_Dust | PlaneGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 32
+            }
+          ],
+          [
+            "Weather | SphereGeometry | ShaderMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 352
+            }
+          ],
+          [
+            " | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 576
+            }
+          ],
+          [
+            "Wall_Casing | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 3360
+            }
+          ],
+          [
+            "Wall_Baseboard | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 3360
+            }
+          ],
+          [
+            "Wall_Crown | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 3360
+            }
+          ],
+          [
+            "Wall_Stud | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 6144
+            }
+          ],
+          [
+            "Dog_Kibble_200 | IcosahedronGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 4000
+            }
+          ],
+          [
+            "Cat_Kibble_200 | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 2400
+            }
+          ],
+          [
+            "Nearby carpet pile | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 0
+            }
+          ],
+          [
+            "Persistent distant terrain / Streamed region | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 34848
+            }
+          ],
+          [
+            "Terrain cell -2/-1 / Streamed region | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 4992
+            }
+          ],
+          [
+            "Terrain cell -2/-2 / Streamed region | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 4992
+            }
+          ],
+          [
+            "Terrain cell -1/-2 / Streamed region | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 4992
+            }
+          ],
+          [
+            "Terrain cell -3/-2 / Streamed region | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 4992
+            }
+          ],
+          [
+            "Terrain cell -2/-3 / Streamed region | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 4992
+            }
+          ],
+          [
+            "Terrain cell -1/-3 / Streamed region | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 4992
+            }
+          ],
+          [
+            "Terrain cell -3/-3 / Streamed region | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 4992
+            }
+          ],
+          [
+            "Distant forest silhouettes / Streamed region | CylinderGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 9520
+            }
+          ],
+          [
+            "Batched understory / Batched understory | IcosahedronGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 6400
+            }
+          ],
+          [
+            "Cuttable mixed meadow / Living understory | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 64962
+            }
+          ],
+          [
+            "River fish | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 0
+            }
+          ],
+          [
+            "Distant city activity | BoxGeometry | MeshBasicMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 14376
+            }
+          ],
+          [
+            "Loose hundred dollar bills | PlaneGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 0
+            }
+          ],
+          [
+            "Ancient Grove wall / Ancient Grove | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 48
+            }
+          ],
+          [
+            "Ancient Grove trim / Ancient Grove | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 120
+            }
+          ],
+          [
+            "Ancient Grove roof / Ancient Grove | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 2160
+            }
+          ],
+          [
+            "Settlement silhouettes | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 2208
+            }
+          ],
+          [
+            "Settlement roofs | ConeGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 1472
+            }
+          ],
+          [
+            "Human6 wildlife sphere | SphereGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 22680
+            }
+          ],
+          [
+            "Human6 wildlife box | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 72
+            }
+          ],
+          [
+            "Human6 wildlife cone | ConeGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 32
+            }
+          ],
+          [
+            "creeper fluid | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 0
+            }
+          ],
+          [
+            "lava fluid | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 0
+            }
+          ],
+          [
+            "Distant home shells | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 12
+            }
+          ],
+          [
+            "Distant home roofs | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 8
+            }
+          ],
+          [
+            "Rigid parts batch / Hanging bird feeder / Songbird flock | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 144
+            }
+          ],
+          [
+            "Lake, river and outflow / Streamed region | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 618
+            }
+          ],
+          [
+            "Wall_Crack | PlaneGeometry | ShaderMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 48
+            }
+          ],
+          [
+            "Mira_Water_Droplets / Mira_Water | SphereGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 0
+            }
+          ],
+          [
+            "H5 fire effects | PlaneGeometry | ShaderMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 20
+            }
+          ],
+          [
+            "Home interactions | PlaneGeometry | ShaderMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 0
+            }
+          ],
+          [
+            " | PlaneGeometry | ShaderMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 0
+            }
+          ]
+        ]
+      },
+      {
+        "name": "Flight",
+        "costs": [
+          [
+            "Batched resident forest / Batched resident forest | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 6,
+              "triangles": 28506
+            }
+          ],
+          [
+            "Batched resident forest / Batched resident forest | BufferGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 3,
+              "triangles": 11412
+            }
+          ],
+          [
+            "Visible road surface / Connected roads and hiking trails / Streamed region | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 3,
+              "triangles": 2935
+            }
+          ],
+          [
+            "Songbird flock | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 3,
+              "triangles": 3276
+            }
+          ],
+          [
+            "Bounded explosion cloud | IcosahedronGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 3,
+              "triangles": 0
+            }
+          ],
+          [
+            "Distant forest silhouettes / Streamed region | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 2,
+              "triangles": 14160
+            }
+          ],
+          [
+            "Distant city activity | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 2,
+              "triangles": 0
+            }
+          ],
+          [
+            "Wall_Dust | PlaneGeometry | MeshBasicMaterial | ",
+            {
+              "calls": 2,
+              "triangles": 64
+            }
+          ],
+          [
+            "Wall_Baseboard | BoxGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 3360
+            }
+          ],
+          [
+            "Wall_Crown | BoxGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 3360
+            }
+          ],
+          [
+            "Wall_Casing | BoxGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 3360
+            }
+          ],
+          [
+            "Wall_Crack | PlaneGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 48
+            }
+          ],
+          [
+            "Wall_Stud | BoxGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 6144
+            }
+          ],
+          [
+            "Wall_Dust | PlaneGeometry | MeshDepthMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 32
+            }
+          ],
+          [
+            "Weather | SphereGeometry | ShaderMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 352
+            }
+          ],
+          [
+            " | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 576
+            }
+          ],
+          [
+            "Wall_Casing | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 3360
+            }
+          ],
+          [
+            "Wall_Baseboard | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 3360
+            }
+          ],
+          [
+            "Wall_Crown | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 3360
+            }
+          ],
+          [
+            "Wall_Stud | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 6144
+            }
+          ],
+          [
+            "Dog_Kibble_200 | IcosahedronGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 4000
+            }
+          ],
+          [
+            "Cat_Kibble_200 | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 2400
+            }
+          ],
+          [
+            "Nearby carpet pile | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 0
+            }
+          ],
+          [
+            "Persistent distant terrain / Streamed region | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 34848
+            }
+          ],
+          [
+            "Terrain cell -3/-2 / Streamed region | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 4992
+            }
+          ],
+          [
+            "Terrain cell -2/-2 / Streamed region | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 4992
+            }
+          ],
+          [
+            "Terrain cell -1/-2 / Streamed region | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 4992
+            }
+          ],
+          [
+            "Terrain cell -3/-3 / Streamed region | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 4992
+            }
+          ],
+          [
+            "Terrain cell -1/-3 / Streamed region | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 4992
+            }
+          ],
+          [
+            "Terrain cell -2/-3 / Streamed region | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 4992
+            }
+          ],
+          [
+            "Distant forest silhouettes / Streamed region | CylinderGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 9984
+            }
+          ],
+          [
+            "River fish | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 0
+            }
+          ],
+          [
+            "Distant city activity | BoxGeometry | MeshBasicMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 14376
+            }
+          ],
+          [
+            "Loose hundred dollar bills | PlaneGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 0
+            }
+          ],
+          [
+            "Ancient Grove wall / Ancient Grove | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 48
+            }
+          ],
+          [
+            "Ancient Grove trim / Ancient Grove | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 120
+            }
+          ],
+          [
+            "Ancient Grove roof / Ancient Grove | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 2160
+            }
+          ],
+          [
+            "Settlement silhouettes | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 2208
+            }
+          ],
+          [
+            "Settlement roofs | ConeGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 1472
+            }
+          ],
+          [
+            "Human6 wildlife sphere | SphereGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 22680
+            }
+          ],
+          [
+            "Human6 wildlife box | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 72
+            }
+          ],
+          [
+            "Human6 wildlife cone | ConeGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 32
+            }
+          ],
+          [
+            "creeper fluid | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 0
+            }
+          ],
+          [
+            "lava fluid | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 0
+            }
+          ],
+          [
+            "Distant home shells | BoxGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 60
+            }
+          ],
+          [
+            "Distant home roofs | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 40
+            }
+          ],
+          [
+            "Lake, river and outflow / Streamed region | BufferGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 618
+            }
+          ],
+          [
+            "Wall_Crack | PlaneGeometry | ShaderMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 48
+            }
+          ],
+          [
+            "Mira_Water_Droplets / Mira_Water | SphereGeometry | MeshStandardMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 0
+            }
+          ],
+          [
+            "H5 fire effects | PlaneGeometry | ShaderMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 20
+            }
+          ],
+          [
+            "Home interactions | PlaneGeometry | ShaderMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 0
+            }
+          ],
+          [
+            " | PlaneGeometry | ShaderMaterial | ",
+            {
+              "calls": 1,
+              "triangles": 0
+            }
+          ]
+        ]
+      }
+    ]
+  },
+  "errors": []
+}

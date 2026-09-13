@@ -1,4 +1,4 @@
-import { clamp } from './Dog.js?v=19.3.0';
+import { clamp } from './Dog.js?v=20.2.0';
 export class DogAnim {
  constructor(model,paws,jaw,tail,ai,bark){Object.assign(this,{model,paws,jaw,tail,ai,bark});this.time=0;this.wag=0;this.nextBurst=8+Math.random()*10;this.sit=0;this.down=0;this.forage=0;this.bow=0;this.run=0;this.gaitTime=0;}
  tick(dt){
@@ -10,7 +10,7 @@ export class DogAnim {
   this.sit+=((sitting?1:0)-this.sit)*Math.min(1,dt*5);this.down+=((lying?1:0)-this.down)*Math.min(1,dt*4);this.forage+=((feeding?1:0)-this.forage)*Math.min(1,dt*6);
   this.bow+=((state==='play-bow'?1:0)-this.bow)*Math.min(1,dt*8);
   const moving=clamp(ai.speed/.65);this.run+=((ai.speed>1.05?1:0)-this.run)*Math.min(1,dt*7);this.gaitTime+=dt*(1+this.run*.48);const sway=Math.sin(this.gaitTime*8.2*(this.model.breed?.gait||1))*moving;
-  b.Spine.position.y=.445+this.run*Math.max(0,Math.sin(this.gaitTime*16.4))*.027+Math.sin(this.time*2.5)*.006-this.sit*.11-this.down*.245-this.forage*.28-this.bow*.02;
+  b.Spine.position.y=this.model.bind.Spine.y+this.run*Math.max(0,Math.sin(this.gaitTime*16.4))*.027+Math.sin(this.time*2.5)*.006-this.sit*.11-this.down*.245-this.forage*.28-this.bow*.02;
   b.Spine.rotation.set(-this.sit*.3-this.down*.12+this.forage*.13+this.bow*.32,clamp(ai.pathBend*.40+ai.bodyYaw,-.3,.3),sway*.045,'XYZ');
   b.Chest.rotation.set(Math.sin(this.gaitTime*8.2)*this.run*(this.model.species==='cat'?.13:.07)+this.sit*.20+this.down*.1+this.forage*.10+this.bow*.25,clamp(ai.pathBend*.34+ai.lookYaw*.045,-.27,.27),-sway*.035,'XYZ');
   if(ai.speed<.02)ai.pathBend*=Math.exp(-dt*4);

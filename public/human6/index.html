@@ -58,7 +58,7 @@
     <div id="hint"></div>
     <div id="stats">REALISM PASS</div>
     <div id="hud">
-      <h2>HUMAN 6 · 19.3.2</h2>
+      <h2>HUMAN 6 · 20.2.0</h2>
 <details open><summary>CREATE NPC</summary><p>Configure an NPC before spawning.</p>
 <label for="npcName">NPC name</label><input id="npcName" maxlength="48">
 <label for="npcBody">Body profile</label><select id="npcBody"><option value="female">Female · Mira rig</option><option value="male">Male · adapted rig</option></select>
@@ -75,12 +75,12 @@
       <label for="quality">Quest detail · next VR session</label>
       <select id="quality" style="width:100%;padding:6px">
         <option value="0.8">Faster · 0.8</option>
-        <option value="0.9" selected>Balanced · 0.9</option>
-        <option value="1">Sharper · 1.0</option>
-        <option value="1.2">Quest native · 1.2</option>
+        <option value="0.9">Reduced · 0.9</option>
+        <option value="1" selected>Default · 1.0</option>
+        <option value="1.2">Extra detail · 1.2</option>
         <option value="1.25">Max · 1.25</option>
       </select>
-      <label for="xrRate">XR refresh preference</label><select id="xrRate"><option value="72">72 Hz</option><option value="90">90 Hz · if supported</option></select><label for="foveation">XR foveation · live</label><input id="foveation" type="range" min="0" max="1" step=".05" value=".35"><h2>MOVEMENT</h2>
+      <label for="xrRate">XR refresh preference</label><select id="xrRate"><option value="72">72 Hz</option><option value="90">90 Hz · if supported</option></select><label for="foveation">XR foveation · live</label><input id="foveation" type="range" min="0" max="1" step=".05" value=".8"><h2>MOVEMENT</h2>
       <button type="button" data-mode="auto">LIVELY IDLE</button>
       <div class="row"><button type="button" data-mode="idle">STAND</button><button type="button" data-mode="wander">WALK</button></div>
       <div class="row"><button type="button" data-mode="airSquats">SQUAT</button><button type="button" data-mode="stretch">STRETCH</button></div>
@@ -200,7 +200,7 @@
     </div>
     <div id="ui">
       <div id="panel">
-        <div class="tag">HUMAN 5 · SHARP XR</div>
+        <div class="tag">HUMAN 6 · OPEN WORLD</div>
         <h1>HUMAN SIMULATOR</h1>
         <p>Choose Mira v1 or v2. Explore the face, poses and body interactions. Start with one actor on Quest 3.</p>
         <button type="button" id="enter" data-runtime>ENTER VR · VOICE STARTS</button>
@@ -210,6 +210,6 @@
         <button type="button" class="ghost" id="firstPerson" data-runtime>First person</button>
       </div>
     </div>
-    <script type="module" src="/human6/mira-boot.js?v=19.3.2"></script>
+    <script type="module" src="./mira-boot.js?v=20.2.0"></script>
   </body>
 </html>

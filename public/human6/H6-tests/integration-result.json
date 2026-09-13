@@ -1,0 +1,406 @@
+{
+  "report": {
+    "passed": 40,
+    "total": 40,
+    "questHardwareTested": false,
+    "results": [
+      {
+        "name": "Required places and streamed residency",
+        "pass": true,
+        "evidence": {
+          "size": 4224,
+          "places": 16,
+          "buildings": 74
+        }
+      },
+      {
+        "name": "Faction diplomacy, contest, capture and save",
+        "pass": true,
+        "evidence": {
+          "territories": 21
+        }
+      },
+      {
+        "name": "Mobile rifle bursts and exact hand attachment",
+        "pass": true,
+        "evidence": {
+          "shots": 9,
+          "movement": 3.3368498574194603,
+          "gripError": 0
+        }
+      },
+      {
+        "name": "Peace stops fire; accuracy endpoints",
+        "pass": true,
+        "evidence": {
+          "newShots": 0
+        }
+      },
+      {
+        "name": "Melee duel has telegraph, strike and recovery",
+        "pass": true,
+        "evidence": [
+          "guard",
+          "windup",
+          "strike",
+          "recover"
+        ]
+      },
+      {
+        "name": "Mount, reins, independent right weapon, dismount",
+        "pass": true,
+        "evidence": {
+          "distance": 10.145745135488008
+        }
+      },
+      {
+        "name": "Rare night spores and growing, severable limbs",
+        "pass": true,
+        "evidence": {
+          "spores": 1,
+          "limbs": 9
+        }
+      },
+      {
+        "name": "Fluid conservation, replication, budget and restoration",
+        "pass": true,
+        "evidence": {
+          "lavaMass": 17.279999613761902,
+          "creeperMass": 7592.165865898132,
+          "cells": 64
+        }
+      },
+      {
+        "name": "Flight boost, bounds, landing crater and orbital strike",
+        "pass": true,
+        "evidence": {
+          "flightHeight": 19.660796676630486,
+          "terrainRevision": 2
+        }
+      },
+      {
+        "name": "Eruption source and world save round trip",
+        "pass": true,
+        "evidence": {
+          "saveBytes": 11213
+        }
+      },
+      {
+        "name": "Simulated Quest controls: hand map, reins and flight gesture",
+        "pass": true,
+        "evidence": {
+          "map": "unfolded with two controllers",
+          "reins": "movement",
+          "flight": "requires raised hands and jump"
+        }
+      },
+      {
+        "name": "Batched walls retain picking and shoot-through destruction",
+        "pass": true,
+        "evidence": {
+          "originalCell": 0,
+          "broken": true
+        }
+      },
+      {
+        "name": "Halved bird population and optional layer fallback",
+        "pass": true,
+        "evidence": {
+          "birds": 9,
+          "layer": "mesh fallback"
+        }
+      },
+      {
+        "name": "Rigid materials retain separate PBR values and live lights",
+        "pass": true,
+        "evidence": {
+          "draws": 1,
+          "sourceParts": 3,
+          "picking": true,
+          "liveEmission": true,
+          "detachedDebris": true,
+          "replacement": true
+        }
+      },
+      {
+        "name": "Car collision dents hit the hidden original surface",
+        "pass": true,
+        "evidence": {
+          "originalSurface": true
+        }
+      },
+      {
+        "name": "Vehicle wheel batch follows its actual rolling pivot",
+        "pass": true,
+        "evidence": {
+          "pivot": "spin",
+          "movement": 0.0819010273327174
+        }
+      },
+      {
+        "name": "Upgraded food bags still tear and reveal their opening",
+        "pass": true,
+        "evidence": {
+          "torn": true,
+          "opening": true,
+          "tabIndependent": true
+        }
+      },
+      {
+        "name": "All six pet breeds keep valid skinning and four floor contacts",
+        "pass": true,
+        "evidence": [
+          {
+            "breed": "labrador",
+            "maxFootError": 7.632783294297951e-17,
+            "vertices": 6714
+          },
+          {
+            "breed": "beagle",
+            "maxFootError": 6.938893903907228e-17,
+            "vertices": 6276
+          },
+          {
+            "breed": "shepherd",
+            "maxFootError": 1.734723475976807e-16,
+            "vertices": 6340
+          },
+          {
+            "breed": "british",
+            "maxFootError": 9.71445146547012e-17,
+            "vertices": 5998
+          },
+          {
+            "breed": "siamese",
+            "maxFootError": 5.516420653606247e-16,
+            "vertices": 5124
+          },
+          {
+            "breed": "maine",
+            "maxFootError": 4.163336342344337e-17,
+            "vertices": 6144
+          }
+        ]
+      },
+      {
+        "name": "Heading-local suspension, stable turn recovery and braking at 72/120 Hz",
+        "pass": true,
+        "evidence": [
+          {
+            "hz": 72,
+            "maxSlipDegrees": 6.023027277116962,
+            "lostWheelFrames": 0,
+            "releaseYawDegrees": 5.224948188925079,
+            "stopped": true
+          },
+          {
+            "hz": 120,
+            "maxSlipDegrees": 5.9344717230893975,
+            "lostWheelFrames": 0,
+            "releaseYawDegrees": 5.6630526822803375,
+            "stopped": true
+          }
+        ]
+      },
+      {
+        "name": "Bumper-wide wall breach conserves energy; masonry stops low-speed car",
+        "pass": true,
+        "evidence": {
+          "plaster": {
+            "broken": 12,
+            "speed": 11.754229876942171,
+            "forward": 11.754229876942171,
+            "energyBefore": 122500,
+            "energyAfter": 86351.19999999997
+          },
+          "stone": {
+            "broken": 0,
+            "speed": 0.013499999999999956,
+            "forward": -0.013499999999999956,
+            "energyBefore": 15625,
+            "energyAfter": 0.11390624999999927
+          }
+        }
+      },
+      {
+        "name": "Crash transfers motion and breaks multiple furniture pieces",
+        "pass": true,
+        "evidence": {
+          "broken": 2,
+          "remainingSpeed": 7.731494034143724
+        }
+      },
+      {
+        "name": "Torch contact constrains the prop without translating the player",
+        "pass": true,
+        "evidence": {
+          "playerDisplacement": 0,
+          "ownColliderIgnored": true
+        }
+      },
+      {
+        "name": "Streamed building holes and roof support survive unloading and world save",
+        "pass": true,
+        "evidence": {
+          "parts": 152,
+          "draws": 4,
+          "roofHeight": 15.3677367496479,
+          "persistentHole": 0
+        }
+      },
+      {
+        "name": "Flight stops at roof underside and lands on roof surface",
+        "pass": true,
+        "evidence": {
+          "ceiling": 13.3677367496479,
+          "roof": 15.3677367496479,
+          "feet": 15.3677367496479
+        }
+      },
+      {
+        "name": "Combat percentage settings are included in world saves",
+        "pass": true,
+        "evidence": {
+          "accuracy": 43,
+          "coordination": 82,
+          "melee": 61
+        }
+      },
+      {
+        "name": "Cell plan stays bounded at borders, with portal/fire reservations",
+        "pass": true,
+        "evidence": {
+          "uniqueCells": 17,
+          "max": 21
+        }
+      },
+      {
+        "name": "Actual terrain border jitter does not rebuild cells",
+        "pass": true,
+        "evidence": {
+          "coldRebuilds": 0,
+          "resident": 12
+        }
+      },
+      {
+        "name": "Fast travel predicts ahead and bounds active, pending and warm cells",
+        "pass": true,
+        "evidence": {
+          "metres": 1246,
+          "maxActive": 9,
+          "maxPending": 8,
+          "cached": 4,
+          "aerialLOD": true
+        }
+      },
+      {
+        "name": "Warm cells reuse geometry and reactivate collision only once",
+        "pass": true,
+        "evidence": {
+          "cell": "-1/-1",
+          "geometryReused": true,
+          "cached": 4
+        }
+      },
+      {
+        "name": "Tree hits are independent of render batches and LOD",
+        "pass": true,
+        "evidence": {
+          "id": "-1/-1/0",
+          "nearAndFarPicking": true
+        }
+      },
+      {
+        "name": "Tree destruction survives cache eviction and reload",
+        "pass": true,
+        "evidence": {
+          "id": "-1/-1/0",
+          "persistent": true
+        }
+      },
+      {
+        "name": "Terrain edits invalidate cached geometry",
+        "pass": true,
+        "evidence": {
+          "invalidated": "-2/0"
+        }
+      },
+      {
+        "name": "XR view selection includes both eyes",
+        "pass": true,
+        "evidence": {
+          "bothEyes": true
+        }
+      },
+      {
+        "name": "Shared instancing preserves source hit identity and live edits",
+        "pass": true,
+        "evidence": {
+          "draws": 1,
+          "owners": true,
+          "liveEdits": true
+        }
+      },
+      {
+        "name": "Per-view forest selection refreshes for a remote camera",
+        "pass": true,
+        "evidence": {
+          "totalTrees": 4325,
+          "visibleTrees": 346,
+          "testedBuckets": 270,
+          "uploads": 2
+        }
+      },
+      {
+        "name": "Vehicle shadow batch follows articulation and dents without color draws",
+        "pass": true,
+        "evidence": {
+          "shadowDraws": 1,
+          "colorDraws": 0,
+          "articulation": true,
+          "dents": true
+        }
+      },
+      {
+        "name": "Town interior selection uses hysteresis",
+        "pass": true,
+        "evidence": {
+          "rebuilds": 0,
+          "resident": 4
+        }
+      },
+      {
+        "name": "Road bins retain one index buffer and handle an empty view",
+        "pass": true,
+        "evidence": {
+          "visibleTriangles": 1,
+          "totalTriangles": 2,
+          "indexReused": true
+        }
+      },
+      {
+        "name": "Remote terrain edits update a local region of the persistent buffer",
+        "pass": true,
+        "evidence": {
+          "updatedVertices": 25,
+          "totalVertices": 17689,
+          "indexReused": true
+        }
+      },
+      {
+        "name": "Export contains streaming, separate render sections and shadow diagnostics",
+        "pass": true,
+        "evidence": {
+          "fields": [
+            "streaming",
+            "vegetation batches",
+            "vehicle shadows",
+            "draw calls by section"
+          ],
+          "xr": false
+        }
+      }
+    ]
+  },
+  "errors": []
+}

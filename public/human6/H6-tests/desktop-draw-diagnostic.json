@@ -1,0 +1,669 @@
+{
+  "hardware": "Desktop SwiftShader, draw counts only",
+  "cases": {
+    "Home": {
+      "calls": 291,
+      "triangles": 644104,
+      "position": [
+        0,
+        1.6,
+        12
+      ],
+      "look": [
+        0,
+        1.3,
+        0
+      ],
+      "actualCamera": [
+        0,
+        1.6,
+        12
+      ]
+    },
+    "Car": {
+      "calls": 296,
+      "triangles": 673791,
+      "position": [
+        -2.5,
+        1.65,
+        15
+      ],
+      "look": [
+        -5.5,
+        1,
+        11
+      ],
+      "actualCamera": [
+        -2.5,
+        1.65,
+        15
+      ]
+    },
+    "Close Mira": {
+      "calls": 223,
+      "triangles": 650853,
+      "position": [
+        -1.0327917816822143,
+        1.4,
+        2.4082227684997815
+      ],
+      "look": [
+        -1.0327917816822143,
+        1.3,
+        1.4082227684997815
+      ],
+      "actualCamera": [
+        -1.0327917816822143,
+        1.4,
+        2.4082227684997815
+      ]
+    },
+    "Timberfall": {
+      "calls": 217,
+      "triangles": 529803,
+      "position": [
+        -560,
+        11.9677367496479,
+        -80
+      ],
+      "look": [
+        -540,
+        11.9677367496479,
+        -80
+      ],
+      "actualCamera": [
+        -560,
+        11.9677367496479,
+        -80
+      ]
+    }
+  },
+  "meshCosts": [
+    {
+      "name": "Home",
+      "costs": [
+        [
+          " | MeshStandardMaterial | ",
+          36
+        ],
+        [
+          "Rigid parts batch | MeshStandardMaterial | ",
+          15
+        ],
+        [
+          " | MeshBasicMaterial | ",
+          4
+        ],
+        [
+          "Carpet tiles / Maple family home static shell | MeshStandardMaterial | ",
+          3
+        ],
+        [
+          "Distant forest silhouettes / Streamed region | MeshStandardMaterial | ",
+          3
+        ],
+        [
+          "Connected roads and hiking trails / Streamed region | MeshStandardMaterial | ",
+          3
+        ],
+        [
+          "Songbird flock | MeshStandardMaterial | ",
+          3
+        ],
+        [
+          "Rigid parts batch / Willow cottage static shell | MeshStandardMaterial | ",
+          3
+        ],
+        [
+          "Rigid parts batch / Cedar bungalow static shell | MeshStandardMaterial | ",
+          3
+        ],
+        [
+          "Rigid parts batch / Maple family home static shell | MeshStandardMaterial | ",
+          3
+        ],
+        [
+          "Rigid parts batch / Birch courtyard home static shell | MeshStandardMaterial | ",
+          3
+        ],
+        [
+          "Rigid parts batch / Aspen family home static shell | MeshStandardMaterial | ",
+          3
+        ],
+        [
+          "Forest -1/-1 / Streamed region | MeshStandardMaterial | ",
+          3
+        ],
+        [
+          "Forest 0/-1 / Streamed region | MeshStandardMaterial | ",
+          3
+        ],
+        [
+          "Understory -1/-1 / Living understory | MeshStandardMaterial | ",
+          3
+        ],
+        [
+          "Forest 1/-1 / Streamed region | MeshStandardMaterial | ",
+          3
+        ],
+        [
+          "Forest 1/0 / Streamed region | MeshStandardMaterial | ",
+          3
+        ],
+        [
+          "Understory 0/-1 / Living understory | MeshStandardMaterial | ",
+          3
+        ],
+        [
+          "Bounded explosion cloud | MeshStandardMaterial | ",
+          3
+        ],
+        [
+          "Cedar bungalow static shell | MeshStandardMaterial | ",
+          2
+        ],
+        [
+          "Carpet tiles / Cedar bungalow static shell | MeshStandardMaterial | ",
+          2
+        ],
+        [
+          "Maple family home static shell | MeshStandardMaterial | ",
+          2
+        ],
+        [
+          "Birch courtyard home static shell | MeshStandardMaterial | ",
+          2
+        ],
+        [
+          "Carpet tiles / Birch courtyard home static shell | MeshStandardMaterial | ",
+          2
+        ],
+        [
+          "Aspen family home static shell | MeshStandardMaterial | ",
+          2
+        ],
+        [
+          "Lake, river and outflow / Streamed region | MeshStandardMaterial | ",
+          2
+        ],
+        [
+          "Distant city activity | MeshStandardMaterial | ",
+          2
+        ],
+        [
+          "Forest -1/0 / Streamed region | MeshStandardMaterial | ",
+          2
+        ],
+        [
+          "ear_inner / Human2_Cat | MeshStandardMaterial | ",
+          2
+        ],
+        [
+          "Rigid parts batch / Dog_catbag_2 | MeshStandardMaterial | ",
+          2
+        ],
+        [
+          "Rigid parts batch / Dog_bag_3 | MeshStandardMaterial | ",
+          2
+        ],
+        [
+          "Rigid parts batch / Dog_bag_4 | MeshStandardMaterial | ",
+          2
+        ],
+        [
+          "Rigid parts batch / Dog_bag_5 | MeshStandardMaterial | ",
+          2
+        ],
+        [
+          "Rigid parts batch / Dog_bag_6 | MeshStandardMaterial | ",
+          2
+        ],
+        [
+          "Rigid parts batch / Dog_bag_7 | MeshStandardMaterial | ",
+          2
+        ]
+      ]
+    },
+    {
+      "name": "Car",
+      "costs": [
+        [
+          " | MeshStandardMaterial | ",
+          32
+        ],
+        [
+          "Rigid parts batch / Blue car | MeshStandardMaterial | ",
+          13
+        ],
+        [
+          "Rigid parts batch | MeshStandardMaterial | ",
+          12
+        ],
+        [
+          "Blue car | MeshStandardMaterial | ",
+          6
+        ],
+        [
+          " | MeshBasicMaterial | ",
+          4
+        ],
+        [
+          "Door handle / Blue car | MeshStandardMaterial | ",
+          4
+        ],
+        [
+          "Side glass / Blue car | MeshStandardMaterial | ",
+          4
+        ],
+        [
+          "Blue car | MeshBasicMaterial | ",
+          3
+        ],
+        [
+          "Carpet tiles / Maple family home static shell | MeshStandardMaterial | ",
+          3
+        ],
+        [
+          "Distant forest silhouettes / Streamed region | MeshStandardMaterial | ",
+          3
+        ],
+        [
+          "Connected roads and hiking trails / Streamed region | MeshStandardMaterial | ",
+          3
+        ],
+        [
+          "Songbird flock | MeshStandardMaterial | ",
+          3
+        ],
+        [
+          "Rigid parts batch / Willow cottage static shell | MeshStandardMaterial | ",
+          3
+        ],
+        [
+          "Rigid parts batch / Cedar bungalow static shell | MeshStandardMaterial | ",
+          3
+        ],
+        [
+          "Rigid parts batch / Maple family home static shell | MeshStandardMaterial | ",
+          3
+        ],
+        [
+          "Forest -1/-1 / Streamed region | MeshStandardMaterial | ",
+          3
+        ],
+        [
+          "Forest 0/-1 / Streamed region | MeshStandardMaterial | ",
+          3
+        ],
+        [
+          "Forest -1/0 / Streamed region | MeshStandardMaterial | ",
+          3
+        ],
+        [
+          "Understory -1/-1 / Living understory | MeshStandardMaterial | ",
+          3
+        ],
+        [
+          "Understory 0/-1 / Living understory | MeshStandardMaterial | ",
+          3
+        ],
+        [
+          "Understory -1/0 / Living understory | MeshStandardMaterial | ",
+          3
+        ],
+        [
+          "Forest -2/0 / Streamed region | MeshStandardMaterial | ",
+          3
+        ],
+        [
+          "Forest -2/-1 / Streamed region | MeshStandardMaterial | ",
+          3
+        ],
+        [
+          "Bounded explosion cloud | MeshStandardMaterial | ",
+          3
+        ],
+        [
+          "Cedar bungalow static shell | MeshStandardMaterial | ",
+          2
+        ],
+        [
+          "Carpet tiles / Cedar bungalow static shell | MeshStandardMaterial | ",
+          2
+        ],
+        [
+          "Maple family home static shell | MeshStandardMaterial | ",
+          2
+        ],
+        [
+          "Distant city activity | MeshStandardMaterial | ",
+          2
+        ],
+        [
+          "ear_inner / Human2_Cat | MeshStandardMaterial | ",
+          2
+        ],
+        [
+          "Rigid parts batch / Dog_bag_3 | MeshStandardMaterial | ",
+          2
+        ],
+        [
+          "Rigid parts batch / Dog_bag_4 | MeshStandardMaterial | ",
+          2
+        ],
+        [
+          "Rigid parts batch / Dog_bag_5 | MeshStandardMaterial | ",
+          2
+        ],
+        [
+          "Rigid parts batch / Dog_catbag_8 | MeshStandardMaterial | ",
+          2
+        ],
+        [
+          "Rigid parts batch / Dog_catbag_9 | MeshStandardMaterial | ",
+          2
+        ],
+        [
+          "Weather | ShaderMaterial | ",
+          1
+        ]
+      ]
+    },
+    {
+      "name": "Close Mira",
+      "costs": [
+        [
+          " | MeshStandardMaterial | ",
+          14
+        ],
+        [
+          "Rigid parts batch | MeshStandardMaterial | ",
+          10
+        ],
+        [
+          "Carpet tiles / Maple family home static shell | MeshStandardMaterial | ",
+          3
+        ],
+        [
+          "Distant forest silhouettes / Streamed region | MeshStandardMaterial | ",
+          3
+        ],
+        [
+          "Connected roads and hiking trails / Streamed region | MeshStandardMaterial | ",
+          3
+        ],
+        [
+          "Songbird flock | MeshStandardMaterial | ",
+          3
+        ],
+        [
+          "Rigid parts batch / Cedar bungalow static shell | MeshStandardMaterial | ",
+          3
+        ],
+        [
+          "Rigid parts batch / Maple family home static shell | MeshStandardMaterial | ",
+          3
+        ],
+        [
+          "Rigid parts batch / Birch courtyard home static shell | MeshStandardMaterial | ",
+          3
+        ],
+        [
+          "Forest -1/-1 / Streamed region | MeshStandardMaterial | ",
+          3
+        ],
+        [
+          "Forest 0/-1 / Streamed region | MeshStandardMaterial | ",
+          3
+        ],
+        [
+          "Understory -1/-1 / Living understory | MeshStandardMaterial | ",
+          3
+        ],
+        [
+          "Understory 0/-1 / Living understory | MeshStandardMaterial | ",
+          3
+        ],
+        [
+          "Forest -2/-1 / Streamed region | MeshStandardMaterial | ",
+          3
+        ],
+        [
+          "Bounded explosion cloud | MeshStandardMaterial | ",
+          3
+        ],
+        [
+          "Cedar bungalow static shell | MeshStandardMaterial | ",
+          2
+        ],
+        [
+          "Carpet tiles / Cedar bungalow static shell | MeshStandardMaterial | ",
+          2
+        ],
+        [
+          "Maple family home static shell | MeshStandardMaterial | ",
+          2
+        ],
+        [
+          "Birch courtyard home static shell | MeshStandardMaterial | ",
+          2
+        ],
+        [
+          "Distant city activity | MeshStandardMaterial | ",
+          2
+        ],
+        [
+          "ear_inner / Human2_Cat | MeshStandardMaterial | ",
+          2
+        ],
+        [
+          "Rigid parts batch / Dog_catbag_2 | MeshStandardMaterial | ",
+          2
+        ],
+        [
+          "Rigid parts batch / Dog_bag_4 | MeshStandardMaterial | ",
+          2
+        ],
+        [
+          "Rigid parts batch / Dog_bag_5 | MeshStandardMaterial | ",
+          2
+        ],
+        [
+          "Rigid parts batch / Dog_bag_6 | MeshStandardMaterial | ",
+          2
+        ],
+        [
+          "Rigid parts batch / Dog_catbag_9 | MeshStandardMaterial | ",
+          2
+        ],
+        [
+          "Weather | ShaderMaterial | ",
+          1
+        ],
+        [
+          "Wall_Casing | MeshStandardMaterial | ",
+          1
+        ],
+        [
+          "Wall_Baseboard | MeshStandardMaterial | ",
+          1
+        ],
+        [
+          "Wall_Crown | MeshStandardMaterial | ",
+          1
+        ],
+        [
+          "Wall_Stud | MeshStandardMaterial | ",
+          1
+        ],
+        [
+          "Dog_Kibble_200 | MeshStandardMaterial | ",
+          1
+        ],
+        [
+          "Cat_Kibble_200 | MeshStandardMaterial | ",
+          1
+        ],
+        [
+          "Nearby carpet pile | MeshStandardMaterial | ",
+          1
+        ],
+        [
+          "Threaded rug \u00b7 stripes | MeshStandardMaterial | ",
+          1
+        ]
+      ]
+    },
+    {
+      "name": "Timberfall",
+      "costs": [
+        [
+          " | MeshStandardMaterial | ",
+          48
+        ],
+        [
+          "Rigid parts batch | MeshStandardMaterial | ",
+          21
+        ],
+        [
+          " | MeshBasicMaterial | ",
+          4
+        ],
+        [
+          "Distant city activity | MeshStandardMaterial | ",
+          4
+        ],
+        [
+          "Rigid parts batch / Hanging bird feeder / Songbird flock | MeshStandardMaterial | ",
+          4
+        ],
+        [
+          "Carpet tiles / Maple family home static shell | MeshStandardMaterial | ",
+          3
+        ],
+        [
+          "Carpet tiles / Aspen family home static shell | MeshStandardMaterial | ",
+          3
+        ],
+        [
+          "Distant forest silhouettes / Streamed region | MeshStandardMaterial | ",
+          3
+        ],
+        [
+          "Connected roads and hiking trails / Streamed region | MeshStandardMaterial | ",
+          3
+        ],
+        [
+          "Lake, river and outflow / Streamed region | MeshStandardMaterial | ",
+          3
+        ],
+        [
+          "Songbird flock | MeshStandardMaterial | ",
+          3
+        ],
+        [
+          "Rigid parts batch / Willow cottage static shell | MeshStandardMaterial | ",
+          3
+        ],
+        [
+          "Rigid parts batch / Cedar bungalow static shell | MeshStandardMaterial | ",
+          3
+        ],
+        [
+          "Rigid parts batch / Maple family home static shell | MeshStandardMaterial | ",
+          3
+        ],
+        [
+          "Rigid parts batch / Birch courtyard home static shell | MeshStandardMaterial | ",
+          3
+        ],
+        [
+          "Rigid parts batch / Aspen family home static shell | MeshStandardMaterial | ",
+          3
+        ],
+        [
+          "Understory -1/-1 / Living understory | MeshStandardMaterial | ",
+          3
+        ],
+        [
+          "Understory 0/-1 / Living understory | MeshStandardMaterial | ",
+          3
+        ],
+        [
+          "Understory -1/0 / Living understory | MeshStandardMaterial | ",
+          3
+        ],
+        [
+          "Understory 0/0 / Living understory | MeshStandardMaterial | ",
+          3
+        ],
+        [
+          "Forest -6/-1 / Streamed region | MeshStandardMaterial | ",
+          3
+        ],
+        [
+          "Forest -6/-2 / Streamed region | MeshStandardMaterial | ",
+          3
+        ],
+        [
+          "Forest -5/-1 / Streamed region | MeshStandardMaterial | ",
+          3
+        ],
+        [
+          "Forest -5/-2 / Streamed region | MeshStandardMaterial | ",
+          3
+        ],
+        [
+          "Forest -5/0 / Streamed region | MeshStandardMaterial | ",
+          3
+        ],
+        [
+          "Bounded explosion cloud | MeshStandardMaterial | ",
+          3
+        ],
+        [
+          "Threaded rug \u00b7 diamonds | MeshStandardMaterial | ",
+          2
+        ],
+        [
+          "Cedar bungalow static shell | MeshStandardMaterial | ",
+          2
+        ],
+        [
+          "Carpet tiles / Cedar bungalow static shell | MeshStandardMaterial | ",
+          2
+        ],
+        [
+          "Maple family home static shell | MeshStandardMaterial | ",
+          2
+        ],
+        [
+          "Birch courtyard home static shell | MeshStandardMaterial | ",
+          2
+        ],
+        [
+          "Carpet tiles / Birch courtyard home static shell | MeshStandardMaterial | ",
+          2
+        ],
+        [
+          "Aspen family home static shell | MeshStandardMaterial | ",
+          2
+        ],
+        [
+          "Distant city activity | MeshBasicMaterial | ",
+          2
+        ],
+        [
+          "Weather | ShaderMaterial | ",
+          1
+        ]
+      ]
+    }
+  ],
+  "resident": [
+    "timberfall/4",
+    "timberfall/5",
+    "timberfall/6",
+    "timberfall/7"
+  ]
+}

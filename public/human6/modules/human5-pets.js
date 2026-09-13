@@ -1,7 +1,7 @@
 import * as T from 'three';
-import {furnitureRoot} from '../mira-v2-furniture.js?v=19.3.0';
-import {ensureGrabbableWood} from '../mira-v2-nature.js?v=19.3.0';
-import {wrapMethod,V,clamp} from './human5-common.js?v=19.3.0';
+import {furnitureRoot} from '../mira-v2-furniture.js?v=20.2.0';
+import {ensureGrabbableWood} from '../mira-v2-nature.js?v=20.2.0';
+import {wrapMethod,V,clamp} from './human5-common.js?v=20.2.0';
 
 export function installPetRefinement({scene,props,dogs,camera,world}={}){
  const pets=new Map(),restores=[];let time=0;
@@ -36,7 +36,7 @@ export function installPetRefinement({scene,props,dogs,camera,world}={}){
   nearest(){const p=camera.getWorldPosition(V());return dogs.list().filter(a=>!a.dead).sort((a,b)=>a.root.position.distanceToSquared(p)-b.root.position.distanceToSquared(p))[0];},
   tick(dt){time+=dt;const current=dogs.list();for(const pet of current){const s=attach(pet);s.dt=Math.min(.05,dt);updateMouth(s);s.velocity.copy(s.mouth.position).sub(s.last).divideScalar(Math.max(.001,dt));s.last.copy(s.mouth.position);
     if(pet.dead){release(pet);continue;}
-    const d=pet.root.getWorldPosition(V()).distanceTo(camera.getWorldPosition(V()));pet._fur?.setLayers(d<7?1:0);
+    const d=pet.root.getWorldPosition(V()).distanceTo(camera.getWorldPosition(V()));pet._fur?.setLayers(d<2.8?3:d<5?2:d<9?1:0);
     for(const h of props.system.hands?.colliders||[]){const p=h.position||h.p;if(p?.isVector3&&p.distanceTo(pet.root.getWorldPosition(V()).add(new T.Vector3(0,.4,0)))<.75)pet._fur?.ripple(p);}
     if(s.goal){const goal=s.goal;if(s.mouth.position.distanceTo(goal.point)<.43){s.goal=null;pick(pet,goal.hit);}}
     if(s.held){pet._jaw.set(.22);if(s.held.type==='weapon'&&s.held.item.holder!==pet)s.held=null;else if(s.held.type==='furniture'&&(!s.held.group.parent||!props.furnHolds.has(pet)))s.held=null;}

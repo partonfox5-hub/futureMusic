@@ -1,5 +1,5 @@
 import * as T from 'three';
-import {wrapMethod,V} from './human5-common.js?v=19.3.0';
+import {wrapMethod,V} from './human5-common.js?v=20.2.0';
 /** Short constrained slides: closed box shell, pull handles, hard end stops. */
 export function installDrawers({world,props}={}){
  const states=new Map(),holds=new Map(),restores=[];let scan=0;

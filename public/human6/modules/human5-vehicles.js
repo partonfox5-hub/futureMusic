@@ -1,7 +1,7 @@
 import * as T from 'three';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
-import {V,clamp,gravityOf,wrapMethod} from './human5-common.js?v=19.3.0';
+import {V,clamp,gravityOf,wrapMethod} from './human5-common.js?v=20.2.0';
 const Y=new T.Vector3(0,1,0),RATIOS=[3.70,2.20,1.52,1.16,.91,.74];
 
 /** Six-speed automatic within the existing P/R/N/D selector. No network/ML dependency. */
@@ -53,22 +53,26 @@ export class VehicleDamage {
 /** Four bounded suspension queries. The host still owns collision, dents, doors and seat motion. */
 export function sampleWheel(car,w){
   const spec=car.vehicleSpec,anchor=spec?spec.radius+spec.rest-car.mass*9.81/car.wheels.length/spec.spring:.70;
-  const p=car.group.localToWorld(new T.Vector3(w.x??w.side*.89,anchor,w.z));
-  const floorAt=(x,z)=>{let h=car.world.floorHeight?.(new T.Vector3(x,p.y,z))??0;if(!Number.isFinite(h))h=0;return h;};
-  let floor=floorAt(p.x,p.z),normal=new T.Vector3(-(floorAt(p.x+.14,p.z)-floorAt(p.x-.14,p.z))/.28,1,-(floorAt(p.x,p.z+.14)-floorAt(p.x,p.z-.14))/.28).normalize();
+  const sample=w.groundSample||(w.groundSample={p:new T.Vector3(),normal:new T.Vector3(),probe:new T.Vector3(),floor:0}),p=car.group.localToWorld(sample.p.set(w.x??w.side*.89,anchor,w.z));
+  const floorAt=(x,z)=>{const h=car.world.floorHeight?.(sample.probe.set(x,p.y,z));return Number.isFinite(h)?h:0;};
+  let floor=floorAt(p.x,p.z),normal=sample.normal.set(-(floorAt(p.x+.14,p.z)-floorAt(p.x-.14,p.z))/.28,1,-(floorAt(p.x,p.z+.14)-floorAt(p.x,p.z-.14))/.28).normalize();
+
   for(const o of car.world.nearby?.(p,.02)||[]){if(o===car.obstacle||o.object?.userData?.h5Vehicle)continue;const top=o.y+o.h;if(Math.abs(p.x-o.x)<=o.w/2&&Math.abs(p.z-o.z)<=o.d/2&&top<=p.y+.04&&top>floor){floor=top;normal.set(0,1,0);}}
-  return {p,floor,normal};
+  sample.floor=floor;return sample;
 }
 export function vehicleSubstep(car,dt,input){
   const spec=car.vehicleSpec||{wheelbase:2.63,track:1.78,radius:.34,rest:.411,travel:.15,spring:60000,damping:5300,torque:210,width:1.8,height:1.56,length:4.35};
-  const damage=car.h5Vehicle.damage||{power:1,steering:0,wheel:()=>({suspension:0,alignment:0})},auto=car.h5Vehicle.auto,gravity=gravityOf(car.world),g=Math.max(0,-gravity.y);
+  const tmp=car.h5Vehicle.scratch||(car.h5Vehicle.scratch=Object.fromEntries(['gravity','forward','right','force','desired','wf','wr','r','v','yawV','f','local'].map(k=>[k,new T.Vector3()])));
+  const damage=car.h5Vehicle.damage||{power:1,steering:0,wheel:()=>({suspension:0,alignment:0})},auto=car.h5Vehicle.auto,gravity=gravityOf(car.world,tmp.gravity),g=Math.max(0,-gravity.y);
+  // Suspension pitch and roll are local to the heading, including after a U-turn.
+  if(car.group.rotation.order!=='YXZ')car.group.rotation.reorder('YXZ');
   car.updateOccupancy();car.group.updateMatrixWorld(true);
-  const yaw=car.group.rotation.y,forward=new T.Vector3(0,0,-1).applyAxisAngle(Y,yaw),right=new T.Vector3(1,0,0).applyAxisAngle(Y,yaw),speed=car.velocity.dot(forward),brake=car.gear==='P'?1:clamp(input.brake||0,0,1);
+  const yaw=car.group.rotation.y,forward=tmp.forward.set(0,0,-1).applyAxisAngle(Y,yaw),right=tmp.right.set(1,0,0).applyAxisAngle(Y,yaw),speed=car.velocity.dot(forward),brake=car.gear==='P'?1:clamp(input.brake||0,0,1);
   // Variable steering ratio prevents full-lock lateral snaps at road speed.
   const steerLimit=T.MathUtils.lerp(.56,.19,clamp(Math.abs(speed)/30,0,1));
   car.steer=T.MathUtils.damp(car.steer,clamp(input.steer||0,-steerLimit,steerLimit)*(1-damage.steering*.40),10-damage.steering*6,dt);
   const drive=auto.step(dt,{selector:car.gear,throttle:input.throttle,brake,speed,driving:car.driving||car.h5Traffic?.active,radius:spec.radius,torque:spec.torque});car.engineRPM=drive.rpm;
-  const force=gravity.clone().setY(0).multiplyScalar(car.mass);let up=0,pitch=0,roll=0,yawTorque=0,contacts=0,gripSum=0;
+  const force=tmp.force.copy(gravity).setY(0).multiplyScalar(car.mass);let up=0,pitch=0,roll=0,yawTorque=0,contacts=0,gripSum=0;
   const wheelbase=spec.wheelbase,track=spec.track;
   for(const w of car.wheels){
     const wd=damage.wheel(w),{p,floor,normal}=sampleWheel(car,w),radius=spec.radius*(w.popped?.78:1),raw=spec.rest-(p.y-floor-radius),compression=clamp(raw,-spec.travel,spec.travel),rate=clamp((compression-(w.compression??compression))/dt,-3,3);
@@ -77,21 +81,23 @@ export function vehicleSubstep(car,dt,input){
     w.load=w.broken||raw<-spec.travel?0:clamp(spring,0,car.mass*9.81*.80)*(w.popped?.7:1);
     const N=w.load;up+=N*normal.y;force.addScaledVector(normal,N).addScaledVector(Y,-N*normal.y);
     pitch-=w.z*N;roll+=(w.x??w.side*.89)*N;
-    const desired=car.group.worldToLocal(p.clone().setY(floor+radius)).y;
+    const desired=car.group.worldToLocal(tmp.desired.copy(p).setY(floor+radius)).y;
     w.group.position.y=clamp(desired,spec.radius-spec.travel,spec.radius+spec.travel);if(w.broken)continue;
     const surf=car.surfaceAt(p.x,p.z),wet=car.h5Vehicle.wetness?.()||0,mu=surf.mu*(1-.25*wet)*(w.popped?.50:1)*(1-wd.suspension*.22);gripSum+=mu;car.surfaceName=surf.name;
     const inner=Math.abs(car.steer)>.002?Math.atan(wheelbase/(wheelbase/Math.tan(Math.abs(car.steer))-Math.sign(car.steer)*w.side*track/2)):0;
-    const angle=(w.z<0?Math.sign(car.steer)*inner:0)+wd.alignment,wf=forward.clone().applyAxisAngle(Y,angle),wr=right.clone().applyAxisAngle(Y,angle),r=p.clone().sub(car.group.position),v=car.velocity.clone().add(new T.Vector3(car.yawRate*r.z,0,-car.yawRate*r.x)),longV=v.dot(wf),latV=v.dot(wr);
-    const torque=w.z>0&&!w.popped?drive.wheelTorque*damage.power*(spec.bike?2:1):0,I=spec.bike?.65:1.8*(spec.radius/.34)**2;
+    const angle=(w.z<0?Math.sign(car.steer)*inner:0)+wd.alignment,wf=tmp.wf.copy(forward).applyAxisAngle(Y,angle),wr=tmp.wr.copy(right).applyAxisAngle(Y,angle),r=tmp.r.copy(p).sub(car.group.position),v=tmp.v.copy(car.velocity).add(tmp.yawV.set(car.yawRate*r.z,0,-car.yawRate*r.x)),longV=v.dot(wf),latV=v.dot(wr);
+    const requestedTorque=w.z>0&&!w.popped?drive.wheelTorque*damage.power*(spec.bike?2:1):0,torque=N>1?clamp(requestedTorque,-mu*N*radius*.78,mu*N*radius*.78):requestedTorque*.25,I=spec.bike?.65:1.8*(spec.radius/.34)**2;
     let omega=w.omega+torque*dt/I;
     omega=Math.sign(omega||longV)*Math.max(0,Math.abs(omega)-brake*2900*dt/I);
     if(N>1){
       contacts++;const limit=mu*N,stiffness=limit*7,den=Math.max(Math.abs(longV),.5);
       let longitudinal=stiffness*(radius*omega-longV)/(den+stiffness*radius*radius*dt/I);
-      const slip=Math.atan2(latV,Math.max(Math.abs(longV),.5));let lateral=-limit*Math.tanh(slip/.10);
+      const slip=Math.atan2(latV,Math.max(Math.abs(longV),.5)),inertia=Math.max(100,car.mass*(spec.length**2+spec.width**2)/12),arm=r.z*wr.x-r.x*wr.z,cornering=N*(w.z<0?13:16);
+      // Implicit slip response remains stable as wheel speed approaches zero.
+      let lateral=-cornering*latV/(Math.max(Math.abs(longV),2)+cornering*dt*(1/car.mass+arm*arm/inertia));
       const demand=Math.hypot(longitudinal,lateral),scale=Math.min(1,limit/Math.max(demand,.001));longitudinal*=scale;lateral*=scale;
-      const f=wf.multiplyScalar(longitudinal).addScaledVector(wr,lateral);force.add(f);yawTorque+=r.z*f.x-r.x*f.z;
-      const local=f.clone().applyAxisAngle(Y,-yaw);pitch-=.35*local.z;roll+=.35*local.x;
+      const f=tmp.f.copy(wf).multiplyScalar(longitudinal).addScaledVector(wr,lateral);force.add(f);yawTorque+=r.z*f.x-r.x*f.z;
+      const local=tmp.local.copy(f).applyAxisAngle(Y,-yaw);pitch-=.35*local.z;roll+=.35*local.x;
       omega-=longitudinal*radius*dt/I;w.slip=slip;w.saturated=demand>limit*.99;
     }else{omega*=Math.exp(-.15*dt);w.slip=0;w.saturated=false;}
     w.omega=clamp(omega,-210,210);w.roll+=w.omega*dt;w.spin.rotation.x=-w.roll;w.group.rotation.y=angle;w.group.rotation.z=w.side*wd.suspension*.11;
@@ -106,6 +112,9 @@ export function vehicleSubstep(car,dt,input){
   car.velocity.addScaledVector(force,dt/car.mass);car.velocity.y=0;
   // Parking brake holds on modest grades through tire friction, never while airborne.
   if(contacts>=Math.min(3,car.wheels.length)&&brake>.95&&car.velocity.length()<.10&&Math.hypot(force.x,force.z)<car.mass*g*.8){car.velocity.set(0,0,0);car.yawRate*=Math.exp(-12*dt);}
+  // Stability control uses the grounded tire budget and tends toward the
+  // bicycle-model turn rate. Airborne cars retain their angular momentum.
+  if(contacts>=Math.min(3,car.wheels.length)&&Math.abs(speed)>.7){const inertia=Math.max(100,car.mass*(spec.length**2+spec.width**2)/12),slipAngle=Math.atan2(car.velocity.dot(right),Math.max(Math.abs(speed),1)),yawLimit=car.mu*g/Math.max(Math.abs(speed),2),desired=clamp(speed*Math.tan(car.steer)/wheelbase-slipAngle*.7,-yawLimit,yawLimit),corrective=clamp((desired-car.yawRate)*inertia*4,-car.mass*g*wheelbase*.16,car.mass*g*wheelbase*.16);yawTorque+=corrective;car.h5Vehicle.stabilityActive=Math.abs(corrective)>inertia*.08;}else car.h5Vehicle.stabilityActive=false;
   car.yawRate=(car.yawRate+yawTorque/Math.max(100,car.mass*(spec.length**2+spec.width**2)/12)*dt)/(1+1.8*dt);car.yawRate=clamp(car.yawRate,-1.6,1.6);
   car.group.rotation.y+=car.yawRate*dt;car.group.position.addScaledVector(car.velocity,dt);if(spec.bike)car.steeringWheel.rotation.y=car.steer;else car.steeringWheel.rotation.z=car.steer*5.2;
   if(car.group.position.y<-60||!Number.isFinite(car.group.position.lengthSq()))car.reset();

@@ -1,8 +1,8 @@
-import {captureFurniture,tagMovable} from './mira-v2-furniture.js?v=19.3.0';
-import {Destruction} from './mira-v2-destruction.js?v=19.3.2';
-import {buildHouse} from './mira-v2-house.js?v=19.3.0';
-import {buildCastle,inCastleClearing} from './mira-v2-castle.js?v=19.3.0';
-import {plantTerrain,scatterTrees,tickNature,chopTree as chopNature,ramTree as ramNature,terrainHeight} from './mira-v2-nature.js?v=19.3.0';
+import {captureFurniture,tagMovable} from './mira-v2-furniture.js?v=20.2.0';
+import {Destruction} from './mira-v2-destruction.js?v=20.2.0';
+import {buildHouse} from './mira-v2-house.js?v=20.2.0';
+import {buildCastle,inCastleClearing} from './mira-v2-castle.js?v=20.2.0';
+import {plantTerrain,scatterTrees,tickNature,chopTree as chopNature,ramTree as ramNature,terrainHeight} from './mira-v2-nature.js?v=20.2.0';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
 import * as T from 'three';
 const V=()=>new T.Vector3(),clamp=T.MathUtils.clamp,QUEST=/Quest|OculusBrowser/i.test(globalThis.navigator?.userAgent||'');
@@ -83,7 +83,7 @@ export class MiraWorld {
    else if(Math.hypot((x||0)-b.x,(z||0)-b.z)<(b.r||0))candidates.push(b.bed);
   }
   for(const f of this.floors||[]){
-   if(Math.abs((x||0)-f.x)<f.w/2+.01&&Math.abs((z||0)-f.z)<f.d/2+.01)candidates.push(f.y+f.h);
+   if(Math.abs((x||0)-f.x)<f.w/2+.01&&Math.abs((z||0)-f.z)<f.d/2+.01)candidates.push(f.heightAt?f.heightAt(x,z):f.y+f.h);
   }
   let stairH=null;
   for(const group of this.stairs||[]){
@@ -204,7 +204,7 @@ export class MiraWorld {
   for(let pass=0;pass<4;pass++){
    let moved=false;
    for(const o of this.nearby(p,r)){
-    if(o===ignore||o.h5Container||o.walkable||y0>o.y+o.h||y0+height<o.y)continue;
+    if(o===ignore||(typeof ignore==='function'&&ignore(o))||o.h5Container||o.walkable||y0>o.y+o.h||y0+height<o.y)continue;
     if(this.portalOpen?.(p,o,r,y,height))continue;
     const dx=p.x-o.x,dz=p.z-o.z,ex=o.w/2+r-Math.abs(dx),ez=o.d/2+r-Math.abs(dz);
     if(ex>0&&ez>0){if(ex<ez)p.x+=(dx>=0?1:-1)*ex;else p.z+=(dz>=0?1:-1)*ez;hit=true;moved=true;}

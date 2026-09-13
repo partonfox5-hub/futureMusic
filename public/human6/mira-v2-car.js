@@ -1,10 +1,10 @@
-import {placeXRHead} from './modules/human5-xr-placement.js?v=19.3.0';
-import {refineOriginalSedan} from './modules/human5-sedan-detail.js?v=19.3.0';
+import {placeXRHead} from './modules/human5-xr-placement.js?v=20.2.0';
+import {refineOriginalSedan} from './modules/human5-sedan-detail.js?v=20.2.0';
 import * as T from 'three';
-import {withOffscreenView} from './modules/human5-view-surfaces.js?v=19.3.2';
-import {VEHICLE_SPECS,buildVehicleModel} from './modules/human5-vehicle-models.js?v=19.3.0';
+import {withOffscreenView} from './modules/human5-view-surfaces.js?v=20.2.0';
+import {VEHICLE_SPECS,buildVehicleModel} from './modules/human5-vehicle-models.js?v=20.2.0';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
-import {CarAudio,unlockSfx} from './mira-v2-sfx.js?v=19.3.2';
+import {CarAudio,unlockSfx} from './mira-v2-sfx.js?v=20.2.0';
 const V=()=>new T.Vector3(),Q=()=>new T.Quaternion(),clamp=T.MathUtils.clamp,Y=new T.Vector3(0,1,0);
 const QUEST=/Quest|OculusBrowser/i.test(globalThis.navigator?.userAgent||'');
 const GEARS=['P','R','N','D'];
@@ -312,7 +312,7 @@ export class Car {
  dentAt(point,n,energy,impulse){
   if((this._dents||0)>=2)return;this._dents=(this._dents||0)+1;
   const dmg=Math.min(90,energy*.09);
-  this._ray??=new T.Raycaster();this._ray.set(point.clone().addScaledVector(n,.45),n.clone().negate());this._ray.near=0;this._ray.far=1.25;
+  this._ray??=new T.Raycaster();this._ray.layers.enable(31);this._ray.set(point.clone().addScaledVector(n,.45),n.clone().negate());this._ray.near=0;this._ray.far=1.25;
   const meshes=[];for(const p of this.parts)if(!p.broken)meshes.push(p.mesh);
   const hit=this._ray.intersectObjects(meshes,false)[0];
   if(hit){this.damage(hit,dmg,'blunt',n.clone(),impulse);return;}
@@ -320,21 +320,36 @@ export class Car {
   for(const p of this.parts){if(p.broken)continue;const d=p.mesh.getWorldPosition(V()).distanceToSquared(point);if(d<best){best=d;nearest=p;}}
   if(nearest)this.damage({object:nearest.mesh,point},dmg,'blunt',n.clone(),impulse);
  }
- crushWall(part,point,normal,energy){
-  this._wallHits??=new Set();let absorbed=0;const system=this.world.fractures;
-  const chunks=part.mesh.userData.chunks||[part],candidates=[part,...chunks.filter(p=>p!==part&&!p.broken&&p.p.distanceToSquared(point)<.9*.9).sort((a,b)=>a.p.distanceToSquared(point)-b.p.distanceToSquared(point))];
-  for(const p of candidates){if(this._wallHits.size>=4)break;if(p.broken||this._wallHits.has(p))continue;this._wallHits.add(p);
-    const cost=p.kind==='metal'?240:p.kind==='stone'?220:p.kind==='wood'?110:80,weight=p===part?1:Math.max(.10,1-p.p.distanceTo(point)/.9),damage=energy*weight/cost,health=Math.max(0,p.health);
-    // The wall API needs a world-space contact point, including for car impacts.
-    const at=point.clone().clamp(p.p.clone().addScaledVector(p.size,-.5),p.p.clone().addScaledVector(p.size,.5));
-    system.impact({object:p.mesh,instanceId:p.index,point:at},damage,normal.clone().negate());absorbed+=Math.min(health,damage)*cost;
+ crushHull(){
+  const speed=this.velocity.length();if(speed<1.1)return;
+  const spec=this.vehicleSpec,center=this.group.position,yaw=this.group.rotation.y,c=Math.cos(yaw),s=Math.sin(yaw),dir=this.velocity.clone().multiplyScalar(1/speed),normal=dir.clone().negate(),candidates=[],seen=new Set();
+  // Contact the complete body footprint before any rigid-wall bounce response.
+  // Removing a wall consumes fracture work from one shared kinetic-energy budget.
+  for(const o of this.world.nearby(center,Math.hypot(spec.width,spec.length)/2+.25)||[]){
+    if(o===this.obstacle||o.object?.userData.h5Vehicle||o.object?.userData.tree||o.y+o.h<center.y+.24||o.y>center.y+spec.height*.9)continue;
+    const dx=o.x-center.x,dz=o.z-center.z,lx=dx*c-dz*s,lz=dx*s+dz*c,ex=(Math.abs(c)*o.w+Math.abs(s)*o.d)/2,ez=(Math.abs(s)*o.w+Math.abs(c)*o.d)/2;
+    if(Math.abs(lx)>spec.width/2+ex+.08||Math.abs(lz)>spec.length/2+ez+.08)continue;
+    let root=o.object,furniture=null;while(root){if(root.userData?.furniture){furniture=root.userData.furniture;break;}root=root.parent;}
+    const part=o.h6Structure||o.h5Fracture||this.world.fractures?.parts?.find(p=>!p.broken&&(p.obstacle===o||p.mesh?.userData.seat?.obstacle===o));
+    const key=furniture||part;if(!key||seen.has(key)||key.broken||this._wallHits.has(key))continue;seen.add(key);candidates.push({o,part,furniture,root,key,order:dx*dir.x+dz*dir.z});
   }
-  return {broken:part.broken,absorbed};
+  candidates.sort((a,b)=>a.order-b.order);let work=0,available=.5*this.mass*speed*speed*.82,count=0;
+  for(const {o,part,furniture,root,key}of candidates){if(this._wallHits.size>=128||available<40)break;this._wallHits.add(key);count++;
+    const point=new T.Vector3(clamp(o.x,center.x-spec.length/2,center.x+spec.length/2),clamp(center.y+.75,o.y,o.y+o.h),clamp(o.z,center.z-spec.length/2,center.z+spec.length/2));
+    const kind=furniture?'wood':part.kind,cost=kind==='stone'?220:kind==='metal'?240:kind==='glass'?18:kind==='wood'?55*(part?.size?clamp(part.size.x*part.size.y*part.size.z/.036,.12,1):1):48,health=Math.max(0,key.health??24),spent=Math.min(available,Math.max(40,health*cost)),damage=spent/cost+.001;
+    if(furniture){const velocity=furniture.velocity;velocity?.addScaledVector(dir,Math.min(9,speed*.65));this.props.damageFurniture(furniture,damage,dir,'blunt',0,{object:root,point});}
+    else if(o.h6Structure)this.world.h6Settlements.structures.damage(part,damage,dir);
+    else this.world.fractures.impact({object:part.mesh,instanceId:part.index,point},damage,dir);
+    work+=spent;available-=spent;if(key.broken)this.message='Impact: '+count+' structural parts';
+    this.dentAt(point,normal,spent*.13,normal.clone().multiplyScalar(spent/Math.max(speed,1)));
+  }
+  if(work){const kinetic=.5*this.mass*speed*speed;this.velocity.multiplyScalar(Math.sqrt(Math.max(0,1-work/kinetic)));this.h5Vehicle?.wake?.();}
  }
  collide(dt){
-  const points=[];for(const y of [this.vehicleSpec.collisionY,Math.max(this.vehicleSpec.collisionY+.20,this.vehicleSpec.height*.80)])for(const side of [-1,1])for(const t of [-1,0,1])points.push(this.group.localToWorld(new T.Vector3(side*Math.max(.10,this.vehicleSpec.width/2-.12),y,t*(this.vehicleSpec.length/2-.12))));
+  this._wallHits??=new Set();this._rammed??=new Set();this.crushHull();this.crushHull();
+  const points=[];for(const y of [this.vehicleSpec.collisionY,Math.max(this.vehicleSpec.collisionY+.20,this.vehicleSpec.height*.80)])for(const side of [-1,0,1])for(const t of [-1,0,1])if(side||t)points.push(this.group.localToWorld(new T.Vector3(side*Math.max(.10,this.vehicleSpec.width/2-.12),y,t*(this.vehicleSpec.length/2-.12))));
   for(const point of points){for(const o of this.world.nearby(point,.16)||[]){
-    if(o===this.obstacle||o.y>point.y+.16||o.y+o.h<point.y-.16)continue;
+    if(o.h5Fracture?.broken||o.h6Structure?.broken||o===this.obstacle||o.y>point.y+.16||o.y+o.h<point.y-.16)continue;
     const closest=new T.Vector3(clamp(point.x,o.x-o.w/2,o.x+o.w/2),clamp(point.y,o.y,o.y+o.h),clamp(point.z,o.z-o.d/2,o.z+o.d/2)),delta=point.clone().sub(closest),distance=delta.length();if(distance>=.16)continue;
     let n=delta.normalize(),penetration=.16-distance;
     if(distance<1e-6){const faces=[{d:o.x+o.w/2-point.x,n:new T.Vector3(1,0,0)},{d:point.x-o.x+o.w/2,n:new T.Vector3(-1,0,0)},{d:o.z+o.d/2-point.z,n:new T.Vector3(0,0,1)},{d:point.z-o.z+o.d/2,n:new T.Vector3(0,0,-1)}];faces.sort((a,b)=>a.d-b.d);n=faces[0].n;penetration=.16+faces[0].d;}
@@ -357,11 +372,8 @@ export class Car {
         this.group.position.addScaledVector(n,Math.min(tree.fallen?0.08:0.22,penetration+.001));
         continue;
       }
-      const fracture=o.h5Fracture||this.world.fractures?.parts?.find(p=>!p.broken&&(p.obstacle===o||p.mesh?.userData.seat?.obstacle===o));
-      const crush=fracture?this.crushWall(fracture,closest,n,energy):null;
       this.dentAt(point,n,energy,impulse);
-      if(crush?.broken){const kinetic=.5*this.mass*this.velocity.lengthSq();this.velocity.multiplyScalar(Math.sqrt(Math.max(.08,1-(crush.absorbed+kinetic*.08)/Math.max(1,kinetic))));continue;}
-      this.velocity.addScaledVector(n,-1.04*Math.min(0,this.velocity.dot(n)));this.yawRate=clamp(this.yawRate+(r.z*impulse.x-r.x*impulse.z)/2400*.12,-1.5,1.5);
+      this.velocity.addScaledVector(n,-1.015*Math.min(0,this.velocity.dot(n)));this.yawRate=clamp(this.yawRate+(r.z*impulse.x-r.x*impulse.z)/2400*.12,-1.5,1.5);
     }
     this.group.position.addScaledVector(n,Math.min(.30,penetration+.001));
   }}

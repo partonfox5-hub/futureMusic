@@ -1,8 +1,8 @@
-import {restoreSurfaceUV} from './mira-v2-uv.js?v=19.3.0';
-import {BodyContacts} from './mira-v2-contact.js?v=19.3.0';
-import {MiraSocial} from './mira-v2-social.js?v=19.3.0';
-import {ContactHaptics} from './mira-v2-haptics.js?v=19.3.0';
-import { createV2Class, repairArmRestData, makeFingerRig, fingerRotation } from "./mira-v2-features.js?v=19.3.2";
+import {restoreSurfaceUV} from './mira-v2-uv.js?v=20.2.0';
+import {BodyContacts} from './mira-v2-contact.js?v=20.2.0';
+import {MiraSocial} from './mira-v2-social.js?v=20.2.0';
+import {ContactHaptics} from './mira-v2-haptics.js?v=20.2.0';
+import { createV2Class, repairArmRestData, makeFingerRig, fingerRotation } from "./mira-v2-features.js?v=20.2.0";
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { clone as cloneSkinned } from "three/addons/utils/SkeletonUtils.js";
@@ -16,7 +16,7 @@ import { clone as cloneSkinned } from "three/addons/utils/SkeletonUtils.js";
  * threejs.org/docs/pages/MeshStandardMaterial.html
  * ?skin=0 disables wrapped skin diffuse; ?debug=1 exposes window.human2 for profiling.
  */
-export const ASSET = new URL("./assets/mira.glb?v=19.3.0", import.meta.url).href;
+export const ASSET = new URL("./assets/mira.glb?v=20.2.0", import.meta.url).href;
 export const TEXROOT = new URL("./assets/tex/", import.meta.url).href;
 export const TEXVER = "r12";
 
@@ -1321,7 +1321,7 @@ class PlayerHands {
       const side=this.handedness[i]==='left'?'L':'R',rig=h.userData.rigs[side];h.userData.fallback.visible=!rig;
       for(const [s,r] of Object.entries(h.userData.rigs))r.root.visible=s===side;
       if(rig){
-        const curl=h.userData.curl=THREE.MathUtils.damp(h.userData.curl??.21,.21+this.squeeze[i]*.69,15,dt);
+        const curl=h.userData.curl=THREE.MathUtils.damp(h.userData.curl??.21,.21+Math.max(this.squeeze[i],this.h6AutoGrip?.(i)?1:0)*.69,15,dt);
         const delta=new THREE.Quaternion();
         for(const row of ['Thumb','Index','Mid','Ring','Pinky'])for(let j=1;j<=3;j++){
           const n=side+'_'+row+j,b=rig.bones[n];if(b)b.quaternion.copy(rig.bind[n]).multiply(fingerRotation(rig.fingers,row,j,curl,this.fingerTime,delta));
@@ -1510,7 +1510,7 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
       ballHeld[i] = bestB;
       return;
     }
-    const ni = noodle.grabIndex(_v);
+    const ni = noodle.group.visible?noodle.grabIndex(_v):-1;
     if (ni >= 0) {
       noodleHeld = ctrl;
       noodleGrabI = ni;
@@ -1808,7 +1808,8 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
     hands.haptics.flush(hands.handedness);
     physicsAccumulator = Math.min(physicsAccumulator + dt, 0.05);
     while (physicsAccumulator + 1e-9 >= 1 / 120) {
-      noodle.tick(1 / 120, actors, camPos, hold, hq, noodleGrabI);
+      noodle.group.visible=environment?.name==='Living room';
+      if(noodle.group.visible)noodle.tick(1 / 120, actors, camPos, hold, hq, noodleGrabI);
       tickBalls(1 / 120);
       physicsAccumulator -= 1 / 120;
     }

@@ -1,5 +1,5 @@
 import * as T from 'three';
-import {SprintBurst,PLAYER_SPEED_GAIN} from './modules/human5-sprint.js?v=19.3.2';
+import {SprintBurst,PLAYER_SPEED_GAIN} from './modules/human5-sprint.js?v=20.2.0';
 // xr-standard reserves 0/1 for the touchpad, even when no touchpad exists.
 export function stickAxes(gamepad){
  const a=gamepad?.axes;if(!a)return {x:0,y:0};
@@ -20,7 +20,7 @@ export class SmoothLocomotion {
  tick(dt,sources,blocked=false){
   const raw=[...sources],leftInput=raw.find(s=>s.handedness==='left'&&!s.hand),rightInput=raw.find(s=>s.handedness==='right'&&!s.hand);
   const occupied=this.world.h5Home?.consumesStick('left')||this.world.builder?.active;
-  const sprint=this.sprint.tick(dt,!!leftInput?.gamepad?.buttons?.[3]?.pressed,blocked||occupied);
+  const sprint=this.sprint.tick(dt,this.world.h6Powers?false:!!leftInput?.gamepad?.buttons?.[3]?.pressed,blocked||occupied);
   const jumpDown=!!rightInput?.gamepad?.buttons?.[4]?.pressed,jumpEdge=jumpDown&&!this.jumpDown;this.jumpDown=jumpDown;
   if(blocked||!(dt>0)){this.pace=0;return;}dt=Math.min(dt,.05);
   sources=[...sources].map(s=>{if(!s.gamepad)return s;const home=this.world.h5Home?.consumesStick(s.handedness),equipment=this.world.h5Equipment?.consumesStick(s.handedness);if(!home&&!equipment)return s;const axes=Array.from(s.gamepad.axes);axes[axes.length>=4?3:1]=0;if(home)axes[axes.length>=4?2:0]=0;return {...s,gamepad:{axes,buttons:s.gamepad.buttons},hand:s.hand,handedness:s.handedness};});

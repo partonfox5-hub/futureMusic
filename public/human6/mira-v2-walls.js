@@ -1,5 +1,5 @@
 import * as T from 'three';
-import {playSfx} from './mira-v2-sfx.js?v=19.3.2';
+import {playSfx} from './mira-v2-sfx.js?v=20.2.0';
 const V=()=>new T.Vector3(),Q=()=>new T.Quaternion(),CELL=.6,STORY=3.05;
 const QUEST=/Quest|OculusBrowser/i.test(globalThis.navigator?.userAgent||'');
 const PALETTE={Plaster:0xc9c1b1,Brick:0xa26148,Wood:0x947051,Tile:0xc3c7c1,Stone:0x85847c,Castle:0x8a8478,Metal:0x929b9d,Glass:0x9fc1c7,Shingle:0x5c4034};
@@ -127,7 +127,7 @@ void main(){
 export class WallSystem {
  constructor(scene,world,fractures){
   this.scene=scene;this.world=world;this.fractures=fractures;
-  this.maxDecal=QUEST?24:48;this.maxTrim=QUEST?280:520;this.maxStud=QUEST?36:64;this.maxDust=QUEST?16:28;
+  this.maxDecal=QUEST?24:48;this.maxTrim=QUEST?280:520;this.maxStud=QUEST?512:1024;this.maxDust=QUEST?16:28;
   this.dummy=new T.Object3D();
   const wood=new T.MeshStandardMaterial({map:makeSurfaceMap('Wood'),roughness:.82,color:0xffffff});
   this.trimMat=wood;
@@ -281,19 +281,15 @@ export class WallSystem {
   const s=part.size,axis=thinAxis(s),along=axis==='x'?'z':'x';
   if(!isWallCell(s))return;
   const studW=.055,studD=.10,h=s.y,len=s[along];
-  const wood=new T.MeshStandardMaterial({map:makeSurfaceMap('Wood'),color:0xffffff,roughness:.84});
   const members=[];
   const place=(sx,sy,sz,ox,oy,oz)=>{
-   const mesh=new T.Mesh(new T.BoxGeometry(sx,sy,sz),wood);
-   mesh.position.set(part.p.x+ox,part.p.y+oy,part.p.z+oz);
-   mesh.castShadow=mesh.receiveShadow=true;mesh.name='Wall stud';
-   this.world.root.add(mesh);
-   const o=this.world.obstacle(mesh.position.x,mesh.position.z,Math.max(.07,sx),Math.max(.07,sz),mesh.position.y-sy/2,sy,mesh);
-   const piece=this.fractures.register(mesh,'wood',o);
-   if(piece){piece.frame=true;piece.shell=part;piece.health=28;piece.maxHealth=28;}
-   mesh.userData.piece=piece;mesh.userData.wallPart=piece;
-   members.push(piece);
-   return mesh;
+   const mesh=this.studMesh;mesh.userData.chunks??=[];
+   let index=mesh.userData.chunks.findIndex(p=>p.broken);if(index<0)index=mesh.userData.chunks.length;if(index>=this.maxStud)return null;
+   const old=mesh.userData.chunks[index];if(old)this.fractures.parts=this.fractures.parts.filter(p=>p!==old);
+   const p=new T.Vector3(part.p.x+ox,part.p.y+oy,part.p.z+oz),size=new T.Vector3(sx,sy,sz),o=this.world.obstacle(p.x,p.z,Math.max(.07,sx),Math.max(.07,sz),p.y-sy/2,sy,mesh);
+   const piece={mesh,index,p,size,kind:'wood',obstacle:o,frame:true,shell:part,health:28,maxHealth:28,broken:false};o.h5Fracture=piece;
+   this.dummy.position.copy(p);this.dummy.quaternion.identity();this.dummy.scale.copy(size);this.dummy.updateMatrix();mesh.setMatrixAt(index,this.dummy.matrix);mesh.instanceMatrix.needsUpdate=true;mesh.boundingSphere=null;
+   mesh.userData.chunks[index]=piece;this.fractures.parts.push(piece);if(!this.world.pickables.includes(mesh))this.world.pickables.push(mesh);members.push(piece);return mesh;
   };
   const plate=(oy)=>axis==='x'?place(studW,.05,len*.96,0,oy,0):place(len*.96,.05,studW,0,oy,0);
   plate(h/2-.03);plate(-(h/2-.03));
@@ -325,7 +321,7 @@ export class WallSystem {
   }
   this.hideTrim(part);
   if(part.kind==='plaster')this.revealFrame(part);
-  if(part.frame&&part.mesh){
+  if(part.frame&&part.mesh&&!part.mesh.isInstancedMesh){
    part.mesh.visible=false;
    part.mesh.removeFromParent();
    if(this.world.pickables)this.world.pickables=this.world.pickables.filter(o=>o!==part.mesh);
