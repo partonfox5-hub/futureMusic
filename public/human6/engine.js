@@ -39,9 +39,9 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { createVRMenu } from "./mira-vr-menu.js?v=20.3.0";
 import { snapshot, savePreset, loadPreset, applyPreset, listPresets, lastPresetName, downloadPreset } from "./mira-v2-preset.js?v=20.3.0";
 import { unlockSfx } from "./mira-v2-sfx.js?v=20.3.0";
-import { EMOTION_NAMES, IDLE_NAMES, WALK_NAMES, ATTENTION_MODES } from "./mira-v2-features.js?v=20.3.0";
+import { EMOTION_NAMES, IDLE_NAMES, WALK_NAMES, ATTENTION_MODES } from "./mira-v2-features.js?v=20.3.1";
 import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
-import { createMiraSystem, SLIDERS, FACE_TYPES, HAIR_COLORS } from "./mira-v2.js?v=20.3.0";
+import { createMiraSystem, SLIDERS, FACE_TYPES, HAIR_COLORS } from "./mira-v2.js?v=20.3.1";
 import { DEFAULT_PERSONA, miraChat, miraSpeak, unlockVoice } from "./mira-voice-v2.js?v=20.3.0";
 
 import {V2_EXTRA_SLIDERS,FACE_PRESETS,HAIR_STYLES,ACTIVITY_MODES,ATTENTION_LABELS,shapeSliders} from './mira-v2-controls.js?v=20.3.0';

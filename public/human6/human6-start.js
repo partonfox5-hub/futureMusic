@@ -15,7 +15,7 @@
     warn(text){warnings.push(String(text));},
     fail(error){console.error(error);if(!failed)record();complete=false;failed=true;for(const el of controls)el.disabled=true;stage='Unable to load Human6: '+String(error?.message||error);failures.push({ms:performance.now(),message:stage,stack:error?.stack||null});load.hidden=false;retry.hidden=false;show();},
     ready(){if(failed)return;record();finishedAt=performance.now();stage='Ready';complete=true;clearInterval(watch);load.hidden=true;for(const el of controls)el.disabled=false;document.dispatchEvent(new Event('human6:ready'));},
-    snapshot(){return {format:'human6.loading/1',version:'20.3.0',userAgent:navigator.userAgent,complete,failed,stage,elapsedMs:(finishedAt??performance.now())-began,stages:[...stages],warnings:[...warnings],failures:[...failures]};},
+    snapshot(){return {format:'human6.loading/1',version:'20.3.1',userAgent:navigator.userAgent,complete,failed,stage,elapsedMs:(finishedAt??performance.now())-began,stages:[...stages],warnings:[...warnings],failures:[...failures]};},
     async takeModel(){const job=model;if(!job)return null;try{const result=await job;if(result.error)throw result.error;return result.buffer;}finally{model=null;}}
   };
   globalThis.h6Boot=api;
@@ -24,12 +24,12 @@
   addEventListener('error',event=>{if(event.error&&!complete)api.fail(event.error);else{const url=event.target?.src||event.target?.href;if(url)api.warn('File unavailable: '+new URL(url,location.href).pathname);}},true);
   addEventListener('unhandledrejection',event=>{if(!complete)api.fail(event.reason);});
   if(location.protocol==='file:'){api.fail('Open this folder through a web server; browsers cannot load game modules from a file URL.');return;}
-  import('./modules/human6-loading.js?v=20.3.0').then(({readAsset})=>{
+  import('./modules/human6-loading.js?v=20.3.1').then(({readAsset})=>{
     model=readAsset(new URL('./assets/mira-runtime-20.3.glb',document.baseURI),{onProgress:p=>{bytes=(p.loaded/1048576).toFixed(1)+' MB'+(p.total?' / '+(p.total/1048576).toFixed(1)+' MB':'');if(stage==='Downloading Mira')show();}}).then(buffer=>({buffer}),error=>({error}));
     // A generated list starts the static graph in parallel, avoiding serial
     // import discovery over headset Wi-Fi. Everything essential is same-origin.
-    fetch('./startup-modules.json?v=20.3.0').then(r=>r.ok?r.json():[]).then(urls=>{for(const href of urls){const link=document.createElement('link');link.rel='modulepreload';link.href=href;document.head.append(link);}}).catch(()=>{});
-    return import('./mira-boot.js?v=20.3.0');
+    fetch('./startup-modules.json?v=20.3.1').then(r=>r.ok?r.json():[]).then(urls=>{for(const href of urls){const link=document.createElement('link');link.rel='modulepreload';link.href=href;document.head.append(link);}}).catch(()=>{});
+    return import('./mira-boot.js?v=20.3.1');
   }).catch(error=>api.fail(error));
   show();
 })();

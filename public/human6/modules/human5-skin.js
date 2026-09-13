@@ -1,4 +1,4 @@
-import {ANATOMY_ANCHOR as A} from './human5-anatomy-anchor.js?v=20.3.0';
+import {ANATOMY_ANCHOR as A} from './human5-anatomy-anchor.js?v=20.3.1';
 import * as T from 'three';
 import {V,clamp,wrapMethod} from './human5-common.js?v=20.3.0';
 
@@ -73,7 +73,7 @@ export function installSkinRefinement(actor,{detail=true,receiveShadow=true}={})
       const m=mesh.material;if(Array.isArray(m))continue;
       const state=materials.get(m);if(state&&m.onBeforeCompile===state.wrapper)continue;
       const old=m.onBeforeCompile,key=m.customProgramCacheKey;
-      const wrapper=s=>skinCompile(s,old,m,{detail});m.onBeforeCompile=wrapper;m.customProgramCacheKey=()=> (key?.call(m)||'')+'/h6-single-chest-feature-20/'+detail;m.needsUpdate=true;
+      const wrapper=s=>skinCompile(s,old,m,{detail});m.onBeforeCompile=wrapper;m.customProgramCacheKey=()=> (key?.call(m)||'')+'/h6-pigment-1607-20-3-1/'+detail;m.needsUpdate=true;
       materials.set(m,{old,key,wrapper});
     }
   }
