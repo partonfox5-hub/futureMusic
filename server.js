@@ -668,7 +668,10 @@ app.use("/human5", (req, res, next) => {
     humanHeaders(res);
     next();
 });
-app.get(["/human6", "/human6/"], (req, res) => {
+app.get("/human6", (req, res) => {
+    res.redirect(301, "/human6/");
+});
+app.get("/human6/", (req, res) => {
     humanHeaders(res);
     res.sendFile(path.join(__dirname, "public", "human6", "index.html"));
 });
