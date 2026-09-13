@@ -1,4 +1,4 @@
-import {wrapMethod} from './human5-common.js?v=20.2.0';
+import {wrapMethod} from './human5-common.js?v=20.3.0';
 export function installProfiling({world,renderer,camera,props}){
  const performance=world.h5Performance,baseReport=performance.exportReport.bind(performance),records=new Map();let active=null;
  const gl=renderer.getContext(),debug=gl.getExtension('WEBGL_debug_renderer_info'),gpu=debug?gl.getParameter(debug.UNMASKED_RENDERER_WEBGL):gl.getParameter(gl.RENDERER);

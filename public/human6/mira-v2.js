@@ -1,8 +1,9 @@
-import {restoreSurfaceUV} from './mira-v2-uv.js?v=20.2.0';
-import {BodyContacts} from './mira-v2-contact.js?v=20.2.0';
-import {MiraSocial} from './mira-v2-social.js?v=20.2.0';
-import {ContactHaptics} from './mira-v2-haptics.js?v=20.2.0';
-import { createV2Class, repairArmRestData, makeFingerRig, fingerRotation } from "./mira-v2-features.js?v=20.2.0";
+import {readAsset,withDeadline,yieldToBrowser} from './modules/human6-loading.js?v=20.3.0';
+import {restoreSurfaceUV} from './mira-v2-uv.js?v=20.3.0';
+import {BodyContacts} from './mira-v2-contact.js?v=20.3.0';
+import {MiraSocial} from './mira-v2-social.js?v=20.3.0';
+import {ContactHaptics} from './mira-v2-haptics.js?v=20.3.0';
+import { createV2Class, repairArmRestData, makeFingerRig, fingerRotation } from "./mira-v2-features.js?v=20.3.0";
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { clone as cloneSkinned } from "three/addons/utils/SkeletonUtils.js";
@@ -16,7 +17,7 @@ import { clone as cloneSkinned } from "three/addons/utils/SkeletonUtils.js";
  * threejs.org/docs/pages/MeshStandardMaterial.html
  * ?skin=0 disables wrapped skin diffuse; ?debug=1 exposes window.human2 for profiling.
  */
-export const ASSET = new URL("./assets/mira.glb?v=20.2.0", import.meta.url).href;
+export const ASSET = new URL("./assets/mira-runtime-20.3.glb", import.meta.url).href;
 export const TEXROOT = new URL("./assets/tex/", import.meta.url).href;
 export const TEXVER = "r12";
 
@@ -143,7 +144,7 @@ function loadMap(file, srgb) {
   if (!file) return null;
   const key = file + (srgb ? "s" : "l");
   if (texCache[key]) return texCache[key];
-  const t = texLoader.load(TEXROOT + file + "?v=" + TEXVER, undefined, undefined, (err) => console.warn("tex fail", file, err));
+  const t = texLoader.load(TEXROOT + file + "?v=" + TEXVER, undefined, undefined, (err) => {globalThis.h6Boot?.warn("Texture unavailable: "+file);console.warn("tex fail", file, err);});
   t.colorSpace = srgb ? THREE.SRGBColorSpace : THREE.NoColorSpace;
   t.flipY = false;
   t.wrapS = /^(head|body|arm|leg|nails|lash)/.test(file) ? THREE.RepeatWrapping : THREE.ClampToEdgeWrapping;
@@ -1356,7 +1357,7 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
   let baseScale = 1;
   let ready = false;
   const parent = rig || scene;
-  const noodle = new FloppyNoodle(scene);
+  const noodle = new FloppyNoodle(scene);noodle.group.visible=false;
   const hands = new PlayerHands(renderer, parent);
   let noodleHeld = null;
   let noodleGrabI = -1;
@@ -1410,32 +1411,31 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
     return actor;
   }
 
-  function load(onProgress, onDone, onErr) {
+  async function load(onProgress, onDone, onErr) {
     maxAnisotropy = Math.min(QUEST ? 4 : 8, renderer.capabilities.getMaxAnisotropy());
-    new GLTFLoader().load(
-      ASSET,
-      (gltf) => {
-        template = gltf.scene;
-        applySkin(template);
-        hands.installMesh(template);
-        template.updateMatrixWorld(true);
-        const box = new THREE.Box3().setFromObject(template);
-        const size = new THREE.Vector3();
-        box.getSize(size);
-        const center = new THREE.Vector3();
-        box.getCenter(center);
-        baseScale = 1.68 / Math.max(size.y, 0.2);
-        template.position.x -= center.x * baseScale;
-        template.position.z -= center.z * baseScale;
-        template.position.y -= box.min.y * baseScale;
-        template.scale.setScalar(baseScale);
-        ready = true;
-        spawn({ position: new THREE.Vector3(0, 0, 0), version: "v2", faceType: 1 });
-        if (onDone) onDone();
-      },
-      onProgress,
-      onErr
-    );
+    try {
+      globalThis.h6Boot?.stage('Downloading Mira');
+      const buffer=await (globalThis.h6Boot?.takeModel()||Promise.resolve(null))||await readAsset(ASSET,{onProgress});
+      if(buffer.byteLength<20||new DataView(buffer).getUint32(0,true)!==0x46546c67)throw new Error('The character file is not a valid GLB. Check that the complete assets folder was uploaded.');
+      globalThis.h6Boot?.stage('Preparing Mira');await yieldToBrowser();
+      const gltf=await withDeadline(new GLTFLoader().parseAsync(buffer,new URL('./assets/',import.meta.url).href),30000,'Character decoding');
+      template = gltf.scene;
+      applySkin(template);
+      hands.installMesh(template);
+      template.updateMatrixWorld(true);
+      const box = new THREE.Box3().setFromObject(template);
+      const size = new THREE.Vector3();box.getSize(size);
+      const center = new THREE.Vector3();box.getCenter(center);
+      baseScale = 1.68 / Math.max(size.y, 0.2);
+      template.position.x -= center.x * baseScale;
+      template.position.z -= center.z * baseScale;
+      template.position.y -= box.min.y * baseScale;
+      template.scale.setScalar(baseScale);
+      await yieldToBrowser();
+      spawn({ position: new THREE.Vector3(0, 0, 0), version: "v2", faceType: 1 });
+      ready = true;
+      if (onDone) await onDone();
+    } catch(error) { if(onErr)onErr(error);else throw error; }
   }
 
   function spawnBall(pos, vel) {
@@ -1817,7 +1817,7 @@ export function createMiraSystem({ scene, renderer, camera, xrOn, rig }) {
 
   return {
     resetPhysics, load, spawn, tick, spawnBall, nearestTo, actors, noodle, hands, balls, social, walkTo, pointCommand, floorTarget, controllerFloorTarget, contacts,
-    setEnvironment(value){environment=value;for(const a of actors)a.world=value;},setWardrobe(value){wardrobe=value;},
+    setEnvironment(value){environment=value;noodle.group.visible=value?.name==='Living room';for(const a of actors)a.world=value;},setWardrobe(value){wardrobe=value;},
     requestSocial(kind){return social.request(selectedActor,kind);},
     get persona() { return persona; },
     set persona(v) { persona = v || ""; },

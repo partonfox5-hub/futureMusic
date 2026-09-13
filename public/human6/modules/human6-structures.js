@@ -1,5 +1,5 @@
 import * as T from 'three';
-import {wrapMethod} from './human5-common.js?v=20.2.0';
+import {wrapMethod} from './human5-common.js?v=20.3.0';
 
 // Damage edits vertex ranges inside existing material batches; no mesh per brick.
 export function structuralDamage({world,props,region,resident}){

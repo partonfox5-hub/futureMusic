@@ -1,8 +1,8 @@
-import {refinePetSurface,fitCatSkeleton} from './PetRealism.js?v=20.2.0';
+import {refinePetSurface,fitCatSkeleton} from './PetRealism.js?v=20.3.0';
 import * as T from 'three';
-import {petEye} from './PetEyes.js?v=20.2.0';
-import {PET_SURFACES} from './PetSurfaces.js?v=20.2.0';
-import {PET_BREEDS,breedIdFor} from './PetBreeds.js?v=20.2.0';
+import {petEye} from './PetEyes.js?v=20.3.0';
+import {PET_SURFACES} from './PetSurfaces.js?v=20.3.0';
+import {PET_BREEDS,breedIdFor} from './PetBreeds.js?v=20.3.0';
 const clamp=T.MathUtils.clamp,cache=new Map();
 function bytes(str){return Uint8Array.from(atob(str),c=>c.charCodeAt(0));}
 function geometry(id){

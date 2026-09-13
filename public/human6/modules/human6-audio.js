@@ -1,6 +1,6 @@
 import * as T from 'three';
-import {audioContext,sfxMaster} from '../mira-v2-sfx.js?v=20.2.0';
-import {wrapMethod} from './human5-common.js?v=20.2.0';
+import {audioContext,sfxMaster} from '../mira-v2-sfx.js?v=20.3.0';
+import {wrapMethod} from './human5-common.js?v=20.3.0';
 
 // Cached, original procedural transients: crack, mechanical action, body and tail.
 // No per-shot PCM allocation. A voice cap prevents a firefight from saturating audio.

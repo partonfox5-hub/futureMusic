@@ -1,14 +1,14 @@
-import {captureFurniture,tagMovable} from './mira-v2-furniture.js?v=20.2.0';
-import {Destruction} from './mira-v2-destruction.js?v=20.2.0';
-import {buildHouse} from './mira-v2-house.js?v=20.2.0';
-import {buildCastle,inCastleClearing} from './mira-v2-castle.js?v=20.2.0';
-import {plantTerrain,scatterTrees,tickNature,chopTree as chopNature,ramTree as ramNature,terrainHeight} from './mira-v2-nature.js?v=20.2.0';
+import {captureFurniture,tagMovable} from './mira-v2-furniture.js?v=20.3.0';
+import {Destruction} from './mira-v2-destruction.js?v=20.3.0';
+import {buildHouse,buildFurnitureTemplates} from './mira-v2-house.js?v=20.3.0';
+import {buildCastle,inCastleClearing} from './mira-v2-castle.js?v=20.3.0';
+import {plantTerrain,scatterTrees,tickNature,chopTree as chopNature,ramTree as ramNature,terrainHeight} from './mira-v2-nature.js?v=20.3.0';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
 import * as T from 'three';
 const V=()=>new T.Vector3(),clamp=T.MathUtils.clamp,QUEST=/Quest|OculusBrowser/i.test(globalThis.navigator?.userAgent||'');
 export const SCENES=['Living room','Jungle','Beach'];
 export class MiraWorld {
- constructor(scene,system){this.scene=scene;this.system=system;this.root=new T.Group();scene.add(this.root);this.obstacles=[];this.seats=[];this.pickables=[];this.movables=[];this.stairs=[];this.routes=new WeakMap();this.seated=new WeakMap();this.time=0;this.revision=0;this.extent=4.18;this.gravity=9.81;this.fractures=new Destruction(scene,this);this.setScene('Living room');}
+ constructor(scene,system,{deferScene=false}={}){this.scene=scene;this.system=system;this.root=new T.Group();scene.add(this.root);this.obstacles=[];this.seats=[];this.pickables=[];this.movables=[];this.stairs=[];this.routes=new WeakMap();this.seated=new WeakMap();this.time=0;this.revision=0;this.extent=4.18;this.gravity=9.81;this.fractures=new Destruction(scene,this);this.floors=[];this.trees=[];this.waterBeds=[];this.name='Loading';if(deferScene)buildFurnitureTemplates(this);else this.setScene('Living room');}
  captureFurniture(id,start,x,z){captureFurniture(this,id,this.root.children.slice(start),x,z);}
  mat(color,roughness=.85){return new T.MeshStandardMaterial({color,roughness,metalness:0});}
  mesh(g,m,x,y,z){const o=new T.Mesh(g,m);o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;this.root.add(o);return o;}

@@ -1,0 +1,1896 @@
+{
+  "readyMs": 9808.89999999851,
+  "labels": [
+    {
+      "ms": 332.29999999701977,
+      "label": "Starting graphics0 secondsRETRY LOADINGSAVE LOADING REPORT",
+      "connected": true
+    },
+    {
+      "ms": 476,
+      "label": "Building the home0 secondsRETRY LOADINGSAVE LOADING REPORT",
+      "connected": true
+    },
+    {
+      "ms": 1468.8999999985099,
+      "label": "Preparing vehicles1 secondsRETRY LOADINGSAVE LOADING REPORT",
+      "connected": true
+    },
+    {
+      "ms": 1546.699999999255,
+      "label": "Preparing interactions1 secondsRETRY LOADINGSAVE LOADING REPORT",
+      "connected": true
+    },
+    {
+      "ms": 1548.2999999970198,
+      "label": "Preparing interactions1 secondsRETRY LOADINGSAVE LOADING REPORT",
+      "connected": true
+    },
+    {
+      "ms": 2285.199999999255,
+      "label": "Preparing interactions2 secondsRETRY LOADINGSAVE LOADING REPORT",
+      "connected": true
+    },
+    {
+      "ms": 2305.39999999851,
+      "label": "Building the neighborhood2 secondsRETRY LOADINGSAVE LOADING REPORT",
+      "connected": true
+    },
+    {
+      "ms": 2711.7999999970198,
+      "label": "Preparing the region3 secondsRETRY LOADINGSAVE LOADING REPORT",
+      "connected": true
+    },
+    {
+      "ms": 2861.2999999970198,
+      "label": "Preparing wildlife and equipment3 secondsRETRY LOADINGSAVE LOADING REPORT",
+      "connected": true
+    },
+    {
+      "ms": 2862.599999997765,
+      "label": "Preparing wildlife and equipment3 secondsRETRY LOADINGSAVE LOADING REPORT",
+      "connected": true
+    },
+    {
+      "ms": 2901.7999999970198,
+      "label": "Preparing home interactions3 secondsRETRY LOADINGSAVE LOADING REPORT",
+      "connected": true
+    },
+    {
+      "ms": 2936.2999999970198,
+      "label": "Preparing groups and the map3 secondsRETRY LOADINGSAVE LOADING REPORT",
+      "connected": true
+    },
+    {
+      "ms": 2964.099999997765,
+      "label": "Downloading Mira11.3 MB / 11.3 MB · 3 secondsRETRY LOADINGSAVE LOADING REPORT",
+      "connected": true
+    },
+    {
+      "ms": 2964.2999999970198,
+      "label": "Preparing Mira3 secondsRETRY LOADINGSAVE LOADING REPORT",
+      "connected": true
+    },
+    {
+      "ms": 3861.2999999970198,
+      "label": "Preparing pets4 secondsRETRY LOADINGSAVE LOADING REPORT",
+      "connected": true
+    },
+    {
+      "ms": 3883.5,
+      "label": "Preparing pets4 secondsRETRY LOADINGSAVE LOADING REPORT",
+      "connected": true
+    },
+    {
+      "ms": 4022.599999997765,
+      "label": "Preparing the cat4 secondsRETRY LOADINGSAVE LOADING REPORT",
+      "connected": true
+    },
+    {
+      "ms": 4173.199999999255,
+      "label": "Preparing the starting area4 secondsRETRY LOADINGSAVE LOADING REPORT",
+      "connected": true
+    },
+    {
+      "ms": 4177.699999999255,
+      "label": "Preparing the starting area4 secondsRETRY LOADINGSAVE LOADING REPORT",
+      "connected": true
+    },
+    {
+      "ms": 4728.5,
+      "label": "Preparing visible materials5 secondsRETRY LOADINGSAVE LOADING REPORT",
+      "connected": true
+    },
+    {
+      "ms": 4811.79999999702,
+      "label": "Preparing visible materials5 secondsRETRY LOADINGSAVE LOADING REPORT",
+      "connected": true
+    },
+    {
+      "ms": 4821.699999999255,
+      "label": "Uploading visible textures5 secondsRETRY LOADINGSAVE LOADING REPORT",
+      "connected": true
+    },
+    {
+      "ms": 6028.199999999255,
+      "label": "Uploading visible textures6 secondsRETRY LOADINGSAVE LOADING REPORT",
+      "connected": true
+    },
+    {
+      "ms": 6305.29999999702,
+      "label": "Uploading visible textures6 secondsRETRY LOADINGSAVE LOADING REPORT",
+      "connected": true
+    },
+    {
+      "ms": 6851.39999999851,
+      "label": "Uploading visible textures7 secondsRETRY LOADINGSAVE LOADING REPORT",
+      "connected": true
+    },
+    {
+      "ms": 7181.39999999851,
+      "label": "Drawing the first view7 secondsRETRY LOADINGSAVE LOADING REPORT",
+      "connected": true
+    }
+  ],
+  "longTasks": [
+    {
+      "start": 17,
+      "ms": 54
+    },
+    {
+      "start": 342.8999999985099,
+      "ms": 134
+    },
+    {
+      "start": 477.19999999925494,
+      "ms": 992
+    },
+    {
+      "start": 1470.3999999985099,
+      "ms": 77
+    },
+    {
+      "start": 2307.2999999970198,
+      "ms": 406
+    },
+    {
+      "start": 2717.099999997765,
+      "ms": 144
+    },
+    {
+      "start": 3008.39999999851,
+      "ms": 232
+    },
+    {
+      "start": 3241.2999999970198,
+      "ms": 620
+    },
+    {
+      "start": 3884.39999999851,
+      "ms": 138
+    },
+    {
+      "start": 4025.5,
+      "ms": 150
+    },
+    {
+      "start": 4178.39999999851,
+      "ms": 555
+    },
+    {
+      "start": 4736,
+      "ms": 75
+    },
+    {
+      "start": 4860.39999999851,
+      "ms": 1167
+    },
+    {
+      "start": 6031.099999997765,
+      "ms": 274
+    },
+    {
+      "start": 6305.29999999702,
+      "ms": 545
+    },
+    {
+      "start": 6931.699999999255,
+      "ms": 249
+    },
+    {
+      "start": 7182.5,
+      "ms": 2488
+    },
+    {
+      "start": 9671.099999997765,
+      "ms": 137
+    }
+  ],
+  "samples": [
+    {
+      "stage": "prepare",
+      "ms": 549.6000000014901,
+      "objects": 167
+    },
+    {
+      "stage": "mainShaders",
+      "ms": 85.39999999850988,
+      "objects": 167
+    },
+    {
+      "stage": "textureUpload",
+      "ms": 2354.10000000149,
+      "textures": 24
+    },
+    {
+      "stage": "firstView",
+      "ms": 2484.900000002235,
+      "calls": 222
+    },
+    {
+      "stage": "total",
+      "ms": 5494.400000002235
+    }
+  ],
+  "boot": {
+    "format": "human6.loading/1",
+    "version": "20.3.0",
+    "userAgent": "OculusBrowser Human6 startup",
+    "complete": true,
+    "failed": false,
+    "stage": "Ready",
+    "elapsedMs": 9595.20000000298,
+    "stages": [
+      {
+        "stage": "Loading game code",
+        "startMs": 72.29999999701977,
+        "durationMs": 259.9000000022352
+      },
+      {
+        "stage": "Starting graphics",
+        "startMs": 332.19999999925494,
+        "durationMs": 143.69999999925494
+      },
+      {
+        "stage": "Building the home",
+        "startMs": 475.8999999985099,
+        "durationMs": 992.8000000007451
+      },
+      {
+        "stage": "Preparing vehicles",
+        "startMs": 1468.699999999255,
+        "durationMs": 77.89999999850988
+      },
+      {
+        "stage": "Preparing interactions",
+        "startMs": 1546.5999999977648,
+        "durationMs": 758.1999999992549
+      },
+      {
+        "stage": "Building the neighborhood",
+        "startMs": 2304.7999999970198,
+        "durationMs": 407
+      },
+      {
+        "stage": "Preparing the region",
+        "startMs": 2711.7999999970198,
+        "durationMs": 149.40000000223517
+      },
+      {
+        "stage": "Preparing wildlife and equipment",
+        "startMs": 2861.199999999255,
+        "durationMs": 40.599999997764826
+      },
+      {
+        "stage": "Preparing home interactions",
+        "startMs": 2901.7999999970198,
+        "durationMs": 34.5
+      },
+      {
+        "stage": "Preparing groups and the map",
+        "startMs": 2936.2999999970198,
+        "durationMs": 19
+      },
+      {
+        "stage": "Downloading Mira",
+        "startMs": 2955.2999999970198,
+        "durationMs": 8.900000002235174
+      },
+      {
+        "stage": "Preparing Mira",
+        "startMs": 2964.199999999255,
+        "durationMs": 896.1999999992549
+      },
+      {
+        "stage": "Preparing pets",
+        "startMs": 3860.39999999851,
+        "durationMs": 161.69999999925494
+      },
+      {
+        "stage": "Preparing the cat",
+        "startMs": 4022.099999997765,
+        "durationMs": 151
+      },
+      {
+        "stage": "Preparing the starting area",
+        "startMs": 4173.099999997765,
+        "durationMs": 555.3000000007451
+      },
+      {
+        "stage": "Preparing visible materials",
+        "startMs": 4728.39999999851,
+        "durationMs": 93.30000000074506
+      },
+      {
+        "stage": "Uploading visible textures",
+        "startMs": 4821.699999999255,
+        "durationMs": 2359.699999999255
+      },
+      {
+        "stage": "Drawing the first view",
+        "startMs": 7181.39999999851,
+        "durationMs": 2486.10000000149
+      }
+    ],
+    "warnings": [],
+    "failures": []
+  },
+  "gl": "WebKit WebGL",
+  "calls": 139,
+  "memory": {
+    "geometries": 204,
+    "textures": 51
+  },
+  "world": {
+    "format": "human5.world.stats/1",
+    "sizeMetres": 4224,
+    "residentCells": 0,
+    "pinnedViews": 0,
+    "pendingCells": 9,
+    "interiors": 0,
+    "blocks": 12,
+    "trees": 0,
+    "terrainEdits": 0,
+    "felledTrees": 0,
+    "lastBuildMs": 2.300000000745058,
+    "totalBuildMs": 2.300000000745058,
+    "streaming": {
+      "builtCells": 0,
+      "cacheHits": 0,
+      "evictions": 0,
+      "cancelledJobs": 0,
+      "maxBuildMs": 2.300000000745058,
+      "cachedCells": 0,
+      "activeLimit": 16,
+      "cacheLimit": 4,
+      "lookAhead": [
+        0,
+        1.4500000000000002,
+        2.6
+      ],
+      "forestBatches": {
+        "sources": 0,
+        "draws": 0,
+        "instances": 0,
+        "uploads": 0
+      },
+      "farForest": {
+        "totalTrees": 4325,
+        "visibleTrees": 537,
+        "testedBuckets": 482,
+        "uploads": 1
+      },
+      "farTerrain": {
+        "heightSamples": 0,
+        "pendingVertices": 0
+      },
+      "roads": [
+        {
+          "totalTriangles": 7496,
+          "visibleTriangles": 1384,
+          "testedBuckets": 37,
+          "uploads": 1
+        },
+        {
+          "totalTriangles": 7566,
+          "visibleTriangles": 1220,
+          "testedBuckets": 38,
+          "uploads": 1
+        },
+        {
+          "totalTriangles": 6882,
+          "visibleTriangles": 3312,
+          "testedBuckets": 39,
+          "uploads": 1
+        }
+      ]
+    }
+  },
+  "resources": [
+    {
+      "url": "human6-start.js?v=20.3.0",
+      "start": 10.899999998509884,
+      "ms": 6.699999999254942,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human6-loading.js?v=20.3.0",
+      "start": 73,
+      "ms": 3.2999999970197678,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "assets/mira-runtime-20.3.glb",
+      "start": 78.29999999701977,
+      "ms": 112.10000000149012,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "startup-modules.json?v=20.3.0",
+      "start": 78.5,
+      "ms": 10.799999997019768,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "mira-boot.js?v=20.3.0",
+      "start": 78.59999999776483,
+      "ms": 10.800000000745058,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "mira-v2-garments.js?v=20.3.0",
+      "start": 97.5,
+      "ms": 5.899999998509884,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "mira-voice-v2.js?v=20.3.0",
+      "start": 97.69999999925494,
+      "ms": 8.399999998509884,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "mira-neural-voice.js?v=20.3.0",
+      "start": 97.69999999925494,
+      "ms": 10,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "mira-v2-controls.js?v=20.3.0",
+      "start": 97.69999999925494,
+      "ms": 14.899999998509884,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "mira-v2-catalog.js?v=20.3.0",
+      "start": 97.89999999850988,
+      "ms": 14.800000000745058,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "mira-basic-voice.js?v=20.3.0",
+      "start": 102.29999999701977,
+      "ms": 52.900000002235174,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "mira-local-speech.js?v=20.3.0",
+      "start": 102.39999999850988,
+      "ms": 55.600000001490116,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "mira-v2-features.js?v=20.3.0",
+      "start": 102.5,
+      "ms": 57.29999999701977,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human5-ragdoll.js?v=20.3.0",
+      "start": 102.59999999776483,
+      "ms": 56.5,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "vendor/three/three.module.js",
+      "start": 102.69999999925494,
+      "ms": 71.09999999776483,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human5-anatomy-anchor.js?v=20.3.0",
+      "start": 102.89999999850988,
+      "ms": 60.100000001490116,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human5-anatomy-detail.js?v=20.3.0",
+      "start": 102.89999999850988,
+      "ms": 61.30000000074506,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "mira-v2-eyes.js?v=20.3.0",
+      "start": 103,
+      "ms": 62.19999999925494,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "mira-v2-tearline.js?v=20.3.0",
+      "start": 103,
+      "ms": 62.79999999701977,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "mira-v2-uv.js?v=20.3.0",
+      "start": 103.09999999776483,
+      "ms": 65.40000000223517,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "mira-v2-hair.js?v=20.3.0",
+      "start": 103.19999999925494,
+      "ms": 66.5,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "mira-v2-tissue.js?v=20.3.0",
+      "start": 103.29999999701977,
+      "ms": 67.30000000074506,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "mira-v2-realism.js?v=20.3.0",
+      "start": 103.29999999701977,
+      "ms": 67.5,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "src/body/FaceDrive.js",
+      "start": 103.39999999850988,
+      "ms": 70.19999999925494,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "src/body/TissueRig.js",
+      "start": 103.5,
+      "ms": 71.59999999776483,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "src/body/SkinCrease.js",
+      "start": 103.59999999776483,
+      "ms": 73.30000000074506,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "src/body/XPBDCluster.js",
+      "start": 103.59999999776483,
+      "ms": 73,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "src/body/ContactMotion.js",
+      "start": 103.69999999925494,
+      "ms": 76,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "engine.js?v=20.3.0",
+      "start": 103.69999999925494,
+      "ms": 79.30000000074506,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human6-expansion.js?v=20.3.0",
+      "start": 103.79999999701977,
+      "ms": 76.5,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human6-profiling.js?v=20.3.0",
+      "start": 103.79999999701977,
+      "ms": 79.5,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human5-common.js?v=20.3.0",
+      "start": 104,
+      "ms": 79.39999999850988,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human6-render-budget.js?v=20.3.0",
+      "start": 104.09999999776483,
+      "ms": 83.69999999925494,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human6-spatial-batches.js?v=20.3.0",
+      "start": 104.09999999776483,
+      "ms": 84.19999999925494,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human6-xr-layers.js?v=20.3.0",
+      "start": 104.19999999925494,
+      "ms": 83.80000000074506,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human6-settlements.js?v=20.3.0",
+      "start": 104.19999999925494,
+      "ms": 84.19999999925494,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human6-structures.js?v=20.3.0",
+      "start": 104.39999999850988,
+      "ms": 84.10000000149012,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human6-world-data.js?v=20.3.0",
+      "start": 104.39999999850988,
+      "ms": 89.89999999850988,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "vendor/three/addons/utils/BufferGeometryUtils.js",
+      "start": 104.39999999850988,
+      "ms": 93.39999999850988,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human6-fauna.js?v=20.3.0",
+      "start": 104.59999999776483,
+      "ms": 93.40000000223517,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human6-fluid.js?v=20.3.0",
+      "start": 104.69999999925494,
+      "ms": 94.80000000074506,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human6-hazards.js?v=20.3.0",
+      "start": 104.69999999925494,
+      "ms": 94.59999999776483,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human6-powers.js?v=20.3.0",
+      "start": 104.89999999850988,
+      "ms": 94.69999999925494,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "mira-v2-locomotion.js?v=20.3.0",
+      "start": 104.89999999850988,
+      "ms": 96.19999999925494,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human5-sprint.js?v=20.3.0",
+      "start": 105,
+      "ms": 98.69999999925494,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human6-factions.js?v=20.3.0",
+      "start": 105.09999999776483,
+      "ms": 99.69999999925494,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human6-tactics.js?v=20.3.0",
+      "start": 105.29999999701977,
+      "ms": 99.70000000298023,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human5-npc-behavior.js?v=20.3.0",
+      "start": 105.29999999701977,
+      "ms": 100,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "mira-v2-wardrobe.js?v=20.3.0",
+      "start": 105.39999999850988,
+      "ms": 102.5,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human5-rack-garments.js?v=20.3.0",
+      "start": 105.39999999850988,
+      "ms": 103.19999999925494,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "mira-v2-garment-patterns.js?v=20.3.0",
+      "start": 105.5,
+      "ms": 103.89999999850988,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human5-cloth-budget.js?v=20.3.0",
+      "start": 105.69999999925494,
+      "ms": 103.09999999776483,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "mira-v2-contact.js?v=20.3.0",
+      "start": 105.69999999925494,
+      "ms": 105.39999999850988,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human5-skinning.js?v=20.3.0",
+      "start": 105.69999999925494,
+      "ms": 106,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "mira-v2-props.js?v=20.3.0",
+      "start": 105.89999999850988,
+      "ms": 107.80000000074506,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human5-ray-budget.js?v=20.3.0",
+      "start": 106,
+      "ms": 107.89999999850988,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human5-equipment-models.js?v=20.3.0",
+      "start": 106.09999999776483,
+      "ms": 108.5,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "vendor/three/addons/geometries/RoundedBoxGeometry.js",
+      "start": 106.19999999925494,
+      "ms": 109.59999999776483,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "mira-v2-sfx.js?v=20.3.0",
+      "start": 106.29999999701977,
+      "ms": 111,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "mira-v2-furniture.js?v=20.3.0",
+      "start": 106.59999999776483,
+      "ms": 111.10000000149012,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "mira-v2-nature.js?v=20.3.0",
+      "start": 106.69999999925494,
+      "ms": 111.5,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "mira-v2-gadgets.js?v=20.3.0",
+      "start": 106.79999999701977,
+      "ms": 112.20000000298023,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human5-view-surfaces.js?v=20.3.0",
+      "start": 106.89999999850988,
+      "ms": 112.30000000074506,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "mira-v2-firearms.js?v=20.3.0",
+      "start": 106.89999999850988,
+      "ms": 114.80000000074506,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "mira-v2-fire.js?v=20.3.0",
+      "start": 107,
+      "ms": 116,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "mira-v2-weights.js?v=20.3.0",
+      "start": 107.09999999776483,
+      "ms": 116,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human6-audio.js?v=20.3.0",
+      "start": 107.19999999925494,
+      "ms": 116.30000000074506,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human5-worldfield.js?v=20.3.0",
+      "start": 107.19999999925494,
+      "ms": 117.19999999925494,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human6-minimap.js?v=20.3.0",
+      "start": 107.39999999850988,
+      "ms": 117.30000000074506,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human6-ui.js?v=20.3.0",
+      "start": 107.59999999776483,
+      "ms": 118.69999999925494,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human5-photo-import.js?v=20.3.0",
+      "start": 107.59999999776483,
+      "ms": 118.80000000074506,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human5-npc-profile.js?v=20.3.0",
+      "start": 107.59999999776483,
+      "ms": 119.40000000223517,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human5-identity.js?v=20.3.0",
+      "start": 107.59999999776483,
+      "ms": 120.69999999925494,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human5-groom.js?v=20.3.0",
+      "start": 107.59999999776483,
+      "ms": 121.5,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human5-skin.js?v=20.3.0",
+      "start": 107.69999999925494,
+      "ms": 121.69999999925494,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human5-dynamics.js?v=20.3.0",
+      "start": 107.69999999925494,
+      "ms": 121.80000000074506,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human5-photo-field.js?v=20.3.0",
+      "start": 107.69999999925494,
+      "ms": 122.59999999776483,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human5-cash.js?v=20.3.0",
+      "start": 107.79999999701977,
+      "ms": 124.10000000149012,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "mira-v2-builder.js?v=20.3.0",
+      "start": 107.89999999850988,
+      "ms": 125.10000000149012,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "mira-v2-walls.js?v=20.3.0",
+      "start": 107.89999999850988,
+      "ms": 126.5,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "mira-v2-car.js?v=20.3.0",
+      "start": 107.89999999850988,
+      "ms": 127.39999999850988,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human5-xr-placement.js?v=20.3.0",
+      "start": 108,
+      "ms": 126.69999999925494,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human5-sedan-detail.js?v=20.3.0",
+      "start": 108.29999999701977,
+      "ms": 127.20000000298023,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human5-vehicle-models.js?v=20.3.0",
+      "start": 108.29999999701977,
+      "ms": 127.70000000298023,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "mira-v2-restraints.js?v=20.3.0",
+      "start": 108.39999999850988,
+      "ms": 128.69999999925494,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "mira-v2-dog.js?v=20.3.0",
+      "start": 108.39999999850988,
+      "ms": 133,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "src/dog/PetAppearance.js?v=20.3.0",
+      "start": 108.5,
+      "ms": 130,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "src/dog/PetEyes.js?v=20.3.0",
+      "start": 108.59999999776483,
+      "ms": 132.5,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "src/dog/PetRealism.js?v=20.3.0",
+      "start": 108.59999999776483,
+      "ms": 133.90000000223517,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "src/dog/PetBreeds.js?v=20.3.0",
+      "start": 108.69999999925494,
+      "ms": 134,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "src/dog/PetSurfaces.js?v=20.3.0",
+      "start": 108.69999999925494,
+      "ms": 143.80000000074506,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "src/dog/Dog.js?v=20.3.0",
+      "start": 108.79999999701977,
+      "ms": 134.70000000298023,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "src/dog/DogPaws.js?v=20.3.0",
+      "start": 108.79999999701977,
+      "ms": 141.70000000298023,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "src/dog/DogJaw.js?v=20.3.0",
+      "start": 108.89999999850988,
+      "ms": 140.89999999850988,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "src/dog/DogTail.js?v=20.3.0",
+      "start": 109.09999999776483,
+      "ms": 142.30000000074506,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "src/dog/DogFur.js?v=20.3.0",
+      "start": 109.19999999925494,
+      "ms": 142.59999999776483,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "src/dog/DogAudio.js?v=20.3.0",
+      "start": 109.19999999925494,
+      "ms": 143.09999999776483,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "src/dog/DogAI.js?v=20.3.0",
+      "start": 109.19999999925494,
+      "ms": 147.09999999776483,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "src/dog/DogAnim.js?v=20.3.0",
+      "start": 109.29999999701977,
+      "ms": 148.90000000223517,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "src/dog/DogNeeds.js?v=20.3.0",
+      "start": 109.29999999701977,
+      "ms": 150.80000000074506,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "src/dog/DogBite.js?v=20.3.0",
+      "start": 109.39999999850988,
+      "ms": 151.30000000074506,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "mira-v2-injuries.js?v=20.3.0",
+      "start": 109.39999999850988,
+      "ms": 152.39999999850988,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "src/dog/DogItems.js?v=20.3.0",
+      "start": 109.39999999850988,
+      "ms": 152.19999999925494,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "mira-v2-weather.js?v=20.3.0",
+      "start": 109.5,
+      "ms": 153.89999999850988,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human5-day-night.js?v=20.3.0",
+      "start": 109.59999999776483,
+      "ms": 151.90000000223517,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "mira-v2-terrain-features.js?v=20.3.0",
+      "start": 109.69999999925494,
+      "ms": 155,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "src/terrain/TerrainHeightfield.js",
+      "start": 109.69999999925494,
+      "ms": 155.09999999776483,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "src/terrain/TerrainMesh.js",
+      "start": 109.79999999701977,
+      "ms": 158,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "src/terrain/QuestGrass.js",
+      "start": 109.79999999701977,
+      "ms": 158.40000000223517,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "src/terrain/TerrainSurface.js",
+      "start": 109.79999999701977,
+      "ms": 158.10000000149012,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "src/trees/RealisticTrees.js?v=20.3.0",
+      "start": 110,
+      "ms": 158.29999999701977,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "src/trees/TreeGeometry.js?v=20.3.0",
+      "start": 110,
+      "ms": 158.79999999701977,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "src/trees/FallingLeaves.js?v=20.3.0",
+      "start": 110.09999999776483,
+      "ms": 158.19999999925494,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "mira-v2-castle.js?v=20.3.0",
+      "start": 110.09999999776483,
+      "ms": 164.10000000149012,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "src/terrain/DefaultMap.js",
+      "start": 110.09999999776483,
+      "ms": 164.19999999925494,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "src/terrain/TerrainGun.js",
+      "start": 110.09999999776483,
+      "ms": 164.60000000149012,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "mira-v2-water.js?v=20.3.0",
+      "start": 110.09999999776483,
+      "ms": 165,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "mira-v2-flora.js?v=20.3.0",
+      "start": 110.19999999925494,
+      "ms": 164.80000000074506,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "src/flora/FloraGrass.js?v=20.3.0",
+      "start": 110.29999999701977,
+      "ms": 164.30000000074506,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "src/flora/FloraHarvest.js?v=20.3.0",
+      "start": 110.39999999850988,
+      "ms": 170,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "src/flora/FloraPlants.js?v=20.3.0",
+      "start": 110.39999999850988,
+      "ms": 170.10000000149012,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "src/flora/FloraBoulders.js?v=20.3.0",
+      "start": 110.5,
+      "ms": 170.19999999925494,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "src/flora/FloraDebris.js?v=20.3.0",
+      "start": 110.59999999776483,
+      "ms": 170.19999999925494,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "vendor/three/addons/environments/RoomEnvironment.js",
+      "start": 110.59999999776483,
+      "ms": 170.80000000074506,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human5-lighting.js?v=20.3.0",
+      "start": 110.59999999776483,
+      "ms": 171.10000000149012,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human5-upgrade.js?v=20.3.0",
+      "start": 110.59999999776483,
+      "ms": 175.5,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human5-activities.js?v=20.3.0",
+      "start": 110.69999999925494,
+      "ms": 175.69999999925494,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human5-portable-lights.js?v=20.3.0",
+      "start": 110.69999999925494,
+      "ms": 176,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human5-drawers.js?v=20.3.0",
+      "start": 110.79999999701977,
+      "ms": 175.30000000074506,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "mira-v2-doors.js?v=20.3.0",
+      "start": 110.89999999850988,
+      "ms": 175.89999999850988,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "mira-v2-world.js?v=20.3.0",
+      "start": 111,
+      "ms": 175.89999999850988,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "mira-v2-destruction.js?v=20.3.0",
+      "start": 111.09999999776483,
+      "ms": 180.10000000149012,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "mira-v2-house.js?v=20.3.0",
+      "start": 111.19999999925494,
+      "ms": 180,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "mira-v2-furnish.js?v=20.3.0",
+      "start": 111.19999999925494,
+      "ms": 180.30000000074506,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "mira-v2-piano.js?v=20.3.0",
+      "start": 111.29999999701977,
+      "ms": 180.40000000223517,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "mira-v2-laundry.js?v=20.3.0",
+      "start": 111.29999999701977,
+      "ms": 180.30000000074506,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human5-fire-host.js?v=20.3.0",
+      "start": 111.39999999850988,
+      "ms": 180.19999999925494,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human5-fire.js?v=20.3.0",
+      "start": 111.5,
+      "ms": 181.79999999701977,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human5-furniture.js?v=20.3.0",
+      "start": 111.5,
+      "ms": 184.5,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human5-textiles.js?v=20.3.0",
+      "start": 111.5,
+      "ms": 184.59999999776483,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human5-vehicles.js?v=20.3.0",
+      "start": 111.69999999925494,
+      "ms": 185.09999999776483,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human5-neighborhood.js?v=20.3.0",
+      "start": 111.69999999925494,
+      "ms": 184.89999999850988,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human5-tissue-surface.js?v=20.3.0",
+      "start": 111.69999999925494,
+      "ms": 185.19999999925494,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human5-performance.js?v=20.3.0",
+      "start": 111.69999999925494,
+      "ms": 185.39999999850988,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human6-vehicle-shadows.js?v=20.3.0",
+      "start": 111.79999999701977,
+      "ms": 188,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human5-batching.js?v=20.3.0",
+      "start": 111.79999999701977,
+      "ms": 188.10000000149012,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human5-openworld.js?v=20.3.0",
+      "start": 111.89999999850988,
+      "ms": 188.89999999850988,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human6-streaming.js?v=20.3.0",
+      "start": 112,
+      "ms": 190.69999999925494,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human5-seasons.js?v=20.3.0",
+      "start": 112,
+      "ms": 192.09999999776483,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human5-worldrender.js?v=20.3.0",
+      "start": 112,
+      "ms": 192.29999999701977,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human5-city.js?v=20.3.0",
+      "start": 112,
+      "ms": 192.59999999776483,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human5-gameplay.js?v=20.3.0",
+      "start": 112.19999999925494,
+      "ms": 192.59999999776483,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human5-combat.js?v=20.3.0",
+      "start": 112.19999999925494,
+      "ms": 192.59999999776483,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human5-pets.js?v=20.3.0",
+      "start": 112.19999999925494,
+      "ms": 196.09999999776483,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human5-navigation.js?v=20.3.0",
+      "start": 112.19999999925494,
+      "ms": 197.09999999776483,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human5-vehicle-spawns.js?v=20.3.0",
+      "start": 112.19999999925494,
+      "ms": 197.19999999925494,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human5-startup-warmup.js?v=20.3.0",
+      "start": 112.29999999701977,
+      "ms": 196.20000000298023,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human5-home.js?v=20.3.0",
+      "start": 112.29999999701977,
+      "ms": 197.5,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human5-home-mechanics.js?v=20.3.0",
+      "start": 112.39999999850988,
+      "ms": 196.39999999850988,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human5-arcade.js?v=20.3.0",
+      "start": 112.39999999850988,
+      "ms": 198.80000000074506,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human5-wetness.js?v=20.3.0",
+      "start": 112.39999999850988,
+      "ms": 201.19999999925494,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human5-equipment.js?v=20.3.0",
+      "start": 112.39999999850988,
+      "ms": 201.80000000074506,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human5-scope.js?v=20.3.0",
+      "start": 112.39999999850988,
+      "ms": 202.19999999925494,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human5-ecology.js?v=20.3.0",
+      "start": 112.5,
+      "ms": 201.79999999701977,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human5-vegetation.js?v=20.3.0",
+      "start": 112.59999999776483,
+      "ms": 201.80000000074506,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human5-haircuts.js?v=20.3.0",
+      "start": 112.59999999776483,
+      "ms": 202.10000000149012,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human5-birds.js?v=20.3.0",
+      "start": 112.59999999776483,
+      "ms": 204.30000000074506,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human5-fishing.js?v=20.3.0",
+      "start": 112.59999999776483,
+      "ms": 205.60000000149012,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human5-population.js?v=20.3.0",
+      "start": 112.59999999776483,
+      "ms": 205.90000000223517,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human5-distance-models.js?v=20.3.0",
+      "start": 112.69999999925494,
+      "ms": 205.69999999925494,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "modules/human5-voice.js?v=20.3.0",
+      "start": 112.79999999701977,
+      "ms": 206.20000000298023,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "vendor/three/addons/controls/OrbitControls.js",
+      "start": 112.79999999701977,
+      "ms": 206.30000000074506,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "mira-vr-menu.js?v=20.3.0",
+      "start": 112.79999999701977,
+      "ms": 210.40000000223517,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "mira-v2-social.js?v=20.3.0",
+      "start": 112.89999999850988,
+      "ms": 211.30000000074506,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "mira-v2.js?v=20.3.0",
+      "start": 112.89999999850988,
+      "ms": 212,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "mira-v2-haptics.js?v=20.3.0",
+      "start": 113,
+      "ms": 210.69999999925494,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "vendor/three/addons/utils/SkeletonUtils.js",
+      "start": 113.09999999776483,
+      "ms": 211.69999999925494,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "vendor/three/addons/loaders/GLTFLoader.js",
+      "start": 113.09999999776483,
+      "ms": 212.30000000074506,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "vendor/three/addons/controls/PointerLockControls.js",
+      "start": 113.09999999776483,
+      "ms": 214.90000000223517,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "mira-v2-preset.js?v=20.3.0",
+      "start": 113.09999999776483,
+      "ms": 215.10000000149012,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "assets/flora/grass_albedo.png",
+      "start": 2305.099999997765,
+      "ms": 14.400000002235174,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "assets/flora/flower_atlas.png",
+      "start": 2305.199999999255,
+      "ms": 10.699999999254942,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "assets/flora/carrot_albedo.jpg",
+      "start": 2305.2999999970198,
+      "ms": 11.700000002980232,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "assets/flora/beet_albedo.jpg",
+      "start": 2305.2999999970198,
+      "ms": 11.300000000745058,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "assets/flora/rock_albedo.jpg",
+      "start": 2305.39999999851,
+      "ms": 11.100000001490116,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "assets/flora/rock_normal.jpg",
+      "start": 2305.39999999851,
+      "ms": 12.199999999254942,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "assets/flora/dirt_albedo.jpg",
+      "start": 2305.39999999851,
+      "ms": 14,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "assets/tex/head.jpg?v=r12",
+      "start": 3239.599999997765,
+      "ms": 17.300000000745058,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "assets/tex/head_r.jpg?v=r12",
+      "start": 3239.699999999255,
+      "ms": 25,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "assets/tex/head_n.jpg?v=r12",
+      "start": 3239.699999999255,
+      "ms": 37.399999998509884,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "assets/tex/body.jpg?v=r12",
+      "start": 3240.199999999255,
+      "ms": 17.199999999254942,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "assets/tex/body_r.jpg?v=r12",
+      "start": 3240.2999999970198,
+      "ms": 23.5,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "assets/tex/body_n.jpg?v=r12",
+      "start": 3240.2999999970198,
+      "ms": 33.400000002235174,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "assets/tex/arm.jpg?v=r12",
+      "start": 3240.2999999970198,
+      "ms": 48.80000000074506,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "assets/tex/arm_n.jpg?v=r12",
+      "start": 3240.39999999851,
+      "ms": 52.399999998509884,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "assets/tex/arm_r.jpg?v=r12",
+      "start": 3240.5,
+      "ms": 47.79999999701977,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "assets/tex/leg.jpg?v=r12",
+      "start": 3240.7999999970198,
+      "ms": 50.900000002235174,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "assets/tex/leg_n.jpg?v=r12",
+      "start": 3240.89999999851,
+      "ms": 72.69999999925494,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "assets/tex/leg_r.jpg?v=r12",
+      "start": 3241,
+      "ms": 62.29999999701977,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "assets/tex/nails.jpg?v=r12",
+      "start": 3241.099999997765,
+      "ms": 52,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "assets/tex/lash.png?v=r12",
+      "start": 3241.099999997765,
+      "ms": 70.40000000223517,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "assets/tex/eye_r.jpg?v=r12",
+      "start": 3241.099999997765,
+      "ms": 71,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "assets/tex/eye_r_n.jpg?v=r12",
+      "start": 3241.099999997765,
+      "ms": 71.80000000074506,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "assets/tex/eye_l.jpg?v=r12",
+      "start": 3241.199999999255,
+      "ms": 72,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "assets/tex/eye_l_n.jpg?v=r12",
+      "start": 3241.199999999255,
+      "ms": 73.59999999776483,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "assets/tex/hair.png?v=r12",
+      "start": 3241.2999999970198,
+      "ms": 640,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "assets/tex/skin_detail_v2.jpg?v=r12",
+      "start": 3860.699999999255,
+      "ms": 12.5,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "assets/tex/head_region.png?v=r12",
+      "start": 3861.099999997765,
+      "ms": 11.5,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "assets/tex/body_v2.jpg?v=r12",
+      "start": 3861.199999999255,
+      "ms": 14.899999998509884,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "assets/tex/head_v3.jpg?v=r12",
+      "start": 3861.199999999255,
+      "ms": 16.399999998509884,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "assets/tex/head_wrinkle.jpg?v=r12",
+      "start": 3861.2999999970198,
+      "ms": 11.5,
+      "bytes": 0,
+      "transfer": 0
+    },
+    {
+      "url": "assets/dog/fur-neutral-20.1.png",
+      "start": 4022.5,
+      "ms": 157.39999999850988,
+      "bytes": 0,
+      "transfer": 0
+    }
+  ],
+  "errors": []
+}

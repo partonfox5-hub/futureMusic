@@ -24,8 +24,8 @@ export const HUMAN5 = {
   version: {
     local: '19.3.1',
     production: '19.3.1',
-    productionUrl: 'https://futuremusic.online/human6/?v=20.2.0',
-    localUrl: 'http://localhost:8765/human6/?v=20.2.0',
+    productionUrl: 'https://futuremusic.online/human6/?v=20.3.0',
+    localUrl: 'http://localhost:8765/human6/?v=20.3.0',
     push: 'Do not git push unless the owner asked. Never force-push origin master.'
   },
   hosts: {
@@ -41,7 +41,7 @@ export const HUMAN5 = {
   ],
 
   mira: {
-    glb: 'assets/mira.glb?v=20.2.0',
+    glb: 'assets/mira.glb?v=20.3.0',
     tex: 'assets/tex/?v=r12',
     verts: 14164,
     morphs: 49,

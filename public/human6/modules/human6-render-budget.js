@@ -1,6 +1,6 @@
-import {onSceneView} from './human6-spatial-batches.js?v=20.2.0';
+import {onSceneView} from './human6-spatial-batches.js?v=20.3.0';
 import * as T from 'three';
-import {wrapMethod} from './human5-common.js?v=20.2.0';
+import {wrapMethod} from './human5-common.js?v=20.3.0';
 
 /** One bounded instanced draw replaces transient mesh/material tracer creation. */
 export function installTracerPool({scene,props,world}){

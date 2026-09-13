@@ -1,5 +1,5 @@
 import * as T from 'three';
-import {wrapMethod,V,clamp} from './human5-common.js?v=20.2.0';
+import {wrapMethod,V,clamp} from './human5-common.js?v=20.3.0';
 
 /** Persistent mesh-index trimming: no detached strand bodies or per-frame remeshing. */
 export function installHairCutting({mira,props,world}={}){

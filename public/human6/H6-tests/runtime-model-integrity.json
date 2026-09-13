@@ -1,0 +1,13 @@
+{
+  "source": "mira.glb",
+  "sourceSha256": "94df9063719940200da4ff2c7ae8dde021efe52b4c11f8e3996dc6028094a19e",
+  "runtime": "mira-runtime-20.3.glb",
+  "runtimeSha256": "f08405ac8798a0976a1838905e7604665890f71561533320bcf5f40ef63111c1",
+  "beforeBytes": 15354184,
+  "afterBytes": 11886388,
+  "beforeEmbeddedImages": 23,
+  "afterEmbeddedImages": 2,
+  "verifiedAccessors": 89,
+  "geometryChanged": false,
+  "externalAppearanceMapsChanged": false
+}

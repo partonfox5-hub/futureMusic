@@ -1,6 +1,6 @@
 import * as T from 'three';
-import {NPC_ROLES} from './human5-npc-behavior.js?v=20.2.0';
-import {wrapMethod} from './human5-common.js?v=20.2.0';
+import {NPC_ROLES} from './human5-npc-behavior.js?v=20.3.0';
+import {wrapMethod} from './human5-common.js?v=20.3.0';
 
 const UP=new T.Vector3(0,1,0),FORWARD=new T.Vector3(0,0,-1),clamp=T.MathUtils.clamp;
 export function accuracySample(percent,random=Math.random){return random()<clamp(Number(percent)||0,0,100)/100;}

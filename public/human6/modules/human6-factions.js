@@ -1,6 +1,6 @@
 import * as T from 'three';
-import {WORLD_PLACES} from './human6-world-data.js?v=20.2.0';
-import {wrapMethod} from './human5-common.js?v=20.2.0';
+import {WORLD_PLACES} from './human6-world-data.js?v=20.3.0';
+import {wrapMethod} from './human5-common.js?v=20.3.0';
 
 const COLORS=['#4cb8ff','#a4b4a7','#ed665f','#ac8bff','#f4c052','#47cf9c','#ef85cb','#db9248'];
 export class FactionState {

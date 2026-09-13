@@ -1,7 +1,7 @@
 import * as T from 'three';
-import {planCells,STREAMING} from '../modules/human6-streaming.js?v=20.2.0';
-import {ViewCells,CellBatches,spatialGeometry} from '../modules/human6-spatial-batches.js?v=20.2.0';
-import {installVehicleShadows} from '../modules/human6-vehicle-shadows.js?v=20.2.0';
+import {planCells,STREAMING} from '../modules/human6-streaming.js?v=20.3.0';
+import {ViewCells,CellBatches,spatialGeometry} from '../modules/human6-spatial-batches.js?v=20.3.0';
+import {installVehicleShadows} from '../modules/human6-vehicle-shadows.js?v=20.3.0';
 
 /** Integration checks for budgets, reuse, view isolation and interactive damage. */
 export async function run(H){

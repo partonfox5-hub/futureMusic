@@ -1,3 +1,5 @@
+> Historical Human5 checkpoint notes. For this Human6 20.3.0 build, start with `HUMAN6-EXPANSIONS.md` and `LOADING-PERFORMANCE-20.3.0.md`.
+
 # Human5 19.3.0 — complete checkpoint 18
 
 This folder is the complete integrated game, including checkpoints 16 and 17. Read `H5-docs/FINAL-RELEASE.md` for this release, controls and limitations, and `H5-docs/FINAL-PERFORMANCE.md` for measured results. Earlier checkpoint notes and patch files are historical: do not reapply them to this build.

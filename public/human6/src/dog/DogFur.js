@@ -1,4 +1,4 @@
-import {buildGuardHair} from './PetRealism.js?v=20.2.0';
+import {buildGuardHair} from './PetRealism.js?v=20.3.0';
 import * as THREE from 'three';
 let softTexture=null,softNormal=null,softOwners=0;
 const ASSET_ROOT=new URL('../../assets/dog/',import.meta.url);

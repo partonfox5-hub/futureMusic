@@ -1,7 +1,7 @@
 import * as T from 'three';
-import {Car} from '../mira-v2-car.js?v=20.2.0';
-import {Props} from '../mira-v2-props.js?v=20.2.0';
-import {AutomaticDrive,VehicleDamage,vehicleSubstep} from '../modules/human5-vehicles.js?v=20.2.0';
+import {Car} from '../mira-v2-car.js?v=20.3.0';
+import {Props} from '../mira-v2-props.js?v=20.3.0';
+import {AutomaticDrive,VehicleDamage,vehicleSubstep} from '../modules/human5-vehicles.js?v=20.3.0';
 
 export function run(H){
  const results=[],assert=(v,m)=>{if(!v)throw Error(m);},test=(name,fn)=>{try{results.push({name,pass:true,evidence:fn()});}catch(e){results.push({name,pass:false,error:e.stack});}};H.renderer.setAnimationLoop(null);

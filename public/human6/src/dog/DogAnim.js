@@ -1,4 +1,4 @@
-import { clamp } from './Dog.js?v=20.2.0';
+import { clamp } from './Dog.js?v=20.3.0';
 export class DogAnim {
  constructor(model,paws,jaw,tail,ai,bark){Object.assign(this,{model,paws,jaw,tail,ai,bark});this.time=0;this.wag=0;this.nextBurst=8+Math.random()*10;this.sit=0;this.down=0;this.forage=0;this.bow=0;this.run=0;this.gaitTime=0;}
  tick(dt){

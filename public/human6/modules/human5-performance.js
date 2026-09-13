@@ -1,7 +1,7 @@
-import {installVehicleShadows} from './human6-vehicle-shadows.js?v=20.2.0';
+import {installVehicleShadows} from './human6-vehicle-shadows.js?v=20.3.0';
 import * as T from 'three';
-import {V,clamp,wrapMethod} from './human5-common.js?v=20.2.0';
-import {RigidBatches} from './human5-batching.js?v=20.2.0';
+import {V,clamp,wrapMethod} from './human5-common.js?v=20.3.0';
+import {RigidBatches} from './human5-batching.js?v=20.3.0';
 export const QUEST_PROFILES=Object.freeze([
   {name:'detail',foveation:.67,interiorRange:20,pile:1200,mirrorHz:24,portalHz:24,shadowHz:36},
   {name:'balanced',foveation:.8,interiorRange:15,pile:800,mirrorHz:18,portalHz:18,shadowHz:24},
@@ -21,7 +21,7 @@ export class FrameBudget {
     const gl=this.gl;if(this.ext&&!gl.isContextLost()){
       const disjoint=gl.getParameter(this.ext.GPU_DISJOINT_EXT);if(disjoint){for(const q of this.pending)gl.deleteQuery(q.query);this.pending=[];this.lastGPU=null;}
       while(this.pending.length&&gl.getQueryParameter(this.pending[0].query,gl.QUERY_RESULT_AVAILABLE)){const q=this.pending.shift(),value=gl.getQueryParameter(q.query,gl.QUERY_RESULT)/1e6;gl.deleteQuery(q.query);if(!disjoint){this.lastGPU=value;q.row.gpu=value;}}
-      if(this.pending.length<6&&!gl.getQuery(this.ext.TIME_ELAPSED_EXT,gl.CURRENT_QUERY)){this.query=gl.createQuery();gl.beginQuery(this.ext.TIME_ELAPSED_EXT,this.query);}
+      if(this.pending.length<6&&!this.query){this.query=gl.createQuery();gl.beginQuery(this.ext.TIME_ELAPSED_EXT,this.query);}
     }
   }
   mark(name){const now=performance.now();this.sections[name]=(this.sections[name]||0)+now-(this.markAt??this.started);this.markAt=now;const calls=this.renderer.info.render.calls;this.drawSections[name]=(this.drawSections[name]||0)+calls-(this.lastCalls||0);this.lastCalls=calls;}
@@ -104,7 +104,7 @@ for(const d of world.doors?.list||[])batches.add(d.root);for(const h of world.ne
         for(const a of mira.actors){const hair=a.hairPhysics;if(hair?.mesh&&hair.cardLayers===2){const far=a.group.position.distanceToSquared(p)>3.24,geo=hair.mesh.geometry;geo.setDrawRange(0,far?hair.source.index.count:Infinity);}}
       }
     },
-    exportReport(){return {...budget.report(),label:budget.label||'Free roam',vehicleShadows:vehicleShadows?{...vehicleShadows.stats}:null,world:world.h5OpenWorld?.snapshot(),vegetation:world.h5Vegetation?.snapshot(),settlements:world.h6Settlements?{resident:world.h6Settlements.resident.size,...world.h6Settlements.stats}:null};},downloadReport(){const blob=new Blob([JSON.stringify(api.exportReport(),null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='human5-performance.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),5000);},
+    exportReport(){return {...budget.report(),loading:globalThis.h6Boot?.snapshot(),minimap:world.h6Minimap?.stats,label:budget.label||'Free roam',vehicleShadows:vehicleShadows?{...vehicleShadows.stats}:null,world:world.h5OpenWorld?.snapshot(),vegetation:world.h5Vegetation?.snapshot(),settlements:world.h6Settlements?{resident:world.h6Settlements.resident.size,...world.h6Settlements.stats}:null};},downloadReport(){const blob=new Blob([JSON.stringify(api.exportReport(),null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='human5-performance.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),5000);},
     dispose(){vehicleShadows?.dispose();restores.reverse().forEach(f=>f());actors.forEach(f=>f());visibility.forEach((v,g)=>g.visible=v);batches.clear();renderer.xr.removeEventListener('sessionstart',onStart);renderer.shadowMap.autoUpdate=true;budget.dispose();}
   };world.h5Performance=api;const button=document.createElement('button');button.textContent='EXPORT PERFORMANCE REPORT';button.onclick=()=>api.downloadReport();(document.getElementById('hud')||document.body).append(button);return api;
 }

@@ -1,15 +1,15 @@
-import {installProfiling} from './human6-profiling.js?v=20.2.0';
-import {installTracerPool,installWallBatches,installFarDetailCull} from './human6-render-budget.js?v=20.2.0';
-import {installMenuLayer} from './human6-xr-layers.js?v=20.2.0';
-import {installSettlements} from './human6-settlements.js?v=20.2.0';
-import {installFauna} from './human6-fauna.js?v=20.2.0';
-import {installHazards} from './human6-hazards.js?v=20.2.0';
-import {installPowers} from './human6-powers.js?v=20.2.0';
-import {installFactions} from './human6-factions.js?v=20.2.0';
-import {installTactics} from './human6-tactics.js?v=20.2.0';
-import {installCombatAudio} from './human6-audio.js?v=20.2.0';
-import {installMinimap} from './human6-minimap.js?v=20.2.0';
-import {installExpansionUI} from './human6-ui.js?v=20.2.0';
+import {installProfiling} from './human6-profiling.js?v=20.3.0';
+import {installTracerPool,installWallBatches,installFarDetailCull} from './human6-render-budget.js?v=20.3.0';
+import {installMenuLayer} from './human6-xr-layers.js?v=20.3.0';
+import {installSettlements} from './human6-settlements.js?v=20.3.0';
+import {installFauna} from './human6-fauna.js?v=20.3.0';
+import {installHazards} from './human6-hazards.js?v=20.3.0';
+import {installPowers} from './human6-powers.js?v=20.3.0';
+import {installFactions} from './human6-factions.js?v=20.3.0';
+import {installTactics} from './human6-tactics.js?v=20.3.0';
+import {installCombatAudio} from './human6-audio.js?v=20.3.0';
+import {installMinimap} from './human6-minimap.js?v=20.3.0';
+import {installExpansionUI} from './human6-ui.js?v=20.3.0';
 
 export function installHuman6Expansion(ctx){
   const factions=installFactions(ctx),audio=installCombatAudio(ctx),tactics=installTactics({...ctx,factions,audio}),minimap=installMinimap({...ctx,factions}),ui=installExpansionUI({...ctx,factions,tactics,minimap});

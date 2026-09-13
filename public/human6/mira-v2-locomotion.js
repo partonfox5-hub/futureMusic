@@ -1,5 +1,5 @@
 import * as T from 'three';
-import {SprintBurst,PLAYER_SPEED_GAIN} from './modules/human5-sprint.js?v=20.2.0';
+import {SprintBurst,PLAYER_SPEED_GAIN} from './modules/human5-sprint.js?v=20.3.0';
 // xr-standard reserves 0/1 for the touchpad, even when no touchpad exists.
 export function stickAxes(gamepad){
  const a=gamepad?.axes;if(!a)return {x:0,y:0};

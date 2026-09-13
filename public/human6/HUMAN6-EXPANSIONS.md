@@ -1,9 +1,11 @@
-# Human6 20.1.0 — expansion build
+# Human6 20.3.0 — expansion build
 
 This archive contains the complete runnable project. Serve the `human6` directory
 with an HTTP server for desktop development, or HTTPS for Quest Browser/WebXR.
 The entry point is `index.html`. Three.js remains pinned to 0.170.0 through the
-existing import map. No build step or new package dependency is required.
+local import map; the engine and required addons are included in `vendor/`. No build step or new package dependency is required.
+
+Read `LOADING-PERFORMANCE-20.3.0.md` for the current loading fixes, measurements, recovery controls and validation. Earlier release notes are historical.
 
 See `RESUME-20.1.0.md` for the vehicle/torch fixes, persistent building destruction, roof flight collision and further pet/material work.
 

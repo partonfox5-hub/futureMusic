@@ -1,34 +1,45 @@
 import * as T from 'three';
-import {withOffscreenView} from './human5-view-surfaces.js?v=20.2.0';
+import {yieldToBrowser,withDeadline} from './human6-loading.js?v=20.3.0';
 
-/** Pay first-use vehicle rendering costs while the initial loading card is up. */
-export function createStartupWarmup({renderer,scene,camera,props,prepare=()=>{},status=()=>{}}={}){
-  const loading=new T.Scene();loading.background=new T.Color(0x101d29);
-  const canvas=document.createElement('canvas');canvas.width=768;canvas.height=192;const ctx=canvas.getContext('2d'),texture=new T.CanvasTexture(canvas);texture.colorSpace=T.SRGBColorSpace;
-  const card=new T.Mesh(new T.PlaneGeometry(1.3,.325),new T.MeshBasicMaterial({map:texture,toneMapped:false,depthTest:false}));loading.add(card);
-  const nextFrame=()=>new Promise(resolve=>requestAnimationFrame(()=>resolve()));
-  const reviewCamera=new T.PerspectiveCamera(70,1,.08,55),samples=[];let disposed=false;
-  function label(text){ctx.fillStyle='#101d29';ctx.fillRect(0,0,768,192);ctx.fillStyle='#e1ecf2';ctx.textAlign='center';ctx.font='bold 32px sans-serif';ctx.fillText('PREPARING HUMAN 5',384,73);ctx.font='23px sans-serif';ctx.fillText(text,384,127);texture.needsUpdate=true;status(text);}
-  const api={active:false,complete:false,samples,error:null,
-    render(){if(disposed)return;camera.updateWorldMatrix(true,false);card.position.set(0,0,-1.4).applyMatrix4(camera.matrixWorld);card.quaternion.copy(camera.getWorldQuaternion(new T.Quaternion()));renderer.render(loading,camera);},
-    async run(){if(api.active||api.complete)return;api.active=true;label('Preparing scene materials');await nextFrame();await nextFrame();
-      const started=performance.now();try{
-        prepare();scene.updateMatrixWorld(true);const mainStart=performance.now();await renderer.compileAsync(scene,camera);samples.push({stage:'mainShaders',ms:performance.now()-mainStart});
-        const cars=props.cars().filter(c=>c.group.visible).slice(0,2);
-        if(cars.length){let compiling;label('Preparing mirror materials');await nextFrame();
-          withOffscreenView(renderer,[],()=>{renderer.setRenderTarget(cars[0].target);compiling=renderer.compileAsync(scene,cars[0].rearCamera);});await compiling;
-        }
-        for(let i=0;i<cars.length;i++){const car=cars[i];label('Preparing vehicle views '+(i+1)+' / '+cars.length);await nextFrame();await nextFrame();const start=performance.now();
-          // compileAsync alone does not upload geometry/textures or force driver JIT.
-          car.renderMirrorView(true);car.h5MirrorPrepared=true;
-          if(!renderer.xr.isPresenting){reviewCamera.position.copy(car.group.localToWorld(new T.Vector3(...car.vehicleSpec.driverEye)));reviewCamera.quaternion.copy(car.group.getWorldQuaternion(new T.Quaternion()));reviewCamera.updateMatrixWorld(true);
-            withOffscreenView(renderer,[props.system.vrPanel],()=>{renderer.setRenderTarget(null);renderer.setViewport(0,0,1,1);renderer.setScissor(0,0,1,1);renderer.setScissorTest(true);renderer.render(scene,reviewCamera);});}
-          samples.push({stage:'vehicleView',vehicle:car.vehicleKind,ms:performance.now()-start});
-        }
+/** Prepare only the view the player will actually see. r170 compileAsync uses
+ * traverse(), including invisible meshes; a bounded list avoids compiling every
+ * hidden building, source mesh, car interior and offscreen material variant. */
+export function initialViewObjects(scene,camera){
+  const frustum=new T.Frustum().setFromProjectionMatrix(new T.Matrix4().multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse)),objects=[];
+  scene.traverseVisible(o=>{if(!(o.isMesh||o.isPoints||o.isLine||o.isSprite)||!o.material||!o.layers.test(camera.layers))return;
+    if(o.geometry?.drawRange.count===0||o.isInstancedMesh&&o.count===0)return;
+    if(o.frustumCulled&&!o.isSprite&&!frustum.intersectsObject(o))return;
+    objects.push(o);
+  });return objects;
+}
+
+export function createStartupWarmup({renderer,scene,camera,prepare=()=>{},status=()=>{}}={}){
+  const samples=[],proxy=new T.Group();let task=null;
+  const api={active:false,complete:false,error:null,samples,
+    render(){/* The HTML loading card stays responsive; no world renders here. */},
+    run(){if(task)return task;task=(async()=>{
+      api.active=true;const started=performance.now();
+      try{
+        status('Preparing the starting area');await yieldToBrowser();const prepareStart=performance.now();
+        prepare();scene.updateMatrixWorld(true);camera.updateWorldMatrix(true,false);
+        // Build the same batches and distance visibility used by the first draw.
+        let objects;try{scene.onBeforeRender(renderer,scene,camera,null);objects=initialViewObjects(scene,camera);}finally{scene.onAfterRender(renderer,scene,camera);}
+        samples.push({stage:'prepare',ms:performance.now()-prepareStart,objects:objects.length});
+        proxy.traverse=fn=>{for(const object of objects)fn(object);};
+        status('Preparing visible materials');await yieldToBrowser();const shaders=performance.now();
+        await withDeadline(renderer.compileAsync(proxy,camera,scene),20000,'Visible material preparation');
+        samples.push({stage:'mainShaders',ms:performance.now()-shaders,objects:objects.length});
+        if(renderer.getContext().isContextLost())throw new Error('The graphics context was lost. Reload to restore it.');
+        status('Uploading visible textures');await yieldToBrowser();const textures=new Set(),maps=['map','normalMap','roughnessMap','metalnessMap','emissiveMap','alphaMap','aoMap','bumpMap'];
+        for(const o of objects)for(const m of Array.isArray(o.material)?o.material:[o.material])for(const key of maps){const t=m?.[key];if(t?.image?.width&&!t.isRenderTargetTexture)textures.add(t);}
+        let count=0;const upload=performance.now();for(const t of textures){renderer.initTexture(t);if(++count%4===0)await yieldToBrowser();}
+        samples.push({stage:'textureUpload',ms:performance.now()-upload,textures:count});
+        status('Drawing the first view');await yieldToBrowser();const first=performance.now();renderer.info.reset();renderer.render(scene,camera);
+        samples.push({stage:'firstView',ms:performance.now()-first,calls:renderer.info.render.calls});
         api.complete=true;
-      }catch(e){api.error=e.message;api.complete=true;console.error('Scene preparation failed',e);}
-      finally{api.active=false;samples.push({stage:'total',ms:performance.now()-started});}
-    },
-    dispose(){disposed=true;card.geometry.dispose();card.material.dispose();texture.dispose();}
+      }catch(error){api.error=error.message;console.error('Scene preparation failed',error);}
+      finally{api.active=false;proxy.traverse=T.Object3D.prototype.traverse;samples.push({stage:'total',ms:performance.now()-started});}
+    })();return task;},
+    dispose(){}
   };return api;
 }

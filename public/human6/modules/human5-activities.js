@@ -1,5 +1,5 @@
 import * as T from 'three';
-import {V,wrapMethod} from './human5-common.js?v=20.2.0';
+import {V,wrapMethod} from './human5-common.js?v=20.3.0';
 /** Reuses the host navigator, seats, piano and held props. Explicit orders win. */
 export function installActivities({world,mira,props,fire}={}){
  const beds=new Map(),restores=[];let due=0;

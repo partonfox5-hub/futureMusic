@@ -1,10 +1,10 @@
 import * as T from 'three';
-import {Car} from '../mira-v2-car.js?v=20.2.0';
-import {RigidBatches} from '../modules/human5-batching.js?v=20.2.0';
-import {DogModel} from '../src/dog/Dog.js?v=20.2.0';
-import {PET_BREEDS,buildPetAppearance} from '../src/dog/PetAppearance.js?v=20.2.0';
-import {DogPaws} from '../src/dog/DogPaws.js?v=20.2.0';
-import {DogTail} from '../src/dog/DogTail.js?v=20.2.0';
+import {Car} from '../mira-v2-car.js?v=20.3.0';
+import {RigidBatches} from '../modules/human5-batching.js?v=20.3.0';
+import {DogModel} from '../src/dog/Dog.js?v=20.3.0';
+import {PET_BREEDS,buildPetAppearance} from '../src/dog/PetAppearance.js?v=20.3.0';
+import {DogPaws} from '../src/dog/DogPaws.js?v=20.3.0';
+import {DogTail} from '../src/dog/DogTail.js?v=20.3.0';
 
 /** Exercise render optimizations through picking, damage, articulation and pet IK. */
 export function run(H){

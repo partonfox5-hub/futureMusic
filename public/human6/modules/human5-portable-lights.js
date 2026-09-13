@@ -1,5 +1,5 @@
 import * as T from 'three';
-import {V,wrapMethod} from './human5-common.js?v=20.2.0';
+import {V,wrapMethod} from './human5-common.js?v=20.3.0';
 /** Flashlights and cars share the existing fixed light pool. Lens emissions are
  * independent of illumination selection; there are no extra per-car shadows. */
 export function installPortableLights({world,props,lights}={}){

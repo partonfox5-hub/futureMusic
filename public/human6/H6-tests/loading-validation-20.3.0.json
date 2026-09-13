@@ -1,0 +1,415 @@
+{
+  "passed": 19,
+  "total": 19,
+  "questHardwareTested": false,
+  "results": [
+    {
+      "name": "missing-module",
+      "pass": true,
+      "report": {
+        "format": "human6.loading/1",
+        "version": "20.3.0",
+        "userAgent": "OculusBrowser Human6 loading regression",
+        "complete": false,
+        "failed": true,
+        "stage": "Unable to load Human6: Failed to fetch dynamically imported module: http://127.0.0.1:33665/human6/mira-boot.js?v=20.3.0",
+        "elapsedMs": 77.10000000149012,
+        "stages": [
+          {
+            "stage": "Loading game code",
+            "startMs": 77.30000000074506,
+            "durationMs": 21.600000001490116
+          }
+        ],
+        "warnings": [
+          "File unavailable: /human6/mira-boot.js"
+        ],
+        "failures": [
+          {
+            "ms": 99,
+            "message": "Unable to load Human6: Failed to fetch dynamically imported module: http://127.0.0.1:33665/human6/mira-boot.js?v=20.3.0",
+            "stack": "TypeError: Failed to fetch dynamically imported module: http://127.0.0.1:33665/human6/mira-boot.js?v=20.3.0"
+          }
+        ]
+      },
+      "retry": true,
+      "entryDisabled": true
+    },
+    {
+      "name": "Retry after restoring missing module",
+      "pass": true
+    },
+    {
+      "name": "missing-three",
+      "pass": true,
+      "report": {
+        "format": "human6.loading/1",
+        "version": "20.3.0",
+        "userAgent": "OculusBrowser Human6 loading regression",
+        "complete": false,
+        "failed": true,
+        "stage": "Unable to load Human6: Failed to fetch dynamically imported module: http://127.0.0.1:33665/human6/mira-boot.js?v=20.3.0",
+        "elapsedMs": 138.90000000223517,
+        "stages": [
+          {
+            "stage": "Loading game code",
+            "startMs": 12.599999997764826,
+            "durationMs": 128.80000000074506
+          }
+        ],
+        "warnings": [
+          "File unavailable: /human6/vendor/three/three.module.js"
+        ],
+        "failures": [
+          {
+            "ms": 141.5,
+            "message": "Unable to load Human6: Failed to fetch dynamically imported module: http://127.0.0.1:33665/human6/mira-boot.js?v=20.3.0",
+            "stack": "TypeError: Failed to fetch dynamically imported module: http://127.0.0.1:33665/human6/mira-boot.js?v=20.3.0"
+          }
+        ]
+      },
+      "retry": true,
+      "entryDisabled": true
+    },
+    {
+      "name": "missing-model",
+      "pass": true,
+      "report": {
+        "format": "human6.loading/1",
+        "version": "20.3.0",
+        "userAgent": "OculusBrowser Human6 loading regression",
+        "complete": false,
+        "failed": true,
+        "stage": "Unable to load Human6: HTTP 404 loading /human6/assets/mira-runtime-20.3.glb · /human6/assets/mira-runtime-20.3.glb",
+        "elapsedMs": 2630,
+        "stages": [
+          {
+            "stage": "Loading game code",
+            "startMs": 11.400000002235174,
+            "durationMs": 347.3999999985099
+          },
+          {
+            "stage": "Starting graphics",
+            "startMs": 358.80000000074506,
+            "durationMs": 99.10000000149012
+          },
+          {
+            "stage": "Building the home",
+            "startMs": 457.9000000022352,
+            "durationMs": 1049.3999999985099
+          },
+          {
+            "stage": "Preparing vehicles",
+            "startMs": 1507.300000000745,
+            "durationMs": 93.10000000149012
+          },
+          {
+            "stage": "Preparing interactions",
+            "startMs": 1600.4000000022352,
+            "durationMs": 379.3999999985099
+          },
+          {
+            "stage": "Building the neighborhood",
+            "startMs": 1979.800000000745,
+            "durationMs": 398.19999999925494
+          },
+          {
+            "stage": "Preparing the region",
+            "startMs": 2378,
+            "durationMs": 178.80000000074506
+          },
+          {
+            "stage": "Preparing wildlife and equipment",
+            "startMs": 2556.800000000745,
+            "durationMs": 30.100000001490116
+          },
+          {
+            "stage": "Preparing home interactions",
+            "startMs": 2586.900000002235,
+            "durationMs": 17.899999998509884
+          },
+          {
+            "stage": "Preparing groups and the map",
+            "startMs": 2604.800000000745,
+            "durationMs": 9.900000002235174
+          },
+          {
+            "stage": "Downloading Mira",
+            "startMs": 2614.7000000029802,
+            "durationMs": 7
+          }
+        ],
+        "warnings": [],
+        "failures": [
+          {
+            "ms": 2621.7000000029802,
+            "message": "Unable to load Human6: HTTP 404 loading /human6/assets/mira-runtime-20.3.glb · /human6/assets/mira-runtime-20.3.glb",
+            "stack": "Error: HTTP 404 loading /human6/assets/mira-runtime-20.3.glb · /human6/assets/mira-runtime-20.3.glb\n    at readAsset (http://127.0.0.1:33665/human6/modules/human6-loading.js?v=20.3.0:27:42)"
+          }
+        ]
+      },
+      "retry": true,
+      "entryDisabled": true
+    },
+    {
+      "name": "invalid-model",
+      "pass": true,
+      "report": {
+        "format": "human6.loading/1",
+        "version": "20.3.0",
+        "userAgent": "OculusBrowser Human6 loading regression",
+        "complete": false,
+        "failed": true,
+        "stage": "Unable to load Human6: The character file is not a valid GLB. Check that the complete assets folder was uploaded.",
+        "elapsedMs": 2642.400000002235,
+        "stages": [
+          {
+            "stage": "Loading game code",
+            "startMs": 14.299999997019768,
+            "durationMs": 356
+          },
+          {
+            "stage": "Starting graphics",
+            "startMs": 370.29999999701977,
+            "durationMs": 135.70000000298023
+          },
+          {
+            "stage": "Building the home",
+            "startMs": 506,
+            "durationMs": 963.2999999970198
+          },
+          {
+            "stage": "Preparing vehicles",
+            "startMs": 1469.2999999970198,
+            "durationMs": 586.3000000007451
+          },
+          {
+            "stage": "Preparing interactions",
+            "startMs": 2055.599999997765,
+            "durationMs": 18.600000001490116
+          },
+          {
+            "stage": "Building the neighborhood",
+            "startMs": 2074.199999999255,
+            "durationMs": 387.80000000074506
+          },
+          {
+            "stage": "Preparing the region",
+            "startMs": 2462,
+            "durationMs": 125.79999999701977
+          },
+          {
+            "stage": "Preparing wildlife and equipment",
+            "startMs": 2587.7999999970198,
+            "durationMs": 28.100000001490116
+          },
+          {
+            "stage": "Preparing home interactions",
+            "startMs": 2615.89999999851,
+            "durationMs": 15.800000000745058
+          },
+          {
+            "stage": "Preparing groups and the map",
+            "startMs": 2631.699999999255,
+            "durationMs": 9.800000000745058
+          },
+          {
+            "stage": "Downloading Mira",
+            "startMs": 2641.5,
+            "durationMs": 7.399999998509884
+          }
+        ],
+        "warnings": [],
+        "failures": [
+          {
+            "ms": 2649,
+            "message": "Unable to load Human6: The character file is not a valid GLB. Check that the complete assets folder was uploaded.",
+            "stack": "Error: The character file is not a valid GLB. Check that the complete assets folder was uploaded.\n    at Object.load (http://127.0.0.1:33665/human6/mira-v2.js?v=20.3.0:1419:90)"
+          }
+        ]
+      },
+      "retry": true,
+      "entryDisabled": true
+    },
+    {
+      "name": "stall",
+      "pass": true,
+      "report": {
+        "format": "human6.loading/1",
+        "version": "20.3.0",
+        "userAgent": "OculusBrowser Human6 loading regression",
+        "complete": false,
+        "failed": true,
+        "stage": "Unable to load Human6: Download stalled for 0 seconds · /human6/assets/mira-runtime-20.3.glb",
+        "elapsedMs": 2539.199999999255,
+        "stages": [
+          {
+            "stage": "Loading game code",
+            "startMs": 71.39999999850988,
+            "durationMs": 219.90000000223517
+          },
+          {
+            "stage": "Starting graphics",
+            "startMs": 291.30000000074506,
+            "durationMs": 122.69999999925494
+          },
+          {
+            "stage": "Building the home",
+            "startMs": 414,
+            "durationMs": 950.3999999985099
+          },
+          {
+            "stage": "Preparing vehicles",
+            "startMs": 1364.3999999985099,
+            "durationMs": 59.19999999925494
+          },
+          {
+            "stage": "Preparing interactions",
+            "startMs": 1423.5999999977648,
+            "durationMs": 604.8000000007451
+          },
+          {
+            "stage": "Building the neighborhood",
+            "startMs": 2028.3999999985099,
+            "durationMs": 386.19999999925494
+          },
+          {
+            "stage": "Preparing the region",
+            "startMs": 2414.599999997765,
+            "durationMs": 130.60000000149012
+          },
+          {
+            "stage": "Preparing wildlife and equipment",
+            "startMs": 2545.199999999255,
+            "durationMs": 25.600000001490116
+          },
+          {
+            "stage": "Preparing home interactions",
+            "startMs": 2570.800000000745,
+            "durationMs": 13.599999997764826
+          },
+          {
+            "stage": "Preparing groups and the map",
+            "startMs": 2584.39999999851,
+            "durationMs": 10.199999999254942
+          },
+          {
+            "stage": "Downloading Mira",
+            "startMs": 2594.599999997765,
+            "durationMs": 8
+          }
+        ],
+        "warnings": [],
+        "failures": [
+          {
+            "ms": 2602.699999999255,
+            "message": "Unable to load Human6: Download stalled for 0 seconds · /human6/assets/mira-runtime-20.3.glb",
+            "stack": "Error: Download stalled for 0 seconds · /human6/assets/mira-runtime-20.3.glb\n    at readAsset (http://127.0.0.1:33665/human6/modules/human6-loading.js?v=20.3.0:27:42)"
+          }
+        ]
+      },
+      "retry": true,
+      "entryDisabled": true
+    },
+    {
+      "name": "Core game loads with external hosts blocked",
+      "pass": true,
+      "externalRequests": 0
+    },
+    {
+      "name": "Unknown-length transfers report bytes and retain all chunks",
+      "pass": true,
+      "evidence": {
+        "bytes": 5
+      }
+    },
+    {
+      "name": "Stalled response bodies are aborted and reject",
+      "pass": true,
+      "evidence": {
+        "aborted": true
+      }
+    },
+    {
+      "name": "HTTP errors and empty responses cannot report a successful load",
+      "pass": true,
+      "evidence": {
+        "rejected": 2
+      }
+    },
+    {
+      "name": "Preparation deadlines release an unresolved promise",
+      "pass": true,
+      "evidence": {
+        "deadlineHandled": true
+      }
+    },
+    {
+      "name": "Loading can yield without requestAnimationFrame callbacks",
+      "pass": true,
+      "evidence": {
+        "timerFallback": true
+      }
+    },
+    {
+      "name": "Initial shader selection excludes hidden, offscreen and batched originals",
+      "pass": true,
+      "evidence": {
+        "selected": [
+          "front"
+        ]
+      }
+    },
+    {
+      "name": "The stowed XR map does not redraw or upload its texture",
+      "pass": true,
+      "evidence": {
+        "draws": 0,
+        "uploads": 0
+      }
+    },
+    {
+      "name": "Terrain map builds cooperatively and refreshes after terrain edits",
+      "pass": true,
+      "evidence": {
+        "firstRows": 4,
+        "completedRows": 128
+      }
+    },
+    {
+      "name": "Open-world furniture templates are complete without the legacy map",
+      "pass": true,
+      "evidence": {
+        "templates": 19,
+        "legacyMapBuilt": false
+      }
+    },
+    {
+      "name": "Startup diagnostics and all entry controls reach ready together",
+      "pass": true,
+      "evidence": {
+        "elapsedMs": 9387.10000000149,
+        "stageCount": 18
+      }
+    },
+    {
+      "name": "Optimized terrain and water match 20.2 geography",
+      "pass": true,
+      "evidence": {
+        "samples": 2220,
+        "maxHeightError": 0
+      }
+    },
+    {
+      "name": "Graphics-context loss shows recovery controls",
+      "pass": true,
+      "failed": true,
+      "message": "Unable to load Human6: The graphics context was lost. Reload to restore it.",
+      "retry": true,
+      "expectedErrors": [
+        "Error: The graphics context was lost. Reload to restore it.\n    at HTMLCanvasElement.<anonymous> (http://127.0.0.1:33665/human6/engine.js?v=20.3.0:175:73)"
+      ]
+    }
+  ],
+  "errors": []
+}

@@ -1,7 +1,7 @@
 import * as T from 'three';
-import {FactionState} from '../modules/human6-factions.js?v=20.2.0';
-import {FluidGrid} from '../modules/human6-fluid.js?v=20.2.0';
-import {accuracySample} from '../modules/human6-tactics.js?v=20.2.0';
+import {FactionState} from '../modules/human6-factions.js?v=20.3.0';
+import {FluidGrid} from '../modules/human6-fluid.js?v=20.3.0';
+import {accuracySample} from '../modules/human6-tactics.js?v=20.3.0';
 
 /** Run in the debug build with the animation loop paused. Mutates the test world. */
 export async function run(H){

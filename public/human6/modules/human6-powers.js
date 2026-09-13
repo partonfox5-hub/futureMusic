@@ -1,7 +1,7 @@
 import * as T from 'three';
-import {wrapMethod} from './human5-common.js?v=20.2.0';
-import {stickAxes,deadzone} from '../mira-v2-locomotion.js?v=20.2.0';
-import {SprintBurst} from './human5-sprint.js?v=20.2.0';
+import {wrapMethod} from './human5-common.js?v=20.3.0';
+import {stickAxes,deadzone} from '../mira-v2-locomotion.js?v=20.3.0';
+import {SprintBurst} from './human5-sprint.js?v=20.3.0';
 
 const UP=new T.Vector3(0,1,0),clamp=T.MathUtils.clamp;
 export function installPowers({world,scene,mira,props,camera,rig,renderer,keys,audio,gameplay}){

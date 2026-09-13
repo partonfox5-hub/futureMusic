@@ -1,12 +1,12 @@
-import {STREAMING,planCells,cellDistance} from './human6-streaming.js?v=20.2.0';
-import {CellBatches} from './human6-spatial-batches.js?v=20.2.0';
-import {WORLD_PLACES} from './human6-world-data.js?v=20.2.0';
+import {STREAMING,planCells,cellDistance} from './human6-streaming.js?v=20.3.0';
+import {CellBatches} from './human6-spatial-batches.js?v=20.3.0';
+import {WORLD_PLACES} from './human6-world-data.js?v=20.3.0';
 import * as T from 'three';
-import {WorldField,CELL_SIZE,CITY_BLOCKS,cellKey,desiredCells,hash2} from './human5-worldfield.js?v=20.2.0';
-import {terrainMaterial,terrainCell,farTerrain,buildRoutes,createLandscapeWater,generateForestCell,forestAssets,createFarForest} from './human5-worldrender.js?v=20.2.0';
-import {createCityBuilding} from './human5-city.js?v=20.2.0';
-import {wrapMethod,V,clamp,detachMovable} from './human5-common.js?v=20.2.0';
-import {tagMovable,placeFurniture} from '../mira-v2-furniture.js?v=20.2.0';
+import {WorldField,CELL_SIZE,CITY_BLOCKS,cellKey,desiredCells,hash2} from './human5-worldfield.js?v=20.3.0';
+import {terrainMaterial,terrainCell,farTerrain,buildRoutes,createLandscapeWater,generateForestCell,forestAssets,createFarForest} from './human5-worldrender.js?v=20.3.0';
+import {createCityBuilding} from './human5-city.js?v=20.3.0';
+import {wrapMethod,V,clamp,detachMovable} from './human5-common.js?v=20.3.0';
+import {tagMovable,placeFurniture} from '../mira-v2-furniture.js?v=20.3.0';
 export const LANDMARKS=Object.freeze({Home:[0,2],City:[160,72],Restaurant:[144,44],Penthouse:[305,95],Lake:[-239,241],Forest:[-140,-115],Mountains:[-541,-450],Volcano:[716,-555],...Object.fromEntries(WORLD_PLACES.map(p=>[p.name,[p.x,p.z]]))});
 export function installOpenWorld({world,scene,renderer,camera,rig,props,mira,upgrade,weather,quest=true}={}){
  if(world.h5OpenWorld)return world.h5OpenWorld;

@@ -1,5 +1,5 @@
 import * as T from 'three';
-import {ANATOMY_ANCHOR as A} from './human5-anatomy-anchor.js?v=20.2.0';
+import {ANATOMY_ANCHOR as A} from './human5-anatomy-anchor.js?v=20.3.0';
 
 /** Local, conforming edge refinement. All material partitions share the same
  * expanded attributes; skin weights and every expression target are preserved.

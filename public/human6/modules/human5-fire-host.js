@@ -1,6 +1,6 @@
 import * as T from 'three';
-import {FireSystem} from './human5-fire.js?v=20.2.0';
-import {V,localBounds,wrapMethod,finiteDt} from './human5-common.js?v=20.2.0';
+import {FireSystem} from './human5-fire.js?v=20.3.0';
+import {V,localBounds,wrapMethod,finiteDt} from './human5-common.js?v=20.3.0';
 
 /** Adapter verified against human5 (3).zip, 16.2. Keeps its hearth and NPC duty API. */
 export function upgradeHostFire(props,{lights=null,maxSurfaces=768}={}){

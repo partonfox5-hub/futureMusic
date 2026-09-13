@@ -1,4 +1,4 @@
-import {WORLD_PLACES,REGION_ROUTES} from './human6-world-data.js?v=20.2.0';
+import {WORLD_PLACES,REGION_ROUTES} from './human6-world-data.js?v=20.3.0';
 import * as T from 'three';
 const clamp=T.MathUtils.clamp,lerp=T.MathUtils.lerp,smooth=x=>{x=clamp(x,0,1);return x*x*(3-2*x);};
 export const WORLD_SIZE=4224,CELL_SIZE=96;
@@ -42,12 +42,18 @@ export function rawHeight(x,z){
  const r=Math.hypot(x-665,z+565),cone=r<48?110+20*(r/48)**2:184*Math.max(0,1-r/236)**1.5,crater=0;
  return hills+ridge+cone-crater;
 }
-function channel(x,z,points,width){let best=null;for(let i=0;i<points.length-1;i++){const p=closestSegment(x,z,points[i],points[i+1]);if(!best||p.distance<best.distance)best={...p,level:lerp(points[i][2],points[i+1][2],p.t),width};}return best;}
+function channel(x,z,points,width){let distance=Infinity,index=0,t=0;
+ for(let i=0;i<points.length-1;i++){const a=points[i],b=points[i+1],dx=b[0]-a[0],dz=b[1]-a[1],u=clamp(((x-a[0])*dx+(z-a[1])*dz)/Math.max(dx*dx+dz*dz,1e-8),0,1),d=Math.hypot(x-lerp(a[0],b[0],u),z-lerp(a[1],b[1],u));if(d<distance){distance=d;index=i;t=u;}}
+ const a=points[index],b=points[index+1];return {distance,level:lerp(a[2],b[2],t),width,dx:b[0]-a[0],dz:b[1]-a[1]};
+}
+const CHANNELS=[RIVER,OUTFLOW].map(points=>({points,width:points===RIVER?12:15,minX:Math.min(...points.map(p=>p[0]))-20,maxX:Math.max(...points.map(p=>p[0]))+20,minZ:Math.min(...points.map(p=>p[1]))-20,maxZ:Math.max(...points.map(p=>p[1]))+20}));
+function nearChannel(c,x,z){return x>=c.minX&&x<=c.maxX&&z>=c.minZ&&z<=c.maxZ;}
+
 export class WorldField {
  constructor(){this.cell=2;this.half=WORLD_SIZE/2;this.edits=new Map();this.revision=0;this.listeners=new Set();this.options={minHeight:-32,maxHeight:220};this.blocks=CITY_BLOCKS.map(b=>({...b,y:Math.round(rawHeight(b.x,b.z)*2)/2,story:3.15}));this.h6Sites=WORLD_PLACES.filter(p=>!p.existing).map(p=>({...p,y:rawHeight(p.x,p.z)}));this.routes=ROUTES.map(r=>({...r,points:r.points.map(([x,z])=>[x,z]),heights:r.points.map(([x,z])=>this.base(x,z))}));this.routeGrid=new Map();for(const route of this.routes)for(let i=0;i<route.points.length-1;i++){const a=route.points[i],b=route.points[i+1];for(let z=Math.floor((Math.min(a[1],b[1])-18)/64);z<=Math.floor((Math.max(a[1],b[1])+18)/64);z++)for(let x=Math.floor((Math.min(a[0],b[0])-18)/64);x<=Math.floor((Math.max(a[0],b[0])+18)/64);x++){const k=x+'/'+z;if(!this.routeGrid.has(k))this.routeGrid.set(k,[]);this.routeGrid.get(k).push({route,i,a,b});}}}
  base(x,z){let h=rawHeight(x,z);const origin=Math.max(Math.abs(x)/34,Math.abs(z+1)/44);h=lerp(0,h,smooth((origin-1)/.45));
   const lake=Math.hypot((x-LAKE.x)/LAKE.rx,(z-LAKE.z)/LAKE.rz);if(lake<1.23)h=lerp(LAKE.level-8*(1-smooth(lake*.84)),h,smooth((lake-.86)/.37));
-  for(const points of [RIVER,OUTFLOW]){const q=channel(x,z,points,points===RIVER?12:15);if(q.distance<q.width*.5+12)h=lerp(q.level-2.5,h,smooth((q.distance-q.width*.32)/(q.width*.18+12)));}
+  for(const c of CHANNELS){if(!nearChannel(c,x,z))continue;const q=channel(x,z,c.points,c.width);if(q.distance<q.width*.5+12)h=lerp(q.level-2.5,h,smooth((q.distance-q.width*.32)/(q.width*.18+12)));}
   for(const b of this.blocks){const d=Math.max(Math.abs(x-b.x)-b.w/2-2.5,Math.abs(z-b.z)-b.d/2-2.5);if(d<7)h=lerp(b.y,h,smooth(d/7));}
   for(const p of this.h6Sites||[]){const town=p.kind==='town'||p.kind==='city',d=Math.max(Math.abs(x-p.x)-(town?155:38),Math.abs(z-p.z)-(town?48:38));if(d<18)h=lerp(p.y,h,smooth(d/18));}
   return h;
@@ -58,10 +64,15 @@ export class WorldField {
   const i=Math.floor(x/this.cell),j=Math.floor(z/this.cell),u=x/this.cell-i,v=z/this.cell-j,get=(a,b)=>this.edits.get(a+'/'+b)||0;return h+lerp(lerp(get(i,j),get(i+1,j),u),lerp(get(i,j+1),get(i+1,j+1),u),v);
  }
  normalAt(x,z,out=new T.Vector3()){const e=.35,h=(x,z)=>this.heightAt(clamp(x,-this.half,this.half),clamp(z,-this.half,this.half))||0;return out.set(h(x-e,z)-h(x+e,z),2*e,h(x,z-e)-h(x,z+e)).normalize();}
- waterAt(x,z){let level=null,current=new T.Vector3(),id='lake';if(Math.hypot((x-LAKE.x)/LAKE.rx,(z-LAKE.z)/LAKE.rz)<1)level=LAKE.level;
-  for(const points of [RIVER,OUTFLOW]){const q=channel(x,z,points,points===RIVER?12:15);if(q.distance<q.width/2&&(level===null||q.level>level)){level=q.level;current.set(q.dx,0,q.dz).normalize().multiplyScalar(.7);id='river';}}
-  const floor=this.heightAt(x,z);return level!==null&&floor<level-.03?{surface:level,floor,current,body:{id,kind:id}}:null;
+ waterAt(x,z,knownFloor){let level=null,dx=0,dz=0,id='lake';if(Math.hypot((x-LAKE.x)/LAKE.rx,(z-LAKE.z)/LAKE.rz)<1)level=LAKE.level;
+  for(const c of CHANNELS){if(!nearChannel(c,x,z))continue;const q=channel(x,z,c.points,c.width);if(q.distance<q.width/2&&(level===null||q.level>level)){level=q.level;dx=q.dx;dz=q.dz;id='river';}}
+  // Most terrain samples are dry. They need neither another height query nor a
+  // fresh Vector3; callers which already sampled the floor can reuse it too.
+  if(level===null)return null;const floor=knownFloor===undefined?this.heightAt(x,z):knownFloor;
+  if(floor===null||floor>=level-.03)return null;
+  return {surface:level,floor,current:new T.Vector3(dx,0,dz).normalize().multiplyScalar(.7),body:{id,kind:id}};
  }
+
  brush({x,z,radius=2,delta=0}={}){if(![x,z,radius,delta].every(Number.isFinite)||radius<=0||radius>24)return false;const edits=[];
   for(let j=Math.floor((z-radius)/this.cell);j<=Math.ceil((z+radius)/this.cell);j++)for(let i=Math.floor((x-radius)/this.cell);i<=Math.ceil((x+radius)/this.cell);i++){const px=i*this.cell,pz=j*this.cell,d=Math.hypot(px-x,pz-z)/radius;if(d>=1||this.protected(px,pz))continue;const key=i+'/'+j;edits.push([key,clamp((this.edits.get(key)||0)+delta*(1-d*d)**2,-12,12)]);}
   if(this.edits.size+edits.filter(([k])=>!this.edits.has(k)).length>40000)return false;

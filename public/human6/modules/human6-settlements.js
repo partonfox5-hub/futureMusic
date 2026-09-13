@@ -1,7 +1,7 @@
 import * as T from 'three';
-import {structuralDamage} from './human6-structures.js?v=20.2.0';
+import {structuralDamage} from './human6-structures.js?v=20.3.0';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
-import {WORLD_PLACES,SETTLEMENTS,FLOOR_PLANS,settlementBuildings} from './human6-world-data.js?v=20.2.0';
+import {WORLD_PLACES,SETTLEMENTS,FLOOR_PLANS,settlementBuildings} from './human6-world-data.js?v=20.3.0';
 
 /** Geometry and collision stream together. At most four detailed locations. */
 export function installSettlements({world,scene,camera,props,quest=true}){

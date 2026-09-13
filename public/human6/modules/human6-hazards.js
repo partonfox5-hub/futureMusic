@@ -1,6 +1,6 @@
 import * as T from 'three';
-import {FluidGrid} from './human6-fluid.js?v=20.2.0';
-import {wrapMethod} from './human5-common.js?v=20.2.0';
+import {FluidGrid} from './human6-fluid.js?v=20.3.0';
+import {wrapMethod} from './human5-common.js?v=20.3.0';
 
 export function installHazards({world,scene,camera,props,mira,audio,gameplay,quest=true}){
   const field=world.h5OpenWorld.field,grids={creeper:null,lava:null},meshes={},materials={},eye=new T.Vector3(),p=new T.Vector3(),v=new T.Vector3(),dummy=new T.Object3D();let accumulation=0,visual=0,damage=0,revision=world.revision,eruption=0,jet=0,clock=0;

@@ -1,8 +1,8 @@
-import {ViewCells,onSceneView,spatialGeometry} from './human6-spatial-batches.js?v=20.2.0';
-import {seasons,crownGeometry,branchedTrunkGeometry,canopyMaterial,treeTint} from './human5-seasons.js?v=20.2.0';
+import {ViewCells,onSceneView,spatialGeometry} from './human6-spatial-batches.js?v=20.3.0';
+import {seasons,crownGeometry,branchedTrunkGeometry,canopyMaterial,treeTint} from './human5-seasons.js?v=20.3.0';
 import * as T from 'three';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
-import {WorldField,WORLD_SIZE,CELL_SIZE,hash2,LAKE,RIVER,OUTFLOW,cellKey} from './human5-worldfield.js?v=20.2.0';
+import {WorldField,WORLD_SIZE,CELL_SIZE,hash2,LAKE,RIVER,OUTFLOW,cellKey} from './human5-worldfield.js?v=20.3.0';
 import {createTerrainMaterial} from '../src/terrain/TerrainSurface.js';
 const V=()=>new T.Vector3(),clamp=T.MathUtils.clamp;
 function geometry(p,ids,uv=null,color=null){const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(p,3));g.setIndex(ids);if(uv)g.setAttribute('uv',new T.Float32BufferAttribute(uv,2));if(color)g.setAttribute('color',new T.Float32BufferAttribute(color,3));g.computeVertexNormals();g.computeBoundingSphere();return g;}

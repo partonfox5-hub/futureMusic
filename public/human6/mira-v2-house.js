@@ -1,12 +1,12 @@
 import * as T from 'three';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
-import {makeSurfaceMap,wallMaterial} from './mira-v2-walls.js?v=20.2.0';
-import {placeStairs,placeFurniture,tagMovable} from './mira-v2-furniture.js?v=20.2.0';
-import {detailToilet,detailFridge,detailMicrowave,detailSink,detailBathtub,detailLamp,detailTvStand,detailBed,detailNightstand,detailDresser,detailBookshelf,detailDesk,detailBarStool,detailCabinet,detailMirror,detailCounter,detailCoffee,detailTable} from './mira-v2-furnish.js?v=20.2.0';
-import {installWeights} from './mira-v2-weights.js?v=20.2.0';
-import {installLaundry,installPantry} from './mira-v2-laundry.js?v=20.2.0';
-import {installPiano} from './mira-v2-piano.js?v=20.2.0';
-import {HouseDoors} from './mira-v2-doors.js?v=20.2.0';
+import {makeSurfaceMap,wallMaterial} from './mira-v2-walls.js?v=20.3.0';
+import {placeStairs,placeFurniture,tagMovable} from './mira-v2-furniture.js?v=20.3.0';
+import {detailToilet,detailFridge,detailMicrowave,detailSink,detailBathtub,detailLamp,detailTvStand,detailBed,detailNightstand,detailDresser,detailBookshelf,detailDesk,detailBarStool,detailCabinet,detailMirror,detailCounter,detailCoffee,detailTable} from './mira-v2-furnish.js?v=20.3.0';
+import {installWeights} from './mira-v2-weights.js?v=20.3.0';
+import {installLaundry,installPantry} from './mira-v2-laundry.js?v=20.3.0';
+import {installPiano} from './mira-v2-piano.js?v=20.3.0';
+import {HouseDoors} from './mira-v2-doors.js?v=20.3.0';
 const STORY=3.05,CELL=.6;
 const doorHole=(axis,c,w=1.14,head=2.14)=>{
  const r=w/2+CELL*.55;
@@ -92,63 +92,8 @@ export function buildHouse(w){
  addRoof(w,maps);
 
 
- let furnitureStart=w.root.children.length;
- const couch=w.chair(-3.6,2.2,0,true),chair=w.chair(-1.2,2.8,-Math.PI/2);
- w.tableAnchor={x:-2.4,y:.68,z:1.35};
- detailTable(w,-2.4,1.35);
- w.captureFurniture('Table',furnitureStart,-2.4,1.35);furnitureStart=w.root.children.length;
- detailCoffee(w,-3.5,1.55);
- w.captureFurniture('Coffee table',furnitureStart,-3.5,1.55);furnitureStart=w.root.children.length;
- detailTvStand(w,-3.4,4.05);
- w.captureFurniture('TV stand',furnitureStart,-3.4,4.05);furnitureStart=w.root.children.length;
- detailBookshelf(w,-6.7,2.4);
- w.captureFurniture('Bookshelf',furnitureStart,-6.7,2.4);furnitureStart=w.root.children.length;
- detailLamp(w,-5.6,.6);
- w.captureFurniture('Floor lamp',furnitureStart,-5.6,.6);furnitureStart=w.root.children.length;
- w.chair(-1.1,1.8,.35);
-
- furnitureStart=w.root.children.length;
- detailCounter(w,4.6,1.6);
- w.captureFurniture('Kitchen counter',furnitureStart,4.6,1.6);furnitureStart=w.root.children.length;
- detailFridge(w,6.3,3.5);
- w.captureFurniture('Refrigerator',furnitureStart,6.3,3.5);furnitureStart=w.root.children.length;
- detailCabinet(w,6.4,.2);
- w.captureFurniture('Cabinet',furnitureStart,6.4,.2);furnitureStart=w.root.children.length;
- detailMicrowave(w,4.2,.4);
- w.captureFurniture('Microwave',furnitureStart,4.2,.4);furnitureStart=w.root.children.length;
- detailBarStool(w,3.6,2.4);
- w.captureFurniture('Bar stool',furnitureStart,3.6,2.4);
-
- furnitureStart=w.root.children.length;
- detailBed(w,-1.6,-4.4);
- w.captureFurniture('Bed',furnitureStart,-1.6,-4.4);
- const bedGroup=(w.movables||[]).filter(g=>g.userData.furniture?.id==='Bed').at(-1);
- furnitureStart=w.root.children.length;
- const mattress=round(-1.6,.58,-4.4,1.58,.16,1.94,0xe0d8c9,.1);
- mattress.position.set(-1.6,.58,-4.4);
- const mf=tagMovable(w,mattress,'Mattress');if(mf){mf.mass=Math.min(16,mf.mass);mf.soft=true;mf.health=22;mf.velocity.set(0,0,0);}
- w.fractures.register(mattress,'wood');if(mattress.userData.piece){mattress.userData.piece.health=22;mattress.userData.piece.maxHealth=22;}
- if(bedGroup?.userData.furniture)bedGroup.userData.furniture.mattress=mattress;
- mattress.userData.bedFrame=bedGroup;
- furnitureStart=w.root.children.length;
- detailNightstand(w,-2.9,-4.9);
- w.captureFurniture('Nightstand',furnitureStart,-2.9,-4.9);furnitureStart=w.root.children.length;
- detailDesk(w,-.4,-3.4);
- w.captureFurniture('Desk',furnitureStart,-.4,-3.4);furnitureStart=w.root.children.length;
- detailDresser(w,-2.2,-6.2);
- w.captureFurniture('Dresser',furnitureStart,-2.2,-6.2);
-
- furnitureStart=w.root.children.length;
- detailBathtub(w,-5.6,-4.6);
- w.captureFurniture('Bathtub',furnitureStart,-5.6,-4.6);furnitureStart=w.root.children.length;
- detailSink(w,-6.4,-3.2);
- w.captureFurniture('Sink',furnitureStart,-6.4,-3.2);furnitureStart=w.root.children.length;
- detailToilet(w,-4.5,-3.3);
- w.captureFurniture('Toilet',furnitureStart,-4.5,-3.3);furnitureStart=w.root.children.length;
- detailMirror(w,-6.4,-3.7);
- w.captureFurniture('Mirror',furnitureStart,-6.4,-3.7);furnitureStart=w.root.children.length;
- const frame=round(-6.9,1.73,0.2,.04,1.15,.85,0x41392f);w.fractures.register(frame,'wood');round(-6.87,1.73,0.2,.016,.99,.70,0x819c99);
- w.captureFurniture('Wall picture',furnitureStart,-6.9,0.2);
+ w.chair(-3.6,2.2,0,true);w.chair(-1.2,2.8,-Math.PI/2);
+ buildFurnitureTemplates(w);
 
  w.garageStalls=[{position:new T.Vector3(2.7,0,7.6),yaw:Math.PI,color:0x1e4f8a},{position:new T.Vector3(5.5,0,7.6),yaw:Math.PI,color:0xb42222}];
 
@@ -231,4 +176,67 @@ function addRoof(w,maps){
  gslope((gz0+gcz)/2,-1);gslope((gz1+gcz)/2,1);
  const garageRidge=w.mesh(new T.BoxGeometry(gspan+.08,.07,.14),w.mat(0x3f2c24),gxc,geave+grise+.02,gcz);
  w.fractures.register(garageRidge,'wood');
+}
+
+/** Shared authoring templates do not require constructing the old house,
+ * castle, terrain, gym or upstairs rooms at every open-world startup. */
+export function buildFurnitureTemplates(w){
+ const round=(x,y,z,sx,sy,sz,color,r=.03)=>w.mesh(new RoundedBoxGeometry(sx,sy,sz,2,Math.min(r,Math.min(sx,sy,sz)*.3)),w.mat(color),x,y,z);
+ let furnitureStart=w.root.children.length;
+ w.tableAnchor={x:-2.4,y:.68,z:1.35};
+ detailTable(w,-2.4,1.35);
+ w.captureFurniture('Table',furnitureStart,-2.4,1.35);furnitureStart=w.root.children.length;
+ detailCoffee(w,-3.5,1.55);
+ w.captureFurniture('Coffee table',furnitureStart,-3.5,1.55);furnitureStart=w.root.children.length;
+ detailTvStand(w,-3.4,4.05);
+ w.captureFurniture('TV stand',furnitureStart,-3.4,4.05);furnitureStart=w.root.children.length;
+ detailBookshelf(w,-6.7,2.4);
+ w.captureFurniture('Bookshelf',furnitureStart,-6.7,2.4);furnitureStart=w.root.children.length;
+ detailLamp(w,-5.6,.6);
+ w.captureFurniture('Floor lamp',furnitureStart,-5.6,.6);furnitureStart=w.root.children.length;
+ w.chair(-1.1,1.8,.35);
+
+ furnitureStart=w.root.children.length;
+ detailCounter(w,4.6,1.6);
+ w.captureFurniture('Kitchen counter',furnitureStart,4.6,1.6);furnitureStart=w.root.children.length;
+ detailFridge(w,6.3,3.5);
+ w.captureFurniture('Refrigerator',furnitureStart,6.3,3.5);furnitureStart=w.root.children.length;
+ detailCabinet(w,6.4,.2);
+ w.captureFurniture('Cabinet',furnitureStart,6.4,.2);furnitureStart=w.root.children.length;
+ detailMicrowave(w,4.2,.4);
+ w.captureFurniture('Microwave',furnitureStart,4.2,.4);furnitureStart=w.root.children.length;
+ detailBarStool(w,3.6,2.4);
+ w.captureFurniture('Bar stool',furnitureStart,3.6,2.4);
+
+ furnitureStart=w.root.children.length;
+ detailBed(w,-1.6,-4.4);
+ w.captureFurniture('Bed',furnitureStart,-1.6,-4.4);
+ const bedGroup=(w.movables||[]).filter(g=>g.userData.furniture?.id==='Bed').at(-1);
+ furnitureStart=w.root.children.length;
+ const mattress=round(-1.6,.58,-4.4,1.58,.16,1.94,0xe0d8c9,.1);
+ mattress.position.set(-1.6,.58,-4.4);
+ const mf=tagMovable(w,mattress,'Mattress');if(mf){mf.mass=Math.min(16,mf.mass);mf.soft=true;mf.health=22;mf.velocity.set(0,0,0);}
+ w.fractures.register(mattress,'wood');if(mattress.userData.piece){mattress.userData.piece.health=22;mattress.userData.piece.maxHealth=22;}
+ if(bedGroup?.userData.furniture)bedGroup.userData.furniture.mattress=mattress;
+ mattress.userData.bedFrame=bedGroup;
+ furnitureStart=w.root.children.length;
+ detailNightstand(w,-2.9,-4.9);
+ w.captureFurniture('Nightstand',furnitureStart,-2.9,-4.9);furnitureStart=w.root.children.length;
+ detailDesk(w,-.4,-3.4);
+ w.captureFurniture('Desk',furnitureStart,-.4,-3.4);furnitureStart=w.root.children.length;
+ detailDresser(w,-2.2,-6.2);
+ w.captureFurniture('Dresser',furnitureStart,-2.2,-6.2);
+
+ furnitureStart=w.root.children.length;
+ detailBathtub(w,-5.6,-4.6);
+ w.captureFurniture('Bathtub',furnitureStart,-5.6,-4.6);furnitureStart=w.root.children.length;
+ detailSink(w,-6.4,-3.2);
+ w.captureFurniture('Sink',furnitureStart,-6.4,-3.2);furnitureStart=w.root.children.length;
+ detailToilet(w,-4.5,-3.3);
+ w.captureFurniture('Toilet',furnitureStart,-4.5,-3.3);furnitureStart=w.root.children.length;
+ detailMirror(w,-6.4,-3.7);
+ w.captureFurniture('Mirror',furnitureStart,-6.4,-3.7);furnitureStart=w.root.children.length;
+ const frame=round(-6.9,1.73,0.2,.04,1.15,.85,0x41392f);w.fractures.register(frame,'wood');round(-6.87,1.73,0.2,.016,.99,.70,0x819c99);
+ w.captureFurniture('Wall picture',furnitureStart,-6.9,0.2);
+
 }

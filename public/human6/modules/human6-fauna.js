@@ -1,6 +1,6 @@
 import * as T from 'three';
-import {WORLD_PLACES} from './human6-world-data.js?v=20.2.0';
-import {wrapMethod} from './human5-common.js?v=20.2.0';
+import {WORLD_PLACES} from './human6-world-data.js?v=20.3.0';
+import {wrapMethod} from './human5-common.js?v=20.3.0';
 
 const UP=new T.Vector3(0,1,0),clamp=T.MathUtils.clamp;
 export function limbBlueprint(seed,count=6){let n=seed|0;const rand=()=>{n=(Math.imul(n,1664525)+1013904223)|0;return (n>>>0)/4294967296;};return Array.from({length:Math.min(10,Math.max(4,count))},(_,i)=>({form:i<4?'bug':['tentacle','club','spike','wing'][Math.floor(rand()*4)],length:.65+rand()*.65,angle:i/Math.max(4,count)*Math.PI*2,segments:2+Math.floor(rand()*3),phase:rand()*Math.PI*2}));}

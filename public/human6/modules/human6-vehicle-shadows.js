@@ -1,5 +1,5 @@
 import * as T from 'three';
-import {onSceneView,afterSceneView} from './human6-spatial-batches.js?v=20.2.0';
+import {onSceneView,afterSceneView} from './human6-spatial-batches.js?v=20.3.0';
 
 /** A single depth draw per vehicle, using its actual rendered panel geometry.
  * Door motion and CPU dents update only affected ranges of a persistent buffer.

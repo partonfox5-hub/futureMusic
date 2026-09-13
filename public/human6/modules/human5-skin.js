@@ -1,6 +1,6 @@
-import {ANATOMY_ANCHOR as A} from './human5-anatomy-anchor.js?v=20.2.0';
+import {ANATOMY_ANCHOR as A} from './human5-anatomy-anchor.js?v=20.3.0';
 import * as T from 'three';
-import {V,clamp,wrapMethod} from './human5-common.js?v=20.2.0';
+import {V,clamp,wrapMethod} from './human5-common.js?v=20.3.0';
 
 /** Match normals only at coincident, similarly oriented, compatibly skinned vertices. */
 export function weldSkinNormals(actor){

@@ -2,14 +2,14 @@ import * as T from 'three';
 import {TerrainHeightfield} from './src/terrain/TerrainHeightfield.js';
 import {TerrainMesh} from './src/terrain/TerrainMesh.js';
 import {QuestGrass} from './src/terrain/QuestGrass.js';
-import {ProceduralTrees} from './src/trees/RealisticTrees.js?v=20.2.0';
-import {inCastleClearing} from './mira-v2-castle.js?v=20.2.0';
+import {ProceduralTrees} from './src/trees/RealisticTrees.js?v=20.3.0';
+import {inCastleClearing} from './mira-v2-castle.js?v=20.3.0';
 import {TerrainGun,TERRAIN_WEAPONS,isTerrainGun,makeTerrainGun} from './src/terrain/TerrainGun.js';
 import {DEFAULT_MAP,defaultMapOptions} from './src/terrain/DefaultMap.js';
 export {TerrainHeightfield,TerrainMesh,QuestGrass,ProceduralTrees,TerrainGun,TERRAIN_WEAPONS,DEFAULT_MAP};
 
 // Optional, reversible adapter for the supplied human5 (2).zip. No host imports.
-export function installTerrainFeatures({world,props,WEAPONS,GUNS,weaponCatalogs=[],map:mapOverrides={},autoTick=true}={}){
+export function installTerrainFeatures({world,props,WEAPONS,GUNS,weaponCatalogs=[],map:mapOverrides={},autoTick=true,deferInitial=false}={}){
   if(world?.terrainFeatures&&!world.terrainFeatures.disposed)return world.terrainFeatures;
   if(!world?.root||!props?.scene||!WEAPONS||!Array.isArray(GUNS))throw new TypeError('Pass {world,props,WEAPONS,GUNS} from the same engine module');
   const config=defaultMapOptions(mapOverrides),restores=[],catalogRestores=[],oldFloor=world.floorHeight.bind(world);
@@ -163,7 +163,7 @@ export function installTerrainFeatures({world,props,WEAPONS,GUNS,weaponCatalogs=
       world.setScene(world.name);
     }
   };
-  world.terrainFeatures=props.terrainFeatures=api;populate();
+  world.terrainFeatures=props.terrainFeatures=api;if(!deferInitial)populate();
   // Existing menu code enumerates this shared registry at draw time.
   const select=globalThis.document?.getElementById?.('weaponSelect');
   if(select)for(const [id,w] of Object.entries(TERRAIN_WEAPONS))if(![...select.options].some(o=>o.value===id))select.add(new Option(w.name,id));
