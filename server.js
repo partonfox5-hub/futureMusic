@@ -864,7 +864,7 @@ app.use(async (req, res, next) => {
     const p = String(req.path || "/").replace(/\/+$/, "") || "/";
     if (p !== "/arena" && !p.startsWith("/arena/")) return next();
     await verifyBsaSession(req, res);
-    if (hasBsa(req) || homeGate.isHomeLan(req)) {
+    if (hasBsa(req)) {
         bsaPlayHeaders(res);
         return next();
     }
@@ -1282,7 +1282,8 @@ app.get(['/test-n4k8w2mt', '/test-n4k8w2mt/'], (req, res) => {
     res.render('test-n4k8w2mt', seo.page('projects'));
 });
 
-// Battle Sphere Arena — $15 Stripe paygate + WebXR play. No home-LAN skip.
+// Battle Sphere Arena — $15 Stripe paygate + WebXR play.
+// Owner WAN, RFC1918, and Quest Browser skip the paywall so /arena opens the game.
 const BSA_SKU = "battle-sphere-arena";
 const BSA_PRICE_CENTS = 1500;
 const BSA_COOKIE = "bsa_unlock";
@@ -1305,6 +1306,7 @@ function grantBsa(req, res) {
     });
 }
 function hasBsa(req) {
+    if (homeGate.isHomeNetwork(req)) return true;
     if (req.session && req.session.bsaPaid) return true;
     const raw = String(req.headers.cookie || "");
     for (const part of raw.split(";")) {
@@ -1333,7 +1335,7 @@ function sendBsaPlay(res) {
 }
 app.get(["/arena", "/arena/"], async (req, res) => {
     await verifyBsaSession(req, res);
-    if (!hasBsa(req) && !homeGate.isHomeLan(req)) return res.redirect(302, "/battle-sphere-arena");
+    if (!hasBsa(req)) return res.redirect(302, "/battle-sphere-arena");
     bsaPlayHeaders(res);
     res.sendFile(path.join(__dirname, "public", "arena", "index.html"));
 });
@@ -1348,7 +1350,7 @@ app.get(["/battle-sphere-arena", "/battle-sphere-arena/"], async (req, res) => {
 });
 app.get(["/battle-sphere-arena/play", "/battle-sphere-arena/play/"], async (req, res) => {
     await verifyBsaSession(req, res);
-    if (!hasBsa(req) && !homeGate.isHomeLan(req)) return res.redirect(302, "/battle-sphere-arena");
+    if (!hasBsa(req)) return res.redirect(302, "/battle-sphere-arena");
     sendBsaPlay(res);
 });
 async function bsaCheckout(req, res) {
