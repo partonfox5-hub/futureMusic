@@ -668,10 +668,9 @@ app.use("/human5", (req, res, next) => {
     humanHeaders(res);
     next();
 });
-app.get("/human6", (req, res) => {
-    res.redirect(301, "/human6/");
-});
-app.get("/human6/", (req, res) => {
+// Express is not strict-routing: app.get("/human6") also matches "/human6/"
+// and a 301 to "/human6/" becomes an infinite loop (Chrome ERR_TOO_MANY_ACCEPT_CH_RESTARTS).
+app.get(["/human6", "/human6/"], (req, res) => {
     humanHeaders(res);
     res.sendFile(path.join(__dirname, "public", "human6", "index.html"));
 });
