@@ -630,7 +630,7 @@ namespace NetKnight
             spheres.Add(sph);
             zones.Add(new NkZone { root = go.transform, c = c, keep = r + 520f, always = hub });
             SkinInner(sph);
-            if (hub)
+            if (hub && !NkQuestVisuals.QuestRuntime)
             {
                 void HubLite(string n, Vector3 loc, Color col, float intensity)
                 {

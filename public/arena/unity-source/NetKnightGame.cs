@@ -81,8 +81,8 @@ namespace NetKnight
             _cam.backgroundColor = new Color(0.04f, 0.02f, 0.07f);
             NkGfx.PaintSolid(_cam.backgroundColor);
             _cam.nearClipPlane = 0.05f;
-            _cam.farClipPlane = 3000f;
-            _cam.useOcclusionCulling = false;
+            _cam.farClipPlane = 420f;
+            _cam.useOcclusionCulling = true;
             _cam.allowHDR = false;
             _cam.allowMSAA = true;
             NkQuestVisuals.Apply(_cam);
@@ -259,13 +259,17 @@ namespace NetKnight
             var sun = new GameObject("Key").AddComponent<Light>();
             sun.type = LightType.Directional;
             sun.color = new Color(0.55f, 0.7f, 1f);
-            sun.intensity = 0.55f;
+            sun.intensity = NkQuestVisuals.QuestRuntime ? 0.85f : 0.55f;
+            sun.shadows = NkQuestVisuals.QuestRuntime ? LightShadows.Hard : LightShadows.Soft;
             sun.transform.rotation = Quaternion.Euler(40, 30, 0);
-            var fill = new GameObject("Fill").AddComponent<Light>();
-            fill.type = LightType.Directional;
-            fill.color = new Color(1f, 0.3f, 0.7f);
-            fill.intensity = 0.28f;
-            fill.transform.rotation = Quaternion.Euler(200, -40, 0);
+            if (!NkQuestVisuals.QuestRuntime)
+            {
+                var fill = new GameObject("Fill").AddComponent<Light>();
+                fill.type = LightType.Directional;
+                fill.color = new Color(1f, 0.3f, 0.7f);
+                fill.intensity = 0.28f;
+                fill.transform.rotation = Quaternion.Euler(200, -40, 0);
+            }
             yield return null;
             if (_root == null) _root = new GameObject("World").transform;
             if (world == null) world = new NkWorld();
@@ -383,13 +387,17 @@ namespace NetKnight
             var sun = new GameObject("Key").AddComponent<Light>();
             sun.type = LightType.Directional;
             sun.color = new Color(0.55f, 0.7f, 1f);
-            sun.intensity = 0.55f;
+            sun.intensity = NkQuestVisuals.QuestRuntime ? 0.85f : 0.55f;
+            sun.shadows = NkQuestVisuals.QuestRuntime ? LightShadows.Hard : LightShadows.Soft;
             sun.transform.rotation = Quaternion.Euler(40, 30, 0);
-            var fill = new GameObject("Fill").AddComponent<Light>();
-            fill.type = LightType.Directional;
-            fill.color = new Color(1f, 0.3f, 0.7f);
-            fill.intensity = 0.28f;
-            fill.transform.rotation = Quaternion.Euler(200, -40, 0);
+            if (!NkQuestVisuals.QuestRuntime)
+            {
+                var fill = new GameObject("Fill").AddComponent<Light>();
+                fill.type = LightType.Directional;
+                fill.color = new Color(1f, 0.3f, 0.7f);
+                fill.intensity = 0.28f;
+                fill.transform.rotation = Quaternion.Euler(200, -40, 0);
+            }
 
             _root = new GameObject("World").transform;
             world = new NkWorld();
@@ -623,8 +631,8 @@ namespace NetKnight
         void HookPlayerCam()
         {
             if (!_cam || !player) return;
-            _cam.farClipPlane = 3000f;
-            _cam.useOcclusionCulling = false;
+            _cam.farClipPlane = 420f;
+            _cam.useOcclusionCulling = true;
             _cam.transform.SetParent(player.transform, false);
             if (_input != null && _input.xrActive && _input.headValid)
             {

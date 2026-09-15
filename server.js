@@ -1343,6 +1343,9 @@ app.use("/arena", (req, res, next) => {
     bsaPlayHeaders(res);
     next();
 });
+app.get(["/battle-sphere-arena/quest", "/battle-sphere-arena/quest/"], (req, res) => {
+    res.render("battle-sphere-arena-quest");
+});
 app.get(["/battle-sphere-arena", "/battle-sphere-arena/"], async (req, res) => {
     await verifyBsaSession(req, res);
     if (hasBsa(req)) return res.redirect(302, "/battle-sphere-arena/play");
@@ -1633,18 +1636,20 @@ app.get('/domain', (req, res) => {
 
 app.get('/about', (req, res) => res.render('about', { title: 'About' }));
 app.get(['/privacy', '/privacy/'], (req, res) => res.render('privacy', {
-    title: 'Privacy Policy | Future Music Collective',
-    metaDescription: 'Privacy policy for futuremusic.online and the Blockbuild Quest app: what data we collect, how we use it, and how to request deletion.',
+    title: 'Privacy Policy | Battle Sphere Arena',
+    metaDescription: 'Privacy policy for Battle Sphere Arena on the Meta Horizon Store and futuremusic.online: what data we collect, how we use it, and how to request deletion.',
     canonicalUrl: 'https://futuremusic.online/privacy',
-    ogTitle: 'Privacy Policy | Future Music Collective',
-    ogDescription: 'What data Future Music Collective collects, how it is used, and how to request deletion.',
+    ogTitle: 'Privacy Policy | Battle Sphere Arena',
+    ogDescription: 'Privacy policy for Battle Sphere Arena and Future Music Collective: data collection, use, and deletion.',
+    skipCommerce: true,
 }));
 app.get(['/terms', '/terms/', '/tos', '/tos/'], (req, res) => res.render('terms', {
-    title: 'Terms of Service | Future Music Collective',
-    metaDescription: 'Terms of service for futuremusic.online and the Blockbuild app on the Meta Horizon Store.',
+    title: 'Terms of Service | Battle Sphere Arena',
+    metaDescription: 'Terms of service for Battle Sphere Arena on the Meta Horizon Store and futuremusic.online.',
     canonicalUrl: 'https://futuremusic.online/terms',
-    ogTitle: 'Terms of Service | Future Music Collective',
-    ogDescription: 'Terms of service for Future Music Collective websites and Blockbuild.',
+    ogTitle: 'Terms of Service | Battle Sphere Arena',
+    ogDescription: 'Terms of service for Battle Sphere Arena and Future Music Collective.',
+    skipCommerce: true,
 }));
 app.get('/contact', (req, res) => res.render('contact', {
     title: 'Contact',

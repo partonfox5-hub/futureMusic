@@ -1,22 +1,17 @@
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 namespace NetKnight
 {
     public class NkSplash
     {
-        public const string Url = "https://www.futuremusic.online";
         public const float Duration = 5f;
         public const float FadeIn = 2.2f;
 
         Camera _cam;
-        NkInput _input;
         Transform _root;
         Material _dimMat, _logoMat, _glowMat;
         TextMesh _word, _link, _hint;
-        Collider _hit;
         float _t, _lift = 1f;
-        bool _opened;
         Color _wordC, _linkC, _hintC;
         const float Z = 1.42f;
 
@@ -24,7 +19,6 @@ namespace NetKnight
         {
             var s = new NkSplash();
             s._cam = cam;
-            s._input = input;
             s.Build();
             s.AttachCam();
             return s;
@@ -70,10 +64,7 @@ namespace NetKnight
             logo.transform.localScale = new Vector3(0.38f, 0.38f, 1f);
             logo.GetComponent<Renderer>().sharedMaterial = _logoMat;
             logo.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            var box = logo.AddComponent<BoxCollider>();
-            box.size = new Vector3(1.15f, 1.85f, 0.08f);
-            box.center = new Vector3(0f, -0.55f, 0f);
-            _hit = box;
+            Object.DestroyImmediate(logo.GetComponent<Collider>());
 
             _glowMat = FadeMat(new Color(1f, 0.82f, 0.22f, 0f));
             var ring = GameObject.CreatePrimitive(PrimitiveType.Quad);
@@ -85,13 +76,13 @@ namespace NetKnight
             ring.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
 
             _word = Label(_root, new Vector3(0f, -0.14f, Z - 0.01f), 0.010f, 48,
-                new Color(1f, 0.86f, 0.28f, 0f), "www.futuremusic.online");
+                new Color(1f, 0.86f, 0.28f, 0f), "BATTLE SPHERE ARENA");
             _wordC = _word.color;
             _link = Label(_root, new Vector3(0f, -0.22f, Z - 0.01f), 0.0084f, 42,
-                new Color(0.55f, 0.92f, 1f, 0f), "www.futuremusic.online");
+                new Color(0.55f, 0.92f, 1f, 0f), "Future Music Collective");
             _linkC = _link.color;
             _hint = Label(_root, new Vector3(0f, -0.32f, Z - 0.01f), 0.0072f, 36,
-                new Color(0.85f, 0.8f, 0.55f, 0f), "website  ·  point and trigger to open");
+                new Color(0.85f, 0.8f, 0.55f, 0f), "Meta Horizon Store");
             _hintC = _hint.color;
             FollowCam();
         }
@@ -148,7 +139,6 @@ namespace NetKnight
                 _link.color = c;
             }
             if (_hint) { var c = _hintC; c.a = vis * 0.85f; _hint.color = c; }
-            PollClick();
         }
 
         void AttachCam()
@@ -180,51 +170,11 @@ namespace NetKnight
             m.color = c;
         }
 
-        void PollClick()
-        {
-            if (_opened || _cam == null || _t < 0.35f) return;
-            bool look = false;
-            Vector3 logo = _root.TransformPoint(new Vector3(0f, 0.05f, Z));
-            Vector3 to = logo - _cam.transform.position;
-            if (to.sqrMagnitude > 0.01f && Vector3.Dot(_cam.transform.forward, to.normalized) > 0.88f)
-                look = true;
-            if (_input != null && _input.right.valid)
-            {
-                Vector3 o = _cam.transform.position;
-                Vector3 d = _cam.transform.rotation * _input.right.dir;
-                if (_input.xrActive)
-                {
-                    o = _cam.transform.position + _cam.transform.rotation * (_input.right.pos - _input.headPos);
-                    d = _cam.transform.rotation * _input.right.dir;
-                }
-                if (Physics.Raycast(o, d, out var hit, 3.5f) && hit.collider == _hit)
-                    look = true;
-            }
-            if (!look) return;
-            bool click = false;
-            if (_input != null && (_input.right.triggerDown || _input.left.triggerDown || _input.right.primaryDown))
-                click = true;
-            var m = Mouse.current;
-            if (m != null && m.leftButton.wasPressedThisFrame) click = true;
-            if (!click) return;
-            OpenSite();
-        }
-
-        void OpenSite()
-        {
-            if (_opened) return;
-            _opened = true;
-            Application.OpenURL(Url);
-            if (_hint) _hint.text = "opening  www.futuremusic.online";
-            NkSfx.Ui(_cam ? _cam.transform.position : Vector3.zero);
-        }
-
         public void Dispose()
         {
             if (_root) Object.Destroy(_root.gameObject);
             _root = null;
             _cam = null;
-            _hit = null;
         }
     }
 }
