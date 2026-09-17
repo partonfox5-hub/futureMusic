@@ -2471,7 +2471,17 @@
     if (wrap) wrap.classList.add("hidden");
     state.sky = null;
     state.screen = "mission";
-    if (ok && state.skyHaul) state.fishInv.push.apply(state.fishInv, state.skyHaul);
+    const haul = state.skyHaul || [];
+    if (ok) {
+      state.fishInv.push.apply(state.fishInv, haul);
+      state.skyCrash = false;
+      state.skyLost = 0;
+    } else {
+      const keep = haul.slice(0, Math.ceil(haul.length / 2));
+      state.fishInv.push.apply(state.fishInv, keep);
+      state.skyCrash = true;
+      state.skyLost = haul.length - keep.length;
+    }
     state.skyHaul = [];
     finishJobTail(true);
   }
@@ -2499,15 +2509,15 @@
     if (skyKeys.s || skyKeys.S || skyKeys.ArrowDown) ay += 1;
     if (skyKeys.a || skyKeys.A || skyKeys.ArrowLeft) ax -= 1;
     if (skyKeys.d || skyKeys.D || skyKeys.ArrowRight) ax += 1;
-    s.vx = (s.vx || 0) + ax * 920 * dt;
-    s.vy = (s.vy || 0) + ay * 920 * dt;
-    s.vx *= 0.9;
-    s.vy *= 0.9;
-    if (!ax) s.vx += 18 * dt;
+    s.vx = (s.vx || 0) + ax * 1120 * dt;
+    s.vy = (s.vy || 0) + ay * 1120 * dt;
+    s.vx *= 0.92;
+    s.vy *= 0.92;
+    if (!ax) s.vx += 36 * dt;
     s.x = clamp(s.x + s.vx * dt, 36, s.worldW + 20);
     s.y = clamp(s.y + s.vy * dt, 22, 368);
     s.spawn += dt;
-    if (s.spawn > 0.32) {
+    if (s.spawn > 0.4) {
       s.spawn = 0;
       const cols = ["#e04060", "#40a0e8", "#e8c040", "#48c060", "#e070c8", "#f07838", "#58e0d0", "#b060ff", "#f0f0e8"];
       s.balloons.push({
@@ -2550,7 +2560,7 @@
       f.y += ((f.kind === "blimp" ? 50 : s.y + f.vy) - f.y) * 0.4 * dt;
       f.cd = (f.cd || 0) - dt;
       if (f.cd <= 0) {
-        f.cd = 1.1 + Math.random() * 0.8;
+        f.cd = 1.375 + Math.random() * 1;
         const jx = (Math.random() - 0.5) * 140;
         const jy = (Math.random() - 0.5) * 160;
         s.pmiss.push({ x: f.x + 10, y: f.y, vx: 40 + Math.random() * 30, vy: (s.y + jy - f.y) * 0.15 });
@@ -2667,7 +2677,7 @@
     c.restore();
     c.fillStyle = "#c8ff3a";
     c.font = "12px sans-serif";
-    c.fillText(s.dead ? "SPIN-OUT · HAUL LOST" : s.won ? "PAD" : "PAD " + Math.max(0, ((s.padX - s.x) / 220) | 0) + "s", 12, 20);
+    c.fillText(s.dead ? "SPIN-OUT · HALF THE HAUL · CREW FINE" : s.won ? "PAD" : "PAD " + Math.max(0, ((s.padX - s.x) / 280) | 0) + "s", 12, 20);
   }
 
   function drawSkyChopper(c, t, wreck) {
@@ -2783,7 +2793,15 @@
     rollRate();
     document.getElementById("overTitle").textContent = title;
     document.getElementById("overMsg").textContent =
-      (title === "WIPED" ? "Crew wiped. Rides lost. " : "Catch warehoused (" + state.fishInv.length + " fish). ") +
+      (title === "WIPED"
+        ? "Crew wiped. Rides lost. "
+        : state.skyCrash
+          ? "Spin-out over the city. Half the haul went overboard" +
+            (state.skyLost ? " (" + state.skyLost + " fish)" : "") +
+            ". The crew was miraculously fine. Warehoused " +
+            state.fishInv.length +
+            " fish. "
+          : "Catch warehoused (" + state.fishInv.length + " fish). ") +
       "Cash $" +
       Math.round(state.cash) +
       " · year " +
