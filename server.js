@@ -349,6 +349,7 @@ app.get(['/games/neweden', '/games/neweden/'], (req, res) => res.redirect('/newe
 // Landings must beat express.static directory indexes (public/zombie-defense, paintcadia, terrarium).
 app.get('/zombie-defense', (req, res) => res.render('game-landing', seo.page('zombie-defense')));
 app.get('/paintcadia', (req, res) => res.render('game-landing', seo.page('paintcadia')));
+app.get('/fish-extractor', (req, res) => res.render('game-landing', seo.page('fish-extractor')));
 app.get('/terrarium', (req, res) => res.render('game-landing', seo.page('terrarium')));
 
 // SHARK — unlisted VR sub game. Register before static so /games/shark/ does not

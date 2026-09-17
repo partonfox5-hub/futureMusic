@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fish Extractor</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Ops+One&display=swap" />
+  <link rel="stylesheet" href="css/game.css" />
+</head>
+<body>
+  <div id="logo-screen">
+    <img src="img/shinemoreonline.png" alt="Shine More Online" />
+  </div>
+  <div id="click-start" class="hidden">
+    <h1>CLICK TO START</h1>
+  </div>
+  <div id="app">
+    <header id="hud">
+      <div class="brand" title="Fish Extractor">
+        <img src="img/logo.jpg" alt="Fish Extractor" />
+        <span>FISH EXTRACTOR</span>
+      </div>
+      <div class="stat ico" id="cashBox" title="Bank / liquidity"><img src="img/icon-cash.png" alt="cash" /><span id="cash">0</span><span id="apy" class="apy"></span></div>
+      <div class="stat ico"><img src="img/icon-fish.png" alt="fish" /><span id="fishNum">0</span></div>
+      <div class="stat ico"><img src="img/icon-job.png" alt="job" /><span id="jobNum">1</span></div>
+      <div class="deal-chip clr" id="dealClr" title="Clearance: matching fish sell for 50% less at registers and on the market.">
+        <img src="img/deal-clr.jpg" alt="clearance" />
+        <div><small>CLEARANCE −50%</small><b id="dealClrLbl">—</b></div>
+      </div>
+      <div class="deal-chip spot" id="dealSpot" title="Spotlight: matching fish sell for 50% more at registers and on the market.">
+        <img src="img/deal-spot.jpg" alt="spotlight" />
+        <div><small>SPOTLIGHT +50%</small><b id="dealSpotLbl">—</b></div>
+      </div>
+      <div class="stat" id="obj">Plan the crew</div>
+    </header>
+    <div id="liqStrip">
+      <div id="liqRates" class="liq-rates"></div>
+      <div id="liqTiers" class="liq-tiers"></div>
+      <div id="liqLots" class="liq-lots"></div>
+    </div>
+
+    <div id="plan" class="screen">
+      <aside class="col">
+        <h2>Crew</h2>
+        <div id="crewList"></div>
+        <button id="hireBtn" type="button"><img src="img/icon-hire.png" alt="" /> HIRE STREET TALENT</button>
+      </aside>
+      <section class="col wide">
+        <h2>BULLETIN</h2>
+        <div id="dramaBox" class="drama empty">No heat. Yet.</div>
+        <div id="detail" class="detail">Select a crew member.</div>
+        <div class="row wrap">
+          <button id="shopBtn" type="button"><img src="img/icon-armory.png" alt="" /> ARMORY / RODS</button>
+          <button id="bagsBtn" type="button"><img src="img/icon-extract.png" alt="" /> CARRY BAGS</button>
+          <button id="marketBtn" type="button"><img src="img/icon-fish.png" alt="" /> FISH MARKET</button>
+          <button id="garageBtn" type="button"><img src="img/icon-deploy.png" alt="" /> GETAWAY</button>
+          <button id="stockBtn" type="button"><img src="img/icon-sell.png" alt="" /> SALE LIST</button>
+        </div>
+        <button id="goBtn" type="button" class="easy-btn"><span>DEPLOY</span></button>
+      </section>
+    </div>
+
+    <div id="mission" class="screen hidden">
+      <canvas id="game" width="720" height="400"></canvas>
+      <div id="buildMenu" class="hidden">
+        <button type="button" data-build="wall"><img src="img/icon-wall.png" alt="" /> WALL</button>
+        <button type="button" data-build="counter"><img src="img/icon-counter.png" alt="" /> COUNTER</button>
+        <button type="button" data-build="register"><img src="img/icon-register.png" alt="" /> REGISTER</button>
+      </div>
+      <div id="orders">
+        <button data-order="move" class="on"><img src="img/icon-move.png" alt="" /> MOVE</button>
+        <button data-order="fish"><img src="img/icon-rod.png" alt="" /> FISH</button>
+        <button data-order="hack"><img src="img/sk-hack.jpg" alt="" /> HACK</button>
+        <button data-order="build" id="buildBtn"><img src="img/icon-build.png" alt="" /> BUILD</button>
+        <button data-order="sell"><img src="img/icon-sell.png" alt="" /> SELL</button>
+        <button data-order="fight"><img src="img/icon-fight.png" alt="" /> FIGHT</button>
+        <button data-order="board"><img src="img/icon-deploy.png" alt="" /> BOARD</button>
+        <button data-order="dismount"><img src="img/icon-move.png" alt="" /> BAIL</button>
+        <button id="extractBtn" type="button" class="go"><img src="img/icon-extract.png" alt="" /> EXTRACT LZ</button>
+      </div>
+    </div>
+    <div id="skyWrap" class="hidden">
+      <canvas id="sky" width="720" height="400"></canvas>
+      <div id="skyHud">WASD / arrows · SPACE missiles · land the pad on the right</div>
+    </div>
+  </div>
+
+  <div id="overlay">
+    <div id="panel-main" class="panel">
+      <h1>FISH EXTRACTOR</h1>
+      <p>A heist, except the vault is a pond and the cops are feral.</p>
+      <p class="hint">Hire a crew. Arm them. Drag-select. Right-click to move. Build a counter, drop a register on it, and the peaceful ones will line up to buy.</p>
+      <button id="startBtn" type="button">PLAN THE JOB</button>
+      <button id="howBtn" type="button" class="ghost">BRIEFING</button>
+    </div>
+    <div id="panel-how" class="panel hidden">
+      <h1>BRIEFING</h1>
+      <p>Left-drag a box to select several. Left-click empty ground to drop the group. Right-click to move. Click a biting unit to set the hook.</p>
+      <p>Build opens walls, counters, and registers. A register only sits on a finished counter. Passives queue at registers; if there is no register they crowd your crew at arm’s length and your bullets will drop them — they also soak shots meant for savages.</p>
+      <p>Job 1 is a trickle. Don’t wipe the customers. Fish stay on the person who caught them — five each unless you bought bags. Heavier bags, slower walk. Pond and LZ swap corners each job — never the same corner. Later jobs often wrap the pond in an electric fence — HACK the terminal (captcha). Tanks cannot fit the gate; the helicopter flies over. Hire from three faces a job. Units take a cut of every sale, level like a grinding RPG, and get ugly if you touch their cut. Click the cash box for CDs and bonds. The amphibious tank fishes the dark hole.</p>
+      <button id="howBack" type="button">BACK</button>
+    </div>
+    <div id="panel-shop" class="panel hidden wide">
+      <h1>LOCKER</h1>
+      <p id="shopWho" class="hint"></p>
+      <div class="shop-cat cat-guns"><h3>FIREARMS</h3><div id="shopGuns" class="gear-grid"></div></div>
+      <div class="shop-cat cat-rods"><h3>RODS</h3><div id="shopRods" class="gear-grid"></div></div>
+      <button id="shopBack" type="button">BACK</button>
+    </div>
+    <div id="panel-market" class="panel hidden terminal">
+      <div class="term-head">
+        <h1>FISH MARKET</h1>
+        <p id="marketDeals" class="hint"></p>
+        <button id="mktSort" type="button">SORT BY STOCK</button>
+        <button id="marketBack" type="button">BACK</button>
+      </div>
+      <div class="term-grid">
+        <div id="mktList" class="term-list"></div>
+        <div class="term-chart-col">
+          <canvas id="mktChart" width="640" height="400"></canvas>
+          <div id="mktTape" class="term-tape"></div>
+        </div>
+        <div class="term-side">
+          <div id="mktQuote" class="term-quote"></div>
+          <div id="mktBook" class="term-book"></div>
+          <div id="mktActs" class="term-acts"></div>
+        </div>
+      </div>
+    </div>
+    <div id="panel-bags" class="panel hidden wide">
+      <h1>CARRY</h1>
+      <p id="bagsWho" class="hint">Five fish on the person. Buy a bag for the selected crew.</p>
+      <div id="bagsGrid" class="grid"></div>
+      <button id="bagsBack" type="button">BACK</button>
+    </div>
+    <div id="panel-garage" class="panel hidden wide">
+      <h1>GETAWAY</h1>
+      <p id="garageHint" class="hint">On foot until you buy a ride. Unlocks in order. You can own several of each.</p>
+      <div class="shop-cat cat-own"><h3>OWNED</h3><div id="garageOwn" class="gear-grid"></div></div>
+      <div class="shop-cat cat-vehs"><h3>GETAWAY LOT</h3><div id="garageBuy" class="gear-grid"></div></div>
+      <button id="garageBack" type="button">BACK</button>
+    </div>
+    <div id="panel-stock" class="panel hidden wide">
+      <h1>FOR SALE</h1>
+      <p class="hint">Only checked fish are sold to customers and listed on the stall. Saved between jobs.</p>
+      <div id="stockBox" class="stock"></div>
+      <button id="stockBack" type="button">BACK</button>
+    </div>
+    <div id="panel-bank" class="panel hidden wide">
+      <h1>LIQUIDITY</h1>
+      <p id="bankHint" class="hint">Cash on hand earns (or pays) the savings APY each job-year. Tranches lock funds until maturity, then dump back into cash.</p>
+      <p id="bankRates" class="hint"></p>
+      <p id="bankCash" class="hint"></p>
+      <div id="bankTiers"></div>
+      <h3 class="bank-h">Open lots</h3>
+      <div id="bankLots" class="hint">None.</div>
+      <button id="bankBack" type="button">BACK</button>
+    </div>
+    <div id="panel-hire" class="panel hidden wide">
+      <h1>STREET TALENT</h1>
+      <p id="hireHint" class="hint">Pick one. Three faces a job. After that the alley is empty until the next job.</p>
+      <div id="hireGrid" class="hire-grid"></div>
+      <button id="hireBack" type="button">BACK</button>
+    </div>
+    <div id="panel-hack" class="panel hidden">
+      <h1>GATE TERMINAL</h1>
+      <p id="hackHint" class="hint">Prove you are not a cop. Type the glyphs.</p>
+      <canvas id="hackCv" width="280" height="80"></canvas>
+      <input id="hackIn" maxlength="8" autocomplete="off" />
+      <button id="hackGo" type="button">UNLOCK</button>
+      <button id="hackBack" type="button" class="ghost">ABORT</button>
+    </div>
+    <div id="panel-level" class="panel hidden">
+      <h1>LEVEL UP</h1>
+      <p id="lvWho" class="hint"></p>
+      <p class="hint">Put the point where it hurts less.</p>
+      <div id="lvSkills" class="grid"></div>
+    </div>
+    <div id="panel-over" class="panel hidden">
+      <h1 id="overTitle">JOB OVER</h1>
+      <p id="overMsg"></p>
+      <button id="overBtn" type="button">BACK TO PLANNING</button>
+    </div>
+  </div>
+
+  <script src="js/game.js"></script>
+</body>
+</html>
