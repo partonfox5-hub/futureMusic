@@ -1,6 +1,7 @@
 (() => {
   const canvas = document.getElementById("view");
   const ctx = canvas.getContext("2d");
+  const overlayEl = document.getElementById("overlay");
   const keys = {};
   let W = 0, H = 0;
   const mouse = { x: 0, y: 0, live: false, left: 0, right: 0, mid: 0 };
@@ -147,6 +148,15 @@
     stun() {
       this.tone(80, 0.2, "sawtooth", 0.07, 40);
       this.noise(0.15, 0.08, 600);
+    },
+    coreBoom() {
+      this.noise(0.5, 0.24, 220);
+      this.noise(0.22, 0.14, 1600);
+      this.tone(70, 0.55, "sine", 0.14, 22);
+      this.tone(160, 0.32, "sawtooth", 0.1, 36);
+      this.tone(980, 0.09, "square", 0.07, 140);
+      this.tone(2100, 0.06, "square", 0.045, 280);
+      this.tone(440, 0.12, "triangle", 0.06, 90);
     },
     setThrust(on) {
       const ac = this.ctx();
@@ -513,6 +523,10 @@
     fuseT: 0,
     orbs: [],
     spawnO: 0.4,
+    sizeClass: 0,
+    sizePick: false,
+    buff: { hp: 0, dmg: 0, spd: 0, spawnHull: 0, spawnGun: 0, spawnMove: 0 },
+    bgStars: [],
     stunT: 0,
     warpT: 0,
     warpCd: 0,
@@ -524,7 +538,7 @@
   };
 
   const SPR = {};
-  const UP_COST = [500, 2500, 10000, 30000, 60000, 100000];
+  const UP_COST = [375, 1875, 7500, 22500, 45000, 75000];
   const META = { dmg: 0, spd: 0, nrg: 0, hp: 0, bank: 0 };
 
   function loadMeta() {
@@ -600,30 +614,76 @@
   function angTo(ax, ay, bx, by) {
     return Math.atan2(by - ay, bx - ax);
   }
+  function rebuildShip(ship) {
+    const list = [];
+    const batts = [];
+    const cells = ship.cells;
+    for (const k in cells) list.push(cells[k]);
+    let r = CELL;
+    const cnt = {};
+    let nThL = 0, nSpL = 0, nField = 0, fieldStr = 0, fieldMul = 0, warpL = 0, genL = 1;
+    for (let i = 0; i < list.length; i++) {
+      const c = list[i];
+      const L = c.lvl || 1;
+      const rr = Math.sqrt(c.x * c.x + c.y * c.y) * CELL + CELL * 0.7;
+      if (rr > r) r = rr;
+      cnt[c.type] = (cnt[c.type] || 0) + 1;
+      if (c.type === "thrust") nThL += L;
+      else if (c.type === "speed") nSpL += L;
+      else if (c.type === "field") {
+        nField++;
+        fieldStr += 0.5 * L;
+        fieldMul += Math.pow(1.5, L - 1);
+      } else if (c.type === "batt") batts.push(c);
+      else if (c.type === "warp") { if (L > warpL) warpL = L; }
+      else if (c.type === "gen") genL += L;
+    }
+    ship._list = list;
+    ship._batts = batts;
+    ship._rad = r;
+    ship._cnt = cnt;
+    ship._nThL = nThL;
+    ship._nSpL = nSpL;
+    ship._nField = nField;
+    ship._fieldStr = fieldStr;
+    ship._fieldMul = fieldMul;
+    ship._warpL = warpL;
+    ship._genL = genL;
+    ship._dirty = 0;
+    const ang = ship.ang || 0;
+    ship._angC = ang;
+    ship._cs = Math.cos(ang);
+    ship._sn = Math.sin(ang);
+  }
+  function cellsOf(ship) {
+    if (!ship._list || ship._dirty) rebuildShip(ship);
+    const ang = ship.ang || 0;
+    if (ship._angC !== ang) {
+      ship._angC = ang;
+      ship._cs = Math.cos(ang);
+      ship._sn = Math.sin(ang);
+    }
+    return ship._list;
+  }
   function eachCell(ship, fn) {
-    for (const k in ship.cells) fn(ship.cells[k], k);
+    const list = cellsOf(ship);
+    for (let i = 0; i < list.length; i++) fn(list[i]);
   }
   function countType(ship, type) {
-    let n = 0;
-    eachCell(ship, (c) => {
-      if (c.type === type) n++;
-    });
-    return n;
+    cellsOf(ship);
+    return ship._cnt[type] || 0;
   }
   function cellCount(ship) {
-    return Object.keys(ship.cells).length;
+    return cellsOf(ship).length;
   }
   function hullCount(ship) {
-    let n = 0;
-    eachCell(ship, (c) => {
-      if (c.type !== "core") n++;
-    });
-    return n;
+    cellsOf(ship);
+    return Math.max(0, (ship._list.length || 0) - (ship._cnt.core || 0));
   }
   function cellWorld(ship, c) {
-    const ang = ship.ang || 0;
+    if (ship._dirty || !ship._list || ship._angC !== (ship.ang || 0)) cellsOf(ship);
     const lx = c.x * CELL, ly = c.y * CELL;
-    const cs = Math.cos(ang), sn = Math.sin(ang);
+    const cs = ship._cs, sn = ship._sn;
     return {
       x: ship.x + lx * cs - ly * sn,
       y: ship.y + lx * sn + ly * cs,
@@ -651,11 +711,8 @@
     return 1 + (L - 1) * 0.14;
   }
   function shipRadius(ship) {
-    let r = CELL;
-    eachCell(ship, (c) => {
-      r = Math.max(r, hypot(c.x, c.y) * CELL + CELL * 0.7);
-    });
-    return r;
+    cellsOf(ship);
+    return ship._rad || CELL;
   }
   function hpOf(type) {
     if (type === "core") return 1;
@@ -943,7 +1000,7 @@
   function addCell(ship, x, y, type, extra) {
     const L = extra && extra.lvl ? clamp(extra.lvl, 1, 5) : 1;
     let hp = type === "wall" ? 3 + (L - 1) * 2 : hpOf(type) + (L - 1);
-    if (ship === S) hp *= metaMul("hp");
+    if (ship === S) hp *= metaMul("hp") * (1 + 0.1 * ((S.buff && S.buff.hp) || 0));
     const c = { x, y, type, hp, max: hp, cd: 0, flash: 0, shut: 0, lvl: L };
     if (type === "batt") {
       c.cap = BATT_CAP * L;
@@ -951,6 +1008,7 @@
     }
     if (extra && extra.dark) c.dark = 1;
     ship.cells[key(x, y)] = c;
+    ship._dirty = 1;
   }
   function upgradeCell(c) {
     if (compLvl(c) >= 5) return false;
@@ -980,10 +1038,12 @@
   }
   function delCell(ship, c) {
     delete ship.cells[key(c.x, c.y)];
+    ship._dirty = 1;
   }
 
   function resetShip() {
     S.cells = {};
+    S._dirty = 1;
     addCell(S, 0, 0, "core");
     for (let y = -1; y <= 1; y++) {
       for (let x = -1; x <= 1; x++) {
@@ -1011,18 +1071,80 @@
     S.spool = 0;
     S.spoolVel = 0;
     S.paused = false;
+    S.sizeClass = 0;
+    S.sizePick = false;
+    S.buff = { hp: 0, dmg: 0, spd: 0, spawnHull: 0, spawnGun: 0, spawnMove: 0 };
   }
 
   function makeStars() {
     S.stars = [];
-    for (let i = 0; i < 160; i++) {
-      S.stars.push({
-        x: (Math.random() - 0.5) * WORLD * 2,
-        y: (Math.random() - 0.5) * WORLD * 2,
-        s: 0.6 + Math.random() * 1.8,
-        a: 0.25 + Math.random() * 0.7,
+    S.bgStars = [];
+    for (let i = 0; i < 220; i++) {
+      const warm = Math.random();
+      S.bgStars.push({
+        x: Math.random(),
+        y: Math.random(),
+        s: warm > 0.92 ? 2.8 + Math.random() * 2.4 : 0.7 + Math.random() * 1.6,
+        a: 0.35 + Math.random() * 0.65,
+        c: warm > 0.78
+          ? [1, 0.82 + Math.random() * 0.12, 0.55 + Math.random() * 0.2]
+          : warm > 0.45
+            ? [0.75 + Math.random() * 0.2, 0.82, 1]
+            : [0.92, 0.94, 1],
+        tw: Math.random() * 6.28,
       });
     }
+  }
+
+  function classRadius() {
+    const base = 2.15 * 1.3 * CELL;
+    return base * 1.15 * Math.pow(1.5, S.sizeClass || 0);
+  }
+  function hullReach() {
+    let m = 0;
+    eachCell(S, (c) => {
+      m = Math.max(m, hypot(c.x, c.y) * CELL);
+    });
+    return m;
+  }
+  function openSizePick() {
+    if (S.sizePick || S.dead || S.paused) return;
+    S.sizePick = true;
+    const ov = document.getElementById("overlay");
+    document.getElementById("panel-title").classList.add("hidden");
+    document.getElementById("panel-over").classList.add("hidden");
+    document.getElementById("panel-pause").classList.add("hidden");
+    const msg = document.getElementById("sizeMsg");
+    if (msg) msg.textContent = "Class " + (S.sizeClass + 2) + " — pick a bonus for this run.";
+    document.getElementById("panel-size").classList.remove("hidden");
+    ov.classList.add("show");
+  }
+  function maybeSizeUp() {
+    if (S.sizePick || S.dead) return;
+    if (hullReach() > classRadius() + CELL * 0.5) openSizePick();
+  }
+  function applySizePick(kind) {
+    if (!S.sizePick) return;
+    if (kind === "hull") {
+      S.buff.hp += 1;
+      S.buff.spawnHull += 1;
+      eachCell(S, (c) => {
+        c.max *= 1.1;
+        c.hp *= 1.1;
+      });
+    } else if (kind === "gun") {
+      S.buff.dmg += 1;
+      S.buff.spawnGun += 1;
+    } else if (kind === "move") {
+      S.buff.spd += 1;
+      S.buff.spawnMove += 1;
+    } else return;
+    S.sizeClass += 1;
+    S.sizePick = false;
+    document.getElementById("panel-size").classList.add("hidden");
+    document.getElementById("overlay").classList.remove("show");
+    hud();
+    maybeSizeUp();
   }
 
   function centroid(shape) {
@@ -1055,11 +1177,24 @@
 
   function rndMod() {
     const r = Math.random();
-    if (r < 0.06) return "emp";
-    if (r < 0.12) return "warp";
-    if (r < 0.19) return "missile";
-    if (r < 0.28) return "gen";
-    return rnd(["laser", "thrust", "speed", "field", "claw", "batt"]);
+    const g = 1 + 0.1 * (S.buff.spawnGun || 0);
+    const m = 1 + 0.1 * (S.buff.spawnMove || 0);
+    const h = 1 + 0.1 * (S.buff.spawnHull || 0);
+    const bag = [];
+    const add = (t, n) => {
+      for (let i = 0; i < n; i++) bag.push(t);
+    };
+    add("emp", 5);
+    add("warp", 5);
+    add("missile", Math.round(7 * g));
+    add("laser", Math.round(16 * g));
+    add("gen", 8);
+    add("field", Math.round(10 * h));
+    add("speed", Math.round(12 * m));
+    add("thrust", Math.round(12 * m));
+    add("claw", 10);
+    add("batt", 12);
+    return rnd(bag);
   }
 
   function spawnPiece(mod, nearEdge) {
@@ -1110,11 +1245,8 @@
   }
 
   function battList(ship) {
-    const a = [];
-    eachCell(ship, (c) => {
-      if (c.type === "batt") a.push(c);
-    });
-    return a;
+    cellsOf(ship);
+    return ship._batts || [];
   }
   function energyOf(ship) {
     return battList(ship).reduce((s, c) => s + (c.store || 0), 0);
@@ -1123,11 +1255,8 @@
     return battList(ship).reduce((s, c) => s + (c.cap || BATT_CAP * compLvl(c)), 0);
   }
   function genPower(ship) {
-    let n = 1;
-    eachCell(ship, (c) => {
-      if (c.type === "gen") n += compLvl(c);
-    });
-    return n;
+    cellsOf(ship);
+    return ship._genL || 1;
   }
   function tickGen(ship, dt) {
     if (!ship || ship.dead) return;
@@ -1144,21 +1273,16 @@
     return (ship.stunT || 0) > 0;
   }
   function bestWarpLvl() {
-    let L = 0;
-    eachCell(S, (c) => {
-      if (c.type === "warp") L = Math.max(L, compLvl(c));
-    });
-    return L;
+    cellsOf(S);
+    return S._warpL || 0;
   }
   function warpSlow() {
     const L = Math.max(1, bestWarpLvl());
     return clamp(0.75 - (L - 1) * 0.1, 0.2, 0.75);
   }
   function thrustLurch() {
-    let nTh = 0;
-    eachCell(S, (c) => {
-      if (c.type === "thrust") nTh += compLvl(c);
-    });
+    cellsOf(S);
+    const nTh = S._nThL || 0;
     const mass = Math.max(1, cellCount(S) - 1);
     const ratio = nTh / mass;
     return {
@@ -1209,7 +1333,20 @@
       x = (Math.random() - 0.5) * WORLD * 1.5;
       y = (Math.random() - 0.5) * WORLD * 1.5;
     }
-    return { x, y, p: Math.random() * 6.28, s: 5 + Math.random() * 3 };
+    const warm = Math.random();
+    return {
+      x,
+      y,
+      p: Math.random() * 6.28,
+      s: 3.2 + Math.random() * 3.4,
+      tw: Math.random() * 6.28,
+      c: warm > 0.72
+        ? [1, 0.78 + Math.random() * 0.15, 0.48]
+        : warm > 0.4
+          ? [0.72, 0.84, 1]
+          : [0.95, 0.96, 1],
+      spike: Math.random() > 0.62,
+    };
   }
 
   function growCells(cells, rings) {
@@ -1411,6 +1548,7 @@
     if (ship === S) S.score += 5 * best.length;
     SFX.fuse(ship === S);
     spark(p.x, p.y, p.enemyTint ? "#ff6070" : "#c8e8ff", 8);
+    if (ship === S) maybeSizeUp();
     return true;
   }
 
@@ -1438,6 +1576,7 @@
     if (ship === S) S.score += 8 * compLvl(best);
     SFX.fuse(ship === S);
     spark(cellWorld(ship, best).x, cellWorld(ship, best).y, "#ffe080", 12);
+    if (ship === S) maybeSizeUp();
     if (!p.shape || p.shape.length <= 1) p.gone = 1;
     else {
       p.shape.splice(bestI, 1);
@@ -1488,23 +1627,15 @@
 
   function fieldStats(ship) {
     if (!shipHasPower(ship) || stunned(ship)) return { r: 0, str: 0 };
-    let n = 0, str = 0;
-    eachCell(ship, (c) => {
-      if (c.type !== "field") return;
-      n++;
-      str += 0.5 * compLvl(c);
-    });
-    if (!n) return { r: 0, str: 0 };
-    return { r: shipRadius(ship) + 28 + str * 28, str };
+    cellsOf(ship);
+    const str = ship._fieldStr || 0;
+    if (!str) return { r: 0, str: 0 };
+    return { r: ship._rad + 28 + str * 28, str };
   }
 
   function fieldDrainMul(ship) {
-    let m = 0;
-    eachCell(ship, (c) => {
-      if (c.type !== "field") return;
-      m += Math.pow(1.5, compLvl(c) - 1);
-    });
-    return m;
+    cellsOf(ship);
+    return ship._fieldMul || 0;
   }
 
   function applyField(proj, ship) {
@@ -1607,7 +1738,7 @@
     const L = compLvl(c);
     const lg = playerGun(c);
     return {
-      power: L * metaMul("dmg"),
+      power: lg.power,
       r: 4 + L * 0.55,
       spd: lg.spd / 3,
       cd: Math.max(0.36, lg.cd * 4),
@@ -1693,12 +1824,15 @@
   }
 
   function projHitsShip(pr, ship) {
-    let hit = false;
-    eachCell(ship, (c) => {
-      const w = cellWorld(ship, c);
-      if (hypot(pr.x - w.x, pr.y - w.y) < CELL * 0.52 + pr.r) hit = true;
-    });
-    return hit;
+    cellsOf(ship);
+    if (hypot(pr.x - ship.x, pr.y - ship.y) > (ship._rad || 40) + (pr.r || 4) + CELL) return false;
+    const list = ship._list;
+    const lim = CELL * 0.52 + (pr.r || 0);
+    for (let i = 0; i < list.length; i++) {
+      const w = cellWorld(ship, list[i]);
+      if (hypot(pr.x - w.x, pr.y - w.y) < lim) return true;
+    }
+    return false;
   }
 
   function maybeDetonate(pr) {
@@ -1728,7 +1862,7 @@
   function playerGun(c) {
     const L = compLvl(c);
     return {
-      power: L * metaMul("dmg"),
+      power: L * metaMul("dmg") * (1 + 0.1 * (S.buff.dmg || 0)),
       r: 2.5 + L * 0.7,
       spd: 580 + L * 30,
       cd: Math.max(0.09, 0.185 - L * 0.014),
@@ -1740,6 +1874,8 @@
   }
 
   function hitShip(ship, proj, isPlayer) {
+    cellsOf(ship);
+    if (hypot(proj.x - ship.x, proj.y - ship.y) > (ship._rad || 40) + (proj.r || 4) + CELL) return false;
     let hit = null;
     let best = 1e9;
     eachCell(ship, (c) => {
@@ -1809,6 +1945,7 @@
     if (en.dying) return;
     en.dying = 0.55;
     en.flash = 0.55;
+    SFX.coreBoom();
     en.grabbed = 0;
     S.holds.forEach((h) => {
       if (h.ref === en) h.ref = null;
@@ -1835,6 +1972,9 @@
         s: 4.5 + Math.random() * 3.5,
         vx: Math.cos(a) * sp,
         vy: Math.sin(a) * sp,
+        tw: Math.random() * 6.28,
+        c: [1, 0.82, 0.55],
+        spike: 1,
       });
     }
     eachCell(en, (c) => {
@@ -1902,7 +2042,7 @@
       if (c.type !== "claw") return;
       const o = cellWorld(S, c);
       const d = hypot(wm.x - o.x, wm.y - o.y) || 1;
-      const reach = 210 * (1 + (compLvl(c) - 1) * 0.2);
+      const reach = 210 * (1 + (compLvl(c) - 1) * 0.2) * Math.pow(1.05, S.sizeClass || 0);
       const k = Math.min(1, reach / d);
       tips.push({
         cell: c,
@@ -1971,15 +2111,19 @@
 
   function pieceHitsShip(p, ship) {
     ship = ship || S;
+    cellsOf(ship);
+    if (hypot(p.x - ship.x, p.y - ship.y) > (ship._rad || 40) + CELL * 5) return false;
     const cells = pieceWorldCells(p);
-    let hit = false;
-    cells.forEach((w) => {
-      eachCell(ship, (c) => {
-        const sw = cellWorld(ship, c);
-        if (hypot(w.x - sw.x, w.y - sw.y) < CELL * 1.05) hit = true;
-      });
-    });
-    return hit;
+    const list = ship._list;
+    const lim = CELL * 1.05;
+    for (let i = 0; i < cells.length; i++) {
+      const w = cells[i];
+      for (let j = 0; j < list.length; j++) {
+        const sw = cellWorld(ship, list[j]);
+        if (hypot(w.x - sw.x, w.y - sw.y) < lim) return true;
+      }
+    }
+    return false;
   }
 
   function worldMouse() {
@@ -2057,6 +2201,8 @@
     document.getElementById("bestVal").textContent = fmt(S.best);
     const hudBank = document.getElementById("hudBank");
     if (hudBank) hudBank.textContent = fmt(META.bank);
+    const classVal = document.getElementById("classVal");
+    if (classVal) classVal.textContent = String((S.sizeClass || 0) + 1);
     const box = document.getElementById("modBox");
     const map = {
       laser: "LAS " + countType(S, "laser"),
@@ -2092,24 +2238,23 @@
   }
 
   function speedNow() {
-    const n = cellCount(S);
-    let nSp = 0, nTh = 0;
-    eachCell(S, (c) => {
-      if (c.type === "speed") nSp += compLvl(c);
-      if (c.type === "thrust") nTh += compLvl(c);
-    });
-    const massK = 1 + 0.048 * Math.max(0, n - 9);
+    cellsOf(S);
+    const n = S._list.length;
+    const nSp = S._nSpL || 0;
+    const nTh = S._nThL || 0;
+    const massK = 1 + 0.0384 * Math.max(0, n - 9);
     let spd = (205 * SPD_MUL * (1 + 0.225 * nSp)) / massK;
     S.fuelMax = 1.5 + 0.4 * nTh;
     const boost = 1.96 + 0.28 * nTh;
     const spool = clamp(S.spool, 0, 1.35);
     spd *= 1 + (boost - 1) * spool;
-    return spd * metaMul("spd");
+    return spd * metaMul("spd") * (1 + 0.1 * (S.buff.spd || 0));
   }
 
   function tick(dt) {
+    if (S.sizePick) return;
     if (S.paused) return;
-    if (document.getElementById("overlay").classList.contains("show") && !S.dead) return;
+    if (overlayEl && overlayEl.classList.contains("show") && !S.dead) return;
     S.t += dt;
     S.shake *= 0.88;
     S.ramT = Math.max(0, S.ramT - dt);
@@ -2329,9 +2474,12 @@
       }
     });
     for (let i = 0; i < S.pieces.length; i++) {
+      const a = S.pieces[i];
+      if (a.gone || a.grabbed) continue;
       for (let j = i + 1; j < S.pieces.length; j++) {
-        const a = S.pieces[i], b = S.pieces[j];
-        if (a.gone || b.gone || a.grabbed || b.grabbed) continue;
+        const b = S.pieces[j];
+        if (b.gone || b.grabbed) continue;
+        if (hypot(a.x - b.x, a.y - b.y) > CELL * 8) continue;
         tryMergePieces(a, b);
       }
     }
@@ -2571,6 +2719,7 @@
     S.proj = S.proj.filter((p) => p.life > 0);
     S.pieces = S.pieces.filter((p) => !p.gone);
 
+    if (S.fx.length > 90) S.fx.splice(0, S.fx.length - 90);
     S.fx.forEach((p) => {
       p.t -= dt;
       p.x += p.vx * dt;
@@ -2591,11 +2740,11 @@
     const needE = (S.t < 40 ? 1 : 2) + Math.min(6, (S.score / 500) | 0);
     if (S.spawnP <= 0 && S.pieces.filter((p) => p.kind === "drift").length < needP) {
       S.pieces.push(spawnPiece(false, true));
-      S.spawnP = 0.7;
+      S.spawnP = 0.7 / (1 + 0.1 * (S.buff.spawnHull || 0));
     }
     if (S.spawnM <= 0 && S.pieces.filter((p) => p.kind === "mod").length < needM) {
       S.pieces.push(spawnPiece(true, true));
-      S.spawnM = 1.4;
+      S.spawnM = 1.4 / (1 + 0.06 * ((S.buff.spawnGun || 0) + (S.buff.spawnMove || 0) + (S.buff.spawnHull || 0)));
     }
     if (S.spawnE <= 0 && S.enemies.length < needE) {
       S.enemies.push(spawnEnemy(pickFleet()));
@@ -2615,13 +2764,19 @@
   }
 
   function ramShips(a, b) {
+    cellsOf(a);
+    cellsOf(b);
+    if (hypot(a.x - b.x, a.y - b.y) > (a._rad || 40) + (b._rad || 40)) return;
     let hit = false;
     let coreA = false;
     let coreB = null;
     const chips = [];
-    eachCell(a, (ca) => {
+    const la = a._list, lb = b._list;
+    for (let i = 0; i < la.length; i++) {
+      const ca = la[i];
       const wa = cellWorld(a, ca);
-      eachCell(b, (cb) => {
+      for (let j = 0; j < lb.length; j++) {
+        const cb = lb[j];
         const wb = cellWorld(b, cb);
         if (hypot(wa.x - wb.x, wa.y - wb.y) < CELL * 0.78) {
           hit = true;
@@ -2630,8 +2785,8 @@
           if (ca.type !== "core") chips.push(ca);
           if (cb.type !== "core") chips.push(cb);
         }
-      });
-    });
+      }
+    }
     if (!hit) return;
     const dx = a.x - b.x, dy = a.y - b.y;
     const d = hypot(dx, dy) || 1;
@@ -2657,14 +2812,21 @@
   }
 
   function stealContact(e) {
+    cellsOf(S);
+    cellsOf(e);
+    if (hypot(e.x - S.x, e.y - S.y) > (S._rad || 40) + (e._rad || 40) + CELL) return;
     const coreE = Object.values(e.cells).find((c) => c.type === "core");
     if (coreE) {
       const w = cellWorld(e, coreE);
       let blocked = false;
-      eachCell(S, (ca) => {
-        const wa = cellWorld(S, ca);
-        if (hypot(w.x - wa.x, w.y - wa.y) < CELL * 0.78) blocked = true;
-      });
+      const list = S._list;
+      for (let i = 0; i < list.length; i++) {
+        const wa = cellWorld(S, list[i]);
+        if (hypot(w.x - wa.x, w.y - wa.y) < CELL * 0.78) {
+          blocked = true;
+          break;
+        }
+      }
       if (blocked) {
         killEnemy(e);
         spark(w.x, w.y, "#ff4060", 14);
@@ -2782,9 +2944,11 @@
     const sc = lvlScale(compLvl(c));
     const half = CELL * 0.58 * sc;
     if (c.flash > 0) ctx.globalAlpha = 0.55 + Math.sin(S.t * 80) * 0.45;
-    ctx.fillStyle = enemy || c.dark ? "#3a3238" : "#6a7380";
-    ctx.fillRect(-half * 0.9, -half * 0.9, half * 1.8, half * 1.8);
     if (spr) ctx.drawImage(spr, -half, -half, half * 2, half * 2);
+    else {
+      ctx.fillStyle = enemy || c.dark ? "#3a3238" : "#6a7380";
+      ctx.fillRect(-half * 0.9, -half * 0.9, half * 1.8, half * 1.8);
+    }
     if (compLvl(c) > 1) {
       ctx.strokeStyle = "rgba(255,224,120," + (0.35 + 0.1 * compLvl(c)) + ")";
       ctx.lineWidth = Math.max(1.2, 2 / (S.cam.z || 1));
@@ -2889,9 +3053,87 @@
     });
   }
 
-  function draw() {
-    ctx.fillStyle = "#05070c";
+  function drawNebula() {
+    ctx.fillStyle = "#000005";
     ctx.fillRect(0, 0, W, H);
+    const t = S.t;
+    const blobs = [
+      [0.32, 0.42, 0.62, "rgba(42,10,48,0.55)"],
+      [0.68, 0.38, 0.52, "rgba(10,32,46,0.48)"],
+      [0.5, 0.52, 0.78, "rgba(52,28,8,0.26)"],
+      [0.48, 0.48, 0.28, "rgba(110,72,28,0.16)"],
+    ];
+    blobs.forEach((b) => {
+      const x = W * (b[0] + Math.sin(t * 0.028) * 0.02);
+      const y = H * (b[1] + Math.cos(t * 0.022) * 0.018);
+      const r = Math.max(W, H) * b[2];
+      const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+      g.addColorStop(0, b[3]);
+      g.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, 7);
+      ctx.fill();
+    });
+    const cx = W * 0.5, cy = H * 0.5;
+    const cg = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.min(W, H) * 0.42);
+    cg.addColorStop(0, "rgba(95,72,32,0.14)");
+    cg.addColorStop(0.45, "rgba(40,22,10,0.05)");
+    cg.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = cg;
+    ctx.fillRect(0, 0, W, H);
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(t * 0.012);
+    ctx.strokeStyle = "rgba(180,120,50,0.07)";
+    ctx.lineWidth = 18;
+    for (let a = 0; a < 3; a++) {
+      ctx.beginPath();
+      for (let i = 0; i < 40; i++) {
+        const u = i / 40;
+        const ang = a * 2.09 + u * 5.2;
+        const rad = 30 + u * Math.min(W, H) * 0.55;
+        const x = Math.cos(ang) * rad, y = Math.sin(ang) * rad * 0.55;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    }
+    ctx.restore();
+    const stars = S.bgStars || [];
+    for (let i = 0; i < stars.length; i++) {
+      const st = stars[i];
+      const tw = 0.65 + 0.35 * Math.sin(S.t * 2.2 + st.tw);
+      ctx.globalAlpha = st.a * tw;
+      ctx.fillStyle = "rgb(" + ((st.c[0] * 255) | 0) + "," + ((st.c[1] * 255) | 0) + "," + ((st.c[2] * 255) | 0) + ")";
+      const s = st.s * tw;
+      ctx.fillRect(st.x * W, st.y * H, s, s);
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function drawPickupStar(o) {
+    const tw = 0.6 + Math.sin(S.t * 5.5 + (o.tw || o.p || 0)) * 0.35;
+    const col = o.c || [1, 0.86, 0.55];
+    const s = (o.s || 4) * tw;
+    ctx.fillStyle = "rgba(" + ((col[0] * 255) | 0) + "," + ((col[1] * 255) | 0) + "," + ((col[2] * 255) | 0) + "," + (0.55 + 0.4 * tw) + ")";
+    ctx.beginPath();
+    ctx.arc(o.x, o.y, s * 0.55, 0, 7);
+    ctx.fill();
+    if (o.spike) {
+      ctx.strokeStyle = "rgba(" + ((col[0] * 255) | 0) + "," + ((col[1] * 255) | 0) + "," + ((col[2] * 255) | 0) + ",0.45)";
+      ctx.lineWidth = 0.8 / Math.max(0.4, S.cam.z);
+      ctx.beginPath();
+      ctx.moveTo(o.x - s * 2.2, o.y);
+      ctx.lineTo(o.x + s * 2.2, o.y);
+      ctx.moveTo(o.x, o.y - s * 2.2);
+      ctx.lineTo(o.x, o.y + s * 2.2);
+      ctx.stroke();
+    }
+  }
+
+  function draw() {
+    drawNebula();
     ctx.save();
     const shx = (Math.random() - 0.5) * S.shake;
     const shy = (Math.random() - 0.5) * S.shake;
@@ -2899,29 +3141,14 @@
     ctx.scale(S.cam.z, S.cam.z);
     ctx.translate(-S.cam.x, -S.cam.y);
 
-    S.stars.forEach((st) => {
-      ctx.globalAlpha = st.a;
-      ctx.fillStyle = "#d0e8ff";
-      ctx.fillRect(st.x, st.y, st.s / S.cam.z, st.s / S.cam.z);
-    });
-    ctx.globalAlpha = 1;
+    const viewLim = (Math.max(W, H) * 0.72) / Math.max(0.2, S.cam.z) + 120;
+    const viewLim2 = viewLim * viewLim;
+    function onScreen(x, y) {
+      const dx = x - S.cam.x, dy = y - S.cam.y;
+      return dx * dx + dy * dy < viewLim2;
+    }
     S.orbs.forEach((o) => {
-      const tw = 0.55 + Math.sin(S.t * 7 + o.p) * 0.35;
-      ctx.save();
-      ctx.translate(o.x, o.y);
-      ctx.rotate(S.t * 0.9 + o.p);
-      ctx.fillStyle = "rgba(255,236,170," + tw + ")";
-      ctx.beginPath();
-      const r0 = o.s, r1 = o.s * 0.32;
-      for (let i = 0; i < 8; i++) {
-        const r = i % 2 ? r1 : r0;
-        const a = (i / 8) * Math.PI * 2 - Math.PI / 2;
-        if (i === 0) ctx.moveTo(Math.cos(a) * r, Math.sin(a) * r);
-        else ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
-      }
-      ctx.closePath();
-      ctx.fill();
-      ctx.restore();
+      if (onScreen(o.x, o.y)) drawPickupStar(o);
     });
 
     const f = fieldStats(S);
@@ -2935,9 +3162,12 @@
       ctx.fill();
     }
 
-    S.pieces.forEach(drawPiece);
+    S.pieces.forEach((p) => {
+      if (onScreen(p.x, p.y)) drawPiece(p);
+    });
     S.enemies.forEach((e) => {
       if (e.dead) return;
+      if (!onScreen(e.x, e.y)) return;
       const ef = fieldStats(e);
       if (ef.str) {
         ctx.beginPath();
@@ -2948,7 +3178,19 @@
       }
       drawShip(e, true);
     });
-    if (!S.dead || S.overT < 0.5) drawShip(S, false);
+    if (!S.dead || S.overT < 0.5) {
+      const cr = classRadius();
+      ctx.save();
+      ctx.strokeStyle = "rgba(180,210,255,0.35)";
+      ctx.lineWidth = 1.2 / Math.max(0.4, S.cam.z);
+      ctx.setLineDash([5 / S.cam.z, 7 / S.cam.z]);
+      ctx.beginPath();
+      ctx.arc(S.x, S.y, cr, 0, 7);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.restore();
+      drawShip(S, false);
+    }
 
     const tips = clawTips();
     tips.forEach((t) => {
@@ -3105,7 +3347,7 @@
     S.zoom = clamp(S.zoom * step, 0.5, 2);
   }, { passive: false });
   function setPause(on) {
-    if (S.dead) return;
+    if (S.dead || S.sizePick) return;
     const ov = document.getElementById("overlay");
     const title = document.getElementById("panel-title");
     if (!title.classList.contains("hidden") && ov.classList.contains("show") && !S.paused) return;
@@ -3128,7 +3370,7 @@
   window.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
       e.preventDefault();
-      if (S.dead) return;
+      if (S.dead || S.sizePick) return;
       const ov = document.getElementById("overlay");
       const title = document.getElementById("panel-title");
       if (ov.classList.contains("show") && !title.classList.contains("hidden") && !S.paused) return;
@@ -3172,6 +3414,11 @@
   });
 
   document.getElementById("overlay").addEventListener("click", (e) => {
+    const sizeBtn = e.target.closest(".size-pick");
+    if (sizeBtn) {
+      applySizePick(sizeBtn.getAttribute("data-pick"));
+      return;
+    }
     const btn = e.target.closest(".upg");
     if (!btn || btn.disabled) return;
     buyUpgrade(btn.getAttribute("data-k"));
@@ -3205,6 +3452,7 @@
     document.getElementById("bestVal").textContent = fmt(S.best);
   } catch (e) {}
   refreshShop();
+  makeStars();
 
   (function bootSplash() {
     const logo = document.getElementById("logo-screen");

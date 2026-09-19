@@ -45,6 +45,7 @@
     <div id="scoreVal">0</div>
     <div class="best">BEST <span id="bestVal">0</span></div>
     <div class="best">BANK <span id="hudBank">0</span></div>
+    <div class="best">CLASS <span id="classVal">1</span></div>
   </div>
   <div id="barWrap"><div id="bar"></div></div>
   <div id="nrgWrap"><div id="nrgBar"></div></div>
@@ -97,6 +98,27 @@
       <p>The reactor still ticks. The dark does not.</p>
       <button type="button" id="resumeBtn">RESUME</button>
       <button type="button" id="pauseTitleBtn" class="ghost">TITLE</button>
+    </div>
+    <div class="panel hidden" id="panel-size">
+      <h1>SIZE CLASS UP</h1>
+      <p id="sizeMsg">You built past your class sphere. Pick a bonus for this run.</p>
+      <div class="size-row">
+        <button type="button" class="size-pick" data-pick="hull">
+          <b>PLATE</b>
+          <span>+10% hull health</span>
+          <span>+10% plate &amp; field wrecks</span>
+        </button>
+        <button type="button" class="size-pick" data-pick="gun">
+          <b>BATTERY</b>
+          <span>+10% damage, all guns</span>
+          <span>+10% turret &amp; missile wrecks</span>
+        </button>
+        <button type="button" class="size-pick" data-pick="move">
+          <b>KINETIC</b>
+          <span>+10% move speed</span>
+          <span>+10% speed coils &amp; thrusters</span>
+        </button>
+      </div>
     </div>
   </div>
 
