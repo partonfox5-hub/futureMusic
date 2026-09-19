@@ -164,77 +164,210 @@
     if (ac.state === "suspended") ac.resume();
     return ac;
   }
+  function env(g, t, peak, dur) {
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(Math.max(0.0002, peak), t + 0.006);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  }
   function beep(freq, dur, type, vol, slide) {
     const a = audio();
     const o = a.createOscillator();
     const g = a.createGain();
-    o.type = type || "square";
+    o.type = type || "sine";
     o.connect(g);
     g.connect(a.destination);
     const t = a.currentTime;
     o.frequency.setValueAtTime(freq, t);
-    if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(40, slide), t + dur);
-    g.gain.setValueAtTime(vol || 0.05, t);
-    g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(20, slide), t + dur);
+    env(g, t, vol || 0.05, dur);
     o.start(t);
     o.stop(t + dur + 0.02);
   }
-  function noiseBurst(dur, vol) {
+  function noiseTone(dur, vol, type, freq, q) {
     const a = audio();
-    const n = a.createBuffer(1, a.sampleRate * dur, a.sampleRate);
+    const n = a.createBuffer(1, Math.max(1, Math.floor(a.sampleRate * dur)), a.sampleRate);
     const d = n.getChannelData(0);
-    for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
     const src = a.createBufferSource();
     const g = a.createGain();
     const f = a.createBiquadFilter();
     src.buffer = n;
-    f.type = "highpass";
-    f.frequency.value = 900;
+    f.type = type || "bandpass";
+    f.frequency.value = freq || 800;
+    f.Q.value = q || 1;
     src.connect(f);
     f.connect(g);
     g.connect(a.destination);
-    g.gain.setValueAtTime(vol || 0.08, a.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.001, a.currentTime + dur);
+    env(g, a.currentTime, vol || 0.08, dur);
     src.start();
+  }
+  const gunBufs = new Map();
+  const gunVoices = new Set();
+  function gunBuffer(kind) {
+    const a = audio();
+    const key = kind + ":" + a.sampleRate;
+    if (gunBufs.has(key)) return gunBufs.get(key);
+    const dur = kind === "rifle" || kind === "sniper" ? 1.1 : 0.48;
+    const b = a.createBuffer(1, Math.ceil(a.sampleRate * dur), a.sampleRate);
+    const d = b.getChannelData(0);
+    let low = 0;
+    let seed = kind.length * 197 + 37;
+    for (let i = 0; i < d.length; i++) {
+      const t = i / a.sampleRate;
+      seed = (Math.imul(seed, 1664525) + 1013904223) | 0;
+      const noise = (seed >>> 0) / 2147483648 - 1;
+      low += 0.09 * (noise - low);
+      const heavy = kind === "shotgun" || kind === "sniper";
+      let x =
+        (noise - low) * Math.exp(-t * 95) * 0.8 +
+        low * Math.exp(-t * (heavy ? 7 : 12)) * 1.4 +
+        Math.sin(2 * Math.PI * (heavy ? 78 : 130) * t) * Math.exp(-t * 34) * 0.65;
+      const tails = [
+        [0.034, 0.24],
+        [0.085, 0.15],
+        [0.17, 0.11],
+        [0.31, 0.07],
+      ];
+      for (let k = 0; k < tails.length; k++) {
+        const delay = tails[k][0];
+        const amp = tails[k][1];
+        if (t > delay) x += noise * amp * Math.exp(-(t - delay) * 26);
+      }
+      d[i] = Math.tanh(x) * 0.76;
+    }
+    gunBufs.set(key, b);
+    return b;
+  }
+  function playGunKind(kind, vol) {
+    if (gunVoices.size >= 12) return;
+    const a = audio();
+    const s = a.createBufferSource();
+    const g = a.createGain();
+    const f = a.createBiquadFilter();
+    s.buffer = gunBuffer(kind);
+    s.playbackRate.value = 0.96 + Math.random() * 0.08;
+    f.type = "lowpass";
+    f.frequency.value = kind === "shotgun" || kind === "sniper" ? 6200 : 9000;
+    g.gain.value = vol || (kind === "shotgun" ? 0.5 : kind === "uzi" ? 0.32 : 0.4);
+    s.connect(f);
+    f.connect(g);
+    g.connect(a.destination);
+    gunVoices.add(s);
+    s.onended = () => {
+      try {
+        s.disconnect();
+        f.disconnect();
+        g.disconnect();
+      } catch (e) {}
+      gunVoices.delete(s);
+    };
+    s.start();
+  }
+  const GUN_SFX = { pistol: "pistol", smg: "uzi", shot: "shotgun", rifle: "rifle" };
+  function sfxGun(id) {
+    try {
+      if (id === "laser" || id === "cannon") {
+        sfx("laser");
+        return;
+      }
+      playGunKind(GUN_SFX[id] || "rifle");
+    } catch (e) {}
   }
   function sfx(kind) {
     try {
-      if (kind === "gun" || kind === "fire") {
-        beep(180, 0.05, "square", 0.05, 70);
-        noiseBurst(0.06, 0.07);
+      if (kind === "gun") {
+        playGunKind("rifle");
+        return;
+      }
+      if (kind === "fire") {
+        beep(210, 0.1, "square", 0.045, 70);
+        noiseTone(0.12, 0.05, "lowpass", 480, 0.8);
         return;
       }
       if (kind === "hit") {
-        beep(90, 0.07, "square", 0.06, 50);
-        noiseBurst(0.05, 0.05);
+        beep(90, 0.12, "triangle", 0.07, 32);
+        noiseTone(0.14, 0.07, "bandpass", 420, 2.2);
         return;
       }
       if (kind === "catch") {
-        beep(392, 0.07, "square", 0.05);
-        setTimeout(() => beep(523, 0.08, "square", 0.05), 70);
-        setTimeout(() => beep(659, 0.1, "square", 0.05), 140);
+        beep(523, 0.07, "sine", 0.05);
+        setTimeout(() => beep(659, 0.08, "sine", 0.05), 70);
+        setTimeout(() => beep(784, 0.1, "sine", 0.055), 140);
         return;
       }
       if (kind === "win") {
-        [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => beep(f, 0.12, "square", 0.05), i * 90));
+        [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => beep(f, 0.14, "sine", 0.05), i * 90));
         return;
       }
       if (kind === "fail") {
-        beep(160, 0.18, "square", 0.06, 50);
-        setTimeout(() => beep(80, 0.22, "square", 0.06), 120);
+        beep(160, 0.18, "triangle", 0.06, 50);
+        setTimeout(() => beep(80, 0.22, "sine", 0.055, 36), 120);
         return;
       }
-      const tab = {
-        click: [330, 0.04, "square", 0.035],
-        hire: [440, 0.08, "square", 0.05],
-        laser: [880, 0.07, "square", 0.04],
-        miss: [196, 0.07, "square", 0.03],
-        build: [262, 0.08, "square", 0.04],
-        sell: [698, 0.1, "square", 0.05],
-        hurt: [98, 0.12, "square", 0.06],
-      };
-      const m = tab[kind] || tab.click;
-      beep(m[0], m[1], m[2], m[3], kind === "sell" ? m[0] * 1.5 : 0);
+      if (kind === "laser") {
+        beep(1480, 0.12, "sawtooth", 0.04, 420);
+        return;
+      }
+      if (kind === "click") {
+        beep(880, 0.035, "triangle", 0.03, 520);
+        return;
+      }
+      if (kind === "hire") {
+        beep(392, 0.07, "sine", 0.045);
+        setTimeout(() => beep(523, 0.1, "sine", 0.05), 80);
+        return;
+      }
+      if (kind === "miss") {
+        beep(196, 0.08, "triangle", 0.03, 140);
+        noiseTone(0.07, 0.03, "highpass", 1400, 0.7);
+        return;
+      }
+      if (kind === "build") {
+        noiseTone(0.18, 0.07, "bandpass", 520, 3);
+        beep(174, 0.12, "triangle", 0.04, 90);
+        return;
+      }
+      if (kind === "sell") {
+        beep(698, 0.1, "sine", 0.045, 1046);
+        return;
+      }
+      if (kind === "hurt") {
+        beep(98, 0.16, "square", 0.05, 40);
+        noiseTone(0.14, 0.06, "lowpass", 280, 0.7);
+        return;
+      }
+      if (kind === "deploy") {
+        beep(196, 0.08, "sine", 0.04);
+        setTimeout(() => beep(294, 0.09, "sine", 0.045), 70);
+        setTimeout(() => beep(392, 0.12, "sine", 0.05), 150);
+        return;
+      }
+      if (kind === "extract") {
+        noiseTone(0.22, 0.05, "bandpass", 700, 1.1);
+        beep(330, 0.16, "sine", 0.045, 520);
+        return;
+      }
+      if (kind === "board") {
+        beep(140, 0.1, "sine", 0.05, 70);
+        noiseTone(0.1, 0.05, "lowpass", 380, 0.9);
+        return;
+      }
+      if (kind === "heli") {
+        noiseTone(0.28, 0.06, "bandpass", 240, 0.8);
+        beep(110, 0.24, "sawtooth", 0.035, 70);
+        return;
+      }
+      if (kind === "hack") {
+        beep(880, 0.05, "square", 0.03);
+        setTimeout(() => beep(1320, 0.07, "square", 0.028), 55);
+        return;
+      }
+      if (kind === "missile") {
+        noiseTone(0.12, 0.06, "bandpass", 900, 1.1);
+        beep(240, 0.08, "sawtooth", 0.04, 80);
+        return;
+      }
+      beep(330, 0.04, "triangle", 0.03, 220);
     } catch (e) {}
   }
 
@@ -874,7 +1007,10 @@
       sfx("click");
       renderPlan();
     };
-    document.getElementById("dArm").onclick = () => openShop(me);
+    document.getElementById("dArm").onclick = () => {
+      sfx("click");
+      openShop(me);
+    };
     const tweakCut = (dir) => {
       if (me.cutAdj) return;
       me.cut = Math.max(0.0025, me.cut + dir * 0.0025);
@@ -1166,7 +1302,7 @@
     document.getElementById("mission").classList.remove("hidden");
     hideOverlay();
     paintCash();
-    sfx("click");
+    sfx("deploy");
   }
 
   function hostile(m) {
@@ -1337,7 +1473,7 @@
     u.job = "move";
     u.x = v.x;
     u.y = v.y;
-    sfx("click");
+    sfx("board");
   }
 
   function placeBuild(x, y) {
@@ -2225,7 +2361,8 @@
             });
           }
           v.cd = 1 / v.def.rate;
-          sfx("gun");
+          if (v.def.atk === "turret" || v.def.atk === "cannon") sfx("laser");
+          else playGunKind(v.def.atk === "guns" ? "uzi" : "rifle");
         }
       }
       const defended = riders.length > 0 || state.units.some((u) => u.crew.hp > 0 && Math.hypot(u.x - v.x, u.y - v.y) < 42);
@@ -2348,7 +2485,7 @@
       if (!state.heli && live.some((u) => inExtract(u) && !u.veh)) {
         state.heli = { phase: "in", t: 0, x: z.x - 90, y: -36 };
         float(z.x, z.y - 24, "BIRD INBOUND");
-        sfx("win");
+        sfx("heli");
       }
     }
     const h = state.heli;
@@ -2414,7 +2551,7 @@
       life: 0.8,
       laser: gun.id.indexOf("laser") >= 0 || gun.id === "cannon",
     });
-    sfx(gun.id === "cannon" || gun.id === "laser" ? "laser" : "gun");
+    sfxGun(gun.id);
   }
 
   const skyCv = document.getElementById("sky");
@@ -2479,7 +2616,7 @@
       vx: fx * 380,
       vy: fy * 260 + (Math.random() - 0.5) * 24,
     });
-    sfx("gun");
+    sfx("missile");
   }
 
   function finishSky(ok) {
@@ -3741,11 +3878,21 @@
 
   document.getElementById("startBtn").onclick = () => {
     audio();
+    sfx("click");
     startPlan();
   };
-  document.getElementById("howBtn").onclick = () => showPanel("panel-how");
-  document.getElementById("howBack").onclick = () => showPanel("panel-main");
-  document.getElementById("hireBtn").onclick = () => openHire();
+  document.getElementById("howBtn").onclick = () => {
+    sfx("click");
+    showPanel("panel-how");
+  };
+  document.getElementById("howBack").onclick = () => {
+    sfx("click");
+    showPanel("panel-main");
+  };
+  document.getElementById("hireBtn").onclick = () => {
+    sfx("click");
+    openHire();
+  };
   function openHire() {
     if ((state.hiredThisJob || 0) >= 3) return;
     if (!state.hirePool || !state.hirePool.length) rollHirePool();
@@ -3789,6 +3936,7 @@
     showPanel("panel-hire");
   }
   document.getElementById("hireBack").onclick = () => {
+    sfx("click");
     hideOverlay();
     renderPlan();
   };
@@ -3892,6 +4040,7 @@
     };
     nextHackRound();
     showPanel("panel-hack");
+    sfx("hack");
   }
   document.getElementById("hackGo").onclick = () => {
     if (!state.hack || !state.fence) return;
@@ -3911,9 +4060,15 @@
       } else document.getElementById("hackHint").textContent = "Wrong. Tries " + state.hack.tries + ".";
     }
   };
-  document.getElementById("hackBack").onclick = () => hideOverlay();
+  document.getElementById("hackBack").onclick = () => {
+    sfx("click");
+    hideOverlay();
+  };
   document.getElementById("goBtn").onclick = deploy;
-  document.getElementById("marketBtn").onclick = () => renderMarket();
+  document.getElementById("marketBtn").onclick = () => {
+    sfx("click");
+    renderMarket();
+  };
   const mktChart = document.getElementById("mktChart");
   if (mktChart) {
     mktChart.addEventListener(
@@ -3929,33 +4084,48 @@
     );
   }
   document.getElementById("mktSort").onclick = () => {
+    sfx("click");
     state.mktSort = !state.mktSort;
     document.getElementById("mktSort").textContent = state.mktSort ? "SORTED BY STOCK" : "SORT BY STOCK";
     renderMarket();
   };
-  document.getElementById("garageBtn").onclick = () => renderGarage();
-  document.getElementById("stockBtn").onclick = () => renderStock();
+  document.getElementById("garageBtn").onclick = () => {
+    sfx("click");
+    renderGarage();
+  };
+  document.getElementById("stockBtn").onclick = () => {
+    sfx("click");
+    renderStock();
+  };
   document.getElementById("marketBack").onclick = () => {
+    sfx("click");
     hideOverlay();
     renderPlan();
   };
   document.getElementById("garageBack").onclick = () => {
+    sfx("click");
     hideOverlay();
     renderPlan();
   };
   document.getElementById("stockBack").onclick = () => {
+    sfx("click");
     hideOverlay();
     renderPlan();
   };
   document.getElementById("shopBtn").onclick = () => {
     const me = state.crew.find((c) => c.id === state.sel) || state.crew[0];
-    if (me) openShop(me);
+    if (me) {
+      sfx("click");
+      openShop(me);
+    }
   };
   document.getElementById("shopBack").onclick = () => {
+    sfx("click");
     hideOverlay();
     renderPlan();
   };
   document.getElementById("overBtn").onclick = () => {
+    sfx("click");
     hideOverlay();
     document.getElementById("mission").classList.add("hidden");
     document.getElementById("plan").classList.remove("hidden");
@@ -4027,6 +4197,7 @@
   }
 
   document.getElementById("cashBox").onclick = () => {
+    sfx("click");
     if (state.screen === "plan") {
       const inp = document.querySelector("#liqTiers input");
       if (inp) inp.focus();
@@ -4035,6 +4206,7 @@
   const bankBack = document.getElementById("bankBack");
   if (bankBack)
     bankBack.onclick = () => {
+      sfx("click");
       hideOverlay();
       renderPlan();
     };
@@ -4064,8 +4236,12 @@
     showPanel("panel-bags");
   }
 
-  document.getElementById("bagsBtn").onclick = () => renderBags();
+  document.getElementById("bagsBtn").onclick = () => {
+    sfx("click");
+    renderBags();
+  };
   document.getElementById("bagsBack").onclick = () => {
+    sfx("click");
     hideOverlay();
     renderPlan();
   };
@@ -4078,7 +4254,7 @@
       u.tx = state.extract.x;
       u.ty = state.extract.y;
     });
-    sfx("click");
+    sfx("extract");
     float(state.extract.x, state.extract.y - 20, "EXTRACT · ALL LIVING");
   };
   document.querySelectorAll("#orders [data-order]").forEach((b) => {
@@ -4134,6 +4310,7 @@
         }
       }
       document.querySelectorAll("#orders [data-order]").forEach((x) => x.classList.toggle("on", x === b));
+      sfx("click");
     };
   });
   document.querySelectorAll("#buildMenu [data-build]").forEach((b) => {
