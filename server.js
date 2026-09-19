@@ -350,6 +350,7 @@ app.get(['/games/neweden', '/games/neweden/'], (req, res) => res.redirect('/newe
 app.get('/zombie-defense', (req, res) => res.render('game-landing', seo.page('zombie-defense')));
 app.get('/paintcadia', (req, res) => res.render('game-landing', seo.page('paintcadia')));
 app.get('/fish-extractor', (req, res) => res.render('game-landing', seo.page('fish-extractor')));
+app.get('/starfighter', (req, res) => res.render('game-landing', seo.page('starfighter')));
 app.get('/terrarium', (req, res) => res.render('game-landing', seo.page('terrarium')));
 
 // SHARK — unlisted VR sub game. Register before static so /games/shark/ does not

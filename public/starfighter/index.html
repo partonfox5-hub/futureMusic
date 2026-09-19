@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Starfighter</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Ops+One&display=swap" />
+  <link rel="stylesheet" href="css/game.css" />
+</head>
+<body>
+  <div id="logo-screen">
+    <img src="img/shinemoreonline.png" alt="Shine More Online" />
+  </div>
+  <div id="click-start" class="hidden">
+    <h1>CLICK TO START</h1>
+  </div>
+  <canvas id="view"></canvas>
+  <div id="hud">
+    <div id="hullBox">
+      <span class="lbl">HULL</span>
+      <span id="hullVal">8</span>
+      <span id="hullMax"></span>
+    </div>
+    <div id="modBox">
+      <span data-k="laser">LAS 0</span>
+      <span data-k="thrust">THR 0</span>
+      <span data-k="speed">SPD 0</span>
+      <span data-k="field">FLD 0</span>
+      <span data-k="claw">CLAW 0</span>
+      <span data-k="batt">BATT 0</span>
+      <span data-k="gen">GEN 0</span>
+      <span data-k="missile">MSL 0</span>
+      <span data-k="emp">EMP 0</span>
+      <span data-k="warp">WARP 0</span>
+    </div>
+    <div id="nrgBox">
+      <span class="lbl">NRG</span>
+      <span id="nrgVal">100</span>
+      <span id="nrgMax">/ 100</span>
+    </div>
+    <div id="help">WASD move · mouse aims hull · LMB lasers · E EMP · MMB missiles · hold RMB grab · R/F rotate grab · Q time-warp · SPACE thrust · ESC pause · wheel zoom</div>
+  </div>
+  <div id="scoreBox">
+    <div class="lbl">SCORE</div>
+    <div id="scoreVal">0</div>
+    <div class="best">BEST <span id="bestVal">0</span></div>
+    <div class="best">BANK <span id="hudBank">0</span></div>
+  </div>
+  <div id="barWrap"><div id="bar"></div></div>
+  <div id="nrgWrap"><div id="nrgBar"></div></div>
+
+  <div id="overlay" class="show">
+    <div class="panel" id="panel-title">
+      <h1>STARFIGHTER</h1>
+      <p>You are the reactor of a far-future hull. One layer of plate is the only armor. Each wall cell takes three hits. The core takes one. If a shot finds the light, it is over.</p>
+      <p>Tetris plates drift and fuse on contact — more armor, more mass, less speed. Dead-still modules in the dark become turrets, thrusters, speed coils, force fields, grabber claws, batteries, generators, and rare missile racks. The core ticks +1 energy every 3 seconds; generators add more. Star motes fill batteries. Combine two of the same rank to climb 2–5.</p>
+      <p class="hint">WASD to fly. Left click lasers. Middle click missiles — slow, blasting, they pry plates off or wreck them. Hold right click to grab. Space burns thrusters. Scroll to zoom.</p>
+      <button type="button" id="startBtn">IGNITE</button>
+    </div>
+    <div class="panel hidden" id="panel-over">
+      <h1 id="overTitle">CORE BREACH</h1>
+      <p id="overMsg"></p>
+      <div class="shop">
+        <div class="shop-bank">BANK <span class="bankVal">0</span></div>
+        <div class="upg-row">
+          <button type="button" class="upg" data-k="dmg" title="+5% damage">
+            <span class="ico ico-dmg"></span>
+            <span class="upg-name">DMG</span>
+            <span class="upg-lv">0/6</span>
+            <span class="upg-cost">500</span>
+          </button>
+          <button type="button" class="upg" data-k="spd" title="+5% move speed">
+            <span class="ico ico-spd"></span>
+            <span class="upg-name">SPD</span>
+            <span class="upg-lv">0/6</span>
+            <span class="upg-cost">500</span>
+          </button>
+          <button type="button" class="upg" data-k="nrg" title="+5% energy efficiency">
+            <span class="ico ico-nrg"></span>
+            <span class="upg-name">NRG</span>
+            <span class="upg-lv">0/6</span>
+            <span class="upg-cost">500</span>
+          </button>
+          <button type="button" class="upg" data-k="hp" title="+5% hull &amp; component health">
+            <span class="ico ico-hp"></span>
+            <span class="upg-name">HULL</span>
+            <span class="upg-lv">0/6</span>
+            <span class="upg-cost">500</span>
+          </button>
+        </div>
+      </div>
+      <button type="button" id="retryBtn">AGAIN</button>
+      <button type="button" id="titleBtn" class="ghost">TITLE</button>
+    </div>
+    <div class="panel hidden" id="panel-pause">
+      <h1>PAUSED</h1>
+      <p>The reactor still ticks. The dark does not.</p>
+      <button type="button" id="resumeBtn">RESUME</button>
+      <button type="button" id="pauseTitleBtn" class="ghost">TITLE</button>
+    </div>
+  </div>
+
+  <script src="js/game.js"></script>
+</body>
+</html>
