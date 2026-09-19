@@ -3723,8 +3723,14 @@ app.get("/api/hero-slayer/download", async (req, res) => {
 
 // --- FIX START: Global Error Handler ---
 app.use((err, req, res, next) => {
+    if (err && (err.type === "entity.parse.failed" || err instanceof SyntaxError) && err.status === 400) {
+        return res.status(400).json({ error: "invalid_json" });
+    }
+    if (err && err.type === "entity.too.large") {
+        return res.status(413).json({ error: "payload_too_large" });
+    }
     console.error("!!! SERVER ERROR !!!");
-    console.error(err.stack); // This prints the specific error line to logs
+    console.error(err.stack);
     res.status(500).send(`
         <h1>Internal Server Error</h1>
         <p>The server encountered an error:</p>
