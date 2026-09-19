@@ -2,6 +2,17 @@
 const express = require('express');
 const app = express();
 
+if (process.env.NODE_ENV === "production") {
+    const sec = process.env.SESSION_SECRET;
+    if (!sec || sec === "dev_secret_key_123") {
+        console.error("SESSION_SECRET must be set to a strong value in production");
+        process.exit(1);
+    }
+}
+function sessionSecret() {
+    return process.env.SESSION_SECRET || "dev_secret_key_123";
+}
+
 // --- FIX START: Global Crash Handlers ---
 process.on('uncaughtException', (err) => {
     console.error('CRITICAL ERROR: Uncaught Exception:', err);
@@ -11,7 +22,6 @@ process.on('uncaughtException', (err) => {
 
 process.on('unhandledRejection', (reason, promise) => {
     console.error('CRITICAL ERROR: Unhandled Rejection at:', promise, 'reason:', reason);
-    process.exit(1);
 });
 // --- FIX END ---
 const PRINTIFY_TOKEN = process.env.PRINTIFY_API_TOKEN;
@@ -30,68 +40,33 @@ const bucketName = process.env.GCS_BUCKET_NAME || 'futuremusic';
 
 app.set('trust proxy', 1); // Required for cross-domain cookies on GCloud
 const cors = require('cors');
-// Replace with your actual Game URL (e.g., https://colorization.web.app)
-// Leave as '*' for testing, but specify exact domain for production
-// Allow both the environment variable AND specific local/production URLs
-const allowedOrigins = [
-    process.env.GAME_URL,
-    '[https://mobile-game-853337900822.us-central1.run.app](https://mobile-game-853337900822.us-central1.run.app)', // Your Cloud Run Game URL
-    'http://localhost',        // Android debug origin
-    'capacitor://localhost',    // iOS/Android production origin
-    'http://localhost:8080',     // Local testing
-    '[http://127.0.0.1:8080](http://127.0.0.1:8080)',
-    '[https://futuremusic.online](https://futuremusic.online)',
-'[https://www.futuremusic.online](https://www.futuremusic.online)',
-    'https://addictinggames.com',
-    'https://cdn2.addictinggames.com', // Specific AddictingGames CDN
-    'https://html5.addictinggames.com', // Alternate AddictingGames CDN
-    'https://newgrounds.com',
-    'https://ungrounded.net', // Newgrounds CDN
-    'https://uploads.ungrounded.net' // Newgrounds Uploads
-];
+const writeGate = require('./lib/write-gate');
 
 app.use(cors({
     origin: function (origin, callback) {
-        // Allow requests with no origin (like mobile apps or curl requests)
-        if (!origin) return callback(null, true);
-        
-        // 1. Exact Match Check
-        if (allowedOrigins.indexOf(origin) !== -1) {
-            return callback(null, true);
-        }
-
-// 2. Pattern Match Check (Allows all subdomains of your site and game portals)
-        if (origin.includes('web.app') || 
-            origin.includes('firebaseapp.com') || 
-            origin.includes('futuremusic.online') ||
-            origin.includes('addictinggames.com') || 
-            origin.includes('newgrounds.com') ||
-            origin.includes('ungrounded.net') ||
-            origin.includes('localhost') ||
-            origin.includes('127.0.0.1')) { 
-            return callback(null, true);
-        }
-
-        // 3. Fallback: Block
-        console.log("âš ï¸ BLOCKED BY CORS:", origin);
-        // If you are still stuck, you can uncomment the line below to temporarily allow everything:
-        // return callback(null, true);
+        if (writeGate.corsOriginAllowed(origin)) return callback(null, true);
+        console.log("BLOCKED BY CORS:", origin);
         callback(new Error('Not allowed by CORS'));
     },
     credentials: true
 }));
 
-
-// --- FIX START: Body Parsers & Logging ---
-app.use(express.json({ limit: "8mb" }));
-app.use(express.urlencoded({ extended: true }));
-
-// Log every request to console (Visible in Google Cloud Logs)
 app.use((req, res, next) => {
+    if (req.method === "GET" || req.method === "HEAD" || req.method === "OPTIONS") return next();
+    if (req.path === "/webhook") return next();
+    const limit = writeGate.isLargeJsonPath(req.path) ? "8mb" : "256kb";
+    express.json({ limit })(req, res, next);
+});
+app.use((req, res, next) => {
+    if (req.path === "/webhook") return next();
+    express.urlencoded({ extended: true, limit: "64kb" })(req, res, next);
+});
+
+app.use((req, res, next) => {
+    if (/\.(js|css|png|jpe?g|webp|gif|svg|ico|woff2?|mp3|wav|ogg|glb|gltf|json|map)$/i.test(req.path)) return next();
     console.log(`[REQUEST] ${req.method} ${req.path}`);
     next();
 });
-// --- FIX END ---
 
 const path = require('path');
 const fs = require('fs'); 
@@ -233,7 +208,7 @@ async function storeContactMessage({ name, email, subject, message }) {
 // --- SESSION CONFIGURATION ---
 // --- SESSION CONFIGURATION ---
 app.use(session({
-    secret: process.env.SESSION_SECRET || 'dev_secret_key_123',
+    secret: sessionSecret(),
     resave: false,
     saveUninitialized: false,
     cookie: { 
@@ -339,6 +314,7 @@ app.use((req, res, next) => {
 
 const homeGate = require('./lib/home-gate');
 app.use(homeGate.middleware);
+app.use(writeGate.middleware);
 
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
@@ -439,8 +415,7 @@ const BLOCKBUILD_SKU = "blockbuild-workshop";
 const BLOCKBUILD_PRICE_CENTS = 999;
 const BLOCKBUILD_COOKIE = "bb_unlock";
 function blockbuildToken() {
-    const secret = process.env.SESSION_SECRET || "dev_secret_key_123";
-    return crypto.createHmac("sha256", secret).update(BLOCKBUILD_SKU).digest("hex").slice(0, 32);
+    return crypto.createHmac("sha256", sessionSecret()).update(BLOCKBUILD_SKU).digest("hex").slice(0, 32);
 }
 function grantBlockbuild(req, res) {
     if (req.session) req.session.blockbuildPaid = true;
@@ -729,7 +704,7 @@ function miraOutputText(j) {
     return (ch || "").trim();
 }
 
-app.post("/api/mira/chat", async (req, res) => {
+app.post("/api/mira/chat", writeGate.requireHomeWrite, writeGate.rateLimit("mira-chat", 20, 60 * 60 * 1000), async (req, res) => {
     humanHeaders(res);
     const text = String((req.body && req.body.text) || "").slice(0, 2000);
     const persona = String((req.body && req.body.persona) || MIRA_DEFAULT_PERSONA).slice(0, 4000);
@@ -774,7 +749,7 @@ app.post("/api/mira/chat", async (req, res) => {
     }
 });
 
-app.post("/api/mira/tts", async (req, res) => {
+app.post("/api/mira/tts", writeGate.requireHomeWrite, writeGate.rateLimit("mira-tts", 30, 60 * 60 * 1000), async (req, res) => {
     humanHeaders(res);
     const text = String((req.body && req.body.text) || "").slice(0, 500);
     const key = process.env.XAI_API_KEY;
@@ -796,7 +771,7 @@ app.post("/api/mira/tts", async (req, res) => {
     }
 });
 
-app.post("/api/mira/stt", miraUpload.single("file"), async (req, res) => {
+app.post("/api/mira/stt", writeGate.requireHomeWrite, writeGate.rateLimit("mira-stt", 15, 60 * 60 * 1000), miraUpload.single("file"), async (req, res) => {
     humanHeaders(res);
     const key = process.env.XAI_API_KEY;
     if (!key) return res.status(503).json({ error: "no key" });
@@ -1041,7 +1016,7 @@ app.get('/login', (req, res) => {
 });
 
 // 2. Handle Registration
-app.post('/register', async (req, res) => {
+app.post('/register', writeGate.rateLimit("register", 5, 60 * 60 * 1000), async (req, res) => {
     // 1. Extract email, password, AND confirmPassword
     const { email, password, confirmPassword } = req.body;
 
@@ -1102,7 +1077,7 @@ app.post('/register', async (req, res) => {
 
 
 // 3. Handle Login
-app.post('/login', async (req, res) => {
+app.post('/login', writeGate.rateLimit("login", 20, 15 * 60 * 1000), async (req, res) => {
     try {
         console.log("ðŸŸ¢ DEBUG: Login attempted for:", req.body.email);
         
@@ -1209,8 +1184,7 @@ const CHESS_PACKS = {
     maps: { sku: 'creature-chess-maps-pack', cookie: 'chess_maps_pack', session: 'chessMapsPack', name: 'Creature Chess — Map Pack', blurb: 'Medium 16×16 fields and the 24×24 RTS theatre.' },
 };
 function chessPackToken(sku) {
-    const secret = process.env.SESSION_SECRET || 'dev_secret_key_123';
-    return crypto.createHmac('sha256', secret).update(sku).digest('hex').slice(0, 32);
+    return crypto.createHmac('sha256', sessionSecret()).update(sku).digest('hex').slice(0, 32);
 }
 function chessAlphaToken() {
     return chessPackToken(CHESS_ALPHA_SKU);
@@ -1294,8 +1268,7 @@ function bsaPlayHeaders(res) {
     res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
 }
 function bsaToken() {
-    const secret = process.env.SESSION_SECRET || "dev_secret_key_123";
-    return crypto.createHmac("sha256", secret).update(BSA_SKU).digest("hex").slice(0, 32);
+    return crypto.createHmac("sha256", sessionSecret()).update(BSA_SKU).digest("hex").slice(0, 32);
 }
 function grantBsa(req, res) {
     if (req.session) req.session.bsaPaid = true;
@@ -2462,7 +2435,7 @@ app.get('/rights/confirmation', (req, res) => res.render('rights_confirmation', 
 app.get('/cart', (req, res) => res.render('cart', { title: 'Your Inventory' }));
 
 
-app.post('/initiate-checkout', async (req, res) => {
+app.post('/initiate-checkout', writeGate.rateLimit("checkout", 20, 60 * 60 * 1000), async (req, res) => {
     // 1. Destructure all fields (Note: password is removed, shipping fields added)
     const { sessionId, fullName, email, phone, address, city, state, zip, country } = req.body;
     const userId = req.session.userId;
@@ -2986,7 +2959,7 @@ if (currentSkus.size > 0) {
 // --- GAME API ROUTES ---
 
 // Game Login (JSON response)
-app.post('/api/game/login', async (req, res) => {
+app.post('/api/game/login', writeGate.rateLimit("game-login", 20, 15 * 60 * 1000), async (req, res) => {
     const { email, password } = req.body; // Game sends 'username' as email
     try {
         if (!pool) throw new Error("DB Offline");
@@ -3024,7 +2997,7 @@ app.post('/api/game/login', async (req, res) => {
 });
 
 // Game Register (JSON response)
-app.post('/api/game/register', async (req, res) => {
+app.post('/api/game/register', writeGate.rateLimit("game-register", 5, 60 * 60 * 1000), async (req, res) => {
     const { email, password } = req.body;
     if (!email || !password) return res.json({ success: false, message: "Missing credentials" });
 
@@ -3358,7 +3331,7 @@ app.get('/api/game/check-session', async (req, res) => {
 });
 
 // Record Hard Mode Win
-app.post('/api/game/record-win', async (req, res) => {
+app.post('/api/game/record-win', writeGate.rateLimit("record-win", 60, 60 * 1000), async (req, res) => {
     const { userId, difficulty } = req.body;
     if (!userId || difficulty !== 'hard') return res.json({ success: false });
 
@@ -3439,7 +3412,7 @@ app.get('/api/terrarium/load/:session', async (req, res) => {
 });
 
 // Auto-Save Game State (Called every 10 seconds in the background)
-app.post('/api/terrarium/save', async (req, res) => {
+app.post('/api/terrarium/save', writeGate.rateLimit("terrarium-save", 20, 60 * 1000), async (req, res) => {
     const { session, birds } = req.body;
     if (!pool) return res.status(500).json({ error: "Database offline" });
 

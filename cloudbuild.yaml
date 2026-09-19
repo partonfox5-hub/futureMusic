@@ -1,6 +1,7 @@
 # Cloud Run (europe-west1) — GitHub `master` trigger.
 # pack/buildpacks OOM on export (docker.sock EOF / lifecycle 62) for this ~1GB app.
 # Docker build streams layers and is reliable here.
+# Context trimmed via .dockerignore; builder dropped from E2_HIGHCPU_32 / 200GB.
 timeout: 1800s
 steps:
   - name: gcr.io/cloud-builders/docker
@@ -33,8 +34,8 @@ images:
 options:
   logging: CLOUD_LOGGING_ONLY
   substitutionOption: ALLOW_LOOSE
-  machineType: E2_HIGHCPU_32
-  diskSizeGb: 200
+  machineType: E2_HIGHCPU_16
+  diskSizeGb: 120
 tags:
   - gcp-cloud-build-deploy-cloud-run
   - gcp-cloud-build-deploy-cloud-run-managed

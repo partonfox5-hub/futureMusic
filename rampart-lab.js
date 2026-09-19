@@ -285,7 +285,7 @@ function mount(app, { requireLogin }) {
     });
   });
 
-  app.post('/api/rampart/upload', requireLoginApi, (req, res) => {
+  app.post('/api/rampart/upload', requireLoginApi, require('./lib/write-gate').requireHomeWrite, (req, res) => {
     if (!RAMPART_FORK_UPLOADS_ENABLED) {
       return res.status(403).json({
         error: 'Fork uploads are temporarily locked. Play the official build while the mod lab is closed.',
