@@ -1809,6 +1809,11 @@
     if (en.dying) return;
     en.dying = 0.55;
     en.flash = 0.55;
+    en.grabbed = 0;
+    S.holds.forEach((h) => {
+      if (h.ref === en) h.ref = null;
+    });
+    S.holds = S.holds.filter((h) => h.ref);
     const n = cellCount(en);
     S.score += 120 + n * 12;
     S.shake = 12;
@@ -2220,6 +2225,11 @@
     S.holds.forEach((h) => {
       const t = tips.find((q) => q.cell === h.claw) || tips[0];
       if (!t || !h.ref) return;
+      if (h.kind === "enemy" && (h.ref.dying || h.ref.dead)) {
+        h.ref.grabbed = 0;
+        h.ref = null;
+        return;
+      }
       const ox = h.ref.x, oy = h.ref.y;
       h.ref.x = t.x + h.offx;
       h.ref.y = t.y + h.offy;
@@ -2650,9 +2660,15 @@
     const coreE = Object.values(e.cells).find((c) => c.type === "core");
     if (coreE) {
       const w = cellWorld(e, coreE);
-      const pc = S.cells[key(0, 0)];
-      if (pc && hypot(w.x - S.x, w.y - S.y) < CELL * 0.5) {
-        die("A " + (e.name || "hull") + " core");
+      let blocked = false;
+      eachCell(S, (ca) => {
+        const wa = cellWorld(S, ca);
+        if (hypot(w.x - wa.x, w.y - wa.y) < CELL * 0.78) blocked = true;
+      });
+      if (blocked) {
+        killEnemy(e);
+        spark(w.x, w.y, "#ff4060", 14);
+        boom(w.x, w.y, 0.7, "#ff4060");
         return;
       }
     }
