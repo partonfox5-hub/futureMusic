@@ -159,8 +159,6 @@
   ];
 
   let ac = null;
-  let bgmName = "";
-  let bgmTimer = 0;
   function audio() {
     if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)();
     if (ac.state === "suspended") ac.resume();
@@ -240,36 +238,54 @@
     } catch (e) {}
   }
 
-  const SONGS = {
-    menu: { bpm: 96, bass: [110, 0, 110, 0, 98, 0, 82, 0], lead: [330, 392, 330, 262, 294, 330, 0, 392] },
-    plan: { bpm: 88, bass: [98, 98, 110, 0, 82, 82, 87, 0], lead: [196, 220, 247, 262, 247, 220, 196, 0] },
-    mission: { bpm: 132, bass: [82, 82, 98, 82, 73, 73, 82, 98], lead: [247, 0, 294, 247, 330, 0, 294, 220] },
-    sky: { bpm: 150, bass: [146, 146, 164, 130, 146, 174, 164, 130], lead: [392, 440, 494, 0, 392, 523, 440, 0] },
-  };
+  const BGM_TRACKS = [
+    "audio/iron-will-a.mp3",
+    "audio/iron-will-b.mp3",
+    "audio/thunder-in-the-valley.mp3",
+  ];
+  const BGM_VOL = 0.34;
+  let bgmEl = null;
+  let bgmIdx = 0;
+  let bgmOn = false;
   function stopBgm() {
-    bgmName = "";
-    if (bgmTimer) {
-      clearInterval(bgmTimer);
-      bgmTimer = 0;
-    }
+    bgmOn = false;
+    if (!bgmEl) return;
+    try {
+      bgmEl.pause();
+    } catch (e) {}
+    bgmEl.onended = null;
+    bgmEl = null;
   }
-  function startBgm(name) {
-    if (bgmName === name) return;
-    stopBgm();
-    const song = SONGS[name];
-    if (!song) return;
-    bgmName = name;
-    let step = 0;
-    const tick = () => {
+  function playBgmTrack(i) {
+    if (!bgmOn) return;
+    bgmIdx = ((i % BGM_TRACKS.length) + BGM_TRACKS.length) % BGM_TRACKS.length;
+    if (bgmEl) {
       try {
-        const i = step % 8;
-        if (song.bass[i]) beep(song.bass[i], 0.14, "square", 0.028);
-        if (song.lead[i]) beep(song.lead[i], 0.11, "square", 0.022);
-        step++;
+        bgmEl.pause();
       } catch (e) {}
-    };
-    tick();
-    bgmTimer = setInterval(tick, 60000 / song.bpm / 2);
+      bgmEl.onended = null;
+    }
+    const el = new Audio(BGM_TRACKS[bgmIdx]);
+    el.volume = BGM_VOL;
+    el.preload = "auto";
+    el.onended = () => playBgmTrack(bgmIdx + 1);
+    bgmEl = el;
+    const p = el.play();
+    if (p && typeof p.catch === "function") p.catch(() => {});
+  }
+  function startBgm() {
+    try {
+      audio();
+    } catch (e) {}
+    if (bgmOn && bgmEl) {
+      if (bgmEl.paused) {
+        const p = bgmEl.play();
+        if (p && typeof p.catch === "function") p.catch(() => {});
+      }
+      return;
+    }
+    bgmOn = true;
+    playBgmTrack(0);
   }
 
   function rnd(a) {
