@@ -170,6 +170,7 @@
     g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
   }
   function beep(freq, dur, type, vol, slide) {
+    if (muted) return;
     const a = audio();
     const o = a.createOscillator();
     const g = a.createGain();
@@ -184,6 +185,7 @@
     o.stop(t + dur + 0.02);
   }
   function noiseTone(dur, vol, type, freq, q) {
+    if (muted) return;
     const a = audio();
     const n = a.createBuffer(1, Math.max(1, Math.floor(a.sampleRate * dur)), a.sampleRate);
     const d = n.getChannelData(0);
@@ -239,6 +241,7 @@
     return b;
   }
   function playGunKind(kind, vol) {
+    if (muted) return;
     if (gunVoices.size >= 12) return;
     const a = audio();
     const s = a.createBufferSource();
@@ -274,6 +277,7 @@
     } catch (e) {}
   }
   function sfx(kind) {
+    if (muted) return;
     try {
       if (kind === "gun") {
         playGunKind("rifle");
@@ -380,6 +384,37 @@
   let bgmEl = null;
   let bgmIdx = 0;
   let bgmOn = false;
+  let muted = false;
+  try {
+    muted = localStorage.getItem("fish-extractor.mute") === "1";
+  } catch (e) {}
+  function syncMuteBtn() {
+    const btn = document.getElementById("muteBtn");
+    if (!btn) return;
+    btn.textContent = muted ? "MUTED" : "SOUND";
+    btn.setAttribute("aria-pressed", muted ? "true" : "false");
+    btn.classList.toggle("off", muted);
+  }
+  function applyBgmVol() {
+    if (bgmEl) bgmEl.volume = muted ? 0 : BGM_VOL;
+  }
+  function setMuted(on) {
+    muted = !!on;
+    try {
+      localStorage.setItem("fish-extractor.mute", muted ? "1" : "0");
+    } catch (e) {}
+    applyBgmVol();
+    if (muted) {
+      if (bgmEl) {
+        try {
+          bgmEl.pause();
+        } catch (e) {}
+      }
+    } else if (bgmOn) {
+      startBgm();
+    }
+    syncMuteBtn();
+  }
   function stopBgm() {
     bgmOn = false;
     if (!bgmEl) return;
@@ -399,7 +434,7 @@
       bgmEl.onended = null;
     }
     const el = new Audio(BGM_TRACKS[bgmIdx]);
-    el.volume = BGM_VOL;
+    el.volume = muted ? 0 : BGM_VOL;
     el.preload = "auto";
     el.onended = () => playBgmTrack(bgmIdx + 1);
     bgmEl = el;
@@ -410,14 +445,19 @@
     try {
       audio();
     } catch (e) {}
+    bgmOn = true;
+    if (muted) {
+      applyBgmVol();
+      return;
+    }
     if (bgmOn && bgmEl) {
       if (bgmEl.paused) {
+        applyBgmVol();
         const p = bgmEl.play();
         if (p && typeof p.catch === "function") p.catch(() => {});
       }
       return;
     }
-    bgmOn = true;
     playBgmTrack(0);
   }
 
@@ -4325,6 +4365,14 @@
   requestAnimationFrame(loop);
   window.FE = state;
 
+  syncMuteBtn();
+  const muteBtn = document.getElementById("muteBtn");
+  if (muteBtn) {
+    muteBtn.onclick = (e) => {
+      e.stopPropagation();
+      setMuted(!muted);
+    };
+  }
   (function bootSplash() {
     const logo = document.getElementById("logo-screen");
     const click = document.getElementById("click-start");
@@ -4342,7 +4390,7 @@
         audio();
       } catch (e) {}
       startBgm("menu");
-      sfx("click");
+      if (!muted) sfx("click");
       showPanel("panel-main");
     });
   })();

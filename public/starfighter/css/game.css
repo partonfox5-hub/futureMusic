@@ -99,6 +99,30 @@ html, body {
 #scoreBox .lbl { font-size: 11px; color: #7aa0b8; }
 #scoreVal { font-size: 28px; color: var(--glow); font-weight: 700; line-height: 1.1; }
 #scoreBox .best { font-size: 11px; color: #9ec8e0; margin-top: 4px; }
+#muteBtn {
+  position: fixed;
+  top: 14px;
+  right: 168px;
+  z-index: 6;
+  margin: 0;
+  padding: 8px 12px;
+  background: rgba(8, 12, 20, 0.85);
+  color: var(--glow);
+  border: 1px solid rgba(124, 240, 255, 0.45);
+  letter-spacing: 0.14em;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  pointer-events: auto;
+}
+#muteBtn.off {
+  color: #7aa0b8;
+  border-color: rgba(122, 160, 184, 0.45);
+}
+#muteBtn:hover { border-color: var(--glow); }
+@media (max-width: 720px) {
+  #muteBtn { right: 16px; top: auto; bottom: 16px; }
+}
 #barWrap {
   position: fixed;
   top: 0; left: 0; right: 0;

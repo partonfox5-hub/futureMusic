@@ -40,6 +40,7 @@
     rumble: null,
     fieldWas: false,
     thrustWas: false,
+    muted: false,
     ctx() {
       try {
         if (!this.ac) {
@@ -57,6 +58,25 @@
       this.ctx();
       BGM.start();
     },
+    syncBtn() {
+      const btn = document.getElementById("muteBtn");
+      if (!btn) return;
+      btn.textContent = this.muted ? "MUTED" : "SOUND";
+      btn.setAttribute("aria-pressed", this.muted ? "true" : "false");
+      btn.classList.toggle("off", this.muted);
+    },
+    setMuted(on) {
+      this.muted = !!on;
+      try {
+        localStorage.setItem("hullcore.mute", this.muted ? "1" : "0");
+      } catch (e) {}
+      if (this.muted) this.setThrust(false);
+      BGM.applyMute();
+      this.syncBtn();
+    },
+    toggleMute() {
+      this.setMuted(!this.muted);
+    },
     fuse(player) {
       if (player) {
         this.tone(1650, 0.035, "square", 0.09, 1100);
@@ -68,6 +88,7 @@
       }
     },
     tone(freq, dur, type, vol, slide) {
+      if (this.muted) return;
       const ac = this.ctx();
       if (!ac) return;
       const o = ac.createOscillator();
@@ -83,6 +104,7 @@
       o.stop(ac.currentTime + dur + 0.02);
     },
     noise(dur, vol, hp) {
+      if (this.muted) return;
       const ac = this.ctx();
       if (!ac) return;
       const n = Math.max(1, (ac.sampleRate * dur) | 0);
@@ -159,6 +181,7 @@
       this.tone(440, 0.12, "triangle", 0.06, 90);
     },
     setThrust(on) {
+      if (this.muted) on = false;
       const ac = this.ctx();
       if (!ac) return;
       if (on && !this.rumble) {
@@ -193,10 +216,14 @@
     i: 0,
     el: null,
     started: false,
+    vol: 0.09,
     start() {
       if (this.started) return;
       this.started = true;
       this.play(0);
+    },
+    applyMute() {
+      if (this.el) this.el.volume = SFX.muted ? 0 : this.vol;
     },
     play(i) {
       this.i = ((i % this.list.length) + this.list.length) % this.list.length;
@@ -206,7 +233,7 @@
         } catch (e) {}
       }
       const a = new Audio(this.list[this.i]);
-      a.volume = 0.09;
+      a.volume = SFX.muted ? 0 : this.vol;
       a.addEventListener("ended", () => this.play(this.i + 1));
       a.play().catch(() => {
         this.started = false;
@@ -3384,6 +3411,11 @@
     if (e.code === "KeyD") keys.d = 1;
     if (e.code === "KeyE") keys.e = 1;
     if (e.code === "Space") keys[" "] = 1;
+    if (e.key === "m" || e.key === "M") {
+      SFX.toggleMute();
+      e.preventDefault();
+      return;
+    }
     if (e.key === " " || e.key === "ArrowUp" || e.key === "ArrowDown" || e.key === "ArrowLeft" || e.key === "ArrowRight") {
       e.preventDefault();
     }
@@ -3451,6 +3483,15 @@
     S.best = parseInt(localStorage.getItem("hullcore.best") || "0", 10) || 0;
     document.getElementById("bestVal").textContent = fmt(S.best);
   } catch (e) {}
+  try {
+    SFX.muted = localStorage.getItem("hullcore.mute") === "1";
+  } catch (e) {}
+  SFX.syncBtn();
+  const muteBtn = document.getElementById("muteBtn");
+  if (muteBtn) muteBtn.onclick = (e) => {
+    e.stopPropagation();
+    SFX.toggleMute();
+  };
   refreshShop();
   makeStars();
 
