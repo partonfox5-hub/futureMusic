@@ -375,6 +375,38 @@
     } catch (e) {}
   }
 
+  let barkAt = 0;
+  let barkLast = "";
+  function radio(line) {
+    if (!line) return;
+    const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+    if (now - barkAt < 2400) return;
+    if (line === barkLast && now - barkAt < 8000) return;
+    barkAt = now;
+    barkLast = line;
+    try {
+      noiseTone(0.045, 0.045, "bandpass", 1600, 1.8);
+      const synth = window.speechSynthesis;
+      if (!synth) return;
+      synth.cancel();
+      const u = new SpeechSynthesisUtterance(line);
+      u.rate = 1.14;
+      u.pitch = 0.68;
+      u.volume = 0.88;
+      u.lang = "en-US";
+      const voices = synth.getVoices() || [];
+      const v =
+        voices.find((x) => /en/i.test(x.lang) && /male|david|fred|daniel|guy|george|alex/i.test(x.name)) ||
+        voices.find((x) => /^en/i.test(x.lang));
+      if (v) u.voice = v;
+      synth.speak(u);
+    } catch (e) {}
+  }
+  if (typeof speechSynthesis !== "undefined") {
+    speechSynthesis.getVoices();
+    speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices();
+  }
+
   const BGM_TRACKS = [
     "audio/iron-will-a.mp3",
     "audio/iron-will-b.mp3",
@@ -871,7 +903,9 @@
     return { sp, col: COLORS[3], w: WEIGHTS[2], kg: 2 };
   }
   function hideOverlay() {
-    document.getElementById("overlay").classList.remove("show");
+    const ov = document.getElementById("overlay");
+    ov.classList.remove("show");
+    ov.classList.remove("hack-live");
   }
 
   function startPlan() {
@@ -1485,6 +1519,8 @@
       v.tx = x;
       v.ty = y;
     });
+    if ((job || "move") === "fight") radio("weapons free");
+    else radio("move out");
   }
 
   function vehSeats(v) {
@@ -1592,8 +1628,12 @@
     const tp = termPos();
     if (tp && state.fence && !state.fence.open && Math.hypot(p.x - tp.x, p.y - tp.y) < 18) {
       const here = selected().filter((u) => u.crew.hp > 0 && Math.hypot(u.x - tp.x, u.y - tp.y) < 22);
-      if (here.length) startHack(here[0]);
-      else {
+      if (here.length) {
+        here.forEach((u) => {
+          u.job = "hack";
+        });
+        startHack(here[0]);
+      } else {
         const who = selected();
         if (who.length) {
           who.forEach((u) => {
@@ -1966,6 +2006,7 @@
 
   function update(dt) {
     if (state.screen !== "mission" || state.done) return;
+    if (state.hackCool > 0) state.hackCool -= dt;
     state.t += dt;
     state.spawn += dt;
     const sav = state.mobs.filter((m) => m.role === "savage" || m.role === "sab").length;
@@ -2050,19 +2091,29 @@
         continue;
       }
       u.cd -= dt;
-      if (!u.veh && (u.job === "fight" || u.job === "extract" || state.mobs.some((m) => hostile(m) && m.vis !== 0 && Math.hypot(m.x - u.x, m.y - u.y) < u.crew.gun.range))) {
+      const gunR = (u.crew.gun && u.crew.gun.range) || 80;
+      const holdTerm = u.job === "hack" || (state.hack && termPos() && Math.hypot(u.x - termPos().x, u.y - termPos().y) < 36);
+      const reach = holdTerm ? Math.max(gunR, 96) : gunR;
+      if (
+        !u.veh &&
+        (u.job === "fight" ||
+          u.job === "extract" ||
+          u.job === "hack" ||
+          holdTerm ||
+          state.mobs.some((m) => hostile(m) && m.vis !== 0 && Math.hypot(m.x - u.x, m.y - u.y) < reach))
+      ) {
         let t = null;
         let bd = 1e9;
         for (const m of state.mobs) {
           if (!hostile(m) || m.vis === 0) continue;
           if (inBush(m.x, m.y) && Math.hypot(m.x - u.x, m.y - u.y) > 12) continue;
           const dd = Math.hypot(m.x - u.x, m.y - u.y);
-          if (dd < bd && dd < u.crew.gun.range + 20) {
+          if (dd < bd && dd < reach + 20) {
             bd = dd;
             t = m;
           }
         }
-        if (t && u.cd <= 0 && bd < u.crew.gun.range) {
+        if (t && u.cd <= 0 && bd < reach) {
           fire(u, t, u.crew.gun);
           if (u.crew.gun2 && Math.random() < 0.5) fire(u, t, u.crew.gun2);
           u.cd = 1 / fireRate(u.crew);
@@ -2093,9 +2144,7 @@
         if (tp && Math.hypot(u.x - tp.x, u.y - tp.y) < 22) {
           const aimed = Math.hypot((u.tx || 0) - tp.x, (u.ty || 0) - tp.y) < 32;
           if (u.job === "hack" || u.job === "fish" || aimed) {
-            const ov = document.getElementById("overlay");
-            const pan = document.getElementById("panel-hack");
-            if (!ov || !ov.classList.contains("show") || !pan || pan.classList.contains("hidden")) startHack(u);
+            startHack(u);
           }
         }
       }
@@ -2592,6 +2641,15 @@
       laser: gun.id.indexOf("laser") >= 0 || gun.id === "cannon",
     });
     sfxGun(gun.id);
+    if (t && hostile(t)) {
+      const living = state.units.filter((x) => x.crew.hp > 0 && !x.extracted);
+      if (living.length) {
+        const cx = living.reduce((s, x) => s + x.x, 0) / living.length;
+        if (t.x < cx - 18) radio("impact on the left");
+        else if (t.x > cx + 18) radio("impact on the right");
+        else radio("contact");
+      }
+    }
   }
 
   const skyCv = document.getElementById("sky");
@@ -3991,6 +4049,53 @@
     };
   }
 
+  function unitsAtTerm() {
+    const tp = termPos();
+    if (!tp) return [];
+    return state.units.filter(
+      (u) => u.crew.hp > 0 && !u.extracted && u.job === "hack" && Math.hypot(u.x - tp.x, u.y - tp.y) < 30
+    );
+  }
+
+  function applyHackTeam() {
+    if (!state.hack) return;
+    const team = unitsAtTerm();
+    const n = Math.max(1, team.length);
+    const best = team.reduce((b, u) => Math.max(b, u.crew.hack | 0), state.hack.crew ? state.hack.crew.hack | 0 : 1);
+    if (best >= 12) {
+      openGate(team[0] && team[0].crew);
+      return;
+    }
+    const sc = hackScale(best);
+    const extra = Math.max(0, n - 1);
+    const need = Math.max(1, sc.rounds - extra);
+    const letters = Math.max(2, sc.letters - extra);
+    const tries = 2 + Math.min(4, best) + extra;
+    state.hack.need = need;
+    state.hack.tries = Math.max(state.hack.tries, tries);
+    state.hack.who = team.length ? team.map((u) => u.crew.name.split(" ")[0]).join(" + ") : state.hack.who;
+    if (state.hack.done >= need) {
+      openGate(state.hack.crew);
+      return;
+    }
+    if (letters !== state.hack.letters) {
+      state.hack.letters = letters;
+      nextHackRound();
+    } else {
+      document.getElementById("hackHint").textContent =
+        (state.hack.who ? state.hack.who + " on the box. " : "") +
+        (n > 1 ? n + " operators, easier lock. " : "") +
+        "Captcha " +
+        (state.hack.done + 1) +
+        "/" +
+        state.hack.need +
+        " · " +
+        state.hack.letters +
+        " glyphs · tries " +
+        state.hack.tries;
+    }
+  }
+
   function paintHackGlyphs() {
     const h = state.hack;
     const cv = document.getElementById("hackCv");
@@ -4024,9 +4129,11 @@
     state.hack.code = code;
     paintHackGlyphs();
     document.getElementById("hackIn").value = "";
+    const n = unitsAtTerm().length;
     const who = state.hack.who;
     document.getElementById("hackHint").textContent =
-      (who ? who + " hacks. " : "") +
+      (who ? who + (n > 1 ? " on the box. " : " hacks. ") : "") +
+      (n > 1 ? n + " operators, easier lock. " : "") +
       "Captcha " +
       (state.hack.done + 1) +
       "/" +
@@ -4043,6 +4150,7 @@
     state.hack = null;
     if (who) gainXp(who, 12);
     sfx("win");
+    radio("we're through");
     hideOverlay();
     const tp = termPos();
     if (tp) float(tp.x, tp.y - 12, "GATE OPEN");
@@ -4062,7 +4170,14 @@
 
   function startHack(u) {
     if (state.fence && state.fence.open) return;
-    if (state.hack && document.getElementById("overlay").classList.contains("show") && !document.getElementById("panel-hack").classList.contains("hidden")) return;
+    if ((state.hackCool || 0) > 0) return;
+    if (u && u.crew) u.job = "hack";
+    if (state.hack) {
+      applyHackTeam();
+      const ov = document.getElementById("overlay");
+      const pan = document.getElementById("panel-hack");
+      if (ov && ov.classList.contains("show") && pan && !pan.classList.contains("hidden")) return;
+    }
     const who = u || selected()[0] || state.units.find((x) => x.crew.hp > 0);
     const hack = who && who.crew ? clamp(who.crew.hack, 1, 12) : 1;
     if (hack >= 12) {
@@ -4078,14 +4193,38 @@
       who: who ? who.crew.name.split(" ")[0] : "",
       crew: who && who.crew,
     };
+    applyHackTeam();
+    if (!state.hack) return;
     nextHackRound();
     showPanel("panel-hack");
+    document.getElementById("overlay").classList.add("hack-live");
     sfx("hack");
+    radio(unitsAtTerm().length > 1 ? "stack on the box" : "hack the terminal");
   }
+
+  function abortHack(msg) {
+    sfx("click");
+    radio(msg === "LOCKOUT" ? "lockout, fall back" : "abort, abort");
+    state.hack = null;
+    state.hackCool = 2.8;
+    hideOverlay();
+    const tp = termPos();
+    if (tp) float(tp.x, tp.y - 12, msg || "ABORT");
+    state.units.forEach((u) => {
+      if (u.job === "hack") u.job = "fight";
+    });
+  }
+
+  function normCaptcha(s) {
+    return String(s || "")
+      .replace(/\s+/g, "")
+      .toLowerCase();
+  }
+
   document.getElementById("hackGo").onclick = () => {
     if (!state.hack || !state.fence) return;
-    const v = (document.getElementById("hackIn").value || "").toUpperCase().replace(/\s/g, "");
-    if (v === state.hack.code) {
+    const v = normCaptcha(document.getElementById("hackIn").value);
+    if (v && v === normCaptcha(state.hack.code)) {
       state.hack.done += 1;
       sfx("catch");
       if (state.hack.done >= state.hack.need) openGate(state.hack.crew);
@@ -4094,15 +4233,12 @@
       state.hack.tries -= 1;
       sfx("fail");
       if (state.hack.tries <= 0) {
-        hideOverlay();
-        const tp = termPos();
-        if (tp) float(tp.x, tp.y - 12, "LOCKOUT");
-      } else document.getElementById("hackHint").textContent = "Wrong. Tries " + state.hack.tries + ".";
+        abortHack("LOCKOUT");
+      } else document.getElementById("hackHint").textContent = "Wrong. Tries " + state.hack.tries + ". Caps don't matter.";
     }
   };
   document.getElementById("hackBack").onclick = () => {
-    sfx("click");
-    hideOverlay();
+    abortHack();
   };
   document.getElementById("goBtn").onclick = deploy;
   document.getElementById("marketBtn").onclick = () => {
@@ -4295,6 +4431,7 @@
       u.ty = state.extract.y;
     });
     sfx("extract");
+    radio("exfil now");
     float(state.extract.x, state.extract.y - 20, "EXTRACT · ALL LIVING");
   };
   document.querySelectorAll("#orders [data-order]").forEach((b) => {
