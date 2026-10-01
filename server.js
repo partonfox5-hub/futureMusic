@@ -1,4 +1,4 @@
-﻿try { require('dotenv').config(); } catch (e) { /* dotenv not installed */ }
+try { require('dotenv').config(); } catch (e) { /* dotenv not installed */ }
 const express = require('express');
 const app = express();
 
@@ -38,7 +38,12 @@ const storage = new Storage({
 const bucketName = process.env.GCS_BUCKET_NAME || 'futuremusic'; 
 // -------------------------------------------------------
 
-app.set('trust proxy', 1); // Required for cross-domain cookies on GCloud
+// Cheap process probe for container health checks; does not create a session.
+app.get('/healthz', (req, res) => {
+    res.set('Cache-Control', 'no-store').status(200).json({ status: 'ok' });
+});
+
+app.set('trust proxy', 1); // One trusted reverse proxy (Cloud Run or Coolify).
 const cors = require('cors');
 const writeGate = require('./lib/write-gate');
 
@@ -868,6 +873,14 @@ let dbErrorDetail = null;
 
 const cleanConnectionName = (process.env.INSTANCE_CONNECTION_NAME || '').trim();
 const bypassHost = (process.env.DB_HOST || '').trim();
+const tcpPort = Number(process.env.DB_PORT || 3306);
+const connectionLimit = Number(process.env.DB_CONNECTION_LIMIT || 10);
+if (!Number.isInteger(tcpPort) || tcpPort < 1 || tcpPort > 65535) {
+    throw new Error('DB_PORT must be an integer between 1 and 65535');
+}
+if (!Number.isInteger(connectionLimit) || connectionLimit < 1 || connectionLimit > 100) {
+    throw new Error('DB_CONNECTION_LIMIT must be an integer between 1 and 100');
+}
 
 const DB_CONFIG = {
     user: process.env.DB_USER || '',           
@@ -886,7 +899,7 @@ if (DB_CONFIG.user && DB_CONFIG.database) {
         password: DB_CONFIG.password,
         database: DB_CONFIG.database,
         waitForConnections: true,
-        connectionLimit: 10,
+        connectionLimit,
         queueLimit: 0
     };
 
@@ -894,7 +907,7 @@ if (DB_CONFIG.user && DB_CONFIG.database) {
     if (bypassHost) {
         mode = 'TCP BYPASS';
         dbConfig.host = bypassHost;
-        dbConfig.port = 3306; 
+        dbConfig.port = tcpPort;
     } else if (cleanConnectionName) {
         mode = 'UNIX SOCKET';
         dbConfig.socketPath = `/cloudsql/${cleanConnectionName}`;
@@ -942,6 +955,18 @@ if (DB_CONFIG.user && DB_CONFIG.database) {
     dbConnectionStatus = "CONFIG_MISSING";
     dbErrorDetail = "Environment variables missing.";
 }
+
+// Verify the restored MySQL database separately from process health before cutover.
+app.get('/readyz', async (req, res) => {
+    res.set('Cache-Control', 'no-store');
+    if (!pool) return res.status(503).json({ status: 'database_unavailable' });
+    try {
+        await pool.query({ sql: 'SELECT 1', timeout: 3000 });
+        return res.status(200).json({ status: 'ready' });
+    } catch (_) {
+        return res.status(503).json({ status: 'database_unavailable' });
+    }
+});
 
 // Helper to query DB
 async function query(sql, params) {
