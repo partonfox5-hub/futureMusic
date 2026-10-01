@@ -27,15 +27,9 @@ process.on('unhandledRejection', (reason, promise) => {
 const PRINTIFY_TOKEN = process.env.PRINTIFY_API_TOKEN;
 const PRINTIFY_SHOP_ID = process.env.PRINTIFY_SHOP_ID || '4210003';
 
-// --- NEW CODE: Google Cloud Storage Setup ---
-const { Storage } = require('@google-cloud/storage');
-
-// --- FIX: Explicit Project ID & Bucket Configuration ---
-const storage = new Storage({ 
-    // We explicitly set your Project ID here to prevent "Unknown Project" errors
-    projectId: process.env.GOOGLE_CLOUD_PROJECT || 'futuremusic'
-});
-const bucketName = process.env.GCS_BUCKET_NAME || 'futuremusic'; 
+// Google Storage remains the default; OVH S3 requires an explicit opt-in.
+const { storage, bucketName, provider: objectStorageProvider } =
+    require('./lib/object-storage').createObjectStorage();
 // -------------------------------------------------------
 
 // Cheap process probe for container health checks; does not create a session.
@@ -270,22 +264,24 @@ const memoryCarts = {};
 //app.use(bodyParser.urlencoded({ extended: true }));
 
 // --- DIAGNOSTIC: IDENTITY CHECK ---
-const options = {
-    hostname: 'metadata.google.internal',
-    port: 80,
-    path: '/computeMetadata/v1/instance/service-accounts/default/email',
-    method: 'GET',
-    headers: { 'Metadata-Flavor': 'Google' }
-};
-const reqAuth = http.request(options, (resAuth) => {
-    let data = '';
-    resAuth.on('data', (chunk) => data += chunk);
-    resAuth.on('end', () => {
-        console.log("ðŸ•µï¸ IDENTITY CHECK: This container is running as:", data.trim());
+if (objectStorageProvider === 'gcs') {
+    const options = {
+        hostname: 'metadata.google.internal',
+        port: 80,
+        path: '/computeMetadata/v1/instance/service-accounts/default/email',
+        method: 'GET',
+        headers: { 'Metadata-Flavor': 'Google' }
+    };
+    const reqAuth = http.request(options, (resAuth) => {
+        let data = '';
+        resAuth.on('data', (chunk) => data += chunk);
+        resAuth.on('end', () => {
+            console.log("ðŸ•µï¸ IDENTITY CHECK: This container is running as:", data.trim());
+        });
     });
-});
-reqAuth.on('error', (e) => console.log("ðŸ•µï¸ IDENTITY CHECK FAILED:", e.message));
-reqAuth.end();
+    reqAuth.on('error', (e) => console.log("ðŸ•µï¸ IDENTITY CHECK FAILED:", e.message));
+    reqAuth.end();
+}
 
 
 // --- CACHE & CSP HEADERS ---
@@ -1754,14 +1750,14 @@ const evidenceCatalog = [
         id: 'video_evidence_1', 
         title: 'Video Evidence 1 (External)', 
         type: 'video', 
-        url: 'https://storage.googleapis.com/futuremusic/evidence/video1.mp4', 
+        url: `${(process.env.EVIDENCE_BASE_URL || 'https://storage.googleapis.com/futuremusic/evidence').replace(/\/$/, '')}/video1.mp4`,
         documentHash: 'Pending Verification' 
     },
     { 
         id: 'video_evidence_2', 
         title: 'Video Evidence 2 (External)', 
         type: 'video', 
-        url: 'https://storage.googleapis.com/futuremusic/evidence/video2.mp4', 
+        url: `${(process.env.EVIDENCE_BASE_URL || 'https://storage.googleapis.com/futuremusic/evidence').replace(/\/$/, '')}/video2.mp4`,
         documentHash: 'Pending Verification' 
     }
 ];
@@ -3378,8 +3374,7 @@ app.post('/api/game/record-win', writeGate.rateLimit("record-win", 60, 60 * 1000
 // --- NEW ROUTE: Secure Ad Streaming from GCS ---
 app.get('/api/ad-video/:filename', async (req, res) => {
     const { filename } = req.params;
-    // Using the bucket name found in your screenshot
-    const bucketName = 'futuremusic'; 
+    // The configured logical bucket maps to the private S3 destination when opted in.
     const filePath = `ads/${filename}`;
 
     try {
@@ -3712,7 +3707,7 @@ app.get("/api/hero-slayer/download", async (req, res) => {
     const targetBucket = process.env.GCS_BUCKET_NAME || bucketName || "futuremusic";
     const gcsPath = HERO_SLAYER_GCS_PATH; // downloads/hero-slayer-alpha.zip
 
-    // Prefer GCS signed URL (production Cloud Run â€” zip is not in the git image)
+    // Prefer a signed object-storage URL; the large ZIP is not in the git image.
     try {
         const file = storage.bucket(targetBucket).file(gcsPath);
         const [exists] = await file.exists();
@@ -3724,18 +3719,20 @@ app.get("/api/hero-slayer/download", async (req, res) => {
                 responseDisposition: 'attachment; filename="hero-slayer-alpha.zip"',
             };
             try {
-                const [serviceAccountEmail] = await storage.getServiceAccount();
-                if (serviceAccountEmail && serviceAccountEmail.email_address) {
-                    options.serviceAccountEmail = serviceAccountEmail.email_address;
+                if (typeof storage.getServiceAccount === 'function') {
+                    const [serviceAccountEmail] = await storage.getServiceAccount();
+                    if (serviceAccountEmail && serviceAccountEmail.email_address) {
+                        options.serviceAccountEmail = serviceAccountEmail.email_address;
+                    }
                 }
             } catch (_) { /* ADC may still sign without this */ }
             const [url] = await file.getSignedUrl(options);
-            console.log(`[HERO-SLAYER] Redirecting to signed GCS URL gs://${targetBucket}/${gcsPath}`);
+            console.log(`[HERO-SLAYER] Redirecting to signed ${objectStorageProvider} object URL`);
             return res.redirect(url);
         }
-        console.warn(`[HERO-SLAYER] GCS object missing: gs://${targetBucket}/${gcsPath}`);
+        console.warn(`[HERO-SLAYER] ${objectStorageProvider} object missing: ${targetBucket}/${gcsPath}`);
     } catch (gcsErr) {
-        console.error("[HERO-SLAYER] GCS signed URL failed:", gcsErr.message);
+        console.error("[HERO-SLAYER] Object-storage signed URL failed:", gcsErr.message);
     }
 
     // Fallback: local file (dev machine with zip on disk)
@@ -3814,21 +3811,18 @@ app.get('/api/download/:sku', async (req, res, next) => {
         const fileName = products[0].download_reference;
         const filePath = `songs/${fileName}`;
 
-        // --- FIX START: Identity Check & Options ---
-        // 1. Detect who is running this code
-        // We use the storage auth client to find the active Service Account email
-        const [serviceAccountEmail] = await storage.getServiceAccount();
-        console.log(`[DOWNLOAD] Current Service Account Email: ${serviceAccountEmail.email_address}`);
-        console.log(`[DOWNLOAD] Attempting to sign URL for: gs://${targetBucket}/${filePath}`);
-
         // 5. GENERATE SIGNED URL
         const options = {
             version: 'v4',
             action: 'read',
             expires: Date.now() + 15 * 60 * 1000, // 15 minutes
-            // Explicitly set the account email to help the signer
-            serviceAccountEmail: serviceAccountEmail.email_address 
         };
+        // Google signing needs its service-account identity; S3 uses its scoped key.
+        if (typeof storage.getServiceAccount === 'function') {
+            const [serviceAccountEmail] = await storage.getServiceAccount();
+            options.serviceAccountEmail = serviceAccountEmail.email_address;
+        }
+        console.log(`[DOWNLOAD] Signing a private ${objectStorageProvider} object read`);
 
         const [url] = await storage
             .bucket(targetBucket)

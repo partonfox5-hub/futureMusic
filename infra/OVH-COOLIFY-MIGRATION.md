@@ -1,8 +1,8 @@
 # FutureMusic staging on the shared 8 GB OVH VPS
 
 Source reviewed: `master` at `8dd2334b79e7170b65d8945487bfed6481c6073b`.
-This preparation leaves the current Google Cloud build/deployment and storage
-behavior intact. It does not copy data, change DNS, or provision a server.
+This preparation leaves the current Google Cloud build/deployment and default
+storage behavior intact. It does not copy data, change DNS, or provision a server.
 
 ## Application setup
 
@@ -65,11 +65,55 @@ The reviewed default bucket is `futuremusic`. Known operations/object paths:
 Ad streaming currently hardcodes `futuremusic`; other download routes mostly
 use `GCS_BUCKET_NAME`. Confirm actual Cloud Run environment values and enumerate
 all bucket objects, versions, metadata, ACLs and size before deciding where to
-copy them. An OVH S3 adapter must cover listing, reads, writes, deletes,
-existence checks and signed URLs while preserving private purchase checks.
-Direct evidence URLs also need updating. Do not delete the Google bucket until
+copy them. The opt-in OVH S3 adapter covers listing, reads, writes, deletes,
+existence checks and signed read URLs while preserving private purchase checks.
+Direct evidence URLs still require access review. Do not delete the Google bucket until
 object counts/checksums, private downloads and map save/delete/revision behavior
 have passed tests on the destination.
+
+## Optional private OVH S3 storage
+
+`OBJECT_STORAGE_PROVIDER` defaults to `gcs`. Select `s3` only after the imported
+copy has been verified. The adapter maps the one logical `GCS_BUCKET_NAME`
+to the explicit destination `S3_BUCKET_NAME`, retaining every object key.
+Supply `S3_ENDPOINT` (HTTPS service endpoint, without a bucket path),
+`S3_REGION`, `S3_ACCESS_KEY_ID`, and `S3_SECRET_ACCESS_KEY` in Coolify secrets.
+Use `S3_FORCE_PATH_STYLE=true` only if required by the chosen endpoint/bucket;
+virtual-hosted access is the default. Confirm the region/endpoint in OVH rather
+than substituting the VPS region automatically.
+
+The destination must remain **private**. There is no ACL/public-upload helper
+in this adapter and no automatic bucket-policy change. Existing ownership
+checks run before paid read URLs are signed; map writes/deletes retain their
+home-write middleware. The app needs bucket listing and object read/write/delete
+permissions for its own bucket, not account-wide administration. Asset URLs
+expire after the same requested 15-minute or 1-hour interval. Browsers retrieve
+files and byte ranges directly from S3, avoiding large download buffers on the
+shared VPS. Application map reads remain buffered as in the existing GCS code.
+
+Map writes preserve JSON content type, cache control, and map revision/name
+metadata. S3 metadata keys become lowercase; non-ASCII values use RFC 2047
+encoding so the original UTF-8 text survives HTTP transport. The `resumable`
+flag on small JSON map saves maps to a normal S3 PUT. This adapter is not a
+bulk bucket migration tool and does not copy object versions, ACLs, holds or
+retention policies; those require a separately verified migration procedure.
+
+`EVIDENCE_BASE_URL` optionally replaces the base of the two evidence-video
+URLs. Its default remains the existing Google URL, including in S3 mode.
+Do **not** point it at an unsigned private S3 URL or make the bucket public.
+First verify whether those two source objects are intentionally public, and
+provide an authorized serving mechanism with the same visibility. This remains
+a cutover prerequisite; the adapter does not add a public evidence-signing route.
+
+Run `npm run test:storage` for offline adapter, pagination, private signing,
+paid ownership, and actual Zoom/Horde handler round-trip tests. These use fake
+credentials and an in-memory S3 client; they do not contact cloud storage.
+They do not replace a destination smoke test for OVH permissions, browser
+range responses, imported objects, metadata and content disposition.
+
+Implementation references: [AWS SDK v3 S3 examples](https://docs.aws.amazon.com/sdk-for-javascript/v3/developer-guide/javascript_s3_code_examples.html),
+[AWS object metadata](https://docs.aws.amazon.com/AmazonS3/latest/userguide/UsingMetadata.html),
+[OVH S3 endpoint formats](https://docs.ovhcloud.com/en/guides/storage-and-backup/object-storage/s3-post-object-upload).
 
 ## Disk, builds, and mutable paths
 

@@ -4,9 +4,12 @@
   "description": "The Captain's Frequency (eden-vrperf1)",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "test:storage": "node --test tests/object-storage.test.js"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "3.1145.0",
+    "@aws-sdk/s3-request-presigner": "3.1145.0",
     "@google-cloud/storage": "^7.18.0",
     "adm-zip": "^0.6.0",
     "axios": "^1.15.2",
@@ -27,6 +30,6 @@
     "stripe": "^14.10.0"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.0.0"
   }
 }
