@@ -1611,11 +1611,11 @@ app.get('/domain', (req, res) => {
 
 app.get('/about', (req, res) => res.render('about', { title: 'About' }));
 app.get(['/privacy', '/privacy/'], (req, res) => res.render('privacy', {
-    title: 'Privacy Policy | Battle Sphere Arena',
-    metaDescription: 'Privacy policy for Battle Sphere Arena on the Meta Horizon Store and futuremusic.online: what data we collect, how we use it, and how to request deletion.',
+    title: 'Privacy Policy | Future Music Collective',
+    metaDescription: 'Privacy policy for Battle Sphere Arena, Shark Game, other Future Music Collective Meta Horizon Store apps, and futuremusic.online: what data we collect, how we use it, and how to request deletion.',
     canonicalUrl: 'https://futuremusic.online/privacy',
-    ogTitle: 'Privacy Policy | Battle Sphere Arena',
-    ogDescription: 'Privacy policy for Battle Sphere Arena and Future Music Collective: data collection, use, and deletion.',
+    ogTitle: 'Privacy Policy | Future Music Collective',
+    ogDescription: 'Privacy policy for Battle Sphere Arena, Shark Game, and Future Music Collective: data collection, use, and deletion.',
     skipCommerce: true,
 }));
 app.get(['/terms', '/terms/', '/tos', '/tos/'], (req, res) => res.render('terms', {
