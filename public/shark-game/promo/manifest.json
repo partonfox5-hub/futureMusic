@@ -1,0 +1,72 @@
+[
+  {
+    "Name": "01-lunge.png",
+    "Width": 2560,
+    "Height": 1440,
+    "Format": "Format24bppRgb",
+    "SHA256": "0FD80F19399C005EE2700612AADB8C298BD16FA672BD9A92DBB5A2D9E9008343"
+  },
+  {
+    "Name": "02-coral.png",
+    "Width": 2560,
+    "Height": 1440,
+    "Format": "Format24bppRgb",
+    "SHA256": "10DB804B96A4BC45CC90254916792011D057A39604E808FAA6E4D9718824B376"
+  },
+  {
+    "Name": "03-sea-life.png",
+    "Width": 2560,
+    "Height": 1440,
+    "Format": "Format24bppRgb",
+    "SHA256": "E896C2E600F69BAA7B6555D071819FA687E3E75C4BB2C7E12743C2014D6DB70B"
+  },
+  {
+    "Name": "04-damage.png",
+    "Width": 2560,
+    "Height": 1440,
+    "Format": "Format24bppRgb",
+    "SHA256": "CC9CA32135CC57C9DB9A5476CFDDB48EDC3A770E7912392595DD81842174FD36"
+  },
+  {
+    "Name": "05-blackout.png",
+    "Width": 2560,
+    "Height": 1440,
+    "Format": "Format24bppRgb",
+    "SHA256": "372673E5EC30F111B0B8841901864FF7A2FE02A252FF6167B04F63706273B9B2"
+  },
+  {
+    "Name": "Shark-Game-hero-3000x900.png",
+    "Width": 3000,
+    "Height": 900,
+    "Format": "Format24bppRgb",
+    "SHA256": "CB0DBB8B131F047EF861B37A57C850A9CBAC47E4D75B88259895D655B6933C32"
+  },
+  {
+    "Name": "Shark-Game-icon-512.png",
+    "Width": 512,
+    "Height": 512,
+    "Format": "Format24bppRgb",
+    "SHA256": "AA2A72FEA5ED847A18534B3869F149B8C7BB932628F58EA1A1E9A71D120DDDD4"
+  },
+  {
+    "Name": "Shark-Game-landscape-2560x1440.png",
+    "Width": 2560,
+    "Height": 1440,
+    "Format": "Format24bppRgb",
+    "SHA256": "1C3ADADDDF05E6053BED818610307A5DA54E28E70E6B176453BDA94C61ED06A2"
+  },
+  {
+    "Name": "Shark-Game-portrait-1008x1440.png",
+    "Width": 1008,
+    "Height": 1440,
+    "Format": "Format24bppRgb",
+    "SHA256": "D890721A5C45E2C5E1903428364AA0D0FC43C5EA9DD86FEE0B167C8E43BC7B12"
+  },
+  {
+    "Name": "Shark-Game-square-1440x1440.png",
+    "Width": 1440,
+    "Height": 1440,
+    "Format": "Format24bppRgb",
+    "SHA256": "63317F9A662479B69AB3C857C087822B31996C90C8DCF72497B21378F24116E7"
+  }
+]
