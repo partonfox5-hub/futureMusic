@@ -1,0 +1,29 @@
+<%- include('partials/header') %>
+<section class="max-w-3xl mx-auto py-12">
+  <div class="glass-card p-6 md:p-10 rounded-xl border border-teal-700">
+    <% if (error) { %>
+    <h1 class="text-3xl font-bold text-gold mb-6">Purchase verification</h1>
+    <p role="alert" class="mb-6"><%= error %></p>
+    <p><a href="/contact" class="underline">Contact support</a> · <a href="/shark-game" class="underline">Back to Shark Game</a></p>
+    <% } else { %>
+    <p class="text-teal-300 uppercase tracking-widest text-sm mb-3">Payment confirmed · US$9.99</p>
+    <h1 class="text-3xl md:text-4xl font-bold text-gold mb-6">Your dive begins here.</h1>
+    <% if (downloadReady) { %>
+    <a href="/api/shark-game/download?session_id=<%= encodeURIComponent(sessionId) %>" class="btn-gold block text-center px-6 py-4 rounded font-bold">Download Shark Game for Quest</a>
+    <p class="text-gray-300 mt-3 mb-8">Version 0.6.0 · APK · Quest 2, Pro, 3 / 3S · Touch controllers</p>
+    <% } else { %>
+    <p role="status" class="mb-6">Your payment is confirmed. The download is temporarily unavailable. Keep this page and try again shortly, or <a href="/contact" class="underline">contact support</a>.</p>
+    <% } %>
+    <h2 class="text-2xl font-bold mb-4">Install on your Quest</h2>
+    <ol class="list-decimal pl-6 space-y-3 text-gray-300 leading-relaxed">
+      <li>Download the APK to your computer.</li>
+      <li>Enable developer mode for your headset, then connect it to the computer by USB.</li>
+      <li>Use a reputable APK installer such as <a href="https://sidequestvr.com/setup-howto" target="_blank" rel="noopener noreferrer" class="underline">SideQuest</a>. Follow its official setup instructions and install the downloaded APK.</li>
+      <li>Launch Shark Game from your headset’s Unknown Sources app list and follow the in-game introduction.</li>
+    </ol>
+    <p class="mt-7 text-gray-300">Bookmark this private page for future downloads. Keep the link private. This website purchase does not create a Meta Store license.</p>
+    <p class="mt-4"><a href="/contact" class="underline">Download, installation or billing support</a> · <a href="/shark-game" class="underline">Shark Game</a></p>
+    <% } %>
+  </div>
+</section>
+<%- include('partials/footer') %>

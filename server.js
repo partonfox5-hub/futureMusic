@@ -861,6 +861,19 @@ if (process.env.STRIPE_SECRET_KEY) {
     console.warn("âš ï¸ STRIPE WARNING: STRIPE_SECRET_KEY is missing. Checkout will not work.");
 }
 
+// Direct Shark APK sales use the existing Stripe account and a private file.
+const sharkStore = require('./lib/shark-store').registerSharkStore(app, {
+    baseDir: __dirname,
+    origin: process.env.SHARK_STORE_ORIGIN || 'https://futuremusic.online',
+    production: !['localhost', '127.0.0.1'].includes(new URL(process.env.SHARK_STORE_ORIGIN || 'https://futuremusic.online').hostname),
+    livePayments: /^(sk|rk)_live_/.test(process.env.STRIPE_SECRET_KEY || ''),
+    apkPath: process.env.SHARK_APK_PATH,
+    dataDir: process.env.SHARK_ORDER_DIR,
+    getStripe: () => stripe,
+    getMailer: () => transporter,
+    mailFrom: `"Future Music Online" <${process.env.SMTP_USER || process.env.GMAIL_USER || 'noreply@futuremusic.online'}>`
+});
+
 // --- DATABASE CONNECTION ---
 let pool;
 let dbConnectionStatus = "PENDING";
@@ -3184,6 +3197,15 @@ app.post('/webhook', express.raw({type: 'application/json'}), async (request, re
 
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object;
+    if (session.metadata && session.metadata.type === 'shark_apk') {
+        try {
+            await sharkStore.fulfillPaidSession(session.id);
+            return response.json({ received: true });
+        } catch {
+            // Stripe retries delivery; do not acknowledge a failed fulfillment.
+            return response.status(503).json({ error: 'shark_fulfillment_retry' });
+        }
+    }
     if (session.metadata && session.metadata.type === "blockbuild_unlock") {
         console.log("[BLOCKBUILD] paid", session.id);
     } else if (session.metadata && session.metadata.type === "bsa_unlock") {
